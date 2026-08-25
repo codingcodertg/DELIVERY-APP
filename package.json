@@ -1,6 +1,6 @@
 {
   "name": "deliveries-app",
-  "version": "1.21.5",
+  "version": "1.22.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,16 +17,16 @@
     "@supabase/supabase-js": "^2.45.4",
     "exceljs": "^4.4.0",
     "leaflet": "^1.9.4",
-    "next": "14.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "next": "^15.5.19",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
     "@types/google.maps": "^3.65.5",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "husky": "^9.1.7",
     "typescript": "^5",
     "vitest": "^4.1.10"

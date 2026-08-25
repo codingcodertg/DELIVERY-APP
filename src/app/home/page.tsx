@@ -19,9 +19,10 @@ import type { Profile } from "@/lib/types";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const supabase = createClient();
+  const sp = await searchParams;
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -30,7 +31,7 @@ export default async function HomePage({
   // A deep-link (e.g. a notification's ?order=<id>) always wins — never trap
   // it behind the selector. Forward it into deliveries, params intact.
   const qs = new URLSearchParams(
-    Object.entries(searchParams).flatMap(([k, v]) =>
+    Object.entries(sp).flatMap(([k, v]) =>
       v == null ? [] : (Array.isArray(v) ? v : [v]).map((val) => [k, val] as [string, string]),
     ),
   ).toString();

@@ -24,7 +24,7 @@ async function authorized(req: Request): Promise<boolean> {
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("authorization") === `Bearer ${secret}`) return true;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();

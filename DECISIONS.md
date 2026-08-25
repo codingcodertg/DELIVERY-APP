@@ -3900,6 +3900,63 @@ mismo backdrop para cerrar al hacer clic afuera, mismo cálculo de
 volteo cuando no cabe a la derecha) para no introducir un componente
 nuevo. `tsc`/`vitest` (487)/`next build` limpios.
 
+## D-090 · Se invierte la fusión: deliveries-app es el anfitrión, el ERP se muda aquí
+**Fecha:** 2026-08-25 · **Versión:** v1.22.0 (deliveries) · v0.2.0 (recruiting, timetracker) · **Pedido por:** Andrés
+(*"WE WILL CHANGE THE APPROACH THIS IS NOT WORKING WE WILL MERGE THE
+ORIGINAL FILES OF THE ERP INTO THE DELIVERIES"* · *"THE VIEWS ARE
+WRONG, AND IS TAKING TOO LONG"*)
+
+**Cambio:** se revierte la dirección de la fusión. Hasta ahora
+deliveries + recruiting + timetracker se estaban reconstruyendo dentro
+de `codingcodertg/rtg-erp`. A partir de aquí el anfitrión es
+**deliveries-app**, y lo que se muda es el ERP (catálogo, compras,
+inventario, analítica). Primer paso, en este commit: subir este repo a
+**Next 15.5 + React 19**, que es la versión en la que está escrito el
+código del ERP.
+
+**Razón — y es la parte que importa:** la dirección anterior obligaba a
+*reconstruir* cada pantalla de deliveries/recruiting/timetracker en
+Tailwind sobre React 19. Reconstruir una pantalla no es moverla: sale
+parecida, no igual. Andrés lo dijo en dos palabras —
+*"the views are wrong"*— y eso no se arregla puliendo, porque el
+problema no era el acabado sino el método. Además era lento, que fue
+la segunda queja. Al invertir la dirección, las pantallas que el
+personal usa todos los días **no se tocan**: son los archivos
+originales. Lo que se reconstruye es el ERP, y el ERP son datos de
+demostración, no el negocio real.
+
+**Por qué se sube Next en vez de bajar el ERP:** el código del ERP usa
+`params`/`searchParams` asíncronos, que es la forma de Next 15. Bajarlo
+a Next 14 significaría reescribir cada página del ERP y quedarnos en
+una versión vieja, divergiendo para siempre. Subir este repo es un solo
+paso arriesgado, hecho una vez, con las pruebas como red.
+
+**Superficie real del cambio de versión (fue chica):** solo dos
+ficheros usaban `cookies()` y cinco recibían `params`. `cookies()` pasa
+a ser asíncrono en Next 15, así que `createClient()` del servidor pasa
+a ser `async` y sus 13 llamantes la esperan; las cuatro rutas con
+`params` los reciben como promesa. `track/[id]` es un componente de
+cliente y no puede ser `async`, así que desenvuelve con `React.use()`.
+
+**Hallazgo de paso:** `src/lib/recruiting/supabase/server.ts` no lo
+importa nadie. Queda como estaba, anotado aquí para no volver a
+descubrirlo.
+
+**Consecuencia aceptada:** el trabajo hecho en rtg-erp (30 pantallas
+portadas, migraciones v4_68–v4_93) deja de ser el camino principal. No
+se tira: los seis agujeros de seguridad que aparecieron ahí son
+agujeros que **también existen aquí** —el estrechamiento de lectura por
+rol que nunca se aplicó en ninguno de los dos sistemas, el banco de
+preguntas escribible por cualquier reclutador, `active` de timetracker
+que cada quien podía cambiarse— y hay que cerrarlos en este repo
+también. Eso va aparte, no en esta entrada.
+
+**Verificación:** `tsc` limpio · `vitest` 487/487 (idéntico al baseline
+antes de subir) · `next build` compila, 61 páginas. Ninguna prueba
+cambió de resultado con el salto de versión.
+
+---
+
 ---
 
 <!-- PLANTILLA — copia esto para una entrada nueva

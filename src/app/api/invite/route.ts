@@ -17,7 +17,7 @@ function generatePassword(): string {
 
 export async function POST(req: Request) {
   // 1) Who is calling? Must be a signed-in admin.
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

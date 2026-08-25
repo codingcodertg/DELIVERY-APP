@@ -5,7 +5,7 @@ import { logSecurity } from "@/lib/security-log-server";
 
 export async function POST(req: Request) {
   // 1) Caller must be a signed-in admin.
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

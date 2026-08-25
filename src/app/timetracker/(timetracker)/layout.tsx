@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // already use independently of each other — this is the third, independent
 // copy of that pattern, not a new one.
 export default async function TimetrackerLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient(); // deliveries' client — public schema, shared identity
+  const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
     data: { user },
   } = await supabase.auth.getUser();
