@@ -1,0 +1,135 @@
+/* ===========================================================================
+   ERP styles — Tailwind 4, deliberately WITHOUT preflight (D-090).
+   ===========================================================================
+
+   The ERP screens are written in Tailwind; the rest of this app is hand-written
+   CSS that predates it by a year. Tailwind's preflight is a global reset — it
+   would strip margins, list markers and border styles from every deliveries,
+   recruiting and timetracker screen too, and none of those were built expecting
+   it. So preflight is not imported at all.
+
+   Instead the reset is re-created below, scoped under [data-app="erp"], which
+   the ERP layout puts on its wrapper. Tailwind's UTILITIES stay global — that is
+   harmless, because a `.rounded-lg` nobody writes in the old screens does
+   nothing to them.
+
+   The one thing to be careful about: do not add `@import "tailwindcss"` here.
+   That pulls preflight back in and the damage is silent and app-wide. */
+
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Tailwind 4 scans for class names; be explicit rather than relying on
+   auto-detection, so a class used only in an ERP component still gets emitted. */
+@source "../../components/erp";
+@source "../erp";
+
+/* Brand accent — warm clay. Primary buttons, active states, links, focus rings,
+   selected rows. NOT for status, which keeps green/red/amber/blue. */
+@theme {
+  --color-clay-50: #faf1ec;
+  --color-clay-100: #f3e2da;
+  --color-clay-200: #e7c6b6;
+  --color-clay-500: #b05a3c;
+  --color-clay-600: #97492f;
+  --color-clay-700: #7e3d28;
+}
+
+/* --- The scoped stand-in for preflight ---------------------------------- */
+
+[data-app="erp"],
+[data-app="erp"] *,
+[data-app="erp"] *::before,
+[data-app="erp"] *::after {
+  box-sizing: border-box;
+  /* Tailwind's border utilities assume a solid 0-width border by default. */
+  border-width: 0;
+  border-style: solid;
+}
+
+[data-app="erp"] {
+  background-color: #f2f4f7;
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+}
+
+[data-app="erp"] h1,
+[data-app="erp"] h2,
+[data-app="erp"] h3,
+[data-app="erp"] h4,
+[data-app="erp"] p,
+[data-app="erp"] figure,
+[data-app="erp"] blockquote,
+[data-app="erp"] dl,
+[data-app="erp"] dd {
+  margin: 0;
+}
+
+[data-app="erp"] h1,
+[data-app="erp"] h2,
+[data-app="erp"] h3,
+[data-app="erp"] h4 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+[data-app="erp"] ol,
+[data-app="erp"] ul,
+[data-app="erp"] menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+[data-app="erp"] table {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+
+[data-app="erp"] a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+[data-app="erp"] button,
+[data-app="erp"] input,
+[data-app="erp"] optgroup,
+[data-app="erp"] select,
+[data-app="erp"] textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+[data-app="erp"] button,
+[data-app="erp"] [type="button"],
+[data-app="erp"] [type="submit"] {
+  appearance: button;
+  background-color: transparent;
+  background-image: none;
+  cursor: pointer;
+}
+
+[data-app="erp"] img,
+[data-app="erp"] svg,
+[data-app="erp"] video,
+[data-app="erp"] canvas {
+  display: block;
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
+}
+
+[data-app="erp"] hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
