@@ -68,6 +68,12 @@
 .tab { padding: 8px 16px; border-radius: 8px; color: #c6cede; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-block; }
 .tab.active { background: var(--accent); color: #fff; }
 .tab:hover:not(.active) { background: rgba(255,255,255,.08); }
+/* Icon-only controls in the topbar (hub, module switcher, notifications). They
+   inherit .tab's 13px, which is sized for words — a lone glyph at that size
+   reads as small and is a poor tap target. Bigger glyph, tighter horizontal
+   padding so the row does not grow. Deliberately NOT a change to .tab itself:
+   the lettered tabs beside them are the right size already. */
+.tab-icon { font-size: 20px; line-height: 1; padding: 6px 10px; }
 
 /* Name/avatar in the top bar doubles as the link to the account view. */
 .account-link { cursor: pointer; transition: background .12s ease; }

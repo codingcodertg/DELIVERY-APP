@@ -248,15 +248,31 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               {granted && (
                 <div style={{ marginTop: 0 }}>
                   <div className="grid g2">
-                    <div className="field">
-                      <label>{t("Role", "Rol")}</label>
-                      <select
-                        value={currentRole ?? defaultRole}
-                        onChange={(e) => setModuleRole(m.key, e.target.value)}
-                      >
-                        {m.roleKeys.map((r) => <option key={r} value={r}>{m.roleLabel(r, lang)}</option>)}
-                      </select>
-                    </div>
+                    {/* A module with no role tier of its own (the ERP) rendered an
+                        EMPTY <select> here, which reads as "the roles are missing"
+                        rather than "this module has no roles". Say which dial
+                        actually governs it instead. */}
+                    {m.roleColumn ? (
+                      <div className="field">
+                        <label>{t("Role", "Rol")}</label>
+                        <select
+                          value={currentRole ?? defaultRole}
+                          onChange={(e) => setModuleRole(m.key, e.target.value)}
+                        >
+                          {m.roleKeys.map((r) => <option key={r} value={r}>{m.roleLabel(r, lang)}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="field">
+                        <label>{t("Role", "Rol")}</label>
+                        <div className="hint" style={{ marginTop: 4 }}>
+                          {t(
+                            "The ERP has no role of its own. Cost and margin are visible to Admin and Office Manager — set above, under Deliveries.",
+                            "El ERP no tiene rol propio. El costo y el margen los ven Administrador y Gerente de Oficina — se define arriba, en Entregas."
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {/* Deliveries-specific extras — not part of the generic
                         module shape, because no other module needs them and
                         they're tied to specific deliveries role values. */}

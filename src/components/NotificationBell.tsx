@@ -89,7 +89,7 @@ export function NotificationBell() {
     <div className="notif-wrap">
       <button
         ref={btnRef}
-        className="tab notif-btn"
+        className="tab tab-icon notif-btn"
         style={{ background: "rgba(255,255,255,.1)" }}
         onClick={toggle}
         title="Notifications"

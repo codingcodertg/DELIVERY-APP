@@ -93,7 +93,7 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
           nothing to switch to but does have Users waiting at /home. */}
       <Link
         href="/home"
-        className="tab"
+        className="tab tab-icon"
         aria-label={t("Back to module picker", "Volver al selector de módulos")}
         title={t("Back to module picker", "Volver al selector de módulos")}
       >
@@ -103,7 +103,7 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
       {canSwitch && (
         <div style={{ position: "relative" }}>
           <button
-            className="tab"
+            className="tab tab-icon"
             onClick={() => setOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={open}

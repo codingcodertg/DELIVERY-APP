@@ -22,7 +22,13 @@ export default function LoginPage() {
   // Where to return after signing in — set by middleware.ts when a guarded
   // route bounced here signed-out (e.g. `/timetracker`). Falls back to `/`,
   // same as before this existed.
-  const [next, setNext] = useState("/");
+  // Land on the hub, not on deliveries. Someone with the ERP, Recruiting or Time
+  // Tracker should choose where they are going rather than be dropped into one
+  // app (D-090). This is safe for everybody else because /home already bounces
+  // anyone with fewer than two destinations onward via landingRoute() — so a
+  // driver still lands on /driver and a sales rep still lands on the board.
+  // An explicit ?next= from a deep link still wins over this.
+  const [next, setNext] = useState("/home");
 
   // Prefill the last-remembered email so returning users don't retype it.
   useEffect(() => {
