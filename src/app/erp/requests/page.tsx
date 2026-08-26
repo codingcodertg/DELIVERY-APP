@@ -45,7 +45,7 @@ export default async function RequestsPage() {
       )
     : [];
   const profs = requesterIds.length
-    ? unwrap(await supabase.from("profiles").select("id,full_name").in("id", requesterIds), "requests: profiles")
+    ? unwrap(await supabase.schema("public").from("profiles").select("id,full_name").in("id", requesterIds), "requests: profiles")
     : [];
   const { count: newCount } = await supabase
     .from("product_requests")

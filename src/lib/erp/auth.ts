@@ -36,6 +36,9 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
   if (!user) return null;
 
   const { data: profile } = await supabase
+    // profiles is the SHARED identity table in public — the erp-bound client would
+    // otherwise look for erp.profiles, which does not exist.
+    .schema("public")
     .from("profiles")
     .select("role, full_name, module_access, recruiting_role, timetracker_role, store")
     .eq("id", user.id)
