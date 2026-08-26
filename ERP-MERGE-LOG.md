@@ -141,6 +141,34 @@ Measured, as an authenticated admin: grid page 1.9s -> 0.7s, count 1.0s -> 0.6s.
 Behaviour is identical; the helpers are STABLE, so one evaluation per query is
 the same answer as one per row.
 
+## Storage — the part the row counts did not cover
+
+Found by opening a purchase order: the page said the stored PDF could not be
+opened. It was right, and the cause was mine.
+
+The migration moved 84,454 ROWS. It did not move a single FILE. Supabase storage
+buckets and their objects live outside the tables that were copied, so
+`po-docs` and `product-images` simply did not exist here, while
+`products.image_path` and `purchase_orders.source_pdf_ref` happily pointed at
+them. Every row referencing a file was intact and every file was missing —
+which is the worst shape for this to be in, because nothing errors until
+somebody opens the document.
+
+Both buckets recreated with the source's visibility (po-docs private,
+product-images public) and every object copied:
+
+  po-docs           1 file    81 kB
+  product-images  502 files   28 MB
+
+Verified as equal counts and equal bytes against the source. Neither bucket has
+RLS policies of its own upstream — po-docs is reached only through signed URLs
+from the service-role client, product-images is public — so there was nothing
+else to bring across.
+
+Worth remembering for any future move: "the row counts match" says nothing about
+storage. `resumes`, `app` and `timetracker-screenshots` already existed here and
+were untouched.
+
 ## Still open
 
 - **Notion is not updated.** CLAUDE.md requires it in the same session; the
