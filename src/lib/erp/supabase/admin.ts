@@ -24,7 +24,7 @@ export function adminKey(): string {
   if (!legacy) {
     throw new Error(
       "No Supabase service key in this environment. Set SUPABASE_SECRET_KEY to the project's " +
-        "`sb_secret_…` key — the legacy service_role JWT is disabled and returns 401."
+        "`sb_secret_…` key (SUPABASE_SERVICE_ROLE_KEY is still read as a fallback)."
     );
   }
   // A JWT-shaped value is a legacy key. Say so once, at the source, instead of letting a 401
@@ -32,15 +32,18 @@ export function adminKey(): string {
   if (legacy.startsWith("eyJ") && !warnedLegacy) {
     warnedLegacy = true;
     console.warn(
-      "[supabase/admin] Using the legacy SUPABASE_SERVICE_ROLE_KEY. Legacy keys are disabled on " +
-        "this project and will fail with 401 — set SUPABASE_SECRET_KEY instead."
+      "[supabase/admin] Using the legacy SUPABASE_SERVICE_ROLE_KEY. It still works on this " +
+        "project, but Supabase is retiring the format — prefer SUPABASE_SECRET_KEY (sb_secret_…)."
     );
   }
   return legacy;
 }
 
 export function createAdminClient() {
+  // Bound to the `erp` schema like the other two clients (D-090) — the tables this
+  // reaches (products, vendors) live there, not in public.
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, adminKey(), {
+    db: { schema: "erp" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

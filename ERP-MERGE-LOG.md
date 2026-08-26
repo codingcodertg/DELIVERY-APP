@@ -89,5 +89,7 @@ passed while proving nothing, because every role saw zero.
 - **Notion is not updated.** CLAUDE.md requires it in the same session; the
   token has never been provided to the assistant.
 - `src/lib/recruiting/supabase/server.ts` has no importers — dead, left as-is.
-- rtg-erp's own API routes (`/api/jobs/refresh-daltile-matches`,
-  `/api/master-export`) were not ported.
+- The Daltile refresh job needs `JOBS_SECRET`, `WAREHOUSE_CATALOG_URL` and
+  `WAREHOUSE_READ_TOKEN` in the environment. Without them it returns a 500
+  naming the missing variable, which is the honest failure — it is not wired to
+  a cron here either.

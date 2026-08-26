@@ -21,3 +21,10 @@ next-env.d.ts
 # (google-services.json is NOT here on purpose: it ships inside every APK.)
 *firebase-adminsdk*.json
 service-account*.json
+
+# Scratch files from API/database work. _k.json once held revealed Supabase API
+# keys and was caught by GitHub push protection on the way out — ignored here so
+# a stray one can never be staged again.
+_*.json
+q.json
+q[0-9].json
