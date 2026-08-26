@@ -89,11 +89,14 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
+        {/* The sign-in page is the front door to every module now, not just
+            deliveries (D-090) — the ERP, Recruiting and Time Tracker all land
+            here first, so the brand is the company rather than one app. */}
         <h1>
-          RDZ<span>·DELIVERIES</span>
+          RODRIGUEZ TILE GROUP<span>·HUB</span>
         </h1>
         <p style={{ color: "var(--gray)", marginBottom: 20, fontSize: 13 }}>
-          {mode === "signin" ? "Sign in to the deliveries workspace" : "Create your account"}
+          {mode === "signin" ? "Sign in to your workspace" : "Create your account"}
         </p>
 
         {mode === "signup" && (

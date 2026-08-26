@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
+import { ErpNavProvider } from "@/components/erp/nav-state";
 import "./erp.css";
 
 export const metadata: Metadata = {
@@ -43,5 +44,12 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  return <div data-app="erp">{children}</div>;
+  // ErpNavProvider owns the sidebar's collapsed state AND the padding that keeps content clear of
+  // it. The sidebar is `fixed`, so without that offset it sits on top of the page — rtg-erp applies
+  // the same lg:pl-56 from its own root layout and the port had dropped it.
+  return (
+    <div data-app="erp">
+      <ErpNavProvider>{children}</ErpNavProvider>
+    </div>
+  );
 }

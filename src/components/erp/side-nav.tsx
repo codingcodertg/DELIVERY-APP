@@ -6,6 +6,7 @@ import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
 import { hasCatalogAccess } from "@/lib/erp/domain/modules";
+import { useErpNav } from "@/components/erp/nav-state";
 
 const roleStyles: Record<string, string> = {
   admin: "border-clay-200 bg-clay-50 text-clay-700",
@@ -52,6 +53,7 @@ export function SideNav({
   // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
   // driver has no reason to browse the product master, and a list of links that all redirect is
   // worse than no list.
+  const { collapsed, toggle } = useErpNav();
   const catalog = hasCatalogAccess(role);
   const items = catalog ? ITEMS.filter((i) => !i.managerPlus || managerPlus) : [];
   const analyticsItems = catalog && managerPlus ? ANALYTICS : [];
@@ -79,11 +81,42 @@ export function SideNav({
       active(href) && "bg-clay-50 font-medium text-clay-700"
     );
 
+  const burger = (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={collapsed ? "Show menu" : "Hide menu"}
+      aria-expanded={!collapsed}
+      title={collapsed ? "Show menu" : "Hide menu"}
+      className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+    >
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+        <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+
   return (
     <>
+      {/* Collapsed: the only way back. Fixed so it stays put while the page scrolls, and
+          desktop-only because the mobile layout has its own top bar below. */}
+      {collapsed && (
+        <div className="fixed left-2 top-2 z-40 hidden lg:block">
+          <div className="rounded-md border border-slate-200 bg-white shadow-sm">{burger}</div>
+        </div>
+      )}
+
       {/* Desktop: fixed left sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-slate-200 bg-white lg:flex">
-        <div className="flex h-14 shrink-0 items-center px-4">{brand}</div>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-slate-200 bg-white",
+          collapsed ? "lg:hidden" : "lg:flex"
+        )}
+      >
+        <div className="flex h-14 shrink-0 items-center gap-1 px-2">
+          {burger}
+          <div className="min-w-0 flex-1">{brand}</div>
+        </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
           {/* Always shown. In rtg-erp this was gated on having more than one
               destination, because there the ERP could be somebody's only module.
