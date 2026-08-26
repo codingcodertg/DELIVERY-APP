@@ -14,7 +14,7 @@ type Doc = { label: string; viewUrl: string; downloadUrl: string };
 export default async function PoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // cost-bearing — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // cost-bearing — manager/admin only (#29)
   const canEdit = session.role === "admin" || session.role === "manager";
 
   const { id } = await params;
@@ -64,7 +64,7 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         {error ? (
           <div>
-            <Link href="/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700">← All orders</Link>
+            <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700">← All orders</Link>
             <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               Failed to reconcile: {error.message}
             </p>

@@ -42,7 +42,7 @@ export function ReorderPanel({
           {total.toLocaleString()} at / below reorder point{store ? ` · ${store}` : ""}
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-1">
-          <Link href="/purchasing" className={chip(!store)}>All</Link>
+          <Link href="/erp/purchasing" className={chip(!store)}>All</Link>
           {stores.map((s) => (
             <Link key={s.id} href={`/purchasing?store=${s.id}`} className={chip(store === s.id)} title={s.name}>{s.id}</Link>
           ))}

@@ -121,7 +121,7 @@ export function PoReconcile({ data, canEdit }: { data: ReconData; canEdit: boole
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700">
+        <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700">
           ← All orders
         </Link>
         <h1 className="text-2xl font-semibold">PO {po.po_number}</h1>

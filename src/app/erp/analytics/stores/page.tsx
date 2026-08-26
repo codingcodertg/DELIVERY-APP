@@ -20,7 +20,7 @@ export default async function StoreAnalytics({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // analytics use cost/margin — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // analytics use cost/margin — manager/admin only (#29)
   const sp = await searchParams;
   const period = normalizePeriod(sp?.period);
   const store = sp?.store || null;

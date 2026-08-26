@@ -22,7 +22,7 @@ export default async function PurchasingPage({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // supplier cost comparison + reorder — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // supplier cost comparison + reorder — manager/admin only (#29)
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp?.page ?? "1", 10) || 1);
   const store = sp?.store || null;
@@ -58,7 +58,7 @@ export default async function PurchasingPage({
             </p>
           </div>
           <Link
-            href="/purchasing/categories"
+            href="/erp/purchasing/categories"
             className="shrink-0 rounded-lg border border-clay-300 bg-white px-4 py-2 text-sm font-medium text-clay-700 hover:bg-clay-50"
           >
             Browse by category →

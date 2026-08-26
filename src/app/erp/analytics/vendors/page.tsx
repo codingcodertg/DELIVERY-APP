@@ -16,7 +16,7 @@ const pct = (v: number | null) => (v == null ? "—" : `${v}%`);
 export default async function VendorAnalytics({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // cost/margin surface — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // cost/margin surface — manager/admin only (#29)
   const sp = await searchParams;
   const period = normalizePeriod(sp?.period);
   const v = await getVendorStats(period);

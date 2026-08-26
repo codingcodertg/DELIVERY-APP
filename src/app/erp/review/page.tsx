@@ -23,7 +23,7 @@ export default async function ReviewPage({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/");
+  if (!canSeeCost(session.role)) redirect("/erp/catalog");
 
   const sp = await searchParams;
   const issue = sp.issue?.trim() || "all";
@@ -72,7 +72,7 @@ export default async function ReviewPage({
             </p>
           </div>
           <Link
-            href="/review/merge"
+            href="/erp/review/merge"
             className="inline-flex h-9 shrink-0 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Duplicate merge →

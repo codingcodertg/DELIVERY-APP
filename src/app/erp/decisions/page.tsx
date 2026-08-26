@@ -9,7 +9,7 @@ export const metadata = { title: "Bulk apply — RTG ERP" };
 export default async function DecisionsPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // edits incl. cost — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // edits incl. cost — manager/admin only (#29)
 
   return (
     <>

@@ -15,24 +15,24 @@ const roleStyles: Record<string, string> = {
 
 type Item = { href: string; label: string; managerPlus?: boolean };
 const ITEMS: Item[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/catalog", label: "Catalog" },
-  { href: "/purchasing", label: "Purchasing", managerPlus: true },
-  { href: "/purchasing/orders", label: "PO ↔ Proforma", managerPlus: true },
-  { href: "/purchasing/receiving", label: "Receiving", managerPlus: true },
-  { href: "/inventory", label: "Inventory", managerPlus: true },
-  { href: "/review", label: "Review", managerPlus: true },
-  { href: "/requests", label: "Approvals", managerPlus: true },
-  { href: "/po-upload", label: "PO upload", managerPlus: true },
-  { href: "/decisions", label: "Bulk apply", managerPlus: true },
-  { href: "/master", label: "Excel round-trip", managerPlus: true },
-  { href: "/request", label: "Request" },
+  { href: "/erp/dashboard", label: "Dashboard" },
+  { href: "/erp/catalog", label: "Catalog" },
+  { href: "/erp/purchasing", label: "Purchasing", managerPlus: true },
+  { href: "/erp/purchasing/orders", label: "PO ↔ Proforma", managerPlus: true },
+  { href: "/erp/purchasing/receiving", label: "Receiving", managerPlus: true },
+  { href: "/erp/inventory", label: "Inventory", managerPlus: true },
+  { href: "/erp/review", label: "Review", managerPlus: true },
+  { href: "/erp/requests", label: "Approvals", managerPlus: true },
+  { href: "/erp/po-upload", label: "PO upload", managerPlus: true },
+  { href: "/erp/decisions", label: "Bulk apply", managerPlus: true },
+  { href: "/erp/master", label: "Excel round-trip", managerPlus: true },
+  { href: "/erp/request", label: "Request" },
 ];
 const ANALYTICS: Item[] = [
-  { href: "/analytics/stores", label: "Stores", managerPlus: true },
-  { href: "/analytics/vendors", label: "Vendors", managerPlus: true },
-  { href: "/analytics/categories", label: "Categories", managerPlus: true },
-  { href: "/analytics/salespeople", label: "Salespeople", managerPlus: true },
+  { href: "/erp/analytics/stores", label: "Stores", managerPlus: true },
+  { href: "/erp/analytics/vendors", label: "Vendors", managerPlus: true },
+  { href: "/erp/analytics/categories", label: "Categories", managerPlus: true },
+  { href: "/erp/analytics/salespeople", label: "Salespeople", managerPlus: true },
 ];
 
 const MODULE_HREF: Record<ModuleKey, string> = {
@@ -73,7 +73,7 @@ export function SideNav({
   const active = (href: string) => (exact.has(href) ? pathname === href : pathname.startsWith(href));
 
   const brand = (
-    <Link href="/hub" className="flex items-baseline gap-2" title="All apps">
+    <Link href="/home" className="flex items-baseline gap-2" title="All apps">
       <span className="text-sm font-bold tracking-tight text-clay-600">RTG</span>
       <span className="text-xs text-slate-400">All apps ⌂</span>
     </Link>
@@ -99,7 +99,7 @@ export function SideNav({
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
           {modules.length + (catalog ? 1 : 0) > 1 && (
             <Link
-              href="/hub"
+              href="/home"
               className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             >
               ⌂ All apps

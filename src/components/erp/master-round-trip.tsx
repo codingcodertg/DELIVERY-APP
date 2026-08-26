@@ -180,7 +180,7 @@ export function MasterRoundTrip() {
           One row per product, keyed by the locked <code>SKU</code>. Edit only the unlocked (editable)
           columns, then re-import the same file. Cost columns appear only for managers/admins (#29).
         </p>
-        <a href="/api/master-export" className="mt-3 inline-block">
+        <a href="/api/erp/master-export" className="mt-3 inline-block">
           <Button>Download round-trip XLSX</Button>
         </a>
       </div>

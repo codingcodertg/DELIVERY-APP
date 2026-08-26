@@ -16,7 +16,7 @@ const EDITABLE = [
 export default async function RequestsPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/");
+  if (!canSeeCost(session.role)) redirect("/erp/catalog");
   const supabase = await createClient();
 
   // Unwrapped (ARC-02): the approvals queue drives writes to the golden record, so a

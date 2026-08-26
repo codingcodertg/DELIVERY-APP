@@ -63,9 +63,9 @@ export default async function DashboardPage() {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Kpi label="Products" value={s.total} dot="bg-slate-300" href="/catalog" />
+          <Kpi label="Products" value={s.total} dot="bg-slate-300" href="/erp/catalog" />
           <Kpi label="Active" value={s.active} dot="bg-emerald-400" />
-          <Kpi label="Needs review" value={s.needs_review} dot="bg-amber-400" href="/catalog?review=1" />
+          <Kpi label="Needs review" value={s.needs_review} dot="bg-amber-400" href="/erp/catalog?review=1" />
           <Kpi label="Special order" value={s.special_order} dot="bg-sky-400" />
         </div>
 
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <Link href="/catalog?review=1" className="lg:col-span-2">
+          <Link href="/erp/catalog?review=1" className="lg:col-span-2">
             <ChartCard
               title="Review burn-down"
               subtitle="open data-quality flags by type — click to work them in the catalog"
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
 
         <div className="mt-8">
           <Link
-            href="/catalog"
+            href="/erp/catalog"
             className="inline-flex h-9 items-center rounded-md bg-clay-500 px-4 text-sm font-medium text-white hover:bg-clay-600"
           >
             Open catalog →

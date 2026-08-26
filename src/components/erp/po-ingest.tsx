@@ -406,7 +406,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
                 View reconciliation →
               </Link>
             )}
-            <Link href="/purchasing/orders" className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
+            <Link href="/erp/purchasing/orders" className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
               All orders
             </Link>
           </div>

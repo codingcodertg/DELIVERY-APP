@@ -19,7 +19,7 @@ export default async function PurchasingCategories({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // purchasing — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // purchasing — manager/admin only (#29)
   const sp = await searchParams;
   const cat = sp?.cat || null;
   const supabase = await createClient();
@@ -31,7 +31,7 @@ export default async function PurchasingCategories({
       <>
         <Header />
         <main className="mx-auto max-w-screen-2xl px-4 py-6">
-          <Link href="/purchasing/categories" className="text-sm text-clay-600 hover:underline">← All categories</Link>
+          <Link href="/erp/purchasing/categories" className="text-sm text-clay-600 hover:underline">← All categories</Link>
           <h1 className="mt-2 text-2xl font-semibold">{cat}</h1>
           <p className="mb-4 text-sm text-slate-500">{first.total.toLocaleString()} products in {cat} · priced with cost (manager view, #29).</p>
           <CatalogTable
@@ -69,7 +69,7 @@ export default async function PurchasingCategories({
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <Link href="/purchasing" className="text-sm text-clay-600 hover:underline">← Purchasing</Link>
+        <Link href="/erp/purchasing" className="text-sm text-clay-600 hover:underline">← Purchasing</Link>
         <h1 className="mt-2 text-2xl font-semibold">Browse by category</h1>
         <p className="mb-4 text-sm text-slate-500">
           {cards.length} categories · click a card to see every product (priced with cost — manager view, #29).

@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/erp/utils";
 
 const TABS = [
-  { href: "/analytics/stores", label: "Stores" },
-  { href: "/analytics/vendors", label: "Vendors" },
-  { href: "/analytics/categories", label: "Categories" },
-  { href: "/analytics/salespeople", label: "Salespeople" },
+  { href: "/erp/analytics/stores", label: "Stores" },
+  { href: "/erp/analytics/vendors", label: "Vendors" },
+  { href: "/erp/analytics/categories", label: "Categories" },
+  { href: "/erp/analytics/salespeople", label: "Salespeople" },
 ];
 
 export function AnalyticsNav() {

@@ -15,7 +15,7 @@ export default async function ReceivingPage({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // receiving touches landed cost — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // receiving touches landed cost — manager/admin only (#29)
   const sp = await searchParams;
   const initialPoId = sp?.po && Number.isFinite(Number(sp.po)) ? Number(sp.po) : undefined;
 

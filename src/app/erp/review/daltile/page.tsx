@@ -29,7 +29,7 @@ type Prod = { id: number; sku: string; name: string; mpn: string | null };
 export default async function DaltileReviewPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (session.role !== "admin" && session.role !== "manager") redirect("/");
+  if (session.role !== "admin" && session.role !== "manager") redirect("/erp/catalog");
 
   const supabase = await createClient();
   const refs = unwrap(
@@ -57,7 +57,7 @@ export default async function DaltileReviewPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-xl px-4 py-6">
-        <Link href="/catalog" className="text-sm text-clay-600 hover:underline">← Catalog</Link>
+        <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline">← Catalog</Link>
         <h1 className="mt-2 text-2xl font-semibold">Daltile match review</h1>
         <p className="mt-1 text-sm text-slate-500">
           {refs.length} pending suggestion{refs.length === 1 ? "" : "s"}. Confirming a match backfills the product&apos;s

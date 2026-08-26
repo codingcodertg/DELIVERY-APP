@@ -9,7 +9,7 @@ export const metadata = { title: "Excel round-trip — RTG ERP" };
 export default async function MasterRoundTripPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // bulk write surface incl. cost — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // bulk write surface incl. cost — manager/admin only (#29)
 
   return (
     <>

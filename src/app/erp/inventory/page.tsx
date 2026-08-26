@@ -12,7 +12,7 @@ export const metadata = { title: "Inventory — RTG ERP" };
 export default async function InventoryPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // adjustments + counts are manager/admin
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // adjustments + counts are manager/admin
 
   const supabase = await createClient();
   // Unwrapped (ARC-02): an empty store list would silently disable every adjustment.

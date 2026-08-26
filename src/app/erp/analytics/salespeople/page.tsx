@@ -9,7 +9,7 @@ export const metadata = { title: "Salesperson analytics — RTG ERP" };
 export default async function SalespeopleAnalytics() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // analytics are manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // analytics are manager/admin only (#29)
 
   return (
     <>

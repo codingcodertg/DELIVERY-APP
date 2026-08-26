@@ -84,6 +84,43 @@ passed while proving nothing, because every role saw zero.
 `analytics_store_stats`, `analytics_vendor_stats`, `purchasing_groups` and the
 `inventory_qoh` view all run clean. Zero orphaned foreign keys.
 
+## The step that is not in any migration
+
+`/erp/catalog` returned "Something went wrong" in production while every
+database check passed. The cause was not SQL at all: **PostgREST only serves
+schemas listed in the project's `db_schema` setting**, which was
+`public,graphql_public,recruiting,timetracker`. `erp` was missing, so every
+query from the app failed at the API layer.
+
+Worth understanding why the checks missed it. They ran through the Management
+API's SQL endpoint, which talks to Postgres directly and bypasses PostgREST
+entirely — so "the data layer is verified" was true and still not enough. The
+app does not reach the database that way; it goes through PostgREST.
+
+Fixed by PATCHing the project's postgrest config to
+`public,graphql_public,recruiting,timetracker,erp`. It is a project setting, not
+a migration, so it does not live in `supabase/migrations/` and will NOT travel
+with a database restore or a new environment. Anyone standing this up elsewhere
+has to set it by hand.
+
+Verified afterwards through PostgREST with a real authenticated token: an admin
+gets 200 with products and cost, a driver gets 200 with an empty array.
+
+## Navigation
+
+The ERP's internal links were written when the ERP owned the site root — `/catalog`,
+`/purchasing`, `/review`, `/hub`. Rewritten to `/erp/*` across 28 files, including
+the side-nav's object-literal `href:` entries, which a JSX-attribute search misses.
+`revalidatePath()` calls needed the same treatment: they name a route, and a stale
+path silently fails to revalidate rather than erroring.
+
+`/hub` became `/home`, this app's hub.
+
+The ERP layout now also checks module access, matching what recruiting's layout
+does (D-051). Without it the database still refused every row, but somebody who
+typed /erp/catalog without access saw an empty catalog rather than being turned
+away — a broken page rather than a closed door.
+
 ## Still open
 
 - **Notion is not updated.** CLAUDE.md requires it in the same session; the

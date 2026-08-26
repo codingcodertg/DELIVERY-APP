@@ -145,7 +145,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <Link href="/catalog" className="text-sm text-clay-600 hover:underline">← Catalog</Link>
+        <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline">← Catalog</Link>
 
         {/* ─ Title row ─ */}
         <div className="mt-2 flex flex-wrap items-center gap-3">

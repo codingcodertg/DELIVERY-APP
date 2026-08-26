@@ -15,7 +15,7 @@ const FIELDS =
 export default async function MergePage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/");
+  if (!canSeeCost(session.role)) redirect("/erp/catalog");
   const supabase = await createClient();
 
   // Unwrapped (ARC-02): merge archives a product and aliases its SKU, so a failed read
@@ -47,7 +47,7 @@ export default async function MergePage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <Link href="/review" className="text-sm text-clay-600 hover:underline">
+        <Link href="/erp/review" className="text-sm text-clay-600 hover:underline">
           ← Review queue
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Duplicate merge</h1>

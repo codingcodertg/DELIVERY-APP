@@ -39,7 +39,7 @@ const statusStyles: Record<string, string> = {
 export default async function PurchaseOrdersPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // PO/proforma carry cost — manager/admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // PO/proforma carry cost — manager/admin only (#29)
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("list_purchase_orders", { p_limit: 100, p_offset: 0 });
@@ -63,13 +63,13 @@ export default async function PurchaseOrdersPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              href="/purchasing/receiving"
+              href="/erp/purchasing/receiving"
               className="rounded-lg border border-clay-300 bg-white px-4 py-2 text-sm font-medium text-clay-700 hover:bg-clay-50"
             >
               Receive
             </Link>
             <Link
-              href="/purchasing/orders/new"
+              href="/erp/purchasing/orders/new"
               className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700"
             >
               Log PO / proforma
@@ -84,7 +84,7 @@ export default async function PurchaseOrdersPage() {
         ) : orders.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
             No purchase orders logged yet.{" "}
-            <Link href="/purchasing/orders/new" className="font-medium text-clay-700 hover:underline">
+            <Link href="/erp/purchasing/orders/new" className="font-medium text-clay-700 hover:underline">
               Log your first PO →
             </Link>
           </div>

@@ -11,7 +11,7 @@ export const metadata = { title: "PO upload — RTG ERP" };
 export default async function PoUploadPage() {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
-  if (!canSeeCost(session.role)) redirect("/"); // PO costs — manager+admin only (#29)
+  if (!canSeeCost(session.role)) redirect("/erp/catalog"); // PO costs — manager+admin only (#29)
   const supabase = await createClient();
   // Unwrapped (ARC-02): an unreadable vendor list must not render as "no vendors".
   const vendors = unwrap(await supabase.from("vendors").select("id,name").order("name"), "po-upload: vendors");
