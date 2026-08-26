@@ -27,15 +27,36 @@
   --accent-soft: #1e2b45;
   --gray: #93a0b0;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', system-ui, sans-serif; background: var(--paper); color: var(--text); font-size: 14px; }
-h1, h2, h3, .display { font-family: 'Archivo', system-ui, sans-serif; }
-a { color: inherit; }
-button { font-family: inherit; cursor: pointer; border: none; background: none; font-size: 13px; }
-input, select, textarea { font-family: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; background: var(--card); color: var(--text); }
-input:disabled, select:disabled, textarea:disabled { opacity: .7; }
-input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+/* These element-level defaults are wrapped in a cascade LAYER, and that is
+   load-bearing for /erp (D-090).
+   ---------------------------------------------------------------------------
+   Unlayered declarations beat layered ones in the CSS cascade, whatever the
+   file order. globals.css loads on every route including /erp, so while these
+   rules were unlayered they beat ALL of Tailwind — `input { border-radius: 8px;
+   width: 100% }` won over `.rounded-md` and `.w-full`, and `body { font-family:
+   Inter; font-size: 14px }` won over everything the ERP set. That, not a missing
+   theme, was why the port never looked like the original.
+
+   Layer order ends up: app (declared here, root loads first) < theme < base <
+   components < utilities (declared by Tailwind in erp.css). So the ERP's
+   utilities now win inside /erp, and nothing changes anywhere else — the
+   deliveries pages have no competing layers at all, recruiting.css defines no
+   element rules, and timetracker.css defines only `body>*`.
+
+   ONLY the element rules are wrapped. The class rules below (.topbar, .card, …)
+   stay unlayered so they keep their existing precedence over the module
+   stylesheets, and they never match ERP markup anyway. */
+@layer app {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--paper); color: var(--text); font-size: 14px; }
+  h1, h2, h3, .display { font-family: 'Archivo', system-ui, sans-serif; }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; font-size: 13px; }
+  input, select, textarea { font-family: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; background: var(--card); color: var(--text); }
+  input:disabled, select:disabled, textarea:disabled { opacity: .7; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+}
 
 .topbar { background: var(--ink); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .topbar h1 { font-size: 18px; font-weight: 800; letter-spacing: .02em; }
