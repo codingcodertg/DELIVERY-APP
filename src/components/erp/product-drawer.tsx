@@ -205,7 +205,7 @@ export function ProductDrawer({
                 )}
               </label>
             ))}
-            <a href={`/product/${productId}`} className="inline-block pt-2 text-sm text-clay-600 hover:underline">
+            <a href={`/erp/product/${productId}`} className="inline-block pt-2 text-sm text-clay-600 hover:underline">
               Full detail →
             </a>
           </div>

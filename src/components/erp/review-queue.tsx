@@ -96,7 +96,7 @@ export function ReviewQueue({
       if (v === null || v === "" || v === "all") sp.delete(k);
       else sp.set(k, v);
     }
-    startTransition(() => router.push(`/review?${sp.toString()}`, { scroll: false }));
+    startTransition(() => router.push(`/erp/review?${sp.toString()}`, { scroll: false }));
   };
   const setIssue = (t: string) => setParams({ issue: t, page: null });
 
@@ -232,7 +232,7 @@ export function ReviewQueue({
                   <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="accent-clay-500" />
                 </td>
                 <td className="px-3 py-2">
-                  <Link href={`/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
+                  <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
                   <div className="font-mono text-xs text-slate-400">{r.sku}</div>
                 </td>
                 <td className="px-3 py-2">

@@ -110,7 +110,7 @@ export function PoLineLink({
   if (productId) {
     return (
       <span className="relative inline-flex items-center gap-1">
-        <Link href={`/product/${productId}`} className="text-clay-700 hover:underline">{label} ↗</Link>
+        <Link href={`/erp/product/${productId}`} className="text-clay-700 hover:underline">{label} ↗</Link>
         {canEdit && <button type="button" onClick={openPicker} className="text-[11px] text-slate-400 hover:text-slate-600">change</button>}
         {picker}
       </span>

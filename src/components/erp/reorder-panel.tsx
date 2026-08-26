@@ -44,7 +44,7 @@ export function ReorderPanel({
         <div className="ml-auto flex flex-wrap items-center gap-1">
           <Link href="/erp/purchasing" className={chip(!store)}>All</Link>
           {stores.map((s) => (
-            <Link key={s.id} href={`/purchasing?store=${s.id}`} className={chip(store === s.id)} title={s.name}>{s.id}</Link>
+            <Link key={s.id} href={`/erp/purchasing?store=${s.id}`} className={chip(store === s.id)} title={s.name}>{s.id}</Link>
           ))}
         </div>
       </div>
@@ -70,7 +70,7 @@ export function ReorderPanel({
               {items.map((it) => (
                 <tr key={`${it.product_id}-${it.store_id}`} className="border-t border-slate-100 hover:bg-slate-50/60">
                   <td className="px-4 py-2">
-                    <Link href={`/product/${it.product_id}`} className="font-medium text-clay-700 hover:underline">{it.name}</Link>
+                    <Link href={`/erp/product/${it.product_id}`} className="font-medium text-clay-700 hover:underline">{it.name}</Link>
                     <span className="ml-1 font-mono text-xs text-slate-400">{it.sku}</span>
                   </td>
                   <td className="px-4 py-2 text-slate-600">{it.vendor ?? "—"}</td>

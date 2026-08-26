@@ -211,7 +211,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
                       <td className="px-3 py-2 text-slate-500">{l.line_no ?? "—"}</td>
                       <td className="px-3 py-2">
                         {l.product_id ? (
-                          <Link href={`/product/${l.product_id}`} className="font-medium text-clay-700 hover:underline">
+                          <Link href={`/erp/product/${l.product_id}`} className="font-medium text-clay-700 hover:underline">
                             {l.name ?? l.sku ?? l.vendor_item_no ?? "—"}
                           </Link>
                         ) : (
@@ -232,7 +232,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
                             className="h-8 w-24 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
                           />
                         ) : (
-                          <Link href={`/purchasing/orders/${detail.po_id}`} className="text-xs text-clay-700 hover:underline">
+                          <Link href={`/erp/purchasing/orders/${detail.po_id}`} className="text-xs text-clay-700 hover:underline">
                             link product →
                           </Link>
                         )}

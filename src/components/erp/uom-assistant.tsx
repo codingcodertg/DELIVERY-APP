@@ -91,7 +91,7 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
           {visible.map(({ r, s, mates, outlier }) => (
             <tr key={r.id} className="border-t border-slate-100 align-top hover:bg-slate-50/60">
               <td className="px-3 py-2">
-                <Link href={`/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
+                <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
                 <div className="font-mono text-xs text-slate-400">{r.sku}</div>
                 {outlier && (
                   <div className="mt-0.5 text-xs text-amber-700">

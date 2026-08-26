@@ -402,7 +402,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
           </div>
           <div className="mt-3 flex gap-3">
             {poId != null && (
-              <Link href={`/purchasing/orders/${poId}`} className="rounded-md bg-clay-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-clay-700">
+              <Link href={`/erp/purchasing/orders/${poId}`} className="rounded-md bg-clay-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-clay-700">
                 View reconciliation →
               </Link>
             )}

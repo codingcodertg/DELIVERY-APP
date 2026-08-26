@@ -57,7 +57,7 @@ export function SideNav({
   const analyticsItems = catalog && managerPlus ? ANALYTICS : [];
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
   // /purchasing/orders highlights only its own item, not its parent.
-  const exact = new Set(["/purchasing"]);
+  const exact = new Set(["/erp/purchasing"]);
   const active = (href: string) => (exact.has(href) ? pathname === href : pathname.startsWith(href));
 
   const brand = (

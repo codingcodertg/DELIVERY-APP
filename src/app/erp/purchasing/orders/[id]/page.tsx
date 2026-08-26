@@ -75,7 +75,7 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
           <div className="space-y-5">
             <div className="flex items-center justify-end">
               <Link
-                href={`/purchasing/receiving?po=${poId}`}
+                href={`/erp/purchasing/receiving?po=${poId}`}
                 className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700"
               >
                 Receive against this PO →

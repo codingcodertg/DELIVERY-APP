@@ -135,7 +135,7 @@ export function PurchasingGroups({
                             <div className="flex items-center gap-2">
                               <Thumb path={m.image} alt={m.sku} />
                               <div className="min-w-0">
-                                <Link href={`/product/${m.id}`} className="block truncate font-medium text-slate-900 hover:text-clay-700">
+                                <Link href={`/erp/product/${m.id}`} className="block truncate font-medium text-slate-900 hover:text-clay-700">
                                   {m.name}
                                 </Link>
                                 <div className="font-mono text-xs text-slate-400">
@@ -174,7 +174,7 @@ export function PurchasingGroups({
       {pages > 1 && (
         <div className="mt-5 flex items-center justify-center gap-3 text-sm">
           {page > 1 ? (
-            <Link href={`/purchasing?page=${page - 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
+            <Link href={`/erp/purchasing?page=${page - 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
               ← Prev
             </Link>
           ) : (
@@ -182,7 +182,7 @@ export function PurchasingGroups({
           )}
           <span className="text-slate-500">Page {page} of {pages}</span>
           {page < pages ? (
-            <Link href={`/purchasing?page=${page + 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
+            <Link href={`/erp/purchasing?page=${page + 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
               Next →
             </Link>
           ) : (

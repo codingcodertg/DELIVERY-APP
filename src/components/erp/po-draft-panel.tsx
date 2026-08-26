@@ -91,7 +91,7 @@ export function PoDraftPanel({
     startTransition(async () => {
       const res = await linkDraftToProduct(productId, target.id);
       if (!res.ok) setErr(res.error);
-      else router.push(`/product/${target.id}`);
+      else router.push(`/erp/product/${target.id}`);
     });
   }
 

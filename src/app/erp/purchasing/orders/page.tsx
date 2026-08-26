@@ -108,7 +108,7 @@ export default async function PurchaseOrdersPage() {
                   {orders.map((o) => (
                     <tr key={o.id} className={cn("border-t border-slate-100 hover:bg-slate-50/60", o.has_discrepancies && "bg-red-50/40")}>
                       <td className="px-4 py-2.5">
-                        <Link href={`/purchasing/orders/${o.id}`} className="font-medium text-clay-700 hover:underline">
+                        <Link href={`/erp/purchasing/orders/${o.id}`} className="font-medium text-clay-700 hover:underline">
                           {o.po_number}
                         </Link>
                         <div className="text-xs text-slate-400">{o.po_line_count} line{o.po_line_count === 1 ? "" : "s"}</div>
@@ -136,7 +136,7 @@ export default async function PurchaseOrdersPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         {o.has_discrepancies ? (
-                          <Link href={`/purchasing/orders/${o.id}`} className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100">
+                          <Link href={`/erp/purchasing/orders/${o.id}`} className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100">
                             ⚑ {o.flagged_lines} flagged
                           </Link>
                         ) : o.ack_count > 0 ? (

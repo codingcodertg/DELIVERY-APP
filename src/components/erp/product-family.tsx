@@ -51,7 +51,7 @@ function MemberChip({
   return (
     <span className="group relative inline-flex items-center">
       <Link
-        href={`/product/${m.id}`}
+        href={`/erp/product/${m.id}`}
         className="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pl-1 pr-2.5 text-xs hover:border-clay-300 hover:bg-clay-50"
       >
         <Thumb path={m.image_path} alt={m.sku} cls="h-6 w-6" />

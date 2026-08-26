@@ -147,7 +147,7 @@ export async function inlineFix(productId: number, patch: Record<string, unknown
   const { error } = await supabase.rpc("update_product", { p_id: productId, patch: clean });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/erp/review");
-  revalidatePath(`/product/${productId}`);
+  revalidatePath(`/erp/product/${productId}`);
   return { ok: true };
 }
 
@@ -161,8 +161,8 @@ export async function addFamilyLink(productId: number, relatedId: number, relati
     p_product_id: productId, p_related_id: relatedId, p_relation: relation,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/product/${productId}`);
-  revalidatePath(`/product/${relatedId}`);
+  revalidatePath(`/erp/product/${productId}`);
+  revalidatePath(`/erp/product/${relatedId}`);
   return { ok: true };
 }
 
@@ -173,8 +173,8 @@ export async function removeFamilyLink(productId: number, relatedId: number, rel
     p_product_id: productId, p_related_id: relatedId, p_relation: relation,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/product/${productId}`);
-  revalidatePath(`/product/${relatedId}`);
+  revalidatePath(`/erp/product/${productId}`);
+  revalidatePath(`/erp/product/${relatedId}`);
   return { ok: true };
 }
 
@@ -213,7 +213,7 @@ export async function publishProduct(productId: number): Promise<Result> {
   const { error } = await supabase.rpc("publish_product", { p_id: productId });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/erp/catalog");
-  revalidatePath(`/product/${productId}`);
+  revalidatePath(`/erp/product/${productId}`);
   return { ok: true };
 }
 
@@ -407,7 +407,7 @@ export async function assignDraftSku(productId: number, sku: string): Promise<Re
   const supabase = await createClient();
   const { error } = await supabase.rpc("assign_draft_sku", { p_id: productId, p_sku: sku });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/product/${productId}`);
+  revalidatePath(`/erp/product/${productId}`);
   revalidatePath("/erp/catalog");
   revalidatePath("/erp/review");
   return { ok: true };
@@ -418,8 +418,8 @@ export async function linkDraftToProduct(draftId: number, targetId: number): Pro
   const supabase = await createClient();
   const { error } = await supabase.rpc("link_draft_to_product", { draft_id: draftId, target_id: targetId });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/product/${draftId}`);
-  revalidatePath(`/product/${targetId}`);
+  revalidatePath(`/erp/product/${draftId}`);
+  revalidatePath(`/erp/product/${targetId}`);
   revalidatePath("/erp/catalog");
   return { ok: true };
 }
@@ -648,7 +648,7 @@ export async function receivePo(
   if (error) return { ok: false, error: error.message };
   revalidatePath("/erp/purchasing/receiving");
   revalidatePath("/erp/purchasing/orders");
-  revalidatePath(`/purchasing/orders/${poId}`);
+  revalidatePath(`/erp/purchasing/orders/${poId}`);
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 
@@ -677,7 +677,7 @@ export async function receiveManual(input: {
     p_reference: input.reference ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/product/${input.productId}`);
+  revalidatePath(`/erp/product/${input.productId}`);
   revalidatePath("/erp/purchasing/receiving");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
@@ -724,7 +724,7 @@ export async function adjustInventory(input: {
   });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/erp/inventory");
-  revalidatePath(`/product/${input.productId}`);
+  revalidatePath(`/erp/product/${input.productId}`);
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 

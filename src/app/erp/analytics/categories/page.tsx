@@ -40,7 +40,7 @@ export default async function CategoryAnalytics({
         <AnalyticsControls period={period} />
 
         {parent && (
-          <Link href={`/analytics/categories?period=${period}`} className="mb-3 inline-block text-sm text-clay-700 hover:underline">← All categories</Link>
+          <Link href={`/erp/analytics/categories?period=${period}`} className="mb-3 inline-block text-sm text-clay-700 hover:underline">← All categories</Link>
         )}
 
         <div className="mb-4">
@@ -74,7 +74,7 @@ export default async function CategoryAnalytics({
                   <tr key={r.category} className="border-t border-slate-100 hover:bg-slate-50/60">
                     <td className="px-4 py-2.5 font-medium text-slate-800">
                       {parent ? r.category : (
-                        <Link href={`/analytics/categories?period=${period}&parent=${encodeURIComponent(r.category)}`} className="text-clay-700 hover:underline">{r.category}</Link>
+                        <Link href={`/erp/analytics/categories?period=${period}&parent=${encodeURIComponent(r.category)}`} className="text-clay-700 hover:underline">{r.category}</Link>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{money(r.net_sales)}</td>

@@ -103,7 +103,7 @@ function Group({
               return (
                 <tr key={r.id} className="border-t border-slate-100 align-top">
                   <td className="px-3 py-2">
-                    <Link href={`/product/${r.product_id}`} className="font-medium text-clay-600 hover:underline">
+                    <Link href={`/erp/product/${r.product_id}`} className="font-medium text-clay-600 hover:underline">
                       {p?.name ?? `#${r.product_id}`}
                     </Link>
                     <div className="font-mono text-xs text-slate-400">{p?.sku}{p?.mpn ? ` · mpn ${p.mpn}` : " · no mpn"}</div>

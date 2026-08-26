@@ -36,7 +36,7 @@ function Card({ r }: { r: CatalogRow }) {
 
   return (
     <Link
-      href={`/product/${r.id}`}
+      href={`/erp/product/${r.id}`}
       className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:ring-1 hover:ring-clay-300"
     >
       <div className="relative aspect-square overflow-hidden bg-slate-100">

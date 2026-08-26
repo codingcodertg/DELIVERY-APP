@@ -121,7 +121,7 @@ export function InventoryConsole({
               <tbody>
                 {negatives.map((n) => (
                   <tr key={`${n.product_id}-${n.store_id}`} className="border-t border-slate-100">
-                    <td className="px-4 py-2"><Link href={`/product/${n.product_id}`} className="font-medium text-clay-700 hover:underline">{n.name}</Link> <span className="font-mono text-xs text-slate-400">{n.sku}</span></td>
+                    <td className="px-4 py-2"><Link href={`/erp/product/${n.product_id}`} className="font-medium text-clay-700 hover:underline">{n.name}</Link> <span className="font-mono text-xs text-slate-400">{n.sku}</span></td>
                     <td className="px-4 py-2 text-slate-600">{storeName(n.store_id)}</td>
                     <td className="px-4 py-2 text-right font-medium tabular-nums text-red-600">{qty(n.qoh)}</td>
                   </tr>
@@ -151,7 +151,7 @@ export function InventoryConsole({
               <tbody>
                 {counts.map((c) => (
                   <tr key={c.id} className="border-t border-slate-100">
-                    <td className="px-4 py-2"><Link href={`/product/${c.product_id}`} className="font-medium text-clay-700 hover:underline">{c.name}</Link> <span className="font-mono text-xs text-slate-400">{c.sku}</span></td>
+                    <td className="px-4 py-2"><Link href={`/erp/product/${c.product_id}`} className="font-medium text-clay-700 hover:underline">{c.name}</Link> <span className="font-mono text-xs text-slate-400">{c.sku}</span></td>
                     <td className="px-4 py-2 text-slate-600">{storeName(c.store_id)}</td>
                     <td className="px-4 py-2 text-right tabular-nums text-slate-500">{qty(c.system_qty)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{qty(c.counted_qty)}</td>

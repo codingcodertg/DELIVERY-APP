@@ -92,7 +92,7 @@ export function RequestReview({
                 {label(r.type)}
               </Badge>
               {r.product ? (
-                <Link href={`/product/${r.product.id}`} className="font-medium hover:text-clay-700">
+                <Link href={`/erp/product/${r.product.id}`} className="font-medium hover:text-clay-700">
                   {r.product.name}
                 </Link>
               ) : (

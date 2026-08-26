@@ -12,7 +12,7 @@ export function CategoryCards({ cards, imgMap }: { cards: CategoryCard[]; imgMap
       {cards.map((c) => (
         <Link
           key={c.category}
-          href={`/purchasing/categories?cat=${encodeURIComponent(c.category)}`}
+          href={`/erp/purchasing/categories?cat=${encodeURIComponent(c.category)}`}
           className="block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow"
         >
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
