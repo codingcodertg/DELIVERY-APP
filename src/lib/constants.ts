@@ -186,6 +186,14 @@ export const RECRUITING_ROLE_LABELS: Record<string, { en: string; es: string }> 
 // Timetracker's own role tiers (admin|employee — see supabase/migrations/
 // 058_timetracker_access.sql). Same bilingual-relabel treatment as
 // RECRUITING_ROLE_LABELS above, for the same reason (D-064).
+// Clock-in's own tiers (employee|manager|owner — see supabase/migrations/
+// 071_clockin_access.sql). Same bilingual-relabel treatment as the two below.
+export const CLOCKIN_ROLE_LABELS: Record<string, { en: string; es: string }> = {
+  owner: { en: "Owner", es: "Dueño" },
+  manager: { en: "Manager", es: "Gerente" },
+  employee: { en: "Employee", es: "Empleado" },
+};
+
 export const TIMETRACKER_ROLE_LABELS: Record<string, { en: string; es: string }> = {
   admin: { en: "Admin", es: "Administrador" },
   employee: { en: "Employee", es: "Empleado" },
@@ -206,6 +214,15 @@ export const MODULES: ModuleInfo[] = [
   // Listed anyway because the Users dialog needs MODULE_ACCESS below wired
   // regardless, and nobody has timetracker in module_access to click this
   // card until an admin grants it.
+  {
+    key: "clockin",
+    href: "/clock-in/dashboard",
+    emoji: "🕐",
+    label_en: "Clock-in",
+    label_es: "Fichaje",
+    desc_en: "Punches, schedules and coverage",
+    desc_es: "Fichajes, horarios y cobertura",
+  },
   {
     key: "erp",
     href: "/erp/catalog",
@@ -451,7 +468,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "clockin";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -465,7 +482,7 @@ export interface ModuleAccessConfig {
    * be a duplicate of the same fact, free to drift. Access is the checkbox
    * alone. The uniqueness rule this field encodes still holds: no two modules
    * may aim at the same column, and absent is not the same as "role". */
-  roleColumn?: "recruiting_role" | "timetracker_role" | "role";
+  roleColumn?: "recruiting_role" | "timetracker_role" | "clockin_role" | "role";
   roleKeys: readonly string[];
   roleLabel: (key: string, lang: Lang) => string;
   /** Present only for an opt-in module — deliveries has none, everyone
@@ -506,6 +523,14 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleLabel: (key, lang) => (lang === "es" ? TIMETRACKER_ROLE_LABELS[key].es : TIMETRACKER_ROLE_LABELS[key].en),
     accessColumn: "module_access",
     // No capabilities yet — same as recruiting, only dial is the role tier.
+  },
+  {
+    key: "clockin", label_en: "Clock-in", label_es: "Fichaje",
+    alwaysOn: false,
+    roleColumn: "clockin_role",
+    roleKeys: Object.keys(CLOCKIN_ROLE_LABELS),
+    roleLabel: (key, lang) => (lang === "es" ? CLOCKIN_ROLE_LABELS[key].es : CLOCKIN_ROLE_LABELS[key].en),
+    accessColumn: "module_access",
   },
   {
     key: "erp", label_en: "ERP", label_es: "ERP",

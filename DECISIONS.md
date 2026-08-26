@@ -3957,6 +3957,53 @@ cambió de resultado con el salto de versión.
 
 ---
 
+## D-091 · Clock-in entra como cuarto módulo, con su propio schema
+**Fecha:** 2026-08-26 · **Versión:** v1.28.0 (deliveries) · **Pedido por:** Andrés
+(*"si tiene usuarios propios, ahora si estos tienen users con emails que ya
+están registrados solo se hará el merge y sino solo se crearán"*)
+
+**Cambio:** `codingcodertg/rtg-clock-in` (fichaje, sitios, turnos, cobertura,
+ausencias) se fusiona aquí como cuarto módulo, en `/clock-in`, con schema
+`clockin` en la base de datos. Time Tracker sigue vivo e intacto: son dos
+modelos distintos de fichar y no se tocan.
+
+**No hizo falta subir el framework.** Venía en Next 16.2, pero no usa nada
+exclusivo de esa versión — sin `use cache`, sin PPR, sin `next/form`, y ya con
+`params` asíncronos. Corre en Next 15.5 tal cual.
+
+**Su `profiles` se partió, siguiendo D-064/058.** Tenía 16 columnas y solo
+cuatro son identidad. Las otras doce (`company_id`, `phone`, `language`,
+`active`, `store_id`, `default_schedule`, `custom_schedule`, `is_runner`,
+`vehicle_id`, `position`…) son negocio del módulo y viven en
+`clockin.employee_settings`. En `public.profiles` solo entra `clockin_role`.
+
+**Y una vista de compatibilidad, `clockin.profiles`.** Ese reparto es el
+correcto para almacenar y rompe 71 puntos del código que hacen
+`.from("profiles")` esperando la forma vieja. Reescribir 71 llamadas a mano son
+71 ocasiones de equivocarse, y cada error sería una lectura silenciosa de la
+columna equivocada, no un fallo de compilación. La vista devuelve la forma
+original y su código no se toca; escribe a través de triggers `INSTEAD OF` que
+mandan cada columna a la tabla que la posee. Va con `security_invoker` — una
+vista corre como su dueño salvo que se diga lo contrario, que es como las
+vistas del ERP acabaron ignorando RLS (v4/068).
+
+**Identidad:** 11 usuarios. Cinco coincidían por email. Dos más —Patricia
+Hernández y Alberto Garza— **ya trabajaban aquí con otro correo**; se
+detectaron comparando nombres, no emails, y Andrés confirmó unificarlos. Si se
+hubiera aplicado la regla del email tal cual, tendrían cuenta duplicada y su
+historial de fichajes a nombre de otra persona. Los cuatro restantes se crearon
+**sin contraseña**: la fila existe para que su historial quede atribuido, pero
+no pueden entrar hasta que un admin les dé acceso.
+
+**Datos:** 2.766 filas de 2.766. **Storage: 545 fotos, 351 MB** — esta vez se
+migró junto con las tablas, no después de que alguien abriera un adjunto roto.
+
+**Consecuencia aceptada:** dos formas de fichar conviviendo. Es lo que se pidió
+y no se resuelve solo; si algún día una sustituye a la otra, eso es su propia
+decisión y su propia migración.
+
+---
+
 ---
 
 <!-- PLANTILLA — copia esto para una entrada nueva

@@ -1,6 +1,6 @@
 {
   "name": "deliveries-app",
-  "version": "1.28.2",
+  "version": "1.29.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.10",
+    "@types/web-push": "^3.6.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
@@ -27,7 +28,8 @@
     "react-dom": "19.0.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
-    "unpdf": "^1.8.1"
+    "unpdf": "^1.8.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

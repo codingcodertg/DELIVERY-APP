@@ -1,0 +1,73 @@
+/* ===========================================================================
+   Clock-in styles — full Tailwind 4, preflight included.
+   ===========================================================================
+
+   Imported by app/clock-in/layout.tsx and nowhere else. Next's App Router emits a
+   CSS chunk per layout and loads it only for routes under that layout, which is
+   what makes preflight safe here: it never reaches deliveries, recruiting,
+   timetracker or the ERP. Verified for /erp the same way in
+   .next/app-build-manifest.json, and re-checked for this one.
+
+   Do not split this into theme + utilities to "be safe". That was tried for the
+   ERP and produced a module with correct spacing and no theme, because a
+   hand-written reset is a guess at a 398-line file that ships in node_modules. */
+
+@import "tailwindcss";
+
+@source "../../components/clockin";
+@source "../clock-in";
+@source "../../lib/clockin";
+
+/* Clock-in's own tokens, verbatim from its globals.css. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Undoing the root stylesheet, on clock-in routes only.
+   ---------------------------------------------------------------------------
+   globals.css loads on every route and styles bare elements — body, button,
+   input, select, textarea, a, label. Unlayered declarations beat layered ones,
+   so its element rules are wrapped in @layer app (see globals.css) and Tailwind's
+   utilities now win here. What preflight does not undo is repeated below.
+
+   IN @layer base ON PURPOSE: utilities live in @layer utilities, which beats
+   base, so `w-full` on a clock-in input still wins over these resets. As plain
+   selectors they would outrank it and break every sized control. */
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-app="clockin"] :where(input, select, textarea) {
+    border-radius: 0;
+    width: auto;
+    font-size: inherit;
+  }
+
+  [data-app="clockin"] :where(textarea) { min-height: 0; }
+  [data-app="clockin"] :where(button) { font-size: inherit; }
+  [data-app="clockin"] :where(input, select, textarea):focus {
+    outline: none;
+    border-color: inherit;
+  }
+  [data-app="clockin"] :where(input, select, textarea):disabled { opacity: 1; }
+}

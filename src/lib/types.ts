@@ -28,6 +28,8 @@ export interface Profile {
    * `role` above, same shape as recruiting_role. Null = no role there.
    * See D-064. */
   timetracker_role?: string | null;
+  /** employee | manager | owner inside clock-in (071). Null = no access. */
+  clockin_role?: string | null;
 }
 
 // ---- Workflow stages ------------------------------------------------------

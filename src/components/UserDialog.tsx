@@ -26,7 +26,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserClockinAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -69,6 +69,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "deliveries": updateUserRole(u.id, roleValue as UserRole); return;
       case "recruiting": updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: roleValue }); return;
       case "timetracker": updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: roleValue }); return;
+      case "clockin": updateUserClockinAccess(u.id, { granted: true, clockin_role: roleValue }); return;
       case "erp":
         // No role tier of its own — the block renders a checkbox and nothing
         // to pick, so this is unreachable. Kept for exhaustiveness.
@@ -83,6 +84,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         return;
       case "timetracker":
         updateUserTimetrackerAccess(u.id, { granted, timetracker_role: granted ? (u.timetracker_role ?? "employee") : null });
+        return;
+      case "clockin":
+        updateUserClockinAccess(u.id, { granted, clockin_role: granted ? (u.clockin_role ?? "employee") : null });
         return;
       case "erp":
         updateUserErpAccess(u.id, { granted });

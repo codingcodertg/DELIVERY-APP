@@ -20,7 +20,8 @@ export type SecurityKind =
   | "password_reset"
   | "recruiting_access_changed"
   | "timetracker_access_changed"
-  | "erp_access_changed";
+  | "erp_access_changed"
+  | "clockin_access_changed";
 
 export interface SecurityEventSeed {
   target_id: string | null;
@@ -43,6 +44,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     recruiting_access_changed: "Recruiting access changed",
     timetracker_access_changed: "Timetracker access changed",
     erp_access_changed: "ERP access changed",
+    clockin_access_changed: "Clock-in access changed",
   };
   const es: Record<string, string> = {
     user_created: "Usuario creado",
