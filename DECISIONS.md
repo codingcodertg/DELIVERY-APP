@@ -4018,3 +4018,45 @@ decisión y su propia migración.
 
 **Revisar cuando:** (opcional) qué haría que esta decisión caduque.
 -->
+
+## D-092 · Otorgar acceso a clock-in crea también su fila de configuración
+**Fecha:** 2026-08-26 · **Versión:** migración 078 · **Pedido por:** Andrés
+(*"aun no sale"* — la tarjeta de Fichaje no aparecía en el hub)
+
+**Lo que no era un bug:** la tarjeta se dibuja desde `module_access`, que se
+otorga persona por persona. De la fusión solo salieron con acceso los 11 que
+venían en clock-in — Roberto entre ellos, Andrés no, porque Andrés no fichaba
+en esa app. Así que el hub estaba haciendo exactamente lo suyo. Ninguna tarjeta
+de módulo aparece por ser admin; recruiting y timetracker se comportan igual y
+cambiar eso les rompería el suyo, porque sus layouts exigen su propio rol y no
+perdonan al admin.
+
+**Lo que sí era un bug, y salió al ir a otorgarlo:** `clockin.profiles` (077) es
+un INNER JOIN entre `public.profiles` y `clockin.employee_settings`. Otorgar
+acceso —desde el diálogo de Usuarios o desde SQL— solo escribe `clockin_role` y
+`module_access` en `public.profiles`. Sin fila en `employee_settings` el join no
+devuelve nada y las 71 llamadas que hacen `.from("profiles")` ven a esa persona
+como inexistente: entra al módulo y el módulo no sabe quién es. Es peor que un
+"no tienes acceso", porque parece roto en vez de cerrado.
+
+**Cambio:** un trigger en `public.profiles` (078) crea la fila al aparecer
+`clockin_role`, más un backfill para quien ya lo tuviera.
+
+**Por qué en la base y no en `updateUserClockinAccess`:** hay más de un camino
+para otorgar (el diálogo, un script, SQL a mano) y el trigger los cubre todos.
+Y porque la política `employee_settings manager insert` (074) exige ser manager
+u owner **de clock-in**: un admin de deliveries que todavía no tiene
+`clockin_role` no puede insertar esa fila — que es justo quien otorga la primera
+vez. `SECURITY DEFINER` rompe ese huevo-y-gallina sin abrirle la política a
+nadie más.
+
+**Se descartó** que la vista fuera LEFT JOIN con valores por defecto, que es lo
+que hace timetracker en memoria (D-066). Ahí el layout lee `employee_settings`
+aparte y puede inventar un defecto; aquí la vista *es* el contrato de 71
+llamadas, y `company_id` no admite defecto: todo el scoping de clock-in cuelga
+de esa columna vía `clockin.auth_company_id()`. Una fila real y vacía es honesta;
+una vista que rellena huecos esconde a quién le falta configuración.
+
+**`company_id` solo si es inequívoco:** hoy hay una sola compañía (Rodriguez
+Tile Group) y se usa. Si algún día hay varias se deja NULL a propósito, para que
+un manager la asigne, en vez de meter a alguien en la compañía equivocada.
