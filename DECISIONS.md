@@ -4060,3 +4060,42 @@ una vista que rellena huecos esconde a quién le falta configuración.
 **`company_id` solo si es inequívoco:** hoy hay una sola compañía (Rodriguez
 Tile Group) y se usa. Si algún día hay varias se deja NULL a propósito, para que
 un manager la asigne, en vez de meter a alguien en la compañía equivocada.
+
+## D-093 · Stop detiene en pantalla primero y guarda después
+**Fecha:** 2026-08-26 · **Versión:** v0.4.2 (timetracker) · **Reportado por:** Andrés
+(*"i press stop on the time tracker app and doesnt stop"*)
+
+**Regresión introducida por D-092… no: por el arreglo de D-089** (adoptar la
+sesión viva al volver a la vista). Ese arreglo trajo dos caminos por los que
+Stop podía no detener nada:
+
+1. **Carrera con la adopción.** El efecto que adopta la sesión es asíncrono.
+   Gracias a la miga de pan en localStorage la vista ya pinta *Stop* en el
+   primer frame, así que se puede pulsar Stop **antes** de que vuelva
+   `listLiveSessions()`. Cuando volvía, el efecto ponía `running = true` otra
+   vez con la fila que ya había pedido: el botón parecía muerto porque un
+   segundo después la sesión reaparecía.
+2. **Stop sin id.** En esa misma ventana `sessionIdRef` todavía era `null`, así
+   que Stop no escribía nada y la fila se quedaba `isLive` para siempre — el
+   fallo original de D-089, de vuelta por otra puerta.
+
+**Cambio:**
+- `sessionIdRef` y `startMsRef` se siembran de la miga de pan, igual que ya se
+  sembraban `running` y `worked`. Stop tiene id desde el primer frame.
+- Un `stoppedRef` que la adopción consulta al volver: si se pulsó Stop mientras
+  estaba en vuelo, no adopta; y si encuentra una fila abierta que Stop no
+  alcanzó, la cierra en vez de resucitarla.
+- **Stop cambia la pantalla antes de guardar, no después.** Estaba en un
+  `finally`, así que una escritura lenta o con reintentos dejaba la vista
+  diciendo "corriendo" durante segundos. Es seguro ser optimista porque
+  `writeSession` no se rinde: cae a la cola offline, que se vacía al reconectar.
+
+**De paso, dos cosas que el arreglo anterior dejó mal:**
+- `if (!ok) alert(...)` era código muerto: `writeSession` devuelve `true` o el
+  string `"queued"`, ambos verdaderos. Nunca podía avisar. Ahora avisa de lo que
+  sí ocurre — que quedó en cola — y con `notify()`, no con un `alert` que
+  bloquea.
+- Si `listLiveSessions()` fallaba (sin conexión), el `catch` "dejaba la UI como
+  no corriendo". Dejó de ser cierto al sembrar `running` de la miga: la vista
+  mostraba un reloj **congelado** en el segundo del montaje. Ahora sigue
+  contando desde la miga, que ya trae el id y el arranque.

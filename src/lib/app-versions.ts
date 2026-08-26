@@ -15,7 +15,7 @@
 export const APP_VERSIONS = {
   deliveries: "1.28.0",
   recruiting: "0.3.2",
-  timetracker: "0.4.1",
+  timetracker: "0.4.2",
   clockin: "0.1.0",
 } as const;
 

@@ -92,8 +92,11 @@ export default function TrackTimePage() {
   const [meter, setMeter] = useState<boolean[]>(() => new Array(METER_BARS).fill(false));
 
   const breakEventsRef = useRef<BreakEvent[]>([]);
-  const sessionIdRef = useRef<string | null>(null);
-  const startMsRef = useRef(0);
+  // Seeded from the breadcrumb for the same reason `running` is, and for one more: Stop needs an
+  // id. The adoption effect below fills these from the server, but it is a round trip, and Stop
+  // pressed before it lands used to find a null id, write nothing, and leave the row open forever.
+  const sessionIdRef = useRef<string | null>(liveHint?.id ?? null);
+  const startMsRef = useRef(liveHint?.startMs ?? 0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onBreakRef = useRef<"lunch" | "break" | null>(null);
   const lunchRef = useRef(0);
@@ -250,6 +253,10 @@ export default function TrackTimePage() {
   // seconds, breaks and input counts continue from where they were instead of restarting at zero.
   // Elapsed time needs no restoring: the tick derives it from startMs.
   const adoptedRef = useRef(false);
+  // Set the instant Stop is pressed. The adoption effect is async, so without this it could land
+  // AFTER a stop and set running=true again from the row it had already fetched — the button
+  // looking like it did nothing, because a second later the session came back.
+  const stoppedRef = useRef(false);
   useEffect(() => {
     if (adoptedRef.current || !me?.id) return;
     adoptedRef.current = true;
@@ -261,6 +268,14 @@ export default function TrackTimePage() {
         // camel-cased field and risk a silent no-op if that mapping ever changes.
         const [mine] = await listLiveSessions();
         if (cancelled) return;
+        if (stoppedRef.current) {
+          // Stopped while this was in flight. If a row is still open it is one Stop could not
+          // reach — close it here rather than adopting it, which would undo the stop on screen.
+          if (mine && mine.id !== sessionIdRef.current) {
+            updateSession(mine.id, { endMs: Date.now(), isLive: false }).catch(() => {});
+          }
+          return;
+        }
         if (!mine) {
           // The breadcrumb was stale — stopped on another device, or the row was closed for us.
           // Undo the optimistic seed rather than leaving a clock running against nothing.
@@ -293,7 +308,12 @@ export default function TrackTimePage() {
         desktopStart({ sessionId: mine.id, intervalMin: shotMin });
         beginTicking();
       } catch {
-        /* offline or the call failed — leave the UI as "not running" rather than guessing */
+        // Offline, or the call failed. The comment here used to say "leave the UI as not running",
+        // which stopped being true when `running` started being seeded from the breadcrumb: the
+        // view now shows a clock, and doing nothing froze it at the second it mounted. The
+        // breadcrumb already carries the id and the start, so keep counting from it — it is the
+        // same session either way, and a reachable server only ever confirms it.
+        if (!cancelled && !stoppedRef.current && liveHint) beginTicking();
       }
     })();
     return () => { cancelled = true; };
@@ -438,6 +458,7 @@ export default function TrackTimePage() {
   }
 
   async function stop() {
+    stoppedRef.current = true;
     if (tickRef.current) clearInterval(tickRef.current);
     tickRef.current = null;
     if (onBreakRef.current) {
@@ -446,33 +467,39 @@ export default function TrackTimePage() {
       onBreakRef.current = null; setOnBreak(null);
     }
     const el = Math.floor((Date.now() - startMsRef.current) / 1000);
-    const net = netSeconds(el);
     const id = sessionIdRef.current;
-    try {
-      if (id) {
-        const ok = await writeSession(id, {
-          endMs: Date.now(),
-          durationSeconds: net,
-          activeSeconds: activeSecondsRef.current,
-          idleSeconds: idleRef.current,
-          liveNote: null,
-          keystrokes: keystrokesRef.current,
-          clicks: clicksRef.current,
-          lunchSeconds: lunchRef.current,
-          breakSeconds: brkRef.current,
-          breakEvents: breakEventsPayload(),
-          isLive: false,
-        });
-        if (!ok) alert("Could not save the entry after several tries. Check your connection — your time may not be recorded.");
-      }
-    } finally {
-      desktopStop();
-      sessionIdRef.current = null;
-      try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
-      setRunning(false); onBreakRef.current = null; setOnBreak(null); setIsIdle(false); setCtxApp("");
-      setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
-      setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
-    }
+    // Read every accumulator before the reset below touches the UI.
+    const patch = {
+      endMs: Date.now(),
+      durationSeconds: netSeconds(el),
+      activeSeconds: activeSecondsRef.current,
+      idleSeconds: idleRef.current,
+      liveNote: null,
+      keystrokes: keystrokesRef.current,
+      clicks: clicksRef.current,
+      lunchSeconds: lunchRef.current,
+      breakSeconds: brkRef.current,
+      breakEvents: breakEventsPayload(),
+      isLive: false,
+    };
+
+    // Stopped on screen first, saved after. The clock stopping is a local fact and the button has
+    // to show it now: this used to flip only in a `finally`, so a slow or retrying write left the
+    // view saying "running" for seconds and Stop read as dead. Safe to be optimistic because
+    // writeSession never gives up — it falls back to the offline queue, which flushes on reconnect.
+    desktopStop();
+    sessionIdRef.current = null;
+    try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+    setRunning(false); onBreakRef.current = null; setOnBreak(null); setIsIdle(false); setCtxApp("");
+    setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
+    setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
+
+    if (!id) return;
+    const ok = await writeSession(id, patch);
+    // `if (!ok)` used to guard an alert here that could never fire: writeSession returns true or
+    // the string "queued", both truthy. What can really happen is the queue, and that is worth
+    // saying once — the entry is not lost, it just is not on the server yet.
+    if (ok === "queued") notify(t("track.savedOffline"));
   }
   stopRef.current = stop;
 
