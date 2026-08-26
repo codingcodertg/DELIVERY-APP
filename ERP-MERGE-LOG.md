@@ -121,6 +121,26 @@ does (D-051). Without it the database still refused every row, but somebody who
 typed /erp/catalog without access saw an empty catalog rather than being turned
 away — a broken page rather than a closed door.
 
+## The catalog timeout
+
+6,859 products, "canceling statement due to statement timeout" at 8s, while the
+same data served rtg-erp fine.
+
+My policies from 066 and 069 called their helper bare —
+`using (public.has_erp_access())`. Postgres treats that as a per-row expression,
+so a SECURITY DEFINER function querying public.profiles ran once per row scanned.
+Wrapping it as `using ((select public.has_erp_access()))` lets the planner hoist
+it into an InitPlan evaluated once.
+
+Every policy the ERP itself ships was already written `( SELECT ... )`, and
+rtg-erp carries a test group called `38_masking_initplan.sql` guarding exactly
+this. Mine were the only unwrapped ones, because I wrote them by hand instead of
+copying the shape that was already in front of me.
+
+Measured, as an authenticated admin: grid page 1.9s -> 0.7s, count 1.0s -> 0.6s.
+Behaviour is identical; the helpers are STABLE, so one evaluation per query is
+the same answer as one per row.
+
 ## Still open
 
 - **Notion is not updated.** CLAUDE.md requires it in the same session; the
