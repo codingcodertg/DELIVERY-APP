@@ -18,7 +18,7 @@ export async function confirmDaltileMatch(refId: number) {
   // (only when empty) via the audited update_product path.
   const { error } = await sb.rpc("confirm_external_match", { p_ref_id: refId });
   if (error) throw new Error(error.message);
-  revalidatePath("/review/daltile");
+  revalidatePath("/erp/review/daltile");
 }
 
 export async function rejectDaltileMatch(refId: number) {
@@ -26,5 +26,5 @@ export async function rejectDaltileMatch(refId: number) {
   const sb = await createClient();
   const { error } = await sb.rpc("reject_external_match", { p_ref_id: refId });
   if (error) throw new Error(error.message);
-  revalidatePath("/review/daltile");
+  revalidatePath("/erp/review/daltile");
 }

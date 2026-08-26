@@ -132,7 +132,7 @@ export async function resolveTag(productId: number, tag: string): Promise<Result
   const supabase = await createClient();
   const { error } = await supabase.rpc("resolve_review_tag", { p_id: productId, p_tag: tag });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/review");
+  revalidatePath("/erp/review");
   return { ok: true };
 }
 
@@ -146,7 +146,7 @@ export async function inlineFix(productId: number, patch: Record<string, unknown
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_product", { p_id: productId, patch: clean });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/review");
+  revalidatePath("/erp/review");
   revalidatePath(`/product/${productId}`);
   return { ok: true };
 }
@@ -202,8 +202,8 @@ export async function mergeProducts(survivorId: number, loserId: number): Promis
   const supabase = await createClient();
   const { error } = await supabase.rpc("merge_products", { survivor_id: survivorId, loser_id: loserId });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/review/merge");
-  revalidatePath("/catalog");
+  revalidatePath("/erp/review/merge");
+  revalidatePath("/erp/catalog");
   return { ok: true };
 }
 
@@ -212,7 +212,7 @@ export async function publishProduct(productId: number): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("publish_product", { p_id: productId });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/catalog");
+  revalidatePath("/erp/catalog");
   revalidatePath(`/product/${productId}`);
   return { ok: true };
 }
@@ -279,7 +279,7 @@ export async function submitNewItem(
     payload: row,
     reason: input.reason || null,
   });
-  revalidatePath("/catalog");
+  revalidatePath("/erp/catalog");
   return { ok: true, sku };
 }
 
@@ -306,8 +306,8 @@ export async function submitRequest(input: {
     payload: input.payload || {},
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/request");
-  revalidatePath("/requests");
+  revalidatePath("/erp/request");
+  revalidatePath("/erp/requests");
   return { ok: true };
 }
 
@@ -320,8 +320,8 @@ export async function decideRequest(requestId: number, approve: boolean, note?: 
     p_note: note ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/requests");
-  revalidatePath("/catalog");
+  revalidatePath("/erp/requests");
+  revalidatePath("/erp/catalog");
   return { ok: true };
 }
 
@@ -397,8 +397,8 @@ export async function createPoDrafts(
   }));
   const { error } = await supabase.from("products").insert(rows);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/catalog");
-  revalidatePath("/review");
+  revalidatePath("/erp/catalog");
+  revalidatePath("/erp/review");
   return { ok: true, count: rows.length };
 }
 
@@ -408,8 +408,8 @@ export async function assignDraftSku(productId: number, sku: string): Promise<Re
   const { error } = await supabase.rpc("assign_draft_sku", { p_id: productId, p_sku: sku });
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/product/${productId}`);
-  revalidatePath("/catalog");
-  revalidatePath("/review");
+  revalidatePath("/erp/catalog");
+  revalidatePath("/erp/review");
   return { ok: true };
 }
 
@@ -420,7 +420,7 @@ export async function linkDraftToProduct(draftId: number, targetId: number): Pro
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/product/${draftId}`);
   revalidatePath(`/product/${targetId}`);
-  revalidatePath("/catalog");
+  revalidatePath("/erp/catalog");
   return { ok: true };
 }
 
@@ -434,8 +434,8 @@ export async function bulkUpdate(ids: number[], patch: Record<string, unknown>):
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("bulk_update_products", { p_ids: ids, patch });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/catalog");
-  revalidatePath("/review");
+  revalidatePath("/erp/catalog");
+  revalidatePath("/erp/review");
   // `errored` + `rows` are v4_59 (COR-11): a row that raised used to be folded into `skipped` with no
   // reason, so a partial apply was indistinguishable from a clean one.
   return {
@@ -452,8 +452,8 @@ export async function bulkResolveTag(ids: number[], tag: string): Promise<BulkRe
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("bulk_resolve_tag", { p_ids: ids, p_tag: tag });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/catalog");
-  revalidatePath("/review");
+  revalidatePath("/erp/catalog");
+  revalidatePath("/erp/review");
   return { ok: true, updated: data?.updated ?? 0, skipped: data?.skipped ?? 0, errored: 0, rows: [] };
 }
 
@@ -496,8 +496,8 @@ export async function runDecisions(
     merged.rows.push(...r.rows);
   }
   if (!dryRun) {
-    revalidatePath("/catalog");
-    revalidatePath("/review");
+    revalidatePath("/erp/catalog");
+    revalidatePath("/erp/review");
   }
   return { ok: true, result: merged };
 }
@@ -517,7 +517,7 @@ export async function logPurchaseOrder(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("upsert_purchase_order", { p_header: header, p_lines: lines });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/purchasing/orders");
+  revalidatePath("/erp/purchasing/orders");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 
@@ -529,7 +529,7 @@ export async function logAcknowledgment(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("upsert_acknowledgment", { p_header: header, p_lines: lines });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/purchasing/orders");
+  revalidatePath("/erp/purchasing/orders");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 
@@ -584,7 +584,7 @@ export async function setPoLineProduct(poLineId: number, productId: number, writ
     p_po_line_id: poLineId, p_product_id: productId, p_write_alias: writeAlias,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/purchasing/orders");
+  revalidatePath("/erp/purchasing/orders");
   return { ok: true };
 }
 
@@ -646,8 +646,8 @@ export async function receivePo(
     p_receipt_key: receiptKey ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/purchasing/receiving");
-  revalidatePath("/purchasing/orders");
+  revalidatePath("/erp/purchasing/receiving");
+  revalidatePath("/erp/purchasing/orders");
   revalidatePath(`/purchasing/orders/${poId}`);
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
@@ -678,7 +678,7 @@ export async function receiveManual(input: {
   });
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/product/${input.productId}`);
-  revalidatePath("/purchasing/receiving");
+  revalidatePath("/erp/purchasing/receiving");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 
@@ -723,7 +723,7 @@ export async function adjustInventory(input: {
     p_reason: input.reason, p_note: input.note ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/inventory");
+  revalidatePath("/erp/inventory");
   revalidatePath(`/product/${input.productId}`);
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
@@ -738,7 +738,7 @@ export async function recordCycleCount(input: {
     p_tolerance_pct: input.tolerancePct ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/inventory");
+  revalidatePath("/erp/inventory");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 
@@ -749,7 +749,7 @@ export async function reconcileCycleCount(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reconcile_cycle_count", { p_count_id: countId });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/inventory");
+  revalidatePath("/erp/inventory");
   return { ok: true, result: (data ?? {}) as Record<string, unknown> };
 }
 

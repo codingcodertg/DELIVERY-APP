@@ -66,9 +66,9 @@ async function run(
     merged.rows.push(...r.rows);
   }
   if (!dryRun) {
-    revalidatePath("/catalog");
-    revalidatePath("/requests");
-    revalidatePath("/review");
+    revalidatePath("/erp/catalog");
+    revalidatePath("/erp/requests");
+    revalidatePath("/erp/review");
   }
   return { ok: true, result: merged };
 }
