@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
-import { accessibleModules, hasCatalogAccess, MODULE_LABEL, type ModuleKey } from "@/lib/erp/domain/modules";
+import { hasCatalogAccess } from "@/lib/erp/domain/modules";
 
 const roleStyles: Record<string, string> = {
   admin: "border-clay-200 bg-clay-50 text-clay-700",
@@ -35,28 +35,17 @@ const ANALYTICS: Item[] = [
   { href: "/erp/analytics/salespeople", label: "Salespeople", managerPlus: true },
 ];
 
-const MODULE_HREF: Record<ModuleKey, string> = {
-  deliveries: "/deliveries",
-  recruiting: "/recruiting",
-  timetracker: "/timetracker",
-};
 
 export function SideNav({
   role,
   fullName,
   email,
   cost,
-  moduleAccess,
-  recruitingRole,
-  timetrackerRole,
 }: {
   role: AppRole;
   fullName: string | null;
   email: string;
   cost: boolean;
-  moduleAccess?: string[] | null;
-  recruitingRole?: string | null;
-  timetrackerRole?: string | null;
 }) {
   const pathname = usePathname();
   const managerPlus = role === "admin" || role === "manager";
@@ -65,7 +54,6 @@ export function SideNav({
   // worse than no list.
   const catalog = hasCatalogAccess(role);
   const items = catalog ? ITEMS.filter((i) => !i.managerPlus || managerPlus) : [];
-  const modules = accessibleModules(role, { moduleAccess, recruitingRole, timetrackerRole });
   const analyticsItems = catalog && managerPlus ? ANALYTICS : [];
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
   // /purchasing/orders highlights only its own item, not its parent.
@@ -97,14 +85,16 @@ export function SideNav({
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-14 shrink-0 items-center px-4">{brand}</div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
-          {modules.length + (catalog ? 1 : 0) > 1 && (
-            <Link
-              href="/home"
-              className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            >
-              ⌂ All apps
-            </Link>
-          )}
+          {/* Always shown. In rtg-erp this was gated on having more than one
+              destination, because there the ERP could be somebody's only module.
+              Here the hub is the way back to Deliveries, Recruiting and Time
+              Tracker, so it is never a dead end. */}
+          <Link
+            href="/home"
+            className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          >
+            ⌂ All apps
+          </Link>
           {items.map((i) => (
             <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
               {i.label}
@@ -116,16 +106,6 @@ export function SideNav({
               {analyticsItems.map((i) => (
                 <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
                   {i.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          {modules.length > 0 && (
-            <div className="pt-3">
-              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Modules</div>
-              {modules.map((m) => (
-                <Link key={m} href={MODULE_HREF[m]} className={cn("block", linkCls(MODULE_HREF[m]))}>
-                  {MODULE_LABEL[m]}
                 </Link>
               ))}
             </div>
@@ -161,7 +141,6 @@ export function SideNav({
         <nav className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 px-2 py-1.5 text-sm">
           {items
             .concat(analyticsItems)
-            .concat(modules.map((m) => ({ href: MODULE_HREF[m], label: MODULE_LABEL[m] })))
             .map((i) => (
             <Link key={i.href} href={i.href} className={cn("whitespace-nowrap", linkCls(i.href))}>
               {i.label}

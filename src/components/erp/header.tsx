@@ -15,9 +15,6 @@ export async function Header() {
       fullName={session.fullName}
       email={session.user.email ?? ""}
       cost={canSeeCost(session.role)}
-      moduleAccess={session.moduleAccess}
-      recruitingRole={session.recruitingRole}
-      timetrackerRole={session.timetrackerRole}
     />
   );
 }
