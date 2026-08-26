@@ -1,1 +1,0 @@
-{"query": "select tablename from pg_policies where schemaname='erp' and policyname='erp module gate' order by tablename;"}
