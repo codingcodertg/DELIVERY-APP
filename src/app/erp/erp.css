@@ -1,30 +1,39 @@
 /* ===========================================================================
-   ERP styles — Tailwind 4, deliberately WITHOUT preflight (D-090).
+   ERP styles — full Tailwind 4, preflight included (D-090).
    ===========================================================================
 
-   The ERP screens are written in Tailwind; the rest of this app is hand-written
-   CSS that predates it by a year. Tailwind's preflight is a global reset — it
-   would strip margins, list markers and border styles from every deliveries,
-   recruiting and timetracker screen too, and none of those were built expecting
-   it. So preflight is not imported at all.
+   This file is imported by app/erp/layout.tsx and NOWHERE else, and that is the
+   whole reason it can safely include preflight.
 
-   Instead the reset is re-created below, scoped under [data-app="erp"], which
-   the ERP layout puts on its wrapper. Tailwind's UTILITIES stay global — that is
-   harmless, because a `.rounded-lg` nobody writes in the old screens does
-   nothing to them.
+   Next's App Router emits a separate CSS chunk per layout and loads it only for
+   routes under that layout. Verified in .next/app-build-manifest.json: /erp/layout
+   has its own `static/css/app/erp/layout.css`, and `/` and `/login` reference
+   only the root chunk. So preflight — a global reset — never reaches the
+   deliveries, recruiting or timetracker screens, because their pages never load
+   this stylesheet at all.
 
-   The one thing to be careful about: do not add `@import "tailwindcss"` here.
-   That pulls preflight back in and the damage is silent and app-wide. */
+   An earlier version of this file imported theme + utilities only and hand-wrote
+   a "scoped preflight" under [data-app="erp"], on the assumption that a global
+   reset here would leak everywhere. That assumption was wrong, and the hand-
+   written reset was a guess at what preflight does — it missed `padding: 0` on
+   the universal selector among other things, which is why the ERP rendered with
+   no spacing and looked broken. Tailwind's real preflight is 398 lines; there is
+   no reason to approximate it.
 
-@layer theme, base, components, utilities;
+   On an /erp page BOTH the root globals.css and this file load, in that order,
+   so preflight wins where they overlap. That is what we want there: those pages
+   render ERP markup, not deliveries markup.
 
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+   Keep the import below as plain `@import "tailwindcss"`. Splitting it back into
+   theme/utilities to "be safe" is what caused the broken layout. */
+
+@import "tailwindcss";
 
 /* Tailwind 4 scans for class names; be explicit rather than relying on
    auto-detection, so a class used only in an ERP component still gets emitted. */
 @source "../../components/erp";
 @source "../erp";
+@source "../../lib/erp";
 
 /* Brand accent — warm clay. Primary buttons, active states, links, focus rings,
    selected rows. NOT for status, which keeps green/red/amber/blue. */
@@ -37,99 +46,13 @@
   --color-clay-700: #7e3d28;
 }
 
-/* --- The scoped stand-in for preflight ---------------------------------- */
-
-[data-app="erp"],
-[data-app="erp"] *,
-[data-app="erp"] *::before,
-[data-app="erp"] *::after {
-  box-sizing: border-box;
-  /* Tailwind's border utilities assume a solid 0-width border by default. */
-  border-width: 0;
-  border-style: solid;
-}
-
+/* The app shell, matching what rtg-erp's own globals.css set on <body>. Applied
+   to the ERP wrapper rather than body, because body here belongs to the root
+   layout that every other module shares. */
 [data-app="erp"] {
-  background-color: #f2f4f7;
-  color: #0f172a;
+  min-height: 100vh;
+  background-color: #f2f4f7; /* soft grey app background */
+  color: #0f172a; /* slate-900 */
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  min-height: 100%;
-}
-
-[data-app="erp"] h1,
-[data-app="erp"] h2,
-[data-app="erp"] h3,
-[data-app="erp"] h4,
-[data-app="erp"] p,
-[data-app="erp"] figure,
-[data-app="erp"] blockquote,
-[data-app="erp"] dl,
-[data-app="erp"] dd {
-  margin: 0;
-}
-
-[data-app="erp"] h1,
-[data-app="erp"] h2,
-[data-app="erp"] h3,
-[data-app="erp"] h4 {
-  font-size: inherit;
-  font-weight: inherit;
-}
-
-[data-app="erp"] ol,
-[data-app="erp"] ul,
-[data-app="erp"] menu {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-[data-app="erp"] table {
-  border-collapse: collapse;
-  border-color: inherit;
-  text-indent: 0;
-}
-
-[data-app="erp"] a {
-  color: inherit;
-  text-decoration: inherit;
-}
-
-[data-app="erp"] button,
-[data-app="erp"] input,
-[data-app="erp"] optgroup,
-[data-app="erp"] select,
-[data-app="erp"] textarea {
-  font: inherit;
-  color: inherit;
-  margin: 0;
-  padding: 0;
-  background-color: transparent;
-  border-radius: 0;
-}
-
-[data-app="erp"] button,
-[data-app="erp"] [type="button"],
-[data-app="erp"] [type="submit"] {
-  appearance: button;
-  background-color: transparent;
-  background-image: none;
-  cursor: pointer;
-}
-
-[data-app="erp"] img,
-[data-app="erp"] svg,
-[data-app="erp"] video,
-[data-app="erp"] canvas {
-  display: block;
-  vertical-align: middle;
-  max-width: 100%;
-  height: auto;
-}
-
-[data-app="erp"] hr {
-  height: 0;
-  color: inherit;
-  border-top-width: 1px;
 }
