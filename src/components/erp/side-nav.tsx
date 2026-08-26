@@ -66,13 +66,16 @@ export function SideNav({
   // hub (where you can go). They were both whispering at 14px/12px, and the hub
   // link is the only exit from this module now that the switcher is gone — it
   // should be legible.
+  // One row: the product name and the way out, side by side. Two stacked lines cost a second
+  // row of header height for no gain, and the hub link is the only exit from this module since
+  // the switcher was removed — it belongs next to the name, not under it.
   const brand = (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="truncate text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
+    <div className="flex min-w-0 items-baseline gap-2">
+      <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
       <Link
         href="/home"
         title="All apps"
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-clay-700"
+        className="shrink-0 text-sm text-slate-500 hover:text-clay-700"
       >
         <span aria-hidden="true">⌂</span> All apps
       </Link>
@@ -123,7 +126,7 @@ export function SideNav({
           collapsed ? "lg:hidden" : "lg:flex"
         )}
       >
-        <div className="flex h-16 shrink-0 items-center gap-1 px-2">
+        <div className="flex h-14 shrink-0 items-center gap-1 px-2">
           {burger}
           <div className="min-w-0 flex-1">{brand}</div>
         </div>
