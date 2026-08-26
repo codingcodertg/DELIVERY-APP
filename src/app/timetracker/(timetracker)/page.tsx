@@ -61,6 +61,19 @@ export default function TrackTimePage() {
   const isInOut = trackMode === "inout";
   const LS_A = "tt_lastAssign_" + me.id;
   const LS_M = "tt_lastMemo_" + me.id;
+  // A breadcrumb of the session that is still open, written on start and cleared on stop.
+  // Read SYNCHRONOUSLY below so the first paint after a remount already shows Stop and a
+  // running clock. Without it the view rendered "stopped" for the moment the network round
+  // trip took, which reads as the timer having been lost.
+  const LS_LIVE = "tt_liveSession_" + me.id;
+  const liveHint = (() => {
+    try {
+      const raw = localStorage.getItem(LS_LIVE);
+      if (!raw) return null;
+      const h = JSON.parse(raw) as { id: string; startMs: number };
+      return h && h.id && h.startMs ? h : null;
+    } catch { return null; }
+  })();
 
   const [assignmentId, setAssignmentId] = useState(() => {
     try { return localStorage.getItem(LS_A) || ""; } catch { return ""; }
@@ -68,8 +81,10 @@ export default function TrackTimePage() {
   const [memo, setMemo] = useState(() => {
     try { return localStorage.getItem(LS_M) || ""; } catch { return ""; }
   });
-  const [running, setRunning] = useState(false);
-  const [worked, setWorked] = useState(0);
+  // Seeded from the breadcrumb, not false — the adoption effect below confirms it against the
+  // server and clears it if the session turns out to be closed. Optimistic, then reconciled.
+  const [running, setRunning] = useState(!!liveHint);
+  const [worked, setWorked] = useState(liveHint ? Math.floor((Date.now() - liveHint.startMs) / 1000) : 0);
   const [onBreak, setOnBreak] = useState<"lunch" | "break" | null>(null);
   const [breaks, setBreaks] = useState({ lunch: 0, brk: 0 });
   const [breakList, setBreakList] = useState<BreakEvent[]>([]);
@@ -245,10 +260,19 @@ export default function TrackTimePage() {
         // provider), so the first row is ours by construction — no need to re-filter on a
         // camel-cased field and risk a silent no-op if that mapping ever changes.
         const [mine] = await listLiveSessions();
-        if (!mine || cancelled) return;
+        if (cancelled) return;
+        if (!mine) {
+          // The breadcrumb was stale — stopped on another device, or the row was closed for us.
+          // Undo the optimistic seed rather than leaving a clock running against nothing.
+          try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+          setRunning(false);
+          setWorked(0);
+          return;
+        }
 
         sessionIdRef.current = mine.id;
         startMsRef.current = mine.startMs || Date.now();
+        try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: startMsRef.current })); } catch { /* ignore */ }
         lunchRef.current = mine.lunchSeconds || 0;
         brkRef.current = mine.breakSeconds || 0;
         breakEventsRef.current = mine.breakEvents || [];
@@ -399,6 +423,7 @@ export default function TrackTimePage() {
     try {
       const row = await startSession(payload);
       sessionIdRef.current = row.id;
+      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: row.id, startMs: startMsRef.current })); } catch { /* ignore */ }
       setRunning(true);
       // Confirm the clock started. On desktop the native floating toast
       // (fired from main.js on tt:start) is the primary cue; this covers web.
@@ -443,6 +468,7 @@ export default function TrackTimePage() {
     } finally {
       desktopStop();
       sessionIdRef.current = null;
+      try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
       setRunning(false); onBreakRef.current = null; setOnBreak(null); setIsIdle(false); setCtxApp("");
       setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
       setActivePct(0); setMeter(new Array(METER_BARS).fill(false));

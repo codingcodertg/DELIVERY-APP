@@ -189,6 +189,9 @@ export function useData(): DataState {
   return ctx;
 }
 
+/** How much order history the client keeps in memory. See reloadAll(). */
+const EVENTS_WINDOW = 1000;
+
 export function DataProvider({ children, me }: { children: React.ReactNode; me: Profile | null }) {
   const supabase = useMemo(() => createClient(), []);
   // Offline messages are read by a driver mid-route, so they follow the
@@ -431,7 +434,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // Teaching mode never loads from the DB — the live (non-training) rows are
       // always the base, and the sandbox lives only in the local overlay.
       supabase.from("deliveries").select("*").eq("is_training", false).order("order_no", { ascending: false }),
-      supabase.from("order_events").select("*").order("created_at", { ascending: false }),
+      // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
+      // page load and growing forever — the single biggest thing between opening the app and
+      // seeing it. The two screens that read it (the audit feed and the dashboard's approval
+      // turnaround) both work on recent activity; neither pages back through the whole history.
+      // The audit page says when it is showing a capped window.
+      supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW),
       me
         ? supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50)
         : Promise.resolve({ data: [] as AppNotification[] }),

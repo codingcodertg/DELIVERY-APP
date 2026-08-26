@@ -66,6 +66,17 @@ export default function AuditPage() {
 
   return (
     <>
+      {/* The provider keeps a bounded window of order history in memory (EVENTS_WINDOW),
+          so this feed can be showing less than everything. Say so rather than let a search
+          come back empty and look like the event never happened. */}
+      {events.length >= 1000 && (
+        <div className="hint" style={{ marginBottom: 8 }}>
+          {t(
+            "Showing the most recent 1,000 events. Older activity exists but is not searched here.",
+            "Mostrando los 1.000 eventos más recientes. Hay actividad más antigua que no se busca aquí."
+          )}
+        </div>
+      )}
       <div className="page-head">
         <h2>{t("Audit log", "Registro de auditoría")} <span className="count-tag">{rows.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

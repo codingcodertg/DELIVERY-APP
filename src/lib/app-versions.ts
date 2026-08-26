@@ -13,9 +13,9 @@
 // respectively), not a number of their own, so 0.1.0 is the honest
 // starting point, not manufactured continuity.
 export const APP_VERSIONS = {
-  deliveries: "1.26.1",
+  deliveries: "1.27.0",
   recruiting: "0.3.2",
-  timetracker: "0.4.0",
+  timetracker: "0.4.1",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;
