@@ -4065,9 +4065,10 @@ un manager la asigne, en vez de meter a alguien en la compañía equivocada.
 **Fecha:** 2026-08-26 · **Versión:** v0.4.2 (timetracker) · **Reportado por:** Andrés
 (*"i press stop on the time tracker app and doesnt stop"*)
 
-**Regresión introducida por D-092… no: por el arreglo de D-089** (adoptar la
-sesión viva al volver a la vista). Ese arreglo trajo dos caminos por los que
-Stop podía no detener nada:
+**Regresión del arreglo de 243484a** (*"leaving the Time view lost the running
+session"* — adoptar al montar la sesión que sigue viva en el servidor; se
+commiteó sin entrada aquí, y esta la cubre). Ese arreglo abrió dos caminos por
+los que Stop podía no detener nada:
 
 1. **Carrera con la adopción.** El efecto que adopta la sesión es asíncrono.
    Gracias a la miga de pan en localStorage la vista ya pinta *Stop* en el
