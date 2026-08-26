@@ -15,7 +15,7 @@
 export const APP_VERSIONS = {
   deliveries: "1.26.1",
   recruiting: "0.3.2",
-  timetracker: "0.3.2",
+  timetracker: "0.4.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

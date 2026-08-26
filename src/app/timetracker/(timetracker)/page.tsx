@@ -222,6 +222,139 @@ export default function TrackTimePage() {
     return "queued";
   }
 
+
+  // Re-adopt a session that is still running server-side.
+  //
+  // The bug this fixes: `running` starts false and nothing rehydrated it, so leaving the Time view
+  // and coming back showed Start instead of Stop — while the row in the database was still
+  // isLive. Pressing Start then found that row via listLiveSessions(), did not recognise it as
+  // ours (sessionIdRef was null after the remount), and asked whether to close "another" session.
+  // The clock had never stopped; only this component had forgotten about it.
+  //
+  // Runs once on mount. Every accumulator is restored from the row rather than reset, so the
+  // seconds, breaks and input counts continue from where they were instead of restarting at zero.
+  // Elapsed time needs no restoring: the tick derives it from startMs.
+  const adoptedRef = useRef(false);
+  useEffect(() => {
+    if (adoptedRef.current || !me?.id) return;
+    adoptedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        // listLiveSessions() is already scoped to this employee (employee_uid = me.id in the
+        // provider), so the first row is ours by construction — no need to re-filter on a
+        // camel-cased field and risk a silent no-op if that mapping ever changes.
+        const [mine] = await listLiveSessions();
+        if (!mine || cancelled) return;
+
+        sessionIdRef.current = mine.id;
+        startMsRef.current = mine.startMs || Date.now();
+        lunchRef.current = mine.lunchSeconds || 0;
+        brkRef.current = mine.breakSeconds || 0;
+        breakEventsRef.current = mine.breakEvents || [];
+        keystrokesRef.current = mine.keystrokes || 0;
+        clicksRef.current = mine.clicks || 0;
+        activeSecondsRef.current = mine.activeSeconds || 0;
+        onBreakRef.current = null;
+
+        if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+        setMemo(mine.memo || "");
+        setBreaks({ lunch: mine.lunchSeconds || 0, brk: mine.breakSeconds || 0 });
+        setBreakList(mine.breakEvents || []);
+        setWorked(Math.floor((Date.now() - (mine.startMs || Date.now())) / 1000));
+        setOnBreak(null);
+        setRunning(true);
+        // The desktop shell lost its screenshot timer with the old renderer; re-arm it against
+        // the same session so shots keep landing on the row that is actually open.
+        desktopStart({ sessionId: mine.id, intervalMin: shotMin });
+        beginTicking();
+      } catch {
+        /* offline or the call failed — leave the UI as "not running" rather than guessing */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id]);
+
+  /** The 1s clock. Extracted from start() so a session adopted on mount can resume it too. */
+  function beginTicking() {
+      tickRef.current = setInterval(async () => {
+        const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+        if (onBreakRef.current === "lunch") lunchRef.current++;
+        else if (onBreakRef.current === "break") brkRef.current++;
+  
+        // an "active second" = a second with >=1 input event, not on break. On
+        // desktop, read system-wide counters from the bridge; on web, use the
+        // focus-gated flag (a browser tab can't see input elsewhere).
+        let hadEvent: boolean;
+        if (isDesktopClient) {
+          const act = await desktopGetActivity();
+          let moves = 0;
+          if (act) {
+            keystrokesRef.current = act.keystrokes;
+            clicksRef.current = act.clicks;
+            moves = act.moves || 0;
+          }
+          const total = keystrokesRef.current + clicksRef.current + moves;
+          hadEvent = total > lastActTotalRef.current;
+          lastActTotalRef.current = total;
+        } else {
+          hadEvent = secHadEventRef.current;
+          secHadEventRef.current = false;
+        }
+        if (hadEvent) activeWindowRef.current = ACTIVE_WINDOW_SEC;
+        const windowedActive = activeWindowRef.current > 0;
+        if (activeWindowRef.current > 0) activeWindowRef.current -= 1;
+  
+        // On-screen motion counts as activity even without keyboard/mouse
+        // input: a meeting, a video, a running Claude session all move the
+        // screen. Probed periodically (capture isn't free) only when there's
+        // no recent input to fill in. Desktop-only — the browser can't see it.
+        let productiveNow = false;
+        let appLabel = "";
+        if (smartIdle && isDesktopClient && !onBreakRef.current && !windowedActive) {
+          ctxProbeRef.current -= 1;
+          if (ctxProbeRef.current <= 0) {
+            ctxProbeRef.current = 4;
+            desktopGetContext().then((c) => { if (c) ctxRef.current = c; }).catch(() => {});
+          }
+          const c = ctxRef.current;
+          if (c && (c.movement || 0) >= MOVEMENT_THRESHOLD) {
+            productiveNow = true; appLabel = c.app || c.title || "";
+          }
+        }
+  
+        const activeThisSec = (windowedActive || productiveNow) && !onBreakRef.current;
+        if (activeThisSec) activeSecondsRef.current += 1;
+        const idleNow = !activeThisSec && !onBreakRef.current;
+        if (idleNow !== isIdle) setIsIdle(idleNow);
+        if (appLabel !== ctxApp) setCtxApp(appLabel);
+  
+        const net = netSeconds(el);
+        setWorked(net);
+        setBreaks({ lunch: lunchRef.current, brk: brkRef.current });
+        setActivePct(net > 0 ? Math.round((activeSecondsRef.current / net) * 100) : 0);
+        setMeter((prev) => { const m = prev.slice(1); m.push(activeThisSec); return m; });
+  
+        const liveNote = onBreakRef.current ? "break" : productiveNow ? (appLabel || "screen") : idleNow ? "idle" : "active";
+  
+        if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
+          writeSession(sessionIdRef.current, {
+            endMs: Date.now(),
+            durationSeconds: net,
+            activeSeconds: activeSecondsRef.current,
+            idleSeconds: idleRef.current,
+            liveNote,
+            keystrokes: keystrokesRef.current,
+            clicks: clicksRef.current,
+            lunchSeconds: lunchRef.current,
+            breakSeconds: brkRef.current,
+            breakEvents: breakEventsPayload(),
+          });
+        }
+      }, 1000);
+  }
+
   async function start() {
     if (!selected) return;
     try {
@@ -276,81 +409,7 @@ export default function TrackTimePage() {
       alert("Could not start tracking: " + (err?.message || "unknown error"));
       return;
     }
-    tickRef.current = setInterval(async () => {
-      const el = Math.floor((Date.now() - startMsRef.current) / 1000);
-      if (onBreakRef.current === "lunch") lunchRef.current++;
-      else if (onBreakRef.current === "break") brkRef.current++;
-
-      // an "active second" = a second with >=1 input event, not on break. On
-      // desktop, read system-wide counters from the bridge; on web, use the
-      // focus-gated flag (a browser tab can't see input elsewhere).
-      let hadEvent: boolean;
-      if (isDesktopClient) {
-        const act = await desktopGetActivity();
-        let moves = 0;
-        if (act) {
-          keystrokesRef.current = act.keystrokes;
-          clicksRef.current = act.clicks;
-          moves = act.moves || 0;
-        }
-        const total = keystrokesRef.current + clicksRef.current + moves;
-        hadEvent = total > lastActTotalRef.current;
-        lastActTotalRef.current = total;
-      } else {
-        hadEvent = secHadEventRef.current;
-        secHadEventRef.current = false;
-      }
-      if (hadEvent) activeWindowRef.current = ACTIVE_WINDOW_SEC;
-      const windowedActive = activeWindowRef.current > 0;
-      if (activeWindowRef.current > 0) activeWindowRef.current -= 1;
-
-      // On-screen motion counts as activity even without keyboard/mouse
-      // input: a meeting, a video, a running Claude session all move the
-      // screen. Probed periodically (capture isn't free) only when there's
-      // no recent input to fill in. Desktop-only — the browser can't see it.
-      let productiveNow = false;
-      let appLabel = "";
-      if (smartIdle && isDesktopClient && !onBreakRef.current && !windowedActive) {
-        ctxProbeRef.current -= 1;
-        if (ctxProbeRef.current <= 0) {
-          ctxProbeRef.current = 4;
-          desktopGetContext().then((c) => { if (c) ctxRef.current = c; }).catch(() => {});
-        }
-        const c = ctxRef.current;
-        if (c && (c.movement || 0) >= MOVEMENT_THRESHOLD) {
-          productiveNow = true; appLabel = c.app || c.title || "";
-        }
-      }
-
-      const activeThisSec = (windowedActive || productiveNow) && !onBreakRef.current;
-      if (activeThisSec) activeSecondsRef.current += 1;
-      const idleNow = !activeThisSec && !onBreakRef.current;
-      if (idleNow !== isIdle) setIsIdle(idleNow);
-      if (appLabel !== ctxApp) setCtxApp(appLabel);
-
-      const net = netSeconds(el);
-      setWorked(net);
-      setBreaks({ lunch: lunchRef.current, brk: brkRef.current });
-      setActivePct(net > 0 ? Math.round((activeSecondsRef.current / net) * 100) : 0);
-      setMeter((prev) => { const m = prev.slice(1); m.push(activeThisSec); return m; });
-
-      const liveNote = onBreakRef.current ? "break" : productiveNow ? (appLabel || "screen") : idleNow ? "idle" : "active";
-
-      if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
-        writeSession(sessionIdRef.current, {
-          endMs: Date.now(),
-          durationSeconds: net,
-          activeSeconds: activeSecondsRef.current,
-          idleSeconds: idleRef.current,
-          liveNote,
-          keystrokes: keystrokesRef.current,
-          clicks: clicksRef.current,
-          lunchSeconds: lunchRef.current,
-          breakSeconds: brkRef.current,
-          breakEvents: breakEventsPayload(),
-        });
-      }
-    }, 1000);
+    beginTicking();
   }
 
   async function stop() {
