@@ -75,6 +75,12 @@
    the lettered tabs beside them are the right size already. */
 .tab-icon { font-size: 20px; line-height: 1; padding: 6px 10px; }
 
+/* Hub sign-out. Deliberately quiet — it sits under the module tiles and must not
+   compete with them for attention; leaving is not the primary action here. */
+.hub-signout { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); text-align: center; }
+.hub-signout-btn { font-size: 13px; font-weight: 600; color: var(--gray); padding: 8px 16px; border-radius: 8px; }
+.hub-signout-btn:hover { background: var(--card-hover); color: var(--text); }
+
 /* Name/avatar in the top bar doubles as the link to the account view. */
 .account-link { cursor: pointer; transition: background .12s ease; }
 .account-link:hover:not(.active) { background: rgba(255,255,255,.1); }

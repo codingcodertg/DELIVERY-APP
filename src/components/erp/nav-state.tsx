@@ -50,7 +50,10 @@ export function ErpNavProvider({ children }: { children: React.ReactNode }) {
       {/* The sidebar is `fixed`, so it does not take space in flow — without this padding it sits
           on top of the page content. rtg-erp applies the same 14rem offset from its root layout;
           the port had dropped it, which is why the catalog was partly hidden underneath. */}
-      <div className={collapsed ? "" : "lg:pl-56"}>{children}</div>
+      {/* Collapsed still reserves a narrow gutter (3rem) rather than dropping to zero: the
+          "show menu" button is fixed in that corner, and with no offset it sat on top of the page
+          heading. Expanded reserves the sidebar's full 14rem. */}
+      <div className={collapsed ? "lg:pl-12" : "lg:pl-56"}>{children}</div>
     </Ctx.Provider>
   );
 }

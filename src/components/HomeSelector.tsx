@@ -53,6 +53,15 @@ export function HomeSelector({ me }: { me: Profile }) {
             ))}
           </>
         )}
+
+        {/* Signing out from the hub. Every module's own topbar has this, but the hub sits
+            above all of them — without it, leaving meant entering an app you did not want
+            just to reach its Sign out. Same POST to /auth/signout the topbars use. */}
+        <form action="/auth/signout" method="post" className="hub-signout">
+          <button type="submit" className="hub-signout-btn">
+            {t("Sign out", "Salir")}
+          </button>
+        </form>
       </div>
       <VersionFooter fixed />
     </div>

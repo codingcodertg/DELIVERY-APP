@@ -62,11 +62,21 @@ export function SideNav({
   const exact = new Set(["/erp/purchasing"]);
   const active = (href: string) => (exact.has(href) ? pathname === href : pathname.startsWith(href));
 
+  // Two things, not one: the product name (where you are) and the way back to the
+  // hub (where you can go). They were both whispering at 14px/12px, and the hub
+  // link is the only exit from this module now that the switcher is gone — it
+  // should be legible.
   const brand = (
-    <Link href="/home" className="flex items-baseline gap-2" title="All apps">
-      <span className="text-sm font-bold tracking-tight text-clay-600">RTG</span>
-      <span className="text-xs text-slate-400">All apps ⌂</span>
-    </Link>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
+      <Link
+        href="/home"
+        title="All apps"
+        className="flex items-center gap-1 text-sm text-slate-500 hover:text-clay-700"
+      >
+        <span aria-hidden="true">⌂</span> All apps
+      </Link>
+    </div>
   );
   const signout = (
     <form action="/auth/signout" method="post">
@@ -113,7 +123,7 @@ export function SideNav({
           collapsed ? "lg:hidden" : "lg:flex"
         )}
       >
-        <div className="flex h-14 shrink-0 items-center gap-1 px-2">
+        <div className="flex h-16 shrink-0 items-center gap-1 px-2">
           {burger}
           <div className="min-w-0 flex-1">{brand}</div>
         </div>
