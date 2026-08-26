@@ -2,18 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { setEmployeeActive, resetEmployeePassword, deleteEmployee } from "@/app/clock-in/actions/team";
+import { setEmployeeActive, resetEmployeePassword } from "@/app/clock-in/actions/team";
 import { t, type Lang } from "@/lib/clockin/i18n";
 
 export default function EmployeeActions({
   id,
   active,
-  name,
   lang,
 }: {
   id: string;
   active: boolean;
-  name: string;
   lang: Lang;
 }) {
   const tr = t(lang).mgr;
@@ -39,16 +37,6 @@ export default function EmployeeActions({
     setOpen(false);
     router.refresh();
   }
-  async function doDelete() {
-    if (!confirm(tr.confirmDeleteEmployee.replace("{name}", name))) return;
-    setBusy(true);
-    setErr(null);
-    const res = await deleteEmployee(id);
-    setBusy(false);
-    setOpen(false);
-    if (!res.ok) return setErr(res.message);
-    router.refresh();
-  }
 
   const item = "w-full text-left px-3.5 py-2.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-60";
 
@@ -70,10 +58,6 @@ export default function EmployeeActions({
             </button>
             <button onClick={doToggle} className={item}>
               {active ? `🚫 ${tr.deactivate}` : `✅ ${tr.activate}`}
-            </button>
-            <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-            <button onClick={doDelete} className={`${item} text-red-600`}>
-              🗑️ {tr.delete}
             </button>
           </div>
         </>

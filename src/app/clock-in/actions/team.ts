@@ -129,6 +129,24 @@ export async function resetEmployeePassword(
 ): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
+
+  // Being a clock-in manager is not enough here, and this is the one place where that matters.
+  // The password this resets is not clock-in's — there is no such thing in this container. It is
+  // the single hub login, the same one that opens deliveries, recruiting, timetracker and the ERP.
+  // Upstream that distinction did not exist. Here it means a clock-in owner could have set a
+  // temporary password for a deliveries ADMIN and then signed in as them.
+  //
+  // The hub already offers this at /api/reset-password, gated on role = 'admin'. Same gate.
+  const { data: caller } = await ctx.supabase
+    .schema("public")
+    .from("profiles")
+    .select("role")
+    .eq("id", ctx.user.id)
+    .maybeSingle();
+  if (caller?.role !== "admin") {
+    return { ok: false, message: "Only an administrator can reset a password — ask one to do it from Users on the hub." };
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) return { ok: false, message: "Server is missing the admin key." };
@@ -150,24 +168,23 @@ export async function resetEmployeePassword(
   return { ok: true, tempPassword };
 }
 
-/** Permanently delete an employee (auth login + all their records). Manager/owner, not self. */
-export async function deleteEmployee(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
-  const ctx = await managerCtx();
-  if (!ctx.ok) return ctx;
-  if (id === ctx.user.id) return { ok: false, message: "You can't delete your own account." };
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { ok: false, message: "Server is missing the admin key." };
-  const { data: target } = await ctx.supabase.from("profiles").select("id, company_id").eq("id", id).maybeSingle();
-  if (!target || target.company_id !== ctx.companyId) return { ok: false, message: "Employee not found." };
-  // Deleting the auth user cascades the profile and all their records.
-  const res = await fetch(`${url}/auth/v1/admin/users/${id}`, {
-    method: "DELETE",
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
-  });
-  if (!res.ok) return { ok: false, message: "Could not delete this employee." };
-  return { ok: true };
-}
+// deleteEmployee() was here and is deliberately gone.
+//
+// It called the Auth admin API to delete the user, on the reasoning that this cascades the profile
+// and all their records — true in rtg-clock-in, where clock-in WAS the whole application. In this
+// container `public.profiles` is the shared identity behind deliveries, recruiting, timetracker and
+// the ERP, so a clock-in manager pressing 🗑️ would have erased someone from every one of them,
+// along with their delivery history. The Spanish copy even promised it: "borra su acceso y todos
+// sus registros".
+//
+// Nor could a safer version live here. Removing someone from clock-in alone means clearing
+// clockin_role, and 071's guard lets only a deliveries admin do that — access is granted and
+// revoked from the hub (D-091), on purpose. What a clock-in manager legitimately needs is to stop
+// counting someone's time, and setEmployeeActive() below already does exactly that, reversibly and
+// without touching anyone else's app.
+//
+// Deleting the person from the company remains possible, in Users on the hub, where it is
+// admin-only and written to the security log (/api/delete-user).
 
 export async function setEmployeeActive(id: string, active: boolean) {
   const ctx = await managerCtx();

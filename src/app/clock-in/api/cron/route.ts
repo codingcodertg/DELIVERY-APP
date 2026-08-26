@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { notifyText, sendToSub, type Sub } from "@/lib/clockin/notify";
 import { scoreWeek } from "@/lib/clockin/scorecard";
 import { centralShiftMs } from "@/lib/clockin/tz";
+import { clockinRestHeaders } from "@/lib/clockin/rest";
+import { cronAuthorized } from "@/lib/clockin/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,18 +15,18 @@ function creds() {
 }
 async function q(path: string): Promise<Row[]> {
   const { url, key } = creds();
-  const r = await fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" });
+  const r = await fetch(`${url}/rest/v1/${path}`, { headers: clockinRestHeaders(key), cache: "no-store" });
   return r.ok ? await r.json() : [];
 }
 async function del(path: string) {
   const { url, key } = creds();
-  await fetch(`${url}/rest/v1/${path}`, { method: "DELETE", headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "return=minimal" } });
+  await fetch(`${url}/rest/v1/${path}`, { method: "DELETE", headers: clockinRestHeaders(key, { Prefer: "return=minimal" }) });
 }
 async function patch(path: string, body: unknown) {
   const { url, key } = creds();
   await fetch(`${url}/rest/v1/${path}`, {
     method: "PATCH",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+    headers: clockinRestHeaders(key, { Prefer: "return=minimal" }),
     body: JSON.stringify(body),
   });
 }
@@ -32,7 +34,7 @@ async function record(companyId: string, employeeId: string, type: string, messa
   const { url, key } = creds();
   await fetch(`${url}/rest/v1/notifications`, {
     method: "POST",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+    headers: clockinRestHeaders(key, { Prefer: "return=minimal" }),
     body: JSON.stringify({ company_id: companyId, employee_id: employeeId, type, message }),
   });
 }
@@ -47,8 +49,7 @@ function centralMin(iso: string) {
 }
 
 export async function GET(req: Request) {
-  const key = new URL(req.url).searchParams.get("key");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
+  if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

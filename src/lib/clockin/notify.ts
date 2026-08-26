@@ -1,6 +1,7 @@
 // Server-side notification engine: bilingual message catalog + Web Push senders.
 // Used by the scheduler (/api/cron) and by event actions (time-off, off-site).
 import webpush from "web-push";
+import { clockinRestHeaders } from "./rest";
 
 type Lang = "en" | "es";
 type P = Record<string, string | number>;
@@ -117,7 +118,7 @@ async function rest(path: string, init?: RequestInit) {
   const { url, key } = env();
   return fetch(`${url}/rest/v1/${path}`, {
     ...init,
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: clockinRestHeaders(key, (init?.headers ?? {}) as Record<string, string>),
     cache: "no-store",
   });
 }

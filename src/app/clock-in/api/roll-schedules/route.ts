@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, type PresetType } from "@/lib/clockin/schedule";
+import { clockinRestHeaders } from "@/lib/clockin/rest";
+import { cronAuthorized } from "@/lib/clockin/cronAuth";
 
 // Recurring schedules: once a day, make sure every active non-owner employee
 // with a schedule (A/B/C or custom) has their standard shifts laid out for THIS
@@ -9,13 +11,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const key = new URL(req.url).searchParams.get("key");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
+  if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const k = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const H = { apikey: k, Authorization: `Bearer ${k}`, "Content-Type": "application/json" };
+  const H = clockinRestHeaders(k);
 
   const periodDates = currentAndNextPeriodDates(); // this pay week + next (Fri→Thu)
 

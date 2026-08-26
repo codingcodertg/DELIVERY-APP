@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { clockinRestHeaders } from "@/lib/clockin/rest";
+import { cronAuthorized } from "@/lib/clockin/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,12 +25,7 @@ async function rest(path: string, init?: RequestInit) {
   const { url, key } = env();
   return fetch(`${url}/rest/v1/${path}`, {
     ...init,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers: clockinRestHeaders(key, (init?.headers ?? {}) as Record<string, string>),
     cache: "no-store",
   });
 }
@@ -48,8 +45,7 @@ async function removeFromStorage(paths: string[]) {
 }
 
 export async function GET(req: Request) {
-  const key = new URL(req.url).searchParams.get("key");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
+  if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

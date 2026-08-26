@@ -4100,3 +4100,71 @@ los que Stop podía no detener nada:
   no corriendo". Dejó de ser cierto al sembrar `running` de la miga: la vista
   mostraba un reloj **congelado** en el segundo del montaje. Ahora sigue
   contando desde la miga, que ya trae el id y el arranque.
+
+## D-094 · Lo que la fusión de clock-in daba por sentado y aquí no es cierto
+**Fecha:** 2026-08-26 · **Versión:** v0.2.0 (clockin) · **Pedido por:** Andrés
+(*"continue with the merge"*)
+
+Tres suposiciones de `rtg-clock-in` que eran ciertas cuando clock-in **era** la
+aplicación entera y dejan de serlo dentro de este contenedor. Ninguna daba error.
+
+### 1. Cuatro ficheros hablaban con PostgREST sin decir el schema
+
+Las tres rutas de cron y `lib/clockin/notify.ts` usan `fetch` a pelo, no el
+cliente de Supabase, así que **no** llevan el `db: { schema: "clockin" }` que
+pone `lib/clockin/supabase/client.ts`. Sin cabecera de perfil PostgREST responde
+desde `public`, que aquí es la base de otra app:
+
+| tabla | en `public` | consecuencia |
+|---|---|---|
+| `notifications` | **existe** | las notificaciones de fichaje se escribían en la tabla de deliveries |
+| `profiles` | **existe** | leía la fila de deliveries, sin `company_id`, `language` ni `active` |
+| `scheduled_shifts` | 404 | `q()` devuelve `[]` si `!r.ok`: el cron no hacía nada, en silencio |
+| `shift_cancellations` | 404 | igual |
+| `push_subscriptions` | 404 | igual |
+
+Nada de eso lanza un error. Por eso se arregla con una constante compartida
+(`lib/clockin/rest.ts`) y no con una cabecera en cada llamada: un sitio que la
+olvide no se rompe, lee o escribe los datos de la otra app sin decir nada.
+
+### 2. Un manager de fichaje podía borrar a alguien de TODA la empresa
+
+`deleteEmployee()` llamaba a la API admin de Auth para borrar el usuario,
+razonando que eso arrastra el perfil y todos sus registros. Cierto en
+`rtg-clock-in`, donde clock-in era todo. Aquí `public.profiles` es la identidad
+compartida de deliveries, recruiting, timetracker y el ERP: pulsar 🗑️ en la
+pantalla de Equipo habría borrado a esa persona de las cuatro, con su historial
+de entregas. El texto en español incluso lo prometía — *"borra su acceso y todos
+sus registros"*.
+
+**Se elimina la acción, no se le pone un candado.** Una versión segura tampoco
+cabía aquí: quitar a alguien de clock-in significa limpiar `clockin_role`, y el
+guardián de 071 solo deja hacerlo a un admin de deliveries — el acceso se otorga
+y se revoca desde el hub (D-091), a propósito. Lo que un manager de fichaje sí
+necesita es dejar de contarle el tiempo a alguien, y `setEmployeeActive()` ya
+hace exactamente eso, reversible y sin tocar la app de nadie más. Borrar a la
+persona de la empresa sigue existiendo en **Usuarios** del hub, solo para admin
+y con registro de seguridad.
+
+### 3. Y podía cambiarle la contraseña a un admin
+
+`resetEmployeePassword()` solo comprobaba ser manager u owner **de clock-in**.
+La contraseña que restablece no es de clock-in — aquí no existe tal cosa: es el
+único login del hub, el mismo que abre deliveries, recruiting, timetracker y el
+ERP. Un owner de fichaje podía ponerle una contraseña temporal a un **admin de
+deliveries** y entrar como él. Ahora exige `role = 'admin'`, la misma puerta que
+`/api/reset-password` del hub.
+
+### De paso: el secreto del cron ya no tiene que ir en la URL
+
+Las tres rutas aceptaban solo `?key=<CRON_SECRET>` — por eso nunca fueron crons
+de Vercel: las llama un programador externo. La query sigue funcionando, así que
+lo que las llame hoy sigue llamándolas, pero ahora también vale
+`Authorization: Bearer <CRON_SECRET>`, que no acaba en cada log de acceso.
+Fallan cerradas si `CRON_SECRET` no está: sin secreto configurado no está
+autorizado nadie, no todo el mundo.
+
+**Pendiente de configuración, no de código:** `CRON_SECRET` y las tres claves
+VAPID en Vercel — y las VAPID tienen que ser **las mismas** de `rtg-clock-in`,
+porque las suscripciones push existentes están firmadas contra esa clave y con
+otra dejan de valer. Y repuntar el programador externo a las rutas nuevas.

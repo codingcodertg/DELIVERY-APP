@@ -118,7 +118,7 @@ export default function TeamList({
                     )}
                     <ScheduleSelect employeeId={p.id} schedule={p.default_schedule} lang={lang} />
                     <StoreSelect employeeId={p.id} storeId={p.store_id} sites={sites} lang={lang} />
-                    {p.id !== userId && <EmployeeActions id={p.id} active={p.active} name={p.full_name} lang={lang} />}
+                    {p.id !== userId && <EmployeeActions id={p.id} active={p.active} lang={lang} />}
                   </div>
                 </div>
 
