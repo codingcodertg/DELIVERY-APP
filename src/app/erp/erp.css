@@ -46,13 +46,73 @@
   --color-clay-700: #7e3d28;
 }
 
-/* The app shell, matching what rtg-erp's own globals.css set on <body>. Applied
-   to the ERP wrapper rather than body, because body here belongs to the root
-   layout that every other module shares. */
-[data-app="erp"] {
-  min-height: 100vh;
-  background-color: #f2f4f7; /* soft grey app background */
-  color: #0f172a; /* slate-900 */
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ---------------------------------------------------------------------------
+   Undoing the root stylesheet, on ERP routes only.
+   ---------------------------------------------------------------------------
+
+   The root layout's globals.css loads on EVERY route, including /erp, and it
+   styles bare element selectors. Measured, it sets:
+
+     body                     font-family Inter, background var(--paper),
+                              color var(--text), font-size 14px
+     a                        color: inherit
+     button                   font: inherit, border none, background none, 13px
+     input, select, textarea  font, font-size, border, border-radius 8px,
+                              padding, width 100%
+     input:focus              outline 2px solid var(--accent), border-color
+     input:disabled           opacity .7
+     textarea                 min-height 60px
+
+   Preflight (imported above, and loaded after globals.css) already undoes the
+   font, border and padding of those. It does NOT undo border-radius, width,
+   min-height, the focus outline, the disabled opacity, or anything on <body> —
+   which is why the port had the ERP's spacing but the deliveries theme.
+
+   Styling `body` from here is safe for the reason preflight is: this stylesheet
+   is imported by app/erp/layout.tsx and Next loads it only for that subtree.
+   Verified in .next/app-build-manifest.json.
+
+   IN @layer base ON PURPOSE. Tailwind's utilities live in @layer utilities,
+   which beats base regardless of specificity — so `w-full` or `rounded-md` on an
+   ERP input still wins over the resets below. Written as plain selectors outside
+   a layer, `[data-app="erp"] input` (0,1,1) would outrank `.w-full` (0,1,0) and
+   quietly break every sized input in the module. */
+
+@layer base {
+  /* rtg-erp's own body rule, verbatim — its globals.css is 30 lines and this is
+     all of the theme it sets. */
+  body {
+    background-color: #f2f4f7; /* soft grey app background */
+    color: #0f172a; /* slate-900 */
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px; /* the base Tailwind's rem scale is drawn against */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-app="erp"] {
+    min-height: 100vh;
+  }
+
+  [data-app="erp"] :where(button) {
+    font-size: inherit;
+  }
+
+  [data-app="erp"] :where(input, select, textarea) {
+    border-radius: 0;
+    width: auto;
+    font-size: inherit;
+  }
+
+  [data-app="erp"] :where(textarea) {
+    min-height: 0;
+  }
+
+  [data-app="erp"] :where(input, select, textarea):focus {
+    outline: none;
+    border-color: inherit;
+  }
+
+  [data-app="erp"] :where(input, select, textarea):disabled {
+    opacity: 1;
+  }
 }
