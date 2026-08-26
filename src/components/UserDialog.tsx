@@ -26,7 +26,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -69,6 +69,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "deliveries": updateUserRole(u.id, roleValue as UserRole); return;
       case "recruiting": updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: roleValue }); return;
       case "timetracker": updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: roleValue }); return;
+      case "erp":
+        // No role tier of its own — the block renders a checkbox and nothing
+        // to pick, so this is unreachable. Kept for exhaustiveness.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -79,6 +83,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         return;
       case "timetracker":
         updateUserTimetrackerAccess(u.id, { granted, timetracker_role: granted ? (u.timetracker_role ?? "employee") : null });
+        return;
+      case "erp":
+        updateUserErpAccess(u.id, { granted });
         return;
       case "deliveries":
         // Never actually called — deliveries is alwaysOn and renders no
@@ -204,8 +211,12 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           // module's field — a third module here needed a real fix, not
           // another `: u.recruiting_role` clause (that bug would have shown
           // recruiting's role value inside every OTHER module's block).
-          const currentRole = m.roleColumn === "role" ? u.role : (u[m.roleColumn] ?? undefined);
-          const granted = m.alwaysOn || !!currentRole;
+          // A module with no roleColumn (the ERP) has no role to look up; its
+          // access is the module_access flag alone.
+          const currentRole = !m.roleColumn ? undefined
+            : m.roleColumn === "role" ? u.role : (u[m.roleColumn] ?? undefined);
+          const granted = m.alwaysOn
+            || (m.roleColumn ? !!currentRole : !!u.module_access?.includes(m.key));
           // The lowest-listed role is the default when checking the box with
           // nothing chosen yet — matches what recruiting's own invite flow
           // always defaulted to ("recruiter", last in RECRUITING_ROLE_LABELS).

@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   if (!fcmConfigured()) return NextResponse.json({ skipped: "push not configured" });
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 

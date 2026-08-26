@@ -50,9 +50,10 @@ function osmTile(z: string, x: string, y: string) {
   return NextResponse.redirect(`https://tile.openstreetmap.org/${z}/${x}/${y}.png`, 302);
 }
 
-export async function GET(_req: Request, { params }: { params: { z: string; x: string; y: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ z: string; x: string; y: string }> }) {
   const key = process.env.GOOGLE_MAPS_API_KEY;
-  const z = params.z, x = params.x, y = params.y.replace(/\.png$/, "");
+  const p = await params;
+  const z = p.z, x = p.x, y = p.y.replace(/\.png$/, "");
   if (!key) return osmTile(z, x, y);
 
   const token = await getSession(key);

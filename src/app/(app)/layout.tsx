@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Local demo mode: no Supabase, everything runs in the browser.
   if (LOCAL_MODE) return <ConfirmProvider><LocalApp>{children}</LocalApp></ConfirmProvider>;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

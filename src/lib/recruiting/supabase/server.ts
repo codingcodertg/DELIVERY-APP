@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 
 /** Supabase client for use in Server Components, Route Handlers, and Server
  * Actions. Defaults to the `recruiting` schema — see client.ts. */
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

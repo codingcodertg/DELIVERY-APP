@@ -23,7 +23,7 @@ import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 // the least-wrong single answer for a page that isn't really "an app" of
 // its own to begin with.
 export default async function HomeLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

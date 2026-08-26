@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { stageInfo } from "@/lib/constants";
 import { fmtDate, fmtWindows } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
@@ -36,7 +36,10 @@ const PUBLIC_LABEL: Record<string, string> = {
 };
 const publicLabel = (stage: string) => PUBLIC_LABEL[stage] ?? stageInfo(stage).label;
 
-export default function TrackPage({ params }: { params: { id: string } }) {
+export default function TrackPage({ params }: { params: Promise<{ id: string }> }) {
+  // Next 15 passes route params as a promise. A client component cannot be async, so it
+  // unwraps with React.use() instead of await.
+  const { id } = use(params);
   const [order, setOrder] = useState<TrackOrder | null | undefined>(undefined);
 
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function TrackPage({ params }: { params: { id: string } }) {
           const raw = localStorage.getItem(LS_KEY);
           if (raw) {
             const store = JSON.parse(raw) as { deliveries: Delivery[] };
-            if (!cancelled) setOrder(store.deliveries.find((d) => d.id === params.id) ?? null);
+            if (!cancelled) setOrder(store.deliveries.find((d) => d.id === id) ?? null);
             return;
           }
         } catch { /* ignore */ }
@@ -55,7 +58,7 @@ export default function TrackPage({ params }: { params: { id: string } }) {
         return;
       }
       try {
-        const res = await fetch(`/api/track/${params.id}`, { cache: "no-store" });
+        const res = await fetch(`/api/track/${id}`, { cache: "no-store" });
         const b = await res.json().catch(() => ({}));
         if (!cancelled) setOrder((b.order as TrackOrder | null) ?? null);
       } catch {
@@ -63,7 +66,7 @@ export default function TrackPage({ params }: { params: { id: string } }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [params.id]);
+  }, [id]);
 
   const currentIdx = order ? PUBLIC_FLOW.indexOf(order.stage as (typeof PUBLIC_FLOW)[number]) : -1;
 

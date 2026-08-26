@@ -19,7 +19,7 @@ import type { Profile } from "@/lib/types";
 // realtime channels there would be paying for something nobody on that page
 // uses — same locality principle D-052 already applied to recruiting.
 export default async function HomeUsersLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

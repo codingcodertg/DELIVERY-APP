@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 // already uses — this is the second, independent copy of that pattern, not a
 // new one. See D-050/D-052.
 export default async function RecruitingLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient(); // deliveries' client — public schema, shared identity
+  const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
     data: { user },
   } = await supabase.auth.getUser();

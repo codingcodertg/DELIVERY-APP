@@ -207,6 +207,15 @@ export const MODULES: ModuleInfo[] = [
   // regardless, and nobody has timetracker in module_access to click this
   // card until an admin grants it.
   {
+    key: "erp",
+    href: "/erp/catalog",
+    emoji: "🧱",
+    label_en: "ERP",
+    label_es: "ERP",
+    desc_en: "Catalog, purchasing and inventory",
+    desc_es: "Catálogo, compras e inventario",
+  },
+  {
     key: "timetracker",
     href: "/timetracker",
     emoji: "⏱️",
@@ -442,7 +451,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -450,7 +459,13 @@ export interface ModuleAccessConfig {
   /** Deliveries only. Not a checkbox — see D-057's "always-on" note: role is
    * NOT NULL, there is no "no module" state anywhere in the schema. */
   alwaysOn: boolean;
-  roleColumn: "role" | "recruiting_role" | "timetracker_role";
+  /** Absent for a module with no role tier of its own. The ERP is the case:
+   * its only distinction is admin/manager (cost visibility, rtg-erp decision
+   * #29) and those are values `role` already carries — a second column would
+   * be a duplicate of the same fact, free to drift. Access is the checkbox
+   * alone. The uniqueness rule this field encodes still holds: no two modules
+   * may aim at the same column, and absent is not the same as "role". */
+  roleColumn?: "recruiting_role" | "timetracker_role" | "role";
   roleKeys: readonly string[];
   roleLabel: (key: string, lang: Lang) => string;
   /** Present only for an opt-in module — deliveries has none, everyone
@@ -491,6 +506,17 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleLabel: (key, lang) => (lang === "es" ? TIMETRACKER_ROLE_LABELS[key].es : TIMETRACKER_ROLE_LABELS[key].en),
     accessColumn: "module_access",
     // No capabilities yet — same as recruiting, only dial is the role tier.
+  },
+  {
+    key: "erp", label_en: "ERP", label_es: "ERP",
+    alwaysOn: false,
+    // No roleColumn, and no roleKeys: this module has no role tier of its own.
+    // Who may see cost is decided by `role` being admin/manager, which the
+    // Deliveries block above already edits — the ERP reads the same column
+    // rather than keeping a second copy of the same fact.
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
   },
 ];
 
