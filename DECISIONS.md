@@ -4304,3 +4304,76 @@ está arreglando. Se para donde se arrancó.
 
 **`source` no rompe los informes:** solo distinguen `manual` y `adjusted` para
 poner su etiqueta; `desktop` cae en el mismo sitio que `timer`, sin etiqueta.
+
+
+## D-097 · Auditoría completa: dos fallos de fondo, encontrados y corregidos
+**Fecha:** 2026-08-27 · **Versión:** migraciones 080 y 081 · **Pedido por:** Andrés
+(*"hazme un audit completo de todo y si lo encuentras arreglalo"*)
+
+Revisión de RLS, permisos, identidad, integridad, configuración y rutas sobre los
+cinco módulos. Dos hallazgos reales; el resto salió limpio.
+
+### 1 · Las políticas evaluaban sus helpers por fila (080)
+
+Es el fallo que tumbó el catálogo del ERP y que se arregló **solo allí** (D-090,
+migración 070). La auditoría lo encontró vivo en todos los demás: **80 políticas**
+de `clockin`, `recruiting`, `timetracker` y `public` llamaban a
+`auth_company_id()`, `auth_is_manager()`, `has_recruiting_access()`,
+`current_user_role()` y `auth.uid()` sin envolver. Postgres no puede saber que son
+constantes dentro de la consulta, así que las ejecuta **una vez por cada fila
+examinada**.
+
+Medido antes de tocar nada, sobre `clockin.notifications` (2.161 filas):
+
+| | |
+|---|---|
+| `where company_id = clockin.auth_company_id()` | **100.9 ms** |
+| `where company_id = (select clockin.auth_company_id())` | **2.4 ms** |
+
+Hoy ninguna tabla es lo bastante grande para que se note en pantalla, y conviene
+decirlo así en vez de inflarlo. El punto es que `time_entries` crece con cada
+fichaje y `notifications` con cada aviso: el catálogo del ERP tampoco molestaba
+hasta que llegó a 84.000 filas y empezó a dar timeout.
+
+La migración **se generó leyendo `pg_policy` y reescribiendo cada expresión**, no
+a mano: 165 llamadas envueltas, ninguna condición redactada de nuevo. Verificado
+después: 171 políticas siguen existiendo, 0 llamadas por fila.
+
+### 2 · `anon` podía TRUNCATE 31 tablas (081)
+
+`anon` —el rol del visitante sin sesión, el que respalda la clave pública del
+navegador— tenía SELECT, INSERT, UPDATE, DELETE y **TRUNCATE** sobre 31 tablas de
+`public`, `recruiting` y `timetracker`. `clockin` y `erp` no: sus migraciones
+concedieron solo a `authenticated` y `service_role`. Las otras tres heredaron el
+reparto por defecto de Supabase y nadie lo recortó.
+
+**No era una fuga abierta.** RLS filtra fila por fila, anon no tiene `auth.uid()`,
+así que un SELECT anónimo trae cero filas; y se comprobó que ninguna pantalla
+funciona sin sesión —todas redirigen a `/login`— así que nada legítimo se apoyaba
+en esos permisos.
+
+Lo que sí importa: **TRUNCATE no pasa por RLS**. Una política no lo filtra porque
+no mira filas: vacía la tabla entera. Hoy no hay camino para invocarlo (PostgREST
+no lo expone), pero es un permiso a una función RPC de distancia de ser
+alcanzable. Revocado, y con `alter default privileges` para que una tabla nueva no
+vuelva a nacer con él.
+
+### Lo que se revisó y salió limpio
+
+RLS activo en las 92 tablas y ninguna sin políticas · las 6 vistas con
+`security_invoker` · las funciones `SECURITY DEFINER` todas con `search_path`
+fijo · cero perfiles sin cuenta y cero cuentas sin perfil · cero accesos
+incoherentes con su rol · cero capturas apuntando a ficheros que no existen ·
+los 21 enlaces internos resuelven a alguna de las 111 rutas · la clave de servicio
+no aparece en ningún bundle de cliente · ningún secreto en el repo.
+
+### Anotado, no cambiado
+
+- **`Andres Ugarte / andresugarte000@gmail.com`**: segunda cuenta tuya, rol
+  `logistics`, sin módulos, sin datos y sin haber entrado nunca — pero con
+  contraseña, así que es un login vivo que nadie usa. Borrar a una persona es
+  decisión del negocio, no de una auditoría.
+- **ESLint no está configurado** en el proyecto (`next lint` pide instalarlo).
+  Instalarlo cambiaría el flujo de trabajo de cada cambio; se deja dicho.
+- Las tres VAPID y el programador externo de los crons siguen pendientes de
+  configuración (D-094).
