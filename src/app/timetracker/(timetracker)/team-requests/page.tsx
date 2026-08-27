@@ -6,6 +6,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import { fmtClock, weekStartISO } from "@/lib/timetracker/helpers";
 import { rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
+import { isOverlapError } from "@/lib/timetracker/overlap";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerRequests.jsx — the
 // approve/reject queue for employee time requests. Named /team-requests,
@@ -119,7 +120,12 @@ export default function TeamRequestsPage() {
         }
         await logAudit("Request approved", LABEL[r.type as RequestType] + " · " + (p.employeeName || "") + " · " + p.date + (p.hours ? " · " + p.hours + "h" : ""));
       } catch (e) {
+        // La solicitud vuelve a pendiente en los dos casos — se aprobó y no se pudo
+        // aplicar, así que dejarla como aprobada mentiría sobre lo que hay en la tabla.
         await resetRequestToPending(r.id).catch(() => {});
+        // 082: aprobar estas horas pisaría un tramo ya fichado. Es el caso que pagó a
+        // Nick 0.5 h dos veces el 11 de julio, y ahora la base no deja aplicarlo.
+        if (isOverlapError(e)) { alert(t("track.overlap")); return; }
         const err = e as { message?: string } | null;
         alert(t("mgr.req.applyFail", { e: err?.message || "unknown error" }));
       }

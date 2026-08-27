@@ -8,6 +8,7 @@ import {
   money, periodEndISO, periodLabel, projectWeekStart, thisPeriodStart, weekIsFinished, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
+import { isOverlapError } from "@/lib/timetracker/overlap";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerReports.jsx — the
 // biggest and highest-stakes screen in the app: it computes and records
@@ -182,7 +183,11 @@ export default function ManagerReportsPage() {
       await logAudit("Entry adjusted", (uMap.get(x.employeeUid)?.fullName || "") + " · " + ed.date + " · " + ed.from + "-" + ed.to);
       setEditId(null);
       sessionsSince(start, end).then(setSessions);
-    } catch (e) { const err = e as { message?: string } | null; alert(t("mgr.rep.saveFail", { e: err?.message || "unknown error" })); }
+    } catch (e) {
+      // 082: el tramo pisa otro ya fichado. Decirlo, no soltar el error de Postgres.
+      if (isOverlapError(e)) { alert(t("track.overlap")); return; }
+      const err = e as { message?: string } | null; alert(t("mgr.rep.saveFail", { e: err?.message || "unknown error" }));
+    }
   }
   async function addManualEntry(uid: string) {
     if (!nadd.assignmentId || !nadd.from || !nadd.to) { alert(t("mgr.rep.addPrompt")); return; }
@@ -200,7 +205,10 @@ export default function ManagerReportsPage() {
       await logAudit("Entry added (manual)", (emp ? emp.fullName : "") + " · " + nadd.date + " · " + nadd.from + "-" + nadd.to);
       setAddUid(null); setNadd({ assignmentId: "", date: "", from: "", to: "" });
       sessionsSince(start, end).then(setSessions);
-    } catch (e) { const err = e as { message?: string } | null; alert("Could not add: " + (err?.message || "unknown error")); }
+    } catch (e) {
+      if (isOverlapError(e)) { alert(t("track.overlap")); return; }
+      const err = e as { message?: string } | null; alert("Could not add: " + (err?.message || "unknown error"));
+    }
   }
   async function deleteEntry(s: Session) {
     if (!confirm(t("mgr.rep.delEntryConfirm"))) return;

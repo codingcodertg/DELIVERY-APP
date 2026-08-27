@@ -13,6 +13,7 @@ import {
 } from "@/lib/timetracker/desktop";
 import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
+import { isOverlapError } from "@/lib/timetracker/overlap";
 
 // ============================================================
 // Track Time — the core screen. Ported (D-066) from timetracker-clean's
@@ -265,10 +266,16 @@ export default function TrackTimePage() {
   // buffered locally via the offline queue and synced on reconnect — the
   // tracker keeps counting from local refs regardless, so the buffered patch
   // always carries the full up-to-date duration once it flushes.
-  async function writeSession(id: string, patch: Partial<Session>, tries = 3): Promise<boolean | "queued"> {
+  async function writeSession(id: string, patch: Partial<Session>, tries = 3): Promise<boolean | "queued" | "overlap"> {
     for (let i = 0; i < tries; i++) {
       try { await updateSession(id, patch); return true; }
-      catch { await new Promise((r) => setTimeout(r, 500 * (i + 1))); }
+      catch (e) {
+        // Un solape (082) no se arregla esperando: la base lo va a rechazar igual
+        // dentro de una hora. Encolarlo sería reintentar en silencio para siempre
+        // mientras el reloj sigue en pantalla como si estuviera guardando.
+        if (isOverlapError(e)) return "overlap";
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      }
     }
     queueSession(id, patch);
     return "queued";
@@ -466,7 +473,8 @@ export default function TrackTimePage() {
         const liveNote = onBreakRef.current ? "break" : productiveNow ? (appLabel || "screen") : idleNow ? "idle" : "active";
   
         if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
-          writeSession(sessionIdRef.current, {
+          const id = sessionIdRef.current;
+          void writeSession(id, {
             endMs: Date.now(),
             durationSeconds: net,
             activeSeconds: activeSecondsRef.current,
@@ -477,6 +485,15 @@ export default function TrackTimePage() {
             lunchSeconds: lunchRef.current,
             breakSeconds: brkRef.current,
             breakEvents: breakEventsPayload(),
+          }).then((r) => {
+            // La fila ha crecido hasta chocar con otra ya fichada (082). Es justo la
+            // forma que tenía el fantasma de 25.75 h: contando sobre un tramo que ya
+            // existía. Se para aquí, en vez de seguir enseñando un reloj que ya no
+            // guarda nada.
+            if (r === "overlap" && !stoppedRef.current) {
+              notify(t("track.overlap"));
+              void stop();
+            }
           });
         }
       }, 1000);
@@ -537,6 +554,7 @@ export default function TrackTimePage() {
       notify(t("notify.startTitle") + ": " + t("notify.startBody", { project: selected.project?.name || "" }));
       desktopStart({ sessionId: row.id, intervalMin: shotMin });
     } catch (e) {
+      if (isOverlapError(e)) { notify(t("track.overlap")); return; }
       const err = e as { message?: string } | null;
       alert("Could not start tracking: " + (err?.message || "unknown error"));
       return;
@@ -590,6 +608,7 @@ export default function TrackTimePage() {
     // the string "queued", both truthy. What can really happen is the queue, and that is worth
     // saying once — the entry is not lost, it just is not on the server yet.
     if (ok === "queued") notify(t("track.savedOffline"));
+    if (ok === "overlap") notify(t("track.overlap"));
   }
   stopRef.current = stop;
 

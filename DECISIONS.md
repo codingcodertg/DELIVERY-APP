@@ -4377,3 +4377,80 @@ no aparece en ningún bundle de cliente · ningún secreto en el repo.
   Instalarlo cambiaría el flujo de trabajo de cada cambio; se deja dicho.
 - Las tres VAPID y el programador externo de los crons siguen pendientes de
   configuración (D-094).
+
+
+## D-098 · No se puede fichar tiempo sobre tiempo ya fichado
+**Fecha:** 2026-08-27 · **Versión:** v0.6.0 (timetracker), migración 082 · **Pedido por:** Andrés
+(*"no se puede track time sobre track time... haz esa regla bulletproof"*)
+
+**Por qué ahora:** dos filas infladas habían llegado ya a nómina. La fila fantasma
+de 25.75 h que un tab web engordó sobre una sesión real (D-096), y antes las
+19.27 h de Nick por olvidarse de parar. Las dos se cazaron mirando; ninguna avisó.
+Y al buscar solapamientos en el histórico apareció una tercera, callada desde
+julio: **0.50 h manuales dentro de una sesión cronometrada de 1.17 h** — Nick
+cobró ese tramo dos veces el 11 de julio.
+
+### La regla vive en la base, no en la interfaz
+
+Una restricción `EXCLUDE` sobre `timetracker.sessions`: misma persona, rangos que
+se cruzan, rechazado.
+
+**Se descartó un trigger.** Un trigger que consulta "¿hay algo que solape?" y
+luego inserta tiene una ventana entre las dos cosas: dos escrituras simultáneas
+pueden pasar la comprobación a la vez y entrar las dos. `EXCLUDE` lo resuelve el
+índice dentro de la misma operación, sin ventana. Eso es lo que *blindado*
+significa aquí, y es la razón de la extensión `btree_gist`.
+
+**Rangos semiabiertos `[inicio, fin)`.** Es lo que deja intacta la costumbre
+normal: parar a las 13:03 y arrancar otra a las 13:03 no solapa, y en el
+historial eso pasa a diario. Con rangos cerrados se habría rechazado media app.
+
+**Fuera del índice** quedan las sesiones sin cierre (un rango sin tope superior
+bloquearía todo lo posterior) y las de duración cero que deja un arranque anulado.
+
+**Por persona.** Dos personas trabajan a la vez, evidentemente; lo que no puede
+es una sola estar en dos sitios.
+
+Probado contra los seis casos antes de darlo por bueno: sesión base *aceptada*;
+otra encima *rechazada*; manual dentro *rechazada*; solape parcial por la cola
+*rechazado*; pegada justo después *aceptada*; otra persona a la misma hora
+*aceptada*.
+
+### Los tres caminos escriben en la misma tabla
+
+El cronómetro, el "add time" manual y el "adjust" aprobado. Antes solo el primero
+tenía algo de cuidado, y **por el tercero entró el cobro doble de Nick**: aprobar
+horas manuales encima de un tramo ya cronometrado no se quejaba. Ahora la
+restricción los cubre a los tres por igual, porque está debajo de todos.
+
+### Un solape no es un fallo de red
+
+`writeSession` reintentaba tres veces y luego dejaba la escritura en la cola
+offline. Para un solape eso es lo peor posible: la base lo va a rechazar igual
+dentro de una hora, así que la cola reintenta para siempre mientras el reloj sigue
+en pantalla como si estuviera guardando. Ahora se distingue por SQLSTATE 23P01 y
+por el nombre de la restricción —PostgREST y supabase-js no siempre traen `code`
+con la misma forma—, y se trata aparte:
+
+- **el tick** para el reloj y lo dice, en vez de seguir contando algo que no se
+  guarda — que es exactamente la forma que tenía el fantasma de 25.75 h;
+- **Stop**, **Start**, el alta manual, el ajuste y la aprobación dan el mismo
+  mensaje: *"Esas horas ya están fichadas"*, no el error crudo de Postgres.
+
+Cinco pruebas cubren el detector, y la mitad son de lo contrario: que un
+`Failed to fetch` o un JWT caducado **no** se confundan con un solape. Confundirlos
+en ese sentido perdería horas legítimas por no reintentarlas.
+
+### Dos filas retiradas para poder activarla
+
+Una restricción `EXCLUDE` no admite `NOT VALID`: o los datos cumplen, o no entra.
+
+- La fantasma de 25.75 h (0 s de actividad, 0 teclas, 0 clics, sin memo ni
+  capturas). Respaldo en `scratchpad/sesion_fantasma_83944cec.json`.
+- Las 0.50 h manuales de Nick del 11 de julio. Respaldo en
+  `scratchpad/solape_ab792f7e.json`.
+
+Las dos quedan anotadas en `timetracker.audit` con el motivo, para que dentro de
+tres meses nadie se pregunte por qué falta una fila. **Andrés pasa de 84.19 h a
+58.45 h esta semana**; a Nick se le retira medio tramo de julio que estaba pagado
+dos veces, y eso conviene que lo sepa él.
