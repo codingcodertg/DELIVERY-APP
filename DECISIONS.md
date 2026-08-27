@@ -4454,3 +4454,44 @@ Las dos quedan anotadas en `timetracker.audit` con el motivo, para que dentro de
 tres meses nadie se pregunte por qué falta una fila. **Andrés pasa de 84.19 h a
 58.45 h esta semana**; a Nick se le retira medio tramo de julio que estaba pagado
 dos veces, y eso conviene que lo sepa él.
+
+
+## D-099 · El arreglo de D-088 tapaba una sola de las salidas
+**Fecha:** 2026-08-27 · **Versión:** v1.30.0 (deliveries), v0.4.1 (recruiting), v0.6.1 (timetracker) · **Reportado por:** Andrés
+(*"el app tiene el bug de nuevo que hay que darle reload para que la info cargue"*)
+
+**Es el mismo síntoma de D-088 por otra puerta.** Aquel arreglo envolvió
+`ensureSession()` en `try/catch`, y ahí se quedó. Pero `ensureSession()` era solo la
+PRIMERA cosa que podía tumbar la promesa de `reloadAll()` antes de llegar a
+`setReady(true)`: las nueve consultas que vienen después pueden hacer exactamente lo
+mismo. Un fetch cancelado a media navegación —y abrir la app o cambiar de módulo **es**
+una navegación— hace que `Promise.all` rechace, y la pantalla se queda como estaba:
+vacía, sin ningún error, hasta que alguien refresca a mano.
+
+D-088 dejó escrito el mecanismo con precisión y aun así arregló un solo punto de él.
+
+**Cambio, en los tres proveedores** (`data-provider`, `recruiting-data-provider`,
+`timetracker-data-provider`), porque los tres tenían la misma forma:
+
+1. **`reloadAll()` entero en `try/catch/finally`,** con `setReady(true)` en el
+   `finally`. La pantalla ya no puede quedarse colgada en "cargando" pase lo que pase.
+2. **Un reintento marcado.** La carga fallida deja una marca, y un efecto reintenta
+   tres veces con espera creciente (0.4 s, 1.5 s, 4 s) y además al recuperar el foco,
+   al volver a ser visible y al volver la conexión.
+
+**Las dos cosas, porque una sola no basta.** Solo con el `finally`, una carga fallida
+enseñaría una app vacía en vez de una colgada — más honesto, igual de inútil. Solo con
+el reintento, seguiría dependiendo de que algún intento gane la carrera. Juntas, el
+caso normal se cura solo en menos de un segundo y sin que nadie toque nada.
+
+**Por qué no lo atrapan las pruebas, otra vez:** `tsc`, `vitest` y `next build` no
+ejercitan una navegación real con peticiones en vuelo. Lo que sí se puede comprobar
+—y se comprobó— es la forma: que en los tres ficheros haya un `try`, un `finally`, y
+que el `setReady(true)` esté **dentro** del `finally` y no después del `Promise.all`.
+Esa comprobación estructural es la que habría detectado que D-088 estaba incompleto.
+
+**Nota sobre el listener que ya existía:** `data-provider` escuchaba `focus`,
+`online` y `visibilitychange` desde antes, pero solo para vaciar la cola de escrituras
+pendientes. No recargaba nada, así que una primera carga fallida no se recuperaba por
+ahí. Ahora hay un segundo efecto, separado, que sí lo hace — y solo cuando la última
+carga falló, para que no sea un refresco periódico disfrazado.

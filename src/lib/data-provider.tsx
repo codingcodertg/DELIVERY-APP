@@ -401,6 +401,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // this board itself the same day, always fixed by a manual re-login.
   // Refreshing proactively here catches the common case (ordinary expiry)
   // before a fetch ever runs, instead of discovering it after the fact.
+  // Marcado cuando una carga se cae. El efecto de abajo lo mira para reintentar; sin él,
+  // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
+  // la navegación que lo canceló.
+  const loadFailedRef = useRef(false);
   const ensureSession = useCallback(async () => {
     // Best-effort only — never let a hiccup HERE (a network abort mid-
     // navigation, a transient error) take down the actual data fetch that
@@ -418,59 +422,104 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     } catch { /* ignore — reloadAll proceeds with whatever session exists */ }
   }, [supabase]);
 
+  // Envuelto entero, y no solo ensureSession() (D-088). Aquel arreglo tapó UNA de las
+  // formas de que reloadAll() muriera antes de setReady(true); las consultas de abajo
+  // pueden hacer lo mismo. Un fetch cancelado a media navegación —y abrir la app o
+  // cambiar de módulo ES una navegación— hace que Promise.all rechace, y la pantalla
+  // se queda como estaba: vacía, sin error, hasta que alguien refresca a mano.
+  //
+  // Dos cosas, porque una sola no basta:
+  //   · finally { setReady(true) } — nunca se queda colgada en "cargando";
+  //   · un reintento marcado, que el efecto de recuperación dispara al volver el foco
+  //     o la conexión. Sin eso, "no tener que refrescar" seguiría dependiendo de que
+  //     el primer intento gane la carrera.
   const reloadAll = useCallback(async () => {
-    await ensureSession();
-    const [s, p, d, e, n, av, sh, inc, loc] = await Promise.all([
-      supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
-      // `username` and `permissions` were missing here, and both are read by
-      // the UI. The username never reached the browser, so the Users dialog
-      // showed an empty box for a name that WAS saved, hid the "remove email"
-      // button, and turned clearing an email into "give them a username
-      // first" — a message about a value that was sitting in the database all
-      // along. Select what the app actually uses.
-      // recruiting_role/timetracker_role + module_access ride along here (not
-      // just on `me` in the layout) so the Users page can show/edit another
-      // person's module access without a second round trip (D-053, D-064).
-      supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, clockin_role").order("full_name"),
-      // Teaching mode never loads from the DB — the live (non-training) rows are
-      // always the base, and the sandbox lives only in the local overlay.
-      supabase.from("deliveries").select("*").eq("is_training", false).order("order_no", { ascending: false }),
-      // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
-      // page load and growing forever — the single biggest thing between opening the app and
-      // seeing it. The two screens that read it (the audit feed and the dashboard's approval
-      // turnaround) both work on recent activity; neither pages back through the whole history.
-      // The audit page says when it is showing a capped window.
-      supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW),
-      me
-        ? supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50)
-        : Promise.resolve({ data: [] as AppNotification[] }),
-      supabase.from("driver_availability").select("*").order("start_date", { ascending: false }),
-      supabase.from("driver_shifts").select("*").order("started_at", { ascending: false }),
-      supabase.from("driver_incidents").select("*").order("incident_date", { ascending: false }),
-      // Only the recent tail: the live map needs each driver's CURRENT spot,
-      // not the whole history, and a shift's worth of fixes is a lot of rows.
-      supabase.from("driver_locations").select("*")
-        .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
-        .order("recorded_at", { ascending: false })
-        .limit(2000),
-    ]);
-    if (s.data) setSettings(s.data as Settings);
-    if (p.data) setUsers(p.data as Profile[]);
-    if (d.data) setDeliveries(d.data as Delivery[]);
-    if (e.data) setEvents(e.data as OrderEvent[]);
-    if (n.data) setNotifications(n.data as AppNotification[]);
-    if (av.data) setAvailability(av.data as DriverAvailability[]);
-    if (sh.data) setShifts(sh.data as DriverShift[]);
-    if (inc.data) setIncidents(inc.data as DriverIncident[]);
-    // Rows arrive newest-first, so the first one seen per driver is their
-    // current position — everything older is trail we don't hold in memory.
-    if (loc.data) {
-      const latest = new Map<string, DriverLocation>();
-      for (const row of loc.data as DriverLocation[]) if (!latest.has(row.driver_id)) latest.set(row.driver_id, row);
-      setDriverLocations([...latest.values()]);
+    try {
+      await ensureSession();
+      const [s, p, d, e, n, av, sh, inc, loc] = await Promise.all([
+        supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
+        // `username` and `permissions` were missing here, and both are read by
+        // the UI. The username never reached the browser, so the Users dialog
+        // showed an empty box for a name that WAS saved, hid the "remove email"
+        // button, and turned clearing an email into "give them a username
+        // first" — a message about a value that was sitting in the database all
+        // along. Select what the app actually uses.
+        // recruiting_role/timetracker_role + module_access ride along here (not
+        // just on `me` in the layout) so the Users page can show/edit another
+        // person's module access without a second round trip (D-053, D-064).
+        supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, clockin_role").order("full_name"),
+        // Teaching mode never loads from the DB — the live (non-training) rows are
+        // always the base, and the sandbox lives only in the local overlay.
+        supabase.from("deliveries").select("*").eq("is_training", false).order("order_no", { ascending: false }),
+        // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
+        // page load and growing forever — the single biggest thing between opening the app and
+        // seeing it. The two screens that read it (the audit feed and the dashboard's approval
+        // turnaround) both work on recent activity; neither pages back through the whole history.
+        // The audit page says when it is showing a capped window.
+        supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW),
+        me
+          ? supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50)
+          : Promise.resolve({ data: [] as AppNotification[] }),
+        supabase.from("driver_availability").select("*").order("start_date", { ascending: false }),
+        supabase.from("driver_shifts").select("*").order("started_at", { ascending: false }),
+        supabase.from("driver_incidents").select("*").order("incident_date", { ascending: false }),
+        // Only the recent tail: the live map needs each driver's CURRENT spot,
+        // not the whole history, and a shift's worth of fixes is a lot of rows.
+        supabase.from("driver_locations").select("*")
+          .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
+          .order("recorded_at", { ascending: false })
+          .limit(2000),
+      ]);
+      if (s.data) setSettings(s.data as Settings);
+      if (p.data) setUsers(p.data as Profile[]);
+      if (d.data) setDeliveries(d.data as Delivery[]);
+      if (e.data) setEvents(e.data as OrderEvent[]);
+      if (n.data) setNotifications(n.data as AppNotification[]);
+      if (av.data) setAvailability(av.data as DriverAvailability[]);
+      if (sh.data) setShifts(sh.data as DriverShift[]);
+      if (inc.data) setIncidents(inc.data as DriverIncident[]);
+      // Rows arrive newest-first, so the first one seen per driver is their
+      // current position — everything older is trail we don't hold in memory.
+      if (loc.data) {
+        const latest = new Map<string, DriverLocation>();
+        for (const row of loc.data as DriverLocation[]) if (!latest.has(row.driver_id)) latest.set(row.driver_id, row);
+        setDriverLocations([...latest.values()]);
+      }
+      setReady(true);
+      loadFailedRef.current = false;
+    } catch {
+      loadFailedRef.current = true;
+    } finally {
+      setReady(true);
     }
-    setReady(true);
   }, [supabase, me, ensureSession]);
+
+  // Recuperación de una carga fallida.
+  //
+  // El caso real es abrir la app o cambiar de módulo: el navegador cancela las peticiones
+  // en vuelo, Promise.all rechaza y la pantalla se queda vacía. Antes solo se salía de ahí
+  // refrescando a mano. Ahora se reintenta solo, tres veces con espera creciente, y además
+  // al recuperar el foco, al volver a ser visible y al volver la conexión — porque el
+  // primer reintento puede caer en el mismo mal momento.
+  //
+  // Solo si la última carga falló: no es un refresco periódico, es una segunda oportunidad.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let stop = false;
+    const retry = () => { if (!stop && loadFailedRef.current) void reloadAll(); };
+    const timers = [400, 1500, 4000].map((ms) => setTimeout(retry, ms));
+    window.addEventListener("focus", retry);
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      stop = true;
+      timers.forEach(clearTimeout);
+      window.removeEventListener("focus", retry);
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [reloadAll]);
+
 
   // In the overlay model there's nothing in the DB to clear — the sandbox is
   // purely local — so "clear" just resets the local overlay back to empty.

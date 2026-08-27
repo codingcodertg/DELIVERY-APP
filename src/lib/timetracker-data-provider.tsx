@@ -201,6 +201,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Without this, a write can fire while the token is missing/expired —
   // Postgres sees auth.uid() = null and RLS rejects the row. Ported from
   // the original's auth.ensureSession()/forceRefresh().
+  // Marcado cuando una carga se cae. El efecto de abajo lo mira para reintentar; sin él,
+  // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
+  // la navegación que lo canceló.
+  const loadFailedRef = useRef(false);
   const ensureSession = useCallback(async () => {
     // Best-effort only — see the identical comment in data-provider.tsx.
     try {
@@ -215,42 +219,87 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     await supabase.auth.refreshSession().catch(() => {});
   }, [supabase]);
 
+  // Envuelto entero, y no solo ensureSession() (D-088). Aquel arreglo tapó UNA de las
+  // formas de que reloadAll() muriera antes de setReady(true); las consultas de abajo
+  // pueden hacer lo mismo. Un fetch cancelado a media navegación —y abrir la app o
+  // cambiar de módulo ES una navegación— hace que Promise.all rechace, y la pantalla
+  // se queda como estaba: vacía, sin error, hasta que alguien refresca a mano.
+  //
+  // Dos cosas, porque una sola no basta:
+  //   · finally { setReady(true) } — nunca se queda colgada en "cargando";
+  //   · un reintento marcado, que el efecto de recuperación dispara al volver el foco
+  //     o la conexión. Sin eso, "no tener que refrescar" seguiría dependiendo de que
+  //     el primer intento gane la carrera.
   const reloadAll = useCallback(async () => {
-    // Same reasoning as the write-side ensureSession above, extended to
-    // reads (D-081): a stale token doesn't error a select, it just makes
-    // RLS treat the request as anonymous and return an empty result —
-    // which silently overwrites real state with nothing on the next
-    // reload, no error anywhere. Hit this module for real the same day
-    // (D-077/D-078/D-079's investigations all started from exactly this
-    // symptom, though the timetracker cases turned out to have their own,
-    // separate root causes too).
-    await ensureSession();
-    const [pr, asn, ss, py, rq, set] = await Promise.all([
-      supabase.from("projects").select("*").eq("archived", false).order("created_at"),
-      supabase.from("assignments").select("*").eq("employee_uid", me.id),
-      supabase.from("sessions").select("*").eq("employee_uid", me.id),
-      supabase.from("payrolls").select("*").eq("employee_uid", me.id),
-      supabase.from("requests").select("*").eq("employee_uid", me.id),
-      supabase.from("settings").select("*").eq("id", "app").maybeSingle(),
-    ]);
-    const projectRows = ((pr.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Project>(r)!);
-    setProjects(projectRows);
-    const byId = new Map(projectRows.map((p) => [p.id, p]));
-    const asnRows = ((asn.data as Record<string, unknown>[] | null) ?? [])
-      .map((r) => rowToCamel<Omit<Assignment, "project">>(r)!)
-      .map((a) => ({ ...a, project: byId.get(a.projectId) }))
-      .filter((a): a is Assignment => !!a.project);
-    setAssignments(asnRows);
-    setSessions(((ss.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Session>(r)!));
-    setPayrolls(((py.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Payroll>(r)!));
-    setRequests(((rq.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<TimeRequest>(r)!));
-    if (set.data) {
-      const merged: AppSettings = { ...APP_SETTINGS, ...((set.data as { data: Partial<AppSettings> }).data) };
-      syncAppSettings(merged);
-      setSettings({ ...APP_SETTINGS });
+    try {
+      // Same reasoning as the write-side ensureSession above, extended to
+      // reads (D-081): a stale token doesn't error a select, it just makes
+      // RLS treat the request as anonymous and return an empty result —
+      // which silently overwrites real state with nothing on the next
+      // reload, no error anywhere. Hit this module for real the same day
+      // (D-077/D-078/D-079's investigations all started from exactly this
+      // symptom, though the timetracker cases turned out to have their own,
+      // separate root causes too).
+      await ensureSession();
+      const [pr, asn, ss, py, rq, set] = await Promise.all([
+        supabase.from("projects").select("*").eq("archived", false).order("created_at"),
+        supabase.from("assignments").select("*").eq("employee_uid", me.id),
+        supabase.from("sessions").select("*").eq("employee_uid", me.id),
+        supabase.from("payrolls").select("*").eq("employee_uid", me.id),
+        supabase.from("requests").select("*").eq("employee_uid", me.id),
+        supabase.from("settings").select("*").eq("id", "app").maybeSingle(),
+      ]);
+      const projectRows = ((pr.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Project>(r)!);
+      setProjects(projectRows);
+      const byId = new Map(projectRows.map((p) => [p.id, p]));
+      const asnRows = ((asn.data as Record<string, unknown>[] | null) ?? [])
+        .map((r) => rowToCamel<Omit<Assignment, "project">>(r)!)
+        .map((a) => ({ ...a, project: byId.get(a.projectId) }))
+        .filter((a): a is Assignment => !!a.project);
+      setAssignments(asnRows);
+      setSessions(((ss.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Session>(r)!));
+      setPayrolls(((py.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Payroll>(r)!));
+      setRequests(((rq.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<TimeRequest>(r)!));
+      if (set.data) {
+        const merged: AppSettings = { ...APP_SETTINGS, ...((set.data as { data: Partial<AppSettings> }).data) };
+        syncAppSettings(merged);
+        setSettings({ ...APP_SETTINGS });
+      }
+      setReady(true);
+      loadFailedRef.current = false;
+    } catch {
+      loadFailedRef.current = true;
+    } finally {
+      setReady(true);
     }
-    setReady(true);
   }, [supabase, me.id, ensureSession]);
+
+  // Recuperación de una carga fallida.
+  //
+  // El caso real es abrir la app o cambiar de módulo: el navegador cancela las peticiones
+  // en vuelo, Promise.all rechaza y la pantalla se queda vacía. Antes solo se salía de ahí
+  // refrescando a mano. Ahora se reintenta solo, tres veces con espera creciente, y además
+  // al recuperar el foco, al volver a ser visible y al volver la conexión — porque el
+  // primer reintento puede caer en el mismo mal momento.
+  //
+  // Solo si la última carga falló: no es un refresco periódico, es una segunda oportunidad.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let stop = false;
+    const retry = () => { if (!stop && loadFailedRef.current) void reloadAll(); };
+    const timers = [400, 1500, 4000].map((ms) => setTimeout(retry, ms));
+    window.addEventListener("focus", retry);
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      stop = true;
+      timers.forEach(clearTimeout);
+      window.removeEventListener("focus", retry);
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [reloadAll]);
+
 
   // Manager-only reference data (D-070) — gated to isAdmin so a non-admin
   // never even issues these queries (RLS would empty them anyway, but no

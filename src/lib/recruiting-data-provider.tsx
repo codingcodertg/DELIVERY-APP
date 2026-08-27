@@ -134,6 +134,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Refresh a near/already-expired token before reading — see the identical
   // comment in data-provider.tsx's reloadAll (D-081) for why: a stale token
   // doesn't error, it just makes every read look like it returned nothing.
+  // Marcado cuando una carga se cae. El efecto de abajo lo mira para reintentar; sin él,
+  // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
+  // la navegación que lo canceló.
+  const loadFailedRef = useRef(false);
   const ensureSession = useCallback(async () => {
     // Best-effort only — see the identical comment in data-provider.tsx.
     try {
@@ -145,59 +149,104 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     } catch { /* ignore — reloadAll proceeds with whatever session exists */ }
   }, [supabase]);
 
+  // Envuelto entero, y no solo ensureSession() (D-088). Aquel arreglo tapó UNA de las
+  // formas de que reloadAll() muriera antes de setReady(true); las consultas de abajo
+  // pueden hacer lo mismo. Un fetch cancelado a media navegación —y abrir la app o
+  // cambiar de módulo ES una navegación— hace que Promise.all rechace, y la pantalla
+  // se queda como estaba: vacía, sin error, hasta que alguien refresca a mano.
+  //
+  // Dos cosas, porque una sola no basta:
+  //   · finally { setReady(true) } — nunca se queda colgada en "cargando";
+  //   · un reintento marcado, que el efecto de recuperación dispara al volver el foco
+  //     o la conexión. Sin eso, "no tener que refrescar" seguiría dependiendo de que
+  //     el primer intento gane la carrera.
   const reloadAll = useCallback(async () => {
-    await ensureSession();
-    const [s, q, t, cf, p, c, co, j, st, at, sh, qs] = await Promise.all([
-      supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("questions").select("*").order("sort"),
-      supabase.from("templates").select("*").order("created_at"),
-      supabase.from("custom_fields").select("*").order("sort"),
-      // profiles lives in `public`, not `recruiting` — this client defaults
-      // to `recruiting`, so this one call overrides it explicitly. Selects
-      // recruiting_role (not the deliveries `role` column — same bug class
-      // as updateUserRole) and filters to people who actually have
-      // recruiting access, so a deliveries-only driver/sales/warehouse user
-      // never shows up as a "recruiter" here. ROLE_INFO only has entries for
-      // admin|manager|recruiter, so a deliveries role leaking through here
-      // would crash the Users page, not just show wrong data.
-      supabase.schema("public").from("profiles")
-        .select("id, full_name, recruiting_role, avatar_url")
-        .not("recruiting_role", "is", null)
-        .order("full_name"),
-      supabase.from("candidates").select("*").order("created_at", { ascending: false }),
-      supabase.from("contacts").select("*").order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").order("created_at", { ascending: false }),
-      supabase.from("stages").select("*").order("sort"),
-      supabase.from("attachments").select("*").order("created_at", { ascending: false }),
-      supabase.from("stage_history").select("*").order("entered_at", { ascending: true }),
-      supabase.from("question_sets").select("*").order("created_at"),
-    ]);
-    if (s.data) setSettings(s.data as Settings);
-    if (q.data) setQuestions(q.data as Question[]);
-    if (t.data) setTemplates(t.data as Template[]);
-    if (cf.data) setCustomFields(cf.data as CustomField[]);
-    if (p.data) {
-      // Map recruiting_role -> role: everything downstream (ROLE_INFO
-      // lookups, the Users page role <select>, etc.) reads Profile.role and
-      // means "role inside recruiting" when it does.
-      setRecruiters(
-        p.data.map((row: { id: string; full_name: string | null; recruiting_role: string; avatar_url: string | null }) => ({
-          id: row.id,
-          full_name: row.full_name,
-          role: row.recruiting_role,
-          avatar_url: row.avatar_url,
-        })) as Profile[],
-      );
+    try {
+      await ensureSession();
+      const [s, q, t, cf, p, c, co, j, st, at, sh, qs] = await Promise.all([
+        supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("questions").select("*").order("sort"),
+        supabase.from("templates").select("*").order("created_at"),
+        supabase.from("custom_fields").select("*").order("sort"),
+        // profiles lives in `public`, not `recruiting` — this client defaults
+        // to `recruiting`, so this one call overrides it explicitly. Selects
+        // recruiting_role (not the deliveries `role` column — same bug class
+        // as updateUserRole) and filters to people who actually have
+        // recruiting access, so a deliveries-only driver/sales/warehouse user
+        // never shows up as a "recruiter" here. ROLE_INFO only has entries for
+        // admin|manager|recruiter, so a deliveries role leaking through here
+        // would crash the Users page, not just show wrong data.
+        supabase.schema("public").from("profiles")
+          .select("id, full_name, recruiting_role, avatar_url")
+          .not("recruiting_role", "is", null)
+          .order("full_name"),
+        supabase.from("candidates").select("*").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("*").order("created_at", { ascending: false }),
+        supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+        supabase.from("stages").select("*").order("sort"),
+        supabase.from("attachments").select("*").order("created_at", { ascending: false }),
+        supabase.from("stage_history").select("*").order("entered_at", { ascending: true }),
+        supabase.from("question_sets").select("*").order("created_at"),
+      ]);
+      if (s.data) setSettings(s.data as Settings);
+      if (q.data) setQuestions(q.data as Question[]);
+      if (t.data) setTemplates(t.data as Template[]);
+      if (cf.data) setCustomFields(cf.data as CustomField[]);
+      if (p.data) {
+        // Map recruiting_role -> role: everything downstream (ROLE_INFO
+        // lookups, the Users page role <select>, etc.) reads Profile.role and
+        // means "role inside recruiting" when it does.
+        setRecruiters(
+          p.data.map((row: { id: string; full_name: string | null; recruiting_role: string; avatar_url: string | null }) => ({
+            id: row.id,
+            full_name: row.full_name,
+            role: row.recruiting_role,
+            avatar_url: row.avatar_url,
+          })) as Profile[],
+        );
+      }
+      if (c.data) setCandidates(c.data as Candidate[]);
+      if (co.data) setContacts(co.data as Contact[]);
+      if (j.data) setJobs(j.data as Job[]);
+      if (st.data && st.data.length) setStages(st.data as Stage[]);
+      if (at.data) setAttachments(at.data as Attachment[]);
+      if (sh.data) setStageHistory(sh.data as StageHistory[]);
+      if (qs.data) setQuestionSets(qs.data as QuestionSet[]);
+      setReady(true);
+      loadFailedRef.current = false;
+    } catch {
+      loadFailedRef.current = true;
+    } finally {
+      setReady(true);
     }
-    if (c.data) setCandidates(c.data as Candidate[]);
-    if (co.data) setContacts(co.data as Contact[]);
-    if (j.data) setJobs(j.data as Job[]);
-    if (st.data && st.data.length) setStages(st.data as Stage[]);
-    if (at.data) setAttachments(at.data as Attachment[]);
-    if (sh.data) setStageHistory(sh.data as StageHistory[]);
-    if (qs.data) setQuestionSets(qs.data as QuestionSet[]);
-    setReady(true);
   }, [supabase, ensureSession]);
+
+  // Recuperación de una carga fallida.
+  //
+  // El caso real es abrir la app o cambiar de módulo: el navegador cancela las peticiones
+  // en vuelo, Promise.all rechaza y la pantalla se queda vacía. Antes solo se salía de ahí
+  // refrescando a mano. Ahora se reintenta solo, tres veces con espera creciente, y además
+  // al recuperar el foco, al volver a ser visible y al volver la conexión — porque el
+  // primer reintento puede caer en el mismo mal momento.
+  //
+  // Solo si la última carga falló: no es un refresco periódico, es una segunda oportunidad.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let stop = false;
+    const retry = () => { if (!stop && loadFailedRef.current) void reloadAll(); };
+    const timers = [400, 1500, 4000].map((ms) => setTimeout(retry, ms));
+    window.addEventListener("focus", retry);
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      stop = true;
+      timers.forEach(clearTimeout);
+      window.removeEventListener("focus", retry);
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [reloadAll]);
+
 
   useEffect(() => {
     reloadAll();
