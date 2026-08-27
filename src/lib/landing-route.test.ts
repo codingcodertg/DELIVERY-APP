@@ -105,3 +105,13 @@ describe("MODULE_ACCESS", () => {
     expect(timetracker.capabilities).toBeUndefined();
   });
 });
+
+// D-100: la casilla de cada módulo se dibuja desde `module_access`, no desde si hay rol.
+// `profiles.role` nunca es nulo, así que leer el rol daba "otorgado" siempre para
+// Entregas y su casilla no se podía desmarcar. Los cinco declaran accessColumn para que
+// el diálogo tenga de dónde leerlo.
+describe("MODULE_ACCESS · de dónde sale el estado de la casilla", () => {
+  it("los cinco módulos dicen en qué columna vive su acceso", () => {
+    for (const m of MODULE_ACCESS) expect(m.accessColumn).toBe("module_access");
+  });
+});

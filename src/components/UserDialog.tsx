@@ -221,8 +221,17 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           // access is the module_access flag alone.
           const currentRole = !m.roleColumn ? undefined
             : m.roleColumn === "role" ? u.role : (u[m.roleColumn] ?? undefined);
+          // El acceso se lee de `module_access`, NO de si hay rol. Para los otros módulos
+          // daba igual —su rol es nulo justo cuando no tienen acceso— pero el rol de
+          // Entregas (`profiles.role`) es obligatorio y SIEMPRE tiene valor, así que
+          // preguntar por él daba "otorgado" siempre: la casilla se volvía a marcar sola
+          // y no había forma de quitársela a nadie.
+          //
+          // Los cinco módulos declaran `accessColumn`, y se comprobó que hoy no hay ni un
+          // perfil donde el rol y el acceso discrepen, así que este cambio no mueve
+          // ninguna casilla salvo la de Entregas.
           const granted = m.alwaysOn
-            || (m.roleColumn ? !!currentRole : !!u.module_access?.includes(m.key));
+            || (m.accessColumn ? !!u.module_access?.includes(m.key) : !!currentRole);
           // The lowest-listed role is the default when checking the box with
           // nothing chosen yet — matches what recruiting's own invite flow
           // always defaulted to ("recruiter", last in RECRUITING_ROLE_LABELS).
