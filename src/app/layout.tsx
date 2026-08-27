@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PrefsProvider } from "@/lib/prefs";
+import { VersionStamp } from "@/components/VersionStamp";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
 // timetracker desktop shell (window.ttDesktop, injected by its Electron
@@ -40,6 +41,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <PrefsProvider>{children}</PrefsProvider>
+        {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
+        <VersionStamp />
       </body>
     </html>
   );
