@@ -4247,3 +4247,60 @@ darse `clockin_role = 'owner'` desde Usuarios con dos clics — 071 lo autoriza
 explícitamente — y `has_clockin_access()` ya trataba `role = 'admin'` como acceso.
 Esto solo evita que tenga que hacerlo para que sus guardados dejen de perderse.
 No viaja al revés: un owner de fichaje no gana nada en el hub.
+
+
+## D-096 · Un cliente solo maneja la sesión que su propio tipo arrancó
+**Fecha:** 2026-08-27 · **Versión:** v0.5.0 (timetracker) · **Reportado por:** Andrés
+(*"mira el tracker sigue sin parar, en vez de estar en sync con la desktop"* ·
+*"quisiera que cuando se use el desktop salga un mensaje tracking via desktop app"*)
+
+**Lo que se veía:** la app de escritorio marcaba `0:22:07`, empezada a las 09:30,
+79% de actividad. La web, abierta en la misma cuenta y en el mismo momento,
+marcaba `25:22:07`, empezada a las 08:30 **del día anterior**, 0% de actividad, y
+el Stop no la paraba.
+
+### Por qué el reloj decía 25 horas — regresión de D-093
+
+La miga de pan de `localStorage` era de la sesión de ayer. La llamada que la
+confirma contra el servidor falló, y D-093 había puesto justo ahí un
+`beginTicking()` para que el reloj no se quedara congelado. Así que el reloj no
+se congeló: se puso a contar, con confianza, desde un arranque de hacía 25 horas.
+Preferir un dato viejo sin confirmar a admitir que no se sabe.
+
+Ahora la miga **caduca a las 18 horas** —no hay turno que dure eso, así que una
+miga más vieja no es un turno en curso, es uno que este dispositivo nunca vio
+cerrarse— y si la confirmación falla el reloj se muestra **sin escribir nada**,
+y una consulta a los 20 segundos decide si sigue viva o se limpia.
+
+### Y lo de fondo, que era peor
+
+`beginTicking()` **escribe la fila cada diez segundos**: `endMs`,
+`durationSeconds`, `activeSeconds`, `keystrokes`, `clicks`. Los dos clientes
+hacían eso sobre cualquier sesión viva que encontraran. Con la app de escritorio
+y una pestaña abiertas a la vez, se pisaban por turnos — y el navegador gana con
+los números que **no puede medir**: una pestaña no ve el teclado de otras
+ventanas, así que escribía 0% de actividad encima del 79% real del escritorio.
+
+**Regla nueva:** la sesión lleva en `source` quién la arrancó (`desktop` o
+`timer`), y **solo la maneja un cliente de ese tipo**. El otro la mira: mismo
+reloj, calculado desde el mismo `startMs` —que es lo que hace que los dos números
+coincidan—, y ni una escritura.
+
+Al que mira se le quitan además el medidor de actividad, los descansos, y los
+recuadros de *Activity* y *Lunch + break*. No es por limpieza: son contadores de
+**este** cliente, y enseñar 0% al lado de alguien que está trabajando es
+exactamente lo que se veía en la captura.
+
+### El mensaje
+
+Donde estaba el botón de Stop aparece **🖥 App de escritorio**, y bajo el reloj
+*"Contando desde la app de escritorio — esta página solo mira."* Funciona en los
+dos sentidos: desde el escritorio, una sesión empezada en la web dice *"Contando
+desde la web"*.
+
+**Se descartó** dejar un Stop en el que mira. Pararla desde aquí dejaría al dueño
+contando contra una fila ya cerrada, que es la misma clase de desacuerdo que se
+está arreglando. Se para donde se arrancó.
+
+**`source` no rompe los informes:** solo distinguen `manual` y `adjusted` para
+poner su etiqueta; `desktop` cae en el mismo sitio que `timer`, sin etiqueta.

@@ -66,12 +66,21 @@ export default function TrackTimePage() {
   // running clock. Without it the view rendered "stopped" for the moment the network round
   // trip took, which reads as the timer having been lost.
   const LS_LIVE = "tt_liveSession_" + me.id;
+  // A breadcrumb older than this is not a shift anyone is still in; it is one this device never
+  // saw closed. Showing it produced the 25-hour clock in the screenshot: yesterday's start, still
+  // counting, because the confirming call had failed and the seed was trusted anyway.
+  const HINT_MAX_AGE_MS = 18 * 3600_000;
   const liveHint = (() => {
     try {
       const raw = localStorage.getItem(LS_LIVE);
       if (!raw) return null;
-      const h = JSON.parse(raw) as { id: string; startMs: number };
-      return h && h.id && h.startMs ? h : null;
+      const h = JSON.parse(raw) as { id: string; startMs: number; source?: string };
+      if (!h || !h.id || !h.startMs) return null;
+      if (Date.now() - h.startMs > HINT_MAX_AGE_MS) {
+        try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+        return null;
+      }
+      return h;
     } catch { return null; }
   })();
 
@@ -84,6 +93,27 @@ export default function TrackTimePage() {
   // Seeded from the breadcrumb, not false — the adoption effect below confirms it against the
   // server and clears it if the session turns out to be closed. Optimistic, then reconciled.
   const [running, setRunning] = useState(!!liveHint);
+  /**
+   * The session is running, but on the OTHER client — desktop when you are on the web, or the web
+   * when you are on the desktop.
+   *
+   * Both clients used to treat any live session as theirs to drive: the tick writes endMs,
+   * durationSeconds, activeSeconds, keystrokes and clicks to the row every ten seconds. With the
+   * desktop app and a browser tab both open on one account, the two took turns overwriting each
+   * other, and the browser wins the ones it cannot measure — a tab cannot see input to other
+   * windows, so it was posting 0% activity over the desktop's real numbers.
+   *
+   * So a client only drives a session that its own kind started (`source`). The other one watches:
+   * same clock, from the same startMs, and no writes at all.
+   */
+  // isDesktop() and not the isDesktopClient state: that state is false until its own effect runs,
+  // which would make the desktop app announce that the desktop app is tracking. The breadcrumb is
+  // read the same way one line above, so both agree about SSR (no window, no hint, no banner).
+  const [remoteOwner, setRemoteOwner] = useState<"desktop" | "web" | null>(() => {
+    if (!liveHint?.source) return null;
+    const mine = isDesktop() ? "desktop" : "timer";
+    return liveHint.source === mine ? null : (liveHint.source === "desktop" ? "desktop" : "web");
+  });
   const [worked, setWorked] = useState(liveHint ? Math.floor((Date.now() - liveHint.startMs) / 1000) : 0);
   const [onBreak, setOnBreak] = useState<"lunch" | "break" | null>(null);
   const [breaks, setBreaks] = useState({ lunch: 0, brk: 0 });
@@ -213,6 +243,10 @@ export default function TrackTimePage() {
   // refs (updated every render, below) avoid both a stale closure and
   // re-subscribing on every render.
   const stopRef = useRef<() => void>(() => {});
+  // Live mirror of remoteOwner, for the callbacks that run outside React's render (the lock/sleep
+  // hook and the tick) and would otherwise close over a stale value.
+  const remoteOwnerRef = useRef<"desktop" | "web" | null>(null);
+  remoteOwnerRef.current = remoteOwner;
   useEffect(() => {
     return desktopOnPower((reason) => {
       if (reason !== "suspend" && reason !== "lock-screen") return;
@@ -287,7 +321,11 @@ export default function TrackTimePage() {
 
         sessionIdRef.current = mine.id;
         startMsRef.current = mine.startMs || Date.now();
-        try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: startMsRef.current })); } catch { /* ignore */ }
+        // Whose session is it? A client drives only what its own kind started; see remoteOwner.
+        const mineKind = isDesktop() ? "desktop" : "timer";
+        const theirs = (mine.source === "desktop" || mine.source === "timer") && mine.source !== mineKind;
+        setRemoteOwner(theirs ? (mine.source === "desktop" ? "desktop" : "web") : null);
+        try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: startMsRef.current, source: mine.source })); } catch { /* ignore */ }
         lunchRef.current = mine.lunchSeconds || 0;
         brkRef.current = mine.breakSeconds || 0;
         breakEventsRef.current = mine.breakEvents || [];
@@ -303,22 +341,67 @@ export default function TrackTimePage() {
         setWorked(Math.floor((Date.now() - (mine.startMs || Date.now())) / 1000));
         setOnBreak(null);
         setRunning(true);
+
+        if (theirs) {
+          // Somebody else's clock. Show it, do not drive it: no screenshot timer, no activity
+          // metering, and above all none of beginTicking()'s ten-second writes, which would post
+          // this client's blind numbers over the owner's real ones. watchRemote() below just keeps
+          // the elapsed time moving and notices when the owner stops.
+          watchRemote(mine.startMs || Date.now(), mine.id);
+          return;
+        }
+
         // The desktop shell lost its screenshot timer with the old renderer; re-arm it against
         // the same session so shots keep landing on the row that is actually open.
         desktopStart({ sessionId: mine.id, intervalMin: shotMin });
         beginTicking();
       } catch {
-        // Offline, or the call failed. The comment here used to say "leave the UI as not running",
-        // which stopped being true when `running` started being seeded from the breadcrumb: the
-        // view now shows a clock, and doing nothing froze it at the second it mounted. The
-        // breadcrumb already carries the id and the start, so keep counting from it — it is the
-        // same session either way, and a reachable server only ever confirms it.
-        if (!cancelled && !stoppedRef.current && liveHint) beginTicking();
+        // Offline, or the call failed. Two wrong answers were tried here before this one: doing
+        // nothing froze the clock at the second the page mounted, and beginTicking() unfroze it by
+        // WRITING every ten seconds to a session nothing had confirmed — which is how a browser
+        // tab came to post its blind numbers over a session the desktop app was running.
+        //
+        // So: show the clock, write nothing, and let the poll settle it. Within twenty seconds it
+        // either finds the session still live and keeps counting, or clears it.
+        if (!cancelled && !stoppedRef.current && liveHint) watchRemote(liveHint.startMs, liveHint.id);
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id]);
+
+  /**
+   * The read-only clock, for a session the other client owns.
+   *
+   * Deliberately almost nothing: a second hand derived from the owner's startMs — which is what
+   * keeps the two screens showing the same number — and a poll for whether the owner has stopped.
+   * No activity sampling and no writes, because everything this client could measure about a
+   * session running elsewhere would be wrong.
+   */
+  function watchRemote(startMs: number, id: string) {
+    startMsRef.current = startMs;
+    setWorked(Math.floor((Date.now() - startMs) / 1000));
+    if (tickRef.current) clearInterval(tickRef.current);
+    let sinceCheck = 0;
+    tickRef.current = setInterval(async () => {
+      setWorked(Math.floor((Date.now() - startMsRef.current) / 1000));
+      sinceCheck += 1;
+      if (sinceCheck < 20) return;          // ask every 20s, not every second
+      sinceCheck = 0;
+      try {
+        const live = await listLiveSessions();
+        if (live.some((x) => x.id === id)) return;
+        // The owner stopped. Clear rather than leave a clock running against nothing.
+        if (tickRef.current) clearInterval(tickRef.current);
+        tickRef.current = null;
+        sessionIdRef.current = null;
+        try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+        setRemoteOwner(null);
+        setRunning(false);
+        setWorked(0);
+      } catch { /* offline — keep showing the clock, ask again in 20s */ }
+    }, 1000);
+  }
 
   /** The 1s clock. Extracted from start() so a session adopted on mount can resume it too. */
   function beginTicking() {
@@ -437,14 +520,18 @@ export default function TrackTimePage() {
       breakSeconds: 0,
       breakEvents: [],
       manual: false,
-      source: "timer",
+      // Which client is driving this row. The other one reads it and stays out of the way rather
+      // than overwriting numbers it cannot measure. "timer" is kept for the web so the reports'
+      // existing `source` pills (manual / adjusted) are unaffected.
+      source: isDesktop() ? "desktop" : "timer",
       isLive: true,
     };
     try {
       const row = await startSession(payload);
       sessionIdRef.current = row.id;
-      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: row.id, startMs: startMsRef.current })); } catch { /* ignore */ }
+      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: row.id, startMs: startMsRef.current, source: payload.source })); } catch { /* ignore */ }
       setRunning(true);
+      setRemoteOwner(null); // started here, so this client drives it
       // Confirm the clock started. On desktop the native floating toast
       // (fired from main.js on tt:start) is the primary cue; this covers web.
       notify(t("notify.startTitle") + ": " + t("notify.startBody", { project: selected.project?.name || "" }));
@@ -458,6 +545,9 @@ export default function TrackTimePage() {
   }
 
   async function stop() {
+    // The button is not rendered for a session the other client owns, but the lock/sleep hook
+    // calls stopRef directly — locking this machine must not end a clock running on the other one.
+    if (remoteOwnerRef.current) return;
     stoppedRef.current = true;
     if (tickRef.current) clearInterval(tickRef.current);
     tickRef.current = null;
@@ -570,33 +660,40 @@ export default function TrackTimePage() {
           <div>
             <div className="timer-big">{fmtClock(worked)}</div>
             <div className="small muted">
-              {running
+              {remoteOwner
+                ? t(remoteOwner === "desktop" ? "track.viaDesktop" : "track.viaWeb")
+                : running
                 ? ctxApp ? t("track.activeApp", { app: ctxApp })
                   : isIdle ? t("track.idle")
                   : onBreak === "lunch" ? t("track.onLunch") : onBreak === "break" ? t("track.onBreak") : isInOut ? t("track.clockedIn") : t("track.running")
                 : t("track.stopped")}
-              {running && (lunchRef.current > 0 || brkRef.current > 0)
+              {running && !remoteOwner && (lunchRef.current > 0 || brkRef.current > 0)
                 ? <> · lunch {fmtClock(breaks.lunch)} · break {fmtClock(breaks.brk)}</> : null}
             </div>
-            {running && (
+            {/* The meter and the activity source describe what THIS client is measuring. On a
+                session the other one owns there is nothing to measure, and showing an empty meter
+                next to "0% activity" is how the web ended up looking like the timer was broken. */}
+            {running && !remoteOwner && (
               <div className="meter" style={{ maxWidth: 260 }}>
                 {meter.map((on, i) => <i key={i} className={on ? "on" : ""} />)}
               </div>
             )}
-            {running && !onBreak && (
+            {running && !remoteOwner && !onBreak && (
               <div className="small muted" style={{ marginTop: 6, maxWidth: 320 }}>
                 {ctxApp ? t("track.srcScreen", { app: ctxApp }) : isIdle ? t("track.srcIdle") : t("track.srcInput")}
               </div>
             )}
           </div>
           <div className="right">
-            {!running
+            {remoteOwner
+              ? <span className="pill on">{t(remoteOwner === "desktop" ? "track.viaDesktopPill" : "track.viaWebPill")}</span>
+              : !running
               ? <button className="btn-ok" disabled={!selected} onClick={start}>{startLabel}</button>
               : <button className="btn-danger" onClick={stop}>{stopLabel}</button>}
           </div>
         </div>
 
-        {running && breaksOn && (
+        {running && !remoteOwner && breaksOn && (
           <div className="row" style={{ marginTop: 12 }}>
             <button className={onBreak === "lunch" ? "btn-warn" : "btn-ghost"} disabled={onBreak === "break"} onClick={() => toggleBreak("lunch")}>
               {onBreak === "lunch" ? "End lunch" : "🍽 Lunch"}
@@ -607,7 +704,7 @@ export default function TrackTimePage() {
           </div>
         )}
 
-        {running && breakList.length > 0 && (
+        {running && !remoteOwner && breakList.length > 0 && (
           <div className="box" style={{ marginTop: 10 }}>
             <div className="small muted" style={{ marginBottom: 4 }}>Lunches & breaks</div>
             {breakList.map((ev, i) => (
@@ -622,11 +719,15 @@ export default function TrackTimePage() {
         )}
 
         {running && (
-          <div className="grid g4" style={{ marginTop: 14 }}>
+          // Started and Worked both derive from the owner's startMs, so they match the other
+          // screen. Activity and Lunch do not: they are this client's own counters, and on a
+          // session it is not driving they would read 0% next to somebody working — which is
+          // exactly what the web was showing beside the desktop's 79%.
+          <div className={remoteOwner ? "grid g2" : "grid g4"} style={{ marginTop: 14 }}>
             <div className="stat"><div className="n">{fmtTime(startMsRef.current)}</div><div className="l">{t("track.started")}</div></div>
             <div className="stat"><div className="n">{fmtHrs(worked)}</div><div className="l">{t("track.worked")}</div></div>
-            <div className="stat"><div className="n">{activePct}%</div><div className="l">{t("track.activity")}</div></div>
-            <div className="stat"><div className="n">{fmtClock(breaks.lunch + breaks.brk)}</div><div className="l">{t("track.lunchBreak")}</div></div>
+            {!remoteOwner && <div className="stat"><div className="n">{activePct}%</div><div className="l">{t("track.activity")}</div></div>}
+            {!remoteOwner && <div className="stat"><div className="n">{fmtClock(breaks.lunch + breaks.brk)}</div><div className="l">{t("track.lunchBreak")}</div></div>}
           </div>
         )}
       </div>
