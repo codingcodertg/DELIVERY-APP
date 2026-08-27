@@ -18,7 +18,20 @@
 @source "../clock-in";
 @source "../../lib/clockin";
 
-/* Clock-in's own tokens, verbatim from its globals.css. */
+/* ---------------------------------------------------------------------------
+   Dark mode follows the hub's switch, not the operating system.
+   ---------------------------------------------------------------------------
+   Tailwind's stock `dark:` variant is @media (prefers-color-scheme: dark), and
+   clock-in's screens carry 189 of them. Inside this container that is the wrong
+   signal: the hub owns the theme, writes it to <html data-theme> (prefs.tsx, plus
+   the inline script in app/layout.tsx that sets it before first paint) and every
+   other module reads it from there. Left alone, clock-in was the one module that
+   ignored the toggle and followed the OS — light screens next to a dark hub for
+   anyone whose laptop disagrees with their preference.
+   Redefining the variant fixes all 189 at once, with no edit to any screen. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Clock-in's own tokens, from its globals.css — now switched by the same attribute. */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -29,11 +42,9 @@
   --color-foreground: var(--foreground);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 /* ---------------------------------------------------------------------------

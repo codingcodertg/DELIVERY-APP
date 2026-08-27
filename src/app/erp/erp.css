@@ -35,6 +35,13 @@
 @source "../erp";
 @source "../../lib/erp";
 
+/* Same switch as everywhere else. The ERP writes no `dark:` variant of its own today, but
+   Tailwind's auto source detection sweeps the whole project, so clock-in's land in this chunk
+   too — and without this they would compile here against prefers-color-scheme while the very
+   same class compiles against data-theme in clock-in's own chunk. One line now, rather than a
+   variant that quietly disagrees with itself the first time an ERP screen uses it. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Brand accent — warm clay. Primary buttons, active states, links, focus rings,
    selected rows. NOT for status, which keeps green/red/amber/blue. */
 @theme {
@@ -82,8 +89,8 @@
   /* rtg-erp's own body rule, verbatim — its globals.css is 30 lines and this is
      all of the theme it sets. */
   body {
-    background-color: #f2f4f7; /* soft grey app background */
-    color: #0f172a; /* slate-900 */
+    background-color: var(--erp-app-bg); /* soft grey app background */
+    color: var(--erp-app-fg);
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 16px; /* the base Tailwind's rem scale is drawn against */
     -webkit-font-smoothing: antialiased;
@@ -115,4 +122,60 @@
   [data-app="erp"] :where(input, select, textarea):disabled {
     opacity: 1;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Dark mode.
+   ---------------------------------------------------------------------------
+   The ERP was ported with no `dark:` variant anywhere — about a thousand
+   hardcoded slate/white utilities — so it was the one module the hub's switch
+   could not move at all.
+
+   Adding `dark:` to a thousand class attributes would be a thousand chances to
+   miss one, and a missed one is a white card in a dark page. Tailwind 4 compiles
+   every colour utility through a variable instead (`.text-slate-500{color:
+   var(--color-slate-500)}` — checked in the emitted chunk), and custom properties
+   inherit, so restating the ramp on an ancestor turns the whole module over at
+   once. `[data-app="erp"]` is that ancestor, and being on the element beats
+   @theme's :root for everything inside it.
+
+   The ramp is INVERTED, not darkened: slate-50 was the palest surface and becomes
+   the darkest, slate-900 was the near-black text and becomes near-white. That is
+   what makes `text-slate-500 on bg-white` keep its contrast without reading a
+   single screen.
+
+   bg-white needs the one exception below. It resolves to --color-white, and so
+   does text-white — but text-white is only ever on a clay or green button
+   (14 places, all checked) where it must stay white. So the surface is overridden
+   as a utility rather than as a token, which moves the 120 backgrounds and leaves
+   the text alone. */
+:root:not([data-theme="dark"]) [data-app="erp"] {
+  --erp-app-bg: #f2f4f7;
+  --erp-app-fg: #0f172a;
+}
+
+:root[data-theme="dark"] [data-app="erp"] {
+  --erp-app-bg: #0d1117;
+  --erp-app-fg: #e8edf5;
+
+  --color-slate-50: #161d29;
+  --color-slate-100: #1c2431;
+  --color-slate-200: #2a3444;
+  --color-slate-300: #3a4757;
+  --color-slate-400: #7f8b9c;
+  --color-slate-500: #9aa6b8;
+  --color-slate-600: #b8c3d2;
+  --color-slate-700: #d2dae6;
+  --color-slate-800: #e4eaf3;
+  --color-slate-900: #f1f5fa;
+
+  /* Clay stays the accent it is; only its pale tints, which are used as
+     surfaces, move. clay-500/600/700 carry white text and are left alone. */
+  --color-clay-50: #2b1d17;
+  --color-clay-100: #37251c;
+  --color-clay-200: #4b3126;
+}
+
+:root[data-theme="dark"] [data-app="erp"] .bg-white {
+  background-color: #131a24;
 }
