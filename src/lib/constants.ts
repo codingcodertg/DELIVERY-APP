@@ -157,10 +157,21 @@ export function roleHome(role: UserRole): string {
  * them that isn't on their route. (See D-050/D-051.)
  */
 export function landingRoute(me: { role: UserRole; module_access?: string[] | null }): string {
-  if (me.role === "driver") return "/driver";
-  const moduleCount = 1 + (me.module_access?.length ?? 0); // "deliveries" itself + whatever's granted
-  if (moduleCount > 1) return "/home";
-  return roleHome(me.role);
+  const granted = me.module_access ?? [];
+  // Un chofer con Entregas va siempre a su ruta, sin pasar por el selector (D-050/051).
+  // Si NO tiene Entregas, la ruta no existe para él y la condición de abajo decide.
+  if (me.role === "driver" && granted.includes("deliveries")) return "/driver";
+  if (granted.length > 1) return "/home";
+  // Un solo módulo: directo a él. Ya no se da por hecho que ese módulo sea Entregas
+  // (D-100) — alguien que solo ficha entra a fichar, no a un tablero de pedidos que
+  // la base le va a devolver vacío.
+  if (granted.length === 1) {
+    if (granted[0] === "deliveries") return roleHome(me.role);
+    const m = MODULES.find((x) => x.key === granted[0]);
+    if (m) return m.href;
+  }
+  // Ninguno. Antes no podía pasar, porque Entregas se daba por sentada.
+  return "/no-access";
 }
 
 export const ROLE_ORDER: UserRole[] = ["admin", "manager", "accounting", "logistics", "sales", "warehouse", "driver"];
@@ -262,7 +273,13 @@ export const DELIVERIES_CARD: ModuleInfo = {
  * and ModuleSwitcher both call this instead of each filtering MODULES on
  * their own, so a third module only ever needs an entry in MODULES above. */
 export function accessibleModules(moduleAccess: string[] | null | undefined): ModuleInfo[] {
-  return [DELIVERIES_CARD, ...MODULES.filter((m) => moduleAccess?.includes(m.key))];
+  // Deliveries se antepone SOLO si se otorgó. Antes iba siempre, porque era implícita
+  // para todo el mundo (D-054); desde 083 se concede como cualquier otro módulo, y
+  // dibujar su tarjeta a alguien que no la tiene sería ofrecerle una pantalla que la
+  // base le va a devolver vacía.
+  const granted = moduleAccess ?? [];
+  const own = MODULES.filter((m) => granted.includes(m.key));
+  return granted.includes(DELIVERIES_CARD.key) ? [DELIVERIES_CARD, ...own] : own;
 }
 
 // ---- Hub tools (D-056) ------------------------------------------------------
@@ -497,11 +514,20 @@ export interface ModuleAccessConfig {
 
 export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
+    // Ya no es implícita (D-100, migración 083). Lo era porque todo el mundo entraba
+    // por aquí; con cuatro módulos y diez personas que solo fichan, dejó de ser cierto.
+    // Ahora se otorga como los demás, y la base lo comprueba de verdad: sin ella,
+    // has_deliveries_access() dice que no y las entregas ni se leen ni se escriben.
+    //
+    // `role` sigue siendo el rol de deliveries y sigue mandando sobre QUÉ ve dentro
+    // quien entra — un chofer solo lo suyo. La casilla decide SI entra. Son dos cosas
+    // distintas, y por eso el rol se sigue enseñando aunque la casilla esté apagada.
     key: "deliveries", label_en: "Deliveries", label_es: "Entregas",
-    alwaysOn: true,
+    alwaysOn: false,
     roleColumn: "role",
     roleKeys: ROLE_ORDER,
     roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
+    accessColumn: "module_access",
     capabilities: CAPABILITIES,
     capabilitiesFromRole: (key) => ROLE_CAPS[key as UserRole] ?? [],
   },

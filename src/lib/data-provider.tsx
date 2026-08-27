@@ -137,6 +137,8 @@ export interface DataState {
   updateUserClockinAccess: (userId: string, patch: { granted: boolean; clockin_role?: string | null }) => Promise<void>;
   /** ERP access is a flag only — no role tier of its own (D-090). */
   updateUserErpAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
+  /** Deliveries is granted like any other module since D-100 — `role` stays put. */
+  updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
   deleteUser: (userId: string) => Promise<boolean>;
 
@@ -1140,6 +1142,24 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, reloadAll, users, logSecurityClient],
   );
 
+  /** Entregas dejó de ser implícita (D-100): ahora se otorga y se quita como el resto.
+   *  Solo toca module_access — `role` es el rol DENTRO de entregas y no se pierde al
+   *  quitarle el acceso, para que devolvérselo no obligue a recordar qué era. */
+  const updateUserDeliveriesAccess = useCallback<DataState["updateUserDeliveriesAccess"]>(
+    async (userId, { granted }) => {
+      const target = users.find((u) => u.id === userId);
+      const before = (target?.module_access ?? []).includes("deliveries");
+      const nextModules = granted
+        ? Array.from(new Set([...(target?.module_access ?? []), "deliveries"]))
+        : (target?.module_access ?? []).filter((m) => m !== "deliveries");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
+      if (error) { notify(error.message); reloadAll(); return; }
+      void logSecurityClient(userId, "deliveries_access_changed", change(String(before), String(granted)));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient],
+  );
+
   const updateUserErpAccess = useCallback<DataState["updateUserErpAccess"]>(
     async (userId, { granted }) => {
       const target = users.find((u) => u.id === userId);
@@ -1233,7 +1253,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserClockinAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, updateUserClockinAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts, clockIn, clockOut,
     incidents, addIncident, removeIncident,

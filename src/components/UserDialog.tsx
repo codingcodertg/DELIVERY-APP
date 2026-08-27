@@ -27,7 +27,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserClockinAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, updateUserClockinAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -93,9 +93,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         updateUserErpAccess(u.id, { granted });
         return;
       case "deliveries":
-        // Never actually called — deliveries is alwaysOn and renders no
-        // checkbox to trigger this. Kept as a case anyway so the switch
-        // stays exhaustive here too, not just in setModuleRole.
+        // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora
+        // es real. Quitarla NO borra `role` — ese es el rol dentro de entregas, y
+        // conservarlo hace que devolver el acceso no obligue a recordar cuál era.
+        updateUserDeliveriesAccess(u.id, { granted });
         return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
@@ -238,7 +239,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               <label
                 className={"perm-opt" + (m.alwaysOn ? " locked" : "")}
                 style={{ marginBottom: granted ? 10 : 0 }}
-                title={m.alwaysOn ? t("Everyone has Deliveries", "Todos tienen Entregas") : undefined}
+                title={m.alwaysOn ? t("Everyone has this", "Todos tienen esto") : undefined}
               >
                 <input
                   type="checkbox"

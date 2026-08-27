@@ -4495,3 +4495,79 @@ Esa comprobación estructural es la que habría detectado que D-088 estaba incom
 pendientes. No recargaba nada, así que una primera carga fallida no se recuperaba por
 ahí. Ahora hay un segundo efecto, separado, que sí lo hace — y solo cuando la última
 carga falló, para que no sea un refresco periódico disfrazado.
+
+
+## D-100 · Entregas se otorga como los demás, y la base lo comprueba
+**Fecha:** 2026-08-27 · **Versión:** v1.31.0 (deliveries), migración 083 · **Pedido por:** Andrés
+(*"en users estoy viendo que todos tienen acceso al delivery app por default y no!! todos pueden acceder solo la app a la que se le dio acceso"*)
+
+**Revierte D-054 y D-057**, que trataban Entregas como implícita para todo el mundo.
+La razón de entonces —todos entraban por Entregas— dejó de ser cierta en cuanto hubo
+cuatro módulos y diez personas que solo fichan.
+
+### Había dos puertas y solo estaba cerrada una
+
+Quitar la tarjeta habría sido teatro. Los datos viven en Supabase y el navegador habla
+**directamente** con Supabase: la llave es el token de la sesión, no la pantalla. Las
+seis tablas de Entregas tenían la política de lectura **y la de escritura** en
+`using (true)`.
+
+Se comprobó haciéndose pasar por Alberto Garza —empleado de fichaje,
+`module_access = {clockin}`, sin tarjeta de Entregas— con su propio `sub` en el JWT:
+
+```
+antes:   892 eventos · 90 entregas · 36 perfiles · 13 turnos
+después:   0 eventos ·  0 entregas
+```
+
+Y con la de escritura abierta también podía modificarlos. No es que hubiera pasado: es
+que nada lo impedía, y valía igual para cualquier cuenta futura.
+
+### El reparto: los usuarios originales de Entregas
+
+`has_deliveries_access()` = admin, o `'deliveries'` en `module_access`. El backfill se
+lo dio a todos **menos** a quien solo tiene fichaje o time tracker — nueve personas: los
+ocho de la cuadrilla y Nick. Los demás no notan nada. Comprobado uno a uno: Alberto y
+Nick a cero; Baudelio (almacén), Máximo (chofer), Ángel (contabilidad) y Andrés (admin)
+exactamente igual que antes.
+
+`profiles.role` NO cambia: sigue decidiendo QUÉ ve dentro quien entra. Lo que se añade
+es SI entra. Por eso quitar el acceso tampoco borra el rol — devolverlo no obliga a
+recordar cuál era.
+
+### `public.profiles` se deja abierta, y conviene decir por qué
+
+No es un olvido. La vista `clockin.profiles` (077) es `security_invoker` —se ejecuta
+como quien pregunta— y los layouts de recruiting y timetracker leen esa tabla para saber
+quién eres. Cerrarla por acceso a Entregas dejaría a la cuadrilla sin poder entrar a su
+propia app. Lo que expone son nombres, roles y tienda de 36 compañeros, no direcciones de
+clientes. Merece su propia regla por módulo, que es un cambio aparte.
+
+### Sin ningún módulo, una pantalla que lo diga
+
+Antes no podía pasar. Ahora sí, y una pantalla vacía se lee como app rota y acaba en una
+llamada. `/no-access` lo explica en los dos idiomas, ofrece cerrar sesión —no hay barra
+ahí— y se redirige sola en cuanto alguien le otorga algo.
+
+`landingRoute` también dejó de dar por sentado que el único módulo de alguien sea
+Entregas: quien solo ficha entra a fichar. Y un chofer **sin** Entregas ya no va a
+`/driver`, porque esa ruta vive dentro de Entregas.
+
+### Trece pruebas se reescribieron, ninguna se borró
+
+Fijaban la regla vieja (*"deliveries always first"*, *"sin module_access aterrizas en el
+tablero"*). Ahora fijan la nueva, incluida una que antes no existía: que **ningún** módulo
+sea `alwaysOn`, porque marcarlo dibuja su casilla en gris y el admin deja de poder
+quitárselo a nadie.
+
+### Encontrado de paso, NO cambiado
+
+La política `auth write deliveries` es de tipo `ALL`, y `ALL` incluye `SELECT`. Como las
+políticas permisivas se suman, su `using` estaba anulando el filtro cuidadoso de la
+política de lectura: el límite del chofer (*"solo las suyas"*) y el del almacén (*"solo
+ciertas etapas"*) **llevan muertos desde siempre**. No se notaba porque la pantalla del
+chofer filtra en el cliente (`driver/page.tsx:47`).
+
+Medido lo que costaría activarlo: Máximo pasaría de ver 89 entregas a 30; los cuatro de
+almacén, de 89 a 83. Se deja como está a la espera de decisión, porque cambia lo que ve
+gente que trabaja hoy y eso no se suelta un jueves por la tarde sin avisar.

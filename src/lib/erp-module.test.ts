@@ -22,21 +22,27 @@ describe("ERP module wiring", () => {
     expect(without).not.toContain("erp");
   });
 
-  it("never hides Deliveries, whatever else is granted", () => {
-    // accessibleModules prepends the deliveries card unconditionally; a module
-    // added to MODULES must not displace it.
-    expect(accessibleModules(["erp"])[0].key).toBe("deliveries");
-    expect(accessibleModules(null)[0].key).toBe("deliveries");
+  it("no desplaza a Entregas cuando ambas están otorgadas", () => {
+    // Entregas dejó de anteponerse siempre (D-100), pero cuando está, va primera:
+    // un módulo nuevo en MODULES no debe colarse por delante.
+    expect(accessibleModules(["erp", "deliveries"])[0].key).toBe("deliveries");
+    // Y sin Entregas otorgada, el ERP se dibuja solo — no aparece una tarjeta de
+    // Entregas que la base le va a devolver vacía.
+    expect(accessibleModules(["erp"]).map((m) => m.key)).toEqual(["erp"]);
   });
 
-  it("counts toward the module selector, so an admin with it lands on /home", () => {
-    expect(landingRoute({ role: "admin", module_access: ["erp"] })).toBe("/home");
+  it("cuenta para el selector: con ERP y Entregas se aterriza en /home", () => {
+    expect(landingRoute({ role: "admin", module_access: ["deliveries", "erp"] })).toBe("/home");
   });
 
-  it("does not override a driver's landing route", () => {
-    // A driver granted the ERP still starts their day on the driver screen —
-    // the same rule recruiting already has, and the one D-052's bugs came from.
-    expect(landingRoute({ role: "driver", module_access: ["erp"] })).toBe("/driver");
+  it("con SOLO el ERP se entra directo al ERP", () => {
+    expect(landingRoute({ role: "admin", module_access: ["erp"] })).toBe("/erp/catalog");
+  });
+
+  it("no le cambia el aterrizaje a un chofer que tenga Entregas", () => {
+    // Un chofer con el ERP sigue empezando el día en su pantalla — la misma regla que
+    // ya tenía recruiting, y de donde salieron los fallos de D-052.
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "erp"] })).toBe("/driver");
   });
 
   it("is an opt-in module with a checkbox and no role tier of its own", () => {

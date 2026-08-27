@@ -1,55 +1,72 @@
 import { describe, it, expect } from "vitest";
 import { accessibleModules, HUB_TOOLS, landingRoute, MODULE_ACCESS } from "@/lib/constants";
 
+// D-100 dio la vuelta a la premisa de estas pruebas: Entregas ya no es implícita, se
+// otorga como los demás módulos. Lo que antes se afirmaba —"sin module_access aterrizas
+// en el tablero"— ahora sería un fallo: la base le devolvería cero filas.
 describe("landingRoute", () => {
-  it("sends a driver to /driver, even with recruiting access", () => {
-    expect(landingRoute({ role: "driver" })).toBe("/driver");
-    expect(landingRoute({ role: "driver", module_access: ["recruiting"] })).toBe("/driver");
+  it("manda al chofer a su ruta, aunque tenga otro módulo", () => {
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/driver");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "recruiting"] })).toBe("/driver");
   });
 
-  it("sends someone with 2+ modules to the selector", () => {
-    expect(landingRoute({ role: "admin", module_access: ["recruiting"] })).toBe("/home");
-    expect(landingRoute({ role: "sales", module_access: ["recruiting"] })).toBe("/home");
+  it("un chofer SIN Entregas no va al tablero de choferes", () => {
+    // Su ruta vive dentro de Entregas. Sin acceso, mandarle ahí es una pantalla vacía.
+    expect(landingRoute({ role: "driver", module_access: ["clockin"] })).toBe("/clock-in/dashboard");
   });
 
-  it("falls back to roleHome for everyone else — no module_access", () => {
-    expect(landingRoute({ role: "admin" })).toBe("/");
-    expect(landingRoute({ role: "manager" })).toBe("/");
-    expect(landingRoute({ role: "sales" })).toBe("/");
-    expect(landingRoute({ role: "warehouse" })).toBe("/warehouse");
-    expect(landingRoute({ role: "logistics" })).toBe("/routes");
+  it("con dos o más módulos, al selector", () => {
+    expect(landingRoute({ role: "admin", module_access: ["deliveries", "recruiting"] })).toBe("/home");
+    expect(landingRoute({ role: "sales", module_access: ["deliveries", "recruiting"] })).toBe("/home");
   });
 
-  it("falls back to roleHome when module_access is present but empty", () => {
-    expect(landingRoute({ role: "sales", module_access: [] })).toBe("/");
-    expect(landingRoute({ role: "warehouse", module_access: null })).toBe("/warehouse");
+  it("con Entregas y nada más, al sitio que le toca por rol", () => {
+    expect(landingRoute({ role: "admin", module_access: ["deliveries"] })).toBe("/");
+    expect(landingRoute({ role: "manager", module_access: ["deliveries"] })).toBe("/");
+    expect(landingRoute({ role: "sales", module_access: ["deliveries"] })).toBe("/");
+    expect(landingRoute({ role: "warehouse", module_access: ["deliveries"] })).toBe("/warehouse");
+    expect(landingRoute({ role: "logistics", module_access: ["deliveries"] })).toBe("/routes");
+  });
+
+  it("con un solo módulo que NO es Entregas, entra directo a ese", () => {
+    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/clock-in/dashboard");
+    expect(landingRoute({ role: "sales", module_access: ["timetracker"] })).toBe("/timetracker");
+  });
+
+  it("sin ningún módulo, a la pantalla que lo explica — no a una vacía", () => {
+    expect(landingRoute({ role: "sales", module_access: [] })).toBe("/no-access");
+    expect(landingRoute({ role: "warehouse", module_access: null })).toBe("/no-access");
+    expect(landingRoute({ role: "admin" })).toBe("/no-access");
   });
 });
 
 // D-054: the single source both HomeSelector and ModuleSwitcher read from.
 describe("accessibleModules", () => {
-  it("is just deliveries with no module_access", () => {
-    expect(accessibleModules(null).map((m) => m.key)).toEqual(["deliveries"]);
-    expect(accessibleModules(undefined).map((m) => m.key)).toEqual(["deliveries"]);
-    expect(accessibleModules([]).map((m) => m.key)).toEqual(["deliveries"]);
+  it("sin módulos no dibuja NADA — antes dibujaba Entregas (D-100)", () => {
+    expect(accessibleModules(null)).toEqual([]);
+    expect(accessibleModules(undefined)).toEqual([]);
+    expect(accessibleModules([])).toEqual([]);
   });
 
-  it("adds recruiting when granted — deliveries always first", () => {
-    expect(accessibleModules(["recruiting"]).map((m) => m.key)).toEqual(["deliveries", "recruiting"]);
+  it("Entregas solo si se otorgó, y va primera", () => {
+    expect(accessibleModules(["deliveries"]).map((m) => m.key)).toEqual(["deliveries"]);
+    expect(accessibleModules(["deliveries", "recruiting"]).map((m) => m.key)).toEqual(["deliveries", "recruiting"]);
   });
 
-  it("adds timetracker when granted (D-064)", () => {
-    expect(accessibleModules(["timetracker"]).map((m) => m.key)).toEqual(["deliveries", "timetracker"]);
+  it("un módulo sin Entregas se dibuja solo, sin colarla", () => {
+    expect(accessibleModules(["recruiting"]).map((m) => m.key)).toEqual(["recruiting"]);
+    expect(accessibleModules(["timetracker"]).map((m) => m.key)).toEqual(["timetracker"]);
+    expect(accessibleModules(["clockin"]).map((m) => m.key)).toEqual(["clockin"]);
   });
 
-  it("adds both when granted, in MODULES declaration order", () => {
-    expect(accessibleModules(["recruiting", "timetracker"]).map((m) => m.key)).toEqual(["deliveries", "recruiting", "timetracker"]);
+  it("varios, en el orden en que MODULES los declara", () => {
+    expect(accessibleModules(["deliveries", "recruiting", "timetracker"]).map((m) => m.key))
+      .toEqual(["deliveries", "recruiting", "timetracker"]);
   });
 
-  it("ignores a module_access entry with no matching MODULES entry", () => {
-    // A stale or typo'd value shouldn't crash the switcher into showing a
-    // card for a module that doesn't exist.
-    expect(accessibleModules(["not-a-real-module"]).map((m) => m.key)).toEqual(["deliveries"]);
+  it("un valor que no corresponde a ningún módulo se ignora", () => {
+    expect(accessibleModules(["not-a-real-module"])).toEqual([]);
+    expect(accessibleModules(["not-a-real-module", "deliveries"]).map((m) => m.key)).toEqual(["deliveries"]);
   });
 });
 
@@ -73,13 +90,10 @@ describe("MODULE_ACCESS", () => {
     expect(new Set(columns).size).toBe(columns.length);
   });
 
-  it("deliveries is always-on; recruiting and timetracker are not", () => {
-    const deliveries = MODULE_ACCESS.find((m) => m.key === "deliveries")!;
-    const recruiting = MODULE_ACCESS.find((m) => m.key === "recruiting")!;
-    const timetracker = MODULE_ACCESS.find((m) => m.key === "timetracker")!;
-    expect(deliveries.alwaysOn).toBe(true);
-    expect(recruiting.alwaysOn).toBe(false);
-    expect(timetracker.alwaysOn).toBe(false);
+  it("ningún módulo se concede solo — Entregas tampoco, desde D-100", () => {
+    // Si esto vuelve a fallar es que alguien marcó un módulo como alwaysOn, y con eso
+    // su casilla se dibuja en gris: el admin deja de poder quitárselo a nadie.
+    for (const m of MODULE_ACCESS) expect(m.alwaysOn).toBe(false);
   });
 
   it("only deliveries carries fine-grained capabilities", () => {

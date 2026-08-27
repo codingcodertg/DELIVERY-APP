@@ -318,6 +318,12 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
+  // En demo todo el mundo tiene Entregas — es lo único que hay — así que quitarla no
+  // significaría nada aquí. Se responde como los demás módulos en vez de callarse.
+  const updateUserDeliveriesAccess = useCallback<DataState["updateUserDeliveriesAccess"]>(async () => {
+    notify("Not available in demo mode");
+  }, [notify]);
+
   const updateUserClockinAccess = useCallback<DataState["updateUserClockinAccess"]>(async () => {
     notify("Not available in demo mode");
   }, [notify]);
@@ -367,7 +373,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notifications: store.notifications.filter((n) => n.user_id === me.id),
     toast, notify, markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserClockinAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, updateUserClockinAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,
