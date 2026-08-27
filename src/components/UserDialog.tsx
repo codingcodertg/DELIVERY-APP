@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { MODULE_ACCESS, ROLE_INFO, roleLabel } from "@/lib/constants";
 import type { ModuleAccessKey } from "@/lib/constants";
+import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -302,6 +303,15 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                       </div>
                     )}
                   </div>
+
+                  {/* Clock-in's crew settings, which used to be a screen of their own inside the
+                      module (D-095). Everything here is per-person configuration of somebody
+                      else, which is what this dialog is for — the module keeps only what a
+                      person does with their own time, plus the vehicle list, which is about
+                      trucks rather than people. */}
+                  {m.key === "clockin" && !LOCAL_MODE && (
+                    <ClockinSettings userId={u.id} clockinRole={u.clockin_role ?? null} />
+                  )}
 
                   {/* Fine-grained extras — only drawn when this module's
                       descriptor actually has a catalog (today: deliveries

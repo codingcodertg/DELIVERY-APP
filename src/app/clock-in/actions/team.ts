@@ -1,91 +1,64 @@
 "use server";
 
-import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { POSITIONS, roleForPosition, type Position } from "@/lib/clockin/positions";
-import { currentAndNextPeriodDates } from "@/lib/clockin/schedule";
+import { currentAndNextPeriodDates, type WeekPattern } from "@/lib/clockin/schedule";
 import { materializeForEmployee, clearFutureShifts } from "./schedule";
-
-export type AddEmployeeResult =
-  | { ok: true; tempPassword: string; email: string }
-  | { ok: false; message: string };
 
 function genPassword() {
   return `RTG${Math.floor(1000 + Math.random() * 9000)}!`;
 }
 
-async function managerCtx() {
-  if (!isSupabaseConfigured) return { ok: false as const, message: "Not configured." };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, message: "Not signed in." };
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("role, company_id")
-    .eq("id", user.id)
-    .single();
-  if (!me || (me.role !== "manager" && me.role !== "owner")) {
-    return { ok: false as const, message: "Managers only." };
-  }
-  return { ok: true as const, supabase, user, companyId: me.company_id, role: me.role as string };
-}
+const managerCtx = clockinManagerCtx;
 
-/**
- * Create a new employee: an auth user (via the GoTrue admin API with the
- * server-only service-role key) + a profile row scoped to the manager's company.
- * Returns a temporary password to hand off.
- */
-export async function addEmployee(input: {
-  name: string;
-  email: string;
-  role: "employee" | "manager";
-  language: "en" | "es";
-  storeId?: string | null;
-  schedule?: string | null;
-}): Promise<AddEmployeeResult> {
+// addEmployee() was here and is deliberately gone (D-095).
+//
+// It created an auth user and a profile row. In rtg-clock-in that was the only way anyone ever
+// joined. Here creating an auth user creates a HUB identity — someone who can sign in to
+// deliveries — from a screen whose author was only thinking about clock-in, with a password this
+// file invented and no module_access decided by anybody. People are created in Users on the hub,
+// which is also where their access to each module is granted, and 078's trigger lays down their
+// clock-in row the moment clockin_role is set.
+
+/** Everything the hub's Users dialog needs to show one person's clock-in setup, in one round trip. */
+export async function getClockinEmployeeSettings(id: string): Promise<
+  | {
+      ok: true;
+      settings: {
+        position: string | null;
+        default_schedule: string | null;
+        custom_schedule: WeekPattern | null;
+        store_id: string | null;
+        is_runner: boolean;
+        vehicle_id: string | null;
+        active: boolean;
+      } | null;
+      sites: { id: string; name: string }[];
+      vehicles: { id: string; name: string; plate: string | null; active: boolean }[];
+    }
+  | { ok: false; message: string }
+> {
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
 
-  const name = input.name.trim();
-  const email = input.email.trim().toLowerCase();
-  if (!name || !email) return { ok: false, message: "Name and email are required." };
+  const [{ data: person }, { data: sites }, { data: vehicles }] = await Promise.all([
+    ctx.supabase
+      .from("profiles")
+      .select("position, default_schedule, custom_schedule, store_id, is_runner, vehicle_id, active")
+      .eq("id", id)
+      .maybeSingle(),
+    ctx.supabase.from("job_sites").select("id, name").eq("company_id", ctx.companyId).eq("active", true).order("name"),
+    ctx.supabase.from("vehicles").select("id, name, plate, active").eq("company_id", ctx.companyId).order("name"),
+  ]);
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) return { ok: false, message: "Server is missing the admin key." };
-
-  const tempPassword = genPassword();
-  const res = await fetch(`${url}/auth/v1/admin/users`, {
-    method: "POST",
-    headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password: tempPassword, email_confirm: true }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data?.id) {
-    return {
-      ok: false,
-      message: data?.msg || data?.error_description || data?.error || "Could not create user (email may already exist).",
-    };
-  }
-
-  // Profile insert via the manager's session — RLS allows managers to add to their company.
-  const { error } = await ctx.supabase.from("profiles").insert({
-    id: data.id,
-    company_id: ctx.companyId,
-    full_name: name,
-    role: input.role,
-    language: input.language,
-    store_id: input.storeId || null,
-    default_schedule: input.schedule || null,
-  });
-  if (error) return { ok: false, message: error.message };
-
-  return { ok: true, tempPassword, email };
+  return {
+    ok: true,
+    // null is a real answer, not a failure: access was just granted and the row exists but is
+    // empty, or the dialog is open on someone who has no clock-in access at all.
+    settings: (person as never) ?? null,
+    sites: sites ?? [],
+    vehicles: vehicles ?? [],
+  };
 }
 
 /** Assign an employee's default schedule type (A / B / C / custom, or null). Manager/owner. */
@@ -196,26 +169,28 @@ export async function setEmployeeActive(id: string, active: boolean) {
 
 
 /**
- * ONE control for "what is this person": Office / Sales / Warehouse / Manager /
- * Owner. There used to be two dropdowns (role + position) which confused
- * everyone. Now a single choice sets BOTH: the visible job function (position)
- * and the permission level (role) it implies.
+ * The person's job function: Office / Sales / Warehouse / Manager / Owner.
  *
- *   office/sales/warehouse → role employee   (store crew)
- *   manager                → role manager    (can see the crew)
- *   owner                  → role owner       (can see all stores)
+ * Upstream this ONE control set both the position and the clock-in role it implies, because there
+ * were two dropdowns and everyone confused them. That merge no longer holds here, for two reasons
+ * (D-095):
  *
- * Because this can change the ROLE — i.e. what someone is allowed to see — it is
- * OWNER-ONLY and can't be used on yourself (no self-demotion / self-promotion).
+ *  - The role now lives in `public.profiles.clockin_role`, and 071's guard lets only a deliveries
+ *    admin change it. A clock-in owner picking "Manager" here would have hit "Only an admin can
+ *    change clock-in access or role" — the write failing on the half nobody could see.
+ *  - In the hub's Users dialog the clock-in role is its own select, two fields above this one, in
+ *    the same shape every other module uses. Two controls writing the same column is the confusion
+ *    upstream was avoiding, just pointed the other way.
+ *
+ * So this writes `position` and nothing else. `position` is a grouping label — the Coverage board
+ * is the only screen that reads it — and it no longer decides what anyone may see, which is also
+ * why it is no longer owner-only or forbidden on yourself.
  */
 export async function setEmployeePosition(id: string, position: Position) {
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
-  if (ctx.role !== "owner") return { ok: false as const, message: "Only the owner can change this." };
-  if (id === ctx.user.id) return { ok: false as const, message: "You can't change your own position." };
   if (!POSITIONS.includes(position)) return { ok: false as const, message: "Invalid position." };
-  const role = roleForPosition(position);
-  const { error } = await ctx.supabase.from("profiles").update({ position, role }).eq("id", id);
+  const { error } = await ctx.supabase.from("profiles").update({ position }).eq("id", id);
   if (error) return { ok: false as const, message: error.message };
   return { ok: true as const };
 }

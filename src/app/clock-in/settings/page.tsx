@@ -20,7 +20,8 @@ export default async function SettingsPage() {
   const isOwner = me.role === "owner";
 
   const cards: { href: string; icon: string; label: string; desc: string }[] = [
-    { href: "/clock-in/team", icon: "👥", label: m.team, desc: m.settingsUsersDesc },
+    // People moved to Users on the hub (D-095); what is left here is the fleet.
+    { href: "/clock-in/team", icon: "🚚", label: m.vehicles, desc: m.settingsVehiclesDesc },
     // Job sites (geofences) are owner-only.
     ...(isOwner ? [{ href: "/clock-in/sites", icon: "📍", label: m.jobSites, desc: m.settingsSitesDesc }] : []),
     { href: "/clock-in/account", icon: "⚙️", label: tr.account, desc: m.settingsAccountDesc },

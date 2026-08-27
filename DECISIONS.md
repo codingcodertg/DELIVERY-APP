@@ -4168,3 +4168,82 @@ autorizado nadie, no todo el mundo.
 VAPID en Vercel — y las VAPID tienen que ser **las mismas** de `rtg-clock-in`,
 porque las suscripciones push existentes están firmadas contra esa clave y con
 otra dejan de valer. Y repuntar el programador externo a las rutas nuevas.
+
+
+## D-095 · La pantalla de Equipo de fichaje se muda a Usuarios del hub
+**Fecha:** 2026-08-26 · **Versión:** v0.3.0 (clockin) · **Pedido por:** Andrés
+(*"haz merge el panel de usuarios con el de usuario de hub y elimina ese view y
+solo deja la parte de vehiculo"*)
+
+**Cambio:** `/clock-in/team` tenía un alta de empleados y una fila por persona
+con puesto, horario, sitio, vehículo de repartidor, activar/desactivar y
+restablecer contraseña. Todo eso es configuración de **una persona**, y esta app
+ya tiene un sitio para eso: **Usuarios**, en el hub, donde a esa misma persona se
+le pone su rol de entregas, su acceso a reclutamiento y al ERP. Dos listas del
+mismo personal, cada una enseñando una mitad, es exactamente cómo alguien acaba
+desactivado en una y activo en la otra.
+
+La ruta se queda con **vehículos**, que es lo único que había ahí que no habla de
+personas sino de camiones. El path sigue siendo `/clock-in/team` para no romper
+marcadores.
+
+**Es una reescritura, no una mudanza.** Los controles de clock-in son componentes
+de Tailwind y en `/home/users` no hay Tailwind: el hub dibuja desde `globals.css`
+y la hoja de cada módulo vive en el chunk de su propio layout (D-090). Los
+controles nuevos son del hub (`.field`, `.grid g2`, `.perm-opt`); las acciones de
+servidor detrás siguen siendo las de clock-in, intactas.
+
+### `addEmployee()` se elimina
+
+Creaba un usuario de Auth y un perfil. En `rtg-clock-in` era la única forma de
+que alguien entrara. Aquí crear un usuario de Auth crea una **identidad del hub**
+—alguien que puede entrar a entregas— desde una pantalla cuyo autor solo pensaba
+en fichaje, con una contraseña que ese fichero se inventaba y sin que nadie
+decidiera su `module_access`. Las personas se crean en Usuarios, que es también
+donde se otorga cada módulo, y el trigger de 078 pone su ficha de fichaje en
+cuanto se le da `clockin_role`.
+
+### El puesto deja de escribir el rol
+
+Arriba, ese control ponía puesto **y** rol, porque había dos desplegables y todo
+el mundo los confundía. Aquí esa unión ya no se sostiene:
+
+- El rol vive en `public.profiles.clockin_role` y el guardián de 071 solo deja
+  cambiarlo a un admin de deliveries. Un owner de fichaje eligiendo "Gerente"
+  habría chocado con *"Only an admin can change clock-in access or role"* — la
+  escritura fallando en la mitad que nadie ve.
+- En el diálogo del hub el rol de fichaje ya es su propio select, dos campos más
+  arriba, con la misma forma que todos los módulos. Dos controles escribiendo la
+  misma columna es justo la confusión que arriba se quería evitar, apuntando al
+  revés.
+
+Así que ahora escribe `position` y nada más. `position` es una etiqueta de
+agrupación —el tablero de Cobertura es la única pantalla que la lee— y ya no
+decide lo que nadie puede ver, que es también por qué deja de ser solo-owner y de
+estar prohibida sobre uno mismo.
+
+### El `managerCtx` duplicado se unifica, y admite al admin del hub
+
+Había dos copias idénticas, en `actions/team.ts` y `actions/schedule.ts`, ambas
+exigiendo `role in (manager, owner)` del propio escalafón de clock-in. Con la
+configuración movida al hub, quien la usa es un admin — y estaba fuera. Además,
+preguntarle a `clockin.profiles` por un admin contesta otra cosa: esa vista es un
+INNER JOIN (077), así que alguien sin ficha de fichaje no está *denegado*, está
+**ausente**, y el `.single()` fallaba y se leía como permiso denegado. Ahora se
+consulta primero la identidad del hub, en `public`, donde un admin siempre existe.
+
+### Y la base tenía que estar de acuerdo (079)
+
+Dejar pasar al admin en el código y no en las políticas habría sido peor que
+bloquearlo. Las políticas de 074 no lanzan error: **filtran filas**. Un UPDATE que
+no encaja afecta cero filas y devuelve éxito — el admin habría visto el select
+cambiar, el diálogo cerrarse contento y nada guardado. Peor aún,
+`auth_company_id()` devuelve NULL para un admin sin ficha, y `company_id = NULL`
+no es falso, es NULL, que para una política vale lo mismo que falso.
+
+Así que 079 lo dice en las **tres funciones** que todas las políticas consultan,
+en vez de en treinta y cinco políticas. No es un permiso nuevo: un admin ya puede
+darse `clockin_role = 'owner'` desde Usuarios con dos clics — 071 lo autoriza
+explícitamente — y `has_clockin_access()` ya trataba `role = 'admin'` como acceso.
+Esto solo evita que tenga que hacerlo para que sus guardados dejen de perderse.
+No viaja al revés: un owner de fichaje no gana nada en el hub.

@@ -1,9 +1,9 @@
 "use server";
 
 import type { AnySupabase } from "@/lib/clockin/supabase/types";
-import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
-import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
+import { canManageEmployee } from "@/lib/clockin/mgrScope";
 
 export type ShiftResult = { ok: true } | { ok: false; message: string };
 const DENY_SCOPE = "That employee isn't in your store." as const;
@@ -72,24 +72,7 @@ export async function clearFutureShifts(supabase: AnySupabase, employeeId: strin
   await supabase.from("scheduled_shifts").delete().eq("employee_id", employeeId).gte("shift_date", centralDateStr());
 }
 
-async function managerCtx() {
-  if (!isSupabaseConfigured) return { ok: false as const, message: "Not configured." };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, message: "Not signed in." };
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("role, company_id, store_id")
-    .eq("id", user.id)
-    .single();
-  if (!me || (me.role !== "manager" && me.role !== "owner")) {
-    return { ok: false as const, message: "Managers only." };
-  }
-  const meScope: Me = { role: me.role as string, company_id: me.company_id as string, store_id: (me.store_id as string) ?? null };
-  return { ok: true as const, supabase, user, companyId: me.company_id as string, role: me.role as string, storeId: meScope.store_id, me: meScope };
-}
+const managerCtx = clockinManagerCtx;
 
 export async function createShift(input: {
   employeeId: string;

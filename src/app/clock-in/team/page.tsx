@@ -2,14 +2,25 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { t, type Lang } from "@/lib/clockin/i18n";
-import { storeScope } from "@/lib/clockin/scope";
-import AddEmployeeForm from "./AddEmployeeForm";
-import TeamList from "./TeamList";
 import VehiclesManager from "./VehiclesManager";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamPage() {
+/**
+ * Vehicles (D-095).
+ *
+ * This was the Team screen: add an employee, then a row per person with their position, schedule,
+ * job site, runner vehicle, activate/deactivate and a password reset. All of that was configuration
+ * of a PERSON, and this app already has one place for that — Users on the hub, where the same
+ * person's deliveries role, recruiting access and ERP access are set. Two lists of the same staff,
+ * each showing a different half of them, is how someone ends up deactivated in one and active in
+ * the other.
+ *
+ * So the crew half moved into the Users dialog and this route kept the fleet, which is the one
+ * thing here that is not about a person at all. The path stays /clock-in/team so nobody's bookmark
+ * breaks.
+ */
+export default async function VehiclesPage() {
   if (!isSupabaseConfigured) redirect("/clock-in/clock");
   const supabase = await createClient();
   const {
@@ -19,35 +30,19 @@ export default async function TeamPage() {
 
   const { data: me } = await supabase
     .from("profiles")
-    .select("role, company_id, language, store_id")
+    .select("role, company_id, language")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
   if (!me || (me.role !== "manager" && me.role !== "owner")) redirect("/clock-in/clock");
   const lang = (me.language === "es" ? "es" : "en") as Lang;
   const base = t(lang);
   const tr = base.mgr;
-  const isOwner = me.role === "owner";
 
-  // Store-scoping: a manager with a home store manages only their store's crew.
-  const { scopeStore } = await storeScope(supabase, me.company_id, me.role, me.store_id);
-
-  let peopleQ = supabase
-    .from("profiles")
-    .select("id, full_name, role, position, language, active, store_id, default_schedule, custom_schedule, is_runner, vehicle_id")
-    .eq("company_id", me.company_id);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
-  // The owner is invisible to managers — only the owner sees owners.
-  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
-
-  const [{ data: people }, { data: sites }, { data: vehicles }] = await Promise.all([
-    peopleQ.order("active", { ascending: false }).order("full_name"),
-    supabase.from("job_sites").select("id, name").eq("company_id", me.company_id).eq("active", true).order("name"),
-    supabase.from("vehicles").select("id, name, plate, active").eq("company_id", me.company_id).order("name"),
-  ]);
-
-  const list = people ?? [];
-  const siteList = sites ?? [];
-  const vehicleList = vehicles ?? [];
+  const { data: vehicles } = await supabase
+    .from("vehicles")
+    .select("id, name, plate, active")
+    .eq("company_id", me.company_id)
+    .order("name");
 
   return (
     <main className="flex-1 w-full max-w-2xl mx-auto p-5 flex flex-col gap-6">
@@ -61,16 +56,22 @@ export default async function TeamPage() {
           {base.home}
         </Link>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold truncate">{tr.team}</h1>
-          <p className="text-sm text-zinc-500 truncate">{list.filter((p) => p.active).length} {tr.activeWord}</p>
+          <h1 className="text-xl font-bold truncate">{tr.vehicles}</h1>
+          <p className="text-sm text-zinc-500 truncate">{(vehicles ?? []).filter((v) => v.active).length} {tr.activeWord}</p>
         </div>
       </header>
 
-      <AddEmployeeForm lang={lang} sites={siteList} />
+      <VehiclesManager vehicles={vehicles ?? []} lang={lang} />
 
-      <VehiclesManager vehicles={vehicleList} lang={lang} />
-
-      <TeamList people={list} sites={siteList} vehicles={vehicleList} lang={lang} isOwner={isOwner} userId={user.id} />
+      {/* Said here rather than left as a screen people keep looking for. */}
+      <p className="text-sm text-zinc-500 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+        {lang === "es"
+          ? "Las personas —puesto, horario, sitio, repartidor y si cuentan tiempo— se configuran en Usuarios, en el hub."
+          : "People — position, schedule, site, runner and whether they count time — are configured in Users, on the hub."}{" "}
+        <Link href="/home/users" className="text-emerald-600 font-medium hover:underline">
+          {lang === "es" ? "Ir a Usuarios →" : "Go to Users →"}
+        </Link>
+      </p>
     </main>
   );
 }
