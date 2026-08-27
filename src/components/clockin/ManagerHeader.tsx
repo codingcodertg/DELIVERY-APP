@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { t, type Lang } from "@/lib/clockin/i18n";
+import HubLink from "./HubLink";
 
 // Shared header for every manager screen: title + subtitle, a "my clock" escape
 // hatch, and one consistent horizontal nav bar so managers can jump between
@@ -36,6 +37,7 @@ export default function ManagerHeader({
     <header className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
+          <HubLink lang={lang} />
           <Link
             href="/clock-in/clock"
             aria-label={base.home}

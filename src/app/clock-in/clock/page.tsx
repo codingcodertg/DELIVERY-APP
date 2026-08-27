@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ClockInPanel, { type OpenShift } from "./ClockInPanel";
 import VehicleTripPanel, { type Stop as RunnerStop, type Vehicle as RunnerVehicle, type TripMode } from "./VehicleTripPanel";
 import NavMenu from "./NavMenu";
+import HubLink from "@/components/clockin/HubLink";
 import Tour, { type TourRole } from "./Tour";
 import type { ActiveLeave } from "@/app/clock-in/actions/leave";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
@@ -360,13 +361,17 @@ function ClockShell({
     "flex items-center justify-between rounded-xl bg-white/70 dark:bg-zinc-900/50 px-3 py-2.5 text-sm hover:bg-white dark:hover:bg-zinc-900 transition-colors";
   return (
     <main className="flex-1 w-full max-w-md mx-auto flex flex-col p-5 gap-5">
-      {/* Top bar: brand + everything-else menu */}
+      {/* Top bar: brand + everything-else menu. The hub link matters most here — this is where
+          clock-in lands you, and the sub-pages' 🏠 comes back to it. */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{tr.appName}</h1>
           <p className="text-xs text-zinc-500 truncate">{name ?? tr.tagline}</p>
         </div>
-        {name && <NavMenu lang={lang} isManager={isManager} isOwner={tourRole === "owner"} unread={unread} />}
+        <div className="flex items-center gap-2 shrink-0">
+          {name && <HubLink lang={lang} />}
+          {name && <NavMenu lang={lang} isManager={isManager} isOwner={tourRole === "owner"} unread={unread} />}
+        </div>
       </div>
 
       {/* Quick tiles — employees & managers (owners have no personal schedule/notes/score) */}

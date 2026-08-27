@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { t, type Lang } from "@/lib/clockin/i18n";
 import VehiclesManager from "./VehiclesManager";
+import HubLink from "@/components/clockin/HubLink";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function VehiclesPage() {
   return (
     <main className="flex-1 w-full max-w-2xl mx-auto p-5 flex flex-col gap-6">
       <header className="flex items-center gap-2.5">
+        <HubLink lang={lang} />
         <Link
           href="/clock-in/clock"
           aria-label={base.home}

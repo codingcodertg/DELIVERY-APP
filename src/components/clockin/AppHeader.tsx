@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createClient } from "@/lib/clockin/supabase/server";
 import { t, type Lang } from "@/lib/clockin/i18n";
 import NavMenu from "@/app/clock-in/clock/NavMenu";
+import HubLink from "./HubLink";
 
 /**
  * Shared header for every employee-facing sub-page: a Home button (back to the
@@ -36,6 +37,7 @@ export default async function AppHeader({ title, subtitle }: { title: string; su
   return (
     <header className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5 min-w-0">
+        <HubLink lang={lang} />
         <Link
           href="/clock-in/clock"
           aria-label={tr.home}

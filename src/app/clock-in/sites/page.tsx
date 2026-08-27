@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { t, type Lang } from "@/lib/clockin/i18n";
 import AddSiteForm from "./AddSiteForm";
 import SiteRow from "./SiteRow";
+import HubLink from "@/components/clockin/HubLink";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function SitesPage() {
   return (
     <main className="flex-1 w-full max-w-2xl mx-auto p-5 flex flex-col gap-6">
       <header className="flex items-center gap-2.5">
+        <HubLink lang={lang} />
         <Link
           href="/clock-in/clock"
           aria-label={base.home}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { t, type Lang } from "@/lib/clockin/i18n";
+import HubLink from "@/components/clockin/HubLink";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function SettingsPage() {
   return (
     <main className="flex-1 w-full max-w-2xl mx-auto p-5 flex flex-col gap-5">
       <header className="flex items-center gap-2.5">
+        <HubLink lang={lang} />
         <Link
           href="/clock-in/clock"
           aria-label={tr.home}
