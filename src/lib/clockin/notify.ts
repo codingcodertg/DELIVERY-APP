@@ -7,8 +7,9 @@ type Lang = "en" | "es";
 type P = Record<string, string | number>;
 
 let configured = false;
-function ensureVapid() {
-  if (configured) return;
+/** ¿Hay claves VAPID? Devuelve la respuesta en vez de callarse — ver sendToSub. */
+function ensureVapid(): boolean {
+  if (configured) return true;
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subj = process.env.VAPID_SUBJECT || "mailto:admin@example.com";
@@ -16,7 +17,11 @@ function ensureVapid() {
     webpush.setVapidDetails(subj, pub, priv);
     configured = true;
   }
+  return configured;
 }
+
+/** Un envío que no vuelve no puede quedarse colgado del cron entero. */
+const PUSH_TIMEOUT_MS = 5000;
 
 // --- Message catalog (recipient's language) ---
 export const MSG: Record<string, { en: (p: P) => string; es: (p: P) => string }> = {
@@ -97,15 +102,29 @@ export type Sub = { id?: string; endpoint: string; p256dh: string; auth: string 
 
 /** Low-level send to one subscription. Returns whether it's dead (410/404 → delete). */
 export async function sendToSub(sub: Sub, payload: { title: string; body: string; url?: string; tag?: string }) {
-  ensureVapid();
+  // Sin claves VAPID no se intenta siquiera. No es una optimización: era un cuelgue.
+  // web-push sin firmar no falla rápido — sale a la red igual y se queda esperando, y como
+  // esto se llama una vez por suscripción dentro del cron, el trabajo entero pasaba de dos
+  // segundos a no terminar nunca. Se comprobó midiendo: roll-schedules y cleanup-photos, con
+  // las mismas consultas, tardan 2 s y 0.7 s; /api/cron no volvía en 300 s.
+  //
+  // El aviso EN LA APP se guarda igual (lo escribe record(), aparte): lo que se salta es el
+  // empujón al teléfono, que sin claves no iba a llegar de ninguna manera.
+  if (!ensureVapid()) return { ok: false, gone: false };
   try {
-    await webpush.sendNotification(
-      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify(payload),
-    );
+    // Y aun con claves, un endpoint muerto no puede parar el reloj de los demás.
+    await Promise.race([
+      webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify(payload),
+      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("push timeout")), PUSH_TIMEOUT_MS)),
+    ]);
     return { ok: true, gone: false };
   } catch (e) {
     const code = (e as { statusCode?: number })?.statusCode;
+    // Un tiempo agotado NO es una suscripción muerta: marcarla como `gone` la borraría, y
+    // perder la suscripción de alguien por un hipo de red es peor que reintentar mañana.
     return { ok: false, gone: code === 404 || code === 410 };
   }
 }
