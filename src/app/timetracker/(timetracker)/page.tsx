@@ -326,6 +326,31 @@ export default function TrackTimePage() {
           return;
         }
 
+        // ¿Sigue viva de verdad, o es un huérfano? El tick escribe endMs cada diez
+        // segundos mientras corre, así que una sesión "viva" cuyo último latido es de hace
+        // horas es una que perdió a su cliente: la computadora se apagó, el navegador se
+        // cerró, la app se cayó. Nadie la va a parar nunca.
+        //
+        // Adoptarla es lo que hacía que abrir la app al día siguiente mostrara el
+        // cronómetro corriendo desde ayer. Y peor: seguía contando desde su arranque, así
+        // que una noche con la máquina apagada entraba en la nómina como trabajada — 10.42 h
+        // en el caso que destapó esto, con cero segundos de actividad.
+        //
+        // Se cierra en su ÚLTIMO LATIDO, no ahora: lo que grabó es lo que se le paga, y las
+        // horas que la máquina pasó apagada no son suyas.
+        const LATIDO_MAX_MS = 5 * 60_000; // el tick escribe cada 10 s; cinco minutos es de sobra
+        const ultimoLatido = mine.endMs ?? mine.startMs ?? 0;
+        if (ultimoLatido && Date.now() - ultimoLatido > LATIDO_MAX_MS) {
+          const real = Math.max(0, Math.floor((ultimoLatido - (mine.startMs ?? ultimoLatido)) / 1000));
+          await updateSession(mine.id, { isLive: false, endMs: ultimoLatido, durationSeconds: real })
+            .catch(() => {});
+          try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+          setRunning(false);
+          setWorked(0);
+          notify(t("track.orphanClosed"));
+          return;
+        }
+
         sessionIdRef.current = mine.id;
         startMsRef.current = mine.startMs || Date.now();
         // Whose session is it? A client drives only what its own kind started; see remoteOwner.
