@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/clockin/supabase/server";
 import { t, type Lang } from "@/lib/clockin/i18n";
-import NavMenu from "@/app/clock-in/clock/NavMenu";
+import NavMenu from "@/app/timetracker/clock-in/clock/NavMenu";
 import HubLink from "./HubLink";
 
 /**
@@ -39,7 +39,7 @@ export default async function AppHeader({ title, subtitle }: { title: string; su
       <div className="flex items-center gap-2.5 min-w-0">
         <HubLink lang={lang} />
         <Link
-          href="/clock-in/clock"
+          href="/timetracker/clock-in/clock"
           aria-label={tr.home}
           className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-11 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0"
         >

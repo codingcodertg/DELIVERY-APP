@@ -12,7 +12,7 @@ describe("landingRoute", () => {
 
   it("un chofer SIN Entregas no va al tablero de choferes", () => {
     // Su ruta vive dentro de Entregas. Sin acceso, mandarle ahí es una pantalla vacía.
-    expect(landingRoute({ role: "driver", module_access: ["clockin"] })).toBe("/clock-in/dashboard");
+    expect(landingRoute({ role: "driver", module_access: ["clockin"] })).toBe("/timetracker/clock-in/dashboard");
   });
 
   it("con dos o más módulos, al selector", () => {
@@ -29,7 +29,7 @@ describe("landingRoute", () => {
   });
 
   it("con un solo módulo que NO es Entregas, entra directo a ese", () => {
-    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/clock-in/dashboard");
+    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/timetracker/clock-in/dashboard");
     expect(landingRoute({ role: "sales", module_access: ["timetracker"] })).toBe("/timetracker");
   });
 
@@ -146,9 +146,9 @@ describe("navegación de la fusión", () => {
     const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
     const empleado = TABS.find((t) => t.id === "clockin");
     const admin = MANAGER_TABS.find((t) => t.id === "clockin");
-    expect(empleado?.href).toBe("/clock-in/clock");
+    expect(empleado?.href).toBe("/timetracker/clock-in/clock");
     // Al admin le sirve ver la cuadrilla, no marcar su propia entrada.
-    expect(admin?.href).toBe("/clock-in/dashboard");
+    expect(admin?.href).toBe("/timetracker/clock-in/dashboard");
   });
 
   it("una sola entrada por juego, no las diecinueve pantallas", async () => {
@@ -156,7 +156,7 @@ describe("navegación de la fusión", () => {
     // buscador de pestañas. Esta prueba existe para que el día que alguien tenga la
     // tentación de añadir "Cobertura", "Horarios" y "Excepciones" a la barra, falle.
     const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
-    expect(TABS.filter((t) => t.href.startsWith("/clock-in"))).toHaveLength(1);
-    expect(MANAGER_TABS.filter((t) => t.href.startsWith("/clock-in"))).toHaveLength(1);
+    expect(TABS.filter((t) => t.href.startsWith("/timetracker/clock-in"))).toHaveLength(1);
+    expect(MANAGER_TABS.filter((t) => t.href.startsWith("/timetracker/clock-in"))).toHaveLength(1);
   });
 });

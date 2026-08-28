@@ -7,9 +7,16 @@ import type { AppKey } from "@/lib/app-versions";
  * probar sin montar nada, y porque el sello de versión no va a ser lo último que
  * necesite saber en qué módulo estamos.
  */
+// El ORDEN importa, y es la única razón de que esto sea una lista y no un objeto: desde
+// la fase 3b fichaje vive DENTRO de time tracker, así que /timetracker/clock-in empieza
+// por /timetracker. El prefijo más específico va primero o el sello enseñaría la versión
+// de time tracker en las pantallas de fichaje — el número de otra app, que es peor que
+// ninguno. Las pruebas de este módulo lo cazaron en cuanto se movieron las rutas.
 const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
+  ["/timetracker/clock-in", "clockin"],
   ["/recruiting", "recruiting"],
   ["/timetracker", "timetracker"],
+  // La ruta vieja ya solo redirige, pero durante ese instante la página se sirve bajo ella.
   ["/clock-in", "clockin"],
   ["/erp", "erp"],
 ];

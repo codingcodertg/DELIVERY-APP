@@ -11,7 +11,10 @@ describe("appForPath", () => {
     expect(appForPath("/recruiting/candidates/7")).toBe("recruiting");
     expect(appForPath("/timetracker")).toBe("timetracker");
     expect(appForPath("/timetracker/reports")).toBe("timetracker");
-    expect(appForPath("/clock-in/clock")).toBe("clockin");
+    expect(appForPath("/timetracker/clock-in/clock")).toBe("clockin");
+    // Fichaje vive DENTRO de time tracker: gana el prefijo mas especifico.
+    expect(appForPath("/timetracker/clock-in/dashboard")).toBe("clockin");
+    expect(appForPath("/clock-in/clock")).toBe("clockin");   // ruta vieja, aun redirigiendo
     expect(appForPath("/erp/catalog")).toBe("erp");
   });
 
@@ -28,12 +31,15 @@ describe("appForPath", () => {
   it("no confunde una ruta que solo EMPIECE parecido", () => {
     // /erp-algo no es el ERP; sin el separador, startsWith se lo tragaria.
     expect(appForPath("/erpxyz")).toBe("deliveries");
-    expect(appForPath("/clock-in-old")).toBe("deliveries");
     expect(appForPath("/timetracker-legacy")).toBe("deliveries");
+    expect(appForPath("/clock-in-old")).toBe("deliveries");
+    // Esta es la que muerde ahora que fichaje vive dentro: /timetracker/clock-in-old NO
+    // es fichaje, pero sí es time tracker — el separador decide una cosa y el orden otra.
+    expect(appForPath("/timetracker/clock-in-old")).toBe("timetracker");
   });
 
   it("todo prefijo conocido tiene numero que enseñar", () => {
-    for (const p of ["/", "/recruiting", "/timetracker", "/clock-in", "/erp"]) {
+    for (const p of ["/", "/recruiting", "/timetracker", "/timetracker/clock-in", "/erp"]) {
       expect(APP_VERSIONS[appForPath(p)]).toMatch(/^\d+\.\d+\.\d+$/);
     }
   });

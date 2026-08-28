@@ -147,7 +147,7 @@ export async function pushToUser(userId: string, companyId: string, type: string
   if (!body) return;
   const subs = await subsForEmployees([userId]);
   for (const s of subs) {
-    const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/clock-in/clock", tag: type });
+    const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/timetracker/clock-in/clock", tag: type });
     if (r.gone && s.id) await deleteSub(s.id);
   }
   await recordNotification(companyId, userId, type, body);
@@ -187,7 +187,7 @@ export async function maybeNotifyStoreReady(companyId: string, storeId: string |
 }
 
 /** Notify all active OWNERS of a company (records in-app for each, pushes to their devices). */
-export async function pushToOwners(companyId: string, type: string, params: P = {}, url = "/clock-in/reports") {
+export async function pushToOwners(companyId: string, type: string, params: P = {}, url = "/timetracker/clock-in/reports") {
   const or = await rest(`profiles?select=id,language&company_id=eq.${companyId}&role=eq.owner&active=eq.true`);
   const owners: { id: string; language: string }[] = or.ok ? await or.json() : [];
   if (owners.length === 0) return;
@@ -209,7 +209,7 @@ export async function pushToOwners(companyId: string, type: string, params: P = 
  * Records the in-app notification ONCE per person (not once per device) and
  * pushes to each of their devices.
  */
-export async function pushToManagers(companyId: string, type: string, params: P = {}, url = "/clock-in/dashboard") {
+export async function pushToManagers(companyId: string, type: string, params: P = {}, url = "/timetracker/clock-in/dashboard") {
   const mr = await rest(`profiles?select=id,language&company_id=eq.${companyId}&role=in.(manager,owner)&active=eq.true`);
   const mgrs: { id: string; language: string }[] = mr.ok ? await mr.json() : [];
   if (mgrs.length === 0) return;

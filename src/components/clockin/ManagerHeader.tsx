@@ -24,12 +24,12 @@ export default function ManagerHeader({
   const tr = t(lang).mgr;
   const base = t(lang);
   const items: { key: NavKey; href: string; label: string }[] = [
-    { key: "dashboard", href: "/clock-in/dashboard", label: tr.dashboard },
-    { key: "reports", href: "/clock-in/reports", label: tr.payroll },
-    { key: "schedule", href: "/clock-in/schedule", label: tr.schedule },
+    { key: "dashboard", href: "/timetracker/clock-in/dashboard", label: tr.dashboard },
+    { key: "reports", href: "/timetracker/clock-in/reports", label: tr.payroll },
+    { key: "schedule", href: "/timetracker/clock-in/schedule", label: tr.schedule },
     // Runs folded into Today's Crew — no separate page anymore.
-    { key: "timeoff", href: "/clock-in/time-off", label: tr.timeOff },
-    { key: "exceptions", href: "/clock-in/exceptions", label: tr.exceptions },
+    { key: "timeoff", href: "/timetracker/clock-in/time-off", label: tr.timeOff },
+    { key: "exceptions", href: "/timetracker/clock-in/exceptions", label: tr.exceptions },
     // Users, Sites & Account live under Settings, which is in the hamburger menu.
   ];
 
@@ -39,7 +39,7 @@ export default function ManagerHeader({
         <div className="flex items-center gap-2.5 min-w-0">
           <HubLink lang={lang} />
           <Link
-            href="/clock-in/clock"
+            href="/timetracker/clock-in/clock"
             aria-label={base.home}
             className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-11 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0"
           >

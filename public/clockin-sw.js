@@ -1,3 +1,8 @@
+// RTG Clock-In service worker — alcance /timetracker/clock-in/ desde la fase 3b.
+// El alcance viejo (/clock-in/) sigue registrado en los móviles de quien ya lo tenía;
+// no importa, porque este SW es pase directo y nunca sirve páginas cacheadas: lo peor
+// que hace es proxiar la redirección. Si algún día cacheara algo, esto habría que
+// resolverlo con un SW que se desregistre solo.
 // RTG Clock-In service worker — Web Push, plus the fetch handler Android
 // requires before Chrome will offer a real "Install app" (standalone, no
 // address bar). Without one, Android only ever created a browser shortcut,
@@ -37,7 +42,7 @@ self.addEventListener("push", (event) => {
     body: data.body || "",
     icon: "/clockin-icon-192.png",
     badge: "/clockin-icon-192.png",
-    data: { url: data.url || "/clock" },
+    data: { url: data.url || "/timetracker/clock-in/clock" },
     tag: data.tag || undefined,
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -45,7 +50,9 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/clock";
+  // "/clock" a secas nunca fue una ruta de esta app: pulsar una notificación sin url
+  // abría un 404. Estaba así desde antes de la fusión y solo se veía al pulsarla.
+  const url = (event.notification.data && event.notification.data.url) || "/timetracker/clock-in/clock";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
       for (const w of wins) {

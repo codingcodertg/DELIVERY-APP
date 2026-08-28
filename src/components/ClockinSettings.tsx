@@ -11,8 +11,8 @@ import {
   setEmployeeRunner,
   setEmployeeVehicle,
   setEmployeeActive,
-} from "@/app/clock-in/actions/team";
-import { setCustomSchedule } from "@/app/clock-in/actions/schedule";
+} from "@/app/timetracker/clock-in/actions/team";
+import { setCustomSchedule } from "@/app/timetracker/clock-in/actions/schedule";
 import type { WeekPattern } from "@/lib/clockin/schedule";
 import type { Position } from "@/lib/clockin/positions";
 

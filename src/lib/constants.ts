@@ -227,7 +227,7 @@ export const MODULES: ModuleInfo[] = [
   // card until an admin grants it.
   {
     key: "clockin",
-    href: "/clock-in/dashboard",
+    href: "/timetracker/clock-in/dashboard",
     emoji: "🕐",
     label_en: "Clock-in",
     label_es: "Fichaje",
