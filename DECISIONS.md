@@ -4850,3 +4850,74 @@ en Chicago, que es donde está la empresa; corregir el ajuste es un cambio apart
 Las pantallas de aprobar partes y cerrar periodo siguen donde estaban, una en cada mitad.
 Esta vista informa; no aprueba ni cierra nada. Fundir también esos dos flujos —con sus
 firmas y sus bloqueos de periodo— es más que un informe y merece su propia decisión.
+
+
+## D-106 · Fusión de vistas #1 y #2
+**Fecha:** 2026-08-27 · **Versión:** v0.13.0 (timetracker), v0.10.0 (clockin) · **Pedido por:** Andrés
+(*"quiero que hagamos merge de las features del clock in app en la time tracker... merge views"*)
+
+Antes de tocar nada se miraron las 31 pantallas, y salió el dato que decide el coste de
+todo lo demás: **Time Tracker dibuja en el cliente (14 de 15 pantallas) y clock-in en el
+servidor (16 de 16)**. No es una diferencia de estilo — cada fusión de vistas cruza esa
+línea, y ahí está el trabajo, no en juntar dos tablas.
+
+### #1 · Una sola Cuenta y unos solos Ajustes
+
+Cuatro pantallas quedaron en dos.
+
+La Cuenta de fichaje tenía exactamente dos cosas: contraseña e idioma. **La contraseña ya
+estaba escrita en Time Tracker**, o sea que era la misma función dos veces. Lo único que se
+mudó de verdad es el idioma.
+
+Y llega con su nombre entero —*"Idioma de los avisos"*, no *"Idioma"*— porque es el idioma
+en que **el servidor** escribe recordatorios y aprobaciones, no el de las pantallas, que
+sigue al navegador y no se guarda en ningún sitio. Con la etiqueta corta, alguien lo habría
+cambiado esperando que cambiara lo que estaba mirando.
+
+Los Ajustes de fichaje no eran una pantalla de ajustes: eran **un menú de tres tarjetas**.
+Una acaba de mudarse; las otras dos —vehículos y sitios— no necesitaban pantalla propia
+para ser dos enlaces, y viven ahora en los Ajustes de Time Tracker, donde ya se configura
+la empresa.
+
+Las dos rutas viejas redirigen: cualquiera que abriera el menú de fichaje tenía Cuenta a un
+toque, y los marcadores duran más que las pantallas.
+
+### #2 · Una sola bandeja de pendientes
+
+Un gerente miraba en **tres sitios** lo que es una sola pregunta —*"¿qué me toca
+revisar?"*—: solicitudes de horas en Time Tracker, ausencias y excepciones en fichaje.
+
+Las tres van ahora en la pantalla a la que ya venía, renombrada a **Pendientes**. **No se
+creó una pantalla nueva**: una cuarta también habría que acordarse de abrirla.
+
+**Siguen siendo tres decisiones distintas y se enseñan como tales:** cambiar un registro de
+horas, conceder una ausencia, y dar por visto un fichaje raro. Juntar los botones habría
+sido fingir que son la misma cosa — la excepción ni siquiera se aprueba, se revisa.
+
+Reescrito y no mudado, por lo de siempre: los controles de fichaje son de Tailwind y esta
+pantalla vive bajo el grupo `(timetracker)`, cuyo chunk no lo incluye. **Las acciones de
+servidor sí son las mismas** (`reviewTimeOff`, `resolveException`), así que aprobar desde
+aquí y desde fichaje hacen lo mismo, avisos incluidos.
+
+**El alcance por tienda no se decide en la pantalla:** lo resuelve `getPendingForInbox` con
+el mismo `storeScope` que usan las pantallas de fichaje. Escribir ese filtro otra vez en la
+bandeja sería la segunda copia de una regla de permisos, y la segunda copia es la que se
+queda vieja.
+
+### Lo que se decidió NO fusionar
+
+- **`insights` vs `coverage`** — parecen hermanas y no lo son: una analiza proyectos, la
+  otra dice quién cubre qué tienda qué día.
+- **`audit` vs `exceptions`** — auditoría es *quién cambió qué*; excepciones son anomalías
+  de geocerca. Las excepciones sí entran en la bandeja; la auditoría no.
+- **`diary` vs `notes`** — las dos son "qué hice hoy", pero una son capturas y la otra texto
+  escrito a mano. Como pestañas, sí; fundidas, no.
+- **`sites`, vehículos, `schedule`, `runs`, `me`** — no tienen pareja. Fusionarlas sería
+  inventarles una.
+
+### Siguientes, con un número en la mano
+
+Quedan "Trabajando ahora" (`live` + `dashboard`) y "Mi semana" (`week` + `my-schedule`,
+planeado contra real — la única de la lista que añade algo que hoy no contesta ninguna).
+Se planifican sabiendo ya lo que cuesta cruzar la línea cliente/servidor, en vez de con una
+estimación.

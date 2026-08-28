@@ -2,6 +2,8 @@
 
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
+import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
+import { storeScope } from "@/lib/clockin/scope";
 
 export type TimeOffResult = { ok: true } | { ok: false; message: string };
 
@@ -80,4 +82,65 @@ export async function reviewTimeOff(input: {
     );
   }
   return { ok: true };
+}
+
+/**
+ * Las dos colas de fichaje que un gerente tiene pendientes, para la bandeja única
+ * (`/timetracker/inbox`, fusión de vistas #2).
+ *
+ * Vive aquí y no en la pantalla porque el alcance por tienda ya está resuelto en
+ * `clockinManagerCtx` + `storeScope`: un gerente con tienda ve su cuadrilla y nadie más.
+ * Reescribir ese filtro en la bandeja sería la segunda copia de una regla de permisos, y
+ * la segunda copia es la que se queda vieja.
+ */
+export async function getPendingForInbox(): Promise<
+  | {
+      ok: true;
+      timeOff: {
+        id: string; employee_id: string; nombre: string; type: string;
+        start_date: string; end_date: string; note: string | null;
+      }[];
+      exceptions: {
+        id: string; employee_id: string; nombre: string; type: string;
+        reason: string | null; note: string | null; created_at: string; left_at: string | null;
+      }[];
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await clockinManagerCtx();
+  if (!ctx.ok) return ctx;
+
+  const { ids } = await storeScope(ctx.supabase, ctx.companyId, ctx.role, ctx.storeId);
+
+  let offQ = ctx.supabase
+    .from("time_off_requests")
+    .select("id, employee_id, type, start_date, end_date, note")
+    .eq("status", "pending")
+    .order("start_date");
+  let excQ = ctx.supabase
+    .from("exceptions")
+    .select("id, employee_id, type, reason, note, created_at, left_at")
+    .eq("resolved", false)
+    .order("created_at", { ascending: false });
+  if (ids) {
+    offQ = offQ.in("employee_id", ids);
+    excQ = excQ.in("employee_id", ids);
+  }
+
+  const [{ data: off }, { data: exc }, { data: people }] = await Promise.all([
+    offQ,
+    excQ,
+    ctx.supabase.from("profiles").select("id, full_name"),
+  ]);
+
+  type Named = { employee_id: string };
+  const people2 = (people ?? []) as { id: string; full_name: string | null }[];
+  const nombre = new Map(people2.map((p) => [p.id, p.full_name ?? "—"]));
+  const conNombre = <T extends Named>(rows: T[] | null) =>
+    (rows ?? []).map((r) => ({ ...r, nombre: nombre.get(r.employee_id) ?? "—" }));
+  return {
+    ok: true,
+    timeOff: conNombre((off ?? []) as never),
+    exceptions: conNombre((exc ?? []) as never),
+  };
 }

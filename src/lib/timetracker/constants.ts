@@ -29,7 +29,10 @@ export const MANAGER_TABS: { id: string; label: string; href: string }[] = [
   // Las horas de las DOS mitades por periodo (fase 4). Va junto a Reports/Pay porque
   // es lo mismo que se mira, con las dos fuentes al lado en vez de una sola.
   { id: "payroll", label: "🧾 Nómina", href: "/timetracker/payroll" },
-  { id: "team-requests", label: "📝 Requests", href: "/timetracker/team-requests" },
+  // Ya no son solo las solicitudes de horas: desde la fusión de vistas #2 esta pantalla
+  // lleva también las ausencias y las excepciones de fichaje. El nombre lo dice para que
+  // nadie siga buscando las otras dos en el módulo de fichaje.
+  { id: "team-requests", label: "📥 Pendientes", href: "/timetracker/team-requests" },
   { id: "projects", label: "📁 Projects", href: "/timetracker/projects" },
   { id: "assignments", label: "🔗 Assignments", href: "/timetracker/assignments" },
   { id: "people", label: "🧑‍🤝‍🧑 Employees", href: "/timetracker/people" },

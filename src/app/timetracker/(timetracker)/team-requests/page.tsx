@@ -7,6 +7,7 @@ import { fmtClock, weekStartISO } from "@/lib/timetracker/helpers";
 import { rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
+import { ClockinApprovals } from "@/components/timetracker/ClockinApprovals";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerRequests.jsx — the
 // approve/reject queue for employee time requests. Named /team-requests,
@@ -198,6 +199,16 @@ export default function TeamRequestsPage() {
           </table>
         )}
       </div>
+
+      {/* Las dos colas de fichaje, aquí y no en una pantalla nueva (fusión de vistas #2).
+          Un gerente tenía que mirar en TRES sitios lo que es una sola pregunta: "¿qué me
+          toca revisar?". Se añaden a la pantalla a la que ya venía, en vez de inventar una
+          cuarta que también habría que acordarse de abrir.
+
+          Siguen siendo tres decisiones distintas y se enseñan como tales: cambiar un
+          registro de horas, conceder una ausencia, y dar por visto un fichaje raro. Juntar
+          los botones habría sido fingir que son la misma. */}
+      <ClockinApprovals />
     </>
   );
 }
