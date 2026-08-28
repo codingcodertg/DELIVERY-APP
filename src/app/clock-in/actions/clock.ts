@@ -104,9 +104,13 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
 
   // On a site, but not the one they're assigned to? Ask why (e.g. "visiting
   // another store"). Not a block — it's flagged for the manager, like off-site.
-  // Only OWNERS roam between stores; managers are tied to their store like
-  // everyone else. Anyone with no home store has nothing to compare against.
-  const homeBound = profile.role !== "owner" && !!profile.store_id;
+  //
+  // Estar atado es TENER SITIO ASIGNADO, y ya no "no ser dueño" (fase 1 de la fusión,
+  // migración 084). Con dos niveles de rol, colgarlo del rol habría desatado a todo
+  // admin — Patricia incluida, que hoy sí está atada a Brownsville. Quien debe roamear
+  // simplemente no tiene sitio, que es lo que esa columna quiso decir siempre; a los
+  // dueños se les quitó el suyo en 084 para que el resultado fuese idéntico al de hoy.
+  const homeBound = !!profile.store_id;
   const atWrongSite = homeBound && !!siteId && siteId !== profile.store_id;
   if (atWrongSite && !input.reason) {
     return { ok: false, code: "needs_reason", context: "other_site" };
@@ -300,8 +304,9 @@ export async function clockOut(entryId: string, input: ClockOutInput): Promise<C
 
   // Off-site clock-out is the classic fraud signal — flag it for the manager.
   // Clocking out at ANOTHER store (not their own) is flagged too, but labelled
-  // as such rather than as off-site. Only owners roam, so only they're exempt.
-  const homeBound = profile.role !== "owner" && !!profile.store_id;
+  // as such rather than as off-site. Mismo criterio que en la entrada: atado es
+  // tener sitio, no el rol (084).
+  const homeBound = !!profile.store_id;
   const atWrongSite = homeBound && !!siteId && siteId !== profile.store_id;
   if (!onSite) {
     await supabase.from("exceptions").insert({

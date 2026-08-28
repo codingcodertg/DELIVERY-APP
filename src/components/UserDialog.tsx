@@ -87,7 +87,14 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         updateUserTimetrackerAccess(u.id, { granted, timetracker_role: granted ? (u.timetracker_role ?? "employee") : null });
         return;
       case "clockin":
-        updateUserClockinAccess(u.id, { granted, clockin_role: granted ? (u.clockin_role ?? "employee") : null });
+        // El escalafón es el de Time Tracker (084). `clockin_role` es legado —la
+        // restricción de 071 todavía lo exige— así que se deriva en vez de inventarlo:
+        // dejarlo en "employee" para un admin haría que la columna dijera una cosa y la
+        // vista otra, y alguien acabaría creyéndose la equivocada.
+        updateUserClockinAccess(u.id, {
+          granted,
+          clockin_role: granted ? (u.timetracker_role === "admin" ? "owner" : "employee") : null,
+        });
         return;
       case "erp":
         updateUserErpAccess(u.id, { granted });
@@ -281,10 +288,12 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                       <div className="field">
                         <label>{t("Role", "Rol")}</label>
                         <div className="hint" style={{ marginTop: 4 }}>
-                          {t(
-                            "The ERP has no role of its own. Cost and margin are visible to Admin and Office Manager — set above, under Deliveries.",
-                            "El ERP no tiene rol propio. El costo y el margen los ven Administrador y Gerente de Oficina — se define arriba, en Entregas."
-                          )}
+                          {m.roleNote
+                            ? t(m.roleNote.en, m.roleNote.es)
+                            : t(
+                                "This module has no role of its own.",
+                                "Este módulo no tiene rol propio.",
+                              )}
                         </div>
                       </div>
                     )}

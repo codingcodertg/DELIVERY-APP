@@ -86,7 +86,9 @@ describe("HUB_TOOLS", () => {
 // added a module whose role lives on a column another module already owns.
 describe("MODULE_ACCESS", () => {
   it("no two modules write their role to the same column", () => {
-    const columns = MODULE_ACCESS.map((m) => m.roleColumn);
+    // Los que no tienen escalafón propio (erp, clockin desde 084) no cuentan: varios
+    // `undefined` no son un choque, y contarlos como tal ocultaba el choque de verdad.
+    const columns = MODULE_ACCESS.map((m) => m.roleColumn).filter(Boolean);
     expect(new Set(columns).size).toBe(columns.length);
   });
 
@@ -113,5 +115,25 @@ describe("MODULE_ACCESS", () => {
 describe("MODULE_ACCESS · de dónde sale el estado de la casilla", () => {
   it("los cinco módulos dicen en qué columna vive su acceso", () => {
     for (const m of MODULE_ACCESS) expect(m.accessColumn).toBe("module_access");
+  });
+});
+
+// Fase 1 de la fusión (084): el escalafón es el de Time Tracker y clock-in ya no tiene
+// uno propio. Si alguien le devuelve un roleColumn, vuelven a existir dos controles
+// escribiendo la misma decisión — y el que se toque de segundo gana en silencio.
+describe("MODULE_ACCESS · un solo escalafón para fichaje", () => {
+  it("clock-in no declara rol propio y explica por qué", () => {
+    const clockin = MODULE_ACCESS.find((m) => m.key === "clockin")!;
+    expect(clockin.roleColumn).toBeUndefined();
+    expect(clockin.roleKeys).toEqual([]);
+    expect(clockin.roleNote).toBeDefined();
+  });
+
+  it("todo módulo sin escalafón trae su propia nota, no la de otro", () => {
+    // El diálogo enseñaba el texto del ERP en cualquier módulo sin rol; en fichaje
+    // hablaba de costos y márgenes que ahí no existen.
+    for (const m of MODULE_ACCESS) {
+      if (!m.roleColumn) expect(m.roleNote, `${m.key} sin nota`).toBeDefined();
+    }
   });
 });

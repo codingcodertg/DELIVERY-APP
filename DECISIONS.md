@@ -4571,3 +4571,77 @@ chofer filtra en el cliente (`driver/page.tsx:47`).
 Medido lo que costaría activarlo: Máximo pasaría de ver 89 entregas a 30; los cuatro de
 almacén, de 89 a 83. Se deja como está a la espera de decisión, porque cambia lo que ve
 gente que trabaja hoy y eso no se suelta un jueves por la tarde sin avisar.
+
+
+## D-101 · Fusión Time Tracker + Clock-in, fase 1: un solo escalafón
+**Fecha:** 2026-08-27 · **Versión:** v0.7.0 (timetracker), v0.6.0 (clockin), migración 084 · **Pedido por:** Andrés
+(*"preparemos un merge entre time tracker y clock in app... el timetracker sería la app madre"*)
+
+**Revierte D-091**, que dejó escrito *"Time Tracker sigue vivo e intacto: son dos
+modelos distintos de fichar y no se tocan"*. Se dijo antes de empezar; Andrés confirmó
+el cambio de rumbo.
+
+**Elegido tras medir:** Time Tracker son 4.336 líneas y **un usuario real** (Nick);
+clock-in son 11.930 y **diez**. La app madre es la pequeña, y conviene que conste que se
+supo antes de decidirlo: la app de escritorio ya apunta a `/timetracker`, y ahí viven
+proyectos, nóminas y la prueba de actividad.
+
+**Forma elegida: una app, dos tipos de registro.** Los fichajes siguen en `time_entries`
+y las sesiones de proyecto en `sessions`. Se descartó fundirlos en una sola tabla de
+intervalos: obligaría a reescribir las 94 pantallas de clock-in contra un modelo nuevo,
+que es exactamente lo que se hizo en el ERP y lo que provocó *"THE VIEWS ARE WRONG, AND
+IS TAKING TOO LONG"*.
+
+### El escalafón
+
+Dos niveles (**admin / empleado**), los de Time Tracker. `clockin_role` deja de decidir
+nada; lo sigue exigiendo la restricción de 071, así que un espejo lo mantiene al día
+desde el rol de verdad y se retira en la fase 5.
+
+**La primera propuesta era otra, y la evidencia la tumbó.** Se iba a mapear "solo dueño"
+—geocercas y cierre de nómina— a "admin del hub", para que Patricia no ganara esos dos
+poderes. Antes de escribirlo se miró quién los ejerce:
+
+| | |
+|---|---|
+| cierre de nómina | **Jose Perez (Owner)** · 2 |
+| aprobación de parte | Patricia Hernández · 2 · Jose Perez · 1 |
+| turnos creados | **Jose Perez (Owner)** · 38 |
+
+Jose no es admin del hub. La propuesta le habría quitado lo único que nadie más hace.
+Con dos niveles, el admin del módulo puede lo de un gerente Y lo de un dueño.
+**Consecuencia real, y es la única: Patricia gana cerrar nóminas y editar geocercas.**
+El tercer nivel existía justo para separar eso.
+
+### La atadura a la geocerca deja de colgar del rol
+
+Estar atado a tu sitio salía de `role <> 'owner' && store_id`. Con dos niveles eso
+desataría a **todo** admin — Patricia incluida, que hoy sí está atada a Brownsville.
+Pasa a ser **tener sitio asignado**, que es lo que esa columna quiso decir siempre.
+
+Para que el resultado sea idéntico al de hoy, 084 le quita el sitio a los dueños: hoy no
+están atados y con la regla nueva lo estarían. Comprobado después uno a uno — los ocho
+empleados siguen atados, Patricia sigue atada, los tres dueños siguen libres.
+
+### La vista traduce, y por eso no se tocó ni una pantalla
+
+`clockin.profiles` (077) ya era la capa de traducción entre la identidad del hub y lo
+que espera el código de clock-in. Ahora traduce también el rol: deriva `owner` /
+`employee` del escalafón único. Las 71 llamadas siguen comparando con las mismas
+cadenas sin enterarse.
+
+### Y en Usuarios ya no hay dos selectores para lo mismo
+
+Clock-in tenía su propio desplegable de rol. Dejarlo sería **dos controles escribiendo
+la misma decisión** — la confusión que D-095 quitó del puesto de trabajo, reaparecida a
+escala de módulo. Ahora enseña una nota que dice dónde se define.
+
+De paso: ese hueco dibujaba el texto del ERP —*"el costo y el margen…"*— en cualquier
+módulo sin escalafón propio. En fichaje hablaba de costos y márgenes que ahí no existen.
+Cada módulo trae ahora su propia nota, y una prueba lo exige.
+
+### Qué NO cambia todavía
+
+Ninguna pantalla se ha movido. `/clock-in` y `/timetracker` siguen donde estaban y
+funcionando. Las fases 2 a 5 —regla de solapamiento cruzada, envoltorio único, nómina
+unificada, retirada de `/clock-in`— quedan pendientes.

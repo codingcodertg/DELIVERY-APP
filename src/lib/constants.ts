@@ -505,6 +505,10 @@ export interface ModuleAccessConfig {
   /** Present only for an opt-in module — deliveries has none, everyone
    * already has it. */
   accessColumn?: "module_access";
+  /** Qué decir cuando el módulo no tiene escalafón propio. Sin esto, el diálogo
+   *  enseñaba el texto del ERP —"el costo y el margen…"— también en fichaje, que no
+   *  tiene ni costo ni margen: una explicación de otro módulo es peor que ninguna. */
+  roleNote?: { en: string; es: string };
   /** Absent = this module has no fine-grained extra permissions (today:
    * recruiting). Present = the catalog to render, same shape CAPABILITIES
    * already uses. */
@@ -553,10 +557,17 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "clockin", label_en: "Clock-in", label_es: "Fichaje",
     alwaysOn: false,
-    roleColumn: "clockin_role",
-    roleKeys: Object.keys(CLOCKIN_ROLE_LABELS),
-    roleLabel: (key, lang) => (lang === "es" ? CLOCKIN_ROLE_LABELS[key].es : CLOCKIN_ROLE_LABELS[key].en),
+    // Sin rol propio desde la fase 1 de la fusión (084): el escalafón es el de Time
+    // Tracker y clock-in lo lee traducido a través de clockin.profiles. Dejar aquí un
+    // segundo selector sería dos controles escribiendo la misma decisión — la confusión
+    // que D-095 quitó del puesto de trabajo, reaparecida en el módulo entero.
+    roleKeys: [],
+    roleLabel: (key) => key,
     accessColumn: "module_access",
+    roleNote: {
+      en: "Clock-in shares Time Tracker's role — set it there. An admin manages the crew, approves timesheets and closes payroll; an employee clocks their own time.",
+      es: "Fichaje comparte el rol de Time Tracker — se define ahí. Un admin lleva la cuadrilla, aprueba partes y cierra nóminas; un empleado ficha lo suyo.",
+    },
   },
   {
     key: "erp", label_en: "ERP", label_es: "ERP",
@@ -568,6 +579,10 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleKeys: [],
     roleLabel: (key) => key,
     accessColumn: "module_access",
+    roleNote: {
+      en: "The ERP has no role of its own. Cost and margin are visible to Admin and Office Manager — set above, under Deliveries.",
+      es: "El ERP no tiene rol propio. El costo y el margen los ven Administrador y Gerente de Oficina — se define arriba, en Entregas.",
+    },
   },
 ];
 
