@@ -4921,3 +4921,46 @@ Quedan "Trabajando ahora" (`live` + `dashboard`) y "Mi semana" (`week` + `my-sch
 planeado contra real — la única de la lista que añade algo que hoy no contesta ninguna).
 Se planifican sabiendo ya lo que cuesta cruzar la línea cliente/servidor, en vez de con una
 estimación.
+
+
+## D-107 · Las geocercas se ven desde Ajustes, y en Google Maps
+**Fecha:** 2026-08-27 · **Versión:** v0.14.0 (timetracker) · **Pedido por:** Andrés
+(*"agregame the view extra en settings donde se hace el geofencing de las tiendas"* ·
+*"acuerdate que ahora usamos google maps asi que implementalo aqui"*)
+
+Ajustes de Time Tracker enseña ahora las seis geocercas en un mapa, listadas con su forma,
+su margen y su interruptor de activo. Antes solo había un enlace a la pantalla de fichaje.
+
+### Google Maps, no Leaflet
+
+Fichaje dibuja con **Leaflet sobre imágenes de Esri** porque llegó así de su repo de origen;
+el hub, el ERP y las entregas llevan **Google Maps** desde siempre. Para una vista nueva no
+había razón para heredar la excepción, y usar el cargador compartido significa **un solo
+script por página** — cargarlo dos veces lanza, y cada carga se paga.
+
+Se dibuja en `hybrid` (satélite con nombres de calle) a propósito: una geocerca se juzga
+contra el edificio, no contra un mapa de carreteras. Y `gestureHandling: "cooperative"`,
+porque un mapa dentro de una página larga que se traga la rueda del ratón es una trampa.
+
+Si no hay clave de navegador, **lo dice**. Un mapa que no carga y un mapa sin datos se ven
+igual —un rectángulo gris— y solo el primero se arregla poniendo una variable.
+
+### Lo que NO se trajo, y por qué
+
+**El editor de dibujo se queda en la pantalla de fichaje.** Son 318 líneas de Tailwind con
+un mapa donde cada clic pone un vértice, y Ajustes vive bajo el grupo `(timetracker)`, cuyo
+chunk de CSS no incluye Tailwind. Reescribirlo aquí sería duplicar **la herramienta más
+delicada del módulo** —la que decide si el fichaje de alguien cuenta como dentro— para tener
+dos versiones que se pueden desincronizar.
+
+Así que aquí se **ve** y se **enciende o apaga**, que es lo que se hace el 90% de las veces
+con una geocerca ya dibujada; dibujar abre la pantalla que ya funciona, con un enlace en cada
+fila.
+
+Tampoco se reutilizó el `BoundaryMap` de fichaje: aquel es un editor de **una** geocerca y
+aquí hacen falta **las seis** sin que un clic despistado mueva nada. Un editor en modo
+lectura acaba siendo un editor con un `if`, y ese `if` se rompe el día que alguien toca el
+editor.
+
+Las inactivas se dibujan en gris en vez de esconderse: una geocerca apagada sigue explicando
+por qué los fichajes de esa tienda salen "fuera del sitio".

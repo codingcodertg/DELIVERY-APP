@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 
 export type SiteResult = { ok: true } | { ok: false; message: string };
 
@@ -98,4 +99,31 @@ export async function setSiteActive(id: string, active: boolean): Promise<SiteRe
   const { error } = await ctx.supabase.from("job_sites").update({ active }).eq("id", id).eq("company_id", ctx.companyId);
   if (error) return { ok: false, message: error.message };
   return { ok: true };
+}
+
+/**
+ * Las geocercas de la empresa, para la sección de Ajustes de Time Tracker.
+ *
+ * Se lee desde aquí y no desde la pantalla porque el permiso ya está resuelto en
+ * `clockinManagerCtx`: escribir otra vez "solo admin" en el componente sería la segunda
+ * copia de una regla de acceso.
+ */
+export async function getGeofences(): Promise<
+  | { ok: true; sites: {
+      id: string; name: string; active: boolean;
+      latitude: number | null; longitude: number | null;
+      radius_meters: number | null; padding_meters: number | null;
+      boundary: { lat: number; lng: number }[] | null;
+    }[] }
+  | { ok: false; message: string }
+> {
+  const ctx = await clockinManagerCtx();
+  if (!ctx.ok) return ctx;
+  const { data, error } = await ctx.supabase
+    .from("job_sites")
+    .select("id, name, active, latitude, longitude, radius_meters, padding_meters, boundary")
+    .eq("company_id", ctx.companyId)
+    .order("name");
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, sites: (data ?? []) as never };
 }
