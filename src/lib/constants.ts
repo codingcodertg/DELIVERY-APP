@@ -157,7 +157,7 @@ export function roleHome(role: UserRole): string {
  * them that isn't on their route. (See D-050/D-051.)
  */
 export function landingRoute(me: { role: UserRole; module_access?: string[] | null }): string {
-  const granted = me.module_access ?? [];
+  const granted = normalizeModules(me.module_access);
   // Un chofer con Entregas va siempre a su ruta, sin pasar por el selector (D-050/051).
   // Si NO tiene Entregas, la ruta no existe para él y la condición de abajo decide.
   if (me.role === "driver" && granted.includes("deliveries")) return "/driver";
@@ -220,20 +220,9 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Candidates and interviews",
     desc_es: "Candidatos y entrevistas",
   },
-  // Data unified (D-064); UI not ported yet — /timetracker doesn't resolve
-  // to a page yet, same mid-port state recruiting was briefly in (D-052).
-  // Listed anyway because the Users dialog needs MODULE_ACCESS below wired
-  // regardless, and nobody has timetracker in module_access to click this
-  // card until an admin grants it.
-  {
-    key: "clockin",
-    href: "/timetracker/clock-in/dashboard",
-    emoji: "🕐",
-    label_en: "Clock-in",
-    label_es: "Fichaje",
-    desc_en: "Punches, schedules and coverage",
-    desc_es: "Fichajes, horarios y cobertura",
-  },
+  // Fichaje NO tiene tarjeta propia (D-111). La tuvo mientras fue una app aparte; desde
+  // la fusión es la otra mitad de Time Tracker, y dibujar dos tarjetas para una sola app
+  // hacía elegir entre dos puertas de la misma casa. Se entra por Time Tracker.
   {
     key: "erp",
     href: "/erp/catalog",
@@ -277,9 +266,25 @@ export function accessibleModules(moduleAccess: string[] | null | undefined): Mo
   // para todo el mundo (D-054); desde 083 se concede como cualquier otro módulo, y
   // dibujar su tarjeta a alguien que no la tiene sería ofrecerle una pantalla que la
   // base le va a devolver vacía.
-  const granted = moduleAccess ?? [];
+  const granted = normalizeModules(moduleAccess);
   const own = MODULES.filter((m) => granted.includes(m.key));
   return granted.includes(DELIVERIES_CARD.key) ? [DELIVERIES_CARD, ...own] : own;
+}
+
+/**
+ * 'clockin' en module_access cuenta como 'timetracker'.
+ *
+ * Fichaje dejó de ser un módulo propio (D-111), pero la palabra sigue escrita en las filas
+ * de quien la tenía. Sin esta traducción, alguien cuyo único módulo fuera 'clockin' se
+ * quedaría sin ninguna tarjeta y aterrizaría en /no-access — echado de una app a la que sí
+ * tiene derecho, por un cambio de nombre. La migración 088 limpia las filas; esto cubre a
+ * quien la lea antes, y a cualquier fila vieja que reaparezca.
+ */
+export function normalizeModules(moduleAccess: string[] | null | undefined): string[] {
+  const granted = moduleAccess ?? [];
+  if (!granted.includes("clockin")) return granted;
+  const sin = granted.filter((m) => m !== "clockin");
+  return sin.includes("timetracker") ? sin : [...sin, "timetracker"];
 }
 
 // ---- Hub tools (D-056) ------------------------------------------------------
@@ -485,7 +490,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "clockin";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -546,6 +551,9 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     // concept today (its only dial is the role tier). Nothing to render.
   },
   {
+    // Incluye fichaje (D-111). Era un módulo aparte con su propia casilla; dos casillas
+    // para una sola app dejaban conceder media — alguien con fichaje y sin Time Tracker
+    // tenía las pantallas pero no la puerta.
     key: "timetracker", label_en: "Time Tracker", label_es: "Control de Horas",
     alwaysOn: false,
     roleColumn: "timetracker_role",
@@ -553,21 +561,6 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleLabel: (key, lang) => (lang === "es" ? TIMETRACKER_ROLE_LABELS[key].es : TIMETRACKER_ROLE_LABELS[key].en),
     accessColumn: "module_access",
     // No capabilities yet — same as recruiting, only dial is the role tier.
-  },
-  {
-    key: "clockin", label_en: "Clock-in", label_es: "Fichaje",
-    alwaysOn: false,
-    // Sin rol propio desde la fase 1 de la fusión (084): el escalafón es el de Time
-    // Tracker y clock-in lo lee traducido a través de clockin.profiles. Dejar aquí un
-    // segundo selector sería dos controles escribiendo la misma decisión — la confusión
-    // que D-095 quitó del puesto de trabajo, reaparecida en el módulo entero.
-    roleKeys: [],
-    roleLabel: (key) => key,
-    accessColumn: "module_access",
-    roleNote: {
-      en: "Clock-in shares Time Tracker's role — set it there. An admin manages the crew, approves timesheets and closes payroll; an employee clocks their own time.",
-      es: "Fichaje comparte el rol de Time Tracker — se define ahí. Un admin lleva la cuadrilla, aprueba partes y cierra nóminas; un empleado ficha lo suyo.",
-    },
   },
   {
     key: "erp", label_en: "ERP", label_es: "ERP",

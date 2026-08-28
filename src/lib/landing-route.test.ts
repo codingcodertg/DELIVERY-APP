@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { accessibleModules, HUB_TOOLS, landingRoute, MODULE_ACCESS } from "@/lib/constants";
+import { accessibleModules, HUB_TOOLS, landingRoute, MODULE_ACCESS, MODULES } from "@/lib/constants";
 
 // D-100 dio la vuelta a la premisa de estas pruebas: Entregas ya no es implícita, se
 // otorga como los demás módulos. Lo que antes se afirmaba —"sin module_access aterrizas
@@ -12,7 +12,7 @@ describe("landingRoute", () => {
 
   it("un chofer SIN Entregas no va al tablero de choferes", () => {
     // Su ruta vive dentro de Entregas. Sin acceso, mandarle ahí es una pantalla vacía.
-    expect(landingRoute({ role: "driver", module_access: ["clockin"] })).toBe("/timetracker/clock-in/dashboard");
+    expect(landingRoute({ role: "driver", module_access: ["timetracker"] })).toBe("/timetracker");
   });
 
   it("con dos o más módulos, al selector", () => {
@@ -29,7 +29,6 @@ describe("landingRoute", () => {
   });
 
   it("con un solo módulo que NO es Entregas, entra directo a ese", () => {
-    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/timetracker/clock-in/dashboard");
     expect(landingRoute({ role: "sales", module_access: ["timetracker"] })).toBe("/timetracker");
   });
 
@@ -56,7 +55,6 @@ describe("accessibleModules", () => {
   it("un módulo sin Entregas se dibuja solo, sin colarla", () => {
     expect(accessibleModules(["recruiting"]).map((m) => m.key)).toEqual(["recruiting"]);
     expect(accessibleModules(["timetracker"]).map((m) => m.key)).toEqual(["timetracker"]);
-    expect(accessibleModules(["clockin"]).map((m) => m.key)).toEqual(["clockin"]);
   });
 
   it("varios, en el orden en que MODULES los declara", () => {
@@ -118,15 +116,26 @@ describe("MODULE_ACCESS · de dónde sale el estado de la casilla", () => {
   });
 });
 
-// Fase 1 de la fusión (084): el escalafón es el de Time Tracker y clock-in ya no tiene
-// uno propio. Si alguien le devuelve un roleColumn, vuelven a existir dos controles
-// escribiendo la misma decisión — y el que se toque de segundo gana en silencio.
-describe("MODULE_ACCESS · un solo escalafón para fichaje", () => {
-  it("clock-in no declara rol propio y explica por qué", () => {
-    const clockin = MODULE_ACCESS.find((m) => m.key === "clockin")!;
-    expect(clockin.roleColumn).toBeUndefined();
-    expect(clockin.roleKeys).toEqual([]);
-    expect(clockin.roleNote).toBeDefined();
+// D-111: fichaje deja de ser un módulo. Lo que estas pruebas protegen ahora es que nadie
+// se quede fuera por el cambio de nombre — la palabra sigue escrita en filas viejas.
+describe("MODULE_ACCESS · fichaje ya no es un módulo aparte", () => {
+  it("no queda ni tarjeta ni casilla propia", () => {
+    // Comparado como texto a propósito: el tipo ya no admite "clockin", y esta prueba
+    // existe para la fila vieja que sigue diciéndolo, no para el tipo.
+    expect(MODULE_ACCESS.find((m) => (m.key as string) === "clockin")).toBeUndefined();
+    expect(MODULES.find((m) => m.key === "clockin")).toBeUndefined();
+  });
+
+  it("quien solo tenía fichaje entra por Time Tracker, no a /no-access", () => {
+    // Sin traducir la palabra vieja, un cambio de nombre echaría de la app a gente que
+    // sí tiene derecho a entrar.
+    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/timetracker");
+    expect(accessibleModules(["clockin"]).map((m) => m.key)).toEqual(["timetracker"]);
+  });
+
+  it("y no la duplica si ya tenía las dos", () => {
+    expect(accessibleModules(["clockin", "timetracker"]).map((m) => m.key)).toEqual(["timetracker"]);
+    expect(landingRoute({ role: "sales", module_access: ["clockin", "timetracker"] })).toBe("/timetracker");
   });
 
   it("todo módulo sin escalafón trae su propia nota, no la de otro", () => {

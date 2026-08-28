@@ -5149,3 +5149,61 @@ Once, en `session-guard.test.ts`. Fijan justo la distinción que se venía perdi
 `gone`, 5xx y "sin respuesta" son `offline`, y `permission denied for schema` cuenta como token
 muerto. Las tres reincidencias anteriores no dejaron ninguna prueba detrás — por eso pudieron
 repetirse.
+
+---
+
+## D-111 · Fichaje deja de ser un módulo: se entra por Time Tracker
+**Fecha:** 2026-08-28 · **Versión:** v1.35.0 (deliveries) · v0.20.0 (timetracker) · v0.17.0
+(clockin) · **Pedido por:** Andrés (*"aún me sale Fichaje si ya hicimos el merge al tracking
+app"*)
+
+Fichaje tenía **tarjeta propia en el hub** y **casilla propia en Usuarios**. Eso era correcto
+mientras fue una app aparte; desde la fusión es la otra mitad de Time Tracker, y dejarlo así
+obligaba a elegir entre **dos puertas de la misma casa**.
+
+Y no era solo cosmético: con dos casillas se podía conceder **media app**. Alguien con
+`clockin` y sin `timetracker` tenía las pantallas de fichaje pero no la puerta por la que ahora
+se entra a ellas.
+
+### Por qué se puede quitar sin quitarle acceso a nadie
+
+La palabra ya no decidía nada. Desde **087**, quien puede fichar lo dice `timetracker_role`:
+
+```sql
+has_clockin_access() -> timetracker_role is not null or role = 'admin'
+```
+
+y la restricción que ataba `'clockin'` en `module_access` a un rol se soltó en esa misma
+migración. El propio `clock-in/layout.tsx` ya comprobaba `timetracker_role`, no el módulo.
+Medido antes de tocar nada: **12 de 36 personas** llevaban la palabra, y **ninguna** sin tener
+también `timetracker`. Así que no se retira un permiso, se retira un nombre que ya no se leía.
+
+### La palabra vieja se traduce, no se ignora
+
+`normalizeModules()` cuenta `'clockin'` como `'timetracker'`. Sin eso, alguien cuyo único módulo
+fuera `clockin` se quedaría sin tarjetas y aterrizaría en `/no-access` — **echado de una app a
+la que sí tiene derecho, por un cambio de nombre**. La migración limpia las filas; la traducción
+cubre a quien lea antes de que corra, y a cualquier fila vieja restaurada de una copia.
+
+### Lo que NO desapareció con la casilla
+
+El bloque de fichaje en Usuarios dibujaba también **la configuración de cuadrilla de cada
+persona** (vehículo, puesto, horario, tienda), que D-095 trajo ahí desde una pantalla propia.
+Eso sigue existiendo y **se mudó al bloque de Time Tracker**. Borrarlo con la casilla habría
+sido perder configuración real por retirar una etiqueta.
+
+### La pestaña de Clock-in sigue dentro de Time Tracker
+
+Sigue habiendo una entrada `⏰ Clock-in` en las dos barras del módulo, y es deliberado: de ella
+cuelgan todavía dashboard, reports, schedule, time-off y exceptions. Lo que se retira aquí es
+**el módulo**, no las pantallas. Cuando esas cinco se muden (como se mudaron las fotos en
+D-109), la pestaña se va con ellas.
+
+### En la base, además del código
+
+**088** rellena primero y borra después —el orden importa: quitar la palabra antes de conceder
+el módulo madre dejaría a alguien con `module_access` vacío, y eso es `/no-access`— y añade un
+`check` para que no vuelva a entrar. Se comprueba en la base y no solo en el tipo de TypeScript
+porque **el tipo no viaja**: un script, un `curl` o una sesión de SQL escriben igual. Va
+`not valid` a propósito: valida lo nuevo sin exigir que lo viejo pase primero, para que una fila
+rara de antes no tumbe el despliegue entero.

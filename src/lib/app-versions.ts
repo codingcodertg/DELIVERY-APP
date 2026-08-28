@@ -13,10 +13,10 @@
 // respectively), not a number of their own, so 0.1.0 is the honest
 // starting point, not manufactured continuity.
 export const APP_VERSIONS = {
-  deliveries: "1.34.0",
+  deliveries: "1.35.0",
   recruiting: "0.6.0",
-  timetracker: "0.19.0",
-  clockin: "0.16.0",
+  timetracker: "0.20.0",
+  clockin: "0.17.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que

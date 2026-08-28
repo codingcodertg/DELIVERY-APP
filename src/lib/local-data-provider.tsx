@@ -324,10 +324,6 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
-  const updateUserClockinAccess = useCallback<DataState["updateUserClockinAccess"]>(async () => {
-    notify("Not available in demo mode");
-  }, [notify]);
-
   const deleteUser = useCallback<DataState["deleteUser"]>(async (userId) => {
     const s = storeRef.current;
     persist({ ...s, users: s.users.filter((u) => u.id !== userId) });
@@ -373,7 +369,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notifications: store.notifications.filter((n) => n.user_id === me.id),
     toast, notify, markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, updateUserClockinAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,

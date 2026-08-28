@@ -27,7 +27,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, updateUserClockinAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -70,10 +70,6 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "deliveries": updateUserRole(u.id, roleValue as UserRole); return;
       case "recruiting": updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: roleValue }); return;
       case "timetracker": updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: roleValue }); return;
-      case "clockin":
-        // Sin escalafón propio desde 084 — su bloque no dibuja select de rol, así que
-        // esto es inalcanzable. Se deja por exhaustividad del switch (D-057).
-        return;
       case "erp":
         // No role tier of its own — the block renders a checkbox and nothing
         // to pick, so this is unreachable. Kept for exhaustiveness.
@@ -88,11 +84,6 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         return;
       case "timetracker":
         updateUserTimetrackerAccess(u.id, { granted, timetracker_role: granted ? (u.timetracker_role ?? "employee") : null });
-        return;
-      case "clockin":
-        // Solo otorga o quita el módulo: el escalafón es el de Time Tracker (084) y la
-        // columna heredada `clockin_role` se retiró entera en 087.
-        updateUserClockinAccess(u.id, { granted });
         return;
       case "erp":
         updateUserErpAccess(u.id, { granted });
@@ -325,8 +316,13 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                       module (D-095). Everything here is per-person configuration of somebody
                       else, which is what this dialog is for — the module keeps only what a
                       person does with their own time, plus the vehicle list, which is about
-                      trucks rather than people. */}
-                  {m.key === "clockin" && !LOCAL_MODE && (
+                      trucks rather than people.
+
+                      Cuelga de Time Tracker desde D-111: fichaje dejó de ser un módulo con
+                      casilla propia, pero su configuración por persona —vehículo, puesto,
+                      horario, tienda— sigue existiendo y tenía que mudarse con él, no
+                      desaparecer con la casilla. */}
+                  {m.key === "timetracker" && !LOCAL_MODE && (
                     <ClockinSettings userId={u.id} clockinRole={u.timetracker_role ?? null} />
                   )}
 
