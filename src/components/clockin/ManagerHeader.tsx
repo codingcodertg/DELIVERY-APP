@@ -6,7 +6,7 @@ import HubLink from "./HubLink";
 // hatch, and one consistent horizontal nav bar so managers can jump between
 // screens from anywhere (instead of bouncing back to the dashboard).
 
-type NavKey = "dashboard" | "reports" | "schedule" | "team" | "sites" | "runs" | "timeoff" | "exceptions" | "settings";
+type NavKey = "dashboard" | "reports" | "schedule" | "team" | "sites" | "runs" | "timeoff" | "exceptions" | "photos" | "settings";
 
 export default function ManagerHeader({
   lang,
@@ -30,6 +30,10 @@ export default function ManagerHeader({
     // Runs folded into Today's Crew — no separate page anymore.
     { key: "timeoff", href: "/timetracker/clock-in/time-off", label: tr.timeOff },
     { key: "exceptions", href: "/timetracker/clock-in/exceptions", label: tr.exceptions },
+    // Las fotos van junto a las excepciones porque es la misma pregunta —"¿qué pasó
+    // aquí?"— y hasta ahora había que abrirlas de una en una desde dentro de cada
+    // excepción o cada fichaje.
+    { key: "photos", href: "/timetracker/clock-in/photos", label: tr.photos },
     // Users, Sites & Account live under Settings, which is in the hamburger menu.
   ];
 
