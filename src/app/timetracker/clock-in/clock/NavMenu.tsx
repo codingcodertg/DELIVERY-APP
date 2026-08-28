@@ -39,14 +39,17 @@ export default function NavMenu({
   if (!isOwner) {
     links.push(
       { href: "/timetracker/clock-in/time-off", label: tr.timeOff },
-      { href: "/timetracker/clock-in/account", label: tr.account },
+      // Cuenta y Ajustes ya no viven aquí: se fusionaron con las de Time Tracker, que
+      // tenían lo mismo más cosas. Se apunta allí en vez de dejar dos pantallas que
+      // hacían media cada una.
+      { href: "/timetracker/account", label: tr.account },
     );
   }
   // Manager/owner tools.
   if (isManager) {
     links.push({ href: "/timetracker/clock-in/coverage", label: tr.teamCoverage });
     links.push({ href: "/timetracker/clock-in/dashboard", label: tr.mgr.dashboard });
-    links.push({ href: "/timetracker/clock-in/settings", label: tr.mgr.settings });
+    links.push({ href: "/timetracker/settings", label: tr.mgr.settings });
   }
 
   return (

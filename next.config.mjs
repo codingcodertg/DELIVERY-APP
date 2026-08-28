@@ -19,6 +19,14 @@ const nextConfig = {
     return [
       { source: "/clock-in", destination: "/timetracker/clock-in/clock", permanent: false },
       { source: "/clock-in/:path*", destination: "/timetracker/clock-in/:path*", permanent: false },
+
+      // Cuenta y Ajustes de fichaje se fusionaron con las de Time Tracker (#1 de la
+      // fusión de vistas). Las pantallas ya no existen, así que sin esto un marcador o
+      // un enlace viejo da 404 — y el de Cuenta lo tenía a mano cualquiera que hubiera
+      // entrado por el menú de fichaje. Van ANTES de la regla general de arriba no: el
+      // orden lo resuelve Next por especificidad de la ruta.
+      { source: "/timetracker/clock-in/account", destination: "/timetracker/account", permanent: false },
+      { source: "/timetracker/clock-in/settings", destination: "/timetracker/settings", permanent: false },
     ];
   },
 };

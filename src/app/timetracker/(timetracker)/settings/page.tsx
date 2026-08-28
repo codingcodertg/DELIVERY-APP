@@ -5,6 +5,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, BROWSER_TZ, DAYS, LOCALE, TZ_LIST } from "@/lib/timetracker/helpers";
 import type { AppSettings } from "@/lib/timetracker/helpers";
+import Link from "next/link";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerSettings.jsx, with
 // two deliberate omissions:
@@ -201,6 +202,21 @@ export default function ManagerSettingsPage() {
       </div>
 
       <button style={{ marginTop: 16 }} onClick={save}>{t("mgr.set.saveBtn")}</button>
+
+      {/* Lo que queda de fichaje que no es de una persona sino de la empresa. Su pantalla
+          de ajustes era un menú de tres tarjetas —vehículos, sitios y cuenta—; la cuenta se
+          fue a Mi cuenta y estas dos no necesitaban una pantalla propia para ser dos
+          enlaces. Van aquí porque es donde ya se configura la empresa. */}
+      <div className="hr" />
+      <h3 style={{ color: "var(--tt-muted)" }}>Clock-in</h3>
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/team">🚚 Vehicles / Vehículos</Link>
+        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/sites">📍 Job sites / Sitios</Link>
+      </div>
+      <p className="small muted" style={{ marginTop: 8 }}>
+        Job sites are the geofences that decide whether a punch counts as on-site. People —
+        position, schedule, site, runner — are set per person in Users on the hub.
+      </p>
     </div>
   );
 }

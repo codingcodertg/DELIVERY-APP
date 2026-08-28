@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { APP_SETTINGS, effBreaks, effTrackMode, effWorkerType } from "@/lib/timetracker/helpers";
 import type { Employee } from "@/lib/timetracker/types";
+import { NotificationLanguage } from "@/components/timetracker/NotificationLanguage";
 
 // Ported (D-069) from timetracker-clean's employee/MyAccount.jsx — name/city/
 // pay-info self-edit, read-only "my setup" chips (set by a manager), change
@@ -73,6 +74,13 @@ export default function MyAccountPage() {
         <span className="chip">{tm === "activity" ? "Activity tracking" : "Clock in / out only"}</span>
         <span className="chip">{br ? "Lunch & break: on" : "Lunch & break: off"}</span>
       </div>
+      {/* El idioma de los avisos vivía en la pantalla de cuenta de fichaje, que no tenía
+          nada más que esto y una contraseña que YA estaba aquí, duplicada. Traerlo deja una
+          sola pantalla de "mis cosas" en vez de dos que hacían media cada una. */}
+      <div className="hr" />
+      <h3 style={{ color: "var(--tt-muted)" }}>Notifications</h3>
+      <NotificationLanguage />
+
       <ChangePassword />
     </div>
   );
