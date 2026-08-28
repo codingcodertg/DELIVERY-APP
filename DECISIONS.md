@@ -4645,3 +4645,61 @@ Cada módulo trae ahora su propia nota, y una prueba lo exige.
 Ninguna pantalla se ha movido. `/clock-in` y `/timetracker` siguen donde estaban y
 funcionando. Las fases 2 a 5 —regla de solapamiento cruzada, envoltorio único, nómina
 unificada, retirada de `/clock-in`— quedan pendientes.
+
+
+## D-102 · Fusión fase 2: la regla que planteé estaba mal, y la que faltaba era otra
+**Fecha:** 2026-08-27 · **Versión:** v0.7.0 (clockin), migración 085
+
+**Lo que iba a hacer:** prohibir que un fichaje y una sesión de proyecto de la misma
+persona se solapasen. Se midió antes de escribirlo:
+
+| | duración media |
+|---|---|
+| fichaje (clock-in) | **9.32 h** — una jornada |
+| sesión de proyecto | **1.46 h** — una tarea |
+
+**Las sesiones anidan dentro de la jornada, y eso no es un error: es la razón de que
+sean dos registros distintos** (D-101). Fichar la entrada y luego cronometrar dos horas
+de un proyecto dentro de esa jornada es el caso normal, no una anomalía. La regla lo
+habría prohibido — y desde 084 las doce personas tienen los dos módulos, así que habría
+empezado a morder de inmediato.
+
+El doble cobro **entre** tablas existe, pero es un problema de informes, no de
+restricciones: la nómina unificada (fase 4) tendrá que decir cuál de las dos paga. Se
+decide ahí.
+
+### Lo que sí faltaba
+
+`clockin.time_entries` no tenía **ninguna** restricción de solapamiento — 082 solo cubrió
+las sesiones de proyecto. Y había una violación real, callada desde julio: **Patricia, el
+31, con un fichaje manual de 19 minutos (16:00-16:19) dentro de su jornada real de 08:49
+a 19:44.** Mismo patrón que el de Nick: tiempo manual dentro de tiempo ya registrado,
+cobrado dos veces. Retirado, con respaldo y nota en `clockin.audit_log`.
+
+**Dos mecanismos, porque uno solo deja media puerta abierta:**
+
+- `EXCLUDE` para los fichajes **cerrados** — misma persona, rangos que se cruzan.
+- Un **índice único parcial** para el **abierto**. Un fichaje sin salida no tiene tope
+  superior, así que no entra en el EXCLUDE; sin esto se podría abrir un segundo mientras
+  corre otro, que es literalmente estar fichado dos veces. El código ya lo comprobaba,
+  pero mira y luego inserta, y entre las dos cosas cabe otra pulsación.
+
+Probado contra seis casos: jornada base *aceptada*; otra encima *rechazada*; manual
+dentro (el caso de Patricia) *rechazada*; pegada justo después *aceptada*; abierta
+mientras hay otra cerrada *aceptada*; segunda abierta *rechazada*.
+
+### Y la app lo dice
+
+Los dos caminos que escriben fichajes —el fichaje manual que abre un admin y la edición
+desde el informe— traducen el rechazo en vez de soltar el mensaje de Postgres. El
+detector es gemelo del de 082 y **deliberadamente no compartido**: cada módulo tiene su
+restricción con su nombre, y una función para los dos tendría que conocer los dos nombres
+para decir lo mismo. Tiene su matiz propio: `23505` lo produce cualquier índice único, así
+que para ese se exige además el nombre; `23P01` aquí solo puede venir de esta regla.
+
+### Encontrado de paso
+
+Tres fichajes llevan **abiertos desde el 26 de agosto**: se les olvidó salir. La tabla
+tiene una columna `auto_closed` y el cron que la usa existe, pero **no está corriendo**
+porque el programador externo sigue sin repuntar (D-094). El fichaje más largo del
+histórico son 47.37 h, que es el mismo olvido sin nadie que lo cerrara.

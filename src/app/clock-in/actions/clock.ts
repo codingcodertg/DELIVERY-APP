@@ -5,6 +5,7 @@ import { firstMatch, type GeoSite } from "@/lib/clockin/geofence";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
 import { centralShiftMs } from "@/lib/clockin/tz";
+import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 
 // Local dev only: when set in .env.local, every punch is treated as on-site so
 // the flow can be tested from a laptop that isn't inside a real geofence. Double
@@ -441,7 +442,10 @@ export async function adminClock(input: {
       edited_at: new Date().toISOString(),
       edit_note: `Clocked in by ${profile.full_name}: ${reason}`,
     });
-    if (error) return { ok: false, message: error.message };
+    // Abrirle un fichaje a alguien que ya tiene uno abierto lo impide el índice de 085,
+    // además de la comprobación de arriba: la comprobación mira y luego inserta, y entre
+    // las dos cosas cabe otra pulsación.
+    if (error) return { ok: false, message: isOverlapError(error) ? OVERLAP_MESSAGE : error.message };
     await pushToUser(input.employeeId, profile.company_id, "admin_clocked_in", { name: profile.full_name });
     return { ok: true, action: "in" };
   }

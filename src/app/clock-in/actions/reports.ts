@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib/clockin/mgrScope";
 import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
+import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 
 export type ReportResult = { ok: true } | { ok: false; message: string };
 
@@ -80,7 +81,10 @@ export async function editEntry(input: {
     edit_note: input.note ?? null,
   };
   const { error } = await ctx.supabase.from("time_entries").update(patch).eq("id", input.id);
-  if (error) return { ok: false, message: error.message };
+  // 085: mover un fichaje encima de otro ya registrado lo rechaza la base. Es por donde
+  // entró el caso de Patricia —19 minutos manuales dentro de su jornada real— así que
+  // conviene que diga qué pasa y no un mensaje de Postgres sobre una restricción.
+  if (error) return { ok: false, message: isOverlapError(error) ? OVERLAP_MESSAGE : error.message };
   await audit(
     ctx.supabase,
     ctx.companyId,
