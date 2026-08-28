@@ -138,6 +138,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
   // la navegación que lo canceló.
   const loadFailedRef = useRef(false);
+  // Intentos de la racha actual. Vuelve a cero al primer acierto.
+  const retriesRef = useRef(0);
   const ensureSession = useCallback(async () => {
     // Devuelve si HAY sesión, y eso es lo importante ahora. Antes solo refrescaba y se
     // encogía de hombros; reloadAll seguía y disparaba las consultas igual.
@@ -236,7 +238,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // sin lanzar nada, así que Promise.all resolvía tan tranquilo, los setters se
       // saltaban por `if (x.data)` y la pantalla quedaba vacía y "lista". Ese es el
       // camino exacto del 401 anónimo: ni un error visible, ni un reintento.
-      loadFailedRef.current = [s, q, t, cf, p, c, co, j, st, at, sh, qs].some((r) => r && "error" in r && r.error);
+      const fallo = [s, q, t, cf, p, c, co, j, st, at, sh, qs].some((r) => r && "error" in r && r.error);
+      loadFailedRef.current = fallo;
+      if (!fallo) retriesRef.current = 0;
     } catch {
       loadFailedRef.current = true;
     } finally {
@@ -247,28 +251,49 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Recuperación de una carga fallida.
   //
   // El caso real es abrir la app o cambiar de módulo: el navegador cancela las peticiones
-  // en vuelo, Promise.all rechaza y la pantalla se queda vacía. Antes solo se salía de ahí
-  // refrescando a mano. Ahora se reintenta solo, tres veces con espera creciente, y además
-  // al recuperar el foco, al volver a ser visible y al volver la conexión — porque el
-  // primer reintento puede caer en el mismo mal momento.
+  // en vuelo, la carga se cae y la pantalla se queda vacía. Antes solo se salía de ahí
+  // refrescando a mano.
   //
-  // Solo si la última carga falló: no es un refresco periódico, es una segunda oportunidad.
+  // **Se monta UNA vez y cuenta los intentos**, y las dos cosas son el arreglo de un bucle
+  // que metí yo: el efecto dependía de `reloadAll`, y cada reintento provocaba un render que
+  // volvía a armar los temporizadores. Con la carga fallando, eso reintentaba cada 400 ms
+  // indefinidamente y redibujaba el proveedor entero cada vez — en la app de escritorio se
+  // sentía como si se quedara pegada al cambiar de pestaña.
+  //
+  // El tope es lo que separa "una segunda oportunidad" de "machacar al servidor": cinco
+  // intentos por racha, y el contador vuelve a cero en cuanto una carga sale bien, para que
+  // un fallo de dentro de una hora tenga sus cinco.
+  const reloadRef = useRef(reloadAll);
+  reloadRef.current = reloadAll;
   useEffect(() => {
     if (typeof window === "undefined") return;
     let stop = false;
-    const retry = () => { if (!stop && loadFailedRef.current) void reloadAll(); };
+    const retry = () => {
+      if (stop || !loadFailedRef.current || retriesRef.current >= 5) return;
+      retriesRef.current += 1;
+      void reloadRef.current();
+    };
     const timers = [400, 1500, 4000].map((ms) => setTimeout(retry, ms));
-    window.addEventListener("focus", retry);
-    window.addEventListener("online", retry);
-    document.addEventListener("visibilitychange", retry);
+    // Late: para un fallo posterior al arranque, cuando los tres de arriba ya pasaron.
+    const tick = setInterval(retry, 15_000);
+    // Volver a la ventana o recuperar la conexión da intentos NUEVOS: el tope está para que
+    // la app no machaque al servidor sola, no para castigar a quien vuelve una hora después
+    // y se encuentra la pantalla vacía con los cinco ya gastados.
+    const fresh = () => { retriesRef.current = 0; retry(); };
+    window.addEventListener("focus", fresh);
+    window.addEventListener("online", fresh);
+    document.addEventListener("visibilitychange", fresh);
     return () => {
       stop = true;
       timers.forEach(clearTimeout);
-      window.removeEventListener("focus", retry);
-      window.removeEventListener("online", retry);
-      document.removeEventListener("visibilitychange", retry);
+      clearInterval(tick);
+      window.removeEventListener("focus", fresh);
+      window.removeEventListener("online", fresh);
+      document.removeEventListener("visibilitychange", fresh);
     };
-  }, [reloadAll]);
+    // Sin dependencias A PROPÓSITO: ver arriba. reloadAll se lee de un ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   useEffect(() => {

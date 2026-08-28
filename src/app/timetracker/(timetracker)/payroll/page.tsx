@@ -84,34 +84,34 @@ export default async function PayrollPage({
   return (
     <div className="card">
       <div className="between">
-        <h2 style={{ margin: 0 }}>Nómina · periodo</h2>
+        <h2 style={{ margin: 0 }}>Payroll · period</h2>
         <div className="row" style={{ gap: 6 }}>
-          <Link className="btn btn-ghost btn-sm" href={`/timetracker/payroll?period=${shift(start, -7)}`}>← anterior</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/timetracker/payroll?period=${shift(start, -7)}`}>← previous</Link>
           <span className="chip">{start} → {shift(start, 6)}</span>
-          <Link className="btn btn-ghost btn-sm" href={`/timetracker/payroll?period=${shift(start, 7)}`}>siguiente →</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/timetracker/payroll?period=${shift(start, 7)}`}>next →</Link>
         </div>
       </div>
 
-      {error && <p className="muted" style={{ marginTop: 12 }}>No se pudieron leer las horas: {error.message}</p>}
+      {error && <p className="muted" style={{ marginTop: 12 }}>Could not read the hours: {error.message}</p>}
 
       {aRevisar.length > 0 && (
         <div className="banner warn" style={{ marginTop: 12 }}>
-          {aRevisar.length === 1 ? "Una persona tiene" : `${aRevisar.length} personas tienen`} fichaje
-          <strong> y </strong> sesiones de proyecto este periodo. <strong>No se suman:</strong> una sesión ocurre dentro
-          de la jornada fichada, así que sumarlas pagaría el mismo rato dos veces. Decide cuál paga:{" "}
+          {aRevisar.length === 1 ? "One person has" : `${aRevisar.length} people have`} both clock-in hours
+          <strong> and </strong> project sessions this period. <strong>They are not added up:</strong> a session happens
+          inside the punched shift, so adding them would pay the same stretch twice. Decide which one pays:{" "}
           {aRevisar.map((r) => r.full_name).join(", ")}.
         </div>
       )}
 
       {rows.length === 0 ? (
-        <p className="muted" style={{ marginTop: 12 }}>Nadie registró horas en este periodo.</p>
+        <p className="muted" style={{ marginTop: 12 }}>Nobody logged hours in this period.</p>
       ) : (
         <table className="orders" style={{ marginTop: 12 }}>
           <thead>
             <tr>
-              <th>Persona</th>
-              <th style={{ textAlign: "right" }}>Fichaje</th>
-              <th style={{ textAlign: "right" }}>Proyecto</th>
+              <th>Person</th>
+              <th style={{ textAlign: "right" }}>Clock-in</th>
+              <th style={{ textAlign: "right" }}>Project</th>
               <th />
             </tr>
           </thead>
@@ -121,7 +121,7 @@ export default async function PayrollPage({
                 <td>{r.full_name ?? "—"}</td>
                 <td style={{ textAlign: "right" }}>{num(r.horas_fichaje) > 0 ? `${num(r.horas_fichaje).toFixed(2)} h` : <span className="muted">—</span>}</td>
                 <td style={{ textAlign: "right" }}>{num(r.horas_proyecto) > 0 ? `${num(r.horas_proyecto).toFixed(2)} h` : <span className="muted">—</span>}</td>
-                <td>{r.revisar && <span className="pill wait">revisar</span>}</td>
+                <td>{r.revisar && <span className="pill wait">review</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -137,10 +137,10 @@ export default async function PayrollPage({
       )}
 
       <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
-        Los dos módulos cuentan la semana de <strong>viernes a jueves</strong>, así que este periodo es el mismo
-        en los dos. Para aprobar partes o cerrar el periodo, las pantallas de cada mitad siguen donde estaban:{" "}
-        <Link href="/timetracker/reports">Reports/Pay</Link> y{" "}
-        <Link href="/timetracker/clock-in/reports">Fichaje · nómina</Link>.
+        Both halves count the week <strong>Friday to Thursday</strong>, so this period is the same in each. To approve
+        timesheets or close the period, each half keeps its own screen:{" "}
+        <Link href="/timetracker/reports">Reports/Pay</Link> and{" "}
+        <Link href="/timetracker/clock-in/reports">Clock-in payroll</Link>.
       </p>
     </div>
   );

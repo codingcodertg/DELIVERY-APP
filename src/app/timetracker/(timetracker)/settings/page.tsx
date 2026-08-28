@@ -210,8 +210,8 @@ export default function ManagerSettingsPage() {
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>Clock-in</h3>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/team">🚚 Vehicles / Vehículos</Link>
-        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/sites">📍 Job sites / Sitios</Link>
+        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/team">🚚 Vehicles</Link>
+        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/sites">📍 Job sites</Link>
       </div>
       <p className="small muted" style={{ marginTop: 8 }}>
         Job sites are the geofences that decide whether a punch counts as on-site. People —

@@ -41,7 +41,7 @@ export function NotificationLanguage() {
     setBusy(false);
     if (!res.ok) {
       setLang(before);
-      setErr(res.message ?? "No se pudo guardar.");
+      setErr(res.message ?? "Could not save.");
       return;
     }
     setSaved(true);
@@ -51,17 +51,15 @@ export function NotificationLanguage() {
 
   return (
     <div className="field" style={{ maxWidth: 260 }}>
-      <label>Notification language / Idioma de los avisos</label>
+      <label>Notification language</label>
       <select value={lang} disabled={busy || !loaded} onChange={(e) => pick(e.target.value as "en" | "es")}>
         <option value="en">English</option>
         <option value="es">Español</option>
       </select>
       <div className="hint">
-        Clock-in reminders and approvals arrive in this language. The screens follow your browser.
-        <br />
-        Los recordatorios de fichaje y las aprobaciones llegan en este idioma. Las pantallas siguen a tu navegador.
+        Clock-in reminders and approvals arrive in this language. The screens themselves follow your browser.
       </div>
-      {saved && <div className="hint" style={{ color: "var(--green)" }}>Guardado · Saved</div>}
+      {saved && <div className="hint" style={{ color: "var(--green)" }}>Saved</div>}
       {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
     </div>
   );

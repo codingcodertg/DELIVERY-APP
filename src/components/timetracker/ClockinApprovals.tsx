@@ -21,16 +21,16 @@ type Off = { id: string; nombre: string; type: string; start_date: string; end_d
 type Exc = { id: string; nombre: string; type: string; reason: string | null; note: string | null; created_at: string };
 
 const OFF_LABEL: Record<string, string> = {
-  vacation: "Vacaciones",
-  sick: "Enfermedad",
-  schedule_change: "Cambio de horario",
-  shift_swap: "Cambio de turno",
+  vacation: "Vacation",
+  sick: "Sick",
+  schedule_change: "Schedule change",
+  shift_swap: "Shift swap",
 };
 const EXC_LABEL: Record<string, string> = {
-  out_of_radius: "Fuera del sitio",
-  leaving_while_clocked_in: "Salió estando fichado",
-  missed_punch: "Fichaje olvidado",
-  other: "Otro",
+  out_of_radius: "Off site",
+  leaving_while_clocked_in: "Left while clocked in",
+  missed_punch: "Missed punch",
+  other: "Other",
 };
 
 export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void }) {
@@ -58,22 +58,22 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
     setBusy(id);
     const res = await fn();
     setBusy(null);
-    if (!res.ok) { setErr(res.message ?? "No se pudo aplicar."); return; }
+    if (!res.ok) { setErr(res.message ?? "Could not apply."); return; }
     await load();
   }
 
-  if (!loaded) return <div className="hint">Cargando…</div>;
+  if (!loaded) return <div className="hint">Loading…</div>;
   if (err) return <div className="banner err">{err}</div>;
 
   return (
     <>
       <div className="hr" />
-      <h3 style={{ color: "var(--tt-muted)" }}>Ausencias y cambios de turno · Time off</h3>
+      <h3 style={{ color: "var(--tt-muted)" }}>Time off &amp; shift changes</h3>
       {off.length === 0 ? (
-        <p className="small muted" style={{ marginTop: 0 }}>Nada pendiente.</p>
+        <p className="small muted" style={{ marginTop: 0 }}>Nothing pending.</p>
       ) : (
         <table className="orders">
-          <thead><tr><th>Persona</th><th>Tipo</th><th>Fechas</th><th>Nota</th><th /></tr></thead>
+          <thead><tr><th>Person</th><th>Type</th><th>Dates</th><th>Note</th><th /></tr></thead>
           <tbody>
             {off.map((r) => (
               <tr key={r.id}>
@@ -83,9 +83,9 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
                 <td className="small muted">{r.note || "—"}</td>
                 <td style={{ whiteSpace: "nowrap" }}>
                   <button className="btn-ok btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "approved" }))}>Aprobar</button>{" "}
+                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "approved" }))}>Approve</button>{" "}
                   <button className="btn-danger btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "denied" }))}>Rechazar</button>
+                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "denied" }))}>Deny</button>
                 </td>
               </tr>
             ))}
@@ -94,15 +94,15 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
       )}
 
       <div className="hr" />
-      <h3 style={{ color: "var(--tt-muted)" }}>Excepciones de fichaje · Exceptions</h3>
+      <h3 style={{ color: "var(--tt-muted)" }}>Clock-in exceptions</h3>
       <p className="small muted" style={{ marginTop: 0 }}>
-        Fichajes fuera del sitio, salidas sin volver y olvidos. No se aprueban: se revisan y se dan por vistos.
+        Punches off site, leaving without returning, missed clock-outs. These are not approved — they are reviewed and marked seen.
       </p>
       {exc.length === 0 ? (
-        <p className="small muted">Nada pendiente.</p>
+        <p className="small muted">Nothing pending.</p>
       ) : (
         <table className="orders">
-          <thead><tr><th>Persona</th><th>Qué pasó</th><th>Motivo / nota</th><th>Cuándo</th><th /></tr></thead>
+          <thead><tr><th>Person</th><th>What happened</th><th>Reason / note</th><th>When</th><th /></tr></thead>
           <tbody>
             {exc.map((r) => (
               <tr key={r.id}>
@@ -112,7 +112,7 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
                 <td className="small muted">{new Date(r.created_at).toLocaleString()}</td>
                 <td>
                   <button className="btn-ghost btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => resolveException(r.id))}>Visto</button>
+                    onClick={() => act(r.id, () => resolveException(r.id))}>Mark seen</button>
                 </td>
               </tr>
             ))}
