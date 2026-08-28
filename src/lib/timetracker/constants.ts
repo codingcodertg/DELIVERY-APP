@@ -26,6 +26,9 @@ export const MANAGER_TABS: { id: string; label: string; href: string }[] = [
   { id: "insights", label: "📊 Dashboard", href: "/timetracker/insights" },
   { id: "live", label: "🟢 Working Now", href: "/timetracker/live" },
   { id: "reports", label: "💵 Reports/Pay", href: "/timetracker/reports" },
+  // Las horas de las DOS mitades por periodo (fase 4). Va junto a Reports/Pay porque
+  // es lo mismo que se mira, con las dos fuentes al lado en vez de una sola.
+  { id: "payroll", label: "🧾 Nómina", href: "/timetracker/payroll" },
   { id: "team-requests", label: "📝 Requests", href: "/timetracker/team-requests" },
   { id: "projects", label: "📁 Projects", href: "/timetracker/projects" },
   { id: "assignments", label: "🔗 Assignments", href: "/timetracker/assignments" },

@@ -4795,3 +4795,58 @@ El sello de versión resuelve el módulo por prefijo, y `/timetracker/clock-in` 
 pantallas de fichaje — el número de otra app, que es peor que ninguno. Lo cazó su propia
 prueba en cuanto se movieron las rutas; el orden es ahora la razón de que eso sea una
 lista y no un objeto.
+
+
+## D-105 · Fusión fase 4: las horas de las dos mitades, sin sumarlas
+**Fecha:** 2026-08-27 · **Versión:** v0.10.0 (timetracker), migración 086
+
+Es lo que la fusión iba a buscar: una pantalla que diga cuántas horas tiene cada persona
+en un periodo, mirando las dos mitades de la app.
+
+### La decisión de la pantalla es NO sumar
+
+Fichaje contesta *"¿estuviste?"* y las sesiones *"¿en qué?"*. Una sesión de proyecto
+ocurre **dentro** de una jornada fichada — 9.32 h de media contra 1.46 h (D-102) — así que
+sumar las dos columnas paga el mismo rato dos veces.
+
+Pero elegir una en silencio es igual de malo en el otro sentido: a quien solo cronometra
+proyectos no se le pagaría la asistencia, y a quien solo ficha no se le pagarían las
+sesiones.
+
+Así que se enseñan **por separado**, con una tercera columna que marca a quien tenga las
+dos cosas ese periodo. Hoy no le pasa a nadie —la cuadrilla solo ficha, Nick solo
+cronometra— pero desde 084 las doce personas tienen los dos módulos, así que puede empezar
+cualquier día. Cuando pase, lo decide una persona mirando la fila, no una suma.
+
+### El periodo ya coincidía
+
+Los dos módulos cuentan de **viernes a jueves** sin habérselo propuesto: clock-in lo
+calcula así y timetracker tiene `weekStartDay = 5` en sus ajustes. Comprobado también en
+los datos — 221 de 287 sesiones tienen `week_of` en viernes; las 66 en sábado son de
+cuando ese ajuste era 6.
+
+Cuatro pruebas fijan el límite, incluida la que muerde: que el jueves y el viernes
+siguiente caigan en periodos distintos. Si eso se corriera un día, la última jornada de la
+semana se pagaría en la siguiente.
+
+### El cálculo vive en la base, no en la pantalla
+
+`timetracker.period_hours` (086). Si estuviera en la pantalla, esta y la nómina de fichaje
+derivarían en cuanto alguien tocara una de las dos, y una nómina que no cuadra con la otra
+es peor que no tener la segunda. La vista repite la regla de comida de
+`clockin/payroll.ts` —la comida **fichada** manda, `lunch_minutes` es solo el respaldo—
+por esa misma razón.
+
+### Encontrado de paso: dos zonas horarias
+
+Los ajustes de timetracker dicen `America/Tegucigalpa` y clock-in usa `America/Chicago`.
+Tegucigalpa no tiene horario de verano, así que ahora mismo van una hora desfasadas.
+Medido antes de alarmar: **2 sesiones de 287** caen en un día distinto según cuál se use,
+las dos dentro de la misma semana de pago. **En nómina no cambia nada.** La vista calcula
+en Chicago, que es donde está la empresa; corregir el ajuste es un cambio aparte.
+
+### Lo que NO se tocó
+
+Las pantallas de aprobar partes y cerrar periodo siguen donde estaban, una en cada mitad.
+Esta vista informa; no aprueba ni cierra nada. Fundir también esos dos flujos —con sus
+firmas y sus bloqueos de periodo— es más que un informe y merece su propia decisión.
