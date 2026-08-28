@@ -14,6 +14,7 @@ import {
 import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
+import { isSessionExpired } from "@/lib/session-guard";
 
 // ============================================================
 // Track Time — the core screen. Ported (D-066) from timetracker-clean's
@@ -580,6 +581,11 @@ export default function TrackTimePage() {
       desktopStart({ sessionId: row.id, intervalMin: shotMin });
     } catch (e) {
       if (isOverlapError(e)) { notify(t("track.overlap")); return; }
+      // La sesión caducó (típicamente al despertar el ordenador). El proveedor ya está
+      // enseñando el aviso con el botón de volver a entrar, así que aquí no se repite el
+      // mensaje ni se suelta el error de Postgres en un alert — que es lo que salía antes:
+      // "permission denied for schema timetracker", delante de alguien que solo quería fichar.
+      if (isSessionExpired(e)) return;
       const err = e as { message?: string } | null;
       alert("Could not start tracking: " + (err?.message || "unknown error"));
       return;

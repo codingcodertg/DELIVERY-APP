@@ -20,6 +20,8 @@ import { change, type SecurityKind } from "@/lib/security-log";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { blankDelivery } from "@/lib/blank-delivery";
+import { checkSession } from "@/lib/session-guard";
+import { SessionExpired } from "@/components/SessionExpired";
 
 const DEFAULT_SETTINGS: Settings = {
   id: 1,
@@ -203,6 +205,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // app language like everything else they see.
   const { lang } = usePrefs();
   const [ready, setReady] = useState(false);
+  const [authGone, setAuthGone] = useState(false);
 
   // ---- Admin "view as" sandbox: preview the app as any role, admin-only. ----
   const realRole: UserRole | null = me?.role ?? null;
@@ -409,6 +412,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
   // la navegación que lo canceló.
   const loadFailedRef = useRef(false);
+  // La sesión se murió del todo. En un ref además de en el estado porque el efecto de
+  // recuperación se monta una sola vez y no vuelve a leer las props.
+  const authGoneRef = useRef(false);
   // Intentos de la racha actual. Vuelve a cero al primer acierto.
   const retriesRef = useRef(0);
   const ensureSession = useCallback(async () => {
@@ -423,15 +429,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // Se sigue tragando cualquier excepción, por la razón de D-088: un fetch cancelado a
     // media navegación no debe tumbar la carga. Pero ahora dice que no la tiene, y quien
     // llama decide en vez de preguntar a la base sin credenciales.
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const nowSec = Math.floor(Date.now() / 1000);
-      if (session && session.expires_at && session.expires_at - nowSec >= 60) return true;
-      const { data } = await supabase.auth.refreshSession();
-      return !!data?.session;
-    } catch {
-      return false;
-    }
+    // Tres estados, no dos (ver session-guard.ts). El que faltaba es "gone": la sesión
+    // caducó de verdad y reintentar no la va a resucitar. Antes ese caso se confundía con
+    // un fallo pasajero, se reintentaba en vano y la pantalla se quedaba vacía y muda.
+    const estado = await checkSession(supabase);
+    if (estado === "gone") { authGoneRef.current = true; setAuthGone(true); }
+    return estado === "ok";
   }, [supabase]);
 
   // Envuelto entero, y no solo ensureSession() (D-088). Aquel arreglo tapó UNA de las
@@ -541,6 +544,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     let stop = false;
     const retry = () => {
       if (stop || !loadFailedRef.current || retriesRef.current >= 5) return;
+      // Sin sesión no se reintenta: cada intento sale como anónimo y desde 081 eso es un
+      // 401. Lo que desbloquea esto es volver a entrar, y para eso está el aviso.
+      if (authGoneRef.current) return;
       retriesRef.current += 1;
       void reloadRef.current();
     };
@@ -1308,6 +1314,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     <Ctx.Provider value={value}>
       {children}
       {toast && <div className="toast">{toast}</div>}
+      {authGone && <SessionExpired />}
     </Ctx.Provider>
   );
 }

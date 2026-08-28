@@ -5076,3 +5076,76 @@ cambia desde hoy es que **no se le añade nada más**.
 Un día vacío tiene **dos explicaciones muy distintas** —nadie trabajó, o la limpieza de 60 días
 ya pasó— y sin decirlo, en fechas viejas parecería que la pantalla está rota. El pie lo aclara,
 y aclara también que **las horas nunca se borran**: lo que caduca es la foto, no el fichaje.
+
+---
+
+## D-110 · Una sesión caducada se dice, no se reintenta en silencio
+**Fecha:** 2026-08-28 · **Versión:** v1.34.0 (deliveries) · v0.6.0 (recruiting) · v0.19.0
+(timetracker) · v0.16.0 (clockin) · **Pedido por:** Andrés (*"puse en sleep la computadora y al
+volver el time tracker me da este error: permission denied for schema timetracker"*, y *"sigo
+entrando a cualquiera de las apps y me aparecen vacías porque no has arreglado eso"*)
+
+Las pantallas vacías se arreglaron tres veces —D-088, D-099 y el tope de reintentos que metí
+encima— y las tres volvieron. **Las tres partían de la misma suposición equivocada:** que una
+carga fallida se arregla reintentando.
+
+Hay un caso en el que no se arregla nunca: **la sesión caducó de verdad.** Ahí reintentar cinco
+veces, o quinientas, deja exactamente lo mismo — una pantalla vacía, sin un solo mensaje, que no
+se distingue de "hoy no hay datos".
+
+### Por qué al despertar el ordenador
+
+El token de acceso dura una hora y el temporizador que lo refresca **no corre mientras la
+máquina duerme**. Al volver, supabase-js intenta refrescar; si el token de refresco ya rotó,
+caducó o se usó, se queda sin sesión. Y desde **081** una consulta sin sesión sale como `anon`,
+que ya no tiene permisos.
+
+De ahí salen los dos síntomas, que son **el mismo fallo** visto desde dos lados:
+
+- **Al leer** — `reloadAll` no pregunta sin sesión, marca la carga como fallida y calla:
+  pantalla vacía en cualquiera de las apps.
+- **Al escribir** — las escrituras llamaban a `ensureSession()` y **tiraban el resultado a la
+  basura**. La consulta salía igual, como anónima, y Postgres contestaba
+  `permission denied for schema timetracker`. Ese texto crudo de base de datos acababa en un
+  `alert`, delante de alguien que solo quería fichar.
+
+### Lo que se cambió
+
+**`checkSession()` devuelve tres estados, no un booleano** (`src/lib/session-guard.ts`):
+
+| | |
+|---|---|
+| `ok` | hay sesión utilizable |
+| `offline` | ahora no se pudo, pero puede que sí luego — red caída, petición cancelada a media navegación (D-088). **Reintentar sirve** |
+| `gone` | no hay sesión y no la habrá sin volver a entrar. **Reintentar no sirve** |
+
+La diferencia entre los dos últimos es la pieza que faltaba. Se decide por **quién contestó**:
+si el servidor respondió 4xx al refresco, es definitivo; si no hubo respuesta —sin `status`, o
+5xx, o una excepción— es la red, y ahí **no se echa a nadie de la app**: cerrarle la sesión a
+alguien porque se le cayó el wifi un segundo sería peor que la pantalla vacía.
+
+**El aviso existe.** Con `gone`, los tres proveedores dibujan `SessionExpired` **encima** de la
+pantalla, no en su lugar: lo de abajo sigue montado, que en el cronómetro importa —hay un
+contador corriendo y un turno a medias— y desmontarlo perdería lo que hubiera sin guardar. Lleva
+un botón que devuelve a `/login?next=` la pantalla actual. Estilos en línea a propósito: sale en
+tres módulos con tres paletas distintas, y una clase compartida se vería bien en uno e ilegible
+en otro (ya pasó con `.section-label`).
+
+**Las escrituras exigen sesión.** `requireSession()` lanza antes de consultar, en vez de
+preguntar sin credenciales. `start()` reconoce ese error y **no repite el mensaje** — el aviso
+ya está en pantalla.
+
+**`isRlsError` reconocía media familia.** Solo miraba `row-level security` y el 42501. El error
+de 081 no menciona RLS por ningún lado, porque Postgres corta en el esquema **antes de mirar una
+sola política**; por eso no se reintentaba con un token nuevo. Ahora vive en `isAuthDenied` y
+cubre las dos.
+
+**Y el reintento se para.** Con `gone`, el efecto de recuperación deja de disparar: cada intento
+salía como anónimo para cobrar otro 401.
+
+### Con pruebas, esta vez
+
+Once, en `session-guard.test.ts`. Fijan justo la distinción que se venía perdiendo: 4xx es
+`gone`, 5xx y "sin respuesta" son `offline`, y `permission denied for schema` cuenta como token
+muerto. Las tres reincidencias anteriores no dejaron ninguna prueba detrás — por eso pudieron
+repetirse.

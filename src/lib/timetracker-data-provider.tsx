@@ -15,6 +15,8 @@ import { isDesktop } from "@/lib/timetracker/desktop";
 import { APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/timetracker/helpers";
 import { initOfflineQueue } from "@/lib/timetracker/offlineQueue";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, RequestType, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
+import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard";
+import { SessionExpired } from "@/components/SessionExpired";
 
 // ============================================================
 // Etapa 2, pass 1 (D-066): foundation + the Track Time screen only. This
@@ -145,14 +147,18 @@ export function useData(): DataState {
  * stale/absent JWT (auth.uid() came back null), fixable by a token refresh.
  * Ported from the original's isRlsError(); same reasoning. */
 function isRlsError(e: unknown): boolean {
-  const err = e as { message?: string; code?: string } | null;
-  const msg = String(err?.message || err?.code || "").toLowerCase();
-  return msg.includes("row-level security") || msg.includes("42501") || err?.code === "42501";
+  // Vive en session-guard porque le faltaba un caso entero: sin sesión la petición sale como
+  // `anon`, y desde 081 anon no tiene ni USAGE sobre el esquema, así que Postgres corta antes
+  // de mirar ninguna política — "permission denied for schema timetracker". Eso no dice "row-
+  // level security" por ningún lado, así que aquí no se reconocía y no se reintentaba con un
+  // token nuevo: se le enseñaba el error crudo a la persona, en un alert.
+  return isAuthDenied(e);
 }
 
 export function DataProvider({ children, me }: { children: React.ReactNode; me: Employee }) {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
+  const [authGone, setAuthGone] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(APP_SETTINGS);
   const [projects, setProjects] = useState<Project[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -205,21 +211,29 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // "no tener que refrescar" dependería de que el primer intento gane la carrera contra
   // la navegación que lo canceló.
   const loadFailedRef = useRef(false);
+  // La sesión se murió del todo. En un ref además de en el estado porque el efecto de
+  // recuperación se monta una sola vez y no vuelve a leer las props.
+  const authGoneRef = useRef(false);
   // Intentos de la racha actual. Vuelve a cero al primer acierto.
   const retriesRef = useRef(0);
   const ensureSession = useCallback(async () => {
     // Devuelve si HAY sesión — ver el comentario largo en data-provider.tsx. Sin ella,
     // supabase-js manda la clave anónima y desde 081 eso es un 401, no unos datos.
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const nowSec = Math.floor(Date.now() / 1000);
-      if (session && session.expires_at && session.expires_at - nowSec >= 60) return true;
-      const { data } = await supabase.auth.refreshSession();
-      return !!data?.session;
-    } catch {
-      return false;
-    }
+    // Tres estados, no dos (ver session-guard.ts). El que faltaba es "gone": la sesión
+    // caducó de verdad y reintentar no la va a resucitar. Antes ese caso se confundía con
+    // un fallo pasajero, se reintentaba en vano y la pantalla se quedaba vacía y muda.
+    const estado = await checkSession(supabase);
+    if (estado === "gone") { authGoneRef.current = true; setAuthGone(true); }
+    return estado === "ok";
   }, [supabase]);
+  // Para ESCRIBIR no vale con intentarlo. Las lecturas pueden quedarse vacías y reintentar;
+  // una escritura sin sesión sale como anónima, Postgres la rechaza por permisos y el mensaje
+  // que llegaba a la pantalla era literalmente "permission denied for schema timetracker" —
+  // un error de base de datos, en un alert, delante de alguien que solo quería fichar.
+  const requireSession = useCallback(async () => {
+    if (!(await ensureSession())) throw new Error(SESSION_EXPIRED);
+  }, [ensureSession]);
+
   const forceRefresh = useCallback(async () => {
     await supabase.auth.refreshSession().catch(() => {});
   }, [supabase]);
@@ -314,6 +328,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     let stop = false;
     const retry = () => {
       if (stop || !loadFailedRef.current || retriesRef.current >= 5) return;
+      // Sin sesión no se reintenta: cada intento sale como anónimo y desde 081 eso es un
+      // 401. Lo que desbloquea esto es volver a entrar, y para eso está el aviso.
+      if (authGoneRef.current) return;
       retriesRef.current += 1;
       void reloadRef.current();
     };
@@ -492,7 +509,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase, me.id]);
 
   const startSession = useCallback<DataState["startSession"]>(async (payload) => {
-    await ensureSession();
+    await requireSession();
     const row = toSnakeRow(payload as Record<string, unknown>);
     try {
       const { data, error } = await supabase.from("sessions").insert(row).select().single();
@@ -507,7 +524,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (error) throw error;
       return rowToCamel<Session>(data as Record<string, unknown>)!;
     }
-  }, [supabase, ensureSession, forceRefresh]);
+  }, [supabase, requireSession, forceRefresh]);
 
   const updateSession = useCallback<DataState["updateSession"]>(async (id, patch) => {
     const row = toSnakeRow(patch as Record<string, unknown>);
@@ -520,7 +537,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // just an insert; is_timetracker_admin() covers writing someone else's
   // employee_uid, same as every other admin write in this module.
   const insertSession = useCallback<DataState["insertSession"]>(async (payload) => {
-    await ensureSession();
+    await requireSession();
     const row = toSnakeRow(payload as Record<string, unknown>);
     try {
       const { data, error } = await supabase.from("sessions").insert(row).select().single();
@@ -533,7 +550,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (error) throw error;
       return rowToCamel<Session>(data as Record<string, unknown>)!;
     }
-  }, [supabase, ensureSession, forceRefresh]);
+  }, [supabase, requireSession, forceRefresh]);
 
   const removeSession = useCallback<DataState["removeSession"]>(async (id) => {
     const { error } = await supabase.from("sessions").delete().eq("id", id);
@@ -547,19 +564,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase]);
 
   const insertPayroll = useCallback<DataState["insertPayroll"]>(async (payload) => {
-    await ensureSession();
+    await requireSession();
     const row = toSnakeRow(payload as Record<string, unknown>);
     const { data, error } = await supabase.from("payrolls").insert(row).select().single();
     if (error) throw error;
     return rowToCamel<Payroll>(data as Record<string, unknown>)!;
-  }, [supabase, ensureSession]);
+  }, [supabase, requireSession]);
 
   const updatePayroll = useCallback<DataState["updatePayroll"]>(async (id, patch) => {
-    await ensureSession();
+    await requireSession();
     const row = toSnakeRow(patch as Record<string, unknown>);
     const { error } = await supabase.from("payrolls").update(row).eq("id", id);
     if (error) throw error;
-  }, [supabase, ensureSession]);
+  }, [supabase, requireSession]);
 
   const removePayroll = useCallback<DataState["removePayroll"]>(async (id) => {
     const { error } = await supabase.from("payrolls").delete().eq("id", id);
@@ -615,10 +632,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   const updateSettings = useCallback<DataState["updateSettings"]>(async (patch) => {
     const merged: AppSettings = { ...APP_SETTINGS, ...patch };
-    await ensureSession();
+    await requireSession();
     const { error } = await supabase.from("settings").update({ data: merged }).eq("id", "app");
     if (error) throw error;
-  }, [supabase, ensureSession]);
+  }, [supabase, requireSession]);
 
   const logAudit = useCallback<DataState["logAudit"]>(async (action, detail) => {
     try { await supabase.from("audit").insert({ who: me.id, action, detail: detail || "" }); }
@@ -713,6 +730,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     <Ctx.Provider value={value}>
       {children}
       {toast && <div className="toast">{toast}</div>}
+      {authGone && <SessionExpired />}
     </Ctx.Provider>
   );
 }
