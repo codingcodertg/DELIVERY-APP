@@ -137,3 +137,26 @@ describe("MODULE_ACCESS · un solo escalafón para fichaje", () => {
     }
   });
 });
+
+// Fase 3 de la fusión: Time Tracker es la puerta de fichaje. Si esta pestaña desaparece,
+// las doce personas que tienen los dos módulos vuelven a tener que pasar por el hub para
+// cruzar entre dos mitades de la misma app.
+describe("navegación de la fusión", () => {
+  it("los dos juegos de pestañas llevan a fichaje", async () => {
+    const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
+    const empleado = TABS.find((t) => t.id === "clockin");
+    const admin = MANAGER_TABS.find((t) => t.id === "clockin");
+    expect(empleado?.href).toBe("/clock-in/clock");
+    // Al admin le sirve ver la cuadrilla, no marcar su propia entrada.
+    expect(admin?.href).toBe("/clock-in/dashboard");
+  });
+
+  it("una sola entrada por juego, no las diecinueve pantallas", async () => {
+    // La barra de un admin ya lleva quince; volcarle el otro módulo la vuelve un
+    // buscador de pestañas. Esta prueba existe para que el día que alguien tenga la
+    // tentación de añadir "Cobertura", "Horarios" y "Excepciones" a la barra, falle.
+    const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
+    expect(TABS.filter((t) => t.href.startsWith("/clock-in"))).toHaveLength(1);
+    expect(MANAGER_TABS.filter((t) => t.href.startsWith("/clock-in"))).toHaveLength(1);
+  });
+});

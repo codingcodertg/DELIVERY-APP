@@ -4703,3 +4703,43 @@ Tres fichajes llevan **abiertos desde el 26 de agosto**: se les olvidó salir. L
 tiene una columna `auto_closed` y el cron que la usa existe, pero **no está corriendo**
 porque el programador externo sigue sin repuntar (D-094). El fichaje más largo del
 histórico son 47.37 h, que es el mismo olvido sin nadie que lo cerrara.
+
+
+## D-103 · Fusión fase 3a: una puerta en cada sentido
+**Fecha:** 2026-08-27 · **Versión:** v0.8.0 (timetracker y clockin)
+
+La fase 3 era "el envoltorio": una navegación, un tema, y las pantallas de fichaje bajo
+`/timetracker`. Se parte en dos, y esta es la mitad que no rompe nada.
+
+**Por qué no se volcó la navegación entera.** La barra de un admin de Time Tracker ya
+lleva **quince** pestañas. Fichaje tiene diecinueve pantallas. Sumarlas da una barra de
+treinta y cuatro, que no es una navegación sino un buscador de pestañas. Así que va
+**una** entrada por juego: al empleado a fichar, al admin al panel de la cuadrilla —
+lo que cada uno necesita de ese módulo. La navegación propia de fichaje hace el resto.
+Una prueba exige que siga siendo una sola, para el día que alguien tenga la tentación de
+añadir "Cobertura", "Horarios" y "Excepciones".
+
+**Y la vuelta.** El botón de salida de fichaje llevaba al hub. Ahora lleva a **Time
+Tracker** cuando la persona tiene los dos módulos — desde 084, las doce. Fichaje dejó de
+ser una app aparte a la que se entra desde el hub: es la otra mitad de Time Tracker, y
+mandar al hub obligaría a pasar por un selector para volver a algo que está al lado. Al
+hub se sigue yendo si Time Tracker no está otorgado pero sí hay otros módulos, y el botón
+sigue escondiéndose si fichaje es lo único que tiene.
+
+### Lo que queda para la 3b, y por qué está separado
+
+Mover las pantallas de `/clock-in/*` a `/timetracker/*`. Ahí es donde se rompen las cosas
+que no se ven en un build:
+
+- el **service worker** está anclado a `/clock-in/` y dejaría de controlar sus páginas;
+- los **accesos directos del móvil** de la cuadrilla apuntan a `/clock-in/clock`;
+- son 74 enlaces internos y 76 ficheros de ruta.
+
+Cada una de esas tres tiene su forma de fallar en silencio, y ninguna la detecta `tsc`.
+Se hace sola, con redirecciones permanentes y sin tocar nada más, para que si algo se
+rompe se sepa qué lo rompió.
+
+**El tema tampoco se unifica todavía.** Fichaje es Tailwind y Time Tracker dibuja desde
+`globals.css`; parecerse exige reescribir estilos, no mover ficheros. Los dos ya siguen el
+mismo interruptor de claro/oscuro desde el arreglo de temas, que es la mitad que
+importaba.

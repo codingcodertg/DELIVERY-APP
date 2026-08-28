@@ -11,6 +11,11 @@ export const TABS: { id: string; label: string; href: string }[] = [
   { id: "requests", label: "📝 My Requests", href: "/timetracker/requests" },
   { id: "diary", label: "🗂 Work Diary", href: "/timetracker/diary" },
   { id: "account", label: "👤 My Account", href: "/timetracker/account" },
+  // Fichaje, la otra mitad de la app (fase 3 de la fusión). UNA entrada y no las
+  // diecinueve pantallas del módulo: la barra de un admin ya lleva quince, y volcarle
+  // el otro módulo encima la vuelve un buscador de pestañas. Desde aquí se entra y la
+  // navegación propia de fichaje sigue haciendo el resto.
+  { id: "clockin", label: "⏰ Clock-in", href: "/clock-in/clock" },
 ];
 
 // An admin sees this instead of TABS — manager screens first, then the same
@@ -33,4 +38,7 @@ export const MANAGER_TABS: { id: string; label: string; href: string }[] = [
   { id: "requests", label: "📝 My Requests", href: "/timetracker/requests" },
   { id: "diary", label: "🗂 Work Diary", href: "/timetracker/diary" },
   { id: "account", label: "👤 My Account", href: "/timetracker/account" },
+  // Al admin le lleva al panel de fichaje, no a la pantalla de fichar: lo que necesita
+  // de ese módulo es ver a la cuadrilla, no marcar su propia entrada.
+  { id: "clockin", label: "⏰ Clock-in", href: "/clock-in/dashboard" },
 ];
