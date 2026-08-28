@@ -5207,3 +5207,52 @@ el módulo madre dejaría a alguien con `module_access` vacío, y eso es `/no-ac
 porque **el tipo no viaja**: un script, un `curl` o una sesión de SQL escriben igual. Va
 `not valid` a propósito: valida lo nuevo sin exigir que lo viejo pase primero, para que una fila
 rara de antes no tumbe el despliegue entero.
+
+---
+
+## D-112 · Fundir la interfaz de fichaje con la de Time Tracker · paso 1: la paleta
+**Fecha:** 2026-08-28 · **Versión:** v0.18.0 (clockin) · **Pedido por:** Andrés (*"ahora quiero
+que me vayas transformando la interfaz de clock poco a poco"*)
+
+Fichaje y Time Tracker ya son una sola app, pero **no lo parecían**. Fichaje está construido
+sobre la escala `zinc` de Tailwind —gris neutro, casi negro en oscuro— y Time Tracker sobre un
+azul marino propio (`--tt-*`). Cruzar de un módulo al otro se sentía como cambiar de programa.
+
+### Se reasigna la escala, no se reescriben las pantallas
+
+Son 13 pantallas y unas **300 apariciones** de estas clases. Convertirlas a mano sería un cambio
+enorme, imposible de revisar y con el que se rompe algo seguro. Reasignando los tokens de color
+en `@theme`, **cambian las trece a la vez sin editar una línea de ninguna**, y se deshace
+volviendo a una lista de once valores.
+
+Funciona sin tener que distinguir claro de oscuro porque **las pantallas ya usan la escala por
+su sitio**: el extremo claro (50–200) en modo claro y el oscuro (700–950) tras `dark:`. Basta
+con que el extremo claro sea la paleta clara de Time Tracker y el oscuro la oscura. La rampa
+sigue siendo monótona —50 el más claro, 950 el más oscuro— y eso es lo que garantiza que nada
+se invierta ni pierda contraste.
+
+También cambian el fondo de página (antes blanco puro / casi negro; ahora los dos de Time
+Tracker) y **la tipografía**: Arial contra Segoe UI se nota en cuanto se cruza de un módulo al
+otro, aunque cueste decir por qué.
+
+### Por qué es seguro reasignar una escala entera de Tailwind
+
+Porque esa hoja **no sale de fichaje**. Next emite un chunk de CSS por layout y lo carga solo en
+las rutas de ese layout; verificado en `.next/app-build-manifest.json` — la hoja de fichaje
+aparece en sus rutas y en **ninguna** de deliveries, recruiting, timetracker o el ERP. Si se
+cargara en todas, redefinir `zinc` habría repintado media aplicación.
+
+### Lo que este paso NO toca, a propósito
+
+**El verde (`emerald`).** Ahí el color *significa* algo —fichado, dentro del sitio— y no es lo
+mismo que un gris de superficie. Cambiarlo es una decisión de diseño pantalla por pantalla, no
+un remapeo de tokens, y mezclarlo con este paso habría hecho imposible saber qué cambió qué.
+
+### La distinción entre los dos tipos de persona no se perdió con D-111
+
+Andrés señaló que la casilla de fichaje en Usuarios servía para **diferenciar quién usa una app
+y quién la otra**. Esa distinción sigue existiendo, y con más precisión que antes: vive en
+**Time Tracker › Employees**, por persona, en dos columnas que ya estaban —**Worker type**
+(Remoto / Presencial) y **Track mode** (actividad / entrada-salida)—. La casilla solo decía "tiene
+acceso"; nunca dijo "esta persona ficha". Es una propiedad de *cómo trabaja* alguien, no una
+segunda llave de entrada.

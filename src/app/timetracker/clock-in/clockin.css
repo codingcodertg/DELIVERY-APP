@@ -33,10 +33,46 @@
    Redefining the variant fixes all 189 at once, with no edit to any screen. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Clock-in's own tokens, from its globals.css — now switched by the same attribute. */
+/* ---------------------------------------------------------------------------
+   Paso 1 de fundir la interfaz con la de Time Tracker (D-112): la paleta.
+   ---------------------------------------------------------------------------
+   Fichaje está construido sobre la escala `zinc` de Tailwind —gris neutro— y Time Tracker
+   sobre un azul marino propio (`--tt-*`). Puestas una al lado de la otra se notaba que eran
+   dos aplicaciones distintas, aunque ya sean la misma.
+
+   Se reasigna la ESCALA en vez de reescribir las pantallas. Son 13 pantallas y unas 300
+   apariciones de estas clases; convertirlas a mano sería un cambio enorme, imposible de
+   revisar y con el que se rompe algo seguro. Reasignando los tokens cambian las trece a la
+   vez, sin editar ni una línea de ninguna, y se puede deshacer volviendo a esta lista.
+
+   Funciona sin tener que distinguir claro de oscuro porque las pantallas ya usan la escala
+   por su sitio: el extremo claro (50–200) en modo claro, el oscuro (700–950) en modo oscuro,
+   con `dark:`. Así que basta con que el extremo claro sea la paleta clara de Time Tracker y
+   el oscuro la oscura. La rampa sigue siendo monótona —50 el más claro, 950 el más oscuro—
+   que es lo que hace que nada se invierta.
+
+   Lo que este paso NO toca, a propósito: el verde (`emerald`). Ahí el color SIGNIFICA algo
+   —fichado, dentro del sitio— y cambiarlo es una decisión de diseño por pantalla, no un
+   remapeo. Va en un paso siguiente. */
+@theme {
+  --color-zinc-50:  #f4f6fb;   /* tt-bg claro     */
+  --color-zinc-100: #e6ebf5;   /* tt-chip claro   */
+  --color-zinc-200: #d7deea;   /* tt-line claro   */
+  --color-zinc-300: #bcc7dc;
+  --color-zinc-400: #93a0bd;   /* tt-muted oscuro */
+  --color-zinc-500: #5c6b86;   /* tt-muted claro  */
+  --color-zinc-600: #47546e;
+  --color-zinc-700: #2a3556;   /* tt-line oscuro  */
+  --color-zinc-800: #1e2740;   /* tt-panel2 oscuro*/
+  --color-zinc-900: #171e2e;   /* tt-panel oscuro */
+  --color-zinc-950: #0f1420;   /* tt-bg oscuro    */
+}
+
+/* El fondo de página y el texto base, a los mismos dos colores que usa Time Tracker. Antes
+   eran blanco puro y casi negro: al cruzar de un módulo al otro cambiaba el fondo. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6fb;
+  --foreground: #1a2233;
 }
 
 @theme inline {
@@ -45,8 +81,8 @@
 }
 
 :root[data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0f1420;
+  --foreground: #e7ecf7;
 }
 
 /* ---------------------------------------------------------------------------
@@ -65,7 +101,9 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
+    /* La misma pila que Time Tracker. Arial contra Segoe UI se nota en cuanto se cruza
+       de un módulo al otro, aunque cueste decir por qué. */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
   }
