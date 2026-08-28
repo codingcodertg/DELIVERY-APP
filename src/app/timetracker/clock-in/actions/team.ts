@@ -18,7 +18,7 @@ const managerCtx = clockinManagerCtx;
 // deliveries — from a screen whose author was only thinking about clock-in, with a password this
 // file invented and no module_access decided by anybody. People are created in Users on the hub,
 // which is also where their access to each module is granted, and 078's trigger lays down their
-// clock-in row the moment clockin_role is set.
+// clock-in row the moment their Time Tracker role is set.
 
 /** Everything the hub's Users dialog needs to show one person's clock-in setup, in one round trip. */
 export async function getClockinEmployeeSettings(id: string): Promise<
@@ -151,7 +151,7 @@ export async function resetEmployeePassword(
 // sus registros".
 //
 // Nor could a safer version live here. Removing someone from clock-in alone means clearing
-// clockin_role, and 071's guard lets only a deliveries admin do that — access is granted and
+// their role, and 071's guard lets only a deliveries admin do that — access is granted and
 // revoked from the hub (D-091), on purpose. What a clock-in manager legitimately needs is to stop
 // counting someone's time, and setEmployeeActive() below already does exactly that, reversibly and
 // without touching anyone else's app.
@@ -175,7 +175,7 @@ export async function setEmployeeActive(id: string, active: boolean) {
  * were two dropdowns and everyone confused them. That merge no longer holds here, for two reasons
  * (D-095):
  *
- *  - The role now lives in `public.profiles.clockin_role`, and 071's guard lets only a deliveries
+ *  - The role now lives in `public.profiles.timetracker_role` (084/087), and 071's guard lets only a deliveries
  *    admin change it. A clock-in owner picking "Manager" here would have hit "Only an admin can
  *    change clock-in access or role" — the write failing on the half nobody could see.
  *  - In the hub's Users dialog the clock-in role is its own select, two fields above this one, in

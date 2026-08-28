@@ -30,14 +30,15 @@ export default async function ClockInLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, clockin_role, module_access")
+    .select("role, timetracker_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
 
   const role = profile?.role ?? "sales";
   // An admin is always in, matching public.has_clockin_access(): whoever grants module access
   // should not be able to lock themselves out of the module they administer.
-  const hasClockin = role === "admin" || !!profile?.clockin_role;
+  // El escalafón es el de Time Tracker desde 084; `clockin_role` se retiró en 087.
+  const hasClockin = role === "admin" || !!profile?.timetracker_role;
   if (!hasClockin) {
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }

@@ -134,7 +134,9 @@ export interface DataState {
   updateUserRecruitingAccess: (userId: string, patch: { granted: boolean; recruiting_role: string | null }) => Promise<void>;
   /** Same shape as updateUserRecruitingAccess, for the timetracker module
    * (D-064). Writes timetracker_role/module_access, never `role`. */
-  updateUserClockinAccess: (userId: string, patch: { granted: boolean; clockin_role?: string | null }) => Promise<void>;
+  /** Fichaje no tiene rol propio (084): el escalafón es el de Time Tracker. Esto solo
+   *  otorga o quita el módulo. */
+  updateUserClockinAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   /** ERP access is a flag only — no role tier of its own (D-090). */
   updateUserErpAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
@@ -463,7 +465,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         // recruiting_role/timetracker_role + module_access ride along here (not
         // just on `me` in the layout) so the Users page can show/edit another
         // person's module access without a second round trip (D-053, D-064).
-        supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, clockin_role").order("full_name"),
+        supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role").order("full_name"),
         // Teaching mode never loads from the DB — the live (non-training) rows are
         // always the base, and the sandbox lives only in the local overlay.
         supabase.from("deliveries").select("*").eq("is_training", false).order("order_no", { ascending: false }),
@@ -1169,17 +1171,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // flag alone, and who may see cost is decided by `role` being admin/manager,
   // which updateUserRole already owns. So this writes one column, not two.
   const updateUserClockinAccess = useCallback<DataState["updateUserClockinAccess"]>(
-    async (userId, { granted, clockin_role }) => {
+    async (userId, { granted }) => {
       const target = users.find((u) => u.id === userId);
-      const beforeRole = target?.clockin_role ?? null;
-      const nextRole = granted ? (clockin_role ?? "employee") : null;
+      const before = (target?.module_access ?? []).includes("clockin");
       const nextModules = granted
         ? Array.from(new Set([...(target?.module_access ?? []), "clockin"]))
         : (target?.module_access ?? []).filter((m) => m !== "clockin");
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, clockin_role: nextRole, module_access: nextModules } : u)));
-      const { error } = await supabase.from("profiles").update({ clockin_role: nextRole, module_access: nextModules }).eq("id", userId);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
       if (error) { notify(error.message); reloadAll(); return; }
-      void logSecurityClient(userId, "clockin_access_changed", change(beforeRole, nextRole));
+      void logSecurityClient(userId, "clockin_access_changed", change(String(before), String(granted)));
     },
     [supabase, notify, reloadAll, users, logSecurityClient],
   );

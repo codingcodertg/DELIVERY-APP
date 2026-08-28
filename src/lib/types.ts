@@ -29,7 +29,6 @@ export interface Profile {
    * See D-064. */
   timetracker_role?: string | null;
   /** employee | manager | owner inside clock-in (071). Null = no access. */
-  clockin_role?: string | null;
 }
 
 // ---- Workflow stages ------------------------------------------------------

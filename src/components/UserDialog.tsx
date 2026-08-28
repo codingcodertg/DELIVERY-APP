@@ -70,7 +70,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "deliveries": updateUserRole(u.id, roleValue as UserRole); return;
       case "recruiting": updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: roleValue }); return;
       case "timetracker": updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: roleValue }); return;
-      case "clockin": updateUserClockinAccess(u.id, { granted: true, clockin_role: roleValue }); return;
+      case "clockin":
+        // Sin escalafón propio desde 084 — su bloque no dibuja select de rol, así que
+        // esto es inalcanzable. Se deja por exhaustividad del switch (D-057).
+        return;
       case "erp":
         // No role tier of its own — the block renders a checkbox and nothing
         // to pick, so this is unreachable. Kept for exhaustiveness.
@@ -87,14 +90,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         updateUserTimetrackerAccess(u.id, { granted, timetracker_role: granted ? (u.timetracker_role ?? "employee") : null });
         return;
       case "clockin":
-        // El escalafón es el de Time Tracker (084). `clockin_role` es legado —la
-        // restricción de 071 todavía lo exige— así que se deriva en vez de inventarlo:
-        // dejarlo en "employee" para un admin haría que la columna dijera una cosa y la
-        // vista otra, y alguien acabaría creyéndose la equivocada.
-        updateUserClockinAccess(u.id, {
-          granted,
-          clockin_role: granted ? (u.timetracker_role === "admin" ? "owner" : "employee") : null,
-        });
+        // Solo otorga o quita el módulo: el escalafón es el de Time Tracker (084) y la
+        // columna heredada `clockin_role` se retiró entera en 087.
+        updateUserClockinAccess(u.id, { granted });
         return;
       case "erp":
         updateUserErpAccess(u.id, { granted });
@@ -329,7 +327,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                       person does with their own time, plus the vehicle list, which is about
                       trucks rather than people. */}
                   {m.key === "clockin" && !LOCAL_MODE && (
-                    <ClockinSettings userId={u.id} clockinRole={u.clockin_role ?? null} />
+                    <ClockinSettings userId={u.id} clockinRole={u.timetracker_role ?? null} />
                   )}
 
                   {/* Fine-grained extras — only drawn when this module's

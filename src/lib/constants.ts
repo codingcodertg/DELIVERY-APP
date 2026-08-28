@@ -499,7 +499,7 @@ export interface ModuleAccessConfig {
    * be a duplicate of the same fact, free to drift. Access is the checkbox
    * alone. The uniqueness rule this field encodes still holds: no two modules
    * may aim at the same column, and absent is not the same as "role". */
-  roleColumn?: "recruiting_role" | "timetracker_role" | "clockin_role" | "role";
+  roleColumn?: "recruiting_role" | "timetracker_role" | "role";
   roleKeys: readonly string[];
   roleLabel: (key: string, lang: Lang) => string;
   /** Present only for an opt-in module — deliveries has none, everyone
