@@ -4743,3 +4743,55 @@ rompe se sepa qué lo rompió.
 `globals.css`; parecerse exige reescribir estilos, no mover ficheros. Los dos ya siguen el
 mismo interruptor de claro/oscuro desde el arreglo de temas, que es la mitad que
 importaba.
+
+
+## D-104 · Fusión fase 3b: fichaje se muda dentro de Time Tracker
+**Fecha:** 2026-08-27 · **Versión:** v0.9.0 (timetracker y clockin)
+
+69 ficheros de ruta movidos de `/clock-in` a `/timetracker/clock-in`, 51 reescritos, las
+rutas viejas redirigidas. Fichaje deja de ser un hermano al que se enlaza y pasa a estar
+físicamente dentro de la app madre.
+
+**Con subprefijo y no fusionado plano** porque tres nombres de pantalla chocan —
+`reports`, `settings` y `account` existen en los dos. `/timetracker/clock-in` los separa
+sin renombrarle la pantalla a nadie.
+
+**Fuera del grupo `(timetracker)` a propósito.** Un grupo de rutas no cambia la URL pero
+sí el anidamiento de layouts: dentro del grupo, fichaje heredaría la barra de Time Tracker
+y llevaría dos navegaciones apiladas. Comprobado después en el manifiesto del build: el
+chunk de CSS de fichaje sigue colgando de **un solo** layout y ninguna otra ruta lo carga.
+
+### El service worker hizo esto seguro, no arriesgado
+
+Era lo que más me preocupaba: diez móviles con un SW registrado en `/clock-in/`. Al leerlo
+resultó ser **pase directo a propósito** — *"a time clock must never serve a stale cached
+punch screen"* — así que no puede dejar a nadie con una pantalla vieja pegada; lo peor que
+hace es proxiar la redirección.
+
+Las suscripciones push sí van atadas al alcance del registro y habría que rehacerlas. Hoy
+no cuesta nada: las claves VAPID siguen sin poner y el push está muerto desde la fusión
+(D-094). Es, de hecho, el mejor momento para moverlo.
+
+### Redirecciones 307 y no 308, a propósito
+
+La cuadrilla tiene accesos directos en la pantalla de inicio apuntando a
+`/clock-in/clock`, y hay notificaciones ya enviadas con esa url dentro. Un permanente lo
+cachea el navegador **para siempre**: si algún día hay que deshacer la mudanza, no habría
+forma de decirle a un teléfono que la olvide. Se endurece cuando esto lleve meses en pie.
+
+### Dos cosas que la mudanza destapó, rotas desde antes
+
+- **Los enlaces de exportación** de nómina apuntaban a `/api/clock-in/reports/export`,
+  que no existe ni existió en ninguna de las dos disposiciones: al fusionar clock-in, el
+  prefijo se insertó en el sitio equivocado para las rutas `/api`. Muertos desde entonces,
+  y solo visible al pulsar.
+- **El service worker** abría `/clock` cuando una notificación no traía url. Nunca fue
+  una ruta de esta app: pulsar esa notificación abría un 404.
+
+### Y una que cazaron las pruebas
+
+El sello de versión resuelve el módulo por prefijo, y `/timetracker/clock-in` empieza por
+`/timetracker`. Sin reordenar la lista, habría enseñado la versión de Time Tracker en las
+pantallas de fichaje — el número de otra app, que es peor que ninguno. Lo cazó su propia
+prueba en cuanto se movieron las rutas; el orden es ahora la razón de que eso sea una
+lista y no un objeto.
