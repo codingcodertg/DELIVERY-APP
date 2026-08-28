@@ -5014,3 +5014,65 @@ formas de escribir una geocerca — habría sido repetir el error que este ADR a
 en Leaflet. No se tocaron: funcionan, están dentro del chunk de fichaje donde su CSS ya
 vive, y cambiarlas por cambiar es el tipo de trabajo que rompe cosas sin arreglar ninguna.
 Se migran cuando haya una razón, no por uniformidad.
+
+---
+
+## D-109 · Las fotos de fichaje se revisan dentro de Auditoría
+**Fecha:** 2026-08-28 · **Versión:** v0.18.0 (timetracker) · v0.15.0 (clockin) · **Pedido por:**
+Andrés (*"las fotos que se toman no se puede ver quiero que me hagas una view donde se pueda
+review todas las fotos y se pueda estar cambiando los días"*, y después *"acuérdate que queremos
+quitar el tab de clock in entonces esas fotos deben ir adentro de audit, solo mete views dentro
+de audit"*)
+
+Cada fichaje guarda una foto —entrada, salida, salir del sitio y volver, cuatro por persona y
+día— y hasta ahora solo se veían **de una en una**, escarbando dentro del fichaje o de la
+excepción concreta. Con cientos guardadas, *"revisar las fotos de ayer"* no era una tarea que se
+pudiera hacer.
+
+### Dónde vive, que es lo que se corrigió
+
+El primer intento fue una pantalla propia colgada de la barra de fichaje. **Estaba mal y Andrés
+lo paró:** esa barra se retira. Colgarle una pantalla nueva es construir encima de algo que se
+está desmontando, y además habría hecho falta migrarla otra vez dentro de un mes.
+
+Va en **Auditoría**, como una segunda vista de esa misma pantalla, y ahí es donde entran las que
+vengan del módulo de fichaje. La razón no es solo que sobre sitio: Auditoría y las fotos
+responden **la misma pregunta** —qué pasó, quién y cuándo— con la diferencia de que una lo
+cuenta y la otra lo prueba. Separarlas por la barra de navegación obligaba a saltar entre dos
+tabs para cerrar una sola duda.
+
+**El tab de Clock-in NO se quitó todavía**, a propósito: dashboard, reports, schedule, time-off y
+exceptions siguen colgando de él. Quitarlo hoy dejaría esas cinco pantallas sin puerta. Lo que
+cambia desde hoy es que **no se le añade nada más**.
+
+### Decisiones dentro de la vista
+
+- **Se firman en bloque.** Cobertura firma las fotos una a una dentro de un bucle — bien para
+  las de una semana de un equipo pequeño, pero es una llamada de red **por foto** y un día
+  cargado son decenas. `createSignedUrls` (plural) hace lo mismo en una. Una hora de validez,
+  como el resto del módulo: son fotos de personas y el enlace no debe sobrevivir a la sesión de
+  quien las miró.
+- **Una foto que no se pudo firmar no se enseña**, en vez de dejar un hueco roto en la rejilla.
+  El contador de la cabecera cuenta las que se ven, que es lo honesto.
+- **El día es estado de pantalla, no URL.** El primer intento navegaba con un enlace por día;
+  dentro de Auditoría eso recargaría el registro entero para mover un día. Flechas y el selector
+  nativo de fecha.
+- **Hay guardia contra respuestas fuera de orden.** Pulsar la flecha tres veces seguidas lanza
+  tres cargas y nada garantiza que lleguen en orden: sin el `ref` del día pedido, la respuesta
+  del primer día puede llegar la última y pintar fotos que no son las de la pantalla.
+- **Al abrir una foto se usa el visor del hub** (`PhotoLightbox`, con zoom) y no una pestaña
+  nueva. `window.open` **no hace nada dentro de la app de escritorio ni del WebView** — es el
+  motivo por el que ese visor existe (D-041) — y una foto de fichaje se abre precisamente para
+  ampliarla: una cara, una matrícula, dónde está parado alguien.
+- **Rejilla propia y no la `.photo-grid` del hub.** Aquella son miniaturas de 96 px pensadas
+  para cuatro fotos de un pedido; aquí se revisan decenas y hay que reconocer el sitio antes de
+  decidir cuál abrir. Y sus colores son los de deliveries: sobre el panel oscuro de este módulo
+  quedan ilegibles. Lo mismo pasaba con `.section-label`, que es de donde salió la clase propia.
+- **El alcance por tienda es el de siempre:** un gerente con tienda ve su cuadrilla y nadie más
+  (`storeScope`). La acción entra por `clockinManagerCtx`, así que un admin del hub también pasa.
+
+### Lo que la pantalla dice y no se puede callar
+
+Un día vacío tiene **dos explicaciones muy distintas** —nadie trabajó, o la limpieza de 60 días
+ya pasó— y sin decirlo, en fechas viejas parecería que la pantalla está rota. El pie lo aclara,
+y aclara también que **las horas nunca se borran**: lo que caduca es la foto, no el fichaje.

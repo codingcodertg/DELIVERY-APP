@@ -165,3 +165,19 @@
 .timetracker-module .emp-summary::-webkit-details-marker{display:none}
 .timetracker-module .emp-summary::before{content:"▸";margin-right:8px;color:var(--tt-muted);font-size:12px}
 .timetracker-module details[open]>.emp-summary::before{content:"▾"}
+
+/* Rejilla de revisión de fotos (Auditoría → Photos, D-109).
+   Propia y no la .photo-grid del hub porque aquella son miniaturas de 96px pensadas para
+   colgar cuatro fotos de un pedido; aquí se revisan decenas y hay que reconocer una cara o
+   un sitio antes de decidir cuál abrir. Y sus colores son los de deliveries, que sobre el
+   panel oscuro de este módulo quedan ilegibles. */
+.timetracker-module .rev-who{font-size:12px;font-weight:800;color:var(--tt-muted);text-transform:uppercase;
+     letter-spacing:.05em;margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--tt-line)}
+.timetracker-module .rev-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.timetracker-module .rev-item{margin:0;border:1px solid var(--tt-line);border-radius:12px;overflow:hidden;
+     background:var(--tt-panel2);cursor:zoom-in}
+.timetracker-module .rev-item img{display:block;width:100%;height:150px;object-fit:cover;background:var(--tt-chip)}
+.timetracker-module .rev-item figcaption{padding:7px 8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+/* La nota de la excepción ocupa toda la línea y se corta: son frases libres y una larga
+   descuadraba la tarjeta entera. */
+.timetracker-module .rev-note{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

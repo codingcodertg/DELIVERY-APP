@@ -4,11 +4,19 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { dateISO, fmtDT, fmtDayLong } from "@/lib/timetracker/helpers";
+import { DayPhotos } from "@/components/timetracker/DayPhotos";
 
 // Ported (D-071) from timetracker-clean's manager/AuditLog.jsx — grouped by
 // day, with person + action filters. `auditLog` is kept live by the
 // provider (latest 300, bounded — see its block comment).
+//
+// Desde D-109 esta pantalla tiene DOS vistas, y es el sitio donde entran las que vengan. El
+// tab de fichaje se retira, y sus pantallas de gerente no merecen cada una un tab propio en
+// la barra de Time Tracker: lo que se hace aquí es siempre la misma pregunta —qué pasó, quién
+// y cuándo— así que el registro y las fotos que lo prueban van juntos, no separados por la
+// barra de navegación.
 export default function AuditLogPage() {
+  const [view, setView] = useState<"log" | "photos">("log");
   const { me, auditLog: items, allEmployees: users } = useData();
   const t = useT();
   const [who, setWho] = useState("");
@@ -29,7 +37,18 @@ export default function AuditLogPage() {
 
   if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
 
+  const switcher = (
+    <div className="tabs" style={{ marginBottom: 12 }}>
+      <button className={view === "log" ? "active" : ""} onClick={() => setView("log")}>📜 Log</button>
+      <button className={view === "photos" ? "active" : ""} onClick={() => setView("photos")}>📷 Photos</button>
+    </div>
+  );
+
+  if (view === "photos") return <>{switcher}<DayPhotos /></>;
+
   return (
+    <>
+    {switcher}
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.audit.title")}</h2>
@@ -68,5 +87,6 @@ export default function AuditLogPage() {
         </details>
       ))}
     </div>
+    </>
   );
 }
