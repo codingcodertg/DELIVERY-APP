@@ -4964,3 +4964,53 @@ editor.
 
 Las inactivas se dibujan en gris en vez de esconderse: una geocerca apagada sigue explicando
 por qué los fichajes de esa tienda salen "fuera del sitio".
+
+
+## D-108 · Las geocercas se dibujan en Ajustes, con Google Maps
+**Fecha:** 2026-08-27 · **Versión:** v0.15.0 (timetracker) · **Pedido por:** Andrés
+(*"hazme el geofencing y cuando le doy edit e redirect a un view de la app vieja, con
+leaflet, arregla todo eso"*)
+
+D-107 dejó las geocercas visibles en Ajustes pero **"editar" te sacaba de ahí** a la pantalla
+de fichaje: otro mapa (Leaflet sobre Esri), otro estilo, otra app. Una costura visible en
+mitad de una tarea. Ahora se ve, se enciende, se apaga, se dibuja y se corrige en el mismo
+sitio, y la pantalla vieja se retira con redirección.
+
+### Lo que gana al cambiar de mapa, que es la razón de fondo
+
+Una geocerca de Leaflet solo se podía trazar **clic a clic**, y para corregir una esquina
+había que borrar y empezar de nuevo. Los polígonos de Google son `editable`: se arrastran
+vértices y se parten lados por su punto medio. **Corregir una esquina mal puesta pasa de
+rehacer la tienda entera a arrastrar un punto.**
+
+En D-107 escribí que no traía el editor porque duplicarlo sería tener dos versiones
+desincronizables. Eso valía mientras la vieja siguiera en pie; la respuesta correcta no era
+dejar el enlace, era **retirar la vieja**. Ahora hay uno solo.
+
+### Lo que NO cambió, a propósito
+
+**Se guarda con las mismas acciones** (`addSite`, `updateSite`), que son las que calculan el
+centro del polígono y comprueban el permiso. Cambiar de mapa no es motivo para tener dos
+formas de escribir una geocerca — habría sido repetir el error que este ADR arregla.
+
+### Detalles que no son estéticos
+
+- **Los vértices se leen del polígono, no de un estado paralelo.** Guardarlos aparte haría
+  que arrastrar una esquina cambiara el mapa y no lo guardado, y eso no se ve hasta que
+  alguien ficha fuera del sitio.
+- **`gestureHandling: "greedy"` aquí, y `"cooperative"` en el visor.** Dibujando se quiere
+  zoom con la rueda; en una lista larga de Ajustes, un mapa que se traga la rueda es una
+  trampa.
+- **El clic solo añade esquinas en modo polígono.** En círculo movería el centro sin querer,
+  y para eso ya se arrastra la figura.
+- **La dirección se geocodifica con la clave de SERVIDOR** (`geocodeForMap`), no con la del
+  navegador: mantiene la separación que documenta `google-maps-loader` — la del navegador es
+  pública y solo dibuja; la de servidor paga geocoding y no sale de ahí. `/api/geocode` no
+  servía porque devuelve texto para autocompletar direcciones de entrega, no coordenadas.
+
+### Leaflet sigue vivo, y es correcto que siga
+
+`CrewMap` (dónde está la cuadrilla ahora) y `TripMap` (el recorrido de un repartidor) siguen
+en Leaflet. No se tocaron: funcionan, están dentro del chunk de fichaje donde su CSS ya
+vive, y cambiarlas por cambiar es el tipo de trabajo que rompe cosas sin arreglar ninguna.
+Se migran cuando haya una razón, no por uniformidad.

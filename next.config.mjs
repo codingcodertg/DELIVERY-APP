@@ -27,6 +27,10 @@ const nextConfig = {
       // orden lo resuelve Next por especificidad de la ruta.
       { source: "/timetracker/clock-in/account", destination: "/timetracker/account", permanent: false },
       { source: "/timetracker/clock-in/settings", destination: "/timetracker/settings", permanent: false },
+      // Los sitios se editan ahora en Ajustes, con Google Maps. La pantalla de fichaje
+      // era Leaflet y ya no existe; el enlace vivía en el menú del módulo, así que
+      // alguien lo tendrá guardado.
+      { source: "/timetracker/clock-in/sites", destination: "/timetracker/settings", permanent: false },
     ];
   },
 };

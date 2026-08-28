@@ -1,28 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { getGeofences, setSiteActive } from "@/app/timetracker/clock-in/actions/sites";
 import { GeofenceMap, type Fence } from "./GeofenceMap";
+import { GeofenceEditor } from "./GeofenceEditor";
 
 /**
- * Las geocercas de las tiendas, dentro de Ajustes de Time Tracker.
+ * Las geocercas de las tiendas, dentro de Ajustes de Time Tracker: verlas, encenderlas,
+ * apagarlas, dibujarlas y corregirlas. Todo aquí.
  *
- * Enseña las seis en un mapa y las lista con su forma, su margen y su interruptor. Lo que NO
- * trae es el editor de dibujo, y conviene decir por qué en vez de que parezca un descuido:
- * son 318 líneas de Tailwind con un mapa donde cada clic pone un vértice, y esta pantalla
- * vive bajo el grupo (timetracker), cuyo chunk de CSS no incluye Tailwind. Reescribirlo aquí
- * sería duplicar la herramienta más delicada del módulo — la que decide si el fichaje de
- * alguien cuenta — para que existan dos versiones que se pueden desincronizar.
+ * Un paso antes esta sección solo enseñaba y "editar" mandaba a la pantalla de fichaje —
+ * te sacaba de Ajustes a la app vieja, con otro mapa y otro estilo. Se descartó por lo que
+ * era: una costura visible en mitad de una tarea.
  *
- * Así que aquí se VE y se apaga o enciende, que es el 90% de lo que se hace con una geocerca
- * ya dibujada, y dibujar abre la pantalla que ya funciona.
+ * El editor está en GeofenceEditor y guarda con las MISMAS acciones de servidor que usaba
+ * la pantalla vieja, que son las que calculan el centro del polígono y comprueban el
+ * permiso. Cambiar de mapa no era motivo para tener dos formas de escribir una geocerca.
  */
 export function GeofenceSection() {
   const [sites, setSites] = useState<Fence[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  // null = nada abierto · "new" = alta · un id = editando ese sitio.
+  const [editing, setEditing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await getGeofences();
@@ -50,6 +51,17 @@ export function GeofenceSection() {
         A punch counts as on-site when it falls inside one of these. Turning a site off does not delete it —
         punches there start being flagged as off-site instead.
       </p>
+
+      {editing === null && (
+        <button className="btn-ghost btn-sm" onClick={() => setEditing("new")}>+ New job site</button>
+      )}
+      {editing !== null && (
+        <GeofenceEditor
+          site={editing === "new" ? null : sites.find((f) => f.id === editing)}
+          onDone={() => { setEditing(null); void load(); }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
 
       {err && <div className="banner err">{err}</div>}
       {!loaded ? (
@@ -80,7 +92,7 @@ export function GeofenceSection() {
                     <button className="btn-ghost btn-sm" disabled={busy === f.id} onClick={() => toggle(f)}>
                       {f.active ? "Turn off" : "Turn on"}
                     </button>{" "}
-                    <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/sites">Edit outline</Link>
+                    <button className="btn-ghost btn-sm" onClick={() => setEditing(f.id)}>Edit outline</button>
                   </td>
                 </tr>
               ))}
@@ -88,12 +100,6 @@ export function GeofenceSection() {
           </table>
         </>
       )}
-
-      <p className="small muted" style={{ marginTop: 10 }}>
-        Drawing and moving an outline happens on the{" "}
-        <Link href="/timetracker/clock-in/sites">job sites screen</Link> — it needs the map editor, which is
-        not duplicated here on purpose.
-      </p>
     </>
   );
 }

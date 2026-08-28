@@ -127,3 +127,39 @@ export async function getGeofences(): Promise<
   if (error) return { ok: false, message: error.message };
   return { ok: true, sites: (data ?? []) as never };
 }
+
+/**
+ * Una dirección a coordenadas, para centrar el mapa del editor de geocercas.
+ *
+ * Con la clave de SERVIDOR, no la del navegador. `/api/geocode` ya existe pero devuelve
+ * texto —está hecho para autocompletar direcciones de entrega— y aquí hace falta el punto.
+ * Reusar la clave de servidor mantiene la separación que documenta google-maps-loader: la
+ * del navegador es visible y solo dibuja mapas; la de servidor es la que paga geocoding y
+ * rutas, y nunca sale del servidor.
+ *
+ * Devuelve null en vez de lanzar: no encontrar una dirección es un resultado normal de
+ * escribir mal una calle, no un fallo del que haya que enterarse con una traza.
+ */
+export async function geocodeForMap(q: string): Promise<{ lat: number; lng: number; label: string } | null> {
+  const query = q.trim();
+  if (query.length < 3) return null;
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) return null;
+  try {
+    const url =
+      "https://maps.googleapis.com/maps/api/geocode/json?address=" +
+      encodeURIComponent(query) +
+      "&region=us&key=" +
+      key;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: { formatted_address: string; geometry: { location: { lat: number; lng: number } } }[];
+    };
+    const hit = data.results?.[0];
+    if (!hit) return null;
+    return { lat: hit.geometry.location.lat, lng: hit.geometry.location.lng, label: hit.formatted_address };
+  } catch {
+    return null;
+  }
+}
