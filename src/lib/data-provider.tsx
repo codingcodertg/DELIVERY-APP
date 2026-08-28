@@ -408,20 +408,26 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // la navegación que lo canceló.
   const loadFailedRef = useRef(false);
   const ensureSession = useCallback(async () => {
-    // Best-effort only — never let a hiccup HERE (a network abort mid-
-    // navigation, a transient error) take down the actual data fetch that
-    // follows. getSession() had no error handling at all before this: one
-    // throw and reloadAll() below (which now awaits this first, D-081)
-    // would reject before ever reaching setReady(true), leaving the screen
-    // stuck empty until a hard refresh gave it a clean, uninterrupted run —
-    // exactly the "always have to refresh to see data" report this fixes.
+    // Devuelve si HAY sesión, y eso es lo importante ahora. Antes solo refrescaba y se
+    // encogía de hombros; reloadAll seguía y disparaba las consultas igual.
+    //
+    // Sin sesión, supabase-js manda la clave anónima como Authorization, así que las
+    // consultas salían como `anon`. Eso venía "funcionando" porque anon tenía SELECT sobre
+    // todo — es decir, la app servía datos sin autenticar y no se notaba. Al retirarle esos
+    // permisos (081) el error salió a la luz: 401 "permission denied for table profiles".
+    //
+    // Se sigue tragando cualquier excepción, por la razón de D-088: un fetch cancelado a
+    // media navegación no debe tumbar la carga. Pero ahora dice que no la tiene, y quien
+    // llama decide en vez de preguntar a la base sin credenciales.
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const nowSec = Math.floor(Date.now() / 1000);
-      if (!session || !session.expires_at || session.expires_at - nowSec < 60) {
-        await supabase.auth.refreshSession().catch(() => {});
-      }
-    } catch { /* ignore — reloadAll proceeds with whatever session exists */ }
+      if (session && session.expires_at && session.expires_at - nowSec >= 60) return true;
+      const { data } = await supabase.auth.refreshSession();
+      return !!data?.session;
+    } catch {
+      return false;
+    }
   }, [supabase]);
 
   // Envuelto entero, y no solo ensureSession() (D-088). Aquel arreglo tapó UNA de las
@@ -437,7 +443,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   //     el primer intento gane la carrera.
   const reloadAll = useCallback(async () => {
     try {
-      await ensureSession();
+      // Sin sesión no se pregunta: una consulta anónima ya no devuelve datos, devuelve
+      // 401. Se marca como fallida y el efecto de recuperación reintenta en cuanto la
+      // sesión aparezca — que es lo que pasa un instante después al hidratar.
+      if (!(await ensureSession())) {
+        loadFailedRef.current = true;
+        return;
+      }
       const [s, p, d, e, n, av, sh, inc, loc] = await Promise.all([
         supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
         // `username` and `permissions` were missing here, and both are read by
@@ -488,7 +500,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         setDriverLocations([...latest.values()]);
       }
       setReady(true);
-      loadFailedRef.current = false;
+
+      // Un error DEVUELTO no es una excepción: supabase-js contesta { data: null, error }
+      // sin lanzar nada, así que Promise.all resolvía tan tranquilo, los setters se
+      // saltaban por `if (x.data)` y la pantalla quedaba vacía y "lista". Ese es el
+      // camino exacto del 401 anónimo: ni un error visible, ni un reintento.
+      loadFailedRef.current = [s, p, d, e, n, av, sh, inc, loc].some((r) => r && "error" in r && r.error);
     } catch {
       loadFailedRef.current = true;
     } finally {

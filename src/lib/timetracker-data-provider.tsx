@@ -206,14 +206,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // la navegación que lo canceló.
   const loadFailedRef = useRef(false);
   const ensureSession = useCallback(async () => {
-    // Best-effort only — see the identical comment in data-provider.tsx.
+    // Devuelve si HAY sesión — ver el comentario largo en data-provider.tsx. Sin ella,
+    // supabase-js manda la clave anónima y desde 081 eso es un 401, no unos datos.
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const nowSec = Math.floor(Date.now() / 1000);
-      if (!session || !session.expires_at || session.expires_at - nowSec < 60) {
-        await supabase.auth.refreshSession().catch(() => {});
-      }
-    } catch { /* ignore — reloadAll proceeds with whatever session exists */ }
+      if (session && session.expires_at && session.expires_at - nowSec >= 60) return true;
+      const { data } = await supabase.auth.refreshSession();
+      return !!data?.session;
+    } catch {
+      return false;
+    }
   }, [supabase]);
   const forceRefresh = useCallback(async () => {
     await supabase.auth.refreshSession().catch(() => {});
@@ -240,7 +243,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // (D-077/D-078/D-079's investigations all started from exactly this
       // symptom, though the timetracker cases turned out to have their own,
       // separate root causes too).
-      await ensureSession();
+      // Sin sesión no se pregunta: desde 081 una consulta anónima ya no devuelve datos,
+      // devuelve 401. Se marca como fallida y el efecto de recuperación reintenta en
+      // cuanto la sesión aparezca — que es lo que pasa un instante después al hidratar.
+      if (!(await ensureSession())) {
+        loadFailedRef.current = true;
+        return;
+      }
       const [pr, asn, ss, py, rq, set] = await Promise.all([
         supabase.from("projects").select("*").eq("archived", false).order("created_at"),
         supabase.from("assignments").select("*").eq("employee_uid", me.id),
@@ -266,7 +275,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         setSettings({ ...APP_SETTINGS });
       }
       setReady(true);
-      loadFailedRef.current = false;
+
+      // Un error DEVUELTO no es una excepción: supabase-js contesta { data: null, error }
+      // sin lanzar nada, así que Promise.all resolvía tan tranquilo, los setters se
+      // saltaban por `if (x.data)` y la pantalla quedaba vacía y "lista". Ese es el
+      // camino exacto del 401 anónimo: ni un error visible, ni un reintento.
+      loadFailedRef.current = [pr, asn, ss, py, rq, set].some((r) => r && "error" in r && r.error);
     } catch {
       loadFailedRef.current = true;
     } finally {
