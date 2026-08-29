@@ -47,7 +47,7 @@ export async function submitTimeOff(input: {
   });
   if (error) return { ok: false, message: error.message };
   // Notify the managers that a request came in.
-  await pushToManagers(ctx.profile.company_id, "mgr_timeoff_request", { name: ctx.profile.full_name }, "/timetracker/clock-in/time-off");
+  await pushToManagers(ctx.profile.company_id, "mgr_timeoff_request", { name: ctx.profile.full_name }, "/timetracker/team-requests");
   return { ok: true };
 }
 
@@ -142,5 +142,47 @@ export async function getPendingForInbox(): Promise<
     ok: true,
     timeOff: conNombre((off ?? []) as never),
     exceptions: conNombre((exc ?? []) as never),
+  };
+}
+
+/**
+ * Mis propias solicitudes de tiempo libre, para "My Requests" de Time Tracker.
+ *
+ * `getPendingForInbox` contesta la pregunta del gerente —qué me falta por aprobar—. Esta
+ * contesta la del empleado: qué pedí yo y en qué quedó. Son las dos mitades en que se partió
+ * la pantalla de fichaje (D-116), y cada una vive donde ya se hacía lo mismo.
+ *
+ * Sin alcance por tienda a propósito: aquí no hay a quién acotar, son las de quien pregunta.
+ */
+export async function getMyTimeOff(): Promise<
+  | {
+      ok: true;
+      rows: {
+        id: string; type: string; start_date: string; end_date: string;
+        note: string | null; status: string; manager_comment: string | null;
+      }[];
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await authed();
+  if (!ctx.ok) return ctx;
+  const { data, error } = await ctx.supabase
+    .from("time_off_requests")
+    .select("id, type, start_date, end_date, note, status, manager_comment")
+    .eq("employee_id", ctx.user.id)
+    .order("created_at", { ascending: false })
+    .limit(60);
+  if (error) return { ok: false, message: error.message };
+  return {
+    ok: true,
+    rows: (data ?? []).map((r) => ({
+      id: r.id as string,
+      type: r.type as string,
+      start_date: r.start_date as string,
+      end_date: r.end_date as string,
+      note: (r.note as string) ?? null,
+      status: (r.status as string) ?? "pending",
+      manager_comment: (r.manager_comment as string) ?? null,
+    })),
   };
 }

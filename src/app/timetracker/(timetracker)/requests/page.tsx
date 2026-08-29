@@ -5,11 +5,17 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { APP_SETTINGS, dateISO, fmtClock, weekIsFinished, weekStartISO } from "@/lib/timetracker/helpers";
 import { endOptions, mmhh, rangeOverlapsAny, startOptions, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
+import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
 
 // Ported (D-066, pass 3) from timetracker-clean's employee/EmployeeRequests.jsx —
 // a form to ask a manager to add/adjust/delete a time entry, plus a list of
 // past requests and their status. No desktop/offline concerns; a plain form
 // + insert, mechanically translated.
+//
+// Desde D-116 lleva TAMBIÉN el tiempo libre, que era una pestaña aparte en el módulo de
+// fichaje. Es la misma pregunta —qué le pedí a mi encargado y qué me contestó— y que una
+// petición sea de horas y la otra de días no cambia a qué viene la persona. En dos pestañas
+// distintas había que acordarse de en cuál estaba cada cosa.
 
 const LABEL: Record<RequestType, string> = { add: "Add time", adjust: "Adjust time", delete: "Delete time" };
 
@@ -31,6 +37,7 @@ interface FormState { assignmentId: string; date: string; fromTime: string; toTi
 export default function MyRequestsPage() {
   const { me, myAssignments: assignments, mySessions: sessions, myRequests: requests, addRequest } = useData();
   const aMap = new Map(assignments.map((a) => [a.id, a]));
+  const [tab, setTab] = useState<"time" | "off">("time");
   const [type, setType] = useState<RequestType>("add");
   const blank: FormState = { assignmentId: "", date: dateISO(new Date()), fromTime: "", toTime: "", sessionId: "", reason: "" };
   const [f, setF] = useState<FormState>(blank);
@@ -126,6 +133,13 @@ export default function MyRequestsPage() {
 
   return (
     <>
+      <div className="tabs" style={{ marginBottom: 12 }}>
+        <button className={tab === "time" ? "active" : ""} onClick={() => setTab("time")}>⏱ Time</button>
+        <button className={tab === "off" ? "active" : ""} onClick={() => setTab("off")}>🗓 Time off</button>
+      </div>
+
+      {tab === "off" ? <TimeOffRequests /> : (
+      <>
       <div className="card">
         <h2>New request</h2>
         {msg && <div className="banner info">{msg}</div>}
@@ -253,6 +267,8 @@ export default function MyRequestsPage() {
           </table>
         )}
       </div>
+      </>
+      )}
     </>
   );
 }

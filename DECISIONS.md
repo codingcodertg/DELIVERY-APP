@@ -5373,3 +5373,46 @@ redirección faltaba desde D-109, así que un marcador de la pantalla de fotos d
 Van cuatro pantallas mudadas y la barra ha pasado de siete entradas a cinco. Se queda con lo
 que todavía no tiene sitio en Time Tracker, y **encoge conforme lo va teniendo** — en vez de
 retirarla de golpe y dejar sus pantallas sin puerta.
+
+---
+
+## D-116 · El tiempo libre se pide donde se piden las demás cosas
+**Fecha:** 2026-08-28 · **Versión:** v0.22.0 (timetracker) · v0.22.0 (clockin) · **Pedido por:**
+Andrés (*"el tab de tiempo libre, merge it con el de My Requests"*)
+
+La pantalla de tiempo libre de fichaje tenía **la misma forma que la de excepciones**: dos
+mitades que se usan en momentos distintos, metidas en una pestaña. Se parte igual (D-115):
+
+- **Pedir tiempo libre y ver en qué quedó → My Requests.** Es la misma pregunta que esa
+  pantalla ya respondía: *qué le pedí a mi encargado y qué me contestó*. Que una petición sea
+  de horas y la otra de días **no cambia a qué viene la persona**; en dos pestañas distintas
+  había que acordarse de en cuál estaba cada cosa.
+- **Aprobarlo → Pendientes.** Ya estaba ahí desde D-106.
+
+Dentro de My Requests van en dos vistas (`⏱ Time` / `🗓 Time off`) y no en un scroll de cuatro
+tarjetas: son dos formularios, y uno debajo del otro obliga a pasar por delante del que no se
+quiere para llegar al que sí.
+
+### Un fallo que salió al mudarla
+
+`submitTimeOff` mandaba un aviso al gerente **con enlace a la pantalla que estoy retirando**.
+Nadie lo habría notado hasta que a alguien le llegara la notificación y la abriera. Ahora apunta
+a Pendientes, que es donde se revisa desde D-106. El aviso de la pantalla de fichar
+(*"N por revisar"*) tenía el mismo problema y va al mismo sitio.
+
+### A qué lado lleva el enlace viejo
+
+A **My Requests**, el lado del empleado. La pantalla la abrían las dos partes, pero de las doce
+personas que fichan, once entran a **pedir**, no a aprobar. El gerente que busque la cola la
+tiene en su barra, en Pendientes, y con contador.
+
+### Cosas pequeñas que se arreglaron de paso
+
+La fecha de fin ahora **sigue a la de inicio** mientras vaya por detrás. El error más común de
+la pantalla vieja era mandar un rango invertido y que el servidor lo rechazara después de
+pulsar. Y **el comentario del encargado se ve en la fila**: es la razón por la que alguien
+vuelve a esta pantalla después de que le contesten, y estaba escondido.
+
+### La barra de fichaje
+
+De cinco entradas a cuatro: quedan dashboard, reports, schedule y la pantalla de fichar.

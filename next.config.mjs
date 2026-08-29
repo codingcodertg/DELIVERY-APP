@@ -38,6 +38,10 @@ const nextConfig = {
       { source: "/timetracker/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
       // Las fotos se mudaron a Auditoría en D-109; esta regla faltaba.
       { source: "/timetracker/clock-in/photos", destination: "/timetracker/audit", permanent: false },
+      // Tiempo libre, partido igual que las excepciones (D-116): pedirlo y ver en qué quedó
+      // está en My Requests; aprobarlo, en Pendientes. El enlace viejo lleva al lado del
+      // EMPLEADO porque de las doce personas que lo abrían, once venían a pedir, no a aprobar.
+      { source: "/timetracker/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
     ];
   },
 };

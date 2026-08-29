@@ -409,7 +409,7 @@ function ClockShell({
             )}
             {pending!.timeoff > 0 && (
               <li>
-                <Link href="/timetracker/clock-in/time-off" className={todoLink}>
+                <Link href="/timetracker/team-requests" className={todoLink}>
                   <span>🗓️ <b className="tabular-nums">{pending!.timeoff}</b> {tr.timeoffToReview}</span>
                   <span className="text-amber-600">→</span>
                 </Link>

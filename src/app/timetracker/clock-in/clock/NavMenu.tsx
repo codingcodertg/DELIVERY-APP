@@ -38,7 +38,7 @@ export default function NavMenu({
   // under Settings for them).
   if (!isOwner) {
     links.push(
-      { href: "/timetracker/clock-in/time-off", label: tr.timeOff },
+      { href: "/timetracker/requests", label: tr.timeOff },
       // Cuenta y Ajustes ya no viven aquí: se fusionaron con las de Time Tracker, que
       // tenían lo mismo más cosas. Se apunta allí en vez de dejar dos pantallas que
       // hacían media cada una.
