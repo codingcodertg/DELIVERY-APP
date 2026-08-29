@@ -68,6 +68,24 @@
   --color-zinc-950: #0f1420;   /* tt-bg oscuro    */
 }
 
+/* ---------------------------------------------------------------------------
+   Paso 2: las formas (D-113).
+   ---------------------------------------------------------------------------
+   Después del color, lo que más delataba que eran dos aplicaciones era el redondeo. Fichaje
+   usa los valores de Tailwind —16 px en tarjetas, 12 px en controles— y Time Tracker los
+   suyos, 14 y 10. Dos píxeles no se ven de uno en uno; se ven al poner las dos pantallas
+   seguidas, que es exactamente lo que hace quien usa las dos mitades de la app.
+
+   Mismo método que la paleta y por el mismo motivo: son 83 apariciones de estas clases. Se
+   cambian tres valores y cambian todas; se deshace volviendo a estos tres.
+
+   `rounded-full` no se toca: una pastilla es una pastilla en los dos módulos. */
+@theme {
+  --radius-2xl: 14px;   /* .card de Time Tracker            */
+  --radius-xl:  10px;   /* sus inputs, botones y banners    */
+  --radius-lg:   8px;   /* sus pestañas — ya coincidía, se fija por si Tailwind lo mueve */
+}
+
 /* El fondo de página y el texto base, a los mismos dos colores que usa Time Tracker. Antes
    eran blanco puro y casi negro: al cruzar de un módulo al otro cambiaba el fondo. */
 :root {

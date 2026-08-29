@@ -336,7 +336,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
     <main className="flex-1 w-full max-w-md mx-auto p-5 flex flex-col gap-5">
       <header className="flex items-center gap-2.5">
         <HubLink lang={lang} />
-        <Link href="/timetracker/clock-in/clock" aria-label={tr.home} className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-11 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0">
+        <Link href="/timetracker/clock-in/clock" aria-label={tr.home} className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0">
           <span aria-hidden>🏠</span>
           {tr.home}
         </Link>

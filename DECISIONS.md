@@ -5256,3 +5256,35 @@ y quién la otra**. Esa distinción sigue existiendo, y con más precisión que 
 (Remoto / Presencial) y **Track mode** (actividad / entrada-salida)—. La casilla solo decía "tiene
 acceso"; nunca dijo "esta persona ficha". Es una propiedad de *cómo trabaja* alguien, no una
 segunda llave de entrada.
+
+---
+
+## D-113 · Fundir la interfaz de fichaje · paso 2: las formas
+**Fecha:** 2026-08-28 · **Versión:** v0.19.0 (clockin) · **Pedido por:** Andrés (*"sí hazlo"*,
+sobre la recomendación de seguir por las formas)
+
+Después del color (D-112), lo que más delataba que eran dos aplicaciones era **el redondeo**.
+Fichaje usaba los valores de Tailwind —16 px en tarjetas, 12 px en controles— y Time Tracker los
+suyos: **14 y 10**. Dos píxeles no se ven de uno en uno; se ven al poner las dos pantallas
+seguidas, que es exactamente lo que hace quien usa las dos mitades de la app.
+
+Mismo método que la paleta y por el mismo motivo: **83 apariciones** de esas clases. Se cambian
+tres valores en `@theme` y cambian todas.
+
+Comprobado en el CSS emitido, no supuesto: `--radius-xl:10px`, `--radius-2xl:14px`.
+
+### Y la altura de los controles
+
+Los botones de cabecera de fichaje medían **44 px** (`h-11`); los de Time Tracker miden **40**
+(padding 10 px + 14 px de texto). Eran seis, en cinco archivos, y se bajaron a mano — aquí no
+sirve el remapeo: la escala de espaciado de Tailwind es **una sola** para alturas, anchos,
+márgenes y huecos, así que moverla para arreglar seis botones habría recolocado cada margen de
+las trece pantallas.
+
+**El botón flotante del tour se queda en 44.** No es cromo que conviva con controles de Time
+Tracker: es un botón circular suelto sobre el contenido, y encogerlo solo lo haría más difícil
+de acertar con el dedo.
+
+### `rounded-full` no se toca
+
+Una pastilla es una pastilla en los dos módulos.
