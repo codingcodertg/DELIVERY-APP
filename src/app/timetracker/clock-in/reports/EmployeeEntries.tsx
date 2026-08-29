@@ -201,7 +201,7 @@ export default function EmployeeEntries({
                 </span>
                 {!locked && (
                   <>
-                    <button onClick={() => startEdit(e)} className="text-xs text-emerald-600 hover:underline">
+                    <button onClick={() => startEdit(e)} className="text-xs text-brand-600 hover:underline">
                       {tr.edit}
                     </button>
                     <button onClick={() => remove(e.id)} className="text-xs text-zinc-400 hover:text-red-600">
@@ -220,7 +220,7 @@ export default function EmployeeEntries({
       {adding && <DraftForm onSave={saveAdd} onCancel={() => setAdding(false)} />}
 
       {!locked && !adding && (
-        <button onClick={startAdd} className="mt-2 text-sm text-emerald-600 hover:underline font-medium">
+        <button onClick={startAdd} className="mt-2 text-sm text-brand-600 hover:underline font-medium">
           + {tr.addPunch}
         </button>
       )}

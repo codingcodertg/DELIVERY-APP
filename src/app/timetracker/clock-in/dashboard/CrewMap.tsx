@@ -58,7 +58,7 @@ export default function CrewMap({ points, label }: { points: CrewPoint[]; label:
       className="mt-3 h-64 w-full rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 z-0"
     />
   ) : (
-    <button onClick={() => setShown(true)} className="text-xs font-medium text-emerald-600 hover:underline">
+    <button onClick={() => setShown(true)} className="text-xs font-medium text-brand-600 hover:underline">
       🗺️ {label}
     </button>
   );

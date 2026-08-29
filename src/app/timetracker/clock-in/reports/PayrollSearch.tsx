@@ -33,7 +33,7 @@ export default function PayrollSearch({ placeholder }: { placeholder: string }) 
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-emerald-500"
+        className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-brand-500"
       />
       {q && (
         <button

@@ -44,7 +44,7 @@ export default function ManagerHeader({
           <Link
             href="/timetracker/clock-in/clock"
             aria-label={base.home}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0"
+            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-brand-400 transition-colors shrink-0"
           >
             <span aria-hidden>🏠</span>
             {base.home}
@@ -62,8 +62,8 @@ export default function ManagerHeader({
             href={it.href}
             className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
               active === it.key
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                ? "bg-brand-600 text-white shadow-sm"
+                : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-brand-400 hover:text-brand-600 dark:hover:text-brand-400"
             }`}
           >
             {it.label}

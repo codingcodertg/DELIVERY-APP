@@ -118,7 +118,7 @@ export default function EnableNotifications({ lang }: { lang: Lang }) {
         <button
           onClick={enable}
           disabled={state === "working"}
-          className="text-sm text-emerald-600 hover:underline disabled:opacity-60"
+          className="text-sm text-brand-600 hover:underline disabled:opacity-60"
         >
           🔔 {tr.enableNotifications}
         </button>

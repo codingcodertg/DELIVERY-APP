@@ -385,7 +385,7 @@ function ClockShell({
             <Link
               key={tile.href}
               href={tile.href}
-              className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 py-3 text-center hover:border-emerald-400 transition-colors"
+              className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 py-3 text-center hover:border-brand-400 transition-colors"
             >
               <span className="text-xl" aria-hidden>{tile.icon}</span>
               <span className="text-[11px] font-medium leading-tight text-zinc-600 dark:text-zinc-300">{tile.label}</span>

@@ -5288,3 +5288,46 @@ de acertar con el dedo.
 ### `rounded-full` no se toca
 
 Una pastilla es una pastilla en los dos módulos.
+
+---
+
+## D-114 · Fundir la interfaz de fichaje · paso 3: el acento
+**Fecha:** 2026-08-28 · **Versión:** v0.20.0 (clockin) · **Pedido por:** Andrés (*"sigue"*)
+
+Este paso **no se podía hacer reasignando una escala**, y ahí está la diferencia con los dos
+anteriores. Fichaje pintaba de verde **dos cosas que no son la misma**:
+
+- **Lo que significa algo** — fichado, dentro del sitio, aprobado, guardado, viaje empezado. Ahí
+  el verde es información, y en Time Tracker también lo es (`--tt-ok`).
+- **Lo que solo es "el color de los botones"** — la pestaña activa, el borde al pasar por
+  encima, un enlace, la semana siguiente, la opción elegida, el foco de un campo. Eso es cromo,
+  y el cromo de Time Tracker es **azul** (`--tt-accent`).
+
+Reasignar `emerald` habría movido las dos a la vez y **roto el significado**: un "guardado" en
+azul, el turno de hoy sin marcar, el indicador de "estás fichado" indistinguible de un botón.
+
+Así que el cromo pasó a un nombre nuevo, `brand`, **caso por caso**: 36 sitios. El verde que
+informa se quedó donde estaba: 41 sitios.
+
+### Cómo se decidió cada uno
+
+Se leyeron las 72 apariciones. La regla fue: **si quitando el color se pierde un dato, es
+verde; si solo se pierde el brillo, es cromo.** Los casos que costaron:
+
+- **La opción elegida** (día de la semana, motivo del viaje) → cromo. Una selección es acento,
+  no un estado del mundo.
+- **El botón "siguiente" del tour** → cromo. Es un botón primario, no dice nada del fichaje.
+- **El botón de fichar a alguien** (`AdminClockPanel`) → **verde**. Ahí el color sí dice qué va
+  a pasar al pulsarlo.
+- **El indicador de no leído** → verde, sin tocar. Es discutible, pero no es cromo, y moverlo
+  sin necesidad era arriesgar por gusto.
+
+### El token cambia con el tema
+
+Porque el azul de Time Tracker cambia: **#3a63e0** sobre claro, **#4f7cff** sobre oscuro. Un
+valor fijo se vería apagado en un tema o chillón en el otro. `@theme inline` hace que las clases
+compilen a `var(--ci-accent)` en vez de a un color, así que el tema lo decide el mismo atributo
+que ya manda en todo lo demás.
+
+Verificado en el CSS emitido: `.bg-brand-600{background-color:var(--ci-accent)}`, con
+`--ci-accent` definido dos veces, una por tema.

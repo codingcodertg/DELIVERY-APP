@@ -58,7 +58,7 @@ export default function NavMenu({
         onClick={() => setOpen((o) => !o)}
         aria-label="Menu"
         data-tour="menu"
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-emerald-400 transition-colors"
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-brand-400 transition-colors"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <line x1="4" y1="7" x2="20" y2="7" />

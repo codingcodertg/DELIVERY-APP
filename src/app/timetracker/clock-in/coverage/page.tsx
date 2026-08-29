@@ -249,7 +249,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
 
   const Photo = ({ path }: { path: string | null | undefined }) =>
     path && photoUrl.get(path) ? (
-      <a href={photoUrl.get(path)} target="_blank" rel="noreferrer" className="text-xs text-emerald-600 hover:underline shrink-0">
+      <a href={photoUrl.get(path)} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline shrink-0">
         📷 {m.viewPhoto}
       </a>
     ) : null;
@@ -336,7 +336,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
     <main className="flex-1 w-full max-w-md mx-auto p-5 flex flex-col gap-5">
       <header className="flex items-center gap-2.5">
         <HubLink lang={lang} />
-        <Link href="/timetracker/clock-in/clock" aria-label={tr.home} className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0">
+        <Link href="/timetracker/clock-in/clock" aria-label={tr.home} className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-brand-400 transition-colors shrink-0">
           <span aria-hidden>🏠</span>
           {tr.home}
         </Link>
@@ -379,9 +379,9 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
 
       {/* Week navigation. */}
       <div className="flex items-center justify-between rounded-2xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5">
-        <Link href={`/timetracker/clock-in/coverage?week=${addDays(periodStart, -7)}`} className="text-sm text-emerald-600 hover:underline px-2 py-1">← {m.prevWeek}</Link>
+        <Link href={`/timetracker/clock-in/coverage?week=${addDays(periodStart, -7)}`} className="text-sm text-brand-600 hover:underline px-2 py-1">← {m.prevWeek}</Link>
         <span className="text-sm font-semibold text-center">{m.crewWeek} {rangeLabel(periodStart, periodEnd)}</span>
-        <Link href={`/timetracker/clock-in/coverage?week=${addDays(periodStart, 7)}`} className="text-sm text-emerald-600 hover:underline px-2 py-1">{m.nextWeek} →</Link>
+        <Link href={`/timetracker/clock-in/coverage?week=${addDays(periodStart, 7)}`} className="text-sm text-brand-600 hover:underline px-2 py-1">{m.nextWeek} →</Link>
       </div>
 
       {/* store → date → position → employee → timeline */}

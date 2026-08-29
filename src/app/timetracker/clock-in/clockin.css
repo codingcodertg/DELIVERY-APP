@@ -86,6 +86,41 @@
   --radius-lg:   8px;   /* sus pestañas — ya coincidía, se fija por si Tailwind lo mueve */
 }
 
+/* ---------------------------------------------------------------------------
+   Paso 3: el acento (D-114).
+   ---------------------------------------------------------------------------
+   Este no se podía hacer reasignando una escala, y ahí está la diferencia con los dos pasos
+   anteriores. Fichaje pinta de verde DOS cosas que no son la misma:
+
+     · lo que SIGNIFICA algo — fichado, dentro del sitio, aprobado, guardado. Ahí el verde es
+       información, y en Time Tracker también lo es (`--tt-ok`). Se queda.
+     · lo que solo es "el color de los botones" — la pestaña activa, el borde al pasar por
+       encima, un enlace, la semana siguiente, la opción elegida. Eso es cromo, y en Time
+       Tracker el cromo es AZUL (`--tt-accent`). Ahí estaba el desajuste.
+
+   Reasignar `emerald` habría movido las dos a la vez y roto el significado: un mensaje de
+   "guardado" en azul, un turno de hoy sin marcar. Así que el cromo se pasa a un nombre nuevo,
+   `brand`, caso por caso —unas 25 veces— y el verde que informa no se toca.
+
+   El token cambia con el tema porque el azul de Time Tracker cambia: #3a63e0 sobre claro,
+   #4f7cff sobre oscuro. Un solo valor fijo se vería apagado en un tema o chillón en el otro. */
+:root {
+  --ci-accent: #3a63e0;          /* tt-accent claro */
+  --ci-accent-soft: #7a9bff;
+  --ci-accent-strong: #2f52bd;
+}
+:root[data-theme="dark"] {
+  --ci-accent: #4f7cff;          /* tt-accent oscuro */
+  --ci-accent-soft: #6f93ff;
+  --ci-accent-strong: #9ab4ff;
+}
+@theme inline {
+  --color-brand-400: var(--ci-accent-soft);
+  --color-brand-500: var(--ci-accent);
+  --color-brand-600: var(--ci-accent);
+  --color-brand-700: var(--ci-accent-strong);
+}
+
 /* El fondo de página y el texto base, a los mismos dos colores que usa Time Tracker. Antes
    eran blanco puro y casi negro: al cruzar de un módulo al otro cambiaba el fondo. */
 :root {

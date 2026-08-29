@@ -155,13 +155,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {/* Week navigation */}
       <div className="flex items-center justify-between rounded-2xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5">
-        <Link href={`/timetracker/clock-in/reports?week=${addDays(monday, -7)}`} className="text-sm text-emerald-600 hover:underline px-2 py-1">
+        <Link href={`/timetracker/clock-in/reports?week=${addDays(monday, -7)}`} className="text-sm text-brand-600 hover:underline px-2 py-1">
           ← {tr.prevWeek}
         </Link>
         <span className="text-sm font-semibold">
           {tr.weekOf} {weekLabel(monday, sunday)}
         </span>
-        <Link href={`/timetracker/clock-in/reports?week=${addDays(monday, 7)}`} className="text-sm text-emerald-600 hover:underline px-2 py-1">
+        <Link href={`/timetracker/clock-in/reports?week=${addDays(monday, 7)}`} className="text-sm text-brand-600 hover:underline px-2 py-1">
           {tr.nextWeek} →
         </Link>
       </div>

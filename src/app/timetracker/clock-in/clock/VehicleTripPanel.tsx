@@ -230,7 +230,7 @@ export default function VehicleTripPanel({
   // The "own vehicle?" toggle — shown on every start form.
   const personalToggle = (
     <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-      <input type="checkbox" checked={personal} onChange={(e) => setPersonal(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+      <input type="checkbox" checked={personal} onChange={(e) => setPersonal(e.target.checked)} className="h-4 w-4 accent-brand-600" />
       <span>🚗 {tr.rPersonalVehicle}</span>
     </label>
   );
@@ -249,8 +249,8 @@ export default function VehicleTripPanel({
               onClick={() => setReason(r)}
               className={`min-h-[44px] rounded-xl border px-3 py-2 text-left text-sm font-medium transition-colors ${
                 reason === r
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-                  : "border-zinc-300 dark:border-zinc-700 hover:border-emerald-400"
+                  ? "border-brand-500 bg-brand-600/10 text-brand-600 dark:text-brand-400"
+                  : "border-zinc-300 dark:border-zinc-700 hover:border-brand-400"
               }`}
             >
               {tr.leaveReasons[r as keyof typeof tr.leaveReasons] ?? r}

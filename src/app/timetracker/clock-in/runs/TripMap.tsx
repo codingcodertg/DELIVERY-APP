@@ -80,7 +80,7 @@ export default function TripMap({
       />
     </div>
   ) : (
-    <button onClick={() => setShown(true)} className="text-xs font-medium text-emerald-600 hover:underline self-start">
+    <button onClick={() => setShown(true)} className="text-xs font-medium text-brand-600 hover:underline self-start">
       🗺️ {label}
     </button>
   );

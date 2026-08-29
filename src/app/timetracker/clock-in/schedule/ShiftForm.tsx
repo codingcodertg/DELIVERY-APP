@@ -135,8 +135,8 @@ export default function ShiftForm({
                 onClick={() => toggleDay(d)}
                 className={`flex flex-col items-center rounded-lg border py-2 transition-colors ${
                   on
-                    ? "border-emerald-500 bg-emerald-600 text-white"
-                    : "border-zinc-300 dark:border-zinc-700 hover:border-emerald-400"
+                    ? "border-brand-500 bg-brand-600 text-white"
+                    : "border-zinc-300 dark:border-zinc-700 hover:border-brand-400"
                 }`}
               >
                 <span className="text-[11px] font-medium">{dow[dowIndex(d)]}</span>
@@ -146,7 +146,7 @@ export default function ShiftForm({
           })}
         </div>
         <div className="flex gap-3 text-xs">
-          <button type="button" onClick={setWeekdays} className="text-emerald-600 hover:underline">
+          <button type="button" onClick={setWeekdays} className="text-brand-600 hover:underline">
             {tr.monFri}
           </button>
           {days.size > 0 && (

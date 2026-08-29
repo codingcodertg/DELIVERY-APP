@@ -258,14 +258,14 @@ export default function Tour({
                 {i > 0 && (
                   <button
                     onClick={back}
-                    className="rounded-xl border border-zinc-300 dark:border-zinc-700 px-3.5 py-2 text-sm font-medium hover:border-emerald-500"
+                    className="rounded-xl border border-zinc-300 dark:border-zinc-700 px-3.5 py-2 text-sm font-medium hover:border-brand-500"
                   >
                     {es ? "Atrás" : "Back"}
                   </button>
                 )}
                 <button
                   onClick={next}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 text-sm font-semibold active:scale-[0.98] transition"
+                  className="rounded-xl bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 text-sm font-semibold active:scale-[0.98] transition"
                 >
                   {isLast ? (es ? "Entendido" : "Got it") : i === 0 ? (es ? "Comenzar" : "Start") : es ? "Siguiente" : "Next"}
                 </button>

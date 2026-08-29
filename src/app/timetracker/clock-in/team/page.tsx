@@ -52,7 +52,7 @@ export default async function VehiclesPage() {
         <Link
           href="/timetracker/clock-in/clock"
           aria-label={base.home}
-          className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-emerald-400 transition-colors shrink-0"
+          className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 h-10 px-3 text-sm font-semibold hover:border-brand-400 transition-colors shrink-0"
         >
           <span aria-hidden>🏠</span>
           {base.home}
@@ -70,7 +70,7 @@ export default async function VehiclesPage() {
         {lang === "es"
           ? "Las personas —puesto, horario, sitio, repartidor y si cuentan tiempo— se configuran en Usuarios, en el hub."
           : "People — position, schedule, site, runner and whether they count time — are configured in Users, on the hub."}{" "}
-        <Link href="/home/users" className="text-emerald-600 font-medium hover:underline">
+        <Link href="/home/users" className="text-brand-600 font-medium hover:underline">
           {lang === "es" ? "Ir a Usuarios →" : "Go to Users →"}
         </Link>
       </p>

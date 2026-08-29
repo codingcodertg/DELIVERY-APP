@@ -47,7 +47,7 @@ export default function VehiclesManager({ vehicles, lang }: { vehicles: Vehicle[
 
       <div className="p-5 pt-3">
         <div className="flex items-center justify-end">
-          <button onClick={() => setOpen((o) => !o)} className="text-sm text-emerald-600 hover:underline font-medium">
+          <button onClick={() => setOpen((o) => !o)} className="text-sm text-brand-600 hover:underline font-medium">
             {open ? tr.cancel ?? "Cancel" : `+ ${tr.addVehicle}`}
           </button>
         </div>
@@ -79,7 +79,7 @@ export default function VehiclesManager({ vehicles, lang }: { vehicles: Vehicle[
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={`🔍 ${tr.searchVehicles}`}
-                  className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-brand-500"
                 />
                 {q && (
                   <button
@@ -101,7 +101,7 @@ export default function VehiclesManager({ vehicles, lang }: { vehicles: Vehicle[
                     {v.plate && <span className="ml-2 text-xs text-zinc-400">{v.plate}</span>}
                     {!v.active && <span className="ml-2 text-xs text-red-500">{tr.inactive}</span>}
                   </span>
-                  <button onClick={() => toggle(v.id, !v.active)} className="text-xs text-emerald-600 hover:underline font-medium shrink-0">
+                  <button onClick={() => toggle(v.id, !v.active)} className="text-xs text-brand-600 hover:underline font-medium shrink-0">
                     {v.active ? tr.deactivate ?? "Deactivate" : tr.activate ?? "Activate"}
                   </button>
                 </li>
