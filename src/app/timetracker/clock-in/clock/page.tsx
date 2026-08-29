@@ -401,7 +401,7 @@ function ClockShell({
           <ul className="mt-2 flex flex-col gap-1.5">
             {pending!.timesheets > 0 && (
               <li>
-                <Link href="/timetracker/clock-in/reports" className={todoLink}>
+                <Link href="/timetracker/payroll" className={todoLink}>
                   <span>✅ <b className="tabular-nums">{pending!.timesheets}</b> {tr.timesheetsToApprove}</span>
                   <span className="text-amber-600">→</span>
                 </Link>

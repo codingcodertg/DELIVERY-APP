@@ -6,7 +6,7 @@ import HubLink from "./HubLink";
 // hatch, and one consistent horizontal nav bar so managers can jump between
 // screens from anywhere (instead of bouncing back to the dashboard).
 
-type NavKey = "dashboard" | "reports" | "schedule" | "team" | "sites" | "runs" | "settings";
+type NavKey = "dashboard" | "schedule" | "team" | "sites" | "runs" | "settings";
 
 export default function ManagerHeader({
   lang,
@@ -25,7 +25,6 @@ export default function ManagerHeader({
   const base = t(lang);
   const items: { key: NavKey; href: string; label: string }[] = [
     { key: "dashboard", href: "/timetracker/clock-in/dashboard", label: tr.dashboard },
-    { key: "reports", href: "/timetracker/clock-in/reports", label: tr.payroll },
     { key: "schedule", href: "/timetracker/clock-in/schedule", label: tr.schedule },
     // Runs folded into Today's Crew — no separate page anymore.
     // Ni las excepciones ni las fotos siguen aquí: se partieron por lo que se HACE con

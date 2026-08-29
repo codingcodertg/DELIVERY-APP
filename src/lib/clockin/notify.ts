@@ -206,7 +206,7 @@ export async function maybeNotifyStoreReady(companyId: string, storeId: string |
 }
 
 /** Notify all active OWNERS of a company (records in-app for each, pushes to their devices). */
-export async function pushToOwners(companyId: string, type: string, params: P = {}, url = "/timetracker/clock-in/reports") {
+export async function pushToOwners(companyId: string, type: string, params: P = {}, url = "/timetracker/payroll") {
   const or = await rest(`profiles?select=id,language&company_id=eq.${companyId}&role=eq.owner&active=eq.true`);
   const owners: { id: string; language: string }[] = or.ok ? await or.json() : [];
   if (owners.length === 0) return;

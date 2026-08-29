@@ -42,6 +42,11 @@ const nextConfig = {
       // está en My Requests; aprobarlo, en Pendientes. El enlace viejo lleva al lado del
       // EMPLEADO porque de las doce personas que lo abrían, once venían a pedir, no a aprobar.
       { source: "/timetracker/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
+      // La nómina de fichaje se fusionó con la de Time Tracker (D-117): mismas dos vistas,
+      // mismo periodo. OJO: solo la PANTALLA. Las rutas de exportación viven en
+      // /timetracker/clock-in/api/reports/* y siguen existiendo — esta regla no las toca
+      // porque no empieza por /reports sino por /api.
+      { source: "/timetracker/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
     ];
   },
 };

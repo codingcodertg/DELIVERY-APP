@@ -5416,3 +5416,55 @@ vuelve a esta pantalla después de que le contesten, y estaba escondido.
 ### La barra de fichaje
 
 De cinco entradas a cuatro: quedan dashboard, reports, schedule y la pantalla de fichar.
+
+---
+
+## D-117 · Una sola nómina, con las dos vistas sobre el mismo periodo
+**Fecha:** 2026-08-28 · **Versión:** v0.23.0 (timetracker) · v0.23.0 (clockin) · **Pedido por:**
+Andrés (*"ahora hagamos lo mismo con lo de nómina"*)
+
+La pantalla más grande que quedaba en fichaje, y la que peor sentaba tener aparte: **las dos
+nóminas cuentan el mismo periodo** —viernes a jueves— y aun así vivían en dos sitios, con dos
+estéticas y **dos calendarios propios**. El pie de la pantalla de Payroll lo decía con todas las
+letras: *"cada mitad conserva su propia pantalla"*. Esa frase era la costura.
+
+Ahora Payroll tiene dos vistas sobre el mismo `?period=`:
+
+- **🧾 Period** — las horas de las dos mitades, sin sumarlas (D-102). Sin cambios.
+- **✅ Timesheets** — lo que era la nómina de fichaje: total de empresa, aviso de fichajes sin
+  salida, exportaciones, cierre del periodo, y por persona su aprobación y sus fichajes con
+  edición, alta y borrado.
+
+Que compartan la navegación de periodo **es la mitad del arreglo**. Antes, comprobar un dato de
+la semana pasada obligaba a mover dos calendarios por separado y confiar en que apuntaran a lo
+mismo.
+
+### Lo que NO se reescribió, y es lo importante
+
+**La aritmética.** Totales, comida, extras y turnos abiertos siguen saliendo de
+`lib/clockin/payroll.ts` — el mismo módulo que usaba la pantalla vieja. Es puro, así que corre
+igual en el cliente. Recalcularlo a mano habría creado **una segunda aritmética de nómina**, y
+dos nóminas que no cuadran son peor que una sola pantalla fea.
+
+Las **acciones de servidor** también son las mismas (`editEntry`, `addEntry`, `deleteEntry`,
+`approveTimesheet`, `unapproveTimesheet`, `ownerSignoff`, `revokeSignoff`), así que se conservan
+sus avisos, sus permisos y su bloqueo cuando el periodo está cerrado. Lo único nuevo es
+`getPayrollPeriod`, que es la consulta de la pantalla vieja movida tal cual — y devuelve los
+fichajes **crudos**, no totales, precisamente para no partir el cálculo en dos.
+
+### Otro aviso que apuntaba a una pantalla que iba a desaparecer
+
+`pushToOwners` tenía como destino por defecto `/timetracker/clock-in/reports`. Mismo fallo que
+encontré en el tiempo libre (D-116) y del mismo tipo: **invisible hasta que a alguien le llega
+la notificación y la abre**. Ya apunta a Payroll. Van dos; conviene revisar el resto de destinos
+de aviso antes de retirar la siguiente pantalla.
+
+### Cuidado con la redirección
+
+`/timetracker/clock-in/reports` → Payroll. Pero las **exportaciones** viven en
+`/timetracker/clock-in/api/reports/*` y siguen existiendo: la regla no las toca porque su ruta
+empieza por `/api`. Comprobado en el build — las dos rutas de export siguen en la tabla.
+
+### La barra de fichaje
+
+De cuatro entradas a **tres**: quedan dashboard, schedule y la pantalla de fichar.

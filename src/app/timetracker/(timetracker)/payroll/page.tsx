@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,7 @@ export default async function PayrollPage({
   const aRevisar = rows.filter((r) => r.revisar);
 
   return (
+    <PayrollTabs period={start}>
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>Payroll · period</h2>
@@ -138,10 +140,11 @@ export default async function PayrollPage({
 
       <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
         Both halves count the week <strong>Friday to Thursday</strong>, so this period is the same in each. To approve
-        timesheets or close the period, each half keeps its own screen:{" "}
-        <Link href="/timetracker/reports">Reports/Pay</Link> and{" "}
-        <Link href="/timetracker/clock-in/reports">Clock-in payroll</Link>.
+        timesheets, fix a punch or close the period, open <strong>Timesheets</strong> above — same period, no second
+        calendar to keep in sync. The project-side detail is in{" "}
+        <Link href="/timetracker/reports">Reports/Pay</Link>.
       </p>
     </div>
+    </PayrollTabs>
   );
 }
