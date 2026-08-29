@@ -5,6 +5,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { dateISO, fmtDT, fmtDayLong } from "@/lib/timetracker/helpers";
 import { DayPhotos } from "@/components/timetracker/DayPhotos";
+import { ExceptionHistory } from "@/components/timetracker/ExceptionHistory";
 
 // Ported (D-071) from timetracker-clean's manager/AuditLog.jsx — grouped by
 // day, with person + action filters. `auditLog` is kept live by the
@@ -16,7 +17,7 @@ import { DayPhotos } from "@/components/timetracker/DayPhotos";
 // y cuándo— así que el registro y las fotos que lo prueban van juntos, no separados por la
 // barra de navegación.
 export default function AuditLogPage() {
-  const [view, setView] = useState<"log" | "photos">("log");
+  const [view, setView] = useState<"log" | "photos" | "exceptions">("log");
   const { me, auditLog: items, allEmployees: users } = useData();
   const t = useT();
   const [who, setWho] = useState("");
@@ -41,10 +42,12 @@ export default function AuditLogPage() {
     <div className="tabs" style={{ marginBottom: 12 }}>
       <button className={view === "log" ? "active" : ""} onClick={() => setView("log")}>📜 Log</button>
       <button className={view === "photos" ? "active" : ""} onClick={() => setView("photos")}>📷 Photos</button>
+      <button className={view === "exceptions" ? "active" : ""} onClick={() => setView("exceptions")}>⚠️ Exceptions</button>
     </div>
   );
 
   if (view === "photos") return <>{switcher}<DayPhotos /></>;
+  if (view === "exceptions") return <>{switcher}<ExceptionHistory /></>;
 
   return (
     <>

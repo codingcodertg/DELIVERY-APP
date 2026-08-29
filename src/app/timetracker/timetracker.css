@@ -181,3 +181,15 @@
 /* La nota de la excepción ocupa toda la línea y se corta: son frases libres y una larga
    descuadraba la tarjeta entera. */
 .timetracker-module .rev-note{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Historial de excepciones (Auditoría → Exceptions, D-115). */
+.timetracker-module .exc-list{list-style:none;margin:6px 0 0;padding:0}
+.timetracker-module .exc-row{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--tt-line)}
+.timetracker-module .exc-row:first-child{border-top:none}
+.timetracker-module .exc-shots{display:flex;gap:6px;flex:0 0 auto}
+/* Dos fotos por excepción como mucho —al salir y al volver— así que caben al lado y no hace
+   falta rejilla. 64px basta para reconocer el sitio; para la cara está el visor. */
+.timetracker-module .exc-thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;
+     border:1px solid var(--tt-line);cursor:zoom-in;background:var(--tt-chip);display:block}
+.timetracker-module .exc-noshot{width:64px;height:64px;border-radius:8px;border:1px dashed var(--tt-line);
+     display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--tt-muted);text-align:center}

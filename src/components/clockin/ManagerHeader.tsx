@@ -6,7 +6,7 @@ import HubLink from "./HubLink";
 // hatch, and one consistent horizontal nav bar so managers can jump between
 // screens from anywhere (instead of bouncing back to the dashboard).
 
-type NavKey = "dashboard" | "reports" | "schedule" | "team" | "sites" | "runs" | "timeoff" | "exceptions" | "settings";
+type NavKey = "dashboard" | "reports" | "schedule" | "team" | "sites" | "runs" | "timeoff" | "settings";
 
 export default function ManagerHeader({
   lang,
@@ -29,10 +29,10 @@ export default function ManagerHeader({
     { key: "schedule", href: "/timetracker/clock-in/schedule", label: tr.schedule },
     // Runs folded into Today's Crew — no separate page anymore.
     { key: "timeoff", href: "/timetracker/clock-in/time-off", label: tr.timeOff },
-    { key: "exceptions", href: "/timetracker/clock-in/exceptions", label: tr.exceptions },
-    // Las fotos NO van aquí. Existen —revisar un día entero de una sentada— pero viven en
-    // Auditoría de Time Tracker (D-109): esta barra se retira con el módulo, y colgarle una
-    // pantalla nueva habría sido construir encima de algo que se está desmontando.
+    // Ni las excepciones ni las fotos siguen aquí: se partieron por lo que se HACE con
+    // ellas (D-115). Lo que falta por atender vive en Pendientes, con el resto de la
+    // bandeja; el historial y las fotos, en Auditoría. Esta barra se queda con lo que
+    // todavía no tiene sitio en Time Tracker, y encoge conforme lo va teniendo.
     // Users, Sites & Account live under Settings, which is in the hamburger menu.
   ];
 

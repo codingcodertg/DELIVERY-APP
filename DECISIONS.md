@@ -5331,3 +5331,45 @@ que ya manda en todo lo demás.
 
 Verificado en el CSS emitido: `.bg-brand-600{background-color:var(--ci-accent)}`, con
 `--ci-accent` definido dos veces, una por tema.
+
+---
+
+## D-115 · Las excepciones se parten por lo que se hace con ellas
+**Fecha:** 2026-08-28 · **Versión:** v0.21.0 (timetracker) · v0.21.0 (clockin) · **Pedido por:**
+Andrés (*"ok hazlo"*, sobre mudar excepciones como paso 4)
+
+La pantalla de excepciones de fichaje mezclaba **dos cosas que se usan en momentos distintos**:
+la cola de lo que falta por revisar, y el historial de lo ya revisado con sus fotos. Por eso no
+tenía un sitio obvio al que mudarse entera.
+
+Se parte por **lo que se hace con cada mitad**:
+
+- **Lo pendiente → Pendientes.** Ya estaba ahí desde D-106, con las ausencias y las solicitudes
+  de horas. Una sola bandeja.
+- **El historial → Auditoría**, como tercera vista junto al registro y las fotos. Es la misma
+  pregunta que esas dos —qué pasó, quién y cuándo— y una excepción resuelta desaparece de la
+  cola pero sigue siendo historia.
+
+### De solo lectura, a propósito
+
+La vista de Auditoría **no lleva botón de resolver**, aunque enseñe también las abiertas. Dos
+botones que hacen lo mismo en dos pantallas acaban en dos versiones de la verdad sobre si algo
+está atendido. Lo que hay es un enlace a Pendientes, que es donde se actúa.
+
+### Lo que la pantalla vieja hacía mal
+
+Firmaba las fotos **una a una dentro de un bucle** — hasta 60 llamadas de red para abrir una
+pantalla, y ese era el motivo real de que tardara. La nueva las firma en bloque, como ya hacen
+las fotos (D-109).
+
+### Los enlaces viejos no mueren
+
+`/timetracker/clock-in/exceptions` → **Pendientes**, porque quien abría esa pantalla venía casi
+siempre a resolver, no a mirar. Y de paso `/timetracker/clock-in/photos` → **Auditoría**: esa
+redirección faltaba desde D-109, así que un marcador de la pantalla de fotos daba 404.
+
+### La barra de fichaje encoge
+
+Van cuatro pantallas mudadas y la barra ha pasado de siete entradas a cinco. Se queda con lo
+que todavía no tiene sitio en Time Tracker, y **encoge conforme lo va teniendo** — en vez de
+retirarla de golpe y dejar sus pantallas sin puerta.

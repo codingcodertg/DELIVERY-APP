@@ -31,6 +31,13 @@ const nextConfig = {
       // era Leaflet y ya no existe; el enlace vivía en el menú del módulo, así que
       // alguien lo tendrá guardado.
       { source: "/timetracker/clock-in/sites", destination: "/timetracker/settings", permanent: false },
+      // Las excepciones se partieron en dos por lo que se hace con ellas (D-115): lo que
+      // falta por atender está en Pendientes, con el resto de la bandeja, y el historial con
+      // sus fotos está en Auditoría. Quien abría esta pantalla venía casi siempre a resolver,
+      // así que el enlace viejo lleva a Pendientes.
+      { source: "/timetracker/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
+      // Las fotos se mudaron a Auditoría en D-109; esta regla faltaba.
+      { source: "/timetracker/clock-in/photos", destination: "/timetracker/audit", permanent: false },
     ];
   },
 };
