@@ -226,6 +226,10 @@ export function PayrollTimesheets({ period }: { period: string }) {
                       <div className="between">
                         <div>
                           <strong>{p.name}</strong>
+                          {/* Un remoto que ADEMÁS fichó: sus horas pueden estar contadas dos
+                              veces, una aquí y otra en sus sesiones. La marca está para que
+                              quien aprueba lo vea antes de darle a aprobar, no después. */}
+                          {p.remote && <span className="chip" style={{ marginLeft: 6 }}>remote</span>}
                           <div className="small muted">
                             <b>{hrs(s.totalMin)}</b> / {p.scheduledMin > 0 ? hrs(p.scheduledMin) : "—"} h scheduled
                             {s.otMin > 0 ? ` · ${hrs(s.otMin)} OT` : ""}

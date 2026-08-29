@@ -5468,3 +5468,44 @@ empieza por `/api`. Comprobado en el build — las dos rutas de export siguen en
 ### La barra de fichaje
 
 De cuatro entradas a **tres**: quedan dashboard, schedule y la pantalla de fichar.
+
+---
+
+## D-118 · La nómina separa a quien ficha de quien cronometra
+**Fecha:** 2026-08-28 · **Versión:** v0.24.0 (timetracker) · **Pedido por:** Andrés (*"en nómina
+separa a los remote workers con los on site"*)
+
+En la práctica son **dos nóminas distintas**: al de sitio se le paga la asistencia y al remoto
+lo cronometrado. Mezclados en una tabla había que ir persona por persona recordando quién es
+cuál. Ahora son dos grupos con subtotal propio, más un total general debajo.
+
+El dato ya existía —`worker_type` por persona, editable en **Employees**— y no se añadió a la
+vista `period_hours`: esa vista calcula horas, y meterle un campo de configuración la ataría a
+una tabla que no necesita para contar. Se junta en la pantalla, que es donde importa.
+
+### El fallo que habría tenido hacerlo de la manera obvia
+
+Lo obvio era: si no tiene tipo puesto, hereda el de la empresa (`effWorkerType`). **Medido antes
+de darlo por bueno: 8 personas en sitio, 2 remotas y 3 sin poner** — y el valor por defecto de
+la empresa es *remoto*. Esas tres son Zulema Resendez, Santana Lozano y Roberto Rodriguez, con
+**21 fichajes y cero sesiones entre las tres**.
+
+Heredar habría puesto a tres personas que solo fichan en el grupo de "remotos": la pantalla
+habría enseñado **exactamente lo contrario de la verdad**, y con aire de dato.
+
+### Lo que hace en su lugar
+
+A quien no lo tenga puesto se le mira **lo que hizo en el periodo**, que es un hecho y no una
+suposición: fichó y no cronometró → de sitio; cronometró y no fichó → remoto; las dos cosas o
+ninguna → ahí no hay nada que deducir y manda el valor de la empresa.
+
+**Y lo deducido se marca** (`guessed`), con un aviso que enlaza a Employees. Una deducción
+correcta que se presenta como certeza es una trampa para el siguiente que la lea; marcada, se
+arregla una vez y deja de adivinarse cada semana.
+
+### En la vista de partes
+
+Ahí el grupo sigue siendo la **tienda** —un gerente revisa su cuadrilla, y ese es el corte que
+necesita—, pero un remoto que además fichó lleva su marca. Sus horas pueden estar contadas dos
+veces, una en el parte y otra en sus sesiones; la marca está para que quien aprueba lo vea
+**antes** de darle a aprobar.

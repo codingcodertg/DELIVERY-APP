@@ -258,7 +258,7 @@ export async function getPayrollPeriod(periodStart: string): Promise<
       signedOff: boolean;
       isOwner: boolean;
       approved: string[];
-      people: { id: string; name: string; store: string | null; scheduledMin: number }[];
+      people: { id: string; name: string; store: string | null; scheduledMin: number; remote: boolean }[];
       stores: { key: string; name: string }[];
       entries: PayEntry[];
     }
@@ -289,7 +289,10 @@ export async function getPayrollPeriod(periodStart: string): Promise<
   const noneMatch = ["00000000-0000-0000-0000-000000000000"];
   const inIds = allowedIds.length ? allowedIds : noneMatch;
 
-  const [{ data: entryRows }, { data: lunchRows }, { data: approvals }, { data: signoff }, { data: siteRows }, { data: schedRows }] =
+  // El tipo de trabajador vive en el OTRO esquema (timetracker.employee_settings): fichaje no
+  // tiene ese concepto. Se pide aquí para poder marcar en el parte a quien cobra por lo
+  // cronometrado, que en una nómina de asistencia es justo lo que hay que mirar dos veces.
+  const [{ data: entryRows }, { data: lunchRows }, { data: approvals }, { data: signoff }, { data: siteRows }, { data: schedRows }, { data: tipos }] =
     await Promise.all([
       supabase
         .from("time_entries")
@@ -314,7 +317,10 @@ export async function getPayrollPeriod(periodStart: string): Promise<
         .in("employee_id", inIds)
         .gte("shift_date", periodStart)
         .lte("shift_date", periodEnd),
+      supabase.schema("timetracker").from("employee_settings").select("id, worker_type"),
     ]);
+
+  const esRemoto = new Map((tipos ?? []).map((t) => [t.id as string, (t.worker_type as string) !== "inhouse"]));
 
   const schedMin = new Map<string, number>();
   for (const s of schedRows ?? []) {
@@ -332,6 +338,7 @@ export async function getPayrollPeriod(periodStart: string): Promise<
       name: (p.full_name as string) ?? "—",
       store: (p.store_id as string) ?? null,
       scheduledMin: schedMin.get(p.id as string) ?? 0,
+      remote: esRemoto.get(p.id as string) ?? false,
     })),
     stores: (siteRows ?? []).map((s) => ({ key: s.id as string, name: s.name as string })),
     entries: attachLunch((entryRows ?? []) as PayEntry[], (lunchRows ?? []) as LunchRow[]),

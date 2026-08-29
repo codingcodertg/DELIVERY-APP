@@ -193,3 +193,9 @@
      border:1px solid var(--tt-line);cursor:zoom-in;background:var(--tt-chip);display:block}
 .timetracker-module .exc-noshot{width:64px;height:64px;border-radius:8px;border:1px dashed var(--tt-line);
      display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--tt-muted);text-align:center}
+
+/* Cabecera de grupo dentro de una tarjeta (Payroll → por tipo de trabajador, D-118).
+   Propia y no `.section-label` del hub: aquella usa la paleta de deliveries y sobre el panel
+   oscuro de este módulo no se lee — el mismo motivo por el que existe `.rev-who`. */
+.timetracker-module .section-title{font-size:13px;font-weight:800;color:var(--tt-txt);
+     display:flex;align-items:center;gap:8px;margin:0}
