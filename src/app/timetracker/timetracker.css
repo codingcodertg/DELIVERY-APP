@@ -199,3 +199,26 @@
    oscuro de este módulo no se lee — el mismo motivo por el que existe `.rev-who`. */
 .timetracker-module .section-title{font-size:13px;font-weight:800;color:var(--tt-txt);
      display:flex;align-items:center;gap:8px;margin:0}
+
+/* Tarjetas de "Trabajando ahora" (D-130).
+   ---------------------------------------------------------------------------
+   Rejilla de filas FIJAS, y ese es el punto: antes cada tarjeta se armaba con lo que tuviera,
+   así que "Actividad" caía al lado del reloj en una y debajo en otra, y las dos mitades no
+   coincidían en altura. Con las filas declaradas, cada dato cae siempre en el mismo renglón —
+   aunque esté vacío — y las tarjetas se leen en paralelo en vez de por separado. */
+.timetracker-module .live-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.timetracker-module .live-card{
+  background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:12px;padding:14px;
+  display:grid;gap:4px;
+  /* nombre · etiquetas · proyecto · reloj · meta · pie */
+  grid-template-rows:auto auto auto auto auto auto;
+}
+.timetracker-module .live-name{font-weight:800;font-size:15px}
+.timetracker-module .live-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:22px}
+.timetracker-module .live-sub{font-size:12px;color:var(--tt-muted);min-height:16px;
+     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timetracker-module .live-clock{font-size:28px;font-weight:800;letter-spacing:.5px;line-height:1.1;margin-top:2px}
+.timetracker-module .live-meta{font-size:12px;color:var(--tt-muted);min-height:16px}
+/* Altura reservada aunque no haya nada que poner: es lo que impide que la tarjeta del que
+   ficha quede más corta y las dos se desalineen. */
+.timetracker-module .live-foot{font-size:11.5px;color:var(--tt-muted);min-height:16px}

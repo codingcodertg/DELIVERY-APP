@@ -485,7 +485,11 @@ export async function adminClock(input: {
 export async function getCrewNow(): Promise<
   | {
       ok: true;
-      onClock: { id: string; employeeId: string; name: string; since: string }[];
+      onClock: {
+        id: string; employeeId: string; name: string; since: string;
+        /** Fuera ahora mismo: de almuerzo o en la calle. null = está en el sitio. */
+        away: { reason: string; since: string } | null;
+      }[];
       late: { name: string; minutes: number }[];
       notInYet: { name: string }[];
     }
@@ -507,7 +511,7 @@ export async function getCrewNow(): Promise<
   const ids = [...nombre.keys()];
   const inIds = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
 
-  const [{ data: entries }, { data: shifts }] = await Promise.all([
+  const [{ data: entries }, { data: shifts }, { data: salidas }] = await Promise.all([
     supabase
       .from("time_entries")
       .select("id, employee_id, clock_in_at, clock_out_at, status")
@@ -518,7 +522,21 @@ export async function getCrewNow(): Promise<
       .select("employee_id, shift_date, start_time, end_time, lunch_minutes")
       .in("employee_id", inIds)
       .eq("shift_date", hoy),
+    // Quién está fuera ahora. `type` es imprescindible: la tabla guarda también los avisos de
+    // geocerca, que no se cierran nunca y harían parecer que media plantilla está de almuerzo
+    // (D-128). Sin esto, la tarjeta diría "trabajando" de alguien que salió hace una hora.
+    supabase
+      .from("exceptions")
+      .select("employee_id, reason, left_at, returned_at")
+      .in("employee_id", inIds)
+      .eq("type", "leaving_while_clocked_in")
+      .is("returned_at", null),
   ]);
+
+  const fuera = new Map<string, { reason: string; since: string }>();
+  for (const x of salidas ?? []) {
+    fuera.set(x.employee_id as string, { reason: (x.reason as string) ?? "other", since: x.left_at as string });
+  }
 
   const alerts = todayAlerts(shifts ?? [], entries ?? []);
 
@@ -532,6 +550,7 @@ export async function getCrewNow(): Promise<
         employeeId: e.employee_id as string,
         name: nombre.get(e.employee_id as string) ?? "—",
         since: e.clock_in_at as string,
+        away: fuera.get(e.employee_id as string) ?? null,
       }))
       .sort((a, b) => a.since.localeCompare(b.since)),
     late: alerts.late.map((a) => ({ name: nombre.get(a.employeeId) ?? "—", minutes: a.minutes })),

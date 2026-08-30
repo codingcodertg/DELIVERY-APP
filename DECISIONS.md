@@ -6020,3 +6020,48 @@ Verificado en el código, no supuesto: la pantalla vieja hace `const week = week
 empezado, lo trabajado el lunes anterior pertenece al periodo anterior. Las dos cifras son
 correctas para su ventana, y por eso la tarjeta ahora **imprime las fechas** que está contando:
 el número solo confunde cuando no dice de qué semana habla.
+
+---
+
+## D-130 · "Trabajando ahora": una lista, tarjetas que no bailan, y qué está haciendo cada quien
+**Fecha:** 2026-08-30 · **Versión:** v0.34.0 (timetracker) · v0.30.0 (clockin) · **Pedido por:**
+Andrés (*"si ya está Alberto ahí quita eso de On the clock"*, *"que el otro también sea un tag
+presencial así en burbuja"*, *"si toma lunch o is going out que aparezca ahí"*, *"el tag se pasa
+moviendo… que quede estático y bien estructurado"*)
+
+### Fuera la lista duplicada
+
+D-129 metió a los que fichan en la lista común pero **dejó viva la tarjeta "On the clock"**, así
+que la misma persona salía dos veces. Retirada.
+
+### Las tarjetas dejan de bailar
+
+Estaban armadas con lo que cada mitad tuviera, así que "Actividad" caía **al lado del reloj en
+una y debajo en otra**, y las dos no coincidían en altura.
+
+Ahora las dos usan la misma rejilla de **filas fijas** — nombre · etiquetas · proyecto · reloj ·
+detalle · pie — y cada dato cae siempre en el mismo renglón. Las filas que una mitad no puede
+llenar **se reservan vacías**: es lo que impide que la tarjeta del que ficha quede más corta y
+las dos se desalineen. Se leen en paralelo en vez de por separado.
+
+De un fichaje **no** hay actividad, pantalla ni inactivo: esa fila va vacía, no a cero. Un cero
+sería inventarse un dato que nadie midió.
+
+### Qué está haciendo cada quien
+
+Las dos etiquetas son ahora del mismo tipo (**🏢 Presencial** / **💻 Remoto**) y, si alguien
+salió, **eso manda sobre "fichado"**: sale **🍽 En almuerzo** o **🚚 Fuera** con la hora. Un
+tablero que dice "trabajando" de quien se fue hace una hora es peor que no tener tablero.
+
+El dato se lee filtrando por `type = 'leaving_while_clocked_in'`. Sin ese filtro entrarían los
+avisos de geocerca, que no se cierran nunca y harían parecer que media plantilla está comiendo
+—el mismo fallo que D-128—.
+
+Y **"desde" pasa a "Entrada"**: en la tarjeta de quien ficha, esa hora es su entrada, no un
+"desde" genérico.
+
+### El panel de la campana era ilegible en claro
+
+Cuelga de la barra superior, que es cromo oscuro con texto blanco, así que **heredaba blanco
+sobre fondo claro**. Ahora declara su propio color. Regla que conviene recordar: un contenedor
+que se sale de una zona de color tiene que declarar el suyo, no confiar en la herencia.

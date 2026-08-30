@@ -67,32 +67,6 @@ export default function LiveMonitorPage() {
       )}
 
     <div className="card">
-        <div className="between">
-          <h2 style={{ margin: 0 }}>⏰ On the clock</h2>
-          <span className="chip">{crew?.onClock.length ?? 0}</span>
-        </div>
-        {!crew ? (
-          <div className="hint">Loading…</div>
-        ) : crew.onClock.length === 0 ? (
-          <p className="muted" style={{ marginTop: 12 }}>Nobody is punched in right now.</p>
-        ) : (
-          <table style={{ marginTop: 12 }}>
-            <tbody>
-              {crew.onClock.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.name}</td>
-                  <td className="small muted nowrap">since {fmtTime(Date.parse(p.since))}</td>
-                  <td className="nowrap" style={{ textAlign: "right" }}>
-                    {fmtClock(Math.max(0, Math.floor((now - Date.parse(p.since)) / 1000)))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-    <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.tab.live")}</h2>
         <span className="chip">{t("mgr.live.active", { n: rows.length + (crew?.onClock.length ?? 0) })}</span>
@@ -100,7 +74,7 @@ export default function LiveMonitorPage() {
       {rows.length === 0 && (crew?.onClock.length ?? 0) === 0 ? (
         <p className="muted" style={{ marginTop: 12 }}>{t("mgr.live.empty")}</p>
       ) : (
-        <div className="pbtns" style={{ marginTop: 12 }}>
+        <div className="live-grid">
           {/* Los que FICHAN, con la misma forma de tarjeta que los del cronómetro (D-129). En
               dos listas separadas parecían dos cosas distintas, y son la misma pregunta: quién
               está trabajando ahora. Lo que cambia es qué se puede medir de cada quien — de un
@@ -109,21 +83,23 @@ export default function LiveMonitorPage() {
           {(crew?.onClock ?? []).map((p) => {
             const emp = uMap.get(p.employeeId);
             const desde = Date.parse(p.since);
+            const fuera = p.away;
             return (
-              <div key={p.id} className="box">
-                <div style={{ fontWeight: 700 }}>
-                  {emp ? emp.fullName : p.name}
-                  <span className="pill on" style={{ marginLeft: 6 }}>🏢 {t("mgr.live.inhouse")}</span>
+              <div key={p.id} className="live-card">
+                <div className="live-name">{emp ? emp.fullName : p.name}</div>
+                <div className="live-tags">
+                  <span className="pill on">🏢 {t("mgr.live.inhouse")}</span>
+                  {/* Si salió, eso es LO que está haciendo ahora: manda sobre "fichado". */}
+                  {fuera
+                    ? <span className="pill wait">{fuera.reason === "lunch" ? `🍽 ${t("mgr.live.onLunch")}` : `🚚 ${t("mgr.live.outNow")}`} · {fmtTime(Date.parse(fuera.since))}</span>
+                    : <span className="pill on">{t("mgr.live.punched")}</span>}
                 </div>
-                <div className="small muted">{t("mgr.live.punched")}</div>
-                <div className="row between" style={{ marginTop: 6 }}>
-                  <span className="timer-big" style={{ fontSize: 26 }}>
-                    {fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}
-                  </span>
-                  <span className="small muted" style={{ textAlign: "right" }}>
-                    {t("mgr.live.since", { time: fmtTime(desde) })}
-                  </span>
-                </div>
+                <div className="live-sub">&nbsp;</div>
+                <div className="live-clock">{fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}</div>
+                <div className="live-meta">{t("mgr.live.clockIn")} {fmtTime(desde)}</div>
+                {/* De un fichaje no hay actividad ni pantalla: la fila se reserva vacía para
+                    que las dos tarjetas midan igual y no bailen una respecto a la otra. */}
+                <div className="live-foot">&nbsp;</div>
               </div>
             );
           })}
@@ -138,24 +114,22 @@ export default function LiveMonitorPage() {
             const idle = s.idleSeconds || 0;
             const st = status(s.liveNote);
             return (
-              <div key={s.id} className="box">
-                <div style={{ fontWeight: 700 }}>
-                  {emp ? emp.fullName : (s.employeeName || "—")}
-                  <span className="pill" style={{ marginLeft: 6, background: "var(--tt-accent)", color: "#fff" }}>
+              <div key={s.id} className="live-card">
+                <div className="live-name">{emp ? emp.fullName : (s.employeeName || "—")}</div>
+                <div className="live-tags">
+                  <span className="pill" style={{ background: "var(--tt-accent)", color: "#fff" }}>
                     💻 {t("mgr.live.remote")}
                   </span>
-                  {st ? <span className={"pill " + st.pill} style={{ marginLeft: 6 }}>{st.text}</span>
-                    : <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.live.livePill")}</span>}
+                  {st ? <span className={"pill " + st.pill}>{st.text}</span>
+                      : <span className="pill on">{t("mgr.live.livePill")}</span>}
                 </div>
-                <div className="small muted">{proj ? proj.name : "—"}{s.memo ? " · " + s.memo : ""}</div>
-                <div className="row between" style={{ marginTop: 6 }}>
-                  <span className="timer-big" style={{ fontSize: 26 }}>{fmtClock(elapsed)}</span>
-                  <span className="small muted" style={{ textAlign: "right" }}>
-                    {t("mgr.live.activity", { pct })}<br />{t("mgr.live.since", { time: s.startMs ? fmtTime(s.startMs) : "—" })}
-                  </span>
+                <div className="live-sub">{proj ? proj.name : "—"}{s.memo ? " · " + s.memo : ""}</div>
+                <div className="live-clock">{fmtClock(elapsed)}</div>
+                <div className="live-meta">
+                  {t("mgr.live.since", { time: s.startMs ? fmtTime(s.startMs) : "—" })} · {t("mgr.live.activity", { pct })}
                 </div>
-                <div className="small muted" style={{ marginTop: 6 }}>
-                  ⌨ {fmtClock(inputActive)} {t("mgr.live.wInput")} · 🖥 {fmtClock(screen)} {t("mgr.live.wScreen")} · 💤 {fmtClock(idle)} {t("mgr.live.wIdle")}
+                <div className="live-foot">
+                  ⌨ {fmtClock(inputActive)} · 🖥 {fmtClock(screen)} · 💤 {fmtClock(idle)}
                 </div>
               </div>
             );

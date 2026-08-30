@@ -70,6 +70,10 @@ export function NotificationBell() {
             position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 60,
             width: 320, maxHeight: 380, overflowY: "auto",
             background: "var(--tt-panel)", border: "1px solid var(--tt-line)",
+            // El color HAY que declararlo: el panel cuelga de la barra superior, que es cromo
+            // oscuro con texto blanco, y sin esto heredaba blanco sobre fondo claro — ilegible
+            // en modo claro. Un contenedor que sale de una zona de color declara el suyo.
+            color: "var(--tt-txt)",
             borderRadius: 12, padding: 10, boxShadow: "0 12px 32px rgba(0,0,0,.35)",
           }}
         >
