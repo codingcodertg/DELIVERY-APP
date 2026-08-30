@@ -5592,3 +5592,41 @@ redirigiendo **sus layouts** igual que antes, `/login` responde 200 y el cron si
 `middleware-location.test.ts` exige que exista `src/middleware.ts` y que **no** haya otro en la
 raíz. Tener los dos es peor que no tener ninguno: el de la raíz no corre, pero se lee como si
 corriera — y fue exactamente esa lectura la que retrasó tanto encontrar esto.
+
+---
+
+## D-120 · La tarjeta de error deja copiar la traza
+**Fecha:** 2026-08-29 · **Versión:** v1.37.0 (deliveries) · **Pedido por:** Andrés (*"me salió
+al inicio algo como cant read length, le di reload y ya cargó"* → *"sí"*)
+
+Ese *"algo como"* es el problema, y no es culpa de quien lo escribe: la tarjeta del
+`ErrorBoundary` **solo enseñaba el mensaje**. Sin archivo, sin línea, sin árbol de componentes.
+Buscar un `.length` en todo el árbol de render sin la traza es buscar a ciegas — y fue
+exactamente así como se fueron cuatro intentos de arreglo a bulto en el fallo de las listas
+vacías (D-119).
+
+Ahora la tarjeta tiene **Copy details**, que copia mensaje, hora, ruta, versión de la app en esa
+pestaña, rol, agente, stack y árbol de componentes.
+
+### Decisiones pequeñas que importan
+
+- **La hora se fija cuando revienta**, en `getDerivedStateFromError`, no al pintar. Calculada al
+  pintar daría la hora de mirar la tarjeta, que no sirve para cruzarla con un log.
+- **La versión de la app va dentro.** Ya hizo falta una vez para separar *"el arreglo no
+  funciona"* de *"esta pestaña tiene el código viejo"*.
+- **Hay salida de emergencia.** `navigator.clipboard` falla sin HTTPS y dentro del WebView de la
+  app de escritorio — que es justo donde más falta hace. Si falla, se despliega un `textarea`
+  con el texto ya seleccionado. Oculto hasta entonces: si no, la tarjeta de error se convierte
+  en un muro de texto.
+
+### Lo que este botón NO resuelve, y conviene saberlo
+
+En producción el código va minificado y **los nombres de varios componentes no sobreviven**
+—comprobado sobre los chunks del build: `ErrorBoundary` y `DataProvider` aparecen, `OrderModal`
+y `PhotoLightbox` no—. Los source maps existen pero Sentry los sube y los borra del build, así
+que el stack copiado trae `chunk.js:1:23456`, no `page.tsx:57`.
+
+O sea: el botón da **el mensaje exacto, la pantalla, la versión y una parte del árbol**, que ya
+es infinitamente más que "algo como cant read length". La traza legible sigue estando en Sentry,
+que sí tiene los mapas. El token del repo es de subida y da 403 en lectura; hace falta uno con
+`event:read` para leerla desde aquí.
