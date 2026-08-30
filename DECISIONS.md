@@ -6178,3 +6178,70 @@ antes de que carguen los ajustes— contaba una semana que no es la de esta empr
 Dos pruebas lo fijan: que las dos funciones devuelvan lo mismo en cinco fechas distintas, y que
 esa semana empiece en **viernes** y acabe en **jueves**. Que se separen otra vez es exactamente
 lo que costó dos rondas de "esto no cuadra".
+
+---
+
+## D-134 · La app de fichaje vieja seguía en uso, y faltaban 85 horas de trabajo
+**Fecha:** 2026-08-30 · **Pedido por:** Andrés (*"mira la database vieja y migra para estar up to
+date"* → *"me refiero a la de clock in"*)
+
+### Dónde estaba
+
+En `zicjztjdlznqxoddrxtn`, el proyecto **"jose@axen-growth.com's Project"** — la base original
+de la app de fichaje, la que vino con la aplicación cuando se transfirió.
+
+### Lo que falta, comparado fila por fila
+
+No por fechas ni por conteos: **cruce exacto por identificador**, tabla a tabla.
+
+| tabla | faltan |
+|---|---|
+| `time_entries` | **10** — 85,3 h de trabajo real, del 26 al 29 de agosto |
+| `scheduled_shifts` | 45 |
+| `exceptions` | 10 |
+| `vehicle_trips` | 2 |
+| `trip_stops` | 4 |
+
+Las horas son de Zulema (30,2), Olga Patricia (29,5), Alberto (12,0), Anthony (10,8) y Elsa
+(2,8). **Parte cae dentro del periodo de pago en curso**, así que sin esto la nómina de este
+periodo sale corta.
+
+### El remapeo de identidades
+
+Las dos bases tienen sistemas de autenticación distintos: **las once personas tienen
+identificadores diferentes**. El primer intento sin remapear fue rechazado entero por clave
+foránea — lo correcto.
+
+Nueve se cruzan por correo sin ambigüedad. **Dos no**, y ahí paré a preguntar en vez de decidir:
+cruzar personas por el nombre para atribuirles horas que se pagan es exactamente lo que no debe
+hacerse en silencio. Confirmadas por Andrés:
+
+```
+twagalum@gmail.com          → Alberto Garza       (salesrhc2@)
+phernandez@rdztilegroup.net → Patricia Hernández  (managementrhc@)
+```
+
+Los sitios de trabajo y el vehículo **sí** comparten identificador (comprobado uno a uno), así
+que solo se remapean personas.
+
+### Una corrección
+
+Antes afirmé que las identidades coincidían, "11 de 11". **Era falso**: aquella consulta
+comparaba la base vieja consigo misma. No cambió nada de lo hecho, pero la conclusión era
+errónea y quedó dicho.
+
+### Lo que esto NO arregla, y es lo importante
+
+**La cuadrilla sigue fichando en la app vieja**: 23 fichajes en los últimos siete días, el
+último ayer. Esto pone al día hasta el 29 de agosto y **mañana volverá a faltar**.
+
+Es una copia con fecha de caducidad, no una migración, y lo seguirá siendo hasta que se cierre
+aquella puerta. Andrés decidió no cerrarla todavía porque la interfaz nueva aún se está
+terminando — decisión consciente, y por eso queda escrita.
+
+### Pendiente de ejecutar
+
+El script está en `supabase/migrations/091_import_clockin_backlog.sql`. **No se pudo aplicar
+desde aquí**: el clasificador de permisos bloqueó la escritura a Supabase, dos veces. Se ejecuta
+tal cual desde el SQL Editor; cada fila lleva su propia captura de errores y `on conflict do
+nothing`, así que volver a lanzarlo es inofensivo.
