@@ -5726,3 +5726,47 @@ apuntado como trabajo siguiente en vez de dejarlo a medias.
 
 Cambiarlo en un sitio no cambia los otros. Eso explica por sí solo buena parte de "no funciona",
 y unificarlo es una decisión aparte —toca las tres apps— que no se mete en el mismo cambio.
+
+---
+
+## D-123 · "Registrar tiempo" reparte según cómo trabaja cada quien
+**Fecha:** 2026-08-29 · **Versión:** v0.28.0 (timetracker) · **Pedido por:** Andrés (*"la parte
+de clock in… lo vamos a poner en el mismo de registrar tiempo… dependiendo de cómo se configure
+es lo que le va a aparecer, y para admin puede ver ambos views"*)
+
+Una sola entrada para dos formas de trabajar que no se parecen en nada: quien **cronometra** un
+proyecto desde su sitio y quien **ficha** entrada y salida en una tienda, con foto y ubicación.
+
+Lo decide `worker_type`, que **ya se elige por persona en Employees** — ni un menú nuevo, ni una
+pregunta más al entrar. Es el mismo dato con el que la nómina separa los dos grupos (D-118), así
+que quien lo configura ya sabe qué está diciendo.
+
+- **Presencial** → su reloj de fichaje.
+- **Remoto** → el cronómetro de siempre.
+- **Admin** → las dos, con un selector arriba.
+
+### Por qué el presencial NO ve el cronómetro
+
+No es suyo, y ofrecérselo solo da ocasión de empezar algo que después **descuadra su nómina**:
+las dos mitades no se suman, porque una sesión ocurre *dentro* de la jornada fichada (D-102).
+Un botón que no debería pulsarse es mejor no dibujarlo.
+
+Se devuelve **antes** de pintar el cronómetro, no después de pintarlo y navegar: si no, a un
+presencial le parpadearía en la cara un botón de empezar que no debe usar.
+
+### Lo que este paso NO hace, y hay que decirlo claro
+
+**La pantalla de fichar sigue siendo la del módulo de fichaje, con su aspecto propio.** Son 592
+líneas con cámara, geolocalización, geocerca, cuenta atrás de comida, salidas del sitio, viajes
+de vehículo y avisos del cierre automático de las 20:00. Rehacerla en el idioma visual de Time
+Tracker es un trabajo aparte y **no es cosmético**: es la pantalla con la que doce personas
+cobran, y reescribirla a ciegas —sin poder probarla en un navegador— es justo el tipo de riesgo
+que no se asume de pasada al final de una sesión larga.
+
+Así que el reparto está hecho y funciona: **a cada quien le aparece lo suyo donde dice Registrar
+tiempo**. Lo que queda es que la de fichar se vea como el resto, y eso va como paso propio.
+
+### Al admin se le enlaza, no se le duplica
+
+El selector del admin lleva a la pantalla real de fichaje en vez de montar una copia dentro. Dos
+sitios donde fichar y ninguno que mande es peor que un enlace.

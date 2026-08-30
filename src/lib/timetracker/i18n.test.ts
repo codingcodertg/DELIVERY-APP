@@ -60,3 +60,17 @@ describe("la barra de pestañas está traducida", () => {
     setLang("en");
   });
 });
+
+// D-123. "Registrar tiempo" reparte por tipo de trabajador, así que sus textos salen en
+// pantallas que ve gente distinta. Si falta uno, t() devuelve la clave cruda.
+describe("los textos del reparto por tipo de trabajador existen", () => {
+  it("en los dos idiomas", () => {
+    for (const k of ["track.openingClock", "track.viewTimer", "track.viewPunch"]) {
+      setLang("en");
+      expect(t(k), `falta ${k} en inglés`).not.toBe(k);
+      setLang("es");
+      expect(t(k), `falta ${k} en español`).not.toBe(k);
+    }
+    setLang("en");
+  });
+});
