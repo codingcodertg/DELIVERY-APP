@@ -6,6 +6,11 @@ import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
 import { centralShiftMs } from "@/lib/clockin/tz";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
+import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
+import { dayAndWeekStart } from "@/lib/clockin/time";
+import { todayAlerts } from "@/lib/clockin/scorecard";
+import { centralDateStr, payPeriodDates } from "@/lib/clockin/schedule";
+import { centralWallToUtc } from "@/lib/clockin/tz";
 
 // Local dev only: when set in .env.local, every punch is treated as on-site so
 // the flow can be tested from a laptop that isn't inside a real geofence. Double
@@ -464,4 +469,143 @@ export async function adminClock(input: {
   if (error) return { ok: false, message: error.message };
   await pushToUser(input.employeeId, profile.company_id, "admin_clocked_out", { name: profile.full_name });
   return { ok: true, action: "out" };
+}
+
+/**
+ * Quién está fichado AHORA y a quién se le espera, para "Working Now" (D-124).
+ *
+ * Esa pantalla enseñaba solo `liveSessions` —la mitad que cronometra— y era **ciega a la
+ * cuadrilla fichada**. Con las dos formas de trabajar conviviendo (D-123), "quién trabaja
+ * ahora" respondía por media empresa y no lo decía; peor que faltar, engañaba.
+ *
+ * Trae también las alertas del panel de fichaje —quien llega tarde y quien no ha fichado
+ * teniendo turno empezado—, que era lo ÚNICO que le quedaba a aquella pantalla.
+ */
+export async function getCrewNow(): Promise<
+  | {
+      ok: true;
+      onClock: { id: string; employeeId: string; name: string; since: string }[];
+      late: { name: string; minutes: number }[];
+      notInYet: { name: string }[];
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await clockinManagerCtx();
+  if (!ctx.ok) return ctx;
+  const { supabase, me } = ctx;
+
+  const { todayStartUtc } = dayAndWeekStart();
+  const hoy = centralDateStr();
+
+  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
+  let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);
+  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
+  const { data: people } = await peopleQ.order("full_name");
+  const nombre = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
+  const ids = [...nombre.keys()];
+  const inIds = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
+
+  const [{ data: entries }, { data: shifts }] = await Promise.all([
+    supabase
+      .from("time_entries")
+      .select("id, employee_id, clock_in_at, clock_out_at, status")
+      .in("employee_id", inIds)
+      .gte("clock_in_at", todayStartUtc.toISOString()),
+    supabase
+      .from("scheduled_shifts")
+      .select("employee_id, shift_date, start_time, end_time, lunch_minutes")
+      .in("employee_id", inIds)
+      .eq("shift_date", hoy),
+  ]);
+
+  const alerts = todayAlerts(shifts ?? [], entries ?? []);
+
+  return {
+    ok: true,
+    // Un fichaje sin salida es alguien que está dentro ahora mismo.
+    onClock: (entries ?? [])
+      .filter((e) => !e.clock_out_at)
+      .map((e) => ({
+        id: e.id as string,
+        employeeId: e.employee_id as string,
+        name: nombre.get(e.employee_id as string) ?? "—",
+        since: e.clock_in_at as string,
+      }))
+      .sort((a, b) => a.since.localeCompare(b.since)),
+    late: alerts.late.map((a) => ({ name: nombre.get(a.employeeId) ?? "—", minutes: a.minutes })),
+    notInYet: alerts.notInYet.map((a) => ({ name: nombre.get(a.employeeId) ?? "—" })),
+  };
+}
+
+/**
+ * Mi jornada: el fichaje abierto, los de hoy y los totales (D-125).
+ *
+ * Es lo que necesita el panel de fichaje **dentro** de Registrar tiempo, para no tener que
+ * mandar a nadie a otra pantalla: cuándo entré, cuándo salí, cuánto llevo hoy y cuánto en la
+ * semana de pago (viernes→jueves, la misma que cuenta la nómina — usar la semana natural aquí
+ * y la de pago allí daría dos totales distintos para lo mismo).
+ *
+ * Devuelve también compañía y usuario porque la foto se sube desde el navegador y la ruta del
+ * fichero se construye con los dos; pedirlos en otra llamada sería una ida y vuelta de más
+ * justo antes de fichar, que es cuando peor sienta esperar.
+ */
+export async function getMyDay(): Promise<
+  | {
+      ok: true;
+      companyId: string;
+      userId: string;
+      open: { id: string; clockInAt: string } | null;
+      today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number }[];
+      todayMinutes: number;
+      weekMinutes: number;
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await getAuthed();
+  if (!ctx.ok) return { ok: false, message: "Not signed in." };
+  const { supabase, user, profile } = ctx;
+
+  const { todayStartUtc } = dayAndWeekStart();
+  const semana = payPeriodDates();
+  const desdeSemana = centralWallToUtc(`${semana[0]}T00:00`);
+
+  const { data, error } = await supabase
+    .from("time_entries")
+    .select("id, clock_in_at, clock_out_at, lunch_minutes")
+    .eq("employee_id", user.id)
+    .gte("clock_in_at", desdeSemana)
+    .order("clock_in_at", { ascending: true });
+  if (error) return { ok: false, message: error.message };
+
+  type Fila = { id: string; clock_in_at: string; clock_out_at: string | null; lunch_minutes: number | null };
+  const filas = (data ?? []) as Fila[];
+  const mins = (e: Fila) => {
+    // Un fichaje sin salida cuenta hasta AHORA: es lo que la persona lleva trabajado, y
+    // enseñarlo como cero mientras está dentro sería el dato más confuso de la pantalla.
+    const fin = e.clock_out_at ? Date.parse(e.clock_out_at) : Date.now();
+    const bruto = Math.max(0, Math.round((fin - Date.parse(e.clock_in_at)) / 60000));
+    return Math.max(0, bruto - (e.lunch_minutes ?? 0));
+  };
+
+  const hoyIso = todayStartUtc.toISOString();
+  const deHoy = filas.filter((e) => e.clock_in_at >= hoyIso);
+
+  return {
+    ok: true,
+    companyId: profile.company_id,
+    userId: user.id,
+    open: (() => {
+      const abierto = filas.find((e) => !e.clock_out_at);
+      return abierto ? { id: abierto.id, clockInAt: abierto.clock_in_at } : null;
+    })(),
+    today: deHoy.map((e) => ({
+      id: e.id,
+      clockInAt: e.clock_in_at,
+      clockOutAt: e.clock_out_at,
+      minutes: mins(e),
+    })),
+    todayMinutes: deHoy.reduce((acc, e) => acc + mins(e), 0),
+    weekMinutes: filas.reduce((acc, e) => acc + mins(e), 0),
+  };
 }

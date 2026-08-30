@@ -5770,3 +5770,46 @@ tiempo**. Lo que queda es que la de fichar se vea como el resto, y eso va como p
 
 El selector del admin lleva a la pantalla real de fichaje en vez de montar una copia dentro. Dos
 sitios donde fichar y ninguno que mande es peor que un enlace.
+
+---
+
+## D-125 · Fichar deja de ser otra pantalla: pasa a la plantilla de Registrar tiempo
+**Fecha:** 2026-08-29 · **Versión:** v0.29.0 (timetracker) · **Pedido por:** Andrés (*"no ocupa
+que lo lleves a otra view, en el mismo template que ya está, con cuándo inició, cuándo terminó,
+cuánto trabajado hoy y cuánto esta semana… para que ya eliminemos el clock in app"*)
+
+D-123 repartía por tipo de trabajador, pero al presencial lo **mandaba** a la app de fichaje.
+Funcionaba y no rompía nada, pero dejaba **dos sitios donde trabajar**, que es justo lo que hay
+que quitar para poder retirar aquella app.
+
+Ahora se pinta aquí, con lo que se pidió: **cuándo entró, cuándo salió, cuánto lleva hoy y
+cuánto en la semana de pago.** La semana es la de pago (viernes→jueves), no la natural: usar una
+aquí y otra en la nómina daría dos totales distintos para lo mismo.
+
+### Lo que se conservó del original, porque no es adorno
+
+- **La ubicación es obligatoria** y va en cada fichaje. El servidor decide si estás dentro del
+  sitio; el navegador solo **reporta coordenadas**, nunca un "sí".
+- **La foto sube al mismo bucket y con la misma forma de ruta.** Cambiarla habría dejado ciega
+  a la vista de Fotos (D-109), que las busca exactamente ahí.
+- **Se comprime antes de subir** —una foto de móvil son 8–12 MB— y la subida lleva su propio
+  límite de 30 s, porque no trae ninguno de serie. Ese fue el *"hice la foto y no pasó nada"*
+  del original.
+- **Si el servidor pide motivo** (fuera del sitio, sin turno, en otra tienda) se pregunta y se
+  reenvía. Sin eso, fichar fuera de la geocerca fallaría sin decir por qué.
+- **Sin foto se ficha igual.** La hora y el sitio son lo que se paga; perder el fichaje porque
+  la cámara no abrió sería peor que quedarse sin la foto.
+- **Un fichaje abierto cuenta hasta ahora**, no cero. Enseñar cero mientras alguien está dentro
+  sería el dato más confuso de la pantalla.
+
+### El admin ve las dos, y las dos de verdad
+
+Un selector arriba cambia entre cronómetro y fichaje **sin salir de la pantalla**. En D-123 la
+segunda era un enlace a la app vieja; ya no.
+
+### Lo que todavía NO permite borrar la app de fichaje
+
+Sigue habiendo tres cosas fuera: los **viajes de vehículo** y las **salidas del sitio**
+(`VehicleTripPanel`, 479 líneas), y **Today's Crew** (`coverage`, 462). Mientras eso siga ahí,
+retirar el módulo dejaría a la cuadrilla sin registrar un viaje y al gerente sin la vista del
+día. Se dice en vez de dar por hecho el borrado.

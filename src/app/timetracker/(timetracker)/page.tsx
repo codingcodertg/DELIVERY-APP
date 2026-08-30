@@ -15,8 +15,7 @@ import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired } from "@/lib/session-guard";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { PunchPanel } from "@/components/timetracker/PunchPanel";
 
 // ============================================================
 // Track Time — the core screen. Ported (D-066) from timetracker-clean's
@@ -56,7 +55,9 @@ export default function TrackTimePage() {
     latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify,
   } = useData();
   const t = useT();
-  const router = useRouter();
+  // Qué mira un admin: su cronómetro o su reloj de fichaje. Para todos los demás lo decide
+  // `worker_type` y no hay nada que elegir.
+  const [vista, setVista] = useState<"timer" | "punch">("timer");
   // Matches SSR (no window) on first render, flips true on mount if the page
   // is running inside the Electron shell — see the module comment.
   const [isDesktopClient, setIsDesktopClient] = useState(false);
@@ -676,27 +677,31 @@ export default function TrackTimePage() {
   // El admin ve las dos porque le toca mirar las dos.
   const presencial = effWorkerType(me) === "inhouse";
   const esAdmin = me.role === "admin";
-  const soloFichaje = presencial && !esAdmin;
 
-  useEffect(() => {
-    if (soloFichaje) router.replace("/timetracker/clock-in/clock");
-  }, [soloFichaje, router]);
+  // El fichaje se pinta AQUÍ, en la misma plantilla (D-125). Antes esto mandaba al presencial
+  // a la app de fichaje: funcionaba, pero dejaba dos sitios donde trabajar y el objetivo es
+  // retirar aquella app entera.
+  if (presencial && !esAdmin) return <PunchPanel />;
 
-  // Se devuelve ANTES de pintar el cronómetro, no después: si se pintara y luego se navegara,
-  // a un presencial le parpadearía en la cara un botón de empezar que no debe usar.
-  if (soloFichaje) {
-    return <div className="card"><div className="hint">{t("track.openingClock")}</div></div>;
+  if (esAdmin && vista === "punch") {
+    return (
+      <>
+        <div className="tabs" style={{ marginBottom: 12 }}>
+          <button onClick={() => setVista("timer")}>{t("track.viewTimer")}</button>
+          <button className="active">{t("track.viewPunch")}</button>
+        </div>
+        <PunchPanel />
+      </>
+    );
   }
 
   return (
     <>
       {esAdmin && (
-        // Al admin se le ofrecen las dos vistas. Es un enlace y no una pestaña interna porque
-        // la de fichar es la pantalla real del módulo, con su cámara y su geocerca; duplicarla
-        // aquí sería tener dos sitios donde fichar y ninguno que mande.
+        // Las dos vistas, y las dos de verdad: ninguna se va a otra pantalla.
         <div className="tabs" style={{ marginBottom: 12 }}>
           <button className="active">{t("track.viewTimer")}</button>
-          <Link href="/timetracker/clock-in/clock">{t("track.viewPunch")}</Link>
+          <button onClick={() => setVista("punch")}>{t("track.viewPunch")}</button>
         </div>
       )}
       {assignments.length === 0 && (
