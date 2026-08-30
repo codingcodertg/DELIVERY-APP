@@ -222,3 +222,20 @@
 /* Altura reservada aunque no haya nada que poner: es lo que impide que la tarjeta del que
    ficha quede más corta y las dos se desalineen. */
 .timetracker-module .live-foot{font-size:11.5px;color:var(--tt-muted);min-height:16px}
+
+/* Etiquetas de la tarjeta (D-131). Una sola forma para las dos mitades: mismo relleno, mismo
+   texto blanco, mismo tamaño. Antes "Presencial" usaba `.pill on` —fondo claro y letra oscura—
+   y "Remoto" un relleno sólido, así que parecían dos clases de cosa cuando son la misma:
+   cómo trabaja esa persona. Lo único que las distingue es el color. */
+.timetracker-module .live-tag{
+  display:inline-block;border-radius:999px;padding:3px 10px;
+  font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;white-space:nowrap;
+}
+.timetracker-module .live-tag.remote{background:var(--tt-accent)}
+/* Verde oscuro y no el `--tt-accent2` brillante: con blanco encima aquel no se lee. */
+.timetracker-module .live-tag.inhouse{background:#0a8f63}
+.timetracker-module .live-tag.state{background:var(--tt-chip);color:var(--tt-txt)}
+.timetracker-module .live-tag.away{background:var(--tt-warn);color:#3a2a00}
+/* Todo en mayúscula, como pidió Andrés. Va en la tarjeta entera y no etiqueta por etiqueta
+   para que nombre, proyecto y estado queden en el mismo registro. */
+.timetracker-module .live-card{text-transform:uppercase}

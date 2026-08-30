@@ -26,10 +26,21 @@ export default function LiveMonitorPage() {
     let vivo = true;
     const traer = () => { void getCrewNow().then((r) => { if (vivo && r.ok) setCrew(r); }); };
     traer();
-    // Cada medio minuto: es un tablero que se mira, no una alarma, y un fichaje no cambia
-    // cada segundo como sí lo hace el cronómetro.
-    const id = setInterval(traer, 30_000);
-    return () => { vivo = false; clearInterval(id); };
+    // Cada 10 s, y no medio minuto como al principio: con 30 s se podía empezar el almuerzo,
+    // terminarlo y volver a salir entre dos latidos, y el tablero enseñaba un estado que ya no
+    // era cierto. Sigue siendo barato —una consulta pequeña— y ahora se siente en vivo.
+    const id = setInterval(traer, 10_000);
+    // Y al volver a la pestaña, ya: quien deja esto abierto en otra ventana y vuelve espera
+    // ver lo de ahora, no lo de hace diez segundos.
+    const alVolver = () => { if (!document.hidden) traer(); };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
   }, []);
 
   const uMap = new Map(users.map((u) => [u.id, u]));
@@ -88,11 +99,11 @@ export default function LiveMonitorPage() {
               <div key={p.id} className="live-card">
                 <div className="live-name">{emp ? emp.fullName : p.name}</div>
                 <div className="live-tags">
-                  <span className="pill on">🏢 {t("mgr.live.inhouse")}</span>
+                  <span className="live-tag inhouse">🏢 {t("mgr.live.inhouse")}</span>
                   {/* Si salió, eso es LO que está haciendo ahora: manda sobre "fichado". */}
                   {fuera
-                    ? <span className="pill wait">{fuera.reason === "lunch" ? `🍽 ${t("mgr.live.onLunch")}` : `🚚 ${t("mgr.live.outNow")}`} · {fmtTime(Date.parse(fuera.since))}</span>
-                    : <span className="pill on">{t("mgr.live.punched")}</span>}
+                    ? <span className="live-tag away">{fuera.reason === "lunch" ? `🍽 ${t("mgr.live.onLunch")}` : `🚚 ${t("mgr.live.outNow")}`} · {fmtTime(Date.parse(fuera.since))}</span>
+                    : <span className="live-tag state">{t("mgr.live.punched")}</span>}
                 </div>
                 <div className="live-sub">&nbsp;</div>
                 <div className="live-clock">{fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}</div>
@@ -117,11 +128,8 @@ export default function LiveMonitorPage() {
               <div key={s.id} className="live-card">
                 <div className="live-name">{emp ? emp.fullName : (s.employeeName || "—")}</div>
                 <div className="live-tags">
-                  <span className="pill" style={{ background: "var(--tt-accent)", color: "#fff" }}>
-                    💻 {t("mgr.live.remote")}
-                  </span>
-                  {st ? <span className={"pill " + st.pill}>{st.text}</span>
-                      : <span className="pill on">{t("mgr.live.livePill")}</span>}
+                  <span className="live-tag remote">💻 {t("mgr.live.remote")}</span>
+                  <span className="live-tag state">{st ? st.text : t("mgr.live.livePill")}</span>
                 </div>
                 <div className="live-sub">{proj ? proj.name : "—"}{s.memo ? " · " + s.memo : ""}</div>
                 <div className="live-clock">{fmtClock(elapsed)}</div>

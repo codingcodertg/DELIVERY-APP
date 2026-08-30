@@ -530,9 +530,12 @@ export async function getCrewNow(): Promise<
       .select("employee_id, reason, left_at, returned_at")
       .in("employee_id", inIds)
       .eq("type", "leaving_while_clocked_in")
-      .is("returned_at", null),
+      .is("returned_at", null)
+      .order("left_at", { ascending: true }),
   ]);
 
+  // Se recorre de más antigua a más nueva y se pisa, así que gana la ÚLTIMA. Sin orden ganaba
+  // cualquiera, y con varias abiertas de días distintos eso es una lotería.
   const fuera = new Map<string, { reason: string; since: string }>();
   for (const x of salidas ?? []) {
     fuera.set(x.employee_id as string, { reason: (x.reason as string) ?? "other", since: x.left_at as string });

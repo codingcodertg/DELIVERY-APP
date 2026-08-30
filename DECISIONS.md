@@ -6065,3 +6065,38 @@ Y **"desde" pasa a "Entrada"**: en la tarjeta de quien ficha, esa hora es su ent
 Cuelga de la barra superior, que es cromo oscuro con texto blanco, así que **heredaba blanco
 sobre fondo claro**. Ahora declara su propio color. Regla que conviene recordar: un contenedor
 que se sale de una zona de color tiene que declarar el suyo, no confiar en la herencia.
+
+---
+
+## D-131 · Las dos etiquetas iguales, y el tablero que iba diez segundos por detrás
+**Fecha:** 2026-08-30 · **Versión:** v0.35.0 (timetracker) · v0.31.0 (clockin) · **Pedido por:**
+Andrés (*"presencial aún sigue en verde y debe ser en burbuja… todo en mayúscula"*, *"le di stop
+lunch y no cambió"*)
+
+### Una sola forma de etiqueta
+
+"Presencial" usaba `.pill on` —fondo claro, letra oscura— y "Remoto" un relleno sólido con letra
+blanca. Parecían **dos clases de cosa** cuando son la misma: cómo trabaja esa persona. Ahora
+comparten forma, tamaño y peso, y **lo único que las distingue es el color**.
+
+El verde es oscuro (`#0a8f63`) y no el `--tt-accent2` de la paleta: aquel es brillante y con
+letra blanca encima no se lee.
+
+Y todo en mayúscula, aplicado a la tarjeta entera en vez de etiqueta por etiqueta, para que
+nombre, proyecto y estado queden en el mismo registro.
+
+### El almuerzo que no se quitaba
+
+Se miró el dato antes de tocar nada: **todas las salidas de Alberto estaban cerradas**. No era
+un fallo de datos — era **staleness**. El tablero se refrescaba **cada 30 s**, y en ese hueco se
+puede empezar un almuerzo, terminarlo y volver a salir; lo que se veía era un estado que ya
+había dejado de ser cierto.
+
+Ahora refresca **cada 10 s** —sigue siendo una consulta pequeña— y además **al volver a la
+pestaña**: quien deja esto abierto en otra ventana y vuelve espera ver lo de ahora, no lo de
+hace un rato.
+
+De paso, la consulta de salidas se ordena por hora y gana la **última**. Sin orden ganaba
+cualquiera, y con varias abiertas de días distintos eso es una lotería — hoy no pasa porque el
+filtro por `type` (D-128) dejó fuera los avisos de geocerca, pero la garantía no debe depender
+de que los datos estén limpios.
