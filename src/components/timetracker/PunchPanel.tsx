@@ -300,21 +300,48 @@ export function PunchPanel() {
         </div>
 
         <h2 style={{ marginTop: 16 }}>Today&apos;s punches</h2>
-        {d.today.length === 0 ? (
+        {d.today.length === 0 && d.breaks.length === 0 ? (
           <p className="muted">Nothing yet today.</p>
         ) : (
           <table>
-            <thead><tr><th>In</th><th>Out</th><th style={{ textAlign: "right" }}>Worked</th></tr></thead>
+            <thead><tr><th>What</th><th>In</th><th>Out</th><th style={{ textAlign: "right" }}>Time</th></tr></thead>
             <tbody>
-              {d.today.map((e) => (
-                <tr key={e.id}>
-                  <td className="nowrap">{hhmm(e.clockInAt)}</td>
-                  <td className="nowrap">{e.clockOutAt ? hhmm(e.clockOutAt) : <span className="pill wait">open</span>}</td>
-                  <td className="nowrap" style={{ textAlign: "right" }}>{horas(e.minutes)}</td>
-                </tr>
-              ))}
+              {/* Fichajes y descansos EN UNA SOLA tabla, ordenados por hora. Antes solo salían
+                  los fichajes, así que un almuerzo de 40 minutos no aparecía por ninguna parte.
+                  En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba
+                  abajo tal como pasó: entré, comí, volví, salí a repartir. */}
+              {[
+                ...d.today.map((e) => ({
+                  k: e.id, orden: e.clockInAt, que: "⏰ Shift", cls: "on",
+                  desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
+                })),
+                ...d.breaks.map((b) => ({
+                  k: b.id, orden: b.leftAt,
+                  que: b.reason === "lunch" ? "🍽 Lunch" : "🚚 Out",
+                  cls: b.reason === "lunch" ? "wait" : "",
+                  desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
+                })),
+              ]
+                .sort((a, b) => a.orden.localeCompare(b.orden))
+                .map((r) => (
+                  <tr key={r.k}>
+                    <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
+                    <td className="nowrap">{hhmm(r.desde)}</td>
+                    <td className="nowrap">{r.hasta ? hhmm(r.hasta) : <span className="pill wait">open</span>}</td>
+                    <td className="nowrap" style={{ textAlign: "right" }}>{horas(r.min)}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
+        )}
+        {(d.lunchMinutes > 0 || d.outMinutes > 0) && (
+          // El total del día, por separado: comer y salir a repartir no son lo mismo ni para
+          // la nómina ni para quien revisa.
+          <p className="small muted" style={{ marginTop: 8 }}>
+            {d.lunchMinutes > 0 && <>🍽 Lunch {d.lunchMinutes} min</>}
+            {d.lunchMinutes > 0 && d.outMinutes > 0 && " · "}
+            {d.outMinutes > 0 && <>🚚 Out {d.outMinutes} min</>}
+          </p>
         )}
       </div>
     </>

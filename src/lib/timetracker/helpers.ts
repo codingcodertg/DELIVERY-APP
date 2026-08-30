@@ -45,13 +45,17 @@ export let APP_SETTINGS: AppSettings = {
   appName: "TimeTracker",
   currency: "$",
   timeZone: BROWSER_TZ,
-  weekStartDay: 6, // 0=Sun ... 6=Sat (default Saturday)
+  // 0=Dom … 5=Vie. Viernes, que es cuando empieza el periodo de pago (D-133). Estaba en 6
+  // (sábado) y la base ya guardaba 5: el valor por defecto contradecía al real, así que
+  // cualquier instalación nueva —o cualquier lectura antes de que carguen los ajustes—
+  // contaba una semana que no es la de esta empresa.
+  weekStartDay: 5,
   payPeriod: "weekly",
   defaultWorkerType: "remote",
   defaultTrackMode: "activity",
   defaultBreaksEnabled: true,
   idleLimitMin: 5,
-  locations: [{ name: "Remote", weekStartDay: 6 }],
+  locations: [{ name: "Remote", weekStartDay: 5 }],
   smartIdle: true,
   workApps: ["Meet", "Zoom", "Teams", "Webex", "Skype", "RingCentral", "Slack", "Claude", "ChatGPT",
     "Docs", "Sheets", "Slides", "Word", "Excel", "PowerPoint", "Outlook", "Gmail",

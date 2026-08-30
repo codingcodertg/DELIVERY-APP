@@ -494,6 +494,9 @@ export async function getCrewNow(): Promise<
         lng: number | null;
         /** false = fichó fuera de la geocerca. */
         onSite: boolean | null;
+        /** Minutos de hoy fuera, separados: comer no es lo mismo que salir a repartir. */
+        lunchMin: number;
+        outMin: number;
       }[];
       late: { name: string; minutes: number }[];
       notInYet: { name: string }[];
@@ -516,7 +519,7 @@ export async function getCrewNow(): Promise<
   const ids = [...nombre.keys()];
   const inIds = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
 
-  const [{ data: entries }, { data: shifts }, { data: salidas }] = await Promise.all([
+  const [{ data: entries }, { data: shifts }, { data: salidas }, { data: pausasHoy }] = await Promise.all([
     supabase
       .from("time_entries")
       .select("id, employee_id, clock_in_at, clock_out_at, status, clock_in_lat, clock_in_lng, clock_in_in_radius")
@@ -537,7 +540,25 @@ export async function getCrewNow(): Promise<
       .eq("type", "leaving_while_clocked_in")
       .is("returned_at", null)
       .order("left_at", { ascending: true }),
+    // Todas las de hoy, cerradas o no, para poder decir "almuerzo 40 min" y no solo "está
+    // fuera": lo que un gerente necesita saber es cuánto lleva, no solo que se fue.
+    supabase
+      .from("exceptions")
+      .select("employee_id, reason, left_at, returned_at")
+      .in("employee_id", inIds)
+      .eq("type", "leaving_while_clocked_in")
+      .gte("left_at", todayStartUtc.toISOString()),
   ]);
+
+  const acum = new Map<string, { lunch: number; out: number }>();
+  for (const x of pausasHoy ?? []) {
+    const id = x.employee_id as string;
+    const fin = x.returned_at ? Date.parse(x.returned_at as string) : Date.now();
+    const min = Math.max(0, Math.round((fin - Date.parse(x.left_at as string)) / 60000));
+    const a = acum.get(id) ?? { lunch: 0, out: 0 };
+    if ((x.reason as string) === "lunch") a.lunch += min; else a.out += min;
+    acum.set(id, a);
+  }
 
   // Se recorre de más antigua a más nueva y se pisa, así que gana la ÚLTIMA. Sin orden ganaba
   // cualquiera, y con varias abiertas de días distintos eso es una lotería.
@@ -562,6 +583,8 @@ export async function getCrewNow(): Promise<
         lat: (e.clock_in_lat as number) ?? null,
         lng: (e.clock_in_lng as number) ?? null,
         onSite: (e.clock_in_in_radius as boolean) ?? null,
+        lunchMin: acum.get(e.employee_id as string)?.lunch ?? 0,
+        outMin: acum.get(e.employee_id as string)?.out ?? 0,
       }))
       .sort((a, b) => a.since.localeCompare(b.since)),
     late: alerts.late.map((a) => ({ name: nombre.get(a.employeeId) ?? "—", minutes: a.minutes })),
@@ -598,6 +621,10 @@ export async function getMyDay(): Promise<
       periodStart: string;
       periodEnd: string;
       today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number }[];
+      /** Almuerzos y salidas de hoy, para verlos junto a los fichajes. */
+      breaks: { id: string; reason: string; leftAt: string; returnedAt: string | null; minutes: number }[];
+      lunchMinutes: number;
+      outMinutes: number;
       todayMinutes: number;
       weekMinutes: number;
     }
@@ -611,7 +638,7 @@ export async function getMyDay(): Promise<
   const semana = payPeriodDates();
   const desdeSemana = centralWallToUtc(`${semana[0]}T00:00`);
 
-  const [{ data: turnos }, { data: sitios }, { data: descanso }] = await Promise.all([
+  const [{ data: turnos }, { data: sitios }, { data: descanso }, { data: deHoyPausas }] = await Promise.all([
     supabase
       .from("scheduled_shifts")
       .select("shift_date, start_time, end_time, lunch_minutes, site_id")
@@ -631,6 +658,15 @@ export async function getMyDay(): Promise<
       .is("returned_at", null)
       .order("left_at", { ascending: false })
       .limit(1),
+    // Los de HOY, cerrados o no: son parte de la jornada y hasta ahora no se veían en
+    // "Today's punches", así que un almuerzo de 40 min no aparecía por ninguna parte.
+    supabase
+      .from("exceptions")
+      .select("id, reason, left_at, returned_at")
+      .eq("employee_id", user.id)
+      .eq("type", "leaving_while_clocked_in")
+      .gte("left_at", todayStartUtc.toISOString())
+      .order("left_at", { ascending: true }),
   ]);
 
   const { data, error } = await supabase
@@ -653,6 +689,17 @@ export async function getMyDay(): Promise<
 
   const hoyIso = todayStartUtc.toISOString();
   const deHoy = filas.filter((e) => e.clock_in_at >= hoyIso);
+
+  const pausas = (deHoyPausas ?? []).map((b) => {
+    const fin = b.returned_at ? Date.parse(b.returned_at as string) : Date.now();
+    return {
+      id: b.id as string,
+      reason: (b.reason as string) ?? "other",
+      leftAt: b.left_at as string,
+      returnedAt: (b.returned_at as string) ?? null,
+      minutes: Math.max(0, Math.round((fin - Date.parse(b.left_at as string)) / 60000)),
+    };
+  });
 
   const hoy = centralDateStr();
   const nombreSitio = new Map((sitios ?? []).map((x) => [x.id as string, x.name as string]));
@@ -698,5 +745,10 @@ export async function getMyDay(): Promise<
     scheduledDays: (turnos ?? []).length,
     periodStart: semana[0],
     periodEnd: semana[6],
+    breaks: pausas,
+    // Uno en curso cuenta hasta AHORA: enseñar 0 mientras alguien está comiendo es el dato
+    // que menos ayuda de la pantalla.
+    lunchMinutes: pausas.filter((b) => b.reason === "lunch").reduce((a, b) => a + b.minutes, 0),
+    outMinutes: pausas.filter((b) => b.reason !== "lunch").reduce((a, b) => a + b.minutes, 0),
   };
 }

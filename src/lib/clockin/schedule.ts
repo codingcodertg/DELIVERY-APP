@@ -98,10 +98,15 @@ export function centralDateStr(now: Date = new Date()) {
 
 /** The seven YYYY-MM-DD dates of the current Central week (Mon-first). */
 export function weekDates(now: Date = new Date()) {
-  const local = new Date(now.getTime() - centralShiftMs(now));
-  const dayStart = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate());
-  const monday = dayStart - ((local.getUTCDay() + 6) % 7) * 86400000;
-  return Array.from({ length: 7 }, (_, i) => new Date(monday + i * 86400000).toISOString().slice(0, 10));
+  // Viernes→jueves, igual que `payPeriodDates` (D-133). Antes calculaba lunes→domingo a mano,
+  // y esa era la ÚNICA definición de semana distinta que quedaba en la aplicación: la nómina,
+  // el horario y Time Tracker ya contaban de viernes a jueves. La consecuencia se veía en
+  // pantalla — "esta semana 20.8 h" en fichaje y "0 h" en Time Tracker, las dos ciertas para
+  // su ventana y ninguna comparable con la otra.
+  //
+  // Se conserva el nombre porque es el que usan las pantallas que aún quedan de fichaje; lo
+  // que cambia es qué semana devuelve, que es lo que tenía que cambiar.
+  return payPeriodDates(now);
 }
 
 /**

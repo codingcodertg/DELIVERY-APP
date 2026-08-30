@@ -6141,3 +6141,40 @@ Además las dos exportaciones calculaban el alcance a mano y ni siquiera pedían
 así que se quedaron fuera del cambio sin que nada fallara. Ahora las cuatro usan la lista
 completa. Es el precio de tener la misma regla escrita en varios sitios, y por eso `visibleStores`
 existe: para que no vuelva a haber varios.
+
+---
+
+## D-133 · Una sola semana en toda la app, y los descansos por fin se ven
+**Fecha:** 2026-08-30 · **Versión:** v0.37.0 (timetracker) · v0.33.0 (clockin) · **Pedido por:**
+Andrés (*"en Today's punches no me salen los lunches ni lo de going out"*, *"en Trabajando ahora
+también debería aparecer lunch: 10min, went out 10 min"*, *"que por default las semanas empiecen
+viernes y terminen jueves"*)
+
+### El descanso no aparecía en ninguna parte
+
+"Today's punches" solo listaba fichajes, así que **un almuerzo de 40 minutos no se veía**. Ahora
+fichajes y descansos van **en una sola tabla ordenada por hora**: entré, comí, volví, salí a
+repartir. En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba abajo
+tal como pasó. Debajo, el total del día separado — **comer y salir a repartir no son lo mismo**
+ni para la nómina ni para quien revisa.
+
+En las tarjetas de Trabajando ahora, lo mismo: *🍽 En almuerzo 40 min · 🚚 Fuera 15 min*. Ocupa
+la fila que antes iba en blanco, así que las dos mitades siguen midiendo igual y no bailan.
+
+Un descanso **en curso cuenta hasta ahora**, no cero: enseñar cero mientras alguien está
+comiendo es el dato que menos ayuda de la pantalla.
+
+### La última semana discrepante
+
+`weekDates()` calculaba **lunes→domingo** a mano, y era la única definición distinta que
+quedaba: la nómina, el horario, los partes y Time Tracker ya contaban **viernes→jueves**. Eso se
+veía literalmente en pantalla — *"esta semana 20.8 h"* en fichaje y *"0 h"* en Time Tracker, las
+dos ciertas para su ventana y ninguna comparable con la otra. Ahora devuelve el periodo de pago.
+
+Y el valor por defecto del código pasa de **6 (sábado)** a **5 (viernes)**. La base ya guardaba
+5: el defecto contradecía al real, así que cualquier instalación nueva —o cualquier lectura
+antes de que carguen los ajustes— contaba una semana que no es la de esta empresa.
+
+Dos pruebas lo fijan: que las dos funciones devuelvan lo mismo en cinco fechas distintas, y que
+esa semana empiece en **viernes** y acabe en **jueves**. Que se separen otra vez es exactamente
+lo que costó dos rondas de "esto no cuadra".

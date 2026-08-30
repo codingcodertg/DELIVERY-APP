@@ -109,9 +109,18 @@ export default function LiveMonitorPage() {
                 <div className="live-sub">&nbsp;</div>
                 <div className="live-clock">{fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}</div>
                 <div className="live-meta">{t("mgr.live.clockIn")} {fmtTime(desde)}</div>
-                {/* De un fichaje no hay actividad ni pantalla: la fila se reserva vacía para
-                    que las dos tarjetas midan igual y no bailen una respecto a la otra. */}
-                <div className="live-foot">&nbsp;</div>
+                {/* Lo que lleva fuera HOY, separado: comer y salir a repartir no son lo mismo
+                    ni para la nómina ni para quien revisa. La fila se ocupa con esto en vez de
+                    quedarse en blanco, y sigue midiendo igual que la del cronómetro. */}
+                <div className="live-foot">
+                  {p.lunchMin > 0 || p.outMin > 0 ? (
+                    <>
+                      {p.lunchMin > 0 && <>🍽 {t("mgr.live.onLunch")} {p.lunchMin} min</>}
+                      {p.lunchMin > 0 && p.outMin > 0 && " · "}
+                      {p.outMin > 0 && <>🚚 {t("mgr.live.outNow")} {p.outMin} min</>}
+                    </>
+                  ) : " "}
+                </div>
               </div>
             );
           })}
