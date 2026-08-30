@@ -5670,3 +5670,59 @@ saldría una fila sin nombre y parecería un fallo de datos.
 
 De tres entradas a **dos**: quedan el panel del día y la pantalla de fichar. Enlace viejo
 redirigido.
+
+---
+
+## D-122 · El cambio de idioma sí funcionaba; lo que faltaba era el idioma
+**Fecha:** 2026-08-29 · **Versión:** v0.27.0 (timetracker) · **Pedido por:** Andrés (*"el cambio
+de idioma no funciona"*)
+
+Lo primero fue comprobar el mecanismo, y **el mecanismo estaba bien**: una prueba con
+`setLang("es")` sobre una clave cualquiera devuelve el texto español correcto. Lo que fallaba
+era otra cosa — dos cosas, en realidad.
+
+### 1. El interpolador de variables estaba roto
+
+```js
+s.replace(/{(w+)}/g, …)   // la barra de \w se había perdido
+```
+
+Ese patrón casa con la letra **w literal**, no con una palabra. Resultado: **ninguna** de las 99
+cadenas con variables sustituía nada, **en los dos idiomas**. En pantalla se leía literalmente
+`{h} h restantes`. Se demostró con una prueba antes de tocarlo: *expected `'{h} h left'` to be
+`'3 h left'`*.
+
+### 2. La barra de pestañas nunca cambiaba de idioma
+
+Sus etiquetas estaban **escritas a mano en inglés** dentro de `constants.ts`. La barra es lo
+único que se ve en **todas** las pantallas, así que aunque media app cambiara, la impresión era
+"esto no hace nada". Ahora son claves `tab.<id>` y las pinta `TopBar` con `t()`.
+
+Al añadirlas apareció que ya existía un `tab.*` heredado —cinco claves sin emoji, con un solo
+consumidor— **colocado después en el objeto, así que habría ganado y anulado las nuevas en
+silencio**. Se retiraron las cuatro que chocaban.
+
+De paso, `team-diary` decía `🗂 Work Diary` igual que `diary`: dos pestañas idénticas en la
+barra de un admin, una del equipo y otra propia. Ahora son **Team Diary** y **My Diary**.
+
+### Lo que sigue sin traducir, y conviene decirlo
+
+Medido, no estimado: `account` tiene **0** llamadas a `t()`, `diary` 1, `requests` 2,
+`schedule` 3, `payroll` 6. Y **las cinco vistas que bajaron de fichaje estos días** —fotos,
+excepciones, tiempo libre, partes de nómina y horario— están **enteras en inglés**, porque se
+escribieron así.
+
+O sea: la barra y las pantallas con buena cobertura ya cambian; esas otras no. No es un fallo
+del interruptor, es texto que no existe en español. Se traduce pantalla por pantalla, y quedó
+apuntado como trabajo siguiente en vez de dejarlo a medias.
+
+### Y hay tres idiomas independientes, que es lo de fondo
+
+| dónde | de dónde lo lee |
+|---|---|
+| hub y entregas | `localStorage` `rtg_prefs` |
+| Time Tracker | `localStorage` `tt_lang` |
+| fichaje | columna `profiles.language` en la base |
+
+Cambiarlo en un sitio no cambia los otros. Eso explica por sí solo buena parte de "no funciona",
+y unificarlo es una decisión aparte —toca las tres apps— que no se mete en el mismo cambio.

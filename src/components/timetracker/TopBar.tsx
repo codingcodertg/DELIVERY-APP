@@ -47,7 +47,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
               <span key={tb.id} style={{ display: "inline-flex", alignItems: "center" }}>
                 {startsPersonal && <span style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.15)", margin: "0 6px" }} />}
                 <Link href={tb.href} className={active ? "active" : ""}>
-                  {tb.label}
+                  {t("tab." + tb.id)}
                 </Link>
               </span>
             );
