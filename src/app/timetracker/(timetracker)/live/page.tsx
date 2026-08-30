@@ -66,7 +66,7 @@ export default function LiveMonitorPage() {
         </div>
       )}
 
-      <div className="card">
+    <div className="card">
         <div className="between">
           <h2 style={{ margin: 0 }}>⏰ On the clock</h2>
           <span className="chip">{crew?.onClock.length ?? 0}</span>
@@ -95,12 +95,38 @@ export default function LiveMonitorPage() {
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.tab.live")}</h2>
-        <span className="chip">{t("mgr.live.active", { n: rows.length })}</span>
+        <span className="chip">{t("mgr.live.active", { n: rows.length + (crew?.onClock.length ?? 0) })}</span>
       </div>
-      {rows.length === 0 ? (
+      {rows.length === 0 && (crew?.onClock.length ?? 0) === 0 ? (
         <p className="muted" style={{ marginTop: 12 }}>{t("mgr.live.empty")}</p>
       ) : (
         <div className="pbtns" style={{ marginTop: 12 }}>
+          {/* Los que FICHAN, con la misma forma de tarjeta que los del cronómetro (D-129). En
+              dos listas separadas parecían dos cosas distintas, y son la misma pregunta: quién
+              está trabajando ahora. Lo que cambia es qué se puede medir de cada quien — de un
+              fichaje no hay actividad, ni pantalla, ni inactivo, así que esas líneas no se
+              dibujan en vez de dibujarse a cero, que sería inventarse un dato. */}
+          {(crew?.onClock ?? []).map((p) => {
+            const emp = uMap.get(p.employeeId);
+            const desde = Date.parse(p.since);
+            return (
+              <div key={p.id} className="box">
+                <div style={{ fontWeight: 700 }}>
+                  {emp ? emp.fullName : p.name}
+                  <span className="pill on" style={{ marginLeft: 6 }}>🏢 {t("mgr.live.inhouse")}</span>
+                </div>
+                <div className="small muted">{t("mgr.live.punched")}</div>
+                <div className="row between" style={{ marginTop: 6 }}>
+                  <span className="timer-big" style={{ fontSize: 26 }}>
+                    {fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}
+                  </span>
+                  <span className="small muted" style={{ textAlign: "right" }}>
+                    {t("mgr.live.since", { time: fmtTime(desde) })}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
           {rows.map((s) => {
             const emp = uMap.get(s.employeeUid);
             const proj = pMap.get(s.projectId ?? "");
@@ -115,6 +141,9 @@ export default function LiveMonitorPage() {
               <div key={s.id} className="box">
                 <div style={{ fontWeight: 700 }}>
                   {emp ? emp.fullName : (s.employeeName || "—")}
+                  <span className="pill" style={{ marginLeft: 6, background: "var(--tt-accent)", color: "#fff" }}>
+                    💻 {t("mgr.live.remote")}
+                  </span>
                   {st ? <span className={"pill " + st.pill} style={{ marginLeft: 6 }}>{st.text}</span>
                     : <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.live.livePill")}</span>}
                 </div>

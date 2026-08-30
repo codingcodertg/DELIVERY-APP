@@ -7,6 +7,7 @@ import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, setLang, useT } from "@/lib/timetracker/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { NotificationBell } from "@/components/timetracker/NotificationBell";
 import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { TtCheckUpdateLink } from "@/components/timetracker/UpdateBanner";
 import type { UserRole } from "@/lib/types";
@@ -58,6 +59,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
         <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}>
           {me.role === "admin" ? t("shell.manager") : t("shell.employee")}
         </span>
+        <NotificationBell />
         <button
           className="btn-ghost btn-sm"
           style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}

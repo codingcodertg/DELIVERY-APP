@@ -5964,3 +5964,59 @@ mira, no una alarma, y un fichaje no cambia cada segundo como el cronómetro.
 En Employees, un punto verde (presencial) o azul (remoto) delante del nombre, **con leyenda**:
 un color sin leyenda es un adorno; con ella es un dato. Son dos nóminas distintas y hasta ahora
 había que abrir el desplegable de cada fila para saber cuál era cuál.
+
+---
+
+## D-129 · Lo último que ataba al módulo de fichaje: horario, notas, boletín y avisos
+**Fecha:** 2026-08-30 · **Versión:** v0.33.0 (timetracker) · v0.29.0 (clockin) · **Pedido por:**
+Andrés (*"no quiero lo mande a otro view, ahí mismo que se display como que esté oculto"*, *"lo
+de notificaciones también que pase al time tracker"*, *"que se mire igual a la card de Andrés
+Ugarte"*)
+
+### Tres pantallas que pasan a ser tres desplegables
+
+**Mi horario**, **Notas diarias** y **Mi responsabilidad** eran tres pantallas del módulo de
+fichaje, y eran el último motivo para tener que ir allí. Ahora se abren dentro de Registrar
+tiempo, plegadas.
+
+**Cada una se pide al abrirla**, no al cargar. Son datos que casi nadie mira cada vez que ficha,
+y cobrárselos a todo el mundo en cada carga solo haría más lento el botón de fichar, que es lo
+que sí se usa siempre.
+
+Se usa `<details>` del navegador y no un acordeón propio: recuerda su estado al teclado, se
+puede buscar dentro con Ctrl+F aunque esté cerrado, y no hay nada que escribir para que
+funcione. Un acordeón a mano solo habría añadido formas de fallar.
+
+Dos detalles que sí se cuidaron: **el tiempo libre aprobado se avisa arriba del horario** —sin
+eso, un hueco parece un olvido y la gente pregunta si tiene que venir— y **el boletín solo
+enseña lo que hay que mejorar si existe**: una lista de faltas vacía se lee como un reproche por
+si acaso.
+
+### La campana, donde se ve
+
+Las notificaciones eran otra pantalla del módulo, y estar en otra app es lo peor que le puede
+pasar a un aviso: solo lo ves si vas a buscarlo, que es lo contrario de para lo que sirve. Ahora
+🔔 vive en la barra de Time Tracker, en todas las pantallas.
+
+El contador se pide con `head: true` — trae **cuántas** hay sin leer, no los textos; los mensajes
+solo al abrir. La campana está en todas las pantallas: cobrar sesenta filas en cada navegación
+habría sido pagar mucho por un número. Y se marcan leídas **al abrir**, no al cerrar: quien
+cierra la pestaña a media lectura no debería reencontrarse el mismo aviso como nuevo.
+
+### Una sola lista en "Trabajando ahora"
+
+Las dos mitades estaban en dos tarjetas separadas y parecían dos cosas distintas. Son la misma
+pregunta. Ahora comparten la misma forma de tarjeta, con etiqueta **💻 Remoto** o **🏢
+Presencial**.
+
+Lo que cambia entre una y otra es **qué se puede medir**: de un fichaje no hay actividad, ni
+pantalla, ni tiempo inactivo, así que esas líneas **no se dibujan** en vez de dibujarse a cero
+— un cero ahí sería inventarse un dato que nadie midió.
+
+### Sobre las 20.8 h contra 0 h, otra vez
+
+Verificado en el código, no supuesto: la pantalla vieja hace `const week = weekDates()`
+(**lunes→domingo**); la nueva y la nómina cuentan **viernes→jueves**. Con el periodo recién
+empezado, lo trabajado el lunes anterior pertenece al periodo anterior. Las dos cifras son
+correctas para su ventana, y por eso la tarjeta ahora **imprime las fechas** que está contando:
+el número solo confunde cuando no dice de qué semana habla.

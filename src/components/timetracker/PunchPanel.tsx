@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { clockIn, clockOut, getMyDay, type ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
 import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
 import { createClient } from "@/lib/clockin/supabase/client";
 import { compressImage } from "@/lib/clockin/image";
 import { fmtClock } from "@/lib/timetracker/helpers";
+import { MySections } from "@/components/timetracker/MySections";
 
 /**
  * Fichar, dentro de Registrar tiempo (D-125).
@@ -285,13 +285,7 @@ export function PunchPanel() {
         </div>
       )}
 
-      <div className="card">
-        <div className="row">
-          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/my-schedule">📅 My schedule</Link>
-          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/notes">📝 Daily notes</Link>
-          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/me">📊 My scorecard</Link>
-        </div>
-      </div>
+      <MySections />
 
       <div className="card">
         <div className="grid g2">
