@@ -2,6 +2,7 @@
 
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
+import { effWorkerType } from "@/lib/timetracker/helpers";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerPeople.jsx — but
 // deliberately SMALLER than the original. Role changes, account creation,
@@ -36,7 +37,16 @@ export default function ManagerPeoplePage() {
 
   return (
     <div className="card">
-      <h2>{t("mgr.tab.people")}</h2>
+      <div className="between">
+        <h2 style={{ margin: 0 }}>{t("mgr.tab.people")}</h2>
+        {/* Un color sin leyenda es un adorno; con ella es un dato. */}
+        <span className="small muted">
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999, background: "var(--tt-accent2)", marginRight: 5 }} />
+          In-house
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999, background: "var(--tt-accent)", margin: "0 5px 0 12px" }} />
+          Remote
+        </span>
+      </div>
       <p className="small muted" style={{ marginTop: 0 }}>
         Names, pay info, module access and account status are managed from the hub&apos;s Users
         page — this screen is only each employee&apos;s tracking setup.
@@ -55,7 +65,20 @@ export default function ManagerPeoplePage() {
               const inactive = u.active === false;
               return (
                 <tr key={u.id} style={inactive ? { opacity: 0.55 } : undefined}>
-                  <td className="nowrap">{u.fullName}{u.id === me.id && <span className="muted">{t("mgr.ppl.you")}</span>}</td>
+                  <td className="nowrap">
+                    {/* Presencial contra remoto de un vistazo (D-128). Son dos nóminas
+                        distintas —asistencia contra tiempo cronometrado— y hasta ahora había
+                        que abrir el desplegable de cada fila para saber cuál era cuál. */}
+                    <span
+                      title={effWorkerType(u) === "inhouse" ? "In-house" : "Remote"}
+                      style={{
+                        display: "inline-block", width: 8, height: 8, borderRadius: 999,
+                        marginRight: 8, verticalAlign: "middle",
+                        background: effWorkerType(u) === "inhouse" ? "var(--tt-accent2)" : "var(--tt-accent)",
+                      }}
+                    />
+                    {u.fullName}{u.id === me.id && <span className="muted">{t("mgr.ppl.you")}</span>}
+                  </td>
                   <td className="muted">{u.city || "—"}</td>
                   <td className="small muted">{u.payMethod ? u.payMethod + (u.payDetails ? " · " + u.payDetails : "") : "—"}</td>
                   <td>

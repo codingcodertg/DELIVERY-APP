@@ -5916,3 +5916,51 @@ El acotado lo aplica la **aplicación**, no las políticas: en la base, un geren
 filas de su empresa igual que un admin. **No es un retroceso** —hoy cualquiera veía todo— pero
 tampoco es una garantía de base de datos, y llamarlo así sería mentir. Convertirlo en garantía
 significa meter la tienda dentro de las políticas de cada tabla, y va en su propio paso.
+
+---
+
+## D-128 · Working Now veía media empresa, y el almuerzo llevaba semanas "en curso"
+**Fecha:** 2026-08-30 · **Versión:** v0.32.0 (timetracker) · v0.28.0 (clockin) · **Pedido por:**
+Andrés (*"estoy clock in en un empleado… pero en el trabajando ahora solo aparezco yo"*, *"falta
+voy a salir, empezar almuerzo"*, *"sale 0 de 52"*, *"que tengan un color code"*)
+
+### El almuerzo que nunca terminaba
+
+`getMyDay` buscaba la salida en curso así: la última `exception` con `returned_at` nulo. Pero
+esa tabla guarda **también los avisos de geocerca** (`out_of_radius`), que por naturaleza no
+llevan regreso. Medido: **54 abiertos** ahora mismo, 35 de ellos de Alberto.
+
+Así que la app creía que llevaba semanas de almuerzo: enseñaba "I'm back" y **escondía los
+botones de empezar almuerzo y voy a salir**, que es exactamente lo reportado. El original sí
+filtraba por `type = 'leaving_while_clocked_in'`; al reescribir el panel se me perdió.
+
+Ahora filtra por tipo **y** exige que la salida haya empezado dentro del turno abierto: una que
+nadie cerró la semana pasada no es un almuerzo de ahora.
+
+### El "0 de 52": dos semanas distintas, ninguna rota
+
+No era un dato mal calculado. La pantalla vieja cuenta **lunes→domingo** (`weekDates`) y la
+nómina —y por tanto la nueva— cuenta **viernes→jueves** (`payPeriodDates`). El viernes recién
+empezado, lo trabajado el lunes anterior pertenece al periodo ANTERIOR. Las dos cifras eran
+correctas para su ventana.
+
+Se conserva la semana **de pago**, porque es la que paga y la que usan nómina, horario y partes;
+tener dos definiciones fue el error. Y ahora la tarjeta **dice de qué fechas habla**
+(`28/08 → 03/09 (Fri–Thu)`): un número sin su ventana invita justo a esta confusión.
+
+### Working Now era ciego a quien ficha
+
+Solo miraba `liveSessions`, que son sesiones del **cronómetro**. Con las dos formas de trabajar
+conviviendo (D-123), "quién trabaja ahora" respondía por media empresa **sin decirlo** — fichar
+a alguien y no verlo aparecer es peor que una lista vacía.
+
+Ahora lleva **⏰ On the clock** (quién está dentro y desde cuándo) y, arriba del todo,
+**⚠️ Needs attention** (quién llega tarde, quién no ha fichado con turno empezado) — que era lo
+único que le quedaba al panel del módulo de fichaje. Se refresca cada 30 s: es un tablero que se
+mira, no una alarma, y un fichaje no cambia cada segundo como el cronómetro.
+
+### Color para las dos mitades
+
+En Employees, un punto verde (presencial) o azul (remoto) delante del nombre, **con leyenda**:
+un color sin leyenda es un adorno; con ella es un dato. Son dos nóminas distintas y hasta ahora
+había que abrir el desplegable de cada fila para saber cuál era cuál.

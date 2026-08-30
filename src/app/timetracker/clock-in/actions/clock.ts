@@ -564,6 +564,9 @@ export async function getMyDay(): Promise<
       /** Minutos programados en la semana de pago, y en cuántos días. */
       scheduledMinutes: number;
       scheduledDays: number;
+      /** Viernes y jueves del periodo que se está contando. */
+      periodStart: string;
+      periodEnd: string;
       today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number }[];
       todayMinutes: number;
       weekMinutes: number;
@@ -586,12 +589,15 @@ export async function getMyDay(): Promise<
       .gte("shift_date", semana[0])
       .lte("shift_date", semana[6]),
     supabase.from("job_sites").select("id, name").eq("company_id", profile.company_id),
-    // Un descanso abierto es una salida sin regreso. Se mira aparte del fichaje porque se
-    // puede estar dentro y de almuerzo a la vez, que es justo el estado que hay que enseñar.
+    // Una salida en curso. `type` es imprescindible: la tabla `exceptions` guarda TAMBIÉN los
+    // avisos de geocerca (`out_of_radius`), que por naturaleza no llevan regreso — hay 54
+    // abiertos ahora mismo. Sin filtrar por tipo, cualquiera parecía llevar semanas de
+    // almuerzo, y por eso no le salían los botones de "empezar almuerzo" y "voy a salir".
     supabase
       .from("exceptions")
       .select("id, reason, left_at, returned_at")
       .eq("employee_id", user.id)
+      .eq("type", "leaving_while_clocked_in")
       .is("returned_at", null)
       .order("left_at", { ascending: false })
       .limit(1),
@@ -621,7 +627,12 @@ export async function getMyDay(): Promise<
   const hoy = centralDateStr();
   const nombreSitio = new Map((sitios ?? []).map((x) => [x.id as string, x.name as string]));
   const delDia = (turnos ?? []).find((x) => x.shift_date === hoy);
-  const abiertoDescanso = (descanso ?? [])[0];
+  const turnoAbierto = filas.find((e) => !e.clock_out_at);
+  // Y solo si empezó DENTRO del turno abierto: una salida que nadie cerró de un turno de la
+  // semana pasada no es un almuerzo de ahora.
+  const posible = (descanso ?? [])[0];
+  const abiertoDescanso =
+    posible && turnoAbierto && (posible.left_at as string) >= turnoAbierto.clock_in_at ? posible : null;
 
   return {
     ok: true,
@@ -655,5 +666,7 @@ export async function getMyDay(): Promise<
       0,
     ),
     scheduledDays: (turnos ?? []).length,
+    periodStart: semana[0],
+    periodEnd: semana[6],
   };
 }

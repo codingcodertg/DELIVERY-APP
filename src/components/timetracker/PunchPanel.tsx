@@ -269,7 +269,12 @@ export function PunchPanel() {
             </div>
           )}
           <div className="between" style={{ marginTop: 6 }}>
-            <span className="muted">This week</span>
+            <span className="muted">
+              This pay week
+              <span className="small muted" style={{ display: "block", fontWeight: 400 }}>
+                {d.periodStart} → {d.periodEnd} (Fri–Thu)
+              </span>
+            </span>
             <strong>
               {horas(d.weekMinutes)} / {horas(d.scheduledMinutes)}
             </strong>
