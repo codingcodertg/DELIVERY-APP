@@ -80,7 +80,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
   const weekEndUtc = new Date(new Date(centralWallToUtc(`${periodEnd}T00:00`)).getTime() + 86400000).toISOString();
 
   // Store scope: manager → their store; owner → everyone. Owner hidden from managers.
-  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
+  const { stores, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let peopleQ = supabase
@@ -88,7 +88,8 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
     .select("id, full_name, role, is_runner, position, store_id")
     .eq("company_id", me.company_id)
     .eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  // `stores` y no la principal: un gerente con tiendas concedidas (D-127) las ve todas.
+  if (stores) peopleQ = peopleQ.in("store_id", stores);
   if (!isOwner) peopleQ = peopleQ.neq("role", "owner");
 
   let openQ = supabase

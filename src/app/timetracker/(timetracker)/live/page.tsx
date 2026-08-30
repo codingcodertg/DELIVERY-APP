@@ -5,6 +5,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { fmtClock, fmtTime } from "@/lib/timetracker/helpers";
 import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
+import { CrewMap, type CrewPoint } from "@/components/timetracker/CrewMap";
 
 // Ported (D-071) from timetracker-clean's manager/LiveMonitor.jsx — "who's
 // working now", live via the provider's `liveSessions` (its own realtime
@@ -144,6 +145,17 @@ export default function LiveMonitorPage() {
           })}
         </div>
       )}
+      {/* El mapa va al final: se consulta, no se vigila. Arriba estorbaría a lo que sí se
+          mira de un vistazo, que es quién está trabajando. */}
+      <CrewMap
+        points={(crew?.onClock ?? [])
+          .filter((p): p is typeof p & { lat: number; lng: number } => p.lat != null && p.lng != null)
+          .map((p): CrewPoint => ({
+            lat: p.lat, lng: p.lng,
+            label: uMap.get(p.employeeId)?.fullName ?? p.name,
+            offSite: p.onSite === false,
+          }))}
+      />
       <p className="small muted" style={{ marginTop: 10 }}>{t("mgr.live.foot")}</p>
     </div>
     </>

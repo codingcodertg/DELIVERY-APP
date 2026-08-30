@@ -6100,3 +6100,44 @@ De paso, la consulta de salidas se ordena por hora y gana la **última**. Sin or
 cualquiera, y con varias abiertas de días distintos eso es una lotería — hoy no pasa porque el
 filtro por `type` (D-128) dejó fuera los avisos de geocerca, pero la garantía no debe depender
 de que los datos estén limpios.
+
+---
+
+## D-132 · De Today's Crew solo faltaba el mapa — y un alcance por tienda que se me quedó a medias
+**Fecha:** 2026-08-30 · **Versión:** v0.36.0 (timetracker) · v0.32.0 (clockin) · **Pedido por:**
+Andrés (*"sí empieza así"*, sobre migrar Today's Crew antes que los vehículos)
+
+### No se portaron 462 líneas, y ese es el trabajo
+
+Al leerla, Today's Crew respondía cuatro preguntas y **tres ya tenían casa**:
+
+| lo que enseñaba | dónde vive ya |
+|---|---|
+| quién está fichado ahora | **Trabajando ahora** (D-128) |
+| los fichajes de la semana por persona | **Payroll → Timesheets** (D-117) |
+| las fotos y las excepciones | **Auditoría** (D-109, D-115) |
+| **dónde está cada quien** | *en ningún sitio* |
+
+Portarla entera habría sido duplicar tres pantallas para traerse un mapa. Se trae **el mapa**.
+
+### El mapa dice lo que es, no lo que parece
+
+**No es seguimiento en vivo**, y la pantalla lo escribe: cada punto es donde esa persona
+**fichó**, no dónde está ahora — quien salió a repartir sigue apareciendo en la tienda. Dejarlo
+implícito habría sido peor que no tener mapa: un mapa invita a creer que sigue a la gente.
+
+Rojo el que fichó **fuera** de la geocerca: en un mapa, eso es justo lo que se viene a mirar.
+Se monta bajo demanda, porque Leaflet pesa y esta pantalla se deja abierta todo el día.
+
+### El fallo que encontré de camino, y era mío
+
+D-127 cambió `storeScope` para devolver **todas** las tiendas visibles, pero cuatro sitios
+seguían filtrando por `scopeStore` —**solo la principal**—: Today's Crew, el panel de fichaje y
+**las dos rutas de exportación**. Un gerente con tiendas concedidas no habría visto a esa gente,
+y en el caso de las exportaciones el alcance mal puesto **se lleva o se deja datos en un
+fichero** que alguien abre en Excel y da por bueno.
+
+Además las dos exportaciones calculaban el alcance a mano y ni siquiera pedían la columna nueva,
+así que se quedaron fuera del cambio sin que nada fallara. Ahora las cuatro usan la lista
+completa. Es el precio de tener la misma regla escrita en varios sitios, y por eso `visibleStores`
+existe: para que no vuelva a haber varios.

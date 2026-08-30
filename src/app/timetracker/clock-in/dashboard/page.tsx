@@ -34,11 +34,12 @@ export default async function DashboardPage() {
   const { todayStartUtc } = dayAndWeekStart();
   const week = weekDates();
 
-  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
+  const { stores, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  // `stores` y no la principal: un gerente con tiendas concedidas (D-127) las ve todas.
+  if (stores) peopleQ = peopleQ.in("store_id", stores);
   if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
 
   // Only TODAY's entries + today's shifts are needed to spot late / not-in-yet.

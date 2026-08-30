@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { visibleStores } from "@/lib/clockin/scope";
 import { createClient } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
@@ -39,8 +40,8 @@ export async function GET(req: Request) {
   if (!me || (me.role !== "manager" && me.role !== "owner")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const { data: meStore } = await supabase.from("profiles").select("store_id").eq("id", user.id).maybeSingle();
-  const scopeStore = me.role === "manager" && meStore?.store_id ? (meStore.store_id as string) : null;
+  const { data: meStore } = await supabase.from("profiles").select("store_id, extra_store_ids").eq("id", user.id).maybeSingle();
+  const scopeStore = visibleStores(me.role, (meStore?.store_id as string) ?? null, (meStore as { extra_store_ids?: string[] } | null)?.extra_store_ids);
 
   const url = new URL(req.url);
   const type = url.searchParams.get("type") === "detail" ? "detail" : "summary";
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
   const endUtc = new Date(new Date(startUtc).getTime() + 7 * 86400000).toISOString();
 
   const peopleQuery = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id);
-  if (scopeStore) peopleQuery.eq("store_id", scopeStore);
+  if (scopeStore) peopleQuery.in("store_id", scopeStore);
   if (me.role !== "owner") peopleQuery.neq("role", "owner"); // owner excluded from a manager's export
   const { data: people } = await peopleQuery;
   const allowedIds = (people ?? []).map((p) => p.id as string);

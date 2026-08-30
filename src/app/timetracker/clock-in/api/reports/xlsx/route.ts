@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { visibleStores } from "@/lib/clockin/scope";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
@@ -32,13 +33,13 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: me } = await supabase
     .from("profiles")
-    .select("role, company_id, store_id")
+    .select("role, company_id, store_id, extra_store_ids")
     .eq("id", user.id)
     .single();
   if (!me || (me.role !== "manager" && me.role !== "owner")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
+  const scopeStore = visibleStores(me.role, (me.store_id as string) ?? null, (me as { extra_store_ids?: string[] }).extra_store_ids);
 
   const url = new URL(req.url);
   const monday = url.searchParams.get("week") || payPeriodDates()[0]; // pay week = Fri→Thu
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
     .select("id, full_name, store_id")
     .eq("company_id", me.company_id)
     .eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  if (scopeStore) peopleQ = peopleQ.in("store_id", scopeStore);
   if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner"); // owner excluded from a manager's export
   const { data: people } = await peopleQ;
   const allowed = new Set((people ?? []).map((p) => p.id as string));
@@ -168,7 +169,9 @@ export async function GET(req: Request) {
   }
 
   const buf = await wb.xlsx.writeBuffer();
-  const label = scopeStore ? (siteName.get(scopeStore) ?? "store").replace(/\s+/g, "-") : "all-stores";
+  const label = scopeStore && scopeStore.length === 1
+    ? (siteName.get(scopeStore[0]) ?? "store").replace(/\s+/g, "-")
+    : scopeStore ? `${scopeStore.length}-stores` : "all-stores";
   return new NextResponse(buf as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

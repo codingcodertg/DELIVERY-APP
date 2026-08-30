@@ -489,6 +489,11 @@ export async function getCrewNow(): Promise<
         id: string; employeeId: string; name: string; since: string;
         /** Fuera ahora mismo: de almuerzo o en la calle. null = está en el sitio. */
         away: { reason: string; since: string } | null;
+        /** Dónde fichó. null si el navegador no dio permiso de ubicación ese día. */
+        lat: number | null;
+        lng: number | null;
+        /** false = fichó fuera de la geocerca. */
+        onSite: boolean | null;
       }[];
       late: { name: string; minutes: number }[];
       notInYet: { name: string }[];
@@ -514,7 +519,7 @@ export async function getCrewNow(): Promise<
   const [{ data: entries }, { data: shifts }, { data: salidas }] = await Promise.all([
     supabase
       .from("time_entries")
-      .select("id, employee_id, clock_in_at, clock_out_at, status")
+      .select("id, employee_id, clock_in_at, clock_out_at, status, clock_in_lat, clock_in_lng, clock_in_in_radius")
       .in("employee_id", inIds)
       .gte("clock_in_at", todayStartUtc.toISOString()),
     supabase
@@ -554,6 +559,9 @@ export async function getCrewNow(): Promise<
         name: nombre.get(e.employee_id as string) ?? "—",
         since: e.clock_in_at as string,
         away: fuera.get(e.employee_id as string) ?? null,
+        lat: (e.clock_in_lat as number) ?? null,
+        lng: (e.clock_in_lng as number) ?? null,
+        onSite: (e.clock_in_in_radius as boolean) ?? null,
       }))
       .sort((a, b) => a.since.localeCompare(b.since)),
     late: alerts.late.map((a) => ({ name: nombre.get(a.employeeId) ?? "—", minutes: a.minutes })),
