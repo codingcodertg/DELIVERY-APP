@@ -24,7 +24,7 @@ export default async function DashboardPage() {
 
   const { data: me } = await supabase
     .from("profiles")
-    .select("role, company_id, full_name, language, store_id")
+    .select("role, company_id, full_name, language, store_id, extra_store_ids")
     .eq("id", user.id)
     .single();
   if (!me || (me.role !== "manager" && me.role !== "owner")) redirect("/timetracker/clock-in/clock");
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const { todayStartUtc } = dayAndWeekStart();
   const week = weekDates();
 
-  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id);
+  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);

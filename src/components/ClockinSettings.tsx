@@ -7,6 +7,7 @@ import {
   getClockinEmployeeSettings,
   setEmployeeSchedule,
   setEmployeeStore,
+  setEmployeeExtraStores,
   setEmployeePosition,
   setEmployeeRunner,
   setEmployeeVehicle,
@@ -34,6 +35,7 @@ type Settings = {
   default_schedule: string | null;
   custom_schedule: WeekPattern | null;
   store_id: string | null;
+  extra_store_ids: string[] | null;
   is_runner: boolean;
   vehicle_id: string | null;
   active: boolean;
@@ -133,6 +135,41 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
           </div>
         </div>
       </div>
+
+      {/* Tiendas extra (D-127). Solo tiene sentido para un gerente de tienda: un admin ya lo
+          ve todo y un empleado no ve a nadie, así que a esos dos el control sobra y confunde. */}
+      {clockinRole === "manager" && (
+        <div className="field">
+          <label>{t("Other stores they can see", "Otras tiendas que puede ver")}</label>
+          <div className="perm-panel">
+            {data.sites.filter((site) => site.id !== s.store_id).map((site) => {
+              const puesta = (s.extra_store_ids ?? []).includes(site.id);
+              return (
+                <label key={site.id} className="perm-opt">
+                  <input
+                    type="checkbox"
+                    checked={puesta}
+                    disabled={busy}
+                    onChange={() => {
+                      const actual = s.extra_store_ids ?? [];
+                      const siguiente = puesta ? actual.filter((x) => x !== site.id) : [...actual, site.id];
+                      run(() => setEmployeeExtraStores(userId, siguiente));
+                    }}
+                  />
+                  {site.name}
+                </label>
+              );
+            })}
+            {data.sites.filter((site) => site.id !== s.store_id).length === 0 && (
+              <div className="hint">{t("No other stores yet.", "No hay más tiendas todavía.")}</div>
+            )}
+          </div>
+          <div className="hint">
+            {t("Their own store above is always included. These are extras.",
+               "Su tienda de arriba va siempre incluida. Estas son adicionales.")}
+          </div>
+        </div>
+      )}
 
       <div className="field">
         <label>{t("Weekly schedule", "Horario semanal")}</label>

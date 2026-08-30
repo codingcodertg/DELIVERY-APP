@@ -29,6 +29,7 @@ export async function getClockinEmployeeSettings(id: string): Promise<
         default_schedule: string | null;
         custom_schedule: WeekPattern | null;
         store_id: string | null;
+        extra_store_ids: string[];
         is_runner: boolean;
         vehicle_id: string | null;
         active: boolean;
@@ -44,7 +45,7 @@ export async function getClockinEmployeeSettings(id: string): Promise<
   const [{ data: person }, { data: sites }, { data: vehicles }] = await Promise.all([
     ctx.supabase
       .from("profiles")
-      .select("position, default_schedule, custom_schedule, store_id, is_runner, vehicle_id, active")
+      .select("position, default_schedule, custom_schedule, store_id, extra_store_ids, is_runner, vehicle_id, active")
       .eq("id", id)
       .maybeSingle(),
     ctx.supabase.from("job_sites").select("id, name").eq("company_id", ctx.companyId).eq("active", true).order("name"),
@@ -200,6 +201,22 @@ export async function setEmployeeStore(id: string, storeId: string | null) {
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("profiles").update({ store_id: storeId }).eq("id", id);
+  if (error) return { ok: false as const, message: error.message };
+  return { ok: true as const };
+}
+
+/**
+ * Las tiendas que un gerente ve ADEMÁS de la suya (D-127).
+ *
+ * Solo el dueño las concede: es un permiso, y dejar que un gerente se conceda tiendas a sí
+ * mismo sería un permiso que se otorga solo.
+ */
+export async function setEmployeeExtraStores(id: string, storeIds: string[]) {
+  const ctx = await managerCtx();
+  if (!ctx.ok) return ctx;
+  if (ctx.role !== "owner") return { ok: false as const, message: "Only an admin can grant stores." };
+  const limpio = [...new Set(storeIds.filter(Boolean))];
+  const { error } = await ctx.supabase.from("profiles").update({ extra_store_ids: limpio }).eq("id", id);
   if (error) return { ok: false as const, message: error.message };
   return { ok: true as const };
 }

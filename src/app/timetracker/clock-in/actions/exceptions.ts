@@ -57,7 +57,7 @@ export async function getExceptionHistory(limit = 80): Promise<
   if (!ctx.ok) return ctx;
   const { supabase, companyId } = ctx;
 
-  const { ids } = await storeScope(supabase, companyId, ctx.role, ctx.storeId);
+  const { ids } = await storeScope(supabase, companyId, ctx.role, ctx.storeId, ctx.me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let q = supabase

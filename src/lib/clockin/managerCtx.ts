@@ -58,11 +58,12 @@ export async function clockinManagerCtx(): Promise<ClockinCtx> {
   // maybeSingle, not single: no clock-in row is a normal state here, not an error.
   const { data: mine } = await supabase
     .from("profiles")
-    .select("role, company_id, store_id")
+    .select("role, company_id, store_id, extra_store_ids")
     .eq("id", user.id)
     .maybeSingle();
 
   const role = (mine?.role as string | undefined) ?? (viaHubAdmin ? "owner" : undefined);
+  // El nivel intermedio existe desde 089; antes esta condición solo la pasaban los dueños.
   if (!viaHubAdmin && role !== "manager" && role !== "owner") {
     return { ok: false, message: "Managers only." };
   }
@@ -81,7 +82,13 @@ export async function clockinManagerCtx(): Promise<ClockinCtx> {
   const storeId = (mine?.store_id as string | undefined) ?? null;
   const effectiveRole = viaHubAdmin ? "owner" : (role as string);
   // store_id null means "every store", which is what an owner gets anyway.
-  const me: Me = { role: effectiveRole, company_id: companyId, store_id: viaHubAdmin ? null : storeId };
+  const me: Me = {
+    role: effectiveRole,
+    company_id: companyId,
+    store_id: viaHubAdmin ? null : storeId,
+    // Tiendas concedidas ADEMÁS de la suya. Vacío para un dueño, que no está acotado.
+    extra_store_ids: viaHubAdmin ? [] : ((mine?.extra_store_ids as string[] | undefined) ?? []),
+  };
 
   return { ok: true, supabase, user, companyId, role: effectiveRole, storeId: me.store_id, me, viaHubAdmin };
 }

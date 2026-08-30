@@ -6,6 +6,7 @@ import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib
 import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
+import { visibleStores } from "@/lib/clockin/scope";
 import { shiftMinutes } from "@/lib/clockin/schedule";
 
 export type ReportResult = { ok: true } | { ok: false; message: string };
@@ -281,8 +282,9 @@ export async function getPayrollPeriod(periodStart: string): Promise<
     .select("id, full_name, store_id")
     .eq("company_id", me.company_id)
     .eq("active", true);
-  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
-  if (scopeStore) peopleQuery.eq("store_id", scopeStore);
+  // Una sola regla de alcance para toda la app (D-127): su tienda más las concedidas.
+  const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
+  if (suyas) peopleQuery.in("store_id", suyas);
   if (me.role !== "owner") peopleQuery.neq("role", "owner");
   const { data: people } = await peopleQuery;
   const allowedIds = (people ?? []).map((p) => p.id as string);

@@ -4,6 +4,7 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
 import { canManageEmployee } from "@/lib/clockin/mgrScope";
+import { visibleStores } from "@/lib/clockin/scope";
 
 export type ShiftResult = { ok: true } | { ok: false; message: string };
 const DENY_SCOPE = "That employee isn't in your store." as const;
@@ -291,13 +292,13 @@ export async function getScheduleWeek(periodStart?: string): Promise<
     : new Date();
   const week = payPeriodDates(base);
 
-  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
+  const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
   let peopleQ = supabase
     .from("profiles")
     .select("id, full_name, default_schedule, store_id, custom_schedule")
     .eq("company_id", me.company_id)
     .eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  if (suyas) peopleQ = peopleQ.in("store_id", suyas);
   if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
 
   let shiftsQ = supabase
@@ -305,8 +306,8 @@ export async function getScheduleWeek(periodStart?: string): Promise<
     .select("id, employee_id, shift_date, start_time, end_time, lunch_minutes, site_id")
     .gte("shift_date", week[0])
     .lte("shift_date", week[6]);
-  if (scopeStore) {
-    const { data: crew } = await supabase.from("profiles").select("id").eq("company_id", me.company_id).eq("store_id", scopeStore);
+  if (suyas) {
+    const { data: crew } = await supabase.from("profiles").select("id").eq("company_id", me.company_id).in("store_id", suyas);
     const ids = (crew ?? []).map((c) => c.id as string);
     shiftsQ = shiftsQ.in("employee_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
   }

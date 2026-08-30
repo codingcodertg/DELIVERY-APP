@@ -9,6 +9,7 @@ import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { dayAndWeekStart } from "@/lib/clockin/time";
 import { todayAlerts } from "@/lib/clockin/scorecard";
+import { visibleStores } from "@/lib/clockin/scope";
 import { centralDateStr, payPeriodDates, shiftMinutes } from "@/lib/clockin/schedule";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 
@@ -497,9 +498,9 @@ export async function getCrewNow(): Promise<
   const { todayStartUtc } = dayAndWeekStart();
   const hoy = centralDateStr();
 
-  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
+  const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
   let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  if (suyas) peopleQ = peopleQ.in("store_id", suyas);
   if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
   const { data: people } = await peopleQ.order("full_name");
   const nombre = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));

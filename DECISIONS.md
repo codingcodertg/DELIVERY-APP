@@ -5857,3 +5857,62 @@ botón que no está.
 
 Sigue fuera —y por eso el módulo de fichaje aún no se puede borrar— el **viaje de vehículo**,
 con su selección de camión y su kilometraje.
+
+---
+
+## D-127 · El gerente de tienda existe por fin, y el acotado por tienda se aplica de verdad
+**Fecha:** 2026-08-30 · **Versión:** v1.39.0 (deliveries) · v0.31.0 (timetracker) · v0.27.0
+(clockin) · **Pedido por:** Andrés (*"admin que soy yo que tengo total control, store manager
+que solo puede ver los de su tienda… y se le puede dar permiso de ver más tiendas"*)
+
+### Lo que se encontró al ir a construirlo
+
+Antes de escribir nada se miró cómo estaba, y estaba peor de lo que parecía:
+
+- `clockin.profiles` derivaba `role` así: admin → **owner**, todo lo demás → **employee**.
+  **Nunca emitía "manager".**
+- `public.profiles.timetracker_role` solo admitía **admin | employee**.
+- Y `storeScope` acotaba con `role === "manager" && storeId`.
+
+Es decir: **esa condición nunca se cumplía**. El acotado por tienda que describían los
+comentarios de media aplicación **no se aplicaba a nadie** — cualquiera que entrase a una
+pantalla de gerente veía la empresa entera. Ocho de doce personas tenían `store_id` puesto sin
+que sirviera para nada.
+
+### Lo que se hizo
+
+**089** crea el nivel (`timetracker_role` admite `manager`), lo emite la vista, añade
+`extra_store_ids uuid[]`, y —esto era imprescindible— **abre `auth_is_manager()` al gerente**:
+las dos funciones de rol tenían el cuerpo idéntico y solo aceptaban admin, así que el nivel
+nuevo habría existido sin ver absolutamente nada. `auth_is_owner()` **no** se tocó: cerrar
+nóminas y tocar los sitios de trabajo siguen siendo del dueño; que las dos fueran iguales era
+justo lo que impedía distinguirlos.
+
+**090** arregla la escritura, y aquí había una trampa que habría anulado todo:
+
+```sql
+when new.role in ('owner','manager') then 'admin'   -- guardar "manager" lo hacía ADMIN
+```
+
+El nivel se colapsaba solo, en silencio, y la persona pasaba a verlo todo — lo contrario de lo
+pedido. Además `extra_store_ids` no estaba en el UPDATE, así que conceder una tienda no guardaba
+nada y el control volvía a su sitio al recargar, sin error.
+
+### Una sola regla, en un solo sitio
+
+`visibleStores(role, store, extras)` decide, y todo lo demás la usa: `storeScope`,
+`canManageEmployee`, y las tres acciones nuevas (nómina, horario, cuadrilla) donde yo mismo
+había escrito el acotado a mano. Siete pruebas la fijan, incluido el caso fácil de equivocar:
+**un gerente sin tienda no se queda sin ver a nadie** — acotarlo a una lista vacía parecería que
+la app está rota, cuando lo que falta es configurarle la tienda.
+
+`canManageEmployee` también mira las extras. Si se olvidaran ahí, un gerente vería a alguien en
+su lista y no podría tocarlo: de los dos fallos posibles, el peor, porque parece un error de la
+app y no un permiso.
+
+### Lo que esto NO es, y no conviene creerse
+
+El acotado lo aplica la **aplicación**, no las políticas: en la base, un gerente puede leer las
+filas de su empresa igual que un admin. **No es un retroceso** —hoy cualquiera veía todo— pero
+tampoco es una garantía de base de datos, y llamarlo así sería mentir. Convertirlo en garantía
+significa meter la tienda dentro de las políticas de cada tabla, y va en su propio paso.

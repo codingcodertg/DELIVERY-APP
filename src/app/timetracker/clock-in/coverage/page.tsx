@@ -58,7 +58,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
 
   const { data: me } = await supabase
     .from("profiles")
-    .select("company_id, language, location_consent_at, role, store_id")
+    .select("company_id, language, location_consent_at, role, store_id, extra_store_ids")
     .eq("id", user.id)
     .single();
   if (me && !me.location_consent_at) redirect("/timetracker/clock-in/welcome");
@@ -80,7 +80,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
   const weekEndUtc = new Date(new Date(centralWallToUtc(`${periodEnd}T00:00`)).getTime() + 86400000).toISOString();
 
   // Store scope: manager → their store; owner → everyone. Owner hidden from managers.
-  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id);
+  const { scopeStore, ids } = await storeScope(supabase, me.company_id, me.role, me.store_id, me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let peopleQ = supabase

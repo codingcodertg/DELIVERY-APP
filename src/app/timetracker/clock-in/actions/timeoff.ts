@@ -110,7 +110,7 @@ export async function getPendingForInbox(): Promise<
   const ctx = await clockinManagerCtx();
   if (!ctx.ok) return ctx;
 
-  const { ids } = await storeScope(ctx.supabase, ctx.companyId, ctx.role, ctx.storeId);
+  const { ids } = await storeScope(ctx.supabase, ctx.companyId, ctx.role, ctx.storeId, ctx.me.extra_store_ids);
 
   let offQ = ctx.supabase
     .from("time_off_requests")

@@ -205,9 +205,12 @@ export const CLOCKIN_ROLE_LABELS: Record<string, { en: string; es: string }> = {
   employee: { en: "Employee", es: "Empleado" },
 };
 
+// Tres niveles desde D-127. El intermedio no existía y por eso el acotado por tienda nunca
+// llegaba a aplicarse: `clockin.profiles` solo emitía owner o employee.
 export const TIMETRACKER_ROLE_LABELS: Record<string, { en: string; es: string }> = {
-  admin: { en: "Admin", es: "Administrador" },
-  employee: { en: "Employee", es: "Empleado" },
+  admin: { en: "Admin — everything", es: "Administrador — todo" },
+  manager: { en: "Store manager — their stores", es: "Gerente de tienda — sus tiendas" },
+  employee: { en: "Employee — only themselves", es: "Empleado — solo lo suyo" },
 };
 
 export const MODULES: ModuleInfo[] = [

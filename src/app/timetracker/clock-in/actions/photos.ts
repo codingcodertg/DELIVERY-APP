@@ -52,7 +52,7 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   const to = new Date(new Date(from).getTime() + 86400000).toISOString();
 
   // Mismo alcance que el resto del módulo: un gerente con tienda ve su cuadrilla y nadie más.
-  const { ids } = await storeScope(supabase, companyId, ctx.role, ctx.storeId);
+  const { ids } = await storeScope(supabase, companyId, ctx.role, ctx.storeId, ctx.me.extra_store_ids);
   const inEmp = ids ? (ids.length ? ids : NO_MATCH) : null;
 
   let punchQ = supabase
