@@ -36,6 +36,10 @@ export const MANAGER_TABS: { id: string; label: string; href: string }[] = [
   { id: "projects", label: "📁 Projects", href: "/timetracker/projects" },
   { id: "assignments", label: "🔗 Assignments", href: "/timetracker/assignments" },
   { id: "people", label: "🧑‍🤝‍🧑 Employees", href: "/timetracker/people" },
+  // Va justo detrás de Employees porque programar es una cosa que se le hace a la gente: se
+  // abre la lista, se ve quién falta esta semana y se le pone turno. Bajó del módulo de
+  // fichaje en D-121.
+  { id: "schedule", label: "📅 Schedule", href: "/timetracker/schedule" },
   { id: "team-diary", label: "🗂 Work Diary", href: "/timetracker/team-diary" },
   { id: "audit", label: "📜 Audit", href: "/timetracker/audit" },
   { id: "settings", label: "⚙️ Settings", href: "/timetracker/settings" },

@@ -5630,3 +5630,43 @@ O sea: el botón da **el mensaje exacto, la pantalla, la versión y una parte de
 es infinitamente más que "algo como cant read length". La traza legible sigue estando en Sentry,
 que sí tiene los mapas. El token del repo es de subida y da 403 en lectura; hace falta uno con
 `event:read` para leerla desde aquí.
+
+---
+
+## D-121 · El horario sube a Time Tracker, y por fin deja programar la semana siguiente
+**Fecha:** 2026-08-29 · **Versión:** v0.26.0 (timetracker) · v0.25.0 (clockin) · **Pedido por:**
+Andrés (*"el horario del clock in va a ir en un new view de time tracker"*)
+
+Quinta pantalla que baja del módulo de fichaje, y va como pestaña propia —**📅 Schedule**—
+justo detrás de **Employees**: programar es algo que se le hace a la gente, y la secuencia real
+es abrir la lista, ver quién no tiene turno esta semana y ponérselo.
+
+Trae las tres piezas de la pantalla vieja: **crear turnos** (persona, días, horas, comida,
+sitio, y aplicar su patrón A/B/C si lo tiene), **fichar a alguien a mano** —para el teléfono que
+se quedó sin batería, registrado como fichaje manual con su motivo— y **la rejilla de la semana**
+agrupada por tienda, con borrado.
+
+### La diferencia funcional, que es la que importa
+
+La pantalla vieja **solo sabía enseñar la semana en curso**. Eso no era cosmético: un horario se
+planifica hacia delante, así que no había forma de dejar programada la semana siguiente. Ahora
+hay navegación entre semanas, y `getScheduleWeek` recibe el viernes del periodo en lugar de
+suponer *hoy*.
+
+Es el mismo tipo de hallazgo que en D-116: una limitación real de la pantalla que solo se ve al
+mudarla, porque mudarla obliga a leer para qué servía.
+
+### Lo que no cambió
+
+Las acciones de servidor son las mismas —`createShifts`, `applySchedule`, `deleteShift`,
+`adminClock`—, así que los permisos, los avisos y las validaciones son idénticos. El alcance por
+tienda también: un gerente con tienda ve y programa a su cuadrilla y a nadie más, y el dueño no
+aparece en la lista de un gerente.
+
+Un turno de alguien que no se ve se descarta **en la acción**, no en la pantalla: si llegara,
+saldría una fila sin nombre y parecería un fallo de datos.
+
+### La barra de fichaje
+
+De tres entradas a **dos**: quedan el panel del día y la pantalla de fichar. Enlace viejo
+redirigido.

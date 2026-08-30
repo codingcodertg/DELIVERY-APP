@@ -260,3 +260,85 @@ export async function deleteShift(id: string): Promise<ShiftResult> {
   );
   return { ok: true };
 }
+
+/**
+ * Una semana de horario, para la vista de Time Tracker (D-121).
+ *
+ * La pantalla vieja calculaba esto dentro de un componente de servidor y **solo sabía enseñar
+ * la semana en curso**. Eso era una limitación de verdad, no cosmética: un horario se planifica
+ * hacia delante, y ahí no había forma de programar la semana siguiente. Por eso ahora recibe el
+ * viernes del periodo y quien llama decide cuál.
+ *
+ * `storeScope` como en el resto del módulo: un gerente con tienda ve y programa a su cuadrilla
+ * y a nadie más. El dueño no aparece en la lista de un gerente.
+ */
+export async function getScheduleWeek(periodStart?: string): Promise<
+  | {
+      ok: true;
+      week: string[];
+      people: { id: string; full_name: string; default_schedule: string | null; store_id: string | null; custom_schedule: WeekPattern | null }[];
+      sites: { id: string; name: string }[];
+      shifts: { id: string; employee_id: string; shift_date: string; start_time: string; end_time: string; lunch_minutes: number; site_id: string | null }[];
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await clockinManagerCtx();
+  if (!ctx.ok) return ctx;
+  const { supabase, me } = ctx;
+
+  const base = periodStart && /^\d{4}-\d{2}-\d{2}$/.test(periodStart)
+    ? new Date(`${periodStart}T12:00:00Z`)
+    : new Date();
+  const week = payPeriodDates(base);
+
+  const scopeStore = me.role === "manager" && me.store_id ? (me.store_id as string) : null;
+  let peopleQ = supabase
+    .from("profiles")
+    .select("id, full_name, default_schedule, store_id, custom_schedule")
+    .eq("company_id", me.company_id)
+    .eq("active", true);
+  if (scopeStore) peopleQ = peopleQ.eq("store_id", scopeStore);
+  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
+
+  let shiftsQ = supabase
+    .from("scheduled_shifts")
+    .select("id, employee_id, shift_date, start_time, end_time, lunch_minutes, site_id")
+    .gte("shift_date", week[0])
+    .lte("shift_date", week[6]);
+  if (scopeStore) {
+    const { data: crew } = await supabase.from("profiles").select("id").eq("company_id", me.company_id).eq("store_id", scopeStore);
+    const ids = (crew ?? []).map((c) => c.id as string);
+    shiftsQ = shiftsQ.in("employee_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+  }
+
+  const [{ data: people }, { data: sites }, { data: shiftRows }] = await Promise.all([
+    peopleQ.order("full_name"),
+    supabase.from("job_sites").select("id, name").eq("company_id", me.company_id).eq("active", true).order("name"),
+    shiftsQ.order("start_time"),
+  ]);
+
+  const visibles = new Set((people ?? []).map((p) => p.id as string));
+  return {
+    ok: true,
+    week,
+    people: (people ?? []).map((p) => ({
+      id: p.id as string,
+      full_name: (p.full_name as string) ?? "—",
+      default_schedule: (p.default_schedule as string) ?? null,
+      store_id: (p.store_id as string) ?? null,
+      custom_schedule: (p.custom_schedule as WeekPattern | null) ?? null,
+    })),
+    sites: (sites ?? []).map((s) => ({ id: s.id as string, name: s.name as string })),
+    // Un turno de alguien que no se ve (el dueño, otra tienda) se descarta aquí y no en la
+    // pantalla: si llegara, saldría una fila sin nombre y parecería un fallo de datos.
+    shifts: (shiftRows ?? []).filter((s) => visibles.has(s.employee_id as string)).map((s) => ({
+      id: s.id as string,
+      employee_id: s.employee_id as string,
+      shift_date: s.shift_date as string,
+      start_time: s.start_time as string,
+      end_time: s.end_time as string,
+      lunch_minutes: (s.lunch_minutes as number) ?? 0,
+      site_id: (s.site_id as string) ?? null,
+    })),
+  };
+}

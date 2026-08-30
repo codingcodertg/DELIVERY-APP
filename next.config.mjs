@@ -47,6 +47,9 @@ const nextConfig = {
       // /timetracker/clock-in/api/reports/* y siguen existiendo — esta regla no las toca
       // porque no empieza por /reports sino por /api.
       { source: "/timetracker/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
+      // El horario subió a Time Tracker (D-121), con lo que ahora además deja programar otras
+      // semanas — la pantalla vieja solo sabía enseñar la actual.
+      { source: "/timetracker/clock-in/schedule", destination: "/timetracker/schedule", permanent: false },
     ];
   },
 };
