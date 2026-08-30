@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { clockIn, clockOut, getMyDay, type ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
+import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
 import { createClient } from "@/lib/clockin/supabase/client";
 import { compressImage } from "@/lib/clockin/image";
 import { fmtClock } from "@/lib/timetracker/helpers";
@@ -27,8 +29,9 @@ import { fmtClock } from "@/lib/timetracker/helpers";
  *   · Si el servidor pide un motivo (fuera del sitio, sin turno, en otra tienda) se pregunta y
  *     se reenvía. Sin eso, un fichaje fuera de la geocerca fallaría sin explicar por qué.
  *
- * Lo que NO trae todavía: los viajes de vehículo y las salidas del sitio, que siguen en la
- * pantalla de fichaje. Están enlazados abajo, y se dice.
+ * Trae también lo que la pantalla vieja enseñaba nada más entrar: el turno de hoy, la semana
+ * programada, el almuerzo y las salidas del sitio. Lo que NO trae son los viajes de vehículo
+ * (con su selección de camión y kilometraje), que siguen en la pantalla de fichaje.
  */
 
 const MOTIVOS: Record<string, { value: string; label: string }[]> = {
@@ -140,6 +143,16 @@ export function PunchPanel() {
     }
   }
 
+  /** Acciones que no fichan (almuerzo, salidas): sin foto ni ubicación obligatoria. */
+  async function corre(fn: () => Promise<{ ok: boolean; message?: string }>) {
+    setErr(null);
+    setOcupado("in");
+    const res = await fn();
+    setOcupado(null);
+    if (!res.ok) { setErr(res.message ?? "Could not save."); return; }
+    await load();
+  }
+
   /** La cámara se abre primero; el fichaje va después, con la foto ya subida. */
   function pide(accion: "in" | "out") {
     pendiente.current = accion;
@@ -210,9 +223,69 @@ export function PunchPanel() {
           </div>
         )}
 
+        {/* Almuerzo y salidas del sitio: solo tienen sentido estando dentro, así que no se
+            dibujan a quien no ha fichado — un botón que va a fallar es peor que no estar. */}
+        {dentro && (
+          <div className="row" style={{ marginTop: 10 }}>
+            {d.leave ? (
+              <button className="btn-warn" disabled={!!ocupado}
+                onClick={() => corre(() => endLeave(d.leave!.id))}>
+                {d.leave.reason === "lunch" ? "End lunch" : "I'm back"} · {hhmm(d.leave.leftAt)}
+              </button>
+            ) : (
+              <>
+                <button className="btn-warn" disabled={!!ocupado}
+                  onClick={() => corre(() => startLeave({ reason: "lunch" }))}>
+                  🍽 Start lunch
+                </button>
+                <button className="btn-ghost" disabled={!!ocupado}
+                  onClick={() => corre(() => startLeave({ reason: "customer_visit" }))}>
+                  🚚 Going out
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* capture="environment" abre la cámara trasera directamente en el móvil; en un
             ordenador es un selector de fichero normal. */}
         <input ref={fotoRef} type="file" accept="image/*" capture="environment" hidden onChange={alElegirFoto} />
+      </div>
+
+      {/* El turno de hoy y la semana programada. Es la pregunta que se hace cualquiera nada
+          más entrar —¿a qué hora salgo y cuánto llevo de lo mío?— y estaba solo en la app de
+          fichaje. */}
+      {(d.shift || d.scheduledMinutes > 0) && (
+        <div className="card">
+          <div className="between">
+            <span className="muted">Today&apos;s shift</span>
+            <strong>{d.shift ? `${d.shift.start.slice(0, 5)} – ${d.shift.end.slice(0, 5)}` : "—"}</strong>
+          </div>
+          {d.shift && (d.shift.lunch > 0 || d.shift.site) && (
+            <div className="small muted" style={{ textAlign: "right" }}>
+              {d.shift.lunch > 0 ? `${d.shift.lunch}m lunch` : ""}
+              {d.shift.lunch > 0 && d.shift.site ? " · " : ""}
+              {d.shift.site ?? ""}
+            </div>
+          )}
+          <div className="between" style={{ marginTop: 6 }}>
+            <span className="muted">This week</span>
+            <strong>
+              {horas(d.weekMinutes)} / {horas(d.scheduledMinutes)}
+            </strong>
+          </div>
+          <div className="small muted" style={{ textAlign: "right" }}>
+            {d.scheduledDays} {d.scheduledDays === 1 ? "day" : "days"} scheduled
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="row">
+          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/my-schedule">📅 My schedule</Link>
+          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/notes">📝 Daily notes</Link>
+          <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/me">📊 My scorecard</Link>
+        </div>
       </div>
 
       <div className="card">

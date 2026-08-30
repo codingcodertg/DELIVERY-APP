@@ -5813,3 +5813,47 @@ Sigue habiendo tres cosas fuera: los **viajes de vehículo** y las **salidas del
 (`VehicleTripPanel`, 479 líneas), y **Today's Crew** (`coverage`, 462). Mientras eso siga ahí,
 retirar el módulo dejaría a la cuadrilla sin registrar un viaje y al gerente sin la vista del
 día. Se dice en vez de dar por hecho el borrado.
+
+---
+
+## D-126 · Tres arreglos de un mismo reporte: caché de PostgREST, tema del navegador, y la jornada completa al fichar
+**Fecha:** 2026-08-30 · **Versión:** v1.38.0 (deliveries) · v0.8.0 (recruiting) · v0.30.0
+(timetracker) · v0.26.0 (clockin) · v0.3.0 (erp)
+
+### 1. El 404 de `driver_shifts` era la caché de esquema, no la tabla
+
+La consola daba `driver_shifts … 404`. Medido antes de tocar nada: **la tabla existe**, la
+columna `started_at` existe, y `public` está entre los esquemas expuestos. Lo que estaba viejo
+era la **caché de esquema de PostgREST** — se queda atrás cuando el DDL entra por fuera, como
+han entrado las migraciones de estos días.
+
+Se recargó con `notify pgrst, 'reload schema'`. Comprobado con una prueba que distingue los dos
+casos: `driver_shifts` pasó de **404** (no la conoce) a **401** (la conoce, pide permiso),
+mientras una tabla inventada sigue dando 404 — así se sabe que la comprobación mide algo.
+
+Importa más de lo que parece: una tabla que 404 hace fallar la carga del proveedor, que marca el
+intento como fallido y reintenta; es una de las formas de acabar con pantallas vacías.
+
+### 2. Las letras negras en modo oscuro: faltaba `color-scheme`
+
+No se declaraba **en ninguna parte** de la app. Sin eso, todo lo que dibuja el navegador y no la
+hoja de estilos —la lista de un `<select>`, las `<option>`, las casillas, los selectores de fecha
+y hora, las barras de desplazamiento— se pinta con el esquema **claro** aunque la página esté
+oscura. De ahí las letras negras que casi no se ven, y de ahí que se notara sobre todo en
+Usuarios: es la pantalla con más desplegables de la app.
+
+Se declara en las **dos** direcciones. Fijar solo el oscuro dejaría el modo claro a merced de
+quien tenga el sistema en oscuro.
+
+### 3. Fichar ya enseña la jornada entera
+
+Al panel de D-125 le faltaba lo que la pantalla vieja daba nada más entrar, y que es lo primero
+que uno mira: **el turno de hoy** (con su comida y su sitio), **la semana programada**
+(trabajado / programado y cuántos días), **el almuerzo** y **las salidas del sitio**, más los
+accesos a Mi horario, Notas diarias y Mi responsabilidad.
+
+Almuerzo y salidas **solo se dibujan estando dentro**: un botón que va a fallar es peor que un
+botón que no está.
+
+Sigue fuera —y por eso el módulo de fichaje aún no se puede borrar— el **viaje de vehículo**,
+con su selección de camión y su kilometraje.

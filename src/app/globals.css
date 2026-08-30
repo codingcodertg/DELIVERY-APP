@@ -15,6 +15,18 @@
   --teal: #0f8a8a;
   --gray: #6b7686;
 }
+/* Le dice al NAVEGADOR en qué tema está, no solo a nuestro CSS.
+   ---------------------------------------------------------------------------
+   Sin esto, todo lo que pinta el sistema y no la hoja de estilos —la lista de un
+   <select>, las <option>, las casillas, los selectores de fecha y hora, las barras de
+   desplazamiento— se dibuja con el esquema CLARO aunque la página esté oscura: letras
+   negras que casi no se ven. Se notaba sobre todo en Usuarios, que es la pantalla con más
+   desplegables de toda la app.
+   Va en las dos direcciones a propósito: fijar solo el oscuro dejaría el claro a merced de
+   quien tenga el sistema en oscuro. */
+:root { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
 :root[data-theme="dark"] {
   --ink: #0d1420;
   --ink-soft: #aab4c2;

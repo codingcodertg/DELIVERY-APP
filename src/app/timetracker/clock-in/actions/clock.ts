@@ -9,7 +9,7 @@ import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { dayAndWeekStart } from "@/lib/clockin/time";
 import { todayAlerts } from "@/lib/clockin/scorecard";
-import { centralDateStr, payPeriodDates } from "@/lib/clockin/schedule";
+import { centralDateStr, payPeriodDates, shiftMinutes } from "@/lib/clockin/schedule";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 
 // Local dev only: when set in .env.local, every punch is treated as on-site so
@@ -556,6 +556,13 @@ export async function getMyDay(): Promise<
       companyId: string;
       userId: string;
       open: { id: string; clockInAt: string } | null;
+      /** El descanso/almuerzo en curso, si lo hay. */
+      leave: { id: string; reason: string; leftAt: string } | null;
+      /** El turno de HOY, para saber a qué hora se entra y se sale. */
+      shift: { start: string; end: string; lunch: number; site: string | null } | null;
+      /** Minutos programados en la semana de pago, y en cuántos días. */
+      scheduledMinutes: number;
+      scheduledDays: number;
       today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number }[];
       todayMinutes: number;
       weekMinutes: number;
@@ -569,6 +576,25 @@ export async function getMyDay(): Promise<
   const { todayStartUtc } = dayAndWeekStart();
   const semana = payPeriodDates();
   const desdeSemana = centralWallToUtc(`${semana[0]}T00:00`);
+
+  const [{ data: turnos }, { data: sitios }, { data: descanso }] = await Promise.all([
+    supabase
+      .from("scheduled_shifts")
+      .select("shift_date, start_time, end_time, lunch_minutes, site_id")
+      .eq("employee_id", user.id)
+      .gte("shift_date", semana[0])
+      .lte("shift_date", semana[6]),
+    supabase.from("job_sites").select("id, name").eq("company_id", profile.company_id),
+    // Un descanso abierto es una salida sin regreso. Se mira aparte del fichaje porque se
+    // puede estar dentro y de almuerzo a la vez, que es justo el estado que hay que enseñar.
+    supabase
+      .from("exceptions")
+      .select("id, reason, left_at, returned_at")
+      .eq("employee_id", user.id)
+      .is("returned_at", null)
+      .order("left_at", { ascending: false })
+      .limit(1),
+  ]);
 
   const { data, error } = await supabase
     .from("time_entries")
@@ -591,6 +617,11 @@ export async function getMyDay(): Promise<
   const hoyIso = todayStartUtc.toISOString();
   const deHoy = filas.filter((e) => e.clock_in_at >= hoyIso);
 
+  const hoy = centralDateStr();
+  const nombreSitio = new Map((sitios ?? []).map((x) => [x.id as string, x.name as string]));
+  const delDia = (turnos ?? []).find((x) => x.shift_date === hoy);
+  const abiertoDescanso = (descanso ?? [])[0];
+
   return {
     ok: true,
     companyId: profile.company_id,
@@ -607,5 +638,21 @@ export async function getMyDay(): Promise<
     })),
     todayMinutes: deHoy.reduce((acc, e) => acc + mins(e), 0),
     weekMinutes: filas.reduce((acc, e) => acc + mins(e), 0),
+    leave: abiertoDescanso
+      ? { id: abiertoDescanso.id as string, reason: (abiertoDescanso.reason as string) ?? "other", leftAt: abiertoDescanso.left_at as string }
+      : null,
+    shift: delDia
+      ? {
+          start: delDia.start_time as string,
+          end: delDia.end_time as string,
+          lunch: (delDia.lunch_minutes as number) ?? 0,
+          site: delDia.site_id ? (nombreSitio.get(delDia.site_id as string) ?? null) : null,
+        }
+      : null,
+    scheduledMinutes: (turnos ?? []).reduce(
+      (acc, x) => acc + shiftMinutes(x.start_time as string, x.end_time as string, (x.lunch_minutes as number) ?? 0),
+      0,
+    ),
+    scheduledDays: (turnos ?? []).length,
   };
 }
