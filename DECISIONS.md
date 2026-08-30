@@ -5509,3 +5509,86 @@ Ahí el grupo sigue siendo la **tienda** —un gerente revisa su cuadrilla, y es
 necesita—, pero un remoto que además fichó lleva su marca. Sus horas pueden estar contadas dos
 veces, una en el parte y otra en sus sesiones; la marca está para que quien aprueba lo vea
 **antes** de darle a aprobar.
+
+---
+
+## D-119 · Todo salía vacío hasta recargar: el middleware llevaba un año muerto
+**Fecha:** 2026-08-28 · **Versión:** v1.36.0 (deliveries) · v0.7.0 (recruiting) · v0.25.0
+(timetracker) · v0.24.0 (clockin) · v0.2.0 (erp) · **Pedido por:** Andrés (*"al entrar al
+sistema, las listas salen VACÍAS… recargo y entonces sí cargan. Ya se intentó arreglar antes y
+NO se resolvió — sospecho que se parchó sin reproducir"*)
+
+Tenía razón. Se intentó cuatro veces —D-088, D-099, el tope de reintentos y D-110— y **las
+cuatro fueron arreglos de cliente para un fallo de servidor**. Por eso ninguna funcionó:
+reintentar presentaba una y otra vez la misma credencial muerta.
+
+### La causa, medida
+
+Tres hechos, cada uno comprobado antes de tocar código:
+
+1. **El middleware no se emitía.** `middleware-manifest.json` salía **vacío**. El fichero vivía
+   en la raíz del repo, y Next lo busca **al lado de la carpeta `app`** — que aquí está en
+   `src/`. Nunca corrió. Sin error, sin aviso: solo funciones que no ocurrían.
+2. **`server.ts` se traga la escritura de cookies**, en un `catch` cuyo propio comentario dice
+   que es *"seguro cuando el middleware refresca la sesión"*. Un Server Component **no puede**
+   escribir cookies en Next 15, así que ese `set` lanza **siempre**.
+3. **La configuración de auth del proyecto** (leída de la API de Supabase): `jwt_exp = 3600`,
+   `refresh_token_rotation_enabled = true`, `security_refresh_token_reuse_interval = 10`.
+
+Con los tres juntos, al entrar pasada una hora:
+
+| | |
+|---|---|
+| 1 | El navegador manda el access token caducado + el refresh token **R1** |
+| 2 | El Server Component llama a `getUser()`, refresca con R1 y obtiene **R2** — **R1 queda quemado** |
+| 3 | Intenta persistir R2 → el `catch` se lo traga |
+| 4 | No hay middleware que lo escriba → **R2 se pierde** |
+| 5 | La página se pinta: el servidor **sí** tenía usuario. Se ve la cabecera y el menú, no los datos |
+| 6 | El provider monta con R1 muerto, su refresco falla y las listas salen vacías |
+
+**El servidor le robaba la sesión al navegador y tiraba la llave nueva.**
+
+### Por qué recargar lo escondía
+
+En la recarga, servidor y cliente compiten por refrescar dentro de los 10 s de reutilización.
+Cuando gana el **cliente**, su cookie **sí se escribe** —el navegador puede escribir cookies, el
+Server Component no— y a partir de ahí hay una hora buena. De ahí que fuera repetible pero no
+constante, y que el reload "arreglara".
+
+### Lo que se descartó midiendo, no opinando
+
+Realtime como carga inicial (hay un fetch explícito en el montaje), provider duplicado (solo hay
+uno en el árbol de `/home/users`), y modo local (`NEXT_PUBLIC_LOCAL_MODE="false"`).
+
+### El arreglo (paso 1 de dos)
+
+`src/middleware.ts`, con `refreshSession()`: refresca y **escribe la cookie en la respuesta**,
+que es lo único que un middleware puede hacer y un Server Component no. Cuando el navegador
+recibe el HTML ya trae el token nuevo, así que la primera consulta del provider sale
+autenticada. **No hay carrera que ganar**, y por eso no lleva reintento, ni espera, ni recarga
+forzada.
+
+Usa `getUser()` y no `getSession()`: el primero valida contra el servidor de auth, que es lo que
+dispara el refresco; el segundo se conforma con la cookie y no renovaría nada.
+
+Las rutas de API se saltan el refresco —no pintan listas, el cron se autentica por secreto, y
+sería pagar una llamada a Supabase por petición sin ganar nada—. El descarte va **dentro** de la
+función y no en el `matcher` porque van anidadas (`/timetracker/clock-in/api/…`) y un lookahead
+anclado al principio no las alcanza.
+
+Comprobado, antes y después: el manifiesto pasa de `NINGUNA` a una entrada con su matcher, y el
+build lista `ƒ Middleware 102 kB`.
+
+### Lo que este paso NO hace, y es deliberado
+
+**No redirige.** `updateSession` —el guard de rutas— sigue escrito y **sin conectar**. Ese
+código nunca ha corrido en producción: encenderlo no es restaurar nada, es estrenar
+redirecciones sobre rutas que hoy funcionan sin ellas. Va en el paso 2, con su propia revisión.
+Verificado en ejecución: sin sesión, `/home/users` y `/timetracker/payroll` los siguen
+redirigiendo **sus layouts** igual que antes, `/login` responde 200 y el cron sigue dando su 401.
+
+### Una prueba para un fallo que no avisaba
+
+`middleware-location.test.ts` exige que exista `src/middleware.ts` y que **no** haya otro en la
+raíz. Tener los dos es peor que no tener ninguno: el de la raíz no corre, pero se lee como si
+corriera — y fue exactamente esa lectura la que retrasó tanto encontrar esto.
