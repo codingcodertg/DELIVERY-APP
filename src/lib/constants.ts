@@ -218,10 +218,14 @@ export const MODULES: ModuleInfo[] = [
     key: "recruiting",
     href: "/recruiting",
     emoji: "🧑‍💼",
-    label_en: "Recruiting",
-    label_es: "Reclutamiento",
-    desc_en: "Candidates and interviews",
-    desc_es: "Candidatos y entrevistas",
+    // El módulo se llama RR. HH. desde D-145; la clave sigue siendo "recruiting" a
+    // propósito: es la columna `module_access` de todo el mundo y el prefijo de todas
+    // las rutas. Renombrar la clave sería una migración de datos por un cambio de
+    // rótulo. Reclutamiento pasa a ser una pestaña dentro, no el módulo entero.
+    label_en: "HR Management",
+    label_es: "Gestión de RR. HH.",
+    desc_en: "Employees, files and hiring",
+    desc_es: "Empleados, expedientes y contratación",
   },
   // Fichaje NO tiene tarjeta propia (D-111). La tuvo mientras fue una app aparte; desde
   // la fusión es la otra mitad de Time Tracker, y dibujar dos tarjetas para una sola app
@@ -544,7 +548,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     capabilitiesFromRole: (key) => ROLE_CAPS[key as UserRole] ?? [],
   },
   {
-    key: "recruiting", label_en: "Recruiting", label_es: "Reclutamiento",
+    key: "recruiting", label_en: "HR Management", label_es: "Gestión de RR. HH.",
     alwaysOn: false,
     roleColumn: "recruiting_role",
     roleKeys: Object.keys(RECRUITING_ROLE_LABELS),

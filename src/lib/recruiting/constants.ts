@@ -47,8 +47,14 @@ import type { UserRole, RecruiterRecommendation } from "./types";
 // module's TABS kept one anyway, which just clicked through to /home/users —
 // a tab whose only behavior was leaving. /recruiting/users itself still
 // redirects there, for old bookmarks (see that file).
-export const TABS: { id: string; label: string; href: string; adminOnly?: boolean }[] = [
+// D-145: el módulo pasa a ser RR. HH. y la contratación es una parte de él, no el todo.
+// Por eso Empleados va primero: la plantilla es lo permanente, los candidatos son de paso.
+export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[] }[] = [
   { id: "today", label: "🏠 Today", href: "/recruiting/today" },
+  // Ni el reclutador ni la pestaña: el expediente lleva dirección, amonestaciones y antidoping,
+  // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
+  // solo evita enseñar una puerta que se abriría vacía.
+  { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"] },
   { id: "candidates", label: "👥 Candidates", href: "/recruiting" },
   { id: "board", label: "🗂 Board", href: "/recruiting/board" },
   { id: "outcomes", label: "🤝 Outcomes", href: "/recruiting/outcomes" },

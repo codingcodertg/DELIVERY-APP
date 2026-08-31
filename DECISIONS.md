@@ -6649,3 +6649,84 @@ definición del tipo. Los precios están **fijos en el código**.
 O sea: **quien edite esas tarifas en Ajustes creerá que cambió los precios y no habrá cambiado
 nada**. No se toca aquí —cambiar de dónde salen los precios es una decisión de negocio, no una
 corrección de texto— pero queda escrito, porque un ajuste que no ajusta es peor que no tenerlo.
+
+---
+
+## D-145 · Recruiting pasa a ser RR. HH., y aparece el expediente del empleado
+
+**Fecha:** 2026-08-31 · **Versión:** v0.9.0 (recruiting) · **Pedido por:** Andrés (*"quiero que
+en recruiting se cambie a HR MANAGEMENT y ahí está la opción de recruiting, por ahora solo
+cambiaremos nombres pero vamos a ir transicionando"*)
+
+El módulo dejaba de describir lo que hace. Contratar es **una parte** de RR. HH., no el todo, y
+la empresa ya necesitaba lo otro: los datos y los papeles de la gente que ya está dentro.
+
+### Se cambia el rótulo, no la clave
+
+El módulo se llama **HR Management** / **Gestión de RR. HH.** en la tarjeta del hub, en el
+selector de módulos y en el diálogo de Usuarios. Lo que **no** cambia es la clave `recruiting`:
+es el valor guardado en la columna `module_access` de cada persona y el prefijo de todas las
+rutas (`/recruiting/...`). Renombrarla convertiría un cambio de rótulo en una migración de datos
+y en una tanda de enlaces rotos, a cambio de nada que se vea.
+
+Reclutamiento queda como lo que era, pero ahora en su sitio: la pestaña **Candidatos**, dentro
+de RR. HH.
+
+### El expediente: tres bloques, dos tablas
+
+Lo pedido eran tres columnas — INFO, HR y FORMS — pero no son tres cosas del mismo tipo:
+
+- **INFO** es *un* dato por persona (cumpleaños, teléfono, dirección, fecha de alta). Cabe en
+  una fila: `recruiting.employee_files`.
+- **HR y FORMS** son **documentos**, y varios son listas: una persona tiene varias
+  amonestaciones, varios antidopings, varias certificaciones. Y hasta los que parecen únicos
+  —el manual firmado— se vuelven varios cuando se firma una versión nueva. Van a
+  `recruiting.employee_docs`, una fila por documento.
+
+`kind` **no lleva CHECK** a propósito: RR. HH. va a inventar formularios, y una restricción ahí
+convertiría *"necesitamos otro papel"* en una migración. Los tipos que la aplicación conoce
+están en `src/lib/recruiting/hr.ts`; añadir uno es **una línea**.
+
+### La pantalla enseña lo que falta, no lo que hay
+
+Dieciocho columnas por treinta personas es un mural que no se lee y que nadie rellena. La lista
+enseña solo lo que se mira de un vistazo —quién es y **cuántos papeles le faltan**— y el
+expediente entero se abre por persona.
+
+La razón es que la pregunta real de RR. HH. no es *"enséñamelo todo"*, es **"¿a quién le falta
+algo?"**. Por eso también hay un filtro *Solo con papeles pendientes*, y por eso la columna
+cuenta ausencias en vez de listar presencias: enumerar los cinco papeles que sí están escondería
+el que no.
+
+Un documento sin fecha de firma **está empezado, no hecho**: no cuenta como entregado.
+
+### El **formato de baja** no se exige
+
+Está en el catálogo pero fuera de `REQUIRED_FORMS`: solo existe si la persona se fue. Contarlo
+como pendiente pondría en rojo a la plantilla entera en activo, que es exactamente lo contrario
+de lo que la pantalla viene a decir.
+
+### Y una corrección de la 093, en la misma sesión
+
+La 093 dejó las dos tablas bajo `has_recruiting_access()`, el guardián del módulo entero. Al
+montar la pantalla se vio que eso es **demasiado ancho**: `recruiting_role` tiene tres tramos, y
+el **reclutador** entra a mover candidatos — no a leer la dirección, el cumpleaños, las
+amonestaciones y el antidoping de toda la plantilla.
+
+La **094** estrecha las cuatro políticas a `current_recruiting_role() in ('admin','manager')`.
+Se arregla en la base y no en la pantalla porque quien filtra solo en la aplicación deja la
+puerta abierta a quien llame a PostgREST por su cuenta. Las acciones de servidor repiten la
+comprobación —no por desconfianza de la base, sino para que un reclutador curioso vea un mensaje
+y no una lista vacía sin explicación— y la pestaña ni se dibuja para él.
+
+No se inventa un permiso nuevo: una casilla más en Usuarios sería una casilla que nadie recuerda
+marcar. Se reutiliza el tramo que ya existe.
+
+### Lo que NO se ha hecho
+
+- **Subir archivos** al expediente. `file_path` está en la tabla y la pantalla ya sabe abrir un
+  documento con enlace firmado, pero el botón de subir no existe todavía: el bucket `resumes`
+  guarda hoy currículums de candidatos, y meter ahí antidopings y amonestaciones sin decidir
+  antes su ruta y su caducidad es la clase de atajo que luego no se deshace.
+- **Días libres** se escriben a mano. Derivarlos de `time_off_requests` solo valdría para quien
+  ficha, y este expediente es de **toda** la plantilla.
