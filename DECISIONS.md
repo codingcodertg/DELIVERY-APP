@@ -6830,3 +6830,56 @@ salir una gratis en silencio.
 Desde `pending` hasta `picked_up`. **No** una vez entregada: ahí la tarifa ya es un problema de
 facturación, y un aviso sobre algo que nadie puede cambiar termina en "Ocultar" — y con él se
 esconden los que sí se podían arreglar.
+
+---
+
+## D-148 · El aviso salía, pero sin estilo — y no se le exigía a todos
+
+**Fecha:** 2026-08-31 · **Versión:** v1.45.0 (deliveries) · **Pedido por:** Andrés (*"no me sale
+el flag ese, a todos se les tiene que exigir, y al warehouse cuando le va a dar preparar que
+salga en rojo: no hay delivery fee"*)
+
+Tres cosas mal en D-147, y la primera explica por qué "no salía".
+
+### 1. `.banner` no existía en el CSS de deliveries
+
+El aviso se escribió como `className="banner err"`. Esa clase **solo está definida dentro de
+`.timetracker-module`** (`timetracker.css`); en `globals.css` no hay ninguna regla `.banner`. O
+sea que el aviso sí se renderizaba — como **texto suelto, sin fondo, sin borde y sin rojo**, en
+medio de un diálogo lleno de texto.
+
+Y no es nuevo: **el aviso de D-143 llevaba así desde que se escribió**. La clase se copió del
+módulo de fichaje sin comprobar que aquí existiera. Ahora `.banner` está en `globals.css`, con
+sus cuatro variantes y su versión oscura, así que se arreglan los dos de una vez.
+
+Con borde y fondo, no solo color de letra: un aviso que únicamente tiñe el texto se pierde igual.
+
+### 2. Se le exige a TODOS los tipos
+
+D-147 solo miraba los tipos cuyo documento requerido es la factura, delegando en `required.ts`.
+El razonamiento era defendible —no marcar traslados que nunca llevaron tarifa— y era **el
+equivocado**: un traslado entre tiendas también mueve un camión, y si sale sin tarifa Andrés
+quiere verlo.
+
+Aquí no se decide **si hay que cobrar** —eso es negocio— solo se dice en voz alta que **no se
+cobró**. Confirmarlo lo calla. Esa es la diferencia entre este aviso y una regla de validación, y
+por eso puede aplicarse a todo sin equivocarse: no afirma que falte dinero, afirma que nadie ha
+mirado.
+
+### 3. El almacén no podía verlo en su cola
+
+`ROLE_DEFAULT_COLUMNS.warehouse` **no incluía la columna de costo**. Se le pedía que se diera
+cuenta de algo que su pantalla no enseñaba. Ahora la ve, y la celda no dice `—`:
+
+> 🚩 **SIN TARIFA**
+
+en rojo. Un guion se lee como *"aquí no aplica"*, que es exactamente lo contrario de lo que pasa:
+aplica y falta. El $0 también sale en rojo, con su importe: es un valor legítimo, y por eso hay
+que mirarlo, no esconderlo.
+
+### Dónde sale el flag, en total
+
+1. **La cola del almacén** — columna Costo, en rojo, sin abrir nada.
+2. **La cabecera de la orden** — una etiqueta roja junto a la etapa, al abrirla.
+3. **El diálogo de tarifa** al comenzar preparación — el aviso rojo, ahora visible de verdad.
+4. **"Requiere atención"** en el panel — el grupo `no_fee`, en segundo lugar.

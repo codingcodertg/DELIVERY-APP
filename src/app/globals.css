@@ -302,6 +302,29 @@ input.invalid, select.invalid, textarea.invalid {
 :root[data-theme="dark"] select.invalid { background: #3a1f21; }
 .req-star { color: var(--red); font-weight: 800; }
 
+/* Avisos dentro de una tarjeta o un diálogo.
+   ---------------------------------------------------------------------------
+   Existían en el HTML desde D-143 y NO existían aquí: `className="banner err"`
+   se pintaba como texto suelto, sin fondo, sin borde y sin rojo, en medio de un
+   diálogo lleno de texto. Por eso "el flag no sale" — salía, pero como un
+   párrafo más. El módulo de fichaje sí las tenía (timetracker.css), y de ahí se
+   copió la clase al escribir el diálogo sin comprobar que aquí no estaba.
+
+   Van con borde y fondo a propósito: un aviso que solo cambia el color de la
+   letra se pierde igual. */
+.banner { padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 13.5px; border: 1px solid transparent; }
+.banner.err  { background: #fdeaea; color: #a3182b; border-color: #f0b3bd; }
+.banner.warn { background: #fdf3d8; color: #7a5a00; border-color: #eacb7a; }
+.banner.ok   { background: #e5f6ee; color: #0a6a47; border-color: #a7e6c9; }
+.banner.info { background: #e8eefb; color: #1b4b7a; border-color: #a9cdf3; }
+:root[data-theme="dark"] .banner.err  { background: #3a1620; color: #ffb3bf; border-color: #5e2330; }
+:root[data-theme="dark"] .banner.warn { background: #3a2f12; color: #ffcf7a; border-color: #5a4415; }
+:root[data-theme="dark"] .banner.ok   { background: #16352a; color: #8fe3ba; border-color: #235340; }
+:root[data-theme="dark"] .banner.info { background: #1e2b45; color: #a9cdf3; border-color: #2f4570; }
+
+/* La orden que va a salir sin cobrar nada, en la tabla (D-148). */
+.no-fee { color: var(--red); font-weight: 800; white-space: nowrap; }
+
 /* ---------- Per-user permission grants ---------- */
 .perm-panel {
   border: 1px solid var(--accent); border-top: none;

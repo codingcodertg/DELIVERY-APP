@@ -1,5 +1,4 @@
 import type { Delivery } from "@/lib/types";
-import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { todayISO } from "@/lib/utils";
 
 // ============================================================
@@ -106,16 +105,15 @@ const BILLABLE: Delivery["stage"][] = ["pending", "approved", "fulfilling", "rea
  * confirmed* rather than assumed: from outside, a deliberate $0 and a forgotten
  * one look identical.
  *
- * Only for the types that are supposed to be charged. `required.ts` already
- * decides that — the fee is mandatory where the document rule is `invoice` —
- * and this asks it instead of re-deciding, because two rules disagreeing about
- * the same order is how you end up flagging every store-to-store move that was
- * never meant to carry a fee.
+ * **A todos los tipos, sin excepción** (D-148). La primera versión solo miraba los
+ * tipos cuyo documento requerido es la factura, siguiendo a `required.ts`. Andrés lo
+ * corrigió: también un traslado entre tiendas mueve un camión, y si sale sin tarifa
+ * quiere verlo. Aquí no se decide si cobrar o no —eso es negocio— solo se dice en voz
+ * alta que **no se cobró**, y confirmarlo lo calla.
  */
-export function noFeeCharged(deliveries: Delivery[], rules?: OrderTypeRules): Delivery[] {
+export function noFeeCharged(deliveries: Delivery[]): Delivery[] {
   return deliveries.filter((d) =>
     BILLABLE.includes(d.stage) &&
-    orderTypeRule(d.order_type, rules).docRef === "invoice" &&
     (d.delivery_fee == null || Number(d.delivery_fee) === 0));
 }
 
@@ -131,11 +129,10 @@ export function attentionItems(
   deliveries: Delivery[],
   today: string = todayISO(),
   proofRequired = false,
-  rules?: OrderTypeRules,
 ): AttentionItem[] {
   return [
     ...overdueUnassigned(deliveries, today).map((delivery) => ({ kind: "overdue_unassigned" as const, delivery })),
-    ...noFeeCharged(deliveries, rules).map((delivery) => ({ kind: "no_fee" as const, delivery })),
+    ...noFeeCharged(deliveries).map((delivery) => ({ kind: "no_fee" as const, delivery })),
     ...missingPin(deliveries).map((delivery) => ({ kind: "no_pin" as const, delivery })),
     ...(proofRequired
       ? deliveredWithoutProof(deliveries).map((delivery) => ({ kind: "no_proof" as const, delivery }))

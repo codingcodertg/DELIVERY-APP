@@ -276,13 +276,11 @@ export function OrderModal({
    * reentrega que se come la casa— y justo por eso hay que **verlo y confirmarlo**: desde
    * fuera, un cero deliberado y uno olvidado son idénticos.
    *
-   * Solo para los tipos que se cobran. Quién se cobra ya lo decide `required.ts` (la tarifa
-   * es obligatoria donde el documento es la factura), así que se le pregunta en vez de
-   * volver a decidirlo aquí: dos reglas discrepando sobre la misma orden es como se acaba
-   * marcando en rojo cada traslado entre tiendas, que nunca llevó tarifa.
+   * A TODOS los tipos, sin excepción (D-148): también un traslado entre tiendas mueve un
+   * camión. Aquí no se decide si hay que cobrar —eso es negocio— solo se dice en voz alta
+   * que no se cobró, y confirmarlo lo calla.
    */
-  const seCobra = orderTypeRule(d.order_type, settings.order_type_rules).docRef === "invoice";
-  const sinCobrar = seCobra && (existing?.delivery_fee == null || Number(existing.delivery_fee) === 0);
+  const sinCobrar = existing != null && (existing.delivery_fee == null || Number(existing.delivery_fee) === 0);
 
   // A brand-new order defaults to Order Type "Customer" and the store the
   // salesperson is assigned to in Settings (runs once, after settings load).
@@ -1153,6 +1151,13 @@ export function OrderModal({
                       wrap fully — an order can carry several invoices, and a
                       half-shown number is worse than none. */}
                   {existing?.order_type && <span className="hdr-chip">{existing.order_type}</span>}
+                  {/* En la cabecera, junto a la etapa (D-148): quien abre la orden lo ve
+                      antes de leer nada, y sin tener que desplegar los detalles. */}
+                  {sinCobrar && (
+                    <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>
+                      🚩 {existing?.delivery_fee == null ? t("NO FEE", "SIN TARIFA") : t("FEE $0", "TARIFA $0")}
+                    </span>
+                  )}
                   {existing?.invoice_num && (
                     <span className="hdr-chip hdr-chip-num">
                       INV {existing.invoice_num}

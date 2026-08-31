@@ -73,10 +73,20 @@ export const ORDER_COLUMNS: OrderColumn[] = [
       );
     } },
   {
+    // Sin tarifa NO se pinta como una raya (D-148). Un "—" se lee como "aquí no aplica",
+    // que es justo lo contrario de lo que pasa: aplica y falta. En rojo y con la palabra
+    // delante, porque el almacén tiene que verlo en la cola sin abrir nada.
+    //
+    // El $0 se enseña como importe, pero también en rojo: es un valor legítimo —cortesía,
+    // una reentrega que se come la casa— y por eso hay que mirarlo, no esconderlo.
     key: "fee", en: "Fee", es: "Costo",
     value: (d) => d.delivery_fee,
     filterLabel: (v) => (v == null ? "—" : fmtMoney(Number(v))),
-    cell: (d) => (d.delivery_fee == null ? "—" : fmtMoney(d.delivery_fee)),
+    cell: (d, { t }) => {
+      if (d.delivery_fee == null) return <span className="no-fee">🚩 {t("NO FEE", "SIN TARIFA")}</span>;
+      if (Number(d.delivery_fee) === 0) return <span className="no-fee">🚩 {fmtMoney(0)}</span>;
+      return fmtMoney(d.delivery_fee);
+    },
   },
   { key: "driver", en: "Driver", es: "Chofer", value: (d) => d.assigned_driver, cell: (d) => d.assigned_driver || "—" },
   { key: "contact", en: "Contact", es: "Contacto", value: (d) => d.contact, cell: (d) => d.contact || "—" },

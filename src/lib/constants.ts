@@ -349,7 +349,9 @@ export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
   // Drivers work off the customer invoice, never the internal SO #.
   driver: ["stage", "type", "store", "account", "invoice", "date", "windows", "pallets"],
   // Warehouse works off the customer invoice too (Invoice # instead of SO #).
-  warehouse: ["stage", "type", "store", "account", "invoice", "date", "windows", "pallets", "driver"],
+  // Y ve el costo (D-148): es quien tiene que darse cuenta de que una orden va a salir
+  // sin cobrarse, y no lo puede ver en una columna que no está.
+  warehouse: ["stage", "type", "store", "account", "invoice", "date", "windows", "pallets", "fee", "driver"],
 };
 
 /** Drivers come from the Users list — anyone with the "driver" role. They're

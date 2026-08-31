@@ -34,10 +34,7 @@ export function AttentionPanel({ onOpen }: { onOpen?: (d: Delivery) => void }) {
   // Missing proof is only a fault when proof was asked for. With both
   // switches off it is exactly what the settings say should happen.
   const proofRequired = settings.require_pod === true || settings.pod_signature_enabled === true;
-  const items = useMemo(
-    () => attentionItems(deliveries, undefined, proofRequired, settings.order_type_rules),
-    [deliveries, proofRequired, settings.order_type_rules],
-  );
+  const items = useMemo(() => attentionItems(deliveries, undefined, proofRequired), [deliveries, proofRequired]);
 
   const label: Record<AttentionKind, { title: string; why: string }> = {
     overdue_unassigned: {
@@ -46,8 +43,8 @@ export function AttentionPanel({ onOpen }: { onOpen?: (d: Delivery) => void }) {
     },
     no_fee: {
       title: t("Going out with nothing charged", "Va a salir sin cobrar nada"),
-      why: t("Blank or $0 delivery fee on an order that should carry one. Fix it before it ships — after that it is an invoicing problem.",
-             "Tarifa de entrega vacía o en $0 en una orden que debería llevarla. Corríjala antes de que salga — después ya es un problema de facturación."),
+      why: t("Blank or $0 delivery fee. Fix it before it ships — after that it is an invoicing problem.",
+             "Tarifa de entrega vacía o en $0. Corríjala antes de que salga — después ya es un problema de facturación."),
     },
     no_pin: {
       title: t("Not on the map", "No está en el mapa"),
