@@ -98,10 +98,13 @@ export function OrderModal({
   // load splits the order into #Na / #Nb).
   const [showReadyConfirm, setShowReadyConfirm] = useState(false);
   const [readyPallets, setReadyPallets] = useState("");
-  // La tarifa que el almacén confirma al marcar listo (D-143). Se precarga con la que
-  // puso ventas: lo normal es que esté bien, y obligar a teclearla siempre convertiría
-  // una comprobación en un trámite que se despacha sin mirar.
-  const [readyFee, setReadyFee] = useState("");
+  // La tarifa que el almacén confirma al AGARRAR la orden (D-146). Estuvo un rato en
+  // "Marcar listo" (D-143) y se movió aquí: la tarifa mal puesta se ve al abrir la orden,
+  // y descubrirla al final —con las pallets ya montadas y el camión esperando— es tarde
+  // para preguntarle nada a ventas. Se precarga con la que puso ventas: lo normal es que
+  // esté bien, y obligar a teclearla siempre convertiría la comprobación en un trámite.
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [startFee, setStartFee] = useState("");
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
   // New order: start on a small initial step (Order Type + Delivery Address to
@@ -606,29 +609,41 @@ export function OrderModal({
     if (ok) { setArrivedAt(now); notify(t("Arrived at stop", "Llegó a la parada")); }
   };
 
+  // El almacén confirma la TARIFA al agarrar la orden (D-146). Es el primer momento en que
+  // alguien que no es ventas mira la orden entera, y todavía queda margen para preguntar.
+  const confirmStart = async () => {
+    if (!existing) return;
+    const fee = Number(startFee);
+    // Cero es una tarifa legítima (recogida, envío de cortesía); lo que no vale es vacío o
+    // negativo.
+    if (startFee.trim() === "" || !Number.isFinite(fee) || fee < 0) {
+      notify(t("Confirm the delivery fee.", "Confirme la tarifa de entrega."));
+      return;
+    }
+    const cambio = fee !== (existing.delivery_fee ?? null);
+    setBusy(true);
+    // La tarifa viaja en la MISMA escritura que el cambio de etapa: en dos, un fallo entre
+    // medias dejaría la orden en preparación con la tarifa vieja y nadie sabría que se
+    // corrigió a medias.
+    const nota = cambio
+      ? t(`Fee corrected to $${fee} (was $${existing.delivery_fee ?? 0})`, `Tarifa corregida a $${fee} (era $${existing.delivery_fee ?? 0})`)
+      : t(`Fee confirmed $${fee}`, `Tarifa confirmada $${fee}`);
+    const ok = await setStage(existing.id, "fulfilling", nota, { delivery_fee: fee });
+    setBusy(false);
+    if (ok) {
+      setShowStartConfirm(false);
+      notify(cambio ? t(`Preparing — fee corrected to $${fee}`, `Preparando — tarifa corregida a $${fee}`) : t("Preparing", "Preparando"));
+    }
+  };
+
   // Warehouse confirms the real pallet count as part of marking the order
   // ready — actual_pallets is stamped in the same write as the stage move.
   const confirmReady = async () => {
     if (!existing) return;
     const n = Number(readyPallets);
     if (!Number.isFinite(n) || n <= 0) { notify(t("Enter the confirmed pallet count.", "Ingrese la cantidad confirmada de pallets.")); return; }
-    const fee = Number(readyFee);
-    // Cero es una tarifa legítima (recogida, envío cortesía); lo que no vale es vacío o
-    // negativo. Se comprueba aparte de las pallets para que el aviso diga cuál de los dos falla.
-    if (readyFee.trim() === "" || !Number.isFinite(fee) || fee < 0) {
-      notify(t("Confirm the delivery fee.", "Confirme la tarifa de entrega."));
-      return;
-    }
-    const cambio = fee !== (existing.delivery_fee ?? null);
     setBusy(true);
-    // La tarifa viaja en la MISMA escritura que las pallets y el cambio de etapa: si fuera en
-    // dos, un fallo entre medias dejaría la orden lista con la tarifa vieja y nadie sabría que
-    // se corrigió a medias.
-    const nota = cambio
-      ? t(`Pallets confirmed: ${n} · fee corrected to $${fee} (was $${existing.delivery_fee ?? 0})`,
-          `Pallets confirmadas: ${n} · tarifa corregida a $${fee} (era $${existing.delivery_fee ?? 0})`)
-      : t(`Pallets confirmed: ${n} · fee confirmed $${fee}`, `Pallets confirmadas: ${n} · tarifa confirmada $${fee}`);
-    const ok = await setStage(existing.id, "ready", nota, { actual_pallets: n, delivery_fee: fee });
+    const ok = await setStage(existing.id, "ready", t(`Pallets confirmed: ${n}`, `Pallets confirmadas: ${n}`), { actual_pallets: n });
     setBusy(false);
     if (ok) { notify(t(`Ready — ${n} pallets confirmed`, `Listo — ${n} pallets confirmadas`)); onClose(); }
   };
@@ -1083,8 +1098,9 @@ export function OrderModal({
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
+      onRequestStart={() => { setStartFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowStartConfirm(true); }}
       readyConfirmOpen={showReadyConfirm}
-      onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setReadyFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowReadyConfirm(true); }}
+      onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
       onConfirmReady={confirmReady}
       onCancelReady={() => setShowReadyConfirm(false)}
       pickupConfirmOpen={showPickupConfirm}
@@ -2154,27 +2170,28 @@ export function OrderModal({
       </div>
     )}
 
-    {showReadyConfirm && existing && (
+    {/* Confirmar la TARIFA al agarrar la orden (D-146).
+
+        Estuvo primero en "Marcar listo" (D-143). Se mueve aquí porque el momento importa: al
+        agarrarla, la orden todavía está quieta y da tiempo a llamar a ventas; al marcarla lista
+        ya está montada y el camión esperando, y ahí una tarifa mal puesta se despacha con un
+        clic para no parar la salida.
+
+        Lo importante NO es que el almacén la re-teclee: es que vea al lado LO QUE DEBERÍA SER.
+        Pedir que confirme un número que tampoco conoce solo trasladaría el error de sitio. */}
+    {showStartConfirm && existing && (
       <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal" style={{ maxWidth: 420 }}>
-          <h3 style={{ marginTop: 0 }}>{t("Confirm pallets", "Confirmar pallets")}</h3>
-          <div className="field">
-            <label>{t("How many pallets are ready?", "¿Cuántas pallets están listas?")}</label>
-            <input type="number" min={1} autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
-              placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
-            <div className="hint">{t("Original order amount:", "Cantidad original de la orden:")} {existing.est_pallets ?? "—"}</div>
-          </div>
+          <h3 style={{ marginTop: 0 }}>{t("Confirm the delivery fee", "Confirmar la tarifa de entrega")}</h3>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t("Before you start preparing this order, check what is being charged for the delivery.",
+               "Antes de comenzar a preparar esta orden, revise lo que se está cobrando por la entrega.")}
+          </p>
 
-          {/* La tarifa, aquí mismo (D-143). Ventas la estaba poniendo mal y nadie lo veía hasta
-              facturar; el almacén toca cada orden justo antes de que salga, así que es el
-              último punto donde se puede corregir sin perseguir a nadie.
-
-              Lo importante NO es que la re-teclee: es que vea al lado LO QUE DEBERÍA SER. Pedir
-              que confirme un número que tampoco conoce solo trasladaría el error de sitio. */}
           <div className="field">
             <label>{t("Delivery fee", "Tarifa de entrega")}</label>
-            <input type="number" min={0} step="0.01" value={readyFee}
-              onChange={(e) => setReadyFee(e.target.value)} />
+            <input type="number" min={0} step="0.01" autoFocus value={startFee}
+              onChange={(e) => setStartFee(e.target.value)} />
             <div className="hint">
               {t("Sales charged:", "Ventas cobró:")}{" "}
               <strong>{existing.delivery_fee != null ? `$${existing.delivery_fee}` : t("nothing", "nada")}</strong>
@@ -2212,11 +2229,30 @@ export function OrderModal({
                 )}
                 {" "}
                 <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
-                  onClick={() => setReadyFee(String(feeSuggestion.list))}>
+                  onClick={() => setStartFee(String(feeSuggestion.list))}>
                   {t("Use", "Usar")} ${feeSuggestion.list}
                 </button>
               </div>
             )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+            <button className="btn btn-ghost" onClick={() => setShowStartConfirm(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+            <button className="btn btn-primary" onClick={confirmStart} disabled={busy}>{t("Confirm & start preparing", "Confirmar y comenzar preparación")}</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showReadyConfirm && existing && (
+      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal" style={{ maxWidth: 420 }}>
+          <h3 style={{ marginTop: 0 }}>{t("Confirm pallets", "Confirmar pallets")}</h3>
+          <div className="field">
+            <label>{t("How many pallets are ready?", "¿Cuántas pallets están listas?")}</label>
+            <input type="number" min={1} autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
+              placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
+            <div className="hint">{t("Original order amount:", "Cantidad original de la orden:")} {existing.est_pallets ?? "—"}</div>
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
@@ -2368,7 +2404,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, onEdit, onMove, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelReason, onPrint, onRequestDeliver, podOpen,
-  readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
@@ -2378,6 +2414,8 @@ function StageActions({
   showReject: boolean; setShowReject: (v: boolean) => void; rejectReason: string;
   showCancel: boolean; setShowCancel: (v: boolean) => void; cancelReason: string;
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
+  /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
+  onRequestStart: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
   /** Driver's one-tap pickup: takes the full load, no count prompt. */
@@ -2428,7 +2466,9 @@ function StageActions({
 
   // Warehouse
   if (canFulfill(me)) {
-    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={() => onMove("fulfilling")} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
+    // Agarrar la orden pasa por confirmar la tarifa (D-146): el botón ya no mueve la etapa
+    // por sí solo, abre el diálogo, y de ahí sale el cambio de etapa junto con la tarifa.
+    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
     if (stage === "fulfilling") {
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);

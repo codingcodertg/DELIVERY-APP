@@ -6730,3 +6730,50 @@ marcar. Se reutiliza el tramo que ya existe.
   antes su ruta y su caducidad es la clase de atajo que luego no se deshace.
 - **Días libres** se escriben a mano. Derivarlos de `time_off_requests` solo valdría para quien
   ficha, y este expediente es de **toda** la plantilla.
+
+---
+
+## D-146 · La tarifa se confirma al agarrar la orden, no al soltarla
+
+**Fecha:** 2026-08-31 · **Versión:** v1.43.0 (deliveries) · **Pedido por:** Andrés (*"vamos a
+poner el confirm fee en start fulfilling, que es cuando la agarra el warehouse, y confirm pallets
+donde siempre ha estado"*)
+
+Ajusta **D-143**, que no se revierte: el almacén sigue siendo quien confirma la tarifa, y sigue
+viendo al lado lo que debería ser. Lo que cambia es **cuándo**.
+
+D-143 la puso en *Marcar listo*, junto a las pallets, con el argumento de que era el último punto
+antes de que la orden saliera. Ese argumento era justo el problema: **el último punto es el peor
+punto**. Al marcar listo la orden ya está montada y el camión esperando; ahí una tarifa que no
+cuadra se despacha con un clic para no parar la salida, que es exactamente el reflejo que la
+comprobación venía a romper.
+
+*Comenzar preparación* es el primer momento en que alguien que no es ventas mira la orden entera,
+y todavía está quieta. Da tiempo a llamar y preguntar. Y separa dos preguntas que no se parecen:
+
+- **¿Cuánto se cobra?** — se responde mirando la orden, antes de tocar nada.
+- **¿Cuántas pallets salen?** — se responde mirando el muelle, cuando ya están montadas.
+
+Juntas en un mismo diálogo, la segunda —que es la urgente— arrastraba a la primera.
+
+**Confirmar pallets vuelve a ser exactamente lo que era**: una pregunta, un número, marcar listo.
+
+### Detalles que se mantienen de D-143
+
+- La tarifa viaja en la **misma escritura** que el cambio de etapa. En dos, un fallo entre medias
+  dejaría la orden en preparación con la tarifa vieja y nadie sabría que se corrigió a medias.
+- El campo viene **precargado** con lo que puso ventas: lo normal es que esté bien, y obligar a
+  teclearla siempre convierte la comprobación en un trámite que se despacha sin mirar.
+- **Cero es una tarifa legítima** (recogida, envío de cortesía). Lo que no vale es vacío.
+- El precio de referencia se enseña **con su origen** —ciudad · zona · millas— y no como un
+  importe suelto (D-144).
+- El aviso salta **solo cuando de verdad no cuadra**. Uno que sale siempre deja de leerse.
+- La nota de etapa distingue *tarifa confirmada $X* de *tarifa corregida a $X (era $Y)*, para que
+  al revisar el historial se vea quién corrigió qué.
+
+### Alcance
+
+El botón *Comenzar preparación* ya no mueve la etapa por su cuenta: abre el diálogo, y de ahí
+salen a la vez el cambio de etapa y la tarifa. Es la **única** puerta de `approved` a
+`fulfilling` — la selección múltiple del listado solo mueve a pendiente, aprobado o cancelado,
+así que no hay forma de saltársela.
