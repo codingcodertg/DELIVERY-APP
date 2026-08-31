@@ -98,6 +98,10 @@ export function OrderModal({
   // load splits the order into #Na / #Nb).
   const [showReadyConfirm, setShowReadyConfirm] = useState(false);
   const [readyPallets, setReadyPallets] = useState("");
+  // La tarifa que el almacén confirma al marcar listo (D-143). Se precarga con la que
+  // puso ventas: lo normal es que esté bien, y obligar a teclearla siempre convertiría
+  // una comprobación en un trámite que se despacha sin mirar.
+  const [readyFee, setReadyFee] = useState("");
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
   // New order: start on a small initial step (Order Type + Delivery Address to
@@ -608,8 +612,23 @@ export function OrderModal({
     if (!existing) return;
     const n = Number(readyPallets);
     if (!Number.isFinite(n) || n <= 0) { notify(t("Enter the confirmed pallet count.", "Ingrese la cantidad confirmada de pallets.")); return; }
+    const fee = Number(readyFee);
+    // Cero es una tarifa legítima (recogida, envío cortesía); lo que no vale es vacío o
+    // negativo. Se comprueba aparte de las pallets para que el aviso diga cuál de los dos falla.
+    if (readyFee.trim() === "" || !Number.isFinite(fee) || fee < 0) {
+      notify(t("Confirm the delivery fee.", "Confirme la tarifa de entrega."));
+      return;
+    }
+    const cambio = fee !== (existing.delivery_fee ?? null);
     setBusy(true);
-    const ok = await setStage(existing.id, "ready", t(`Pallets confirmed: ${n}`, `Pallets confirmadas: ${n}`), { actual_pallets: n });
+    // La tarifa viaja en la MISMA escritura que las pallets y el cambio de etapa: si fuera en
+    // dos, un fallo entre medias dejaría la orden lista con la tarifa vieja y nadie sabría que
+    // se corrigió a medias.
+    const nota = cambio
+      ? t(`Pallets confirmed: ${n} · fee corrected to $${fee} (was $${existing.delivery_fee ?? 0})`,
+          `Pallets confirmadas: ${n} · tarifa corregida a $${fee} (era $${existing.delivery_fee ?? 0})`)
+      : t(`Pallets confirmed: ${n} · fee confirmed $${fee}`, `Pallets confirmadas: ${n} · tarifa confirmada $${fee}`);
+    const ok = await setStage(existing.id, "ready", nota, { actual_pallets: n, delivery_fee: fee });
     setBusy(false);
     if (ok) { notify(t(`Ready — ${n} pallets confirmed`, `Listo — ${n} pallets confirmadas`)); onClose(); }
   };
@@ -1065,7 +1084,7 @@ export function OrderModal({
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
       readyConfirmOpen={showReadyConfirm}
-      onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
+      onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setReadyFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowReadyConfirm(true); }}
       onConfirmReady={confirmReady}
       onCancelReady={() => setShowReadyConfirm(false)}
       pickupConfirmOpen={showPickupConfirm}
@@ -2145,6 +2164,53 @@ export function OrderModal({
               placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
             <div className="hint">{t("Original order amount:", "Cantidad original de la orden:")} {existing.est_pallets ?? "—"}</div>
           </div>
+
+          {/* La tarifa, aquí mismo (D-143). Ventas la estaba poniendo mal y nadie lo veía hasta
+              facturar; el almacén toca cada orden justo antes de que salga, así que es el
+              último punto donde se puede corregir sin perseguir a nadie.
+
+              Lo importante NO es que la re-teclee: es que vea al lado LO QUE DEBERÍA SER. Pedir
+              que confirme un número que tampoco conoce solo trasladaría el error de sitio. */}
+          <div className="field">
+            <label>{t("Delivery fee", "Tarifa de entrega")}</label>
+            <input type="number" min={0} step="0.01" value={readyFee}
+              onChange={(e) => setReadyFee(e.target.value)} />
+            <div className="hint">
+              {t("Sales charged:", "Ventas cobró:")}{" "}
+              <strong>{existing.delivery_fee != null ? `$${existing.delivery_fee}` : t("nothing", "nada")}</strong>
+              {feeSuggestion.list != null ? (
+                <>
+                  {" · "}{t("should be", "debería ser")}{" "}
+                  <strong>${feeSuggestion.list}</strong>
+                  {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
+                    && <> {t("list", "lista")} · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}
+                </>
+              ) : (
+                // Sin millas de ruta no hay tarifa que calcular. Se dice, en vez de callar: un
+                // hueco sin explicación se lee como que el cálculo falló.
+                <> · {t("no route miles yet, so there is nothing to compare against",
+                        "aún no hay millas de ruta, así que no hay con qué comparar")}</>
+              )}
+            </div>
+            {/* El aviso solo cuando de verdad NO cuadra. Un aviso que sale siempre deja de
+                leerse, y entonces el que importa pasa desapercibido. */}
+            {feeSuggestion.list != null && existing.delivery_fee != null
+              && existing.delivery_fee !== feeSuggestion.list
+              && existing.delivery_fee !== feeSuggestion.discount && (
+              <div className="banner warn" style={{ marginTop: 8 }}>
+                ⚠️ {t(
+                  `Charged $${existing.delivery_fee}, but the table says $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? ` (or $${feeSuggestion.discount} discounted)` : ""}.`,
+                  `Se cobró $${existing.delivery_fee}, pero la tabla dice $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? ` (o $${feeSuggestion.discount} con descuento)` : ""}.`,
+                )}
+                {" "}
+                <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
+                  onClick={() => setReadyFee(String(feeSuggestion.list))}>
+                  {t("Use", "Usar")} ${feeSuggestion.list}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
             <button className="btn btn-ghost" onClick={() => setShowReadyConfirm(false)} disabled={busy}>{t("Discard", "Descartar")}</button>
             <button className="btn btn-green" onClick={confirmReady} disabled={busy}>{t("Confirm & mark ready", "Confirmar y marcar listo")}</button>

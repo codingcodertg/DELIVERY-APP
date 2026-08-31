@@ -6574,3 +6574,44 @@ aplicación rota, lo segundo como un día sin trabajo.
 
 Se conserva el aviso de los 60 días, porque un día vacío sigue teniendo dos explicaciones
 distintas y la pantalla debe distinguirlas.
+
+---
+
+## D-143 · El almacén confirma también la tarifa, no solo las pallets
+**Fecha:** 2026-08-31 · **Versión:** v1.40.0 (deliveries) · **Pedido por:** Andrés (*"cuando
+warehouse confirma cantidad de pallets también quiero que confirme la delivery fee, porque los
+sales no están poniendo el fee correcto"*)
+
+Al marcar listo, la ventana de confirmar pallets pide ahora también **la tarifa de entrega**.
+
+El almacén toca cada orden **justo antes de que salga**: es el último punto donde una tarifa mal
+puesta se puede corregir sin perseguir a nadie ni rehacer una factura.
+
+### Lo importante no es que la re-teclee
+
+Pedirle que confirme un número que **él tampoco conoce** solo trasladaría el error de sitio. Lo
+que hace útil la comprobación es que vea, al lado, **lo que debería ser** — y eso ya se calcula
+en `suggestDeliveryFee` a partir de las millas de ruta, la zona y el recargo de mismo día:
+
+> Ventas cobró **$75** · debería ser **$95** lista · **$85** con descuento
+
+Y cuando de verdad no cuadra, un aviso con un botón para poner la correcta de un clic.
+
+### Tres decisiones
+
+- **El aviso solo sale cuando NO cuadra**, y acepta tanto la de lista como la de descuento: un
+  precio con descuento es legítimo. Un aviso que salta siempre deja de leerse, y entonces el que
+  importa pasa desapercibido.
+- **Sin millas de ruta no hay nada que comparar, y se dice.** Un hueco sin explicación se lee
+  como que el cálculo falló.
+- **Cero es una tarifa válida** —recogida, envío de cortesía—; lo que no vale es dejarlo vacío.
+  Se valida aparte de las pallets para que el aviso diga cuál de los dos falta.
+
+### Una sola escritura
+
+La tarifa viaja en la **misma** escritura que las pallets y el cambio de etapa. En dos, un fallo
+entre medias dejaría la orden lista con la tarifa vieja y nadie sabría que se corrigió a medias.
+
+El evento de etapa distingue los dos casos: *"tarifa confirmada $85"* frente a *"tarifa corregida
+a $95 (era $75)"*. Lo segundo es lo que hay que poder buscar después para saber cuántas venían
+mal — que es la pregunta de fondo detrás de esta petición.
