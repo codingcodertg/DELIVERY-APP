@@ -6615,3 +6615,37 @@ entre medias dejaría la orden lista con la tarifa vieja y nadie sabría que se 
 El evento de etapa distingue los dos casos: *"tarifa confirmada $85"* frente a *"tarifa corregida
 a $95 (era $75)"*. Lo segundo es lo que hay que poder buscar después para saber cuántas venían
 mal — que es la pregunta de fondo detrás de esta petición.
+
+---
+
+## D-144 · "La tabla" no era una tabla, y el aviso no se explicaba
+**Fecha:** 2026-08-31 · **Versión:** v1.41.0 (deliveries) · **Pedido por:** Andrés (*"no entiendo
+eso de la tabla, ¿cuál tabla?"*)
+
+Buena pregunta, y con consecuencias: si el aviso no se le entiende a quien pidió la función,
+tampoco se lo va a entender **el del almacén**, que es quien tiene que actuar sobre él.
+
+No hay ninguna tabla. Los precios son **fórmulas escritas en `pricing.ts`**, según la zona y las
+millas de ruta. El aviso decía *"la tabla dice $95"*, que no explica nada y no se puede
+comprobar.
+
+Ahora el número **viene con su origen**:
+
+> McAllen · local · 20 mi → **$140** lista · $120 con descuento
+
+Y el aviso: *"Se cobró $75. Para una entrega local de 20 millas el precio es $140, o $120 con
+descuento."*
+
+Un importe suelto obliga a creérselo. Con ciudad, zona y millas delante, quien lo mira puede
+darse cuenta de que **la zona o las millas están mal** — que es la otra mitad de los errores de
+tarifa, y que un número pelado escondería.
+
+### Y un hallazgo, al ir a explicar de dónde salían los precios
+
+`local_fee_list`, `local_fee_discount` y `nonlocal_fee_brackets` **existen en Ajustes y en la
+base, y no los lee nadie**: `grep` sobre todo `src/` no devuelve un solo uso fuera de la
+definición del tipo. Los precios están **fijos en el código**.
+
+O sea: **quien edite esas tarifas en Ajustes creerá que cambió los precios y no habrá cambiado
+nada**. No se toca aquí —cambiar de dónde salen los precios es una decisión de negocio, no una
+corrección de texto— pero queda escrito, porque un ajuste que no ajusta es peor que no tenerlo.

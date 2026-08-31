@@ -2180,10 +2180,18 @@ export function OrderModal({
               <strong>{existing.delivery_fee != null ? `$${existing.delivery_fee}` : t("nothing", "nada")}</strong>
               {feeSuggestion.list != null ? (
                 <>
-                  {" · "}{t("should be", "debería ser")}{" "}
-                  <strong>${feeSuggestion.list}</strong>
+                  {" · "}
+                  {/* Se dice de DÓNDE sale el número —ciudad, zona y millas— y no solo cuál es.
+                      Un importe suelto obliga a creérselo; con su origen delante, quien lo mira
+                      puede darse cuenta de que la zona o las millas están mal, que es la otra
+                      mitad de los errores de tarifa. */}
+                  {feeSuggestion.city || t("this address", "esta dirección")}{" · "}
+                  {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
+                  {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}
+                  {" → "}
+                  <strong>${feeSuggestion.list}</strong> {t("list", "lista")}
                   {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
-                    && <> {t("list", "lista")} · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}
+                    && <> · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}
                 </>
               ) : (
                 // Sin millas de ruta no hay tarifa que calcular. Se dice, en vez de callar: un
@@ -2199,8 +2207,8 @@ export function OrderModal({
               && existing.delivery_fee !== feeSuggestion.discount && (
               <div className="banner warn" style={{ marginTop: 8 }}>
                 ⚠️ {t(
-                  `Charged $${existing.delivery_fee}, but the table says $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? ` (or $${feeSuggestion.discount} discounted)` : ""}.`,
-                  `Se cobró $${existing.delivery_fee}, pero la tabla dice $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? ` (o $${feeSuggestion.discount} con descuento)` : ""}.`,
+                  `Charged $${existing.delivery_fee}. For ${feeSuggestion.zone === "local" ? "a local" : "an out-of-area"} delivery of ${existing.route_miles ?? "?"} miles the price is $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, or $${feeSuggestion.discount} discounted` : ""}.`,
+                  `Se cobró $${existing.delivery_fee}. Para una entrega ${feeSuggestion.zone === "local" ? "local" : "fuera de zona"} de ${existing.route_miles ?? "?"} millas el precio es $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, o $${feeSuggestion.discount} con descuento` : ""}.`,
                 )}
                 {" "}
                 <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
