@@ -81,3 +81,22 @@ describe("isSessionExpired", () => {
     expect(isSessionExpired(new Error("otra cosa"))).toBe(false);
   });
 });
+
+// D-138. Desde 092 la base garantiza una sola sesión viva por persona, así que un doble clic en
+// Empezar ya no crea dos filas: la segunda la rechaza Postgres. Ese rechazo hay que traducirlo,
+// no enseñarlo — para quien pulsó dos veces, lo correcto es "ya está corriendo".
+describe("isAlreadyRunning", () => {
+  it("reconoce el choque del índice de sesión viva", async () => {
+    const { isAlreadyRunning } = await import("./session-guard");
+    expect(isAlreadyRunning({ code: "23505" })).toBe(true);
+    expect(isAlreadyRunning({ message: 'duplicate key value violates unique constraint "sessions_one_live_per_employee"' })).toBe(true);
+  });
+
+  it("y no confunde otros errores con eso", async () => {
+    const { isAlreadyRunning } = await import("./session-guard");
+    // Este es el de solapamiento (082), que sí tiene que llegar al usuario con su propio aviso.
+    expect(isAlreadyRunning({ code: "23P01", message: "conflicting key value violates exclusion constraint" })).toBe(false);
+    expect(isAlreadyRunning({ message: "permission denied for schema timetracker" })).toBe(false);
+    expect(isAlreadyRunning(null)).toBe(false);
+  });
+});

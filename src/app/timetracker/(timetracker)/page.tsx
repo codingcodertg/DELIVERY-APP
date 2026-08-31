@@ -14,7 +14,7 @@ import {
 import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
-import { isSessionExpired } from "@/lib/session-guard";
+import { isSessionExpired, isAlreadyRunning } from "@/lib/session-guard";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
 
 // ============================================================
@@ -529,8 +529,16 @@ export default function TrackTimePage() {
       }, 1000);
   }
 
+  const arrancandoRef = useRef(false);
+
   async function start() {
     if (!selected) return;
+    // El doble clic era la causa real de las dos tarjetas (D-138): dos intentos con 129 ms de
+    // diferencia, ninguno viendo todavía al otro. La comprobación de sesiones vivas de abajo no
+    // podía salvarlo — cuando corre, la otra fila aún no existe.
+    if (arrancandoRef.current) return;
+    arrancandoRef.current = true;
+    try {
     try {
       const live = await listLiveSessions();
       const others = live.filter((s) => s.id !== sessionIdRef.current);
@@ -590,11 +598,29 @@ export default function TrackTimePage() {
       // mensaje ni se suelta el error de Postgres en un alert — que es lo que salía antes:
       // "permission denied for schema timetracker", delante de alguien que solo quería fichar.
       if (isSessionExpired(e)) return;
+      // Doble clic: la base ya rechazó la segunda (092). No es un fallo que contarle a nadie —
+      // se recoge la que sí quedó corriendo y la pantalla sigue como si nada.
+      if (isAlreadyRunning(e)) {
+        const [viva] = await listLiveSessions();
+        if (viva) {
+          sessionIdRef.current = viva.id;
+          startMsRef.current = viva.startMs || Date.now();
+          try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: viva.id, startMs: startMsRef.current, source: payload.source })); } catch { /* ignore */ }
+          setRunning(true);
+          setRemoteOwner(null);
+          desktopStart({ sessionId: viva.id, intervalMin: shotMin });
+          beginTicking();
+        }
+        return;
+      }
       const err = e as { message?: string } | null;
       alert("Could not start tracking: " + (err?.message || "unknown error"));
       return;
     }
     beginTicking();
+    } finally {
+      arrancandoRef.current = false;
+    }
   }
 
   async function stop() {

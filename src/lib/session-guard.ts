@@ -95,3 +95,20 @@ export function isAuthDenied(e: unknown): boolean {
     err?.code === "42501"
   );
 }
+
+/**
+ * ¿Este error es "ya tienes algo abierto"?
+ *
+ * Desde 092 la base garantiza **una sola sesión viva por persona**, igual que ya garantizaba un
+ * solo fichaje abierto. Eso significa que un doble clic en Empezar ya no crea dos filas: la
+ * segunda la rechaza Postgres con un 23505.
+ *
+ * Y eso hay que traducirlo, no enseñarlo. Para quien pulsó dos veces, el resultado correcto es
+ * "ya está corriendo" — no un error de clave duplicada, que además le haría pensar que no
+ * empezó cuando sí empezó.
+ */
+export function isAlreadyRunning(e: unknown): boolean {
+  const err = e as { code?: string; message?: string } | null;
+  const msg = String(err?.message || "").toLowerCase();
+  return err?.code === "23505" || msg.includes("sessions_one_live_per_employee") || msg.includes("duplicate key");
+}

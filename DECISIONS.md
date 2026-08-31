@@ -6370,3 +6370,45 @@ alguien retira una sin poner otra, algo que la gente usa a diario se queda sin p
 La app **desplegada** vieja sigue en pie y **la cuadrilla sigue fichando en ella** (D-134). Esto
 borra el módulo de *este* repositorio; cerrar aquella puerta es otra decisión, y Andrés la
 aplazó mientras se termina la interfaz nueva.
+
+---
+
+## D-138 · Dos tarjetas para una persona: el doble clic que ninguna restricción veía
+**Fecha:** 2026-08-31 · **Versión:** v0.41.0 (timetracker) · **Pedido por:** Andrés (*"check this
+duplication"*, con la captura de su tarjeta repetida)
+
+### Lo que pasó, medido
+
+Dos sesiones vivas suyas, **creadas en el mismo segundo**, con **129 ms** entre sus `start_ms`.
+Es un doble disparo del botón de Empezar.
+
+### Por qué el guardián que ya existía no lo vio
+
+082 añadió `sessions_no_overlap`, un EXCLUDE sobre `tstzrange(start_ms, end_ms)`. La fila
+sobrante tenía **`start_ms = end_ms`**, y en Postgres **un rango vacío no solapa con nada** — ni
+consigo mismo. La fila era literalmente invisible para la restricción.
+
+Buen recordatorio: **una restricción protege lo que sabe mirar.** Aquella impide que se solapen
+dos ratos de trabajo, que es lo que se le pidió. *"No puede haber dos cronómetros corriendo a la
+vez"* es **otra regla**, y hasta ahora no la escribía nadie.
+
+### Tres cosas, en el orden en que importan
+
+1. **La regla, en la base** (092): índice único parcial, una sesión viva por persona — la misma
+   forma que 085 usó para los fichajes abiertos. Es la única capa que gana la carrera: la
+   comprobación del cliente corre *antes* de que exista la otra fila.
+2. **La causa, en el cliente**: un guardia que ignora el segundo clic mientras el primero está
+   en vuelo. La comprobación de sesiones vivas no podía salvarlo — cuando corre, la otra fila
+   todavía no existe.
+3. **El rechazo, traducido**: si aun así choca, se recoge la sesión que sí quedó corriendo y la
+   pantalla sigue. Enseñar "clave duplicada" a quien pulsó dos veces le haría pensar que **no**
+   empezó, cuando sí empezó.
+
+La limpieza cierra las filas sueltas en vez de borrarlas —el historial no se tira— y, si alguien
+tuviera varias vivas de verdad, conserva **la más reciente**: es la que tiene delante.
+
+### Y el 183% de actividad
+
+El tiempo activo no puede superar al transcurrido: **un 183% no es "muy productivo", es un dato
+roto**. Salía del reparto entre las dos filas. Ahora se acota a 100 al pintarlo, porque un
+número imposible en pantalla se lee como si significara algo.

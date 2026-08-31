@@ -129,9 +129,13 @@ export default function LiveMonitorPage() {
             const proj = pMap.get(s.projectId ?? "");
             const elapsed = s.startMs ? Math.max(0, Math.floor((now - s.startMs) / 1000)) : (s.durationSeconds || 0);
             const dur = s.durationSeconds || 0;
-            const pct = dur > 0 ? Math.round(((s.activeSeconds || 0) / dur) * 100) : 0;
+            // Acotado a 100: el tiempo activo no puede superar al transcurrido, así que un
+            // 183% no es "muy productivo", es un dato roto. Salió al duplicarse una sesión
+            // (D-138) y el número quedaba en pantalla como si significara algo.
+            const activo = Math.min(s.activeSeconds || 0, dur);
+            const pct = dur > 0 ? Math.min(100, Math.round((activo / dur) * 100)) : 0;
             const screen = s.screenSeconds || 0;
-            const inputActive = Math.max(0, (s.activeSeconds || 0) - screen);
+            const inputActive = Math.max(0, activo - screen);
             const idle = s.idleSeconds || 0;
             const st = status(s.liveNote);
             return (
