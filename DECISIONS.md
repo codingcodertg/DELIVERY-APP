@@ -6412,3 +6412,50 @@ tuviera varias vivas de verdad, conserva **la más reciente**: es la que tiene d
 El tiempo activo no puede superar al transcurrido: **un 183% no es "muy productivo", es un dato
 roto**. Salía del reparto entre las dos filas. Ahora se acota a 100 al pintarlo, porque un
 número imposible en pantalla se lee como si significara algo.
+
+---
+
+## D-139 · Las fotos de fichaje, copiadas para poder auditarlas
+**Fecha:** 2026-08-31 · **Pedido por:** Andrés (*"me puedes hacer importación de las fotos para
+poder verlas y hacer auditorías de ellas"*)
+
+### Faltaban menos de las que parecía
+
+Medido antes de copiar nada, con un diff **por ruta** entre los dos almacenamientos:
+
+```
+vieja 578 ficheros (359 MB)  ·  nueva 533  ·  FALTABAN 45  (11 MB)
+```
+
+Una importación anterior, del 26 de agosto, ya había traído el grueso. Lo que faltaba es lo que
+la cuadrilla ha fotografiado **desde entonces**, fichando todavía en la app vieja (D-134).
+
+### Cómo se copiaron
+
+Una a una, descargando de la vieja y subiendo a la nueva **con la misma ruta**: las filas de
+`time_entries` y `exceptions` guardan esa ruta tal cual, así que cambiarla habría dejado la foto
+en el disco y la referencia rota. **45 copiadas, 0 fallidas.**
+
+Dos decisiones que no son detalle:
+
+- **El bucket sigue siendo privado**, en las dos puntas. Son fotos de personas; se descargó con
+  la clave de servicio y no se hizo público nada en ningún momento.
+- **`x-upsert: false`**: si un fichero ya estuviera, **no se pisa**. Una foto de fichaje es
+  prueba, y sobrescribirla por accidente sería destruir la que ya estaba.
+
+### Verificado, no supuesto
+
+```
+nueva: 578 ficheros, 359 MB   (idéntico a la vieja)
+338 fotos referenciadas por fichajes y excepciones · SIN fichero: 0
+```
+
+Cero huérfanas: **toda foto que una fila apunta existe**. Ya se pueden revisar desde
+**Auditoría → 📷 Fotos** (D-109), con su navegación por día.
+
+### Y desbloquea algo más
+
+De los ficheros copiados, **33 pertenecen a las filas que `091` todavía no ha importado**. Al
+ejecutar aquel script, esas 33 fotos aparecerán solas en Auditoría, porque el fichero ya está
+puesto. Primero las fotos y luego las filas es el orden que evita que una fila aterrice
+apuntando a un hueco.
