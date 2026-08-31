@@ -6541,3 +6541,36 @@ cerrarse al corte de **aquel** día y no al de hoy, o serían sesenta horas), **
 límite exacto de las 20:00 clavadas, e invierno con el desfase cambiado.
 
 Fuera de la ruta se puede probar; dentro no. Esa es toda la razón del cambio de sitio.
+
+---
+
+## D-142 · Las fotos estaban, pero la pantalla no decía dónde
+**Fecha:** 2026-08-31 · **Versión:** v0.42.0 (timetracker) · v0.38.0 (clockin) · **Pedido por:**
+Andrés (*"aún sigo sin ver las fotos de fichaje dentro de auditoría"*)
+
+Antes de tocar nada se comprobó el dato, y **estaba entero**:
+
+```
+días con fotos:  29 ago (8) · 28 (6) · 27 (8) · 26 (11) · 25 (14) · 24 (16) …
+29 de agosto: 2 fichajes, con foto de entrada y de salida, y el fichero existe en el bucket
+```
+
+El fallo era **de la pantalla, y mío**: abre en **hoy**, hoy no tiene fotos —el día más reciente
+con alguna es el 29— y el vacío decía *"nadie fichó este día"* sin más.
+
+Un navegador por días **sin ninguna señal de dónde están los datos** obliga a hacer clic hacia
+atrás a ciegas. Quien lo abre un lunes ve vacío el fin de semana y **da la pantalla por rota** —
+que es literalmente lo que pasó, dos veces.
+
+### El arreglo
+
+La acción devuelve también **el día más reciente que sí tiene fotos**, y el vacío lo dice con un
+botón para ir allí:
+
+> Nadie fichó el **2026-08-31** … Las fotos más recientes son del **2026-08-29**. `[Ir a ese día]`
+
+Es la diferencia entre *"no hay nada"* y *"no hay nada **aquí**"*: lo primero se lee como una
+aplicación rota, lo segundo como un día sin trabajo.
+
+Se conserva el aviso de los 60 días, porque un día vacío sigue teniendo dos explicaciones
+distintas y la pantalla debe distinguirlas.

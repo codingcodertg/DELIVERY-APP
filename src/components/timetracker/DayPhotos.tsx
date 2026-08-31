@@ -34,6 +34,9 @@ const ONLY = "en-US";
 export function DayPhotos() {
   const [day, setDay] = useState(() => dateISO(new Date()));
   const [photos, setPhotos] = useState<DayPhoto[]>([]);
+  // El día más reciente que sí tiene fotos. Es la diferencia entre "no hay nada" y "no hay
+  // nada AQUÍ": lo primero se lee como una app rota, lo segundo como un día sin trabajo.
+  const [ultimoConFotos, setUltimoConFotos] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [who, setWho] = useState("");
@@ -50,7 +53,7 @@ export function DayPhotos() {
     const res = await getDayPhotos(d);
     if (wanted.current !== d) return;
     if (!res.ok) { setErr(res.message); setPhotos([]); }
-    else { setErr(null); setPhotos(res.photos); }
+    else { setErr(null); setPhotos(res.photos); setUltimoConFotos(res.latestWithPhotos); }
     setLoading(false);
   }, []);
 
@@ -106,12 +109,23 @@ export function DayPhotos() {
       {err && <div className="banner err">{err}</div>}
 
       {!loading && !err && shown.length === 0 && (
-        // Un día vacío tiene dos explicaciones muy distintas —nadie trabajó, o la limpieza ya
-        // pasó— y sin decirlo, en fechas viejas parecería que la pantalla está rota.
-        <p className="small muted">
-          Nobody punched or logged a trip this day — or that day&apos;s photos have already been
-          cleaned up (they are kept 60 days).
-        </p>
+        <div className="banner info">
+          <div>
+            Nobody punched or logged a trip on <strong>{day}</strong> — or that day&apos;s photos
+            have already been cleaned up (they are kept 60 days).
+          </div>
+          {/* Y, sobre todo, DÓNDE sí hay. Un navegador por días sin esta pista obliga a hacer
+              clic hacia atrás a ciegas, y quien abre un lunes ve vacío el fin de semana y da la
+              pantalla por rota — que es exactamente lo que pasó. */}
+          {ultimoConFotos && ultimoConFotos !== day && (
+            <div style={{ marginTop: 8 }}>
+              The most recent photos are from <strong>{ultimoConFotos}</strong>.{" "}
+              <button className="btn-ghost btn-sm" onClick={() => setDay(ultimoConFotos)}>
+                Go to that day
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {[...byPerson.entries()].map(([person, theirs]) => (

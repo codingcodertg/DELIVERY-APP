@@ -2,7 +2,7 @@
 
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
-import { centralWallToUtc } from "@/lib/clockin/tz";
+import { centralWallToUtc, centralShiftMs } from "@/lib/clockin/tz";
 
 /**
  * Todas las fotos de un día, para revisarlas de una sentada.
@@ -38,7 +38,7 @@ export type DayPhoto = {
 };
 
 export type DayPhotosResult =
-  | { ok: true; day: string; photos: DayPhoto[] }
+  | { ok: true; day: string; photos: DayPhoto[]; latestWithPhotos: string | null }
   | { ok: false; message: string };
 
 export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
@@ -74,11 +74,29 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     excQ = excQ.in("employee_id", inEmp);
   }
 
-  const [{ data: punches }, { data: excs }, { data: people }] = await Promise.all([
+  // El día más reciente que TIENE fotos. Sin esto, quien abre la pantalla un lunes ve "sin
+  // fotos" —porque el fin de semana no se ficha— y concluye que está rota. Un navegador por
+  // días sin ninguna señal de dónde están los datos obliga a hacer clic hacia atrás a ciegas.
+  let ultimaQ = supabase
+    .from("time_entries")
+    .select("clock_in_at")
+    .eq("company_id", companyId)
+    .not("clock_in_photo_path", "is", null)
+    .order("clock_in_at", { ascending: false })
+    .limit(1);
+  if (inEmp) ultimaQ = ultimaQ.in("employee_id", inEmp);
+
+  const [{ data: punches }, { data: excs }, { data: people }, { data: ultima }] = await Promise.all([
     punchQ,
     excQ,
     supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
+    ultimaQ,
   ]);
+
+  const conFotos = (ultima ?? [])[0]?.clock_in_at as string | undefined;
+  const latestWithPhotos = conFotos
+    ? new Date(new Date(conFotos).getTime() - centralShiftMs(new Date(conFotos))).toISOString().slice(0, 10)
+    : null;
 
   const name = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
   type Raw = Omit<DayPhoto, "url"> & { path: string };
@@ -112,7 +130,7 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
       });
   }
   raw.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
-  if (!raw.length) return { ok: true, day, photos: [] };
+  if (!raw.length) return { ok: true, day, photos: [], latestWithPhotos };
 
   // Una sola llamada para todas, en vez de una por foto.
   const { data: signed } = await supabase.storage
@@ -128,5 +146,5 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     const u = url.get(r.path);
     if (u) photos.push({ url: u, who: r.who, at: r.at, kind: r.kind, offSite: r.offSite, note: r.note });
   }
-  return { ok: true, day, photos };
+  return { ok: true, day, photos, latestWithPhotos };
 }
