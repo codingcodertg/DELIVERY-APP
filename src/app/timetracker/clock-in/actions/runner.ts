@@ -344,3 +344,82 @@ export async function endTrip(input: DashInput): Promise<RunnerResult> {
   }
   return { ok: true };
 }
+
+/**
+ * El estado del viaje de quien pregunta, para el panel de Time Tracker (D-136).
+ *
+ * La pantalla vieja lo calculaba en su componente de servidor. Al traer los viajes a Registrar
+ * tiempo hacía falta poder pedirlo desde el cliente — misma consulta, mismas reglas.
+ *
+ * `mode` decide qué se le ofrece: un **runner** lleva el vehículo de la empresa y se le pide el
+ * cuentakilómetros; un **comercial** hace salidas sueltas. Sale de `is_runner`, que se
+ * configura por persona, no de lo que la pantalla suponga.
+ */
+export async function getMyTrip(): Promise<
+  | {
+      ok: true;
+      mode: "runner" | "sales";
+      vehicles: { id: string; name: string }[];
+      trip: { id: string; startedAt: string; vehicleId: string | null; paused: boolean } | null;
+      stops: { id: string; label: string | null; arrivedAt: string; departedAt: string | null }[];
+      currentVehicleId: string | null;
+      /** Sin fichaje abierto no hay viaje posible: se conduce estando de alta. */
+      clockedIn: boolean;
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await authed();
+  if (!ctx.ok) return ctx;
+  const { supabase, user, profile } = ctx;
+
+  const { data: openRow } = await supabase
+    .from("time_entries")
+    .select("id")
+    .eq("employee_id", user.id)
+    .eq("status", "open")
+    .maybeSingle();
+
+  const [{ data: veh }, { data: openTrip }] = await Promise.all([
+    supabase.from("vehicles").select("id, name").eq("company_id", profile.company_id).eq("active", true).order("name"),
+    supabase
+      .from("vehicle_trips")
+      .select("id, started_at, vehicle_id, paused_at")
+      .eq("employee_id", user.id)
+      .is("ended_at", null)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  let stops: { id: string; label: string | null; arrivedAt: string; departedAt: string | null }[] = [];
+  if (openTrip) {
+    const { data: st } = await supabase
+      .from("trip_stops")
+      .select("id, label, arrived_at, departed_at")
+      .eq("trip_id", openTrip.id as string)
+      .order("arrived_at");
+    stops = (st ?? []).map((r) => ({
+      id: r.id as string,
+      label: (r.label as string) ?? null,
+      arrivedAt: r.arrived_at as string,
+      departedAt: (r.departed_at as string) ?? null,
+    }));
+  }
+
+  return {
+    ok: true,
+    mode: profile.is_runner ? "runner" : "sales",
+    vehicles: (veh ?? []).map((v) => ({ id: v.id as string, name: v.name as string })),
+    trip: openTrip
+      ? {
+          id: openTrip.id as string,
+          startedAt: openTrip.started_at as string,
+          vehicleId: (openTrip.vehicle_id as string) ?? null,
+          paused: !!openTrip.paused_at,
+        }
+      : null,
+    stops,
+    currentVehicleId: (profile.vehicle_id as string) ?? null,
+    clockedIn: !!openRow,
+  };
+}

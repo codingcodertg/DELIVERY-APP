@@ -7,6 +7,7 @@ import { createClient } from "@/lib/clockin/supabase/client";
 import { compressImage } from "@/lib/clockin/image";
 import { fmtClock } from "@/lib/timetracker/helpers";
 import { MySections } from "@/components/timetracker/MySections";
+import { TripPanel } from "@/components/timetracker/TripPanel";
 
 /**
  * Fichar, dentro de Registrar tiempo (D-125).
@@ -284,6 +285,8 @@ export function PunchPanel() {
           </div>
         </div>
       )}
+
+      <TripPanel />
 
       <MySections />
 

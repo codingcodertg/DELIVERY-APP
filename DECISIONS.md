@@ -6283,3 +6283,44 @@ destinos de aviso y todos los enlaces a rutas retiradas.
 **Ninguna pantalla de gerente.** Solo la de fichar y las de la propia persona. Y la de fichar
 sigue viva por una única razón: **los viajes de vehículo**, que aún no se han mudado. Cuando lo
 hagan, el módulo se borra entero.
+
+---
+
+## D-136 · Los viajes de vehículo entran en Registrar tiempo
+**Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
+Andrés (*"sí hazlo"*)
+
+Última pieza del módulo de fichaje. Empezar un viaje, registrar paradas y cerrarlo se hace ya
+dentro de Registrar tiempo, debajo del reloj: el viaje empieza **después** de fichar, y ahí es
+donde se mira.
+
+### Se trató con más cuidado que las anteriores, y por un motivo
+
+**Esta pantalla escribe kilometraje, y ese número acaba en una factura.** De ahí tres decisiones
+que no son cosméticas:
+
+- **Un cuentakilómetros vacío se manda como `null`, nunca como `0`.** Un campo en blanco
+  convertido en cero es un viaje de cero millas que nadie hizo — y es peor que no tener el dato:
+  **un hueco se ve, un cero se cree**.
+- **Se avisa si el de llegada es menor que el de salida**, pero **no se bloquea**: un dígito mal
+  tecleado se corrige, y a veces el vehículo cambia a mitad. Lo que no puede pasar es cerrar el
+  viaje sin que nadie lo mire y dejar una diferencia negativa.
+- **Viaje personal = vehículo propio**: ni vehículo, ni cuentakilómetros, ni combustible. Pedirlos
+  sería inventarse datos de un coche que no es de la empresa.
+
+### Llegar y salir son dos botones
+
+El tiempo **en** la parada es el dato que interesa; un solo botón lo perdería.
+
+### Lo que no cambió
+
+Las acciones de servidor son las mismas (`startTrip`, `logStop`, `finishStop`, `endTrip`), así
+que la geocodificación de paradas, los permisos y las reglas del viaje siguen siendo las de
+siempre. `is_runner` decide qué se ofrece —al runner se le pide el vehículo, al comercial no—,
+y eso se configura por persona, no lo supone la pantalla.
+
+### El módulo de fichaje ya no tiene nada propio
+
+Con esto, todo lo que hacía vive en Time Tracker. El borrado va en su **propio paso**: retirar
+carpetas es una operación que se verifica sola —compila o no— y mezclarla con una función nueva
+haría imposible saber cuál de las dos rompió algo.
