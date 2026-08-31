@@ -6459,3 +6459,52 @@ De los ficheros copiados, **33 pertenecen a las filas que `091` todavía no ha i
 ejecutar aquel script, esas 33 fotos aparecerán solas en Auditoría, porque el fichero ya está
 puesto. Primero las fotos y luego las filas es el orden que evita que una fila aterrice
 apuntando a un hueco.
+
+---
+
+## D-140 · Ejecutado el import: 9 de 10 fichajes, y el décimo lo paró la restricción
+**Fecha:** 2026-08-31 · **Pedido por:** Andrés (*"ejecútalo y hazlo"*)
+
+`091_import_clockin_backlog.sql`, aplicado. Resultado real, no estimado:
+
+| tabla | entraron | rechazadas |
+|---|---|---|
+| `scheduled_shifts` | 45 | 0 |
+| `exceptions` | 10 | 0 |
+| `time_entries` | **9** | **1** |
+| `vehicle_trips` | 2 | 0 |
+| `trip_stops` | 4 | 0 |
+
+### La que no entró, y por qué está bien que no entrara
+
+Un fichaje de **Patricia Hernández, 31 de julio, 21:00 → 21:19** — 19 minutos, marcado
+`edited`. Se comprobó contra lo que ya tenía ese día:
+
+```
+2026-07-31 13:49 → 2026-08-01 00:44   ·  655 min  ·  closed
+```
+
+Los 19 minutos caen **enteros dentro** de un turno de casi once horas que ya estaba importado.
+No era un dato que faltara: era una **entrada manual ya contada** dentro del fichaje real.
+Importarla habría pagado esos 19 minutos **dos veces**.
+
+Es la segunda vez que `time_entries_no_overlap` (085) impide un cobro duplicado en esta
+migración — la primera fue una sesión de 30 min de Nick (D-134). Y es, de hecho, **la misma fila
+que 085 quitó en su día**: volvió desde la base vieja y la restricción la rechazó otra vez. Una
+restricción bien puesta no se cansa.
+
+### Estado tras el import
+
+```
+26 de agosto en adelante, ya en la base nueva:
+  Zulema Resendez     4 fichajes  42,1 h
+  Patricia Hernández  4 fichajes  39,8 h
+  Alberto Garza       2 fichajes  13,8 h
+  Roberto Contreras   1 fichaje   11,9 h
+  Anthony Hernandez   1 fichaje   10,8 h
+  Elsa Vasquez        1 fichaje    2,8 h
+```
+
+Y las fotos: de **338 referencias pasa a 368**, con **0 sin fichero** — las 30 nuevas son las que
+D-139 dejó copiadas por adelantado, esperando a que llegaran sus filas. Ese orden —fotos primero,
+filas después— es lo que evita que una fila aterrice apuntando a un hueco.
