@@ -4,6 +4,7 @@ import { scoreWeek } from "@/lib/clockin/scorecard";
 import { centralShiftMs } from "@/lib/clockin/tz";
 import { clockinRestHeaders } from "@/lib/clockin/rest";
 import { cronAuthorized } from "@/lib/clockin/cronAuth";
+import { autoCloseCutoffMs } from "@/lib/clockin/schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -258,7 +259,6 @@ export async function GET(req: Request) {
   // working?"; tapping it in the app stamps still_working_at and buys another
   // hour (then it asks again). No answer = the shift is closed AT 8:00 PM
   // sharp, so payroll shows a clean number instead of "whenever cron ran".
-  const CUTOFF_MIN = 20 * 60; // 8:00 PM Central
   const WARN_MIN = 5; // prompt this many minutes before the deadline
   const GRACE_MIN = 60; // "still working" buys this much more time
   // Runs on EVERY tick, not just in the evening. Each entry carries its own
@@ -276,13 +276,9 @@ export async function GET(req: Request) {
       // left open since Monday must be closed at MONDAY's 8 PM. Using tonight's
       // would stamp a 60-hour day into payroll, which is far worse than the open
       // entry we're trying to clean up.
-      const inCentral = new Date(Date.parse(en.clock_in_at!) - shift);
-      const entryDayStart = Date.UTC(inCentral.getUTCFullYear(), inCentral.getUTCMonth(), inCentral.getUTCDate());
-      const entryCutoffMs = entryDayStart + CUTOFF_MIN * 60000 + shift;
-
-      // Someone who clocked in AFTER their own day's cutoff (a late evening
-      // shift) isn't who this rule is for — closing them instantly is nonsense.
-      if (Date.parse(en.clock_in_at!) >= entryCutoffMs) continue;
+      // El cálculo vive en `autoCloseCutoffMs` y no aquí porque es aritmética de fechas con
+      // horario de verano de por medio: fuera de una ruta se puede probar, y dentro no.
+      const entryCutoffMs = autoCloseCutoffMs(Date.parse(en.clock_in_at!), shift);
 
       // A stale ack from an earlier day must not push the deadline around.
       const ackMs = en.still_working_at ? new Date(en.still_working_at).getTime() : 0;
@@ -302,7 +298,7 @@ export async function GET(req: Request) {
         clock_out_at: new Date(deadline).toISOString(),
         status: "closed",
         auto_closed: true,
-        edit_note: "Automatically clocked out at 8:00 PM (no response to the still-working prompt)",
+        edit_note: "Automatically clocked out at the 8:00 PM cutoff (no response to the still-working prompt)",
       });
 
       // The shift is closed, so an open run is nonsense — close it too. We can't

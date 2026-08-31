@@ -252,3 +252,30 @@ export function currentAndNextPeriodDates(now: Date = new Date()): string[] {
   const next = payPeriodDates(new Date(nextFriday));
   return [...cur, ...next];
 }
+
+/** Hora del cierre automático, en minutos desde medianoche (20:00 Central). */
+export const AUTO_CLOSE_MIN = 20 * 60;
+
+/**
+ * ¿A qué hora le toca el cierre automático a este fichaje? (D-141)
+ *
+ * El corte de las 20:00 pertenece al día en que **empezó** el turno, no a hoy: uno abierto
+ * desde el lunes se cierra al lunes a las 20:00, no a las de esta noche — si no, se estamparía
+ * una jornada de sesenta horas en la nómina.
+ *
+ * Y quien entra **después** del corte de su propio día —un turno de noche— pasa al corte del
+ * día **siguiente**. Antes a esos se los saltaba con un `continue`, con un comentario correcto
+ * ("cerrarlos al instante es un sinsentido") y una consecuencia que no lo era: **no se cerraban
+ * nunca**. Así llegó un fichaje de 34,6 h a la nómina. Entre cerrar mal y no cerrar, la opción
+ * buena no era ninguna de las dos: era darles su propio corte.
+ *
+ * @param clockInMs  cuándo fichó, en epoch
+ * @param shiftMs    lo que hay que restar a UTC para leer hora Central (varía con el horario de verano)
+ */
+export function autoCloseCutoffMs(clockInMs: number, shiftMs: number): number {
+  const central = new Date(clockInMs - shiftMs);
+  const inicioDelDia = Date.UTC(central.getUTCFullYear(), central.getUTCMonth(), central.getUTCDate());
+  const corte = inicioDelDia + AUTO_CLOSE_MIN * 60000 + shiftMs;
+  // Entró pasado su propio corte: le toca el de mañana.
+  return clockInMs >= corte ? corte + 86400000 : corte;
+}

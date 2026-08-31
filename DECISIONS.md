@@ -6508,3 +6508,36 @@ restricción bien puesta no se cansa.
 Y las fotos: de **338 referencias pasa a 368**, con **0 sin fichero** — las 30 nuevas son las que
 D-139 dejó copiadas por adelantado, esperando a que llegaran sus filas. Ese orden —fotos primero,
 filas después— es lo que evita que una fila aterrice apuntando a un hueco.
+
+---
+
+## D-141 · El turno de noche no se cerraba nunca
+**Fecha:** 2026-08-31 · **Versión:** v0.37.0 (clockin) · **Pedido por:** Andrés (*"sí"*, sobre
+arreglar el hueco del cron)
+
+Quien fichaba **después de las 20:00** no se cerraba **jamás**. El código lo hacía a propósito y
+lo explicaba:
+
+```js
+// Someone who clocked in AFTER their own day's cutoff (a late evening
+// shift) isn't who this rule is for — closing them instantly is nonsense.
+if (Date.parse(en.clock_in_at!) >= entryCutoffMs) continue;
+```
+
+El razonamiento era correcto —cerrarlos al instante **sí** es un sinsentido— pero `continue`
+significa **saltárselos para siempre**. Entre cerrar mal y no cerrar, se eligió no cerrar, y la
+opción buena no era ninguna de las dos: era **darles su propio corte**. Así llegó a la nómina un
+fichaje de **34,6 h** (Carlos Fuentes).
+
+Ahora, quien entra pasado el corte de su día pasa al corte del **día siguiente**. Sigue siendo
+un turno largo, pero es **acotado y visible** en lugar de infinito.
+
+### Se sacó de la ruta para poder probarlo
+
+El cálculo vivía suelto dentro del `route.ts` del cron, y es **aritmética de fechas con horario
+de verano de por medio** — exactamente lo que no se comprueba a ojo. Ahora es
+`autoCloseCutoffMs()`, con seis pruebas: el turno normal, el que lleva días abierto (que debe
+cerrarse al corte de **aquel** día y no al de hoy, o serían sesenta horas), **el del fallo**, el
+límite exacto de las 20:00 clavadas, e invierno con el desfase cambiado.
+
+Fuera de la ruta se puede probar; dentro no. Esa es toda la razón del cambio de sitio.
