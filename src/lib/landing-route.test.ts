@@ -147,25 +147,25 @@ describe("MODULE_ACCESS · fichaje ya no es un módulo aparte", () => {
   });
 });
 
-// Fase 3 de la fusión: Time Tracker es la puerta de fichaje. Si esta pestaña desaparece,
-// las doce personas que tienen los dos módulos vuelven a tener que pasar por el hub para
-// cruzar entre dos mitades de la misma app.
-describe("navegación de la fusión", () => {
-  it("los dos juegos de pestañas llevan a fichaje", async () => {
+// La fusión terminó (D-137): el módulo de fichaje ya no tiene NINGUNA pantalla. Estas pruebas
+// decían lo contrario —que existía una pestaña que llevaba a él— y se dan la vuelta, porque lo
+// que hay que proteger ahora es que nadie vuelva a colgar una barra de aquel módulo.
+describe("la fusión terminó: no queda pestaña de fichaje", () => {
+  it("ninguna barra apunta ya al módulo", async () => {
     const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
-    const empleado = TABS.find((t) => t.id === "clockin");
-    const admin = MANAGER_TABS.find((t) => t.id === "clockin");
-    expect(empleado?.href).toBe("/timetracker/clock-in/clock");
-    // Al admin le sirve ver la cuadrilla, no marcar su propia entrada.
-    expect(admin?.href).toBe("/timetracker/clock-in/clock");
+    for (const [nombre, tabs] of [["TABS", TABS], ["MANAGER_TABS", MANAGER_TABS]] as const) {
+      const cuelgan = tabs.filter((t) => t.href.startsWith("/timetracker/clock-in"));
+      expect(cuelgan, `${nombre} sigue apuntando a fichaje: ${cuelgan.map((t) => t.href).join(", ")}`).toHaveLength(0);
+    }
   });
 
-  it("una sola entrada por juego, no las diecinueve pantallas", async () => {
-    // La barra de un admin ya lleva quince; volcarle el otro módulo la vuelve un
-    // buscador de pestañas. Esta prueba existe para que el día que alguien tenga la
-    // tentación de añadir "Cobertura", "Horarios" y "Excepciones" a la barra, falle.
-    const { TABS, MANAGER_TABS } = await import("@/lib/timetracker/constants");
-    expect(TABS.filter((t) => t.href.startsWith("/timetracker/clock-in"))).toHaveLength(1);
-    expect(MANAGER_TABS.filter((t) => t.href.startsWith("/timetracker/clock-in"))).toHaveLength(1);
+  it("y lo que hacía tiene su sitio propio", async () => {
+    // Si alguien retira una de estas rutas sin poner otra en su lugar, algo que la gente usa
+    // todos los días se queda sin puerta — que es exactamente lo que la fusión evitaba.
+    const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
+    const ids = MANAGER_TABS.map((t) => t.id);
+    for (const id of ["payroll", "schedule", "audit", "people", "live", "team-requests"]) {
+      expect(ids, `falta la pestaña ${id}`).toContain(id);
+    }
   });
 });

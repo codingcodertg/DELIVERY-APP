@@ -6,6 +6,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, BROWSER_TZ, DAYS, LOCALE, TZ_LIST } from "@/lib/timetracker/helpers";
 import type { AppSettings } from "@/lib/timetracker/helpers";
 import Link from "next/link";
+import { VehiclesSection } from "@/components/timetracker/VehiclesSection";
 import { GeofenceSection } from "@/components/timetracker/GeofenceSection";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerSettings.jsx, with
@@ -210,13 +211,14 @@ export default function ManagerSettingsPage() {
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>Clock-in</h3>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <Link className="btn btn-ghost btn-sm" href="/timetracker/clock-in/team">🚚 Vehicles</Link>
+
       </div>
       <p className="small muted" style={{ marginTop: 8 }}>
         People — position, schedule, site, runner — are set per person in Users on the hub.
       </p>
 
       <GeofenceSection />
+      <VehiclesSection />
     </div>
   );
 }

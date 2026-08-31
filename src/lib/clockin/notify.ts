@@ -166,7 +166,7 @@ export async function pushToUser(userId: string, companyId: string, type: string
   if (!body) return;
   const subs = await subsForEmployees([userId]);
   for (const s of subs) {
-    const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/timetracker/clock-in/clock", tag: type });
+    const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/timetracker", tag: type });
     if (r.gone && s.id) await deleteSub(s.id);
   }
   await recordNotification(companyId, userId, type, body);

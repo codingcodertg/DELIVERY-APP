@@ -54,6 +54,16 @@ const nextConfig = {
       // persona vive ahora dentro de Empleados, desplegable desde su propia fila.
       { source: "/timetracker/clock-in/coverage", destination: "/timetracker/people", permanent: false },
       { source: "/timetracker/clock-in/dashboard", destination: "/timetracker/live", permanent: false },
+      // El módulo de fichaje se retiró entero (D-137). Todo lo suyo vive en Time Tracker, así
+      // que cualquier enlace guardado —incluida la pantalla de fichar, que es la que más gente
+      // tenía a mano— aterriza donde ahora se hace eso mismo.
+      { source: "/timetracker/clock-in/team", destination: "/timetracker/settings", permanent: false },
+      { source: "/timetracker/clock-in/me", destination: "/timetracker", permanent: false },
+      { source: "/timetracker/clock-in/my-schedule", destination: "/timetracker", permanent: false },
+      { source: "/timetracker/clock-in/notes", destination: "/timetracker", permanent: false },
+      { source: "/timetracker/clock-in/notifications", destination: "/timetracker", permanent: false },
+      { source: "/timetracker/clock-in/welcome", destination: "/timetracker", permanent: false },
+      { source: "/timetracker/clock-in/clock", destination: "/timetracker", permanent: false },
     ];
   },
 };

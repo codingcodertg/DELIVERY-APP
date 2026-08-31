@@ -14,11 +14,9 @@ export const TABS: { id: string; href: string }[] = [
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
   { id: "account", href: "/timetracker/account" },
-  // Fichaje, la otra mitad de la app (fase 3 de la fusión). UNA entrada y no las
-  // diecinueve pantallas del módulo: la barra de un admin ya lleva quince, y volcarle
-  // el otro módulo encima la vuelve un buscador de pestañas. Desde aquí se entra y la
-  // navegación propia de fichaje sigue haciendo el resto.
-  { id: "clockin", href: "/timetracker/clock-in/clock" },
+  // La pestaña de Fichaje se retiró en D-137: el módulo ya no tiene pantallas. Fichar,
+  // el almuerzo, las salidas y los viajes están en "Registrar tiempo"; lo de gerente, en
+  // Payroll, Auditoría, Horario y Empleados.
 ];
 
 // An admin sees this instead of TABS — manager screens first, then the same
@@ -51,7 +49,4 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
   { id: "account", href: "/timetracker/account" },
-  // Al admin le lleva al panel de fichaje, no a la pantalla de fichar: lo que necesita
-  // de ese módulo es ver a la cuadrilla, no marcar su propia entrada.
-  { id: "clockin", href: "/timetracker/clock-in/clock" },
 ];

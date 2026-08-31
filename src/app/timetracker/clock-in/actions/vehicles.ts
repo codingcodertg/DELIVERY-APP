@@ -37,3 +37,33 @@ export async function setVehicleActive(id: string, active: boolean): Promise<Veh
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }
+
+/**
+ * La flota, para la sección de Ajustes de Time Tracker (D-137).
+ *
+ * Era lo último que quedaba con función propia en el módulo de fichaje: su pantalla de "equipo"
+ * había acabado siendo solo la lista de camiones, porque la configuración de personas se mudó
+ * al diálogo de Usuarios del hub en D-095.
+ */
+export async function listVehicles(): Promise<
+  { ok: true; vehicles: { id: string; name: string; plate: string | null; active: boolean }[] }
+  | { ok: false; message: string }
+> {
+  const ctx = await managerCtx();
+  if (!ctx.ok) return ctx;
+  const { data, error } = await ctx.supabase
+    .from("vehicles")
+    .select("id, name, plate, active")
+    .eq("company_id", ctx.companyId)
+    .order("name");
+  if (error) return { ok: false, message: error.message };
+  return {
+    ok: true,
+    vehicles: (data ?? []).map((v) => ({
+      id: v.id as string,
+      name: (v.name as string) ?? "—",
+      plate: (v.plate as string) ?? null,
+      active: v.active !== false,
+    })),
+  };
+}

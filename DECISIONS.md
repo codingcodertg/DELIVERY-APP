@@ -6324,3 +6324,49 @@ y eso se configura por persona, no lo supone la pantalla.
 Con esto, todo lo que hacía vive en Time Tracker. El borrado va en su **propio paso**: retirar
 carpetas es una operación que se verifica sola —compila o no— y mezclarla con una función nueva
 haría imposible saber cuál de las dos rompió algo.
+
+---
+
+## D-137 · El módulo de fichaje se borra: la fusión ha terminado
+**Fecha:** 2026-08-30 · **Versión:** v0.40.0 (timetracker) · v0.36.0 (clockin) · **Pedido por:**
+Andrés (*"ok si ya está todo borremos fichaje de view"*)
+
+**3.622 líneas fuera**, 158 dentro. Se retiran las once pantallas del módulo, su layout, su hoja
+de estilos y sus cuatro componentes de cromo, que quedaron sin un solo consumidor.
+
+### Lo que apareció al ir a borrar
+
+La pantalla llamada "team" **no era de equipo**: era la lista de **vehículos**. Su parte de
+personas se había mudado al diálogo de Usuarios del hub en D-095 y nadie retiró el resto.
+Borrarla sin mirar habría dejado a la empresa sin poder dar de alta un camión — y Ajustes ya
+enlazaba ahí, así que el sitio estaba elegido desde antes. Ahora es una sección de **Ajustes**.
+
+Un camión **no se borra, se apaga**: los viajes ya registrados lo apuntan, y borrarlo dejaría
+kilometraje colgando de un vehículo inexistente.
+
+### Lo que se conserva, y por qué
+
+`actions/` y `api/` **se quedan**. Las acciones son las que usan ahora las pantallas de Time
+Tracker —fichar, viajes, nómina, horario— y las cinco rutas de API son el cron de cierre
+automático, la limpieza de fotos, el arrastre de horarios y las dos exportaciones. Nada de eso
+era "pantalla de fichaje": era la maquinaria de debajo, y sigue exactamente donde estaba.
+
+Comprobado en el build: de todo `clock-in` **solo sobreviven esas cinco rutas de API**.
+
+### Los enlaces guardados no mueren
+
+Siete redirecciones nuevas, una por pantalla retirada, cada una al sitio donde ahora se hace esa
+misma cosa. La de `clock` importa más que ninguna: era la que toda la cuadrilla tenía a mano.
+
+### Las pruebas se dieron la vuelta
+
+Dos pruebas afirmaban que **existía** una pestaña de fichaje — eran de la fase 3, cuando esa
+pestaña era la puerta entre las dos mitades. Ahora afirman lo contrario: que **ninguna barra
+apunta ya al módulo**, y que las seis pantallas que heredaron su trabajo siguen en su sitio. Si
+alguien retira una sin poner otra, algo que la gente usa a diario se queda sin puerta.
+
+### Lo que esto NO significa
+
+La app **desplegada** vieja sigue en pie y **la cuadrilla sigue fichando en ella** (D-134). Esto
+borra el módulo de *este* repositorio; cerrar aquella puerta es otra decisión, y Andrés la
+aplazó mientras se termina la interfaz nueva.
