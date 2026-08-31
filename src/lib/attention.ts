@@ -1,4 +1,5 @@
 import type { Delivery } from "@/lib/types";
+import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { todayISO } from "@/lib/utils";
 
 // ============================================================
@@ -13,7 +14,7 @@ import { todayISO } from "@/lib/utils";
 // of those queries into something the board shows on its own.
 // ============================================================
 
-export type AttentionKind = "overdue_unassigned" | "no_pin" | "no_proof";
+export type AttentionKind = "overdue_unassigned" | "no_pin" | "no_proof" | "no_fee";
 
 export interface AttentionItem {
   kind: AttentionKind;
@@ -83,6 +84,42 @@ export function deliveredWithoutProof(deliveries: Delivery[]): Delivery[] {
 }
 
 /**
+ * Stages where the fee can still be fixed.
+ *
+ * Not `delivered`: once it is delivered the fee is an invoicing problem, and a
+ * panel that keeps shouting about orders nobody can change any more is a panel
+ * that gets hidden. Not `draft` either — it isn't an order yet.
+ */
+const BILLABLE: Delivery["stage"][] = ["pending", "approved", "fulfilling", "ready", "picked_up"];
+
+/**
+ * A customer delivery going out with **nothing charged for it**.
+ *
+ * This is the failure D-143/D-146 were built around, and the one the fee dialog
+ * did NOT catch: it only warned when the amount disagreed with the price list,
+ * so an EMPTY fee — the worst case, a delivery invoiced for free — passed
+ * without a word. A wrong number is at least a number somebody typed; a blank
+ * one usually means nobody looked.
+ *
+ * Zero counts as nothing. It is a legitimate value (a courtesy delivery, a
+ * redelivery the company eats), which is exactly why it has to be *seen and
+ * confirmed* rather than assumed: from outside, a deliberate $0 and a forgotten
+ * one look identical.
+ *
+ * Only for the types that are supposed to be charged. `required.ts` already
+ * decides that — the fee is mandatory where the document rule is `invoice` —
+ * and this asks it instead of re-deciding, because two rules disagreeing about
+ * the same order is how you end up flagging every store-to-store move that was
+ * never meant to carry a fee.
+ */
+export function noFeeCharged(deliveries: Delivery[], rules?: OrderTypeRules): Delivery[] {
+  return deliveries.filter((d) =>
+    BILLABLE.includes(d.stage) &&
+    orderTypeRule(d.order_type, rules).docRef === "invoice" &&
+    (d.delivery_fee == null || Number(d.delivery_fee) === 0));
+}
+
+/**
  * Everything above, in the order it should be acted on.
  *
  * `proofRequired` reflects the settings: missing proof is only worth raising
@@ -94,9 +131,11 @@ export function attentionItems(
   deliveries: Delivery[],
   today: string = todayISO(),
   proofRequired = false,
+  rules?: OrderTypeRules,
 ): AttentionItem[] {
   return [
     ...overdueUnassigned(deliveries, today).map((delivery) => ({ kind: "overdue_unassigned" as const, delivery })),
+    ...noFeeCharged(deliveries, rules).map((delivery) => ({ kind: "no_fee" as const, delivery })),
     ...missingPin(deliveries).map((delivery) => ({ kind: "no_pin" as const, delivery })),
     ...(proofRequired
       ? deliveredWithoutProof(deliveries).map((delivery) => ({ kind: "no_proof" as const, delivery }))

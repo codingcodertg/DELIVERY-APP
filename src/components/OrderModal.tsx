@@ -269,6 +269,20 @@ export function OrderModal({
   // Discount (or types an amount). It used to auto-fill with List once the
   // miles resolved, which quietly committed a price nobody had agreed to.
   const feeSuggestion = suggestDeliveryFee(d, settings);
+  /**
+   * Esta orden va a salir sin cobrar nada (D-147).
+   *
+   * Vacío y $0 cuentan igual. Cero es un valor legítimo —una entrega de cortesía, una
+   * reentrega que se come la casa— y justo por eso hay que **verlo y confirmarlo**: desde
+   * fuera, un cero deliberado y uno olvidado son idénticos.
+   *
+   * Solo para los tipos que se cobran. Quién se cobra ya lo decide `required.ts` (la tarifa
+   * es obligatoria donde el documento es la factura), así que se le pregunta en vez de
+   * volver a decidirlo aquí: dos reglas discrepando sobre la misma orden es como se acaba
+   * marcando en rojo cada traslado entre tiendas, que nunca llevó tarifa.
+   */
+  const seCobra = orderTypeRule(d.order_type, settings.order_type_rules).docRef === "invoice";
+  const sinCobrar = seCobra && (existing?.delivery_fee == null || Number(existing.delivery_fee) === 0);
 
   // A brand-new order defaults to Order Type "Customer" and the store the
   // salesperson is assigned to in Settings (runs once, after settings load).
@@ -2217,9 +2231,31 @@ export function OrderModal({
                         "aún no hay millas de ruta, así que no hay con qué comparar")}</>
               )}
             </div>
+            {/* Nada cobrado: el caso que el aviso de abajo NO veía, porque comparaba contra
+                la lista de precios y un hueco no se puede comparar con nada. Es el peor de
+                los dos —un número equivocado al menos lo tecleó alguien; uno vacío suele
+                significar que nadie miró— así que va aparte y va primero. */}
+            {sinCobrar && (
+              <div className="banner err" style={{ marginTop: 8 }}>
+                🚩 {existing.delivery_fee == null
+                  ? t("Nothing was charged for this delivery — the fee is blank.",
+                      "No se cobró nada por esta entrega — la tarifa está vacía.")
+                  : t("This delivery is going out free — the fee is $0.",
+                      "Esta entrega va a salir gratis — la tarifa es $0.")}
+                {" "}
+                {t("If that is right, confirm it and it stops being flagged.",
+                   "Si es correcto, confírmelo y deja de marcarse.")}
+                {feeSuggestion.list != null && (
+                  <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
+                    onClick={() => setStartFee(String(feeSuggestion.list))}>
+                    {t("Charge", "Cobrar")} ${feeSuggestion.list}
+                  </button>
+                )}
+              </div>
+            )}
             {/* El aviso solo cuando de verdad NO cuadra. Un aviso que sale siempre deja de
                 leerse, y entonces el que importa pasa desapercibido. */}
-            {feeSuggestion.list != null && existing.delivery_fee != null
+            {!sinCobrar && feeSuggestion.list != null && existing.delivery_fee != null
               && existing.delivery_fee !== feeSuggestion.list
               && existing.delivery_fee !== feeSuggestion.discount && (
               <div className="banner warn" style={{ marginTop: 8 }}>

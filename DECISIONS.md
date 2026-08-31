@@ -6777,3 +6777,56 @@ El botón *Comenzar preparación* ya no mueve la etapa por su cuenta: abre el di
 salen a la vez el cambio de etapa y la tarifa. Es la **única** puerta de `approved` a
 `fulfilling` — la selección múltiple del listado solo mueve a pendiente, aprobado o cancelado,
 así que no hay forma de saltársela.
+
+---
+
+## D-147 · El aviso no veía el peor caso: no haber cobrado nada
+
+**Fecha:** 2026-08-31 · **Versión:** v1.44.0 (deliveries) · **Pedido por:** Andrés (*"hazme un
+flag cuando no se cobró nada, porque eso es lo que se está intentando flag"*)
+
+Tiene razón, y era un agujero de bulto en D-143/D-146. El aviso de tarifa comparaba el importe
+cobrado contra la lista de precios:
+
+```
+existing.delivery_fee != null && delivery_fee !== list && delivery_fee !== discount
+```
+
+Ese `!= null` significa que **una tarifa vacía no avisaba de nada**. Un hueco no se puede
+comparar con un precio, así que la orden que nadie había tarifado —la peor de todas— pasaba en
+silencio, mientras que una de $75 en vez de $95 sí saltaba. Un número equivocado al menos lo
+tecleó alguien; uno vacío suele significar que nadie miró.
+
+### Vacío y $0 cuentan igual
+
+Cero es un valor **legítimo**: una entrega de cortesía, una reentrega que se come la casa. Y por
+eso mismo hay que verlo y confirmarlo en vez de darlo por bueno: **desde fuera, un cero
+deliberado y uno olvidado son idénticos**. Confirmarlo cuesta un clic y lo deja de marcar.
+
+### Dónde sale
+
+1. **En el diálogo de tarifa** (al comenzar preparación, D-146): un aviso rojo aparte, delante
+   del de "no cuadra con la lista", con el texto según el caso —*no se cobró nada* / *va a salir
+   gratis*— y el botón para cobrar el precio de lista si hay millas para calcularlo. Va aparte y
+   no mezclado porque son dos problemas distintos y el otro no lo veía.
+2. **En "Requiere atención"** del panel, como tipo nuevo `no_fee`, **en segundo lugar** —
+   detrás de lo que va tarde sin chofer y delante de lo que no está en el mapa. Ahí se ve
+   *antes* de que el almacén la toque, que es cuando aún se puede llamar a ventas.
+
+### A quién se le exige
+
+Solo a los tipos que se cobran. Quién se cobra **ya lo decide `required.ts`** —la tarifa es
+obligatoria donde el documento requerido es la factura— y tanto el aviso como el panel se lo
+preguntan en vez de volver a decidirlo por su cuenta. Dos reglas discrepando sobre la misma
+orden es como se acaba marcando en rojo cada traslado entre tiendas, que nunca llevó tarifa; ese
+error ya está descrito dentro de `required.ts` y no se repite aquí.
+
+Un tipo desconocido o sin configurar **sí** se considera cobrable, siguiendo el mismo respaldo:
+lo que no es traslado ni recogida es una entrega normal. Preferimos preguntar de más a dejar
+salir una gratis en silencio.
+
+### Ventana
+
+Desde `pending` hasta `picked_up`. **No** una vez entregada: ahí la tarifa ya es un problema de
+facturación, y un aviso sobre algo que nadie puede cambiar termina en "Ocultar" — y con él se
+esconden los que sí se podían arreglar.

@@ -21,6 +21,7 @@ import type { Delivery } from "@/lib/types";
 
 const STYLE: Record<AttentionKind, { icon: string; color: string; bg: string }> = {
   overdue_unassigned: { icon: "🚨", color: "var(--red)", bg: "#fdeaea" },
+  no_fee:             { icon: "💸", color: "var(--red)", bg: "#fdeaea" },
   no_pin:             { icon: "📍", color: "#b9791a", bg: "#fff7ec" },
   no_proof:           { icon: "📋", color: "var(--gray)", bg: "var(--card-hover)" },
 };
@@ -33,12 +34,20 @@ export function AttentionPanel({ onOpen }: { onOpen?: (d: Delivery) => void }) {
   // Missing proof is only a fault when proof was asked for. With both
   // switches off it is exactly what the settings say should happen.
   const proofRequired = settings.require_pod === true || settings.pod_signature_enabled === true;
-  const items = useMemo(() => attentionItems(deliveries, undefined, proofRequired), [deliveries, proofRequired]);
+  const items = useMemo(
+    () => attentionItems(deliveries, undefined, proofRequired, settings.order_type_rules),
+    [deliveries, proofRequired, settings.order_type_rules],
+  );
 
   const label: Record<AttentionKind, { title: string; why: string }> = {
     overdue_unassigned: {
       title: t("Past its date with no driver", "Pasada de fecha y sin chofer"),
       why: t("Nobody is going to deliver this until someone assigns it.", "Nadie va a entregar esto hasta que alguien lo asigne."),
+    },
+    no_fee: {
+      title: t("Going out with nothing charged", "Va a salir sin cobrar nada"),
+      why: t("Blank or $0 delivery fee on an order that should carry one. Fix it before it ships — after that it is an invoicing problem.",
+             "Tarifa de entrega vacía o en $0 en una orden que debería llevarla. Corríjala antes de que salga — después ya es un problema de facturación."),
     },
     no_pin: {
       title: t("Not on the map", "No está en el mapa"),
@@ -52,7 +61,7 @@ export function AttentionPanel({ onOpen }: { onOpen?: (d: Delivery) => void }) {
 
   if (!items.length || dismissed) return null;
 
-  const groups = (["overdue_unassigned", "no_pin", "no_proof"] as AttentionKind[])
+  const groups = (["overdue_unassigned", "no_fee", "no_pin", "no_proof"] as AttentionKind[])
     .map((kind) => ({ kind, rows: items.filter((i) => i.kind === kind).map((i) => i.delivery) }))
     .filter((g) => g.rows.length > 0);
 

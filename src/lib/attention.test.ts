@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { attentionItems, deliveredWithoutProof, missingPin, overdueUnassigned } from "./attention";
+import { attentionItems, deliveredWithoutProof, missingPin, noFeeCharged, overdueUnassigned } from "./attention";
 import { blankDelivery } from "./blank-delivery";
 import type { Delivery } from "./types";
 
@@ -73,8 +73,11 @@ describe("deliveredWithoutProof", () => {
 });
 
 describe("attentionItems", () => {
-  const noProof = mk({ id: "a", stage: "delivered", pod_delivered_at: "2026-08-14T19:32:00Z" });
-  const overdue = mk({ id: "b", stage: "approved", delivery_date: "2026-08-05", assigned_driver: null, delivery_lat: 25.9, delivery_lng: -97.5 });
+  // Cada fixture tiene UNA cosa mal y el resto en orden — incluida la tarifa cobrada, o
+  // el aviso de "sale sin cobrar nada" se colaría en todas y estas pruebas dejarían de
+  // medir lo que dicen medir.
+  const noProof = mk({ id: "a", stage: "delivered", pod_delivered_at: "2026-08-14T19:32:00Z", delivery_fee: 95 });
+  const overdue = mk({ id: "b", stage: "approved", delivery_date: "2026-08-05", assigned_driver: null, delivery_lat: 25.9, delivery_lng: -97.5, delivery_fee: 95 });
 
   it("puts overdue work ahead of bookkeeping", () => {
     const items = attentionItems([noProof, overdue], TODAY, true);
@@ -107,7 +110,7 @@ describe("attentionItems", () => {
   });
 
   it("is empty on a healthy board", () => {
-    expect(attentionItems([mk({ stage: "ready", delivery_date: TODAY, assigned_driver: "Maximo Garza", delivery_lat: 25.9, delivery_lng: -97.5 })], TODAY)).toEqual([]);
+    expect(attentionItems([mk({ stage: "ready", delivery_date: TODAY, assigned_driver: "Maximo Garza", delivery_lat: 25.9, delivery_lng: -97.5, delivery_fee: 95 })], TODAY)).toEqual([]);
   });
 });
 
@@ -126,5 +129,70 @@ describe("missingPin covers what Routes Manager can plan", () => {
   it("ignores an order already out on a truck", () => {
     // Picked up: the driver has it, a missing pin is no longer actionable.
     expect(missingPin([mk({ stage: "picked_up", delivery_lat: null })])).toHaveLength(0);
+  });
+});
+
+
+describe("noFeeCharged", () => {
+  // Los tipos, tal y como los tiene configurados la empresa: la entrega a cliente
+  // se cobra, el traslado entre tiendas no.
+  const RULES = {
+    Customer: { storeToStore: false, docRef: "invoice" as const },
+    Intertienda: { storeToStore: true, docRef: "any" as const },
+    Transfer: { storeToStore: true, docRef: "none" as const },
+  };
+
+  it("marca la entrega que va a salir con la tarifa VACÍA", () => {
+    // El caso que el aviso del diálogo no veía: comparaba contra la lista de precios,
+    // y un hueco no se puede comparar con nada.
+    const d = mk({ stage: "approved", order_type: "Customer", delivery_fee: null });
+    expect(noFeeCharged([d], RULES)).toHaveLength(1);
+  });
+
+  it("marca también la que va en $0", () => {
+    // Cero es legítimo (cortesía, reentrega que se come la casa) y por eso hay que
+    // verlo: desde fuera, un cero deliberado y uno olvidado son idénticos.
+    const d = mk({ stage: "ready", order_type: "Customer", delivery_fee: 0 });
+    expect(noFeeCharged([d], RULES)).toHaveLength(1);
+  });
+
+  it("se calla si se cobró algo", () => {
+    const d = mk({ stage: "ready", order_type: "Customer", delivery_fee: 95 });
+    expect(noFeeCharged([d], RULES)).toHaveLength(0);
+  });
+
+  it("no marca los traslados entre tiendas — nunca llevaron tarifa", () => {
+    // Es la mitad del tablero. Marcarlos convertiría el aviso en ruido y con él se
+    // perdería el que importa.
+    for (const tipo of ["Intertienda", "Transfer"]) {
+      expect(noFeeCharged([mk({ stage: "approved", order_type: tipo, delivery_fee: null })], RULES)).toHaveLength(0);
+    }
+  });
+
+  it("no marca lo ya entregado ni lo que aún no es una orden", () => {
+    // Entregada: la tarifa ya es un problema de facturación, y un aviso sobre algo
+    // que nadie puede cambiar acaba en "ocultar". Borrador: todavía no es una orden.
+    for (const stage of ["delivered", "canceled", "rejected", "draft"] as const) {
+      expect(noFeeCharged([mk({ stage, order_type: "Customer", delivery_fee: null })], RULES)).toHaveLength(0);
+    }
+  });
+
+  it("cubre toda la vida útil de la orden, desde pendiente hasta cargada", () => {
+    for (const stage of ["pending", "approved", "fulfilling", "ready", "picked_up"] as const) {
+      expect(noFeeCharged([mk({ stage, order_type: "Customer", delivery_fee: null })], RULES)).toHaveLength(1);
+    }
+  });
+
+  it("sin reglas configuradas, un tipo desconocido se considera cobrable", () => {
+    // El respaldo de required.ts: lo que no es traslado ni recogida es una entrega
+    // normal. Preferimos preguntar de más que dejar salir una gratis en silencio.
+    expect(noFeeCharged([mk({ stage: "approved", order_type: "Delivery", delivery_fee: null })])).toHaveLength(1);
+  });
+
+  it("sale en el panel, y antes que el aviso del mapa", () => {
+    const d = mk({ stage: "approved", order_type: "Customer", delivery_fee: null, delivery_lat: null });
+    const kinds = attentionItems([d], TODAY, false, RULES).map((i) => i.kind);
+    expect(kinds).toContain("no_fee");
+    expect(kinds.indexOf("no_fee")).toBeLessThan(kinds.indexOf("no_pin"));
   });
 });
