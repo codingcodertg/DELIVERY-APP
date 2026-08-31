@@ -50,6 +50,10 @@ const nextConfig = {
       // El horario subió a Time Tracker (D-121), con lo que ahora además deja programar otras
       // semanas — la pantalla vieja solo sabía enseñar la actual.
       { source: "/timetracker/clock-in/schedule", destination: "/timetracker/schedule", permanent: false },
+      // Las dos últimas pantallas de gerente que quedaban en fichaje (D-135). El detalle por
+      // persona vive ahora dentro de Empleados, desplegable desde su propia fila.
+      { source: "/timetracker/clock-in/coverage", destination: "/timetracker/people", permanent: false },
+      { source: "/timetracker/clock-in/dashboard", destination: "/timetracker/live", permanent: false },
     ];
   },
 };

@@ -417,7 +417,7 @@ function ClockShell({
             )}
             {pending!.exceptions > 0 && (
               <li>
-                <Link href="/timetracker/clock-in/exceptions" className={todoLink}>
+                <Link href="/timetracker/audit" className={todoLink}>
                   <span>📍 <b className="tabular-nums">{pending!.exceptions}</b> {tr.exceptionsToReview}</span>
                   <span className="text-amber-600">→</span>
                 </Link>

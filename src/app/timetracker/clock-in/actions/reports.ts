@@ -7,7 +7,7 @@ import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { visibleStores } from "@/lib/clockin/scope";
-import { shiftMinutes } from "@/lib/clockin/schedule";
+import { shiftMinutes, payPeriodDates } from "@/lib/clockin/schedule";
 
 export type ReportResult = { ok: true } | { ok: false; message: string };
 
@@ -344,5 +344,94 @@ export async function getPayrollPeriod(periodStart: string): Promise<
     })),
     stores: (siteRows ?? []).map((s) => ({ key: s.id as string, name: s.name as string })),
     entries: attachLunch((entryRows ?? []) as PayEntry[], (lunchRows ?? []) as LunchRow[]),
+  };
+}
+
+/**
+ * La semana de UNA persona: sus fichajes, sus descansos y sus totales (D-135).
+ *
+ * Es lo último que quedaba de "Today's Crew": el detalle por persona y por día. Va dentro de
+ * Empleados —se abre desde su fila— porque es exactamente la pregunta que uno se hace mirando
+ * esa lista: *¿y esta persona qué hizo esta semana?* Tenerlo en otra pantalla obligaba a
+ * apuntarse el nombre, salir y buscarlo.
+ *
+ * `canManageEmployee` decide, no la pantalla: un gerente de tienda no puede abrir el detalle de
+ * alguien de otra tienda ni pidiéndolo a mano. La lista ya está acotada, pero una acción que se
+ * fía de que la lista venga acotada es una acción sin permiso.
+ */
+export async function getEmployeeWeek(employeeId: string, periodStart?: string): Promise<
+  | {
+      ok: true;
+      period: string[];
+      punches: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number; onSite: boolean | null; manual: boolean }[];
+      breaks: { id: string; reason: string; leftAt: string; returnedAt: string | null; minutes: number }[];
+      totalMin: number;
+      lunchMin: number;
+      outMin: number;
+    }
+  | { ok: false; message: string }
+> {
+  const ctx = await mgrCtx();
+  if (!ctx.ok) return ctx;
+  if (!(await canManageEmployee(ctx.supabase, ctx.me, employeeId))) {
+    return { ok: false, message: "That employee isn't in your store." };
+  }
+
+  const base = periodStart && /^\d{4}-\d{2}-\d{2}$/.test(periodStart)
+    ? new Date(`${periodStart}T12:00:00Z`)
+    : new Date();
+  const period = payPeriodDates(base);
+  const desde = centralWallToUtc(`${period[0]}T00:00`);
+  const hasta = new Date(new Date(desde).getTime() + 7 * 86400000).toISOString();
+
+  const [{ data: entries }, { data: leaves }] = await Promise.all([
+    ctx.supabase
+      .from("time_entries")
+      .select("id, clock_in_at, clock_out_at, lunch_minutes, clock_in_in_radius, manual")
+      .eq("employee_id", employeeId)
+      .gte("clock_in_at", desde)
+      .lt("clock_in_at", hasta)
+      .order("clock_in_at"),
+    ctx.supabase
+      .from("exceptions")
+      .select("id, reason, left_at, returned_at")
+      .eq("employee_id", employeeId)
+      .eq("type", "leaving_while_clocked_in")
+      .gte("left_at", desde)
+      .lt("left_at", hasta)
+      .order("left_at"),
+  ]);
+
+  const mins = (a: string, b: string | null) => {
+    // Uno abierto cuenta hasta AHORA. En un detalle que se mira a media jornada, enseñar cero
+    // mientras alguien está dentro es el dato que menos ayuda.
+    const fin = b ? Date.parse(b) : Date.now();
+    return Math.max(0, Math.round((fin - Date.parse(a)) / 60000));
+  };
+
+  const punches = (entries ?? []).map((e) => ({
+    id: e.id as string,
+    clockInAt: e.clock_in_at as string,
+    clockOutAt: (e.clock_out_at as string) ?? null,
+    minutes: Math.max(0, mins(e.clock_in_at as string, (e.clock_out_at as string) ?? null) - ((e.lunch_minutes as number) ?? 0)),
+    onSite: (e.clock_in_in_radius as boolean) ?? null,
+    manual: !!e.manual,
+  }));
+  const breaks = (leaves ?? []).map((b) => ({
+    id: b.id as string,
+    reason: (b.reason as string) ?? "other",
+    leftAt: b.left_at as string,
+    returnedAt: (b.returned_at as string) ?? null,
+    minutes: mins(b.left_at as string, (b.returned_at as string) ?? null),
+  }));
+
+  return {
+    ok: true,
+    period,
+    punches,
+    breaks,
+    totalMin: punches.reduce((a, p) => a + p.minutes, 0),
+    lunchMin: breaks.filter((b) => b.reason === "lunch").reduce((a, b) => a + b.minutes, 0),
+    outMin: breaks.filter((b) => b.reason !== "lunch").reduce((a, b) => a + b.minutes, 0),
   };
 }

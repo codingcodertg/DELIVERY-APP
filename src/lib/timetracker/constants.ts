@@ -53,5 +53,5 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "account", href: "/timetracker/account" },
   // Al admin le lleva al panel de fichaje, no a la pantalla de fichar: lo que necesita
   // de ese módulo es ver a la cuadrilla, no marcar su propia entrada.
-  { id: "clockin", href: "/timetracker/clock-in/dashboard" },
+  { id: "clockin", href: "/timetracker/clock-in/clock" },
 ];

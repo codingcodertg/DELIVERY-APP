@@ -46,6 +46,6 @@ export async function setRunReviewed(input: {
       .eq("period_start", input.periodStart);
     if (error) return { ok: false, message: error.message };
   }
-  revalidatePath("/timetracker/clock-in/coverage"); // runs live under Today's Crew now
+  revalidatePath("/timetracker/people"); // el detalle por persona vive ahí desde D-135
   return { ok: true };
 }

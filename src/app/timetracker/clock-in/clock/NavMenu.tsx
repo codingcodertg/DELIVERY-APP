@@ -47,8 +47,8 @@ export default function NavMenu({
   }
   // Manager/owner tools.
   if (isManager) {
-    links.push({ href: "/timetracker/clock-in/coverage", label: tr.teamCoverage });
-    links.push({ href: "/timetracker/clock-in/dashboard", label: tr.mgr.dashboard });
+    links.push({ href: "/timetracker/people", label: tr.teamCoverage });
+    links.push({ href: "/timetracker/live", label: tr.mgr.dashboard });
     links.push({ href: "/timetracker/settings", label: tr.mgr.settings });
   }
 

@@ -6245,3 +6245,41 @@ El script está en `supabase/migrations/091_import_clockin_backlog.sql`. **No se
 desde aquí**: el clasificador de permisos bloqueó la escritura a Supabase, dos veces. Se ejecuta
 tal cual desde el SQL Editor; cada fila lleva su propia captura de errores y `on conflict do
 nothing`, así que volver a lanzarlo es inofensivo.
+
+---
+
+## D-135 · La última pantalla de gerente sale de fichaje: el módulo se queda sin panel
+**Fecha:** 2026-08-30 · **Versión:** v0.38.0 (timetracker) · v0.34.0 (clockin) · **Pedido por:**
+Andrés (*"el tab que queda de equipo de hoy que pase al view de empleados"*)
+
+De "Today's Crew" ya solo quedaba **el detalle por persona y por día** — el resto se repartió en
+D-132. Ese detalle va ahora **dentro de Empleados**, desplegable desde la fila de cada uno.
+
+Es donde corresponde: la pregunta *"¿y esta persona qué hizo esta semana?"* se hace **mirando esa
+lista**. Tenerla en otra pantalla obligaba a apuntarse el nombre, salir y buscarlo.
+
+- Se pide **al abrir**, una fila a la vez. Cargar la semana de las doce personas para mirar una
+  sería doce veces el trabajo para un doceavo del provecho.
+- Fichajes y descansos **juntos y por día**, no en dos listas que hay que cruzar por la hora.
+- **`canManageEmployee` decide, no la pantalla.** La lista ya viene acotada, pero una acción que
+  se fía de que la lista venga acotada es una acción sin permiso: un gerente de tienda no abre
+  el detalle de otra tienda ni pidiéndolo a mano.
+
+### El módulo de fichaje se queda sin barra
+
+Era su última entrada, así que la barra de gerente **desaparece entera** en vez de dibujarse
+vacía — dejarla sería el marco de un cuadro que ya no está.
+
+### El barrido que había prometido
+
+Retirar dos pantallas destapó **un tercer aviso apuntando a una pantalla muerta**:
+`pushToManagers` seguía llevando al panel. Los dos anteriores (D-116, D-117) se encontraron de
+uno en uno, cada uno tras romperse; este sale del barrido completo, que era lo que dije que
+había que hacer y no había hecho. Ya no queda ninguno — comprobado con un grep sobre todos los
+destinos de aviso y todos los enlaces a rutas retiradas.
+
+### Lo que queda en fichaje
+
+**Ninguna pantalla de gerente.** Solo la de fichar y las de la propia persona. Y la de fichar
+sigue viva por una única razón: **los viajes de vehículo**, que aún no se han mudado. Cuando lo
+hagan, el módulo se borra entero.

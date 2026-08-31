@@ -228,7 +228,7 @@ export async function pushToOwners(companyId: string, type: string, params: P = 
  * Records the in-app notification ONCE per person (not once per device) and
  * pushes to each of their devices.
  */
-export async function pushToManagers(companyId: string, type: string, params: P = {}, url = "/timetracker/clock-in/dashboard") {
+export async function pushToManagers(companyId: string, type: string, params: P = {}, url = "/timetracker/live") {
   const mr = await rest(`profiles?select=id,language&company_id=eq.${companyId}&role=in.(manager,owner)&active=eq.true`);
   const mgrs: { id: string; language: string }[] = mr.ok ? await mr.json() : [];
   if (mgrs.length === 0) return;

@@ -1,8 +1,10 @@
 "use client";
 
+import { Fragment, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { effWorkerType } from "@/lib/timetracker/helpers";
+import { EmployeeWeek } from "@/components/timetracker/EmployeeWeek";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerPeople.jsx — but
 // deliberately SMALLER than the original. Role changes, account creation,
@@ -17,6 +19,9 @@ import { effWorkerType } from "@/lib/timetracker/helpers";
 // either from here, matching the original's own boundary (its table never
 // exposed payMethod/payDetails as editable, only as a read column).
 export default function ManagerPeoplePage() {
+  // Qué fila tiene la semana abierta. Una sola: abrir doce a la vez sería pedir doce semanas
+  // para mirar una, y la pantalla dejaría de leerse.
+  const [abierta, setAbierta] = useState<string | null>(null);
   const { me, allEmployees: users, updateEmployeeSettings } = useData();
   const t = useT();
 
@@ -57,14 +62,15 @@ export default function ManagerPeoplePage() {
           <thead>
             <tr>
               <th>{t("mgr.ppl.colName")}</th><th>{t("mgr.ppl.colCity")}</th><th>{t("mgr.ppl.colPayTo")}</th>
-              <th>{t("mgr.ppl.colType")}</th><th>{t("mgr.ppl.colTracking")}</th><th>{t("mgr.ppl.colBreak")}</th><th>{t("mgr.ppl.colStatus")}</th>
+              <th>{t("mgr.ppl.colType")}</th><th>{t("mgr.ppl.colTracking")}</th><th>{t("mgr.ppl.colBreak")}</th><th>{t("mgr.ppl.colStatus")}</th><th />
             </tr>
           </thead>
           <tbody>
             {users.map((u) => {
               const inactive = u.active === false;
               return (
-                <tr key={u.id} style={inactive ? { opacity: 0.55 } : undefined}>
+                <Fragment key={u.id}>
+                <tr style={inactive ? { opacity: 0.55 } : undefined}>
                   <td className="nowrap">
                     {/* Presencial contra remoto de un vistazo (D-128). Son dos nóminas
                         distintas —asistencia contra tiempo cronometrado— y hasta ahora había
@@ -112,7 +118,22 @@ export default function ManagerPeoplePage() {
                       </button>
                     )}
                   </td>
+                  <td className="nowrap">
+                    {/* La semana de esa persona, ahí mismo. Era "Today's Crew", que obligaba a
+                        apuntarse el nombre, salir de aquí y buscarlo en otra pantalla. */}
+                    <button className="btn-ghost btn-sm" onClick={() => setAbierta((x) => (x === u.id ? null : u.id))}>
+                      {abierta === u.id ? "Hide week" : "📅 Week"}
+                    </button>
+                  </td>
                 </tr>
+                {abierta === u.id && (
+                  <tr>
+                    <td colSpan={8} style={{ background: "var(--tt-panel2)" }}>
+                      <EmployeeWeek employeeId={u.id} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>

@@ -24,7 +24,6 @@ export default function ManagerHeader({
   const tr = t(lang).mgr;
   const base = t(lang);
   const items: { key: NavKey; href: string; label: string }[] = [
-    { key: "dashboard", href: "/timetracker/clock-in/dashboard", label: tr.dashboard },
     // Runs folded into Today's Crew — no separate page anymore.
     // Ni las excepciones ni las fotos siguen aquí: se partieron por lo que se HACE con
     // ellas (D-115). Lo que falta por atender vive en Pendientes, con el resto de la
@@ -52,6 +51,10 @@ export default function ManagerHeader({
           </div>
         </div>
       </div>
+      {/* La barra desaparece cuando no queda nada en ella (D-135). Con la última pantalla de
+          gerente mudada a Empleados, dibujar una fila de pestañas vacía sería dejar el marco de
+          un cuadro que ya no está. */}
+      {items.length > 0 && (
       <nav className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((it) => (
           <Link
@@ -67,6 +70,7 @@ export default function ManagerHeader({
           </Link>
         ))}
       </nav>
+      )}
     </header>
   );
 }

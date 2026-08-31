@@ -26,7 +26,7 @@ export default async function ClockInLayout({ children }: { children: React.Reac
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/timetracker/clock-in/dashboard");
+  if (!user) redirect("/login?next=/timetracker/clock-in/clock");
 
   const { data: profile } = await supabase
     .from("profiles")

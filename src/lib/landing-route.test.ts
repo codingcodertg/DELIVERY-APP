@@ -157,7 +157,7 @@ describe("navegación de la fusión", () => {
     const admin = MANAGER_TABS.find((t) => t.id === "clockin");
     expect(empleado?.href).toBe("/timetracker/clock-in/clock");
     // Al admin le sirve ver la cuadrilla, no marcar su propia entrada.
-    expect(admin?.href).toBe("/timetracker/clock-in/dashboard");
+    expect(admin?.href).toBe("/timetracker/clock-in/clock");
   });
 
   it("una sola entrada por juego, no las diecinueve pantallas", async () => {
