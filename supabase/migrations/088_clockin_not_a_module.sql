@@ -1,3 +1,19 @@
+-- ===========================================================================
+-- NUNCA SE APLICO. REEMPLAZADA POR LA 095 (D-157).
+-- ===========================================================================
+-- No se borra -el historial no se borra- pero que quede dicho arriba del todo, porque
+-- leerla entera sin saberlo lleva a creer que la base esta en un estado en el que no esta.
+--
+-- No se aplico porque NO PODIA aplicarse: su primer UPDATE concede el modulo 'timetracker'
+-- a quien tenia 'clockin', y una restriccion posterior
+--
+--     profiles_timetracker_access_needs_role
+--       CHECK (NOT ('timetracker' = ANY(module_access)) OR timetracker_role IS NOT NULL)
+--
+-- prohibe tener el modulo sin tramo. Una sola fila que no cumpliera tumbaba la transaccion
+-- entera, y habia una. El error exacto y que se hizo en su lugar, en la 095.
+-- ===========================================================================
+
 -- 088 · Fichaje deja de ser un módulo (D-111)
 --
 -- Tuvo tarjeta propia en el hub y casilla propia en Usuarios mientras fue una app aparte.
