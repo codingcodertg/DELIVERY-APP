@@ -7032,3 +7032,51 @@ Con datos normales son dos filas. Si una orden lleva cinco facturas la tira se e
 bien: **la lista completa de facturas es un dato que no se puede recortar** —una factura a medias
 es peor que ninguna, y eso ya estaba decidido cuando se puso esa pastilla—. Lo que se arregla es
 que se partiera **siempre**, incluso cuando no hacía falta.
+
+---
+
+## D-153 · Dos filas de verdad: no era reordenar, era quitar
+
+**Fecha:** 2026-09-01 · **Versión:** v1.49.0 (deliveries) · **Reportado por:** Andrés (*"sigue
+igual o peor"*), con captura
+
+D-152 juntó las pastillas en una sola tira y quedaron **cuatro filas**. La tira envolvía igual, y
+el motivo es aritmético, no de maquetación: en un móvil esa fila mide unos **330 px** y lo que se
+le metía sumaba más del doble.
+
+| pastilla | ancho aprox. |
+|---|---|
+| `Ready` | 52 px |
+| `Customer` | 70 px |
+| `INV 178455, 178476, 178511` | 180 px |
+| `📅 Sep 1 · 08:30-12:00` | 140 px |
+| `📦 3` | 42 px |
+
+**≈ 484 px de contenido en 330 px de fila.** Ninguna colocación arregla eso. Para que sean dos
+filas hay que **quitar**, y la pregunta correcta no es cuál cabe, sino **cuál usa el chofer ahí
+arriba**:
+
+- **Tipo de orden** — no cambia nada de lo que hace en la calle. Fuera de su cabecera.
+- **Bandera de tarifa** (D-147/D-148) — no la puede arreglar: es del almacén y de la oficina. A
+  él solo le ocupa sitio. Fuera de su cabecera; sigue igual para todos los demás.
+- **Facturas** — **sí las necesita**, pero *en la parada*, no de un vistazo. Bajan al **paso 2,
+  la entrega**, que es el momento en que se entregan. Allí tienen la tarjeta entera de ancho, se
+  enseñan completas y no empujan nada.
+
+La cabecera del chofer queda con lo que responde *qué, cuándo y cuánto*:
+
+```
+Order #FR501                              ✕
+[Ready] [📅 Sep 1 · 08:30-12:00] [📦 3]
+```
+
+≈ 246 px en 330. Dos filas, y con sitio de sobra.
+
+**Para la oficina no cambia nada**: mantiene tipo, bandera de tarifa y facturas en la cabecera,
+porque trabaja en pantalla ancha y esos tres son justo los datos con los que compara órdenes.
+
+### Lo que esto enseña
+
+Las dos primeras veces traté un problema de **cuánto cabe** como un problema de **dónde va**. Se
+puede reordenar una cabecera indefinidamente sin arreglar que su contenido no quepa; lo único que
+cambia es por dónde se rompe.

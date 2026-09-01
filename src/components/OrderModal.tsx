@@ -1161,18 +1161,36 @@ export function OrderModal({
                       the top instead of buried in the detail rows below. Both
                       wrap fully — an order can carry several invoices, and a
                       half-shown number is worse than none. */}
-                  {existing?.order_type && <span className="hdr-chip">{existing.order_type}</span>}
-                  {/* En la cabecera, junto a la etapa (D-148): quien abre la orden lo ve
-                      antes de leer nada, y sin tener que desplegar los detalles. */}
-                  {sinCobrar && (
-                    <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>
-                      🚩 {existing?.delivery_fee == null ? t("NO FEE", "SIN TARIFA") : t("FEE $0", "TARIFA $0")}
-                    </span>
-                  )}
-                  {existing?.invoice_num && (
-                    <span className="hdr-chip hdr-chip-num">
-                      INV {existing.invoice_num}
-                    </span>
+                  {/* Tipo, bandera de tarifa y facturas: para todos MENOS el chofer (D-153).
+                      ---------------------------------------------------------------------
+                      Reordenar no bastaba. En un móvil la fila mide unos 330 px y estas
+                      pastillas suman más del doble, así que envolvían hicieran lo que
+                      hicieran. Para que sean DOS filas de verdad hay que quitar cosas, y
+                      la pregunta correcta no es cuál cabe sino **cuál usa el chofer ahí
+                      arriba**:
+
+                        · El tipo de orden no cambia nada de lo que hace en la calle.
+                        · La bandera de tarifa no la puede arreglar — es del almacén y la
+                          oficina, y a él solo le ocupa sitio.
+                        · Las facturas sí las necesita, pero **en la parada**, no de un
+                          vistazo: se bajan al paso 2, donde tienen la tarjeta entera de
+                          ancho y no empujan nada. */}
+                  {me.role !== "driver" && (
+                    <>
+                      {existing?.order_type && <span className="hdr-chip">{existing.order_type}</span>}
+                      {/* Junto a la etapa (D-148): quien abre la orden lo ve antes de leer
+                          nada, y sin desplegar los detalles. */}
+                      {sinCobrar && (
+                        <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>
+                          🚩 {existing?.delivery_fee == null ? t("NO FEE", "SIN TARIFA") : t("FEE $0", "TARIFA $0")}
+                        </span>
+                      )}
+                      {existing?.invoice_num && (
+                        <span className="hdr-chip hdr-chip-num">
+                          INV {existing.invoice_num}
+                        </span>
+                      )}
+                    </>
                   )}
                   {/* Fecha, ventana y pallets, en la misma tira (D-151, colocadas
                       aquí en D-152). Ocupaban tres tarjetas del ancho de la
@@ -2768,6 +2786,13 @@ function DriverDeliveryScreen({
             {[order.delivery_name && order.delivery_name !== order.account ? order.delivery_name : null, dest]
               .filter(Boolean).join(" · ") || "—"}
           </div>
+          {/* Las facturas, aquí (D-153). Son el papel que se entrega EN la parada, así
+              que su sitio es el paso que las usa — y aquí tienen la tarjeta entera de
+              ancho, que es lo que una lista de tres números necesita. Se enseñan
+              completas: una factura a medias es peor que ninguna. */}
+          {order.invoice_num && (
+            <div className="drv-banner-sub drv-inv">📄 INV {order.invoice_num}</div>
+          )}
           {order.delivery_pin_source === "manual" && (
             <div className="drv-banner-sub" style={{ color: "var(--accent)", fontWeight: 700 }}>
               📍 {t("No formal address — an exact pin was dropped for this site. Navigate uses the pin.", "Sin dirección formal — se marcó un pin exacto para este sitio. Navegar usa el pin.")}
