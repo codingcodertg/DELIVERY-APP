@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getMyTimeOff, submitTimeOff } from "@/app/timetracker/clock-in/actions/timeoff";
+import { usePrefs } from "@/lib/prefs";
 import { dateISO, fmtDayLong } from "@/lib/timetracker/helpers";
 
 /**
@@ -17,11 +18,18 @@ import { dateISO, fmtDayLong } from "@/lib/timetracker/helpers";
  */
 
 const TYPES = ["vacation", "sick", "schedule_change", "shift_swap"] as const;
-const LABEL: Record<string, string> = {
-  vacation: "Vacation",
-  sick: "Sick",
-  schedule_change: "Schedule change",
-  shift_swap: "Shift swap",
+
+/**
+ * El rótulo de cada tipo, en los dos idiomas (D-159).
+ *
+ * La clave —`vacation`, `sick`…— es lo que se guarda y no se traduce nunca: con ella cuenta
+ * la oficina. Solo cambia lo que se lee.
+ */
+const LABEL: Record<string, { en: string; es: string }> = {
+  vacation: { en: "Vacation", es: "Vacaciones" },
+  sick: { en: "Sick", es: "Enfermedad" },
+  schedule_change: { en: "Schedule change", es: "Cambio de horario" },
+  shift_swap: { en: "Shift swap", es: "Cambio de turno" },
 };
 
 type Row = {
@@ -30,6 +38,7 @@ type Row = {
 };
 
 export function TimeOffRequests() {
+  const { t, lang } = usePrefs();
   const hoy = dateISO(new Date());
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -62,7 +71,7 @@ export function TimeOffRequests() {
     const res = await submitTimeOff({ type, startDate: desde, endDate: hasta, note: nota || undefined });
     setBusy(false);
     if (!res.ok) { setMsg({ text: res.message, ok: false }); return; }
-    setMsg({ text: "Sent — your manager has been notified.", ok: true });
+    setMsg({ text: t("Sent — your manager has been notified.", "Enviado — se avisó a su encargado."), ok: true });
     setNota("");
     void load();
   }
@@ -75,54 +84,54 @@ export function TimeOffRequests() {
   return (
     <>
       <div className="card">
-        <h2>Request time off</h2>
+        <h2>{t("Request time off", "Solicitar tiempo libre")}</h2>
         <div className="grid g3">
           <div>
-            <label>Type</label>
+            <label>{t("Type", "Tipo")}</label>
             <select value={type} onChange={(e) => setType(e.target.value as typeof type)}>
-              {TYPES.map((ty) => <option key={ty} value={ty}>{LABEL[ty]}</option>)}
+              {TYPES.map((ty) => <option key={ty} value={ty}>{lang === "es" ? LABEL[ty].es : LABEL[ty].en}</option>)}
             </select>
           </div>
           <div>
-            <label>From</label>
+            <label>{t("From", "Desde")}</label>
             <input type="date" value={desde} onChange={(e) => cambiaDesde(e.target.value)} />
           </div>
           <div>
-            <label>To</label>
+            <label>{t("To", "Hasta")}</label>
             <input type="date" value={hasta} min={desde} onChange={(e) => setHasta(e.target.value)} />
           </div>
         </div>
-        <label style={{ marginTop: 8 }}>Reason (optional)</label>
-        <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="e.g. family trip" />
+        <label style={{ marginTop: 8 }}>{t("Reason (optional)", "Motivo (opcional)")}</label>
+        <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder={t("e.g. family trip", "p. ej. viaje familiar")} />
         <button style={{ marginTop: 14 }} onClick={enviar} disabled={busy}>
-          {busy ? "…" : "Send request"}
+          {busy ? "…" : t("Send request", "Enviar solicitud")}
         </button>
         {msg && <div className={`banner ${msg.ok ? "ok" : "err"}`} style={{ marginTop: 12 }}>{msg.text}</div>}
       </div>
 
       <div className="card">
-        <h2>My time off</h2>
+        <h2>{t("My time off", "Mi tiempo libre")}</h2>
         {err && <div className="banner err">{err}</div>}
         {rows.length === 0 ? (
-          <p className="muted">You haven&apos;t asked for any yet.</p>
+          <p className="muted">{t("You haven\u2019t asked for any yet.", "Todavía no ha pedido ninguno.")}</p>
         ) : (
           <table>
-            <thead><tr><th>Type</th><th>Days</th><th>Status</th></tr></thead>
+            <thead><tr><th>{t("Type", "Tipo")}</th><th>{t("Days", "Días")}</th><th>{t("Status", "Estado")}</th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>{LABEL[r.type] ?? r.type}</td>
+                  <td>{LABEL[r.type] ? (lang === "es" ? LABEL[r.type].es : LABEL[r.type].en) : r.type}</td>
                   <td className="small muted">
                     {dias(r)}
                     {r.note ? ` · “${r.note}”` : ""}
                     {/* El comentario del encargado es la razón por la que alguien vuelve a
                         esta pantalla después de que le contesten. Va con la fila, no escondido. */}
-                    {r.manager_comment ? ` · manager: “${r.manager_comment}”` : ""}
+                    {r.manager_comment ? ` · ${t("manager", "encargado")}: “${r.manager_comment}”` : ""}
                   </td>
                   <td>
-                    {r.status === "pending" ? <span className="pill wait">Pending</span>
-                      : r.status === "approved" ? <span className="pill on">Approved</span>
-                      : <span className="pill off">Denied</span>}
+                    {r.status === "pending" ? <span className="pill wait">{t("Pending", "Pendiente")}</span>
+                      : r.status === "approved" ? <span className="pill on">{t("Approved", "Aprobado")}</span>
+                      : <span className="pill off">{t("Denied", "Rechazado")}</span>}
                   </td>
                 </tr>
               ))}
