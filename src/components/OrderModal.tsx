@@ -5,7 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW } from "@/lib/constants";
-import { colLabel, deliveryColumns, fmtDate, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
+import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { printDeliverySlip } from "@/lib/slip";
 import { AddressInput } from "@/components/AddressInput";
@@ -1136,8 +1136,19 @@ export function OrderModal({
       onMouseDown={(e) => { overlayDownRef.current = e.target === e.currentTarget; }}
       onClick={(e) => { if (e.target === e.currentTarget && overlayDownRef.current && !isNew && !editing) requestClose(); }}>
       <div className="modal">
+        {/* DOS filas, y solo dos (D-152).
+            -------------------------------------------------------------------
+            La primera es el número de orden y la ✕. La segunda es TODO lo demás
+            —etapa, tipo, factura, fecha, ventana, pallets— en una sola tira de
+            pastillas que se envuelve.
+
+            Antes eran cinco: el título, una fila de etiquetas, la lista de
+            facturas, y a la derecha tres pastillas apiladas cada una en su
+            renglón, porque un contenedor con `flex-wrap` y ancho estrecho apila
+            en vez de envolver. Cinco renglones de cabecera en un móvil son media
+            pantalla gastada antes de llegar a la primera parada. */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h3>
               {isNew ? t("New delivery order", "Nueva orden de entrega") : `${t("Order", "Orden")} #${orderLabel(existing!)}`}
               {dirty && <span className="sema" style={{ background: "var(--amber)", color: "#fff", marginLeft: 8 }}>● {t("Unsaved", "Sin guardar")}</span>}
@@ -1163,25 +1174,28 @@ export function OrderModal({
                       INV {existing.invoice_num}
                     </span>
                   )}
+                  {/* Fecha, ventana y pallets, en la misma tira (D-151, colocadas
+                      aquí en D-152). Ocupaban tres tarjetas del ancho de la
+                      pantalla para tres datos de una línea. Solo para el chofer:
+                      la oficina los tiene en la tabla de detalle, donde además
+                      puede filtrarlos. */}
+                  {me.role === "driver" && (
+                    <>
+                      {/* Fecha y ventana en UNA pastilla, y el año fuera: el chofer
+                          entrega hoy o mañana, no en 2027, y cada pastilla de más es
+                          la que hace que la fila se parta en dos. */}
+                      <span className="hdr-chip">
+                        📅 {existing?.delivery_date ? fmtDateShort(existing.delivery_date, lang) : "—"}
+                        {" · "}{fmtWindows(existing?.delivery_windows)}
+                      </span>
+                      <span className="hdr-chip">📦 {existing?.actual_pallets ?? existing?.est_pallets ?? "—"}</span>
+                    </>
+                  )}
                 </>
               )}
             </div>
           </div>
-          {/* Fecha, ventana y pallets en la MISMA fila que el número de orden (D-151).
-              ---------------------------------------------------------------------
-              Ocupaban tres tarjetas del ancho de la pantalla, y los tres son un dato
-              de una línea: una fecha, una hora y un número. En un móvil eso es medio
-              scroll gastado antes de llegar a lo que el chofer viene a hacer.
-              Solo en la vista del chofer: la oficina los tiene en la tabla de detalle,
-              donde puede filtrarlos y compararlos. */}
-          {!isNew && existing && me.role === "driver" && (
-            <div className="drv-hdr-meta">
-              <span>📅 {existing.delivery_date ? fmtDate(existing.delivery_date) : "—"}</span>
-              <span>⏰ {fmtWindows(existing.delivery_windows)}</span>
-              <span>📦 {existing.actual_pallets ?? existing.est_pallets ?? "—"}</span>
-            </div>
-          )}
-          <button className="btn btn-sm" onClick={requestClose}>✕</button>
+          <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>
         </div>
 
         {/* ---------- VIEW MODE ---------- */}

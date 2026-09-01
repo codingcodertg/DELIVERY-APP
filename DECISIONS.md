@@ -6987,3 +6987,48 @@ Se **envuelven** en vez de encogerse: una ventana horaria partida a la mitad no 
 La pantalla del chofer tenía **siete** controles en su rejilla y tres tarjetas de datos. Ahora
 tiene el teléfono junto al contacto, un botón de navegar y un enlace de seguimiento — y los
 datos, arriba, en una línea. Nada de lo que hacía se ha perdido; solo se dejó de decir dos veces.
+
+---
+
+## D-152 · La cabecera, dos filas y ya
+
+**Fecha:** 2026-09-01 · **Versión:** v1.48.0 (deliveries) · **Pedido por:** Andrés (*"mucho
+relajo en los header, yo solo quiero que ahí arriba hayan 2 rows"*), con captura
+
+Tenía razón: eran **cinco renglones** antes de llegar a la primera parada.
+
+1. `Orden #FR501`
+2. `Ready` `Customer`
+3. `INV 178455, 178476, 178511`
+4. `📅 Sep 01, 2026`
+5. `⏰ 08:30-12:00` … y `📦 3` colgando debajo
+
+### Por qué se apilaron
+
+Las tres pastillas de D-151 se pusieron en su propio contenedor a la derecha, con `flex-wrap`.
+Envolver **no sirve de nada cuando la columna es más estrecha que una sola pastilla**: entonces
+cada una se lleva su propio renglón, que es justo lo que se ve en la captura. Y de paso esa
+columna le robaba el ancho a la izquierda, lo que partió en dos la lista de facturas.
+
+Un contenedor propio para tres datos sueltos fue el error; no hacía falta ninguno.
+
+### Cómo queda
+
+**Fila 1** — el número de orden y la ✕.
+**Fila 2** — todo lo demás en **una sola tira** de pastillas: etapa, tipo, la bandera de tarifa
+si la hay, factura, fecha·ventana y pallets.
+
+Al desaparecer la columna de la derecha, la tira recupera el ancho completo, así que la lista de
+facturas vuelve a caber en un renglón.
+
+Dos ajustes para que quepa de verdad y no se parta:
+
+- **Fecha y ventana van juntas** en una pastilla — `📅 Sep 01 · 08:30-12:00`. Cada pastilla de
+  más es la que hace que la fila se rompa.
+- **Fuera el año.** Un chofer entrega hoy o mañana, no en 2027. Se usa `fmtDateShort`, que
+  además respeta el idioma.
+
+Con datos normales son dos filas. Si una orden lleva cinco facturas la tira se envolverá, y está
+bien: **la lista completa de facturas es un dato que no se puede recortar** —una factura a medias
+es peor que ninguna, y eso ya estaba decidido cuando se puso esa pastilla—. Lo que se arregla es
+que se partiera **siempre**, incluso cuando no hacía falta.

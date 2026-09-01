@@ -416,14 +416,6 @@ table.orders th { text-align: left; }
 .drv-addr { font-size: 18px; font-weight: 700; line-height: 1.3; }
 .drv-phone { color: var(--accent); font-weight: 700; }
 .drv-notes { font-size: 14px; line-height: 1.4; }
-/* Fecha · ventana · pallets, arriba con el número de orden (D-151). Se envuelven
-   en vez de encogerse: una ventana horaria partida a la mitad no vale de nada. */
-.drv-hdr-meta { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-left: auto; }
-.drv-hdr-meta span {
-  background: var(--paper); border: 1px solid var(--line); border-radius: 999px;
-  padding: 4px 10px; font-size: 13px; font-weight: 700; white-space: nowrap;
-}
-
 /* Navegar, y sus dos apps cuando se despliega (D-151). */
 .drv-nav { margin-top: 4px; }
 .drv-nav-btn { width: 100%; }
