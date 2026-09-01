@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
-  listEmployeeFiles, getEmployeeDocs, saveEmployeeFile, saveEmployeeDoc, deleteEmployeeDoc, signDocUrl,
+  listEmployeeFiles, getEmployeeDocs, saveEmployeeFile, saveEmployeeDoc, deleteEmployeeDoc,
+  signDocUrl, uploadDocFile,
   type EmployeeDoc, type EmployeeFile,
 } from "@/app/recruiting/actions/hr";
 import { DOC_KINDS, REQUIRED_FORMS } from "@/lib/recruiting/hr";
@@ -253,7 +254,24 @@ function Bloque({
   const [fecha, setFecha] = useState("");
   const [vence, setVence] = useState("");
   const [nota, setNota] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
   const tipos = DOC_KINDS.filter((d) => d.group === grupo);
+
+  /**
+   * Sube un fichero y devuelve su ruta (D-158).
+   *
+   * Va en FormData porque un File no se puede serializar como argumento de una acción de
+   * servidor: hay que mandarlo como lo que es, un formulario multiparte.
+   */
+  async function sube(kind: string, f: File): Promise<string | null> {
+    const fd = new FormData();
+    fd.set("file", f);
+    fd.set("employeeId", employeeId);
+    fd.set("kind", kind);
+    const r = await uploadDocFile(fd);
+    if (!r.ok) { notify("Error: " + (r.message ?? "")); return null; }
+    return r.path ?? null;
+  }
 
   async function corre(fn: () => Promise<{ ok: boolean; message?: string }>) {
     setBusy(true);
@@ -347,6 +365,35 @@ function Bloque({
                             {t("View", "Ver")}
                           </button>
                         )}
+                        {/* Adjuntar el papel escaneado. El <input> va escondido dentro del
+                            <label> porque el control que pinta el navegador ("Examinar… /
+                            Ningún archivo seleccionado") no se puede estilar y desentona en
+                            una fila de botones. */}
+                        <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer" }}>
+                          📎 {uno?.file_path ? t("Replace", "Reemplazar") : t("Attach", "Adjuntar")}
+                          <input
+                            type="file"
+                            hidden
+                            accept="application/pdf,image/*"
+                            disabled={busy}
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              // El input se limpia SIEMPRE, subida o no: si no, elegir el
+                              // mismo fichero otra vez tras un fallo no dispara el evento.
+                              e.target.value = "";
+                              if (!f) return;
+                              setBusy(true);
+                              const ruta = await sube(k.key, f);
+                              setBusy(false);
+                              if (!ruta) return;
+                              await corre(() => saveEmployeeDoc({
+                                id: uno?.id, employeeId, kind: k.key,
+                                signedAt: uno?.signed_at ?? null, expiresAt: uno?.expires_at ?? null,
+                                filePath: ruta,
+                              }));
+                            }}
+                          />
+                        </label>
                         {uno && (
                           <button className="btn btn-danger btn-sm" disabled={busy}
                             onClick={() => corre(() => deleteEmployeeDoc(uno.id))}>
@@ -366,17 +413,31 @@ function Bloque({
                         )}
                         <input value={nota} onChange={(e) => setNota(e.target.value)}
                           placeholder={t("Note", "Nota")} style={{ width: "auto", minWidth: 120 }} />
+                        <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer" }}>
+                          📎 {archivo ? archivo.name.slice(0, 18) : t("File", "Archivo")}
+                          <input type="file" hidden accept="application/pdf,image/*"
+                            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+                        </label>
                         <button className="btn btn-primary btn-sm" disabled={busy}
                           onClick={async () => {
+                            // El fichero PRIMERO: si la subida falla, no queda una fila de
+                            // amonestación sin el papel que la sostiene.
+                            let ruta: string | null = null;
+                            if (archivo) {
+                              setBusy(true);
+                              ruta = await sube(k.key, archivo);
+                              setBusy(false);
+                              if (!ruta) return;
+                            }
                             const ok = await corre(() => saveEmployeeDoc({
                               employeeId, kind: k.key, signedAt: fecha || null,
-                              expiresAt: vence || null, note: nota || null,
+                              expiresAt: vence || null, note: nota || null, filePath: ruta,
                             }));
-                            if (ok) { setNuevo(null); setFecha(""); setVence(""); setNota(""); }
+                            if (ok) { setNuevo(null); setFecha(""); setVence(""); setNota(""); setArchivo(null); }
                           }}>
                           {t("Add", "Añadir")}
                         </button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setNuevo(null)}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setNuevo(null); setArchivo(null); }}>
                           {t("Cancel", "Cancelar")}
                         </button>
                       </span>

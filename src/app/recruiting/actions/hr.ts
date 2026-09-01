@@ -21,6 +21,10 @@ import { createClient } from "@/lib/supabase/server";
 
 const PUEDE = ["admin", "manager"];
 
+/** Su propio cubo, privado, y NO `resumes` — ahí viven currículums de candidatos, y su
+ *  política deja entrar al reclutador, a quien la 094 acaba de dejar fuera del expediente. */
+const HR_BUCKET = "hr-docs";
+
 /** El tramo de RR. HH. de quien llama, o null si no ha entrado. */
 async function tier(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -177,12 +181,58 @@ export async function deleteEmployeeDoc(id: string): Promise<{ ok: boolean; mess
   return { ok: true };
 }
 
+/** Tipos que se aceptan. Un expediente son papeles escaneados y fotos de papeles. */
+const TIPOS_OK = ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/webp"];
+const MAX_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Sube un fichero y lo cuelga de un documento del expediente (D-158).
+ *
+ * Va por acción de servidor y no subiendo desde el navegador con la clave anónima, aunque la
+ * política de la 096 lo permitiría: así el permiso se comprueba **en un solo sitio** y el
+ * nombre del fichero lo decide el servidor. Dejar que el navegador elija la ruta es como se
+ * acaba con un `../` en una clave de objeto.
+ *
+ * La ruta es `{empleado}/{tipo}/{uuid}.{ext}`. Con el uuid delante de la extensión, subir dos
+ * veces la misma licencia no pisa la anterior — y en un expediente eso importa: la versión
+ * vieja de un papel firmado es prueba de lo que se firmó entonces.
+ */
+export async function uploadDocFile(form: FormData): Promise<{ ok: boolean; path?: string; message?: string }> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+
+  const file = form.get("file");
+  const employeeId = String(form.get("employeeId") ?? "");
+  const kind = String(form.get("kind") ?? "");
+  if (!(file instanceof File) || !employeeId || !kind) return { ok: false, message: "Missing file." };
+  if (file.size === 0) return { ok: false, message: "That file is empty." };
+  if (file.size > MAX_BYTES) return { ok: false, message: "Too big — 25 MB max." };
+  // Se comprueba el tipo declarado. No es una garantía —el navegador lo dice y el navegador
+  // puede mentir— pero el cubo es privado y solo lo abre gente de RR. HH. con enlace firmado:
+  // esto es para evitar el .docx subido sin querer, no para defenderse de un atacante.
+  if (file.type && !TIPOS_OK.includes(file.type)) {
+    return { ok: false, message: "Only PDF or an image." };
+  }
+
+  const ext = (file.name.split(".").pop() ?? "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const path = `${employeeId}/${kind}/${id}.${ext}`;
+
+  const { error } = await supabase.storage.from(HR_BUCKET).upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, path };
+}
+
 /** Enlace temporal para ver un documento. El bucket es privado y sigue siéndolo. */
 export async function signDocUrl(path: string): Promise<string | null> {
   const supabase = await createClient();
   const yo = await tier(supabase);
   if (!yo || !PUEDE.includes(yo.role)) return null;
 
-  const { data } = await supabase.storage.from("resumes").createSignedUrl(path, 3600);
+  const { data } = await supabase.storage.from(HR_BUCKET).createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
 }
