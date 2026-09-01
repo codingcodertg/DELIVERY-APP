@@ -298,7 +298,6 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       document.removeEventListener("visibilitychange", fresh);
     };
     // Sin dependencias A PROPÓSITO: ver arriba. reloadAll se lee de un ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 

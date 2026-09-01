@@ -122,7 +122,12 @@ export default function MarketPage() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // El silenciador estaba DENTRO del cuerpo del efecto, así que apuntaba a la línea
+  // siguiente y no a la lista de dependencias: nunca silenció nada. Se veía en cuanto
+  // hubo un linter (D-154). Aquí la intención es correcta —cargar una vez al montar— y
+  // añadir `load` a las dependencias lo volvería a lanzar en cada render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
   // Geocode the company's own stores → blue RTG markers.
   useEffect(() => {

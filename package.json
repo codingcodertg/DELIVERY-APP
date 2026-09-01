@@ -1,12 +1,12 @@
 {
   "name": "deliveries-app",
-  "version": "1.91.1",
+  "version": "1.92.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky"
@@ -32,12 +32,15 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/google.maps": "^3.65.5",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.24",
     "husky": "^9.1.7",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",

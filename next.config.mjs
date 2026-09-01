@@ -1,8 +1,21 @@
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
 import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // La raíz del workspace es ESTA carpeta, y hay que decirlo.
+  // ---------------------------------------------------------------------------
+  // Hay un package-lock.json suelto en la carpeta de usuario (C:\Users\andre), y al
+  // detectar dos lockfiles Next elegía AQUEL como raíz. De ahí salía el aviso de cada
+  // build, pero el aviso no es el problema: la raíz decide qué ficheros se rastrean y
+  // se empaquetan para las funciones de servidor. Con la raíz puesta en la carpeta de
+  // usuario, ese cálculo se hace sobre el árbol equivocado — hoy sale bien, y el día
+  // que no salga faltará un fichero en producción sin que nada haya cambiado aquí.
+  outputFileTracingRoot: dirname(fileURLToPath(import.meta.url)),
 
   // Fase 3b de la fusión: fichaje se mudó de /clock-in a /timetracker/clock-in.
   //

@@ -62,15 +62,6 @@ export interface RoleNote {
   at: string;               // ISO timestamp
 }
 
-/** One row of the NOT-LOCAL, miles-based delivery-fee table. */
-export interface FeeBracket {
-  /** Upper bound of driving miles for this bracket; null = "and up". */
-  max_miles: number | null;
-  /** Standard "list" price for this bracket, in $. */
-  list: number;
-  /** Discounted price a rep may offer for this bracket, in $. */
-  discount: number;
-}
 
 // ---- Delivery order -------------------------------------------------------
 export interface Delivery {
@@ -447,19 +438,20 @@ export interface Settings {
   tutorials?: Tutorial[];
 
   // ---- Local-zone delivery pricing ----
-  // A delivery to a city in `local_cities` is LOCAL → a flat fee (list vs a
-  // discounted price). Anything outside is NOT LOCAL → priced by driving miles
-  // via `nonlocal_fee_brackets` and flagged as needing manager approval. All
-  // optional; code falls back to seeded defaults (see lib/pricing).
+  // A delivery to a city in `local_cities` is LOCAL, anything else is NOT LOCAL
+  // and gets flagged for manager approval. The PRICE itself is a formula in
+  // lib/pricing.ts, keyed on route miles — not a setting.
+  //
+  // Aquí vivían tres campos más —`local_fee_list`, `local_fee_discount` y
+  // `nonlocal_fee_brackets`— que no leía nadie: `grep` sobre todo `src/` no
+  // devolvía un solo uso fuera de esta declaración. Se descubrió al explicar de
+  // dónde salían los precios (D-144). Sus casillas ya no están en Ajustes, así que
+  // el riesgo de verdad —alguien editándolos convencido de que cambiaba precios—
+  // ya no existe; lo que quedaba era el tipo, prometiendo una configuración que la
+  // aplicación ignora. Las columnas siguen en la base (migración 036) y no se
+  // tocan: borrar columnas es irreversible y no gana nada.
   /** Cities that count as the LOCAL delivery zone. */
   local_cities?: string[];
-  /** LOCAL flat fee — the standard "list" price, in $. */
-  local_fee_list?: number | null;
-  /** LOCAL flat fee — the discounted price a rep may offer, in $. */
-  local_fee_discount?: number | null;
-  /** NOT-LOCAL fee by driving miles: the first bracket whose `max_miles` ≥ the
-   * order's route miles wins (`max_miles: null` = "and up"). */
-  nonlocal_fee_brackets?: FeeBracket[];
   /** Extra charge ($) added to the delivery fee when the order is for same-day
    * delivery (delivery date = today). Default 0 = feature off. */
   same_day_surcharge?: number | null;
