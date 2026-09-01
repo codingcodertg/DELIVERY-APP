@@ -416,8 +416,17 @@ table.orders th { text-align: left; }
 .drv-addr { font-size: 18px; font-weight: 700; line-height: 1.3; }
 .drv-phone { color: var(--accent); font-weight: 700; }
 .drv-notes { font-size: 14px; line-height: 1.4; }
-.drv-row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.drv-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+/* Fecha · ventana · pallets, arriba con el número de orden (D-151). Se envuelven
+   en vez de encogerse: una ventana horaria partida a la mitad no vale de nada. */
+.drv-hdr-meta { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-left: auto; }
+.drv-hdr-meta span {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 10px; font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+
+/* Navegar, y sus dos apps cuando se despliega (D-151). */
+.drv-nav { margin-top: 4px; }
+.drv-nav-btn { width: 100%; }
 /* The driver's run buttons (start drive / pick up / deliver), shown inline in
    the delivery card instead of the modal footer. Buttons stretch so they stay
    thumb-sized on a phone. */
@@ -432,11 +441,10 @@ table.orders th { text-align: left; }
   flex: 0 0 auto; font-size: 16px; font-weight: 800; padding: 10px 14px;
   border-radius: 12px; white-space: nowrap;
 }
-/* Llamar / Mensaje, desplegados bajo el contacto. Tamaño de pulgar: esto se usa
-   de pie junto a un camión. */
-.drv-tel-opts { display: flex; gap: 10px; margin-top: 10px; }
-.drv-tel-opts > * { flex: 1 1 0; min-height: 46px; }
-@media (max-width: 480px) { .drv-row2 { grid-template-columns: 1fr; } }
+/* Las opciones que se despliegan bajo un botón: llamar/mensaje bajo el teléfono,
+   Maps/Waze bajo Navegar. Tamaño de pulgar — esto se usa de pie junto a un camión. */
+.drv-opts { display: flex; gap: 10px; margin-top: 10px; }
+.drv-opts > * { flex: 1 1 0; min-height: 46px; }
 
 /* ---------- Material photos ---------- */
 .photo-grid { display: flex; gap: 10px; flex-wrap: wrap; }

@@ -6943,3 +6943,47 @@ pulgar que acaba de pulsar.
 ### 3. La rejilla de acciones se queda solo con navegación
 
 Navegar y Waze, y únicamente si hay dirección. Todo lo demás se fue a su sitio.
+
+---
+
+## D-151 · La pantalla del chofer, más corta: navegar pregunta, y los datos suben
+
+**Fecha:** 2026-09-01 · **Versión:** v1.47.0 (deliveries) · **Pedido por:** Andrés (*"ahora
+navigate hace lo mismo: al presionar se abren 2 burbujas diciendo Waze o Maps"* · *"pallets,
+time window y delivery date, todo eso puede ir a la derecha en la misma fila del order number"*
+· *"todo esto es en driver view"*)
+
+Continúa D-150 y va todo en la **vista del chofer** (`DriverDeliveryScreen`, la que sale cuando
+el rol es chofer). La oficina no ve nada de esto: tiene la tabla de detalle, donde estos mismos
+datos se filtran y se comparan.
+
+### Navegar pregunta con qué app
+
+Eran **dos botones fijos** del mismo tamaño, *Navegar* y *Waze*. Dos problemas en uno: la acción
+estaba duplicada en la pantalla, y el botón llamado "Navegar" abría **Maps** sin decirlo — o sea
+que una de las dos puertas no llevaba el nombre de su app.
+
+Ahora hay un botón, *Navegar*, y al tocarlo aparecen **Maps** y **Waze**. La acción se llama por
+su nombre y la app se elige al usarla. Mismo patrón que el teléfono en D-150, y a propósito:
+dos controles que se comportan igual se aprenden una sola vez.
+
+Se despliega hacia abajo, por lo mismo de siempre: en un móvil, lo que salta hacia arriba
+aparece bajo el pulgar que acaba de pulsar.
+
+### Fecha, ventana y pallets suben con el número de orden
+
+Ocupaban **tres tarjetas del ancho de la pantalla** para tres datos de una línea: una fecha, una
+hora y un número. En un móvil eso es medio scroll gastado antes de llegar a lo que el chofer
+viene a hacer.
+
+Ahora van como pastillas a la derecha del número de orden:
+
+> **Orden #FA100**  📅 1 sep · ⏰ 08:30-17:30 · 📦 2
+
+Se **envuelven** en vez de encogerse: una ventana horaria partida a la mitad no vale de nada.
+
+### Cuenta de la limpieza (D-150 + D-151)
+
+La pantalla del chofer tenía **siete** controles en su rejilla y tres tarjetas de datos. Ahora
+tiene el teléfono junto al contacto, un botón de navegar y un enlace de seguimiento — y los
+datos, arriba, en una línea. Nada de lo que hacía se ha perdido; solo se dejó de decir dos veces.

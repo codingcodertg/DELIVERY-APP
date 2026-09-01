@@ -1167,6 +1167,20 @@ export function OrderModal({
               )}
             </div>
           </div>
+          {/* Fecha, ventana y pallets en la MISMA fila que el número de orden (D-151).
+              ---------------------------------------------------------------------
+              Ocupaban tres tarjetas del ancho de la pantalla, y los tres son un dato
+              de una línea: una fecha, una hora y un número. En un móvil eso es medio
+              scroll gastado antes de llegar a lo que el chofer viene a hacer.
+              Solo en la vista del chofer: la oficina los tiene en la tabla de detalle,
+              donde puede filtrarlos y compararlos. */}
+          {!isNew && existing && me.role === "driver" && (
+            <div className="drv-hdr-meta">
+              <span>📅 {existing.delivery_date ? fmtDate(existing.delivery_date) : "—"}</span>
+              <span>⏰ {fmtWindows(existing.delivery_windows)}</span>
+              <span>📦 {existing.actual_pallets ?? existing.est_pallets ?? "—"}</span>
+            </div>
+          )}
           <button className="btn btn-sm" onClick={requestClose}>✕</button>
         </div>
 
@@ -2701,6 +2715,8 @@ function DriverDeliveryScreen({
   // El teléfono se toca y ofrece llamar o mensajear (D-150). Cerrado por defecto: se
   // despliega bajo el contacto, no encima, para que no salte nada bajo el pulgar.
   const [telAbierto, setTelAbierto] = useState(false);
+  // Navegar hace lo mismo: se toca y elige app (D-151).
+  const [navAbierto, setNavAbierto] = useState(false);
 
   return (
     <div className="drv-screen">
@@ -2746,21 +2762,6 @@ function DriverDeliveryScreen({
         </div>
       </div>
 
-      <div className="drv-row2">
-        <div className="drv-block">
-          <div className="drv-k">📅 {t("Date", "Fecha")}</div>
-          <div className="drv-v">{order.delivery_date ? fmtDate(order.delivery_date) : "—"}</div>
-        </div>
-        <div className="drv-block">
-          <div className="drv-k">⏰ {t("Time window", "Ventana")}</div>
-          <div className="drv-v">{fmtWindows(order.delivery_windows)}</div>
-        </div>
-        <div className="drv-block">
-          <div className="drv-k">📦 {t("Pallets", "Pallets")}</div>
-          <div className="drv-v">{order.actual_pallets ?? order.est_pallets ?? "—"}</div>
-        </div>
-      </div>
-
       {/* Contacto y teléfono en la MISMA fila (D-150).
           ---------------------------------------------------------------------
           El teléfono estaba dos veces: como texto aquí y como dos botones abajo
@@ -2780,7 +2781,7 @@ function DriverDeliveryScreen({
           )}
         </div>
         {hasPhone && telAbierto && (
-          <div className="drv-tel-opts">
+          <div className="drv-opts">
             <a className="btn btn-green drv-call" href={`tel:${phone}`}>📞 {t("Call", "Llamar")}</a>
             <a className="btn btn-ghost drv-call" href={`sms:${phone}`}>💬 {t("Text", "Mensaje")}</a>
             {/* La llamada por centralita solo si está encendida: sin ella el botón
@@ -2813,13 +2814,28 @@ function DriverDeliveryScreen({
         </div>
       )}
 
-      {/* Solo navegación. El teléfono se fue arriba, con el contacto, y el enlace de
-          seguimiento estaba DOS VECES en la misma pantalla —aquí y bajo las notas—
-          copiando exactamente la misma URL. Se queda el de las notas (D-150). */}
+      {/* Navegar: un botón que pregunta con qué (D-151), igual que el teléfono.
+          ---------------------------------------------------------------------
+          Antes eran dos botones fijos, "Navegar" y "Waze", y el primero abría
+          Maps sin decir que lo hacía — dos puertas del mismo tamaño para la
+          misma acción, y el nombre de una de ellas no era el de su app.
+          Ahora la acción se llama por su nombre y la app se elige al tocarla.
+
+          El teléfono se fue arriba con el contacto, y el enlace de seguimiento
+          estaba DOS VECES en la misma pantalla copiando la misma URL; se quedó
+          el de las notas (D-150). */}
       {dest && (
-        <div className="drv-actions">
-          <button className="btn btn-primary drv-call" onClick={() => window.open(gmaps, "_blank", "noopener")}>🧭 {t("Navigate", "Navegar")}</button>
-          <button className="btn btn-ghost drv-call" onClick={() => window.open(waze, "_blank", "noopener")}>Waze</button>
+        <div className="drv-nav">
+          <button className="btn btn-primary drv-call drv-nav-btn"
+            onClick={() => setNavAbierto(!navAbierto)} aria-expanded={navAbierto}>
+            🧭 {t("Navigate", "Navegar")}
+          </button>
+          {navAbierto && (
+            <div className="drv-opts">
+              <button className="btn btn-primary drv-call" onClick={() => window.open(gmaps, "_blank", "noopener")}>🗺️ Maps</button>
+              <button className="btn btn-ghost drv-call" onClick={() => window.open(waze, "_blank", "noopener")}>Waze</button>
+            </div>
+          )}
         </div>
       )}
     </div>
