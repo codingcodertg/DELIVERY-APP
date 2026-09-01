@@ -137,13 +137,13 @@ export default function EmployeeFilesPage() {
         )}
       </div>
 
-      {abiertaFila && <Ficha key={abiertaFila.id} persona={abiertaFila} onSaved={load} />}
+      {abiertaFila && <Ficha key={abiertaFila.id} persona={abiertaFila} onSaved={load} onClose={() => setAbierto(null)} />}
     </>
   );
 }
 
 /** El expediente de una persona: INFO arriba, y debajo HR y FORMS. */
-function Ficha({ persona, onSaved }: { persona: EmployeeFile; onSaved: () => void }) {
+function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: () => void; onClose: () => void }) {
   const { t } = usePrefs();
   const { notify } = useData();
   const [info, setInfo] = useState({
@@ -160,8 +160,11 @@ function Ficha({ persona, onSaved }: { persona: EmployeeFile; onSaved: () => voi
 
   const cargaDocs = useCallback(async () => {
     const r = await getEmployeeDocs(persona.id);
-    if (r.ok) setDocs(r.docs);
-    else notify("Error: " + r.message);
+    // Si falla se deja la lista VACÍA, no en null: null significa "cargando", y dejarlo
+    // ahí pinta un "Cargando…" eterno que se lee como que la pantalla está rota. El
+    // error se dice aparte, con su motivo.
+    setDocs(r.ok ? r.docs : []);
+    if (!r.ok) notify("Error: " + r.message);
   }, [persona.id, notify]);
 
   useEffect(() => { void cargaDocs(); }, [cargaDocs]);
@@ -185,10 +188,20 @@ function Ficha({ persona, onSaved }: { persona: EmployeeFile; onSaved: () => voi
   );
 
   return (
-    <div className="card">
-      <h2>{persona.full_name}</h2>
+    /* En ventana, no como panel al final de la página (D-149).
+       ---------------------------------------------------------------------
+       Se dibujaba DEBAJO de la tabla entera: con la plantilla completa en
+       pantalla, "Abrir ficha" abría algo a treinta filas de distancia y desde
+       arriba no se veía pasar nada. Parecía que el botón no hacía nada.
+       Es además como abre todo lo demás en este módulo (ModalHost). */
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <h3 style={{ margin: 0, flex: 1 }}>{persona.full_name}</h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
 
-      <div className="sec-head" style={{ marginTop: 0 }}>
+      <div className="sec-head">
         <span className="sec-title">INFO</span>
       </div>
       <div className="grid g3">
@@ -214,6 +227,11 @@ function Ficha({ persona, onSaved }: { persona: EmployeeFile; onSaved: () => voi
         onChange={() => { void cargaDocs(); onSaved(); }} />
       <Bloque grupo="forms" titulo="FORMS" docs={docs} employeeId={persona.id}
         onChange={() => { void cargaDocs(); onSaved(); }} />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+          <button className="btn btn-ghost" onClick={onClose}>{t("Close", "Cerrar")}</button>
+        </div>
+      </div>
     </div>
   );
 }

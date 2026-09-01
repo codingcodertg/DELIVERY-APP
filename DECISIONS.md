@@ -6883,3 +6883,28 @@ que mirarlo, no esconderlo.
 2. **La cabecera de la orden** — una etiqueta roja junto a la etapa, al abrirla.
 3. **El diálogo de tarifa** al comenzar preparación — el aviso rojo, ahora visible de verdad.
 4. **"Requiere atención"** en el panel — el grupo `no_fee`, en segundo lugar.
+
+---
+
+## D-149 · "Abrir ficha" no parecía hacer nada
+
+**Fecha:** 2026-08-31 · **Versión:** v0.10.0 (recruiting) · **Reportado por:** Andrés (*"en
+expedientes doy abrir ficha y no me aparece nada, ¿cómo edito eso?"*)
+
+El botón funcionaba. El expediente se dibujaba **debajo de la tabla entera**, y con la plantilla
+completa en pantalla eso significa treinta filas más abajo: desde arriba no se ve pasar
+absolutamente nada, así que el botón parece muerto.
+
+Es un fallo mío de forma, no de lógica, y del tipo que solo se nota con datos reales: con tres
+empleados de prueba el panel cae justo debajo y parece perfecto.
+
+**Ahora abre en ventana**, que además es como abre todo lo demás en este módulo (`ModalHost`
+hace exactamente eso para candidatos, entrevistas y comparativas). Se cierra con la ✕, con el
+botón de abajo o pinchando fuera.
+
+### Y un "Cargando…" que podía quedarse para siempre
+
+Aparte: si la carga de documentos fallaba, `docs` se quedaba en `null` —que significa
+*cargando*— y los bloques HR y FORMS mostraban "Cargando…" indefinidamente. Ahora un fallo deja
+la lista **vacía** y dice el error aparte, con su motivo. Un "cargando" eterno se lee como que la
+pantalla está rota; una lista vacía con un error encima se lee como lo que es.

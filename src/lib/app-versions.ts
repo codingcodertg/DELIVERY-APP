@@ -14,7 +14,7 @@
 // starting point, not manufactured continuity.
 export const APP_VERSIONS = {
   deliveries: "1.45.0",
-  recruiting: "0.9.0",
+  recruiting: "0.10.0",
   timetracker: "0.43.0",
   clockin: "0.38.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
