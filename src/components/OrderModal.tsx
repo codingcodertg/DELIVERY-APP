@@ -2213,7 +2213,9 @@ export function OrderModal({
               onChange={(e) => setStartFee(e.target.value)} />
             <div className="hint">
               {t("Sales charged:", "Ventas cobró:")}{" "}
-              <strong>{existing.delivery_fee != null ? `$${existing.delivery_fee}` : t("nothing", "nada")}</strong>
+              {/* Vacío se enseña como $0 y no como "nada": es la misma cifra que se va a
+                  facturar, y decirlo con palabras obligaba a traducirlo mentalmente. */}
+              <strong>${existing.delivery_fee ?? 0}</strong>
               {feeSuggestion.list != null ? (
                 <>
                   {" · "}
