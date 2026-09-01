@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { installedApkVersion } from "@/lib/app-update";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { appForPath } from "@/lib/app-for-path";
+import { canAutoReload, isStaleChunkError, markAutoReload } from "@/lib/stale-chunk";
 import type { UserRole } from "@/lib/types";
 
 // ============================================================
@@ -23,6 +24,7 @@ import type { UserRole } from "@/lib/types";
 interface Props { children: ReactNode; role?: UserRole; }
 interface State { error: Error | null; componentStack: string | null; copied: boolean; when: string | null }
 
+
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null, componentStack: null, copied: false, when: null };
 
@@ -33,6 +35,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
+    // Antes que nada: si es el bundle viejo, recargar y ya. Es exactamente lo que la
+    // persona iba a hacer con el botón de abajo, y no hay motivo para hacérselo pedir.
+    // Se avisa a Sentry igual —con su etiqueta— porque si esto empieza a pasar veinte
+    // veces al día deja de ser una anécdota de despliegue.
+    if (isStaleChunkError(error) && canAutoReload()) {
+      markAutoReload();
+      Sentry.captureException(error, { tags: { role: this.props.role ?? "unknown", staleChunk: "true" } });
+      location.reload();
+      return;
+    }
+
     const apk = typeof navigator !== "undefined" ? installedApkVersion(navigator.userAgent) : null;
     // Se guarda además de mandarse: es lo que hace falta para el botón de copiar.
     this.setState({ componentStack: info.componentStack ?? null });
