@@ -55,7 +55,27 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
           })}
         </div>
         <ModuleSwitcher current="timetracker" deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
-        <span style={{ fontSize: 12, opacity: 0.8 }} className="nowrap">{me.fullName}</span>
+        {/* El nombre ES la puerta a Mi cuenta (D-160).
+            -------------------------------------------------------------------
+            Antes era una pestaña más. Dos motivos para moverla:
+
+              · A un admin la barra le pone QUINCE pestañas. "Mi cuenta" es la
+                que menos se abre de las quince —se entra a cambiar la contraseña
+                o el idioma, no todos los días— y estaba ocupando el mismo sitio
+                que Payroll o Auditoría.
+              · Tocar tu propio nombre para llegar a lo tuyo es donde la gente ya
+                lo busca: es lo que hace el resto de la casa y lo que hacen las
+                aplicaciones de las que viene la cuadrilla.
+
+            El nombre se queda donde estaba, al lado de su etiqueta de rol; lo
+            único que cambia es que ahora se puede pulsar. */}
+        <Link
+          href="/timetracker/account"
+          className={"tt-me" + (pathname.startsWith("/timetracker/account") ? " active" : "")}
+          title={t("tab.account")}
+        >
+          {me.fullName}
+        </Link>
         <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}>
           {me.role === "admin" ? t("shell.manager") : t("shell.employee")}
         </span>

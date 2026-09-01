@@ -13,7 +13,8 @@ export const TABS: { id: string; href: string }[] = [
   { id: "week", href: "/timetracker/week" },
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
-  { id: "account", href: "/timetracker/account" },
+  // "Mi cuenta" ya no es pestaña (D-160): se llega tocando el propio nombre en la barra,
+  // que es donde la gente lo busca. La ruta /timetracker/account no cambia.
   // La pestaña de Fichaje se retiró en D-137: el módulo ya no tiene pantallas. Fichar,
   // el almuerzo, las salidas y los viajes están en "Registrar tiempo"; lo de gerente, en
   // Payroll, Auditoría, Horario y Empleados.
@@ -48,5 +49,6 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "week", href: "/timetracker/week" },
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
-  { id: "account", href: "/timetracker/account" },
+  // Sin "Mi cuenta" (D-160). A un admin esta barra le pone catorce pestañas; la que menos
+  // se abría no tenía por qué ser una de ellas.
 ];

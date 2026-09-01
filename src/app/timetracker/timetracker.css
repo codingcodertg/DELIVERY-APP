@@ -108,6 +108,13 @@
 .timetracker-module .tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:0}
 .timetracker-module .tabs button,.timetracker-module .tabs a{background:none;color:#c6cede;font-weight:600;font-size:13px;padding:8px 12px;border-radius:8px;position:relative;text-decoration:none;display:inline-block}
 .timetracker-module .tabs a.active,.timetracker-module .tabs button.active{background:var(--tt-accent);color:#fff}
+/* El nombre de quien ha entrado, que lleva a Mi cuenta (D-160). Se parece a una pestaña
+   -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
+   El subrayado al pasar por encima es lo que dice que se puede pulsar; sin él, un nombre
+   suelto en una barra no invita a tocarlo. */
+.timetracker-module .topbar a.tt-me{color:#fff;opacity:.8;font-size:12px;font-weight:600;text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.timetracker-module .topbar a.tt-me:hover{opacity:1;text-decoration:underline;background:rgba(255,255,255,.08)}
+.timetracker-module .topbar a.tt-me.active{opacity:1;background:var(--tt-accent);text-decoration:none}
 .timetracker-module .badge{position:absolute;top:-6px;right:-6px;background:var(--tt-danger);color:#fff;border-radius:999px;
      font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 5px}
 
