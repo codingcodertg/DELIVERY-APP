@@ -47,13 +47,36 @@ export function DayPhotos() {
   // primer día puede llegar la última y pintar fotos que no son las del día en pantalla.
   const wanted = useRef(day);
 
+  // Al abrir, si hoy no tiene fotos, se salta al último día que sí (D-161).
+  //
+  // Abrir en "hoy" parecía lo natural y no lo era: a las nueve de la mañana no ha fichado
+  // nadie, los lunes el fin de semana está vacío, y el archivo entero —385 fotos traídas de
+  // la app vieja— termina el 30 de agosto. O sea que quien entraba a auditar veía una
+  // pantalla en blanco y concluía que las fotos no se habían importado. Pasó.
+  //
+  // UNA sola vez, y solo si no se ha tocado nada: en cuanto alguien elige un día, manda esa
+  // elección — incluso si está vacío. Un navegador que te devuelve solo a otro día es peor
+  // que uno que te deja donde pediste.
+  const saltoHecho = useRef(false);
+
   const load = useCallback(async (d: string) => {
     wanted.current = d;
     setLoading(true);
     const res = await getDayPhotos(d);
     if (wanted.current !== d) return;
     if (!res.ok) { setErr(res.message); setPhotos([]); }
-    else { setErr(null); setPhotos(res.photos); setUltimoConFotos(res.latestWithPhotos); }
+    else {
+      setErr(null);
+      setPhotos(res.photos);
+      setUltimoConFotos(res.latestWithPhotos);
+      if (!saltoHecho.current) {
+        saltoHecho.current = true;
+        if (res.photos.length === 0 && res.latestWithPhotos && res.latestWithPhotos !== d) {
+          setDay(res.latestWithPhotos);
+          return;   // el efecto vuelve a entrar con el día nuevo; no se apaga el "cargando"
+        }
+      }
+    }
     setLoading(false);
   }, []);
 

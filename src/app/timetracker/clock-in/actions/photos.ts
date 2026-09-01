@@ -77,26 +77,46 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   // El día más reciente que TIENE fotos. Sin esto, quien abre la pantalla un lunes ve "sin
   // fotos" —porque el fin de semana no se ficha— y concluye que está rota. Un navegador por
   // días sin ninguna señal de dónde están los datos obliga a hacer clic hacia atrás a ciegas.
-  let ultimaQ = supabase
+  //
+  // Mira las DOS fuentes (D-161). Miraba solo los fichajes, y las fotos de excepción —salir
+  // del sitio, volver— son la mitad del archivo: 137 de las 385 que hay hoy. Un día en el
+  // que alguien salió del sitio pero nadie fichó con foto quedaba invisible para esta pista,
+  // que es justo el día raro que una auditoría viene a mirar.
+  let ultimaPunchQ = supabase
     .from("time_entries")
     .select("clock_in_at")
     .eq("company_id", companyId)
     .not("clock_in_photo_path", "is", null)
     .order("clock_in_at", { ascending: false })
     .limit(1);
-  if (inEmp) ultimaQ = ultimaQ.in("employee_id", inEmp);
+  let ultimaExcQ = supabase
+    .from("exceptions")
+    .select("created_at")
+    .eq("company_id", companyId)
+    .not("photo_path", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (inEmp) {
+    ultimaPunchQ = ultimaPunchQ.in("employee_id", inEmp);
+    ultimaExcQ = ultimaExcQ.in("employee_id", inEmp);
+  }
 
-  const [{ data: punches }, { data: excs }, { data: people }, { data: ultima }] = await Promise.all([
+  const [{ data: punches }, { data: excs }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }] = await Promise.all([
     punchQ,
     excQ,
     supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
-    ultimaQ,
+    ultimaPunchQ,
+    ultimaExcQ,
   ]);
 
-  const conFotos = (ultima ?? [])[0]?.clock_in_at as string | undefined;
-  const latestWithPhotos = conFotos
-    ? new Date(new Date(conFotos).getTime() - centralShiftMs(new Date(conFotos))).toISOString().slice(0, 10)
-    : null;
+  // El día de cada fuente, y se queda el mayor. Se comparan como FECHA local del negocio y
+  // no como instante: dos fotos de la misma tarde pueden caer en días UTC distintos, y la
+  // pantalla navega por días de aquí, no por días de Greenwich.
+  const aDiaLocal = (iso: string | undefined) =>
+    iso ? new Date(new Date(iso).getTime() - centralShiftMs(new Date(iso))).toISOString().slice(0, 10) : null;
+  const diaPunch = aDiaLocal((ultimaPunch ?? [])[0]?.clock_in_at as string | undefined);
+  const diaExc = aDiaLocal((ultimaExc ?? [])[0]?.created_at as string | undefined);
+  const latestWithPhotos = [diaPunch, diaExc].filter(Boolean).sort().pop() ?? null;
 
   const name = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
   type Raw = Omit<DayPhoto, "url"> & { path: string };
