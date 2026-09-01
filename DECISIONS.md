@@ -6908,3 +6908,38 @@ Aparte: si la carga de documentos fallaba, `docs` se quedaba en `null` —que si
 *cargando*— y los bloques HR y FORMS mostraban "Cargando…" indefinidamente. Ahora un fallo deja
 la lista **vacía** y dice el error aparte, con su motivo. Un "cargando" eterno se lee como que la
 pantalla está rota; una lista vacía con un error encima se lee como lo que es.
+
+---
+
+## D-150 · La pantalla del chofer: el teléfono al contacto y un enlace de menos
+
+**Fecha:** 2026-09-01 · **Versión:** v1.46.0 (deliveries) · **Pedido por:** Andrés, con captura
+de la pantalla real en el móvil
+
+Tres cosas que solo se ven con la pantalla delante y una orden de verdad.
+
+### 1. "Copiar enlace" salía dos veces
+
+El mismo botón, la misma URL (`/track/{id}`), a cuatro dedos de distancia: uno en la rejilla de
+acciones y otro debajo de NOTAS. Se queda **el de las notas**, que es donde el resto de la app
+pone lo de compartir con el cliente (`ShareTracking` está justo encima).
+
+Duplicar un botón no es solo feo: obliga a preguntarse si hacen cosas distintas.
+
+### 2. El teléfono vuelve con el contacto, y es el botón
+
+Estaba repartido en tres sitios: como texto en CONTACTO DEL CLIENTE, y como dos botones abajo
+—*Llamar cliente* y *Mensaje*—. Y cuando la orden no tenía teléfono, esos dos botones se
+convertían en **"📵 Sin teléfono"**, una pastilla que ocupaba media rejilla para anunciar que no
+había nada que pulsar. Se ve en la captura: la mitad de la fila gastada en una ausencia.
+
+Ahora el **número es el botón**, en la misma fila que el nombre. Se toca y se despliegan
+**Llamar** y **Mensaje** (y la llamada por centralita si está encendida). Sin teléfono no aparece
+nada — un hueco que no existe no necesita anunciarse.
+
+Se despliega **hacia abajo** a propósito: en un móvil, lo que salta hacia arriba aparece bajo el
+pulgar que acaba de pulsar.
+
+### 3. La rejilla de acciones se queda solo con navegación
+
+Navegar y Waze, y únicamente si hay dirección. Todo lo demás se fue a su sitio.

@@ -424,12 +424,18 @@ table.orders th { text-align: left; }
 .drv-run { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 4px; }
 .drv-run > button { flex: 1 1 46%; min-height: 46px; font-weight: 700; }
 .drv-call { justify-content: center; font-size: 16px; padding: 15px 12px; border-radius: 12px; text-decoration: none; }
-/* "No phone on file" keeps the row's shape without pretending to be pressable:
-   dashed edge, muted, no pointer. */
-.drv-none {
-  background: none; border: 1px dashed var(--line); color: var(--gray);
-  font-weight: 600; cursor: default;
+/* Contacto y teléfono en la misma fila (D-150). El nombre puede ser largo y el
+   número no debe partirse nunca, así que el número manda y el nombre se encoge. */
+.drv-contact { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.drv-contact .drv-v { flex: 1 1 auto; min-width: 0; }
+.drv-tel {
+  flex: 0 0 auto; font-size: 16px; font-weight: 800; padding: 10px 14px;
+  border-radius: 12px; white-space: nowrap;
 }
+/* Llamar / Mensaje, desplegados bajo el contacto. Tamaño de pulgar: esto se usa
+   de pie junto a un camión. */
+.drv-tel-opts { display: flex; gap: 10px; margin-top: 10px; }
+.drv-tel-opts > * { flex: 1 1 0; min-height: 46px; }
 @media (max-width: 480px) { .drv-row2 { grid-template-columns: 1fr; } }
 
 /* ---------- Material photos ---------- */

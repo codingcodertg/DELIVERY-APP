@@ -2698,6 +2698,10 @@ function DriverDeliveryScreen({
   // one, otherwise the store it's sold from.
   const pickupPlace = order.pickup_name || order.store;
 
+  // El teléfono se toca y ofrece llamar o mensajear (D-150). Cerrado por defecto: se
+  // despliega bajo el contacto, no encima, para que no salte nada bajo el pulgar.
+  const [telAbierto, setTelAbierto] = useState(false);
+
   return (
     <div className="drv-screen">
       {/* Step 1: collect. Stated up front so the driver knows where to start. */}
@@ -2757,9 +2761,35 @@ function DriverDeliveryScreen({
         </div>
       </div>
 
+      {/* Contacto y teléfono en la MISMA fila (D-150).
+          ---------------------------------------------------------------------
+          El teléfono estaba dos veces: como texto aquí y como dos botones abajo
+          —"Llamar cliente" y "Mensaje"— que en la mitad de las órdenes se
+          convertían en un "Sin teléfono" ocupando media rejilla para decir que
+          no había nada que pulsar. Ahora el número ES el botón: si lo hay se
+          toca y elige; si no lo hay, no aparece nada. */}
       <div className="drv-block">
         <div className="drv-k">👤 {t("Client contact", "Contacto del cliente")}</div>
-        <div className="drv-v">{order.contact || "—"}{hasPhone && <span className="drv-phone"> · {order.delivery_phone}</span>}</div>
+        <div className="drv-contact">
+          <span className="drv-v">{order.contact || "—"}</span>
+          {hasPhone && (
+            <button className="btn btn-green drv-tel" onClick={() => setTelAbierto(!telAbierto)}
+              aria-expanded={telAbierto}>
+              📞 {order.delivery_phone}
+            </button>
+          )}
+        </div>
+        {hasPhone && telAbierto && (
+          <div className="drv-tel-opts">
+            <a className="btn btn-green drv-call" href={`tel:${phone}`}>📞 {t("Call", "Llamar")}</a>
+            <a className="btn btn-ghost drv-call" href={`sms:${phone}`}>💬 {t("Text", "Mensaje")}</a>
+            {/* La llamada por centralita solo si está encendida: sin ella el botón
+                llamaría a un servicio que no existe. */}
+            {settings.rc_calls_enabled && (
+              <CallClientButton phone={phone} notify={notify} t={t} className="btn btn-primary drv-call" />
+            )}
+          </div>
+        )}
       </div>
 
       {order.delivery_notes && (
@@ -2783,39 +2813,15 @@ function DriverDeliveryScreen({
         </div>
       )}
 
-      <div className="drv-actions">
-        {hasPhone ? (
-          <>
-            <a className="btn btn-green drv-call" href={`tel:${phone}`}>📞 {t("Call client", "Llamar cliente")}</a>
-            {settings.rc_calls_enabled && (
-              <CallClientButton phone={phone} notify={notify} t={t} className="btn btn-primary drv-call" />
-            )}
-            <a className="btn btn-ghost drv-call" href={`sms:${phone}`}>💬 {t("Text", "Mensaje")}</a>
-          </>
-        ) : (
-          // Same pill shape as the call/text buttons it replaces, so the row
-          // stays even instead of dropping to loose grey text mid-way through.
-          // Not a button: there's nothing to press, and it shouldn't invite a tap.
-          <span className="btn drv-call drv-none" aria-disabled="true">
-            📵 {t("No client phone", "Sin teléfono")}
-          </span>
-        )}
-        {dest && (
-          <>
-            <button className="btn btn-primary drv-call" onClick={() => window.open(gmaps, "_blank", "noopener")}>🧭 {t("Navigate", "Navegar")}</button>
-            <button className="btn btn-ghost drv-call" onClick={() => window.open(waze, "_blank", "noopener")}>Waze</button>
-          </>
-        )}
-        {/* Live tracking link for the customer — same public /track page the
-            office shares, so the driver can hand it over on the spot. */}
-        <button className="btn btn-ghost drv-call" onClick={() => {
-          const url = `${location.origin}/track/${order.id}`;
-          navigator.clipboard?.writeText(url).then(
-            () => notify(t("Tracking link copied", "Enlace de seguimiento copiado")),
-            () => window.prompt(t("Copy this tracking link:", "Copie este enlace de seguimiento:"), url),
-          );
-        }}>🔗 {t("Copy tracking link", "Copiar enlace")}</button>
-      </div>
+      {/* Solo navegación. El teléfono se fue arriba, con el contacto, y el enlace de
+          seguimiento estaba DOS VECES en la misma pantalla —aquí y bajo las notas—
+          copiando exactamente la misma URL. Se queda el de las notas (D-150). */}
+      {dest && (
+        <div className="drv-actions">
+          <button className="btn btn-primary drv-call" onClick={() => window.open(gmaps, "_blank", "noopener")}>🧭 {t("Navigate", "Navegar")}</button>
+          <button className="btn btn-ghost drv-call" onClick={() => window.open(waze, "_blank", "noopener")}>Waze</button>
+        </div>
+      )}
     </div>
   );
 }
