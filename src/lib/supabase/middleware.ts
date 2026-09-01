@@ -75,6 +75,39 @@ export async function refreshSession(request: NextRequest) {
  * rutas que hoy funcionan sin ellas, así que va en su propio paso y con su propia revisión.
  * Mientras tanto, cada layout sigue haciendo su propia comprobación como hasta ahora.
  */
+/**
+ * Lo que se ve SIN haber entrado (D-156).
+ *
+ * Esta lista es la razón por la que el guard llevaba parado desde D-119, y no era prudencia
+ * de más: conectarlo tal y como estaba escrito habría roto dos cosas el mismo minuto.
+ *
+ *   · **`/track/:id`** — la página que se le manda al CLIENTE para que vea dónde va su
+ *     camión. El cliente no tiene cuenta y no la va a tener. Mandarlo a `/login` convierte
+ *     el enlace de seguimiento en una puerta cerrada, y ese enlace ya está enviado por SMS
+ *     y por correo a gente de fuera.
+ *   · **`/api/...`** — una llamada de datos sin sesión debe contestar 401, no una redirección
+ *     a una página de login. El `fetch` recibiría el HTML del login con estado 200 y lo
+ *     intentaría interpretar como JSON: el fallo aparecería en un sitio que no tiene nada que
+ *     ver con la sesión. `refreshSession` ya las salta; el guard tenía que saltarlas también,
+ *     y no lo hacía. Van anidadas (`/timetracker/clock-in/api/...`), así que se busca el
+ *     segmento en cualquier posición, no al principio.
+ *
+ * Y lo obvio, que también faltaba: el propio login, el intercambio de OAuth, el
+ * restablecimiento de contraseña —al que se llega desde un correo, sin sesión, que es justo
+ * el momento en que no se puede entrar— y `/no-access`, que es donde aterriza quien SÍ entró
+ * pero no tiene ningún módulo. Redirigirlo a login desde ahí sería un bucle.
+ */
+export function isPublicPath(path: string): boolean {
+  return path === "/login" || path.startsWith("/login/")
+    || path.startsWith("/auth")
+    || path.startsWith("/reset-password")
+    || path === "/no-access"
+    || path === "/track" || path.startsWith("/track/")
+    || path.startsWith("/_next")
+    || path === "/manifest.webmanifest" || path === "/favicon.ico"
+    || path.includes("/api/");
+}
+
 export async function updateSession(request: NextRequest) {
   // Local demo mode: skip all auth — the app has no backend.
   if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") {
@@ -109,32 +142,37 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic =
-    path.startsWith("/login") || path.startsWith("/auth") || path.startsWith("/_next");
 
-  // Bounced here from a guarded route while signed out — remember it as
-  // `next` so signing in can return here instead of always landing on `/`.
-  // Matters most for the timetracker desktop shell (D-076): its Electron
-  // window has no address bar, so if login always dropped it on deliveries'
-  // board, the only way back to Track Time was the module switcher — which
-  // defeats the point of a dedicated client (screenshot/activity capture
-  // only runs while mounted on /timetracker).
-  if (!user && !isPublic) {
+  // Ya dentro y pisando el login: al sitio del que venia, o a la puerta.
+  //
+  // Va ANTES de la lista de publicas y no despues, porque `/login` ESTA en esa lista
+  // -tiene que estarlo, es donde entra quien no ha entrado- y con el orden al reves esta
+  // rama no se ejecutaria nunca: quien ya tiene sesion se quedaria mirando un formulario
+  // de acceso que no necesita.
+  if (user && path.startsWith("/login")) {
+    const url = request.nextUrl.clone();
+    const next = request.nextUrl.searchParams.get("next");
+    // Tiene que ser una ruta de dentro: ni otro salto al propio login (bucle) ni una URL
+    // absoluta (redireccion abierta, que es como se roba una sesion).
+    url.pathname = next && next.startsWith("/") && !next.startsWith("/login") ? next : "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Lo publico se sirve tal cual -pero con la respuesta de arriba, no una nueva: ahi van
+  // las cookies del refresco, y devolver otra cosa tiraria la sesion recien renovada.
+  if (isPublicPath(path)) return response;
+
+  // Rebotado desde una ruta protegida sin sesion: se recuerda a donde iba, en `next`, para
+  // que al entrar vuelva ahi y no siempre al tablero. Importa sobre todo en el escritorio de
+  // Time Tracker (D-076): su ventana de Electron no tiene barra de direcciones.
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
 
-  if (user && path.startsWith("/login")) {
-    const url = request.nextUrl.clone();
-    const next = request.nextUrl.searchParams.get("next");
-    // Must be a real in-app path, not another hop through /login itself
-    // (that would loop) or an absolute URL (open-redirect risk).
-    url.pathname = next && next.startsWith("/") && !next.startsWith("/login") ? next : "/";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
 
   return response;
 }
