@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DOC_KINDS, REQUIRED_FORMS, docKind } from "./hr";
+import { DOC_KINDS, REQUIRED_FORMS } from "./hr";
 
 /**
  * El catálogo de documentos del expediente (D-145).
@@ -35,11 +35,15 @@ describe("catálogo del expediente", () => {
     expect(REQUIRED_FORMS.every((f) => f.group === "forms")).toBe(true);
   });
 
-  it("todo lo que es lista o caduca está declarado, y docKind lo encuentra", () => {
-    expect(docKind("warning")?.many).toBe(true);
-    expect(docKind("license")?.expires).toBe(true);
-    expect(docKind("handbook")?.many).toBeUndefined();
-    expect(docKind("no-existe")).toBeUndefined();
+  it("lo que es lista y lo que caduca está declarado", () => {
+    // La pantalla decide por estas dos banderas: `many` pinta un "+ Añadir" y una
+    // lista; `expires` pinta la segunda fecha. Sin ellas una amonestación nueva
+    // pisaría a la anterior en silencio.
+    const de = (k: string) => DOC_KINDS.find((d) => d.key === k);
+    expect(de("warning")?.many).toBe(true);
+    expect(de("license")?.expires).toBe(true);
+    expect(de("handbook")?.many).toBeUndefined();
+    expect(de("no-existe")).toBeUndefined();
   });
 
   it("cada documento tiene rótulo en los dos idiomas", () => {

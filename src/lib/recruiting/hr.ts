@@ -34,8 +34,6 @@ export const DOC_KINDS: DocKind[] = [
   { key: "quit_form",      label: "Quit form",          label_es: "Formato de baja",          group: "forms" },
 ];
 
-export const docKind = (key: string): DocKind | undefined => DOC_KINDS.find((d) => d.key === key);
-
 /** Los que se esperan de TODO el mundo. La baja no: solo existe si la persona se fue, y
  *  contarla como pendiente marcaría en rojo a la plantilla entera. */
 export const REQUIRED_FORMS = DOC_KINDS.filter((d) => d.group === "forms" && d.key !== "quit_form");
