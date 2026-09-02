@@ -108,6 +108,13 @@
 .timetracker-module .tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:0}
 .timetracker-module .tabs button,.timetracker-module .tabs a{background:none;color:#c6cede;font-weight:600;font-size:13px;padding:8px 12px;border-radius:8px;position:relative;text-decoration:none;display:inline-block}
 .timetracker-module .tabs a.active,.timetracker-module .tabs button.active{background:var(--tt-accent);color:#fff}
+/* Los motivos de una excepción, en casillas (D-163). Cada una es del tamaño de un pulgar:
+   esto se marca de pie, en la calle y a veces con guantes. Marcada cambia de fondo y no
+   solo de casilla — un tic de 12 px a pleno sol no se ve. */
+.timetracker-module .motivos{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.timetracker-module .motivo{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:1px solid var(--tt-line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600}
+.timetracker-module .motivo input{width:18px;height:18px;flex:0 0 18px;margin:0}
+.timetracker-module .motivo.on{border-color:var(--tt-accent);background:color-mix(in srgb, var(--tt-accent) 14%, transparent)}
 /* El nombre de quien ha entrado, que lleva a Mi cuenta (D-160). Se parece a una pestaña
    -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
    El subrayado al pasar por encima es lo que dice que se puede pulsar; sin él, un nombre

@@ -46,7 +46,7 @@ export async function getExceptionHistory(limit = 80): Promise<
   | {
       ok: true;
       rows: {
-        id: string; nombre: string; type: string; reason: string | null; note: string | null;
+        id: string; nombre: string; type: string; reason: string | null; reasons: string[]; note: string | null;
         created_at: string; left_at: string | null; returned_at: string | null;
         resolved: boolean; photo: string | null; returnedPhoto: string | null;
       }[];
@@ -62,7 +62,7 @@ export async function getExceptionHistory(limit = 80): Promise<
 
   let q = supabase
     .from("exceptions")
-    .select("id, employee_id, type, reason, note, photo_path, returned_photo_path, left_at, returned_at, resolved, created_at")
+    .select("id, employee_id, type, reason, reasons, note, photo_path, returned_photo_path, left_at, returned_at, resolved, created_at")
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(limit, 1), 200));
   if (inEmp) q = q.in("employee_id", inEmp);
@@ -90,6 +90,9 @@ export async function getExceptionHistory(limit = 80): Promise<
       nombre: nombre.get(r.employee_id as string) ?? "—",
       type: r.type as string,
       reason: (r.reason as string) ?? null,
+      // Todos los motivos, con el de siempre como respaldo: las filas anteriores a la 098
+      // se rellenaron, pero una escrita por un cliente viejo aún puede traer solo `reason`.
+      reasons: (r.reasons as string[] | null) ?? ((r.reason as string) ? [r.reason as string] : []),
       note: (r.note as string) ?? null,
       created_at: r.created_at as string,
       left_at: (r.left_at as string) ?? null,

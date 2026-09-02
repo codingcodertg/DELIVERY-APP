@@ -42,6 +42,13 @@ type ClockInput = {
   lat: number;
   lng: number;
   accuracy?: number;
+  /**
+   * Los motivos elegidos (D-163). Varios, porque uno no alcanzaba: el 72 % de los fichajes
+   * fuera de radio decían "otro", que es lo que se marca cuando sales por dos cosas a la vez
+   * y el formulario solo te deja decir una.
+   */
+  reasons?: string[];
+  /** El primero, o el único. Se mantiene por lo que ya lo lee — ver la 098. */
   reason?: string;
   note?: string;
   photoPath?: string;
@@ -104,8 +111,17 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   const siteId = firstMatch(input.lat, input.lng, (sites ?? []) as GeoSite[]);
   const onSite = !!siteId || DEV_BYPASS_GEOFENCE;
 
+  // Los motivos, en una sola forma para todo lo de abajo (D-163). Se acepta `reasons` (lo
+  // que manda la pantalla nueva) o `reason` (una llamada vieja, o un cliente sin actualizar
+  // — el móvil de alguien puede tardar días en recoger la versión nueva).
+  const motivos = (input.reasons?.length ? input.reasons : input.reason ? [input.reason] : [])
+    .filter((r, i, a) => r && a.indexOf(r) === i);
+  const motivoPrincipal = motivos[0];
+  const listaMotivos = motivos.length ? motivos : null;
+  const hayMotivo = motivos.length > 0;
+
   // Off-site punches always need a reason (existing rule).
-  if (!onSite && !input.reason) {
+  if (!onSite && !hayMotivo) {
     return { ok: false, code: "needs_reason", context: "offsite" };
   }
 
@@ -119,7 +135,7 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   // dueños se les quitó el suyo en 084 para que el resultado fuese idéntico al de hoy.
   const homeBound = !!profile.store_id;
   const atWrongSite = homeBound && !!siteId && siteId !== profile.store_id;
-  if (atWrongSite && !input.reason) {
+  if (atWrongSite && !hayMotivo) {
     return { ok: false, code: "needs_reason", context: "other_site" };
   }
 
@@ -136,7 +152,7 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   // Unscheduled clock-in: on-site but no shift today. Only enforce a reason once
   // scheduling is actually in use company-wide today — otherwise early rollout
   // (before any schedules exist) would nag on every single punch.
-  if (onSite && !todayShift && !input.reason) {
+  if (onSite && !todayShift && !hayMotivo) {
     const { count: scheduledToday } = await supabase
       .from("scheduled_shifts")
       .select("id", { count: "exact", head: true })
@@ -146,7 +162,7 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
       return { ok: false, code: "needs_reason", context: "unscheduled" };
     }
   }
-  const isUnscheduled = onSite && !todayShift && !!input.reason;
+  const isUnscheduled = onSite && !todayShift && hayMotivo;
 
   const { data: entry, error } = await supabase
     .from("time_entries")
@@ -175,7 +191,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
       employee_id: user.id,
       time_entry_id: entry.id,
       type: "out_of_radius",
-      reason: input.reason,
+      reason: motivoPrincipal,
+      reasons: listaMotivos,
       note: input.note ?? null,
       photo_path: input.photoPath ?? null,
       latitude: input.lat,
@@ -190,7 +207,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
       employee_id: user.id,
       time_entry_id: entry.id,
       type: "other",
-      reason: input.reason,
+      reason: motivoPrincipal,
+      reasons: listaMotivos,
       note: input.note ?? null,
       photo_path: input.photoPath ?? null,
       latitude: input.lat,
@@ -204,7 +222,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
       employee_id: user.id,
       time_entry_id: entry.id,
       type: "other",
-      reason: input.reason,
+      reason: motivoPrincipal,
+      reasons: listaMotivos,
       note: input.note ?? null,
       photo_path: input.photoPath ?? null,
       latitude: input.lat,

@@ -85,7 +85,11 @@ export function PunchPanel() {
   const [ocupado, setOcupado] = useState<null | "in" | "out">(null);
   const [paso, setPaso] = useState<string>("");
   const [pideMotivo, setPideMotivo] = useState<null | "offsite" | "unscheduled" | "other_site">(null);
-  const [motivo, setMotivo] = useState("");
+  // Varios motivos, no uno (D-163). Un Set no: el ORDEN importa —el primero es el que se
+  // guarda en `reason` y el que sale en los informes viejos— y un Set no promete ninguno.
+  const [motivos, setMotivos] = useState<string[]>([]);
+  // La nota, solo cuando se marca "otro": es justo el caso en que la etiqueta no dice nada.
+  const [notaMotivo, setNotaMotivo] = useState("");
   const [ahora, setAhora] = useState(Date.now());
   const fotoRef = useRef<HTMLInputElement>(null);
   const pendiente = useRef<"in" | "out" | null>(null);
@@ -127,7 +131,7 @@ export function PunchPanel() {
     return path;
   }
 
-  async function ficha(accion: "in" | "out", photoPath?: string, razon?: string) {
+  async function ficha(accion: "in" | "out", photoPath?: string, razones?: string[], nota?: string) {
     setErr(null);
     setOcupado(accion);
     try {
@@ -135,7 +139,7 @@ export function PunchPanel() {
       const geo = await ubicacion();
       setPaso(accion === "in" ? t("Clocking in…", "Registrando entrada…") : t("Clocking out…", "Registrando salida…"));
       if (accion === "in") {
-        const res: ClockInResult = await clockIn({ ...geo, photoPath, reason: razon });
+        const res: ClockInResult = await clockIn({ ...geo, photoPath, reasons: razones, note: nota || undefined });
         if (!res.ok) {
           if (res.code === "needs_reason") { setPideMotivo(res.context); setOcupado(null); setPaso(""); return; }
           if (res.code === "already_open") { await load(); setOcupado(null); setPaso(""); return; }
@@ -147,7 +151,8 @@ export function PunchPanel() {
         if (!res.ok) setErr(res.message);
       }
       setPideMotivo(null);
-      setMotivo("");
+      setMotivos([]);
+      setNotaMotivo("");
       await load();
     } catch (e) {
       setErr((e as Error).message);
@@ -216,13 +221,57 @@ export function PunchPanel() {
                 : pideMotivo === "unscheduled" ? t("You are not on the schedule today. Why?", "Hoy no está en el horario. ¿Por qué?")
                 : t("You are at a different site. Why?", "Está en un sitio distinto. ¿Por qué?")}
             </label>
-            <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
-              <option value="">{t("Pick a reason…", "Elija un motivo…")}</option>
-              {MOTIVOS[pideMotivo].map((m) => <option key={m.value} value={m.value}>{lang === "es" ? m.es : m.en}</option>)}
-            </select>
+            {/* Casillas y no un desplegable (D-163).
+                ---------------------------------------------------------------
+                Un <select> obliga a elegir UNO, y el 72 % de los fichajes fuera
+                de radio acababan en "otro" — que es lo que se marca cuando sales
+                por dos cosas a la vez y solo te dejan decir una. Marcando varias
+                se puede decir lo que de verdad pasó: iba a una entrega Y de paso
+                pasé por la otra tienda.
+
+                Además una casilla se toca de pie y con guantes; una lista
+                desplegable, en un móvil, es un menú del sistema encima de todo.
+
+                Se puede marcar una sola: nada obliga a marcar más. */}
+            <div className="motivos">
+              {MOTIVOS[pideMotivo].map((m) => {
+                const puesto = motivos.includes(m.value);
+                return (
+                  <label key={m.value} className={"motivo" + (puesto ? " on" : "")}>
+                    <input
+                      type="checkbox"
+                      checked={puesto}
+                      onChange={() => setMotivos((ms) =>
+                        // Se quita donde estaba, o se añade AL FINAL: así el primero que se
+                        // marcó sigue siendo el primero, y es el que va a `reason`.
+                        puesto ? ms.filter((x) => x !== m.value) : [...ms, m.value])}
+                    />
+                    {lang === "es" ? m.es : m.en}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* "Otro" sin explicación no es un dato, es un hueco con nombre. Si se marca,
+                se pregunta — sin obligar: es mejor un fichaje con "otro" pelado que un
+                fichaje que no ocurre porque alguien no sabía qué escribir. */}
+            {motivos.includes("other") && (
+              <input
+                style={{ marginTop: 8 }}
+                value={notaMotivo}
+                onChange={(e) => setNotaMotivo(e.target.value)}
+                placeholder={t("What happened? (optional)", "¿Qué pasó? (opcional)")}
+              />
+            )}
+
             <div className="row" style={{ marginTop: 10 }}>
-              <button disabled={!motivo || !!ocupado} onClick={() => ficha("in", undefined, motivo)}>{t("Clock in", "Registrar entrada")}</button>
-              <button className="btn-ghost" onClick={() => { setPideMotivo(null); setMotivo(""); }}>{t("Cancel", "Cancelar")}</button>
+              <button disabled={!motivos.length || !!ocupado}
+                onClick={() => ficha("in", undefined, motivos, notaMotivo)}>
+                {t("Clock in", "Registrar entrada")}
+              </button>
+              <button className="btn-ghost" onClick={() => { setPideMotivo(null); setMotivos([]); setNotaMotivo(""); }}>
+                {t("Cancel", "Cancelar")}
+              </button>
             </div>
           </div>
         ) : (

@@ -20,7 +20,7 @@ import { dateISO, fmtDayLong, fmtDT } from "@/lib/timetracker/helpers";
  */
 
 type Exc = {
-  id: string; nombre: string; type: string; reason: string | null; note: string | null;
+  id: string; nombre: string; type: string; reason: string | null; reasons: string[]; note: string | null;
   created_at: string; left_at: string | null; returned_at: string | null;
   resolved: boolean; photo: string | null; returnedPhoto: string | null;
 };
@@ -37,6 +37,7 @@ export function ExceptionHistory() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [soloPendientes, setSoloPendientes] = useState(false);
+  const [filtroMotivo, setFiltroMotivo] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -49,8 +50,27 @@ export function ExceptionHistory() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const shown = soloPendientes ? rows.filter((r) => !r.resolved) : rows;
+  const porPendiente = soloPendientes ? rows.filter((r) => !r.resolved) : rows;
+  const shown = filtroMotivo ? porPendiente.filter((r) => r.reasons.includes(filtroMotivo)) : porPendiente;
   const pendientes = rows.filter((r) => !r.resolved).length;
+
+  /**
+   * Cuántas veces se ha dado cada motivo (D-163).
+   *
+   * Es la pregunta que la pantalla no contestaba: se podían leer las excepciones una a una,
+   * pero no saber **qué está pasando**. Y el primer dato que enseña ya duele — 56 de 78
+   * salidas fuera de radio decían "otro", que es lo que se marca cuando solo te dejan
+   * elegir una cosa y saliste por dos.
+   *
+   * Se cuenta sobre TODAS las filas, no sobre las filtradas: un recuento que cambia al
+   * pulsarlo no sirve para comparar. Y una excepción con dos motivos suma en los dos —
+   * porque las dos cosas pasaron.
+   */
+  const conteo = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of porPendiente) for (const x of r.reasons) m.set(x, (m.get(x) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [porPendiente]);
 
   // El visor recorre las fotos que se están viendo, en el mismo orden que la lista.
   const fotos = useMemo(
@@ -103,6 +123,25 @@ export function ExceptionHistory() {
         </Link>
       </p>
 
+      {/* El resumen por motivo, y filtra al tocarlo. Va arriba porque es lo que se mira
+          primero: cuál es el motivo que más se repite este mes. */}
+      {conteo.length > 0 && (
+        <div className="filters" style={{ marginTop: 8 }}>
+          {conteo.map(([m, n]) => (
+            <button
+              key={m}
+              className={"chip" + (filtroMotivo === m ? " on" : "")}
+              onClick={() => setFiltroMotivo(filtroMotivo === m ? null : m)}
+            >
+              {m.replace(/_/g, " ")} <span className="cnt">{n}</span>
+            </button>
+          ))}
+          {filtroMotivo && (
+            <button className="btn-ghost btn-sm" onClick={() => setFiltroMotivo(null)}>✕ clear</button>
+          )}
+        </div>
+      )}
+
       {err && <div className="banner err">{err}</div>}
 
       {!loading && !err && shown.length === 0 && (
@@ -133,7 +172,15 @@ export function ExceptionHistory() {
                       : <span className="pill wait" style={{ marginLeft: 6 }}>open</span>}
                   </div>
                   <div className="small muted">
-                    {r.reason ? r.reason.replace(/_/g, " ") : "—"}
+                    {/* TODOS los motivos, no solo el primero (D-163). Desde que se pueden
+                        marcar varios, enseñar uno sería esconder justo lo que se acaba de
+                        pedir: que se sepa que alguien salió por una entrega Y de paso pasó
+                        por otra tienda. */}
+                    {r.reasons.length
+                      ? r.reasons.map((x) => (
+                          <span key={x} className="pill" style={{ marginRight: 4 }}>{x.replace(/_/g, " ")}</span>
+                        ))
+                      : "—"}
                     {r.note ? ` · “${r.note}”` : ""}
                   </div>
                   <div className="small muted">
