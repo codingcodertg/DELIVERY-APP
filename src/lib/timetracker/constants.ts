@@ -27,7 +27,9 @@ export const TABS: { id: string; href: string }[] = [
 export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "insights", href: "/timetracker/insights" },
   { id: "live", href: "/timetracker/live" },
-  { id: "reports", href: "/timetracker/reports" },
+  // "Informes y pago" ya no es pestaña (D-164): es la vista 💵 Pago dentro de Nómina, que
+  // es la misma pregunta —cuánto se le paga a quién este periodo— y estaba partida en dos
+  // pantallas con dos calendarios propios. La ruta /timetracker/reports redirige.
   // Las horas de las DOS mitades por periodo (fase 4). Va junto a Reports/Pay porque
   // es lo mismo que se mira, con las dos fuentes al lado en vez de una sola.
   { id: "payroll", href: "/timetracker/payroll" },
