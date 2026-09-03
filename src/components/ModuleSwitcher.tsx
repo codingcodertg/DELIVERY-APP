@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { accessibleModules, HUB_TOOLS, roleHome } from "@/lib/constants";
+import { accessibleModules, canReachHub, roleHome } from "@/lib/constants";
 import { isDesktop } from "@/lib/timetracker/desktop";
 import type { UserRole } from "@/lib/types";
 
@@ -75,13 +75,11 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
   }, [open]);
 
   const modules = accessibleModules(moduleAccess);
-  const canSwitch = modules.length > 1; // something besides deliveries to jump to
-  const canReachHub = canSwitch || HUB_TOOLS.some((tool) => tool.visible({ role: deliveriesRole }));
-  // Same hard exception as landingRoute() (D-051) — a driver never sees
-  // either control, independent of whatever module_access or hub tools
-  // would otherwise apply. Nothing to show at all -> nothing renders (not
-  // hidden).
-  if (deliveriesRole === "driver" || !canReachHub || desktopClient) return null;
+  const canSwitch = modules.length > 1; // algo además de Entregas a lo que saltar
+  // La misma pregunta que hace /home, en el mismo sitio (D-173). Lleva dentro la excepción
+  // del chofer de D-051: nunca ve ninguno de los dos controles, le den lo que le den.
+  // Nada que enseñar -> no se renderiza (no "se oculta").
+  if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;
 
   const others = modules.filter((m) => m.key !== current);
   const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(deliveriesRole) : fallback);

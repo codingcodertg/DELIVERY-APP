@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { accessibleModules, HUB_TOOLS, landingRoute, MODULE_ACCESS, MODULES } from "@/lib/constants";
+import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute, MODULE_ACCESS, MODULES } from "@/lib/constants";
 
 // D-100 dio la vuelta a la premisa de estas pruebas: Entregas ya no es implícita, se
 // otorga como los demás módulos. Lo que antes se afirmaba —"sin module_access aterrizas
@@ -166,6 +166,37 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
     const ids = MANAGER_TABS.map((t) => t.id);
     for (const id of ["payroll", "schedule", "audit", "people", "live", "team-requests"]) {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
+    }
+  });
+});
+
+// D-173: el candado del chofer en el hub. D-051 lo tenía, D-056 lo perdió al reescribir la
+// puerta de /home, y nadie lo notó porque ningún chofer tenía dos módulos. Esta prueba está
+// para que la próxima reescritura de esa puerta lo note.
+describe("canReachHub", () => {
+  it("un chofer NUNCA llega al hub, le den lo que le den", () => {
+    expect(canReachHub({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe(false);
+    expect(canReachHub({ role: "driver", module_access: ["deliveries", "recruiting", "erp", "timetracker"] })).toBe(false);
+  });
+
+  it("con dos módulos, sí", () => {
+    expect(canReachHub({ role: "sales", module_access: ["deliveries", "timetracker"] })).toBe(true);
+  });
+
+  it("con uno solo y sin herramientas, no", () => {
+    expect(canReachHub({ role: "sales", module_access: ["deliveries"] })).toBe(false);
+  });
+
+  it("un admin con un solo módulo sí: tiene Usuarios esperándole (D-056)", () => {
+    expect(canReachHub({ role: "admin", module_access: ["deliveries"] })).toBe(true);
+  });
+
+  it("es coherente con landingRoute: quien no puede llegar, no aterriza ahí", () => {
+    for (const me of [
+      { role: "driver" as const, module_access: ["deliveries", "erp"] },
+      { role: "sales" as const, module_access: ["deliveries"] },
+    ]) {
+      if (!canReachHub(me)) expect(landingRoute(me)).not.toBe("/home");
     }
   });
 });

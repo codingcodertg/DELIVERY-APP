@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { accessibleModules, HUB_TOOLS, landingRoute } from "@/lib/constants";
+import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute } from "@/lib/constants";
 import { HomeSelector } from "@/components/HomeSelector";
 import type { Profile } from "@/lib/types";
 
@@ -48,9 +48,9 @@ export default async function HomePage({
   if (!profile) redirect("/login");
   const me: Profile = profile;
 
-  const hasReasonToBeHere =
-    accessibleModules(me.module_access).length > 1 || HUB_TOOLS.some((t) => t.visible(me));
-  if (!hasReasonToBeHere) redirect(landingRoute(me));
+  // La regla vive en canReachHub() con el candado del chofer (D-173): D-056 la escribió
+  // aquí en línea y sin él, y `ModuleSwitcher` tenía la suya. Una sola, con prueba.
+  if (!canReachHub(me)) redirect(landingRoute(me));
 
   return <HomeSelector me={me} />;
 }

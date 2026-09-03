@@ -157,6 +157,25 @@ export function roleHome(role: UserRole): string {
  * job; nothing about a module grant should ever put a choice in front of
  * them that isn't on their route. (See D-050/D-051.)
  */
+/**
+ * ¿Tiene esta persona algo que hacer en el hub si llega a él a propósito? (D-173)
+ *
+ * Es la pregunta de D-056 —distinta de "dónde aterrizas", que la contesta `landingRoute`—
+ * con el candado del chofer **puesto otra vez**. D-051 lo tenía: `/home` mandaba a
+ * `landingRoute(me)` y a un chofer eso lo echaba a `/driver` sin mirar nada más. D-056
+ * cambió la puerta de `/home` por esta pregunta y, al hacerlo, **el chofer dejó de estar
+ * excluido**: con dos módulos habría visto el hub tecleando la URL. `ModuleSwitcher` sí
+ * conservó la excepción, así que había dos versiones de la misma regla y una estaba mal.
+ *
+ * Ahora las dos pantallas preguntan aquí. El chofer va primero y es incondicional, por la
+ * misma razón que en `landingRoute`: su app es su ruta, y nada de lo que se le conceda
+ * cambia eso.
+ */
+export function canReachHub(me: { role: UserRole; module_access?: string[] | null }): boolean {
+  if (me.role === "driver") return false;
+  return accessibleModules(me.module_access).length > 1 || HUB_TOOLS.some((t) => t.visible(me));
+}
+
 export function landingRoute(me: { role: UserRole; module_access?: string[] | null }): string {
   const granted = normalizeModules(me.module_access);
   // Un chofer con Entregas va siempre a su ruta, sin pasar por el selector (D-050/051).
