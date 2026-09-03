@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { ringcentralConfigured, ringcentralRingOut, ringcentralRingOutStatus, ringcentralRingOutCancel } from "@/lib/ringcentral";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Click-to-call via RingCentral RingOut (#driver "Call client" on desktop).
 // RingOut first rings the AGENT's phone (`from`), and once they pick up it
@@ -11,6 +13,10 @@ import { ringcentralConfigured, ringcentralRingOut, ringcentralRingOutStatus, ri
 // ============================================================
 
 export async function GET(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   // ?id=<callId> polls a live call's status; otherwise reports config readiness.
   const id = new URL(req.url).searchParams.get("id");
   if (id) {
@@ -28,6 +34,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { to?: string; from?: string };
   try {
     body = await req.json();
@@ -54,6 +64,10 @@ export async function POST(req: Request) {
 
 // Hang up / cancel an in-progress call: DELETE /api/call?id=<callId>
 export async function DELETE(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
   if (!ringcentralConfigured()) return NextResponse.json({ error: "RingCentral not configured" }, { status: 400 });

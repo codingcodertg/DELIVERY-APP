@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Address autocomplete (real-time search suggestions).
 //
@@ -63,6 +65,10 @@ async function viaOSM(q: string): Promise<string[]> {
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { q?: string };
   try {
     body = await req.json();

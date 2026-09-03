@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { DEFAULT_HELP_EMAIL } from "@/lib/constants";
 import { resendFrom } from "@/lib/email";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // In-app Help button (#help) — emails a support request to the address an
 // admin configures in Settings (Settings.help_email, default DEFAULT_HELP_EMAIL).
@@ -32,6 +34,10 @@ interface HelpBody {
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: HelpBody;
   try {
     body = (await req.json()) as HelpBody;

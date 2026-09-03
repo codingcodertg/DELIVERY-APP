@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Resolve a single address to { lat, lng } — used by the dispatch map to
 // place a pin for an order that only has a text address (no coordinates
@@ -39,6 +41,10 @@ async function viaOSM(q: string): Promise<{ lat: number; lng: number } | null> {
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { address?: string };
   try {
     body = await req.json();

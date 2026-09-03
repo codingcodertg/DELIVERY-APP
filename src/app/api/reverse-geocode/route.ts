@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Resolve { lat, lng } -> a human-readable address — used right after
 // dropping a manual pin on the map, so the Delivery Address field fills in
@@ -37,6 +39,10 @@ async function viaOSM(lat: number, lng: number): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { lat?: number; lng?: number };
   try {
     body = await req.json();

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Live places lookup for the Market Map — queries OpenStreetMap in real time
 // (Overpass API, free, no key) for businesses in the Rio Grande Valley across
@@ -127,6 +129,10 @@ async function viaGoogle(key: string, category: string): Promise<Place[]> {
 }
 
 export async function GET(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const category = new URL(req.url).searchParams.get("category") ?? "flooring";
   const build = CATEGORY_QUERY[category];
   if (!build) return NextResponse.json({ error: "Unknown category" }, { status: 400 });

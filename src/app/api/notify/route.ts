@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { ringcentralConfigured, ringcentralSms } from "@/lib/ringcentral";
 import { emailConfigured, resendFrom } from "@/lib/email";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Outbound customer notifications (#21) — email / SMS at key delivery stages.
 //
@@ -31,6 +33,10 @@ interface NotifyBody {
 // Report which providers are configured (no secrets) so the UI can pick the
 // right send path and show accurate guidance.
 export async function GET() {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const ringcentral = !!(process.env.RINGCENTRAL_CLIENT_ID && process.env.RINGCENTRAL_JWT && process.env.RINGCENTRAL_FROM);
   const twilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
   const email = emailConfigured();
@@ -41,6 +47,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: NotifyBody;
   try {
     body = (await req.json()) as NotifyBody;

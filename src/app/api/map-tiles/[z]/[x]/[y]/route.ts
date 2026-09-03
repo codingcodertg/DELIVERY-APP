@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Google Map Tiles proxy. Serves Google's 2D raster map tiles to the Leaflet
 // maps in every view, keeping GOOGLE_MAPS_API_KEY server-side (the browser
@@ -51,6 +53,10 @@ function osmTile(z: string, x: string, y: string) {
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ z: string; x: string; y: string }> }) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const key = process.env.GOOGLE_MAPS_API_KEY;
   const p = await params;
   const z = p.z, x = p.x, y = p.y.replace(/\.png$/, "");

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { computeRoute, METERS_PER_MILE, type RoutePoint } from "@/lib/google-routes";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Best visiting order for a driver's stops on a given day, plus the real
 // driving path between them.
@@ -106,6 +108,10 @@ async function viaOSRM(stops: RoutePoint[], roundtrip: boolean, optimize = true)
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { stops?: RoutePoint[]; roundtrip?: boolean; date?: string | null; traffic_optimal?: boolean; optimize?: boolean };
   try {
     body = await req.json();

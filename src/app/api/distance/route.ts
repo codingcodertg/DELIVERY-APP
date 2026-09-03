@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { requireUser } from "@/lib/api-auth";
+
 // ============================================================
 // Distance + travel-time between two addresses.
 //
@@ -171,6 +173,10 @@ async function viaGeocodeOSRM(origin: string, destination: string, google?: stri
 }
 
 export async function POST(req: Request) {
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   let body: { origin?: string; destination?: string };
   try {
     body = await req.json();
