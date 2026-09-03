@@ -53,6 +53,15 @@ Vercel (`NOTION_TOKEN`) y el asistente lo recibe del usuario cuando hace falta.
    enteró de un cambio real se queda con código viejo en silencio.
    `package.json`'s `"version"` es aparte: la versión del repo/monorepo,
    súbela también si el cambio amerita marcarlo ahí.
+
+   **Excepción — cambios solo de base de datos** (RLS, políticas, `guard_*`,
+   `ANALYZE`, migraciones que no tocan código de cliente): suben **solo
+   `package.json`**, **no** `APP_VERSIONS`. Subir un `APP_VERSION` fuerza un
+   refresh del cliente (D-029/D-087) y un cambio que vive entero en la base no
+   cambia nada que el cliente cargado deba volver a bajar. La regla general es
+   "package.json **y** APP_VERSION"; esta es la única excepción, y es explícita,
+   no criterio implícito: si el cambio toca *algo* de código de cliente, deja de
+   ser solo-base y vuelve a la regla general.
 4. `npx next build` (es más estricto que `dev`)
 5. Commit
 6. `git fetch origin` → `git rebase origin/main` → `git push`

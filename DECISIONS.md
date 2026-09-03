@@ -7489,3 +7489,59 @@ secreto.
 Es un cambio de base, no de código: el bundle del cliente es idéntico y sus flujos legítimos no
 cambian (verificado). Subir `APP_VERSIONS` diría en falso a los clientes que hay algo que
 recoger. Se sube solo `package.json` (hito del repo), como en D-177.
+
+---
+
+## D-180 · Settings admin-only y historial append-only, por la base (A-2b/A-2c/A-2e)
+
+**Fecha:** 2026-09-03 · **Migración:** 100 · **Origen:** auditoría `docs/AUDIT-2026-09.md`, A-2b + A-2c + A-2e · **Plan:** `docs/PLAN-A-2b-2c-settings-events.md`
+
+Continúa D-179 con el mismo molde (helper `is_admin()`, matriz rol×acción con `ROLLBACK`,
+real + sintética). Cierra dos huecos que la auditoría **midió** en cuatro tablas:
+
+- **Settings escribibles por cualquier miembro del módulo.** `public.settings` tenía
+  `ALL USING has_deliveries_access()`: un **chofer** podía cambiar —y borrar— las tarifas,
+  tiendas y ventanas de la empresa (medido: `driver`/`warehouse` daban `permit` en UPDATE y
+  DELETE). La pantalla de Ajustes ya era admin-only; la base no lo decía. Ahora SELECT sigue
+  amplio (la app lee tarifas en todo el módulo, incluido el chofer al calcular costo) e
+  **INSERT/UPDATE/DELETE solo `is_admin()`**.
+- **Historial de órdenes editable y falsificable.** `public.order_events` tenía `ALL` de
+  escritura: un miembro podía **editar y borrar** eventos, y —peor— **firmar un evento a
+  nombre de otro** (`created_by` de un tercero pasaba el CHECK). Ahora es **append-only**:
+  SELECT amplio, INSERT solo con `created_by = auth.uid()` (nadie firma por otro, cf. D-039),
+  y **sin UPDATE ni DELETE, ni para el admin**. Se verificó que no rompe mover órdenes: la app
+  inserta el evento con `created_by = me.id` en sus dos sitios y nunca lo edita/borra.
+
+**Lo mismo, por módulo, en HR:**
+- `recruiting.settings` → write **solo el admin de recruiting** (`current_recruiting_role() in
+  ('admin','manager')`), **no** `is_admin()` de Deliveries. Cada módulo tiene su propio admin;
+  la base lo respeta. Hoy solo dos personas tienen `recruiting_role`, ambas admin, así que no
+  rompe a nadie, y queda a prueba de un futuro reclutador no-admin.
+- `recruiting.stage_history` → **solo lectura desde cliente**. Lo escribe el trigger
+  `recruiting.log_stage_change` (**SECURITY DEFINER**, salta RLS) y siempre estampa
+  `changed_by = auth.uid()`; la app nunca lo inserta a mano. Verificado en vivo (con
+  `ROLLBACK`): tras bloquear el INSERT del cliente, cambiar el estado de un candidato **sigue**
+  agregando su fila de historial (el trigger no depende de la política).
+
+**Ya estaban bien, no se tocan:** `public.security_events` (append-only desde D-039),
+`timetracker.settings` (`is_timetracker_admin()`), `timetracker.audit` y `clockin.audit_log`
+(append-only).
+
+**Fuera del alcance, flaggeado a propósito (no se lockeó a ciegas):**
+- `clockin.employee_settings` / `timetracker.employee_settings` — **no** son la pantalla de
+  Ajustes del módulo: son preferencias **por empleado**, que el propio usuario edita
+  (`id = auth.uid()`). Forzarlas a admin rompería a la persona guardando lo suyo.
+- `clockin.notes_log` — sus notas se **editan por su autor** por diseño (`notes_rw_self`);
+  append-only contradiría esa UX.
+- ERP (`erp.audit_log`, `price_history`, `sales_history`, `qoh_alert_log`,
+  `qoh_reconcile_log`) — hoy `ALL has_erp_access()`. ERP tiene **su propio modelo de rol**
+  (`erp.current_app_role()`) y la garantía de costos (#29); `qoh_reconcile_log` podría
+  actualizar filas por diseño. Se deja como **A-2c-erp**, un pase dedicado con el escritor
+  trazado, no un lock ciego.
+
+### Sin subida de versión de app
+
+Cambio de base, no de código: el bundle del cliente es idéntico y sus flujos legítimos no
+cambian (verificado con la matriz). Se sube solo `package.json`, no `APP_VERSIONS` — misma regla
+que D-177/D-179, ahora **escrita como excepción explícita** en `CLAUDE.md` (paso 3 del flujo):
+un cambio solo-de-base no fuerza refresh del cliente (D-029/D-087).
