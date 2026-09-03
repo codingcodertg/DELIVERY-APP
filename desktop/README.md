@@ -45,13 +45,22 @@ cd desktop
 npm run dist
 ```
 
-Deja un `.exe` en `desktop/dist/`. Es un instalador NSIS **por usuario** (no pide permisos de
+Deja `desktop/dist/RDZ Hub Setup 1.0.0.exe` — unos 78 MB, porque el instalador trae Electron
+entero (el sitio no, ese se carga en vivo). Es un instalador NSIS **por usuario** (no pide permisos de
 administrador), con acceso directo en el escritorio y en el menú de inicio.
 
 ### El icono
 
-Falta `build/icon.ico` — un `.ico` de 256×256. Sin él, `electron-builder` usa el icono por
-defecto de Electron, que es un átomo gris y no dice nada. Ponlo ahí antes de repartirlo.
+`build/icon.ico` — de la misma familia que el de Deliveries (`public/icon.svg`): mismo fondo,
+misma tipografía, misma barra ámbar; solo cambia la palabra de abajo, que es lo único que de
+verdad distingue una app de otra en la barra de tareas.
+
+La fuente legible es `build/icon.svg`. El `.ico` se genera de ahí y lleva **seis tamaños
+dentro** (16 a 256): Windows usa el pequeño en la barra de tareas y el grande en el
+escritorio, y con un solo tamaño el que no encaja se ve escalado y sucio.
+
+Si algún día cambia el diseño, se edita el `.svg` y se vuelve a generar el `.ico` con los
+mismos seis tamaños.
 
 ### Firma
 
