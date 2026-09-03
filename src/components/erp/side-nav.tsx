@@ -184,7 +184,13 @@ export function SideNav({
             {signout}
           </div>
         </div>
-        <nav className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 px-2 py-1.5 text-sm">
+        {/* Envuelve en vez de cortar (D-175, patrón de D-055). `overflow-x-auto` escondía
+            media barra detrás de un scroll horizontal que en un móvil nadie descubre; con
+            `flex-wrap` las pestañas bajan de línea. `min-w-0` es la otra mitad del patrón:
+            un flex item mide por defecto lo que su hijo más ancho, y sin esto la fila se
+            niega a encoger por debajo de la pestaña más larga. Cada enlace conserva su
+            `whitespace-nowrap`: se parte la fila, no la palabra. */}
+        <nav className="flex min-w-0 flex-wrap items-center gap-1 border-t border-slate-100 px-2 py-1.5 text-sm">
           {items
             .concat(analyticsItems)
             .map((i) => (

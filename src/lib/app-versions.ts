@@ -21,7 +21,7 @@ export const APP_VERSIONS = {
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.3.11",
+  erp: "0.3.12",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;
