@@ -113,6 +113,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
   const [authGone, setAuthGone] = useState(false);
+  /**
+   * Por qué se quedó vacía la pantalla (D-171).
+   *
+   * `loadFailedRef` ya existía, pero es un ref y solo lo miraba el reintento: si la carga
+   * fallaba sin que la sesión estuviera muerta —un 401 de permisos, la red, un error que
+   * devuelve la base— la persona veía **el módulo vacío y mudo**, y tras cinco reintentos
+   * se rendía sin decir nada. Eso pasó, y diagnosticarlo costó ir a la base a comprobar
+   * que los datos estaban ahí.
+   *
+   * Ahora el motivo se guarda y se enseña. Un módulo vacío que explica por qué está vacío
+   * se arregla en un minuto; uno mudo se arregla preguntando.
+   */
+  const [fallo, setFallo] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -184,6 +197,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // sesión aparezca — que es lo que pasa un instante después al hidratar.
       if (!(await ensureSession())) {
         loadFailedRef.current = true;
+        setFallo("no-session");
         return;
       }
       const [s, q, t, cf, p, c, co, j, st, at, sh, qs] = await Promise.all([
@@ -241,11 +255,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // sin lanzar nada, así que Promise.all resolvía tan tranquilo, los setters se
       // saltaban por `if (x.data)` y la pantalla quedaba vacía y "lista". Ese es el
       // camino exacto del 401 anónimo: ni un error visible, ni un reintento.
-      const fallo = [s, q, t, cf, p, c, co, j, st, at, sh, qs].some((r) => r && "error" in r && r.error);
-      loadFailedRef.current = fallo;
-      if (!fallo) retriesRef.current = 0;
-    } catch {
+      // El PRIMER error, con su mensaje. Antes solo se sabía que "algo" falló, y el mensaje
+      // —que es el que dice si fue permisos, red o esquema— se tiraba a la basura.
+      const primero = [s, q, t, cf, p, c, co, j, st, at, sh, qs]
+        .find((r) => r && "error" in r && r.error) as { error?: { message?: string } } | undefined;
+      loadFailedRef.current = !!primero;
+      setFallo(primero ? (primero.error?.message ?? "error") : null);
+      if (!primero) retriesRef.current = 0;
+    } catch (e) {
       loadFailedRef.current = true;
+      setFallo((e as Error)?.message || "network");
     } finally {
       setReady(true);
     }
@@ -847,6 +866,18 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       {children}
       {toast && <div className="toast">{toast}</div>}
       {authGone && <SessionExpired />}
+      {/* Vacío pero explicado (D-171). Solo cuando la sesión NO está muerta: para eso ya
+          está SessionExpired, y dos avisos a la vez sobre lo mismo se leen como un error
+          del aviso. El botón reintenta al momento en vez de esperar al siguiente ciclo. */}
+      {!authGone && fallo && (
+        <div className="rec-load-fail">
+          <b>No se pudieron cargar los datos.</b>
+          <span>{fallo === "no-session" ? "La sesión no llegó a establecerse." : fallo}</span>
+          <button className="btn btn-sm btn-primary" onClick={() => { retriesRef.current = 0; void reloadAll(); }}>
+            Reintentar
+          </button>
+        </div>
+      )}
     </Ctx.Provider>
   );
 }

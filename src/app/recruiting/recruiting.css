@@ -243,3 +243,15 @@
   --star-off: #3a4557;
   --tab-idle: #9aa8bd;
 }
+
+/* El aviso de "no se pudo cargar" (D-171). Abajo y fijo: la pantalla vacía está arriba, y
+   un aviso metido entre el contenido se confunde con contenido. */
+.recruiting-module .rec-load-fail {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 92vw;
+  background: var(--tint-red-strong); color: var(--red);
+  border: 1px solid var(--red); border-radius: 12px;
+  padding: 10px 14px; font-size: 13px; z-index: 90;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.recruiting-module .rec-load-fail span { color: var(--ink-soft); font-size: 12px; }
