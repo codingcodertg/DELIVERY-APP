@@ -62,11 +62,25 @@ export function HomeSelector({ me }: { me: Profile }) {
             repartía por WhatsApp y la de escritorio había que pedirla, y una app
             que hay que pedir es una app que la mitad de la gente no tiene.
 
-            Se enseñan las dos a todo el mundo, con su "para quién" delante.
+            Se enseñan las tres a todo el mundo, con su "para quién" delante.
             Esconderle la de choferes a la oficina obligaría a pedirla de nuevo
             el día que un gerente quiera probarla; decir para quién es basta, y
-            además explica el permiso de GPS antes de instalarla, no después. */}
-        <div className="hub-tools-label">{t("Installable apps", "Apps para instalar")}</div>
+            además explica el permiso de GPS antes de instalarla, no después.
+
+            **Plegado por defecto** (D-169). Cada app ocupa cuatro líneas —nombre,
+            descripción, para quién, y el aviso— y tres apps empujaban el botón de
+            salir fuera de la pantalla en un móvil. Se instala una vez y se abre el
+            hub todos los días: lo de todos los días manda.
+
+            `<details>` del navegador, como en el resto de la casa: recuerda el
+            foco, se busca dentro con Ctrl+F aunque esté cerrado, y no hay nada
+            escrito que pueda fallar. El número al lado dice que hay algo dentro,
+            que si no un título plegado se lee como un título y nadie lo toca. */}
+        <details className="hub-apps">
+          <summary className="hub-tools-label hub-apps-summary">
+            {t("Installable apps", "Apps para instalar")}
+            <span className="hub-apps-count">{INSTALLABLE_APPS.length}</span>
+          </summary>
         {INSTALLABLE_APPS.map((a) => {
           const aviso = lang === "es" ? a.warn_es : a.warn_en;
           return (
@@ -101,6 +115,7 @@ export function HomeSelector({ me }: { me: Profile }) {
             </a>
           );
         })}
+        </details>
 
         {/* Signing out from the hub. Every module's own topbar has this, but the hub sits
             above all of them — without it, leaving meant entering an app you did not want

@@ -557,6 +557,26 @@ table.orders th { text-align: left; }
    que hay que saber ANTES de pulsar: plataforma, peso, para quién es y qué va a decir
    Windows. Descubrir cualquiera de esas cuatro cosas a mitad de una descarga es peor que
    leerlas antes. */
+/* La sección plegada (D-169). El resumen tiene que PARECER pulsable: un título que se
+   pliega y uno que no se ven igual, y el que se pliega se queda sin abrir para siempre. De
+   ahí el cursor, el triángulo y el número de al lado. */
+.hub-apps { margin-top: 6px; }
+.hub-apps-summary {
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  list-style: none; user-select: none;
+}
+.hub-apps-summary::-webkit-details-marker { display: none; }
+.hub-apps-summary::before {
+  content: "▸"; font-size: 10px; color: var(--gray); transition: transform .15s ease;
+}
+.hub-apps[open] .hub-apps-summary::before { transform: rotate(90deg); }
+.hub-apps-summary:hover { color: var(--accent); }
+.hub-apps-count {
+  font-size: 10px; font-weight: 700; color: var(--ink-soft);
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0 6px; letter-spacing: 0;
+}
+
 .hub-app-row { align-items: flex-start; }
 .hub-app-meta { font-weight: 400; font-size: 11px; color: var(--gray); margin-left: 8px; }
 .hub-app-who { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
