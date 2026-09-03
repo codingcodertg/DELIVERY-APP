@@ -14,14 +14,14 @@
 // starting point, not manufactured continuity.
 export const APP_VERSIONS = {
   deliveries: "1.55.1",
-  recruiting: "0.12.2",
+  recruiting: "0.13.0",
   timetracker: "0.49.7",
   clockin: "0.38.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.3.10",
+  erp: "0.3.11",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

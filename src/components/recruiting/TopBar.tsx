@@ -29,7 +29,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
 
   return (
     <div className="topbar">
-      <h1>{settings.app_name || "RECRUIT·HN"}</h1>
+      <h1>{settings.app_name || "RTG·HR"}</h1>
       {/* Same fix as deliveries' own TopBar.tsx, same reason: min-width:
           auto (the flex default) refuses to shrink this row below its
           widest unbreakable child, pushing siblings off-screen instead of

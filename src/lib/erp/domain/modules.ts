@@ -11,7 +11,7 @@ export type ModuleKey = (typeof MODULES)[number];
 
 export const MODULE_LABEL: Record<ModuleKey, string> = {
   deliveries: "Deliveries",
-  recruiting: "Recruiting",
+  recruiting: "HR Management", // D-145; este mapa duplica MODULES de lib/constants.ts (B-4)
   timetracker: "Time Tracker",
 };
 

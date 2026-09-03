@@ -22,7 +22,8 @@ import "../recruiting.css";
 // settings.app_name for the tab too would need an async generateMetadata()
 // querying the DB on every request; not worth it for a static string.
 export const metadata: Metadata = {
-  title: "RDZ Recruitment",
+  // "HR Management" desde D-145; la pestaña del navegador se quedó con el nombre viejo (B-8).
+  title: "RDZ HR Management",
 };
 
 // The recruiting module's own shell — a sibling of (app), not nested under
