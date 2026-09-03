@@ -329,9 +329,14 @@ export const HUB_TOOLS: HubTool[] = [
 // por WhatsApp y a mano, y la app de escritorio no tenía dónde vivir: quien la quería tenía
 // que pedirla. Una app que hay que pedir es una app que la mitad de la gente no tiene.
 //
-// **Ninguna de las dos trae el sitio dentro**: las dos cargan la web en vivo. Por eso esto
-// no se actualiza casi nunca — un despliegue llega solo a todo el mundo, y solo hace falta
-// un instalador nuevo si cambia la cáscara en sí (icono, permisos, la ventana).
+// **Ninguna trae el sitio dentro**: las tres cargan la web en vivo. Por eso esto no se
+// actualiza casi nunca — un despliegue llega solo a todo el mundo, y solo hace falta un
+// instalador nuevo si cambia la cáscara en sí (icono, permisos, la ventana).
+//
+// La de Time Tracker es la excepción en una cosa: **se actualiza sola** (electron-updater
+// contra su propio repositorio). Las otras dos no, y no es un olvido — auto-actualizar
+// exige un servidor de publicación y firma, y es mucho aparato para una ventana que apenas
+// cambia. La de Time Tracker ya lo tenía montado de antes.
 //
 // `who` no es decoración: la de Android pide **GPS permanente** y la de escritorio no. Decir
 // para quién es cada una evita que alguien de oficina instale la del chofer y conceda un
@@ -364,12 +369,30 @@ export const INSTALLABLE_APPS: InstallableApp[] = [
     who_en: "Office, sales, warehouse and managers",
     who_es: "Oficina, ventas, almacén y gerentes",
     size: "78 MB",
-    // En GitHub Releases y no en el almacenamiento de Supabase: allí el plan gratuito corta
-    // en 50 MB y esto pesa 78. El repositorio es público, así que el enlace funciona sin
-    // credenciales — que es justo lo que hace falta para que cualquiera lo instale.
-    url: "https://github.com/codingcodertg/DELIVERY-APP/releases/download/hub-desktop-v1.0.0/RDZ-Hub-Setup-1.0.0.exe",
+    // Va por /api/download, que pregunta cuál es la última y redirige (D-168). El fichero
+    // está en GitHub Releases y no en el almacenamiento de Supabase porque allí el plan
+    // gratuito corta en 50 MB y esto pesa 78; el repositorio es público, así que la descarga
+    // funciona sin credenciales.
+    url: "/api/download/hub",
     warn_en: "Windows will say \u201cWindows protected your PC\u201d the first time \u2014 press More info \u2192 Run anyway. It is not a virus; the installer just isn\u2019t signed with a paid certificate.",
     warn_es: "La primera vez Windows dir\u00e1 \u201cWindows protegi\u00f3 su PC\u201d \u2014 pulse M\u00e1s informaci\u00f3n \u2192 Ejecutar de todas formas. No es un virus: el instalador no est\u00e1 firmado con un certificado de pago.",
+  },
+  {
+    key: "timetracker-desktop",
+    emoji: "⏱",
+    name: "Time Tracker",
+    platform_en: "Windows", platform_es: "Windows",
+    desc_en: "Track project time with screenshots and activity — what the web page cannot do.",
+    desc_es: "Cronometrar proyectos con capturas y actividad — lo que la web no puede hacer.",
+    who_en: "Whoever is paid by tracked time (remote)",
+    who_es: "Quien cobra por tiempo cronometrado (remoto)",
+    size: "78 MB",
+    // Su propio repositorio, que publica ahí desde antes de todo esto. El nombre del
+    // fichero lleva la versión dentro, así que el enlace NO puede ser fijo: /api/download
+    // pregunta cuál es la última. Ver la 168.
+    url: "/api/download/timetracker",
+    warn_en: "Takes a screenshot every ~10 minutes and measures keyboard and mouse activity, only while the timer is running. It updates itself.",
+    warn_es: "Toma una captura cada ~10 minutos y mide la actividad de teclado y ratón, solo mientras el cronómetro corre. Se actualiza sola.",
   },
   {
     key: "deliveries-android",

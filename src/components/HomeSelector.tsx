@@ -73,8 +73,10 @@ export function HomeSelector({ me }: { me: Profile }) {
             <a
               key={a.key}
               href={a.url}
-              // Descarga directa, en otra pestaña: el hub no se pierde de vista mientras
-              // baja un fichero de 78 MB. `rel` porque el destino es otro dominio.
+              // En otra pestaña: el hub no se pierde de vista mientras baja un fichero de
+              // 78 MB. Dos de las tres pasan por /api/download, que redirige a GitHub — de
+              // ahí el `rel`, aunque el href de aquí sea relativo: quien acaba recibiendo
+              // el clic es otro dominio.
               target="_blank"
               rel="noopener noreferrer"
               className="hub-tool-row hub-app-row"
