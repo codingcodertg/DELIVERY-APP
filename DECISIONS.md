@@ -7426,3 +7426,66 @@ Verificado: 0 quedan sin analizar. Sin subida de versión de app a propósito �
 base, no hay bundle nuevo que un cliente deba recoger—. Supabase corre autoanalyze, así que se re-hace
 solo a medida que las tablas acumulan escrituras; el `-1` era porque nunca habían tenido actividad
 suficiente para dispararlo.
+
+---
+
+## D-179 · RLS por fila en `public.profiles` — la identidad compartida se cierra por la base
+
+**Fecha:** 2026-09-03 · **Migración:** 099 · **Origen:** auditoría `docs/AUDIT-2026-09.md`, A-2a + A-3
+
+`public.profiles` tenía `auth write profiles` = **ALL USING true CHECK true**: cualquier
+autenticado podía editar y **borrar** la fila de cualquier otro. Los `guard_*` protegían las
+columnas de rol/acceso, no la fila, y dejaban tres columnas privilegiadas sin guardián:
+`permissions`, `store`, `username`.
+
+**El hueco venía de un supuesto de Etapa 1.** D-053/D-057 construyeron el diálogo de Usuarios
+del hub y separaron cada columna a su guard, **dando por hecho que solo la app escribe a
+`profiles`**. La fusión del ERP (D-090) heredó esa política `ALL USING true` sin revisarla. La
+auditoría midió que el supuesto era falso: un vendedor editó el `full_name` del **admin**, se
+auto-otorgó `permissions`, y —sobre un perfil poco referenciado— lo borró, con cascada a 27 FKs
+(horas, nómina, capturas).
+
+**Por qué dos cosas y no una.** RLS filtra FILAS, no columnas: una política no puede decir
+"solo cambió `full_name`". Así que se necesitan dos piezas distintas:
+- **RLS por fila** (`USING (id = auth.uid() OR is_admin())`) para que un no-admin solo toque su
+  propia fila. Sola no basta: dejaría a un no-admin cambiar sus **propias** columnas
+  privilegiadas.
+- **Un guard de columna** (trigger nuevo `guard_profile_privileged_columns`) que impide a un
+  no-admin cambiar `permissions`/`store`/`username` de su fila. Solo no basta: no frena editar
+  ni borrar filas ajenas.
+
+Se añadió un guard **nuevo** en vez de tocar los cuatro existentes — añadir es más seguro que
+reescribir. `is_admin()` habla el mismo idioma que los guards (`current_user_role() = 'admin'`),
+para que RLS y triggers no discrepen.
+
+**DELETE prohibido desde cliente.** No hay política de DELETE → denegado para `authenticated`.
+Ningún camino de cliente borra `profiles` (grep vacío); el borrado real va por service-role
+sobre `auth.users`, y `profiles_id_fkey ON DELETE CASCADE` se lleva la fila. La cascada sigue
+siendo la vía correcta; lo que se cierra es que la disparara un compañero cualquiera.
+
+**Verificado antes y después** con la matriz rol × acción (usuarios reales + sesiones
+sintéticas para combos que hoy no existen — chofer con módulos, almacén con `permissions`,
+contabilidad con HR—, todo con `ROLLBACK`). ANTES: un no-admin editaba ajenos y se auto-otorgaba
+`permissions`/`store`/`username`. DESPUÉS: propio `full_name` sí; `permissions`/`store`/
+`username`/`role` bloqueados por guard; fila ajena "sin efecto" (RLS); DELETE "sin efecto" para
+todos. Y los seis flujos reales siguen: listas de los 4 módulos, el diálogo de admin
+escribiendo de todos, asignación de chofer, reclutadores, empleados de TT, y el alta por
+`/api/invite` (`handle_new_user` es SECURITY DEFINER → salta RLS y sigue creando el perfil).
+
+**Prerrequisito cumplido:** `pg_dump` completo de producción verificado con `pg_restore --list`
+antes de tocar nada (F-3 sigue diferido; este dump fue el respaldo de la operación).
+
+### Lo que queda fuera, a propósito
+
+**A-2g diferido.** El SELECT sigue amplio (`USING true`): todos leen todos los perfiles,
+incluidos `username` y `permissions`. No se restringe aquí porque `permissions` la lee la
+**propia app** para las capacidades (`hasCap`/`extraCaps`) y el diálogo de admin las lee de
+todos; un `REVOKE` de columna rompería ambas cosas. La vía —una vista sin esas columnas para
+las listas de no-admin— es su propio cambio. Bajo riesgo: `username` es un handle, no un
+secreto.
+
+### Sin subida de versión de app
+
+Es un cambio de base, no de código: el bundle del cliente es idéntico y sus flujos legítimos no
+cambian (verificado). Subir `APP_VERSIONS` diría en falso a los clientes que hay algo que
+recoger. Se sube solo `package.json` (hito del repo), como en D-177.

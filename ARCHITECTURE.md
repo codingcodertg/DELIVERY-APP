@@ -175,7 +175,10 @@ warehouse (fulfilling/ready/delivered) without a manager approving it first.
 3. **Local demo:** `NEXT_PUBLIC_LOCAL_MODE=true`, `npm run dev`. No backend needed.
 4. **Supabase:** create project → run `supabase/schema.sql` then `supabase/roles.sql`
    in SQL Editor. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`. First user to sign up becomes admin.
+   `SUPABASE_SERVICE_ROLE_KEY`. The first user is **not** made admin automatically —
+   `handle_new_user` sets `role` from the invite metadata (default `sales`); promote the
+   first admin by hand in the DB. (The timetracker "first signup becomes admin" trigger was
+   deliberately dropped in the merge — see the note further down. Corrected 2026-09-03, D-179.)
    For an existing DB, also run the files in `supabase/migrations/` in order.
 5. Optional live traffic: set `GOOGLE_MAPS_API_KEY` or `MAPBOX_TOKEN` (else OSM, no traffic).
 6. Deploy to Vercel with the same env vars; add the Vercel URL to Supabase Auth redirect allow-list.
