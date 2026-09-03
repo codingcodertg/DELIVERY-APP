@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
-import { accessibleModules, HUB_TOOLS, roleHome } from "@/lib/constants";
+import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
@@ -53,6 +53,52 @@ export function HomeSelector({ me }: { me: Profile }) {
             ))}
           </>
         )}
+
+        {/* Las apps que se instalan (D-167).
+            -------------------------------------------------------------------
+            Debajo de los módulos y de las herramientas, porque no es a lo que se
+            viene: se entra al hub a abrir algo, y esto se busca una vez en la
+            vida. Pero tiene que estar EN ALGÚN SITIO — hasta ahora el APK se
+            repartía por WhatsApp y la de escritorio había que pedirla, y una app
+            que hay que pedir es una app que la mitad de la gente no tiene.
+
+            Se enseñan las dos a todo el mundo, con su "para quién" delante.
+            Esconderle la de choferes a la oficina obligaría a pedirla de nuevo
+            el día que un gerente quiera probarla; decir para quién es basta, y
+            además explica el permiso de GPS antes de instalarla, no después. */}
+        <div className="hub-tools-label">{t("Installable apps", "Apps para instalar")}</div>
+        {INSTALLABLE_APPS.map((a) => {
+          const aviso = lang === "es" ? a.warn_es : a.warn_en;
+          return (
+            <a
+              key={a.key}
+              href={a.url}
+              // Descarga directa, en otra pestaña: el hub no se pierde de vista mientras
+              // baja un fichero de 78 MB. `rel` porque el destino es otro dominio.
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hub-tool-row hub-app-row"
+            >
+              <span className="hub-tool-emoji">{a.emoji}</span>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span className="hub-tool-label">
+                  {a.name}
+                  <span className="hub-app-meta">
+                    {lang === "es" ? a.platform_es : a.platform_en} · {a.size}
+                  </span>
+                </span>
+                <span className="hub-tool-desc" style={{ display: "block" }}>
+                  {lang === "es" ? a.desc_es : a.desc_en}
+                </span>
+                <span className="hub-app-who">
+                  {t("For:", "Para:")} {lang === "es" ? a.who_es : a.who_en}
+                </span>
+                {aviso && <span className="hub-app-warn">⚠ {aviso}</span>}
+              </span>
+              <span className="hub-app-dl">⬇</span>
+            </a>
+          );
+        })}
 
         {/* Signing out from the hub. Every module's own topbar has this, but the hub sits
             above all of them — without it, leaving meant entering an app you did not want

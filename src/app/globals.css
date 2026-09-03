@@ -553,6 +553,21 @@ table.orders th { text-align: left; }
 .hub-tool-label { font-weight: 700; font-size: 13px; }
 .hub-tool-desc { font-size: 11px; color: var(--ink-soft); }
 
+/* Las apps que se instalan (D-167). Misma fila que una herramienta, pero con sitio para lo
+   que hay que saber ANTES de pulsar: plataforma, peso, para quién es y qué va a decir
+   Windows. Descubrir cualquiera de esas cuatro cosas a mitad de una descarga es peor que
+   leerlas antes. */
+.hub-app-row { align-items: flex-start; }
+.hub-app-meta { font-weight: 400; font-size: 11px; color: var(--gray); margin-left: 8px; }
+.hub-app-who { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+.hub-app-warn {
+  display: block; font-size: 10.5px; line-height: 1.35; margin-top: 5px;
+  color: #7a5a00; background: #fdf3d8; border: 1px solid #eacb7a;
+  border-radius: 8px; padding: 5px 8px;
+}
+:root[data-theme="dark"] .hub-app-warn { color: #ffcf7a; background: #3a2f12; border-color: #5a4415; }
+.hub-app-dl { font-size: 16px; color: var(--accent); align-self: center; }
+
 /* ---------- Notification bell ---------- */
 .notif-wrap { position: relative; display: inline-flex; }
 .notif-btn { position: relative; font-size: 15px; line-height: 1; }

@@ -1,4 +1,5 @@
 import type { Stage, UserRole } from "./types";
+import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import type { Lang } from "./prefs";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
@@ -319,6 +320,70 @@ export const HUB_TOOLS: HubTool[] = [
     desc_en: "Manage team access across modules",
     desc_es: "Gestiona el acceso del equipo entre módulos",
     visible: (me) => me.role === "admin",
+  },
+];
+
+// ---- Apps que se instalan --------------------------------------------------
+//
+// El hub las ofrece para descargar (D-167). Hasta ahora el APK de los choferes se repartía
+// por WhatsApp y a mano, y la app de escritorio no tenía dónde vivir: quien la quería tenía
+// que pedirla. Una app que hay que pedir es una app que la mitad de la gente no tiene.
+//
+// **Ninguna de las dos trae el sitio dentro**: las dos cargan la web en vivo. Por eso esto
+// no se actualiza casi nunca — un despliegue llega solo a todo el mundo, y solo hace falta
+// un instalador nuevo si cambia la cáscara en sí (icono, permisos, la ventana).
+//
+// `who` no es decoración: la de Android pide **GPS permanente** y la de escritorio no. Decir
+// para quién es cada una evita que alguien de oficina instale la del chofer y conceda un
+// permiso de ubicación de todo el día que no necesita. Se enseñan las dos a todo el mundo
+// —esconder una obliga a preguntar por ella, que es el problema que esto viene a resolver—
+// pero cada una dice a quién le toca.
+export interface InstallableApp {
+  key: string;
+  emoji: string;
+  name: string;
+  platform_en: string; platform_es: string;
+  desc_en: string; desc_es: string;
+  who_en: string; who_es: string;
+  /** Tamaño aproximado, en texto. Se dice ANTES de pulsar: 78 MB con datos del móvil no es
+   *  lo mismo que 3 MB, y descubrirlo a medias es peor que saberlo antes. */
+  size: string;
+  url: string;
+  /** Lo que Windows enseña la primera vez, para que nadie lo tome por un virus. */
+  warn_en?: string; warn_es?: string;
+}
+
+export const INSTALLABLE_APPS: InstallableApp[] = [
+  {
+    key: "hub-desktop",
+    emoji: "🖥",
+    name: "RDZ Hub",
+    platform_en: "Windows", platform_es: "Windows",
+    desc_en: "The hub in its own window, without a browser.",
+    desc_es: "El hub en su propia ventana, sin navegador.",
+    who_en: "Office, sales, warehouse and managers",
+    who_es: "Oficina, ventas, almacén y gerentes",
+    size: "78 MB",
+    // En GitHub Releases y no en el almacenamiento de Supabase: allí el plan gratuito corta
+    // en 50 MB y esto pesa 78. El repositorio es público, así que el enlace funciona sin
+    // credenciales — que es justo lo que hace falta para que cualquiera lo instale.
+    url: "https://github.com/codingcodertg/DELIVERY-APP/releases/download/hub-desktop-v1.0.0/RDZ-Hub-Setup-1.0.0.exe",
+    warn_en: "Windows will say \u201cWindows protected your PC\u201d the first time \u2014 press More info \u2192 Run anyway. It is not a virus; the installer just isn\u2019t signed with a paid certificate.",
+    warn_es: "La primera vez Windows dir\u00e1 \u201cWindows protegi\u00f3 su PC\u201d \u2014 pulse M\u00e1s informaci\u00f3n \u2192 Ejecutar de todas formas. No es un virus: el instalador no est\u00e1 firmado con un certificado de pago.",
+  },
+  {
+    key: "deliveries-android",
+    emoji: "📱",
+    name: "RDZ Deliveries",
+    platform_en: "Android", platform_es: "Android",
+    desc_en: "Deliveries on the phone, with background GPS while on the clock.",
+    desc_es: "Deliveries en el teléfono, con GPS en segundo plano mientras se está fichado.",
+    who_en: "Drivers",
+    who_es: "Choferes",
+    size: "3.4 MB",
+    url: APK_DOWNLOAD_URL,
+    warn_en: "Asks for always-on location. It only reports between clocking in and clocking out.",
+    warn_es: "Pide ubicación permanente. Solo reporta entre marcar entrada y marcar salida.",
   },
 ];
 
