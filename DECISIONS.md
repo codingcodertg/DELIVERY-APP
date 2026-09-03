@@ -7517,6 +7517,13 @@ real + sintética). Cierra dos huecos que la auditoría **midió** en cuatro tab
   ('admin','manager')`), **no** `is_admin()` de Deliveries. Cada módulo tiene su propio admin;
   la base lo respeta. Hoy solo dos personas tienen `recruiting_role`, ambas admin, así que no
   rompe a nadie, y queda a prueba de un futuro reclutador no-admin.
+
+  > **Nota (elección consciente) — 2026-09-03:** el write incluye **`manager` además de
+  > `admin`** a propósito, para igualar el tier admin del módulo de recruiting
+  > (`current_recruiting_role() in ('admin','manager')`, el mismo que ya usan otros guards de
+  > HR). No hay ningún `manager` en la base todavía (solo 2 `admin`), así que hoy es indistinto.
+  > **Pendiente de confirmación del dueño:** si quiere que Ajustes de HR sea **solo `admin`**,
+  > se quita `'manager'` de las tres políticas de `recruiting.settings` — cambio de una línea.
 - `recruiting.stage_history` → **solo lectura desde cliente**. Lo escribe el trigger
   `recruiting.log_stage_change` (**SECURITY DEFINER**, salta RLS) y siempre estampa
   `changed_by = auth.uid()`; la app nunca lo inserta a mano. Verificado en vivo (con
