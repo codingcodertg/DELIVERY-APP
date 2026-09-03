@@ -7080,3 +7080,349 @@ porque trabaja en pantalla ancha y esos tres son justo los datos con los que com
 Las dos primeras veces traté un problema de **cuánto cabe** como un problema de **dónde va**. Se
 puede reordenar una cabecera indefinidamente sin arreglar que su contenido no quepa; lo único que
 cambia es por dónde se rompe.
+
+---
+
+## Nota de recuperación (D-178) — el hueco D-154…D-177
+
+Estas entradas se escribieron **el 2026-09-03**, en bloque, para cerrar un hueco que encontró la
+auditoría (hallazgo F-1): entre el 1 y el 3 de septiembre se hicieron 24 cambios de
+comportamiento que citaban D-154 a D-177 en sus commits y en los comentarios del código, pero
+**nunca llegaron a este fichero**. La regla del proyecto es que cada cambio de comportamiento
+deja aquí su entrada en la misma sesión; no se cumplió, y esto lo repara.
+
+No se reescribe la historia: cada entrada lleva su fecha real (la del commit) y su razón tal como
+se registró entonces, no como se ve hoy. La fuente es el mensaje de cada commit, que sí se
+escribió con el porqué.
+
+**Y un hueco más viejo:** **D-124 no existe**. La numeración salta de D-123 a D-125 (verificado
+con grep sobre este fichero). No es una entrada borrada —el historial no se borra— sino un número
+que nunca se usó. Se deja constancia para que nadie lo busque.
+
+---
+
+## D-154 · ESLint, de verdad, y dos restos de la fusión
+
+**Fecha:** 2026-09-01 · **Versión:** v1.83.0 (repo) · **Pedido por:** parte de la limpieza post-fusión
+
+El `package.json` tenía `"lint": "next lint"` que **no hacía nada**: sin configuración, `next lint`
+abre un asistente interactivo y se queda esperando. En CI o en una sesión sin terminal, un comando
+que ni pasa ni falla. Se montó ESLint con configuración plana y `eslint-config-next`.
+
+`react-hooks/exhaustive-deps` queda en **aviso, no error**, a propósito: la primera pasada encontró
+18, todos anteriores a hoy. Ponerlo en error convierte el primer día del linter en un build roto, y
+entonces lo que pasa no es que alguien arregle 18 hooks, es que alguien apaga el linter. Sube a
+error cuando estén limpios.
+
+Dos cosas más en el mismo commit: **`outputFileTracingRoot`** —Next tomaba la carpeta de usuario
+como raíz del workspace por un `package-lock.json` suelto ahí, y esa raíz decide qué ficheros se
+empaquetan para las funciones—; y **fuera `local_fee_list`, `local_fee_discount`,
+`nonlocal_fee_brackets`** de `types.ts`, campos que no leía nadie (descubierto en D-144).
+
+## D-155 · La pestaña con el bundle viejo se recarga sola
+
+**Fecha:** 2026-09-01 · **Versión:** v1.51.0 (deliveries) · **Reportado por:** Andrés (*"cant read
+length"* al arrancar)
+
+Descartado primero lo obvio, midiéndolo: los ajustes de la base **reemplazan** los valores por
+defecto en `data-provider.tsx:493`, así que una columna nula dejaría a la app leyendo `.length` de
+`null`. Se consultó la tabla: las seis columnas de tipo lista son NOT NULL, sin filas nulas. No era
+eso.
+
+Lo que encaja con las tres señales —pasó una vez, un día de despliegues continuos, y recargar lo
+arregló— es el **bundle viejo**: al desplegar cambian los hashes, y una pestaña abierta desde antes
+pide un fichero que ya no existe. Ahora el `ErrorBoundary` lo reconoce por el mensaje (no hay código
+de error; cada motor lo redacta distinto, de ahí la lista con su prueba en `stale-chunk.ts`) y
+recarga sola, con **ventana de 10 minutos** —aquí se despliega varias veces al día— y nunca dos
+veces seguidas, que es cuando el fallo no era el bundle viejo.
+
+Honestamente: no está confirmado con la traza del fallo real; Sentry no era legible. Si vuelve, el
+botón *Copy details* de la tarjeta lo confirma o lo desmiente.
+
+## D-156 · El guard de rutas tenía dos agujeros, y por eso llevaba parado
+
+**Fecha:** 2026-09-01 · **Versión:** v1.51.1 (deliveries)
+
+El paso 2 del middleware (guardar rutas, no solo refrescar sesión) llevaba escrito y desconectado
+desde D-119. Al ir a conectarlo, la prudencia resultó justificada: tal cual, rompía dos cosas.
+
+1. **`/track/:id`** —la página que se le manda al cliente por SMS— no estaba en las públicas: lo
+   habría mandado a `/login`, y el enlace ya enviado a gente de fuera sería una puerta cerrada.
+2. Las rutas **`/api/`** tampoco: una llamada de datos sin sesión habría recibido el HTML del login
+   con estado 200, y el `fetch` lo leería como JSON, fallando en un sitio sin relación.
+
+Se añadió `isPublicPath()` con las dos, más `reset-password` (se llega desde un correo, sin sesión)
+y `/no-access`. Con prueba, porque una lista de rutas solo la defiende un test. **El guard sigue sin
+conectar**: cambiar quién entra a la app no se empuja a ciegas al final de una sesión.
+
+## D-157 · La 088 no podía aplicarse; la 095 hace la parte segura
+
+**Fecha:** 2026-09-01 · **Versión:** v0.38.0 (clockin) / migración 095
+
+La 088 llevaba meses sin aplicar y **no por descuido: era inaplicable.** Su primer `UPDATE` concede
+el módulo `timetracker` a quien tenía `clockin`, y una restricción posterior
+(`profiles_timetracker_access_needs_role`) prohíbe tener el módulo sin tramo. Como una migración es
+una transacción, una fila que no cumpliera tumbaba las doce. Y había una: Patricia Hernández, con
+`clockin` y nada más, sin `timetracker_role`.
+
+De los 12 perfiles con la palabra, **11 ya tenían `timetracker` y su tramo**: para ellos borrar
+`clockin` no cambia permisos. Eso hace la 095. El duodécimo **no se toca**: hoy ya no puede fichar
+(desde 087, eso lo decide el tramo, que tiene nulo), así que decidir si vuelve a fichar es de quien
+lleva el personal, no de una migración de madrugada. La restricción queda `NOT VALID` por esa fila.
+La 088 se marca *reemplazada* en su cabecera; no se borra.
+
+## D-158 · Subir papeles al expediente de RR. HH.
+
+**Fecha:** 2026-09-01 · **Versión:** v0.11.0 (recruiting) / migración 096
+
+El expediente guardaba `file_path` desde el primer día y la pantalla ya sabía abrir un documento con
+enlace firmado. Faltaba **dónde** ponerlos. Cubo propio `hr-docs`, privado, y **no `resumes`**: dos
+razones, la segunda pesa más. `resumes` guarda currículums de candidatos —gente de fuera— y aquí van
+antidopings y amonestaciones de la plantilla; y su política deja entrar al reclutador, a quien la
+094 acaba de dejar fuera del expediente. Las políticas del cubo usan la **misma condición** que las
+tablas (admin/gerente): si se escriben distinto, un día se cambia una y la otra se queda. La subida
+va por acción de servidor —el permiso en un solo sitio, el nombre lo pone el servidor— y la ruta
+`{empleado}/{tipo}/{uuid}.ext` evita que subir dos veces una licencia pise a la anterior, que en un
+expediente es prueba de lo que se firmó entonces.
+
+## D-159 · Fichar, mi día y solicitudes, en español
+
+**Fecha:** 2026-09-01 · **Versión:** v0.44.0 (timetracker)
+
+La mitad de Time Tracker que se migró del fichaje quedó en inglés: 21 de 22 componentes sin una sola
+llamada a `t()`, ~304 cadenas. Y es la peor mitad para eso, porque ahí no entra la oficina, entra la
+cuadrilla. Esta tanda son las cuatro pantallas diarias (fichar, mi día, solicitudes, diario). La
+lista de motivos del fichaje era la que más urgía: se le pregunta a alguien por qué ficha fuera de
+su sitio, de pie y con prisa; si no entiende las opciones marca "otro", y el dato se pierde. Dos
+reglas: el `value` guardado **nunca** se traduce (con él agrupa la oficina), y el plural va en la
+frase entera, no pegando una "s" (en español cae en otro sitio). Quedan ~16 ficheros, casi todos de
+pantallas de gerente.
+
+## D-160 · A "Mi cuenta" se entra tocando tu nombre
+
+**Fecha:** 2026-09-01 · **Versión:** v0.45.0 (timetracker)
+
+Era una pestaña más, y a un admin la barra le pone quince. "Mi cuenta" es la que menos se abre —se
+entra a cambiar la contraseña o el idioma, no a diario— ocupando el sitio de Payroll o Auditoría. Se
+llega tocando el propio nombre en la barra, que es donde la gente lo busca y lo que hace el resto de
+la casa. La ruta `/timetracker/account` no cambia; los enlaces viejos siguen.
+
+## D-161 · Las fotos SÍ estaban; la pantalla abría en un día vacío
+
+**Fecha:** 2026-09-01 · **Versión:** v0.46.0 (timetracker)
+
+Reporte: "no veo las fotos importadas". Las fotos estaban: 385 (136 entrada + 112 salida + 137
+excepciones), del 10-jul al 30-ago, **cero rutas rotas** (cada `photo_path` cruzado con
+`storage.objects`). Lo que fallaba era la puerta: la pantalla abre en "hoy", y hoy no había nada. A
+las nueve de la mañana no ha fichado nadie, los lunes el fin de semana está vacío, y el archivo
+termina el 30-ago. Ahora, al abrir, si hoy no tiene fotos salta al último día que sí —una vez, y
+solo si no se ha tocado nada—. Y la pista "último día con fotos" miraba solo los fichajes; las de
+excepción son la mitad del archivo, así que un día raro quedaba invisible. Ahora mira las dos
+fuentes.
+
+## D-162 · El cubo de fotos de fichaje no tenía NINGUNA política
+
+**Fecha:** 2026-09-01 · **Versión:** v0.46.1 (timetracker) / migración 097
+
+Continuación de D-161: la pantalla seguía en "0 photos" cualquier día. Comprobado en orden: 385
+fotos, cero rutas rotas, mismo `company_id`, y —haciéndose pasar por el admin— `auth_is_manager()`
+true con 136 fichajes visibles. Todo bien hasta el último paso, firmar las URLs:
+`pg_policies` con el cubo `exception-photos` → **cero**. `storage.objects` tiene RLS encendido, y sin
+una sola política que nombre el cubo la respuesta por defecto es *no*. `createSignedUrls` devolvía
+lista vacía y la pantalla descartaba toda foto sin URL. Los otros cubos sí tenían las suyas; a este
+se le pasaron al copiar los objetos del proyecto viejo sin las reglas. Y no era solo leer: sin
+`INSERT`, fichar con foto tampoco podía subirla. Un cubo sin políticas no falla al escribirse,
+simplemente no devuelve nada — la peor forma de fallar. La ruta `{empresa}/{empleado}/{ts}` da los
+permisos sin consultar tablas. Verificado: 578 objetos visibles para el admin.
+
+## D-163 · Una excepción puede tener varios motivos, y se ve el historial
+
+**Fecha:** 2026-09-01 · **Versión:** v0.47.0 (timetracker) / migración 098
+
+Se elegía uno solo, y los datos decían que no bastaba: **56 de 78** salidas fuera de radio decían
+"otro". No es que la gente salga por motivos raros, es que sale por dos a la vez —una entrega Y de
+paso otra tienda— y al elegir uno se rinde. La única pregunta que la pantalla existe para responder
+se contestaba con un encogimiento de hombros en tres de cada cuatro casos. Columna `reasons` (array
+del mismo enum); `reason` **no se borra ni se deja de escribir** —lo leen informes, pendientes,
+exportaciones— y convertirlo en array de golpe obligaría a tocarlos todos con los que se escapen
+fallando en silencio; se escriben los dos, y se rellenaron las 145 filas viejas. En la pantalla,
+casillas en vez de desplegable (se marca de pie y con guantes), y el historial enseña todos los
+motivos y un recuento por motivo que filtra al tocarlo.
+
+## D-164 · Informes y pago se fusiona con Nómina
+
+**Fecha:** 2026-09-01 · **Versión:** v0.48.0 (timetracker)
+
+Eran dos pestañas seguidas haciendo la misma pregunta —cuánto se le paga a quién por este periodo—
+partida en dos pantallas con dos calendarios propios: comprobar un dato de la semana pasada obligaba
+a mover los dos y fiarse de que apuntaran a lo mismo. Nómina pasa a tener tres vistas sobre el mismo
+periodo. El código **no se reescribe**: sigue siendo la traducción literal de la pantalla que calcula
+la nómina de verdad, con años de correcciones dentro, y conserva su selector de periodo —cambiarle la
+fuente de la fecha en la misma tanda en que se muda es como se rompe una nómina—. `/timetracker/reports`
+queda como redirección: hay marcadores y el Electron sin barra de direcciones.
+
+## D-165 · Partes y Pago eran lo mismo; una sola vista
+
+**Fecha:** 2026-09-01 · **Versión:** v0.49.0 (timetracker)
+
+La línea entre "Partes" y "Pago" no era una línea: las dos son *pagar este periodo*. Lo que las
+distinguía era **a quién** se paga —quien ficha cobra la asistencia, quien cronometra las sesiones—
+y eso no es una pestaña, es un titular. Con tres pestañas, quien entraba a cerrar la nómina tenía que
+acordarse de pasar por dos sitios y de que en el segundo faltaba gente; olvidar uno significa que
+alguien no cobra. Queda en dos: Periodo (la foto, sin sumar, D-102) y Pago, con dos secciones
+plegables (en sitio / remoto) —la misma división que ya usaba Periodo—. Se montan al abrirse: traer
+los dos juegos de datos para enseñar uno era pagar dos veces por una pantalla diaria.
+
+## D-166 · App de escritorio para Windows que abre el hub
+
+**Fecha:** 2026-09-02 · **Versión:** desktop v1.0.0
+
+Segunda app, para toda la empresa **menos los choferes** —ellos tienen la de Android, que pide GPS
+permanente, un permiso que alguien de oficina no necesita—. No trae el sitio dentro, lo carga en
+vivo: un despliegue llega a todos sin reinstalar. **No es el cliente de Time Tracker** y no expone
+`window.ttDesktop` a propósito: ese puente captura pantallas y esconde el selector de módulos (D-076)
+—que es justo lo único que esta app viene a ofrecer— y Time Tracker creería que puede capturar sin
+nada al otro lado. Los enlaces de fuera abren en el navegador del sistema (esta ventana no tiene
+barra de direcciones ni atrás), sin conexión sale un aviso con reintentar, y la página no tiene
+acceso a Node. Icono de la misma familia que el de Deliveries, `.ico` con seis tamaños. El `.exe` no
+va firmado: SmartScreen avisará y hay que decírselo a la gente.
+
+## D-167 · Apartado "Apps para instalar" en el hub
+
+**Fecha:** 2026-09-02 · **Versión:** v1.52.0 (deliveries)
+
+El APK se repartía por WhatsApp y la de escritorio había que pedirla —y una app que hay que pedir es
+una que la mitad de la gente no tiene—. Van en el hub, debajo de módulos y herramientas (no es a lo
+que se viene; se busca una vez en la vida). Cada fila dice lo que hay que saber **antes** de pulsar:
+plataforma, peso, y **para quién** —la de Android pide GPS permanente y la de escritorio no; decirlo
+evita que alguien de oficina instale la del chofer— y el aviso de SmartScreen. Se enseñan las dos a
+todo el mundo: esconderle la de choferes a la oficina obligaría a pedirla el día que un gerente
+quiera probarla.
+
+## D-168 · Falta el Time Tracker, y los enlaces caducaban
+
+**Fecha:** 2026-09-02 · **Versión:** v1.53.0 (deliveries)
+
+El cliente de Time Tracker existía en su propio repositorio; faltaba enlazarlo. Al añadirlo apareció
+un fallo que también tenía el del hub: el nombre del instalador lleva la **versión dentro**
+(`TimeTracker-Setup-0.0.45.exe`), así que un enlace fijo da 404 en la siguiente publicación —y da
+igual que sea un 404: la persona ve que la app de la empresa no se descarga—. La ruta
+`/api/download/<app>` pregunta a GitHub cuál es la última y redirige, con respaldo a la página de
+publicaciones si la API no contesta (60 peticiones/hora por IP, y las de Vercel son compartidas), y
+cacheado una hora. El aviso de Time Tracker dice lo que hace —captura cada ~10 min mientras corre— y
+es la única de las tres que se actualiza sola.
+
+## D-169 · "Apps para instalar" se pliega, y viene plegado
+
+**Fecha:** 2026-09-02 · **Versión:** v1.53.1 (deliveries)
+
+Cada app ocupa cuatro líneas y con tres apps eso empujaba el botón de salir fuera de la pantalla en
+un móvil. Plegado por defecto: una app se instala una vez, el hub se abre a diario, y lo de diario
+manda. `<details>` del navegador (recuerda foco, se busca con Ctrl+F cerrado). El resumen tiene que
+**parecer** pulsable —triángulo, cursor, el número al lado— o se queda sin abrir para siempre.
+
+## D-170 · Los instaladores viven en Blob privado
+
+**Fecha:** 2026-09-02 · **Versión:** v1.54.0 (deliveries)
+
+Estaban en un repositorio **público** de GitHub —acabaron ahí porque el almacenamiento de Supabase
+corta en 50 MB y pesan 78— así que se los bajaba cualquiera. Vercel Blob tiene almacenamiento
+privado (lectura autenticada por función), límite 5 TB, y a esta escala sale gratis (0.16 GB de 5
+incluidos, ~3 GB de transferencia una vez de 100/mes). La ruta exige sesión y transmite el fichero
+sin juntarlo en memoria. **Un fallo que costó una prueba:** la primera versión hacía `fetch` a la
+`downloadUrl` de `head()`, que en un cubo privado contesta **403** —la URL no es la credencial, que
+es el punto de hacerlo privado—; se vio porque la comprobación esperaba "MZ" (todo .exe empieza así)
+y llegaba "Forbidden". Ahora usa `get()` con `access: "private"`. El respaldo a GitHub se queda para
+el día que Blob falle.
+
+## D-171 · El módulo vacío ahora dice POR QUÉ está vacío
+
+**Fecha:** 2026-09-02 · **Versión:** v0.12.0 (recruiting)
+
+Reporte: usuarios cargan, órdenes cargan, RR. HH. sale vacío. Comprobado, y **todo está bien**: 51
+candidatos en la base, esquema expuesto, `authenticated` con USAGE, y —como el admin— lee los 51. No
+se pudo reproducir sin una sesión de navegador. Pero investigándolo apareció un agujero: si la carga
+fallaba **sin** que la sesión estuviera muerta —un 401 de permisos, la red, un error devuelto— la
+persona veía el módulo vacío y **mudo**, y tras cinco reintentos se rendía sin decir nada, tirando el
+**mensaje** del error (justo el que dice si fue permisos, red o esquema). Ahora se guarda y se enseña
+abajo con un botón de reintentar. Un módulo vacío que explica por qué está vacío se arregla en un
+minuto; uno mudo, preguntando.
+
+---
+
+## Clase A de la auditoría (D-172…D-177) — aplicada el 2026-09-03
+
+Estas seis salen de `docs/AUDIT-2026-09.md` (Fase 1). Cada una cierra un hallazgo de clase A —fallo
+claro, sin decisión de negocio—; el detalle completo, con la medición, está en ese documento.
+
+## D-172 · Sesión obligatoria en las diez rutas que estaban abiertas
+
+**Fecha:** 2026-09-03 · **Versión:** v1.55.0 (deliveries) · **Origen:** auditoría A-4
+
+Diez rutas API no comprobaban sesión, y el middleware **salta `/api/`** a propósito (para no
+redirigir a login una llamada de datos), así que no había nada entre internet y ellas. Medido:
+cualquiera, sin cuenta, podía mandar SMS y hacer llamadas desde el número de la empresa
+(`/api/notify`, `/api/call`), mandar correos (`/api/help`) y quemar la cuota de Google/Mapbox (siete
+proxies). La puerta es la misma que ya tenían `push`, `invite`, `delete-user`…, sacada a
+`lib/api-auth.ts` (`requireUser`). No mira el rol: eso es de cada ruta. `/api/track/[id]` y
+`/api/version` siguen públicas. Verificado en vivo: sin sesión, los 13 handlers → 401; con una sesión
+desechable, los 13 abren. (Consecuencia registrada en el commit: al probar `/api/call` con sesión y
+RingCentral configurado en local, se inició un RingOut real a un número 555 que no enruta — la clase
+de efecto que la puerta evita desde ahora, y que no debí provocar.)
+
+## D-173 · El chofer vuelve a estar fuera del hub, en un solo sitio
+
+**Fecha:** 2026-09-03 · **Versión:** v1.55.1 (deliveries) · **Origen:** auditoría A-5b
+
+**Regresión de D-051.** Esa decisión tenía doble candado para el chofer: `landingRoute` lo manda a
+`/driver`, y `/home` lo rebotaba. D-056 (`14377a3`, "Usuarios se muda al hub") cambió la puerta de
+`/home` por `hasReasonToBeHere` para que un admin de un módulo entrara a Usuarios —correcto— pero al
+reescribirla **el chofer dejó de estar excluido**: con dos módulos habría visto el hub tecleando la
+URL. `ModuleSwitcher` sí conservó la excepción, así que había dos versiones de la regla y una estaba
+mal. Nadie lo notó porque ningún chofer tiene dos módulos (medido). Para que no se repita, la regla
+ya no se escribe en línea: `canReachHub(me)` vive en `constants.ts` con el chofer primero e
+incondicional, y la usan `/home` y `ModuleSwitcher`. Cinco pruebas, incluida la que falla si alguien
+vuelve a reescribir la puerta sin el chofer.
+
+## D-174 · Los cuatro rótulos que el rename a HR dejó atrás
+
+**Fecha:** 2026-09-03 · **Versión:** v0.13.0 (recruiting) · **Origen:** auditoría B-8
+
+D-145 renombró el módulo en el hub, el selector y Usuarios. Quedaron cuatro: la pestaña del
+navegador (`"RDZ Recruitment"` → HR Management), el respaldo del `<h1>` (`"RECRUIT·HN"` → `RTG·HR`),
+un mapa de etiquetas que el ERP trajo consigo y que **duplica** el de `constants.ts`
+(`recruiting: "Recruiting"` → HR Management, anotado como B-4 para fundir), y el `app_name` de la
+base (`"RTG RECRUITER"` → `RTG HR`, un dato, cambiado con UPDATE). Claves internas y esquema
+`recruiting.*`: intactos.
+
+## D-175 · La barra del ERP envuelve en vez de cortarse
+
+**Fecha:** 2026-09-03 · **Versión:** v0.3.12 (erp) · **Origen:** auditoría D-2
+
+Tenía `overflow-x-auto`: media barra escondida tras un scroll horizontal que en un móvil nadie
+descubre. Patrón de D-055 (`flex-wrap` + `min-w-0`). Medido con sesión, Chromium real, barra de 16
+items: a 360px se reparte en 6 filas, a 768 en 2, a 1280 en 1, y **nunca se corta** —antes era una
+fila cortada—. Aparte, no es esto: a 360px la página del catálogo sigue desbordando por otro
+elemento (P3, no se toca).
+
+## D-176 · Borra seis ficheros sin importador y un export muerto
+
+**Fecha:** 2026-09-03 · **Versión:** v1.55.2 (deliveries) · **Origen:** auditoría E-3
+
+Confirmado sin-llamador antes de borrar, con dos barridos: `erp/login-form` (el login del ERP viejo),
+`erp/dev-error-console`, `erp/error-box`, `AvailabilityManager`, `clockin/ui` y `erp/sentry/options`.
+Los dos con nombres que colisionaban se verificaron uno a uno: `clockin/ui` exporta `btn/field/link`
+—500+ "usos" que son palabras y clases, sin un solo `btn(` fuera y sin otro export del nombre— y
+`sentry/options` exporta `beforeSend`, cuyos 3 "usos" son comentarios. Más `APP_VERSION = "0.0.47"`
+de `recruiting/constants.ts`, que D-087 reemplazó y nadie pintaba. `test-stubs/server-only.ts` **no**
+se toca: es el alias de `vitest.config`. `tsc`, 707 tests y build en verde tras el borrado.
+
+## D-177 · ANALYZE en las 59 tablas sin estadísticas
+
+**Fecha:** 2026-09-03 · **Origen:** auditoría C-1
+
+Corrió `ANALYZE` sobre las 59 tablas con `reltuples = -1`: el planificador trabajaba sin conteos.
+Verificado: 0 quedan sin analizar. Sin subida de versión de app a propósito —es mantenimiento de
+base, no hay bundle nuevo que un cliente deba recoger—. Supabase corre autoanalyze, así que se re-hace
+solo a medida que las tablas acumulan escrituras; el `-1` era porque nunca habían tenido actividad
+suficiente para dispararlo.
