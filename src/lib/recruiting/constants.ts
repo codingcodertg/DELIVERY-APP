@@ -1,7 +1,5 @@
 import type { Stage } from "./types";
 
-// App version shown in the footer on every screen. Keep in sync with package.json.
-export const APP_VERSION = "0.0.47";
 
 // Fallback stages, used before the DB stages load or if the migration
 // hasn't run yet. The DB `stages` table (see supabase/06_stages.sql) is the
