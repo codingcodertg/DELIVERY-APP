@@ -1,0 +1,37 @@
+{
+  "name": "rdz-hub-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ventana de escritorio para Windows que abre el hub de RDZ. Carga el sitio en vivo; no lo empaqueta.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "net.rdztilegroup.hub",
+    "productName": "RDZ Hub",
+    "files": [
+      "main.js",
+      "build/icon.ico"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RDZ Hub"
+    }
+  }
+}

@@ -28,3 +28,9 @@ service-account*.json
 _*.json
 q*.json
 _*.json
+
+# La app de escritorio del hub (D-166). `/node_modules` de arriba lleva barra, o sea que
+# solo tapa el de la raiz; y `dist/` es el instalador compilado, que pesa ~90 MB y se
+# vuelve a generar con un comando.
+desktop/node_modules
+desktop/dist
