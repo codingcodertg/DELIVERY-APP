@@ -66,3 +66,34 @@ Lee `DECISIONS.md`. Si una petición contradice una decisión registrada, **dilo
 antes de implementarla** y cita la entrada: *"esto revierte D-012, que se
 decidió porque X — ¿cambió esa razón?"*. No la bloquees; el negocio cambia y
 las decisiones caducan. Pero que sea decisión consciente, no olvido.
+
+## Las pruebas no disparan efectos reales en terceros — regla permanente
+
+Ninguna prueba —automática, en vivo, manual, exploratoria— puede provocar un
+efecto que salga de esta máquina y toque a una persona o cueste dinero:
+
+- **No** mandar SMS, correos ni WhatsApp reales (RingCentral, Twilio, Resend).
+- **No** iniciar llamadas reales (RingCentral RingOut).
+- **No** gastar cuota de APIs de pago con datos de prueba (Google Maps/Routes,
+  Mapbox) más allá de lo mínimo, y nunca en bucle.
+- **No** escribir en sistemas de terceros ni en producción de datos que otros
+  vean, salvo que la prueba sea exactamente eso y esté aprobada.
+
+Para probar una ruta o un flujo que dispara uno de esos efectos: se **stubbea**
+el proveedor, se **sanea el cuerpo** para que la ruta responda un error de
+validación *antes* de llamar al proveedor, o se usa un **sandbox / número que no
+enruta y está apagado**. Si no hay forma de probar sin disparar el efecto, se
+para y se pregunta — no se dispara "para ver".
+
+Origen: al verificar D-172 (sesión en las rutas abiertas) una prueba con sesión
+inició un RingOut real a un número 555 porque no se saneó el cuerpo de
+`/api/call`. No se repite.
+
+## Antes de tocar RLS, triggers o permisos en producción
+
+Cambiar una política RLS, un `guard_*`, un grant o el esquema **no se hace a
+ciegas**: se entrega primero un plan en papel (inventario de lecturas y
+escrituras, políticas literales, qué no debe romperse, matriz de pruebas por rol
+con `ROLLBACK`, y el SQL de reversión), se espera aprobación, y **no se aplica en
+producción sin un respaldo activo o un `pg_dump` reciente guardado**. El patrón
+está en `docs/PLAN-A-2a-profiles-rls.md`.
