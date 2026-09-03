@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { head } from "@vercel/blob";
+import { get } from "@vercel/blob";
 import { createClient } from "@/lib/supabase/server";
 
 // ============================================================
@@ -90,18 +90,26 @@ export async function GET(_req: Request, ctx: { params: Promise<{ app: string }>
   }
 
   try {
-    // `head` dice si está y cuánto pesa sin traérselo. Si no está, se cae al respaldo.
-    const meta = await head(f.blob);
-    const r = await fetch(meta.downloadUrl);
-    if (!r.ok || !r.body) return porGitHub(f);
+    // `get()` del SDK, no un `fetch` a la URL del fichero.
+    //
+    // Esto costó una prueba: en un almacén PRIVADO, la `downloadUrl` que devuelve `head()`
+    // contesta **403 Forbidden** a secas. La URL no es la credencial — el fichero solo sale
+    // autenticado, y eso es precisamente lo que se buscaba al hacerlo privado. Se vio porque
+    // la comprobación miraba los dos primeros bytes esperando "MZ" (todo .exe de Windows
+    // empieza así) y lo que llegaba era la palabra "Forbidden".
+    //
+    // `access: "private"` es obligatorio aquí: sin él el SDK ni lo intenta.
+    // `get()` devuelve null si el fichero no está — de ahí el respaldo.
+    const r = await get(f.blob, { access: "private" });
+    if (!r || r.statusCode !== 200 || !r.stream) return porGitHub(f);
 
     // Se transmite tal cual llega, sin juntarlo en memoria: 78 MB en la memoria de una
     // función es la forma de tirarla, y además la descarga empieza al instante en vez de
     // después de que el servidor haya leído el fichero entero.
-    return new NextResponse(r.body, {
+    return new NextResponse(r.stream, {
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Length": String(meta.size),
+        ...(r.blob?.size ? { "Content-Length": String(r.blob.size) } : {}),
         // `attachment` para que el navegador lo GUARDE en vez de intentar abrirlo, y con el
         // nombre limpio: lo que se descarga tiene que llamarse como la app, no como la ruta.
         "Content-Disposition": `attachment; filename="${f.descarga}"`,
