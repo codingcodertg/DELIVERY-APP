@@ -7772,3 +7772,80 @@ auto-inscribe tras `-- @ledger-below`.
 Cambio solo-de-base (tabla + script + docs; ninguna toca el bundle de cliente): sube solo
 `package.json` (1.108.3), no `APP_VERSIONS`. Es justo la excepción escrita en el paso 3 de
 CLAUDE.md.
+
+## D-NEXT · Cada cliente de navegador con schema propio se sale de la caché de @supabase/ssr; la regla la hace cumplir la suite
+
+**Fecha:** 2026-09-04 · **Versión:** (la asigna el orquestador al fusionar) · **Pedido por:** Andrés
+
+### Qué fallaba
+
+Al entrar a `/recruiting` desde otro módulo **sin recargar**, la pantalla decía:
+
+> No se pudieron cargar los datos. Could not find the table 'timetracker.questions' in the schema cache
+
+Con F5 funcionaba. HR pedía `questions` en su schema `recruiting`, pero la consulta salía contra
+`timetracker.questions`: HR estaba usando **el cliente de Time Tracker**.
+
+### Por qué
+
+`createBrowserClient` (`@supabase/ssr`, `dist/main/createBrowserClient.js`) guarda **un solo**
+cliente en una variable de módulo, `cachedBrowserClient`, para todo el navegador. La condición
+literal es:
+
+```js
+const shouldUseSingleton = options?.isSingleton === true ||
+  ((!options || !("isSingleton" in options)) && isBrowser());
+if (shouldUseSingleton && cachedBrowserClient) return cachedBrowserClient;
+```
+
+En el navegador, **no pasar `isSingleton` significa entrar a la caché**, y el cliente cacheado se
+devuelve ignorando las opciones del que llama. Los cinco clientes de navegador usan la misma URL y
+la misma anon key, así que el primer módulo que arranca gana y los demás reciben un cliente atado
+al schema equivocado. Con F5 el módulo que arranca primero es el que se está visitando, y por eso
+"funcionaba".
+
+Estado antes de este cambio: deliveries (`public`), recruiting y timetracker **sin** `isSingleton`;
+erp (`d691dfa`) y clockin (D-091) con `isSingleton: false`. Los dos que compartían caché con
+schema propio eran justo HR y Time Tracker, y se robaban el cliente entre sí.
+
+### La apuesta original, y por qué caducó
+
+Cuando el mismo fallo tumbó el catálogo del ERP (`Could not find the table 'public.app_products'`),
+se arregló **solo allí**, y el comentario del cliente del ERP dejó escrito el razonamiento: *"only
+this client opts out, not the other three: they work today, and a second GoTrue instance per module
+is a cost worth paying once, not four times"*. Era razonable entonces: el síntoma solo se había
+visto en el ERP, y cada cliente que se sale de la caché instancia su propio GoTrue (más memoria,
+más listeners de sesión). Pero tenía dos fallos: ya era inexacto al escribirse (clockin también se
+salía), y "they work today" solo era cierto mientras nadie navegara entre HR y Time Tracker sin
+recargar. La apuesta perdió en producción. **Ese comentario queda reemplazado**, con el texto
+antiguo conservado dentro como historial.
+
+El hallazgo de fondo no es el bug: es que la lección vivía en un comentario dentro de un fichero, y
+`isSingleton` **no aparecía en esta bitácora**. Los clientes escritos después no la vieron.
+
+### Qué se decidió
+
+1. `isSingleton: false` en `src/lib/recruiting/supabase/client.ts` y
+   `src/lib/timetracker/supabase/client.ts`, con el porqué en el comentario.
+2. **El cliente de deliveries (`src/lib/supabase/client.ts`, schema `public` por defecto) no se
+   toca.** Un cliente con `isSingleton: false` ni lee ni escribe `cachedBrowserClient` (verificado
+   en la condición de arriba), así que al salirse los otros cuatro, deliveries queda como **único**
+   usuario de la caché y no puede colisionar con nadie.
+3. **Regla, y prueba que la hace cumplir:** `src/lib/supabase/browser-clients.test.ts` mockea
+   `@supabase/ssr`, llama al `createClient()` de los cinco clientes y comprueba las opciones con
+   que se invocó: todo cliente con `db.schema` propio pasa `isSingleton: false`, y exactamente uno
+   (deliveries) usa la caché. Un sexto módulo que copie el patrón sin salirse rompe la suite, no
+   producción. Comprobado que falla al quitar la línea del cliente de recruiting.
+
+### Qué se descartó
+
+**Un único cliente compartido sin schema por defecto, con `.schema("x")` en cada llamada.** Arregla
+lo mismo sin instancias de auth extra, y es la solución "correcta" a largo plazo. Se descartó ahora
+porque obliga a tocar decenas de ficheros en cuatro módulos por un fallo que se cierra con dos
+líneas; si algún día pesa el coste de GoTrue, es el camino.
+
+### Precio que sí se paga
+
+Una instancia de GoTrue más por módulo (cuatro en total, además de la de deliveries). Cada una
+mantiene su sesión desde las mismas cookies, así que no hay divergencia de login; el coste es
+memoria y listeners, no comportamiento.
