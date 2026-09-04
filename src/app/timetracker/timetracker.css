@@ -158,7 +158,7 @@
   .timetracker-module .pbtns{grid-template-columns:1fr}
 }
 
-/* Ventana (D-NEXT): se REUSA `.overlay`/`.modal`/`.modal-actions` de globals.css, que carga el
+/* Ventana (D-187): se REUSA `.overlay`/`.modal`/`.modal-actions` de globals.css, que carga el
    layout raíz. Solo se corrigen los colores: globals pinta `.modal` con `--card` (blanco salvo
    en el tema oscuro de Deliveries), y Time Tracker es oscuro por defecto y claro con
    data-theme="light" — al revés. Sin esto, la ventana salía blanca con texto claro encima.

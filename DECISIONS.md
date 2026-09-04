@@ -7955,7 +7955,7 @@ con fecha, porque el historial no se maquilla. Lo que la objeción cambió no fu
 - El comentario de `MANAGER_TABS` decía "catorce pestañas" y eran quince el 2026-09-04; quedan
   catorce. Se anotó en el propio comentario en vez de reescribirlo.
 
-## D-NEXT · Los tres formularios de Asignaciones pasan a botón + ventana, y el horario queda traducido
+## D-187 · Los tres formularios de Asignaciones pasan a botón + ventana, y el horario queda traducido
 
 **Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés
 

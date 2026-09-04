@@ -77,7 +77,7 @@ describe("los textos del reparto por tipo de trabajador existen", () => {
   });
 });
 
-// D-NEXT. El horario se tradujo entero y sus tres formularios pasaron a ventana. Como este repo
+// D-187. El horario se tradujo entero y sus tres formularios pasaron a ventana. Como este repo
 // no dibuja pantallas en las pruebas, la única red automática posible es esta: las claves se
 // sacan DEL FUENTE de los componentes (no del diccionario, que compararlo consigo mismo no
 // prueba nada) y se exige que cada una exista en los dos idiomas. Una clave inventada o una

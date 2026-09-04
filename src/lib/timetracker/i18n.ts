@@ -301,12 +301,12 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     // Las dos secciones de la pantalla de asignaciones (D-186).
     'mgr.asn.secRates': '🔗 Rates',
     'mgr.asn.secSchedule': '📅 Schedule',
-    // Los tres formularios pasaron a botón + ventana (D-NEXT).
+    // Los tres formularios pasaron a botón + ventana (D-187).
     'mgr.asn.newBtn': '➕ New assignment',
     'mgr.asn.errSave': 'Failed to save.',
     'mgr.asn.deletedProject': '(deleted)',
     'common.close': 'Close',
-    // El horario, traducido por fin (D-NEXT): venía en inglés a pelo desde D-121.
+    // El horario, traducido por fin (D-187): venía en inglés a pelo desde D-121.
     'mgr.sch.title': '📅 Schedule',
     'mgr.sch.hoursScheduled': '{h} h scheduled',
     'mgr.sch.prev': '← previous',

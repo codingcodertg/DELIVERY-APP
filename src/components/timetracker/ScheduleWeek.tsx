@@ -22,7 +22,7 @@ import { Modal } from "./Modal";
  * Las acciones de servidor son las mismas —`createShifts`, `applySchedule`, `deleteShift`,
  * `adminClock`—, así que los avisos, el alcance por tienda y las validaciones no cambian.
  *
- * D-NEXT: los dos formularios ("Agregar turnos" y "Fichar a alguien") dejan de ocupar sitio
+ * D-187: los dos formularios ("Agregar turnos" y "Fichar a alguien") dejan de ocupar sitio
  * permanente; cada uno es un botón en la cabecera que abre una ventana encima. Y todo el
  * texto pasa por el diccionario (`mgr.sch.*`): desde D-121 estaba en inglés a pelo, y al
  * quedar junto a la sección de tarifas, traducida entera, se notaba (D-186 lo dejó pendiente).

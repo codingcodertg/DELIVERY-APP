@@ -15,7 +15,7 @@ import { Modal } from "./Modal";
  * ("Admins only."): la página ahora es de servidor y redirige antes de montar nada, así que
  * este componente solo se renderiza para un admin.
  *
- * El formulario ya no ocupa la tarjeta de arriba de forma permanente (D-NEXT): vive en una
+ * El formulario ya no ocupa la tarjeta de arriba de forma permanente (D-187): vive en una
  * ventana que abre el botón "Nueva asignación" y también "Editar" de cada fila, ya rellena.
  * El scroll al principio que hacía editar desapareció con él: la ventana se abre encima,
  * estés donde estés. Mismos campos, mismas validaciones, mismas llamadas.

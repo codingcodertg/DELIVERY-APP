@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useT } from "@/lib/timetracker/i18n";
 
 /**
- * Una ventana encima de la pantalla, para Time Tracker (D-NEXT).
+ * Una ventana encima de la pantalla, para Time Tracker (D-187).
  *
  * NO es un componente de ventana nuevo: son las clases `.overlay` / `.modal` /
  * `.modal-actions` de `globals.css` —las mismas que usa `UserDialog` en Deliveries— con el
