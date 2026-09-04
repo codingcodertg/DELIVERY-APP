@@ -1,7 +1,7 @@
 "use strict";
 
 // ============================================================
-// RDZ Hub — ventana de escritorio para Windows (D-166).
+// RTG Hub — ventana de escritorio para Windows (D-166).
 //
 // Una ventana que abre el hub y ya. No trae el sitio dentro: lo carga en vivo, igual que la
 // cáscara de Android de los choferes. Es la misma decisión y por el mismo motivo — cuando se
@@ -80,7 +80,7 @@ function crearVentana() {
     ...previo,
     minWidth: 900,
     minHeight: 600,
-    title: "RDZ Hub",
+    title: "RTG Hub",
     backgroundColor: "#0f151d",
     icon: path.join(__dirname, "build", "icon.ico"),
     // La barra de menú de Electron (Archivo/Editar/Ver…) no pinta nada aquí: la navegación
@@ -140,7 +140,7 @@ function crearVentana() {
     dialog.showMessageBox(win, {
       type: "warning",
       title: "Sin conexión",
-      message: "No se pudo abrir RDZ Hub.",
+      message: "No se pudo abrir RTG Hub.",
       detail: `Revise su conexión a internet y vuelva a intentarlo.\n\n(${desc || code})\n${url}`,
       buttons: ["Reintentar", "Cerrar"],
       defaultId: 0,

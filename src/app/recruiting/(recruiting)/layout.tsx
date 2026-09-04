@@ -10,9 +10,9 @@ import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import type { Profile as RecruitingProfile } from "@/lib/recruiting/types";
 import "../recruiting.css";
 
-// The root layout (app/layout.tsx) sets the browser tab title to "RDZ
-// Deliveries | Order & Dispatch" — correct for (app), never overridden for
-// recruiting, so every /recruiting/* tab said "RDZ Deliveries" too. Next
+// The root layout (app/layout.tsx) sets the browser tab title to "RTG
+// Hub | Order & Dispatch" — correct for (app), never overridden for
+// recruiting, so every /recruiting/* tab said "RTG Hub" too. Next
 // only inherits a parent's metadata when a layout doesn't set its own; this
 // is that override.
 //
@@ -23,7 +23,7 @@ import "../recruiting.css";
 // querying the DB on every request; not worth it for a static string.
 export const metadata: Metadata = {
   // "HR Management" desde D-145; la pestaña del navegador se quedó con el nombre viejo (B-8).
-  title: "RDZ HR Management",
+  title: "RTG HR Management",
 };
 
 // The recruiting module's own shell — a sibling of (app), not nested under

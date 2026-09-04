@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 // ============================================================
-// RDZ Deliveries — Android shell for drivers.
+// RTG Hub — Android shell for drivers.
 //
 // The app is NOT bundled into the APK. The shell loads the live site, so a
 // deploy reaches every driver's phone immediately with no reinstall. The only
@@ -12,7 +12,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "net.rdztilegroup.deliveries",
-  appName: "RDZ Deliveries",
+  appName: "RTG Hub",
   // Capacitor requires a webDir even when loading a remote URL; this holds
   // only the offline fallback page.
   webDir: "www",

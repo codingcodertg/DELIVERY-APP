@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   if (!tokens.length) return NextResponse.json({ sent: 0, reason: "no devices" });
 
   const res = await sendPush(tokens, {
-    title: "RDZ Deliveries",
+    title: "RTG Hub",
     body: notif.message,
     data: { kind: notif.kind ?? "", delivery_id: notif.delivery_id ?? "" },
   });

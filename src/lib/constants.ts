@@ -381,7 +381,7 @@ export const INSTALLABLE_APPS: InstallableApp[] = [
   {
     key: "hub-desktop",
     emoji: "🖥",
-    name: "RDZ Hub",
+    name: "RTG Hub",
     platform_en: "Windows", platform_es: "Windows",
     desc_en: "The hub in its own window, without a browser.",
     desc_es: "El hub en su propia ventana, sin navegador.",
@@ -416,7 +416,7 @@ export const INSTALLABLE_APPS: InstallableApp[] = [
   {
     key: "deliveries-android",
     emoji: "📱",
-    name: "RDZ Deliveries",
+    name: "RTG Hub",
     platform_en: "Android", platform_es: "Android",
     desc_en: "Deliveries on the phone, with background GPS while on the clock.",
     desc_es: "Deliveries en el teléfono, con GPS en segundo plano mientras se está fichado.",

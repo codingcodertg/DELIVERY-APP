@@ -14,10 +14,10 @@ import { VersionStamp } from "@/components/VersionStamp";
 const themeScript = `try{var p=JSON.parse(localStorage.getItem('rtg_prefs')||'{}');var isDesktop=!!(window.ttDesktop&&window.ttDesktop.isDesktop);var theme=p.theme==='dark'||p.theme==='light'?p.theme:(isDesktop?'dark':'light');document.documentElement.setAttribute('data-theme',theme);if(p.lang){document.documentElement.setAttribute('lang',p.lang);}}catch(e){}`;
 
 export const metadata: Metadata = {
-  title: "RDZ Deliveries | Order & Dispatch",
+  title: "RTG Hub | Order & Dispatch",
   description: "Delivery order management: sales create orders, the office manager approves, the warehouse fulfills.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "RDZ Deliveries" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "RTG Hub" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

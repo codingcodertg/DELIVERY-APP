@@ -25,7 +25,7 @@ import { SessionExpired } from "@/components/SessionExpired";
 
 const DEFAULT_SETTINGS: Settings = {
   id: 1,
-  app_name: "RDZ·DELIVERIES",
+  app_name: "RTG·HUB",
   stores: [
     { name: "Brownsville", address: "" },
     { name: "Weslaco", address: "" },

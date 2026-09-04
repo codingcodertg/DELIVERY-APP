@@ -1,6 +1,6 @@
 {
-  "name": "RDZ Deliveries",
-  "short_name": "RDZ Deliveries",
+  "name": "RTG Hub",
+  "short_name": "RTG Hub",
   "description": "Delivery order management & dispatch for Rodriguez Tile Group.",
   "start_url": "/",
   "scope": "/",

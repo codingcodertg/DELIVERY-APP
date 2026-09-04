@@ -115,7 +115,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
       </div>
     )}
     <div className="topbar">
-      <h1>{settings.app_name || "RDZ·DELIVERIES"}</h1>
+      <h1>{settings.app_name || "RTG·HUB"}</h1>
       {/* minWidth: 0 overrides the flex default (min-width: auto), which
           sizes a flex item to its widest unbreakable descendant — here the
           account link's full name. Without it, this row refuses to shrink

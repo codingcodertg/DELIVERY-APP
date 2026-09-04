@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "RDZ·DELIVERIES — Order & Dispatch",
-    short_name: "Deliveries",
+    name: "RTG·HUB — Order & Dispatch",
+    short_name: "RTG Hub",
     description: "Delivery order management for sales, office manager, and warehouse.",
     start_url: "/",
     scope: "/",

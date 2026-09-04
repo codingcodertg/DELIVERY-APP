@@ -37,7 +37,7 @@ export const DEMO_USERS: Profile[] = [
 export function demoSettings(): Settings {
   return {
     id: 1,
-    app_name: "RDZ·DELIVERIES",
+    app_name: "RTG·HUB",
     stores: [
       { name: "Brownsville", address: "3000 Central Blvd, Brownsville TX" },
       { name: "Weslaco", address: "1000 W Expressway 83, Weslaco TX" },
