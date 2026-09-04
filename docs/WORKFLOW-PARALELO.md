@@ -69,14 +69,14 @@ replica. Reglas de permiso sin secretos dentro.
 Ponle nombre para que las otras la puedan direccionar:
 
 ```bash
-cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\deliveries-app"
+cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\rtg-hub"
 claude -n orquestador --model opus
 ```
 
 **Panel 2 — worker.** Crea el worktree y la rama de un golpe:
 
 ```bash
-cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\deliveries-app"
+cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\rtg-hub"
 claude -w feat-nombre-corto -n worker --model opus
 ```
 
@@ -99,7 +99,7 @@ npm ci
 **Panel 3 — auditor.** En el checkout principal, con el agente del repo:
 
 ```bash
-cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\deliveries-app"
+cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\rtg-hub"
 claude -n auditor --agent auditor-rtg --model opus
 ```
 
