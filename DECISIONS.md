@@ -7831,11 +7831,20 @@ El hallazgo de fondo no es el bug: es que la lección vivía en un comentario de
    toca.** Un cliente con `isSingleton: false` ni lee ni escribe `cachedBrowserClient` (verificado
    en la condición de arriba), así que al salirse los otros cuatro, deliveries queda como **único**
    usuario de la caché y no puede colisionar con nadie.
-3. **Regla, y prueba que la hace cumplir:** `src/lib/supabase/browser-clients.test.ts` mockea
-   `@supabase/ssr`, llama al `createClient()` de los cinco clientes y comprueba las opciones con
-   que se invocó: todo cliente con `db.schema` propio pasa `isSingleton: false`, y exactamente uno
-   (deliveries) usa la caché. Un sexto módulo que copie el patrón sin salirse rompe la suite, no
-   producción. Comprobado que falla al quitar la línea del cliente de recruiting.
+3. **Regla, y prueba que la hace cumplir:** `src/lib/supabase/browser-clients.test.ts` **recorre
+   `src/lib` en disco** y toma todo fichero que importe `createBrowserClient` de `@supabase/ssr`;
+   no depende de que nadie se acuerde de registrar su cliente en una lista. Mockea
+   `@supabase/ssr`, llama al `createClient()` de cada uno y comprueba las opciones con que se
+   invocó: todo cliente con `db.schema` propio pasa `isSingleton: false`, y como mucho uno
+   (deliveries) usa la caché. Lleva una tabla de lo esperado hoy, pero solo como contraste: la
+   prueba falla si el disco y la tabla difieren en cualquier dirección (cliente nuevo sin
+   registrar, o registrado que ya no existe). Comprobado dos veces: falla al quitar la línea del
+   cliente de recruiting (`1 failed | 5 passed` con la versión inicial de lista manual), y falla
+   al crear un sexto cliente falso con `db.schema: "fakemod"` y sin `isSingleton` (`2 failed`:
+   "no está en la tabla" y "debe pasar isSingleton: false"); el fichero falso se borró y no se
+   commiteó. La primera versión de la prueba llevaba la lista a mano como fuente de verdad y
+   la última aserción comparaba la constante consigo misma: lo devolvió el orquestador porque
+   repetía exactamente el modo de fallo que motiva esta decisión.
 
 ### Qué se descartó
 
