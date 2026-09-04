@@ -10,7 +10,7 @@ no debería tener que conceder.
 ## Qué hace, y qué no
 
 **No trae el sitio dentro.** Lo carga en vivo desde
-`https://deliveries-app-seven.vercel.app/home`, igual que la cáscara de Android. Cuando
+`https://rtg-hub.vercel.app/home` (antes `deliveries-app-seven.vercel.app`, que redirige con 307 desde el 2026-09-04), igual que la cáscara de Android. Cuando
 despliegas a Vercel, todo el mundo tiene el cambio **sin reinstalar nada**. Solo hay que
 volver a compilar esto si cambia el icono, el nombre o algo de la ventana en sí.
 
