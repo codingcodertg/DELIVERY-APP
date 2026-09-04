@@ -7957,7 +7957,7 @@ con fecha, porque el historial no se maquilla. Lo que la objeción cambió no fu
 
 ## D-187 · Los tres formularios de Asignaciones pasan a botón + ventana, y el horario queda traducido
 
-**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés
+**Fecha:** 2026-09-04 · **Versión:** ninguna (no cambia bundle web); package.json 1.112.1 (timetracker y package.json) · **Pedido por:** Andrés
 
 ### Qué se pidió
 
@@ -8103,7 +8103,7 @@ No hay prueba que fije títulos ni manifest, y ninguna falló por el nombre. `ve
 nombre nuevo llega a los usuarios en el paso 7. Nadie vio la pestaña del navegador con el título
 nuevo: el worktree no tiene `.env.local` a propósito.
 
-## D-NEXT · La URL de producción pasa a `rtg-hub.vercel.app`; la vieja no murió, redirige. Paso 6 del plan de renombre
+## D-189 · La URL de producción pasa a `rtg-hub.vercel.app`; la vieja no murió, redirige. Paso 6 del plan de renombre
 
 **Fecha:** 2026-09-04 · **Versión:** ninguna app sube (ningún bundle web cambia; `desktop/main.js` y
 Capacitor son binarios aparte) · **Pedido por:** Andrés · **Plan:** `docs/PLAN-rename-rtg-hub.md`
