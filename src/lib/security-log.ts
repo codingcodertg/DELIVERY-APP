@@ -21,6 +21,7 @@ export type SecurityKind =
   | "recruiting_access_changed"
   | "timetracker_access_changed"
   | "erp_access_changed"
+  | "erp_role_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed";
 
@@ -45,6 +46,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     recruiting_access_changed: "Recruiting access changed",
     timetracker_access_changed: "Timetracker access changed",
     erp_access_changed: "ERP access changed",
+    erp_role_changed: "ERP tier changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
   };
@@ -59,6 +61,8 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     password_reset: "Contraseña restablecida",
     recruiting_access_changed: "Acceso a Recruiting cambiado",
     timetracker_access_changed: "Acceso a Timetracker cambiado",
+    erp_access_changed: "Acceso al ERP cambiado",
+    erp_role_changed: "Nivel de ERP cambiado",
   };
   return (lang === "es" ? es : en)[kind] ?? kind;
 }

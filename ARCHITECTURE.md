@@ -116,6 +116,32 @@ independent of the deliveries `role` above: a deliveries `sales` user can also b
 `admin`. Null/empty by default for everyone; only a deliveries `admin` can grant them
 (`guard_recruiting_access_change` trigger, deliberately separate from `guard_role_change` above).
 
+### ERP role model — `erp_role` (D-181)
+
+The **ERP module** has its own tier column `erp_role` (`staff | manager | admin`, null = no ERP
+tier), parallel to `recruiting_role`/`timetracker_role`. It gates the ERP's cost/margin
+visibility (decision #29) and catalog authority. Until D-181 the ERP had **no** column of its
+own and keyed cost on the deliveries `role` (`admin|manager`) — which meant an office manager of
+Deliveries inherited ERP cost without anyone granting it, and, worse, `erp.products.cost` was
+readable straight off the base table (the masking view `app_products` was only cosmetic).
+
+D-181 closed both:
+- **`erp.current_app_role()` reads `erp_role`**, not `profiles.role`. Every ERP policy that gives
+  authority (`products update`, `sku_aliases insert`, `audit_log read`) and the cost mask
+  (`can_see_cost()` → `erp_role in ('manager','admin')`) delegate to this one function, so the
+  single change re-keyed all of them. Access to the module itself is still the `module_access`
+  checkbox (`has_erp_access()`), unchanged.
+- **Cost is closed at the base table**: `SELECT` on the `cost`/`store_cost` columns is revoked
+  from `authenticated` (table `SELECT` revoked, every non-cost column re-granted), and the
+  `app_products`/`app_store_products`/`app_price_history` views read cost through a
+  `SECURITY DEFINER` function that masks it by `can_see_cost()`. Direct base-table reads of cost
+  return `permission denied` for everyone; cost flows only through the views.
+- Only a deliveries `admin` may change `erp_role` — folded into `guard_profile_privileged_columns`
+  (D-179), not a new trigger. The ERP's operational/history tables (POs, inventory, `audit_log`,
+  `price_history`, …) have a **RESTRICTIVE** `has_erp_access()` gate and no permissive write
+  policy, so they were already append-only / service-role-only from the client — D-181 left them
+  untouched.
+
 Workflow moves are additionally guarded client-side by `canTransition(from, to)` in
 `constants.ts`, enforced in both providers' `setStage`. An order can NEVER reach the
 warehouse (fulfilling/ready/delivered) without a manager approving it first.

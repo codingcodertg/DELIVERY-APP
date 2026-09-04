@@ -45,16 +45,15 @@ describe("ERP module wiring", () => {
     expect(landingRoute({ role: "driver", module_access: ["deliveries", "erp"] })).toBe("/driver");
   });
 
-  it("is an opt-in module with a checkbox and no role tier of its own", () => {
+  it("is an opt-in module with its own erp_role tier (D-181)", () => {
     const erp = MODULE_ACCESS.find((m) => m.key === "erp");
     expect(erp).toBeDefined();
     expect(erp!.alwaysOn).toBe(false);
     expect(erp!.accessColumn).toBe("module_access");
-    // The point of the entry: cost visibility is admin/manager on `role`, which
-    // the Deliveries block already edits. A roleColumn here would be a second
-    // copy of the same fact, free to drift.
-    expect(erp!.roleColumn).toBeUndefined();
-    expect(erp!.roleKeys).toEqual([]);
+    // Desde D-181 el ERP tiene su propia columna de rol: la visibilidad de costo ya no cabalga
+    // sobre `role` de Deliveries (un Gerente de Oficina la heredaba sin que se la dieran).
+    expect(erp!.roleColumn).toBe("erp_role");
+    expect(erp!.roleKeys).toEqual(["staff", "manager", "admin"]);
   });
 
   it("keeps every module aimed at a different profiles column", () => {

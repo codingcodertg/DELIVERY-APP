@@ -620,7 +620,7 @@ export interface ModuleAccessConfig {
    * be a duplicate of the same fact, free to drift. Access is the checkbox
    * alone. The uniqueness rule this field encodes still holds: no two modules
    * may aim at the same column, and absent is not the same as "role". */
-  roleColumn?: "recruiting_role" | "timetracker_role" | "role";
+  roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role";
   roleKeys: readonly string[];
   roleLabel: (key: string, lang: Lang) => string;
   /** Present only for an opt-in module — deliveries has none, everyone
@@ -681,17 +681,21 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "erp", label_en: "ERP", label_es: "ERP",
     alwaysOn: false,
-    // No roleColumn, and no roleKeys: this module has no role tier of its own.
-    // Who may see cost is decided by `role` being admin/manager, which the
-    // Deliveries block above already edits — the ERP reads the same column
-    // rather than keeping a second copy of the same fact.
-    roleKeys: [],
-    roleLabel: (key) => key,
-    accessColumn: "module_access",
-    roleNote: {
-      en: "The ERP has no role of its own. Cost and margin are visible to Admin and Office Manager — set above, under Deliveries.",
-      es: "El ERP no tiene rol propio. El costo y el margen los ven Administrador y Gerente de Oficina — se define arriba, en Entregas.",
+    // Su propio escalafón desde D-181. Antes NO tenía roleColumn: la visibilidad de costo se
+    // decidía por `role` de Deliveries siendo admin/manager, así que un Gerente de Oficina de
+    // Entregas heredaba el costo del ERP sin que nadie se lo diera. Ahora `erp_role` es una
+    // columna propia (única, cumple la regla de D-057) y la base lee erp_role, no role.
+    roleColumn: "erp_role",
+    roleKeys: ["staff", "manager", "admin"],
+    roleLabel: (key, lang) => {
+      const L: Record<string, { en: string; es: string }> = {
+        staff: { en: "Staff", es: "Personal" },
+        manager: { en: "Manager", es: "Gerente" },
+        admin: { en: "Admin", es: "Administrador" },
+      };
+      return (lang === "es" ? L[key]?.es : L[key]?.en) ?? key;
     },
+    accessColumn: "module_access",
   },
 ];
 

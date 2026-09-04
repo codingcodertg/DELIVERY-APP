@@ -71,8 +71,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "recruiting": updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: roleValue }); return;
       case "timetracker": updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: roleValue }); return;
       case "erp":
-        // No role tier of its own — the block renders a checkbox and nothing
-        // to pick, so this is unreachable. Kept for exhaustiveness.
+        // Su propio tier desde D-181: el selector escribe erp_role (staff|manager|admin).
+        // granted:true porque cambiar el tier presupone que ya tiene el módulo.
+        updateUserErpAccess(u.id, { granted: true, erp_role: roleValue });
         return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }

@@ -138,8 +138,10 @@ export interface DataState {
    * (D-064). Writes timetracker_role/module_access, never `role`. */
   /** Fichaje no tiene rol propio (084): el escalafón es el de Time Tracker. Esto solo
    *  otorga o quita el módulo. */
-  /** ERP access is a flag only — no role tier of its own (D-090). */
-  updateUserErpAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
+  /** ERP access = the module flag, plus its own tier `erp_role` (staff|manager|admin) since
+   *  D-181. On grant without an explicit role, defaults to the lowest tier (staff). Same shape
+   *  as updateUserRecruitingAccess/Timetracker: the role selector calls this with the tier. */
+  updateUserErpAccess: (userId: string, patch: { granted: boolean; erp_role?: string | null }) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
@@ -1187,16 +1189,22 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   const updateUserErpAccess = useCallback<DataState["updateUserErpAccess"]>(
-    async (userId, { granted }) => {
+    async (userId, { granted, erp_role }) => {
       const target = users.find((u) => u.id === userId);
       const before = (target?.module_access ?? []).includes("erp");
+      const beforeRole = target?.erp_role ?? null;
+      // On grant: keep an explicit tier if given, else the current one, else the lowest (staff).
+      // On revoke: clear the tier. Mirrors recruiting/timetracker so the DB (erp_role) and the
+      // module flag never drift (D-181).
+      const nextRole = granted ? (erp_role ?? target?.erp_role ?? "staff") : null;
       const nextModules = granted
         ? Array.from(new Set([...(target?.module_access ?? []), "erp"]))
         : (target?.module_access ?? []).filter((m) => m !== "erp");
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
-      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, erp_role: nextRole, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ erp_role: nextRole, module_access: nextModules }).eq("id", userId);
       if (error) { notify(error.message); reloadAll(); return; }
-      void logSecurityClient(userId, "erp_access_changed", change(String(before), String(granted)));
+      if (before !== granted) void logSecurityClient(userId, "erp_access_changed", change(String(before), String(granted)));
+      if (beforeRole !== nextRole) void logSecurityClient(userId, "erp_role_changed", change(beforeRole, nextRole));
     },
     [supabase, notify, reloadAll, users, logSecurityClient],
   );

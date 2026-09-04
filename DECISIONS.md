@@ -7552,3 +7552,73 @@ Cambio de base, no de código: el bundle del cliente es idéntico y sus flujos l
 cambian (verificado con la matriz). Se sube solo `package.json`, no `APP_VERSIONS` — misma regla
 que D-177/D-179, ahora **escrita como excepción explícita** en `CLAUDE.md` (paso 3 del flujo):
 un cambio solo-de-base no fuerza refresh del cliente (D-029/D-087).
+
+---
+
+## D-181 · El ERP gana su propia columna de rol; el costo se cierra por la base (A-2d/A-2c-erp/escalafón)
+
+**Fecha:** 2026-09-03 · **Migración:** 101 · **Versión:** deliveries 1.56.0 · **Origen:** auditoría `docs/AUDIT-2026-09.md` (A-2d, A-2c-erp, escalafón) · **Plan:** `docs/PLAN-A-2d-erp-role-cost.md` · **Pedido por:** Andrés
+
+Tres hallazgos que eran **un solo problema**: el ERP no tenía cerrado su modelo de permisos —
+derivaba todo del rol de Deliveries (`public.profiles.role`).
+
+**Revierte a conciencia la nota "ERP sin rol propio" de D-057.** D-057 decidió que el ERP no
+tuviera `roleColumn` porque "quién ve costo lo decide `role` admin/manager, que Deliveries ya
+edita". La premisa resultó falsa: `role='manager'` de Entregas (gerente de oficina de reparto)
+**no** es lo mismo que "puede ver costo del ERP", y lo heredaba solo. La regla de *columna
+única por módulo* de D-057 **se conserva y se refuerza** (`erp_role` es una columna nueva,
+única); solo cae la excepción del ERP.
+
+**Escalafón — `erp_role` (staff|manager|admin), su propia columna.** Antes `erp.current_app_role()`
+leía `public.profiles.role`; ahora lee `erp_role`. Ese **único cambio de función** re-keya
+todas las políticas que daban autoridad (todas delegaban en `current_app_role()`): costo
+(`can_see_cost`), edición de catálogo (`products update`), `sku_aliases`, lectura de `audit_log`,
+y la visibilidad de borradores en las vistas. **No hubo reescritura tabla-por-tabla** porque
+medí que las tablas operativas (POs, inventario) **no tienen escritura de cliente**: su única
+política es un gate `RESTRICTIVE` (`has_erp_access()`) sin permisiva de escritura, así que ya
+estaban denegadas al cliente (se escriben server-side con service-role). Verificado en la
+matriz: hasta el admin da BLOQ en `po insert`.
+
+**A-2d — el costo se cierra de raíz, no cosméticamente.** La vista `app_products` (y
+`app_store_products`, `app_price_history`) enmascaraba `cost` con `CASE WHEN can_see_cost()`,
+pero `erp.products` estaba expuesta: un vendedor con ERP leía las **6,104** filas de
+`erp.products.cost` directo por PostgREST (medido). Cerrado con:
+- una función `SECURITY DEFINER` (`erp.product_cost`/`store_product_cost`/`price_history_cost`)
+  que devuelve el costo solo si `can_see_cost()`, y las vistas la llaman en vez de `p.cost`;
+- **REVOKE del SELECT de tabla + GRANT columna por columna de todo MENOS el costo** (un revoke
+  de columna no basta: el grant de tabla lo cubre — se midió que seguía leyéndose y se corrigió).
+Ahora `select cost from erp.products` da `permission denied` para **todos** (incluido admin); el
+costo solo sale por la vista, enmascarado por tier. Verificado ANTES/DESPUÉS con matriz sintética.
+
+**A-2c-erp — la hipótesis se refutó por medición.** Se creía que cualquier miembro escribía el
+historial del ERP (`audit_log`, `price_history`, `qoh_alert_log`, `qoh_reconcile_log`,
+`sales_history`). Falso: su única política es el gate `RESTRICTIVE` sin permisiva de escritura,
+así que **ya eran append-only** (las escriben funciones DEFINER; el cliente da BLOQ hasta como
+admin). Y `qoh_reconcile_log` **no** actualiza filas (sus escritores `reconcile_qoh*` solo
+insertan). **Sin cambio**: no había hueco. (Como la refutación del UPDATE en D-180, medir antes
+de tocar evitó un cambio innecesario.)
+
+**Guard.** Solo un admin de Deliveries cambia `erp_role` — se **folda** en el guard de columnas
+privilegiadas de D-179 (`guard_profile_privileged_columns`), no un trigger nuevo. Verificado:
+no-admin da BLOQ/0.
+
+### Lista nominal de tiers (regla del dueño)
+Medido: **solo 2 personas tienen ERP hoy** — ANDRES UGARTE y Roberto Rodriguez, ambos admin →
+`erp_role='admin'` (conservan costo). **Nadie más.** Los "5 gerentes de oficina" que se temía que
+vieran costo **no tienen ERP en `module_access`**, así que hoy no ven costo ni lo pierden: el
+riesgo era **latente** (darle ERP a un manager le habría dado costo por heredar de `role`). El
+fix cierra ese accidente: en adelante, conceder ERP da `erp_role='staff'` (sin costo) por
+defecto, y el costo se otorga a mano.
+
+### UI (D-057 lo hace genérico)
+El ERP gana su selector de tier en /home/users: entrada en `MODULE_ACCESS`
+(`roleColumn:"erp_role"`, 3 tiers), su caso en el switch de `UserDialog`, y `updateUserErpAccess`
+que ahora escribe `erp_role` (default `staff` al conceder). Un `erp_role_changed` nuevo en el
+registro de seguridad (D-039). El test de columna única de D-057 sigue verde.
+
+### Versión
+**Sí sube `deliveries` (1.56.0)** y `package.json` (1.108.0): a diferencia de D-179/D-180, esto
+**toca código de cliente** (el diálogo de usuarios del hub). La parte de ERP es solo-base (las
+pantallas del ERP no cambiaron su bundle, leen por las vistas), así que **`erp` NO sube** — no
+hay bundle nuevo del ERP que recoger. Es justo la regla del paso 3 de CLAUDE.md y su excepción,
+aplicadas por separado a cada mitad.

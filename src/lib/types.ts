@@ -28,6 +28,11 @@ export interface Profile {
    * `role` above, same shape as recruiting_role. Null = no role there.
    * See D-064. */
   timetracker_role?: string | null;
+  /** Role INSIDE the ERP module (staff|manager|admin). Independent of `role`.
+   * Gates ERP cost/margin visibility (#29) and catalog authority. Null = no ERP
+   * tier. Its own column so an office manager of Deliveries doesn't inherit ERP
+   * cost by accident (was keyed on `role` until D-181). See D-181. */
+  erp_role?: string | null;
   /** employee | manager | owner inside clock-in (071). Null = no access. */
 }
 

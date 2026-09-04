@@ -13,7 +13,7 @@
 // respectively), not a number of their own, so 0.1.0 is the honest
 // starting point, not manufactured continuity.
 export const APP_VERSIONS = {
-  deliveries: "1.55.2",
+  deliveries: "1.56.0",
   recruiting: "0.13.1",
   timetracker: "0.49.8",
   clockin: "0.38.0",
