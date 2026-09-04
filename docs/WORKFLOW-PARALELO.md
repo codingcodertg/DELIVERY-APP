@@ -150,6 +150,25 @@ SendMessage
 El **alcance escrito** no es burocracia: es contra lo que el auditor mide el
 punto (i), scope creep. Sin alcance no hay forma de decir que sobra.
 
+**Si le adelantas contexto al auditor, dile que NO audite todavia.** Adelantarle
+el encargo mientras el worker trabaja es util —llega leido y con las decisiones
+localizadas— pero un mensaje que nombra una rama, el auditor lo lee como "audita
+esa rama". Ya paso dos veces: fue a mirar, encontro cero commits y se nego a
+firmar, que es lo correcto por su parte y un viaje perdido por la tuya. Son **dos
+mensajes distintos**:
+
+```
+SendMessage to: "auditor"
+  message: "BRIEFING, NO AUDITES TODAVIA. Rama: <rama>. Lee <plan>.
+            Espera a que el worker te avise; el te dira cuando hay commits."
+```
+
+y despues, cuando el worker haya avisado, la peticion de auditoria de verdad.
+
+Lo que **si** puede hacer el auditor mientras espera, y conviene pedirselo: correr
+`node scripts/verify.mjs` sobre la rama **sin tocar**, para tener la linea base. Sin
+ella, luego no se distingue "lo rompio el worker" de "ya estaba roto".
+
 ### (2) Worker: trabaja, commitea, avisa al auditor
 
 ```bash
