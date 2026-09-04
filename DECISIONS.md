@@ -7954,3 +7954,84 @@ con fecha, porque el historial no se maquilla. Lo que la objeción cambió no fu
   rompe la interfaz; la cobertura es `verify.mjs` (tipos, pruebas, build) y revisión a ojo.
 - El comentario de `MANAGER_TABS` decía "catorce pestañas" y eran quince el 2026-09-04; quedan
   catorce. Se anotó en el propio comentario en vez de reescribirlo.
+
+## D-NEXT · Los tres formularios de Asignaciones pasan a botón + ventana, y el horario queda traducido
+
+**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés
+
+### Qué se pidió
+
+Petición literal: *"en asignaciones y horario, el form para nueva asignacion y el form para add
+shifts y clock someone in or out, primero que todo no esta traducido, segundo tambien deben de
+ser botones porque agarran mucho espacio y cuando se apriete debe abrirse como una window pero
+no llevar a otro lado"*.
+
+Dos problemas en una pantalla, los dos consecuencia directa de D-186. Al juntar las dos
+secciones bajo Asignaciones, **tres formularios ocupaban sitio permanente** aunque no se
+usaran: el de nueva asignación era la tarjeta de arriba de Tarifas, y en Horario iban dos más
+("Add shifts" y "Clock someone in or out") antes de que apareciera un solo turno. Y **media
+pantalla estaba sin traducir**: `ScheduleWeek` venía en inglés a pelo desde D-121, y D-186 lo
+dejó anotado como pendiente para rama aparte. Esta es esa rama.
+
+### Qué se decidió
+
+1. **Los tres formularios son ahora un botón que abre una ventana encima.** No navega, no cambia
+   la URL, y al cerrarla la lista sigue donde estaba. Se cierra con clic fuera, con Escape y con
+   un botón ✕. "Nueva asignación" vive en la cabecera de la tabla de tarifas; "Agregar turnos" y
+   "Fichar a alguien", en la cabecera del horario. **Editar** una asignación abre la misma
+   ventana ya rellena; el `window.scrollTo` al principio que hacía antes desaparece, porque solo
+   existía para llevar al formulario que estaba arriba.
+2. **Se reutiliza el patrón de ventana que ya existe**, no se inventa otro: las clases
+   `.overlay` / `.modal` / `.modal-actions` de `globals.css` (las de `UserDialog` en Deliveries),
+   que carga el layout raíz y por tanto también están dentro de `.timetracker-module`. Mismo
+   comportamiento: clic fuera cierra, clic dentro no. Lo que se añade es un envoltorio mínimo,
+   `src/components/timetracker/Modal.tsx`, con lo que los tres necesitan igual —Escape, título,
+   botón de cerrar— para no copiarlo tres veces. **Verificado, no supuesto:** `.modal` de globals
+   pinta con `--card`, que es blanco salvo bajo `data-theme="dark"` de Deliveries, y Time Tracker
+   es oscuro **por defecto** y claro con `data-theme="light"`: al revés. Sin más, la ventana
+   salía blanca con texto claro encima, ilegible. El ajuste son tres reglas en
+   `timetracker.css` (`.timetracker-module .modal`, su `h3` y el borde de `.modal-actions`)
+   sobre las variables `--tt-*`; tamaño, `z-index` (50, por encima del topbar de 20) y el modo a
+   pantalla completa en móvil vienen de globals y no se duplican.
+3. **Fichar a alguien queda detrás de un botón, y la ventana lo dice.** Ese formulario ficha a
+   una persona real y le manda una notificación; antes estaba a un descuido de distancia, en
+   medio de la pantalla. Ahora hay que abrirlo a propósito, y dentro lleva un aviso en amarillo
+   ("esto ficha a una persona real y le manda una notificación, revisa el nombre").
+4. **Todo el texto de `ScheduleWeek` pasa por el diccionario** de Time Tracker (`useT()`,
+   claves `mgr.sch.*`, en `en` y `es`), incluidos los nombres cortos de los días, los rótulos de
+   los botones nuevos, los títulos de las tres ventanas y los mensajes de resultado y de error.
+   De paso, dos cadenas sueltas de Tarifas que seguían en inglés ("Failed to save.",
+   "(deleted)") pasan a `mgr.asn.*`. Comprobado por grep sobre los tres ficheros: cero nodos de
+   texto JSX con letras, cero placeholders literales, y cada clave usada existe exactamente dos
+   veces en `i18n.ts` (una por idioma).
+5. **Con error, la ventana no se cierra**: el aviso se enseña dentro de ella, no detrás del velo.
+   Con éxito, se cierra y el aviso verde aparece en la cabecera del horario, como antes. Para
+   eso `corre()` devuelve ahora si salió bien; es el único cambio en esa función.
+
+### Qué NO cambia
+
+Los campos, las validaciones y las llamadas de los tres formularios son los mismos. Los server
+actions de `clockin` no se tocan. Las dos listas de personas siguen separadas (D-186):
+`AssignmentsPanel` con `allEmployees` del proveedor, `ScheduleWeek` con `d.people` del servidor
+acotado por tienda (D-127), y `Modal` no recibe ni una lista. `globals.css` y el cliente de
+Deliveries no se tocan. Un cambio de forma sí hay: dentro de la ventana la fila de tarifas va
+a dos columnas en vez de cuatro, porque la ventana es más estrecha que la tarjeta.
+
+### Qué se descartó
+
+- **Un `<dialog>` nativo o un componente de ventana propio de Time Tracker.** Habría sido un
+  segundo patrón de ventana en la misma app para el mismo problema; el de globals ya resuelve
+  el clic fuera, el scroll y el móvil.
+- **Copiar `.overlay`/`.modal` a `timetracker.css` con colores propios.** Duplica lo que
+  funciona; se corrigieron solo los colores, que era lo único que fallaba.
+- **Traducir `fmtDayLong`**, que sigue con la configuración regional fija de `helpers.ts`. Es
+  un helper compartido por todo el módulo y cambiarlo es otro cambio.
+
+### Lo no verificado
+
+Este repo no tiene ninguna prueba que dibuje pantallas (709 pruebas, todas lógica pura bajo
+`src/lib`, sin jsdom). `verify.mjs` en verde no dice si la ventana se abre, se cierra con
+Escape, o si un texto quedó sin traducir. Lo tercero se cubrió por grep; lo primero y lo
+segundo, por lectura del diff. Nadie abrió la pantalla con sesión de admin: el worktree no
+tiene `.env.local` a propósito. La prueba real es el dueño abriendo las tres ventanas en los
+dos idiomas y en los dos temas.

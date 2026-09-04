@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
+import { Modal } from "./Modal";
 
 /**
  * Tarifas por proyecto: quién está asignado a qué, y a cuánto la hora.
@@ -13,6 +14,11 @@ import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
  * de esa misma pantalla (D-186). Lo único que se quitó es la comprobación de rol en cliente
  * ("Admins only."): la página ahora es de servidor y redirige antes de montar nada, así que
  * este componente solo se renderiza para un admin.
+ *
+ * El formulario ya no ocupa la tarjeta de arriba de forma permanente (D-NEXT): vive en una
+ * ventana que abre el botón "Nueva asignación" y también "Editar" de cada fila, ya rellena.
+ * El scroll al principio que hacía editar desapareció con él: la ventana se abre encima,
+ * estés donde estés. Mismos campos, mismas validaciones, mismas llamadas.
  *
  * OJO: la lista de personas de aquí es `allEmployees` del proveedor — TODO el que tiene
  * `timetracker_role`, sin filtro de tienda y sin excluir inactivos. La sección de Horario
@@ -27,10 +33,12 @@ export function AssignmentsPanel() {
   const empty: FormState = { employeeUid: "", projectId: "", hourlyRate: "", overtimeRate: "", overtimeThreshold: "", weeklyLimit: "", paymentMethod: "" };
   const [f, setF] = useState<FormState>(empty);
   const [editId, setEditId] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState(false);
   const [err, setErr] = useState("");
   const upd = <K extends keyof FormState>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
   const methods = APP_SETTINGS.paymentMethods || [];
 
+  function startNew() { setEditId(null); setF(empty); setErr(""); setAbierta(true); }
   function startEdit(a: (typeof assignments)[number]) {
     setEditId(a.id);
     setF({
@@ -40,9 +48,10 @@ export function AssignmentsPanel() {
       weeklyLimit: a.weeklyLimit == null ? "" : String(a.weeklyLimit),
       paymentMethod: a.paymentMethod || "",
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setErr("");
+    setAbierta(true);
   }
-  function cancel() { setEditId(null); setF(empty); setErr(""); }
+  function cancel() { setEditId(null); setF(empty); setErr(""); setAbierta(false); }
 
   async function save() {
     setErr("");
@@ -63,7 +72,7 @@ export function AssignmentsPanel() {
       if (editId) await updateAssignment(editId, data);
       else await insertAssignment(data);
       cancel();
-    } catch (e) { const error = e as { message?: string } | null; setErr(error?.message || "Failed to save."); }
+    } catch (e) { const error = e as { message?: string } | null; setErr(error?.message || t("mgr.asn.errSave")); }
   }
 
   const pMap = new Map(projects.map((p) => [p.id, p]));
@@ -71,45 +80,49 @@ export function AssignmentsPanel() {
 
   return (
     <>
-      <div className="card">
-        <h2>{editId ? t("mgr.asn.editTitle") : t("mgr.asn.newTitle")}</h2>
-        {err && <div className="banner err">{err}</div>}
-        <div className="grid g2">
-          <div>
-            <label>{t("mgr.asn.employee")}</label>
-            <select value={f.employeeUid} onChange={(e) => upd("employeeUid", e.target.value)}>
-              <option value="">{t("mgr.asn.pick")}</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}{u.role === "admin" ? t("mgr.asn.managerSuffix") : ""}</option>)}
-            </select>
+      {abierta && (
+        <Modal title={editId ? t("mgr.asn.editTitle") : t("mgr.asn.newTitle")} onClose={cancel}>
+          {err && <div className="banner err">{err}</div>}
+          <div className="grid g2">
+            <div>
+              <label>{t("mgr.asn.employee")}</label>
+              <select value={f.employeeUid} onChange={(e) => upd("employeeUid", e.target.value)}>
+                <option value="">{t("mgr.asn.pick")}</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}{u.role === "admin" ? t("mgr.asn.managerSuffix") : ""}</option>)}
+              </select>
+            </div>
+            <div>
+              <label>{t("mgr.asn.project")}</label>
+              <select value={f.projectId} onChange={(e) => upd("projectId", e.target.value)}>
+                <option value="">{t("mgr.asn.pick")}</option>
+                {activeProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
           </div>
-          <div>
-            <label>{t("mgr.asn.project")}</label>
-            <select value={f.projectId} onChange={(e) => upd("projectId", e.target.value)}>
-              <option value="">{t("mgr.asn.pick")}</option>
-              {activeProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+          <div className="grid g2" style={{ marginTop: 4 }}>
+            <div><label>{t("mgr.asn.rate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.hourlyRate} onChange={(e) => upd("hourlyRate", e.target.value)} placeholder="10" /></div>
+            <div><label>{t("mgr.asn.otRate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.overtimeRate} onChange={(e) => upd("overtimeRate", e.target.value)} placeholder="15" /></div>
+            <div><label>{t("mgr.asn.otAfter")}</label><input type="number" value={f.overtimeThreshold} onChange={(e) => upd("overtimeThreshold", e.target.value)} placeholder="44" /></div>
+            <div><label>{t("mgr.asn.weeklyLimit")}</label><input type="number" value={f.weeklyLimit} onChange={(e) => upd("weeklyLimit", e.target.value)} placeholder={t("mgr.asn.optional")} /></div>
           </div>
-        </div>
-        <div className="grid g4" style={{ marginTop: 4 }}>
-          <div><label>{t("mgr.asn.rate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.hourlyRate} onChange={(e) => upd("hourlyRate", e.target.value)} placeholder="10" /></div>
-          <div><label>{t("mgr.asn.otRate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.overtimeRate} onChange={(e) => upd("overtimeRate", e.target.value)} placeholder="15" /></div>
-          <div><label>{t("mgr.asn.otAfter")}</label><input type="number" value={f.overtimeThreshold} onChange={(e) => upd("overtimeThreshold", e.target.value)} placeholder="44" /></div>
-          <div><label>{t("mgr.asn.weeklyLimit")}</label><input type="number" value={f.weeklyLimit} onChange={(e) => upd("weeklyLimit", e.target.value)} placeholder={t("mgr.asn.optional")} /></div>
-        </div>
-        <label style={{ marginTop: 4 }}>{t("mgr.asn.payMethod")}</label>
-        <select value={f.paymentMethod} onChange={(e) => upd("paymentMethod", e.target.value)}>
-          <option value="">{t("mgr.asn.none")}</option>
-          {methods.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <div className="row" style={{ marginTop: 14 }}>
-          <button onClick={save}>{editId ? t("common.saveChanges") : t("mgr.asn.assign")}</button>
-          {editId && <button className="btn-ghost" onClick={cancel}>{t("common.cancel")}</button>}
-        </div>
-        <p className="small muted" style={{ marginTop: 8 }}>{t("mgr.asn.foot")}</p>
-      </div>
+          <label style={{ marginTop: 4 }}>{t("mgr.asn.payMethod")}</label>
+          <select value={f.paymentMethod} onChange={(e) => upd("paymentMethod", e.target.value)}>
+            <option value="">{t("mgr.asn.none")}</option>
+            {methods.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <p className="small muted" style={{ marginTop: 8 }}>{t("mgr.asn.foot")}</p>
+          <div className="modal-actions">
+            <button className="btn-ghost" onClick={cancel}>{t("common.cancel")}</button>
+            <button onClick={save}>{editId ? t("common.saveChanges") : t("mgr.asn.assign")}</button>
+          </div>
+        </Modal>
+      )}
 
       <div className="card">
-        <h2>{t("mgr.tab.assign")}</h2>
+        <div className="between" style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>{t("mgr.tab.assign")}</h2>
+          <button onClick={startNew}>{t("mgr.asn.newBtn")}</button>
+        </div>
         {assignments.length === 0 ? <p className="muted">{t("mgr.asn.empty")}</p> : (
           <table>
             <thead>
@@ -122,7 +135,7 @@ export function AssignmentsPanel() {
               {assignments.map((a) => (
                 <tr key={a.id}>
                   <td>{uMap.get(a.employeeUid)?.fullName || "—"}</td>
-                  <td>{pMap.get(a.projectId)?.name || "(deleted)"}</td>
+                  <td>{pMap.get(a.projectId)?.name || t("mgr.asn.deletedProject")}</td>
                   <td className="right nowrap">{money(a.hourlyRate)}</td>
                   <td className="right nowrap">{money(a.overtimeRate)}</td>
                   <td className="right nowrap">{a.overtimeThreshold == null ? "—" : a.overtimeThreshold + "h"}</td>

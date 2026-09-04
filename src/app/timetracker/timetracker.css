@@ -158,6 +158,16 @@
   .timetracker-module .pbtns{grid-template-columns:1fr}
 }
 
+/* Ventana (D-NEXT): se REUSA `.overlay`/`.modal`/`.modal-actions` de globals.css, que carga el
+   layout raíz. Solo se corrigen los colores: globals pinta `.modal` con `--card` (blanco salvo
+   en el tema oscuro de Deliveries), y Time Tracker es oscuro por defecto y claro con
+   data-theme="light" — al revés. Sin esto, la ventana salía blanca con texto claro encima.
+   Tamaño, z-index (50, por encima del topbar de 20) y el modo a pantalla completa en móvil
+   vienen de globals y no se duplican. */
+.timetracker-module .modal{background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line)}
+.timetracker-module .modal h3{color:var(--tt-txt)}
+.timetracker-module .modal-actions{border-top-color:var(--tt-line)}
+
 /* Printable receipt overlay (Reports/Pay, D-071) */
 .timetracker-module .rcpt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:16px;z-index:9998;overflow:auto}
 .timetracker-module .rcpt-print{background:#fff;color:#111;border-radius:12px;padding:24px;max-width:520px;width:100%;margin-top:24px}
