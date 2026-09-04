@@ -204,12 +204,29 @@ SendMessage
 ```bash
 gh pr create --base main --head worktree-feat-nombre-corto \
   --title "feat(x): ..." --body "<que hacia falta, por que, que se descarto>"
-gh pr checks --watch          # espera a que CI ponga verde
-gh pr merge --squash --delete-branch
+gh pr checks <n> --watch      # espera a que CI ponga verde
+gh pr merge <n> --squash      # SIN --delete-branch, ver abajo
 ```
 
 CI corre `.github/workflows/ci.yml`: tsc, vitest (reportando pasados|saltados) y
-next build, con placeholders y **sin un solo secreto de produccion**.
+next build, con placeholders y **sin un solo secreto de produccion**. Tarda unos
+dos minutos y medio. Ademas del check propio veras los de **Vercel**: recuerda
+que su preview apunta a la base de **produccion** (seccion 6).
+
+**`--delete-branch` falla mientras el worktree exista**, y el mensaje asusta mas
+de lo que debe:
+
+```
+failed to delete local branch worktree-feat-nombre-corto:
+  cannot delete branch ... used by worktree at '.../.claude/worktrees/...'
+```
+
+**El merge ya ocurrio**; lo unico que fallo es el borrado de la rama local.
+Compruebalo antes de tocar nada, y luego limpia en el orden del paso (6):
+
+```bash
+gh pr view <n> --json state,mergeCommit --jq '{state, merge:.mergeCommit.oid}'
+```
 
 ### (6) Orquestador, DESPUES del merge y en este orden
 
@@ -272,41 +289,36 @@ con la version: quien fusiona sabe que apps se tocaron de verdad.
 
 ---
 
-## 7. El `gh` de esta maquina no puede abrir PRs (paso pendiente del dueno)
+## 7. Las dos cuentas de `gh` en esta maquina — RESUELTO, con un limite
 
-Medido el 2026-09-04, y bloquea el paso (5) del protocolo:
+**El sintoma, medido el 2026-09-04:** `gh pr create` respondia
+`must be a collaborator (createPullRequest)` y el dispatch manual daba
+`403: Must have admin rights`, aunque `git push` funcionaba perfectamente.
 
-```
-$ gh auth status
-✓ Logged in to github.com account andresugarte14
+**La causa:** dos identidades distintas. `git` usa el Windows Credential Manager,
+que guarda a `CARRERSRTG` (con permiso de escritura). `gh` estaba autenticado con
+**otra** cuenta, `andresugarte14`, que sobre este repo solo tiene `READ`. De ahi
+que el worker pudiera pushear y el orquestador no pudiera abrir el PR.
 
-$ gh repo view codingcodertg/DELIVERY-APP --json viewerPermission
-{"viewerPermission":"READ"}
-
-$ gh pr create ...
-pull request create failed: GraphQL: must be a collaborator (createPullRequest)
-```
-
-`git push` **si** funciona: git usa el Windows Credential Manager, que guarda la
-identidad `CARRERSRTG` (dueña del repo). Pero `gh` esta autenticado con **otra**
-cuenta, `andresugarte14`, que sobre este repo solo tiene lectura. De ahi que el
-worker pueda pushear su rama y el orquestador no pueda abrir el PR ni disparar
-el workflow a mano (`403: Must have admin rights`).
-
-Arreglo, una vez, por el dueno (es su decision de credenciales, no se toca sin
-que lo pida):
+**El arreglo, ya aplicado por el dueno:** `gh auth login` entrando como
+`CARRERSRTG`. Las dos cuentas conviven en el llavero; la activa se cambia con
+`gh auth switch`. Comprobacion:
 
 ```bash
-gh auth login          # elegir github.com, HTTPS, y entrar como la cuenta dueña del repo
-gh auth switch         # si la cuenta ya estuviera registrada, basta con cambiar la activa
+gh repo view codingcodertg/DELIVERY-APP --json viewerPermission   # -> WRITE
 ```
 
-Comprobacion de que quedo: `gh repo view codingcodertg/DELIVERY-APP --json
-viewerPermission` debe decir `WRITE` o `ADMIN`.
+**El limite que queda:** el token de `CARRERSRTG` tiene los alcances `gist`,
+`read:org` y `repo`, pero **no `workflow`**. Consecuencia concreta: un PR que
+modifique `.github/workflows/*.yml` puede ser rechazado al empujarlo por `gh`.
+El `git push` normal seguira funcionando, porque va por el Credential Manager,
+que es otra credencial. Si algun dia toca cambiar un workflow y GitHub se queja
+de alcances, la salida es `gh auth refresh -h github.com -s workflow`.
 
-Mientras tanto, el PR se abre a mano desde la web —GitHub lo ofrece en cuanto se
-pushea la rama— y el CI corre igual, porque se dispara por el evento
-`pull_request`, no por quien lo abrio.
+Alternativa que siempre funciona, por si las credenciales vuelven a enredarse:
+el PR se abre **desde la web** con el enlace que GitHub imprime al pushear la
+rama, y el CI corre igual, porque lo dispara el evento `pull_request` y no
+importa quien lo abrio.
 
 ---
 
@@ -316,3 +328,44 @@ Todo lo anterior es una convencion hasta que GitHub la haga cumplir. Sin
 proteccion, un `git push origin main` distraido se salta el flujo entero. Los
 pasos exactos estan en la seccion **"Flujo de ramas"** de `CLAUDE.md` y hay que
 hacerlos una vez en el dashboard de `codingcodertg/DELIVERY-APP`.
+
+---
+
+## 9. El ciclo probado de punta a punta — 2026-09-04
+
+Antes de estrenar el flujo se corrio entero con un cambio trivial (un comentario
+en `src/lib/app-versions.ts`), para que la primera vez que falle algo no sea con
+codigo que importa. Resultado: **PR #1, fusionado**.
+
+| Paso | Resultado | Evidencia |
+|---|---|---|
+| Worktree | ok | `.claude/worktrees/prueba-flujo/`, rama `worktree-prueba-flujo`, sin `.env.local` |
+| `npm ci` + `verify.mjs` | ok | 704 pasados \| 3 saltados, build ok |
+| Commit del worker | ok | `924386e`, sin subir version ni numerar decision |
+| **Auditoria** | **APROBADO con nota** | el auditor corrio los nueve puntos y las tres verificaciones por su cuenta |
+| Correccion del hallazgo | ok | `db083a9` |
+| Push de la rama | ok | `worktree-prueba-flujo` en `origin` |
+| PR | ok, tras arreglar `gh` | `#1` |
+| CI | **verde en 2m30s** | run `33896670561`, los siete pasos en verde |
+| Merge squash | ok | `281bfd9` en `main` |
+| Limpieza | ok, con el tropiezo del candado | `unlock`, `remove`, `branch -D` |
+
+**Lo que la prueba enseño, y ya esta corregido arriba:** la rama lleva prefijo
+`worktree-`; el worktree nace bloqueado; `settings.local.json` viaja solo;
+`node_modules` no viaja; `--delete-branch` falla si el worktree sigue vivo
+aunque el merge si haya ocurrido; y las dos cuentas de `gh`.
+
+**Lo que el auditor encontro.** No fue un simulacro: el comentario original
+decia que dos ramas subiendo version chocan en silencio, y eso es al reves. Si
+suben la misma app a numeros **distintos**, git da conflicto y te enteras. El
+caso callado es que la suban al **mismo** numero: git funde el cambio identico
+sin quejarse y los dos cambios salen bajo un solo bump, asi que el cliente que ya
+tenia ese numero no vuelve a bajar nada (D-029/D-087). El auditor tambien
+confeso lo que **no** pudo medir —no logro crear un repo temporal para probar el
+merge— en vez de presentarlo como verificado. Eso es exactamente el estandar que
+se le pide.
+
+**Una rareza sin explicar, anotada por si reaparece:** en dos ocasiones
+`next build` fallo y paso al reintentar sin tocar una linea de codigo, sin
+mensaje de error. En CI, que compila en frio cada vez, no ha pasado. Si vuelve,
+mide antes de suponer.
