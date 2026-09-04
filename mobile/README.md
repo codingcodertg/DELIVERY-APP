@@ -1,4 +1,4 @@
-# RDZ Deliveries — app de Android para choferes
+# RTG Hub — app de Android para choferes
 
 Cáscara nativa (Capacitor) que carga la app web en vivo y le agrega **GPS en
 segundo plano**, que es lo único que un navegador no puede hacer con la
@@ -29,7 +29,7 @@ alguien reemplace tu app con otra.
 
 Entonces, **una sola vez**:
 
-1. Desinstalar RDZ Deliveries del teléfono.
+1. Desinstalar RTG Hub (antes "RDZ Deliveries") del teléfono.
 2. Instalar el APK **firmado de release**.
 
 De ahí en adelante todas las actualizaciones se instalan encima sin desinstalar.

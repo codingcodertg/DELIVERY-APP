@@ -7861,7 +7861,7 @@ memoria y listeners, no comportamiento.
 
 ## D-186 · El horario pasa a vivir dentro de Asignaciones, como segunda sección; las dos listas de personas NO se unifican
 
-**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
+**Fecha:** 2026-09-04 · **Versión:** las cinco apps (deliveries 1.57.0, recruiting 0.14.0, timetracker 0.52.0, clockin 0.39.0, erp 0.4.0), package.json 1.112.0 (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
 
 ### Qué se pidió
 
@@ -8036,7 +8036,7 @@ segundo, por lectura del diff. Nadie abrió la pantalla con sesión de admin: el
 tiene `.env.local` a propósito. La prueba real es el dueño abriendo las tres ventanas en los
 dos idiomas y en los dos temas.
 
-## D-NEXT · La app se llama RTG Hub en el código; RDZ queda como marca de la empresa. Paso 1 de 11 del plan de renombre
+## D-188 · La app se llama RTG Hub en el código; RDZ queda como marca de la empresa. Paso 1 de 11 del plan de renombre
 
 **Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar · **Pedido por:** Andrés ·
 **Plan:** `docs/PLAN-rename-rtg-hub.md`

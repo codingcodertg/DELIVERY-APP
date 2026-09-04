@@ -1,4 +1,4 @@
-# RDZ Hub — app de escritorio para Windows
+# RTG Hub — app de escritorio para Windows
 
 Una ventana que abre **el hub** (`/home`), desde donde cada quien entra a los módulos que
 tenga: Deliveries, RR. HH., Time Tracker, ERP.
@@ -45,7 +45,7 @@ cd desktop
 npm run dist
 ```
 
-Deja `desktop/dist/RDZ Hub Setup 1.0.0.exe` — unos 78 MB, porque el instalador trae Electron
+Deja `desktop/dist/RTG Hub Setup 1.0.0.exe` — unos 78 MB, porque el instalador trae Electron
 entero (el sitio no, ese se carga en vivo). Es un instalador NSIS **por usuario** (no pide permisos de
 administrador), con acceso directo en el escritorio y en el menú de inicio.
 
