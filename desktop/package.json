@@ -1,8 +1,8 @@
 {
-  "name": "rdz-hub-desktop",
+  "name": "rtg-hub-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "Ventana de escritorio para Windows que abre el hub de RDZ. Carga el sitio en vivo; no lo empaqueta.",
+  "description": "Ventana de escritorio para Windows que abre el hub de RTG. Carga el sitio en vivo; no lo empaqueta.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "net.rdztilegroup.hub",
-    "productName": "RDZ Hub",
+    "productName": "RTG Hub",
     "files": [
       "main.js",
       "build/icon.ico"
@@ -31,7 +31,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "RDZ Hub"
+      "shortcutName": "RTG Hub"
     }
   }
 }

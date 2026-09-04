@@ -8035,3 +8035,70 @@ Escape, o si un texto quedó sin traducir. Lo tercero se cubrió por grep; lo pr
 segundo, por lectura del diff. Nadie abrió la pantalla con sesión de admin: el worktree no
 tiene `.env.local` a propósito. La prueba real es el dueño abriendo las tres ventanas en los
 dos idiomas y en los dos temas.
+
+## D-NEXT · La app se llama RTG Hub en el código; RDZ queda como marca de la empresa. Paso 1 de 11 del plan de renombre
+
+**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar · **Pedido por:** Andrés ·
+**Plan:** `docs/PLAN-rename-rtg-hub.md`
+
+### Qué se pidió
+
+El dueño decidió el 2026-09-04 renombrar el proyecto entero de "deliveries-app / RDZ Deliveries" a
+**RTG Hub**, con URL nueva en Vercel y sin dominio propio (el plan lo desglosa en once pasos). Esta
+rama es **solo el paso 1**: los **nombres** en el código. Ninguna URL cambia, ningún `appId`, ningún
+dato de la base.
+
+### La regla que separa las dos marcas
+
+Va a volver a aparecer, así que queda escrita: **"RTG" es la marca de la aplicación y de sus
+módulos; "RDZ" es la marca de la empresa de cara al cliente y a las tiendas, y esa no se toca desde
+el código.** En concreto:
+
+- **Pasa a RTG:** el título de la pestaña y de la app instalada (`layout.tsx`, los dos manifests),
+  el título de las notificaciones push (`api/push/route.ts`, `useLiveLocation.ts`), el remitente
+  de correo (`email.ts`), el `app_name` por defecto cuando la base no lo trae (`TopBar`,
+  `data-provider`, `demo-data`: `RTG·HUB`), los nombres de los instalables en `constants.ts`
+  (escritorio y Android), el escritorio (`productName`, `shortcutName`, `name` del paquete, título
+  de ventana y mensaje de error en `main.js`), el APK (`appName` de Capacitor, `strings.xml`, que
+  es lo que Android pinta bajo el icono y `cap sync` no regenera, `mobile/package.json`, el título
+  del fallback sin conexión en `www/index.html`), el `name` de `package.json` y del lockfile
+  (`rtg-hub`), y los títulos de pestaña de los módulos: **RTG Time Tracker, RTG HR Management,
+  RTG ERP**. El prefijo de los módulos es la familia de la app, y la app es RTG Hub.
+- **Se queda RDZ:** el SMS al cliente ("your RDZ delivery"), la cabecera de `/track`
+  ("RDZ·Tracking"), la de los exports ("RDZ · título"), los nombres de tienda ("RDZ McAllen"), y el
+  texto "RDZ" de los iconos SVG. Es la empresa, no la app.
+- **Se queda por otra razón:** los identificadores de User-Agent (`RDZ-Deliveries/1.0` hacia
+  Nominatim/OSM en cinco rutas, `RDZHub/<ver>` del escritorio, que nadie parsea, y
+  `RDZDeliveries/<n>` del APK, que `app-update.ts` parsea: es protocolo, no nombre). El módulo de
+  reparto sigue llamándose **Deliveries** en `MODULES` / `MODULE_ACCESS` / `erp/domain/modules.ts`.
+
+### Qué NO cambia en esta rama, a propósito
+
+- **Ninguna URL.** `deliveries-app-seven.vercel.app` sigue en el cron, en `desktop/main.js`, en
+  Capacitor y en las docs; la URL del APK en `app-update.ts` también. Es el paso 6 del plan.
+- **Los `appId`** (`net.rdztilegroup.deliveries`, `net.rdztilegroup.hub`): cambiarlos convierte la
+  app en otra app para el sistema y no se actualizaría encima.
+- **`api/download/[app]/route.ts`**: el Blob todavía guarda `RDZ-Hub-Setup.exe`. Que
+  `productName` ya diga RTG Hub y la descarga siga apuntando al fichero viejo es **intencional**: el
+  nombre del artefacto se coordina con la recompilación del paso 7. Hasta entonces el instalador
+  que se descarga sigue siendo el viejo, con el nombre viejo.
+- `settings.app_name` en la base (hoy `RDZ·DELIVERIES`): es dato, lo cambia el dueño desde Ajustes
+  (paso 10). Mientras tanto la cabecera del hub sigue diciendo RDZ aunque el código ya diga RTG.
+- `.github/workflows`, docs, `mobile/README.md`: los actualiza el orquestador al numerar.
+
+### Hallazgo: hay dos manifests y sirve el de `public/` (medido)
+
+`src/app/manifest.ts` y `public/manifest.webmanifest` sirven **la misma ruta**,
+`/manifest.webmanifest` (Next genera esa ruta desde `app/manifest.ts`). Medido el 2026-09-04 con
+`next build`, `next start -p 3457` y `curl -s -i localhost:3457/manifest.webmanifest`: la
+respuesta trae `orientation`, los dos iconos SVG y cabeceras de fichero estático (`Accept-Ranges`,
+`Last-Modified`, `ETag`), que solo tiene el de `public/`. **El de `public/` gana; `app/manifest.ts`
+se compila (`.next/server/app/manifest.webmanifest` existe) pero no se sirve.** Se cambiaron los
+dos y no se borró ninguno: quitar `app/manifest.ts` es otra rama, ya sin la sospecha.
+
+### Lo no verificado
+
+No hay prueba que fije títulos ni manifest, y ninguna falló por el nombre. `verify.mjs` en verde
+(711 pasados | 3 saltados, igual que `main`). El APK y el escritorio **no se recompilaron**: el
+nombre nuevo llega a los usuarios en el paso 7. Nadie vio la pestaña del navegador con el título
+nuevo: el worktree no tiene `.env.local` a propósito.

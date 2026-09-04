@@ -6,7 +6,7 @@ import { ErpNavProvider } from "@/components/erp/nav-state";
 import "./erp.css";
 
 export const metadata: Metadata = {
-  title: "RDZ ERP",
+  title: "RTG ERP",
 };
 
 /**

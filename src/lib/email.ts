@@ -15,7 +15,7 @@ export function resendFrom(): string | null {
   const explicit = process.env.NOTIFY_FROM_EMAIL?.trim();
   if (explicit) return explicit;
   const domain = process.env.RESEND_EMAIL_DOMAIN?.trim();
-  if (domain) return `RDZ Deliveries <notifications@${domain}>`;
+  if (domain) return `RTG Hub <notifications@${domain}>`;
   return null;
 }
 

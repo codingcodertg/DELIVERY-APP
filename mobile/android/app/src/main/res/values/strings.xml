@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">RDZ Deliveries</string>
-    <string name="title_activity_main">RDZ Deliveries</string>
+    <string name="app_name">RTG Hub</string>
+    <string name="title_activity_main">RTG Hub</string>
     <string name="package_name">net.rdztilegroup.deliveries</string>
     <string name="custom_url_scheme">net.rdztilegroup.deliveries</string>
 </resources>

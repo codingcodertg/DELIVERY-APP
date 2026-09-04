@@ -2,7 +2,7 @@
   "name": "rdz-deliveries-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Android shell for RDZ Deliveries — loads the live web app and adds background GPS for drivers.",
+  "description": "Android shell for RTG Hub — loads the live web app and adds background GPS for drivers.",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
