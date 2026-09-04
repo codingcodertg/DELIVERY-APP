@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDayPhotos, type DayPhoto, type PhotoKind } from "@/app/timetracker/clock-in/actions/photos";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
+import { usePrefs } from "@/lib/prefs";
 
 /**
  * Las fotos de fichaje de un día, dentro de Auditoría.
@@ -32,6 +33,7 @@ const KIND: Record<PhotoKind, { label: string; cls: string }> = {
 const ONLY = "en-US";
 
 export function DayPhotos() {
+  const { t } = usePrefs();
   const [day, setDay] = useState(() => dateISO(new Date()));
   const [photos, setPhotos] = useState<DayPhoto[]>([]);
   // El día más reciente que sí tiene fotos. Es la diferencia entre "no hay nada" y "no hay
@@ -134,8 +136,12 @@ export function DayPhotos() {
       {!loading && !err && shown.length === 0 && (
         <div className="banner info">
           <div>
-            Nobody punched or logged a trip on <strong>{day}</strong> — or that day&apos;s photos
-            have already been cleaned up (they are kept 60 days).
+            {t("Nobody punched or logged a trip on", "Nadie fichó ni registró un viaje el")}{" "}
+            <strong>{day}</strong>.{" "}
+            {t(
+              "Photos are kept indefinitely for now, so an empty day means there was no activity — nothing was deleted.",
+              "Por ahora las fotos se conservan indefinidamente, así que un día vacío significa que no hubo actividad — no se borró nada.",
+            )}
           </div>
           {/* Y, sobre todo, DÓNDE sí hay. Un navegador por días sin esta pista obliga a hacer
               clic hacia atrás a ciegas, y quien abre un lunes ve vacío el fin de semana y da la
@@ -175,7 +181,10 @@ export function DayPhotos() {
       ))}
 
       <p className="small muted" style={{ marginTop: 14 }}>
-        Photos are kept for 60 days and then deleted automatically. The hours are never deleted.
+        {t(
+          "Photos are kept indefinitely for now — no automatic retention policy is active yet. The hours are never deleted.",
+          "Por ahora las fotos se conservan indefinidamente — todavía no hay una política de retención automática activa. Las horas nunca se borran.",
+        )}
       </p>
 
       {viewing !== null && urls[viewing] && (

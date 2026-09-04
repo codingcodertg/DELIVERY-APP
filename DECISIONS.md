@@ -7674,3 +7674,54 @@ que solo el dueño tiene; no se inventan.
 Cambio de **config de despliegue** (`vercel.json`), no de código de cliente ni de base: no hay
 bundle nuevo que recoger, así que **no sube ningún `APP_VERSION`**. Sube solo `package.json`
 (1.108.1) como hito del repo. Coherente con la excepción del paso 3 de CLAUDE.md.
+
+---
+
+## D-183 · El cron de fichaje corre desde GitHub Actions; la promesa de borrado de fotos se corrige (no se borra)
+
+**Fecha:** 2026-09-03 · **Versión:** timetracker 0.49.9 · **Origen:** C-6 (continuación de D-182) · **Pedido por:** Andrés
+
+Dos decisiones del dueño sobre los crons que faltaban (D-182):
+
+**1. El cron de avisos de fichaje corre desde un scheduler externo (GitHub Actions).**
+`.github/workflows/tt-cron.yml` pega `GET /timetracker/clock-in/api/cron` del deploy de
+producción cada 2 min (`*/2 * * * *`). Va aquí y no en `vercel.json` porque Vercel Hobby corre
+los crons una vez al día y admite máximo 2 (ya ocupados), y este job comprueba ventanas de 3
+min (recordatorios, almuerzo, cierre a las 8 PM). **Caveat anotado en el YAML:** el mínimo
+efectivo de los crons de GitHub es ~5 min y pueden retrasarse bajo carga — `*/2` es objetivo,
+no garantía; para precisión real, Vercel Pro.
+
+- **Secreto:** el workflow usa `secrets.TT_CRON_SECRET` (a crear en GitHub → Settings → Secrets
+  and variables → Actions). Su valor = el `CRON_SECRET` que ya vive en Vercel. Nunca se escribe
+  en el YAML ni en los logs (se pasa por `env` y el cuerpo de la respuesta se descarta).
+- **Falla visible:** el paso programado sale con `exit 1` y `::error::` si la ruta responde
+  ≠200, para que un cron roto se vea en la pestaña Actions, no en silencio.
+- **Verificación segura sin efectos en terceros:** se añadió a la ruta un modo `?verify=1` que,
+  tras pasar el auth, responde 200 **sin correr** la lógica de avisos ni el auto-clock-out (no
+  dispara notificaciones ni cierra turnos — regla de CLAUDE.md). El `workflow_dispatch` manual
+  comprueba 401 (sin secreto) y 200 (con secreto + `verify=1`). Medido ya en vivo: sin secreto
+  la ruta devuelve **401** (auth-first, no corre lógica); `cronAuthorized` falla cerrado.
+
+**2. La limpieza de fotos NO se activa; se corrige el texto de la pantalla (clase D-044).**
+`DayPhotos.tsx` prometía "kept for 60 days and then deleted automatically" — falso: el job de
+limpieza no está programado y las fotos se conservan indefinidamente. Se corrigió el texto a lo
+que de verdad pasa ("se conservan indefinidamente — todavía no hay política de retención
+automática activa; las horas nunca se borran"), y también el mensaje de día vacío (ya no insinúa
+que las fotos "se limpiaron"). Ahora bilingüe (en/es) vía `usePrefs`. Buscado en toda la UI: no
+hay otra promesa de borrado automático; el botón "🗑 > 14 days" de screenshots (`i18n.ts`) es una
+purga **manual** del gerente ("cannot be undone"), honesta, fuera de alcance.
+
+**El job de limpieza queda escrito pero NO programado.** Es destructivo y sin respaldo posible
+(Supabase free, sin PITR — F-3 diferido). **Condición para activarlo:** (a) respaldos activos, y
+(b) política decidida por el dueño — cuántos días, qué se excluye (hoy solo toca esquema
+`clockin`; las fotos de entrega D-022/D-026 viven en `public.deliveries.*` y ya están excluidas
+por construcción), y que la UI diga exactamente lo que el job hace (incluido el borrado de filas
+de `vehicle_trips`/`trip_stops` a 14 días, que la pantalla no menciona).
+
+**Daltile** (`refresh-daltile-matches`) sigue inactivo: faltan `JOBS_SECRET`,
+`WAREHOUSE_CATALOG_URL`, `WAREHOUSE_READ_TOKEN` (solo el dueño los tiene; no se inventan).
+
+### Versión
+Sube `timetracker` (0.49.9): `DayPhotos.tsx` es UI de cliente (bundle nuevo con el texto
+corregido). El modo `?verify=1` de la ruta es server-side y el workflow es CI — ninguno cambia
+el bundle, así que no mueven `APP_VERSION` por sí mismos. `package.json` 1.108.2.

@@ -54,6 +54,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Verificacion segura (workflow_dispatch de GitHub Actions): `?verify=1` confirma que el
+  // secreto funciona (200) SIN correr la logica de avisos ni el auto-clock-out — no dispara
+  // notificaciones ni cierra turnos. Regla de CLAUDE.md: una prueba no dispara efectos reales
+  // en terceros. La ejecucion programada (sin este parametro) corre normal.
+  if (new URL(req.url).searchParams.get("verify") === "1") {
+    return NextResponse.json({ ok: true, verify: true });
+  }
+
   const now = Date.now();
   const shift = centralShiftMs(new Date(now));
   const local = new Date(now - shift);

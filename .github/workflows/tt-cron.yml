@@ -1,0 +1,79 @@
+# Cron del fichaje (Time Tracker): avisos de turno + auto-clock-out de las 8 PM.
+#
+# POR QUE AQUI Y NO EN vercel.json: Vercel Hobby corre los crons UNA vez al dia y admite como
+# maximo 2 (ya ocupados por notion-summary y roll-schedules). Este job comprueba VENTANAS DE
+# 3 MINUTOS (recordatorios de turno, almuerzo, cierre a las 8 PM), asi que necesita correr cada
+# pocos minutos, no una vez al dia. GitHub Actions permite un schedule frecuente.
+#
+# CAVEAT de GitHub: el minimo efectivo de sus crons es ~5 min y las ejecuciones programadas
+# pueden retrasarse bajo carga. */2 es el objetivo, no una garantia; alguna ventana de 3 min
+# puede perderse. Si hace falta precision real, la alternativa es Vercel Pro con */2 en
+# vercel.json. Los workflows programados solo corren en la rama por defecto (main) y GitHub los
+# pausa si el repo queda 60 dias inactivo.
+#
+# SECRETO: crear TT_CRON_SECRET en GitHub > Settings > Secrets and variables > Actions. Su valor
+# es el mismo CRON_SECRET que ya existe en Vercel (la ruta lo acepta como Bearer). NUNCA se
+# escribe en este YAML ni aparece en los logs (se pasa por env y el cuerpo se descarta).
+
+name: tt-clockin-cron
+
+on:
+  schedule:
+    - cron: "*/2 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: tt-clockin-cron
+  cancel-in-progress: false
+
+env:
+  BASE_URL: https://deliveries-app-seven.vercel.app
+  CRON_PATH: /timetracker/clock-in/api/cron
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      # Ejecucion REAL (solo en el schedule): corre la logica del cron. Falla VISIBLE si != 200
+      # para que un cron roto se note en la pestana Actions y no en silencio.
+      - name: Run cron (scheduled)
+        if: github.event_name == 'schedule'
+        env:
+          SECRET: ${{ secrets.TT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -m 60 -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE_URL}${CRON_PATH}")
+          echo "cron -> HTTP ${code}"
+          if [ "${code}" != "200" ]; then
+            echo "::error::el cron devolvio ${code} (se esperaba 200)"
+            exit 1
+          fi
+
+      # Verificacion CONTROLADA (solo manual, workflow_dispatch): sin efectos en terceros.
+      #   1) sin secreto            -> 401 (la ruta rechaza; no corre logica)
+      #   2) con secreto + verify=1 -> 200 SIN correr la logica (no dispara avisos ni cierra turnos)
+      - name: Verify auth (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SECRET: ${{ secrets.TT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          no=$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${BASE_URL}${CRON_PATH}")
+          echo "sin secreto -> HTTP ${no} (se espera 401)"
+          if [ "${no}" != "401" ]; then
+            echo "::error::se esperaba 401 sin secreto, hubo ${no}"
+            exit 1
+          fi
+          ok=$(curl -sS -m 30 -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE_URL}${CRON_PATH}?verify=1")
+          echo "con secreto (verify) -> HTTP ${ok} (se espera 200)"
+          if [ "${ok}" != "200" ]; then
+            echo "::error::se esperaba 200 con secreto, hubo ${ok}"
+            exit 1
+          fi
+          echo "OK: rechaza sin secreto, acepta con el, y verify=1 no dispara efectos."
