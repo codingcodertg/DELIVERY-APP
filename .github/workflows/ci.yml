@@ -1,0 +1,104 @@
+# CI de cada PR a main — la puerta que sustituye al "yo ya lo corri en mi maquina".
+#
+# Corre exactamente los tres pasos del flujo de CLAUDE.md, en el mismo orden:
+#   1. npx tsc --noEmit
+#   2. npx vitest run   (reporta "pasados | saltados"; los saltados NO fallan)
+#   3. npx next build   (mas estricto que dev)
+#
+# SIN SECRETOS DE PRODUCCION — a proposito. Este workflow no recibe ninguna
+# variable real: no toca la base, no llama a RingCentral/Twilio/Resend, no gasta
+# cuota de Google Maps. Es la regla permanente de CLAUDE.md ("las pruebas no
+# disparan efectos reales en terceros") aplicada al CI. Lo unico que necesita
+# `next build` son los dos NEXT_PUBLIC_* de Supabase, porque el cliente se
+# construye en modulo y sin ellos el build revienta al prerenderizar; van con
+# valores PLACEHOLDER inventados aqui abajo, que no apuntan a ningun proyecto.
+#
+# Si algun dia el build necesita una variable mas, se agrega aqui con un
+# placeholder y se documenta en la tabla de docs/WORKFLOW-PARALELO.md. Nunca se
+# agrega un secreto real: un PR de una rama puede leer el entorno del job.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  # Permite correrlo a mano sobre cualquier rama desde la pestana Actions.
+  workflow_dispatch:
+
+# Un PR que recibe dos pushes seguidos cancela el job viejo en vez de pagar dos.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: tsc · vitest · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # --- PLACEHOLDERS. No son secretos y no apuntan a nada real. ---
+      # Un proyecto Supabase que no existe: el build solo necesita que la URL
+      # parsee y que la llave tenga forma de JWT. Nada en CI hace una peticion.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder-ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder-not-a-real-key.ci-placeholder-signature
+      # El resto (GOOGLE_MAPS_API_KEY, RINGCENTRAL_*, TWILIO_*, RESEND_*,
+      # SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET, NOTION_TOKEN, JOBS_SECRET,
+      # WAREHOUSE_*) se deja VACIO a proposito: el codigo ya trata su ausencia
+      # como "proveedor apagado", que es justo lo que queremos en CI.
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 24 (la version con la que se desarrolla)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Instalar dependencias (npm ci, exacto al lockfile)
+        run: npm ci
+
+      # ---------------------------------------------------------------- 1/3
+      - name: Tipos — npx tsc --noEmit
+        run: npx tsc --noEmit
+
+      # ---------------------------------------------------------------- 2/3
+      # Vitest ya sale con codigo != 0 si algo falla; los saltados NO fallan
+      # (es el comportamiento por defecto y lo queremos: los 3 tests de PDFs
+      # dependen de fixtures que viven fuera del repo). Lo que anadimos es que
+      # el conteo "pasados | saltados" quede VISIBLE en el resumen del job, no
+      # enterrado en el log — la leccion de "reporta pasados|saltados, no un
+      # solo numero".
+      - name: Pruebas — npx vitest run
+        run: |
+          set -o pipefail
+          npx vitest run 2>&1 | tee vitest-output.txt
+
+      - name: Resumen de pruebas (pasados | saltados)
+        if: always()
+        run: |
+          line="$(grep -E '^\s*Tests\s+' vitest-output.txt | tail -1 || true)"
+          files="$(grep -E '^\s*Test Files\s+' vitest-output.txt | tail -1 || true)"
+          {
+            echo "### Pruebas"
+            echo ""
+            if [ -n "$line" ]; then
+              echo '```'
+              echo "${files}"
+              echo "${line}"
+              echo '```'
+              echo ""
+              echo "Los saltados no hacen fallar el job: hoy son los 3 de \`pdf.test.ts\`, cuyas fixtures (\`PLG_PO_PDF\` / \`PLG_ACK_PDF\`) viven fuera del repo."
+            else
+              echo "No se pudo leer el conteo de vitest. Revisa el log del paso anterior."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---------------------------------------------------------------- 3/3
+      - name: Build — npx next build
+        run: npx next build

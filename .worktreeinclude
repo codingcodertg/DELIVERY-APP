@@ -1,0 +1,32 @@
+# Que ficheros IGNORADOS por git se copian a un worktree nuevo
+# (`claude -w <rama>` → .claude/worktrees/<rama>/).
+#
+# Un worktree solo recibe lo que git versiona. Todo lo ignorado —.env.local,
+# node_modules, .next— NO viaja, salvo lo que se liste aqui, un patron por linea.
+#
+# ============================================================================
+# .env.local NO ESTA AQUI, Y ES A PROPOSITO. No lo agregues.
+# ============================================================================
+# .env.local lleva SUPABASE_DB_URL: Postgres directo contra la base de
+# PRODUCCION, con su contrasena. Copiarlo a cada worktree significa que cada
+# rama en curso —y cualquier agente corriendo en ella— tiene una linea de mando
+# a produccion. El flujo de ramas dice justo lo contrario: un worktree escribe
+# el .sql de la migracion, y el orquestador la aplica DESPUES del merge.
+# Ademas de la contrasena, el fichero lleva llaves de RingCentral, Twilio,
+# Resend y Google Maps: credenciales que mandan SMS, llaman por telefono y
+# gastan dinero. La regla permanente de CLAUDE.md dice que ninguna prueba
+# dispara esos efectos; la forma mas barata de cumplirla es que la rama ni
+# siquiera tenga las llaves.
+#
+# Entonces, ¿como corre `next build` un worker sin variables?
+#   node scripts/verify.mjs
+# Ese script inyecta los MISMOS placeholders que el CI y corre tsc, vitest y
+# build. "Verde en el worktree" y "verde en el PR" pasan a significar lo mismo.
+#
+# ¿Y node_modules? Tampoco se copia: son cientos de megas y copiarlos es mas
+# lento que reinstalarlos. En un worktree nuevo, una vez: `npm ci`.
+#
+# ----------------------------------------------------------------------------
+# Hoy la lista esta VACIA a proposito: nada ignorado necesita viajar.
+# Si algun dia hace falta agregar algo, que sea un fichero SIN credenciales, y
+# que la razon quede escrita aqui mismo.

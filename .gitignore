@@ -15,7 +15,14 @@ next-env.d.ts
 
 # Agent tooling / skills (installed locally by marketplace integrations)
 .agents/
-.claude/
+.claude/*
+
+# EXCEPCION: los subagentes definidos en el repo SI se versionan. El auditor del
+# flujo de ramas (docs/WORKFLOW-PARALELO.md) es parte del proceso, no config
+# local de una maquina: si no viaja con el codigo, cada sesion audita distinto.
+# Todo lo demas de .claude/ sigue ignorado — incluidos settings.local.json (que
+# es por maquina) y .claude/worktrees/ (donde Claude Code crea los worktrees).
+!.claude/agents/
 
 # Firebase SERVICE ACCOUNT keys — these can send notifications as you.
 # (google-services.json is NOT here on purpose: it ships inside every APK.)

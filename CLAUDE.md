@@ -41,8 +41,17 @@ Vercel (`NOTION_TOKEN`) y el asistente lo recibe del usuario cuando hace falta.
 
 ## Flujo por cada cambio
 
+> **Quién hace cada paso.** Cuando se trabaja en paralelo (ver *Flujo de ramas*
+> abajo) los pasos 1-2 y 5-6 son del **worker**, en su rama; los pasos 3, 7 y 8
+> —versión, número `D-0XX` y migraciones— los hace el **orquestador al
+> fusionar**, nunca la rama. Trabajando solo en `main` los haces todos tú, en
+> este orden.
+
 1. Implementar
-2. `npx tsc --noEmit` y `npx vitest run`
+2. `npx tsc --noEmit` y `npx vitest run` — o `node scripts/verify.mjs`, que corre
+   los tres pasos (tipos, pruebas, build) e inyecta placeholders para las
+   variables que falten. En un worktree es la única forma: allí no hay
+   `.env.local`, a propósito.
 3. Subir versión — **por app, no global** (D-087): en `src/lib/app-versions.ts`,
    sube SOLO la(s) app(s) que el cambio realmente tocó (`deliveries`,
    `recruiting`, `timetracker` — mapa `APP_VERSIONS`). Un cambio dentro de la
@@ -63,11 +72,95 @@ Vercel (`NOTION_TOKEN`) y el asistente lo recibe del usuario cuando hace falta.
    no criterio implícito: si el cambio toca *algo* de código de cliente, deja de
    ser solo-base y vuelve a la regla general.
 4. `npx next build` (es más estricto que `dev`)
-5. Commit
-6. `git fetch origin` → `git rebase origin/main` → `git push`
-7. Si cambia el comportamiento: entrada en `DECISIONS.md` **y** en el ADR de
-   Notion
+5. **Commit en una rama** — nunca en `main`
+6. **Push de la rama** → `gh pr create --base main` → **CI en verde** → merge
+   (squash). `git push origin main` no existe en este proyecto: la protección de
+   rama lo rechaza
+7. Ya fusionado: aplicar migraciones (con `migrate-status` antes y después),
+   asignar la versión, y sustituir el marcador `D-NEXT` por el número `D-0XX`
+   real. Si cambia el comportamiento: entrada en `DECISIONS.md` **y** en el ADR
+   de Notion
 8. Actualizar Notion (regla 1)
+
+## Flujo de ramas
+
+Tres papeles, tres sesiones: **orquestador** (checkout principal, en `main`),
+**worker** (worktree en `.claude/worktrees/<rama>/`, escribe el código) y
+**auditor** (solo lectura, revisa `main...<rama>` antes del PR). El detalle
+operativo —comandos exactos, protocolo de mensajes, montaje— está en
+`docs/WORKFLOW-PARALELO.md`; el auditor, en `.claude/agents/auditor-rtg.md`.
+Aquí van solo las reglas que **no** se negocian.
+
+### 1. Una rama nunca aplica una migración a producción
+
+El worker **escribe** el `.sql` y lo commitea. Aplicarlo es del orquestador,
+**después** del merge: `migrate-status` antes, aplicar, `migrate-status` después,
+y el bloque de auto-registro tras `-- @ledger-below`. Un worktree aísla
+ficheros, no la base: si un comando de la rama alcanza producción, producción se
+entera igual.
+
+Lo que **sí** se permite desde la rama: pruebas con `ROLLBACK`, de solo lectura.
+
+### 2. La versión y el número `D-0XX` se asignan al fusionar
+
+El worker **no** toca `package.json` ni `APP_VERSIONS`, y **no** numera su
+decisión: escribe su entrada de `DECISIONS.md` con el marcador literal
+**`D-NEXT`** en el título. El orquestador la numera al fusionar, en serie.
+
+La razón: `DECISIONS.md` es append-only y su numeración es la columna vertebral
+de la documentación. Dos ramas paralelas que se numeran solas producen dos
+decisiones reclamando el mismo `D-0XX`, y eso no se arregla renumerando porque
+otros documentos ya citan el número. El merge es el único punto que es serie.
+
+### 3. Nadie pushea a `main` directo
+
+Lo hace cumplir GitHub, no la buena voluntad. **Paso manual del dueño**, una vez,
+en `github.com/codingcodertg/DELIVERY-APP`:
+
+1. **Settings** → **Rules** → **Rulesets** → **New ruleset** → **New branch
+   ruleset**.
+2. Nombre: `main protegida`. **Enforcement status**: `Active`.
+3. **Bypass list**: déjala **vacía**. (Si te añades como bypass, la regla no te
+   protege a ti, que eres justo quien más empuja a `main`.)
+4. **Target branches** → **Add target** → **Include default branch**.
+5. Marca estas casillas:
+   - **Restrict deletions**
+   - **Block force pushes**
+   - **Require a pull request before merging** → *Required approvals*: `0`
+     (el auditor firma en el flujo, no en GitHub; súbelo a `1` si algún día
+     alguien más revisa desde la web).
+   - **Require status checks to pass** → **Add checks** → busca y añade
+     **`tsc · vitest · build`** (es el `name:` del job en
+     `.github/workflows/ci.yml`; aparece en la lista **después** del primer PR
+     que lo haya corrido). Marca también **Require branches to be up to date
+     before merging**.
+6. **Create**.
+
+Comprobación de que quedó puesta: `git push origin main` desde un checkout debe
+ser **rechazado** por el servidor.
+
+### 4. Los previews de Vercel usan variables de PRODUCCIÓN
+
+Un deploy de preview de este proyecto apunta a la **misma base**: mismos datos,
+mismos usuarios, mismas llaves de RingCentral/Twilio/Resend. **No es un sandbox.**
+Un preview que escribe, escribe en producción; un preview que manda un SMS, lo
+manda de verdad. Trata cualquier prueba en un preview como prueba en vivo, con la
+regla permanente de arriba (stub, cuerpo saneado o sandbox) aplicada igual.
+
+### 5. Modelo: Opus. Nunca Fable
+
+Orquestador y worker en **Opus**; el auditor en **Opus o Sonnet**. **Fable no**
+en ningún papel de este flujo. Se fija con `--model opus` al lanzar cada sesión y
+en el `model:` del fichero del agente.
+
+### Por qué `.env.local` no viaja al worktree
+
+Claude Code copia a un worktree **solo** los ficheros ignorados que liste
+`.worktreeinclude`. El de este repo está vacío a propósito y `.env.local` **no**
+está ahí: lleva `SUPABASE_DB_URL` (Postgres directo a producción, con su
+contraseña) y las llaves que mandan SMS, llaman por teléfono y cuestan dinero.
+Una rama sin esas llaves no puede violar la regla de efectos en terceros aunque
+quiera. Para compilar sin variables: `node scripts/verify.mjs`.
 
 ## Antes de cambiar comportamiento
 
