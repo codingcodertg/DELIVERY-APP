@@ -19,8 +19,15 @@ export function createClient() {
       // "Could not find the table 'public.app_products'" — the ERP was handed deliveries'
       // public-schema client.
       //
-      // Only this client opts out, not the other three: they work today, and a second GoTrue
-      // instance per module is a cost worth paying once, not four times.
+      // History: this comment used to say "only this client opts out, not the other three: they
+      // work today, and a second GoTrue instance per module is a cost worth paying once, not four
+      // times." That was already inaccurate when written (clockin opted out too, D-091) and the
+      // bet lost in production: HR and Time Tracker, still sharing the cache, stole each other's
+      // client ("Could not find the table 'timetracker.questions'" on /recruiting). Today every
+      // browser client with its own db.schema opts out, and only the deliveries client
+      // (src/lib/supabase/client.ts, default `public` schema) keeps using the cache — alone, so
+      // it cannot collide with anyone. src/lib/supabase/browser-clients.test.ts enforces this;
+      // the extra GoTrue instance per module is the price accepted in D-NEXT.
       isSingleton: false,
     }
   );
