@@ -107,13 +107,22 @@ El agente vive en `.claude/agents/auditor-rtg.md`, versionado en el repo a
 proposito: si el auditor fuera config local, cada maquina auditaria distinto.
 (`.gitignore` ignora `.claude/*` pero exceptua `!.claude/agents/`.)
 
-Comprueba que los tres se ven:
+Comprueba que los tres se ven, y **apunta las direcciones reales**:
 
 ```
 ListAgents
 ```
 
-Debe listar `orquestador`, `worker` y `auditor`. Ese nombre **es** la direccion.
+El nombre de cada fila **es** la direccion. Ojo con esto, que ya costo un
+veredicto perdido: si lanzaste el panel 1 sin `-n orquestador`, esa sesion se
+llama otra cosa (algo como `deliveries-app-be`), y un mensaje dirigido a
+"orquestador" no llega a ninguna parte. `ListAgents` te dice el nombre de las
+otras sesiones, pero el tuyo propio lo imprime en la primera linea de su
+respuesta: **cada sesion tiene que decirle a las otras como se llama ella**, en
+vez de suponer los nombres del documento.
+
+Lo mas simple es lanzar el panel 1 con `-n orquestador` para que el nombre real
+coincida con el del protocolo.
 
 ---
 
@@ -369,3 +378,41 @@ se le pide.
 `next build` fallo y paso al reintentar sin tocar una linea de codigo, sin
 mensaje de error. En CI, que compila en frio cada vez, no ha pasado. Si vuelve,
 mide antes de suponer.
+
+---
+
+## 10. Lo que fallo en el primer encargo real — 2026-09-04
+
+El primer bug de verdad (los clientes de Supabase robandose el schema) destapo
+tres fallos del montaje, ninguno del codigo auditado. Se anotan porque los tres
+tienen la misma forma: **una regla escrita en un sitio que el que la necesita no
+lee**, que es exactamente el bug que se estaba arreglando.
+
+**1. El auditor no tenia con que avisar.** Su definicion le daba `Read, Grep,
+Glob, Bash` y nada mas. Emitio un APROBADO impecable, con la tabla de los nueve
+puntos, y **no le llego a nadie**: lo escribio en su propio panel y ahi murio. El
+orquestador se quedo esperando un mensaje que era imposible. Arreglado: el
+agente ya tiene `SendMessage` y `ListAgents`, y la obligacion de entregar el
+veredicto esta escrita **dentro del agente**, no solo en este documento. La
+leccion general: si el protocolo pide una accion, el agente tiene que tener la
+herramienta para hacerla, y comprobarlo es parte de montar el flujo.
+
+**2. Las direcciones del protocolo eran nombres inventados.** Este documento
+decia "manda el veredicto a `orquestador`", pero el panel 1 se habia lanzado sin
+`-n orquestador` y en realidad se llamaba `deliveries-app-be`. Arreglado en la
+seccion 3: las direcciones se sacan de `ListAgents`, y cada sesion dice como se
+llama ella en vez de suponer.
+
+**3. Las sesiones corrieron en el modelo prohibido.** `CLAUDE.md` dice Opus, o
+Sonnet para el auditor, **nunca Fable**. Medido en el transcript: el auditor
+corrio en `claude-fable-5-1`. El propio auditor lo confeso en su veredicto, lo
+cual habla bien de el, pero la regla se salto igual. **Comprueba el modelo con
+`/model` dentro de cada panel antes de encargar nada**; `--model opus` en la
+linea de lanzamiento puede quedar pisado por el ajuste por defecto de la cuenta.
+
+**Lo que si funciono, y conviene no perderlo de vista.** El auditor se nego a
+firmar un veredicto sobre cero cambios cuando se le pidio auditar antes de que
+el worker commiteara. Marco como "no verificado" lo unico que no pudo medir, en
+vez de darlo por bueno. Y encontro por su cuenta la debilidad de fondo de la
+prueba de regresion. El papel de auditor se gana el coste; lo que fallo fue la
+tuberia, no el criterio.
