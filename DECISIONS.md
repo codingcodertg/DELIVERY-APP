@@ -8102,3 +8102,60 @@ No hay prueba que fije títulos ni manifest, y ninguna falló por el nombre. `ve
 (711 pasados | 3 saltados, igual que `main`). El APK y el escritorio **no se recompilaron**: el
 nombre nuevo llega a los usuarios en el paso 7. Nadie vio la pestaña del navegador con el título
 nuevo: el worktree no tiene `.env.local` a propósito.
+
+## D-NEXT · La URL de producción pasa a `rtg-hub.vercel.app`; la vieja no murió, redirige. Paso 6 del plan de renombre
+
+**Fecha:** 2026-09-04 · **Versión:** ninguna app sube (ningún bundle web cambia; `desktop/main.js` y
+Capacitor son binarios aparte) · **Pedido por:** Andrés · **Plan:** `docs/PLAN-rename-rtg-hub.md`
+
+### Qué se pidió
+
+El dueño renombró el proyecto en Vercel (paso 4 del plan) y la URL nueva es
+**`https://rtg-hub.vercel.app`**. Esta rama es el paso 6: poner esa URL donde el código y las docs
+tenían `deliveries-app-seven.vercel.app`.
+
+### El hecho que cambia el plan original
+
+El plan (§1, §3) daba por sentado que **la URL vieja moría de golpe** al renombrar, y ordenaba los
+pasos para que esa ventana de rotura (APK, escritorio, cron, login, push) durara minutos. **No
+murió.** Medido el 2026-09-04 con `curl -sI`: `https://deliveries-app-seven.vercel.app/` responde
+`307 Temporary Redirect` con `Location: https://rtg-hub.vercel.app/`, y lo mismo la ruta del cron
+(`/timetracker/clock-in/api/cron` → 307). Vercel conserva el alias viejo y lo redirige. Nota de
+precisión: el código es **307, temporal en términos HTTP**, no 301/308; lo "permanente" es que
+Vercel mantiene el alias mientras nadie lo quite, no el código de estado.
+
+Consecuencias:
+
+- **La migración pasa de "de golpe" a gradual.** El APK y el escritorio instalados siguen
+  abriendo por la redirección (un `loadURL` sigue redirecciones). Recompilarlos (paso 7) deja de
+  ser urgente; sigue pendiente para que los binarios no dependan de un alias que puede
+  desaparecer.
+- **Lo único que se rompía era el cron de fichaje**, y por una razón concreta: `tt-cron.yml`
+  llama con `curl` **sin `-L`** y exige 200; vio el 307 y falló. Esta rama cambia **solo** la URL
+  base del workflow. **No se añade `-L` a propósito**: si mañana la URL vuelve a cambiar, se
+  quiere que el cron falle visible en Actions, no que siga una redirección a ciegas.
+
+### Qué cambia
+
+- `.github/workflows/tt-cron.yml` (`BASE_URL`), `desktop/main.js` (`SITIO`),
+  `mobile/capacitor.config.ts` (`server.url`).
+- Docs descriptivas del estado actual, con "antes `deliveries-app-seven`" como aclaración:
+  `ARCHITECTURE.md`, `docs/HANDOFF-2026-09-04.md`, `desktop/README.md`, `mobile/README.md`.
+
+### Qué NO cambia
+
+- `src/lib/app-update.ts`: la URL del APK cuelga de Supabase Storage, no del dominio de Vercel.
+  Mirado, no tocado.
+- Las menciones **históricas** de la URL vieja en `DECISIONS.md` (D-074 y D-188),
+  `docs/decisiones.html` y el título de §1 del plan: describen lo que era cierto cuando se
+  escribieron y el historial no se reescribe.
+- `appId`s, `api/download/[app]/route.ts`, nombres de artefactos, recompilación (paso 7).
+- `mobile/android/app/src/main/assets/capacitor.config.json` **no existe en el repo** (el encargo
+  pedía cambiarlo a mano): `cap sync` lo genera y no está versionado. Nada que tocar.
+
+### Lo no verificado
+
+El cron **no se ejecutó** desde esta rama (sería un efecto real: cierra turnos). Se comprueba tras
+el merge con *Run workflow* y `verify=1`, como dice el plan. Nadie abrió el APK ni el escritorio
+recompilados: no existen todavía. `verify.mjs` en verde (711 pasados | 3 saltados, igual que
+`main`): ninguna prueba cubre estas URLs.

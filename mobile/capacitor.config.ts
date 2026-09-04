@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
   // only the offline fallback page.
   webDir: "www",
   server: {
-    url: "https://deliveries-app-seven.vercel.app",
+    url: "https://rtg-hub.vercel.app",
     // The site is HTTPS-only; no cleartext traffic is permitted.
     cleartext: false,
     androidScheme: "https",

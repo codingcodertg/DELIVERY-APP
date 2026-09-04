@@ -846,7 +846,7 @@ client and a Windows Electron desktop client.
   desktop client (D-074) → offline/notifications/auto-update (D-075). The desktop repoint required
   porting the desktop-only bridge behavior into this Next.js route first (see the bullet above and
   D-074 itself) — `main.js` in the separate `timetracker-clean` repo now calls
-  `loadURL('https://deliveries-app-seven.vercel.app/timetracker')` instead of bundling a local Vite
+  `loadURL('https://rtg-hub.vercel.app/timetracker')` (until 2026-09-04, `deliveries-app-seven.vercel.app`, which now redirects there with a 307) instead of bundling a local Vite
   build, so a deploy here reaches every installed desktop client without a reinstall. Packaging and
   publishing an actual installer update (`electron-builder --win nsis --publish always`, which
   pushes a real GitHub Release that already-installed apps auto-download) is a separate, deliberate

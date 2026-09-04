@@ -7,7 +7,7 @@ pantalla apagada.
 ## Cómo funciona
 
 La app **no** trae el sitio dentro del APK: lo carga desde
-`https://deliveries-app-seven.vercel.app`. Cuando despliegas a Vercel, los
+`https://rtg-hub.vercel.app` (antes `deliveries-app-seven.vercel.app`, que redirige con 307 desde el 2026-09-04). Cuando despliegas a Vercel, los
 choferes reciben el cambio **sin reinstalar nada**. Solo hay que recompilar el
 APK si cambian los permisos, el ícono o el plugin de GPS.
 

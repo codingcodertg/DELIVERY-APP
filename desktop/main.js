@@ -30,7 +30,7 @@ const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
-const SITIO = "https://deliveries-app-seven.vercel.app";
+const SITIO = "https://rtg-hub.vercel.app";
 const INICIO = `${SITIO}/home`;
 const ORIGEN = new URL(SITIO).origin;
 
