@@ -7622,3 +7622,55 @@ registro de seguridad (D-039). El test de columna única de D-057 sigue verde.
 pantallas del ERP no cambiaron su bundle, leen por las vistas), así que **`erp` NO sube** — no
 hay bundle nuevo del ERP que recoger. Es justo la regla del paso 3 de CLAUDE.md y su excepción,
 aplicadas por separado a cada mitad.
+
+---
+
+## D-182 · Los crons que no se programaban (C-6): roll-schedules activado; cron y cleanup pendientes
+
+**Fecha:** 2026-09-03 · **Versión:** package.json 1.108.1 (config, sin bundle) · **Origen:** auditoría `docs/AUDIT-2026-09.md` C-6 · **Pedido por:** Andrés
+
+`vercel.json` programaba **una sola** ruta (`/api/notion-summary`, 01:00). Existían cuatro
+trabajos más que nadie llamaba. Inventario medido:
+
+| Job | Existe | Env vars | Programado |
+|---|---|---|---|
+| `/api/notion-summary` | sí | `CRON_SECRET` ✓ | ya (01:00) |
+| `/timetracker/clock-in/api/roll-schedules` | sí | `CRON_SECRET`+service-role ✓ | **AHORA (08:00 UTC diario)** |
+| `/timetracker/clock-in/api/cron` | sí | ✓ | **NO** — necesita ejecución sub-diaria |
+| `/timetracker/clock-in/api/cleanup-photos` | sí | ✓ | **NO** — destructivo |
+| `/api/erp/jobs/refresh-daltile-matches` | sí | faltan 3 env vars | **NO** — inactivo por diseño |
+
+**roll-schedules — programado (no destructivo).** Deja los turnos de esta semana de pago y la
+siguiente (Fri→Thu) para cada empleado con horario A/B/C o custom. Idempotente: solo inserta lo
+que falta y respeta cancelaciones. Verificado read-only: 8 empleados con horario; los turnos
+llegan hasta 2026-09-10 (semana próxima) pero **2 semanas adelante están en 0** — la brecha que
+este job llena. Sin él "los horarios no avanzan solos".
+
+**cron (avisos de fichaje + auto-clock-out a las 8 PM) — NO programado.** El código y las env
+vars están completos, pero el job comprueba **ventanas de 3 minutos** (recordatorios de turno,
+"ficha ahora", almuerzo, cierre a las 8 PM), así que necesita correr **cada 1-2 min**. Los crons
+de Vercel Hobby corren **una vez al día** (y máximo 2 crons — con roll-schedules ya son 2).
+Programarlo ahí lo dejaría corriendo una vez al día = roto, y sería un tercer cron que en Hobby
+**rompe el deploy**. Queda pendiente de decisión del dueño: **(a)** Vercel Pro y
+`*/2 * * * *`, o **(b)** un programador externo (cron-job.org / GitHub Actions) que pegue
+`/timetracker/clock-in/api/cron?key=<CRON_SECRET>` cada 1-2 min. No se adivina el plan (sin token
+de Vercel para medirlo).
+
+**cleanup-photos — NO activado (destructivo).** Borra fotos de fichaje > 60 días (y **filas**
+enteras de `vehicle_trips`/`trip_stops` > 14 días). DRY-RUN de hoy: **borraría 0** (el módulo es
+reciente; nada supera aún los límites). Las **fotos de entrega (D-022/D-026) quedan excluidas por
+construcción**: viven en `public.deliveries.photos/photo_meta/pod_signature`, y este job solo
+toca el esquema `clockin` (`Accept-Profile: clockin`). Sin respaldo posible una vez borrada
+(Supabase free, sin PITR — F-3). La pantalla (`DayPhotos.tsx:178`) **promete** "kept for 60 days
+and then deleted automatically" — hoy es falso (nunca se borran), y no menciona el borrado de
+filas de viajes a 14 días. Decisión del dueño: activar con política, o corregir el texto (clase
+D-044). No se toca hasta esa decisión.
+
+**refresh-daltile-matches — inactivo por diseño.** `route.ts:1` dice "CRON IS NOT ENABLED".
+Faltan en producción: `JOBS_SECRET`, `WAREHOUSE_CATALOG_URL`, `WAREHOUSE_READ_TOKEN`. Valores
+que solo el dueño tiene; no se inventan.
+
+### Versión
+Cambio de **config de despliegue** (`vercel.json`), no de código de cliente ni de base: no hay
+bundle nuevo que recoger, así que **no sube ningún `APP_VERSION`**. Sube solo `package.json`
+(1.108.1) como hito del repo. Coherente con la excepción del paso 3 de CLAUDE.md.

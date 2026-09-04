@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/notion-summary", "schedule": "0 1 * * *" }
+    { "path": "/api/notion-summary", "schedule": "0 1 * * *" },
+    { "path": "/timetracker/clock-in/api/roll-schedules", "schedule": "0 8 * * *" }
   ]
 }
