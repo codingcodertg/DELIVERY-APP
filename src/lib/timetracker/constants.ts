@@ -38,12 +38,12 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // nadie siga buscando las otras dos en el módulo de fichaje.
   { id: "team-requests", href: "/timetracker/team-requests" },
   { id: "projects", href: "/timetracker/projects" },
+  // Lleva DOS cosas desde D-NEXT: las tarifas por proyecto y el horario semanal de la cuadrilla,
+  // como dos secciones de la misma pantalla. El horario tenía pestaña propia ("schedule", que
+  // bajó del módulo de fichaje en D-121) y el dueño pidió meterlo aquí. La ruta
+  // /timetracker/schedule sigue existiendo y redirige.
   { id: "assignments", href: "/timetracker/assignments" },
   { id: "people", href: "/timetracker/people" },
-  // Va justo detrás de Employees porque programar es una cosa que se le hace a la gente: se
-  // abre la lista, se ve quién falta esta semana y se le pone turno. Bajó del módulo de
-  // fichaje en D-121.
-  { id: "schedule", href: "/timetracker/schedule" },
   { id: "team-diary", href: "/timetracker/team-diary" },
   { id: "audit", href: "/timetracker/audit" },
   { id: "settings", href: "/timetracker/settings" },
@@ -52,5 +52,7 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
   // Sin "Mi cuenta" (D-160). A un admin esta barra le pone catorce pestañas; la que menos
-  // se abría no tenía por qué ser una de ellas.
+  // se abría no tenía por qué ser una de ellas. (Ese "catorce" ya no cuadraba cuando se escribió
+  // esto: contadas el 2026-09-04 eran quince, y quedan catorce al entrar el horario en
+  // Asignaciones, D-NEXT.)
 ];

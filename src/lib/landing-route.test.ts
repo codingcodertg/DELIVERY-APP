@@ -162,9 +162,14 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
   it("y lo que hacía tiene su sitio propio", async () => {
     // Si alguien retira una de estas rutas sin poner otra en su lugar, algo que la gente usa
     // todos los días se queda sin puerta — que es exactamente lo que la fusión evitaba.
+    //
+    // La puerta del HORARIO ya no es la pestaña "schedule": desde D-NEXT el horario es una
+    // sección dentro de Asignaciones, así que la pestaña que lo lleva es "assignments"
+    // (src/components/timetracker/AssignmentsTabs.tsx monta ScheduleWeek). Esta prueba falló
+    // al retirar "schedule", como debía, y se cambió el id por el nuevo — no se borró.
     const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
     const ids = MANAGER_TABS.map((t) => t.id);
-    for (const id of ["payroll", "schedule", "audit", "people", "live", "team-requests"]) {
+    for (const id of ["payroll", "assignments", "audit", "people", "live", "team-requests"]) {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
     }
   });
