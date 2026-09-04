@@ -106,3 +106,32 @@ escrituras, políticas literales, qué no debe romperse, matriz de pruebas por r
 con `ROLLBACK`, y el SQL de reversión), se espera aprobación, y **no se aplica en
 producción sin un respaldo activo o un `pg_dump` reciente guardado**. El patrón
 está en `docs/PLAN-A-2a-profiles-rls.md`.
+
+## Registro de migraciones — obligatorio
+
+`supabase/migrations/*.sql` se aplican a mano; `public.schema_migrations` es el
+registro de cuáles corrieron en producción (D-184). El desfase entre repo y base
+es cuestión de tiempo, así que:
+
+1. **Antes de aplicar cualquier migración**, correr el estado:
+
+   ```bash
+   node scripts/db/migrate-status.mjs
+   ```
+
+   Lista lo pendiente (en repo, sin aplicar), lo cambiado (aplicado pero el
+   fichero cambió después) y lo huérfano. Sale con código 1 si hay pendientes o
+   cambiadas — que "¿qué falta aplicar?" sea un comando, no arqueología.
+2. **Toda migración registra su fila.** Al final del `.sql`, tras el marcador
+   `-- @ledger-below`, una línea que la auto-inscribe:
+
+   ```sql
+   -- @ledger-below
+   insert into public.schema_migrations (name, checksum)
+     values ('NNN_x.sql', '<sha>') on conflict (name) do nothing;
+   ```
+
+   El `<sha>` lo da `node scripts/db/migrate-status.mjs --sum NNN_x.sql` (sha256
+   del cuerpo **anterior** al marcador, para que el propio registro no cambie el
+   checksum). La tabla es admin-only para leer (RLS, `is_admin()`) y solo la
+   escribe service-role o la propia migración (postgres) — ambos saltan RLS.

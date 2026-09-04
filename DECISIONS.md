@@ -7725,3 +7725,50 @@ de `vehicle_trips`/`trip_stops` a 14 días, que la pantalla no menciona).
 Sube `timetracker` (0.49.9): `DayPhotos.tsx` es UI de cliente (bundle nuevo con el texto
 corregido). El modo `?verify=1` de la ruta es server-side y el workflow es CI — ninguno cambia
 el bundle, así que no mueven `APP_VERSION` por sí mismos. `package.json` 1.108.2.
+
+---
+
+## D-184 · Registro de migraciones (public.schema_migrations): saber qué corrió, no adivinarlo
+
+**Fecha:** 2026-09-03 · **Migración:** 102 · **Versión:** package.json 1.108.3 (solo-base) · **Pedido por:** Andrés
+
+`supabase/migrations/*.sql` se aplican a mano y nada en la base decía cuáles habían corrido en
+producción; el desfase repo↔base era cuestión de tiempo. Ahora hay registro.
+
+**Paso 1 — se MIDIÓ el desfase antes de crear nada. Resultado: CERO.** Se volcó el catálogo de
+producción (1811 objetos: tablas, columnas, funciones, políticas, vistas, triggers, índices,
+buckets) y se cruzó cada una de las 101 migraciones del repo contra él por los objetos que crea.
+**Las 101 estaban aplicadas.** El matcher marcó 4 dudosas, todas confirmadas como falsos
+positivos del parser estático:
+- **057_recruiting_rls** (creía "NO aplicada"): crea las políticas con `do $$ execute format(...)`
+  — el parser vio la plantilla `%1$s`, no el nombre real. Producción tiene las 27 políticas.
+- **071 / 084** (parciales): los objetos "ausentes" son todos de `clockin_role`
+  (`current_clockin_role`, `mirror_clockin_role`, la columna y sus triggers) — creados por ellas
+  y **borrados a propósito** por 087/088 (la retirada de clockin_role). Aplicadas, superadas.
+- **073** (parcial): `table:as` era un artefacto del regex sobre `create function ... as $$`.
+Y las INCIERTAS (grants/drops/datos, sin objeto creable) se verificaron por muestra: 032 dejó
+las columnas de status en 0 (dropeadas ✓), 082 tiene sus constraints EXCLUDE ✓, 076 sus
+extensiones ✓. **No hubo ninguna en repo sin aplicar, ni aplicada fuera del repo.**
+
+**Paso 2 — la tabla.** `public.schema_migrations (name pk, checksum, applied_at, applied_by)`,
+RLS: **SELECT solo admin** (`is_admin()`, D-179); **sin política de escritura** — solo
+service-role o la propia migración (postgres) la escriben, ambos saltan RLS. Verificado: admin
+lee 102 filas, admin no puede INSERT (BLOQ), un vendedor no lee (0). Backfill: las 102 (001-101 +
+la propia 102).
+
+**Checksum:** sha256 del fichero con saltos LF, tomando solo lo **anterior** al marcador
+`-- @ledger-below`. Así el bloque de auto-registro de una migración no altera su propio checksum.
+Sirve para detectar un fichero editado después de aplicado.
+
+**Paso 3 — el estado es un comando.** `scripts/db/migrate-status.mjs` cruza repo vs tabla y lista
+pendientes / cambiadas / huérfanas (sale con código 1 si hay pendientes, para CI). Hoy dice "102
+en repo, 102 registradas, todo al día". `--sum NNN.sql` imprime el checksum y la línea de
+registro para pegar en una migración nueva.
+
+**Paso 4 — regla en CLAUDE.md:** antes de aplicar, correr el status; toda migración se
+auto-inscribe tras `-- @ledger-below`.
+
+### Versión
+Cambio solo-de-base (tabla + script + docs; ninguna toca el bundle de cliente): sube solo
+`package.json` (1.108.3), no `APP_VERSIONS`. Es justo la excepción escrita en el paso 3 de
+CLAUDE.md.
