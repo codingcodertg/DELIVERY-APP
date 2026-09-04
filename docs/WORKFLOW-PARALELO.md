@@ -453,3 +453,32 @@ el worker commiteara. Marco como "no verificado" lo unico que no pudo medir, en
 vez de darlo por bueno. Y encontro por su cuenta la debilidad de fondo de la
 prueba de regresion. El papel de auditor se gana el coste; lo que fallo fue la
 tuberia, no el criterio.
+
+---
+
+## 11. Renombrar la carpeta del proyecto (paso 11 del rename a RTG Hub)
+
+La carpeta pasa de `deliveries-app` a `rtg-hub`. **No se puede hacer desde dentro de
+una sesion**: Windows no renombra una carpeta que tiene procesos con ella abierta,
+y los tres paneles viven ahi. Orden:
+
+1. Cerrar los tres paneles (`/exit` en cada uno). Sin excepciones: un panel
+   abierto en un worktree tambien sujeta la carpeta.
+2. Antes de cerrar, quitar los worktrees ya fusionados desde el checkout principal
+   (`git worktree unlock` + `git worktree remove`), porque git los registra por
+   ruta absoluta.
+3. Renombrar en el Explorador o en PowerShell:
+   `Rename-Item "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\deliveries-app" rtg-hub`
+4. Entrar y reparar lo que git guardo con la ruta vieja:
+   `cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\rtg-hub"` y
+   `git worktree repair` — sale limpio si no quedaba ningun worktree.
+5. `git status` debe seguir limpio y `git remote -v` igual: el remote no cambia
+   con la carpeta.
+
+**Lo que se pierde, y hay que saberlo antes:** Claude Code guarda las sesiones y la
+memoria POR RUTA. Con la carpeta nueva, `claude --continue` arranca en blanco:
+la conversacion del orquestador queda bajo la ruta vieja y se recupera con
+`claude --resume` eligiendola en el selector (ctrl+a muestra todos los
+proyectos), o se retoma con `docs/HANDOFF-*.md`, que existe para esto. El
+`.worktreeinclude`, el agente auditor y `settings.local.json` viajan con la
+carpeta y no se pierden.
