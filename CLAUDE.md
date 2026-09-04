@@ -39,6 +39,28 @@ Secciones: 📐 Arquitectura · 🗺️ Estado actual · ⚙️ Setup ·
 El token de Notion **no vive en el repo**. Está en las variables de entorno de
 Vercel (`NOTION_TOKEN`) y el asistente lo recibe del usuario cuando hace falta.
 
+## Cuenta correcta — comprobar al empezar, siempre
+
+Este proyecto **solo se trabaja con la cuenta RTG**. Al empezar una sesión, antes
+de tocar nada, comprobar las tres identidades. No es ceremonia: el 2026-09-04 la
+cuenta equivocada de `gh` bloqueó el flujo durante una hora, porque `git push`
+funcionaba y `gh pr create` respondía *"must be a collaborator"*.
+
+| Identidad | Debe ser | Cómo se comprueba |
+|---|---|---|
+| Cuenta de Claude | `careers@rdztilegroup.net` | el campo `oauthAccount.emailAddress` de `~/.claude.json`; se cambia con `/login` |
+| Cuenta de GitHub (`gh`) | la dueña del repo, `CARRERSRTG` | `gh auth status`, y que `gh repo view codingcodertg/DELIVERY-APP --json viewerPermission` diga `WRITE` o `ADMIN` |
+| Autor de los commits | `CARRERSRTG <careers@rdztilegroup.net>` | `git log -1 --format='%an <%ae>'` |
+
+Si alguna no cuadra, **decirlo y parar**, no seguir trabajando. Una sesión con la
+cuenta equivocada escribe commits mal atribuidos y descubre el problema tarde,
+cuando ya hay que rehacer trabajo.
+
+Aviso conocido: el token de `gh` de `CARRERSRTG` tiene los alcances `gist`,
+`read:org` y `repo`, pero **no `workflow`**. Un PR que modifique
+`.github/workflows/*.yml` puede ser rechazado al empujarlo por `gh`; se arregla
+con `gh auth refresh -h github.com -s workflow`.
+
 ## Flujo por cada cambio
 
 > **Quién hace cada paso.** Cuando se trabaja en paralelo (ver *Flujo de ramas*
