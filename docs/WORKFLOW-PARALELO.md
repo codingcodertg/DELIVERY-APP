@@ -16,9 +16,10 @@ verificaron en esa version; si actualizas y algo no cuadra, gana lo que mides.
 |---|---|
 | Version | `claude --version` → `2.1.260 (Claude Code)` |
 | Crear worktree | `claude -w <nombre>` (o `--worktree <nombre>`) |
-| Donde queda | `<repo>/.claude/worktrees/<nombre>/`, en una rama nueva |
+| Donde queda | `<repo>/.claude/worktrees/<nombre>/`, **bloqueado** (`git worktree list` lo marca `locked`) |
+| Como se llama la rama | **`worktree-<nombre>`** — Claude Code le pone ese prefijo. `claude -w prueba-flujo` crea la rama `worktree-prueba-flujo`. Medido, no supuesto |
 | De donde ramifica | El ajuste `worktree.baseRef`: **`fresh`** (por defecto) ramifica de `origin/<rama-por-defecto>`; `head` ramifica de tu HEAD local |
-| Ficheros ignorados que copia | **Solo** los que listes en `.worktreeinclude` (un patron por linea, en la raiz del repo). Sin ese fichero no copia **nada** ignorado |
+| Ficheros ignorados que copia | **Solo** los que listes en `.worktreeinclude`, mas `.claude/settings.local.json`, que Claude Code copia por su cuenta (ver el aviso de abajo). `node_modules` **no** viaja: `npm ci` una vez en el worktree |
 | Mensajeria entre sesiones | `ListAgents` para ver quien hay, `SendMessage` para escribirle. El **nombre** de la sesion es la direccion |
 | Nombrar una sesion | `claude -n "<nombre>"` — sale en el prompt, en `/resume` y en `ListAgents` |
 | Vista de agentes | `claude agents` (agentes en segundo plano); `claude --bg`, `claude attach <id>`, `claude logs <id>`, `claude stop <id>`, `claude rm <id>` |
@@ -36,6 +37,16 @@ credenciales que mandan SMS y cuestan dinero.
 Consecuencia practica: en un worktree, `next build` no tiene variables. Por eso
 existe **`node scripts/verify.mjs`**, que inyecta los mismos placeholders que el
 CI y corre los tres pasos. Usalo en vez de los comandos sueltos.
+
+### El fichero que SI viaja aunque no lo pidas: `.claude/settings.local.json`
+
+Medido: al crear un worktree, el unico fichero ignorado que aparece dentro es
+`.claude/settings.local.json`. Claude Code lo copia por su cuenta, no por
+`.worktreeinclude`. Es razonable —lleva la lista de permisos de la maquina— pero
+tiene una consecuencia: **lo que metas en una regla de permiso viaja a cada
+worktree**. Si una regla incluye una credencial en la linea de comando (por
+ejemplo `Bash(MIGRATE_PASSWORD="..." node script.mjs)`), esa credencial se
+replica. Reglas de permiso sin secretos dentro.
 
 ---
 
@@ -69,9 +80,17 @@ cd "C:\Users\andre\Documents\CLAUDE\DELIVERIES APP\deliveries-app"
 claude -w feat-nombre-corto -n worker --model opus
 ```
 
-Queda en `.claude/worktrees/feat-nombre-corto/`, en la rama del mismo nombre,
-ramificada de `origin/main` (ajuste `fresh`, el de fabrica). Lo primero que hace
-el worker, una sola vez:
+Queda en `.claude/worktrees/feat-nombre-corto/`, ramificado de `origin/main`
+(ajuste `fresh`, el de fabrica). **La rama se llama `worktree-feat-nombre-corto`**,
+con el prefijo que pone Claude Code — es el nombre que usaras en el `git push` y
+en el `gh pr create`, asi que confirmalo antes de escribirlo:
+
+```bash
+git -C ".claude/worktrees/feat-nombre-corto" branch --show-current
+```
+
+Lo primero que hace el worker, una sola vez (el worktree llega **sin**
+`node_modules`):
 
 ```bash
 npm ci
@@ -110,7 +129,7 @@ hablarle a otra sesion hay que llamar a la herramienta.
 SendMessage
   to: "worker"
   message: "Tarea: <una frase con el resultado esperado>.
-            Rama: feat-nombre-corto.
+            Worktree: feat-nombre-corto (rama: worktree-feat-nombre-corto).
             Alcance: <que ficheros/areas SI>. Fuera de alcance: <que NO>.
             Decisiones que aplican: D-0XX, D-0YY.
             No subas version ni numeres la decision: eso lo hago yo al fusionar.
@@ -133,7 +152,7 @@ git commit -m "feat(x): ..."     # se queda LOCAL: aun no se pushea
 ```
 SendMessage
   to: "auditor"
-  message: "Rama feat-nombre-corto lista para auditoria.
+  message: "Rama worktree-feat-nombre-corto lista para auditoria.
             Worktree: .claude/worktrees/feat-nombre-corto/
             Tarea encargada: <copia literal del alcance que recibi>.
             verify.mjs: <pasados> pasados | <saltados> saltados, build ok.
@@ -147,8 +166,8 @@ tres puntos, contra el ancestro comun:
 
 ```bash
 git fetch origin
-git diff --stat main...feat-nombre-corto
-git diff main...feat-nombre-corto        # entero
+git diff --stat main...worktree-feat-nombre-corto
+git diff main...worktree-feat-nombre-corto        # entero
 ```
 
 Y corre las verificaciones **en el worktree del worker**, no en el suyo:
@@ -171,19 +190,19 @@ SendMessage to: "orquestador"   message: "VEREDICTO: ... (tabla de 9 puntos)"
 ### (4) Worker: pushea SU rama (y solo la suya)
 
 ```bash
-git push -u origin feat-nombre-corto
+git push -u origin worktree-feat-nombre-corto
 ```
 
 ```
 SendMessage
   to: "orquestador"
-  message: "feat-nombre-corto pusheada y aprobada por el auditor. Abre el PR."
+  message: "worktree-feat-nombre-corto pusheada y aprobada por el auditor. Abre el PR."
 ```
 
 ### (5) Orquestador: PR, CI, merge
 
 ```bash
-gh pr create --base main --head feat-nombre-corto \
+gh pr create --base main --head worktree-feat-nombre-corto \
   --title "feat(x): ..." --body "<que hacia falta, por que, que se descarto>"
 gh pr checks --watch          # espera a que CI ponga verde
 gh pr merge --squash --delete-branch
@@ -208,10 +227,15 @@ node scripts/db/migrate-status.mjs        # que dice despues: "todo al dia"
 # c) numerar la decision: D-NEXT -> D-0XX, en serie
 ```
 
-Y limpiar el worktree cuando la rama ya se fusiono:
+Y limpiar el worktree cuando la rama ya se fusiono. Claude Code lo crea
+**bloqueado**, asi que `git worktree remove` a secas se niega; hay que quitar el
+candado primero (o borrarlo con `claude rm <id>`, que ademas limpia el estado de
+la sesion):
 
 ```bash
+git worktree unlock ".claude/worktrees/feat-nombre-corto"
 git worktree remove ".claude/worktrees/feat-nombre-corto"
+git branch -d worktree-feat-nombre-corto     # si el merge fue squash: -D
 ```
 
 ---
@@ -248,7 +272,45 @@ con la version: quien fusiona sabe que apps se tocaron de verdad.
 
 ---
 
-## 7. Proteccion de rama — paso manual del dueno
+## 7. El `gh` de esta maquina no puede abrir PRs (paso pendiente del dueno)
+
+Medido el 2026-09-04, y bloquea el paso (5) del protocolo:
+
+```
+$ gh auth status
+✓ Logged in to github.com account andresugarte14
+
+$ gh repo view codingcodertg/DELIVERY-APP --json viewerPermission
+{"viewerPermission":"READ"}
+
+$ gh pr create ...
+pull request create failed: GraphQL: must be a collaborator (createPullRequest)
+```
+
+`git push` **si** funciona: git usa el Windows Credential Manager, que guarda la
+identidad `CARRERSRTG` (dueña del repo). Pero `gh` esta autenticado con **otra**
+cuenta, `andresugarte14`, que sobre este repo solo tiene lectura. De ahi que el
+worker pueda pushear su rama y el orquestador no pueda abrir el PR ni disparar
+el workflow a mano (`403: Must have admin rights`).
+
+Arreglo, una vez, por el dueno (es su decision de credenciales, no se toca sin
+que lo pida):
+
+```bash
+gh auth login          # elegir github.com, HTTPS, y entrar como la cuenta dueña del repo
+gh auth switch         # si la cuenta ya estuviera registrada, basta con cambiar la activa
+```
+
+Comprobacion de que quedo: `gh repo view codingcodertg/DELIVERY-APP --json
+viewerPermission` debe decir `WRITE` o `ADMIN`.
+
+Mientras tanto, el PR se abre a mano desde la web —GitHub lo ofrece en cuanto se
+pushea la rama— y el CI corre igual, porque se dispara por el evento
+`pull_request`, no por quien lo abrio.
+
+---
+
+## 8. Proteccion de rama — paso manual del dueno
 
 Todo lo anterior es una convencion hasta que GitHub la haga cumplir. Sin
 proteccion, un `git push origin main` distraido se salta el flujo entero. Los
