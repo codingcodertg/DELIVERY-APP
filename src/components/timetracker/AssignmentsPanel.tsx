@@ -10,13 +10,13 @@ import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
  *
  * Ported (D-071) from timetracker-clean's manager/ManagerAssignments.jsx. Vivía entero en
  * `assignments/page.tsx`; se movió aquí tal cual cuando el Horario pasó a ser la otra sección
- * de esa misma pantalla (D-NEXT). Lo único que se quitó es la comprobación de rol en cliente
+ * de esa misma pantalla (D-186). Lo único que se quitó es la comprobación de rol en cliente
  * ("Admins only."): la página ahora es de servidor y redirige antes de montar nada, así que
  * este componente solo se renderiza para un admin.
  *
  * OJO: la lista de personas de aquí es `allEmployees` del proveedor — TODO el que tiene
  * `timetracker_role`, sin filtro de tienda y sin excluir inactivos. La sección de Horario
- * usa OTRA lista, acotada por tienda (D-127). No se unifican a propósito: ver D-NEXT.
+ * usa OTRA lista, acotada por tienda (D-127). No se unifican a propósito: ver D-186.
  */
 interface FormState { employeeUid: string; projectId: string; hourlyRate: string; overtimeRate: string; overtimeThreshold: string; weeklyLimit: string; paymentMethod: string }
 

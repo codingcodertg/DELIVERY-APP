@@ -62,7 +62,7 @@ const nextConfig = {
       { source: "/timetracker/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
       // El horario subió a Time Tracker (D-121), con lo que ahora además deja programar otras
       // semanas — la pantalla vieja solo sabía enseñar la actual. Después pasó a vivir dentro
-      // de Asignaciones (D-NEXT): se apunta DIRECTO ahí, y no a /timetracker/schedule, para
+      // de Asignaciones (D-186): se apunta DIRECTO ahí, y no a /timetracker/schedule, para
       // no encadenar dos redirecciones en un enlace que abre gente desde el móvil.
       { source: "/timetracker/clock-in/schedule", destination: "/timetracker/assignments", permanent: false },
       // Las dos últimas pantallas de gerente que quedaban en fichaje (D-135). El detalle por

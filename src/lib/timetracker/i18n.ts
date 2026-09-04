@@ -54,7 +54,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.projects': '📁 Projects',
     'tab.assignments': '🔗 Assignments & Schedule',
     'tab.people': '🧑‍🤝‍🧑 Employees',
-    // 'tab.schedule' se queda aunque ya no haya pestaña (D-NEXT): la clave no estorba y borrarla
+    // 'tab.schedule' se queda aunque ya no haya pestaña (D-186): la clave no estorba y borrarla
     // es reescribir historia por nada.
     'tab.schedule': '📅 Schedule',
     'tab.team-diary': '🗂 Team Diary',
@@ -298,7 +298,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'mgr.asn.colLimit': 'Limit',
     'mgr.asn.colPay': 'Payment',
     'mgr.asn.removeConfirm': 'Remove this assignment?',
-    // Las dos secciones de la pantalla de asignaciones (D-NEXT).
+    // Las dos secciones de la pantalla de asignaciones (D-186).
     'mgr.asn.secRates': '🔗 Rates',
     'mgr.asn.secSchedule': '📅 Schedule',
     'mgr.req.pendingTitle': 'Pending requests',

@@ -7859,7 +7859,7 @@ Una instancia de GoTrue más por módulo (cuatro en total, además de la de deli
 mantiene su sesión desde las mismas cookies, así que no hay divergencia de login; el coste es
 memoria y listeners, no comportamiento.
 
-## D-NEXT · El horario pasa a vivir dentro de Asignaciones, como segunda sección; las dos listas de personas NO se unifican
+## D-186 · El horario pasa a vivir dentro de Asignaciones, como segunda sección; las dos listas de personas NO se unifican
 
 **Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
 
@@ -7911,6 +7911,16 @@ con fecha, porque el historial no se maquilla. Lo que la objeción cambió no fu
    montar (misma puerta que Payroll). La pantalla fusionada se queda con la fuerte: la página es
    ahora un componente de servidor que consulta `timetracker_role` y redirige a `/timetracker`
    si no es admin, o a `/login?next=/timetracker/assignments` si no hay sesión.
+
+   > **Corrección — 2026-09-04, al fusionar (hallazgo del auditor, no bloqueante).** Esa última
+   > frase promete de más, clase D-044. El `redirect("/login?next=/timetracker/assignments")`
+   > de `assignments/page.tsx:20` es **inalcanzable**: quien corta a quien no tiene sesión es
+   > antes la layout del módulo (`(timetracker)/layout.tsx:38`), y manda a
+   > `/login?next=/timetracker`, no a la pantalla. No es regresión ni error del cambio — es
+   > copia fiel de la misma línea muerta que ya tenía `schedule/page.tsx`, y se conserva por
+   > si algún día se conecta el guard de rutas del middleware, que hoy **no está conectado**
+   > (`src/lib/supabase/middleware.ts:27` lo dice: "No redirige"). Lo que era falso era la
+   > frase, y se corrige aquí en vez de reescribir el punto 3 (regla 2).
 4. **Las rutas no mueren.** `/timetracker/schedule` queda como redirección a
    `/timetracker/assignments`. El salto heredado de fichaje `/timetracker/clock-in/schedule`
    (D-121) en `next.config.mjs` apunta **directo** al destino nuevo, para no encadenar dos
