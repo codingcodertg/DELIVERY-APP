@@ -27,7 +27,7 @@ export function createClient() {
       // browser client with its own db.schema opts out, and only the deliveries client
       // (src/lib/supabase/client.ts, default `public` schema) keeps using the cache — alone, so
       // it cannot collide with anyone. src/lib/supabase/browser-clients.test.ts enforces this;
-      // the extra GoTrue instance per module is the price accepted in D-NEXT.
+      // the extra GoTrue instance per module is the price accepted in D-185.
       isSingleton: false,
     }
   );

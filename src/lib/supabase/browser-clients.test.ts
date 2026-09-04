@@ -12,7 +12,7 @@ import { join, relative, sep } from "node:path";
 // does NOT rely on anyone remembering to register a new client here: it walks
 // src/lib on disk, picks up every file that imports createBrowserClient from
 // @supabase/ssr, and checks each one. A sixth module that copies the pattern
-// without opting out fails this suite the moment its file exists. See D-NEXT.
+// without opting out fails this suite the moment its file exists. See D-185.
 //
 // The rule: any browser client that sets its own db.schema must pass
 // isSingleton: false. At most ONE client (deliveries, default `public` schema)

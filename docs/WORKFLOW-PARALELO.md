@@ -374,10 +374,25 @@ confeso lo que **no** pudo medir —no logro crear un repo temporal para probar 
 merge— en vez de presentarlo como verificado. Eso es exactamente el estandar que
 se le pide.
 
-**Una rareza sin explicar, anotada por si reaparece:** en dos ocasiones
-`next build` fallo y paso al reintentar sin tocar una linea de codigo, sin
-mensaje de error. En CI, que compila en frio cada vez, no ha pasado. Si vuelve,
-mide antes de suponer.
+**Una rareza que al principio se anoto como "sin explicar", y resulto tener
+causa: la cache `.next` corrupta.** Primero `next build` fallaba y pasaba al
+reintentar, sin mensaje. Mas tarde empezo a fallar siempre, ya con error:
+`uncaughtException [TypeError: Cannot read properties of undefined (reading
+'length')]`, siempre en "Creating an optimized production build".
+
+Se midio en vez de suponer, y el orden importa: **primero se descarto que fuera
+el cambio propio**, guardando los cambios con `git stash` y compilando el commit
+limpio que el CI ya habia dado verde. Fallo igual, o sea que no era el codigo.
+Era el checkout: `.next` ocupaba **2,3 GB** y estaba corrupta.
+
+```bash
+rm -rf .next && node scripts/verify.mjs
+```
+
+Con eso el build volvio en verde. **La leccion practica:** si `next build` falla
+en tu maquina y el CI de la misma rama esta verde, el sospechoso numero uno es tu
+`.next`, no el codigo. Borrala antes de dudar del cambio. Y la leccion de metodo:
+"falla a veces" casi nunca es azar, es una causa que todavia no se midio.
 
 ---
 

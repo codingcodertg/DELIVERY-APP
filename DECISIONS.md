@@ -7773,9 +7773,9 @@ Cambio solo-de-base (tabla + script + docs; ninguna toca el bundle de cliente): 
 `package.json` (1.108.3), no `APP_VERSIONS`. Es justo la excepción escrita en el paso 3 de
 CLAUDE.md.
 
-## D-NEXT · Cada cliente de navegador con schema propio se sale de la caché de @supabase/ssr; la regla la hace cumplir la suite
+## D-185 · Cada cliente de navegador con schema propio se sale de la caché de @supabase/ssr; la regla la hace cumplir la suite
 
-**Fecha:** 2026-09-04 · **Versión:** (la asigna el orquestador al fusionar) · **Pedido por:** Andrés
+**Fecha:** 2026-09-04 · **Versión:** recruiting 0.13.2, timetracker 0.49.10, package.json 1.109.0 · **Pedido por:** Andrés
 
 ### Qué fallaba
 

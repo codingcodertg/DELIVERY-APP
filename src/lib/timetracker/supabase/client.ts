@@ -19,7 +19,7 @@ export function createClient() {
       // would come back bound to `recruiting`, and the other way round it broke /recruiting with
       // "Could not find the table 'timetracker.questions' in the schema cache". Any browser
       // client with its own db.schema must opt out — src/lib/supabase/browser-clients.test.ts
-      // enforces it. See D-NEXT.
+      // enforces it. See D-185.
       isSingleton: false,
     },
   );
