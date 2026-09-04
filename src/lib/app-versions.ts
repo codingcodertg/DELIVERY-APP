@@ -12,6 +12,12 @@
 // both recorded against the OLD shared global counter (v1.9.6 and v1.15.0
 // respectively), not a number of their own, so 0.1.0 is the honest
 // starting point, not manufactured continuity.
+//
+// QUIEN toca estos numeros: el orquestador, AL FUSIONAR — nunca una rama. Dos
+// ramas paralelas que suben version cada una chocan aqui en cada merge, y el
+// conflicto es silencioso: git fusiona bien dos lineas distintas y te quedas
+// con la version equivocada. Ver "Flujo de ramas" en CLAUDE.md y
+// docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
   deliveries: "1.56.0",
   recruiting: "0.13.1",
