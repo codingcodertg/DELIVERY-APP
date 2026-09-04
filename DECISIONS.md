@@ -7858,3 +7858,89 @@ líneas; si algún día pesa el coste de GoTrue, es el camino.
 Una instancia de GoTrue más por módulo (cuatro en total, además de la de deliveries). Cada una
 mantiene su sesión desde las mismas cookies, así que no hay divergencia de login; el coste es
 memoria y listeners, no comportamiento.
+
+## D-NEXT · El horario pasa a vivir dentro de Asignaciones, como segunda sección; las dos listas de personas NO se unifican
+
+**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
+
+### Qué se pidió
+
+Petición literal: *"en deliveries app schedule tiene que ir dentro de assignments, haz un merge
+inteligente y eficiente para que el feature de las 2 sea uno solo"*.
+
+Corrección de hecho antes de nada: ninguna de las dos pantallas es del módulo de Deliveries.
+Las dos son de **Time Tracker** (`/timetracker/assignments`, D-071, y `/timetracker/schedule`,
+D-121), vecinas en `MANAGER_TABS`. Se asumió Time Tracker porque son las únicas que existen con
+esos nombres y porque a este repositorio se le llama "deliveries-app".
+
+### La objeción, por escrito, y que el dueño la desestimó
+
+Este repo se dio su propio criterio de fusión en **D-165**: se fusiona cuando dos pantallas
+**contestan la misma pregunta**, y el síntoma es tener que pasar por dos sitios para acabar una
+sola tarea. Partes y Pago se fusionaron por eso: las dos eran "pagar este periodo".
+
+Aquí, medido, las dos pantallas **no comparten nada**: Asignaciones contesta *cuánto cobra Fulano
+en el proyecto X* (tabla `timetracker.assignments`, se dibuja en cliente con supabase-js y
+realtime, sin acotado por tienda, traducida entera); Horario contesta *a qué hora entra Fulano el
+martes y dónde* (tabla `clockin.scheduled_shifts`, se dibuja en servidor con cinco server actions,
+acotada por tienda, en inglés a pelo). Sin FK entre tablas, sin consulta común, sin cálculo común,
+sin un componente en común, y ninguna pantalla de la app enlaza a ninguna de las dos.
+
+La objeción se dijo antes de implementar y se mantuvo. **El dueño la confirmó igual**: es su
+aplicación y sabe cómo la usa. Se implementa, y queda anotado que va contra el criterio D-165,
+con fecha, porque el historial no se maquilla. Lo que la objeción cambió no fue *si* sino *cómo*.
+
+### Qué se decidió
+
+1. **Dos secciones, no una vista soldada.** `/timetracker/assignments` renderiza
+   `AssignmentsTabs` (cliente) con un selector *Tarifas / Horario*. La sección de tarifas es
+   `AssignmentsPanel`, el cuerpo de la pantalla vieja movido tal cual; la de horario es
+   `ScheduleWeek`, sin tocar. Cada sección conserva su mitad de código y se monta al abrirse.
+2. **Las dos listas de personas NO se unifican.** Es el corazón del diseño. Tarifas lista a todo
+   el que tiene `timetracker_role`, sin filtro de tienda y sin excluir inactivos. Horario lista
+   solo las tiendas visibles del gerente y solo gente activa, que es el acotado por tienda que
+   **D-127** puso a propósito. Gane la que gane, el daño es **silencioso**: si gana la del
+   horario, desaparecen del formulario de tarifas personas de otra tienda o inactivas que hoy sí
+   se tarifan; si gana la de asignaciones, aparecen en el planificador personas que el acotado
+   protege. Nadie ve un error, solo falta alguien en un desplegable. Mantenerlas separadas hace
+   que ese problema no llegue a existir, y la fusión cuesta mover ficheros en vez de reescribir
+   una mitad, que es el coste real que D-106 identificó en cada fusión que cruza la línea
+   cliente/servidor.
+3. **La puerta pasa de cliente a servidor.** Asignaciones comprobaba el rol en el navegador y
+   montaba la página igual, con un "Admins only". Horario redirigía desde el servidor antes de
+   montar (misma puerta que Payroll). La pantalla fusionada se queda con la fuerte: la página es
+   ahora un componente de servidor que consulta `timetracker_role` y redirige a `/timetracker`
+   si no es admin, o a `/login?next=/timetracker/assignments` si no hay sesión.
+4. **Las rutas no mueren.** `/timetracker/schedule` queda como redirección a
+   `/timetracker/assignments`. El salto heredado de fichaje `/timetracker/clock-in/schedule`
+   (D-121) en `next.config.mjs` apunta **directo** al destino nuevo, para no encadenar dos
+   redirecciones.
+5. **La pestaña `schedule` sale de `MANAGER_TABS`**; la de `assignments` lleva las dos cosas y
+   su etiqueta lo dice ("Assignments & Schedule" / "Asignaciones y horario"). La prueba de
+   `src/lib/landing-route.test.ts` que exige que el horario tenga puerta **falló al retirar la
+   pestaña, como debía**, y se cambió el id `schedule` por `assignments` explicando en el propio
+   comentario dónde está ahora la puerta. Verificado en las dos direcciones: con el id viejo
+   falla con *"falta la pestaña schedule"*, con el nuevo pasa (27 de 27 en ese fichero).
+6. Los cinco server actions de `clockin` (`getScheduleWeek`, `createShifts`, `applySchedule`,
+   `deleteShift`, `adminClock`) **no se tocan**: los usa también el cron `roll-schedules`
+   (D-182) y la sección "Mi horario" del empleado (D-129).
+
+### Qué se descartó
+
+- **Soldar las dos en una sola vista con una sola lista de gente.** Por el punto 2.
+- **Fusionar Asignaciones con Proyectos**, que es la fusión que el código sí pide: misma tabla,
+  mismo proveedor, mismo lado de la línea, y Proyectos ya enseña quién está asignado y ya usa la
+  tarifa para calcular gasto. Se propuso al dueño y eligió esta otra. Queda como candidato.
+- **Borrar `/timetracker/schedule` y resolverlo todo en `next.config.mjs`.** Se dejó la página
+  como redirección para que la ruta siga existiendo dentro de la app, y el salto heredado se
+  apuntó directo para no encadenar.
+
+### Lo que queda pendiente, a propósito
+
+- **`ScheduleWeek` sigue en inglés a pelo** y al lado de una sección traducida se nota. Es un
+  defecto anterior a esta fusión y va en su propia rama, para no mezclar dos cambios en una
+  auditoría.
+- **No hay ni una prueba automática de ninguna de las dos pantallas.** La suite no avisa si se
+  rompe la interfaz; la cobertura es `verify.mjs` (tipos, pruebas, build) y revisión a ojo.
+- El comentario de `MANAGER_TABS` decía "catorce pestañas" y eran quince el 2026-09-04; quedan
+  catorce. Se anotó en el propio comentario en vez de reescribirlo.
