@@ -55,7 +55,7 @@ replica. Reglas de permiso sin secretos dentro.
 | | Orquestador | Worker | Auditor |
 |---|---|---|---|
 | **Donde** | checkout principal, en `main` | worktree `.claude/worktrees/<rama>/` | checkout principal (solo lee) |
-| **Modelo** | Opus | Opus | Opus (o Sonnet) — **nunca Fable** |
+| **Modelo** | lo decide el dueno | lo decide el dueno | lo decide el dueno |
 | **Escribe codigo** | no | si | no |
 | **Pushea** | no (fusiona por PR) | si, **solo su rama** | no |
 | **Aplica migraciones** | si, **despues** del merge | no, jamas | no |
@@ -403,12 +403,15 @@ decia "manda el veredicto a `orquestador`", pero el panel 1 se habia lanzado sin
 seccion 3: las direcciones se sacan de `ListAgents`, y cada sesion dice como se
 llama ella en vez de suponer.
 
-**3. Las sesiones corrieron en el modelo prohibido.** `CLAUDE.md` dice Opus, o
-Sonnet para el auditor, **nunca Fable**. Medido en el transcript: el auditor
-corrio en `claude-fable-5-1`. El propio auditor lo confeso en su veredicto, lo
-cual habla bien de el, pero la regla se salto igual. **Comprueba el modelo con
-`/model` dentro de cada panel antes de encargar nada**; `--model opus` en la
-linea de lanzamiento puede quedar pisado por el ajuste por defecto de la cuenta.
+**3. Las sesiones corrieron en un modelo que la regla prohibia, y la regla cayo.**
+Medido en el transcript: el auditor corrio en `claude-fable-5-1`, que `CLAUDE.md`
+prohibia entonces. El propio auditor lo confeso en su veredicto. **El dueno
+revirtio la prohibicion el mismo dia** (necesita Fable), asi que hoy el modelo lo
+decide el: ver la regla 5 de "Flujo de ramas" en `CLAUDE.md`, donde queda anotado
+el cambio y lo que se midio. Lo que si sobrevive de este fallo es lo practico:
+**comprueba el modelo con `/model` dentro de cada panel**, porque `--model` en la
+linea de lanzamiento puede quedar pisado por el ajuste por defecto de la cuenta,
+que es justo lo que paso aqui.
 
 **Lo que si funciono, y conviene no perderlo de vista.** El auditor se nego a
 firmar un veredicto sobre cero cambios cuando se le pidio auditar antes de que

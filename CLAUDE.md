@@ -147,11 +147,29 @@ Un preview que escribe, escribe en producción; un preview que manda un SMS, lo
 manda de verdad. Trata cualquier prueba en un preview como prueba en vivo, con la
 regla permanente de arriba (stub, cuerpo saneado o sandbox) aplicada igual.
 
-### 5. Modelo: Opus. Nunca Fable
+### 5. Modelo: lo decide el dueño, y Fable está permitido
 
-Orquestador y worker en **Opus**; el auditor en **Opus o Sonnet**. **Fable no**
-en ningún papel de este flujo. Se fija con `--model opus` al lanzar cada sesión y
-en el `model:` del fichero del agente.
+**Esta regla decía "Opus, nunca Fable" y el dueño la revirtió el mismo día que se
+escribió** (2026-09-04), porque necesita Fable. La razón concreta queda pendiente
+de escribir. Se anota el cambio en vez de reescribir la historia, que es la regla
+2 de la documentación.
+
+Lo que sí se midió antes de revertirla: en el primer encargo real, el auditor
+corrió en Fable 5.1 sin que nadie lo pidiera, y **hizo bien su trabajo**. Se negó
+a firmar un veredicto sobre cero cambios cuando se le pidió auditar antes de que
+el worker hubiera commiteado. Marcó como *no verificado* lo único que no pudo
+medir, en vez de darlo por bueno. Y encontró por su cuenta que la prueba de
+regresión del worker era una tautología. O sea que la prohibición no se apoyaba
+en ninguna medición.
+
+Lo que **no** cambia es lo que se le exige al papel, y eso no depende del
+modelo: el auditor mide en vez de suponer, cita `archivo:línea`, confiesa lo que
+no verificó, y recorre los nueve puntos completos. Si un modelo deja de cumplir
+eso, se cambia por medirlo, no por su nombre.
+
+Práctico: el modelo se comprueba con `/model` **dentro** de cada panel. El
+`--model` del lanzamiento puede quedar pisado por el ajuste por defecto de la
+cuenta, así que no basta con ponerlo en la línea de comandos.
 
 ### Por qué `.env.local` no viaja al worktree
 
