@@ -22,6 +22,9 @@ import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/tra
 
 /** How many days back the quick-pick strip reaches. */
 const DAY_STRIP = 13;
+/** Most `recorded_at` rows the "which days have data" read will take: the strip's days at
+ * ~170 fixes/day each (location-filter.ts), with room for a busy day. Was 20,000 (G-18). */
+const DAY_STRIP_ROW_CAP = (DAY_STRIP + 1) * 400;
 
 function fmtMin(m: number): string {
   const n = Math.round(m);
@@ -94,12 +97,19 @@ export default function TrackPage() {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
+      // G-18 (D-NEXT): this only needs "which days have at least one fix". The right answer is
+      // one aggregate in SQL (a `distinct date` RPC), but that needs a migration, so it is left
+      // as PENDING and this stays a range-bounded read of `recorded_at` alone, grouped in the
+      // browser. The range was already the strip (DAY_STRIP + 1 days); the cap was 20,000 rows,
+      // an order of magnitude above what that range can hold (~170 fixes/day per driver,
+      // location-filter.ts). Capped to what the strip can actually contain, plus margin.
       const { data } = await supabase
         .from("driver_locations")
         .select("recorded_at")
         .eq("driver_id", driverId)
         .gte("recorded_at", centralWallToUtc(`${shiftDateISO(todayISO(), -DAY_STRIP)}T00:00`))
-        .limit(20000);
+        .order("recorded_at", { ascending: false })
+        .limit(DAY_STRIP_ROW_CAP);
       if (cancelled) return;
       const set = new Set<string>();
       for (const r of data ?? []) {

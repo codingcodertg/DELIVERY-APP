@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
@@ -33,7 +33,10 @@ interface AccountRow {
 const CLOSED = ["delivered", "canceled", "rejected"];
 
 export default function AccountsPage() {
-  const { me, deliveries, settings, ready, saveSettings, notify } = useData();
+  const { me, deliveries, settings, ready, saveSettings, notify , ensureDeliveriesSince } = useData();
+  // G-16: this screen reads every order ever (per-account history / reference counts), so it
+  // asks the provider for the whole history once; the provider keeps a window by default.
+  useEffect(() => { void ensureDeliveriesSince(null); }, [ensureDeliveriesSince]);
   const { lang, t } = usePrefs();
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<string | null>(null);

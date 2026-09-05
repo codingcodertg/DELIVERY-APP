@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { createClient } from "@/lib/recruiting/supabase/client";
+import { bumpSort, sortByIds } from "@/lib/recruiting/sort-plan";
 import type {
   Attachment,
   StageHistory,
@@ -553,11 +554,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (!original) return;
       // Make room for the copy right after the original: bump everything
       // after it (in the same set) up by one sort slot first.
-      const toBump = questions.filter((q) => q.set_id === original.set_id && q.sort > original.sort);
-      for (const q of toBump) {
-        const { error } = await supabase.from("questions").update({ sort: q.sort + 1 }).eq("id", q.id);
-        if (error) { notify("Error: " + error.message); return; }
-      }
+      // G-19 (D-NEXT): the same one-column writes the loop made (`update({ sort })`, nothing
+      // else touched), but in parallel — one round trip instead of N in series. The arithmetic
+      // is lib/recruiting/sort-plan.ts, tested against the old loop.
+      const bumps = bumpSort(questions.filter((q) => q.set_id === original.set_id), original.sort, { inclusive: false });
+      const bumped = await Promise.all(bumps.map((b) => supabase.from("questions").update({ sort: b.sort }).eq("id", b.id)));
+      const bumpErr = bumped.find((r) => r.error)?.error;
+      if (bumpErr) { notify("Error: " + bumpErr.message); return; }
       const { error } = await supabase.from("questions").insert({
         text: original.text,
         text_es: original.text_es,
@@ -577,14 +580,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   const reorderQuestions = useCallback<DataState["reorderQuestions"]>(
     async (ids) => {
-      setQuestions((prev) => {
-        const sortById = new Map(ids.map((id, i) => [id, i]));
-        return prev.map((q) => (sortById.has(q.id) ? { ...q, sort: sortById.get(q.id)! } : q));
-      });
-      for (let i = 0; i < ids.length; i++) {
-        const { error } = await supabase.from("questions").update({ sort: i }).eq("id", ids[i]);
-        if (error) { notify("Error: " + error.message); return; }
-      }
+      const sortById = new Map(ids.map((id, i) => [id, i]));
+      setQuestions((prev) => prev.map((q) => (sortById.has(q.id) ? { ...q, sort: sortById.get(q.id)! } : q)));
+      // G-19 (D-NEXT): same `update({ sort })` per dragged id as before, in parallel instead of
+      // in series. Only the sort column travels, so nothing another person edited gets overwritten.
+      const results = await Promise.all(sortByIds(ids).map((p) => supabase.from("questions").update({ sort: p.sort }).eq("id", p.id)));
+      const err = results.find((r) => r.error)?.error;
+      if (err) notify("Error: " + err.message);
     },
     [supabase, notify],
   );
@@ -766,9 +768,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const activeSorts = stages.filter((x) => x.type === "active").map((x) => x.sort);
       const newSort = activeSorts.length ? Math.max(...activeSorts) + 1 : 0;
       const toShift = stages.filter((x) => x.sort >= newSort);
-      for (const st of toShift) {
-        await supabase.from("stages").update({ sort: st.sort + 1 }).eq("id", st.id);
-      }
+      // G-19 (D-NEXT): same `update({ sort })` per shifted stage, in parallel. Only sort travels
+      // (stages has no realtime channel, so a full-row write could have overwritten someone
+      // else's edit). Before, a failure here was silently ignored; now it stops the insert.
+      const shifted = await Promise.all(bumpSort(toShift, newSort, { inclusive: true }).map((b) => supabase.from("stages").update({ sort: b.sort }).eq("id", b.id)));
+      const shiftErr = shifted.find((r) => r.error)?.error;
+      if (shiftErr) { notify("Error: " + shiftErr.message); return; }
       const { error } = await supabase.from("stages").insert({ key, type: "active", color: "#6b7686", sort: newSort, ...s });
       if (error) notify("Error: " + error.message);
       else { reloadAll(); notify("Stage added ✓"); }
