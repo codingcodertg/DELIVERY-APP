@@ -74,6 +74,7 @@ describe("el guardián se prueba a sí mismo", () => {
 describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo", () => {
   const ficheros: string[] = [
     "src/components/erp/side-nav.tsx",
+    "src/components/erp/catalog-table.tsx",
   ];
 
   for (const ruta of ficheros) {
