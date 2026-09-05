@@ -482,3 +482,29 @@ la conversacion del orquestador queda bajo la ruta vieja y se recupera con
 proyectos), o se retoma con `docs/HANDOFF-*.md`, que existe para esto. El
 `.worktreeinclude`, el agente auditor y `settings.local.json` viajan con la
 carpeta y no se pierden.
+
+---
+
+## 12. El merge se condiciona al CI, siempre — porque hoy no lo hice
+
+El 2026-09-05 el PR #7 se fusiono CON EL CI EN ROJO. No lo paro nadie: la
+proteccion de rama sigue sin existir (paso del dueno, pendiente desde el primer
+dia) y el comando del orquestador encadenaba `gh run watch` y `gh pr merge` sin
+condicionar el segundo al primero. La prueba que fallaba resulto ser una prueba
+dependiente del reloj y `main` no quedo roto, pero eso fue suerte, no proceso.
+
+Regla desde hoy, hasta que exista la proteccion de rama:
+
+```bash
+gh pr checks <n> --watch --fail-fast && gh pr merge <n> --squash
+```
+
+El `&&` es la regla: sin verde no hay merge. Y si el CI falla por algo que no es
+del PR (una prueba flaky, la cache), se arregla o se investiga ANTES de fusionar,
+no despues. Un merge con CI rojo convierte al siguiente PR en el que "hereda" el
+rojo, y ahi ya nadie sabe de quien es.
+
+Lo que de verdad lo impide es el ruleset de GitHub con el check `tsc · vitest ·
+build` como obligatorio: con eso puesto, `gh pr merge` rechaza fusionar en rojo
+aunque el orquestador se equivoque. Sigue siendo el paso mas importante que
+falta.
