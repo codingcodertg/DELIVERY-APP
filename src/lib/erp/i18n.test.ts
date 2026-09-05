@@ -71,11 +71,23 @@ describe("el guardián se prueba a sí mismo", () => {
 // Un fichero entra aquí cuando se traduce. La prueba exige (a) que use usePrefs, y (b) que el
 // guardián no encuentre nada. Mutación: volver a poner un texto a pelo en cualquiera de ellos
 // rompe la prueba nombrando fichero, línea y texto.
+// product/[id]/page.tsx es un server component: no usa usePrefs porque ya no pinta texto (se fue a
+// product-detail.tsx). Se mide igual, sin exigir usePrefs.
+describe("los server components del ERP que ya no pintan texto", () => {
+  for (const ruta of ["src/app/erp/product/[id]/page.tsx"]) {
+    it(`${ruta} — 0 textos a pelo`, () => {
+      const h = textoAPelo(readFileSync(join(process.cwd(), ruta), "utf8"));
+      expect(h.map((x) => `${ruta}:${x.linea} [${x.tipo}] ${x.texto}`)).toEqual([]);
+    });
+  }
+});
+
 describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo", () => {
   const ficheros: string[] = [
     "src/components/erp/side-nav.tsx",
     "src/components/erp/catalog-table.tsx",
     "src/components/erp/review-queue.tsx",
+    "src/components/erp/product-detail.tsx",
   ];
 
   for (const ruta of ficheros) {
