@@ -63,6 +63,12 @@ interface DataState {
   getSession: (id: string) => Promise<Session | null>;
   startSession: (payload: Partial<Session>) => Promise<Session>;
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
+  /** Same as updateSession but ONLY touches the row while it is still live (D-NEXT). For the
+   * tracker's ten-second tick: after a laptop wakes, or after the cron closed the row, a
+   * blind tick write must not retouch end_ms/duration_seconds of a closed session. Stop, the
+   * explicit reopen, manual edits and approvals keep using updateSession, which writes
+   * closed rows on purpose. A closed row makes this a silent no-op (zero rows), not an error. */
+  updateLiveSession: (id: string, patch: Partial<Session>) => Promise<void>;
 
   // ---- screenshots (desktop-captured) ----
   myScreenshots: Screenshot[];
@@ -541,6 +547,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (error) throw error;
   }, [supabase]);
 
+  const updateLiveSession = useCallback<DataState["updateLiveSession"]>(async (id, patch) => {
+    const row = toSnakeRow(patch as Record<string, unknown>);
+    const { error } = await supabase.from("sessions").update(row).eq("id", id).eq("is_live", true);
+    if (error) throw error;
+  }, [supabase]);
+
   // Same insert-with-retry shape as startSession — a manager adding a
   // manual entry (or approving an "add time" request) for ANY employee is
   // just an insert; is_timetracker_admin() covers writing someone else's
@@ -723,7 +735,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
-    listLiveSessions, getSession, startSession, updateSession,
+    listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
     myScreenshots: screenshots, latestScreenshot: screenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
     updateMyAccount, updatePassword, signOutEverywhere,

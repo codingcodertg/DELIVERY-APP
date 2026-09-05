@@ -3,7 +3,7 @@ import {
   LATIDO_MAX_MS, RESUME_MAX_MS,
   ultimoLatidoDe, esHuerfana, cierreHuerfana, huerfanasDe,
   parseResumeMark, markCovers, resumeKey, backoffMs,
-  CRON_CLOSE_NOTE, decisionReabrir,
+  CRON_CLOSE_NOTE, decisionReabrir, tickContinuo,
 } from "./live-session";
 
 // D-195. El cronómetro sobrevive a la actualización: el umbral de huérfana sube de 5 a 15
@@ -148,6 +148,32 @@ describe("reabrir tras un cierre del cron (D-NEXT): las cuatro condiciones, toda
 
   it("la marca del cron es una constante fija que el tick sobreescribe al reabrir", () => {
     expect(CRON_CLOSE_NOTE).toBe("closed:cron");
+  });
+
+  it("el equipo dormido 8 h con el tick armado → no reabre", () => {
+    // CAMBIOS del auditor: la tapa cerrada congela setInterval; al despertar el tick vuelve a
+    // disparar y la marca sale fresca. Lo que delata la noche es el HUECO entre el último tick
+    // antes de dormir y el primero al despertar, y esa es la evidencia que la página exige.
+    const ultimoTickAntesDeDormir = T0;
+    const alDespertar = T0 + 8 * 60 * MIN;
+    const evidenciaLocal = tickContinuo(ultimoTickAntesDeDormir, alDespertar);
+    expect(evidenciaLocal).toBe(false);
+    expect(decisionReabrir({ ...base, evidenciaLocal })).toEqual({ reabrir: false, motivo: "sin-evidencia-local" });
+    // Y con el reloj latiendo cada segundo, sí.
+    expect(decisionReabrir({ ...base, evidenciaLocal: tickContinuo(T0, T0 + 1000) })).toEqual({ reabrir: true });
+  });
+});
+
+describe("tickContinuo: el hueco entre ticks, con el mismo umbral que tolera la base", () => {
+  it("hueco de 9 s → continuo; primer tick (null) → continuo", () => {
+    expect(tickContinuo(T0, T0 + 9_000)).toBe(true);
+    expect(tickContinuo(null, T0)).toBe(true);
+  });
+
+  it("15:00 exactos → continuo; 15:01 → roto; 8 h → roto", () => {
+    expect(tickContinuo(T0, T0 + LATIDO_MAX_MS)).toBe(true);
+    expect(tickContinuo(T0, T0 + LATIDO_MAX_MS + 1000)).toBe(false);
+    expect(tickContinuo(T0, T0 + 8 * 60 * MIN)).toBe(false);
   });
 });
 

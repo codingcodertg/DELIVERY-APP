@@ -8741,6 +8741,32 @@ si la persona **recarga con red** después de que el cron cerrara, la adopción 
 cerrada y para; el tick de esta página no siguió corriendo a través de la recarga y no hay
 evidencia local, así que no se reabre. Es el precio de no reabrir nunca sin prueba.
 
+**Nota del mismo día (CAMBIOS del auditor, confirmado por el orquestador):** la primera versión tomaba
+como "evidencia local" que el tick estuviera **armado**, y eso no es que **siguiera corriendo**: un
+portátil suspendido con la tapa cerrada (o una pestaña de fondo estrangulada) congela `setInterval`
+durante horas; al despertar el tick vuelve a disparar, escribe la marca con fecha de ahora, y `el`
+incluye la noche entera. Las cuatro condiciones se cumplían formalmente y se reabría pagando la
+noche: las 10,42 h y las 25,75 h de D-098 por la puerta de atrás. Dos cambios, en un segundo commit:
+
+- **La evidencia local mide el hueco entre ticks** (`tickContinuo`, puro y probado): si entre un
+  tick y el siguiente pasan más de `LATIDO_MAX_MS`, el reloj local se paró; `continuoRef` se apaga,
+  la marca de reanudación **se borra** y deja de refrescarse, y sin marca no hay reapertura por
+  ninguna vía (ni `online` ni la confirmación). Vuelve a estar en pie solo al arrancar, al adoptar
+  con confirmación del servidor, y en la reanudación con marca. **La suspensión queda cubierta**, y
+  el tope de la extensión queda dicho con letras: se extiende "hasta ahora" **solo si ningún hueco
+  entre ticks superó 15 minutos**, el mismo umbral que tolera la base: el reloj local nunca se
+  detuvo más de lo que el servidor habría aceptado sin latido. Caso de prueba: "el equipo dormido 8 h
+  con el tick armado → no reabre".
+- **El tick ya no toca filas cerradas.** Escribía con `updateSession` sin filtrar por `is_live`, así
+  que tras despertar retocaba `end_ms`/`duration_seconds` de una fila que el cron ya había cerrado,
+  aunque no se reabriera (lo señaló el auditor en D-195 y aquí). El proveedor gana
+  `updateLiveSession`, que añade `is_live = true` al filtro (una fila cerrada es un no-op, cero
+  filas, no un error), y **solo el tick** la usa. `stop()` (escribe `is_live = false`), la
+  reapertura explícita (`is_live = true`), la edición manual y las aprobaciones siguen con
+  `updateSession`, que escribe filas cerradas a propósito. Límite conocido: lo que el tick dejó en
+  la **cola offline** se reenvía al volver la red por el `updateSession` del proveedor, sin filtro;
+  cambiar la cola está fuera de este encargo y queda anotado.
+
 ### Qué NO cambia
 
 `computePay`, `period_hours`, el umbral de 15 minutos, la regla de cierre en el último latido, el
