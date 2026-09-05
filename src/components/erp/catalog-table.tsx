@@ -23,6 +23,7 @@ import { BulkBar } from "@/components/erp/bulk-bar";
 import { CatalogCards } from "@/components/erp/catalog-cards";
 import { queryCatalog, exportCatalogRows } from "@/lib/erp/actions";
 import type { CatalogFacets, CatalogQuery, CatalogRow } from "@/lib/erp/catalog";
+import { usePrefs } from "@/lib/prefs";
 
 export type { CatalogRow };
 
@@ -34,18 +35,23 @@ function Thumb({ path, alt }: { path?: string | null; alt: string }) {
 }
 
 const COMMERCIAL = ["all", "active", "special_order", "discontinued", "inactive"];
-const RECORD_TABS = [
-  { value: "all", label: "All" },
-  { value: "published", label: "Published" },
-  { value: "draft", label: "Draft" },
-  { value: "pending_approval", label: "Pending" },
-  { value: "archived", label: "Archived" },
+type T = (en: string, es: string) => string;
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Lo que se construye con t() va en
+// funciones y no en constantes de módulo, porque una constante no cambia de idioma. Los VALORES
+// (value, state) son los que se guardan y filtran, y no se tocan; solo cambia la etiqueta.
+const recordTabs = (t: T) => [
+  { value: "all", label: t("All", "Todos") },
+  { value: "published", label: t("Published", "Publicados") },
+  { value: "draft", label: t("Draft", "Borrador") },
+  { value: "pending_approval", label: t("Pending", "Pendientes") },
+  { value: "archived", label: t("Archived", "Archivados") },
 ] as const;
-const BUILTINS = [
-  { name: "Active", state: { statusFilter: "active", recordTab: "all", reviewOnly: false, globalFilter: "" } },
-  { name: "Needs review", state: { reviewOnly: true, statusFilter: "all", recordTab: "all", globalFilter: "" } },
-  { name: "Special order", state: { statusFilter: "special_order", recordTab: "all", reviewOnly: false, globalFilter: "" } },
-  { name: "Drafts", state: { recordTab: "draft", statusFilter: "all", reviewOnly: false, globalFilter: "" } },
+const builtins = (t: T) => [
+  { name: t("Active", "Activos"), state: { statusFilter: "active", recordTab: "all", reviewOnly: false, globalFilter: "" } },
+  { name: t("Needs review", "Requiere revisión"), state: { reviewOnly: true, statusFilter: "all", recordTab: "all", globalFilter: "" } },
+  { name: t("Special order", "Pedido especial"), state: { statusFilter: "special_order", recordTab: "all", reviewOnly: false, globalFilter: "" } },
+  { name: t("Drafts", "Borradores"), state: { recordTab: "draft", statusFilter: "all", reviewOnly: false, globalFilter: "" } },
 ];
 
 function Kpi({ label, value, dot }: { label: string; value: number; dot: string }) {
@@ -85,6 +91,7 @@ export function CatalogTable({
   compact?: boolean;
   initialView?: "table" | "cards";
 }) {
+  const { t } = usePrefs();
   const [rows, setRows] = useState<CatalogRow[]>(initialRows);
   const [total, setTotal] = useState(initialTotal);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -194,23 +201,23 @@ export function CatalogTable({
     const cols: ColumnDef<CatalogRow>[] = [
       { id: "thumb", header: "", size: 48, enableSorting: false, cell: (c) => <Thumb path={c.row.original.image_path} alt={c.row.original.sku} /> },
       { accessorKey: "sku", header: "SKU", size: 140, cell: (c) => <span className="font-mono text-xs text-slate-600">{c.getValue<string>()}</span> },
-      { accessorKey: "name", header: "Name", size: 300, cell: (c) => <span className="font-medium text-slate-900">{c.getValue<string>()}</span> },
-      { accessorKey: "status", header: "Status", size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{label(c.getValue<string>())}</Badge> },
-      { accessorKey: "product_type", header: "Type", size: 100, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "category_path", header: "Category", size: 190, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "vendor_name", header: "Vendor", size: 180, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "price", header: "Price", size: 116, cell: (c) => (
+      { accessorKey: "name", header: t("Name", "Nombre"), size: 300, cell: (c) => <span className="font-medium text-slate-900">{c.getValue<string>()}</span> },
+      { accessorKey: "status", header: t("Status", "Estado"), size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{label(c.getValue<string>())}</Badge> },
+      { accessorKey: "product_type", header: t("Type", "Tipo"), size: 100, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      { accessorKey: "category_path", header: t("Category", "Categoría"), size: 190, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      { accessorKey: "vendor_name", header: t("Vendor", "Proveedor"), size: 180, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      { accessorKey: "price", header: t("Price", "Precio"), size: 116, cell: (c) => (
         <span className="tabular-nums">{money(c.getValue<number | null>())}<span className="text-xs text-slate-400">{priceUnitSuffix(c.row.original.sell_unit)}</span></span>
       ) },
     ];
     if (canSeeCost) {
-      cols.push({ accessorKey: "cost", header: "Cost/box", size: 92, cell: (c) => <span className="tabular-nums text-slate-500">{money(c.getValue<number | null>())}</span> });
-      cols.push({ accessorKey: "margin_pct", header: "Margin", size: 80, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-500">{v == null ? "—" : `${v}%`}</span>; } });
+      cols.push({ accessorKey: "cost", header: t("Cost/box", "Costo/caja"), size: 92, cell: (c) => <span className="tabular-nums text-slate-500">{money(c.getValue<number | null>())}</span> });
+      cols.push({ accessorKey: "margin_pct", header: t("Margin", "Margen"), size: 80, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-500">{v == null ? "—" : `${v}%`}</span>; } });
     }
     cols.push({ accessorKey: "qoh", header: "QOH", size: 84, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-600">{v == null ? "—" : Number(v).toLocaleString()}</span>; } });
-    cols.push({ id: "review", header: "", size: 36, enableSorting: false, cell: (c) => (c.row.original.needs_review ? <span title="Needs review" className="inline-block h-2 w-2 rounded-full bg-amber-400" /> : null) });
+    cols.push({ id: "review", header: "", size: 36, enableSorting: false, cell: (c) => (c.row.original.needs_review ? <span title={t("Needs review", "Requiere revisión")} className="inline-block h-2 w-2 rounded-full bg-amber-400" /> : null) });
     return cols;
-  }, [canSeeCost]);
+  }, [canSeeCost, t]);
 
   const table = useReactTable({
     data: rows,
@@ -261,10 +268,10 @@ export function CatalogTable({
     loadingMore || hasMore ? (
       <div className="flex items-center justify-center gap-3 border-t border-slate-100 py-3 text-sm text-slate-500">
         {loadingMore ? (
-          "Loading more…"
+          t("Loading more…", "Cargando más…")
         ) : (
           <button type="button" onClick={loadMore} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
-            Load more ({(total - rows.length).toLocaleString()} left)
+            {t("Load more", "Cargar más")} ({(total - rows.length).toLocaleString()} {t("left", "restantes")})
           </button>
         )}
       </div>
@@ -273,27 +280,27 @@ export function CatalogTable({
   return (
     <div>
       {!compact && (
-        <SavedViews scope="catalog" saved={savedViews} builtins={BUILTINS} currentState={{ globalFilter, statusFilter, recordTab, reviewOnly, sorting }} onApply={applyState} />
+        <SavedViews scope="catalog" saved={savedViews} builtins={builtins(t)} currentState={{ globalFilter, statusFilter, recordTab, reviewOnly, sorting }} onApply={applyState} />
       )}
 
       {!compact && facets && (
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Kpi label="Products" value={facets.total} dot="bg-slate-300" />
-          <Kpi label="Active" value={facets.active} dot="bg-emerald-400" />
-          <Kpi label="Needs review" value={facets.needs_review} dot="bg-amber-400" />
-          <Kpi label="Special order" value={facets.special_order} dot="bg-sky-400" />
+          <Kpi label={t("Products", "Productos")} value={facets.total} dot="bg-slate-300" />
+          <Kpi label={t("Active", "Activos")} value={facets.active} dot="bg-emerald-400" />
+          <Kpi label={t("Needs review", "Requiere revisión")} value={facets.needs_review} dot="bg-amber-400" />
+          <Kpi label={t("Special order", "Pedido especial")} value={facets.special_order} dot="bg-sky-400" />
         </div>
       )}
 
       {!compact && facets && (
         <div className="mb-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          {RECORD_TABS.map((t) => {
-            const active = recordTab === t.value;
-            const count = facets.by_record[t.value as keyof CatalogFacets["by_record"]] ?? 0;
+          {recordTabs(t).map((tab) => {
+            const active = recordTab === tab.value;
+            const count = facets.by_record[tab.value as keyof CatalogFacets["by_record"]] ?? 0;
             return (
-              <button key={t.value} type="button" onClick={() => setRecordTab(t.value)} className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors", active ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800")}>
+              <button key={tab.value} type="button" onClick={() => setRecordTab(tab.value)} className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors", active ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800")}>
                 {active && <span className="h-1.5 w-1.5 rounded-full bg-clay-500" />}
-                {t.label}
+                {tab.label}
                 <span className="text-xs text-slate-400">{count.toLocaleString()}</span>
               </button>
             );
@@ -302,19 +309,19 @@ export function CatalogTable({
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Input placeholder="Search name, SKU, vendor…" value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
+        <Input placeholder={t("Search name, SKU, vendor…", "Buscar nombre, SKU, proveedor…")} value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
           {COMMERCIAL.map((s) => (
-            <option key={s} value={s}>{s === "all" ? "All statuses" : label(s)}</option>
+            <option key={s} value={s}>{s === "all" ? t("All statuses", "Todos los estados") : label(s)}</option>
           ))}
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={reviewOnly} onChange={(e) => setReviewOnly(e.target.checked)} className="accent-clay-500" />
-          Needs review
+          {t("Needs review", "Requiere revisión")}
         </label>
         <div className="ml-auto flex items-center gap-2">
           {!compact && (
-            <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5" role="group" aria-label="View mode">
+            <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5" role="group" aria-label={t("View mode", "Modo de vista")}>
               {(["table", "cards"] as const).map((v) => (
                 <button
                   key={v}
@@ -326,20 +333,20 @@ export function CatalogTable({
                     view === v ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
                   )}
                 >
-                  {v}
+                  {v === "table" ? t("table", "tabla") : t("cards", "tarjetas")}
                 </button>
               ))}
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={() => exportView("csv")} disabled={exporting}>{exporting ? "Exporting…" : "CSV"}</Button>
+          <Button variant="outline" size="sm" onClick={() => exportView("csv")} disabled={exporting}>{exporting ? t("Exporting…", "Exportando…") : "CSV"}</Button>
           <Button variant="outline" size="sm" onClick={() => exportView("xlsx")} disabled={exporting}>XLSX</Button>
           <span className="text-sm text-slate-500">
-            {loading ? "Searching…" : `${rows.length.toLocaleString()} of ${total.toLocaleString()}`}
+            {loading ? t("Searching…", "Buscando…") : `${rows.length.toLocaleString()} ${t("of", "de")} ${total.toLocaleString()}`}
           </span>
         </div>
       </div>
 
-      {err && <p className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">Failed to load catalog: {err}</p>}
+      {err && <p className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Failed to load catalog:", "No se pudo cargar el catálogo:")} {err}</p>}
 
       <div
         ref={parentRef}
@@ -358,7 +365,7 @@ export function CatalogTable({
           <div style={{ minWidth: totalWidth }}>
             <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <div className="flex w-10 shrink-0 items-center justify-center py-2.5">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label="Select all loaded" />
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all loaded", "Seleccionar todo lo cargado")} />
               </div>
               {table.getHeaderGroups()[0].headers.map((h) => {
                 const sorted = h.column.getIsSorted();
@@ -397,7 +404,7 @@ export function CatalogTable({
                   </div>
                 );
               })}
-              {tableRows.length === 0 && !loading && <div className="p-8 text-center text-sm text-slate-500">No products match these filters.</div>}
+              {tableRows.length === 0 && !loading && <div className="p-8 text-center text-sm text-slate-500">{t("No products match these filters.", "Ningún producto coincide con estos filtros.")}</div>}
             </div>
 
             {loadMoreFooter}

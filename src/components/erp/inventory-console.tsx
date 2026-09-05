@@ -15,6 +15,11 @@ import {
   type CycleCountRow,
   type NegativeBalance,
 } from "@/lib/erp/actions";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). El motivo del ajuste se guarda tal
+// cual (adjustment/damage/shrinkage); solo cambia la etiqueta de la opción. Estado del conteo,
+// tienda y producto son dato.
 
 export type StoreOption = { id: string; name: string };
 
@@ -34,6 +39,7 @@ function Banner({ kind, children }: { kind: "ok" | "err"; children: React.ReactN
 
 /** Reusable product search-and-pick box. */
 function ProductPicker({ picked, onPick }: { picked: ProductSearchHit | null; onPick: (p: ProductSearchHit | null) => void }) {
+  const { t } = usePrefs();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ProductSearchHit[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,11 +52,11 @@ function ProductPicker({ picked, onPick }: { picked: ProductSearchHit | null; on
   }
   return (
     <div className="relative">
-      <span className="mb-1 block text-sm text-slate-500">Product</span>
+      <span className="mb-1 block text-sm text-slate-500">{t("Product", "Producto")}</span>
       <input
         value={picked ? `${picked.name} (${picked.sku})` : query}
         onChange={(e) => onQuery(e.target.value)}
-        placeholder="Search name or SKU…"
+        placeholder={t("Search name or SKU…", "Buscar nombre o SKU…")}
         className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
       />
       {hits.length > 0 && !picked && (
@@ -70,9 +76,10 @@ function ProductPicker({ picked, onPick }: { picked: ProductSearchHit | null; on
 }
 
 function StoreSelect({ stores, value, onChange }: { stores: StoreOption[]; value: string; onChange: (v: string) => void }) {
+  const { t } = usePrefs();
   return (
     <label className="text-sm">
-      <span className="mb-1 block text-slate-500">Store</span>
+      <span className="mb-1 block text-slate-500">{t("Store", "Tienda")}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
         {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </select>
@@ -89,6 +96,7 @@ export function InventoryConsole({
   initialCounts: CycleCountRow[];
   initialNegatives: NegativeBalance[];
 }) {
+  const { t } = usePrefs();
   const [counts, setCounts] = useState<CycleCountRow[]>(initialCounts);
   const [negatives, setNegatives] = useState<NegativeBalance[]>(initialNegatives);
   const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? id;
@@ -108,15 +116,15 @@ export function InventoryConsole({
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-slate-800">Negative balances {negatives.length > 0 && <span className="ml-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{negatives.length}</span>}</h2>
+          <h2 className="text-sm font-semibold text-slate-800">{t("Negative balances", "Saldos negativos")} {negatives.length > 0 && <span className="ml-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{negatives.length}</span>}</h2>
         </div>
         {negatives.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">No negative on-hand balances. ✓</p>
+          <p className="p-4 text-sm text-slate-500">{t("No negative on-hand balances. ✓", "No hay saldos negativos en existencia. ✓")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                <tr><th className="px-4 py-2 font-medium">Product</th><th className="px-4 py-2 font-medium">Store</th><th className="px-4 py-2 text-right font-medium">QOH</th></tr>
+                <tr><th className="px-4 py-2 font-medium">{t("Product", "Producto")}</th><th className="px-4 py-2 font-medium">{t("Store", "Tienda")}</th><th className="px-4 py-2 text-right font-medium">QOH</th></tr>
               </thead>
               <tbody>
                 {negatives.map((n) => (
@@ -134,18 +142,18 @@ export function InventoryConsole({
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-slate-800">Recent cycle counts</h2>
+          <h2 className="text-sm font-semibold text-slate-800">{t("Recent cycle counts", "Conteos cíclicos recientes")}</h2>
         </div>
         {counts.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">No cycle counts recorded yet.</p>
+          <p className="p-4 text-sm text-slate-500">{t("No cycle counts recorded yet.", "Aún no hay conteos cíclicos registrados.")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Product</th><th className="px-4 py-2 font-medium">Store</th>
-                  <th className="px-4 py-2 text-right font-medium">System</th><th className="px-4 py-2 text-right font-medium">Counted</th>
-                  <th className="px-4 py-2 text-right font-medium">Variance</th><th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">{t("Product", "Producto")}</th><th className="px-4 py-2 font-medium">{t("Store", "Tienda")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("System", "Sistema")}</th><th className="px-4 py-2 text-right font-medium">{t("Counted", "Contado")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Variance", "Diferencia")}</th><th className="px-4 py-2 font-medium">{t("Status", "Estado")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +180,7 @@ export function InventoryConsole({
 
 /* ----------------------------- Cycle count ----------------------------- */
 function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () => void }) {
+  const { t } = usePrefs();
   const [picked, setPicked] = useState<ProductSearchHit | null>(null);
   const [storeId, setStoreId] = useState(stores[0]?.id ?? "");
   const [systemQoh, setSystemQoh] = useState<number | null>(null);
@@ -216,7 +225,8 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
     setBusy(false);
     if (!res.ok) { setMsg({ kind: "err", text: res.error }); return; }
     const r = res.result as { delta_posted?: number; new_qoh?: number };
-    setMsg({ kind: "ok", text: `Reconciled — posted ${Number(r.delta_posted ?? 0) > 0 ? "+" : ""}${r.delta_posted ?? 0}, on-hand is now ${r.new_qoh ?? "?"} and verified.` });
+    const signo = Number(r.delta_posted ?? 0) > 0 ? "+" : "";
+    setMsg({ kind: "ok", text: t(`Reconciled — posted ${signo}${r.delta_posted ?? 0}, on-hand is now ${r.new_qoh ?? "?"} and verified.`, `Conciliado — se registró ${signo}${r.delta_posted ?? 0}, la existencia es ahora ${r.new_qoh ?? "?"} y queda verificada.`) });
     setOpen(null); setPicked(null); setCounted(""); setTolerance(""); setSystemQoh(null);
     onDone();
   }
@@ -224,24 +234,24 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-800">Cycle count</h2>
-        <p className="text-xs text-slate-500">Count → variance vs the ledger → reconcile posts the delta and marks on-hand verified.</p>
+        <h2 className="text-sm font-semibold text-slate-800">{t("Cycle count", "Conteo cíclico")}</h2>
+        <p className="text-xs text-slate-500">{t("Count → variance vs the ledger → reconcile posts the delta and marks on-hand verified.", "Conteo → diferencia contra el libro → conciliar registra la diferencia y marca la existencia como verificada.")}</p>
       </div>
       <div className="space-y-3 p-4">
         <ProductPicker picked={picked} onPick={pick} />
         <div className="flex flex-wrap items-end gap-3">
           <StoreSelect stores={stores} value={storeId} onChange={onStore} />
           <div className="text-sm">
-            <span className="mb-1 block text-slate-500">System (ledger)</span>
+            <span className="mb-1 block text-slate-500">{t("System (ledger)", "Sistema (libro)")}</span>
             <div className="flex h-9 items-center rounded-md bg-slate-50 px-3 text-sm tabular-nums text-slate-600">{systemQoh == null ? "—" : systemQoh.toLocaleString()}</div>
           </div>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Counted</span>
+            <span className="mb-1 block text-slate-500">{t("Counted", "Contado")}</span>
             <input value={counted} onChange={(e) => setCounted(e.target.value)} inputMode="decimal" className="h-9 w-28 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Tolerance %</span>
-            <input value={tolerance} onChange={(e) => setTolerance(e.target.value)} inputMode="decimal" placeholder="exact" className="h-9 w-24 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
+            <span className="mb-1 block text-slate-500">{t("Tolerance %", "Tolerancia %")}</span>
+            <input value={tolerance} onChange={(e) => setTolerance(e.target.value)} inputMode="decimal" placeholder={t("exact", "exacto")} className="h-9 w-24 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
           </label>
         </div>
 
@@ -250,21 +260,21 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
         {open ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-              <span>System <b className="tabular-nums">{open.system_qty.toLocaleString()}</b></span>
-              <span>Counted <b className="tabular-nums">{open.counted_qty.toLocaleString()}</b></span>
-              <span>Variance <b className={cn("tabular-nums", open.variance !== 0 ? "text-amber-700" : "text-slate-500")}>{open.variance > 0 ? "+" : ""}{open.variance.toLocaleString()}</b></span>
-              {open.variance !== 0 && <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", open.within_tolerance ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{open.within_tolerance ? "within tolerance" : "out of tolerance"}</span>}
+              <span>{t("System", "Sistema")} <b className="tabular-nums">{open.system_qty.toLocaleString()}</b></span>
+              <span>{t("Counted", "Contado")} <b className="tabular-nums">{open.counted_qty.toLocaleString()}</b></span>
+              <span>{t("Variance", "Diferencia")} <b className={cn("tabular-nums", open.variance !== 0 ? "text-amber-700" : "text-slate-500")}>{open.variance > 0 ? "+" : ""}{open.variance.toLocaleString()}</b></span>
+              {open.variance !== 0 && <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", open.within_tolerance ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{open.within_tolerance ? t("within tolerance", "dentro de tolerancia") : t("out of tolerance", "fuera de tolerancia")}</span>}
             </div>
             <div className="mt-3 flex justify-end">
               <button type="button" onClick={reconcile} disabled={busy} className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700 disabled:opacity-50">
-                {busy ? "Reconciling…" : "Reconcile & verify"}
+                {busy ? t("Reconciling…", "Conciliando…") : t("Reconcile & verify", "Conciliar y verificar")}
               </button>
             </div>
           </div>
         ) : (
           <div className="flex justify-end">
             <button type="button" onClick={record} disabled={busy || !picked || counted === ""} className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700 disabled:cursor-not-allowed disabled:opacity-50">
-              {busy ? "Recording…" : "Record count"}
+              {busy ? t("Recording…", "Registrando…") : t("Record count", "Registrar conteo")}
             </button>
           </div>
         )}
@@ -275,6 +285,7 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
 
 /* ----------------------------- Manual adjustment ----------------------------- */
 function AdjustCard({ stores, onDone }: { stores: StoreOption[]; onDone: () => void }) {
+  const { t } = usePrefs();
   const [picked, setPicked] = useState<ProductSearchHit | null>(null);
   const [storeId, setStoreId] = useState(stores[0]?.id ?? "");
   const [reason, setReason] = useState<"adjustment" | "damage" | "shrinkage">("adjustment");
@@ -290,7 +301,9 @@ function AdjustCard({ stores, onDone }: { stores: StoreOption[]; onDone: () => v
     setBusy(false);
     if (!res.ok) { setMsg({ kind: "err", text: res.error }); return; }
     const r = res.result as { new_qoh?: number; negative?: boolean };
-    setMsg({ kind: "ok", text: `Posted ${reason} ${num(delta) > 0 ? "+" : ""}${num(delta)} — on-hand is now ${r.new_qoh ?? "?"}${r.negative ? " (negative — flagged)" : ""}.` });
+    const signo = num(delta) > 0 ? "+" : "";
+    const neg = r.negative ? t(" (negative — flagged)", " (negativa — marcada)") : "";
+    setMsg({ kind: "ok", text: t(`Posted ${reason} ${signo}${num(delta)} — on-hand is now ${r.new_qoh ?? "?"}${neg}.`, `Se registró ${reason} ${signo}${num(delta)} — la existencia es ahora ${r.new_qoh ?? "?"}${neg}.`) });
     setDelta(""); setNote(""); setPicked(null);
     onDone();
   }
@@ -298,36 +311,36 @@ function AdjustCard({ stores, onDone }: { stores: StoreOption[]; onDone: () => v
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-800">Manual adjustment</h2>
-        <p className="text-xs text-slate-500">A signed correction with a reason + note. Posts an append-only movement (the audit trail).</p>
+        <h2 className="text-sm font-semibold text-slate-800">{t("Manual adjustment", "Ajuste manual")}</h2>
+        <p className="text-xs text-slate-500">{t("A signed correction with a reason + note. Posts an append-only movement (the audit trail).", "Una corrección con signo, motivo y nota. Registra un movimiento que solo se añade (la traza de auditoría).")}</p>
       </div>
       <div className="space-y-3 p-4">
         <ProductPicker picked={picked} onPick={setPicked} />
         <div className="flex flex-wrap items-end gap-3">
           <StoreSelect stores={stores} value={storeId} onChange={setStoreId} />
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Reason</span>
+            <span className="mb-1 block text-slate-500">{t("Reason", "Motivo")}</span>
             <select value={reason} onChange={(e) => setReason(e.target.value as typeof reason)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
-              <option value="adjustment">adjustment</option>
-              <option value="damage">damage</option>
-              <option value="shrinkage">shrinkage</option>
+              <option value="adjustment">{t("adjustment", "ajuste")}</option>
+              <option value="damage">{t("damage", "daño")}</option>
+              <option value="shrinkage">{t("shrinkage", "merma")}</option>
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Qty (signed)</span>
+            <span className="mb-1 block text-slate-500">{t("Qty (signed)", "Cant. (con signo)")}</span>
             <input value={delta} onChange={(e) => setDelta(e.target.value)} inputMode="decimal" placeholder="-5" className="h-9 w-28 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
           </label>
         </div>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Note</span>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="reason / reference" className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
+          <span className="mb-1 block text-slate-500">{t("Note", "Nota")}</span>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("reason / reference", "motivo / referencia")} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
         </label>
 
         {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
 
         <div className="flex justify-end">
           <button type="button" onClick={post} disabled={busy || !picked || num(delta) === 0} className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700 disabled:cursor-not-allowed disabled:opacity-50">
-            {busy ? "Posting…" : "Post adjustment"}
+            {busy ? t("Posting…", "Registrando…") : t("Post adjustment", "Registrar ajuste")}
           </button>
         </div>
       </div>
