@@ -7,6 +7,7 @@ import {
 } from "@/app/timetracker/clock-in/actions/reports";
 import { entryMinutes, hrs, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { utcToCentralInput } from "@/lib/clockin/tz";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * Los partes de fichaje de un periodo: aprobar, corregir y cerrar la nómina (D-117).
@@ -38,7 +39,13 @@ const fmtDia = (iso: string) =>
 const fmtHora = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 
-export function PayrollTimesheets({ period }: { period: string }) {
+export function PayrollTimesheets({ period, revisar }: {
+  period: string;
+  /** Ids con horas por las dos vías este periodo, de `period_hours.revisar` (D-NEXT). */
+  revisar: string[];
+}) {
+  const t = useT();
+  const dobles = useMemo(() => new Set(revisar), [revisar]);
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -226,10 +233,12 @@ export function PayrollTimesheets({ period }: { period: string }) {
                       <div className="between">
                         <div>
                           <strong>{p.name}</strong>
-                          {/* Un remoto que ADEMÁS fichó: sus horas pueden estar contadas dos
-                              veces, una aquí y otra en sus sesiones. La marca está para que
-                              quien aprueba lo vea antes de darle a aprobar, no después. */}
-                          {p.remote && <span className="chip" style={{ marginLeft: 6 }}>remote</span>}
+                          {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
+                              contadas dos veces, una aquí y otra en sus sesiones. La marca está
+                              para que quien aprueba lo vea antes de darle a aprobar, no después.
+                              Hasta D-NEXT se aproximaba por worker_type ("remote"); ahora es el
+                              dato real de `period_hours.revisar`, el mismo que la cabecera. */}
+                          {dobles.has(id) && <span className="pill wait" style={{ marginLeft: 6 }} title={t("mgr.pay.reviewTitle")}>{t("mgr.pay.review")}</span>}
                           <div className="small muted">
                             <b>{hrs(s.totalMin)}</b> / {p.scheduledMin > 0 ? hrs(p.scheduledMin) : "—"} h scheduled
                             {s.otMin > 0 ? ` · ${hrs(s.otMin)} OT` : ""}
