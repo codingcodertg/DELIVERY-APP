@@ -3,6 +3,7 @@ import { currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cle
 import { clockinRestHeaders } from "@/lib/clockin/rest";
 import { cronAuthorized } from "@/lib/clockin/cronAuth";
 import { cerrarSesionesHuerfanas } from "@/lib/timetracker/live-session-cron";
+import { pruneDriverLocations } from "@/lib/driver-locations-prune";
 
 // Recurring schedules: once a day, make sure every active non-owner employee
 // with a schedule (A/B/C or custom) has their standard shifts laid out for THIS
@@ -107,5 +108,14 @@ export async function GET(req: Request) {
   } catch (e) {
     orphans = { ok: false, error: (e as { message?: string })?.message || "unknown error" };
   }
-  return NextResponse.json({ ok: true, employees: work.length, created, orphans });
+  // G-23 (D-NEXT): poda de driver_locations con la CLAVE DE SERVICIO (k), 90 días por defecto.
+  // Aislado igual que el cierre de huérfanas: si falla, los horarios y las huérfanas ya
+  // corrieron. Ruta propia para correrla a mano: /api/prune-driver-locations.
+  let prune: Awaited<ReturnType<typeof pruneDriverLocations>> | { ok: false; error: string };
+  try {
+    prune = await pruneDriverLocations({ url, key: k });
+  } catch (e) {
+    prune = { ok: false, error: (e as { message?: string })?.message || "unknown error" };
+  }
+  return NextResponse.json({ ok: true, employees: work.length, created, orphans, prune });
 }
