@@ -62,7 +62,7 @@ export default function TrackPage() {
       // The provider only keeps the last few hours for the live map, so the
       // history is fetched here for the day being looked at.
       const supabase = createClient();
-      // Límites del día en hora de la empresa, con horario de verano (G-24, D-NEXT). Antes iba
+      // Límites del día en hora de la empresa, con horario de verano (G-24, D-198). Antes iba
       // `-05:00` fijo, que solo es Central en verano: de noviembre a marzo (CST, -06:00) las
       // fijaciones entre las 23:00 y la medianoche caían en el día equivocado, mientras la
       // tira de días de abajo clasifica con America/Chicago. Mismo helper DST-aware que el

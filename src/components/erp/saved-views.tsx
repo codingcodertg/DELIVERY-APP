@@ -42,7 +42,7 @@ export function SavedViews({
     await createClient().from("saved_views").update({ name: name.trim() }).eq("id", v.id);
     router.refresh();
   }
-  // G-6 (D-NEXT): borraba sin confirmar y sin mirar el error; si RLS rechazaba el borrado, la
+  // G-6 (D-198): borraba sin confirmar y sin mirar el error; si RLS rechazaba el borrado, la
   // vista reaparecía al refrescar y nadie veía nada. Mismo confirm() que usa el resto del ERP
   // (bulk-bar.tsx); el error se enseña debajo en vez de tragarse.
   async function del(v: SavedView) {

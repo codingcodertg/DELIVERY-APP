@@ -20,7 +20,7 @@ import { isNativeApp, startNativeWatch, startTimedPositions, type NativeFix } fr
 // this hook on inside the APK (`return isNativeApp()`), on purpose — a browser
 // is someone reviewing, not someone driving. A driver in mobile Chrome reports
 // nothing, and status stays "off". Enabling the fallback is the owner's call
-// (G-26, D-NEXT); this comment used to promise it as if it were live (D-044).
+// (G-26, D-198); this comment used to promise it as if it were live (D-044).
 // ============================================================
 
 export type LocationStatus = "off" | "starting" | "live" | "denied" | "unavailable";

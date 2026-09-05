@@ -34,7 +34,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
   // exact path in `next` when it is the one bouncing (it has lived at
   // src/middleware.ts since D-119 and middleware-location.test.ts guards that);
   // this is the layout's own second gate, for a session the middleware let
-  // through but that has no user here. (G-28, D-NEXT: this comment used to say
+  // through but that has no user here. (G-28, D-198: this comment used to say
   // the middleware was dead code at the repo root; that stopped being true in
   // D-119.)
   if (!user) redirect("/login?next=/timetracker");

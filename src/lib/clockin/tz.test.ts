@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { centralShiftMs, centralWallToUtc, utcToCentralInput } from "./tz";
 
-// G-24 (D-NEXT). /track construía los límites del día con `-05:00` fijo, que solo es Central
+// G-24 (D-198). /track construía los límites del día con `-05:00` fijo, que solo es Central
 // en verano. Los límites pasan por este helper, que sabe de horario de verano, y aquí se fija
 // con una fecha en CDT (julio) y otra en CST (enero) que la medianoche de Chicago es la que es.
 

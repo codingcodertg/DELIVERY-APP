@@ -16,7 +16,7 @@ function csvCell(v: string | number): string {
 function csv(rows: (string | number)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
 }
-// G-25 (D-NEXT): la zona viene del ajuste de Time Tracker (timetracker.settings), no de
+// G-25 (D-198): la zona viene del ajuste de Time Tracker (timetracker.settings), no de
 // "America/Chicago" a pelo; en servidor se lee la fila, con Chicago de defecto.
 function centralParts(iso: string, timeZone: string) {
   const date = new Date(iso).toLocaleDateString("en-US", {

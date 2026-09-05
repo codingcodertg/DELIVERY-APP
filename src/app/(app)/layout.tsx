@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // G-2 (D-NEXT): con ?next=, como erp/layout.tsx y timetracker/(timetracker)/layout.tsx. Un
+  // G-2 (D-198): con ?next=, como erp/layout.tsx y timetracker/(timetracker)/layout.tsx. Un
   // layout de servidor no ve la ruta exacta, y HOY nadie la conserva: el rebote con la ruta
   // que hay escrito en lib/supabase/middleware.ts (updateSession) no lo llama nadie
   // (src/middleware.ts solo invoca refreshSession; es G-29, clase B, del dueño). Así que esto

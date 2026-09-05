@@ -8786,9 +8786,9 @@ respuesta de la base a 092/082 van por lectura. `verify.mjs` en verde: 764 pasad
 marca del cron y la de otra viva, fallan los dos casos que las vigilan. La prueba real es el dueño:
 cronómetro en marcha, red apagada más de 15 minutos con el cron pasando por medio, red de vuelta.
 
-## D-NEXT · Auditoría general 2026-09-05, lote 1: nueve hallazgos de clase A aplicados, un commit por hallazgo
+## D-198 · Auditoría general 2026-09-05, lote 1: nueve hallazgos de clase A aplicados, un commit por hallazgo
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (los cambios tocan Deliveries,
+**Fecha:** 2026-09-05 · **Versión:** deliveries 1.60.0, erp 0.5.0, timetracker 0.59.0, package.json 1.117.0 (los cambios tocan Deliveries,
 ERP y Time Tracker; `APP_VERSIONS.clockin` la decide él) · **Pedido por:** el orquestador, sobre
 `docs/AUDIT-2026-09-05.md` (31 hallazgos, ningún P0). Clase A: fallo claro sin decisión de negocio; por
 CLAUDE.md se aplica y se lista. Los de clase B (G-5, G-8, G-9, G-10, G-15/16/17/18, G-21, G-22, G-23,
@@ -8813,3 +8813,11 @@ desplegar. G-25: la fila de ajustes de producción no se leyó desde el worktree
 si `timeZone` no está puesta, el resultado es idéntico al de antes por el defecto. `verify.mjs` en
 verde sobre un `.next` limpio: 770 pasados | 3 saltados (main: 767 | 3; +3 son `tz.test.ts`); el build
 ya no lista `○ /manifest.webmanifest` y sí `ƒ /erp`.
+
+> **Nota del orquestador al fusionar (2026-09-05).** G-25 hace que seis componentes
+> obedezcan `APP_SETTINGS.timeZone`. En producción la fila `timetracker.settings
+> id='app'` tenía `timeZone = America/Tegucigalpa`, así que las horas de nómina se
+> habrían movido una hora respecto a hoy. El dueño decidió **America/Chicago**, y el
+> ajuste se cambió en producción antes del merge (dato, no código; valor anterior
+> `America/Tegucigalpa`, por si hay que volver). Las fechas, que ya seguían el
+> ajuste, pasan también a Chicago: por fin coherentes con las horas.

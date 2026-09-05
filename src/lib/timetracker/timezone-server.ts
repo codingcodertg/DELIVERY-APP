@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const DEFAULT_BUSINESS_TZ = "America/Chicago";
 
 /**
- * La zona horaria del negocio, leída en SERVIDOR (G-25, D-NEXT).
+ * La zona horaria del negocio, leída en SERVIDOR (G-25, D-198).
  *
  * En el navegador la fuente es `APP_SETTINGS.timeZone` (helpers.ts), que el proveedor rellena
  * desde la fila `timetracker.settings` (`id = 'app'`, columna `data`) al cargar. Las rutas de
