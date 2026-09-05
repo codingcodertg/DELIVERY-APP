@@ -8306,3 +8306,50 @@ da 1 (el mismo fallo del CI); con el arreglo, ≥ 2.
 ### Lo no verificado
 
 Nadie vio la demo en un navegador en UTC. `verify.mjs` en verde.
+
+## D-NEXT · El ajuste suelto de la sección Remoto de Nómina pasa a botón + ventana, y sus tipos se enseñan traducidos
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+
+### Qué se pidió
+
+Que el formulario "Add a standalone bonus / advance / deduction" de la sección Remoto de Nómina
+(`ManagerReports.tsx`) deje de ser una tarjeta siempre visible y pase a ser un botón que abre una
+ventana, con el mismo patrón que D-187, y que quede traducido.
+
+### Qué se decidió
+
+1. **Un botón "+ Ajuste" donde estaba la tarjeta**, que abre `Modal.tsx` (el de D-187, tal cual:
+   Escape, clic fuera, botón ✕). Ni componente de ventana nuevo ni CSS nuevo. Dentro, el mismo
+   formulario: empleado, tipo, importe, la línea de ayuda de arriba y la nota de abajo ("usa un
+   monto negativo…"), y dos botones, Cancelar y Agregar. Misma validación (`disabled` si no hay
+   empleado o importe) y misma llamada, `addAdjustment`, que guarda lo mismo en el mismo sitio
+   (el lote borrador de la semana, `insertPayroll`/`updatePayroll`).
+2. **Con éxito, la ventana se cierra; con error, no.** `addAdjustment` devuelve ahora si salió
+   bien; es el único cambio en esa función. El error sigue saliendo por `alert`, como antes. El
+   otro sitio que la llama (el ajuste por empleado dentro de la tabla) ignora el resultado y
+   no cambia.
+3. **Lo que faltaba por traducir eran solo las opciones del tipo.** El resto del bloque ya
+   pasaba por `useT()` desde D-121 (`mgr.rep.adjHint`, `employeeOpt`, `amountPh`, `adjNote`).
+   Los tipos vienen de `settings.adjustmentTypes` o de los tres por defecto (`Bonus`, `Advance`,
+   `Deduction`): esos tres se **enseñan** traducidos (`mgr.rep.typeBonus|Advance|Deduction`);
+   uno configurado por la empresa en Ajustes se enseña tal cual. **Lo que se guarda es siempre
+   el valor**, no el rótulo, para que un ajuste hecho en español y otro en inglés sean el mismo
+   tipo. El mismo selector de tipo existe dentro de la tabla por empleado y sigue a pelo: está
+   fuera de este alcance.
+4. Claves nuevas: `mgr.rep.adjBtn`, `mgr.rep.adjTitle` y los tres tipos, en `en` y `es`.
+   `ManagerReports.tsx` ya estaba en la lista de la prueba de claves (D-190); sigue en verde.
+
+### Qué NO cambia
+
+La tabla, los pagos, el recibo, el export, `computePay`, `PayrollTimesheets`, los tres bugs de
+cálculo de D-190. Las listas de personas siguen como estaban (`users` del proveedor). Ni versión,
+ni migración.
+
+### Lo no verificado
+
+Nadie abrió la pantalla: sin `.env.local` ni sesión real en el worktree. Apertura, cierre y el
+guardado real van por lectura del diff. `verify.mjs` en verde, 716 pasados | 3 saltados, igual
+que `main` (no hay prueba nueva: el fichero ya estaba cubierto). Mutación: `mgr.rep.typeAdvance`
+borrada solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo la
+ventana y guardando un ajuste, en los dos idiomas.
