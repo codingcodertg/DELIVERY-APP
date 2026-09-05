@@ -30,7 +30,34 @@ const nextConfig = {
   // pie y ya no queden accesos directos viejos.
   async redirects() {
     return [
-      { source: "/clock-in", destination: "/timetracker/clock-in/clock", permanent: false },
+      // G-3 (D-NEXT): un enlace viejo del fichaje daba TRES saltos —/clock-in/X → /timetracker/clock-in/X
+      // (el comodín de abajo) → el destino final (la regla de esa pantalla, más abajo) → el login—,
+      // justo lo que el comentario de la regla del horario decía querer evitar en el móvil. Las
+      // pantallas fusionadas van EXPLÍCITAS aquí, antes del comodín, derivadas una a una de las
+      // reglas /timetracker/clock-in/X de abajo (mismo destino), para que /clock-in/X llegue en un
+      // salto de configuración: /clock-in/clock → /timetracker, /clock-in/photos → /timetracker/audit…
+      // Medido sin sesión: /clock-in/clock, /clock-in y /clock-in/photos pasan de 3 a 2 saltos (el
+      // segundo es la puerta del layout al login, que no es regla). /clock-in/week sigue en 1. Next
+      // resuelve las redirecciones en orden: por eso van antes del comodín.
+      { source: "/clock-in/account", destination: "/timetracker/account", permanent: false },
+      { source: "/clock-in/settings", destination: "/timetracker/settings", permanent: false },
+      { source: "/clock-in/sites", destination: "/timetracker/settings", permanent: false },
+      { source: "/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
+      { source: "/clock-in/photos", destination: "/timetracker/audit", permanent: false },
+      { source: "/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
+      { source: "/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
+      { source: "/clock-in/schedule", destination: "/timetracker/assignments", permanent: false },
+      { source: "/clock-in/coverage", destination: "/timetracker/people", permanent: false },
+      { source: "/clock-in/dashboard", destination: "/timetracker/live", permanent: false },
+      { source: "/clock-in/team", destination: "/timetracker/settings", permanent: false },
+      { source: "/clock-in/me", destination: "/timetracker", permanent: false },
+      { source: "/clock-in/my-schedule", destination: "/timetracker", permanent: false },
+      { source: "/clock-in/notes", destination: "/timetracker", permanent: false },
+      { source: "/clock-in/notifications", destination: "/timetracker", permanent: false },
+      { source: "/clock-in/welcome", destination: "/timetracker", permanent: false },
+      { source: "/clock-in/clock", destination: "/timetracker", permanent: false },
+      // La raíz del fichaje: antes iba a /timetracker/clock-in/clock, que a su vez redirigía.
+      { source: "/clock-in", destination: "/timetracker", permanent: false },
       { source: "/clock-in/:path*", destination: "/timetracker/clock-in/:path*", permanent: false },
 
       // Cuenta y Ajustes de fichaje se fusionaron con las de Time Tracker (#1 de la
