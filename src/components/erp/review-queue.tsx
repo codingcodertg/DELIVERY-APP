@@ -16,6 +16,7 @@ import { ProductDrawer } from "@/components/erp/product-drawer";
 import { BulkBar } from "@/components/erp/bulk-bar";
 import { UomAssistant } from "@/components/erp/uom-assistant";
 import { suggestUomFix } from "@/lib/erp/domain/uom";
+import { usePrefs } from "@/lib/prefs";
 
 export type ReviewRow = {
   id: number;
@@ -35,12 +36,16 @@ export type ReviewRow = {
 export type TagFacet = { tag: string; n: number };
 
 const TAG_PILL = "border-amber-200 bg-amber-50 text-amber-700";
-const BUILTINS = [
-  { name: "Below cost", state: { issue: "BELOW COST", q: "" } },
-  { name: "Unit mismatch", state: { issue: "UNIT MISMATCH?", q: "" } },
-  { name: "SF/box corrupt", state: { issue: "SF/BOX CORRUPT", q: "" } },
-  { name: "Possible dup", state: { issue: "POSSIBLE DUP", q: "" } },
-  { name: "PO import", state: { issue: "PO IMPORT", q: "" } },
+type T = (en: string, es: string) => string;
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las ETIQUETAS de revisión
+// ("BELOW COST", …) son valores guardados en review_tags y se enseñan tal cual; aquí solo se
+// traduce el nombre de cada vista prefijada, que es texto.
+const builtins = (t: T) => [
+  { name: t("Below cost", "Bajo costo"), state: { issue: "BELOW COST", q: "" } },
+  { name: t("Unit mismatch", "Unidad no cuadra"), state: { issue: "UNIT MISMATCH?", q: "" } },
+  { name: t("SF/box corrupt", "SF/caja corrupto"), state: { issue: "SF/BOX CORRUPT", q: "" } },
+  { name: t("Possible dup", "Posible duplicado"), state: { issue: "POSSIBLE DUP", q: "" } },
+  { name: t("PO import", "Importado de OC"), state: { issue: "PO IMPORT", q: "" } },
 ];
 
 function BurnPill({ active, onClick, label: text, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
@@ -81,6 +86,7 @@ export function ReviewQueue({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = usePrefs();
   const [drawerId, setDrawerId] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [err, setErr] = useState<string | null>(null);
@@ -155,7 +161,7 @@ export function ReviewQueue({
     setErr(null);
     startTransition(async () => {
       const res = await resolveTag(id, tag);
-      if (!res.ok) setErr(res.error ?? "Action failed");
+      if (!res.ok) setErr(res.error ?? t("Action failed", "La acción falló"));
       else router.refresh();
     });
   }
@@ -171,32 +177,32 @@ export function ReviewQueue({
 
   return (
     <div>
-      <SavedViews scope="review" saved={savedViews} builtins={BUILTINS} currentState={{ issue, q }} onApply={applyState} />
+      <SavedViews scope="review" saved={savedViews} builtins={builtins(t)} currentState={{ issue, q }} onApply={applyState} />
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <BurnPill active={issue === "all"} onClick={() => setIssue("all")} label="All" count={flaggedTotal} />
-        {issues.map(([t, n]) => (
-          <BurnPill key={t} active={issue === t} onClick={() => setIssue(t)} label={t} count={n} />
+        <BurnPill active={issue === "all"} onClick={() => setIssue("all")} label={t("All", "Todas")} count={flaggedTotal} />
+        {issues.map(([tag, n]) => (
+          <BurnPill key={tag} active={issue === tag} onClick={() => setIssue(tag)} label={tag} count={n} />
         ))}
       </div>
 
       <div className="mb-3 flex items-center gap-2">
-        <Input placeholder="Search name, SKU, vendor…" value={qDraft} onChange={(e) => setQDraft(e.target.value)} className="max-w-xs" />
+        <Input placeholder={t("Search name, SKU, vendor…", "Buscar nombre, SKU, proveedor…")} value={qDraft} onChange={(e) => setQDraft(e.target.value)} className="max-w-xs" />
         {canSeeCost && (
           <Button
             variant={uomMode ? "default" : "outline"}
             size="sm"
             onClick={() => setUomMode((v) => !v)}
-            title="Likely unit-of-measure errors (cost ≥ 1.5× price)"
+            title={t("Likely unit-of-measure errors (cost ≥ 1.5× price)", "Posibles errores de unidad de medida (costo ≥ 1.5× precio)")}
           >
-            ⚠ UoM check{uomCount ? ` (${uomCount} on page)` : ""}
+            {t("⚠ UoM check", "⚠ Revisar UdM")}{uomCount ? ` (${uomCount} ${t("on page", "en la página")})` : ""}
           </Button>
         )}
-        {pending && <span className="text-sm text-slate-400">saving…</span>}
+        {pending && <span className="text-sm text-slate-400">{t("saving…", "guardando…")}</span>}
         <span className="ml-auto text-sm text-slate-500">
-          {matching.toLocaleString()} flagged{issue !== "all" || q ? " matching" : ""}
+          {matching.toLocaleString()} {issue !== "all" || q ? t("flagged matching", "marcados que coinciden") : t("flagged", "marcados")}
           {matching > pageSize && (
-            <> · showing {((page - 1) * pageSize + 1).toLocaleString()}–
+            <> · {t("showing", "mostrando")} {((page - 1) * pageSize + 1).toLocaleString()}–
               {Math.min(page * pageSize, matching).toLocaleString()}</>
           )}
         </span>
@@ -211,14 +217,14 @@ export function ReviewQueue({
           <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-10 px-3 py-2.5">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label="Select all" />
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all", "Seleccionar todo")} />
               </th>
-              <th className="px-3 py-2.5 font-medium">Product</th>
-              <th className="px-3 py-2.5 font-medium">Status</th>
-              <th className="px-3 py-2.5 font-medium">Issues</th>
-              <th className="px-3 py-2.5 text-right font-medium">Price</th>
-              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">Cost</th>}
-              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">Margin</th>}
+              <th className="px-3 py-2.5 font-medium">{t("Product", "Producto")}</th>
+              <th className="px-3 py-2.5 font-medium">{t("Status", "Estado")}</th>
+              <th className="px-3 py-2.5 font-medium">{t("Issues", "Problemas")}</th>
+              <th className="px-3 py-2.5 text-right font-medium">{t("Price", "Precio")}</th>
+              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">{t("Cost", "Costo")}</th>}
+              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">{t("Margin", "Margen")}</th>}
               <th className="px-3 py-2.5"></th>
             </tr>
           </thead>
@@ -240,9 +246,9 @@ export function ReviewQueue({
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
-                    {r.review_tags.map((t) => (
-                      <button key={t} type="button" disabled={pending} onClick={() => doResolve(r.id, t)} title="Resolve (clear this tag)" className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium hover:line-through disabled:opacity-50", TAG_PILL)}>
-                        {t} <span className="text-amber-500">×</span>
+                    {r.review_tags.map((tag) => (
+                      <button key={tag} type="button" disabled={pending} onClick={() => doResolve(r.id, tag)} title={t("Resolve (clear this tag)", "Resolver (quitar esta etiqueta)")} className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium hover:line-through disabled:opacity-50", TAG_PILL)}>
+                        {tag} <span className="text-amber-500">×</span>
                       </button>
                     ))}
                   </div>
@@ -251,7 +257,7 @@ export function ReviewQueue({
                 {canSeeCost && <td className="px-3 py-2 text-right tabular-nums text-slate-500">{money(r.cost)}</td>}
                 {canSeeCost && <td className="px-3 py-2 text-right tabular-nums text-slate-500">{r.margin_pct == null ? "—" : `${r.margin_pct}%`}</td>}
                 <td className="px-3 py-2 text-right">
-                  <Button variant="outline" size="sm" onClick={() => setDrawerId(r.id)}>Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => setDrawerId(r.id)}>{t("Edit", "Editar")}</Button>
                 </td>
               </tr>
               );
@@ -259,7 +265,7 @@ export function ReviewQueue({
             {padBottom > 0 && <tr aria-hidden style={{ height: padBottom }} />}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={cols} className="p-8 text-center text-slate-500">Nothing flagged here. 🎉</td>
+                <td colSpan={cols} className="p-8 text-center text-slate-500">{t("Nothing flagged here. 🎉", "Nada marcado aquí. 🎉")}</td>
               </tr>
             )}
           </tbody>
@@ -270,7 +276,7 @@ export function ReviewQueue({
       {pageCount > 1 && !uomMode && (
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <span className="text-slate-500">
-            Page {page.toLocaleString()} of {pageCount.toLocaleString()}
+            {t("Page", "Página")} {page.toLocaleString()} {t("of", "de")} {pageCount.toLocaleString()}
           </span>
           <div className="flex gap-2">
             <Button
@@ -279,7 +285,7 @@ export function ReviewQueue({
               disabled={page <= 1 || pending}
               onClick={() => setParams({ page: page - 1 <= 1 ? null : String(page - 1) })}
             >
-              ← Previous
+              {t("← Previous", "← Anterior")}
             </Button>
             <Button
               variant="outline"
@@ -287,7 +293,7 @@ export function ReviewQueue({
               disabled={page >= pageCount || pending}
               onClick={() => setParams({ page: String(page + 1) })}
             >
-              Next →
+              {t("Next →", "Siguiente →")}
             </Button>
           </div>
         </div>
