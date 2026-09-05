@@ -76,6 +76,76 @@ export function markCovers(mark: ResumeMark | null, sessionId: string | null | u
   return !!mark && !!sessionId && mark.sessionId === sessionId;
 }
 
+// ---- Reabrir tras un cierre del cron (D-NEXT) ---------------------------------------------
+
+/**
+ * La marca que deja el cron en `live_note` al cerrar una huérfana. `live_note` es texto libre
+ * que el tick sobreescribe cada diez segundos mientras la sesión vive ("active", "idle",
+ * "break", el nombre de la app) y que "Trabajando ahora" solo lee en filas `is_live`: en una
+ * fila cerrada nadie lo mira, así que sirve de marca sin migración. Un Stop escribe `null`,
+ * y el guardián de la propia pantalla no marca: solo el cron.
+ */
+export const CRON_CLOSE_NOTE = "closed:cron";
+
+export type FilaSesion = {
+  id: string;
+  employeeUid: string;
+  isLive: boolean;
+  liveNote: string | null;
+};
+
+export type MotivoNoReabrir =
+  | "sin-fila" | "no-es-mia" | "sigue-viva" | "la-cerro-una-persona" | "sin-marca" | "sin-evidencia-local" | "otra-viva";
+
+/**
+ * ¿Se puede reabrir una sesión que el cron cerró mientras la persona trabajaba SIN INTERNET?
+ *
+ * Es una excepción acotada a D-195, no una relajación del freno: el freno sigue cerrando a los
+ * 15 min sin latido, y esto solo deshace ese cierre cuando hay prueba de que el reloj de ESTE
+ * cliente nunca se detuvo. Las cuatro condiciones, todas obligatorias:
+ *
+ *  1. Es SU fila, y está cerrada.
+ *  2. La cerró EL CRON (`live_note = CRON_CLOSE_NOTE`), no una persona ni un Stop.
+ *  3. Hay marca de reanudación reciente PARA ESA sesión, y evidencia local continua: el tick
+ *     siguió corriendo (la marca se refresca en cada escritura del tick) o la página acaba de
+ *     recargarse con la marca del `pagehide`.
+ *  4. No hay OTRA sesión viva de la misma persona (092: una sola viva). Si arrancó otra
+ *     mientras tanto, esta no se reabre y se anota.
+ */
+export function decisionReabrir(args: {
+  fila: FilaSesion | null;
+  me: string;
+  mark: ResumeMark | null;
+  evidenciaLocal: boolean;
+  otrasVivas: string[];
+}): { reabrir: true } | { reabrir: false; motivo: MotivoNoReabrir } {
+  const { fila, me, mark, evidenciaLocal, otrasVivas } = args;
+  if (!fila) return { reabrir: false, motivo: "sin-fila" };
+  if (fila.employeeUid !== me) return { reabrir: false, motivo: "no-es-mia" };
+  if (fila.isLive) return { reabrir: false, motivo: "sigue-viva" };
+  if (fila.liveNote !== CRON_CLOSE_NOTE) return { reabrir: false, motivo: "la-cerro-una-persona" };
+  if (!markCovers(mark, fila.id)) return { reabrir: false, motivo: "sin-marca" };
+  if (!evidenciaLocal) return { reabrir: false, motivo: "sin-evidencia-local" };
+  if (otrasVivas.some((id) => id !== fila.id)) return { reabrir: false, motivo: "otra-viva" };
+  return { reabrir: true };
+}
+
+/**
+ * ¿El tick ha latido sin interrupción? (CAMBIOS del auditor sobre D-NEXT.)
+ *
+ * "El tick está armado" no es "el tick siguió corriendo": un portátil suspendido con la tapa
+ * cerrada, o una pestaña de fondo estrangulada, congela `setInterval` durante horas y al
+ * despertar el siguiente tick escribe la marca con fecha de ahora, fresca, y `el` incluye la
+ * noche entera. Reabrir con eso es pagar la noche: las 10,42 h y las 25,75 h de D-098 por la
+ * puerta de atrás. Así que la evidencia local mide el HUECO entre un tick y el siguiente, con
+ * el mismo umbral que tolera la base: el reloj local nunca se paró más de lo que el servidor
+ * habría aceptado sin latido. `prev === null` es el primer tick de un arranque o de una
+ * adopción confirmada, que no tiene hueco que medir.
+ */
+export function tickContinuo(prevTickMs: number | null, nowMs: number, maxMs: number = LATIDO_MAX_MS): boolean {
+  return prevTickMs === null || nowMs - prevTickMs <= maxMs;
+}
+
 // ---- Backoff ----------------------------------------------------------------------------
 
 /** 2 s, 4 s, 8 s, 16 s, 30 s, 30 s… El intento 0 es el primero después del fallo inicial. */

@@ -1,4 +1,4 @@
-import { huerfanasDe, type SesionViva } from "./live-session";
+import { CRON_CLOSE_NOTE, huerfanasDe, type SesionViva } from "./live-session";
 
 /**
  * Parte B de D-195: cerrar las sesiones huérfanas desde un cron, no solo al abrir la pantalla.
@@ -80,7 +80,9 @@ export async function cerrarSesionesHuerfanas(opts: {
     const res = await f(`${url}/rest/v1/sessions?id=eq.${encodeURIComponent(sesion.id)}&is_live=eq.true`, {
       method: "PATCH",
       headers: { ...H, Prefer: "return=minimal" },
-      body: JSON.stringify({ is_live: false, end_ms: cierre.endMs, duration_seconds: cierre.durationSeconds }),
+      // `live_note` deja dicho que la cerró el cron (D-NEXT): la pantalla solo reabre una sesión
+      // con esta marca, y solo si su reloj local nunca se detuvo. Un Stop escribe null.
+      body: JSON.stringify({ is_live: false, end_ms: cierre.endMs, duration_seconds: cierre.durationSeconds, live_note: CRON_CLOSE_NOTE }),
     });
     if (res.ok) cerradas++; else fallidas.push(sesion.id);
   }

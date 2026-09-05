@@ -58,8 +58,17 @@ interface DataState {
    * detect and resolve the "already running elsewhere" conflict before a
    * new one starts, and to close out abandoned ones on load. */
   listLiveSessions: () => Promise<Session[]>;
+  /** One of MY sessions by id, live or closed, or null. For the reopen-after-cron check
+   * (D-NEXT): the screen needs to read a row that `listLiveSessions` no longer returns. */
+  getSession: (id: string) => Promise<Session | null>;
   startSession: (payload: Partial<Session>) => Promise<Session>;
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
+  /** Same as updateSession but ONLY touches the row while it is still live (D-NEXT). For the
+   * tracker's ten-second tick: after a laptop wakes, or after the cron closed the row, a
+   * blind tick write must not retouch end_ms/duration_seconds of a closed session. Stop, the
+   * explicit reopen, manual edits and approvals keep using updateSession, which writes
+   * closed rows on purpose. A closed row makes this a silent no-op (zero rows), not an error. */
+  updateLiveSession: (id: string, patch: Partial<Session>) => Promise<void>;
 
   // ---- screenshots (desktop-captured) ----
   myScreenshots: Screenshot[];
@@ -507,6 +516,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     return ((data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Session>(r)!);
   }, [supabase, me.id]);
 
+  const getSession = useCallback<DataState["getSession"]>(async (id) => {
+    const { data, error } = await supabase
+      .from("sessions").select("*").eq("id", id).eq("employee_uid", me.id).maybeSingle();
+    if (error) throw error;
+    return data ? rowToCamel<Session>(data as Record<string, unknown>)! : null;
+  }, [supabase, me.id]);
+
   const startSession = useCallback<DataState["startSession"]>(async (payload) => {
     await requireSession();
     const row = toSnakeRow(payload as Record<string, unknown>);
@@ -528,6 +544,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const updateSession = useCallback<DataState["updateSession"]>(async (id, patch) => {
     const row = toSnakeRow(patch as Record<string, unknown>);
     const { error } = await supabase.from("sessions").update(row).eq("id", id);
+    if (error) throw error;
+  }, [supabase]);
+
+  const updateLiveSession = useCallback<DataState["updateLiveSession"]>(async (id, patch) => {
+    const row = toSnakeRow(patch as Record<string, unknown>);
+    const { error } = await supabase.from("sessions").update(row).eq("id", id).eq("is_live", true);
     if (error) throw error;
   }, [supabase]);
 
@@ -713,7 +735,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
-    listLiveSessions, startSession, updateSession,
+    listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
     myScreenshots: screenshots, latestScreenshot: screenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
     updateMyAccount, updatePassword, signOutEverywhere,

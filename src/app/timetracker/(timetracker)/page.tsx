@@ -16,7 +16,8 @@ import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning } from "@/lib/session-guard";
 import {
-  backoffMs, cierreHuerfana, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  tickContinuo,
 } from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
 
@@ -54,7 +55,7 @@ const MOVEMENT_THRESHOLD = 0.005; // >=0.5% of the sampled screen changed = "mov
 
 export default function TrackTimePage() {
   const {
-    me, myAssignments: assignments, mySessions: sessions, listLiveSessions, startSession, updateSession,
+    me, myAssignments: assignments, mySessions: sessions, listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
     latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify,
   } = useData();
   const t = useT();
@@ -147,6 +148,14 @@ export default function TrackTimePage() {
   const sessionIdRef = useRef<string | null>(liveHint?.id ?? null);
   const startMsRef = useRef(liveHint?.startMs ?? 0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Continuidad del tick (CAMBIOS del auditor sobre D-NEXT). `lastTickRef` es el instante del
+  // último tick; si el siguiente llega más de LATIDO_MAX_MS después, el reloj estuvo parado
+  // (equipo suspendido, pestaña estrangulada) y `continuoRef` se apaga: la marca de reanudación
+  // deja de refrescarse y se borra, y sin marca no hay reapertura. Vuelve a `true` solo al
+  // arrancar, al adoptar con confirmación del servidor, y en la reanudación con marca.
+  const lastTickRef = useRef<number | null>(null);
+  const continuoRef = useRef(true);
+  const reiniciarContinuidad = () => { lastTickRef.current = null; continuoRef.current = true; };
   const onBreakRef = useRef<"lunch" | "break" | null>(null);
   const lunchRef = useRef(0);
   const brkRef = useRef(0);
@@ -238,7 +247,15 @@ export default function TrackTimePage() {
       breakSeconds: brkRef.current,
       breakEvents: breakEventsPayload(),
     };
-    try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+    // La marca solo se escribe mientras la continuidad se conserve (CAMBIOS del auditor sobre
+    // D-NEXT): tras un hueco, `pagehide` no la fabrica de nuevo; si no, dormir 8 h, despertar sin
+    // red y recargar la habría resucitado, y `reanudarConMarca` la habría dado por buena. El
+    // beacon sí sale igual: la ruta filtra por is_live y no puede hacer daño.
+    if (continuoRef.current) {
+      try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+    } else {
+      try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+    }
     try {
       if (typeof navigator.sendBeacon === "function") {
         navigator.sendBeacon("/timetracker/api/heartbeat", new Blob([JSON.stringify(patch)], { type: "text/plain" }));
@@ -329,9 +346,15 @@ export default function TrackTimePage() {
   // buffered locally via the offline queue and synced on reconnect — the
   // tracker keeps counting from local refs regardless, so the buffered patch
   // always carries the full up-to-date duration once it flushes.
-  async function writeSession(id: string, patch: Partial<Session>, tries = 3): Promise<boolean | "queued" | "overlap"> {
+  // `soloViva` (D-NEXT): el tick escribe con updateLiveSession, que filtra por is_live = true, para
+  // no retocar end_ms/duration_seconds de una fila que el cron ya cerró (tras despertar, por
+  // ejemplo). Stop escribe is_live = false a propósito y sigue por updateSession. Lo que cae a la
+  // cola offline se reenvía por el updateSession del proveedor, sin filtro: límite conocido,
+  // anotado en la decisión.
+  async function writeSession(id: string, patch: Partial<Session>, tries = 3, soloViva = false): Promise<boolean | "queued" | "overlap"> {
+    const write = soloViva ? updateLiveSession : updateSession;
     for (let i = 0; i < tries; i++) {
-      try { await updateSession(id, patch); return true; }
+      try { await write(id, patch); return true; }
       catch (e) {
         // Un solape (082) no se arregla esperando: la base lo va a rechazar igual
         // dentro de una hora. Encolarlo sería reintentar en silencio para siempre
@@ -451,6 +474,7 @@ export default function TrackTimePage() {
         // The desktop shell lost its screenshot timer with the old renderer; re-arm it against
         // the same session so shots keep landing on the row that is actually open.
         desktopStart({ sessionId: mine.id, intervalMin: shotMin });
+        reiniciarContinuidad();
         beginTicking();
       } catch {
         // Offline, or the call failed. Two wrong answers were tried here before this one: doing
@@ -509,6 +533,73 @@ export default function TrackTimePage() {
   }
 
   /**
+   * Reabrir una sesión que el cron cerró mientras se trabajaba SIN INTERNET (D-NEXT).
+   *
+   * El tick sigue contando sin red (desde startMs; las escrituras van a la cola offline). Si
+   * pasan más de 15 min sin latido en la base, el cron de D-195 la cierra en su último latido.
+   * Al volver la red, hoy la confirmación la encontraba cerrada y paraba: el tramo trabajado
+   * sin red se perdía. Esto lo deshace SOLO cuando se cumplen las cuatro condiciones de
+   * `decisionReabrir` (es mi fila, la cerró el cron, hay marca reciente para ella y el tick de
+   * esta página sigue corriendo, y no hay otra viva). Si la cerró una persona o un Stop, no.
+   *
+   * La base tiene la última palabra: una sola viva por persona (092) y sin solapes (082).
+   * Si el UPDATE choca con cualquiera de las dos, no se reabre y se avisa.
+   */
+  const reabriendoRef = useRef(false);
+  async function intentarReabrir(id: string): Promise<boolean> {
+    if (reabriendoRef.current) return false;
+    reabriendoRef.current = true;
+    try {
+      let fila: Session | null = null;
+      let vivas: Session[] = [];
+      try { [fila, vivas] = await Promise.all([getSession(id), listLiveSessions()]); }
+      catch { return false; } // sigue sin red: se vuelve a intentar en el próximo `online`
+      let mark = null;
+      try { mark = parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { mark = null; }
+      const evidenciaLocal = continuoRef.current && tickRef.current !== null && sessionIdRef.current === id && runningRef.current && !remoteOwnerRef.current;
+      const d = decisionReabrir({ fila, me: me.id, mark, evidenciaLocal, otrasVivas: vivas.map((v) => v.id) });
+      if (!d.reabrir) {
+        if (d.motivo === "otra-viva") notify(t("track.notReopened"));
+        return false;
+      }
+      const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+      try {
+        await updateSession(id, {
+          isLive: true,
+          endMs: Date.now(),
+          durationSeconds: netSeconds(el),
+          activeSeconds: activeSecondsRef.current,
+          idleSeconds: idleRef.current,
+          liveNote: onBreakRef.current ? "break" : "active",
+          keystrokes: keystrokesRef.current,
+          clicks: clicksRef.current,
+          lunchSeconds: lunchRef.current,
+          breakSeconds: brkRef.current,
+          breakEvents: breakEventsPayload(),
+        });
+      } catch (e) {
+        // 092 (otra viva) u 082 (solape con un tramo posterior): la base manda. No se reabre.
+        if (isAlreadyRunning(e) || isOverlapError(e)) notify(t("track.notReopened"));
+        return false;
+      }
+      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id, startMs: startMsRef.current, source: fila?.source })); } catch { /* ignore */ }
+      notify(t("track.reopened"));
+      return true;
+    } finally {
+      reabriendoRef.current = false;
+    }
+  }
+  const intentarReabrirRef = useRef(intentarReabrir);
+  intentarReabrirRef.current = intentarReabrir;
+  useEffect(() => {
+    // Al volver la red. Si la sesión sigue viva, `decisionReabrir` dice "sigue-viva" y no pasa
+    // nada más: dos lecturas.
+    const h = () => { const id = sessionIdRef.current; if (id && runningRef.current && !remoteOwnerRef.current) void intentarReabrirRef.current(id); };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
+  }, []);
+
+  /**
    * Reanudar tras una recarga cuando el servidor no contesta (D-195).
    *
    * Igual que la adopción normal pero sin esperar la confirmación: se arma el tick y la captura
@@ -526,6 +617,7 @@ export default function TrackTimePage() {
     setRunning(true);
     notify(t("track.resumed"));
     desktopStart({ sessionId: id, intervalMin: shotMin });
+    reiniciarContinuidad();
     beginTicking();
     let intento = 0;
     const desde = Date.now();
@@ -538,7 +630,10 @@ export default function TrackTimePage() {
           try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
           return; // confirmada: el tick ya corre
         }
-        // Cerrada en el servidor mientras no había red: parar sin escribir más.
+        // Cerrada en el servidor mientras no había red. Si la cerró el cron y este reloj no se
+        // detuvo, se reabre (D-NEXT); si no, parar sin escribir más.
+        if (await intentarReabrir(id)) { try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ } return; }
+        if (sessionIdRef.current !== id) return;
         if (tickRef.current) clearInterval(tickRef.current);
         tickRef.current = null;
         desktopStop();
@@ -564,7 +659,15 @@ export default function TrackTimePage() {
   /** The 1s clock. Extracted from start() so a session adopted on mount can resume it too. */
   function beginTicking() {
       tickRef.current = setInterval(async () => {
-        const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+        const ahora = Date.now();
+        if (!tickContinuo(lastTickRef.current, ahora)) {
+          // Hueco mayor que el que la base tolera sin latido: el reloj local se paró. La noche
+          // de la máquina dormida no se paga por la puerta de atrás (D-098).
+          continuoRef.current = false;
+          try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+        }
+        lastTickRef.current = ahora;
+        const el = Math.floor((ahora - startMsRef.current) / 1000);
         if (onBreakRef.current === "lunch") lunchRef.current++;
         else if (onBreakRef.current === "break") brkRef.current++;
   
@@ -625,6 +728,13 @@ export default function TrackTimePage() {
   
         if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
           const id = sessionIdRef.current;
+          // La marca de reanudación se refresca con cada latido (D-NEXT), no solo en pagehide:
+          // es la evidencia local de que este reloj no se ha detenido, y es lo que autoriza a
+          // reabrir una sesión que el cron cerró mientras no había red. localStorage funciona
+          // sin conexión, que es justo cuando importa.
+          if (continuoRef.current) {
+            try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+          }
           void writeSession(id, {
             endMs: Date.now(),
             durationSeconds: net,
@@ -636,7 +746,7 @@ export default function TrackTimePage() {
             lunchSeconds: lunchRef.current,
             breakSeconds: brkRef.current,
             breakEvents: breakEventsPayload(),
-          }).then((r) => {
+          }, 3, true).then((r) => {
             // La fila ha crecido hasta chocar con otra ya fichada (082). Es justo la
             // forma que tenía el fantasma de 25.75 h: contando sobre un tramo que ya
             // existía. Se para aquí, en vez de seguir enseñando un reloj que ya no
@@ -674,6 +784,7 @@ export default function TrackTimePage() {
     keystrokesRef.current = 0; clicksRef.current = 0; activeSecondsRef.current = 0;
     secHadEventRef.current = false; lastActTotalRef.current = 0; idleRef.current = 0; activeWindowRef.current = 0;
     ctxRef.current = null; ctxProbeRef.current = 0; setCtxApp(""); setIsIdle(false);
+    reiniciarContinuidad();
     startMsRef.current = Date.now();
     setWorked(0); setOnBreak(null); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
     setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
@@ -730,6 +841,7 @@ export default function TrackTimePage() {
           setRunning(true);
           setRemoteOwner(null);
           desktopStart({ sessionId: viva.id, intervalMin: shotMin });
+          reiniciarContinuidad();
           beginTicking();
         }
         return;
