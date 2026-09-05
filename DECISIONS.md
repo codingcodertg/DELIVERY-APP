@@ -8159,3 +8159,105 @@ El cron **no se ejecutó** desde esta rama (sería un efecto real: cierra turnos
 el merge con *Run workflow* y `verify=1`, como dice el plan. Nadie abrió el APK ni el escritorio
 recompilados: no existen todavía. `verify.mjs` en verde (711 pasados | 3 saltados, igual que
 `main`): ninguna prueba cubre estas URLs.
+
+## D-NEXT · Nómina: la pestaña "Period" desaparece y pasa a ser la cabecera de "Pay"; la fecha manda desde la URL
+
+**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés ·
+**Plan:** `docs/PLAN-nomina-period-en-pay.md`
+
+### Qué se pidió
+
+Petición literal: *"en time tracker, period y pay dan diferentes datos entonces quiero que elimines
+period y prácticamente si tenía diferente info a pay que lo merge"*.
+
+### Por qué daban datos distintos
+
+Dos cosas a la vez, y separarlas importa porque borrar la pestaña no arregla la segunda. **A
+propósito** (D-102, D-117, D-118): Period enseñaba *horas* de las dos vías lado a lado sin
+sumarlas y marcaba a quien tenía las dos; Pay enseña *dinero y estados*. **Bugs**: la tabla de §1
+del plan, siete filas con archivo:línea. De esas, esta rama arregla **una**: la sección Remoto de
+Pay no leía `?period=` (tenía su propio calendario, `ManagerReports.tsx:60`, y `PayrollTabs` no
+le pasaba nada), así que al navegar a otra semana Remoto se quedaba en la actual.
+
+### Qué se decidió
+
+1. **Una sola vista.** `PayrollTabs` ya no tiene pestañas. Lo que era Period es ahora
+   `PayrollResumen`, una cabecera siempre visible encima de las dos secciones plegables (En sitio,
+   Remoto): la navegación por periodo (`← anterior` · `viernes → jueves` · `siguiente →`, por URL,
+   la única enlazable), tres cifras —horas de fichaje, horas de proyecto, personas con horas—
+   cada una con su subtotal En sitio / Remoto, y los dos avisos: quién tiene horas por las dos
+   vías (`revisar`) con sus nombres, y quién no tiene tipo de trabajador y se dedujo
+   (`guessed`), con sus nombres y el enlace a Empleados. **Siguen sin sumarse** fichaje y
+   proyecto (D-102): son dos cifras, no una.
+2. **Los mismos números que daba Period.** `payroll/page.tsx` hace la **misma consulta** a la
+   misma vista (`timetracker.period_hours`, `eq period_start`), con el mismo `tipoDe()` para
+   deducir el grupo, y las cifras salen de las mismas expresiones (`totalFichaje`,
+   `totalProyecto`, `suma(enSitio|remotos, …)`, `aRevisar`, `deducidos`); solo cambia que la
+   página ya no las pinta: se las pasa a `PayrollTabs` como props. Lo que **sí** se deja de
+   enseñar, por diseño (§3 del plan): las tablas por persona de Period con su fila por empleado,
+   porque cada persona ya tiene su fila en la sección de pago que le toca. Se conservan los
+   subtotales por grupo en las tres cifras.
+3. **La marca de doble conteo por persona es el dato real.** `PayrollTimesheets.tsx` marcaba
+   "remote" por `worker_type`, una aproximación: un remoto podía no haber cronometrado nada y
+   salía marcado, y un "de sitio" que cronometró no salía. Ahora recibe los ids con
+   `period_hours.revisar = true` y marca exactamente a quien tiene horas por las dos vías este
+   periodo, el mismo dato que la cabecera.
+4. **La fecha llega por `?period=` a las tres partes, y va en su propio commit, primero.**
+   `ManagerReports` recibe `period` como prop y pierde `useState(week)` y sus botones prev/next.
+   D-164 avisó de que cambiar la fuente de la fecha en la misma tanda que una mudanza "es como se
+   rompe una nómina": por eso es el commit 1, solo, con `verify.mjs` en verde antes del 2. Lo
+   único que cambió en `ManagerReports` es de dónde sale `week`; el cálculo es el mismo.
+5. **Todo lo que era Period pasa por el diccionario** (`useT()`, claves `mgr.pay.*`, en y es),
+   igual que D-187; estaba en inglés a pelo. `PayrollTabs` también: usaba `usePrefs().t(en, es)`
+   inline, y pasa a claves para que la prueba de D-187 lo cubra. Esa prueba ahora incluye
+   `PayrollResumen`, `PayrollTabs`, `PayrollTimesheets` y `ManagerReports`, y **pasa**: las claves
+   de `ManagerReports` (más de cien) existen en los dos idiomas.
+6. **`period.test.ts` prueba la función de verdad.** Reimplementaba `periodStartOf` y por tanto
+   no protegía nada. La función se mueve de `payroll/page.tsx` (un `page` no puede exportarla) a
+   `src/lib/timetracker/period.ts`, **sin cambiar el cuerpo**, y la página y la prueba importan
+   la misma. La prueba le da el mediodía UTC porque la función recibe un instante, no un día.
+7. **Se quita el enlace circular del pie** a `/timetracker/reports`, que redirigía a la propia
+   pantalla, y el texto que mandaba a "Timesheets above", que ya no existe como pestaña.
+
+### Prohibido aquí, y por qué: los bugs de cálculo quedan abiertos
+
+No se tocó la aritmética: ni la vista `period_hours` (086), ni `lib/clockin/payroll.ts`, ni
+`computePay`, ni `getPayrollPeriod`. Afectan a lo que se paga y van en su propia rama con plan y
+pruebas (D-117: no crear "una segunda aritmética de nómina"). Quedan abiertos, con archivo:línea
+del 2026-09-04:
+
+- **Periodo quincenal/mensual:** `settings.payPeriod` puede ser `biweekly` o `monthly`
+  (`helpers.ts:190-195`, `periodEndISO`) y la cabecera y `period_hours` son siempre semanales.
+  Con `?period=` como fuente única, Remoto recibe un viernes y calcula su fin con `payPeriod`:
+  en semanal cuadra; en quincenal Remoto enseña 14 días y la cabecera 7.
+- **Huso de las sesiones:** `period_hours` usa `start_ms` en Chicago (`086:61`); Remoto usa la
+  columna `date` escrita en Tegucigalpa (`ManagerReports` filtra por `s.date`). Una sesión de
+  23:00-00:00 cae en días distintos.
+- **Ventana fija de 7×86400000 ms en En sitio** (`reports.ts:273-274`), que no respeta el cambio
+  de horario, contra el `at time zone` de la vista (`086:39`). En las semanas de DST un fichaje
+  aparece en una y no en la otra.
+- Además hay **tres implementaciones del "viernes del periodo"**: `payPeriodDates`
+  (`lib/clockin/schedule.ts:117`), `periodStartOf` (ahora `lib/timetracker/period.ts`) y el
+  `date_trunc` de la vista. Unificarlas es el mismo trabajo que lo de arriba.
+
+### Qué se descartó
+
+- **Borrar Period sin más.** Perdía la comparación lado a lado, la marca `revisar` con datos
+  reales, el tipo deducido, los subtotales por vía y la navegación por URL (§2 del plan).
+- **Renderizar la cabecera en el servidor, como estaba.** `useT()` es un hook de cliente; se
+  eligió pasar datos planos a un componente cliente antes que dejar media pantalla sin traducir.
+- **Traducir `PayrollTimesheets` entero.** Sigue en inglés salvo la marca nueva; es otra rama.
+- **Quitar las claves `mgr.rep.prev` / `mgr.rep.next`** que ya nadie usa: son dos líneas
+  inertes y borrar del diccionario no es lo que pide esta rama.
+
+### Lo no verificado
+
+Nadie abrió Nómina: el worktree no tiene `.env.local` a propósito, y la página exige sesión de
+admin y datos reales, así que `next start` no sirve aquí para comprobar que la sección Remoto
+cambia de semana con la URL. Se verificó **por lectura**: `week = period` en `ManagerReports` y
+los dos `useEffect` que cargan sesiones y lotes dependen de `start`/`end`/`week`. Que la cabecera
+dé los mismos números que Period también es por lectura: misma consulta, mismas expresiones.
+`verify.mjs` en verde: 715 pasados | 3 saltados (main: 711 | 3; los 4 nuevos son los ficheros
+añadidos a la prueba de claves). Mutaciones: la función de periodo rota (`- 1` en vez de `- 5`)
+tira las cuatro pruebas de periodo; una clave borrada solo del español la detecta la prueba de
+claves. La prueba real es el dueño abriendo Nómina en dos semanas distintas, en los dos idiomas.

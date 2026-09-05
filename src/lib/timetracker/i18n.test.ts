@@ -86,12 +86,17 @@ describe("los textos del reparto por tipo de trabajador existen", () => {
 // Se mira DICT directo y no t(): t() cae al inglés cuando falta el español
 // (`DICT[lang][key] ?? DICT.en[key] ?? key`), así que "t() no devuelve la clave" en español
 // solo demuestra que existe en ALGÚN idioma, y lo que se vigila es que exista en los dos.
-describe("las claves que usan los componentes de Asignaciones existen en los dos idiomas", () => {
+describe("las claves que usan los componentes de Asignaciones y Nómina existen en los dos idiomas", () => {
   const ficheros = [
     "src/components/timetracker/ScheduleWeek.tsx",
     "src/components/timetracker/AssignmentsPanel.tsx",
     "src/components/timetracker/AssignmentsTabs.tsx",
     "src/components/timetracker/Modal.tsx",
+    // D-NEXT (Nómina): la cabecera que era "Period", la vista única y la marca `revisar`.
+    "src/components/timetracker/PayrollResumen.tsx",
+    "src/components/timetracker/PayrollTabs.tsx",
+    "src/components/timetracker/PayrollTimesheets.tsx",
+    "src/components/timetracker/ManagerReports.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {

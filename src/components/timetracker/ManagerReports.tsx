@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import {
-  APP_SETTINGS, LOCALE, addPeriod, breaksText, computePay, dateISO, fmtClock, fmtDT, fmtHM,
-  money, periodEndISO, periodLabel, projectWeekStart, thisPeriodStart, weekIsFinished, weekStartISO,
+  APP_SETTINGS, LOCALE, breaksText, computePay, dateISO, fmtClock, fmtDT, fmtHM,
+  money, periodEndISO, periodLabel, projectWeekStart, weekIsFinished, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
@@ -45,11 +45,13 @@ const adjOf = (list: PayrollAdjustment[] | null | undefined) => (list || []).red
  * mover dos calendarios y fiarse de que apuntaran al mismo sitio.
  *
  * El código no se ha reescrito al mudarlo —sigue siendo la traducción literal de
- * `manager/ManagerReports.jsx`, con años de correcciones dentro— y por eso conserva su
- * propio selector de periodo en vez de leer el de la URL: cambiar eso es tocar la pantalla
- * que calcula la nómina de verdad, y no es algo que se haga de pasada en una mudanza.
+ * `manager/ManagerReports.jsx`, con años de correcciones dentro—. D-164 le dejó su propio
+ * selector de periodo a conciencia, porque cambiar la fuente de la fecha en la misma tanda
+ * que la mudanza "es como se rompe una nómina". Ese cambio es este, aparte y solo (D-NEXT):
+ * **la fecha llega por `period` (el `?period=` de la URL, un viernes) y aquí no hay
+ * calendario.** Lo único que cambió es de dónde sale `week`; el cálculo es el mismo.
  */
-export function ManagerReports() {
+export function ManagerReports({ period }: { period: string }) {
   const {
     me, allEmployees: users, allProjects: projects, allAssignments: assignments, settings,
     sessionsSince, payrollsForWeek, insertSession, updateSession, removeSession,
@@ -57,8 +59,7 @@ export function ManagerReports() {
   } = useData();
   const t = useT();
   const payPeriod = settings.payPeriod || "weekly";
-  const [week, setWeek] = useState(thisPeriodStart(payPeriod));
-  useEffect(() => { setWeek(thisPeriodStart(payPeriod)); }, [payPeriod, settings.weekStartDay, settings.timeZone]);
+  const week = period;
   const [sessions, setSessions] = useState<Session[]>([]);
   const [batches, setBatches] = useState<Payroll[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -413,10 +414,8 @@ export function ManagerReports() {
         <h2 style={{ margin: 0 }}>{t("mgr.tab.reports")}</h2>
         <div className="row" style={{ alignItems: "center" }}>
           <button className="btn-ghost btn-sm" onClick={exportCSV} disabled={empIds.length === 0}>{t("mgr.rep.csv")}</button>
-          <button className="btn-ghost btn-sm" onClick={() => setWeek(addPeriod(week, -1, payPeriod))}>{t("mgr.rep.prev")}</button>
           <span className="small nowrap">{periodLabel(week, payPeriod)}</span>
           {weekIsFinished(week, payPeriod) && <span className="pill wait">{t("emp.week.reviewBadge")}</span>}
-          <button className="btn-ghost btn-sm" disabled={week >= thisPeriodStart(payPeriod)} onClick={() => setWeek(addPeriod(week, 1, payPeriod))}>{t("mgr.rep.next")}</button>
         </div>
       </div>
 
