@@ -56,9 +56,9 @@ describe("cerrarSesionesHuerfanas", () => {
     const patches = calls.slice(1);
     expect(patches.map((c) => c.init?.method)).toEqual(["PATCH", "PATCH"]);
     expect(patches[0].url).toBe(`${URL}/rest/v1/sessions?id=eq.huerfana&is_live=eq.true`);
-    expect(JSON.parse(patches[0].init!.body as string)).toEqual({ is_live: false, end_ms: now - 40 * MIN, duration_seconds: (3 * 60 - 40) * 60 });
+    expect(JSON.parse(patches[0].init!.body as string)).toEqual({ is_live: false, end_ms: now - 40 * MIN, duration_seconds: (3 * 60 - 40) * 60, live_note: "closed:cron" });
     expect(patches[1].url).toBe(`${URL}/rest/v1/sessions?id=eq.nunca-latio&is_live=eq.true`);
-    expect(JSON.parse(patches[1].init!.body as string)).toEqual({ is_live: false, end_ms: now - 20 * MIN, duration_seconds: 0 });
+    expect(JSON.parse(patches[1].init!.body as string)).toEqual({ is_live: false, end_ms: now - 20 * MIN, duration_seconds: 0, live_note: "closed:cron" });
     expect((patches[0].init?.headers as Record<string, string>)["Content-Profile"]).toBe("timetracker");
     expect((patches[0].init?.headers as Record<string, string>).Prefer).toBe("return=minimal");
   });

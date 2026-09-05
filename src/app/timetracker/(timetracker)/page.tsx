@@ -16,7 +16,7 @@ import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning } from "@/lib/session-guard";
 import {
-  backoffMs, cierreHuerfana, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
 } from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
 
@@ -54,7 +54,7 @@ const MOVEMENT_THRESHOLD = 0.005; // >=0.5% of the sampled screen changed = "mov
 
 export default function TrackTimePage() {
   const {
-    me, myAssignments: assignments, mySessions: sessions, listLiveSessions, startSession, updateSession,
+    me, myAssignments: assignments, mySessions: sessions, listLiveSessions, getSession, startSession, updateSession,
     latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify,
   } = useData();
   const t = useT();
@@ -509,6 +509,73 @@ export default function TrackTimePage() {
   }
 
   /**
+   * Reabrir una sesión que el cron cerró mientras se trabajaba SIN INTERNET (D-NEXT).
+   *
+   * El tick sigue contando sin red (desde startMs; las escrituras van a la cola offline). Si
+   * pasan más de 15 min sin latido en la base, el cron de D-195 la cierra en su último latido.
+   * Al volver la red, hoy la confirmación la encontraba cerrada y paraba: el tramo trabajado
+   * sin red se perdía. Esto lo deshace SOLO cuando se cumplen las cuatro condiciones de
+   * `decisionReabrir` (es mi fila, la cerró el cron, hay marca reciente para ella y el tick de
+   * esta página sigue corriendo, y no hay otra viva). Si la cerró una persona o un Stop, no.
+   *
+   * La base tiene la última palabra: una sola viva por persona (092) y sin solapes (082).
+   * Si el UPDATE choca con cualquiera de las dos, no se reabre y se avisa.
+   */
+  const reabriendoRef = useRef(false);
+  async function intentarReabrir(id: string): Promise<boolean> {
+    if (reabriendoRef.current) return false;
+    reabriendoRef.current = true;
+    try {
+      let fila: Session | null = null;
+      let vivas: Session[] = [];
+      try { [fila, vivas] = await Promise.all([getSession(id), listLiveSessions()]); }
+      catch { return false; } // sigue sin red: se vuelve a intentar en el próximo `online`
+      let mark = null;
+      try { mark = parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { mark = null; }
+      const evidenciaLocal = tickRef.current !== null && sessionIdRef.current === id && runningRef.current && !remoteOwnerRef.current;
+      const d = decisionReabrir({ fila, me: me.id, mark, evidenciaLocal, otrasVivas: vivas.map((v) => v.id) });
+      if (!d.reabrir) {
+        if (d.motivo === "otra-viva") notify(t("track.notReopened"));
+        return false;
+      }
+      const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+      try {
+        await updateSession(id, {
+          isLive: true,
+          endMs: Date.now(),
+          durationSeconds: netSeconds(el),
+          activeSeconds: activeSecondsRef.current,
+          idleSeconds: idleRef.current,
+          liveNote: onBreakRef.current ? "break" : "active",
+          keystrokes: keystrokesRef.current,
+          clicks: clicksRef.current,
+          lunchSeconds: lunchRef.current,
+          breakSeconds: brkRef.current,
+          breakEvents: breakEventsPayload(),
+        });
+      } catch (e) {
+        // 092 (otra viva) u 082 (solape con un tramo posterior): la base manda. No se reabre.
+        if (isAlreadyRunning(e) || isOverlapError(e)) notify(t("track.notReopened"));
+        return false;
+      }
+      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id, startMs: startMsRef.current, source: fila?.source })); } catch { /* ignore */ }
+      notify(t("track.reopened"));
+      return true;
+    } finally {
+      reabriendoRef.current = false;
+    }
+  }
+  const intentarReabrirRef = useRef(intentarReabrir);
+  intentarReabrirRef.current = intentarReabrir;
+  useEffect(() => {
+    // Al volver la red. Si la sesión sigue viva, `decisionReabrir` dice "sigue-viva" y no pasa
+    // nada más: dos lecturas.
+    const h = () => { const id = sessionIdRef.current; if (id && runningRef.current && !remoteOwnerRef.current) void intentarReabrirRef.current(id); };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
+  }, []);
+
+  /**
    * Reanudar tras una recarga cuando el servidor no contesta (D-195).
    *
    * Igual que la adopción normal pero sin esperar la confirmación: se arma el tick y la captura
@@ -538,7 +605,10 @@ export default function TrackTimePage() {
           try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
           return; // confirmada: el tick ya corre
         }
-        // Cerrada en el servidor mientras no había red: parar sin escribir más.
+        // Cerrada en el servidor mientras no había red. Si la cerró el cron y este reloj no se
+        // detuvo, se reabre (D-NEXT); si no, parar sin escribir más.
+        if (await intentarReabrir(id)) { try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ } return; }
+        if (sessionIdRef.current !== id) return;
         if (tickRef.current) clearInterval(tickRef.current);
         tickRef.current = null;
         desktopStop();
@@ -625,6 +695,11 @@ export default function TrackTimePage() {
   
         if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
           const id = sessionIdRef.current;
+          // La marca de reanudación se refresca con cada latido (D-NEXT), no solo en pagehide:
+          // es la evidencia local de que este reloj no se ha detenido, y es lo que autoriza a
+          // reabrir una sesión que el cron cerró mientras no había red. localStorage funciona
+          // sin conexión, que es justo cuando importa.
+          try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
           void writeSession(id, {
             endMs: Date.now(),
             durationSeconds: net,

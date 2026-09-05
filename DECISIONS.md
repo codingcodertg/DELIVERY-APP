@@ -8688,3 +8688,70 @@ tamaño y el ajuste van por lectura del CSS. `verify.mjs` en verde: 757 pasados 
 `main` (no hay prueba nueva; la de claves ya cubría el fichero). Mutación: `mgr.pay.byTypeTimer` borrada
 solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo Nómina en
 escritorio y en el teléfono, en los dos idiomas y los dos temas.
+## D-NEXT · Si el cron cerró una sesión mientras la persona trabajaba SIN INTERNET, al volver la red la pantalla la reabre; excepción acotada a D-195, con cuatro condiciones
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+
+### El caso
+
+La pantalla del cronómetro sigue contando sin red: el tick cuenta desde `start_ms` y las escrituras
+van a la cola offline (D-074). Si pasan más de 15 minutos sin latido en la base, el cron de D-195
+cierra la sesión en su último latido, que es lo que debe hacer con una huérfana. Pero esta no lo
+es: la persona sigue trabajando delante de su reloj. Al volver la red, hasta hoy la confirmación
+encontraba la sesión cerrada y paraba: **el tramo trabajado sin red se perdía.**
+
+### Por qué es una excepción y no una relajación del freno
+
+El freno de D-195 no cambia: sigue cerrando a los 15 minutos sin latido, y sigue siendo lo que
+impide las 25,75 h (D-098) y las 10,42 h fantasma. Lo que se añade es deshacer ese cierre **solo
+cuando hay prueba de que el reloj de este cliente nunca se detuvo**, que es la única diferencia
+real entre una huérfana y alguien sin internet. Sin esa prueba, una sesión cerrada se queda
+cerrada. La decisión es pura (`decisionReabrir`, `live-session.ts`) y está probada.
+
+### Las cuatro condiciones, todas obligatorias
+
+1. **Es su fila, y está cerrada.** Se lee por id con `getSession` (nuevo en el proveedor: una de
+   mis sesiones, viva o cerrada, que `listLiveSessions` ya no devuelve).
+2. **La cerró el cron, no una persona.** El cron deja `live_note = "closed:cron"` al cerrar
+   (`CRON_CLOSE_NOTE`). `live_note` es texto libre que el tick sobreescribe cada diez segundos
+   mientras la sesión vive y que "Trabajando ahora" solo lee en filas vivas: en una fila cerrada
+   nadie lo mira, así que sirve de marca **sin migración**. Un Stop escribe `null`; el guardián
+   de la propia pantalla no marca (ese cierre lo hace el mismo cliente al descubrir su propia
+   sesión muerta, y reabrirla sería un error).
+3. **Marca de reanudación reciente para ESA sesión, y evidencia local continua.** La marca de
+   D-195 se refresca ahora **en cada escritura del tick** (cada 10 s, en `localStorage`, que
+   funciona sin red), no solo en `pagehide`: es la prueba de que el reloj no se detuvo. Y la
+   pantalla exige además que su tick esté corriendo ahora mismo sobre esa misma sesión
+   (`tickRef`, `sessionIdRef`, `running`, y no en modo mirón).
+4. **Ninguna otra sesión viva de la misma persona** (092). Si arrancó otra mientras tanto, esta no
+   se reabre, y se avisa (`track.notReopened`).
+
+Y la base tiene la última palabra: el `UPDATE` que reabre (`is_live = true`, `end_ms = ahora`,
+acumuladores locales) pasa por el índice único de una sola viva (092) y por la exclusión de solapes
+(082); si choca con cualquiera, no se reabre y se avisa. Un cierre por otra persona, un Stop, o una
+sesión sin marca, no se tocan.
+
+### Dónde se dispara
+
+En dos sitios: al **volver la red** (evento `online`; si la sesión sigue viva, la decisión dice
+"sigue-viva" y no pasa nada más), y en la **confirmación de la reanudación** de D-195 (tras una
+recarga sin red: la marca del `pagehide` autoriza a conducir, el tick arranca, y cuando la red
+vuelve y el servidor la da por cerrada, se intenta reabrir antes de parar). Un límite conocido:
+si la persona **recarga con red** después de que el cron cerrara, la adopción encuentra la sesión
+cerrada y para; el tick de esta página no siguió corriendo a través de la recarga y no hay
+evidencia local, así que no se reabre. Es el precio de no reabrir nunca sin prueba.
+
+### Qué NO cambia
+
+`computePay`, `period_hours`, el umbral de 15 minutos, la regla de cierre en el último latido, el
+cron salvo la marca. Sin migración. Nadie probó contra producción.
+
+### Lo no verificado
+
+Nadie reprodujo el caso con sesión real (sin `.env.local`; y una prueba real escribe en `sessions`
+de producción). El evento `online`, el orden con el `flush` de la cola offline (que puede escribir
+un `end_ms` algo anterior justo después de reabrir; el siguiente latido lo corrige en 10 s) y la
+respuesta de la base a 092/082 van por lectura. `verify.mjs` en verde: 764 pasados | 3 saltados
+(main: 757 | 3; +7 son los casos de `decisionReabrir`). Mutaciones: quitando la condición de la
+marca del cron y la de otra viva, fallan los dos casos que las vigilan. La prueba real es el dueño:
+cronómetro en marcha, red apagada más de 15 minutos con el cron pasando por medio, red de vuelta.

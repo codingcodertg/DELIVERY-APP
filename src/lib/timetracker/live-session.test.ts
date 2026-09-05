@@ -3,6 +3,7 @@ import {
   LATIDO_MAX_MS, RESUME_MAX_MS,
   ultimoLatidoDe, esHuerfana, cierreHuerfana, huerfanasDe,
   parseResumeMark, markCovers, resumeKey, backoffMs,
+  CRON_CLOSE_NOTE, decisionReabrir,
 } from "./live-session";
 
 // D-195. El cronómetro sobrevive a la actualización: el umbral de huérfana sube de 5 a 15
@@ -107,6 +108,46 @@ describe("marca de reanudación", () => {
     expect(markCovers(mark, "s2")).toBe(false);
     expect(markCovers(null, "s1")).toBe(false);
     expect(markCovers(mark, null)).toBe(false);
+  });
+});
+
+describe("reabrir tras un cierre del cron (D-NEXT): las cuatro condiciones, todas obligatorias", () => {
+  const me = "u1";
+  const mark = { sessionId: "s1", at: T0 };
+  const cerradaPorCron = { id: "s1", employeeUid: me, isLive: false, liveNote: CRON_CLOSE_NOTE };
+  const base = { fila: cerradaPorCron, me, mark, evidenciaLocal: true, otrasVivas: [] as string[] };
+
+  it("cerrada por el cron + marca + tick continuo + ninguna otra viva → reabre", () => {
+    expect(decisionReabrir(base)).toEqual({ reabrir: true });
+  });
+
+  it("cerrada por un Stop (live_note null) o por una persona (otra nota) → no", () => {
+    expect(decisionReabrir({ ...base, fila: { ...cerradaPorCron, liveNote: null } })).toEqual({ reabrir: false, motivo: "la-cerro-una-persona" });
+    expect(decisionReabrir({ ...base, fila: { ...cerradaPorCron, liveNote: "active" } })).toEqual({ reabrir: false, motivo: "la-cerro-una-persona" });
+  });
+
+  it("cerrada por el cron pero sin marca, o con marca de OTRA sesión → no", () => {
+    expect(decisionReabrir({ ...base, mark: null })).toEqual({ reabrir: false, motivo: "sin-marca" });
+    expect(decisionReabrir({ ...base, mark: { sessionId: "s9", at: T0 } })).toEqual({ reabrir: false, motivo: "sin-marca" });
+  });
+
+  it("con marca pero el tick local se detuvo → no", () => {
+    expect(decisionReabrir({ ...base, evidenciaLocal: false })).toEqual({ reabrir: false, motivo: "sin-evidencia-local" });
+  });
+
+  it("si mientras tanto arrancó OTRA sesión viva (092) → no; la propia en la lista no cuenta", () => {
+    expect(decisionReabrir({ ...base, otrasVivas: ["s2"] })).toEqual({ reabrir: false, motivo: "otra-viva" });
+    expect(decisionReabrir({ ...base, otrasVivas: ["s1"] })).toEqual({ reabrir: true });
+  });
+
+  it("no es su fila, sigue viva, o no existe → no", () => {
+    expect(decisionReabrir({ ...base, fila: { ...cerradaPorCron, employeeUid: "u2" } })).toEqual({ reabrir: false, motivo: "no-es-mia" });
+    expect(decisionReabrir({ ...base, fila: { ...cerradaPorCron, isLive: true } })).toEqual({ reabrir: false, motivo: "sigue-viva" });
+    expect(decisionReabrir({ ...base, fila: null })).toEqual({ reabrir: false, motivo: "sin-fila" });
+  });
+
+  it("la marca del cron es una constante fija que el tick sobreescribe al reabrir", () => {
+    expect(CRON_CLOSE_NOTE).toBe("closed:cron");
   });
 });
 

@@ -58,6 +58,9 @@ interface DataState {
    * detect and resolve the "already running elsewhere" conflict before a
    * new one starts, and to close out abandoned ones on load. */
   listLiveSessions: () => Promise<Session[]>;
+  /** One of MY sessions by id, live or closed, or null. For the reopen-after-cron check
+   * (D-NEXT): the screen needs to read a row that `listLiveSessions` no longer returns. */
+  getSession: (id: string) => Promise<Session | null>;
   startSession: (payload: Partial<Session>) => Promise<Session>;
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
 
@@ -507,6 +510,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     return ((data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Session>(r)!);
   }, [supabase, me.id]);
 
+  const getSession = useCallback<DataState["getSession"]>(async (id) => {
+    const { data, error } = await supabase
+      .from("sessions").select("*").eq("id", id).eq("employee_uid", me.id).maybeSingle();
+    if (error) throw error;
+    return data ? rowToCamel<Session>(data as Record<string, unknown>)! : null;
+  }, [supabase, me.id]);
+
   const startSession = useCallback<DataState["startSession"]>(async (payload) => {
     await requireSession();
     const row = toSnakeRow(payload as Record<string, unknown>);
@@ -713,7 +723,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
-    listLiveSessions, startSession, updateSession,
+    listLiveSessions, getSession, startSession, updateSession,
     myScreenshots: screenshots, latestScreenshot: screenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
     updateMyAccount, updatePassword, signOutEverywhere,
