@@ -297,7 +297,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [availability, setAvailability] = useState<DriverAvailability[]>([]);
   const [shifts, setShifts] = useState<DriverShift[]>([]);
-  // G-8 (D-NEXT): clock in / out tapped with no signal wait here; `shifts` below is the
+  // G-8 (D-200): clock in / out tapped with no signal wait here; `shifts` below is the
   // server's list with the queue applied over it, so a queued "out" ends the shift on screen
   // (and stops the GPS) the moment the driver taps.
   const [shiftOutbox, setShiftOutbox] = useState<ShiftOp[]>([]);
@@ -880,7 +880,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // a dropped fix is not worth a toast on the driver's screen, and the next
   // one is seconds away.
   /**
-   * Replay the GPS outbox (G-22, D-NEXT): fixes captured with no signal, in recorded_at order,
+   * Replay the GPS outbox (G-22, D-200): fixes captured with no signal, in recorded_at order,
    * in batches. Stops at the first "still offline"; drops what the server rejects. Runs when the
    * connection comes back and after the next fix that does get through.
    */
@@ -939,7 +939,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         error = { message: e instanceof Error ? e.message : "network error" };
       }
       if (error) {
-        // G-22 (D-NEXT): no signal is not "lost". The fix goes to the GPS outbox with the
+        // G-22 (D-200): no signal is not "lost". The fix goes to the GPS outbox with the
         // recorded_at the device stamped, and replays when there is a connection. Counts as
         // sent for the caller (the heartbeat may advance); a server rejection still does not.
         if (isOfflineError(error)) {
@@ -1329,7 +1329,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, []);
 
   /**
-   * Replay queued punches in tap order (G-8, D-NEXT). "in" inserts the shift with the tapped
+   * Replay queued punches in tap order (G-8, D-200). "in" inserts the shift with the tapped
    * started_at; "out" closes the driver's open shift with the tapped ended_at — if the server
    * has no open shift for them, the "out" is dropped (nothing to close). Stops at the first
    * "still offline". Runs when the connection comes back and on the outbox timer below.
@@ -1388,7 +1388,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       error = res.error;
     } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
     if (error) {
-      // G-8 (D-NEXT): no signal → the punch queues and the day starts on screen now.
+      // G-8 (D-200): no signal → the punch queues and the day starts on screen now.
       if (isOfflineError(error)) {
         queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId() });
         notify(t_offlineSaved());
@@ -1417,7 +1417,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       error = res.error;
     } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
     if (error) {
-      // G-8 (D-NEXT): no signal → the "out" queues; the shift reads as ended on screen right
+      // G-8 (D-200): no signal → the "out" queues; the shift reads as ended on screen right
       // now, so LocationTracker stops the GPS at the tap, not when the network returns.
       if (isOfflineError(error)) {
         queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "out", driverId, at, deviceId: deviceId() });

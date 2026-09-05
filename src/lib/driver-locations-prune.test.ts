@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { pruneDriverLocations, PRUNE_KEEP_DAYS, PRUNE_KEEP_DAYS_MIN, type FetchLike } from "./driver-locations-prune";
 
-// G-23 (D-NEXT). La poda se prueba con un fetch FALSO: nada toca producción. Se vigila lo que
+// G-23 (D-200). La poda se prueba con un fetch FALSO: nada toca producción. Se vigila lo que
 // un cron puede hacer mal en silencio: la RPC equivocada, la clave equivocada (tiene que ser la
 // de servicio), el perfil de esquema, y el número de días.
 

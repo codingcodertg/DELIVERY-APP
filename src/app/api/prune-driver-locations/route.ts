@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron: poda de `driver_locations` (G-23, D-NEXT).
+ * Cron: poda de `driver_locations` (G-23, D-200).
  *
  * Mismo patrón que `clock-in/api/cron` y `close-orphan-sessions`: `cronAuthorized` (Bearer
  * CRON_SECRET o `?key=`) y `?verify=1`, que confirma el secreto con 200 SIN borrar nada. Va con

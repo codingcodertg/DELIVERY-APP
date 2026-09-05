@@ -1,5 +1,5 @@
 // ============================================================
-// GPS outbox — position fixes captured where there is no signal (G-22, D-NEXT).
+// GPS outbox — position fixes captured where there is no signal (G-22, D-200).
 //
 // `pushLocation` used to INSERT and, on failure, return false: the fix was gone.
 // The milestone outbox (src/lib/outbox.ts) is deliberately narrow — only the

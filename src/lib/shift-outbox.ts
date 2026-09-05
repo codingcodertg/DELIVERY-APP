@@ -1,7 +1,7 @@
 import type { DriverShift } from "@/lib/types";
 
 // ============================================================
-// Shift outbox — clock in / clock out tapped where there is no signal (G-8, D-NEXT).
+// Shift outbox — clock in / clock out tapped where there is no signal (G-8, D-200).
 //
 // `clockOut` used to fail loudly in a dead zone: the driver saw a red toast, the
 // shift stayed open in the database and, worse, the GPS service kept reporting

@@ -5,7 +5,7 @@ import {
 } from "./shift-outbox";
 import type { DriverShift } from "./types";
 
-// G-8 (D-NEXT). El fichaje de salida sin red no encolaba: el turno seguía abierto y el GPS
+// G-8 (D-200). El fichaje de salida sin red no encolaba: el turno seguía abierto y el GPS
 // seguía reportando. Lo que se vigila: que una salida encolada cierre el turno LOCALMENTE al
 // momento (eso es lo que apaga el GPS), que una entrada encolada abra uno local, que el reenvío
 // vaya en el orden en que se tocó y se pare en el primer "sin red", y que se escriba la hora del

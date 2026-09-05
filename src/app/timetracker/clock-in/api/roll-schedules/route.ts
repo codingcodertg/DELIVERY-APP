@@ -108,7 +108,7 @@ export async function GET(req: Request) {
   } catch (e) {
     orphans = { ok: false, error: (e as { message?: string })?.message || "unknown error" };
   }
-  // G-23 (D-NEXT): poda de driver_locations con la CLAVE DE SERVICIO (k), 90 días por defecto.
+  // G-23 (D-200): poda de driver_locations con la CLAVE DE SERVICIO (k), 90 días por defecto.
   // Aislado igual que el cierre de huérfanas: si falla, los horarios y las huérfanas ya
   // corrieron. Ruta propia para correrla a mano: /api/prune-driver-locations.
   let prune: Awaited<ReturnType<typeof pruneDriverLocations>> | { ok: false; error: string };

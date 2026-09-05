@@ -81,7 +81,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
   const pushRef = useRef(pushLocation);
   pushRef.current = pushLocation;
   // One push at a time: while a send is in flight, later callbacks wait for the next fix
-  // instead of piling up identical writes (G-22, D-NEXT).
+  // instead of piling up identical writes (G-22, D-200).
   const inFlightRef = useRef(false);
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       const now = Date.now();
       if (!shouldSend({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy_m }, lastRef.current, now)) return;
       if (inFlightRef.current) return;
-      // G-22 (D-NEXT): `lastRef` used to advance BEFORE knowing whether the write worked, so a
+      // G-22 (D-200): `lastRef` used to advance BEFORE knowing whether the write worked, so a
       // failed send consumed its 5-minute window and the truck went silent. Now it advances only
       // when the push got through or was queued for replay; a rejection leaves it where it was.
       inFlightRef.current = true;

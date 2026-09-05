@@ -8851,9 +8851,9 @@ función: la poda hace falta (G-23) y el patrón de 077/078 ya resuelve esto.
 **Reversión:** `grant execute on function public.prune_driver_locations(int) to anon,
 authenticated;`
 
-## D-NEXT · Auditoría 2026-09-05, lote 2 (el chofer): el GPS no pierde fijaciones sin red, fichar sin red entra en cola, y `driver_locations` se poda a 90 días
+## D-200 · Auditoría 2026-09-05, lote 2 (el chofer): el GPS no pierde fijaciones sin red, fichar sin red entra en cola, y `driver_locations` se poda a 90 días
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries) · **Pedido por:**
+**Fecha:** 2026-09-05 · **Versión:** deliveries 1.61.0, package.json 1.118.0 (Deliveries) · **Pedido por:**
 Andrés (los tres aprobados por el dueño), sobre `docs/AUDIT-2026-09-05.md` (G-22, G-8 con G-7, G-23).
 Un commit por hallazgo.
 

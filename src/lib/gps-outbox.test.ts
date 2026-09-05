@@ -4,7 +4,7 @@ import {
   loadGpsOutbox, saveGpsOutbox, type QueuedFix, type StorageLike,
 } from "./gps-outbox";
 
-// G-22 (D-NEXT). Sin red, la fijación se perdía. Lo que se vigila: que se encole con su
+// G-22 (D-200). Sin red, la fijación se perdía. Lo que se vigila: que se encole con su
 // recorded_at nativo, que se reenvíe en orden, que el tope descarte las MÁS VIEJAS, y que un
 // fallo a mitad del reenvío deje el resto en la cola sin desordenarlo.
 

@@ -1,5 +1,5 @@
 /**
- * Poda de `public.driver_locations` (G-23, D-NEXT).
+ * Poda de `public.driver_locations` (G-23, D-200).
  *
  * `public.prune_driver_locations(keep_days)` existe desde la migración 043 y nadie la llamaba:
  * a ~170 filas/día/chofer la tabla crecía sin techo, con realtime encima. Esto la llama desde
