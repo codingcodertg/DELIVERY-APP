@@ -108,6 +108,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/ExceptionHistory.tsx",
     "src/components/timetracker/GeofenceEditor.tsx",
     "src/components/timetracker/GeofenceSection.tsx",
+    "src/components/timetracker/TripPanel.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {
