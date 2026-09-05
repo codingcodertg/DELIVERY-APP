@@ -5,7 +5,7 @@ import {
   parseResumeMark, markCovers, resumeKey, backoffMs,
 } from "./live-session";
 
-// D-NEXT. El cronómetro sobrevive a la actualización: el umbral de huérfana sube de 5 a 15
+// D-195. El cronómetro sobrevive a la actualización: el umbral de huérfana sube de 5 a 15
 // min, el cierre sigue siendo "en su último latido" con la misma aritmética que tenía la
 // página, y la marca de reanudación decide si tras una recarga se sigue contando o se entra en
 // el modo mirón de D-096. Todo con datos sintéticos: nada toca la base.

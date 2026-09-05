@@ -1,5 +1,5 @@
 /**
- * Continuidad del cronómetro a través de una recarga, un cierre o un reinicio (D-NEXT).
+ * Continuidad del cronómetro a través de una recarga, un cierre o un reinicio (D-195).
  *
  * Lógica pura, sin React ni red, para que la compartan la pantalla del cronómetro
  * (`(timetracker)/page.tsx`) y el cron que cierra huérfanas, y quede probada con datos

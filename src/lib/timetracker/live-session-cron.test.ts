@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { cerrarSesionesHuerfanas, timetrackerRestHeaders, type FetchLike } from "./live-session-cron";
 import { LATIDO_MAX_MS } from "./live-session";
 
-// D-NEXT, parte B. El cron que cierra huérfanas, probado con un fetch FALSO y datos sintéticos:
+// D-195, parte B. El cron que cierra huérfanas, probado con un fetch FALSO y datos sintéticos:
 // nada toca producción. Se vigila lo que un cron puede hacer mal en silencio: leer el esquema
 // equivocado (sin el perfil `timetracker` PostgREST contesta desde public), cerrar una que
 // todavía late, o cerrarla "ahora" en vez de en su último latido.

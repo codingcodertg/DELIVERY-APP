@@ -8520,9 +8520,9 @@ de rutas y los dos ficheros añadidos a la prueba de claves). Mutación: sin `se
 `.next` (artefacto), y el CI parte de limpio. La prueba real es el dueño, y solo será útil cuando el
 escritorio capture.
 
-## D-NEXT · El cronómetro sigue contando a través de la actualización, el cierre y el reinicio; huérfana a los 15 min, y un cron que las cierra
+## D-195 · El cronómetro sigue contando a través de la actualización, el cierre y el reinicio; huérfana a los 15 min, y un cron que las cierra
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:**
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.56.0, package.json 1.115.0 (timetracker) · **Pedido por:**
 Andrés · **Plan:** `docs/PLAN-timer-sobrevive-actualizacion.md` (diseño corregido tras el dueño: la
 actualización **se hace**, y el reloj no se entera)
 
@@ -8609,7 +8609,7 @@ Ninguna migración. Ninguna escritura nueva salvo la del cron y el latido.
 ### Observación que queda al dueño
 
 El `beforeunload` de la pantalla (previo a esto) sigue pidiendo confirmación al navegador cuando se
-cierra o recarga con el reloj corriendo. Con la continuidad de D-NEXT ese aviso ya no protege nada,
+cierra o recarga con el reloj corriendo. Con la continuidad de D-195 ese aviso ya no protege nada,
 y puede hacer que la recarga automática del banner enseñe el diálogo de "¿salir del sitio?". No se
 tocó porque no era parte del encargo; es una línea si el dueño quiere quitarlo.
 

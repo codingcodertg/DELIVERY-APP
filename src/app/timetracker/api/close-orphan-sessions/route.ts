@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron: cerrar las sesiones huérfanas del cronómetro (D-NEXT, parte B).
+ * Cron: cerrar las sesiones huérfanas del cronómetro (D-195, parte B).
  *
  * Mismo patrón que `clock-in/api/cron`: `cronAuthorized` (Bearer CRON_SECRET o `?key=`), y
  * `?verify=1` que confirma el secreto con 200 SIN ejecutar nada — regla de CLAUDE.md, una

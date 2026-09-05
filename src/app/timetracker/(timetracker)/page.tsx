@@ -93,7 +93,7 @@ export default function TrackTimePage() {
     } catch { return null; }
   })();
 
-  // La marca de reanudación (D-NEXT): la deja este mismo cliente justo antes de descargar la
+  // La marca de reanudación (D-195): la deja este mismo cliente justo antes de descargar la
   // página (recarga del banner de actualización, pagehide) MIENTRAS conducía la sesión. Con
   // ella, si la confirmación contra el servidor falla al volver, se sigue contando y grabando
   // en vez de entrar en el modo mirón: hace un momento esta sesión era nuestra, en este
@@ -203,13 +203,13 @@ export default function TrackTimePage() {
   useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); } catch { /* ignore */ } }, [assignmentId, LS_A]);
   useEffect(() => { try { localStorage.setItem(LS_M, memo); } catch { /* ignore */ } }, [memo, LS_M]);
 
-  // Hasta D-NEXT aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
+  // Hasta D-195 aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
   // corría. Con el último latido y la marca de reanudación de abajo ya no protegía nada, y
   // podía enseñar el diálogo "¿salir?" justo cuando el banner de actualización recarga: lo
   // contrario de lo que pidió el dueño ("sí quiero poder actualizar"). Se quitó a propósito.
 
   /**
-   * Antes de descargar la página, dejarlo todo grabado (D-NEXT).
+   * Antes de descargar la página, dejarlo todo grabado (D-195).
    *
    * El tick escribe cada diez segundos; en una recarga o un cierre esos segundos se perdían y,
    * peor, sin latido reciente la siguiente apertura podía dar la sesión por huérfana. Aquí va
@@ -403,7 +403,7 @@ export default function TrackTimePage() {
         // horas que la máquina pasó apagada no son suyas.
         //
         // El umbral y la aritmética del cierre viven en lib/timetracker/live-session.ts, que
-        // comparten esta pantalla y el cron que cierra huérfanas (D-NEXT). Eran 5 minutos;
+        // comparten esta pantalla y el cron que cierra huérfanas (D-195). Eran 5 minutos;
         // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
         if (esHuerfana(mine, Date.now())) {
           await updateSession(mine.id, cierreHuerfana(mine)).catch(() => {});
@@ -461,7 +461,7 @@ export default function TrackTimePage() {
         // So: show the clock, write nothing, and let the poll settle it. Within twenty seconds it
         // either finds the session still live and keeps counting, or clears it.
         //
-        // Salvo con marca de reanudación reciente para ESTA sesión (D-NEXT): entonces sí se
+        // Salvo con marca de reanudación reciente para ESTA sesión (D-195): entonces sí se
         // conduce. La marca la dejó este cliente hace menos de 15 min mientras conducía esta
         // misma sesión, así que no es la "blind tab" del párrafo de arriba: es la misma pestaña
         // tras la actualización. Se sigue contando y grabando (writeSession encola si no hay
@@ -509,7 +509,7 @@ export default function TrackTimePage() {
   }
 
   /**
-   * Reanudar tras una recarga cuando el servidor no contesta (D-NEXT).
+   * Reanudar tras una recarga cuando el servidor no contesta (D-195).
    *
    * Igual que la adopción normal pero sin esperar la confirmación: se arma el tick y la captura
    * de escritorio contra la sesión de la marca, y la confirmación se reintenta con backoff

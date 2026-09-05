@@ -8,7 +8,7 @@ import { cerrarSesionesHuerfanas } from "@/lib/timetracker/live-session-cron";
 // with a schedule (A/B/C or custom) has their standard shifts laid out for THIS
 // week and NEXT week. Idempotent — only inserts what's missing.
 //
-// Desde D-NEXT este cron lleva ADEMÁS el cierre de sesiones huérfanas del cronómetro de Time
+// Desde D-195 este cron lleva ADEMÁS el cierre de sesiones huérfanas del cronómetro de Time
 // Tracker (al final, `orphans` en la respuesta). Va aquí y no en un cron propio porque Vercel
 // Hobby admite dos crons y los dos están ocupados; misma hora (08:00 UTC), mismo secreto. La
 // regla está en lib/timetracker/live-session.ts y la ruta /timetracker/api/close-orphan-sessions
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  // `?verify=1`: confirma el secreto con 200 sin rodar horarios ni cerrar sesiones (D-NEXT).
+  // `?verify=1`: confirma el secreto con 200 sin rodar horarios ni cerrar sesiones (D-195).
   if (new URL(req.url).searchParams.get("verify") === "1") {
     return NextResponse.json({ ok: true, verify: true });
   }
@@ -99,7 +99,7 @@ export async function GET(req: Request) {
     }
   }
 
-  // Parte B de D-NEXT: sesiones del cronómetro sin latido desde hace más de 15 min, cerradas
+  // Parte B de D-195: sesiones del cronómetro sin latido desde hace más de 15 min, cerradas
   // en su último latido. Aislado con try/catch: si esto falla, los horarios ya rodaron.
   let orphans: Awaited<ReturnType<typeof cerrarSesionesHuerfanas>> | { ok: false; error: string };
   try {

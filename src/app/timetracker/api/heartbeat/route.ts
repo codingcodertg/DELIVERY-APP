@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * El último latido antes de descargar la página (D-NEXT).
+ * El último latido antes de descargar la página (D-195).
  *
  * Cuando el banner de actualización recarga, o la pestaña se cierra, o el escritorio hace F5,
  * el tick de diez segundos ya no llega a escribir. `navigator.sendBeacon` es lo único que el

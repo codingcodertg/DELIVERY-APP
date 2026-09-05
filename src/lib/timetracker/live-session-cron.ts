@@ -1,7 +1,7 @@
 import { huerfanasDe, type SesionViva } from "./live-session";
 
 /**
- * Parte B de D-NEXT: cerrar las sesiones huérfanas desde un cron, no solo al abrir la pantalla.
+ * Parte B de D-195: cerrar las sesiones huérfanas desde un cron, no solo al abrir la pantalla.
  *
  * El guardián de huérfanas de `(timetracker)/page.tsx` solo corre cuando alguien abre el
  * cronómetro. Una sesión de quien se fue sin parar seguía `is_live` para siempre y salía en
