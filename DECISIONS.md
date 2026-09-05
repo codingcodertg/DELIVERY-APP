@@ -9013,11 +9013,23 @@ para que, si alguna vez se llena, se pierdan los días más viejos y no los reci
 
 ### G-19 · Tres bucles con un `UPDATE` por fila en HR
 
-Duplicar pregunta, reordenar preguntas y añadir etapa hacían un `await` a Supabase por fila. Cada uno
-pasa a **un solo `upsert`** con `onConflict: "id"` y las **filas completas** del estado cargado, no solo
-`{id, sort}`: el lado insert de `ON CONFLICT` sigue validando las columnas `NOT NULL`. Mismo
-resultado en la base; en añadir etapa, un fallo del desplazamiento ahora se avisa y para el insert
-en vez de tragarse.
+Duplicar pregunta, reordenar preguntas y añadir etapa hacían un `await` a Supabase por fila, **en
+serie**. **Qué cambia:** las mismas escrituras salen ahora **en paralelo** (`Promise.all`), una ida y
+vuelta en vez de N. **Qué NO cambia:** se escribe **la misma columna que antes, `sort`, y solo esa**
+(`update({ sort })` por fila). La aritmética de los pares `{ id, sort }` está en
+`src/lib/recruiting/sort-plan.ts` (`bumpSort`, `sortByIds`) y su prueba compara la salida con los
+bucles viejos, reproducidos tal cual, sobre datos sintéticos: mismos ids, mismos `sort`, y un parche
+solo lleva `id` y `sort`. En añadir etapa, un fallo del desplazamiento ahora se avisa y para el
+insert en vez de tragarse.
+
+**Nota del mismo día (CAMBIOS del auditor, confirmado por el orquestador):** el primer intento hacía
+**un `upsert` con las filas completas** del estado del cliente. Eso cambiaba la semántica sin decirlo:
+si otra persona había editado `text`, `weight`, `active` o `role` y este cliente aún no lo había
+recibido, reordenar pisaba esa edición con el valor viejo; en preguntas la ventana es la latencia
+del realtime, pero **`stages` no tiene canal realtime** y el estado podía llevar minutos desfasado,
+con lo que añadir una etapa reescribía `key`, `label`, `color` y `type` de todas las desplazadas.
+Se descartó; y el criterio de "mismo resultado que los bucles" no tenía prueba. Las dos cosas se
+corrigieron en un commit aparte.
 
 ### G-3 · Tres saltos en los enlaces viejos del fichaje
 
