@@ -8038,7 +8038,7 @@ dos idiomas y en los dos temas.
 
 ## D-188 · La app se llama RTG Hub en el código; RDZ queda como marca de la empresa. Paso 1 de 11 del plan de renombre
 
-**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar · **Pedido por:** Andrés ·
+**Fecha:** 2026-09-04 · **Versión:** timetracker 0.53.0, package.json 1.113.0 · **Pedido por:** Andrés ·
 **Plan:** `docs/PLAN-rename-rtg-hub.md`
 
 ### Qué se pidió
@@ -8160,7 +8160,7 @@ el merge con *Run workflow* y `verify=1`, como dice el plan. Nadie abrió el APK
 recompilados: no existen todavía. `verify.mjs` en verde (711 pasados | 3 saltados, igual que
 `main`): ninguna prueba cubre estas URLs.
 
-## D-NEXT · Nómina: la pestaña "Period" desaparece y pasa a ser la cabecera de "Pay"; la fecha manda desde la URL
+## D-190 · Nómina: la pestaña "Period" desaparece y pasa a ser la cabecera de "Pay"; la fecha manda desde la URL
 
 **Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés ·
 **Plan:** `docs/PLAN-nomina-period-en-pay.md`
