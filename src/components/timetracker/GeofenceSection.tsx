@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getGeofences, setSiteActive } from "@/app/timetracker/clock-in/actions/sites";
 import { GeofenceMap, type Fence } from "./GeofenceMap";
 import { GeofenceEditor } from "./GeofenceEditor";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * Las geocercas de las tiendas, dentro de Ajustes de Time Tracker: verlas, encenderlas,
@@ -16,8 +17,11 @@ import { GeofenceEditor } from "./GeofenceEditor";
  * El editor está en GeofenceEditor y guarda con las MISMAS acciones de servidor que usaba
  * la pantalla vieja, que son las que calculan el centro del polígono y comprueban el
  * permiso. Cambiar de mapa no era motivo para tener dos formas de escribir una geocerca.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.geo.*. Los nombres de los sitios son dato.
  */
 export function GeofenceSection() {
+  const t = useT();
   const [sites, setSites] = useState<Fence[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -39,21 +43,20 @@ export function GeofenceSection() {
     setBusy(f.id);
     const res = await setSiteActive(f.id, !f.active);
     setBusy(null);
-    if (!res.ok) { setErr(res.message ?? "Could not update the site."); return; }
+    if (!res.ok) { setErr(res.message ?? t("mgr.geo.updateFail")); return; }
     await load();
   }
 
   return (
     <>
       <div className="hr" />
-      <h3 style={{ color: "var(--tt-muted)" }}>Job sites · geofencing</h3>
+      <h3 style={{ color: "var(--tt-muted)" }}>{t("mgr.geo.title")}</h3>
       <p className="small muted" style={{ marginTop: 0 }}>
-        A punch counts as on-site when it falls inside one of these. Turning a site off does not delete it —
-        punches there start being flagged as off-site instead.
+        {t("mgr.geo.note")}
       </p>
 
       {editing === null && (
-        <button className="btn-ghost btn-sm" onClick={() => setEditing("new")}>+ New job site</button>
+        <button className="btn-ghost btn-sm" onClick={() => setEditing("new")}>{t("mgr.geo.new")}</button>
       )}
       {editing !== null && (
         <GeofenceEditor
@@ -65,15 +68,15 @@ export function GeofenceSection() {
 
       {err && <div className="banner err">{err}</div>}
       {!loaded ? (
-        <div className="hint">Loading…</div>
+        <div className="hint">{t("mgr.geo.loading")}</div>
       ) : sites.length === 0 ? (
-        <p className="small muted">No job sites yet.</p>
+        <p className="small muted">{t("mgr.geo.none")}</p>
       ) : (
         <>
           <GeofenceMap fences={sites} />
           <table className="orders" style={{ marginTop: 12 }}>
             <thead>
-              <tr><th>Site</th><th>Shape</th><th style={{ textAlign: "right" }}>Padding</th><th /><th /></tr>
+              <tr><th>{t("mgr.geo.colSite")}</th><th>{t("mgr.geo.colShape")}</th><th style={{ textAlign: "right" }}>{t("mgr.geo.colPadding")}</th><th /><th /></tr>
             </thead>
             <tbody>
               {sites.map((f) => (
@@ -81,18 +84,18 @@ export function GeofenceSection() {
                   <td>{f.name}</td>
                   <td className="small muted">
                     {f.boundary && f.boundary.length >= 3
-                      ? `Outline · ${f.boundary.length} points`
-                      : `Circle · ${f.radius_meters ?? "?"} m`}
+                      ? t("mgr.geo.outlinePoints", { n: f.boundary.length })
+                      : t("mgr.geo.circleRadius", { r: f.radius_meters ?? "?" })}
                   </td>
                   <td style={{ textAlign: "right" }} className="small muted">
                     {f.padding_meters != null ? `${f.padding_meters} m` : "—"}
                   </td>
-                  <td>{f.active ? <span className="pill on">active</span> : <span className="pill off">off</span>}</td>
+                  <td>{f.active ? <span className="pill on">{t("mgr.geo.active")}</span> : <span className="pill off">{t("mgr.geo.off")}</span>}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className="btn-ghost btn-sm" disabled={busy === f.id} onClick={() => toggle(f)}>
-                      {f.active ? "Turn off" : "Turn on"}
+                      {f.active ? t("mgr.geo.turnOff") : t("mgr.geo.turnOn")}
                     </button>{" "}
-                    <button className="btn-ghost btn-sm" onClick={() => setEditing(f.id)}>Edit outline</button>
+                    <button className="btn-ghost btn-sm" onClick={() => setEditing(f.id)}>{t("mgr.geo.editOutline")}</button>
                   </td>
                 </tr>
               ))}
