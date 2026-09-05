@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { googleMapsEnabled, loadGoogleMaps } from "@/lib/google-maps-loader";
 import { addSite, updateSite, geocodeForMap } from "@/app/timetracker/clock-in/actions/sites";
 import type { Fence } from "./GeofenceMap";
+import { useT } from "@/lib/timetracker/i18n";
 
 type LatLng = { lat: number; lng: number };
 
@@ -23,6 +24,8 @@ type LatLng = { lat: number; lng: number };
  * Se sigue guardando con las MISMAS acciones (`addSite` / `updateSite`), que son las que
  * calculan el centro del polígono y comprueban el permiso. Un editor nuevo no es motivo para
  * tener una segunda forma de escribir una geocerca.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.geoed.*. Solo texto; el mapa y el guardado no cambian.
  */
 export function GeofenceEditor({
   site,
@@ -33,6 +36,7 @@ export function GeofenceEditor({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const editing = !!site;
   const hasPoly = !!site?.boundary && site.boundary.length >= 3;
 
@@ -64,13 +68,13 @@ export function GeofenceEditor({
   }
 
   useEffect(() => {
-    if (!googleMapsEnabled()) { setErr("Google Maps is not configured."); return; }
+    if (!googleMapsEnabled()) { setErr(t("mgr.geoed.notConfigured")); return; }
     let cancelled = false;
 
     (async () => {
       let maps: typeof google.maps;
       try { maps = await loadGoogleMaps(); }
-      catch (e) { if (!cancelled) setErr(e instanceof Error ? e.message : "Google Maps failed to load."); return; }
+      catch (e) { if (!cancelled) setErr(e instanceof Error ? e.message : t("mgr.geoed.loadFail")); return; }
       if (cancelled || !box.current) return;
       mapsRef.current = maps;
 
@@ -159,7 +163,7 @@ export function GeofenceEditor({
     setBusy(true); setErr(null);
     const hit = await geocodeForMap(search);
     setBusy(false);
-    if (!hit) { setErr("Address not found."); return; }
+    if (!hit) { setErr(t("mgr.geoed.addressNotFound")); return; }
     mapRef.current?.setCenter({ lat: hit.lat, lng: hit.lng });
     mapRef.current?.setZoom(19);
     if (mode === "circle") circleRef.current?.setCenter({ lat: hit.lat, lng: hit.lng });
@@ -167,7 +171,7 @@ export function GeofenceEditor({
   }
 
   function useMyLocation() {
-    if (!navigator.geolocation) { setErr("This device can't share its location."); return; }
+    if (!navigator.geolocation) { setErr(t("mgr.geoed.noGeo")); return; }
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -177,23 +181,23 @@ export function GeofenceEditor({
         mapRef.current?.setZoom(19);
         if (mode === "circle") circleRef.current?.setCenter(p);
       },
-      () => { setBusy(false); setErr("Couldn't get your location — allow location access."); },
+      () => { setBusy(false); setErr(t("mgr.geoed.geoFail")); },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
   async function save() {
     setErr(null); setMsg(null);
-    if (!name.trim()) { setErr("Give the site a name."); return; }
+    if (!name.trim()) { setErr(t("mgr.geoed.needName")); return; }
 
     let payload: { name: string; lat: number; lng: number; radius: number; boundary?: LatLng[] | null; padding?: number };
     if (mode === "polygon") {
       const pts = currentPoints();
-      if (pts.length < 3) { setErr("Click at least 3 corners on the map to outline the property."); return; }
+      if (pts.length < 3) { setErr(t("mgr.geoed.needCorners")); return; }
       payload = { name: name.trim(), boundary: pts, padding: parseInt(padding || "25", 10), lat: 0, lng: 0, radius: 0 };
     } else {
       const c = circleRef.current?.getCenter();
-      if (!c) { setErr("Place the circle on the map first."); return; }
+      if (!c) { setErr(t("mgr.geoed.needCircle")); return; }
       payload = { name: name.trim(), lat: c.lat(), lng: c.lng(), radius: parseInt(radius || "100", 10), boundary: null };
     }
 
@@ -207,8 +211,8 @@ export function GeofenceEditor({
   return (
     <div className="card" style={{ marginTop: 10 }}>
       <div className="between">
-        <h3 style={{ margin: 0 }}>{editing ? `Edit ${site!.name}` : "New job site"}</h3>
-        <button className="btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+        <h3 style={{ margin: 0 }}>{editing ? t("mgr.geoed.editTitle", { name: site!.name }) : t("mgr.geoed.newTitle")}</h3>
+        <button className="btn-ghost btn-sm" onClick={onCancel}>{t("common.cancel")}</button>
       </div>
 
       {err && <div className="banner err">{err}</div>}
@@ -216,29 +220,29 @@ export function GeofenceEditor({
 
       <div className="grid g2" style={{ marginTop: 10 }}>
         <div className="field">
-          <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brownsville" />
+          <label>{t("mgr.geoed.name")}</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("mgr.geoed.namePh")} />
         </div>
         <div className="field">
-          <label>Shape</label>
+          <label>{t("mgr.geoed.shape")}</label>
           <select value={mode} onChange={(e) => setMode(e.target.value as "polygon" | "circle")}>
-            <option value="polygon">Outline the property</option>
-            <option value="circle">Circle around a point</option>
+            <option value="polygon">{t("mgr.geoed.shapeOutline")}</option>
+            <option value="circle">{t("mgr.geoed.shapeCircle")}</option>
           </select>
         </div>
       </div>
 
       <div className="field">
-        <label>Find the place</label>
+        <label>{t("mgr.geoed.findPlace")}</label>
         <div className="row" style={{ gap: 6 }}>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && findAddress()}
-            placeholder="🔍 Address, city"
+            placeholder={t("mgr.geoed.searchPh")}
           />
-          <button className="btn-ghost btn-sm" disabled={busy} onClick={findAddress}>Search</button>
-          <button className="btn-ghost btn-sm" disabled={busy} onClick={useMyLocation}>Use my location</button>
+          <button className="btn-ghost btn-sm" disabled={busy} onClick={findAddress}>{t("mgr.geoed.search")}</button>
+          <button className="btn-ghost btn-sm" disabled={busy} onClick={useMyLocation}>{t("mgr.geoed.useMyLocation")}</button>
         </div>
       </div>
 
@@ -246,32 +250,32 @@ export function GeofenceEditor({
 
       {mode === "polygon" ? (
         <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <span className="chip">{count} corner{count === 1 ? "" : "s"}</span>
-          <button className="btn-ghost btn-sm" onClick={undo} disabled={count === 0}>Undo last</button>
-          <button className="btn-ghost btn-sm" onClick={clear} disabled={count === 0}>Clear</button>
-          <span className="small muted">Click to add a corner · drag a corner to move it · drag the midpoint of a side to split it.</span>
+          <span className="chip">{count === 1 ? t("mgr.geoed.cornerOne", { n: count }) : t("mgr.geoed.cornerMany", { n: count })}</span>
+          <button className="btn-ghost btn-sm" onClick={undo} disabled={count === 0}>{t("mgr.geoed.undo")}</button>
+          <button className="btn-ghost btn-sm" onClick={clear} disabled={count === 0}>{t("mgr.geoed.clear")}</button>
+          <span className="small muted">{t("mgr.geoed.polyHint")}</span>
         </div>
       ) : (
-        <p className="small muted" style={{ marginTop: 8 }}>Drag the circle to move it, drag its edge to resize.</p>
+        <p className="small muted" style={{ marginTop: 8 }}>{t("mgr.geoed.circleHint")}</p>
       )}
 
       <div className="grid g2" style={{ marginTop: 10 }}>
         {mode === "polygon" ? (
           <div className="field">
-            <label>Padding (m)</label>
+            <label>{t("mgr.geoed.padding")}</label>
             <input value={padding} onChange={(e) => setPadding(e.target.value)} inputMode="numeric" />
-            <div className="hint">How far outside the outline still counts as on-site — for GPS drift.</div>
+            <div className="hint">{t("mgr.geoed.paddingHint")}</div>
           </div>
         ) : (
           <div className="field">
-            <label>Radius (m)</label>
+            <label>{t("mgr.geoed.radius")}</label>
             <input value={radius} onChange={(e) => setRadius(e.target.value)} inputMode="numeric" />
           </div>
         )}
       </div>
 
       <button className="btn-primary" style={{ marginTop: 12 }} disabled={busy} onClick={save}>
-        {busy ? "Saving…" : editing ? "Save changes" : "Create job site"}
+        {busy ? t("mgr.geoed.saving") : editing ? t("common.saveChanges") : t("mgr.geoed.create")}
       </button>
     </div>
   );
