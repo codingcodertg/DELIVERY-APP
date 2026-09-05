@@ -8638,3 +8638,53 @@ la lógica y 6 del cron). Mutaciones: umbral a 5 min y cierre "ahora" en vez de 
 tiran 7 pruebas; PATCH sin `is_live=eq.true` y perfil `public` tiran 3. La prueba real es el dueño
 arrancando el cronómetro y forzando una versión nueva; y `roll-schedules` a las 08:00 UTC con su
 `orphans` en el log de Vercel.
+
+## D-NEXT · La cabecera de Nómina, más grande y con las tarjetas renombradas: "Total en sitio" y "Total remoto"
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+
+### Qué se pidió
+
+Petición literal, con capturas: *"hazlo más grande y agradable a la vista; la primera card que dice
+Clock-in hours será TOTAL ON SITE y la que dice Project será REMOTE TIME TOTAL, en ambos idiomas, y
+que diga más grande"*. Solo interfaz, sobre la cabecera de D-190 (`PayrollResumen`).
+
+### Qué se decidió
+
+1. **Etiquetas:** la tarjeta de horas de fichaje pasa a **"Total on site" / "Total en sitio"** y la de
+   horas de sesiones a **"Remote time total" / "Total remoto"**; la tercera ("Everyone" / "Todos")
+   sigue. Cambian **solo los rótulos**: los números y su origen (`period_hours`, D-190) no se tocan,
+   y siguen sin sumarse (D-102), con la nota del pie intacta.
+2. **Más grande:** el número es lo primero que se ve (40 px, 34 en móvil, tabular), la etiqueta va en
+   mayúsculas pequeñas y legible, y hay más aire entre tarjetas (16 px) y dentro (20×22 px). Estilos
+   nuevos `.pay-*` en `timetracker.css`, **solo con variables `--tt-*`** del módulo (oscuro por
+   defecto, claro con `data-theme="light"`); ningún color a pelo, que fue lo que D-187 pagó.
+3. **Tres en fila cuando caben, apiladas cuando no:** `repeat(auto-fit, minmax(220px, 1fr))` en vez
+   del `.g3` fijo, que solo sabía "tres" o "una" (corte en 720 px) y dejaba un ancho intermedio
+   feo. La navegación de periodo pasa a ser una **píldora dentro del mismo bloque** que el título:
+   al envolverse en pantallas medianas queda pegada a él, no flotando sobre un fondo cortado, que
+   es lo que enseñaba una de las capturas; en móvil ocupa el ancho entero.
+4. **Los títulos son totales POR VÍA, no por persona** (aclaración del dueño el mismo día): "Total
+   en sitio" es todo lo **fichado**, sea quien sea, y "Total remoto" todo lo **cronometrado**. Como
+   hay remotos que fichan y gente de sitio que cronometra, el desglose pequeño de cada tarjeta
+   (datos reales de `period_hours` por `worker_type`, D-190) dice **la vía y el tipo**: *"De
+   fichaje: en sitio X · remotos Y"* / *"Punched: on site X · remote Y"* y *"De cronómetro: en sitio
+   X · remotos Y"* / *"Timer: on site X · remote Y"*. Un título a secas prometería de más (D-044).
+5. Claves: `mgr.pay.clockHours` y `mgr.pay.projectHours` se **renombran** a `mgr.pay.totalOnSite` y
+   `mgr.pay.totalRemote` (nadie más las usaba, comprobado por grep), y entran `mgr.pay.byTypePunched`
+   y `mgr.pay.byTypeTimer`, en `en` y `es`, **literales** en cada tarjeta y no por variable, porque
+   la prueba de claves de D-187 lee el fuente buscando `t("…")` y una clave por variable se le
+   escaparía. `PayrollResumen.tsx` ya estaba en esa prueba.
+
+### Qué NO cambia
+
+La aritmética, `period_hours`, `PayrollTimesheets`, `ManagerReports`, el selector de secciones, los
+avisos de `revisar` y `guessed`. Sin versión, sin migración.
+
+### Lo no verificado
+
+**Nadie ve la pantalla con sesión real** (sin `.env.local`), ni en los dos temas ni en móvil: el
+tamaño y el ajuste van por lectura del CSS. `verify.mjs` en verde: 757 pasados | 3 saltados, igual que
+`main` (no hay prueba nueva; la de claves ya cubría el fichero). Mutación: `mgr.pay.byTypeTimer` borrada
+solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo Nómina en
+escritorio y en el teléfono, en los dos idiomas y los dos temas.

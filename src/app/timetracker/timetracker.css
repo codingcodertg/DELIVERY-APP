@@ -82,6 +82,28 @@
 .timetracker-module .stat{background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:12px;padding:12px 14px}
 .timetracker-module .stat .n{font-size:22px;font-weight:800}
 .timetracker-module .stat .l{font-size:12px;color:var(--tt-muted)}
+
+/* Cabecera de Nómina (D-NEXT): más grande, a petición del dueño. Solo variables del módulo:
+   oscuro por defecto, claro con data-theme="light". Las tarjetas van a tres columnas cuando
+   caben (>= 3 x 220px) y se apilan cuando no, sin ancho intermedio raro: auto-fit decide. La
+   navegación de periodo es una píldora dentro del mismo bloque que el título, así que al
+   envolverse en pantallas medianas queda pegada a él y no flotando sobre un fondo cortado. */
+.timetracker-module .pay-card{padding:22px 24px}
+.timetracker-module .pay-head{display:flex;justify-content:space-between;align-items:center;gap:12px 20px;flex-wrap:wrap}
+.timetracker-module .pay-title{margin:0;font-size:20px;font-weight:800;letter-spacing:.01em}
+.timetracker-module .pay-nav{display:inline-flex;align-items:center;gap:6px;background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:999px;padding:4px 6px;max-width:100%}
+.timetracker-module .pay-range{font-size:13px;font-weight:600;padding:0 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.timetracker-module .pay-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}
+.timetracker-module .pay-stat{background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.timetracker-module .pay-n{font-size:40px;line-height:1.05;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.timetracker-module .pay-l{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tt-txt)}
+.timetracker-module .pay-sub{font-size:13px;color:var(--tt-muted);margin-top:2px}
+.timetracker-module .pay-note{color:var(--tt-muted);font-size:12.5px;margin:16px 0 0}
+@media(max-width:520px){
+  .timetracker-module .pay-card{padding:18px}
+  .timetracker-module .pay-n{font-size:34px}
+  .timetracker-module .pay-nav{width:100%;justify-content:space-between}
+}
 .timetracker-module .pill{font-size:11px;padding:2px 8px;border-radius:999px}
 .timetracker-module .pill.on{background:#12351f;color:#5df0a5}
 .timetracker-module .pill.off{background:#3a1f27;color:#ff9aa6}
