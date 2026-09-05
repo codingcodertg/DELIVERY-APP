@@ -17,7 +17,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * `storeScope` que usan las pantallas de fichaje. Un gerente con tienda ve su cuadrilla y
  * nadie más, y esa regla vive en un solo sitio.
  *
- * G-9 (D-NEXT): textos por claves mgr.inbox.*. Los tipos de tiempo libre y de excepción son
+ * G-9 (D-202): textos por claves mgr.inbox.*. Los tipos de tiempo libre y de excepción son
  * enumerados fijos del código (no configurables), así que su etiqueta es texto de pantalla y
  * se traduce; el valor crudo sigue de respaldo para un tipo que el mapa no conozca.
  */

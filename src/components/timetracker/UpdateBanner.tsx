@@ -13,7 +13,7 @@ import { useT } from "@/lib/timetracker/i18n";
 // electron-updater's state in the desktop shell (desktop/main.js's
 // tt:update IPC channel): downloading progress and, once ready, a
 // "Restart & install" button. Desktop-only, no-ops everywhere else.
-// G-9 (D-NEXT): textos por claves update.*. El mensaje de error de electron-updater (u.message) no se toca.
+// G-9 (D-202): textos por claves update.*. El mensaje de error de electron-updater (u.message) no se toca.
 export function TtUpdateBanner() {
   const [u, setU] = useState<DesktopUpdateState | null>(null);
   const [desktopClient, setDesktopClient] = useState(false);

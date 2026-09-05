@@ -18,7 +18,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * la pantalla vieja, que son las que calculan el centro del polígono y comprueban el
  * permiso. Cambiar de mapa no era motivo para tener dos formas de escribir una geocerca.
  *
- * G-9 (D-NEXT): textos por claves mgr.geo.*. Los nombres de los sitios son dato.
+ * G-9 (D-202): textos por claves mgr.geo.*. Los nombres de los sitios son dato.
  */
 export function GeofenceSection() {
   const t = useT();

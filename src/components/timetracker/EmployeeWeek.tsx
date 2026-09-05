@@ -15,7 +15,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * Se pide **al abrir**, una fila cada vez. Cargar la semana de las doce personas para que
  * alguien mire una sería doce veces el trabajo para un doceavo del provecho.
  *
- * G-9 (D-NEXT): textos por claves mgr.ew.*. fmtDayLong no se toca: el día largo sigue en inglés;
+ * G-9 (D-202): textos por claves mgr.ew.*. fmtDayLong no se toca: el día largo sigue en inglés;
  * hhmm sigue en "en-US" (formato de hora, no texto).
  */
 

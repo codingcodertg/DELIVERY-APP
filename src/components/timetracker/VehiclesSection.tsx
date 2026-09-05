@@ -16,7 +16,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * kilometraje colgando de un vehículo que no existe. Apagado deja de ofrecerse al empezar un
  * viaje y su historial sigue en pie.
  *
- * G-9 (D-NEXT): textos por claves mgr.veh.*. Nombre y placa de cada vehículo son dato.
+ * G-9 (D-202): textos por claves mgr.veh.*. Nombre y placa de cada vehículo son dato.
  */
 export function VehiclesSection() {
   const t = useT();

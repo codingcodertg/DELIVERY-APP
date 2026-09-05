@@ -22,7 +22,7 @@ import { getLang, useT } from "@/lib/timetracker/i18n";
  * motivo por el que ese visor existe — y una foto de fichaje se abre precisamente para
  * ampliarla: una cara, una matrícula, dónde está parado alguien.
  *
- * G-9 (D-NEXT): textos por claves mgr.photos.*. Tres frases ya estaban en los dos idiomas, pero
+ * G-9 (D-202): textos por claves mgr.photos.*. Tres frases ya estaban en los dos idiomas, pero
  * por el idioma del HUB (usePrefs), no por el de Time Tracker: la misma pantalla podía salir
  * mitad y mitad. Ahora todo sale por el idioma de Time Tracker, como el resto de Auditoría.
  * fmtDayLong no se toca: el día largo sigue en inglés.

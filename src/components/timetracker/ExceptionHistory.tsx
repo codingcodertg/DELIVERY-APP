@@ -19,7 +19,7 @@ import { getLang, useT } from "@/lib/timetracker/i18n";
  * (D-106): dos botones que hacen lo mismo en dos pantallas acaban en dos versiones de la
  * verdad sobre si algo está atendido. Lo que hay aquí es el enlace a esa cola.
  *
- * G-9 (D-NEXT): textos por claves mgr.exc.*. Los MOTIVOS (r.reasons) son valores guardados y
+ * G-9 (D-202): textos por claves mgr.exc.*. Los MOTIVOS (r.reasons) son valores guardados y
  * se enseñan tal cual; los tipos de excepción son un enumerado fijo del código y se traducen.
  * fmtDayLong no se toca: el día largo sigue en inglés.
  */

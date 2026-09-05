@@ -6,7 +6,7 @@ import { useT } from "@/lib/timetracker/i18n";
 
 // Fixed bottom-left pill reporting anything buffered by the offline queue
 // (D-074), ported from timetracker-clean's App.jsx OfflineIndicator.
-// G-9 (D-NEXT): textos por claves offline.*.
+// G-9 (D-202): textos por claves offline.*.
 export function OfflineIndicator() {
   const t = useT();
   const [s, setS] = useState<OfflineStatus>({ online: true, sessions: 0, shots: 0, total: 0 });

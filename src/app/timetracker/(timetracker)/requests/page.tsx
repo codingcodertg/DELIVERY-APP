@@ -18,7 +18,7 @@ import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
 // petición sea de horas y la otra de días no cambia a qué viene la persona. En dos pestañas
 // distintas había que acordarse de en cuál estaba cada cosa.
 //
-// G-9 (D-NEXT): traducida entera por claves emp.req.*. El texto de "semana cerrada" ya existía
+// G-9 (D-202): traducida entera por claves emp.req.*. El texto de "semana cerrada" ya existía
 // (emp.req.weekLocked, D-190) y aquí estaba duplicado a mano; ahora se usa la clave.
 
 function hhmm(ms: number | null): string {

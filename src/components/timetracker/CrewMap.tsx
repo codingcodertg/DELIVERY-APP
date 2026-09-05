@@ -21,7 +21,7 @@ export type CrewPoint = { lat: number; lng: number; label: string; offSite: bool
  * Se monta bajo demanda. Leaflet y su hoja de estilos pesan, y este mapa se mira de vez en
  * cuando; cargarlo siempre encarecería una pantalla que se deja abierta todo el día.
  *
- * G-9 (D-NEXT): textos por claves mgr.map.*. Las etiquetas de los puntos (p.label) son dato y la
+ * G-9 (D-202): textos por claves mgr.map.*. Las etiquetas de los puntos (p.label) son dato y la
  * atribución de Esri es la que exige el proveedor de imágenes; ninguna de las dos se traduce.
  */
 export function CrewMap({ points }: { points: CrewPoint[] }) {

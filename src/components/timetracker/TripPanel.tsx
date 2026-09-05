@@ -26,7 +26,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * Las acciones de servidor son las mismas de siempre (`startTrip`, `logStop`, `finishStop`,
  * `endTrip`), así que la geocodificación de paradas, el permiso y las reglas no cambian.
  *
- * G-9 (D-NEXT): textos por claves emp.trip.*. Los motivos son un enumerado fijo del código (el
+ * G-9 (D-202): textos por claves emp.trip.*. Los motivos son un enumerado fijo del código (el
  * valor `v` es lo que se guarda y no cambia); los nombres de vehículo y de parada son dato.
  */
 

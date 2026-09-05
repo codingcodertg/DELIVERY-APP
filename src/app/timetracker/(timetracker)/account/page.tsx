@@ -11,7 +11,7 @@ import { NotificationLanguage } from "@/components/timetracker/NotificationLangu
 // pay-info self-edit, read-only "my setup" chips (set by a manager), change
 // password, and sign out of every device.
 //
-// G-9 (D-NEXT): traducida entera por claves `emp.acc.*`. Los métodos de pago
+// G-9 (D-202): traducida entera por claves `emp.acc.*`. Los métodos de pago
 // (APP_SETTINGS.paymentMethods) son DATO configurado por la empresa y se enseñan tal cual.
 
 function blank(me: Employee) {

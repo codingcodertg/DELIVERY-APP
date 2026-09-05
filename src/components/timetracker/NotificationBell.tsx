@@ -16,7 +16,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * mensajes se piden solo al abrir el panel. La campana está en todas las pantallas, así que
  * cobrar sesenta filas cada vez que alguien navega habría sido pagar mucho por un número.
  *
- * G-9 (D-NEXT): textos por claves bell.*. El texto de cada aviso (it.message) viene guardado del
+ * G-9 (D-202): textos por claves bell.*. El texto de cada aviso (it.message) viene guardado del
  * servidor y se enseña tal cual.
  */
 export function NotificationBell() {

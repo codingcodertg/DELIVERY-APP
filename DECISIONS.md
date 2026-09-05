@@ -9064,9 +9064,9 @@ comportamiento visible (un pedido de hace más de 120 días, terminado, no apare
 pantalla lo pida): es lo que pedía el hallazgo y está listado arriba. `verify.mjs` en verde sobre
 `.next` limpio, en solitario: 799 pasados | 3 saltados (main: 793 | 3; +6 son la prueba de G-15).
 
-## D-NEXT · Auditoría 2026-09-05, lote 4 (Time Tracker en dos idiomas): las 15 pantallas que quedaban en inglés, y fuera las claves que no usa nadie
+## D-202 · Auditoría 2026-09-05, lote 4 (Time Tracker en dos idiomas): las 15 pantallas que quedaban en inglés, y fuera las claves que no usa nadie
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker se toca) ·
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.61.0, package.json 1.119.1 (solo Time Tracker se toca) ·
 **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-9 y G-11). Un commit por fichero, en el
 orden del encargo, y uno final para las claves muertas. Solo texto: **ningún comportamiento cambia.**
 

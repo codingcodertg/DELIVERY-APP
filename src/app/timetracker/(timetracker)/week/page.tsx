@@ -14,7 +14,7 @@ import type { Assignment, Session } from "@/lib/timetracker/types";
 // only or offline-queue concerns here (it's a report, not a write path), so
 // this port is closer to 1:1 than Track Time was.
 //
-// G-9 (D-NEXT): el resto de textos pasa a claves emp.week.*. fmtDayLong/weekLabel/breaksText
+// G-9 (D-202): el resto de textos pasa a claves emp.week.*. fmtDayLong/weekLabel/breaksText
 // (helpers, con LOCALE fijo) no se tocan: las fechas largas siguen en inglés.
 export default function MyWeekPage() {
   const { myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();

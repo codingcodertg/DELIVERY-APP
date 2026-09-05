@@ -25,7 +25,7 @@ type LatLng = { lat: number; lng: number };
  * calculan el centro del polígono y comprueban el permiso. Un editor nuevo no es motivo para
  * tener una segunda forma de escribir una geocerca.
  *
- * G-9 (D-NEXT): textos por claves mgr.geoed.*. Solo texto; el mapa y el guardado no cambian.
+ * G-9 (D-202): textos por claves mgr.geoed.*. Solo texto; el mapa y el guardado no cambian.
  */
 export function GeofenceEditor({
   site,
