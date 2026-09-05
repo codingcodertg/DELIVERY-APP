@@ -39,29 +39,43 @@ seguir tomando screenshots y así no perder tiempo contando"*.
   capturas offline se guardan y se suben al volver la red (`offlineQueue.ts:144`),
   y tras la reconstrucción se re-arma la captura (`page.tsx:391-393`).
 
-## 2. Diseño, en dos partes
+## 2. Diseño — corregido el 2026-09-05 tras la aclaración del dueño
 
-**Parte A — sobrevivir a la actualización (la queja tal cual):**
-1. La página del cronómetro marca el documento mientras `running`
-   (`data-tt-running` en `<html>`), y `safeToReload` devuelve `false` si esa marca
-   existe. El banner se queda visible con **"Actualizar ahora"** para que la persona
-   decida al parar; nunca recarga sola con el reloj corriendo. Cuatro líneas,
-   cubiertas por `app-update.test.ts`, que ya prueba `safeToReload`.
-2. Un **latido final** con `navigator.sendBeacon` en `pagehide`, para que un
-   cierre de pestaña o del PC deje el último `end_ms` grabado en vez de perder
-   hasta 10 s.
-3. Misma guarda para **F5 / Ctrl+R en `desktop/main.js`**, que hoy recargan sin
-   preguntar.
+> **Nota del mismo día.** La primera versión de este plan proponía *no recargar*
+> mientras el reloj corre. El dueño lo rechazó: *"sí quiero poder actualizar,
+> pero que no se pierda la continuidad; que cuando se abra siga de donde dejó"*.
+> Se conserva el texto original arriba (§1) y se sustituye el diseño. La regla 2
+> de documentación: se anota, no se reescribe.
 
-**Parte B — cerrarse solo cuando no hay nadie (el freno):**
-4. Un cron diario en `vercel.json` (`/timetracker/api/close-orphans`, con el
-   mismo `CRON_SECRET`, guardia `cronAuthorized`) que cierre toda sesión
-   `is_live` cuyo último latido tenga más de N minutos, **en su último latido**,
-   exactamente la regla que ya aplica `page.tsx:346-357`. Sin esto, "siempre
-   prendido" es cómo se llegó a las 25 h.
-   Vercel Hobby admite solo 2 crons y ya están ocupados: o se **fusiona con
-   `roll-schedules`** (misma hora, mismo secreto) o va a GitHub Actions como el de
-   fichaje. Se decide al implementar, y se dice.
+**La actualización se hace, y el reloj no se entera.** Lo que se pierde hoy no es
+la sesión (ya está anclada en la base) sino la continuidad en el salto. El
+diseño ataca los tres huecos medidos:
+
+1. **Antes de recargar, dejar todo grabado.** Cuando el banner vaya a recargar (y
+   en `pagehide` en general), la página del cronómetro escribe un **último latido
+   inmediato** con `sendBeacon` y deja una **marca de reanudación** local
+   (`tt_resume_<user>` con id de sesión e instante). Cuatro líneas en el sitio
+   donde hoy ya está el `beforeunload`.
+2. **Al abrir, reanudar sin pasar por el modo "mirón".** La adopción
+   (`page.tsx:306-408`) reconstruye desde la base; si la confirmación falla por
+   red, con marca de reanudación reciente **sigue contando y reintenta** en vez de
+   quedarse mirando sin grabar (D-096 se conserva para la miga sin marca). Se
+   re-arma el tick y `desktopStart` en el mismo paso, como ya hace `:391-393`, para
+   que las capturas continúen sin hueco.
+3. **El reloj sigue contando durante el salto**, porque el tiempo trabajado sale
+   de `start_ms` y no del tick: una recarga de segundos o un reinicio de dos
+   minutos no restan nada. Para que un **cierre corto** tampoco corte, el umbral
+   de huérfana pasa de **5 a 15 minutos** sin latido (`LATIDO_MAX_MS`). Más allá
+   de eso la sesión se cierra **en su último latido**, como hoy: ese es el freno
+   que impide las 25 h fantasma, y el dueño puede ajustar el número.
+4. **Parte B, el cron.** Un trabajo diario que cierre toda sesión `is_live` con
+   más de 15 min sin latido, en su último latido, con la misma regla de
+   `page.tsx:346-357`. Hoy no existe y la huérfana solo se cierra si alguien
+   abre la pantalla. Vercel Hobby tiene sus 2 crons ocupados: se **fusiona con
+   `roll-schedules`** (misma hora, mismo secreto) o va a GitHub Actions; se decide
+   al implementar y se dice.
+5. **F5 / Ctrl+R en `desktop/main.js`**: mismo tratamiento que la recarga del
+   banner (grabar antes, reanudar después), no bloqueo.
 
 ## 3. Lo que NO se hace
 
@@ -69,13 +83,12 @@ seguir tomando screenshots y así no perder tiempo contando"*.
   otro proyecto. Queda escrito para que nadie lo prometa.
 - Auto-stop por inactividad (`idle_seconds` existe pero nadie lo llena,
   `page.tsx:146`): deuda aparte, no de esta rama.
-- Cambiar el mecanismo de adopción ni los frenos existentes.
+- Cambiar la regla de cierre en el último latido (solo su umbral, de 5 a 15 min).
 - Ninguna migración. Ninguna escritura nueva salvo la del cron.
 
 ## 4. Verificación
 
-`verify.mjs`; prueba nueva en `app-update.test.ts` (con marca → no recarga; sin
-marca → igual que hoy); prueba de la regla del cron sobre datos sintéticos, sin
+`verify.mjs`; prueba de la marca de reanudación y del umbral (lógica pura extraída a `src/lib/timetracker/live-session.ts`); prueba de la regla del cron sobre datos sintéticos, sin
 tocar producción (la ruta se prueba con `?verify=1` como el de fichaje). Nadie
 puede reproducir la recarga con sesión real: lo firma el dueño arrancando el
 cronómetro y forzando una versión nueva.
