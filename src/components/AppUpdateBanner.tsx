@@ -95,6 +95,10 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
     const tryReload = () => {
       if (document.hidden || !safeToReload(document) || reloadedRef.current) return;
       reloadedRef.current = true;
+      // Un aviso, no un freno (D-NEXT): la actualización se hace igual. Quien tenga algo que
+      // dejar grabado antes del salto —el cronómetro de Time Tracker, que manda su último
+      // latido y deja la marca de reanudación— escucha este evento. Nadie puede cancelarlo.
+      window.dispatchEvent(new Event("rtg:before-reload"));
       window.location.reload();
     };
     const onBack = () => setTimeout(tryReload, 250);
