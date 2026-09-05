@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { demoDeliveries, demoSettings, demoNotifications, DEMO_USERS } from "@/lib/demo-data";
 import { computeKpis, driverStats, groupVolume, overdueOrders, inDateRange } from "@/lib/analytics";
 import { checkSchedule } from "@/lib/scheduling";
@@ -316,5 +316,32 @@ describe("notifications", () => {
       expect(users.some((u) => u.id === n.user_id), `notif for unknown user ${n.user_id}`).toBe(true);
       expect(orders.some((o) => o.id === n.delivery_id)).toBe(true);
     }
+  });
+});
+
+// D-NEXT. El CI del PR #7 falló en "finds past-due orders that aren't finished" a las 03:57
+// UTC y en local pasaba. `iso()` de demo-data fechaba con el reloj de la MÁQUINA y
+// `isOverdue` compara contra el hoy del NEGOCIO (America/Chicago, `todayISO`): entre la
+// medianoche UTC y la de Chicago la máquina va un día por delante, "ayer" se convertía en
+// "hoy" y los pedidos de ayer dejaban de estar vencidos. Esta prueba fija el reloj en esa
+// ventana Y pone la máquina en UTC, como el runner: con el reloj solo no basta, porque en una
+// máquina que ya esté en el huso de Chicago (la del dueño) el bug no se ve. Con el código de
+// main da 1; con el arreglo sigue dando ≥ 2.
+describe("la demo fecha con el día del negocio, no con el de la máquina", () => {
+  const tzAntes = process.env.TZ;
+  afterEach(() => {
+    vi.useRealTimers();
+    if (tzAntes === undefined) delete process.env.TZ; else process.env.TZ = tzAntes;
+  });
+
+  it("entre medianoche UTC y medianoche de Chicago, los pedidos de ayer siguen vencidos", () => {
+    process.env.TZ = "UTC"; // Node aplica el cambio a las fechas que se creen a partir de aquí
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-05T03:57:00Z")); // 22:57 del 4 en Chicago; ya el 5 en UTC
+    expect(new Date().getTimezoneOffset(), "la máquina tiene que estar en UTC para reproducirlo").toBe(0);
+    const late = overdueOrders(demoDeliveries(demoSettings()));
+    expect(late.length).toBeGreaterThanOrEqual(2);
+    // Y ninguno lleva la fecha de la máquina como "hoy": todos son anteriores al 4.
+    for (const o of late) expect(o.delivery_date!.slice(0, 10) < "2026-09-04").toBe(true);
   });
 });

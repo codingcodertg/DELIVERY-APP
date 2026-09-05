@@ -8261,3 +8261,48 @@ dé los mismos números que Period también es por lectura: misma consulta, mism
 añadidos a la prueba de claves). Mutaciones: la función de periodo rota (`- 1` en vez de `- 5`)
 tira las cuatro pruebas de periodo; una clave borrada solo del español la detecta la prueba de
 claves. La prueba real es el dueño abriendo Nómina en dos semanas distintas, en los dos idiomas.
+
+## D-NEXT · Los datos de demo fechan con el día del negocio, no con el de la máquina
+
+**Fecha:** 2026-09-05 · **Versión:** la decide el orquestador al fusionar; `demo-data.ts` es lógica
+de datos de demo pero corre en el bundle de Deliveries · **Pedido por:** el CI del PR #7
+
+### Qué fallaba
+
+`src/lib/demo-data.test.ts`, "finds past-due orders that aren't finished": esperaba ≥ 2 vencidos y
+el CI dio 1. En local pasaba. El run corrió a las 03:57 UTC del 5 de septiembre de 2026.
+
+### Por qué
+
+Dos definiciones de "hoy" en el mismo cálculo. `iso(daysFromToday)` de `demo-data.ts` hacía
+`new Date()` + `setDate` + `localISO`: la fecha **local de la máquina**. `isOverdue`
+(`utils.ts`) compara `delivery_date < todayISO()`, y `todayISO()` es el hoy en el huso **del
+negocio** (`BUSINESS_TZ`, America/Chicago), a propósito: así el servidor (UTC) y el navegador ven
+el mismo día y no hay error de hidratación. En el runner de GitHub, en UTC, entre la medianoche
+UTC y la de Chicago la máquina ya va un día por delante del negocio: `iso(-1)` daba el hoy del
+negocio, y los dos pedidos de "ayer" de la demo dejaban de estar vencidos. Cada día, durante
+cinco o seis horas, la demo mentía y la prueba fallaba.
+
+### Qué se decidió
+
+`iso()` deriva de `todayISO()` y desplaza en calendario puro (mediodía UTC, para que ningún huso
+lo mueva de día). Demo y lógica comparten definición de "hoy". `isOverdue` y `todayISO` **no se
+tocan**: son los correctos. `stamp()` tampoco: produce instantes (`created_at`,
+`approved_at`), no días, y nadie los compara por día de calendario. La aserción `≥ 2` de la prueba
+se queda tal cual: era la buena.
+
+**Prueba de regresión:** fija el reloj a `2026-09-05T03:57:00Z` **y pone la máquina en UTC**
+(`process.env.TZ`), porque con el reloj solo no se reproduce: en una máquina que ya está en el
+huso de Chicago, como la del dueño, el instante fijado sigue siendo el día 4 para las dos
+definiciones. Eso explica por qué en local pasaba. Medido: con `demo-data.ts` de `main` la prueba
+da 1 (el mismo fallo del CI); con el arreglo, ≥ 2.
+
+### Qué se descartó
+
+- **Arreglarlo en la prueba** (fijar el huso del runner con `TZ=America/Chicago` en el workflow):
+  escondía el bug; la demo seguiría fechando mal en cualquier máquina fuera de Chicago.
+- **Cambiar `isOverdue` a la fecha de la máquina:** revierte la razón de `todayISO` (hidratación).
+
+### Lo no verificado
+
+Nadie vio la demo en un navegador en UTC. `verify.mjs` en verde.
