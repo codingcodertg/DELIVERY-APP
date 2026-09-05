@@ -203,11 +203,10 @@ export default function TrackTimePage() {
   useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); } catch { /* ignore */ } }, [assignmentId, LS_A]);
   useEffect(() => { try { localStorage.setItem(LS_M, memo); } catch { /* ignore */ } }, [memo, LS_M]);
 
-  useEffect(() => {
-    const h = (e: BeforeUnloadEvent) => { if (running) { e.preventDefault(); e.returnValue = ""; } };
-    window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
-  }, [running]);
+  // Hasta D-NEXT aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
+  // corría. Con el último latido y la marca de reanudación de abajo ya no protegía nada, y
+  // podía enseñar el diálogo "¿salir?" justo cuando el banner de actualización recarga: lo
+  // contrario de lo que pidió el dueño ("sí quiero poder actualizar"). Se quitó a propósito.
 
   /**
    * Antes de descargar la página, dejarlo todo grabado (D-NEXT).

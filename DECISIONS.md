@@ -8613,6 +8613,20 @@ cierra o recarga con el reloj corriendo. Con la continuidad de D-NEXT ese aviso 
 y puede hacer que la recarga automática del banner enseñe el diálogo de "¿salir del sitio?". No se
 tocó porque no era parte del encargo; es una línea si el dueño quiere quitarlo.
 
+**Nota del mismo día:** el orquestador pidió quitarlo, en un tercer commit de una sola cosa, y se
+quitó: el `pagehide` y el último latido siguen intactos, y la recarga del banner ya no encuentra
+ningún diálogo por el camino. Queda un comentario en su sitio diciendo por qué ya no está.
+
+Dos observaciones del auditor que van a la **rama de aritmética**, no a esta: (a) el cierre de
+huérfana escribe `duration_seconds = latido − arranque` **bruto**, mientras el último latido ya había
+escrito el **neto** (sin almuerzo, pausas ni inactividad, `netSeconds`), así que cerrar una huérfana
+puede pagar más que su último latido si hubo pausas; es exactamente lo que hacía la página antes y
+el criterio fue conservar la regla; un cierre más conservador dejaría el `duration_seconds` que ya
+tiene la fila. (b) `updateSession` del proveedor filtra por `id` sin `is_live = true`, así que con la
+reanudación a ciegas, si la confirmación fallara mientras las escrituras del tick llegan, se
+retocaría `end_ms` de una fila ya cerrada hasta que la marca caduque; improbable (mismo backend), y
+un `.eq("is_live", true)` en el tick, como ya tiene la ruta del latido, lo cerraría del todo.
+
 ### Lo no verificado
 
 Nadie reprodujo la recarga con sesión real: sin `.env.local` en el worktree, y una prueba de verdad
