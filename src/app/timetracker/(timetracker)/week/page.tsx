@@ -13,6 +13,9 @@ import type { Assignment, Session } from "@/lib/timetracker/types";
 // read-only weekly timesheet + estimated pay, grouped by day. No desktop-
 // only or offline-queue concerns here (it's a report, not a write path), so
 // this port is closer to 1:1 than Track Time was.
+//
+// G-9 (D-NEXT): el resto de textos pasa a claves emp.week.*. fmtDayLong/weekLabel/breaksText
+// (helpers, con LOCALE fijo) no se tocan: las fechas largas siguen en inglés.
 export default function MyWeekPage() {
   const { myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
   const t = useT();
@@ -64,7 +67,7 @@ export default function MyWeekPage() {
     const hours = v.sec / 3600;
     const calc = a ? computePay(hours, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
     totalPay += calc.pay; totalSec += v.sec;
-    const proj = a ? a.project : { name: "(deleted project)" };
+    const proj = a ? a.project : { name: t("emp.week.deletedProject") };
     return { aid, proj, sec: v.sec, calc };
   });
 
@@ -78,35 +81,35 @@ export default function MyWeekPage() {
           {statusPill}
         </div>
         <div className="row" style={{ alignItems: "center" }}>
-          <button className="btn-ghost btn-sm" onClick={() => setWeek(addWeeks(week, -1))}>← Previous</button>
+          <button className="btn-ghost btn-sm" onClick={() => setWeek(addWeeks(week, -1))}>{t("emp.week.prev")}</button>
           <span className="small nowrap">{weekLabel(week)}</span>
-          <button className="btn-ghost btn-sm" disabled={week >= thisWeekStart()} onClick={() => setWeek(addWeeks(week, 1))}>Next →</button>
+          <button className="btn-ghost btn-sm" disabled={week >= thisWeekStart()} onClick={() => setWeek(addWeeks(week, 1))}>{t("emp.week.next")}</button>
         </div>
       </div>
 
       {status === "review" && !isPaid && weekSessions.length > 0 && (
         <div className="banner info" style={{ marginTop: 12 }}>{t("emp.week.reviewNote")}</div>
       )}
-      {paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>Paid this week: {money(paidTotal)}.</div>}
+      {paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>{t("emp.week.paidThisWeek", { money: money(paidTotal) })}</div>}
 
       <div className="grid g3" style={{ marginTop: 14 }}>
-        <div className="stat"><div className="n">{(totalSec / 3600).toFixed(2)} h</div><div className="l">Total hours</div></div>
-        <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">Estimated pay</div></div>
-        <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">Paid so far</div></div>
+        <div className="stat"><div className="n">{(totalSec / 3600).toFixed(2)} h</div><div className="l">{t("emp.week.totalHours")}</div></div>
+        <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">{t("emp.week.estPay")}</div></div>
+        <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">{t("emp.week.paidSoFar")}</div></div>
       </div>
 
       {rows.length === 0 ? (
-        <p className="muted" style={{ marginTop: 14 }}>No time logged this week.</p>
+        <p className="muted" style={{ marginTop: 14 }}>{t("emp.week.noTime")}</p>
       ) : (
         <table style={{ marginTop: 14 }}>
           <thead>
             <tr>
-              <th>Project</th>
-              <th className="right">Hours</th>
-              <th className="right">Regular</th>
-              <th className="right">Overtime</th>
-              <th className="right">Over limit</th>
-              <th className="right">Pay</th>
+              <th>{t("emp.week.colProject")}</th>
+              <th className="right">{t("emp.week.colHours")}</th>
+              <th className="right">{t("emp.week.colRegular")}</th>
+              <th className="right">{t("emp.week.colOvertime")}</th>
+              <th className="right">{t("emp.week.colOverLimit")}</th>
+              <th className="right">{t("emp.week.colPay")}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,9 +128,9 @@ export default function MyWeekPage() {
       )}
 
       <div className="hr" />
-      <h3 style={{ color: "var(--tt-muted)" }}>This week&apos;s entries</h3>
+      <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.week.entriesTitle")}</h3>
       {dayGroups.length === 0 ? (
-        <p className="muted small">No entries.</p>
+        <p className="muted small">{t("emp.week.noEntries")}</p>
       ) : (
         dayGroups.map((d) => {
           const open = openDays.has(d.date);
@@ -137,13 +140,13 @@ export default function MyWeekPage() {
                 <div style={{ fontWeight: 700 }}>
                   <span className="small muted" style={{ marginRight: 6 }}>{open ? "▾" : "▸"}</span>
                   {fmtDayLong(d.date)}
-                  <span className="small muted" style={{ marginLeft: 6 }}>· {d.items.length} {d.items.length === 1 ? "entry" : "entries"}</span>
+                  <span className="small muted" style={{ marginLeft: 6 }}>· {d.items.length} {d.items.length === 1 ? t("emp.week.entryOne") : t("emp.week.entryMany")}</span>
                 </div>
                 <b className="nowrap">{fmtClock(d.sec)}</b>
               </div>
               {open && (
                 <table style={{ marginTop: 8 }}>
-                  <thead><tr><th>In → Out</th><th>Project</th><th>Note</th><th className="right">Duration</th></tr></thead>
+                  <thead><tr><th>{t("emp.week.colInOut")}</th><th>{t("emp.week.colProject")}</th><th>{t("emp.week.colNote")}</th><th className="right">{t("emp.week.colDuration")}</th></tr></thead>
                   <tbody>
                     {d.items.map((s) => {
                       const a = aMap.get(s.assignmentId ?? "");
@@ -153,8 +156,8 @@ export default function MyWeekPage() {
                           <td className="small">{projectName(a)}</td>
                           <td className="small muted">
                             {s.memo || "—"}
-                            {s.source === "manual" ? <span className="pill on" style={{ marginLeft: 6 }}>added</span>
-                              : s.source === "adjusted" ? <span className="pill wait" style={{ marginLeft: 6 }}>adjusted</span> : null}
+                            {s.source === "manual" ? <span className="pill on" style={{ marginLeft: 6 }}>{t("emp.week.pillAdded")}</span>
+                              : s.source === "adjusted" ? <span className="pill wait" style={{ marginLeft: 6 }}>{t("emp.week.pillAdjusted")}</span> : null}
                             {breaksText(s) && <div className="small muted" style={{ marginTop: 2 }}>{breaksText(s)}</div>}
                           </td>
                           <td className="right nowrap small">{fmtClock(s.durationSeconds)}</td>
@@ -170,7 +173,7 @@ export default function MyWeekPage() {
       )}
       <p className="small muted" style={{ marginTop: 10 }}>
         {status === "active"
-          ? 'Entries are grouped by day — tap a day to see its in/out times. To adjust, delete or add time, send a request from the "My requests" tab. The manager must approve it.'
+          ? t("emp.week.activeNote")
           : t("emp.week.lockedNote")}
       </p>
     </div>

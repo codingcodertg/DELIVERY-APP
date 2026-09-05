@@ -102,6 +102,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/TeamDiary.tsx",
     // G-9 (D-NEXT): las pantallas de empleado y los componentes de Time Tracker que quedaban en inglés.
     "src/app/timetracker/(timetracker)/account/page.tsx",
+    "src/app/timetracker/(timetracker)/week/page.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {
