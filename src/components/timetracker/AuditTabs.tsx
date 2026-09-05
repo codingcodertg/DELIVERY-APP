@@ -18,7 +18,7 @@ import { TeamDiary } from "./TeamDiary";
 // y cuándo— así que el registro y las fotos que lo prueban van juntos, no separados por la
 // barra de navegación.
 //
-// D-NEXT: la cuarta vista son las capturas de la app de escritorio (lo que era la pestaña
+// D-194: la cuarta vista son las capturas de la app de escritorio (lo que era la pestaña
 // "Team Diary"). Con ella Auditoría deja de ser solo lectura: borrar una captura resta tiempo
 // pagado. Por eso la puerta pasó a servidor (`audit/page.tsx`) y este cuerpo es un componente
 // cliente. Cada vista conserva su PROPIO selector de persona: son tres listas distintas

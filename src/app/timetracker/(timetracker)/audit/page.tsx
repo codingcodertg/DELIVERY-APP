@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AuditTabs } from "@/components/timetracker/AuditTabs";
 
 /**
- * Auditoría: puerta de SERVIDOR (D-NEXT), calcada de `assignments/page.tsx` (D-186).
+ * Auditoría: puerta de SERVIDOR (D-194), calcada de `assignments/page.tsx` (D-186).
  *
  * Hasta ahora la puerta era un `if (me.role !== "admin")` en el navegador, tras montar y
  * consultar. Con la cuarta vista entra una acción que resta tiempo pagado (borrar una captura

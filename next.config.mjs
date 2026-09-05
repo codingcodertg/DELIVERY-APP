@@ -52,7 +52,7 @@ const nextConfig = {
       // Las fotos se mudaron a Auditoría en D-109; esta regla faltaba.
       { source: "/timetracker/clock-in/photos", destination: "/timetracker/audit", permanent: false },
       // Las capturas de escritorio ("Team Diary") pasaron a ser la cuarta vista de Auditoría
-      // (D-NEXT); la pestaña desapareció y quien tenga el enlace guardado aterriza aquí.
+      // (D-194); la pestaña desapareció y quien tenga el enlace guardado aterriza aquí.
       { source: "/timetracker/team-diary", destination: "/timetracker/audit", permanent: false },
       // Tiempo libre, partido igual que las excepciones (D-116): pedirlo y ver en qué quedó
       // está en My Requests; aprobarlo, en Pendientes. El enlace viejo lleva al lado del

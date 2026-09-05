@@ -8441,9 +8441,9 @@ nuevas). Mutaciones: sin el `slice(0, MAX_ACCOUNTS)` falla la prueba del tope; s
 ajeno a este cambio. La prueba real la firma el dueño: entrar con dos cuentas en el mismo aparato,
 ver las dos tarjetas, quitar una, y abrir un enlace de reset.
 
-## D-NEXT · "Team Diary" deja de ser pestaña y pasa a ser la cuarta vista de Auditoría; Auditoría deja de ser solo lectura y su puerta pasa a servidor
+## D-194 · "Team Diary" deja de ser pestaña y pasa a ser la cuarta vista de Auditoría; Auditoría deja de ser solo lectura y su puerta pasa a servidor
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:**
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.55.0, package.json 1.114.1 (timetracker) · **Pedido por:**
 Andrés · **Plan:** `docs/PLAN-team-diary-en-audit.md`
 
 ### Qué se pidió

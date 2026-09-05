@@ -14,7 +14,7 @@ import type { Screenshot } from "@/lib/timetracker/types";
 // component (already ported once for the employee's own diary, D-069).
 // Named /team-diary (the employee route /diary already exists, D-069).
 //
-// Desde D-NEXT ya no es una página: es la cuarta vista del selector de Auditoría ("Capturas
+// Desde D-194 ya no es una página: es la cuarta vista del selector de Auditoría ("Capturas
 // de escritorio"). El cuerpo se MOVIÓ aquí desde `team-diary/page.tsx` sin reescribirlo: el
 // borrado de una captura sigue restando su tramo de tiempo pagado a la sesión, y la purga de
 // más de 14 días sigue igual. Conserva su propio selector de persona (quien tiene capturas):

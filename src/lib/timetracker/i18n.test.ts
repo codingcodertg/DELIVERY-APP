@@ -97,7 +97,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/PayrollTabs.tsx",
     "src/components/timetracker/PayrollTimesheets.tsx",
     "src/components/timetracker/ManagerReports.tsx",
-    // D-NEXT (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
+    // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
     "src/components/timetracker/AuditTabs.tsx",
     "src/components/timetracker/TeamDiary.tsx",
   ];

@@ -175,7 +175,7 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
   });
 
   it("las capturas de escritorio viven dentro de Auditoría, no en una pestaña", async () => {
-    // D-NEXT: "team-diary" dejó de ser pestaña y pasó a ser la cuarta vista del selector de
+    // D-194: "team-diary" dejó de ser pestaña y pasó a ser la cuarta vista del selector de
     // Auditoría. Si alguien retira esa vista, la pestaña ya no está para delatarlo: por eso se
     // mira el FUENTE del selector, igual que la prueba de claves mira los componentes.
     const { readFileSync } = await import("node:fs");
