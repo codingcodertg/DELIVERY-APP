@@ -2,10 +2,17 @@ import { NextResponse } from "next/server";
 import { currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, type PresetType } from "@/lib/clockin/schedule";
 import { clockinRestHeaders } from "@/lib/clockin/rest";
 import { cronAuthorized } from "@/lib/clockin/cronAuth";
+import { cerrarSesionesHuerfanas } from "@/lib/timetracker/live-session-cron";
 
 // Recurring schedules: once a day, make sure every active non-owner employee
 // with a schedule (A/B/C or custom) has their standard shifts laid out for THIS
 // week and NEXT week. Idempotent — only inserts what's missing.
+//
+// Desde D-NEXT este cron lleva ADEMÁS el cierre de sesiones huérfanas del cronómetro de Time
+// Tracker (al final, `orphans` en la respuesta). Va aquí y no en un cron propio porque Vercel
+// Hobby admite dos crons y los dos están ocupados; misma hora (08:00 UTC), mismo secreto. La
+// regla está en lib/timetracker/live-session.ts y la ruta /timetracker/api/close-orphan-sessions
+// la expone también por separado. Un fallo del cierre no tumba el rodado de horarios.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +20,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  // `?verify=1`: confirma el secreto con 200 sin rodar horarios ni cerrar sesiones (D-NEXT).
+  if (new URL(req.url).searchParams.get("verify") === "1") {
+    return NextResponse.json({ ok: true, verify: true });
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const k = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -87,5 +98,14 @@ export async function GET(req: Request) {
       if (res.ok) created += rows.length;
     }
   }
-  return NextResponse.json({ ok: true, employees: work.length, created });
+
+  // Parte B de D-NEXT: sesiones del cronómetro sin latido desde hace más de 15 min, cerradas
+  // en su último latido. Aislado con try/catch: si esto falla, los horarios ya rodaron.
+  let orphans: Awaited<ReturnType<typeof cerrarSesionesHuerfanas>> | { ok: false; error: string };
+  try {
+    orphans = await cerrarSesionesHuerfanas({ url, key: k });
+  } catch (e) {
+    orphans = { ok: false, error: (e as { message?: string })?.message || "unknown error" };
+  }
+  return NextResponse.json({ ok: true, employees: work.length, created, orphans });
 }

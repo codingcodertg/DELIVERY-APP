@@ -8519,3 +8519,108 @@ de rutas y los dos ficheros añadidos a la prueba de claves). Mutación: sin `se
 `tsc` falla con los tipos generados en `.next/types` de un build anterior; se resuelve borrando
 `.next` (artefacto), y el CI parte de limpio. La prueba real es el dueño, y solo será útil cuando el
 escritorio capture.
+
+## D-NEXT · El cronómetro sigue contando a través de la actualización, el cierre y el reinicio; huérfana a los 15 min, y un cron que las cierra
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:**
+Andrés · **Plan:** `docs/PLAN-timer-sobrevive-actualizacion.md` (diseño corregido tras el dueño: la
+actualización **se hace**, y el reloj no se entera)
+
+### Qué se pidió
+
+Petición literal: *"el time tracker si se actualiza me hace stop el timer, entonces quiero que aunque
+se cierre el app o se actualice o reinicie el timer siempre estará prendido y que sienta cuando la app
+ya está online de nuevo para seguir tomando screenshots y así no perder tiempo contando"*. La primera
+versión del plan proponía no recargar mientras el reloj corre; el dueño lo rechazó (*"sí quiero poder
+actualizar, pero que no se pierda la continuidad"*).
+
+### La causa, medida
+
+El banner de actualización está montado dentro de Time Tracker (`(timetracker)/layout.tsx`) y al
+volver a la pestaña con versión nueva hace `window.location.reload()`. Su guarda `safeToReload`
+(`app-update.ts`) mira si hay un modal o un campo enfocado: **no sabe que hay un cronómetro
+corriendo**. Se escribió para el chofer (D-029) y Time Tracker la heredó con D-087 sin revisar la
+premisa.
+
+**La recarga no borraba la sesión**: ya estaba anclada en la base (`sessions.is_live` + `start_ms`) y
+se reconstruía al abrir. Lo que se perdía era la **continuidad**, por tres huecos: (1) el tick escribe
+cada diez segundos, así que los últimos segundos antes del salto no se grababan; (2) si la
+confirmación contra el servidor fallaba por red, la pantalla entraba en el modo "mirón" de D-096,
+que no graba latidos ni capturas; (3) con más de **5 minutos** sin latido, la siguiente apertura la
+cerraba como huérfana en su último latido. Un reinicio de la máquina se veía como "se paró".
+
+### Qué se decidió — parte A, el cliente (commit 1)
+
+1. **Último latido antes de descargar la página.** En `pagehide` y en el evento `rtg:before-reload`
+   (que `AppUpdateBanner` emite justo antes de recargar: un aviso, **no un freno**, nadie puede
+   cancelarlo), el cliente que **conduce** la sesión manda por `navigator.sendBeacon` el mismo
+   parche que escribe el tick a la ruta nueva `/timetracker/api/heartbeat`, y deja la marca local
+   `tt_resume_<usuario>` = `{ sessionId, at }`. `sendBeacon` es lo único que el navegador
+   garantiza durante `pagehide`; no admite cabeceras, por eso es una ruta propia (misma cookie de
+   sesión; solo actualiza la fila **propia y viva**; acepta exactamente los campos del tick). Un
+   mirón (sesión que conduce el otro cliente, D-096) no graba nada.
+2. **Al abrir, reanudar sin pasar por el modo mirón.** Si la confirmación falla por red y hay marca
+   reciente (**< 15 min**) **para esa misma sesión**, se sigue contando desde `start_ms`, se re-arman
+   el tick y `desktopStart` en el mismo paso (como la adopción normal), y la confirmación se
+   reintenta con backoff (2, 4, 8, 16, 30 s…). Tres salidas: el servidor la da por viva → se limpia
+   la marca y se sigue; la da por cerrada → se para, como cuando el dueño para desde el otro cliente;
+   la marca caduca sin respuesta → se cae al modo mirón. **Sin marca, D-096 tal cual.** La marca la
+   dejó este cliente hace un momento mientras conducía esta sesión, en este aparato: no es la
+   "pestaña ciega" que D-096 evita, es la misma pestaña tras la actualización.
+3. **El reloj sigue durante el salto** porque el tiempo sale de `start_ms`, no del tick: una recarga
+   de segundos o un reinicio de dos minutos no restan nada.
+4. **Huérfana a los 15 minutos, no 5.** `LATIDO_MAX_MS` es **una** constante en
+   `src/lib/timetracker/live-session.ts`, que comparten la pantalla y el cron. La regla de cierre
+   **no cambia**: en su último latido, con la misma aritmética que tenía la página (del arranque al
+   latido, sin descontar pausas). Por qué 15 y no más: ese freno es lo que impidió repetir las
+   **25,75 h** con cero actividad (D-098) y las **10,42 h** de una noche con la máquina apagada; cada
+   minuto de umbral es un minuto que una huérfana puede seguir "trabajando". El dueño puede ajustar
+   el número en un sitio.
+5. **F5 / Ctrl+R del escritorio**: `webContents.reload()` dispara `pagehide` en el renderer, así que
+   queda cubierto sin tocar `desktop/main.js`.
+
+### Qué se decidió — parte B, el cron (commit 2)
+
+**No existía ningún cron que cerrara huérfanas**: el guardián solo corría al abrir la pantalla, y una
+sesión de quien se fue seguía viva para siempre en "Trabajando ahora". Ahora `cerrarSesionesHuerfanas`
+(`live-session-cron.ts`) aplica la misma `huerfanasDe` contra PostgREST con la llave de servicio y el
+perfil de esquema `timetracker` en cada llamada (sin él, `sessions` se buscaría en `public` y el cron
+no haría nada en silencio, la lección de `lib/clockin/rest.ts`). El PATCH lleva `is_live=eq.true`
+también en el filtro: si la persona la paró entre el SELECT y el cierre, no se pisa nada.
+
+**Dónde se programó:** Vercel Hobby admite dos crons y los dos están ocupados (`notion-summary`,
+`roll-schedules`). Se **fusionó con `roll-schedules`** (08:00 UTC, mismo secreto): lo llama al final
+de su pasada y devuelve `orphans` en su respuesta, aislado con `try/catch` para que un fallo del
+cierre no tumbe el rodado de horarios. Además existe `/timetracker/api/close-orphan-sessions` como
+ruta propia (`cronAuthorized`, `?verify=1`) para ejecutarlo a mano o desde un job aparte si algún
+día hace falta más frecuencia. `roll-schedules` gana también `?verify=1`. Se descartó GitHub Actions
+porque una pasada diaria basta (el guardián de 15 min sigue cubriendo el tiempo real al abrir) y
+Vercel ya manda el `CRON_SECRET` a esa ruta.
+
+### Qué NO cambia
+
+La aritmética de nómina (`computePay`, `period_hours`), una sola sesión viva por persona (092), los
+solapes (082), la miga de 18 h (D-096), el auto-stop por bloqueo del PC, y `safeToReload`. **Las
+capturas no se arreglan aquí**: `desktop/` de este repo es la cáscara RTG Hub y no captura nada; quien
+captura es el cliente de escritorio de Time Tracker, otro repositorio. Lo que sí está aquí y sigue:
+las capturas offline se encolan y suben al volver la red, y tras reanudar se re-arma `desktopStart`.
+Ninguna migración. Ninguna escritura nueva salvo la del cron y el latido.
+
+### Observación que queda al dueño
+
+El `beforeunload` de la pantalla (previo a esto) sigue pidiendo confirmación al navegador cuando se
+cierra o recarga con el reloj corriendo. Con la continuidad de D-NEXT ese aviso ya no protege nada,
+y puede hacer que la recarga automática del banner enseñe el diálogo de "¿salir del sitio?". No se
+tocó porque no era parte del encargo; es una línea si el dueño quiere quitarlo.
+
+### Lo no verificado
+
+Nadie reprodujo la recarga con sesión real: sin `.env.local` en el worktree, y una prueba de verdad
+escribe en `sessions` de producción. `sendBeacon` durante `pagehide` y el orden de eventos en el
+navegador van por lectura y por la garantía del estándar. **El cron no se ejecutó contra producción**:
+se probó con `fetch` falso y datos sintéticos, y la ruta se comprueba con `?verify=1` tras el merge.
+`verify.mjs` en verde: 757 pasados | 3 saltados (main: 737 | 3; +20 son las dos pruebas nuevas, 14 de
+la lógica y 6 del cron). Mutaciones: umbral a 5 min y cierre "ahora" en vez de en el último latido
+tiran 7 pruebas; PATCH sin `is_live=eq.true` y perfil `public` tiran 3. La prueba real es el dueño
+arrancando el cronómetro y forzando una versión nueva; y `roll-schedules` a las 08:00 UTC con su
+`orphans` en el log de Vercel.
