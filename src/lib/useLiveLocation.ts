@@ -13,8 +13,14 @@ import { isNativeApp, startNativeWatch, startTimedPositions, type NativeFix } fr
 //
 // Inside the driver APK this runs through Android's foreground service, so it
 // keeps reporting with the phone locked in the truck — and Android shows a
-// permanent notification the whole time. In a plain browser it falls back to
-// the page's own geolocation, which only runs while the app is open.
+// permanent notification the whole time.
+//
+// The browser fallback below (the page's own geolocation, only while the app is
+// open) is IMPLEMENTED but NOT REACHABLE today: LocationTracker.tsx only turns
+// this hook on inside the APK (`return isNativeApp()`), on purpose — a browser
+// is someone reviewing, not someone driving. A driver in mobile Chrome reports
+// nothing, and status stays "off". Enabling the fallback is the owner's call
+// (G-26, D-NEXT); this comment used to promise it as if it were live (D-044).
 // ============================================================
 
 export type LocationStatus = "off" | "starting" | "live" | "denied" | "unavailable";
@@ -24,8 +30,8 @@ export type LocationStatus = "off" | "starting" | "live" | "denied" | "unavailab
  *
  * Note this is the OFFER rate, not the storage rate: each one still goes
  * through shouldSend, so a parked truck is written once per HEARTBEAT_MS
- * (5 min) and the two-minute offers in between are dropped. Roughly 100 rows
- * across an eight-hour day.
+ * (5 min) and the one-minute offers in between are dropped. Roughly 170 rows
+ * across an eight-hour day (the estimate in location-filter.ts).
  *
  * That indirection is the point. The heartbeat used to be a JavaScript timer,
  * and Android suspends those the moment the app is backgrounded — so it never
@@ -33,7 +39,7 @@ export type LocationStatus = "off" | "starting" | "live" | "denied" | "unavailab
  * keeps running, and shouldSend simply decides which offers are worth a row.
  *
  * Offering more often than the heartbeat also means a truck that starts moving
- * is noticed within two minutes rather than five.
+ * is noticed within a minute rather than five.
  */
 const TIMED_INTERVAL_MS = 60_000;
 
@@ -97,7 +103,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
 
     // HEARTBEAT.
     //
-    // The watcher only calls back when the truck moves 40 m, so a truck parked
+    // The watcher only calls back when the truck moves MIN_MOVE_M (25 m), so a truck parked
     // at a long stop goes completely silent — indistinguishable in the data
     // from a phone whose app Android killed. That ambiguity is why "the app
     // paused" can't be proved after the fact, and it also trips the
@@ -135,7 +141,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
 
     // SEED A FIX ON EVERY WAKE-UP.
     //
-    // The watcher only calls back after 40 m of movement, and it deliberately
+    // The watcher only calls back after MIN_MOVE_M (25 m) of movement, and it deliberately
     // refuses the phone's cached position. So a driver who reopens the app
     // while parked reports NOTHING until the truck rolls — which is how a
     // reopened app took 45 minutes to come back as LIVE.
