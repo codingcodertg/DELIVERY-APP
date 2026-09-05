@@ -61,7 +61,7 @@ export function PayrollTabs({ period, children }: { period: string; children: Re
             nota={t("Paid from tracked sessions. Compute, adjust and record the payment.",
                     "Se paga por lo cronometrado. Calcular, ajustar y registrar el pago.")}
           >
-            <ManagerReports />
+            <ManagerReports period={period} />
           </Seccion>
         </>
       )}
