@@ -5,6 +5,7 @@ import { createClient } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { hrs, entryMinutes, attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
+import { businessTimeZone } from "@/lib/timetracker/timezone-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,21 +13,24 @@ export const dynamic = "force-dynamic";
 type Entry = PayEntry;
 type Lunch = LunchRow;
 
-function cDate(iso: string) {
+// G-25 (D-NEXT): la zona viene del ajuste de Time Tracker (timetracker.settings), no de
+// "America/Chicago" a pelo; en servidor se lee la fila, con Chicago de defecto.
+function cDate(iso: string, timeZone: string) {
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone: "America/Chicago",
+    timeZone,
   });
 }
-function cTime(iso: string | null) {
+function cTime(iso: string | null, timeZone: string) {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone });
 }
 
 export async function GET(req: Request) {
   const supabase = await createClient();
+  const tz = await businessTimeZone(supabase);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -135,11 +139,11 @@ export async function GET(req: Request) {
           mins,
           row: [
             name,
-            cDate(e.clock_in_at),
-            cTime(e.clock_in_at),
-            cTime(lunchByEntry.get(e.id)?.left_at ?? null),
-            cTime(lunchByEntry.get(e.id)?.returned_at ?? null),
-            cTime(e.clock_out_at),
+            cDate(e.clock_in_at, tz),
+            cTime(e.clock_in_at, tz),
+            cTime(lunchByEntry.get(e.id)?.left_at ?? null, tz),
+            cTime(lunchByEntry.get(e.id)?.returned_at ?? null, tz),
+            cTime(e.clock_out_at, tz),
             e.clock_out_at ? Number(hrs(mins)) : "open",
           ] as (string | number)[],
         };

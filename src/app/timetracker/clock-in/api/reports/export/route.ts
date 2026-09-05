@@ -4,6 +4,7 @@ import { createClient } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { entryMinutes, hrs, summarize, attachLunch, lunchMinutes, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
+import { businessTimeZone } from "@/lib/timetracker/timezone-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,23 +16,26 @@ function csvCell(v: string | number): string {
 function csv(rows: (string | number)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
 }
-function centralParts(iso: string) {
+// G-25 (D-NEXT): la zona viene del ajuste de Time Tracker (timetracker.settings), no de
+// "America/Chicago" a pelo; en servidor se lee la fila, con Chicago de defecto.
+function centralParts(iso: string, timeZone: string) {
   const date = new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    timeZone: "America/Chicago",
+    timeZone,
   });
   const time = new Date(iso).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "America/Chicago",
+    timeZone,
   });
   return { date, time };
 }
 
 export async function GET(req: Request) {
   const supabase = await createClient();
+  const tz = await businessTimeZone(supabase);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -119,8 +123,8 @@ export async function GET(req: Request) {
     const ids = [...byEmp.keys()].sort((a, b) => (nameOf.get(a) ?? "").localeCompare(nameOf.get(b) ?? ""));
     for (const id of ids) {
       for (const e of byEmp.get(id)!) {
-        const ci = centralParts(e.clock_in_at);
-        const co = e.clock_out_at ? centralParts(e.clock_out_at) : null;
+        const ci = centralParts(e.clock_in_at, tz);
+        const co = e.clock_out_at ? centralParts(e.clock_out_at, tz) : null;
         const source = e.manual ? "Manager-added" : e.status === "edited" ? "Edited" : "Punch";
         rows.push([
           nameOf.get(id) ?? "Unknown",

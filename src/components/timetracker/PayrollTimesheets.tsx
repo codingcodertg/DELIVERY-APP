@@ -8,6 +8,7 @@ import {
 import { entryMinutes, hrs, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { useT } from "@/lib/timetracker/i18n";
+import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 
 /**
  * Los partes de fichaje de un periodo: aprobar, corregir y cerrar la nómina (D-117).
@@ -35,9 +36,9 @@ type Data = Extract<Awaited<ReturnType<typeof getPayrollPeriod>>, { ok: true }>;
 type Draft = { clockIn: string; clockOut: string; lunch: number; note: string };
 
 const fmtDia = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+  new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 const fmtHora = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone });
 
 export function PayrollTimesheets({ period, revisar }: {
   period: string;

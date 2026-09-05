@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { orderLabel, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
+import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
 
 // ============================================================
@@ -61,8 +62,13 @@ export default function TrackPage() {
       // The provider only keeps the last few hours for the live map, so the
       // history is fetched here for the day being looked at.
       const supabase = createClient();
-      const from = `${date}T00:00:00-05:00`;
-      const to = `${shiftDateISO(date, 1)}T00:00:00-05:00`;
+      // Límites del día en hora de la empresa, con horario de verano (G-24, D-NEXT). Antes iba
+      // `-05:00` fijo, que solo es Central en verano: de noviembre a marzo (CST, -06:00) las
+      // fijaciones entre las 23:00 y la medianoche caían en el día equivocado, mientras la
+      // tira de días de abajo clasifica con America/Chicago. Mismo helper DST-aware que el
+      // fichaje (src/lib/clockin/tz.ts).
+      const from = centralWallToUtc(`${date}T00:00`);
+      const to = centralWallToUtc(`${shiftDateISO(date, 1)}T00:00`);
       const { data, error } = await supabase
         .from("driver_locations")
         .select("lat, lng, accuracy_m, recorded_at")
@@ -92,7 +98,7 @@ export default function TrackPage() {
         .from("driver_locations")
         .select("recorded_at")
         .eq("driver_id", driverId)
-        .gte("recorded_at", `${shiftDateISO(todayISO(), -DAY_STRIP)}T00:00:00-05:00`)
+        .gte("recorded_at", centralWallToUtc(`${shiftDateISO(todayISO(), -DAY_STRIP)}T00:00`))
         .limit(20000);
       if (cancelled) return;
       const set = new Set<string>();
