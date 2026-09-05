@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
@@ -17,7 +17,10 @@ import type { Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/typ
 // ============================================================
 
 export default function DataPage() {
-  const { me, settings, deliveries, saveSettings, notify } = useData();
+  const { me, settings, deliveries, saveSettings, notify , ensureDeliveriesSince } = useData();
+  // G-16: this screen reads every order ever (per-account history / reference counts), so it
+  // asks the provider for the whole history once; the provider keeps a window by default.
+  useEffect(() => { void ensureDeliveriesSince(null); }, [ensureDeliveriesSince]);
   const { t } = usePrefs();
 
   if (!me) return null;

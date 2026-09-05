@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { roleLabel, stageInfo, stageLabel } from "@/lib/constants";
@@ -19,7 +19,7 @@ const DEFAULT_CAPACITY = 12;
 // ============================================================
 
 export default function SummaryPage() {
-  const { me, users, deliveries, settings } = useData();
+  const { me, users, deliveries, settings, ensureDeliveriesSince } = useData();
   const { lang, t } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // Admins can pull up any one person's numbers; everyone else only ever sees
@@ -65,6 +65,8 @@ export default function SummaryPage() {
   // now). Performance needs a longer look-back to mean anything, so it runs
   // over its own window across every run assigned to this driver.
   const [days, setDays] = useState(30);
+  // G-16: ask for older orders when the chosen span reaches past the provider's window.
+  useEffect(() => { void ensureDeliveriesSince(shiftDateISO(todayISO(), -days)); }, [days, ensureDeliveriesSince]);
   const perf = useMemo(() => {
     if (subject?.role !== "driver") return null;
     const from = shiftDateISO(todayISO(), -days);

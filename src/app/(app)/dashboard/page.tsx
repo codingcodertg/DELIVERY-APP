@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AttentionPanel } from "@/components/AttentionPanel";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
@@ -34,10 +34,13 @@ function daysAgoISO(n: number): string {
 type RangeMode = "week" | "month" | "custom";
 
 export default function DashboardPage() {
-  const { me, users, deliveries, events, settings, shifts, ready } = useData();
+  const { me, users, deliveries, events, settings, shifts, ready, ensureDeliveriesSince } = useData();
   const { lang, t } = usePrefs();
   const router = useRouter();
   const [from, setFrom] = useState(daysAgoISO(30));
+  // G-16: the provider keeps DELIVERIES_WINDOW_DAYS of orders; a range that starts earlier asks
+  // for the rest on demand (idempotent, no-op when already loaded).
+  useEffect(() => { void ensureDeliveriesSince(from); }, [from, ensureDeliveriesSince]);
   const [to, setTo] = useState(todayISO());
   const [rangeMode, setRangeMode] = useState<RangeMode>("custom");
 

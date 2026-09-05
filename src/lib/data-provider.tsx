@@ -14,7 +14,7 @@ import { usePrefs } from "@/lib/prefs";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
 import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition } from "@/lib/constants";
-import { orderOwner, changedFieldsNote } from "@/lib/utils";
+import { orderOwner, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
@@ -73,6 +73,10 @@ export interface DataState {
   settings: Settings;
   users: Profile[];
   deliveries: Delivery[];
+  /** Extend the loaded order history back to `fromISO` (null = all of it). Idempotent: does
+   * nothing if that range is already loaded. For the screens that look further back than the
+   * DELIVERIES_WINDOW_DAYS the provider keeps by default (G-16). */
+  ensureDeliveriesSince: (fromISO: string | null) => Promise<void>;
   events: OrderEvent[];
   notifications: AppNotification[];
   toast: string;
@@ -201,6 +205,20 @@ export function useData(): DataState {
 
 /** How much order history the client keeps in memory. See reloadAll(). */
 const EVENTS_WINDOW = 1000;
+/**
+ * How far back the deliveries the client holds reach, in days (G-16, D-NEXT).
+ *
+ * `deliveries.select("*")` came down whole on every load and every realtime reload, growing
+ * forever. The window is by DATE, not by count: everything with a delivery_date or input_date in
+ * the last N days, PLUS everything not finished yet (so an old pending order never drops out),
+ * PLUS anything still undated. Why 120: the working queues reach back one day (RETENTION_DAYS_BACK),
+ * a salesperson can search 30 days back, the dashboard defaults to 30 and the summary offers up to
+ * 90 — 120 covers a quarter of KPIs with margin. Older history is loaded ON DEMAND by the screens
+ * that need it (`ensureDeliveriesSince`), never by this provider on its own.
+ */
+export const DELIVERIES_WINDOW_DAYS = 120;
+/** Stages that are finished: an order in any other stage stays loaded no matter how old. */
+const OPEN_STAGES_FILTER = "stage.not.in.(delivered,canceled)";
 
 export function DataProvider({ children, me }: { children: React.ReactNode; me: Profile | null }) {
   const supabase = useMemo(() => createClient(), []);
@@ -457,6 +475,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   //   · un reintento marcado, que el efecto de recuperación dispara al volver el foco
   //     o la conexión. Sin eso, "no tener que refrescar" seguiría dependiendo de que
   //     el primer intento gane la carrera.
+  // Floor of the order history currently loaded (YYYY-MM-DD), or null once a screen asked for
+  // all of it. reloadAll and the realtime reloads read it so they never load LESS than a screen
+  // already extended to.
+  const deliveriesFloorRef = useRef<string | null>(shiftDateISO(todayISO(), -DELIVERIES_WINDOW_DAYS));
+  const deliveriesQuery = useCallback(() => {
+    const q = supabase.from("deliveries").select("*").eq("is_training", false);
+    const floor = deliveriesFloorRef.current;
+    return (floor
+      ? q.or(`delivery_date.gte.${floor},input_date.gte.${floor},delivery_date.is.null,${OPEN_STAGES_FILTER}`)
+      : q
+    ).order("order_no", { ascending: false });
+  }, [supabase]);
+
   const reloadAll = useCallback(async () => {
     try {
       // Sin sesión no se pregunta: una consulta anónima ya no devuelve datos, devuelve
@@ -480,7 +511,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role").order("full_name"),
         // Teaching mode never loads from the DB — the live (non-training) rows are
         // always the base, and the sandbox lives only in the local overlay.
-        supabase.from("deliveries").select("*").eq("is_training", false).order("order_no", { ascending: false }),
+        // Windowed (G-16): see DELIVERIES_WINDOW_DAYS. `deliveriesQuery` honours whatever a
+        // screen already asked for on demand, so a realtime reload never narrows it back.
+        deliveriesQuery(),
         // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
         // page load and growing forever — the single biggest thing between opening the app and
         // seeing it. The two screens that read it (the audit feed and the dashboard's approval
@@ -662,6 +695,15 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // can't reference them directly.
   logEventRef.current = logEvent;
   reloadAllRef.current = reloadAll;
+
+  const ensureDeliveriesSince = useCallback<DataState["ensureDeliveriesSince"]>(async (fromISO) => {
+    const floor = deliveriesFloorRef.current;
+    if (floor === null) return;                       // everything is already here
+    if (fromISO !== null && fromISO >= floor) return;  // already covered
+    deliveriesFloorRef.current = fromISO;
+    const { data } = await deliveriesQuery();
+    if (data) setDeliveries(data as Delivery[]);
+  }, [deliveriesQuery]);
 
   // ---------------- Notification fan-out ----------------
   // Insert one row per recipient. Realtime pushes them to each user's bell.
@@ -1444,7 +1486,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase, notify, reloadAll]);
 
   const value: DataState = {
-    ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, events, notifications, toast, notify,
+    ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,

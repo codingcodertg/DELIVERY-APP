@@ -24,7 +24,7 @@ const colsKey = (role: UserRole) => `rtg_order_columns_${role}`;
 const defaultColsFor = (role: UserRole) => ROLE_DEFAULT_COLUMNS[role] ?? DEFAULT_COLUMNS;
 
 export default function OrdersPage() {
-  const { me, users, deliveries, settings, ready, teaching, realRole, updateDelivery, setStage, notify } = useData();
+  const { me, users, deliveries, settings, ready, teaching, realRole, updateDelivery, setStage, notify, ensureDeliveriesSince } = useData();
   // An admin previewing a role (view-as) sees EVERY order — none of the
   // role-scoped/date-window restrictions apply, so they can test with all data.
   const adminAllAccess = realRole === "admin";
@@ -60,6 +60,10 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<string>("all");
   const [preset, setPreset] = useState<Preset>("all");
   const [q, setQ] = useState("");
+  // G-16: the provider keeps a window of orders; an admin typing a search may be looking for an
+  // old one, so the first non-empty search asks for the whole history (once; idempotent). Sales
+  // are capped at 30 days below anyway, well inside the window.
+  useEffect(() => { if (adminAllAccess && q.trim()) void ensureDeliveriesSince(null); }, [q, adminAllAccess, ensureDeliveriesSince]);
   const [view, setView] = useState<"table" | "board">("table");
   const [open, setOpen] = useState<Delivery | null>(null);
   const [creating, setCreating] = useState(false);
