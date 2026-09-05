@@ -8440,3 +8440,82 @@ nuevas). Mutaciones: sin el `slice(0, MAX_ACCOUNTS)` falla la prueba del tope; s
 `//` fallan las de destinos externos. El build avisa de `unpdf` en el catálogo del ERP: es previo y
 ajeno a este cambio. La prueba real la firma el dueño: entrar con dos cuentas en el mismo aparato,
 ver las dos tarjetas, quitar una, y abrir un enlace de reset.
+
+## D-NEXT · "Team Diary" deja de ser pestaña y pasa a ser la cuarta vista de Auditoría; Auditoría deja de ser solo lectura y su puerta pasa a servidor
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:**
+Andrés · **Plan:** `docs/PLAN-team-diary-en-audit.md`
+
+### Qué se pidió
+
+Petición literal: *"team diary va dentro de audit"*. Team Diary (`/timetracker/team-diary`) enseñaba las
+capturas de pantalla de la app de escritorio por persona y día; Auditoría (`/timetracker/audit`)
+tenía tres vistas con un selector interno (D-109): registro, fotos de fichaje y excepciones.
+
+### El argumento en contra, aceptado a conciencia
+
+**Auditoría deja de ser solo lectura.** Sus tres vistas eran de solo lectura a propósito: es *el
+registro de lo que pasó*. Team Diary es *una herramienta de sanción*: se entra a borrar una captura,
+y al borrarla se le **resta a esa persona un tramo de tiempo pagado** (~10 min, el intervalo de
+captura) de su sesión. Meterla dentro de Auditoría cambia el significado de la pantalla, no solo el
+sitio. Se dijo antes de tocar código (plan, §2) y **el dueño lo aceptó a conciencia el 2026-09-05**.
+
+**A favor, D-109:** declaró Auditoría como el contenedor de *"qué pasó, quién y cuándo, con la prueba
+delante"*, y las capturas de escritorio son exactamente eso. Auditoría ya era un contenedor de vistas
+heterogéneas; una cuarta continúa el patrón, y es más natural que D-186. Nadie enlazaba a
+`/timetracker/team-diary` salvo la pestaña.
+
+### Qué se decidió
+
+1. **Cuarta vista del selector que ya existe**, no sección plegable ni cabecera: el selector de
+   Auditoría ya monta cada vista solo al abrirse, que es lo que D-165 y D-186 pidieron. `view` gana
+   el valor `"desktop"` y el selector un cuarto botón.
+2. **El nombre: "🖥 Capturas de escritorio" / "Desktop captures"**, no "Diary" ni "Diario". Dentro de
+   Auditoría, "Fotos" (de fichaje, con el teléfono) y "Diario" (capturas del escritorio) serían ambas
+   "fotos de gente trabajando" y se confunden; el nombre dice de dónde vienen. Las cuatro etiquetas
+   del selector pasan por `useT()` (`mgr.audit.view*`, en y es); antes estaban en inglés a pelo.
+3. **Movido, no reescrito.** El cuerpo de `team-diary/page.tsx` es ahora
+   `src/components/timetracker/TeamDiary.tsx` (patrón `AssignmentsPanel`, D-186); el `diff` contra
+   la página borrada difiere solo en la firma y la cabecera. El borrado de una captura con su resta
+   de tiempo a la sesión y la purga de más de 14 días son **el mismo código**. El cuerpo de
+   `audit/page.tsx` pasa a `AuditTabs.tsx` (cliente) con el mismo criterio.
+4. **Tres listas de personas, y ninguna gana** (regla de D-186): quien tiene capturas (Team Diary),
+   todos los que tienen `timetracker_role` (registro) y las fotos acotadas por tienda (D-127). Cada
+   vista conserva su propio selector. Unificarlas rompería en silencio.
+5. **La puerta pasa a servidor.** `audit/page.tsx` es un componente de servidor con `redirect` por
+   `timetracker_role`, calcado de `assignments/page.tsx` (D-186). Con una acción que descuenta horas
+   dentro, el `if (me.role !== "admin")` del navegador, que se evaluaba después de montar y consultar,
+   no basta: RLS es quien protege de verdad y nunca fue ese `if`; la redirección evita además pintar
+   la pantalla a quien no debe verla. Los `if` de cliente que ya tenían las dos pantallas siguen
+   dentro de sus componentes, sin tocar (movido, no reescrito).
+6. `team-diary` sale de `MANAGER_TABS`; `/timetracker/team-diary` redirige a `/timetracker/audit` en
+   `next.config.mjs`, junto a la de `/timetracker/clock-in/photos`. La clave `tab.team-diary` del
+   diccionario queda sin uso: se deja, no es lo que pide esta rama.
+7. **Prueba:** un caso en `landing-route.test.ts` (siguiendo su propio comentario: "si alguien retira
+   una de estas rutas sin poner otra en su lugar…") que exige que `MANAGER_TABS` ya no tenga
+   `team-diary` y que el selector de Auditoría ofrezca la vista `desktop` y monte `TeamDiary`,
+   leyendo el fuente como hace la prueba de claves. Los dos componentes entran en la lista de la
+   prueba de claves de D-187.
+
+### Qué NO cambia
+
+`DayPhotos`, `ExceptionHistory`, `WorkDiary` y `/timetracker/diary` (la del empleado, que reutiliza
+`WorkDiary`). Lo que hace el borrado. Ninguna migración, ninguna escritura nueva, sin versión.
+
+### Deudas que quedan
+
+- **Traducción de las vistas de fichaje**: `DayPhotos` y `ExceptionHistory` siguen en inglés (deuda de
+  D-122). Se tradujo solo el selector, que se tocaba de todas formas. Rama aparte.
+- **La vista está vacía por diseño hoy (2026-09-05)**: las capturas solo llegan desde la app de
+  escritorio, que aún no captura (`WorkDiary.tsx`). Enseña "sin capturas" hasta entonces.
+
+### Lo no verificado
+
+Nadie abrió Auditoría con sesión real: el worktree no tiene `.env.local`, y aunque la tuviera la
+vista estaría vacía. La puerta de servidor, la redirección y el selector van por lectura, `tsc` y
+`next build`. `verify.mjs` en verde: 737 pasados | 3 saltados (main: 734 | 3; +3 son el caso nuevo
+de rutas y los dos ficheros añadidos a la prueba de claves). Mutación: sin `setView("desktop")` ni
+`<TeamDiary />` en el selector, falla el caso nuevo. Detalle de entorno: tras borrar la página,
+`tsc` falla con los tipos generados en `.next/types` de un build anterior; se resuelve borrando
+`.next` (artefacto), y el CI parte de limpio. La prueba real es el dueño, y solo será útil cuando el
+escritorio capture.
