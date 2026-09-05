@@ -100,6 +100,8 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
     "src/components/timetracker/AuditTabs.tsx",
     "src/components/timetracker/TeamDiary.tsx",
+    // G-9 (D-NEXT): las pantallas de empleado y los componentes de Time Tracker que quedaban en inglés.
+    "src/app/timetracker/(timetracker)/account/page.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {
