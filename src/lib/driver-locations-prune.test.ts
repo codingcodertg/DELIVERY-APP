@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pruneDriverLocations, PRUNE_KEEP_DAYS, type FetchLike } from "./driver-locations-prune";
+import { pruneDriverLocations, PRUNE_KEEP_DAYS, PRUNE_KEEP_DAYS_MIN, type FetchLike } from "./driver-locations-prune";
 
 // G-23 (D-NEXT). La poda se prueba con un fetch FALSO: nada toca producción. Se vigila lo que
 // un cron puede hacer mal en silencio: la RPC equivocada, la clave equivocada (tiene que ser la
@@ -31,13 +31,21 @@ describe("pruneDriverLocations", () => {
     expect(JSON.parse(calls[0].init!.body as string)).toEqual({ keep_days: 90 });
   });
 
-  it("respeta un keep_days distinto y nunca baja de 1 día", async () => {
+  it("respeta un keep_days distinto, y NUNCA baja del suelo de 30 días", async () => {
+    // Observación del auditor: con el secreto filtrado, keep_days=1 habría vaciado la tabla.
+    expect(PRUNE_KEEP_DAYS_MIN).toBe(30);
     const { f, calls } = fakeFetch({ ok: true, status: 200, body: 0 });
-    await pruneDriverLocations({ url: "u", key: "k", keepDays: 30, fetchImpl: f });
-    expect(JSON.parse(calls[0].init!.body as string)).toEqual({ keep_days: 30 });
-    const out = await pruneDriverLocations({ url: "u", key: "k", keepDays: 0, fetchImpl: f });
-    expect(JSON.parse(calls[1].init!.body as string)).toEqual({ keep_days: 1 });
-    expect(out).toEqual({ ok: true, keepDays: 1, removed: 0 });
+    await pruneDriverLocations({ url: "u", key: "k", keepDays: 45, fetchImpl: f });
+    expect(JSON.parse(calls[0].init!.body as string)).toEqual({ keep_days: 45 });
+    // 30 justo: pasa tal cual (es el suelo, no "más de").
+    const en30 = await pruneDriverLocations({ url: "u", key: "k", keepDays: 30, fetchImpl: f });
+    expect(JSON.parse(calls[1].init!.body as string)).toEqual({ keep_days: 30 });
+    expect(en30).toEqual({ ok: true, keepDays: 30, removed: 0 });
+    for (const bajo of [29, 1, 0, -5]) {
+      const out = await pruneDriverLocations({ url: "u", key: "k", keepDays: bajo, fetchImpl: f });
+      expect(JSON.parse(calls[calls.length - 1].init!.body as string)).toEqual({ keep_days: 30 });
+      expect(out).toEqual({ ok: true, keepDays: 30, removed: 0 });
+    }
   });
 
   it("un fallo de PostgREST se devuelve con su estado y su texto, sin lanzar", async () => {

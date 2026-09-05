@@ -8915,7 +8915,10 @@ existe.
 
 **Los 90 días y por qué.** `keep_days = 90`, decisión del orquestador: conservador porque **no hay
 respaldo** (F-3) y un borrado no se deshace; el dueño puede bajarlo (`?keep_days=` en la ruta, o
-la constante).
+la constante). **Y un suelo de 30 días** (`PRUNE_KEEP_DAYS_MIN`, observación del auditor hecha suya
+por el orquestador, añadida al rebasar): con el secreto del cron filtrado, `?keep_days=1` habría
+vaciado casi toda la tabla; ahora la librería no baja de 30 y la ruta responde `400` a un valor
+menor en vez de rebajarlo en silencio.
 
 **Dónde quedó programada.** **Fusionada en `roll-schedules`** (08:00 UTC, mismo secreto, `try/catch`
 aislado, `prune` en la respuesta), igual que el cierre de huérfanas de D-195, porque Vercel Hobby

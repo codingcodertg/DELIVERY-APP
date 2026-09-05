@@ -16,6 +16,12 @@
  * `fetchImpl` se inyecta para probarlo con datos sintéticos, sin red.
  */
 export const PRUNE_KEEP_DAYS = 90;
+/**
+ * Suelo (observación del auditor, hecha suya por el orquestador): con el secreto del cron
+ * filtrado, `?keep_days=1` habría vaciado casi toda la tabla. Nada por debajo de 30 días, ni
+ * por parámetro ni por código: la librería lo sube a 30 y la ruta responde 400 a un valor menor.
+ */
+export const PRUNE_KEEP_DAYS_MIN = 30;
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<{ ok: boolean; status: number; json(): Promise<unknown>; text(): Promise<string> }>;
 
@@ -27,7 +33,7 @@ export async function pruneDriverLocations(opts: {
   keepDays?: number;
   fetchImpl?: FetchLike;
 }): Promise<PrunePodaResult> {
-  const keepDays = Math.max(1, Math.floor(opts.keepDays ?? PRUNE_KEEP_DAYS));
+  const keepDays = Math.max(PRUNE_KEEP_DAYS_MIN, Math.floor(opts.keepDays ?? PRUNE_KEEP_DAYS));
   const f: FetchLike = opts.fetchImpl ?? (fetch as unknown as FetchLike);
   const res = await f(`${opts.url}/rest/v1/rpc/prune_driver_locations`, {
     method: "POST",

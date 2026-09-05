@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cronAuthorized } from "@/lib/clockin/cronAuth";
-import { pruneDriverLocations, PRUNE_KEEP_DAYS } from "@/lib/driver-locations-prune";
+import { pruneDriverLocations, PRUNE_KEEP_DAYS, PRUNE_KEEP_DAYS_MIN } from "@/lib/driver-locations-prune";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,8 +25,14 @@ export async function GET(req: Request) {
   if (url.searchParams.get("verify") === "1") {
     return NextResponse.json({ ok: true, verify: true, keepDays: PRUNE_KEEP_DAYS });
   }
-  const raw = Number(url.searchParams.get("keep_days"));
-  const keepDays = Number.isFinite(raw) && raw > 0 ? raw : PRUNE_KEEP_DAYS;
+  // Suelo de 30 días (observación del auditor): un `keep_days` menor no se rebaja en silencio,
+  // se rechaza con 400, para que un secreto filtrado no pueda vaciar la tabla.
+  const param = url.searchParams.get("keep_days");
+  const raw = Number(param);
+  if (param !== null && (!Number.isFinite(raw) || raw < PRUNE_KEEP_DAYS_MIN)) {
+    return NextResponse.json({ error: `keep_days must be >= ${PRUNE_KEEP_DAYS_MIN}` }, { status: 400 });
+  }
+  const keepDays = param !== null ? raw : PRUNE_KEEP_DAYS;
   const out = await pruneDriverLocations({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     key: process.env.SUPABASE_SERVICE_ROLE_KEY!,
