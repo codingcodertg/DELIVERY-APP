@@ -20,6 +20,7 @@ import { change, type SecurityKind } from "@/lib/security-log";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
+import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -296,6 +297,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [availability, setAvailability] = useState<DriverAvailability[]>([]);
   const [shifts, setShifts] = useState<DriverShift[]>([]);
+  // G-8 (D-NEXT): clock in / out tapped with no signal wait here; `shifts` below is the
+  // server's list with the queue applied over it, so a queued "out" ends the shift on screen
+  // (and stops the GPS) the moment the driver taps.
+  const [shiftOutbox, setShiftOutbox] = useState<ShiftOp[]>([]);
+  useEffect(() => { if (typeof window !== "undefined") setShiftOutbox(loadShiftOutbox(window.localStorage)); }, []);
+  const shiftsView = useMemo(() => applyShiftOutbox(shifts, shiftOutbox), [shifts, shiftOutbox]);
   const [incidents, setIncidents] = useState<DriverIncident[]>([]);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1313,22 +1320,115 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     await reloadAll();
   }, [supabase, notify, reloadAll]);
 
+  const queueShiftOp = useCallback((op: ShiftOp) => {
+    setShiftOutbox((prev) => {
+      const next = enqueueShiftOp(prev, op);
+      if (typeof window !== "undefined") saveShiftOutbox(window.localStorage, next);
+      return next;
+    });
+  }, []);
+
+  /**
+   * Replay queued punches in tap order (G-8, D-NEXT). "in" inserts the shift with the tapped
+   * started_at; "out" closes the driver's open shift with the tapped ended_at — if the server
+   * has no open shift for them, the "out" is dropped (nothing to close). Stops at the first
+   * "still offline". Runs when the connection comes back and on the outbox timer below.
+   */
+  const shiftFlushingRef = useRef(false);
+  const flushShiftOutbox = useCallback(async () => {
+    if (shiftFlushingRef.current || typeof window === "undefined") return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    const items = loadShiftOutbox(window.localStorage);
+    if (!items.length) return;
+    shiftFlushingRef.current = true;
+    try {
+      const { remaining } = await flushShiftOps(items, async (op) => {
+        try {
+          if (op.kind === "in") {
+            const { error } = await supabase.from("driver_shifts").insert({ driver_id: op.driverId, device_id: op.deviceId, started_at: op.at });
+            if (!error) return "ok";
+            return isOfflineError(error) ? "offline" : "rejected";
+          }
+          const { data: open, error: readErr } = await supabase
+            .from("driver_shifts").select("id").eq("driver_id", op.driverId).is("ended_at", null)
+            .order("started_at", { ascending: false }).limit(1).maybeSingle();
+          if (readErr) return isOfflineError(readErr) ? "offline" : "rejected";
+          if (!open) return "rejected"; // nothing open on the server: nothing to close
+          const { error } = await supabase.from("driver_shifts").update({ ended_at: op.at }).eq("id", open.id);
+          if (!error) return "ok";
+          return isOfflineError(error) ? "offline" : "rejected";
+        } catch { return "offline"; }
+      });
+      saveShiftOutbox(window.localStorage, remaining);
+      setShiftOutbox(remaining);
+      if (remaining.length !== items.length) void reloadAllRef.current?.();
+    } finally {
+      shiftFlushingRef.current = false;
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onBack = () => void flushShiftOutbox();
+    window.addEventListener("online", onBack);
+    const id = setInterval(onBack, 60_000);
+    void flushShiftOutbox();
+    return () => { window.removeEventListener("online", onBack); clearInterval(id); };
+  }, [flushShiftOutbox]);
+
   const clockIn = useCallback<DataState["clockIn"]>(async (driverId) => {
-    // Guard against a second open shift (also enforced by a partial unique index).
-    if (shifts.some((sh) => sh.driver_id === driverId && !sh.ended_at)) return;
+    // Guard against a second open shift (also enforced by a partial unique index). Looks at
+    // the queue too, so a queued "in" is not tapped twice.
+    if (shiftsView.some((sh) => sh.driver_id === driverId && !sh.ended_at)) return;
+    const at = new Date().toISOString();
     // Which phone started the shift — only it reports position for it.
-    const { error } = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId() });
-    if (error) { notify("Error: " + error.message); return; }
+    let error: { message: string } | null = null;
+    try {
+      const res = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId(), started_at: at });
+      error = res.error;
+    } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
+    if (error) {
+      // G-8 (D-NEXT): no signal → the punch queues and the day starts on screen now.
+      if (isOfflineError(error)) {
+        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId() });
+        notify(t_offlineSaved());
+        return;
+      }
+      notify("Error: " + error.message);
+      return;
+    }
     await reloadAll();
-  }, [supabase, shifts, notify, reloadAll]);
+  }, [supabase, shiftsView, notify, reloadAll, queueShiftOp, t_offlineSaved]);
 
   const clockOut = useCallback<DataState["clockOut"]>(async (driverId) => {
-    const open = shifts.find((sh) => sh.driver_id === driverId && !sh.ended_at);
+    const open = shiftsView.find((sh) => sh.driver_id === driverId && !sh.ended_at);
     if (!open) return;
-    const { error } = await supabase.from("driver_shifts").update({ ended_at: new Date().toISOString() }).eq("id", open.id);
-    if (error) { notify("Error: " + error.message); return; }
+    const at = new Date().toISOString();
+    // A shift that only exists in the queue (id `local-…`) cannot be closed on the server yet:
+    // queue the "out" behind the "in" and let the replay do both in order.
+    if (open.id.startsWith("local-")) {
+      queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "out", driverId, at, deviceId: deviceId() });
+      notify(t_offlineSaved());
+      return;
+    }
+    let error: { message: string } | null = null;
+    try {
+      const res = await supabase.from("driver_shifts").update({ ended_at: at }).eq("id", open.id);
+      error = res.error;
+    } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
+    if (error) {
+      // G-8 (D-NEXT): no signal → the "out" queues; the shift reads as ended on screen right
+      // now, so LocationTracker stops the GPS at the tap, not when the network returns.
+      if (isOfflineError(error)) {
+        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "out", driverId, at, deviceId: deviceId() });
+        notify(t_offlineSaved());
+        return;
+      }
+      notify("Error: " + error.message);
+      return;
+    }
     await reloadAll();
-  }, [supabase, shifts, notify, reloadAll]);
+  }, [supabase, shiftsView, notify, reloadAll, queueShiftOp, t_offlineSaved]);
 
   const addIncident = useCallback<DataState["addIncident"]>(async (inc) => {
     const { error } = await supabase.from("driver_incidents").insert({ ...inc, created_by: me?.id ?? null });
@@ -1349,7 +1449,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
-    shifts, clockIn, clockOut,
+    shifts: shiftsView, clockIn, clockOut,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
