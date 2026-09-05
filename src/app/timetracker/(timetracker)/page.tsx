@@ -15,6 +15,9 @@ import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning } from "@/lib/session-guard";
+import {
+  backoffMs, cierreHuerfana, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
+} from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
 
 // ============================================================
@@ -88,6 +91,16 @@ export default function TrackTimePage() {
       }
       return h;
     } catch { return null; }
+  })();
+
+  // La marca de reanudación (D-NEXT): la deja este mismo cliente justo antes de descargar la
+  // página (recarga del banner de actualización, pagehide) MIENTRAS conducía la sesión. Con
+  // ella, si la confirmación contra el servidor falla al volver, se sigue contando y grabando
+  // en vez de entrar en el modo mirón: hace un momento esta sesión era nuestra, en este
+  // aparato. Caduca a los 15 minutos (RESUME_MAX_MS); sin marca, D-096 tal cual.
+  const LS_RESUME = resumeKey(me.id);
+  const resumeMark = (() => {
+    try { return parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { return null; }
   })();
 
   const [assignmentId, setAssignmentId] = useState(() => {
@@ -190,11 +203,56 @@ export default function TrackTimePage() {
   useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); } catch { /* ignore */ } }, [assignmentId, LS_A]);
   useEffect(() => { try { localStorage.setItem(LS_M, memo); } catch { /* ignore */ } }, [memo, LS_M]);
 
+  // Hasta D-NEXT aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
+  // corría. Con el último latido y la marca de reanudación de abajo ya no protegía nada, y
+  // podía enseñar el diálogo "¿salir?" justo cuando el banner de actualización recarga: lo
+  // contrario de lo que pidió el dueño ("sí quiero poder actualizar"). Se quitó a propósito.
+
+  /**
+   * Antes de descargar la página, dejarlo todo grabado (D-NEXT).
+   *
+   * El tick escribe cada diez segundos; en una recarga o un cierre esos segundos se perdían y,
+   * peor, sin latido reciente la siguiente apertura podía dar la sesión por huérfana. Aquí va
+   * el último latido por `sendBeacon` —lo único que el navegador garantiza durante `pagehide`—
+   * a la ruta /timetracker/api/heartbeat (misma cookie de sesión, solo la fila propia y viva),
+   * y la marca de reanudación local. Solo si ESTE cliente conduce la sesión: un mirón no graba.
+   *
+   * Se escucha `pagehide` (recarga, cierre de pestaña, F5 del escritorio: `webContents.reload()`
+   * también lo dispara) y `rtg:before-reload`, que el banner de actualización emite justo antes
+   * de recargar. Es un aviso, no un freno: la actualización se hace igual.
+   */
+  const grabarAntesDeSalir = () => {
+    const id = sessionIdRef.current;
+    if (!runningRef.current || remoteOwnerRef.current || !id) return;
+    const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+    const patch = {
+      id,
+      endMs: Date.now(),
+      durationSeconds: netSeconds(el),
+      activeSeconds: activeSecondsRef.current,
+      idleSeconds: idleRef.current,
+      liveNote: onBreakRef.current ? "break" : "active",
+      keystrokes: keystrokesRef.current,
+      clicks: clicksRef.current,
+      lunchSeconds: lunchRef.current,
+      breakSeconds: brkRef.current,
+      breakEvents: breakEventsPayload(),
+    };
+    try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+    try {
+      if (typeof navigator.sendBeacon === "function") {
+        navigator.sendBeacon("/timetracker/api/heartbeat", new Blob([JSON.stringify(patch)], { type: "text/plain" }));
+      }
+    } catch { /* el beacon es lo mejor que hay; si no sale, la marca y la base siguen ahí */ }
+  };
+  const grabarRef = useRef(grabarAntesDeSalir);
+  grabarRef.current = grabarAntesDeSalir;
   useEffect(() => {
-    const h = (e: BeforeUnloadEvent) => { if (running) { e.preventDefault(); e.returnValue = ""; } };
-    window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
-  }, [running]);
+    const h = () => grabarRef.current();
+    window.addEventListener("pagehide", h);
+    window.addEventListener("rtg:before-reload", h);
+    return () => { window.removeEventListener("pagehide", h); window.removeEventListener("rtg:before-reload", h); };
+  }, []);
 
   // Web metering: focus-gated input listeners — only count while this tab is
   // focused (browser limitation, same as the original's web build).
@@ -343,13 +401,13 @@ export default function TrackTimePage() {
         //
         // Se cierra en su ÚLTIMO LATIDO, no ahora: lo que grabó es lo que se le paga, y las
         // horas que la máquina pasó apagada no son suyas.
-        const LATIDO_MAX_MS = 5 * 60_000; // el tick escribe cada 10 s; cinco minutos es de sobra
-        const ultimoLatido = mine.endMs ?? mine.startMs ?? 0;
-        if (ultimoLatido && Date.now() - ultimoLatido > LATIDO_MAX_MS) {
-          const real = Math.max(0, Math.floor((ultimoLatido - (mine.startMs ?? ultimoLatido)) / 1000));
-          await updateSession(mine.id, { isLive: false, endMs: ultimoLatido, durationSeconds: real })
-            .catch(() => {});
-          try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+        //
+        // El umbral y la aritmética del cierre viven en lib/timetracker/live-session.ts, que
+        // comparten esta pantalla y el cron que cierra huérfanas (D-NEXT). Eran 5 minutos;
+        // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
+        if (esHuerfana(mine, Date.now())) {
+          await updateSession(mine.id, cierreHuerfana(mine)).catch(() => {});
+          try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
           setRunning(false);
           setWorked(0);
           notify(t("track.orphanClosed"));
@@ -363,6 +421,8 @@ export default function TrackTimePage() {
         const theirs = (mine.source === "desktop" || mine.source === "timer") && mine.source !== mineKind;
         setRemoteOwner(theirs ? (mine.source === "desktop" ? "desktop" : "web") : null);
         try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: startMsRef.current, source: mine.source })); } catch { /* ignore */ }
+        // Confirmada contra el servidor: la marca de reanudación ya cumplió.
+        try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
         lunchRef.current = mine.lunchSeconds || 0;
         brkRef.current = mine.breakSeconds || 0;
         breakEventsRef.current = mine.breakEvents || [];
@@ -400,7 +460,15 @@ export default function TrackTimePage() {
         //
         // So: show the clock, write nothing, and let the poll settle it. Within twenty seconds it
         // either finds the session still live and keeps counting, or clears it.
-        if (!cancelled && !stoppedRef.current && liveHint) watchRemote(liveHint.startMs, liveHint.id);
+        //
+        // Salvo con marca de reanudación reciente para ESTA sesión (D-NEXT): entonces sí se
+        // conduce. La marca la dejó este cliente hace menos de 15 min mientras conducía esta
+        // misma sesión, así que no es la "blind tab" del párrafo de arriba: es la misma pestaña
+        // tras la actualización. Se sigue contando y grabando (writeSession encola si no hay
+        // red) y se confirma con backoff; si la confirmación dice que ya no está viva, se para.
+        if (cancelled || stoppedRef.current || !liveHint) return;
+        if (markCovers(resumeMark, liveHint.id) && !remoteOwnerRef.current) reanudarConMarca(liveHint.id, liveHint.startMs);
+        else watchRemote(liveHint.startMs, liveHint.id);
       }
     })();
     return () => { cancelled = true; };
@@ -438,6 +506,59 @@ export default function TrackTimePage() {
         setWorked(0);
       } catch { /* offline — keep showing the clock, ask again in 20s */ }
     }, 1000);
+  }
+
+  /**
+   * Reanudar tras una recarga cuando el servidor no contesta (D-NEXT).
+   *
+   * Igual que la adopción normal pero sin esperar la confirmación: se arma el tick y la captura
+   * de escritorio contra la sesión de la marca, y la confirmación se reintenta con backoff
+   * (2, 4, 8, 16, 30 s…) mientras la marca siga siendo reciente. Tres salidas: el servidor la
+   * da por viva → se limpia la marca y se sigue; la da por cerrada → se para como cuando el
+   * dueño para desde el otro cliente; la marca caduca sin respuesta → se cae al modo mirón
+   * (D-096), que es el comportamiento sin marca.
+   */
+  function reanudarConMarca(id: string, startMs: number) {
+    sessionIdRef.current = id;
+    startMsRef.current = startMs;
+    setRemoteOwner(null);
+    setWorked(Math.floor((Date.now() - startMs) / 1000));
+    setRunning(true);
+    notify(t("track.resumed"));
+    desktopStart({ sessionId: id, intervalMin: shotMin });
+    beginTicking();
+    let intento = 0;
+    const desde = Date.now();
+    const confirmar = async () => {
+      if (stoppedRef.current || sessionIdRef.current !== id) return;
+      try {
+        const live = await listLiveSessions();
+        if (sessionIdRef.current !== id) return;
+        if (live.some((x) => x.id === id)) {
+          try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+          return; // confirmada: el tick ya corre
+        }
+        // Cerrada en el servidor mientras no había red: parar sin escribir más.
+        if (tickRef.current) clearInterval(tickRef.current);
+        tickRef.current = null;
+        desktopStop();
+        sessionIdRef.current = null;
+        try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+        setRunning(false);
+        setWorked(0);
+      } catch {
+        if (Date.now() - desde > RESUME_MAX_MS) {
+          // Sin respuesta en todo el margen de la marca: deja de conducir, mira (D-096).
+          if (tickRef.current) clearInterval(tickRef.current);
+          tickRef.current = null;
+          desktopStop();
+          watchRemote(startMs, id);
+          return;
+        }
+        setTimeout(confirmar, backoffMs(intento++));
+      }
+    };
+    setTimeout(confirmar, backoffMs(0));
   }
 
   /** The 1s clock. Extracted from start() so a session adopted on mount can resume it too. */
@@ -658,7 +779,7 @@ export default function TrackTimePage() {
     // writeSession never gives up — it falls back to the offline queue, which flushes on reconnect.
     desktopStop();
     sessionIdRef.current = null;
-    try { localStorage.removeItem(LS_LIVE); } catch { /* ignore */ }
+    try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
     setRunning(false); onBreakRef.current = null; setOnBreak(null); setIsIdle(false); setCtxApp("");
     setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
     setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
