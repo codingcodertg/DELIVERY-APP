@@ -8307,9 +8307,9 @@ da 1 (el mismo fallo del CI); con el arreglo, ≥ 2.
 
 Nadie vio la demo en un navegador en UTC. `verify.mjs` en verde.
 
-## D-NEXT · El ajuste suelto de la sección Remoto de Nómina pasa a botón + ventana, y sus tipos se enseñan traducidos
+## D-192 · El ajuste suelto de la sección Remoto de Nómina pasa a botón + ventana, y sus tipos se enseñan traducidos
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.54.0, package.json 1.113.2 (timetracker) · **Pedido por:** Andrés
 
 ### Qué se pidió
 

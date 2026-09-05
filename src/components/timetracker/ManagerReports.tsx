@@ -70,7 +70,7 @@ export function ManagerReports({ period }: { period: string }) {
   const [adjType, setAdjType] = useState(adjTypes[0]);
   const [adjAmount, setAdjAmount] = useState("");
   const [sa, setSa] = useState({ uid: "", type: adjTypes[0], amount: "" });
-  // El formulario de ajuste suelto vive en una ventana (D-NEXT), como los de D-187.
+  // El formulario de ajuste suelto vive en una ventana (D-192), como los de D-187.
   const [ajusteAbierto, setAjusteAbierto] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [ed, setEd] = useState({ date: "", from: "", to: "" });
@@ -130,7 +130,7 @@ export function ManagerReports({ period }: { period: string }) {
   let grandPay = 0, grandSec = 0;
   byEmp.forEach((groups) => groups.forEach((sess) => { const c = calcLinesFor(sess); grandPay += c.pay; grandSec += c.sec; }));
 
-  // Devuelve si salió bien, para que la ventana se cierre solo con éxito (D-NEXT). Es el
+  // Devuelve si salió bien, para que la ventana se cierre solo con éxito (D-192). Es el
   // único cambio en esta función; lo que guarda y dónde es lo mismo.
   async function addAdjustment(uid: string, type: string, amount: string): Promise<boolean> {
     if (!uid || !type || amount === "") return false;
@@ -436,7 +436,7 @@ export function ManagerReports({ period }: { period: string }) {
       </div>
 
       {/* El ajuste suelto (bono / adelanto / deducción) era una tarjeta siempre visible; ahora
-          es un botón y una ventana (D-NEXT), con la misma ventana que los formularios de
+          es un botón y una ventana (D-192), con la misma ventana que los formularios de
           Asignaciones (D-187). Mismos campos, misma validación, misma llamada. */}
       <div style={{ marginTop: 14 }}>
         <button className="btn-ghost btn-sm" onClick={() => setAjusteAbierto(true)}>{t("mgr.rep.adjBtn")}</button>
