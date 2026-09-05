@@ -23,7 +23,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // G-2 (D-NEXT): con ?next=, como erp/layout.tsx y timetracker/(timetracker)/layout.tsx. Un
+  // layout de servidor no ve la ruta exacta; el middleware ya la guarda en `next` cuando es él
+  // quien rebota (middleware.ts:167-171). Este es el rebote propio del layout, y su destino es
+  // la raíz del grupo (app): el tablero, no /home. Ruta interna fija, así que no hay nada que
+  // sanear; `safeNext` en el login la acepta tal cual.
+  if (!user) redirect("/login?next=/");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -43,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // (or anyone else) the sales board instead of their own view, with no
   // error anywhere. Bouncing to /login instead forces a real re-auth
   // instead of guessing an identity.
-  if (!profile) redirect("/login");
+  if (!profile) redirect("/login?next=/");
   const me: Profile = profile;
 
   return (
