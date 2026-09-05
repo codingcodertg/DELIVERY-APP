@@ -88,6 +88,7 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/catalog-table.tsx",
     "src/components/erp/review-queue.tsx",
     "src/components/erp/product-detail.tsx",
+    "src/components/erp/inventory-console.tsx",
   ];
 
   for (const ruta of ficheros) {
