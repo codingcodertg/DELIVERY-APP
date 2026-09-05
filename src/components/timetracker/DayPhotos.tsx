@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDayPhotos, type DayPhoto, type PhotoKind } from "@/app/timetracker/clock-in/actions/photos";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { APP_SETTINGS, dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
-import { usePrefs } from "@/lib/prefs";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 
 /**
  * Las fotos de fichaje de un día, dentro de Auditoría.
@@ -21,19 +21,27 @@ import { usePrefs } from "@/lib/prefs";
  * `window.open` no hace nada dentro de la app de escritorio ni del WebView — es justo el
  * motivo por el que ese visor existe — y una foto de fichaje se abre precisamente para
  * ampliarla: una cara, una matrícula, dónde está parado alguien.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.photos.*. Tres frases ya estaban en los dos idiomas, pero
+ * por el idioma del HUB (usePrefs), no por el de Time Tracker: la misma pantalla podía salir
+ * mitad y mitad. Ahora todo sale por el idioma de Time Tracker, como el resto de Auditoría.
+ * fmtDayLong no se toca: el día largo sigue en inglés.
  */
 
-const KIND: Record<PhotoKind, { label: string; cls: string }> = {
-  in: { label: "Clock in", cls: "on" },
-  out: { label: "Clock out", cls: "" },
-  left: { label: "Left site", cls: "wait" },
-  back: { label: "Back", cls: "" },
-};
+const KIND_CLS: Record<PhotoKind, string> = { in: "on", out: "", left: "wait", back: "" };
+// Claves literales, una por tipo, para que la prueba de claves de D-187 las vea en el fuente.
+function kindLabel(t: ReturnType<typeof useT>, k: PhotoKind): string {
+  if (k === "in") return t("mgr.photos.kindIn");
+  if (k === "out") return t("mgr.photos.kindOut");
+  if (k === "left") return t("mgr.photos.kindLeft");
+  return t("mgr.photos.kindBack");
+}
 
 const ONLY = "en-US";
 
 export function DayPhotos() {
-  const { t } = usePrefs();
+  const t = useT();
+  const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [day, setDay] = useState(() => dateISO(new Date()));
   const [photos, setPhotos] = useState<DayPhoto[]>([]);
   // El día más reciente que sí tiene fotos. Es la diferencia entre "no hay nada" y "no hay
@@ -93,7 +101,7 @@ export function DayPhotos() {
   // El visor recorre lo que se está viendo, en el mismo orden que la rejilla.
   const urls = shown.map((p) => p.url);
   const credits = Object.fromEntries(
-    shown.map((p) => [p.url, { name: p.who, role: KIND[p.kind].label }]),
+    shown.map((p) => [p.url, { name: p.who, role: kindLabel(t, p.kind) }]),
   );
 
   const byPerson = new Map<string, DayPhoto[]>();
@@ -106,9 +114,9 @@ export function DayPhotos() {
   return (
     <div className="card">
       <div className="between">
-        <h2 style={{ margin: 0 }}>📷 Photos</h2>
+        <h2 style={{ margin: 0 }}>{t("mgr.photos.title")}</h2>
         <div className="row" style={{ alignItems: "center" }}>
-          <button className="btn-ghost btn-sm" onClick={() => setDay((d) => addDaysISO(d, -1))} aria-label="Previous day">←</button>
+          <button className="btn-ghost btn-sm" onClick={() => setDay((d) => addDaysISO(d, -1))} aria-label={t("mgr.photos.prevDay")}>←</button>
           <input
             type="date"
             value={day}
@@ -116,11 +124,11 @@ export function DayPhotos() {
             onChange={(e) => { if (e.target.value) setDay(e.target.value); }}
             style={{ width: "auto" }}
           />
-          <button className="btn-ghost btn-sm" disabled={day >= today} onClick={() => setDay((d) => addDaysISO(d, 1))} aria-label="Next day">→</button>
-          {day !== today && <button className="btn-ghost btn-sm" onClick={() => setDay(today)}>Today</button>}
+          <button className="btn-ghost btn-sm" disabled={day >= today} onClick={() => setDay((d) => addDaysISO(d, 1))} aria-label={t("mgr.photos.nextDay")}>→</button>
+          {day !== today && <button className="btn-ghost btn-sm" onClick={() => setDay(today)}>{t("mgr.photos.today")}</button>}
           {people.length > 1 && (
             <select value={who} onChange={(e) => setWho(e.target.value)} style={{ width: "auto" }}>
-              <option value="">Everyone</option>
+              <option value="">{t("mgr.photos.everyone")}</option>
               {people.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           )}
@@ -128,7 +136,7 @@ export function DayPhotos() {
       </div>
 
       <p className="small muted" style={{ marginTop: 4 }}>
-        {fmtDayLong(day)} · {loading ? "loading…" : `${shown.length} photo${shown.length === 1 ? "" : "s"} · ${byPerson.size} ${byPerson.size === 1 ? "person" : "people"}`}
+        {fmtDayLong(day)} · {loading ? t("mgr.photos.loading") : `${shown.length === 1 ? t("mgr.photos.countOne", { n: shown.length }) : t("mgr.photos.countMany", { n: shown.length })} · ${byPerson.size === 1 ? t("mgr.photos.personOne", { n: byPerson.size }) : t("mgr.photos.personMany", { n: byPerson.size })}`}
       </p>
 
       {err && <div className="banner err">{err}</div>}
@@ -136,21 +144,18 @@ export function DayPhotos() {
       {!loading && !err && shown.length === 0 && (
         <div className="banner info">
           <div>
-            {t("Nobody punched or logged a trip on", "Nadie fichó ni registró un viaje el")}{" "}
+            {t("mgr.photos.nobodyOn")}{" "}
             <strong>{day}</strong>.{" "}
-            {t(
-              "Photos are kept indefinitely for now, so an empty day means there was no activity — nothing was deleted.",
-              "Por ahora las fotos se conservan indefinidamente, así que un día vacío significa que no hubo actividad — no se borró nada.",
-            )}
+            {t("mgr.photos.emptyMeans")}
           </div>
           {/* Y, sobre todo, DÓNDE sí hay. Un navegador por días sin esta pista obliga a hacer
               clic hacia atrás a ciegas, y quien abre un lunes ve vacío el fin de semana y da la
               pantalla por rota — que es exactamente lo que pasó. */}
           {ultimoConFotos && ultimoConFotos !== day && (
             <div style={{ marginTop: 8 }}>
-              The most recent photos are from <strong>{ultimoConFotos}</strong>.{" "}
+              {t("mgr.photos.latestFrom")} <strong>{ultimoConFotos}</strong>.{" "}
               <button className="btn-ghost btn-sm" onClick={() => setDay(ultimoConFotos)}>
-                Go to that day
+                {t("mgr.photos.goToDay")}
               </button>
             </div>
           )}
@@ -162,7 +167,7 @@ export function DayPhotos() {
           <div className="rev-who">{person} · {theirs.length}</div>
           <div className="rev-grid">
             {theirs.map((p) => {
-              const k = KIND[p.kind];
+              const k = { label: kindLabel(t, p.kind), cls: KIND_CLS[p.kind] };
               return (
                 <figure key={p.url} className="rev-item" onClick={() => setViewing(urls.indexOf(p.url))}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -170,7 +175,7 @@ export function DayPhotos() {
                   <figcaption>
                     <span className={`pill ${k.cls}`}>{k.label}</span>
                     <span className="small muted">{time(p.at)}</span>
-                    {p.offSite && <span className="pill off">off site</span>}
+                    {p.offSite && <span className="pill off">{t("mgr.photos.offSite")}</span>}
                     {p.note && <span className="small muted rev-note">{p.note}</span>}
                   </figcaption>
                 </figure>
@@ -181,10 +186,7 @@ export function DayPhotos() {
       ))}
 
       <p className="small muted" style={{ marginTop: 14 }}>
-        {t(
-          "Photos are kept indefinitely for now — no automatic retention policy is active yet. The hours are never deleted.",
-          "Por ahora las fotos se conservan indefinidamente — todavía no hay una política de retención automática activa. Las horas nunca se borran.",
-        )}
+        {t("mgr.photos.retention")}
       </p>
 
       {viewing !== null && urls[viewing] && (
@@ -194,7 +196,7 @@ export function DayPhotos() {
           credits={credits}
           onIndex={setViewing}
           onClose={() => setViewing(null)}
-          t={(en) => en}
+          t={(en, es) => (lang === "es" ? es : en)}
         />
       )}
     </div>
