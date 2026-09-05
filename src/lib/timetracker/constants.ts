@@ -44,7 +44,8 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // /timetracker/schedule sigue existiendo y redirige.
   { id: "assignments", href: "/timetracker/assignments" },
   { id: "people", href: "/timetracker/people" },
-  { id: "team-diary", href: "/timetracker/team-diary" },
+  // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-NEXT es la
+  // cuarta vista del selector de Auditoría. /timetracker/team-diary redirige a /audit.
   { id: "audit", href: "/timetracker/audit" },
   { id: "settings", href: "/timetracker/settings" },
   { id: "track", href: "/timetracker" },

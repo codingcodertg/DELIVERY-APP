@@ -173,6 +173,19 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
     }
   });
+
+  it("las capturas de escritorio viven dentro de Auditoría, no en una pestaña", async () => {
+    // D-NEXT: "team-diary" dejó de ser pestaña y pasó a ser la cuarta vista del selector de
+    // Auditoría. Si alguien retira esa vista, la pestaña ya no está para delatarlo: por eso se
+    // mira el FUENTE del selector, igual que la prueba de claves mira los componentes.
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
+    expect(MANAGER_TABS.map((t) => t.id)).not.toContain("team-diary");
+    const audit = readFileSync(join(process.cwd(), "src/components/timetracker/AuditTabs.tsx"), "utf8");
+    expect(audit, "el selector de Auditoría ya no ofrece la vista de capturas").toContain('setView("desktop")');
+    expect(audit, "la vista de capturas ya no monta TeamDiary").toContain("<TeamDiary />");
+  });
 });
 
 // D-173: el candado del chofer en el hub. D-051 lo tenía, D-056 lo perdió al reescribir la

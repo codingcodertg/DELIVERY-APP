@@ -13,7 +13,13 @@ import type { Screenshot } from "@/lib/timetracker/types";
 // employee, browse their day-by-day diary via the shared WorkDiary
 // component (already ported once for the employee's own diary, D-069).
 // Named /team-diary (the employee route /diary already exists, D-069).
-export default function TeamDiaryPage() {
+//
+// Desde D-NEXT ya no es una página: es la cuarta vista del selector de Auditoría ("Capturas
+// de escritorio"). El cuerpo se MOVIÓ aquí desde `team-diary/page.tsx` sin reescribirlo: el
+// borrado de una captura sigue restando su tramo de tiempo pagado a la sesión, y la purga de
+// más de 14 días sigue igual. Conserva su propio selector de persona (quien tiene capturas):
+// es una lista distinta de la del log y de la de fotos de fichaje, y ninguna gana (D-186).
+export function TeamDiary() {
   const { me, allEmployees: users, sessionsSince } = useData();
   const t = useT();
   const supabase = useMemo(() => createClient(), []);
