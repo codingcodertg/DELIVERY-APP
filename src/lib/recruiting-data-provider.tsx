@@ -554,8 +554,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // Make room for the copy right after the original: bump everything
       // after it (in the same set) up by one sort slot first.
       const toBump = questions.filter((q) => q.set_id === original.set_id && q.sort > original.sort);
-      for (const q of toBump) {
-        const { error } = await supabase.from("questions").update({ sort: q.sort + 1 }).eq("id", q.id);
+      // G-19 (D-NEXT): one round trip instead of one UPDATE per row. Full rows go in the upsert
+      // (not just {id, sort}) because the insert side of ON CONFLICT still validates NOT NULL
+      // columns; the rows come from the loaded state, so they are the same values already there.
+      if (toBump.length) {
+        const { error } = await supabase.from("questions").upsert(toBump.map((q) => ({ ...q, sort: q.sort + 1 })), { onConflict: "id" });
         if (error) { notify("Error: " + error.message); return; }
       }
       const { error } = await supabase.from("questions").insert({
@@ -577,16 +580,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   const reorderQuestions = useCallback<DataState["reorderQuestions"]>(
     async (ids) => {
-      setQuestions((prev) => {
-        const sortById = new Map(ids.map((id, i) => [id, i]));
-        return prev.map((q) => (sortById.has(q.id) ? { ...q, sort: sortById.get(q.id)! } : q));
-      });
-      for (let i = 0; i < ids.length; i++) {
-        const { error } = await supabase.from("questions").update({ sort: i }).eq("id", ids[i]);
-        if (error) { notify("Error: " + error.message); return; }
-      }
+      const sortById = new Map(ids.map((id, i) => [id, i]));
+      setQuestions((prev) => prev.map((q) => (sortById.has(q.id) ? { ...q, sort: sortById.get(q.id)! } : q)));
+      // G-19 (D-NEXT): one upsert with the full rows (same reason as duplicateQuestion) instead
+      // of one UPDATE per dragged id. Ids the client does not know are skipped, as before they
+      // would have been no-op updates.
+      const rows = ids.flatMap((id) => { const q = questions.find((x) => x.id === id); return q ? [{ ...q, sort: sortById.get(id)! }] : []; });
+      if (!rows.length) return;
+      const { error } = await supabase.from("questions").upsert(rows, { onConflict: "id" });
+      if (error) notify("Error: " + error.message);
     },
-    [supabase, notify],
+    [supabase, questions, notify],
   );
 
   const addTemplate = useCallback<DataState["addTemplate"]>(
@@ -766,8 +770,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const activeSorts = stages.filter((x) => x.type === "active").map((x) => x.sort);
       const newSort = activeSorts.length ? Math.max(...activeSorts) + 1 : 0;
       const toShift = stages.filter((x) => x.sort >= newSort);
-      for (const st of toShift) {
-        await supabase.from("stages").update({ sort: st.sort + 1 }).eq("id", st.id);
+      // G-19 (D-NEXT): one upsert with the full rows instead of one UPDATE per shifted stage.
+      // Before, a failure here was silently ignored; now it stops the insert and says so.
+      if (toShift.length) {
+        const { error: shiftErr } = await supabase.from("stages").upsert(toShift.map((st) => ({ ...st, sort: st.sort + 1 })), { onConflict: "id" });
+        if (shiftErr) { notify("Error: " + shiftErr.message); return; }
       }
       const { error } = await supabase.from("stages").insert({ key, type: "active", color: "#6b7686", sort: newSort, ...s });
       if (error) notify("Error: " + error.message);
