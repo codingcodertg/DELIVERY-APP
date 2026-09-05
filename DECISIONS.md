@@ -8408,6 +8408,14 @@ candado que se retiró a propósito en `data-provider.tsx`.
    `src/lib/auth-redirect.ts`, con prueba: acepta rutas internas con query, rechaza externos con y
    sin esquema (`//evil.com`, `/\evil.com`), saltos de línea, y el propio `/login` (bucle). El login
    usa el mismo `safeNext` para su `?next=`, en vez de su comprobación a mano.
+   **Nota del mismo día (CAMBIOS del auditor):** la primera versión solo tumbaba `\r` y `\n`, y el
+   auditor reprodujo un open redirect por **tabulador**: `?next=/%09/evil.com` se decodifica a
+   `/\t/evil.com`, pasaba las comprobaciones, y `new URL()` en el callback elimina tabuladores y
+   saltos de línea antes de resolver, con lo que acababa en `https://evil.com/`. Ahora cualquier
+   carácter de control (`[\x00-\x1F\x7F]`) tumba el `next`, la prueba cubre `\t`, VT, FF, NUL y DEL,
+   y cada caso externo se resuelve contra el host real y se exige que siga siendo el nuestro, para
+   que un hueco así del analizador se vea solo. Medido: con la regex vieja, el caso del tabulador
+   falla.
 7. **Eliminado el mensaje muerto** de `?reason=session`.
 
 ### Qué NO se hace, y por qué
