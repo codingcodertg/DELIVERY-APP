@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import { useT } from "@/lib/timetracker/i18n";
 
 export type CrewPoint = { lat: number; lng: number; label: string; offSite: boolean };
 
@@ -19,8 +20,12 @@ export type CrewPoint = { lat: number; lng: number; label: string; offSite: bool
  *
  * Se monta bajo demanda. Leaflet y su hoja de estilos pesan, y este mapa se mira de vez en
  * cuando; cargarlo siempre encarecería una pantalla que se deja abierta todo el día.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.map.*. Las etiquetas de los puntos (p.label) son dato y la
+ * atribución de Esri es la que exige el proveedor de imágenes; ninguna de las dos se traduce.
  */
 export function CrewMap({ points }: { points: CrewPoint[] }) {
+  const t = useT();
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
 
@@ -63,7 +68,7 @@ export function CrewMap({ points }: { points: CrewPoint[] }) {
   return (
     <>
       <button className="btn-ghost btn-sm" onClick={() => setAbierto((v) => !v)} style={{ marginTop: 10 }}>
-        {abierto ? "Hide map" : `🗺 Where they punched (${points.length})`}
+        {abierto ? t("mgr.map.hide") : t("mgr.map.show", { n: points.length })}
       </button>
       {abierto && (
         <>
@@ -72,8 +77,7 @@ export function CrewMap({ points }: { points: CrewPoint[] }) {
             style={{ height: 320, marginTop: 10, borderRadius: 12, overflow: "hidden", border: "1px solid var(--tt-line)" }}
           />
           <p className="small muted" style={{ marginTop: 6 }}>
-            Each pin is where that person <strong>clocked in</strong> — not where they are now.
-            Someone out on a delivery still shows at the store.
+            {t("mgr.map.note1")} <strong>{t("mgr.map.noteBold")}</strong> {t("mgr.map.note2")}
           </p>
         </>
       )}

@@ -115,6 +115,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/OfflineIndicator.tsx",
     "src/components/timetracker/UpdateBanner.tsx",
     "src/components/timetracker/NotificationBell.tsx",
+    "src/components/timetracker/CrewMap.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {
