@@ -9,6 +9,7 @@ import {
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
+import { Modal } from "./Modal";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerReports.jsx — the
 // biggest and highest-stakes screen in the app: it computes and records
@@ -69,6 +70,8 @@ export function ManagerReports({ period }: { period: string }) {
   const [adjType, setAdjType] = useState(adjTypes[0]);
   const [adjAmount, setAdjAmount] = useState("");
   const [sa, setSa] = useState({ uid: "", type: adjTypes[0], amount: "" });
+  // El formulario de ajuste suelto vive en una ventana (D-NEXT), como los de D-187.
+  const [ajusteAbierto, setAjusteAbierto] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [ed, setEd] = useState({ date: "", from: "", to: "" });
   const [addUid, setAddUid] = useState<string | null>(null);
@@ -127,8 +130,10 @@ export function ManagerReports({ period }: { period: string }) {
   let grandPay = 0, grandSec = 0;
   byEmp.forEach((groups) => groups.forEach((sess) => { const c = calcLinesFor(sess); grandPay += c.pay; grandSec += c.sec; }));
 
-  async function addAdjustment(uid: string, type: string, amount: string) {
-    if (!uid || !type || amount === "") return;
+  // Devuelve si salió bien, para que la ventana se cierre solo con éxito (D-NEXT). Es el
+  // único cambio en esta función; lo que guarda y dónde es lo mismo.
+  async function addAdjustment(uid: string, type: string, amount: string): Promise<boolean> {
+    if (!uid || !type || amount === "") return false;
     const emp = uMap.get(uid);
     const draft = draftMap.get(uid);
     const list = [...(draft ? draft.adjustments || [] : []), { label: type, amount: Number(amount) }];
@@ -137,8 +142,13 @@ export function ManagerReports({ period }: { period: string }) {
       else await insertPayroll({ employeeUid: uid, employeeName: emp ? emp.fullName : "", weekOf: week, draft: true, paid: false, adjustments: list });
       await logAudit("Adjustment added", (emp ? emp.fullName : "") + " · " + type + " " + money(Number(amount)));
       payrollsForWeek(week).then(setBatches);
-    } catch (e) { const err = e as { message?: string } | null; alert(t("mgr.rep.addFail", { e: err?.message || "unknown error" })); }
+      return true;
+    } catch (e) { const err = e as { message?: string } | null; alert(t("mgr.rep.addFail", { e: err?.message || "unknown error" })); return false; }
   }
+  // Los tres tipos por defecto se enseñan traducidos; uno configurado por la empresa en
+  // Ajustes se enseña tal cual. Lo que se GUARDA es siempre el valor, no el rótulo.
+  const tipoLabel = (ty: string) =>
+    ty === "Bonus" ? t("mgr.rep.typeBonus") : ty === "Advance" ? t("mgr.rep.typeAdvance") : ty === "Deduction" ? t("mgr.rep.typeDeduction") : ty;
   async function removeAdjustment(uid: string, idx: number) {
     const draft = draftMap.get(uid);
     if (!draft) return;
@@ -324,7 +334,7 @@ export function ManagerReports({ period }: { period: string }) {
           {key === "live" && (
             <div className="row" style={{ marginTop: 6 }}>
               <select value={adjType} onChange={(e) => setAdjType(e.target.value)} style={{ flex: 1, minWidth: 110 }}>
-                {adjTypes.map((ty) => <option key={ty} value={ty}>{ty}</option>)}
+                {adjTypes.map((ty) => <option key={ty} value={ty}>{tipoLabel(ty)}</option>)}
               </select>
               <input type="number" placeholder={t("mgr.rep.amountPh")} value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ flex: 1, minWidth: 90 }} />
               <button className="btn-ghost btn-sm" onClick={() => { addAdjustment(uid, adjType, adjAmount); setAdjAmount(""); }}>{t("common.add")}</button>
@@ -425,21 +435,44 @@ export function ManagerReports({ period }: { period: string }) {
         <div className="stat"><div className="n">{empIds.length}</div><div className="l">{t("mgr.rep.activeEmp")}</div></div>
       </div>
 
-      <div className="box" style={{ marginTop: 14 }}>
-        <div className="small muted" style={{ marginBottom: 6 }}>{t("mgr.rep.adjHint")}</div>
-        <div className="row">
-          <select value={sa.uid} onChange={(e) => setSa((p) => ({ ...p, uid: e.target.value }))} style={{ flex: 2, minWidth: 140 }}>
-            <option value="">{t("mgr.rep.employeeOpt")}</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
-          </select>
-          <select value={sa.type} onChange={(e) => setSa((p) => ({ ...p, type: e.target.value }))} style={{ flex: 1, minWidth: 110 }}>
-            {adjTypes.map((ty) => <option key={ty} value={ty}>{ty}</option>)}
-          </select>
-          <input type="number" placeholder={t("mgr.rep.amountPh")} value={sa.amount} onChange={(e) => setSa((p) => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: 90 }} />
-          <button className="btn-ghost btn-sm" disabled={!sa.uid || sa.amount === ""} onClick={() => { addAdjustment(sa.uid, sa.type, sa.amount); setSa((p) => ({ ...p, amount: "" })); }}>{t("common.add")}</button>
-        </div>
-        <div className="small muted" style={{ marginTop: 4 }}>{t("mgr.rep.adjNote")}</div>
+      {/* El ajuste suelto (bono / adelanto / deducción) era una tarjeta siempre visible; ahora
+          es un botón y una ventana (D-NEXT), con la misma ventana que los formularios de
+          Asignaciones (D-187). Mismos campos, misma validación, misma llamada. */}
+      <div style={{ marginTop: 14 }}>
+        <button className="btn-ghost btn-sm" onClick={() => setAjusteAbierto(true)}>{t("mgr.rep.adjBtn")}</button>
       </div>
+      {ajusteAbierto && (
+        <Modal title={t("mgr.rep.adjTitle")} onClose={() => setAjusteAbierto(false)} maxWidth={520}>
+          <div className="small muted" style={{ marginBottom: 10 }}>{t("mgr.rep.adjHint")}</div>
+          <div className="row">
+            <select value={sa.uid} onChange={(e) => setSa((p) => ({ ...p, uid: e.target.value }))} style={{ flex: 2, minWidth: 140 }}>
+              <option value="">{t("mgr.rep.employeeOpt")}</option>
+              {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+            </select>
+            <select value={sa.type} onChange={(e) => setSa((p) => ({ ...p, type: e.target.value }))} style={{ flex: 1, minWidth: 110 }}>
+              {adjTypes.map((ty) => <option key={ty} value={ty}>{tipoLabel(ty)}</option>)}
+            </select>
+            <input type="number" placeholder={t("mgr.rep.amountPh")} value={sa.amount} onChange={(e) => setSa((p) => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: 90 }} />
+          </div>
+          <div className="small muted" style={{ marginTop: 8 }}>{t("mgr.rep.adjNote")}</div>
+          <div className="modal-actions">
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setAjusteAbierto(false)}>{t("common.cancel")}</button>
+            <button
+              type="button"
+              className="btn-sm"
+              disabled={busy || !sa.uid || sa.amount === ""}
+              onClick={async () => {
+                setBusy(true);
+                const ok = await addAdjustment(sa.uid, sa.type, sa.amount);
+                setBusy(false);
+                if (ok) { setSa((p) => ({ ...p, amount: "" })); setAjusteAbierto(false); }
+              }}
+            >
+              {t("common.add")}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {empIds.length === 0 && <p className="muted" style={{ marginTop: 14 }}>{t("mgr.rep.noneWeek")}</p>}
       {empIds.map((uid) => {
