@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getMyTrip, startTrip, endTrip, logStop, finishStop } from "@/app/timetracker/clock-in/actions/runner";
+import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 
 /**
  * Los viajes de vehículo, dentro de Registrar tiempo (D-136).
@@ -36,7 +37,7 @@ const MOTIVOS = [
 ];
 
 const hhmm = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 
 export function TripPanel() {
   const [d, setD] = useState<Data | null>(null);

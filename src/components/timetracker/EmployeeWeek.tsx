@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getEmployeeWeek } from "@/app/timetracker/clock-in/actions/reports";
-import { fmtDayLong } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, fmtDayLong } from "@/lib/timetracker/helpers";
 
 /**
  * La semana de una persona, desplegada desde su fila en Empleados (D-135).
@@ -18,7 +18,7 @@ import { fmtDayLong } from "@/lib/timetracker/helpers";
 type Data = Extract<Awaited<ReturnType<typeof getEmployeeWeek>>, { ok: true }>;
 
 const hhmm = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 const dia = (iso: string) => iso.slice(0, 10);
 const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
 

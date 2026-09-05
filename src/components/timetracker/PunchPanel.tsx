@@ -5,7 +5,7 @@ import { clockIn, clockOut, getMyDay, type ClockInResult } from "@/app/timetrack
 import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
 import { createClient } from "@/lib/clockin/supabase/client";
 import { compressImage } from "@/lib/clockin/image";
-import { fmtClock } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
 import { usePrefs } from "@/lib/prefs";
 import { MySections } from "@/components/timetracker/MySections";
 import { TripPanel } from "@/components/timetracker/TripPanel";
@@ -74,7 +74,7 @@ const MOTIVOS: Record<string, { value: string; en: string; es: string }[]> = {
 type Dia = Extract<Awaited<ReturnType<typeof getMyDay>>, { ok: true }>;
 
 const hhmm = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
 
 export function PunchPanel() {

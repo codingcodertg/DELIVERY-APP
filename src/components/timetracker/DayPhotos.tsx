@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDayPhotos, type DayPhoto, type PhotoKind } from "@/app/timetracker/clock-in/actions/photos";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
-import { dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
 import { usePrefs } from "@/lib/prefs";
 
 /**
@@ -101,7 +101,7 @@ export function DayPhotos() {
 
   const today = dateISO(new Date());
   const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString(ONLY, { hour: "2-digit", minute: "2-digit", timeZone: "America/Chicago" });
+    new Date(iso).toLocaleTimeString(ONLY, { hour: "2-digit", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 
   return (
     <div className="card">
