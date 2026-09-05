@@ -41,7 +41,7 @@ const fmtHora = (iso: string) =>
 
 export function PayrollTimesheets({ period, revisar }: {
   period: string;
-  /** Ids con horas por las dos vías este periodo, de `period_hours.revisar` (D-NEXT). */
+  /** Ids con horas por las dos vías este periodo, de `period_hours.revisar` (D-190). */
   revisar: string[];
 }) {
   const t = useT();
@@ -236,7 +236,7 @@ export function PayrollTimesheets({ period, revisar }: {
                           {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
                               contadas dos veces, una aquí y otra en sus sesiones. La marca está
                               para que quien aprueba lo vea antes de darle a aprobar, no después.
-                              Hasta D-NEXT se aproximaba por worker_type ("remote"); ahora es el
+                              Hasta D-190 se aproximaba por worker_type ("remote"); ahora es el
                               dato real de `period_hours.revisar`, el mismo que la cabecera. */}
                           {dobles.has(id) && <span className="pill wait" style={{ marginLeft: 6 }} title={t("mgr.pay.reviewTitle")}>{t("mgr.pay.review")}</span>}
                           <div className="small muted">

@@ -7,7 +7,7 @@ import { PayrollResumen, type Resumen } from "./PayrollResumen";
 import { useT } from "@/lib/timetracker/i18n";
 
 /**
- * La nómina de un periodo, en UNA vista (D-NEXT).
+ * La nómina de un periodo, en UNA vista (D-190).
  *
  * Tuvo tres pestañas, luego dos (D-165: "Periodo", la foto de horas, y "Pago", el trabajo), y
  * las dos daban números distintos para lo que parecía la misma pregunta. Parte era a

@@ -5,7 +5,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import { shift } from "@/lib/timetracker/period";
 
 /**
- * La cabecera de Nómina: lo que era la pestaña "Period" (D-NEXT).
+ * La cabecera de Nómina: lo que era la pestaña "Period" (D-190).
  *
  * Los datos llegan ya calculados del servidor (`payroll/page.tsx`, sobre la vista
  * `timetracker.period_hours`, la misma consulta de siempre): aquí no se suma nada, solo se

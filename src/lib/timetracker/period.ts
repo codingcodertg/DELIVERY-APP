@@ -2,7 +2,7 @@
  * El periodo de pago de Nómina: de VIERNES a jueves, en hora de la empresa (Chicago).
  *
  * Vivía dentro de `payroll/page.tsx` y `period.test.ts` la REIMPLEMENTABA para probarla, con
- * lo que la prueba no protegía nada (D-NEXT). Se mueve aquí para que la página y la prueba
+ * lo que la prueba no protegía nada (D-190). Se mueve aquí para que la página y la prueba
  * llamen a la misma función. **No se cambió el cálculo**: es el mismo cuerpo que tenía la
  * página. Que exista además `payPeriodDates` en `lib/clockin/schedule.ts` (la del módulo de
  * fichaje) y el `date_trunc` de la vista `period_hours` es deuda conocida; unificarlas es

@@ -7,7 +7,7 @@ import { periodStartOf } from "./period";
 // depende de que la pantalla calcule el mismo viernes que la base, o el selector enseñaria
 // un periodo y la consulta traeria otro — sin dar ningun error.
 //
-// Hasta D-NEXT esta prueba REIMPLEMENTABA la funcion en vez de importarla, asi que pasaba
+// Hasta D-190 esta prueba REIMPLEMENTABA la funcion en vez de importarla, asi que pasaba
 // aunque la pagina calculara otra cosa. Ahora llama a la de verdad. La funcion recibe un
 // instante, no un dia: se le da el mediodia UTC (07:00 en Chicago) para que caiga en el
 // dia del calendario que dice el ISO.

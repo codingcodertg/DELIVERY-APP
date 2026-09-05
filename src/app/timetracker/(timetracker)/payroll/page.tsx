@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * pantalla, esta y la de nómina de fichaje derivarían en cuanto alguien tocara una de las
  * dos, y una nómina que no cuadra con la otra es peor que no tener la segunda.
  *
- * Desde D-NEXT esto ya no es una pestaña ("Period") sino la **cabecera** de Nómina: esta
+ * Desde D-190 esto ya no es una pestaña ("Period") sino la **cabecera** de Nómina: esta
  * página hace la misma consulta de siempre, calcula los totales y los avisos, y se los pasa
  * a `PayrollTabs`, que los pinta (`PayrollResumen`) encima de las dos secciones de pago. La
  * marca `revisar` por persona también sale de aquí, y no de una aproximación por tipo.

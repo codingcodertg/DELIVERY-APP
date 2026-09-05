@@ -47,7 +47,7 @@ const adjOf = (list: PayrollAdjustment[] | null | undefined) => (list || []).red
  * El código no se ha reescrito al mudarlo —sigue siendo la traducción literal de
  * `manager/ManagerReports.jsx`, con años de correcciones dentro—. D-164 le dejó su propio
  * selector de periodo a conciencia, porque cambiar la fuente de la fecha en la misma tanda
- * que la mudanza "es como se rompe una nómina". Ese cambio es este, aparte y solo (D-NEXT):
+ * que la mudanza "es como se rompe una nómina". Ese cambio es este, aparte y solo (D-190):
  * **la fecha llega por `period` (el `?period=` de la URL, un viernes) y aquí no hay
  * calendario.** Lo único que cambió es de dónde sale `week`; el cálculo es el mismo.
  */
