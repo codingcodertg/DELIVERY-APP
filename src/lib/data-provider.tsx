@@ -207,7 +207,7 @@ export function useData(): DataState {
 /** How much order history the client keeps in memory. See reloadAll(). */
 const EVENTS_WINDOW = 1000;
 /**
- * How far back the deliveries the client holds reach, in days (G-16, D-NEXT).
+ * How far back the deliveries the client holds reach, in days (G-16, D-201).
  *
  * `deliveries.select("*")` came down whole on every load and every realtime reload, growing
  * forever. The window is by DATE, not by count: everything with a delivery_date or input_date in
@@ -490,7 +490,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase]);
 
   /**
-   * One loader per query (G-15, D-NEXT): `reloadAll` runs all nine; a realtime event runs ONLY
+   * One loader per query (G-15, D-201): `reloadAll` runs all nine; a realtime event runs ONLY
    * the one for the table that changed (see lib/realtime-reload.ts). Each loader fetches and
    * applies its own state, and returns the raw result so the caller can spot a returned error.
    */
@@ -688,7 +688,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // back). Debouncing means exactly one reload runs after the burst settles,
     // reading fully-committed data.
     //
-    // G-15 (D-NEXT): the burst collects WHICH tables changed, and only their queries re-run
+    // G-15 (D-201): the burst collects WHICH tables changed, and only their queries re-run
     // (lib/realtime-reload.ts) — a driver's "delivered" costs two queries in every other
     // session, not nine. The debounce is unchanged.
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;

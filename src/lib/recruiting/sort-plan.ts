@@ -1,5 +1,5 @@
 /**
- * La aritmética de `sort` de HR, pura (G-19, D-NEXT).
+ * La aritmética de `sort` de HR, pura (G-19, D-201).
  *
  * Duplicar una pregunta, reordenar preguntas y añadir una etapa recolocan filas por `sort`.
  * Antes cada una hacía un `await` a Supabase por fila, en serie. Ahora la aritmética vive aquí,

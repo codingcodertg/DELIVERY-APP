@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { bumpSort, sortByIds, type SortPatch } from "./sort-plan";
 
-// G-19 (D-NEXT). Criterio del orquestador: "mismo resultado que los bucles, verificado con datos
+// G-19 (D-201). Criterio del orquestador: "mismo resultado que los bucles, verificado con datos
 // sintéticos". Aquí están los bucles VIEJOS tal cual (una escritura por fila, en serie), como
 // referencia, y se exige que las funciones puras produzcan exactamente las mismas escrituras:
 // mismos ids, mismos sort, y NADA más (solo se toca la columna sort, como antes).

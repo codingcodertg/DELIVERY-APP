@@ -169,7 +169,7 @@ function isRlsError(e: unknown): boolean {
 
 /**
  * How far back the employee's OWN sessions and screenshots are held in memory, in days
- * (G-17, D-NEXT). `sessions.select("*")` and `screenshots.select("*")` came down whole, for
+ * (G-17, D-201). `sessions.select("*")` and `screenshots.select("*")` came down whole, for
  * every session ever, on every load; and the realtime channel re-ran that on every row
  * (every ~10 s while tracking). Why 60: the week screen pages back one week at a time, the
  * insights trend is 8 weeks, and a pay month is at most 31 days — 60 covers two pay months.

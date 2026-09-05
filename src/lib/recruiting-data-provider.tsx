@@ -554,7 +554,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (!original) return;
       // Make room for the copy right after the original: bump everything
       // after it (in the same set) up by one sort slot first.
-      // G-19 (D-NEXT): the same one-column writes the loop made (`update({ sort })`, nothing
+      // G-19 (D-201): the same one-column writes the loop made (`update({ sort })`, nothing
       // else touched), but in parallel — one round trip instead of N in series. The arithmetic
       // is lib/recruiting/sort-plan.ts, tested against the old loop.
       const bumps = bumpSort(questions.filter((q) => q.set_id === original.set_id), original.sort, { inclusive: false });
@@ -582,7 +582,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     async (ids) => {
       const sortById = new Map(ids.map((id, i) => [id, i]));
       setQuestions((prev) => prev.map((q) => (sortById.has(q.id) ? { ...q, sort: sortById.get(q.id)! } : q)));
-      // G-19 (D-NEXT): same `update({ sort })` per dragged id as before, in parallel instead of
+      // G-19 (D-201): same `update({ sort })` per dragged id as before, in parallel instead of
       // in series. Only the sort column travels, so nothing another person edited gets overwritten.
       const results = await Promise.all(sortByIds(ids).map((p) => supabase.from("questions").update({ sort: p.sort }).eq("id", p.id)));
       const err = results.find((r) => r.error)?.error;
@@ -768,7 +768,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const activeSorts = stages.filter((x) => x.type === "active").map((x) => x.sort);
       const newSort = activeSorts.length ? Math.max(...activeSorts) + 1 : 0;
       const toShift = stages.filter((x) => x.sort >= newSort);
-      // G-19 (D-NEXT): same `update({ sort })` per shifted stage, in parallel. Only sort travels
+      // G-19 (D-201): same `update({ sort })` per shifted stage, in parallel. Only sort travels
       // (stages has no realtime channel, so a full-row write could have overwritten someone
       // else's edit). Before, a failure here was silently ignored; now it stops the insert.
       const shifted = await Promise.all(bumpSort(toShift, newSort, { inclusive: true }).map((b) => supabase.from("stages").update({ sort: b.sort }).eq("id", b.id)));

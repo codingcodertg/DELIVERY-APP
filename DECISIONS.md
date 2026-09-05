@@ -8946,9 +8946,9 @@ ejecutó contra producción**: la llamada se probó con `fetch` falso y la ruta 
 la poda). La prueba real es el dueño con el APK: modo avión, fichar salida, ver que el GPS para;
 mover el camión sin red, recuperar la red, ver el rastro completo.
 
-## D-NEXT · Auditoría 2026-09-05, lote 3 (eficiencia): ventanas con carga bajo demanda, realtime por tabla, lotes en HR, un salto en los enlaces viejos, y `fast-uri`
+## D-201 · Auditoría 2026-09-05, lote 3 (eficiencia): ventanas con carga bajo demanda, realtime por tabla, lotes en HR, un salto en los enlaces viejos, y `fast-uri`
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries, HR y Time Tracker se
+**Fecha:** 2026-09-05 · **Versión:** deliveries 1.62.0, recruiting 0.15.0, timetracker 0.60.0, package.json 1.119.0 (Deliveries, HR y Time Tracker se
 tocan) · **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md`. Un commit por hallazgo, en este orden.
 
 ### G-16 · Los pedidos bajaban enteros, sin límite

@@ -1,5 +1,5 @@
 // ============================================================
-// Which queries a realtime event has to re-run (G-15, D-NEXT).
+// Which queries a realtime event has to re-run (G-15, D-201).
 //
 // The deliveries provider used to hook eight tables to ONE handler that re-ran
 // all nine queries (`reloadAll`), so a driver tapping "delivered" — two rows,

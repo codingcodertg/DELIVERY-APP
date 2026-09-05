@@ -97,7 +97,7 @@ export default function TrackPage() {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      // G-18 (D-NEXT): this only needs "which days have at least one fix". The right answer is
+      // G-18 (D-201): this only needs "which days have at least one fix". The right answer is
       // one aggregate in SQL (a `distinct date` RPC), but that needs a migration, so it is left
       // as PENDING and this stays a range-bounded read of `recorded_at` alone, grouped in the
       // browser. The range was already the strip (DAY_STRIP + 1 days); the cap was 20,000 rows,

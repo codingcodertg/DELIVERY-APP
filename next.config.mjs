@@ -30,7 +30,7 @@ const nextConfig = {
   // pie y ya no queden accesos directos viejos.
   async redirects() {
     return [
-      // G-3 (D-NEXT): un enlace viejo del fichaje daba TRES saltos —/clock-in/X → /timetracker/clock-in/X
+      // G-3 (D-201): un enlace viejo del fichaje daba TRES saltos —/clock-in/X → /timetracker/clock-in/X
       // (el comodín de abajo) → el destino final (la regla de esa pantalla, más abajo) → el login—,
       // justo lo que el comentario de la regla del horario decía querer evitar en el móvil. Las
       // pantallas fusionadas van EXPLÍCITAS aquí, antes del comodín, derivadas una a una de las

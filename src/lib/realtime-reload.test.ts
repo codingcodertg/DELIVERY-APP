@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ALL_QUERIES, QUERY_OF_TABLE, queriesForTables, queriesBefore } from "./realtime-reload";
 
-// G-15 (D-NEXT). Antes, cualquier evento realtime recargaba las nueve consultas del proveedor.
+// G-15 (D-201). Antes, cualquier evento realtime recargaba las nueve consultas del proveedor.
 // Esta prueba es la MEDICIÓN antes/después que pidió el orquestador, sobre el caso real: un
 // chofer marca "entregado", que escribe deliveries + order_events y llega como dos eventos a
 // todas las sesiones abiertas.
