@@ -19,6 +19,7 @@ import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
+import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -871,6 +872,45 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // shift (and by the Android app's background service). Deliberately quiet:
   // a dropped fix is not worth a toast on the driver's screen, and the next
   // one is seconds away.
+  /**
+   * Replay the GPS outbox (G-22, D-NEXT): fixes captured with no signal, in recorded_at order,
+   * in batches. Stops at the first "still offline"; drops what the server rejects. Runs when the
+   * connection comes back and after the next fix that does get through.
+   */
+  const gpsFlushingRef = useRef(false);
+  const flushGpsOutbox = useCallback(async () => {
+    if (!me || teaching || gpsFlushingRef.current) return;
+    if (typeof window === "undefined") return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    const items = loadGpsOutbox(window.localStorage);
+    if (!items.length) return;
+    gpsFlushingRef.current = true;
+    try {
+      const { remaining } = await flushFixes(items, async (batch) => {
+        const rows = batch.map((f) => ({
+          driver_id: me.id, lat: f.lat, lng: f.lng, accuracy_m: f.accuracy_m, speed_mps: f.speed_mps,
+          heading: f.heading, battery_pct: f.battery_pct, recorded_at: f.recorded_at,
+        }));
+        try {
+          const { error } = await supabase.from("driver_locations").insert(rows);
+          if (!error) return "ok";
+          return isOfflineError(error) ? "offline" : "rejected";
+        } catch { return "offline"; }
+      });
+      saveGpsOutbox(window.localStorage, remaining);
+    } finally {
+      gpsFlushingRef.current = false;
+    }
+  }, [supabase, me, teaching]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onBack = () => void flushGpsOutbox();
+    window.addEventListener("online", onBack);
+    void flushGpsOutbox();
+    return () => window.removeEventListener("online", onBack);
+  }, [flushGpsOutbox]);
+
   const pushLocation = useCallback<DataState["pushLocation"]>(
     async (fix) => {
       if (!me || teaching) return false;
@@ -884,16 +924,36 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         battery_pct: fix.battery_pct ?? null,
         recorded_at: fix.recorded_at ?? new Date().toISOString(),
       };
-      const { error } = await supabase.from("driver_locations").insert(row);
-      if (error) return false;
+      let error: { message: string } | null = null;
+      try {
+        const res = await supabase.from("driver_locations").insert(row);
+        error = res.error;
+      } catch (e) {
+        error = { message: e instanceof Error ? e.message : "network error" };
+      }
+      if (error) {
+        // G-22 (D-NEXT): no signal is not "lost". The fix goes to the GPS outbox with the
+        // recorded_at the device stamped, and replays when there is a connection. Counts as
+        // sent for the caller (the heartbeat may advance); a server rejection still does not.
+        if (isOfflineError(error)) {
+          try {
+            const queued: QueuedFix = { ...row, device_id: deviceId() };
+            saveGpsOutbox(window.localStorage, enqueueFix(loadGpsOutbox(window.localStorage), queued));
+          } catch { /* storage blocked — this fix is lost, the next one is seconds away */ }
+          return true;
+        }
+        return false;
+      }
       // Reflect our own dot immediately rather than waiting for the echo.
       setDriverLocations((prev) => [
         { ...row, id: `local-${Date.now()}`, created_at: row.recorded_at } as DriverLocation,
         ...prev.filter((p) => p.driver_id !== me.id),
       ]);
+      // A fix got through: whatever queued while there was no signal can follow it now.
+      void flushGpsOutbox();
       return true;
     },
-    [supabase, me, teaching],
+    [supabase, me, teaching, flushGpsOutbox],
   );
 
   const deleteDelivery = useCallback<DataState["deleteDelivery"]>(
