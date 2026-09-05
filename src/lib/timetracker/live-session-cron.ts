@@ -80,7 +80,7 @@ export async function cerrarSesionesHuerfanas(opts: {
     const res = await f(`${url}/rest/v1/sessions?id=eq.${encodeURIComponent(sesion.id)}&is_live=eq.true`, {
       method: "PATCH",
       headers: { ...H, Prefer: "return=minimal" },
-      // `live_note` deja dicho que la cerró el cron (D-NEXT): la pantalla solo reabre una sesión
+      // `live_note` deja dicho que la cerró el cron (D-197): la pantalla solo reabre una sesión
       // con esta marca, y solo si su reloj local nunca se detuvo. Un Stop escribe null.
       body: JSON.stringify({ is_live: false, end_ms: cierre.endMs, duration_seconds: cierre.durationSeconds, live_note: CRON_CLOSE_NOTE }),
     });

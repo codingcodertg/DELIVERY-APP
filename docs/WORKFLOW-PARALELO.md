@@ -518,3 +518,20 @@ esperar, comprueba que el check EXISTE:
 until gh pr checks <n> 2>/dev/null | grep -q "tsc · vitest · build"; do sleep 10; done
 gh pr checks <n> --watch --fail-fast && gh pr merge <n> --squash
 ```
+
+---
+
+## 13. Un solo `verify.mjs` a la vez por worktree (medido el 2026-09-05)
+
+El worker y el auditor comparten worktree cuando el auditor entra a verificar la
+rama. Si los dos corren `node scripts/verify.mjs` a la vez, se pisan en `.next`:
+uno ve "Unexpected end of JSON input", el otro "Could not find a production
+build". **Ninguno es del codigo.** Antes de repetir, comprobar que no hay otro
+`next build` en marcha; y no confundirlo con la cache corrupta de la seccion 10
+(esa es del checkout principal y se arregla con `rm -rf .next`).
+
+Y la de la rama en conflicto: si un PR aparece sin ninguna ejecucion del CI y
+solo con los checks de Vercel, mirar `gh pr view <n> --json mergeable`. GitHub
+**no lanza `pull_request`** cuando no puede calcular el merge. La salida es
+rebase del worker sobre `origin/main`, veredicto del auditor sobre el rebase
+(solo comparar diff pre y post, no los nueve puntos), y `--force-with-lease`.

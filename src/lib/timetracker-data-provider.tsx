@@ -59,11 +59,11 @@ interface DataState {
    * new one starts, and to close out abandoned ones on load. */
   listLiveSessions: () => Promise<Session[]>;
   /** One of MY sessions by id, live or closed, or null. For the reopen-after-cron check
-   * (D-NEXT): the screen needs to read a row that `listLiveSessions` no longer returns. */
+   * (D-197): the screen needs to read a row that `listLiveSessions` no longer returns. */
   getSession: (id: string) => Promise<Session | null>;
   startSession: (payload: Partial<Session>) => Promise<Session>;
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
-  /** Same as updateSession but ONLY touches the row while it is still live (D-NEXT). For the
+  /** Same as updateSession but ONLY touches the row while it is still live (D-197). For the
    * tracker's ten-second tick: after a laptop wakes, or after the cron closed the row, a
    * blind tick write must not retouch end_ms/duration_seconds of a closed session. Stop, the
    * explicit reopen, manual edits and approvals keep using updateSession, which writes

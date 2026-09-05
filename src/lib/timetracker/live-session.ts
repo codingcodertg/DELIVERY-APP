@@ -76,7 +76,7 @@ export function markCovers(mark: ResumeMark | null, sessionId: string | null | u
   return !!mark && !!sessionId && mark.sessionId === sessionId;
 }
 
-// ---- Reabrir tras un cierre del cron (D-NEXT) ---------------------------------------------
+// ---- Reabrir tras un cierre del cron (D-197) ---------------------------------------------
 
 /**
  * La marca que deja el cron en `live_note` al cerrar una huérfana. `live_note` es texto libre
@@ -131,7 +131,7 @@ export function decisionReabrir(args: {
 }
 
 /**
- * ¿El tick ha latido sin interrupción? (CAMBIOS del auditor sobre D-NEXT.)
+ * ¿El tick ha latido sin interrupción? (CAMBIOS del auditor sobre D-197.)
  *
  * "El tick está armado" no es "el tick siguió corriendo": un portátil suspendido con la tapa
  * cerrada, o una pestaña de fondo estrangulada, congela `setInterval` durante horas y al

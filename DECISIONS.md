@@ -8688,9 +8688,9 @@ tamaño y el ajuste van por lectura del CSS. `verify.mjs` en verde: 757 pasados 
 `main` (no hay prueba nueva; la de claves ya cubría el fichero). Mutación: `mgr.pay.byTypeTimer` borrada
 solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo Nómina en
 escritorio y en el teléfono, en los dos idiomas y los dos temas.
-## D-NEXT · Si el cron cerró una sesión mientras la persona trabajaba SIN INTERNET, al volver la red la pantalla la reabre; excepción acotada a D-195, con cuatro condiciones
+## D-197 · Si el cron cerró una sesión mientras la persona trabajaba SIN INTERNET, al volver la red la pantalla la reabre; excepción acotada a D-195, con cuatro condiciones
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.58.0, package.json 1.116.0 (timetracker) · **Pedido por:** Andrés
 
 ### El caso
 

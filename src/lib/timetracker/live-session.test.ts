@@ -111,7 +111,7 @@ describe("marca de reanudación", () => {
   });
 });
 
-describe("reabrir tras un cierre del cron (D-NEXT): las cuatro condiciones, todas obligatorias", () => {
+describe("reabrir tras un cierre del cron (D-197): las cuatro condiciones, todas obligatorias", () => {
   const me = "u1";
   const mark = { sessionId: "s1", at: T0 };
   const cerradaPorCron = { id: "s1", employeeUid: me, isLive: false, liveNote: CRON_CLOSE_NOTE };

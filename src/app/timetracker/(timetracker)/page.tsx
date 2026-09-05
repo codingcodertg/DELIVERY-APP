@@ -148,7 +148,7 @@ export default function TrackTimePage() {
   const sessionIdRef = useRef<string | null>(liveHint?.id ?? null);
   const startMsRef = useRef(liveHint?.startMs ?? 0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Continuidad del tick (CAMBIOS del auditor sobre D-NEXT). `lastTickRef` es el instante del
+  // Continuidad del tick (CAMBIOS del auditor sobre D-197). `lastTickRef` es el instante del
   // último tick; si el siguiente llega más de LATIDO_MAX_MS después, el reloj estuvo parado
   // (equipo suspendido, pestaña estrangulada) y `continuoRef` se apaga: la marca de reanudación
   // deja de refrescarse y se borra, y sin marca no hay reapertura. Vuelve a `true` solo al
@@ -248,7 +248,7 @@ export default function TrackTimePage() {
       breakEvents: breakEventsPayload(),
     };
     // La marca solo se escribe mientras la continuidad se conserve (CAMBIOS del auditor sobre
-    // D-NEXT): tras un hueco, `pagehide` no la fabrica de nuevo; si no, dormir 8 h, despertar sin
+    // D-197): tras un hueco, `pagehide` no la fabrica de nuevo; si no, dormir 8 h, despertar sin
     // red y recargar la habría resucitado, y `reanudarConMarca` la habría dado por buena. El
     // beacon sí sale igual: la ruta filtra por is_live y no puede hacer daño.
     if (continuoRef.current) {
@@ -346,7 +346,7 @@ export default function TrackTimePage() {
   // buffered locally via the offline queue and synced on reconnect — the
   // tracker keeps counting from local refs regardless, so the buffered patch
   // always carries the full up-to-date duration once it flushes.
-  // `soloViva` (D-NEXT): el tick escribe con updateLiveSession, que filtra por is_live = true, para
+  // `soloViva` (D-197): el tick escribe con updateLiveSession, que filtra por is_live = true, para
   // no retocar end_ms/duration_seconds de una fila que el cron ya cerró (tras despertar, por
   // ejemplo). Stop escribe is_live = false a propósito y sigue por updateSession. Lo que cae a la
   // cola offline se reenvía por el updateSession del proveedor, sin filtro: límite conocido,
@@ -533,7 +533,7 @@ export default function TrackTimePage() {
   }
 
   /**
-   * Reabrir una sesión que el cron cerró mientras se trabajaba SIN INTERNET (D-NEXT).
+   * Reabrir una sesión que el cron cerró mientras se trabajaba SIN INTERNET (D-197).
    *
    * El tick sigue contando sin red (desde startMs; las escrituras van a la cola offline). Si
    * pasan más de 15 min sin latido en la base, el cron de D-195 la cierra en su último latido.
@@ -631,7 +631,7 @@ export default function TrackTimePage() {
           return; // confirmada: el tick ya corre
         }
         // Cerrada en el servidor mientras no había red. Si la cerró el cron y este reloj no se
-        // detuvo, se reabre (D-NEXT); si no, parar sin escribir más.
+        // detuvo, se reabre (D-197); si no, parar sin escribir más.
         if (await intentarReabrir(id)) { try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ } return; }
         if (sessionIdRef.current !== id) return;
         if (tickRef.current) clearInterval(tickRef.current);
@@ -728,7 +728,7 @@ export default function TrackTimePage() {
   
         if (el > 0 && el % 10 === 0 && sessionIdRef.current) {
           const id = sessionIdRef.current;
-          // La marca de reanudación se refresca con cada latido (D-NEXT), no solo en pagehide:
+          // La marca de reanudación se refresca con cada latido (D-197), no solo en pagehide:
           // es la evidencia local de que este reloj no se ha detenido, y es lo que autoriza a
           // reabrir una sesión que el cron cerró mientras no había red. localStorage funciona
           // sin conexión, que es justo cuando importa.
