@@ -247,7 +247,15 @@ export default function TrackTimePage() {
       breakSeconds: brkRef.current,
       breakEvents: breakEventsPayload(),
     };
-    try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+    // La marca solo se escribe mientras la continuidad se conserve (CAMBIOS del auditor sobre
+    // D-NEXT): tras un hueco, `pagehide` no la fabrica de nuevo; si no, dormir 8 h, despertar sin
+    // red y recargar la habría resucitado, y `reanudarConMarca` la habría dado por buena. El
+    // beacon sí sale igual: la ruta filtra por is_live y no puede hacer daño.
+    if (continuoRef.current) {
+      try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
+    } else {
+      try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+    }
     try {
       if (typeof navigator.sendBeacon === "function") {
         navigator.sendBeacon("/timetracker/api/heartbeat", new Blob([JSON.stringify(patch)], { type: "text/plain" }));

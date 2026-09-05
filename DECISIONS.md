@@ -8756,7 +8756,11 @@ noche: las 10,42 h y las 25,75 h de D-098 por la puerta de atrás. Dos cambios, 
   el tope de la extensión queda dicho con letras: se extiende "hasta ahora" **solo si ningún hueco
   entre ticks superó 15 minutos**, el mismo umbral que tolera la base: el reloj local nunca se
   detuvo más de lo que el servidor habría aceptado sin latido. Caso de prueba: "el equipo dormido 8 h
-  con el tick armado → no reabre".
+  con el tick armado → no reabre". **Y la marca solo se escribe —en el tick y en `pagehide`—
+  mientras la continuidad se conserve**: tras un hueco no se vuelve a fabricar hasta que el servidor
+  confirme la sesión (adopción con éxito) o se arranque una nueva. Sin esto (segundo CAMBIOS del
+  auditor, una línea), dormir 8 h, despertar sin red y recargar habría resucitado la marca en
+  `pagehide` y la reanudación la habría dado por buena.
 - **El tick ya no toca filas cerradas.** Escribía con `updateSession` sin filtrar por `is_live`, así
   que tras despertar retocaba `end_ms`/`duration_seconds` de una fila que el cron ya había cerrado,
   aunque no se reabriera (lo señaló el auditor en D-195 y aquí). El proveedor gana
