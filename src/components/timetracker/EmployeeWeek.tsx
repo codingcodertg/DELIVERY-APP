@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getEmployeeWeek } from "@/app/timetracker/clock-in/actions/reports";
 import { APP_SETTINGS, fmtDayLong } from "@/lib/timetracker/helpers";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * La semana de una persona, desplegada desde su fila en Empleados (D-135).
@@ -13,6 +14,9 @@ import { APP_SETTINGS, fmtDayLong } from "@/lib/timetracker/helpers";
  *
  * Se pide **al abrir**, una fila cada vez. Cargar la semana de las doce personas para que
  * alguien mire una sería doce veces el trabajo para un doceavo del provecho.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.ew.*. fmtDayLong no se toca: el día largo sigue en inglés;
+ * hhmm sigue en "en-US" (formato de hora, no texto).
  */
 
 type Data = Extract<Awaited<ReturnType<typeof getEmployeeWeek>>, { ok: true }>;
@@ -23,6 +27,7 @@ const dia = (iso: string) => iso.slice(0, 10);
 const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
 
 export function EmployeeWeek({ employeeId }: { employeeId: string }) {
+  const t = useT();
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -34,20 +39,20 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
   useEffect(() => { void load(); }, [load]);
 
   if (err) return <div className="banner err">{err}</div>;
-  if (!d) return <div className="hint">Loading…</div>;
+  if (!d) return <div className="hint">{t("mgr.ew.loading")}</div>;
 
   // Fichajes y descansos juntos, agrupados por día: así se lee la jornada tal como pasó en vez
   // de tener que cruzar dos listas por la hora.
   const filas = [
     ...d.punches.map((p) => ({
       k: p.id, cuando: p.clockInAt,
-      que: p.manual ? "⏰ Shift · manual" : "⏰ Shift",
+      que: p.manual ? t("mgr.ew.shiftManual") : t("mgr.ew.shift"),
       cls: "on", desde: p.clockInAt, hasta: p.clockOutAt, min: p.minutes,
-      aviso: p.onSite === false ? "off site" : null,
+      aviso: p.onSite === false ? t("mgr.ew.offSite") : null,
     })),
     ...d.breaks.map((b) => ({
       k: b.id, cuando: b.leftAt,
-      que: b.reason === "lunch" ? "🍽 Lunch" : "🚚 Out",
+      que: b.reason === "lunch" ? t("mgr.ew.lunch") : t("mgr.ew.out"),
       cls: b.reason === "lunch" ? "wait" : "", desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
       aviso: null as string | null,
     })),
@@ -59,7 +64,7 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
   return (
     <div className="box" style={{ marginTop: 8 }}>
       <div className="between">
-        <span className="small muted">{d.period[0]} → {d.period[6]} (Fri–Thu)</span>
+        <span className="small muted">{t("mgr.ew.period", { from: d.period[0], to: d.period[6] })}</span>
         <span>
           <strong>{horas(d.totalMin)}</strong>
           {d.lunchMin > 0 && <span className="small muted"> · 🍽 {d.lunchMin}m</span>}
@@ -68,7 +73,7 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
       </div>
 
       {filas.length === 0 ? (
-        <p className="muted small" style={{ marginTop: 8 }}>Nothing this period.</p>
+        <p className="muted small" style={{ marginTop: 8 }}>{t("mgr.ew.nothing")}</p>
       ) : (
         d.period.map((f) => {
           const delDia = porDia.get(f);
@@ -81,7 +86,7 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
                   {delDia.map((r) => (
                     <tr key={r.k}>
                       <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
-                      <td className="small nowrap">{hhmm(r.desde)} – {r.hasta ? hhmm(r.hasta) : <span className="pill wait">open</span>}</td>
+                      <td className="small nowrap">{hhmm(r.desde)} – {r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("mgr.ew.open")}</span>}</td>
                       <td className="small nowrap">{horas(r.min)}</td>
                       <td className="small">{r.aviso && <span className="pill off">{r.aviso}</span>}</td>
                     </tr>
