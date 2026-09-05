@@ -8639,9 +8639,9 @@ tiran 7 pruebas; PATCH sin `is_live=eq.true` y perfil `public` tiran 3. La prueb
 arrancando el cronómetro y forzando una versión nueva; y `roll-schedules` a las 08:00 UTC con su
 `orphans` en el log de Vercel.
 
-## D-NEXT · La cabecera de Nómina, más grande y con las tarjetas renombradas: "Total en sitio" y "Total remoto"
+## D-196 · La cabecera de Nómina, más grande y con las tarjetas renombradas: "Total en sitio" y "Total remoto"
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés
+**Fecha:** 2026-09-05 · **Versión:** timetracker 0.57.0, package.json 1.115.1 (timetracker) · **Pedido por:** Andrés
 
 ### Qué se pidió
 

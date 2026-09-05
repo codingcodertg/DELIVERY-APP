@@ -83,7 +83,7 @@
 .timetracker-module .stat .n{font-size:22px;font-weight:800}
 .timetracker-module .stat .l{font-size:12px;color:var(--tt-muted)}
 
-/* Cabecera de Nómina (D-NEXT): más grande, a petición del dueño. Solo variables del módulo:
+/* Cabecera de Nómina (D-196): más grande, a petición del dueño. Solo variables del módulo:
    oscuro por defecto, claro con data-theme="light". Las tarjetas van a tres columnas cuando
    caben (>= 3 x 220px) y se apilan cuando no, sin ancho intermedio raro: auto-fit decide. La
    navegación de periodo es una píldora dentro del mismo bloque que el título, así que al

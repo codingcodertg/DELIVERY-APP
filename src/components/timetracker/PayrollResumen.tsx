@@ -13,7 +13,7 @@ import { shift } from "@/lib/timetracker/period";
  * dos se le avisa. La navegación por periodo es por URL (`?period=`), la única enlazable, y
  * es la fuente de la fecha para las dos secciones de abajo.
  *
- * D-NEXT: más grande y con las tarjetas renombradas, a petición del dueño con capturas. Lo
+ * D-196: más grande y con las tarjetas renombradas, a petición del dueño con capturas. Lo
  * primero que se ve es el número; la tarjeta de fichaje se llama "Total en sitio" y la de
  * sesiones "Total remoto" (antes "Clock-in hours" / "Project hours"). Los números y su origen
  * no cambian: `fichaje` sigue siendo horas de fichaje y `proyecto` horas de sesiones. El
