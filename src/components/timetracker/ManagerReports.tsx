@@ -334,7 +334,7 @@ export function ManagerReports({ period }: { period: string }) {
           {key === "live" && (
             <div className="row" style={{ marginTop: 6 }}>
               <select value={adjType} onChange={(e) => setAdjType(e.target.value)} style={{ flex: 1, minWidth: 110 }}>
-                {adjTypes.map((ty) => <option key={ty} value={ty}>{ty}</option>)}
+                {adjTypes.map((ty) => <option key={ty} value={ty}>{tipoLabel(ty)}</option>)}
               </select>
               <input type="number" placeholder={t("mgr.rep.amountPh")} value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ flex: 1, minWidth: 90 }} />
               <button className="btn-ghost btn-sm" onClick={() => { addAdjustment(uid, adjType, adjAmount); setAdjAmount(""); }}>{t("common.add")}</button>

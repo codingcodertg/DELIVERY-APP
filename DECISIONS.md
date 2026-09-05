@@ -8336,7 +8336,10 @@ ventana, con el mismo patrón que D-187, y que quede traducido.
    uno configurado por la empresa en Ajustes se enseña tal cual. **Lo que se guarda es siempre
    el valor**, no el rótulo, para que un ajuste hecho en español y otro en inglés sean el mismo
    tipo. El mismo selector de tipo existe dentro de la tabla por empleado y sigue a pelo: está
-   fuera de este alcance.
+   fuera de este alcance. **Nota del mismo día:** el auditor observó que así la misma opción se
+   veía "Bono" en la ventana y "Bonus" en la tabla de la misma pantalla, y el orquestador pidió
+   incluirlo: ese selector usa ahora el mismo `tipoLabel` como texto, con el `value` sin
+   traducir. Una línea, en commit aparte.
 4. Claves nuevas: `mgr.rep.adjBtn`, `mgr.rep.adjTitle` y los tres tipos, en `en` y `es`.
    `ManagerReports.tsx` ya estaba en la lista de la prueba de claves (D-190); sigue en verde.
 
