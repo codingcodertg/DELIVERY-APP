@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getMyNotifications, countUnread } from "@/app/timetracker/clock-in/actions/myday";
 import { markAllRead } from "@/app/timetracker/clock-in/actions/notifications";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * 🔔 en la barra de Time Tracker (D-129).
@@ -14,8 +15,12 @@ import { markAllRead } from "@/app/timetracker/clock-in/actions/notifications";
  * El contador se pide con `head: true` — trae **cuántas** hay sin leer, no los textos. Los
  * mensajes se piden solo al abrir el panel. La campana está en todas las pantallas, así que
  * cobrar sesenta filas cada vez que alguien navega habría sido pagar mucho por un número.
+ *
+ * G-9 (D-NEXT): textos por claves bell.*. El texto de cada aviso (it.message) viene guardado del
+ * servidor y se enseña tal cual.
  */
 export function NotificationBell() {
+  const t = useT();
   const [n, setN] = useState(0);
   const [abierto, setAbierto] = useState(false);
   const [items, setItems] = useState<{ id: string; message: string; read: boolean; created_at: string }[] | null>(null);
@@ -59,7 +64,7 @@ export function NotificationBell() {
         className="btn-ghost btn-sm"
         style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
         onClick={() => void alternar()}
-        title="Notifications"
+        title={t("bell.title")}
       >
         🔔{n > 0 && <span className="pill off" style={{ marginLeft: 4 }}>{n > 9 ? "9+" : n}</span>}
       </button>
@@ -78,9 +83,9 @@ export function NotificationBell() {
           }}
         >
           {!items ? (
-            <div className="hint">Loading…</div>
+            <div className="hint">{t("bell.loading")}</div>
           ) : items.length === 0 ? (
-            <p className="muted small" style={{ margin: 0 }}>Nothing yet.</p>
+            <p className="muted small" style={{ margin: 0 }}>{t("bell.nothing")}</p>
           ) : (
             items.map((it) => (
               <div key={it.id} className="box" style={{ marginBottom: 6 }}>

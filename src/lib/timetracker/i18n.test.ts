@@ -100,6 +100,22 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
     "src/components/timetracker/AuditTabs.tsx",
     "src/components/timetracker/TeamDiary.tsx",
+    // G-9 (D-NEXT): las pantallas de empleado y los componentes de Time Tracker que quedaban en inglés.
+    "src/app/timetracker/(timetracker)/account/page.tsx",
+    "src/app/timetracker/(timetracker)/week/page.tsx",
+    "src/app/timetracker/(timetracker)/requests/page.tsx",
+    "src/components/timetracker/ClockinApprovals.tsx",
+    "src/components/timetracker/ExceptionHistory.tsx",
+    "src/components/timetracker/GeofenceEditor.tsx",
+    "src/components/timetracker/GeofenceSection.tsx",
+    "src/components/timetracker/TripPanel.tsx",
+    "src/components/timetracker/VehiclesSection.tsx",
+    "src/components/timetracker/EmployeeWeek.tsx",
+    "src/components/timetracker/DayPhotos.tsx",
+    "src/components/timetracker/OfflineIndicator.tsx",
+    "src/components/timetracker/UpdateBanner.tsx",
+    "src/components/timetracker/NotificationBell.tsx",
+    "src/components/timetracker/CrewMap.tsx",
   ];
 
   function clavesDe(ruta: string): string[] {

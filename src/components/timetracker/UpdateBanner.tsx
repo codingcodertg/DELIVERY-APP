@@ -5,6 +5,7 @@ import {
   desktopCheckUpdate, desktopGetUpdateState, desktopInstallUpdate, desktopOnUpdate, isDesktop,
   type DesktopUpdateState,
 } from "@/lib/timetracker/desktop";
+import { useT } from "@/lib/timetracker/i18n";
 
 // Electron desktop's own in-app auto-update banner (D-074), ported from
 // timetracker-clean's App.jsx UpdateBanner — unrelated to AppUpdateBanner
@@ -12,6 +13,7 @@ import {
 // electron-updater's state in the desktop shell (desktop/main.js's
 // tt:update IPC channel): downloading progress and, once ready, a
 // "Restart & install" button. Desktop-only, no-ops everywhere else.
+// G-9 (D-NEXT): textos por claves update.*. El mensaje de error de electron-updater (u.message) no se toca.
 export function TtUpdateBanner() {
   const [u, setU] = useState<DesktopUpdateState | null>(null);
   const [desktopClient, setDesktopClient] = useState(false);
@@ -43,34 +45,36 @@ export function TtUpdateBanner() {
 }
 
 function UpdateBannerBody({ u }: { u: DesktopUpdateState }) {
+  const t = useT();
   const s = u.state;
   if (s === "ready") {
     return (
       <div className="banner ok" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <span>✅ Version <b>{u.version}</b> is downloaded and ready to install.</span>
-        <button className="btn-ok btn-sm" onClick={() => desktopInstallUpdate()}>Restart &amp; install now</button>
+        <span>{t("update.ready", { v: u.version ?? "" })}</span>
+        <button className="btn-ok btn-sm" onClick={() => desktopInstallUpdate()}>{t("update.install")}</button>
       </div>
     );
   }
   if (s === "downloading") {
     return (
       <div className="banner info">
-        ⬇ Downloading update{u.version ? " v" + u.version : ""}… {u.percent != null ? u.percent + "%" : ""}
+        {t("update.downloading", { v: u.version ? " v" + u.version : "", pct: u.percent != null ? u.percent + "%" : "" })}
         <div style={{ background: "var(--tt-line)", borderRadius: 999, height: 6, overflow: "hidden", marginTop: 6 }}>
           <div style={{ width: (u.percent || 0) + "%", height: "100%", background: "var(--tt-accent2)", transition: "width .3s" }} />
         </div>
       </div>
     );
   }
-  if (s === "checking") return <div className="banner info">🔄 Checking for updates…</div>;
-  if (s === "none") return <div className="banner info">✓ You&apos;re on the latest version.</div>;
-  if (s === "error") return <div className="banner warn">⚠ Update check failed: {u.message || "unknown error"}</div>;
+  if (s === "checking") return <div className="banner info">{t("update.checking")}</div>;
+  if (s === "none") return <div className="banner info">{t("update.latest")}</div>;
+  if (s === "error") return <div className="banner warn">{t("update.failed", { msg: u.message || t("update.unknownError") })}</div>;
   return null;
 }
 
 // Manual "Check for updates" control — desktop-only, tiny, meant for the
 // TopBar corner (mirrors the original's footer link).
 export function TtCheckUpdateLink() {
+  const t = useT();
   const [desktopClient, setDesktopClient] = useState(false);
   useEffect(() => { setDesktopClient(isDesktop()); }, []);
   if (!desktopClient) return null;
@@ -79,7 +83,7 @@ export function TtCheckUpdateLink() {
       className="btn-ghost btn-sm"
       style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
       onClick={() => desktopCheckUpdate()}
-      title="Check for updates"
+      title={t("update.check")}
     >
       ⟳
     </button>

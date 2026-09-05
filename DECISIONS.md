@@ -9063,3 +9063,115 @@ lectura; G-3 en producción lo mide el orquestador tras desplegar. La ventana de
 comportamiento visible (un pedido de hace más de 120 días, terminado, no aparece hasta que una
 pantalla lo pida): es lo que pedía el hallazgo y está listado arriba. `verify.mjs` en verde sobre
 `.next` limpio, en solitario: 799 pasados | 3 saltados (main: 793 | 3; +6 son la prueba de G-15).
+
+## D-NEXT · Auditoría 2026-09-05, lote 4 (Time Tracker en dos idiomas): las 15 pantallas que quedaban en inglés, y fuera las claves que no usa nadie
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker se toca) ·
+**Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-9 y G-11). Un commit por fichero, en el
+orden del encargo, y uno final para las claves muertas. Solo texto: **ningún comportamiento cambia.**
+
+### G-9 · Quince ficheros de Time Tracker hablaban solo inglés
+
+**Qué fallaba.** Time Tracker tiene un conmutador de idioma (`tt_lang`, `useT()`), pero 21 de sus 46
+ficheros no lo usaban: quien lo ponía en español seguía viendo en inglés su cuenta, su semana, sus
+solicitudes, la bandeja de fichaje, las geocercas, la flota, el viaje en vehículo, las fotos y el
+historial de excepciones de Auditoría, la campana, el indicador sin conexión y el aviso de
+actualización de escritorio. Un idioma a medias es peor que uno solo: no se sabe qué esperar.
+
+**Qué se hizo.** Los 15 ficheros del encargo pasan a `useT()` con claves nuevas en `DICT.en` y
+`DICT.es`, **281 claves** en total, por prefijo:
+
+| Fichero | Prefijo | Claves |
+|---|---|---|
+| `account/page.tsx` | `emp.acc.*` | 34 |
+| `week/page.tsx` | `emp.week.*` (se suman a las 5 de D-190) | 24 |
+| `requests/page.tsx` | `emp.req.*` (se suma a `weekLocked`) | 40 |
+| `ClockinApprovals.tsx` | `mgr.inbox.*` | 24 |
+| `ExceptionHistory.tsx` | `mgr.exc.*` | 21 |
+| `GeofenceEditor.tsx` | `mgr.geoed.*` + `common.cancel`/`saveChanges` | 30 |
+| `GeofenceSection.tsx` | `mgr.geo.*` | 16 |
+| `TripPanel.tsx` | `emp.trip.*` | 23 |
+| `VehiclesSection.tsx` | `mgr.veh.*` | 14 |
+| `EmployeeWeek.tsx` | `mgr.ew.*` | 9 |
+| `DayPhotos.tsx` | `mgr.photos.*` | 20 |
+| `OfflineIndicator.tsx` | `offline.*` | 10 |
+| `UpdateBanner.tsx` | `update.*` | 8 |
+| `NotificationBell.tsx` | `bell.*` | 3 |
+| `CrewMap.tsx` | `mgr.map.*` | 5 |
+
+Cada fichero entra en la lista de la **prueba de claves de D-187** (`i18n.test.ts`), que lee los
+`t("…")` del fuente y exige que cada clave exista en los dos idiomas: 10 ficheros → 25. Por eso los
+mapas constantes de etiquetas (`LABEL`, `OFF_LABEL`, `EXC_LABEL`, `TIPO`, `MOTIVOS`, `KIND`) pasan a
+funciones con **una clave literal por rama**: una clave construida por variable la prueba no la ve.
+**Mutación medida** (`account/page.tsx`): sin la fila española de `emp.acc.pwMismatch` la prueba cae
+con «falta emp.acc.pwMismatch en español (usada en …account/page.tsx)».
+
+**Lo que NO se traduce, a propósito, y por qué.**
+- **Datos:** métodos de pago (`APP_SETTINGS.paymentMethods`), nombres de proyecto, de sitio, de
+  vehículo y de parada, placas, los **motivos** de una excepción (`r.reasons`, valores guardados), el
+  texto de cada aviso de la campana (`it.message`, viene del servidor), la atribución «Imagery © Esri».
+- **Errores del servidor:** `res.message` / `e.message` / `u.message` se enseñan tal cual; el
+  respaldo cuando no hay mensaje sí se traduce.
+- **Enumerados fijos del código** (tipos de tiempo libre, de excepción, de foto, motivos de viaje):
+  el **valor** que se guarda no cambia; solo su etiqueta, porque es texto de pantalla y no es
+  configurable. Si un día llega un valor que el mapa no conoce, se enseña el valor crudo, como antes.
+- **`LOCALE` y `fmtDayLong` no se tocan:** las fechas largas («Sat, Jul 4, 2026») y las horas
+  (`hhmm` en `en-US`) **siguen en inglés en las dos lenguas.** Es formato, no texto, y cambiarlo es
+  otra decisión (afectaría a recibos y reportes). También sigue en inglés el «ongoing» de
+  `breaksText` (helper) y el «(Fri–Thu)» del periodo de `EmployeeWeek` va dentro de la clave.
+
+**Dos cosas que se corrigieron de paso, sin cambiar comportamiento.**
+- `requests/page.tsx` tenía el mensaje de «semana cerrada» **duplicado a mano en inglés** aunque su
+  clave (`emp.req.weekLocked`, D-190) ya existía; ahora usa la clave.
+- `DayPhotos.tsx` tenía tres frases en los dos idiomas pero por el idioma del **hub** (`usePrefs`), y
+  el resto en inglés fijo: la misma pantalla podía salir mitad y mitad según dos conmutadores
+  distintos. Ahora sale entera por el idioma de Time Tracker, como el resto de Auditoría. El visor
+  de fotos (`PhotoLightbox`, del módulo base) recibía `t={(en) => en}`, inglés fijo, en `DayPhotos` y
+  `ExceptionHistory`; ahora recibe el idioma de Time Tracker. El visor no se toca.
+
+**Fuera del encargo, y se deja dicho:** `TimeOffRequests.tsx` (la pestaña de tiempo libre dentro de
+Mis solicitudes) no está en la lista y sigue en inglés; los otros 5 de los 21 ficheros sin `useT` que
+contó la auditoría tampoco están en la lista.
+
+### G-11 · El diccionario prometía pantallas que el código no tiene
+
+**Medido en esta rama, con G-9 ya aplicado:** de las **837** claves de `DICT.en`, **109** no aparecen
+como literal en ningún fichero de `src/` fuera del propio `i18n.ts`, descontando `tab.*` y los
+prefijos construidos (solo `mgr.sch.dow.`). Se borran en `en` y `es`: **218 líneas**; quedan **728**
+claves por idioma y la medición vuelve a dar 0. La auditoría contaba 139; la diferencia son claves
+que **sí** tienen un uso literal en `src/` y este recuento respeta.
+
+Bloques enteros que eran pantallas que este código no tiene:
+- **`auth.*` (16):** el login propio del Time Tracker original; hoy entra por `/login` del hub.
+- **`mgr.usr.*` (23):** gestión de usuarios, sustituida por `/home/users` (D-095).
+- **`mgr.set.dataBackup`, `backupNote`, `backupNote2`, `download`, `restoreBtn`, `preparing`,
+  `backupDone`, `backupFail`, `restoreConfirm`, `restoring`, `restoreDone`, `restoreFail` (12):** una
+  pantalla de **copia y restauración que no existe**. Borrar sus textos no arregla F-3 («sin ningún
+  respaldo»); solo deja de fingir que hay uno.
+- **`mgr.start.*` (11):** la guía de arranque. **`theme.*` (4):** el selector de tema.
+- Sueltas: `mgr.ppl.delete*` y afines (7), `mgr.tab.insights/requests/projects/users/audit` (5),
+  `notify.*` (6), `shell.*` (5), `reqtype.*` (3), `status.*` (2), `mgr.rep.excel/pdf/exportFail/prev/next`
+  (5), `mgr.live.w*` (3), `mgr.pay.onSite/remote` (2), `pending.*` (2), `track.noShots/idleExcluded`
+  (2), `brand.suffix` (1).
+
+**Se quedan a propósito:** `tab.schedule` (D-186, con su comentario en `i18n.ts`), y
+`track.openingClock`, que ninguna pantalla usa pero la prueba de D-123 exige que exista (se anota,
+no se decide aquí).
+
+### Qué NO cambia
+
+Migraciones (ninguna). Ninguna acción de servidor, ningún guardado, ningún filtro ni orden: cada
+commit es sustituir texto fijo por `t("clave")`, más la función que lo envuelve cuando el texto vivía
+en una constante de módulo. El ERP (G-10) no se toca. `DayPhotos` y `ExceptionHistory` cambian solo
+texto (y de dónde sale el idioma), como pedía el encargo.
+
+### Lo no verificado
+
+Nadie abrió las 15 pantallas con sesión real en español: que cada texto salga donde debe y no
+desborde su sitio va por lectura y por la prueba de claves (que garantiza existencia, no maquetación).
+El aviso de actualización de escritorio (`UpdateBanner`) solo se ve en la app de Electron, que esta
+rama no construye. La traducción al español es del worker, no de un hablante que use la app:
+«Cuentakilómetros», «Margen (m)», «En sede» son elecciones que el dueño puede querer cambiar, y
+cambiarlas es editar el diccionario. `verify.mjs` en verde sobre `.next` limpio, en solitario:
+**819 pasados | 3 saltados** (main f266aa9: 804 | 3; los +15 son los quince ficheros nuevos de la
+prueba de claves, una prueba por fichero).

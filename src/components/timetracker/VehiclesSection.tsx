@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { listVehicles, addVehicle, setVehicleActive } from "@/app/timetracker/clock-in/actions/vehicles";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * La flota, dentro de Ajustes de Time Tracker (D-137).
@@ -14,8 +15,11 @@ import { listVehicles, addVehicle, setVehicleActive } from "@/app/timetracker/cl
  * Un camión **no se borra, se apaga**. Los viajes ya registrados lo apuntan, y borrarlo dejaría
  * kilometraje colgando de un vehículo que no existe. Apagado deja de ofrecerse al empezar un
  * viaje y su historial sigue en pie.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.veh.*. Nombre y placa de cada vehículo son dato.
  */
 export function VehiclesSection() {
+  const t = useT();
   const [flota, setFlota] = useState<{ id: string; name: string; plate: string | null; active: boolean }[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,7 +39,7 @@ export function VehiclesSection() {
     setBusy(true);
     const r = await fn();
     setBusy(false);
-    if (!r.ok) { setErr(r.message ?? "Could not save."); return; }
+    if (!r.ok) { setErr(r.message ?? t("mgr.veh.saveFail")); return; }
     setErr(null);
     await load();
   }
@@ -43,17 +47,16 @@ export function VehiclesSection() {
   return (
     <>
       <div className="hr" />
-      <h3 style={{ color: "var(--tt-muted)" }}>🚚 Vehicles</h3>
+      <h3 style={{ color: "var(--tt-muted)" }}>{t("mgr.veh.title")}</h3>
       <p className="small muted" style={{ marginTop: 0 }}>
-        The trucks a runner can pick when starting a trip. Turning one off keeps its trip history
-        and stops offering it.
+        {t("mgr.veh.note")}
       </p>
 
       {err && <div className="banner err">{err}</div>}
 
       <div className="row">
-        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Name (e.g. white F-150)" />
-        <input value={placa} onChange={(e) => setPlaca(e.target.value)} placeholder="Plate (optional)" style={{ maxWidth: 160 }} />
+        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t("mgr.veh.namePh")} />
+        <input value={placa} onChange={(e) => setPlaca(e.target.value)} placeholder={t("mgr.veh.platePh")} style={{ maxWidth: 160 }} />
         <button
           disabled={busy || !nombre.trim()}
           onClick={async () => {
@@ -61,27 +64,27 @@ export function VehiclesSection() {
             setNombre(""); setPlaca("");
           }}
         >
-          Add
+          {t("mgr.veh.add")}
         </button>
       </div>
 
       {!flota ? (
-        <div className="hint">Loading…</div>
+        <div className="hint">{t("mgr.veh.loading")}</div>
       ) : flota.length === 0 ? (
-        <p className="small muted">No vehicles yet.</p>
+        <p className="small muted">{t("mgr.veh.none")}</p>
       ) : (
         <table className="orders" style={{ marginTop: 12 }}>
-          <thead><tr><th>Vehicle</th><th>Plate</th><th /><th /></tr></thead>
+          <thead><tr><th>{t("mgr.veh.colVehicle")}</th><th>{t("mgr.veh.colPlate")}</th><th /><th /></tr></thead>
           <tbody>
             {flota.map((v) => (
               <tr key={v.id} style={v.active ? undefined : { opacity: 0.55 }}>
                 <td>{v.name}</td>
                 <td className="small muted">{v.plate || "—"}</td>
-                <td>{v.active ? <span className="pill on">active</span> : <span className="pill off">off</span>}</td>
+                <td>{v.active ? <span className="pill on">{t("mgr.veh.active")}</span> : <span className="pill off">{t("mgr.veh.off")}</span>}</td>
                 <td style={{ whiteSpace: "nowrap" }}>
                   <button className="btn-ghost btn-sm" disabled={busy}
                     onClick={() => corre(() => setVehicleActive(v.id, !v.active))}>
-                    {v.active ? "Turn off" : "Turn on"}
+                    {v.active ? t("mgr.veh.turnOff") : t("mgr.veh.turnOn")}
                   </button>
                 </td>
               </tr>
