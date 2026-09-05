@@ -8945,3 +8945,109 @@ ejecutó contra producción**: la llamada se probó con `fetch` falso y la ruta 
 (main: 770 | 3; +23 son las tres pruebas nuevas: 11 de la cola de GPS, 8 de la de fichajes, 4 de
 la poda). La prueba real es el dueño con el APK: modo avión, fichar salida, ver que el GPS para;
 mover el camión sin red, recuperar la red, ver el rastro completo.
+
+## D-NEXT · Auditoría 2026-09-05, lote 3 (eficiencia): ventanas con carga bajo demanda, realtime por tabla, lotes en HR, un salto en los enlaces viejos, y `fast-uri`
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries, HR y Time Tracker se
+tocan) · **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md`. Un commit por hallazgo, en este orden.
+
+### G-16 · Los pedidos bajaban enteros, sin límite
+
+**Qué fallaba.** `deliveries.select("*")` bajaba entero en cada carga y en cada recarga realtime, sin
+`limit` ni `range`, y crecía para siempre; `order_events` ya se había acotado a `EVENTS_WINDOW`.
+
+**Qué se hizo, y el número.** Ventana **por fecha**, no por cuenta: `DELIVERIES_WINDOW_DAYS = 120`
+(`data-provider.tsx`, con comentario). Baja todo pedido con `delivery_date` o `input_date` en los
+últimos 120 días, **más** todo lo que no está entregado ni cancelado (un pendiente viejo nunca se
+pierde), **más** lo sin fecha. **Por qué 120:** las colas de trabajo miran a ayer
+(`RETENTION_DAYS_BACK`), ventas busca 30 días atrás, el panel abre con 30 y el resumen ofrece hasta
+90; 120 cubre un trimestre de KPIs con margen. **Lo que cambia para el usuario, y queda dicho:** las
+pantallas que miran más atrás lo piden ellas con `ensureDeliveriesSince` (idempotente; el
+proveedor recuerda hasta dónde hay cargado para que una recarga realtime nunca lo estreche): el
+panel cuando el rango empieza antes, el resumen según los días elegidos, cuentas y datos (admin,
+histórico entero) al abrirse, y el tablero cuando un admin escribe una búsqueda (ventas está
+acotado a 30 días de todas formas). El proveedor global nunca carga el histórico entero por su
+cuenta.
+
+### G-15 · Cualquier cambio recargaba las nueve consultas
+
+**Qué fallaba.** El canal realtime enganchaba ocho tablas a un mismo `scheduleReload → reloadAll`,
+que volvía a bajar las nueve consultas del proveedor en **todas** las sesiones abiertas por
+cualquier fila.
+
+**Qué se hizo.** Las nueve consultas viven en un mapa de cargadores (uno por consulta, cada uno
+aplica su estado); `reloadAll` corre los nueve y la ráfaga realtime recoge **qué** tablas cambiaron
+y corre solo esos (`reloadTables`, misma puerta de sesión y misma marca de fallo). El debounce de
+250 ms y la espera a `writingRef` se conservan; `driver_locations` sigue aplicando la fila al punto.
+
+**Medido antes/después** (`src/lib/realtime-reload.test.ts`, sobre el caso real: un "entregado" del
+chofer escribe `deliveries` + `order_events` y llega como dos eventos a una sesión ajena): **antes 9
+consultas por ráfaga, 18 si los dos eventos no caen en el mismo debounce; después 2.** Una tabla que
+nadie mapeó cae a las nueve, para no dejar estado viejo en silencio.
+
+### G-17 · Sesiones y capturas del empleado sin cota, rebajadas en cada fila
+
+**Qué fallaba.** `sessions.select("*")` y `screenshots.select("*")` por empleado sin cota ni límite,
+y el canal realtime volvía a bajarlo **todo** en cada fila: cada ~10 s durante el turno (el tick
+escribe `end_ms`) se rebajaba el histórico entero para añadir una fila.
+
+**Qué se hizo, y el número.** `SESSIONS_WINDOW_DAYS = 60` (`timetracker-data-provider.tsx`, con
+comentario). **Por qué 60:** la pantalla de la semana pagina de una en una, insights mira 8 semanas,
+y un mes de nómina son 31 días; 60 cubre dos meses de nómina. `ensureSessionsSince(dateISO)`
+extiende sesiones y capturas, y la pantalla de la semana lo pide al retroceder. El realtime de
+`sessions` y de `screenshots` aplica la fila del payload (insert/update upsert, delete remove) en
+vez de recargar. **Comprobado que nada de nómina depende de este listado:** Nómina y la cabecera
+Period leen `period_hours` (SQL) y `sessionsSince()` (admin, bajo demanda).
+
+### G-18 · La tira de días con datos bajaba hasta 20.000 filas
+
+**Qué fallaba.** Para saber qué días tienen fijaciones, `/track` bajaba hasta 20.000 filas de
+`driver_locations` y las agrupaba en el navegador.
+
+**Qué se hizo.** Lo ideal es un agregado en SQL (RPC `distinct date`), pero exige migración y esta rama
+no las escribe: **queda pendiente**, dicho en el código y aquí. Sin migración: la consulta ya estaba
+acotada al rango de la tira (14 días) y a solo `recorded_at`; el tope de 20.000 era un orden de
+magnitud por encima de lo que ese rango puede contener (~170 fijaciones/día/chofer). Tope nuevo en
+una constante, `(DAY_STRIP + 1) × 400 = 5.600`, con orden explícito por `recorded_at` descendente
+para que, si alguna vez se llena, se pierdan los días más viejos y no los recientes.
+
+### G-19 · Tres bucles con un `UPDATE` por fila en HR
+
+Duplicar pregunta, reordenar preguntas y añadir etapa hacían un `await` a Supabase por fila. Cada uno
+pasa a **un solo `upsert`** con `onConflict: "id"` y las **filas completas** del estado cargado, no solo
+`{id, sort}`: el lado insert de `ON CONFLICT` sigue validando las columnas `NOT NULL`. Mismo
+resultado en la base; en añadir etapa, un fallo del desplazamiento ahora se avisa y para el insert
+en vez de tragarse.
+
+### G-3 · Tres saltos en los enlaces viejos del fichaje
+
+**Medido antes, sin sesión, en producción:** `/clock-in/clock`, `/clock-in` y `/clock-in/photos` daban
+**3** redirecciones (comodín → `/timetracker/clock-in/X` → la regla de esa pantalla → el login), con
+primer `Location` `/timetracker/clock-in/X`; `/clock-in/week`, 1. Ahora cada `/timetracker/clock-in/X`
+con regla propia tiene su `/clock-in/X` **explícito** con el mismo destino, generado una a una y
+colocado **antes** del comodín (Next resuelve en orden); `/clock-in` va directo a `/timetracker`. El
+comodín se queda detrás para lo que no tenga regla. **Esperado tras desplegar:** esos tres caminos en
+**2** saltos (el segundo es la puerta del layout al login, que no es regla y no se quita), con primer
+`Location` `/timetracker` o `/timetracker/audit`; `/clock-in/week` sigue en 1. Lo mide el orquestador.
+
+### G-21a · `fast-uri`
+
+`npm update fast-uri` contra el registro real, sin `--force`: 3.1.5 → 3.1.7, y el diff del lock es
+solo eso (más el `version` raíz del lock sincronizándose con `package.json`). `npm audit` pasa de 6 a
+5 avisos. Quedan `postcss` (vía `next`, cambio mayor: plan aparte), `uuid` (vía `exceljs`, mayor) y
+`brace-expansion` (alto, arreglable sin mayor; fuera del encargo, anotado). Sin `--registry`, el audit
+de esta máquina **parece limpio y no lo está**.
+
+### Qué NO cambia
+
+Migraciones (ninguna), la aritmética de nómina, `dynamic()` de `OrderModal`/rutas (G-20, otra rama),
+la versión de Next. Lo que ve el usuario cambia solo en las ventanas de G-16 y G-17, y queda dicho.
+
+### Lo no verificado
+
+Nadie abrió las pantallas con sesión real: que el panel, el resumen, cuentas, datos y la búsqueda de
+admin pidan y muestren el histórico, y que la semana de Time Tracker pague hacia atrás, van por
+lectura; G-3 en producción lo mide el orquestador tras desplegar. La ventana de G-16 es un cambio de
+comportamiento visible (un pedido de hace más de 120 días, terminado, no aparece hasta que una
+pantalla lo pida): es lo que pedía el hallazgo y está listado arriba. `verify.mjs` en verde sobre
+`.next` limpio, en solitario: 799 pasados | 3 saltados (main: 793 | 3; +6 son la prueba de G-15).
