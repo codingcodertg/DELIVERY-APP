@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getExceptionHistory } from "@/app/timetracker/clock-in/actions/exceptions";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { dateISO, fmtDayLong, fmtDT } from "@/lib/timetracker/helpers";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 
 /**
  * El historial de excepciones de fichaje, dentro de Auditoría.
@@ -17,6 +18,10 @@ import { dateISO, fmtDayLong, fmtDT } from "@/lib/timetracker/helpers";
  * De solo lectura, a propósito. El botón de resolver vive en Pendientes y en un solo sitio
  * (D-106): dos botones que hacen lo mismo en dos pantallas acaban en dos versiones de la
  * verdad sobre si algo está atendido. Lo que hay aquí es el enlace a esa cola.
+ *
+ * G-9 (D-NEXT): textos por claves mgr.exc.*. Los MOTIVOS (r.reasons) son valores guardados y
+ * se enseñan tal cual; los tipos de excepción son un enumerado fijo del código y se traducen.
+ * fmtDayLong no se toca: el día largo sigue en inglés.
  */
 
 type Exc = {
@@ -25,14 +30,18 @@ type Exc = {
   resolved: boolean; photo: string | null; returnedPhoto: string | null;
 };
 
-const TIPO: Record<string, string> = {
-  out_of_radius: "Off site",
-  leaving_while_clocked_in: "Left while clocked in",
-  missed_punch: "Missed punch",
-  other: "Other",
-};
+// Claves literales, una por rama, para que la prueba de claves de D-187 las vea en el fuente.
+function tipo(t: ReturnType<typeof useT>, type: string): string {
+  if (type === "out_of_radius") return t("mgr.exc.outOfRadius");
+  if (type === "leaving_while_clocked_in") return t("mgr.exc.leftClockedIn");
+  if (type === "missed_punch") return t("mgr.exc.missedPunch");
+  if (type === "other") return t("mgr.exc.other");
+  return type;
+}
 
 export function ExceptionHistory() {
+  const t = useT();
+  const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [rows, setRows] = useState<Exc[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -80,11 +89,11 @@ export function ExceptionHistory() {
   const creditos = useMemo(() => {
     const m: Record<string, { name: string; role: string }> = {};
     for (const r of shown) {
-      if (r.photo) m[r.photo] = { name: r.nombre, role: TIPO[r.type] ?? r.type };
-      if (r.returnedPhoto) m[r.returnedPhoto] = { name: r.nombre, role: "Back" };
+      if (r.photo) m[r.photo] = { name: r.nombre, role: tipo(t, r.type) };
+      if (r.returnedPhoto) m[r.returnedPhoto] = { name: r.nombre, role: t("mgr.exc.back") };
     }
     return m;
-  }, [shown]);
+  }, [shown, lang]);
 
   const porDia = new Map<string, Exc[]>();
   shown.forEach((r) => {
@@ -104,22 +113,22 @@ export function ExceptionHistory() {
   return (
     <div className="card">
       <div className="between">
-        <h2 style={{ margin: 0 }}>⚠️ Exceptions</h2>
+        <h2 style={{ margin: 0 }}>{t("mgr.exc.title")}</h2>
         <div className="row" style={{ alignItems: "center" }}>
           <button className={`btn-ghost btn-sm${soloPendientes ? " pbtn sel" : ""}`}
             onClick={() => setSoloPendientes((v) => !v)}>
-            {soloPendientes ? "Showing unresolved" : "All"}
+            {soloPendientes ? t("mgr.exc.showingUnresolved") : t("mgr.exc.all")}
           </button>
-          <button className="btn-ghost btn-sm" onClick={() => void load()}>Refresh</button>
+          <button className="btn-ghost btn-sm" onClick={() => void load()}>{t("mgr.exc.refresh")}</button>
         </div>
       </div>
 
       <p className="small muted" style={{ marginTop: 4 }}>
-        {loading ? "loading…" : `${shown.length} shown · ${pendientes} still unresolved`}
+        {loading ? t("mgr.exc.loading") : t("mgr.exc.counts", { shown: shown.length, open: pendientes })}
         {" · "}
         {/* Se resuelve en Pendientes, no aquí: una sola cola, un solo botón. */}
         <Link href="/timetracker/team-requests" style={{ color: "var(--tt-accent)" }}>
-          resolve them in Pending
+          {t("mgr.exc.resolveLink")}
         </Link>
       </p>
 
@@ -137,7 +146,7 @@ export function ExceptionHistory() {
             </button>
           ))}
           {filtroMotivo && (
-            <button className="btn-ghost btn-sm" onClick={() => setFiltroMotivo(null)}>✕ clear</button>
+            <button className="btn-ghost btn-sm" onClick={() => setFiltroMotivo(null)}>{t("mgr.exc.clear")}</button>
           )}
         </div>
       )}
@@ -146,7 +155,7 @@ export function ExceptionHistory() {
 
       {!loading && !err && shown.length === 0 && (
         <p className="small muted">
-          {soloPendientes ? "Nothing left to review." : "No exceptions on record."}
+          {soloPendientes ? t("mgr.exc.nothingLeft") : t("mgr.exc.none")}
         </p>
       )}
 
@@ -159,17 +168,17 @@ export function ExceptionHistory() {
             {delDia.map((r) => (
               <li key={r.id} className="exc-row">
                 <div className="exc-shots">
-                  {miniatura(r.photo, `${r.nombre} · ${TIPO[r.type] ?? r.type}`)}
-                  {miniatura(r.returnedPhoto, `${r.nombre} · back`)}
-                  {!r.photo && !r.returnedPhoto && <div className="exc-noshot">no photo</div>}
+                  {miniatura(r.photo, `${r.nombre} · ${tipo(t, r.type)}`)}
+                  {miniatura(r.returnedPhoto, `${r.nombre} · ${t("mgr.exc.backAlt")}`)}
+                  {!r.photo && !r.returnedPhoto && <div className="exc-noshot">{t("mgr.exc.noPhoto")}</div>}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div>
                     <strong>{r.nombre}</strong>
-                    <span className="muted small"> · {TIPO[r.type] ?? r.type}</span>
+                    <span className="muted small"> · {tipo(t, r.type)}</span>
                     {r.resolved
-                      ? <span className="pill on" style={{ marginLeft: 6 }}>reviewed</span>
-                      : <span className="pill wait" style={{ marginLeft: 6 }}>open</span>}
+                      ? <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.exc.reviewed")}</span>
+                      : <span className="pill wait" style={{ marginLeft: 6 }}>{t("mgr.exc.open")}</span>}
                   </div>
                   <div className="small muted">
                     {/* TODOS los motivos, no solo el primero (D-163). Desde que se pueden
@@ -187,8 +196,8 @@ export function ExceptionHistory() {
                     {hora(r.created_at)}
                     {/* "Sigue fuera" es el dato que más importa de un vistazo: alguien que
                         salió y no ha vuelto no es lo mismo que uno que ya volvió. */}
-                    {r.left_at && r.returned_at ? ` · back at ${hora(r.returned_at)}` : ""}
-                    {r.left_at && !r.returned_at ? " · still out" : ""}
+                    {r.left_at && r.returned_at ? t("mgr.exc.backAt", { time: hora(r.returned_at) }) : ""}
+                    {r.left_at && !r.returned_at ? t("mgr.exc.stillOut") : ""}
                   </div>
                 </div>
               </li>
@@ -199,7 +208,7 @@ export function ExceptionHistory() {
 
       {viewing !== null && fotos[viewing] && (
         <PhotoLightbox photos={fotos} index={viewing} credits={creditos}
-          onIndex={setViewing} onClose={() => setViewing(null)} t={(en) => en} />
+          onIndex={setViewing} onClose={() => setViewing(null)} t={(en, es) => (lang === "es" ? es : en)} />
       )}
     </div>
   );
