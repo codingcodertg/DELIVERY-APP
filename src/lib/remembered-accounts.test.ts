@@ -5,7 +5,7 @@ import {
   type RememberedAccount, type StorageLike,
 } from "./remembered-accounts";
 
-// D-NEXT. El login pasó de recordar UN email a una lista de cuentas por aparato. Lo que se
+// D-193. El login pasó de recordar UN email a una lista de cuentas por aparato. Lo que se
 // vigila aquí: que el valor viejo migre sin perderse, que la lista quede por uso reciente,
 // que quitar quite, y que el tope se aplique. Sin dibujar nada: la lógica es pura.
 

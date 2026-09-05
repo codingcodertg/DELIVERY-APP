@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { safeNext } from "./auth-redirect";
 
-// D-NEXT. `?next=` llega por URL, desde el middleware o desde el enlace de restablecer
+// D-193. `?next=` llega por URL, desde el middleware o desde el enlace de restablecer
 // contraseña. Solo se acepta una ruta interna: nada externo, nada que vuelva al login.
 describe("safeNext", () => {
   it("acepta rutas internas tal cual, con su query", () => {

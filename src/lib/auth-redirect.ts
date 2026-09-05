@@ -1,5 +1,5 @@
 /**
- * A dónde volver después de entrar (D-NEXT).
+ * A dónde volver después de entrar (D-193).
  *
  * El `?next=` lo escribe el middleware al mandar al login a quien no tiene sesión, y también
  * viaja en el enlace de restablecer contraseña (`/auth/callback?next=/reset-password`). Como
@@ -10,7 +10,7 @@
  * Caracteres de control: el analizador de URL (WHATWG, el de `new URL()` en Node y en el
  * navegador) ELIMINA tabuladores y saltos de línea de cualquier posición antes de resolver, así
  * que `/\t/evil.com` pasaría las comprobaciones de arriba y acabaría en `//evil.com`, o sea,
- * fuera del sitio. El auditor lo reprodujo con `?next=/%09/evil.com` (D-NEXT). Ningún carácter
+ * fuera del sitio. El auditor lo reprodujo con `?next=/%09/evil.com` (D-193). Ningún carácter
  * de control tiene uso legítimo en un `next`: cualquiera lo tumba, no solo los tres conocidos.
  */
 export function safeNext(next: string | null | undefined, fallback = "/home"): string {

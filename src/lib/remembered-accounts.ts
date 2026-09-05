@@ -1,5 +1,5 @@
 /**
- * Las cuentas que este aparato recuerda para el login (D-NEXT).
+ * Las cuentas que este aparato recuerda para el login (D-193).
  *
  * Antes el login guardaba UN solo email (`rtg_remembered_email`) que se pisaba cada vez que
  * entraba otra persona en el mismo teléfono o PC de tienda: justo el fallo que el dueño
@@ -15,7 +15,7 @@
  */
 
 export const ACCOUNTS_KEY = "rtg_accounts";
-/** La clave de antes de D-NEXT; se lee una vez para migrar y se borra. */
+/** La clave de antes de D-193; se lee una vez para migrar y se borra. */
 export const LEGACY_EMAIL_KEY = "rtg_remembered_email";
 /** Tope de cuentas por aparato: un PC de tienda por el que pasa media plantilla no necesita más. */
 export const MAX_ACCOUNTS = 8;

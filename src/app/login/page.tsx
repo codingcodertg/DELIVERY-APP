@@ -14,7 +14,7 @@ import {
 /**
  * La puerta de entrada a todos los módulos (D-090).
  *
- * Desde D-NEXT este aparato recuerda una LISTA de cuentas, no un solo email: en un teléfono o
+ * Desde D-193 este aparato recuerda una LISTA de cuentas, no un solo email: en un teléfono o
  * PC de tienda por el que pasa media plantilla, el único email recordado se pisaba cada vez
  * que entraba otra persona. Las cuentas se enseñan como tarjetas; tocar una prerrellena el
  * identificador y pide SOLO la contraseña. Nunca se guarda una contraseña ni un token, así que

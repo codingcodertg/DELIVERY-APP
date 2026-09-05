@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth-redirect";
 
 /**
- * Intercambio del código de Supabase Auth por una sesión (D-NEXT).
+ * Intercambio del código de Supabase Auth por una sesión (D-193).
  *
  * Existía la promesa y no la ruta: "Forgot password?" mandaba el correo con
  * `redirectTo: /auth/callback?next=/reset-password` y `isPublicPath` ya dejaba pasar

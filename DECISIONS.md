@@ -8357,9 +8357,9 @@ que `main` (no hay prueba nueva: el fichero ya estaba cubierto). Mutación: `mgr
 borrada solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo la
 ventana y guardando un ajuste, en los dos idiomas.
 
-## D-NEXT · El login recuerda una lista de cuentas por aparato, pide siempre la contraseña, y queda traducido; `/auth/callback` existe por fin
+## D-193 · El login recuerda una lista de cuentas por aparato, pide siempre la contraseña, y queda traducido; `/auth/callback` existe por fin
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries / módulo base) ·
+**Fecha:** 2026-09-05 · **Versión:** deliveries 1.59.0, package.json 1.114.0 (Deliveries / módulo base) ·
 **Pedido por:** Andrés · **Plan:** `docs/PLAN-login-cuentas-recordadas.md` (aprobado por el dueño, opción
 "lista + contraseña")
 
