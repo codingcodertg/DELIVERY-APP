@@ -9175,3 +9175,118 @@ rama no construye. La traducción al español es del worker, no de un hablante q
 cambiarlas es editar el diccionario. `verify.mjs` en verde sobre `.next` limpio, en solitario:
 **819 pasados | 3 saltados** (main f266aa9: 804 | 3; los +15 son los quince ficheros nuevos de la
 prueba de claves, una prueba por fichero).
+
+## D-NEXT · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo `erp` se toca) ·
+**Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-10), dividido en dos ramas para que el
+auditor pueda medir; esta es la primera. Un commit para el mecanismo y uno por fichero. Solo texto:
+**ningún comportamiento cambia** (consultas, filtros, guardados, valores que se envían).
+
+### Qué fallaba
+
+El ERP no tenía idioma: **0 llamadas a `t()` en 64 ficheros**, ~346 textos en inglés fijo, y su barra
+lateral no tenía conmutador. Los otros tres módulos sí: quien ponía el hub en español lo perdía al
+entrar al ERP.
+
+### El mecanismo, medido antes de elegir
+
+**Lo que hay.** El hub, Entregas y HR usan `usePrefs().t(en, es)`, pares inline, con el idioma en
+`localStorage` (`rtg_prefs.lang`). Time Tracker usa un diccionario por claves (`useT()`) con su
+propia clave (`tt_lang`). **No hay cookie de idioma**: el servidor no sabe qué idioma eligió nadie.
+
+**Lo que tiene el ERP.** De 64 ficheros, 37 son de cliente y **27 `page.tsx` son server components;
+25 de ellos pintan texto** (`product/[id]/page.tsx` solo, 65 hallazgos del guardián, ~69 textos).
+
+**Lo que se eligió, y por qué.**
+- **Pares inline de `usePrefs`, no diccionario.** El ERP sigue la preferencia del **hub**, la misma
+  que Entregas y HR: una sola preferencia, sin tercera clave ni `setLang` propio. Para 64 ficheros
+  con Tailwind, un par inline al lado del texto es menos fricción que 346 claves en un diccionario
+  aparte, y no hay claves que puedan faltar en un idioma.
+- **Sin cookie para el servidor.** Se midieron las dos salidas: (a) una cookie espejo escrita desde
+  `prefs.tsx` que el servidor lea con `cookies()`, o (b) mover el texto de cada server component a
+  un hijo de cliente y dejar el servidor con los datos. Se aplicó **(b)**, la preferida del
+  orquestador: no hay parpadeo entre el idioma del servidor y el del navegador, no hay cookie que
+  el middleware tenga que ver, y la primera carga sin preferencia se comporta igual que en los otros
+  módulos (inglés hasta que `usePrefs` lee `localStorage`). En esta rama solo hacía falta para un
+  fichero; **para la rama 5b quedan 24 server components con texto** (arriba de la lista:
+  `po-reconcile.tsx` 17, `analytics/vendors` 13, `analytics/categories` 12, `reorder-panel` 9,
+  `dashboard` 9), y (b) significa un hijo de cliente por cada uno. Si al medir 5b eso pesa más que
+  una cookie, es decisión de 5b, con su medición.
+- **Conmutador en `side-nav.tsx`**, el patrón existente (`recruiting/TopBar.tsx:63`,
+  `timetracker/TopBar.tsx:86`): un botón que alterna con `setLang` y enseña el idioma AL QUE se
+  cambia («🇪🇸 ES» / «🇬🇧 EN»), en la barra lateral y en la cabecera móvil.
+
+### El guardián de regresión (`src/lib/erp/i18n-guard.ts` + `i18n.test.ts`)
+
+Sin diccionario no se puede hacer la prueba de D-187 («cada clave existe en los dos idiomas»). Se
+hace la contraria: en cada fichero **ya traducido**, con las llamadas `t("…", "…")` quitadas, una
+regex busca texto de pantalla a pelo en tres formas: nodos de texto JSX (`>Save changes<`),
+atributos que se leen (`placeholder`, `title`, `aria-label`, `alt`) y literales con pinta de frase
+(`"Loading more…"`, `"Needs review"`). Deja pasar a propósito lo que no es texto de interfaz: siglas
+(SKU, QOH, CSV), símbolos, valores guardados en minúscula (`"active"`), una palabra sola entre
+comillas (`"Edit"`, indistinguible de un valor), un nodo mixto que empieza por expresión, y las
+cabeceras de los ficheros exportados. **Se prueba a sí mismo** con dos fixtures: en el que tiene
+texto a pelo encuentra exactamente los seis textos y ninguno de los falsos positivos típicos
+(genéricos `useState<CatalogRow[]>`, `useRef<…>(null)`, `n > 0`, `SKU`, `—`); en el limpio, nada.
+
+**Medido antes → después**, hallazgos del guardián por fichero:
+
+| Fichero | Antes | Después | `t()` |
+|---|---|---|---|
+| `side-nav.tsx` | 13 | 0 | 29 |
+| `catalog-table.tsx` | 20 | 0 | 37 |
+| `review-queue.tsx` | 22 | 0 | 29 |
+| `product/[id]/page.tsx` → `product-detail.tsx` | 65 | 0 (los dos) | 81 |
+| `inventory-console.tsx` | 40 | 0 | 42 |
+
+**Mutación medida** (`side-nav.tsx`): volviendo a poner «Sign out» a pelo, la prueba cae con
+«src/components/erp/side-nav.tsx:104 [jsx] Sign out».
+
+### Qué se tradujo en cada fichero, y qué no
+
+- **`side-nav.tsx`:** las 16 entradas del menú, «All apps», «Sign out», «Analytics», mostrar/ocultar
+  menú, «cost visible/hidden» y su title. Las listas pasan de constantes de módulo a funciones
+  `items(t)` / `analytics(t)`: una constante no cambia de idioma; `href` y `managerPlus` no cambian.
+  El rol del badge es dato.
+- **`catalog-table.tsx`:** KPIs, pestañas de registro, vistas prefijadas, cabeceras de columna,
+  buscador, «All statuses», «Needs review», modo de vista, exportar, «N of M», carga, error y vacío.
+  Pestañas y vistas prefijadas pasan a funciones con `t()`; sus **valores** (`value`, `state`) son
+  los que filtran y no cambian. **No** se traducen `label(status)` (valor guardado), SKU/QOH/CSV/XLSX
+  ni las cabeceras del fichero exportado (son datos del fichero, no de la pantalla).
+- **`review-queue.tsx`:** vistas prefijadas, píldora «All», buscador, botón UdM y su title, el
+  contador «N flagged · showing», cabeceras, «Edit», vacío, paginación, «Action failed». Las
+  **etiquetas de revisión** (`BELOW COST`, …) son valores guardados en `review_tags`: se enseñan y
+  se filtran tal cual. La variable de bucle `t` de las etiquetas pasa a `tag` para no pisar `t()`.
+- **`product/[id]/page.tsx` → `product-detail.tsx`:** títulos de sección, etiquetas de campo,
+  cabeceras de lotes e historial, «mgr only», «Populates in Phase 2», Yes/No, «open», «all». La
+  página (server) conserva todas las consultas, el 404, la familia, el permiso de costo y los
+  cálculos, y pasa al hijo exactamente los mismos datos ya listos (`p`, lotes, historial, QOH por
+  tienda, galería, familia, `dref`, `showCost`, `canManage`, `isAdmin`). Queda sin texto (0
+  hallazgos, medido aparte porque no usa `usePrefs`). **No** se traducen nombre, SKU, valores de
+  campo, `sv.label`/`sv.note` (de `item-dashboard.ts`, en inglés: es lib, queda para 5b o aparte),
+  `label(record_status)`, estado de lote ni fuente de precio.
+- **`inventory-console.tsx`:** buscador, tienda, saldos negativos, conteos cíclicos, cabeceras,
+  conteo cíclico y ajuste manual con ayudas, etiquetas, placeholders, botones y los dos mensajes de
+  resultado. El **motivo del ajuste** (`adjustment`/`damage`/`shrinkage`) se guarda tal cual: solo
+  cambia la etiqueta de la opción. `c.status`, tienda y producto son dato.
+
+### Qué NO cambia
+
+Migraciones (ninguna). Ninguna acción de servidor, consulta, filtro, orden ni valor guardado. La
+única pieza que se mueve de sitio es el árbol JSX del detalle de producto, del servidor a un hijo de
+cliente, con los mismos datos. `prefs.tsx` no se toca. Fuera de esta rama (5b): los otros 59
+ficheros del ERP, entre ellos `receiving`, `request-form`, `po-reconcile`, los `page.tsx` con
+texto y los textos de librería (`item-dashboard.ts`, `status.ts`).
+
+### Lo no verificado
+
+Nadie abrió las cinco pantallas con sesión real en español (maquetación, desbordes de los
+Tailwind anchos fijos, p. ej. los botones de la barra lateral con «Ida y vuelta Excel»). El
+detalle de producto pasa a pintarse en el cliente: el HTML servido lleva el mismo árbol (React lo
+hidrata), pero el peso del bundle de esa ruta sube y no se midió. La traducción es del worker, no
+de quien usa el ERP («Ida y vuelta Excel», «tarima», «merma», «Costo en destino» son elecciones
+que el dueño puede cambiar editando el par). `verify.mjs`: en verde sobre `.next` limpio, en solitario:
+**827 pasados | 3 saltados** (main 53e91cc tras D-202: 819 | 3; los +8 son las dos pruebas con las que el
+guardián se prueba a sí mismo, la del server component sin texto y una por cada uno de los cinco
+ficheros traducidos).
