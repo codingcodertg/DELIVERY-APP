@@ -8356,3 +8356,87 @@ guardado real van por lectura del diff. `verify.mjs` en verde, 716 pasados | 3 s
 que `main` (no hay prueba nueva: el fichero ya estaba cubierto). Mutación: `mgr.rep.typeAdvance`
 borrada solo del español la detecta la prueba de claves. La prueba real es el dueño abriendo la
 ventana y guardando un ajuste, en los dos idiomas.
+
+## D-NEXT · El login recuerda una lista de cuentas por aparato, pide siempre la contraseña, y queda traducido; `/auth/callback` existe por fin
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries / módulo base) ·
+**Pedido por:** Andrés · **Plan:** `docs/PLAN-login-cuentas-recordadas.md` (aprobado por el dueño, opción
+"lista + contraseña")
+
+### Qué se pidió
+
+Petición literal: *"en el login quiero que se guarde siempre si ingresaste con otro usuario y sea
+quick login… y puede quedar hasta la lista de varios… obviamente al menos que se cambie la
+contraseña"*.
+
+### Qué fallaba
+
+El login guardaba **un solo** email en `localStorage` (`rtg_remembered_email`) que se pisaba cada
+vez que entraba otra persona en el mismo teléfono o PC de tienda. No estaba traducido, y es la
+pantalla que ve todo el mundo. Y dos bugs de paso: "Forgot password?" mandaba el correo con
+`redirectTo: /auth/callback?next=/reset-password` y **`/auth/callback` no existía** (quien tocaba
+el enlace del correo caía en un 404, aunque `isPublicPath` ya lo dejaba pasar), y el mensaje de
+`?reason=session` ("signed out because this account signed in on another device") prometía un
+candado que se retiró a propósito en `data-provider.tsx`.
+
+### Qué se decidió
+
+1. **Una lista de cuentas por aparato**, `rtg_accounts`: `{ identifier, displayName, lastUsedAt }`,
+   ordenada por uso reciente, con tope de **8** (un PC de tienda por el que pasa media plantilla no
+   necesita más), y **migración** del email viejo la primera vez que se lee (entra como una cuenta
+   más y la clave vieja se borra). La lógica es pura y vive en `src/lib/remembered-accounts.ts`,
+   con prueba: migración, orden, quitar, tope, JSON roto, mayúsculas y espacios.
+2. **Solo identificador y nombre. Nunca una contraseña ni un token.** Tocar una tarjeta prerrellena
+   el identificador y pide la contraseña igual. Así "si cambió la contraseña, deja de entrar" se
+   cumple solo: `signOut` revoca la sesión en el servidor, siempre se pide, y vale la nueva.
+3. **La pantalla:** si hay cuentas, se enseñan como tarjetas (nombre + identificador), cada una con ✕
+   para quitarla de este aparato (solo de la lista, no cierra ninguna sesión), y un botón "Otra
+   cuenta" para el formulario vacío. Con una tarjeta elegida, el identificador va fijo con un
+   enlace "Cambiar" y el foco va a la contraseña. "Remember me" pasa a significar **"recordar esta
+   cuenta en este aparato"**: marcado, se guarda o actualiza; desmarcado, se quita si estaba.
+4. **El nombre de la tarjeta** se lee de `profiles.full_name` **después** de entrar (el login no lo
+   conoce antes). Si no se puede leer, se conserva el de la vez anterior o la tarjeta queda solo con
+   el identificador. La lista es una comodidad: nunca bloquea el login.
+5. **Traducido entero** con `usePrefs().t(en, es)`, el patrón del módulo base (como `HomeSelector`),
+   no el diccionario por claves de Time Tracker. Los mensajes de error de Supabase se enseñan tal
+   cual. El color del mensaje ya no se adivina por su texto (`includes("Check your email")`): hay un
+   estado `msgOk`.
+6. **`/auth/callback` implementada** (`src/app/auth/callback/route.ts`): canjea el `code` con el
+   cliente de servidor (`exchangeCodeForSession`, que escribe la cookie), redirige a `?next=`
+   **saneado a ruta interna** y, si falla (código caducado, ya usado, ausente, o error del
+   proveedor), vuelve a `/login?error=…` y el login lo enseña. El saneador es `safeNext` en
+   `src/lib/auth-redirect.ts`, con prueba: acepta rutas internas con query, rechaza externos con y
+   sin esquema (`//evil.com`, `/\evil.com`), saltos de línea, y el propio `/login` (bucle). El login
+   usa el mismo `safeNext` para su `?next=`, en vez de su comprobación a mano.
+   **Nota del mismo día (CAMBIOS del auditor):** la primera versión solo tumbaba `\r` y `\n`, y el
+   auditor reprodujo un open redirect por **tabulador**: `?next=/%09/evil.com` se decodifica a
+   `/\t/evil.com`, pasaba las comprobaciones, y `new URL()` en el callback elimina tabuladores y
+   saltos de línea antes de resolver, con lo que acababa en `https://evil.com/`. Ahora cualquier
+   carácter de control (`[\x00-\x1F\x7F]`) tumba el `next`, la prueba cubre `\t`, VT, FF, NUL y DEL,
+   y cada caso externo se resuelve contra el host real y se exige que siga siendo el nuestro, para
+   que un hueco así del analizador se vea solo. Medido: con la regex vieja, el caso del tabulador
+   falla.
+7. **Eliminado el mensaje muerto** de `?reason=session`.
+
+### Qué NO se hace, y por qué
+
+- **Sesiones múltiples / tokens en `localStorage`:** descartado en el plan (§1). Supabase no lo trae,
+  exigiría `storageKey` por cuenta en los cinco clientes, el servidor y el middleware, dejaría
+  refresh tokens al alcance de cualquier script, y choca con la rotación de D-119 y con D-172/D-179.
+- **Limpiar `rtg_outbox_v1` ni borradores al salir:** la cola offline del chofer guarda pedidos
+  sin enviar; borrarla puede perder trabajo. Decisión aparte, anotada en el plan.
+- **No se tocan** middleware, clientes de Supabase ni `username.ts`. `isPublicPath` ya cubría
+  `/auth/*` y `/reset-password`; su prueba sigue igual.
+- Sin migración de base, sin versión (la pone el orquestador).
+
+### Lo no verificado
+
+**Nadie abrió el login con sesión real**: el worktree no tiene `.env.local`. Las tarjetas, el foco,
+la migración en un navegador de verdad y el canje del código en `/auth/callback` van por lectura y
+por las pruebas puras. **No se mandó ningún correo de reset** para probar el callback (regla de
+efectos en terceros): la ruta se verificó por lectura, `tsc` y `next build`, y `safeNext` por su
+prueba. `verify.mjs` en verde: 733 pasados | 3 saltados (main: 716 | 3; +17 son las dos pruebas
+nuevas). Mutaciones: sin el `slice(0, MAX_ACCOUNTS)` falla la prueba del tope; sin el rechazo de
+`//` fallan las de destinos externos. El build avisa de `unpdf` en el catálogo del ERP: es previo y
+ajeno a este cambio. La prueba real la firma el dueño: entrar con dos cuentas en el mismo aparato,
+ver las dos tarjetas, quitar una, y abrir un enlace de reset.
