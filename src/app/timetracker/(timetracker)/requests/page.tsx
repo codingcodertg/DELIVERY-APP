@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
+import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, dateISO, fmtClock, weekIsFinished, weekStartISO } from "@/lib/timetracker/helpers";
 import { endOptions, mmhh, rangeOverlapsAny, startOptions, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
@@ -16,8 +17,9 @@ import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
 // fichaje. Es la misma pregunta —qué le pedí a mi encargado y qué me contestó— y que una
 // petición sea de horas y la otra de días no cambia a qué viene la persona. En dos pestañas
 // distintas había que acordarse de en cuál estaba cada cosa.
-
-const LABEL: Record<RequestType, string> = { add: "Add time", adjust: "Adjust time", delete: "Delete time" };
+//
+// G-9 (D-NEXT): traducida entera por claves emp.req.*. El texto de "semana cerrada" ya existía
+// (emp.req.weekLocked, D-190) y aquí estaba duplicado a mano; ahora se usa la clave.
 
 function hhmm(ms: number | null): string {
   if (!ms) return "";
@@ -36,6 +38,9 @@ interface FormState { assignmentId: string; date: string; fromTime: string; toTi
 
 export default function MyRequestsPage() {
   const { me, myAssignments: assignments, mySessions: sessions, myRequests: requests, addRequest } = useData();
+  const t = useT();
+  // Claves literales (no construidas) para que la prueba de claves de D-187 las vea.
+  const label = (rt: RequestType) => rt === "add" ? t("emp.req.typeAdd") : rt === "adjust" ? t("emp.req.typeAdjust") : t("emp.req.typeDelete");
   const aMap = new Map(assignments.map((a) => [a.id, a]));
   const [tab, setTab] = useState<"time" | "off">("time");
   const [type, setType] = useState<RequestType>("add");
@@ -93,39 +98,39 @@ export default function MyRequestsPage() {
       if (s) involved.push(s.date);
       if (type === "adjust") involved.push(f.date);
     }
-    if (involved.some((dt) => dt && weekIsFinished(weekStartISO(dt), "weekly"))) { setMsg("That week is closed and in review — you can no longer request changes to it."); return; }
+    if (involved.some((dt) => dt && weekIsFinished(weekStartISO(dt), "weekly"))) { setMsg(t("emp.req.weekLocked")); return; }
     try {
       let payload: Record<string, unknown>;
       if (type === "add") {
-        if (!f.assignmentId) { setMsg("Pick a project."); return; }
-        if (!f.fromTime || !f.toTime) { setMsg("Enter the start and end time."); return; }
-        if (hrs <= 0) { setMsg("End time must be after start time."); return; }
+        if (!f.assignmentId) { setMsg(t("emp.req.pickProject")); return; }
+        if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterTimes")); return; }
+        if (hrs <= 0) { setMsg(t("emp.req.endAfterStart")); return; }
         // The real guarantee -- the dropdowns only express one gap at a
         // time around whatever's currently picked, this re-checks the full
         // range against every occupied block on the date.
         if (rangeOverlapsAny(tParse(f.fromTime)!, tParse(f.toTime)!, occupied)) {
-          setMsg("That overlaps time you already tracked (or already requested) that day -- pick a range that isn't covered yet.");
+          setMsg(t("emp.req.overlap"));
           return;
         }
         const a = aMap.get(f.assignmentId)!;
         payload = { employeeName: me.fullName, projectId: a.projectId, assignmentId: a.id, date: f.date, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)), reason: f.reason.trim() };
       } else if (type === "adjust") {
-        if (!f.sessionId) { setMsg("Pick an entry."); return; }
-        if (!f.fromTime || !f.toTime) { setMsg("Enter the new start and end time."); return; }
-        if (hrs <= 0) { setMsg("End time must be after start time."); return; }
+        if (!f.sessionId) { setMsg(t("emp.req.pickEntry")); return; }
+        if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterNewTimes")); return; }
+        if (hrs <= 0) { setMsg(t("emp.req.endAfterStart")); return; }
         const s = sessions.find((x) => x.id === f.sessionId)!;
         payload = { employeeName: me.fullName, projectId: s.projectId, assignmentId: s.assignmentId, sessionId: s.id, date: f.date, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)), oldSeconds: s.durationSeconds, reason: f.reason.trim() };
       } else {
-        if (!f.sessionId) { setMsg("Pick an entry."); return; }
+        if (!f.sessionId) { setMsg(t("emp.req.pickEntry")); return; }
         const s = sessions.find((x) => x.id === f.sessionId)!;
         payload = { employeeName: me.fullName, projectId: s.projectId, assignmentId: s.assignmentId, sessionId: s.id, date: s.date, reason: f.reason.trim() };
       }
       await addRequest(type, payload);
       setF(blank);
-      setMsg("Request sent. The manager must approve it.");
+      setMsg(t("emp.req.sent"));
     } catch (e) {
       const err = e as { message?: string } | null;
-      setMsg(err?.message || "Failed to send.");
+      setMsg(err?.message || t("emp.req.sendFail"));
     }
   }
 
@@ -134,19 +139,19 @@ export default function MyRequestsPage() {
   return (
     <>
       <div className="tabs" style={{ marginBottom: 12 }}>
-        <button className={tab === "time" ? "active" : ""} onClick={() => setTab("time")}>⏱ Time</button>
-        <button className={tab === "off" ? "active" : ""} onClick={() => setTab("off")}>🗓 Time off</button>
+        <button className={tab === "time" ? "active" : ""} onClick={() => setTab("time")}>{t("emp.req.tabTime")}</button>
+        <button className={tab === "off" ? "active" : ""} onClick={() => setTab("off")}>{t("emp.req.tabOff")}</button>
       </div>
 
       {tab === "off" ? <TimeOffRequests /> : (
       <>
       <div className="card">
-        <h2>New request</h2>
+        <h2>{t("emp.req.newTitle")}</h2>
         {msg && <div className="banner info">{msg}</div>}
-        <label>Type</label>
+        <label>{t("emp.req.type")}</label>
         <div className="row">
           {(["add", "adjust", "delete"] as const).map((rt) => (
-            <button key={rt} className={type === rt ? "" : "btn-ghost"} onClick={() => { setType(rt); setF(blank); }}>{LABEL[rt]}</button>
+            <button key={rt} className={type === rt ? "" : "btn-ghost"} onClick={() => { setType(rt); setF(blank); }}>{label(rt)}</button>
           ))}
         </div>
 
@@ -154,41 +159,41 @@ export default function MyRequestsPage() {
           <>
             <div className="grid g2" style={{ marginTop: 10 }}>
               <div>
-                <label>Project</label>
+                <label>{t("emp.req.project")}</label>
                 <select value={f.assignmentId} onChange={(e) => upd("assignmentId", e.target.value)}>
-                  <option value="">Pick…</option>
+                  <option value="">{t("emp.req.pick")}</option>
                   {assignments.map((a) => <option key={a.id} value={a.id}>{a.project.name}</option>)}
                 </select>
               </div>
               <div>
-                <label>Date</label>
+                <label>{t("emp.req.date")}</label>
                 <input type="date" value={f.date} onChange={(e) => setF((p) => ({ ...p, date: e.target.value, fromTime: "", toTime: "" }))} />
               </div>
             </div>
             {occupied.length > 0 && (
               <div className="hint" style={{ marginTop: 6 }}>
-                Already tracked or requested that day: {occupied.map((r) => `${mmhh(r.startMin)}–${mmhh(r.endMin)}`).join(", ")}
+                {t("emp.req.occupied", { ranges: occupied.map((r) => `${mmhh(r.startMin)}–${mmhh(r.endMin)}`).join(", ") })}
               </div>
             )}
             <div className="grid g2">
               <div>
-                <label>From</label>
+                <label>{t("emp.req.from")}</label>
                 <select
                   value={f.fromTime}
                   onChange={(e) => setF((p) => ({ ...p, fromTime: e.target.value, toTime: "" }))}
                 >
-                  <option value="">Pick…</option>
+                  <option value="">{t("emp.req.pick")}</option>
                   {startOpts.map((o) => (
-                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? " (tracked)" : ""}</option>
+                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? t("emp.req.tracked") : ""}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label>To</label>
+                <label>{t("emp.req.to")}</label>
                 <select value={f.toTime} onChange={(e) => upd("toTime", e.target.value)} disabled={!f.fromTime}>
-                  <option value="">Pick…</option>
+                  <option value="">{t("emp.req.pick")}</option>
                   {endOpts.map((o) => (
-                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? " (tracked)" : ""}</option>
+                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? t("emp.req.tracked") : ""}</option>
                   ))}
                 </select>
               </div>
@@ -198,51 +203,51 @@ export default function MyRequestsPage() {
 
         {type === "adjust" && (
           <>
-            <label style={{ marginTop: 10 }}>Entry to fix</label>
+            <label style={{ marginTop: 10 }}>{t("emp.req.entryToFix")}</label>
             <select value={f.sessionId} onChange={(e) => pickSession(e.target.value)}>
-              <option value="">Pick an entry…</option>
+              <option value="">{t("emp.req.pickEntryPh")}</option>
               {mySessions.map((s) => {
                 const a = aMap.get(s.assignmentId ?? "");
-                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || "no note"}</option>;
+                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>;
               })}
             </select>
             <div className="grid g2" style={{ marginTop: 8 }}>
-              <div><label>Date</label><input type="date" value={f.date} onChange={(e) => upd("date", e.target.value)} /></div>
+              <div><label>{t("emp.req.date")}</label><input type="date" value={f.date} onChange={(e) => upd("date", e.target.value)} /></div>
               <div />
             </div>
             <div className="grid g2">
-              <div><label>New From</label><input type="time" value={f.fromTime} onChange={(e) => upd("fromTime", e.target.value)} /></div>
-              <div><label>New To</label><input type="time" value={f.toTime} onChange={(e) => upd("toTime", e.target.value)} /></div>
+              <div><label>{t("emp.req.newFrom")}</label><input type="time" value={f.fromTime} onChange={(e) => upd("fromTime", e.target.value)} /></div>
+              <div><label>{t("emp.req.newTo")}</label><input type="time" value={f.toTime} onChange={(e) => upd("toTime", e.target.value)} /></div>
             </div>
           </>
         )}
 
         {type === "delete" && (
           <>
-            <label style={{ marginTop: 10 }}>Entry to delete</label>
+            <label style={{ marginTop: 10 }}>{t("emp.req.entryToDelete")}</label>
             <select value={f.sessionId} onChange={(e) => upd("sessionId", e.target.value)}>
-              <option value="">Pick an entry…</option>
+              <option value="">{t("emp.req.pickEntryPh")}</option>
               {mySessions.map((s) => {
                 const a = aMap.get(s.assignmentId ?? "");
-                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || "no note"}</option>;
+                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>;
               })}
             </select>
           </>
         )}
 
         {(type === "add" || type === "adjust") && hrs > 0 && (
-          <div className="small muted" style={{ marginTop: 4 }}>That&apos;s <b>{hrs.toFixed(2)} h</b> — the system calculates it from the times.</div>
+          <div className="small muted" style={{ marginTop: 4 }}>{t("emp.req.thatsHours", { h: hrs.toFixed(2) })}</div>
         )}
-        <label style={{ marginTop: 8 }}>Reason (optional)</label>
-        <input value={f.reason} onChange={(e) => upd("reason", e.target.value)} placeholder="e.g. forgot to start the timer" />
-        <button style={{ marginTop: 14 }} onClick={send}>Send request</button>
+        <label style={{ marginTop: 8 }}>{t("emp.req.reason")}</label>
+        <input value={f.reason} onChange={(e) => upd("reason", e.target.value)} placeholder={t("emp.req.reasonPh")} />
+        <button style={{ marginTop: 14 }} onClick={send}>{t("emp.req.send")}</button>
       </div>
 
       <div className="card">
-        <h2>My requests</h2>
-        {sorted.length === 0 ? <p className="muted">You haven&apos;t sent any yet.</p> : (
+        <h2>{t("emp.req.myTitle")}</h2>
+        {sorted.length === 0 ? <p className="muted">{t("emp.req.none")}</p> : (
           <table>
-            <thead><tr><th>Type</th><th>Detail</th><th>Status</th></tr></thead>
+            <thead><tr><th>{t("emp.req.colType")}</th><th>{t("emp.req.colDetail")}</th><th>{t("emp.req.colStatus")}</th></tr></thead>
             <tbody>
               {sorted.map((r) => {
                 const p = (r.payload || {}) as Record<string, unknown>;
@@ -253,12 +258,12 @@ export default function MyRequestsPage() {
                   : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
                 return (
                   <tr key={r.id}>
-                    <td>{r.type ? LABEL[r.type] : "—"}</td>
+                    <td>{r.type ? label(r.type) : "—"}</td>
                     <td className="small muted">{det}</td>
                     <td>
-                      {r.status === "pending" ? <span className="pill wait">Pending</span>
-                        : r.status === "approved" ? <span className="pill on">Approved</span>
-                        : <span className="pill off">Rejected</span>}
+                      {r.status === "pending" ? <span className="pill wait">{t("emp.req.pending")}</span>
+                        : r.status === "approved" ? <span className="pill on">{t("emp.req.approved")}</span>
+                        : <span className="pill off">{t("emp.req.rejected")}</span>}
                     </td>
                   </tr>
                 );
