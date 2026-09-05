@@ -1,6 +1,6 @@
 import type { Delivery, Profile, Settings } from "@/lib/types";
 import type { AppNotification } from "@/lib/notifications";
-import { localISO, palletDuration } from "@/lib/utils";
+import { palletDuration, todayISO } from "@/lib/utils";
 
 // ============================================================
 // Demo dataset for LOCAL DEMO MODE.
@@ -96,11 +96,25 @@ export function demoSettings(): Settings {
   };
 }
 
+/**
+ * Un día de calendario relativo al HOY DEL NEGOCIO (D-NEXT), no al de la máquina.
+ *
+ * Hacía `new Date()` + `setDate` + `localISO`: la fecha local de la máquina. Pero `isOverdue`
+ * compara `delivery_date < todayISO()`, y `todayISO()` es el hoy en el huso del negocio
+ * (America/Chicago), a propósito. En el runner de CI (UTC), entre la medianoche UTC y la
+ * medianoche de Chicago la máquina ya va un día por delante del negocio: `iso(-1)` daba el
+ * "hoy" del negocio, los pedidos de "ayer" dejaban de estar vencidos, y
+ * `demo-data.test.ts` fallaba solo a esas horas (PR #7, 03:57 UTC). Ahora el desplazamiento
+ * se hace sobre `todayISO()`, en calendario puro (mediodía UTC para que ningún huso lo
+ * mueva de día), así que la demo y la lógica comparten la misma definición de "hoy".
+ */
 const iso = (daysFromToday: number): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromToday);
-  return localISO(d);
+  const d = new Date(todayISO() + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + daysFromToday);
+  return d.toISOString().slice(0, 10);
 };
+// Instantes (created_at, approved_at…), no días: un timestamp UTC es el mismo en cualquier
+// huso y nadie lo compara por día de calendario. Se queda como está.
 const stamp = (minsAgo: number) => new Date(Date.now() - minsAgo * 60000).toISOString();
 
 // A 1x1 transparent PNG — stands in for a real signature/photo in the demo.
