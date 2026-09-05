@@ -7,6 +7,7 @@ import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
 import { hasCatalogAccess } from "@/lib/erp/domain/modules";
 import { useErpNav } from "@/components/erp/nav-state";
+import { usePrefs } from "@/lib/prefs";
 
 const roleStyles: Record<string, string> = {
   admin: "border-clay-200 bg-clay-50 text-clay-700",
@@ -15,25 +16,30 @@ const roleStyles: Record<string, string> = {
 };
 
 type Item = { href: string; label: string; managerPlus?: boolean };
-const ITEMS: Item[] = [
-  { href: "/erp/dashboard", label: "Dashboard" },
-  { href: "/erp/catalog", label: "Catalog" },
-  { href: "/erp/purchasing", label: "Purchasing", managerPlus: true },
-  { href: "/erp/purchasing/orders", label: "PO ↔ Proforma", managerPlus: true },
-  { href: "/erp/purchasing/receiving", label: "Receiving", managerPlus: true },
-  { href: "/erp/inventory", label: "Inventory", managerPlus: true },
-  { href: "/erp/review", label: "Review", managerPlus: true },
-  { href: "/erp/requests", label: "Approvals", managerPlus: true },
-  { href: "/erp/po-upload", label: "PO upload", managerPlus: true },
-  { href: "/erp/decisions", label: "Bulk apply", managerPlus: true },
-  { href: "/erp/master", label: "Excel round-trip", managerPlus: true },
-  { href: "/erp/request", label: "Request" },
+type T = (en: string, es: string) => string;
+
+// G-10 (D-NEXT): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
+// con pares inline. Las etiquetas del menú se construyen con t() dentro del render en vez de en
+// una constante de módulo, porque una constante no puede cambiar de idioma.
+const items = (t: T): Item[] => [
+  { href: "/erp/dashboard", label: t("Dashboard", "Panel") },
+  { href: "/erp/catalog", label: t("Catalog", "Catálogo") },
+  { href: "/erp/purchasing", label: t("Purchasing", "Compras"), managerPlus: true },
+  { href: "/erp/purchasing/orders", label: t("PO ↔ Proforma", "OC ↔ Proforma"), managerPlus: true },
+  { href: "/erp/purchasing/receiving", label: t("Receiving", "Recepción"), managerPlus: true },
+  { href: "/erp/inventory", label: t("Inventory", "Inventario"), managerPlus: true },
+  { href: "/erp/review", label: t("Review", "Revisión"), managerPlus: true },
+  { href: "/erp/requests", label: t("Approvals", "Aprobaciones"), managerPlus: true },
+  { href: "/erp/po-upload", label: t("PO upload", "Subir OC"), managerPlus: true },
+  { href: "/erp/decisions", label: t("Bulk apply", "Aplicar en lote"), managerPlus: true },
+  { href: "/erp/master", label: t("Excel round-trip", "Ida y vuelta Excel"), managerPlus: true },
+  { href: "/erp/request", label: t("Request", "Solicitud") },
 ];
-const ANALYTICS: Item[] = [
-  { href: "/erp/analytics/stores", label: "Stores", managerPlus: true },
-  { href: "/erp/analytics/vendors", label: "Vendors", managerPlus: true },
-  { href: "/erp/analytics/categories", label: "Categories", managerPlus: true },
-  { href: "/erp/analytics/salespeople", label: "Salespeople", managerPlus: true },
+const analytics = (t: T): Item[] => [
+  { href: "/erp/analytics/stores", label: t("Stores", "Tiendas"), managerPlus: true },
+  { href: "/erp/analytics/vendors", label: t("Vendors", "Proveedores"), managerPlus: true },
+  { href: "/erp/analytics/categories", label: t("Categories", "Categorías"), managerPlus: true },
+  { href: "/erp/analytics/salespeople", label: t("Salespeople", "Vendedores"), managerPlus: true },
 ];
 
 
@@ -49,14 +55,15 @@ export function SideNav({
   cost: boolean;
 }) {
   const pathname = usePathname();
+  const { t, lang, setLang } = usePrefs();
   const managerPlus = role === "admin" || role === "manager";
   // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
   // driver has no reason to browse the product master, and a list of links that all redirect is
   // worse than no list.
   const { collapsed, toggle } = useErpNav();
   const catalog = hasCatalogAccess(role);
-  const items = catalog ? ITEMS.filter((i) => !i.managerPlus || managerPlus) : [];
-  const analyticsItems = catalog && managerPlus ? ANALYTICS : [];
+  const navItems = catalog ? items(t).filter((i) => !i.managerPlus || managerPlus) : [];
+  const analyticsItems = catalog && managerPlus ? analytics(t) : [];
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
   // /purchasing/orders highlights only its own item, not its parent.
   const exact = new Set(["/erp/purchasing"]);
@@ -74,17 +81,30 @@ export function SideNav({
       <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
       <Link
         href="/home"
-        title="All apps"
+        title={t("All apps", "Todas las apps")}
         className="shrink-0 text-sm text-slate-500 hover:text-clay-700"
       >
-        <span aria-hidden="true">⌂</span> All apps
+        <span aria-hidden="true">⌂</span> {t("All apps", "Todas las apps")}
       </Link>
     </div>
+  );
+  // El conmutador de idioma, como en las barras de HR y Time Tracker: un botón que alterna y
+  // enseña el idioma AL QUE se cambia. Es la preferencia del hub: cambiarla aquí cambia también
+  // Entregas y HR, y al revés, que es lo que se quiere de una sola preferencia.
+  const langToggle = (
+    <button
+      type="button"
+      onClick={() => setLang(lang === "es" ? "en" : "es")}
+      title={t("Switch to Spanish", "Cambiar a inglés")}
+      className="rounded-md px-2 py-1.5 text-slate-500 hover:bg-slate-100"
+    >
+      {lang === "es" ? "🇬🇧 EN" : "🇪🇸 ES"}
+    </button>
   );
   const signout = (
     <form action="/auth/signout" method="post">
       <button type="submit" className="rounded-md px-3 py-1.5 text-slate-500 hover:bg-slate-100">
-        Sign out
+        {t("Sign out", "Salir")}
       </button>
     </form>
   );
@@ -98,9 +118,9 @@ export function SideNav({
     <button
       type="button"
       onClick={toggle}
-      aria-label={collapsed ? "Show menu" : "Hide menu"}
+      aria-label={collapsed ? t("Show menu", "Mostrar menú") : t("Hide menu", "Ocultar menú")}
       aria-expanded={!collapsed}
-      title={collapsed ? "Show menu" : "Hide menu"}
+      title={collapsed ? t("Show menu", "Mostrar menú") : t("Hide menu", "Ocultar menú")}
       className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -139,16 +159,16 @@ export function SideNav({
             href="/home"
             className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
-            ⌂ All apps
+            ⌂ {t("All apps", "Todas las apps")}
           </Link>
-          {items.map((i) => (
+          {navItems.map((i) => (
             <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
               {i.label}
             </Link>
           ))}
           {analyticsItems.length > 0 && (
             <div className="pt-3">
-              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Analytics</div>
+              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("Analytics", "Analítica")}</div>
               {analyticsItems.map((i) => (
                 <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
                   {i.label}
@@ -162,16 +182,16 @@ export function SideNav({
             <Badge className={roleStyles[role] ?? roleStyles.staff}>{role}</Badge>
             <span
               className="text-xs text-slate-400"
-              title="Cost & margin visibility is enforced at the database (#29)"
+              title={t("Cost & margin visibility is enforced at the database (#29)", "La visibilidad de costo y margen la impone la base de datos (#29)")}
             >
-              cost {cost ? "visible" : "hidden"}
+              {cost ? t("cost visible", "costo visible") : t("cost hidden", "costo oculto")}
             </span>
           </div>
           <div className="leading-tight">
             <div className="truncate font-medium">{fullName ?? email}</div>
             <div className="truncate text-xs text-slate-400">{email}</div>
           </div>
-          <div className="mt-2">{signout}</div>
+          <div className="mt-2 flex items-center gap-1">{langToggle}{signout}</div>
         </div>
       </aside>
 
@@ -181,6 +201,7 @@ export function SideNav({
           {brand}
           <div className="ml-auto flex items-center gap-2">
             <Badge className={roleStyles[role] ?? roleStyles.staff}>{role}</Badge>
+            {langToggle}
             {signout}
           </div>
         </div>
@@ -191,7 +212,7 @@ export function SideNav({
             niega a encoger por debajo de la pestaña más larga. Cada enlace conserva su
             `whitespace-nowrap`: se parte la fila, no la palabra. */}
         <nav className="flex min-w-0 flex-wrap items-center gap-1 border-t border-slate-100 px-2 py-1.5 text-sm">
-          {items
+          {navItems
             .concat(analyticsItems)
             .map((i) => (
             <Link key={i.href} href={i.href} className={cn("whitespace-nowrap", linkCls(i.href))}>
