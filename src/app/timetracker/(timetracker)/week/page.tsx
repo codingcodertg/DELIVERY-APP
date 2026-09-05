@@ -14,9 +14,12 @@ import type { Assignment, Session } from "@/lib/timetracker/types";
 // only or offline-queue concerns here (it's a report, not a write path), so
 // this port is closer to 1:1 than Track Time was.
 export default function MyWeekPage() {
-  const { myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings } = useData();
+  const { myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
   const t = useT();
   const [week, setWeek] = useState(thisWeekStart());
+  // G-17: the provider holds SESSIONS_WINDOW_DAYS of my sessions; paging back past that asks
+  // for the older weeks on demand (idempotent).
+  useEffect(() => { void ensureSessionsSince(week); }, [week, ensureSessionsSince]);
   // Re-anchor to the current week when the pay-week start / timezone changes live.
   useEffect(() => { setWeek(thisWeekStart()); }, [settings.weekStartDay, settings.timeZone]);
   const [openDays, setOpenDays] = useState<Set<string>>(() => new Set([dateISO(new Date())]));

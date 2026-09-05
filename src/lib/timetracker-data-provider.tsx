@@ -12,7 +12,7 @@ import {
 import { createClient } from "@/lib/timetracker/supabase/client";
 import { rowToCamel, toSnakeRow } from "@/lib/timetracker/supabase/rowcase";
 import { isDesktop } from "@/lib/timetracker/desktop";
-import { APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/timetracker/helpers";
+import { dateISO, APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/timetracker/helpers";
 import { initOfflineQueue } from "@/lib/timetracker/offlineQueue";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, RequestType, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
 import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard";
@@ -45,6 +45,9 @@ interface DataState {
    * not company-wide — see the module comment on why this can be a plain
    * reloadAll() unlike the manager-facing screens still to come). */
   mySessions: Session[];
+  /** Extend the loaded history of MY sessions and screenshots back to `dateISO` (G-17).
+   * Idempotent: a no-op when that range is already loaded. */
+  ensureSessionsSince: (dateISO: string) => Promise<void>;
   /** My own payroll batches (one per paid/unpaid week). */
   myPayrolls: Payroll[];
   /** My own add/adjust/delete requests, pending or resolved. */
@@ -164,6 +167,18 @@ function isRlsError(e: unknown): boolean {
   return isAuthDenied(e);
 }
 
+/**
+ * How far back the employee's OWN sessions and screenshots are held in memory, in days
+ * (G-17, D-NEXT). `sessions.select("*")` and `screenshots.select("*")` came down whole, for
+ * every session ever, on every load; and the realtime channel re-ran that on every row
+ * (every ~10 s while tracking). Why 60: the week screen pages back one week at a time, the
+ * insights trend is 8 weeks, and a pay month is at most 31 days — 60 covers two pay months.
+ * Older weeks are loaded on demand by the week screen (`ensureSessionsSince`). Payroll and the
+ * "Period" header do NOT read this list: they use the SQL view `period_hours` and
+ * `sessionsSince()` (admin, on demand), so the window cannot touch what is paid.
+ */
+export const SESSIONS_WINDOW_DAYS = 60;
+
 export function DataProvider({ children, me }: { children: React.ReactNode; me: Employee }) {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
@@ -258,6 +273,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   //   · un reintento marcado, que el efecto de recuperación dispara al volver el foco
   //     o la conexión. Sin eso, "no tener que refrescar" seguiría dependiendo de que
   //     el primer intento gane la carrera.
+  // Floor (YYYY-MM-DD) of the session/screenshot history currently loaded for this employee.
+  const sessionsFloorRef = useRef<string>(dateISO(Date.now() - SESSIONS_WINDOW_DAYS * 86400000));
+
   const reloadAll = useCallback(async () => {
     try {
       // Same reasoning as the write-side ensureSession above, extended to
@@ -278,7 +296,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const [pr, asn, ss, py, rq, set] = await Promise.all([
         supabase.from("projects").select("*").eq("archived", false).order("created_at"),
         supabase.from("assignments").select("*").eq("employee_uid", me.id),
-        supabase.from("sessions").select("*").eq("employee_uid", me.id),
+        // Windowed (G-17): see SESSIONS_WINDOW_DAYS; `sessionsFloorRef` honours what the week
+        // screen already asked for, so a reload never narrows it back.
+        supabase.from("sessions").select("*").eq("employee_uid", me.id).gte("date", sessionsFloorRef.current),
         supabase.from("payrolls").select("*").eq("employee_uid", me.id),
         supabase.from("requests").select("*").eq("employee_uid", me.id),
         supabase.from("settings").select("*").eq("id", "app").maybeSingle(),
@@ -423,7 +443,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       .channel(`timetracker:${me.id}`)
       .on("postgres_changes", { event: "*", schema: "timetracker", table: "projects" }, reloadAll)
       .on("postgres_changes", { event: "*", schema: "timetracker", table: "assignments", filter: `employee_uid=eq.${me.id}` }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "sessions", filter: `employee_uid=eq.${me.id}` }, reloadAll)
+      // G-17: a session row is applied in place (insert/update upsert, delete remove); every
+      // other table here still reloads. Before, every tick of MY OWN clock (one UPDATE every
+      // ~10 s while tracking) re-downloaded my entire session history.
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "sessions", filter: `employee_uid=eq.${me.id}` }, (payload) => {
+        if (payload.eventType === "DELETE") {
+          const gone = (payload.old as { id?: string } | null)?.id;
+          if (gone) setSessions((prev) => prev.filter((x) => x.id !== gone));
+          return;
+        }
+        const row = rowToCamel<Session>(payload.new as Record<string, unknown>);
+        if (!row?.id) return;
+        setSessions((prev) => (prev.some((x) => x.id === row.id) ? prev.map((x) => (x.id === row.id ? row : x)) : [row, ...prev]));
+      })
       .on("postgres_changes", { event: "*", schema: "timetracker", table: "payrolls", filter: `employee_uid=eq.${me.id}` }, reloadAll)
       .on("postgres_changes", { event: "*", schema: "timetracker", table: "requests", filter: `employee_uid=eq.${me.id}` }, reloadAll)
       .on("postgres_changes", { event: "*", schema: "timetracker", table: "settings" }, reloadAll)
@@ -493,20 +525,49 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      // Windowed like the sessions (G-17): the diary looks at recent days; older shots come
+      // with `ensureSessionsSince`.
       const { data } = await supabase
         .from("screenshots").select("*").eq("employee_uid", me.id)
+        .gte("taken_at", new Date(sessionsFloorRef.current + "T00:00:00.000Z").toISOString())
         .order("taken_at", { ascending: false });
       if (!cancelled) setScreenshots(((data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Screenshot>(r)!));
     };
     load();
     const channel = supabase
       .channel(`timetracker-shots:${me.id}`)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "screenshots", filter: `employee_uid=eq.${me.id}` }, load)
+      // G-17: apply the row instead of reloading the whole list on every capture.
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "screenshots", filter: `employee_uid=eq.${me.id}` }, (payload) => {
+        if (cancelled) return;
+        if (payload.eventType === "DELETE") {
+          const gone = (payload.old as { id?: string } | null)?.id;
+          if (gone) setScreenshots((prev) => prev.filter((x) => x.id !== gone));
+          return;
+        }
+        const row = rowToCamel<Screenshot>(payload.new as Record<string, unknown>);
+        if (!row?.id) return;
+        setScreenshots((prev) => {
+          const next = prev.some((x) => x.id === row.id) ? prev.map((x) => (x.id === row.id ? row : x)) : [row, ...prev];
+          return next.sort((a, b) => String(b.takenAt ?? "").localeCompare(String(a.takenAt ?? "")));
+        });
+      })
       .subscribe();
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
     };
+  }, [supabase, me.id]);
+
+  const ensureSessionsSince = useCallback<DataState["ensureSessionsSince"]>(async (dateISO_) => {
+    if (dateISO_ >= sessionsFloorRef.current) return; // already covered
+    sessionsFloorRef.current = dateISO_;
+    const [ss, sh] = await Promise.all([
+      supabase.from("sessions").select("*").eq("employee_uid", me.id).gte("date", dateISO_),
+      supabase.from("screenshots").select("*").eq("employee_uid", me.id)
+        .gte("taken_at", new Date(dateISO_ + "T00:00:00.000Z").toISOString()).order("taken_at", { ascending: false }),
+    ]);
+    if (ss.data) setSessions(((ss.data as Record<string, unknown>[]) ?? []).map((r) => rowToCamel<Session>(r)!));
+    if (sh.data) setScreenshots(((sh.data as Record<string, unknown>[]) ?? []).map((r) => rowToCamel<Screenshot>(r)!));
   }, [supabase, me.id]);
 
   const listLiveSessions = useCallback<DataState["listLiveSessions"]>(async () => {
@@ -732,7 +793,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   useEffect(() => { initOfflineQueue({ updateSession, uploadScreenshot }); }, [updateSession, uploadScreenshot]);
 
   const value: DataState = {
-    ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, myPayrolls: payrolls,
+    ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, ensureSessionsSince, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
     listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
