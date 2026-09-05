@@ -8162,7 +8162,7 @@ recompilados: no existen todavía. `verify.mjs` en verde (711 pasados | 3 saltad
 
 ## D-190 · Nómina: la pestaña "Period" desaparece y pasa a ser la cabecera de "Pay"; la fecha manda desde la URL
 
-**Fecha:** 2026-09-04 · **Versión:** la asigna el orquestador al fusionar (timetracker) · **Pedido por:** Andrés ·
+**Fecha:** 2026-09-04 · **Versión:** deliveries 1.58.0, package.json 1.113.1 (timetracker) · **Pedido por:** Andrés ·
 **Plan:** `docs/PLAN-nomina-period-en-pay.md`
 
 ### Qué se pidió
@@ -8262,7 +8262,7 @@ añadidos a la prueba de claves). Mutaciones: la función de periodo rota (`- 1`
 tira las cuatro pruebas de periodo; una clave borrada solo del español la detecta la prueba de
 claves. La prueba real es el dueño abriendo Nómina en dos semanas distintas, en los dos idiomas.
 
-## D-NEXT · Los datos de demo fechan con el día del negocio, no con el de la máquina
+## D-191 · Los datos de demo fechan con el día del negocio, no con el de la máquina
 
 **Fecha:** 2026-09-05 · **Versión:** la decide el orquestador al fusionar; `demo-data.ts` es lógica
 de datos de demo pero corre en el bundle de Deliveries · **Pedido por:** el CI del PR #7

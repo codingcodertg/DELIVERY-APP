@@ -319,7 +319,7 @@ describe("notifications", () => {
   });
 });
 
-// D-NEXT. El CI del PR #7 falló en "finds past-due orders that aren't finished" a las 03:57
+// D-191. El CI del PR #7 falló en "finds past-due orders that aren't finished" a las 03:57
 // UTC y en local pasaba. `iso()` de demo-data fechaba con el reloj de la MÁQUINA y
 // `isOverdue` compara contra el hoy del NEGOCIO (America/Chicago, `todayISO`): entre la
 // medianoche UTC y la de Chicago la máquina va un día por delante, "ayer" se convertía en

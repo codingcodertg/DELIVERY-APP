@@ -508,3 +508,13 @@ Lo que de verdad lo impide es el ruleset de GitHub con el check `tsc · vitest �
 build` como obligatorio: con eso puesto, `gh pr merge` rechaza fusionar en rojo
 aunque el orquestador se equivoque. Sigue siendo el paso mas importante que
 falta.
+
+**Agujero que el `&&` no tapa (hallazgo del auditor, 2026-09-05):** si preguntas
+por los checks antes de que GitHub haya registrado el job, `gh pr checks` puede
+responder "no checks reported" con exit 0, y el `&&` lo toma por verde. Antes de
+esperar, comprueba que el check EXISTE:
+
+```bash
+until gh pr checks <n> 2>/dev/null | grep -q "tsc · vitest · build"; do sleep 10; done
+gh pr checks <n> --watch --fail-fast && gh pr merge <n> --squash
+```

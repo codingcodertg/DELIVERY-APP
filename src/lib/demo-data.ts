@@ -97,7 +97,7 @@ export function demoSettings(): Settings {
 }
 
 /**
- * Un día de calendario relativo al HOY DEL NEGOCIO (D-NEXT), no al de la máquina.
+ * Un día de calendario relativo al HOY DEL NEGOCIO (D-191), no al de la máquina.
  *
  * Hacía `new Date()` + `setDate` + `localISO`: la fecha local de la máquina. Pero `isOverdue`
  * compara `delivery_date < todayISO()`, y `todayISO()` es el hoy en el huso del negocio
