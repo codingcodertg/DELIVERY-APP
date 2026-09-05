@@ -8821,3 +8821,33 @@ ya no lista `○ /manifest.webmanifest` y sí `ƒ /erp`.
 > ajuste se cambió en producción antes del merge (dato, no código; valor anterior
 > `America/Tegucigalpa`, por si hay que volver). Las fechas, que ya seguían el
 > ajuste, pasan también a Chicago: por fin coherentes con las horas.
+
+---
+
+## D-199 · Solo el servicio puede ejecutar la poda de recorridos (`prune_driver_locations`)
+
+**Fecha:** 2026-09-05 · **Migración:** 103 · **Versión:** package.json 1.117.1 (solo-base) · **Origen:** G-32, hallazgo del auditor al preparar G-23 · **Aprobado por:** Andrés
+
+**Qué fallaba.** `public.prune_driver_locations(keep_days)` (migración 043) es `security
+definer` y nació con el EXECUTE por defecto de Postgres. Medido en producción con
+`has_function_privilege`: **anon true, authenticated true**. Como PostgREST expone las
+funciones de `public` como `rpc`, cualquiera con la clave pública que viaja en la app
+podía llamarla con `keep_days = 0` y vaciar los recorridos de los choferes, sin respaldo
+(F-3). No estaba en la auditoría del 05-09; lo detectó el auditor por lectura de la
+migración y se confirmó en la base antes de tocar nada.
+
+**Qué se hizo.** `revoke execute … from public, anon, authenticated; grant … to
+service_role`, en una transacción que midió los privilegios antes y después y habría
+hecho `ROLLBACK` si no cuadraban. Antes se exportaron las 92 filas de la tabla a
+`RESPALDOS-DB/driver_locations-2026-09-05.json`, no porque el cambio borre nada sino
+porque la regla de CLAUDE.md pide respaldo antes de tocar permisos. La poda programada
+(G-23, lote 2 de la auditoría) la llama el cron con service_role, así que sigue
+funcionando.
+
+**Qué se descartó.** Dejar la función pública y "confiar en que nadie la llame": es
+exactamente la clase de suposición que las auditorías vienen desmontando. Y borrar la
+función: la poda hace falta (G-23) y el patrón de 077/078 ya resuelve esto.
+
+**Reversión:** `grant execute on function public.prune_driver_locations(int) to anon,
+authenticated;`
+
