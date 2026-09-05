@@ -21,6 +21,7 @@ import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
+import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -488,6 +489,89 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ).order("order_no", { ascending: false });
   }, [supabase]);
 
+  /**
+   * One loader per query (G-15, D-NEXT): `reloadAll` runs all nine; a realtime event runs ONLY
+   * the one for the table that changed (see lib/realtime-reload.ts). Each loader fetches and
+   * applies its own state, and returns the raw result so the caller can spot a returned error.
+   */
+  const loaders = useMemo<Record<QueryName, () => Promise<{ error: unknown } | { data: unknown }>>>(() => ({
+    settings: async () => {
+      const r = await supabase.from("settings").select("*").eq("id", 1).maybeSingle();
+      if (r.data) setSettings(r.data as Settings);
+      return r;
+    },
+    // `username` and `permissions` were missing here, and both are read by
+    // the UI. The username never reached the browser, so the Users dialog
+    // showed an empty box for a name that WAS saved, hid the "remove email"
+    // button, and turned clearing an email into "give them a username
+    // first" — a message about a value that was sitting in the database all
+    // along. Select what the app actually uses.
+    // recruiting_role/timetracker_role + module_access ride along here (not
+    // just on `me` in the layout) so the Users page can show/edit another
+    // person's module access without a second round trip (D-053, D-064).
+    profiles: async () => {
+      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role").order("full_name");
+      if (r.data) setUsers(r.data as Profile[]);
+      return r;
+    },
+    // Teaching mode never loads from the DB — the live (non-training) rows are
+    // always the base, and the sandbox lives only in the local overlay.
+    // Windowed (G-16): see DELIVERIES_WINDOW_DAYS. `deliveriesQuery` honours whatever a
+    // screen already asked for on demand, so a realtime reload never narrows it back.
+    deliveries: async () => {
+      const r = await deliveriesQuery();
+      if (r.data) setDeliveries(r.data as Delivery[]);
+      return r;
+    },
+    // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
+    // page load and growing forever — the single biggest thing between opening the app and
+    // seeing it. The two screens that read it (the audit feed and the dashboard's approval
+    // turnaround) both work on recent activity; neither pages back through the whole history.
+    // The audit page says when it is showing a capped window.
+    order_events: async () => {
+      const r = await supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW);
+      if (r.data) setEvents(r.data as OrderEvent[]);
+      return r;
+    },
+    notifications: async () => {
+      if (!me) return { data: [] as AppNotification[] };
+      const r = await supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50);
+      if (r.data) setNotifications(r.data as AppNotification[]);
+      return r;
+    },
+    driver_availability: async () => {
+      const r = await supabase.from("driver_availability").select("*").order("start_date", { ascending: false });
+      if (r.data) setAvailability(r.data as DriverAvailability[]);
+      return r;
+    },
+    driver_shifts: async () => {
+      const r = await supabase.from("driver_shifts").select("*").order("started_at", { ascending: false });
+      if (r.data) setShifts(r.data as DriverShift[]);
+      return r;
+    },
+    driver_incidents: async () => {
+      const r = await supabase.from("driver_incidents").select("*").order("incident_date", { ascending: false });
+      if (r.data) setIncidents(r.data as DriverIncident[]);
+      return r;
+    },
+    // Only the recent tail: the live map needs each driver's CURRENT spot,
+    // not the whole history, and a shift's worth of fixes is a lot of rows.
+    driver_locations: async () => {
+      const r = await supabase.from("driver_locations").select("*")
+        .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
+        .order("recorded_at", { ascending: false })
+        .limit(2000);
+      // Rows arrive newest-first, so the first one seen per driver is their
+      // current position — everything older is trail we don't hold in memory.
+      if (r.data) {
+        const latest = new Map<string, DriverLocation>();
+        for (const row of r.data as DriverLocation[]) if (!latest.has(row.driver_id)) latest.set(row.driver_id, row);
+        setDriverLocations([...latest.values()]);
+      }
+      return r;
+    },
+  }), [supabase, me, deliveriesQuery]);
+
   const reloadAll = useCallback(async () => {
     try {
       // Sin sesión no se pregunta: una consulta anónima ya no devuelve datos, devuelve
@@ -497,64 +581,14 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         loadFailedRef.current = true;
         return;
       }
-      const [s, p, d, e, n, av, sh, inc, loc] = await Promise.all([
-        supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
-        // `username` and `permissions` were missing here, and both are read by
-        // the UI. The username never reached the browser, so the Users dialog
-        // showed an empty box for a name that WAS saved, hid the "remove email"
-        // button, and turned clearing an email into "give them a username
-        // first" — a message about a value that was sitting in the database all
-        // along. Select what the app actually uses.
-        // recruiting_role/timetracker_role + module_access ride along here (not
-        // just on `me` in the layout) so the Users page can show/edit another
-        // person's module access without a second round trip (D-053, D-064).
-        supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role").order("full_name"),
-        // Teaching mode never loads from the DB — the live (non-training) rows are
-        // always the base, and the sandbox lives only in the local overlay.
-        // Windowed (G-16): see DELIVERIES_WINDOW_DAYS. `deliveriesQuery` honours whatever a
-        // screen already asked for on demand, so a realtime reload never narrows it back.
-        deliveriesQuery(),
-        // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
-        // page load and growing forever — the single biggest thing between opening the app and
-        // seeing it. The two screens that read it (the audit feed and the dashboard's approval
-        // turnaround) both work on recent activity; neither pages back through the whole history.
-        // The audit page says when it is showing a capped window.
-        supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW),
-        me
-          ? supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(50)
-          : Promise.resolve({ data: [] as AppNotification[] }),
-        supabase.from("driver_availability").select("*").order("start_date", { ascending: false }),
-        supabase.from("driver_shifts").select("*").order("started_at", { ascending: false }),
-        supabase.from("driver_incidents").select("*").order("incident_date", { ascending: false }),
-        // Only the recent tail: the live map needs each driver's CURRENT spot,
-        // not the whole history, and a shift's worth of fixes is a lot of rows.
-        supabase.from("driver_locations").select("*")
-          .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
-          .order("recorded_at", { ascending: false })
-          .limit(2000),
-      ]);
-      if (s.data) setSettings(s.data as Settings);
-      if (p.data) setUsers(p.data as Profile[]);
-      if (d.data) setDeliveries(d.data as Delivery[]);
-      if (e.data) setEvents(e.data as OrderEvent[]);
-      if (n.data) setNotifications(n.data as AppNotification[]);
-      if (av.data) setAvailability(av.data as DriverAvailability[]);
-      if (sh.data) setShifts(sh.data as DriverShift[]);
-      if (inc.data) setIncidents(inc.data as DriverIncident[]);
-      // Rows arrive newest-first, so the first one seen per driver is their
-      // current position — everything older is trail we don't hold in memory.
-      if (loc.data) {
-        const latest = new Map<string, DriverLocation>();
-        for (const row of loc.data as DriverLocation[]) if (!latest.has(row.driver_id)) latest.set(row.driver_id, row);
-        setDriverLocations([...latest.values()]);
-      }
+      const results = await Promise.all(ALL_QUERIES.map((q) => loaders[q]()));
       setReady(true);
 
       // Un error DEVUELTO no es una excepción: supabase-js contesta { data: null, error }
       // sin lanzar nada, así que Promise.all resolvía tan tranquilo, los setters se
       // saltaban por `if (x.data)` y la pantalla quedaba vacía y "lista". Ese es el
       // camino exacto del 401 anónimo: ni un error visible, ni un reintento.
-      const fallo = [s, p, d, e, n, av, sh, inc, loc].some((r) => r && "error" in r && r.error);
+      const fallo = results.some((r) => r && "error" in r && r.error);
       loadFailedRef.current = fallo;
       if (!fallo) retriesRef.current = 0;
     } catch {
@@ -562,7 +596,23 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     } finally {
       setReady(true);
     }
-  }, [supabase, me, ensureSession]);
+  }, [ensureSession, loaders]);
+
+  /**
+   * Re-run only the queries behind the tables a realtime burst touched (G-15). Same session
+   * gate as reloadAll; a returned error marks the load as failed so the recovery effect retries.
+   */
+  const reloadTables = useCallback(async (tables: string[]) => {
+    const names = queriesForTables(tables);
+    if (!names.length) return;
+    try {
+      if (!(await ensureSession())) { loadFailedRef.current = true; return; }
+      const results = await Promise.all(names.map((q) => loaders[q]()));
+      if (results.some((r) => r && "error" in r && r.error)) loadFailedRef.current = true;
+    } catch {
+      loadFailedRef.current = true;
+    }
+  }, [ensureSession, loaders]);
 
   // Recuperación de una carga fallida.
   //
@@ -637,27 +687,36 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // LAST, clobbering the correct state (a stop would visibly move, then snap
     // back). Debouncing means exactly one reload runs after the burst settles,
     // reading fully-committed data.
+    //
+    // G-15 (D-NEXT): the burst collects WHICH tables changed, and only their queries re-run
+    // (lib/realtime-reload.ts) — a driver's "delivered" costs two queries in every other
+    // session, not nine. The debounce is unchanged.
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleReload = () => {
+    const pending = new Set<string>();
+    const scheduleReload = (table: string) => {
+      pending.add(table);
       if (reloadTimer) clearTimeout(reloadTimer);
       reloadTimer = setTimeout(() => {
         reloadTimer = null;
         // A multi-row write is still going — refetching now would read a
         // half-written sequence. Try again once it's finished.
-        if (writingRef.current) { scheduleReload(); return; }
-        reloadAll();
+        if (writingRef.current) { scheduleReload(table); return; }
+        const tables = [...pending];
+        pending.clear();
+        void reloadTables(tables);
       }, 250);
     };
+    const onTable = (table: string) => () => scheduleReload(table);
     const channel = supabase
       .channel("deliveries-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "deliveries" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "order_events" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "driver_availability" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "driver_shifts" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "driver_incidents" }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deliveries" }, onTable("deliveries"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_events" }, onTable("order_events"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, onTable("settings"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, onTable("profiles"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, onTable("notifications"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "driver_availability" }, onTable("driver_availability"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "driver_shifts" }, onTable("driver_shifts"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "driver_incidents" }, onTable("driver_incidents"))
       // GPS fixes arrive constantly, so they are applied straight to the one
       // driver's dot. Routing them through reloadAll would refetch every table
       // in the app several times a minute per driver on the road.
@@ -677,7 +736,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (reloadTimer) clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
-  }, [supabase, reloadAll]);
+  }, [supabase, reloadAll, reloadTables]);
 
   // ---------------- Event log helper ----------------
   const logEvent = useCallback(
