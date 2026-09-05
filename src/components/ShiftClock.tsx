@@ -63,8 +63,11 @@ export function ShiftClock({ driverId }: { driverId: string }) {
     };
   }, [open, native]);
 
-  const doIn = async () => { setBusy(true); await clockIn(driverId); setBusy(false); };
-  const doOut = async () => { setBusy(true); await clockOut(driverId); setBusy(false); };
+  // G-7 (D-NEXT): clockIn/clockOut end in reloadAll(), which can reject on a network failure;
+  // without the finally, `busy` stayed true and the punch button — the GPS switch — went dead
+  // until a reload.
+  const doIn = async () => { setBusy(true); try { await clockIn(driverId); } finally { setBusy(false); } };
+  const doOut = async () => { setBusy(true); try { await clockOut(driverId); } finally { setBusy(false); } };
 
   return (
     <>

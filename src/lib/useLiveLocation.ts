@@ -80,6 +80,9 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
   // Keep the latest pushLocation without restarting the GPS watch on rerender.
   const pushRef = useRef(pushLocation);
   pushRef.current = pushLocation;
+  // One push at a time: while a send is in flight, later callbacks wait for the next fix
+  // instead of piling up identical writes (G-22, D-NEXT).
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     if (!active) { setStatus("off"); lastRef.current = null; return; }
@@ -96,9 +99,17 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       latestFixRef.current = fix;
       const now = Date.now();
       if (!shouldSend({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy_m }, lastRef.current, now)) return;
+      if (inFlightRef.current) return;
+      // G-22 (D-NEXT): `lastRef` used to advance BEFORE knowing whether the write worked, so a
+      // failed send consumed its 5-minute window and the truck went silent. Now it advances only
+      // when the push got through or was queued for replay; a rejection leaves it where it was.
+      inFlightRef.current = true;
+      let ok = false;
+      try { ok = await pushRef.current({ ...fix, battery_pct: await batteryPct() }); }
+      finally { inFlightRef.current = false; }
+      if (!ok || cancelled) return;
       lastRef.current = { lat: fix.lat, lng: fix.lng, at: now };
-      const ok = await pushRef.current({ ...fix, battery_pct: await batteryPct() });
-      if (ok && !cancelled) setLastAt(new Date().toISOString());
+      setLastAt(new Date().toISOString());
     };
 
     // HEARTBEAT.
@@ -126,16 +137,22 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       const last = lastRef.current;
       if (!fix || !last || !heartbeatDue(last.at, Date.now())) return;
       const now = Date.now();
-      lastRef.current = { lat: fix.lat, lng: fix.lng, at: now };
+      if (inFlightRef.current) return;
       void (async () => {
-        const ok = await pushRef.current({
-          ...fix,
-          // Standing still, by definition: this is the same point as last time.
-          speed_mps: 0,
-          recorded_at: new Date(now).toISOString(),
-          battery_pct: await batteryPct(),
-        });
-        if (ok && !cancelled) setLastAt(new Date(now).toISOString());
+        inFlightRef.current = true;
+        let ok = false;
+        try {
+          ok = await pushRef.current({
+            ...fix,
+            // Standing still, by definition: this is the same point as last time.
+            speed_mps: 0,
+            recorded_at: new Date(now).toISOString(),
+            battery_pct: await batteryPct(),
+          });
+        } finally { inFlightRef.current = false; }
+        if (!ok || cancelled) return; // failed AND not queued: keep the window open, retry next beat
+        lastRef.current = { lat: fix.lat, lng: fix.lng, at: now };
+        setLastAt(new Date(now).toISOString());
       })();
     }, 60_000);
 

@@ -8851,3 +8851,97 @@ función: la poda hace falta (G-23) y el patrón de 077/078 ya resuelve esto.
 **Reversión:** `grant execute on function public.prune_driver_locations(int) to anon,
 authenticated;`
 
+## D-NEXT · Auditoría 2026-09-05, lote 2 (el chofer): el GPS no pierde fijaciones sin red, fichar sin red entra en cola, y `driver_locations` se poda a 90 días
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (Deliveries) · **Pedido por:**
+Andrés (los tres aprobados por el dueño), sobre `docs/AUDIT-2026-09-05.md` (G-22, G-8 con G-7, G-23).
+Un commit por hallazgo.
+
+### G-22 · Sin red, la fijación se perdía
+
+**Qué fallaba.** `pushLocation` hacía `insert` y, si fallaba, `return false`: la fijación se iba. El
+outbox de hitos no cubre GPS (es "deliberadamente estrecho"). En zonas muertas el recorrido quedaba
+con agujeros que luego no se podían reconstruir, aunque el teléfono había capturado las
+posiciones. Y el latido (`useLiveLocation.ts`) fijaba `lastRef` **antes** de saber si el envío
+funcionó, así que un latido fallido consumía su ventana de 5 minutos y el camión quedaba mudo.
+
+**Qué se hizo.** Una cola **separada**, `rtg_gps_outbox_v1` (`src/lib/gps-outbox.ts`, pura, con
+prueba): el outbox de hitos sigue estrecho a propósito, y una fijación es otra cosa (muchas,
+pequeñas, prescindibles). Cada fijación conserva el `recorded_at` que puso el aparato y su
+`device_id` (`driver_locations` no tiene esa columna, así que no viaja; queda para diagnóstico).
+El reenvío va en orden de `recorded_at`, por lotes de 200, se para en el primer "sigue sin red" y
+descarta lo que el servidor rechaza (un rechazo nunca prospera reintentando). Se dispara al volver
+la red (`online`) y tras la siguiente fijación que sí llega.
+
+**El tope y por qué.** **2.000 fijaciones**, descartando las **más viejas**. A ~170 fijaciones al
+día por chofer (`location-filter.ts`) cabe más de una semana de zona muerta, que no existe; y en un
+teléfono el almacenamiento no puede crecer sin techo. Se pierde el principio del rastro, no el
+final: la última posición es la que el mapa necesita.
+
+**El latido.** `lastRef` avanza **solo** si el push llegó o quedó encolado (`pushLocation` devuelve
+`true` en los dos casos; un rechazo del servidor sigue devolviendo `false`). Un envío en vuelo
+evita apilar escrituras idénticas mientras se espera.
+
+### G-8 · Fichar salida sin red no encolaba (y G-7, el botón atascado)
+
+**Qué fallaba.** `clockOut` sin red: toast rojo, el turno seguía abierto en la base y **el servicio
+de GPS seguía reportando**, porque `LocationTracker` sigue al turno abierto. Decisión del dueño:
+**el fichaje sí entra en cola.**
+
+**Qué se hizo, y con qué patrón.** Cola propia `rtg_shift_outbox_v1` (`src/lib/shift-outbox.ts`,
+pura, con prueba). Ni el outbox de hitos (tipado por pedidos y estrecho a propósito) ni la de GPS
+(fijaciones): un fichaje es una tercera forma. Lo que comparten es el patrón: `localStorage`,
+reenvío en orden, parada en "sigue sin red", descarte de lo rechazado. **Lo que importa es la
+superposición**: `shifts` que expone el proveedor es la lista del servidor con la cola aplicada,
+así que una salida encolada cierra el turno **en pantalla al momento** y el GPS se apaga al toque,
+no cuando vuelve la red; una entrada encolada abre un turno local para que el día empiece. El
+reenvío escribe la **hora del toque**, no la del reenvío; una salida sin turno abierto en el
+servidor se descarta. Se dispara al volver la red y cada 60 s.
+
+**G-7.** `doIn`/`doOut` sin `try/finally`: `clockIn`/`clockOut` terminan en `reloadAll()`, que
+puede rechazar sin red, y `busy` se quedaba en `true`: el botón de fichar, que es el interruptor
+del GPS, muerto hasta recargar. Con `finally`.
+
+### G-23 · `driver_locations` sin retención
+
+**Qué fallaba.** `public.prune_driver_locations(keep_days)` existe desde la migración 043 y nadie la
+llamaba (cero en `src`, `scripts`, `.github`, `vercel.json`). A ~170 filas/día/chofer la tabla
+crecía sin techo, con realtime encima.
+
+**Qué se hizo.** `pruneDriverLocations()` (`src/lib/driver-locations-prune.ts`, con prueba de
+`fetch` falso) llama a la función por PostgREST (`/rest/v1/rpc/...`) con la **clave de servicio** y
+perfil `public` explícito, **nunca con el cliente de un usuario**. Sin migración: la función ya
+existe.
+
+**Los 90 días y por qué.** `keep_days = 90`, decisión del orquestador: conservador porque **no hay
+respaldo** (F-3) y un borrado no se deshace; el dueño puede bajarlo (`?keep_days=` en la ruta, o
+la constante). **Y un suelo de 30 días** (`PRUNE_KEEP_DAYS_MIN`, observación del auditor hecha suya
+por el orquestador, añadida al rebasar): con el secreto del cron filtrado, `?keep_days=1` habría
+vaciado casi toda la tabla; ahora la librería no baja de 30 y la ruta responde `400` a un valor
+menor en vez de rebajarlo en silencio.
+
+**Dónde quedó programada.** **Fusionada en `roll-schedules`** (08:00 UTC, mismo secreto, `try/catch`
+aislado, `prune` en la respuesta), igual que el cierre de huérfanas de D-195, porque Vercel Hobby
+tiene sus dos crons ocupados. Ruta propia `/api/prune-driver-locations` con `cronAuthorized`,
+`?verify=1` sin efectos y `?keep_days=`, para correrla a mano.
+
+**Quién puede llamar a la poda.** La función es `security definer`. Cuando se escribió esta entrada
+podía estar ejecutable por cualquier autenticado (hallazgo del auditor, G-32); **D-199 lo cerró el
+mismo día con la migración 103**: revocó `public`, `anon` y `authenticated` y concedió solo
+`service_role` (medido en producción por el orquestador). Por eso este llamador va con la clave de
+servicio y nunca con el cliente de un usuario: es la única identidad que puede ejecutarla.
+
+### Qué NO cambia
+
+`location-filter.ts` (filtrado de posiciones), los umbrales de movimiento y latido, `DriverGate`,
+nada del APK (`mobile/`), el realtime de `driver_locations`. Sin migración, sin versión.
+
+### Lo no verificado
+
+**Nadie puede probar el GPS en un teléfono real** desde aquí: la cola, el reenvío y el apagado del
+GPS al fichar salida sin red van por las pruebas puras y por lectura del proveedor. **La poda no se
+ejecutó contra producción**: la llamada se probó con `fetch` falso y la ruta se comprueba con
+`?verify=1` tras el merge. `verify.mjs` en verde sobre `.next` limpio: 793 pasados | 3 saltados
+(main: 770 | 3; +23 son las tres pruebas nuevas: 11 de la cola de GPS, 8 de la de fichajes, 4 de
+la poda). La prueba real es el dueño con el APK: modo avión, fichar salida, ver que el GPS para;
+mover el camión sin red, recuperar la red, ver el rastro completo.
