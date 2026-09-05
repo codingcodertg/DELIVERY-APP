@@ -22,6 +22,7 @@ export function SavedViews({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function save() {
     const name = window.prompt("Name this view:");
@@ -41,8 +42,14 @@ export function SavedViews({
     await createClient().from("saved_views").update({ name: name.trim() }).eq("id", v.id);
     router.refresh();
   }
-  async function del(id: number) {
-    await createClient().from("saved_views").delete().eq("id", id);
+  // G-6 (D-NEXT): borraba sin confirmar y sin mirar el error; si RLS rechazaba el borrado, la
+  // vista reaparecía al refrescar y nadie veía nada. Mismo confirm() que usa el resto del ERP
+  // (bulk-bar.tsx); el error se enseña debajo en vez de tragarse.
+  async function del(v: SavedView) {
+    if (!window.confirm(`Delete the view "${v.name}"? This cannot be undone.`)) return;
+    setErr(null);
+    const { error } = await createClient().from("saved_views").delete().eq("id", v.id);
+    if (error) { setErr(`Could not delete "${v.name}": ${error.message}`); return; }
     router.refresh();
   }
 
@@ -70,7 +77,7 @@ export function SavedViews({
           <button type="button" onClick={() => rename(v)} title="Rename" className="text-clay-400 hover:text-clay-700">
             ✎
           </button>
-          <button type="button" onClick={() => del(v.id)} title="Delete" className="text-clay-400 hover:text-red-600">
+          <button type="button" onClick={() => del(v)} title="Delete" className="text-clay-400 hover:text-red-600">
             ×
           </button>
         </span>
@@ -83,6 +90,7 @@ export function SavedViews({
       >
         + Save view
       </button>
+      {err && <span role="alert" className="basis-full text-sm text-red-600">{err}</span>}
     </div>
   );
 }
