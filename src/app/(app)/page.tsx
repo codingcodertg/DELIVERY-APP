@@ -355,7 +355,7 @@ export default function OrdersPage() {
           </div>
           {/* Data exports (Excel / PDF report / CSV) are admin-only. */}
           {me.role === "admin" && <>
-            <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang)} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
+            <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || "")))} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
             <button className="btn btn-ghost" onClick={() => exportPDFByEmployee(rows, users, lang)} disabled={!rows.length}>🖨 {t("PDF", "PDF")}</button>
             <button className="btn btn-ghost" onClick={exportCSV} disabled={!rows.length}>⬇ {t("CSV", "CSV")}</button>
           </>}
