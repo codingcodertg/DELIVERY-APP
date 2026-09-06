@@ -97,7 +97,7 @@ export default function CalendarPage() {
           <div key={ev.c.id + ev.kind} className="cand-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
               <button onClick={() => ui.openProfile(ev.c.id)} title={t("Open profile", "Abrir perfil")} style={{ background: "none", border: "none", padding: 0, font: "inherit", fontWeight: 700, color: "inherit", cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>{ev.c.name}</button> <span style={{ color: "var(--gray)" }}>· {ev.c.role} · {ev.c.phone}</span>
-              <div style={{ color: ev.kind === "inperson" ? "#15803d" : "var(--accent)", fontWeight: 600, fontSize: 12.5, marginTop: 2 }}>
+              <div style={{ color: ev.kind === "inperson" ? "var(--green-deep)" : "var(--accent)", fontWeight: 600, fontSize: 12.5, marginTop: 2 }}>
                 {ev.kind === "inperson" ? "🤝 " + t("In-person", "Presencial") : "☎ " + t("Phone call", "Llamada")} · {fmtDateTime(ev.at)}
               </div>
             </div>

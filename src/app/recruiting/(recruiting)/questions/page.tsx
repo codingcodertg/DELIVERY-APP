@@ -307,7 +307,7 @@ export default function QuestionsPage() {
                 </div>
                 <div style={{ flex: "1 1 320px" }}>
                   <div className="q-text" style={{ marginBottom: 4, display: "flex", gap: 6, alignItems: "baseline", flexWrap: "wrap" }}>
-                    {q.category && <span className="badge" style={{ background: "#eef2ff", color: "#4338ca", fontWeight: 700 }}>🏷 {q.category}</span>}
+                    {q.category && <span className="badge" style={{ background: "var(--tint-indigo)", color: "var(--indigo)", fontWeight: 700 }}>🏷 {q.category}</span>}
                     <span>{i + 1}. {lang === "es" ? (q.text_es?.trim() || q.text) : q.text}</span>
                   </div>
                   <div style={{ marginBottom: 4 }}>
@@ -328,7 +328,7 @@ export default function QuestionsPage() {
                     </div>
                   </div>
                   <span className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{q.role === "all" ? t("All roles", "Todos los puestos") : q.role}</span>
-                  {!q.text_es && <span className="badge" style={{ marginLeft: 6, background: "#fde2e2", color: "#d64545" }}>⚠ {t("no Spanish", "sin español")}</span>}
+                  {!q.text_es && <span className="badge" style={{ marginLeft: 6, background: "var(--tint-red-soft)", color: "var(--red)" }}>⚠ {t("no Spanish", "sin español")}</span>}
                   <label style={{ marginLeft: 8, display: "inline-flex", gap: 4, alignItems: "center", fontSize: 12, textTransform: "none", margin: 0 }}>
                     <input type="checkbox" style={{ width: "auto" }} checked={!!(q.scale && q.scale.length)} onChange={(e) => toggleOverride(q.id, e.target.checked)} />
                     {t("Custom scale", "Escala propia")}

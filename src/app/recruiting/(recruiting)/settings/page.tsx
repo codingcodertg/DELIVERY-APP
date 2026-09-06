@@ -174,7 +174,7 @@ export default function SettingsPage() {
           <div key={j.id} className="cand-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
               <b>{j.title}</b>{" "}
-              <span className="sema" style={{ background: j.status === "open" ? "#e5f6ee" : "#eee", color: j.status === "open" ? "var(--green)" : "var(--gray)" }}>
+              <span className="sema" style={{ background: j.status === "open" ? "var(--tint-green)" : "var(--tint-neutral)", color: j.status === "open" ? "var(--green)" : "var(--gray)" }}>
                 {j.status === "open" ? t("Open", "Abierta") : t("Closed", "Cerrada")}
               </span>
               <div className="cand-meta">

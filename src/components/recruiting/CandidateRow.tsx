@@ -104,7 +104,7 @@ export function CandidateRow({
                 {c.favorite ? "★" : "☆"}
               </button>
               {c.pinned && <span title={t("Pinned", "Fijado")}>📌</span>}
-              {c.archived && <span className="badge" style={{ background: "#eef1f6", color: "var(--gray)" }}>🗄 {t("Archived", "Archivado")}</span>}
+              {c.archived && <span className="badge" style={{ background: "var(--track)", color: "var(--gray)" }}>🗄 {t("Archived", "Archivado")}</span>}
               <button
                 onClick={() => setExpanded((v) => !v)}
                 title={t("Show actions", "Mostrar acciones")}
@@ -133,7 +133,7 @@ export function CandidateRow({
               {missingReason && (
                 <button
                   className="badge"
-                  style={{ background: "#fdeaea", color: "var(--red)", border: "1px solid var(--red)", cursor: "pointer" }}
+                  style={{ background: "var(--tint-red-strong)", color: "var(--red)", border: "1px solid var(--red)", cursor: "pointer" }}
                   onClick={() => ui.openDiscard(c.id, c.status)}
                   title={t("This candidate was discarded without a reason", "Este candidato se descartó sin motivo")}
                 >
@@ -142,7 +142,7 @@ export function CandidateRow({
               )}
               {c.summary_sent && <span className="sent-tag">✓ {t("sent", "enviado")}</span>}
               {c.alt_sources.length > 0 && (
-                <span className="badge" style={{ background: "#e7f0ff", color: "#2456c9" }} title={t("Also applied from: ", "También aplicó desde: ") + c.alt_sources.join(", ")}>
+                <span className="badge" style={{ background: "#e7f0ff", color: "var(--accent)" }} title={t("Also applied from: ", "También aplicó desde: ") + c.alt_sources.join(", ")}>
                   🔁 +{c.alt_sources.length}
                 </span>
               )}

@@ -99,7 +99,7 @@ export default function BoardPage() {
                       {c.location && <span>🏪 {c.location}</span>}
                       {c.home_location && <span>🏠 {c.home_location}</span>}
                       {c.tags.includes(CALL_AGAIN_TAG) && (
-                        <span className="tag" style={{ background: "#fee2e2", color: "#b91c1c", fontWeight: 700 }}>🔁 {CALL_AGAIN_TAG}</span>
+                        <span className="tag" style={{ background: "var(--tint-red-tag)", color: "var(--red-deep)", fontWeight: 700 }}>🔁 {CALL_AGAIN_TAG}</span>
                       )}
                       {c.phone_date && (
                         <span style={{ color: overdue ? "var(--red)" : "var(--accent)", fontWeight: 600 }}>

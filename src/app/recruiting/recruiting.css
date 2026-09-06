@@ -32,6 +32,19 @@
   --track: #eef1f6;
   --star-off: #d3d8e0;
   --tab-idle: #c6cede;
+  /* G-13 (HR): tintes de estado que vivian a pelo en los TSX (ModalHost, questions, board,
+     outcomes, calendar, today, settings). El valor claro es EXACTAMENTE el hex que habia; el
+     oscuro es el que ya usan los avisos del hub (globals.css, .banner.*) o esta paleta. */
+  --tint-warn: #fffbeb;        /* borrador restaurado (ModalHost) */
+  --tint-warn-line: #fcd34d;
+  --tint-indigo: #eef2ff;      /* etiqueta de categoria de pregunta */
+  --indigo: #4338ca;
+  --tint-red-soft: #fde2e2;    /* "sin espanol" */
+  --tint-red-tag: #fee2e2;     /* etiqueta "volver a llamar" */
+  --red-deep: #b91c1c;
+  --green-deep: #15803d;       /* fecha de entrevista presencial */
+  --surface-soft: #f8fafc;     /* bloques de respuesta de registro */
+  --tint-neutral: #eee;        /* vacante cerrada */
 
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--paper);
@@ -242,6 +255,16 @@
   --track: #222c3a;
   --star-off: #3a4557;
   --tab-idle: #9aa8bd;
+  --tint-warn: #3a2f12;
+  --tint-warn-line: #5a4415;
+  --tint-indigo: #1e2b45;
+  --indigo: #a9cdf3;
+  --tint-red-soft: #3a1f21;
+  --tint-red-tag: #3a1620;
+  --red-deep: #ffb3bf;
+  --green-deep: #8fe3ba;
+  --surface-soft: #212a37;
+  --tint-neutral: #2b3646;
 }
 
 /* El aviso de "no se pudo cargar" (D-171). Abajo y fijo: la pantalla vacía está arriba, y

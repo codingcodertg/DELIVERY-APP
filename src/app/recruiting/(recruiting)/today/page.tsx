@@ -105,7 +105,7 @@ export default function TodayPage() {
               <div>
                 {nameBtn(ev.c)} <span style={{ color: "var(--gray)", fontSize: 12.5 }}>· {ev.c.role}</span>
                 <div style={{ fontSize: 12.5, marginTop: 2 }}>
-                  <span style={{ color: ev.kind === "inperson" ? "#15803d" : "var(--accent)", fontWeight: 700 }}>
+                  <span style={{ color: ev.kind === "inperson" ? "var(--green-deep)" : "var(--accent)", fontWeight: 700 }}>
                     {ev.kind === "inperson" ? "🤝 " + t("In-person", "Presencial") : "☎ " + t("Phone call", "Llamada")} · {fmtDateTime(ev.at)}
                   </span>
                   <a className="link-tel" href={rcCall(ev.c.phone)} style={{ marginLeft: 10 }} onClick={() => addContact(ev.c.id, { type: "Call", result: "", note: "" })}>📞 {ev.c.phone}</a>
