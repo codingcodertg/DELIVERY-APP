@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import { cardImageUrl } from "@/lib/erp/images";
-import { commercialStatusClass, label } from "@/lib/erp/status";
+import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
 import type { CatalogRow } from "@/lib/erp/catalog";
 
 // Catalog card view — mirrors the competitor-catalog scraper's product card
@@ -19,7 +20,10 @@ function categoryLeaf(path?: string | null): string | null {
   return parts[parts.length - 1] ?? null;
 }
 
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, colección, SKU y los chips
+// (tipo, tamaño, acabado, material, aspecto, origen) son dato; el estado es enumerado fijo.
 function Card({ r }: { r: CatalogRow }) {
+  const { t } = usePrefs();
   const img = cardImageUrl(r);
   const typeChip = r.product_type ?? categoryLeaf(r.category_path);
   const isUsa = !!r.origin && USA_RE.test(r.origin);
@@ -43,13 +47,13 @@ function Card({ r }: { r: CatalogRow }) {
         {img ? (
           <img src={img} alt={r.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">no image</div>
+          <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">{t("no image", "sin imagen")}</div>
         )}
         <span className="absolute left-2 top-2">
-          <Badge className={commercialStatusClass(r.status)}>{label(r.status)}</Badge>
+          <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>
         </span>
         {r.needs_review && (
-          <span title="Needs review" className="absolute right-2 top-2 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
+          <span title={t("Needs review", "Requiere revisión")} className="absolute right-2 top-2 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
         )}
         <span
           aria-hidden
@@ -78,8 +82,9 @@ function Card({ r }: { r: CatalogRow }) {
 }
 
 export function CatalogCards({ rows }: { rows: CatalogRow[] }) {
+  const { t } = usePrefs();
   if (rows.length === 0) {
-    return <div className="p-8 text-center text-sm text-slate-500">No products match these filters.</div>;
+    return <div className="p-8 text-center text-sm text-slate-500">{t("No products match these filters.", "Ningún producto coincide con estos filtros.")}</div>;
   }
   return (
     <div className={cn("grid grid-cols-2 gap-3 p-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6")}>
