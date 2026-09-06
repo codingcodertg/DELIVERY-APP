@@ -4,9 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/erp/ui/button";
 import { publishProduct } from "@/lib/erp/actions";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
 
 export function PublishButton({ productId }: { productId: number }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -24,7 +27,7 @@ export function PublishButton({ productId }: { productId: number }) {
         }}
         disabled={pending}
       >
-        {pending ? "Publishing…" : "Publish"}
+        {pending ? t("Publishing…", "Publicando…") : t("Publish", "Publicar")}
       </Button>
       {err && <span className="text-sm text-red-600">{err}</span>}
     </span>

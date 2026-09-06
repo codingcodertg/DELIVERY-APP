@@ -8,7 +8,12 @@ import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { cn, money } from "@/lib/erp/utils";
 import { productImageUrl } from "@/lib/erp/images";
 import { priceUnitSuffix } from "@/lib/erp/domain/units";
-import { commercialStatusClass, label } from "@/lib/erp/status";
+import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, SKU y precio son dato; el estado
+// es enumerado fijo (statusLabel). Las relaciones (bro/cuz/sub) son valores guardados: la etiqueta
+// Bros/Cuz/Subs se conserva tal cual porque es la jerga de la casa en los dos idiomas.
 import { addFamilyLink, removeFamilyLink, refileFamilyLink, type FamilyRelation } from "@/lib/erp/actions";
 
 // Quick-view carries price (visible to all) + sell_unit — never cost/margin (#29).
@@ -46,6 +51,7 @@ function MemberChip({
   onRemove: () => void;
   onRefile: (to: FamilyRelation) => void;
 }) {
+  const { t } = usePrefs();
   const [moving, setMoving] = useState(false);
   const others = (["bro", "cuz", "sub"] as FamilyRelation[]).filter((r) => r !== relation);
   return (
@@ -62,8 +68,8 @@ function MemberChip({
           <button
             type="button"
             onClick={() => setMoving((v) => !v)}
-            aria-label={`Re-file ${m.name}`}
-            title="Re-file (mis-categorized?)"
+            aria-label={t(`Re-file ${m.name}`, `Reubicar ${m.name}`)}
+            title={t("Re-file (mis-categorized?)", "Reubicar (¿mal clasificado?)")}
             className="ml-0.5 rounded-full px-1 text-slate-300 hover:bg-slate-100 hover:text-slate-600"
           >
             ⇄
@@ -71,14 +77,14 @@ function MemberChip({
           <button
             type="button"
             onClick={onRemove}
-            aria-label={`Remove ${m.name}`}
+            aria-label={t(`Remove ${m.name}`, `Quitar ${m.name}`)}
             className="rounded-full px-1 text-slate-300 hover:bg-red-50 hover:text-red-600"
           >
             ×
           </button>
           {moving && (
             <span className="absolute left-0 top-full z-40 mt-1 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-              <span className="px-1 py-0.5 text-[11px] text-slate-400">move to:</span>
+              <span className="px-1 py-0.5 text-[11px] text-slate-400">{t("move to:", "mover a:")}</span>
               {others.map((r) => (
                 <button
                   key={r}
@@ -100,7 +106,7 @@ function MemberChip({
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium text-slate-900">{m.name}</span>
             <span className="block font-mono text-[11px] text-slate-400">{m.sku}</span>
-            <span className={cn("mt-1 inline-block rounded px-1.5 py-0.5 text-[11px]", commercialStatusClass(m.status))}>{label(m.status)}</span>
+            <span className={cn("mt-1 inline-block rounded px-1.5 py-0.5 text-[11px]", commercialStatusClass(m.status))}>{t(statusLabel(m.status).en, statusLabel(m.status).es)}</span>
           </span>
         </span>
         <span className="mt-2 block text-sm tabular-nums text-slate-700">
@@ -129,6 +135,7 @@ function FamilyGroup({
   excludeIds: Set<number>;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [pending, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
   const [q, setQ] = useState("");
@@ -149,7 +156,7 @@ function FamilyGroup({
       setResults((data ?? []).filter((r) => r.id !== productId && !excludeIds.has(r.id)) as FamilyMember[]);
     } catch (e) {
       setResults([]);
-      setErr(`Search failed: ${dbErrorMessage(e)}`);
+      setErr(t(`Search failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
     }
   }
 
@@ -157,7 +164,7 @@ function FamilyGroup({
     setErr(null);
     startTransition(async () => {
       const res = await fn();
-      if (!res.ok) setErr(res.error ?? "failed");
+      if (!res.ok) setErr(res.error ?? t("failed", "falló"));
       else { setAdding(false); setQ(""); setResults([]); router.refresh(); }
     });
   }
@@ -173,13 +180,13 @@ function FamilyGroup({
             onClick={() => setAdding((a) => !a)}
             className="ml-auto rounded-md border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-50"
           >
-            {adding ? "Close" : `+ Add ${relation}`}
+            {adding ? t("Close", "Cerrar") : t(`+ Add ${relation}`, `+ Añadir ${relation}`)}
           </button>
         )}
       </div>
 
       {members.length === 0 ? (
-        <p className="text-xs text-slate-400">None linked.</p>
+        <p className="text-xs text-slate-400">{t("None linked.", "Ninguno enlazado.")}</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {members.map((m) => (
@@ -201,7 +208,7 @@ function FamilyGroup({
             autoFocus
             value={q}
             onChange={(e) => search(e.target.value)}
-            placeholder={`Search products to add as ${relation}…`}
+            placeholder={t(`Search products to add as ${relation}…`, `Buscar productos para añadir como ${relation}…`)}
             className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
           />
           {results.length > 0 && (
@@ -248,21 +255,22 @@ export function ProductFamily({
   legacyCuz: string | null;
   legacySubs: string | null;
 }) {
+  const { t } = usePrefs();
   const excludeBros = new Set(bros.map((m) => m.id));
   const excludeCuz = new Set(cuz.map((m) => m.id));
   const excludeSubs = new Set(subs.map((m) => m.id));
   return (
     <div className="space-y-4">
-      <FamilyGroup productId={productId} relation="bro" title="Bros" hint="same collection, different size" members={bros} canEdit={canEdit} excludeIds={excludeBros} />
-      <FamilyGroup productId={productId} relation="cuz" title="Cuz" hint="same size, different color" members={cuz} canEdit={canEdit} excludeIds={excludeCuz} />
-      <FamilyGroup productId={productId} relation="sub" title="Substitutes" hint="different product, same use" members={subs} canEdit={canEdit} excludeIds={excludeSubs} />
+      <FamilyGroup productId={productId} relation="bro" title="Bros" hint={t("same collection, different size", "misma colección, distinto tamaño")} members={bros} canEdit={canEdit} excludeIds={excludeBros} />
+      <FamilyGroup productId={productId} relation="cuz" title="Cuz" hint={t("same size, different color", "mismo tamaño, distinto color")} members={cuz} canEdit={canEdit} excludeIds={excludeCuz} />
+      <FamilyGroup productId={productId} relation="sub" title={t("Substitutes", "Sustitutos")} hint={t("different product, same use", "distinto producto, mismo uso")} members={subs} canEdit={canEdit} excludeIds={excludeSubs} />
       {(legacyBros || legacyCuz || legacySubs) && (
         <p className="border-t border-slate-100 pt-2 text-xs text-slate-400">
-          Legacy text — bros: {legacyBros || "—"} · cuz: {legacyCuz || "—"} · subs: {legacySubs || "—"}
+          {t("Legacy text — bros:", "Texto heredado — bros:")} {legacyBros || "—"} · cuz: {legacyCuz || "—"} · subs: {legacySubs || "—"}
         </p>
       )}
       {canEdit && (
-        <p className="text-[11px] text-slate-400">Mis-filed? Use <span className="font-medium">⇄</span> on a chip to move it between Bros / Cuz / Substitutes.</p>
+        <p className="text-[11px] text-slate-400">{t("Mis-filed? Use", "¿Mal clasificado? Usa")} <span className="font-medium">⇄</span> {t("on a chip to move it between Bros / Cuz / Substitutes.", "en una ficha para moverla entre Bros / Cuz / Sustitutos.")}</p>
       )}
     </div>
   );

@@ -3,22 +3,23 @@ import { statusView, boxesToSqFt, verifiedView } from "./item-dashboard";
 
 describe("statusView — discontinued ≠ inactive until QOH = 0", () => {
   it("active / special_order / inactive", () => {
-    expect(statusView("active", 10).label).toBe("Active");
-    expect(statusView("special_order", 0).label).toBe("Special order");
-    expect(statusView("inactive", 0).label).toBe("Inactive");
+    expect(statusView("active", 10).label).toEqual({ en: "Active", es: "Activo" });
+    expect(statusView("special_order", 0).label.en).toBe("Special order");
+    expect(statusView("inactive", 0).label.en).toBe("Inactive");
   });
   it("discontinued WITH stock still sells through (not treated as dead)", () => {
     const v = statusView("discontinued", 42);
-    expect(v.label).toBe("Discontinued");
-    expect(v.note).toMatch(/selling through/i);
-    expect(v.note).toContain("42");
+    expect(v.label.en).toBe("Discontinued");
+    expect(v.note?.en).toMatch(/selling through/i);
+    expect(v.note?.en).toContain("42");
+    expect(v.note?.es).toContain("42");
   });
   it("discontinued at QOH 0 is sold out", () => {
     const v = statusView("discontinued", 0);
-    expect(v.note).toMatch(/sold out/i);
+    expect(v.note?.en).toMatch(/sold out/i);
   });
   it("null qoh treated as 0", () => {
-    expect(statusView("discontinued", null).note).toMatch(/sold out/i);
+    expect(statusView("discontinued", null).note?.en).toMatch(/sold out/i);
   });
 });
 

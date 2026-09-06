@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { money } from "@/lib/erp/utils";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Código, descripción, tienda, código y
+// descripción de QB son dato.
 
 export interface StoreQoh {
   store_id: string;
@@ -36,6 +40,7 @@ export function QohPanel({
   stores: StoreQoh[];
   showCost: boolean;
 }) {
+  const { t } = usePrefs();
   const [open, setOpen] = useState(false);
   const cols = showCost ? 7 : 5;
 
@@ -50,8 +55,8 @@ export function QohPanel({
         <span className="font-mono text-sm font-medium text-slate-700">{unifiedCode}</span>
         <span className="min-w-0 flex-1 truncate text-sm text-slate-500">{description}</span>
         <span className="text-right">
-          <span className="block text-sm font-semibold tabular-nums text-slate-900">{num(totalBoxes)} <span className="text-xs font-normal text-slate-400">boxes</span></span>
-          <span className="block text-xs tabular-nums text-slate-500">{num(totalSqFt)} <span className="text-slate-400">sq ft</span></span>
+          <span className="block text-sm font-semibold tabular-nums text-slate-900">{num(totalBoxes)} <span className="text-xs font-normal text-slate-400">{t("boxes", "cajas")}</span></span>
+          <span className="block text-xs tabular-nums text-slate-500">{num(totalSqFt)} <span className="text-slate-400">{t("sq ft", "pies²")}</span></span>
         </span>
       </button>
 
@@ -60,24 +65,24 @@ export function QohPanel({
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
               <tr>
-                <th className="py-1.5 pr-4 font-medium">Store</th>
-                <th className="py-1.5 pr-4 font-medium">QB code / description</th>
+                <th className="py-1.5 pr-4 font-medium">{t("Store", "Tienda")}</th>
+                <th className="py-1.5 pr-4 font-medium">{t("QB code / description", "Código / descripción QB")}</th>
                 <th className="py-1.5 pr-4 text-right font-medium">QOH</th>
-                <th className="py-1.5 pr-4 text-right font-medium">Sq ft</th>
-                <th className="py-1.5 pr-4 text-right font-medium">Price</th>
-                {showCost && <th className="py-1.5 pr-4 text-right font-medium">Cost</th>}
-                {showCost && <th className="py-1.5 pr-4 text-right font-medium">Margin</th>}
+                <th className="py-1.5 pr-4 text-right font-medium">{t("Sq ft", "Pies²")}</th>
+                <th className="py-1.5 pr-4 text-right font-medium">{t("Price", "Precio")}</th>
+                {showCost && <th className="py-1.5 pr-4 text-right font-medium">{t("Cost", "Costo")}</th>}
+                {showCost && <th className="py-1.5 pr-4 text-right font-medium">{t("Margin", "Margen")}</th>}
               </tr>
             </thead>
             <tbody>
               {stores.length === 0 && (
-                <tr><td colSpan={cols} className="py-3 text-slate-500">No store assortment rows.</td></tr>
+                <tr><td colSpan={cols} className="py-3 text-slate-500">{t("No store assortment rows.", "Sin filas de surtido por tienda.")}</td></tr>
               )}
               {stores.map((s) => (
                 <tr key={s.store_id} className="border-t border-slate-100">
                   <td className="py-1.5 pr-4 font-medium">
                     {s.store_name}
-                    {!s.assortment_active && <span className="ml-1.5 text-[10px] uppercase text-slate-400">off</span>}
+                    {!s.assortment_active && <span className="ml-1.5 text-[10px] uppercase text-slate-400">{t("off", "apagado")}</span>}
                   </td>
                   <td className="py-1.5 pr-4">
                     <span className="font-mono text-xs text-slate-500">{s.qb_code ?? "—"}</span>
@@ -86,7 +91,7 @@ export function QohPanel({
                   <td className="py-1.5 pr-4 text-right">
                     <span className={Number(s.qoh) < 0 ? "tabular-nums font-medium text-red-600" : "tabular-nums"}>{num(s.qoh)}</span>
                     {!s.qoh_verified && s.qoh != null && Number(s.qoh) !== 0 && (
-                      <span title="Opening balance seeded from the QB import — unverified until a physical count confirms it" className="ml-1.5 rounded bg-amber-50 px-1 text-[10px] font-medium uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">opening</span>
+                      <span title={t("Opening balance seeded from the QB import — unverified until a physical count confirms it", "Saldo inicial sembrado desde la importación de QB — sin verificar hasta que un conteo físico lo confirme")} className="ml-1.5 rounded bg-amber-50 px-1 text-[10px] font-medium uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">{t("opening", "inicial")}</span>
                     )}
                   </td>
                   <td className="py-1.5 pr-4 text-right tabular-nums text-slate-500">{num(s.sq_ft)}</td>

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// Los nombres de las vistas (guardadas y prefijadas) son dato: los da quien las guarda o el llamador.
 
 export type SavedView = { id: number; name: string; state: Record<string, unknown> };
 export type Builtin = { name: string; state: Record<string, unknown> };
@@ -21,11 +24,12 @@ export function SavedViews({
   onApply: (s: Record<string, unknown>) => void;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function save() {
-    const name = window.prompt("Name this view:");
+    const name = window.prompt(t("Name this view:", "Nombre de la vista:"));
     if (!name?.trim()) return;
     setBusy(true);
     const sb = createClient();
@@ -37,7 +41,7 @@ export function SavedViews({
     router.refresh();
   }
   async function rename(v: SavedView) {
-    const name = window.prompt("Rename view:", v.name);
+    const name = window.prompt(t("Rename view:", "Renombrar vista:"), v.name);
     if (!name?.trim()) return;
     await createClient().from("saved_views").update({ name: name.trim() }).eq("id", v.id);
     router.refresh();
@@ -46,16 +50,16 @@ export function SavedViews({
   // vista reaparecía al refrescar y nadie veía nada. Mismo confirm() que usa el resto del ERP
   // (bulk-bar.tsx); el error se enseña debajo en vez de tragarse.
   async function del(v: SavedView) {
-    if (!window.confirm(`Delete the view "${v.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(t(`Delete the view "${v.name}"? This cannot be undone.`, `¿Borrar la vista "${v.name}"? No se puede deshacer.`))) return;
     setErr(null);
     const { error } = await createClient().from("saved_views").delete().eq("id", v.id);
-    if (error) { setErr(`Could not delete "${v.name}": ${error.message}`); return; }
+    if (error) { setErr(t(`Could not delete "${v.name}": ${error.message}`, `No se pudo borrar "${v.name}": ${error.message}`)); return; }
     router.refresh();
   }
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
-      <span className="text-xs uppercase tracking-wide text-slate-400">Views</span>
+      <span className="text-xs uppercase tracking-wide text-slate-400">{t("Views", "Vistas")}</span>
       {builtins.map((b) => (
         <button
           key={b.name}
@@ -74,10 +78,10 @@ export function SavedViews({
           <button type="button" onClick={() => onApply(v.state)} className="hover:underline">
             {v.name}
           </button>
-          <button type="button" onClick={() => rename(v)} title="Rename" className="text-clay-400 hover:text-clay-700">
+          <button type="button" onClick={() => rename(v)} title={t("Rename", "Renombrar")} className="text-clay-400 hover:text-clay-700">
             ✎
           </button>
-          <button type="button" onClick={() => del(v)} title="Delete" className="text-clay-400 hover:text-red-600">
+          <button type="button" onClick={() => del(v)} title={t("Delete", "Borrar")} className="text-clay-400 hover:text-red-600">
             ×
           </button>
         </span>
@@ -88,7 +92,7 @@ export function SavedViews({
         disabled={busy}
         className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-sm text-slate-500 hover:border-clay-400 hover:text-clay-700 disabled:opacity-50"
       >
-        + Save view
+        {t("+ Save view", "+ Guardar vista")}
       </button>
       {err && <span role="alert" className="basis-full text-sm text-red-600">{err}</span>}
     </div>

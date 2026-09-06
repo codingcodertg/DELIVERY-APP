@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { productImageUrl } from "@/lib/erp/images";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): sigue siendo de servidor (lo monta una página servidor); sus dos textos van por <Tx>.
+// Categoría, recuento y nombres de muestra son dato.
 
 export type CategoryCard = { category: string; product_count: number; sample: { id: number; name: string }[] };
 
 export function CategoryCards({ cards, imgMap }: { cards: CategoryCard[]; imgMap: Record<number, string> }) {
   if (cards.length === 0) {
-    return <p className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No categories.</p>;
+    return <p className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500"><Tx en="No categories." es="Sin categorías." /></p>;
   }
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -36,7 +40,7 @@ export function CategoryCards({ cards, imgMap }: { cards: CategoryCard[]; imgMap
               );
             })}
           </ul>
-          <div className="px-4 py-2 text-xs font-medium text-clay-700">View all {c.product_count.toLocaleString()} →</div>
+          <div className="px-4 py-2 text-xs font-medium text-clay-700"><Tx en="View all" es="Ver los" /> {c.product_count.toLocaleString()} →</div>
         </Link>
       ))}
     </div>

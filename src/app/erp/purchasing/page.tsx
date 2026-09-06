@@ -6,6 +6,9 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { PurchasingGroups, type PGroup } from "@/components/erp/purchasing-groups";
 import { ReorderPanel, type ReorderItem } from "@/components/erp/reorder-panel";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Purchasing — RTG ERP" };
@@ -49,19 +52,17 @@ export default async function PurchasingPage({
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">Smart Purchasing</h1>
+            <h1 className="text-2xl font-semibold"><Tx en="Smart Purchasing" es="Compras inteligentes" /></h1>
             <p className="mt-1 max-w-3xl text-sm text-slate-500">
-              Items at or below their reorder point (real ledger on-hand vs demand-based reorder points), then the same
-              physical product grouped across SKUs &amp; suppliers so you can pick the best source. {total.toLocaleString()}{" "}
-              comparison groups ({(d.total_grouped_products ?? 0).toLocaleString()} products). Comparison is read-only — it
-              never merges or dup-flags.
+              <Tx en="Items at or below their reorder point (real ledger on-hand vs demand-based reorder points), then the same physical product grouped across SKUs & suppliers so you can pick the best source." es="Artículos en o bajo su punto de reorden (existencia real del libro frente a puntos de reorden por demanda), y después el mismo producto físico agrupado por SKU y proveedores para elegir la mejor fuente." /> {total.toLocaleString()}{" "}
+              <Tx en="comparison groups" es="grupos de comparación" /> ({(d.total_grouped_products ?? 0).toLocaleString()} <Tx en="products" es="productos" />). <Tx en="Comparison is read-only — it never merges or dup-flags." es="La comparación es solo lectura — nunca fusiona ni marca duplicados." />
             </p>
           </div>
           <Link
             href="/erp/purchasing/categories"
             className="shrink-0 rounded-lg border border-clay-300 bg-white px-4 py-2 text-sm font-medium text-clay-700 hover:bg-clay-50"
           >
-            Browse by category →
+            <Tx en="Browse by category →" es="Explorar por categoría →" />
           </Link>
         </div>
 
@@ -74,7 +75,7 @@ export default async function PurchasingPage({
 
         {error ? (
           <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            Failed to load purchasing groups: {error.message}
+            <Tx en="Failed to load purchasing groups:" es="No se pudieron cargar los grupos de compras:" /> {error.message}
           </p>
         ) : (
           <PurchasingGroups

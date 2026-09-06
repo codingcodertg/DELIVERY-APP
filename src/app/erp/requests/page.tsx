@@ -4,6 +4,9 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { RequestReview, type ReviewRequest } from "@/components/erp/request-review";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Request approvals — RTG ERP" };
@@ -65,11 +68,10 @@ export default async function RequestsPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <h1 className="text-2xl font-semibold">Request approvals</h1>
+        <h1 className="text-2xl font-semibold"><Tx en="Request approvals" es="Aprobación de solicitudes" /></h1>
         <p className="mb-5 text-sm text-slate-500">
-          Pending edit / reactivate / deactivate requests. Approve applies the change (audited); reject sends it back
-          with a note.
-          {newCount ? ` ${newCount} new-item draft(s) await publishing in the Catalog (Drafts tab).` : ""}
+          <Tx en="Pending edit / reactivate / deactivate requests. Approve applies the change (audited); reject sends it back with a note." es="Solicitudes pendientes de edición / reactivación / desactivación. Aprobar aplica el cambio (auditado); rechazar la devuelve con una nota." />
+          {newCount ? <> {newCount} <Tx en="new-item draft(s) await publishing in the Catalog (Drafts tab)." es="borrador(es) de artículo nuevo esperan publicación en el Catálogo (pestaña Borradores)." /></> : ""}
         </p>
         <RequestReview requests={enriched} canSeeCost={canSeeCost(session.role)} editable={EDITABLE} />
       </main>

@@ -5,11 +5,17 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { createAdminClient } from "@/lib/erp/supabase/admin";
 import { PoReconcile, type ReconData } from "@/components/erp/po-reconcile";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// `label` de cada documento pasa de texto ("Purchase order") a clave ("po" | "ack"): era clave interna
+// y a la vez texto de pantalla, y ahora la pantalla lo pinta con <Tx> según la clave. El title del
+// iframe queda en inglés: atributo de server component (excepción dicha en la decisión).
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Reconcile PO — RTG ERP" };
 
-type Doc = { label: string; viewUrl: string; downloadUrl: string };
+type Doc = { label: "po" | "ack"; viewUrl: string; downloadUrl: string };
 
 export default async function PoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionInfo();
@@ -30,13 +36,13 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
   // A stored PDF whose URL cannot be signed used to disappear from this page without a word — the
   // section below simply did not render. Name it instead: the document exists, the link is what
   // failed, and that difference decides whether somebody goes looking for a lost file.
-  const docErrors: string[] = [];
+  const docErrors: Array<"po" | "ack"> = [];
   if (recon) {
-    const refs: Array<[string, string | null | undefined]> = [
-      ["Purchase order", recon.po?.source_pdf_ref],
-      ["Acknowledgment", recon.ack?.source_pdf_ref],
+    const refs: Array<["po" | "ack", string | null | undefined]> = [
+      ["po", recon.po?.source_pdf_ref],
+      ["ack", recon.ack?.source_pdf_ref],
     ];
-    const stored = refs.filter((r): r is [string, string] => Boolean(r[1]));
+    const stored = refs.filter((r): r is ["po" | "ack", string] => Boolean(r[1]));
     if (stored.length > 0) {
       try {
         const admin = createAdminClient();
@@ -64,9 +70,9 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         {error ? (
           <div>
-            <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700">← All orders</Link>
+            <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700"><Tx en="← All orders" es="← Todos los pedidos" /></Link>
             <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              Failed to reconcile: {error.message}
+              <Tx en="Failed to reconcile:" es="No se pudo conciliar:" /> {error.message}
             </p>
           </div>
         ) : !recon ? (
@@ -78,16 +84,14 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
                 href={`/erp/purchasing/receiving?po=${poId}`}
                 className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700"
               >
-                Receive against this PO →
+                <Tx en="Receive against this PO →" es="Recibir contra esta OC →" />
               </Link>
             </div>
             <PoReconcile data={recon} canEdit={canEdit} />
 
             {docErrors.length > 0 && (
               <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                {docErrors.join(" and ")} {docErrors.length > 1 ? "have" : "has"} a stored PDF that
-                could not be opened. The file is still in storage — this is a server configuration
-                problem, not a lost document.
+                {docErrors.map((d, i) => <span key={d}>{i > 0 && <> <Tx en="and" es="y" /> </>}{d === "po" ? <Tx en="Purchase order" es="Orden de compra" /> : <Tx en="Acknowledgment" es="Confirmación" />}</span>)} {docErrors.length > 1 ? <Tx en="have a stored PDF that could not be opened." es="tienen un PDF guardado que no se pudo abrir." /> : <Tx en="has a stored PDF that could not be opened." es="tiene un PDF guardado que no se pudo abrir." />} <Tx en="The file is still in storage — this is a server configuration problem, not a lost document." es="El fichero sigue en el almacén — es un problema de configuración del servidor, no un documento perdido." />
               </p>
             )}
 
@@ -96,13 +100,13 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
                 {docs.map((doc) => (
                   <section key={doc.label} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-                      <h2 className="text-sm font-semibold text-slate-800">{doc.label} — document</h2>
+                      <h2 className="text-sm font-semibold text-slate-800">{doc.label === "po" ? <Tx en="Purchase order" es="Orden de compra" /> : <Tx en="Acknowledgment" es="Confirmación" />} — <Tx en="document" es="documento" /></h2>
                       <div className="ml-auto flex items-center gap-3 text-sm">
-                        <a href={doc.viewUrl} target="_blank" rel="noopener noreferrer" className="text-clay-700 hover:underline">View PDF ↗</a>
-                        <a href={doc.downloadUrl} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50">Download</a>
+                        <a href={doc.viewUrl} target="_blank" rel="noopener noreferrer" className="text-clay-700 hover:underline"><Tx en="View PDF ↗" es="Ver PDF ↗" /></a>
+                        <a href={doc.downloadUrl} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50"><Tx en="Download" es="Descargar" /></a>
                       </div>
                     </div>
-                    <iframe src={doc.viewUrl} title={`${doc.label} PDF`} className="h-[640px] w-full bg-slate-100" />
+                    <iframe src={doc.viewUrl} title={doc.label === "po" ? "Purchase order PDF" : "Acknowledgment PDF"} className="h-[640px] w-full bg-slate-100" />
                   </section>
                 ))}
               </div>

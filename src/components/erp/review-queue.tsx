@@ -8,7 +8,7 @@ import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn, money } from "@/lib/erp/utils";
-import { commercialStatusClass, label } from "@/lib/erp/status";
+import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
 import { resolveTag } from "@/lib/erp/actions";
 import { exportCsv, exportXlsx } from "@/lib/erp/export";
 import { SavedViews, type SavedView } from "@/components/erp/saved-views";
@@ -242,7 +242,7 @@ export function ReviewQueue({
                   <div className="font-mono text-xs text-slate-400">{r.sku}</div>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge className={commercialStatusClass(r.status)}>{label(r.status)}</Badge>
+                  <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">

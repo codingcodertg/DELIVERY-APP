@@ -1,4 +1,9 @@
 import { money } from "@/lib/erp/utils";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): sin hooks, se monta dentro de product-detail (cliente) pero no lo necesita: los dos
+// textos (la etiqueta "Sales" del nivel y la nota de la fase 2) van por <Tx>. ERP/Mgr/Vol son siglas;
+// los valores de kind/mode (general/specific, fixed/leveled) son valores guardados.
 
 // Horizontal 4-tier pricing bar (ERP / Sales / Mgr / Vol) + the general-vs-specific
 // and fixed-vs-leveled flags. All NON-cost (these are customer sale prices). Values
@@ -13,9 +18,9 @@ export interface PricingBarProps {
   suffix?: string; // e.g. " / SF"
 }
 
-const TIERS: Array<{ key: keyof Pick<PricingBarProps, "erp" | "sales" | "mgr" | "vol">; label: string; tone: string }> = [
+const TIERS: Array<{ key: keyof Pick<PricingBarProps, "erp" | "sales" | "mgr" | "vol">; label: React.ReactNode; tone: string }> = [
   { key: "erp", label: "ERP", tone: "bg-slate-100 text-slate-700" },
-  { key: "sales", label: "Sales", tone: "bg-sky-50 text-sky-800" },
+  { key: "sales", label: <Tx en="Sales" es="Ventas" />, tone: "bg-sky-50 text-sky-800" },
   { key: "mgr", label: "Mgr", tone: "bg-clay-50 text-clay-800" },
   { key: "vol", label: "Vol", tone: "bg-emerald-50 text-emerald-800" },
 ];
@@ -41,7 +46,7 @@ export function PricingBar(props: PricingBarProps) {
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
         <Flag value={props.kind} of={["general", "specific"]} />
         <Flag value={props.mode} of={["fixed", "leveled"]} />
-        {!anyValue && <span className="text-slate-400">Prices populate in Phase 2 from the master pricing sheet.</span>}
+        {!anyValue && <span className="text-slate-400"><Tx en="Prices populate in Phase 2 from the master pricing sheet." es="Los precios se rellenan en la fase 2 desde la hoja maestra de precios." /></span>}
       </div>
     </div>
   );

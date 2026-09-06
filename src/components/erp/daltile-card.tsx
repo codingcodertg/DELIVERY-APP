@@ -1,6 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import { confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// Título externo, serie, tamaño, acabado, color, etiquetas y método de coincidencia son dato.
 
 export interface DaltileRef {
   id: number;
@@ -22,6 +25,7 @@ export interface DaltileRef {
 // Confirmed refs show plainly; 'auto' (suggested) refs show a confirm/reject
 // affordance for managers.
 export function DaltileCard({ dref, canManage }: { dref: DaltileRef; canManage: boolean }) {
+  const { t } = usePrefs();
   const [status, setStatus] = useState(dref.match_status);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -44,10 +48,10 @@ export function DaltileCard({ dref, canManage }: { dref: DaltileRef; canManage: 
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Daltile</h2>
         {suggested ? (
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-            Suggested{conf != null ? ` · ${conf}%` : ""}{dref.match_method ? ` · ${dref.match_method}` : ""}
+            {t("Suggested", "Sugerido")}{conf != null ? ` · ${conf}%` : ""}{dref.match_method ? ` · ${dref.match_method}` : ""}
           </span>
         ) : (
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800">Confirmed</span>
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800">{t("Confirmed", "Confirmado")}</span>
         )}
       </div>
 
@@ -70,7 +74,7 @@ export function DaltileCard({ dref, canManage }: { dref: DaltileRef; canManage: 
           {dref.external_url && (
             <a href={dref.external_url} target="_blank" rel="noopener nofollow"
                className="mt-1 inline-block text-xs text-clay-600 hover:underline">
-              View on daltile.com ↗
+              {t("View on daltile.com ↗", "Ver en daltile.com ↗")}
             </a>
           )}
         </div>
@@ -78,14 +82,14 @@ export function DaltileCard({ dref, canManage }: { dref: DaltileRef; canManage: 
 
       {suggested && canManage && (
         <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-          <span className="text-xs text-slate-500">Suggested match — confirm?</span>
+          <span className="text-xs text-slate-500">{t("Suggested match — confirm?", "Coincidencia sugerida — ¿confirmar?")}</span>
           <button onClick={() => act(confirmDaltileMatch, "confirmed")} disabled={pending}
             className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50">
-            Confirm
+            {t("Confirm", "Confirmar")}
           </button>
           <button onClick={() => act(rejectDaltileMatch, "rejected")} disabled={pending}
             className="rounded-md border px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            Reject
+            {t("Reject", "Rechazar")}
           </button>
           {err && <span className="text-xs text-red-600">{err}</span>}
         </div>

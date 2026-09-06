@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
-import { label } from "@/lib/erp/status";
+import { statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { submitNewItem, submitRequest, type NewItemInput } from "@/lib/erp/actions";
@@ -15,20 +16,28 @@ const STATUSES = ["active", "special_order", "discontinued", "inactive"];
 const REQ_TYPES = ["new", "edit", "reactivate", "deactivate"] as const;
 type ReqType = (typeof REQ_TYPES)[number];
 
-const EDIT_FIELDS: { key: string; label: string; cost?: boolean }[] = [
-  { key: "name", label: "Name" },
-  { key: "price", label: "Price" },
-  { key: "cost", label: "Cost", cost: true },
-  { key: "base_unit", label: "Base unit" },
-  { key: "sf_per_box", label: "SF / box" },
-  { key: "pieces_per_box", label: "Pieces / box" },
-  { key: "size_in", label: "Size (in)" },
-  { key: "size_cm", label: "Size (cm)" },
-  { key: "material", label: "Material" },
-  { key: "finish", label: "Finish" },
+type T = (en: string, es: string) => string;
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las claves de campo son las que
+// viajan al servidor y no cambian; solo la etiqueta. Tipos de producto, estados y tipos de
+// solicitud son enumerados fijos: su etiqueta sale de statusLabel (status.ts) y se elige con t().
+const EDIT_KEYS: { key: string; cost?: boolean }[] = [
+  { key: "name" }, { key: "price" }, { key: "cost", cost: true }, { key: "base_unit" }, { key: "sf_per_box" },
+  { key: "pieces_per_box" }, { key: "size_in" }, { key: "size_cm" }, { key: "material" }, { key: "finish" }, { key: "mpn" },
+];
+const editFields = (t: T): { key: string; label: string; cost?: boolean }[] => [
+  { key: "name", label: t("Name", "Nombre") },
+  { key: "price", label: t("Price", "Precio") },
+  { key: "cost", label: t("Cost", "Costo"), cost: true },
+  { key: "base_unit", label: t("Base unit", "Unidad base") },
+  { key: "sf_per_box", label: t("SF / box", "SF / caja") },
+  { key: "pieces_per_box", label: t("Pieces / box", "Piezas / caja") },
+  { key: "size_in", label: t("Size (in)", "Tamaño (in)") },
+  { key: "size_cm", label: t("Size (cm)", "Tamaño (cm)") },
+  { key: "material", label: t("Material", "Material") },
+  { key: "finish", label: t("Finish", "Acabado") },
   { key: "mpn", label: "MPN" },
 ];
-const LOOKUP_COLS = "id,sku,name,status," + EDIT_FIELDS.map((f) => f.key).filter((k) => k !== "name").join(",");
+const LOOKUP_COLS = "id,sku,name,status," + EDIT_KEYS.map((f) => f.key).filter((k) => k !== "name").join(",");
 
 type Cat = { id: number; path: string };
 type Vendor = { id: number; name: string };
@@ -64,6 +73,9 @@ export function RequestForm({
   canSeeCost: boolean;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
+  const EDIT_FIELDS = editFields(t);
+  const sl = (v: string) => t(statusLabel(v).en, statusLabel(v).es);
   const [reqType, setReqType] = useState<ReqType>("new");
   const [f, setF] = useState<Record<string, string>>({ product_type: "tile", status: "active" });
   const [dups, setDups] = useState<Match[] | null>(null);
@@ -118,14 +130,14 @@ export function RequestForm({
   function submitNew(force: boolean) {
     setErr(null);
     setDone(null);
-    if (!requiredOk) return setErr("Fill the required fields.");
+    if (!requiredOk) return setErr(t("Fill the required fields.", "Rellena los campos obligatorios."));
     startTransition(async () => {
       if (!force) {
         let matches: Match[];
         try {
           matches = await checkDups();
         } catch (e) {
-          return setErr(`Could not run the duplicate check: ${dbErrorMessage(e)}`);
+          return setErr(t(`Could not run the duplicate check: ${dbErrorMessage(e)}`, `No se pudo comprobar duplicados: ${dbErrorMessage(e)}`));
         }
         if (matches.length > 0) return setDups(matches);
       }
@@ -140,7 +152,7 @@ export function RequestForm({
       const res = await submitNewItem(input);
       if (!res.ok) setErr(res.error);
       else {
-        setDone(`Submitted draft ${res.sku} — pending admin publish.`);
+        setDone(t(`Submitted draft ${res.sku} — pending admin publish.`, `Borrador ${res.sku} enviado — pendiente de que un admin lo publique.`));
         setF({ product_type: "tile", status: "active" });
         router.refresh();
       }
@@ -160,9 +172,9 @@ export function RequestForm({
           "request-form: sku lookup",
         );
       } catch (e) {
-        return setErr(`Lookup failed: ${dbErrorMessage(e)}`);
+        return setErr(t(`Lookup failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
       }
-      if (!data) return setErr(`No published product with SKU ${lookupSku.trim().toUpperCase()}.`);
+      if (!data) return setErr(t(`No published product with SKU ${lookupSku.trim().toUpperCase()}.`, `No hay producto publicado con SKU ${lookupSku.trim().toUpperCase()}.`));
       const m = data as unknown as Match;
       setTarget(m);
       const seed: Record<string, string> = {};
@@ -186,7 +198,7 @@ export function RequestForm({
         if (fld.cost && !canSeeCost) continue;
         if (editForm[fld.key] !== original[fld.key]) payload[fld.key] = editForm[fld.key];
       }
-      if (Object.keys(payload).length === 0) return setErr("Change at least one field for an edit request.");
+      if (Object.keys(payload).length === 0) return setErr(t("Change at least one field for an edit request.", "Cambia al menos un campo para una solicitud de edición."));
     }
     startTransition(async () => {
       const res = await submitRequest({
@@ -197,7 +209,7 @@ export function RequestForm({
       });
       if (!res.ok) setErr(res.error);
       else {
-        setDone(`${label(reqType)} request submitted for ${target.sku}.`);
+        setDone(t(`${statusLabel(reqType).en} request submitted for ${target.sku}.`, `Solicitud de ${statusLabel(reqType).es.toLowerCase()} enviada para ${target.sku}.`));
         resetNonNew();
         router.refresh();
       }
@@ -207,12 +219,12 @@ export function RequestForm({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-5 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-        {REQ_TYPES.map((t) => (
+        {REQ_TYPES.map((rt) => (
           <button
-            key={t}
+            key={rt}
             type="button"
             onClick={() => {
-              setReqType(t);
+              setReqType(rt);
               setErr(null);
               setDone(null);
               setDups(null);
@@ -220,10 +232,10 @@ export function RequestForm({
             }}
             className={cn(
               "rounded-md px-3 py-1 text-sm capitalize transition-colors",
-              reqType === t ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
+              reqType === rt ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
             )}
           >
-            {t}
+            {sl(rt)}
           </button>
         ))}
       </div>
@@ -234,37 +246,37 @@ export function RequestForm({
       {reqType === "new" ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="SKU (unified code)" required>
-              <Input value={f.sku ?? ""} onChange={(e) => set("sku", e.target.value)} placeholder="e.g. PLG2163" />
+            <Field label={t("SKU (unified code)", "SKU (código unificado)")} required>
+              <Input value={f.sku ?? ""} onChange={(e) => set("sku", e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
             </Field>
-            <Field label="Name" required>
+            <Field label={t("Name", "Nombre")} required>
               <Input value={f.name ?? ""} onChange={(e) => set("name", e.target.value)} />
             </Field>
-            <Field label="Product type" required>
+            <Field label={t("Product type", "Tipo de producto")} required>
               <select className={sel} value={f.product_type} onChange={(e) => set("product_type", e.target.value)}>
-                {PRODUCT_TYPES.map((t) => (
-                  <option key={t} value={t}>{label(t)}</option>
+                {PRODUCT_TYPES.map((pt) => (
+                  <option key={pt} value={pt}>{sl(pt)}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Commercial status" required>
+            <Field label={t("Commercial status", "Estado comercial")} required>
               <select className={sel} value={f.status} onChange={(e) => set("status", e.target.value)}>
                 {STATUSES.map((s) => (
-                  <option key={s} value={s}>{label(s)}</option>
+                  <option key={s} value={s}>{sl(s)}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Category" required>
+            <Field label={t("Category", "Categoría")} required>
               <select className={sel} value={f.category_id ?? ""} onChange={(e) => set("category_id", e.target.value)}>
-                <option value="">— select —</option>
+                <option value="">{t("— select —", "— elegir —")}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.path}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Vendor">
+            <Field label={t("Vendor", "Proveedor")}>
               <select className={sel} value={f.vendor_id ?? ""} onChange={(e) => set("vendor_id", e.target.value)}>
-                <option value="">— select —</option>
+                <option value="">{t("— select —", "— elegir —")}</option>
                 {vendors.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -273,70 +285,70 @@ export function RequestForm({
             <Field label="MPN">
               <Input value={f.mpn ?? ""} onChange={(e) => set("mpn", e.target.value)} />
             </Field>
-            <Field label="Material">
+            <Field label={t("Material", "Material")}>
               <select className={sel} value={f.material ?? ""} onChange={(e) => set("material", e.target.value)}>
-                <option value="">— select —</option>
+                <option value="">{t("— select —", "— elegir —")}</option>
                 {materials.map((m) => (<option key={m} value={m}>{m}</option>))}
               </select>
             </Field>
-            <Field label="Finish">
+            <Field label={t("Finish", "Acabado")}>
               <select className={sel} value={f.finish ?? ""} onChange={(e) => set("finish", e.target.value)}>
-                <option value="">— select —</option>
+                <option value="">{t("— select —", "— elegir —")}</option>
                 {finishes.map((m) => (<option key={m} value={m}>{m}</option>))}
               </select>
             </Field>
-            <Field label="Size (in)" required={isTile}>
-              <Input value={f.size_in ?? ""} onChange={(e) => set("size_in", e.target.value)} placeholder="e.g. 24X24" />
+            <Field label={t("Size (in)", "Tamaño (in)")} required={isTile}>
+              <Input value={f.size_in ?? ""} onChange={(e) => set("size_in", e.target.value)} placeholder={t("e.g. 24X24", "p. ej. 24X24")} />
             </Field>
-            <Field label="SF / box" required={isTile}>
+            <Field label={t("SF / box", "SF / caja")} required={isTile}>
               <Input value={f.sf_per_box ?? ""} onChange={(e) => set("sf_per_box", e.target.value)} inputMode="decimal" />
             </Field>
-            <Field label="Base unit" required={isTile}>
+            <Field label={t("Base unit", "Unidad base")} required={isTile}>
               <select className={sel} value={f.base_unit ?? ""} onChange={(e) => set("base_unit", e.target.value)}>
-                <option value="">— select —</option>
+                <option value="">{t("— select —", "— elegir —")}</option>
                 {baseUnits.map((u) => (<option key={u} value={u}>{u}</option>))}
               </select>
             </Field>
           </div>
-          <Field label="Reason / note">
+          <Field label={t("Reason / note", "Motivo / nota")}>
             <Input value={f.reason ?? ""} onChange={(e) => set("reason", e.target.value)} />
           </Field>
 
           {dups && (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-              <div className="mb-1 font-medium text-amber-800">Possible duplicates — are you sure this is new?</div>
+              <div className="mb-1 font-medium text-amber-800">{t("Possible duplicates — are you sure this is new?", "Posibles duplicados — ¿seguro que es nuevo?")}</div>
               <ul className="mb-2 list-disc pl-5 text-amber-700">
                 {dups.map((d) => (
-                  <li key={d.id}><span className="font-mono">{d.sku}</span> — {d.name} ({label(d.status)})</li>
+                  <li key={d.id}><span className="font-mono">{d.sku}</span> — {d.name} ({sl(d.status)})</li>
                 ))}
               </ul>
-              <Button size="sm" onClick={() => submitNew(true)} disabled={pending}>Submit anyway</Button>
+              <Button size="sm" onClick={() => submitNew(true)} disabled={pending}>{t("Submit anyway", "Enviar de todas formas")}</Button>
             </div>
           )}
 
           <div className="flex items-center gap-3">
             <Button onClick={() => submitNew(false)} disabled={pending || !requiredOk}>
-              {pending ? "Checking…" : "Submit (dup-check)"}
+              {pending ? t("Checking…", "Comprobando…") : t("Submit (dup-check)", "Enviar (comprueba duplicados)")}
             </Button>
-            <span className="text-xs text-slate-400">Lands as a draft; an admin publishes it from the catalog.</span>
+            <span className="text-xs text-slate-400">{t("Lands as a draft; an admin publishes it from the catalog.", "Entra como borrador; un admin lo publica desde el catálogo.")}</span>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <Field label="Find product by SKU">
+          <Field label={t("Find product by SKU", "Buscar producto por SKU")}>
             <div className="flex gap-2">
-              <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder="e.g. PLG2163" />
-              <Button variant="outline" onClick={lookup} disabled={pending || !lookupSku.trim()}>Find</Button>
+              <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
+              <Button variant="outline" onClick={lookup} disabled={pending || !lookupSku.trim()}>{t("Find", "Buscar")}</Button>
             </div>
           </Field>
           {target && (
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
-              <span className="font-mono">{target.sku}</span> — {target.name} ({label(target.status)})
+              <span className="font-mono">{target.sku}</span> — {target.name} ({sl(target.status)})
             </div>
           )}
           {target && reqType === "edit" && (
             <div>
-              <div className="mb-1 text-sm font-medium">Proposed changes</div>
+              <div className="mb-1 text-sm font-medium">{t("Proposed changes", "Cambios propuestos")}</div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {EDIT_FIELDS.filter((fld) => !fld.cost || canSeeCost).map((fld) => (
                   <label key={fld.key} className="space-y-1">
@@ -351,11 +363,11 @@ export function RequestForm({
               </div>
             </div>
           )}
-          <Field label="Reason" required>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={`Why ${reqType}?`} />
+          <Field label={t("Reason", "Motivo")} required>
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t(`Why ${reqType}?`, `¿Por qué ${statusLabel(reqType).es.toLowerCase()}?`)} />
           </Field>
           <Button onClick={submitChange} disabled={pending || !target || !reason.trim()}>
-            {pending ? "Submitting…" : `Submit ${reqType} request`}
+            {pending ? t("Submitting…", "Enviando…") : t(`Submit ${reqType} request`, `Enviar solicitud de ${statusLabel(reqType).es.toLowerCase()}`)}
           </Button>
         </div>
       )}

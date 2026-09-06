@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/erp/ui/badge";
 import { money } from "@/lib/erp/utils";
-import { recordStatusClass, label } from "@/lib/erp/status";
+import { recordStatusClass, statusLabel } from "@/lib/erp/status";
 import { PublishButton } from "@/components/erp/publish-button";
 import { PoDraftPanel } from "@/components/erp/po-draft-panel";
 import { SeoEditor } from "@/components/erp/seo-editor";
@@ -27,9 +27,9 @@ import { usePrefs } from "@/lib/prefs";
  * ya listos; este componente solo los coloca y pone las etiquetas en el idioma elegido. Es el
  * mismo árbol que tenía la página, movido, con t(en, es) donde había texto fijo.
  *
- * Dato vs texto: nombre, SKU, valores de campo, el estado (sv.label / sv.note, de
- * item-dashboard), label(record_status), el estado de un lote y la fuente de un precio son datos
- * y salen tal cual.
+ * Dato vs texto: nombre, SKU, valores de campo, el estado de un lote y la fuente de un precio son
+ * datos y salen tal cual. El estado comercial (sv, de item-dashboard) y el de registro son
+ * enumerados fijos: la librería da el par {en, es} y aquí se elige con t() (D-NEXT, 5b).
  */
 
 /** Los campos de app_products que esta pantalla lee. El resto de la fila viaja igual y no se mira. */
@@ -174,8 +174,8 @@ export function ProductDetail({
       {/* ─ Title row ─ */}
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold">{p.name}</h1>
-        <Badge className={sv.tone}>{sv.label}</Badge>
-        <Badge className={recordStatusClass(p.record_status)}>{label(p.record_status)}</Badge>
+        <Badge className={sv.tone}>{t(sv.label.en, sv.label.es)}</Badge>
+        <Badge className={recordStatusClass(p.record_status)}>{t(statusLabel(p.record_status).en, statusLabel(p.record_status).es)}</Badge>
         <VerifiedBadge level={p.verified_level} hasConfirmedRef={dref?.match_status === "confirmed"} />
         <span className="font-mono text-sm text-slate-500">{p.sku}</span>
         <div className="ml-auto flex items-center gap-2">
@@ -183,7 +183,7 @@ export function ProductDetail({
           {isAdmin && p.record_status === "draft" && <PublishButton productId={p.id} />}
         </div>
       </div>
-      {sv.note && <p className="mt-1 text-sm text-slate-500">{sv.note}</p>}
+      {sv.note && <p className="mt-1 text-sm text-slate-500">{t(sv.note.en, sv.note.es)}</p>}
       {Array.isArray(p.review_tags) && p.review_tags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {p.review_tags.map((tag: string) => (
@@ -202,8 +202,8 @@ export function ProductDetail({
         <Section title={t("Identity & status", "Identidad y estado")}>
           <Field label="SKU">{val(p.sku)}</Field>
           <Field label={t("Name", "Nombre")}>{val(p.name)}</Field>
-          <Field label={t("Status", "Estado")}>{sv.label}{sv.note ? ` — ${sv.note}` : ""}</Field>
-          <Field label={t("Record status", "Estado del registro")}>{label(p.record_status)}</Field>
+          <Field label={t("Status", "Estado")}>{t(sv.label.en, sv.label.es)}{sv.note ? ` — ${t(sv.note.en, sv.note.es)}` : ""}</Field>
+          <Field label={t("Record status", "Estado del registro")}>{t(statusLabel(p.record_status).en, statusLabel(p.record_status).es)}</Field>
           {p.status === "discontinued" && <Field label={t("Discontinue reason", "Motivo de descontinuación")}>{val(p.discontinue_reason)}</Field>}
           <Field label={t("Product type", "Tipo de producto")}>{val(p.product_type)}</Field>
           <Field label={t("Vendor", "Proveedor")}>{val(p.vendor_name)}</Field>

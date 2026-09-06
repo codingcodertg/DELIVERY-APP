@@ -28,22 +28,37 @@ export type Hallazgo = { linea: number; tipo: "jsx" | "atributo" | "literal"; te
 const PERMITIDAS = new Set([
   "sku", "qoh", "csv", "xlsx", "upc", "mpn", "moq", "seo", "rtg", "erp", "uom", "pdf", "url", "qb",
   "png", "jpg", "svg", "ok", "http", "https",
+  // Nombres propios y términos de comercio iguales en los dos idiomas.
+  "incoterm", "shopify", "daltile", "excel", "proforma",
+  // Siglas de tres letras que el filtro de "palabra de tres letras" atraparía.
+  "abc", "usa", "cogs", "mpn",
+  // Dominios ("daltile.com") no son texto.
+  "com",
+  // Jerga de la casa para las relaciones de familia (bro/cuz/sub), igual en los dos idiomas y
+  // además el valor guardado de la relación.
+  "bros", "cuz", "subs",
 ]);
 
 function esTexto(s: string): boolean {
-  // Al menos una palabra de tres letras que no sea sigla permitida.
+  // Al menos una palabra de tres letras con alguna minúscula que no sea sigla permitida. Una
+  // palabra toda en mayúsculas ("~MERGE", "BELOW COST", "SKU") es una etiqueta guardada o una
+  // sigla, no una frase de pantalla.
   const palabras = s.match(/[A-Za-z]{3,}/g) ?? [];
-  return palabras.some((w) => !PERMITIDAS.has(w.toLowerCase()));
+  return palabras.some((w) => /[a-z]/.test(w) && !PERMITIDAS.has(w.toLowerCase()));
 }
 
-/** Quita comentarios y las llamadas t("…", "…") / t(`…`, `…`), que son justo el texto ya traducido. */
+/** Quita comentarios, las llamadas t("…", "…") / t(`…`, `…`) y las hojas <Tx en es />: es justo el texto ya traducido. */
 export function fuenteSinTraducido(src: string): string {
   return src
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "")
+    // Lo que va en <code> es literal (un comando, un nombre de columna), no texto de pantalla.
+    .replace(/<code\b[^>]*>[\s\S]*?<\/code>/g, "<code />")
     .replace(/\bt\(\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:[^"\\]|\\.)*"\s*\)/g, "t(…)")
-    .replace(/\bt\(\s*`[^`]*`\s*,\s*`[^`]*`\s*\)/g, "t(…)");
+    .replace(/\bt\(\s*`[^`]*`\s*,\s*`[^`]*`\s*\)/g, "t(…)")
+    // La hoja de cliente de los server components (5b): <Tx en="…" es="…" />, también traducido.
+    .replace(/<Tx\s+en="(?:[^"\\]|\\.)*"\s+es="(?:[^"\\]|\\.)*"\s*\/>/g, "{t(…)}");
 }
 
 export function textoAPelo(src: string): Hallazgo[] {
@@ -73,7 +88,10 @@ export function textoAPelo(src: string): Hallazgo[] {
   const lineas = limpio.split("\n");
   const frase = /"([A-Z][a-z]+(?: [^"]+|…|\.))"/g;
   lineas.forEach((l, i) => {
-    if (/exportCsv|exportXlsx|const headers|^\s*import |\bfrom "/.test(l)) return;
+    // `export const metadata = { title: "… — RTG ERP" }` es el título de la pestaña del navegador,
+    // que Next lee en el servidor: sin idioma en el servidor se queda en inglés (excepción dicha
+    // en la decisión de 5b), y no es texto de la pantalla.
+    if (/exportCsv|exportXlsx|const headers|^\s*import |\bfrom "|export const metadata/.test(l)) return;
     for (const m of l.matchAll(frase)) {
       if (esTexto(m[1])) out.push({ linea: i + 1, tipo: "literal", texto: m[1] });
     }

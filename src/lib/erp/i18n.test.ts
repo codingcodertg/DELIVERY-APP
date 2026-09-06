@@ -47,6 +47,7 @@ export function Demo({ busy, n }: { busy: boolean; n: number }) {
       <p>
         {t(\`Nothing flagged here. \${n}\`, \`Nada marcado aquí. \${n}\`)}
       </p>
+      <h3><Tx en="Needs review" es="Requiere revisión" /></h3>
     </div>
   );
 }
@@ -89,13 +90,80 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/review-queue.tsx",
     "src/components/erp/product-detail.tsx",
     "src/components/erp/inventory-console.tsx",
+    "src/components/erp/po-ingest.tsx",
+    "src/components/erp/po-reconcile.tsx",
+    "src/components/erp/item/verified-badge.tsx",
+    "src/components/erp/receiving.tsx",
+    "src/components/erp/po-upload.tsx",
+    "src/components/erp/request-form.tsx",
+    "src/components/erp/master-round-trip.tsx",
+    "src/app/erp/purchasing/orders/page.tsx",
+    "src/components/erp/charts.tsx",
+    "src/app/erp/dashboard/page.tsx",
+    "src/app/erp/analytics/categories/page.tsx",
+    "src/app/erp/analytics/vendors/page.tsx",
+    "src/components/erp/purchasing-groups.tsx",
+    "src/app/erp/analytics/stores/page.tsx",
+    "src/components/erp/bulk-bar.tsx",
+    "src/components/erp/product-drawer.tsx",
+    "src/components/erp/uom-assistant.tsx",
+    "src/components/erp/decisions-upload.tsx",
+    "src/components/erp/request-review.tsx",
+    "src/app/erp/analytics/salespeople/page.tsx",
+    "src/components/erp/reorder-panel.tsx",
+    "src/app/erp/review/daltile/page.tsx",
+    "src/components/erp/item/qoh-panel.tsx",
+    "src/components/erp/merge-tool.tsx",
+    "src/components/erp/po-draft-panel.tsx",
+    "src/components/erp/product-family.tsx",
+    "src/components/erp/daltile-card.tsx",
+    "src/components/erp/item/product-gallery.tsx",
+    "src/components/erp/po-line-link.tsx",
+    "src/components/erp/seo-editor.tsx",
+    "src/app/erp/purchasing/orders/[id]/page.tsx",
+    "src/app/erp/request/page.tsx",
+    "src/app/erp/review/merge/page.tsx",
+    "src/app/erp/decisions/page.tsx",
+    "src/app/erp/purchasing/receiving/page.tsx",
+    "src/components/erp/saved-views.tsx",
+    "src/app/erp/purchasing/categories/page.tsx",
+    "src/app/erp/purchasing/orders/new/page.tsx",
+    "src/app/erp/purchasing/page.tsx",
+    "src/components/erp/catalog-cards.tsx",
+    "src/components/erp/item/suggest-fix-button.tsx",
+    "src/app/erp/catalog/page.tsx",
+    "src/app/erp/inventory/page.tsx",
+    "src/app/erp/master/page.tsx",
+    "src/app/erp/requests/page.tsx",
+    "src/app/erp/review/page.tsx",
+    "src/app/erp/po-upload/page.tsx",
+    "src/components/erp/category-cards.tsx",
+    "src/components/erp/item/pricing-bar.tsx",
+    "src/components/erp/publish-button.tsx",
+    "src/components/erp/analytics-nav.tsx",
+    "src/components/erp/analytics-controls.tsx",
   ];
+
+  // Excepciones EXPLÍCITAS, texto por texto: lo que <Tx> no puede pintar en un server component (un
+  // atributo title/placeholder). Cada una está dicha en la decisión; añadir aquí es decidir, no callar.
+  const excepciones: Record<string, string[]> = {
+    "src/app/erp/purchasing/orders/page.tsx": [
+      "merchandise vs PO (excl. tax &amp; freight)", // title de la cabecera Gap
+      "merchandise vs PO (excl. tax & freight)", // title de la celda Gap
+    ],
+    "src/app/erp/purchasing/orders/[id]/page.tsx": [
+      "Purchase order PDF", // title del iframe del documento
+      "Acknowledgment PDF",
+    ],
+  };
 
   for (const ruta of ficheros) {
     it(`${ruta.split("/").pop()} — usa usePrefs y no deja texto fijo`, () => {
       const src = readFileSync(join(process.cwd(), ruta), "utf8");
-      expect(src, `${ruta} no usa usePrefs()`).toMatch(/usePrefs\(\)/);
-      const h = textoAPelo(src);
+      // De cliente: usePrefs(). Server component (5b): la hoja <Tx en es />.
+      expect(src, `${ruta} no usa usePrefs() ni <Tx>`).toMatch(/usePrefs\(\)|<Tx /);
+      const permitidos = new Set(excepciones[ruta] ?? []);
+      const h = textoAPelo(src).filter((x) => !permitidos.has(x.texto));
       expect(h.map((x) => `${ruta}:${x.linea} [${x.tipo}] ${x.texto}`)).toEqual([]);
     });
   }

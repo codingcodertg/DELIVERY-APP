@@ -15,7 +15,7 @@ import { Button } from "@/components/erp/ui/button";
 import { exportCsv, exportXlsx } from "@/lib/erp/export";
 import { cn, money } from "@/lib/erp/utils";
 import { productImageUrl } from "@/lib/erp/images";
-import { commercialStatusClass, label } from "@/lib/erp/status";
+import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
 import { priceUnitSuffix } from "@/lib/erp/domain/units";
 import { SavedViews, type SavedView } from "@/components/erp/saved-views";
 import { ProductDrawer } from "@/components/erp/product-drawer";
@@ -202,7 +202,7 @@ export function CatalogTable({
       { id: "thumb", header: "", size: 48, enableSorting: false, cell: (c) => <Thumb path={c.row.original.image_path} alt={c.row.original.sku} /> },
       { accessorKey: "sku", header: "SKU", size: 140, cell: (c) => <span className="font-mono text-xs text-slate-600">{c.getValue<string>()}</span> },
       { accessorKey: "name", header: t("Name", "Nombre"), size: 300, cell: (c) => <span className="font-medium text-slate-900">{c.getValue<string>()}</span> },
-      { accessorKey: "status", header: t("Status", "Estado"), size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{label(c.getValue<string>())}</Badge> },
+      { accessorKey: "status", header: t("Status", "Estado"), size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{t(statusLabel(c.getValue<string>()).en, statusLabel(c.getValue<string>()).es)}</Badge> },
       { accessorKey: "product_type", header: t("Type", "Tipo"), size: 100, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
       { accessorKey: "category_path", header: t("Category", "Categoría"), size: 190, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
       { accessorKey: "vendor_name", header: t("Vendor", "Proveedor"), size: 180, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
@@ -312,7 +312,7 @@ export function CatalogTable({
         <Input placeholder={t("Search name, SKU, vendor…", "Buscar nombre, SKU, proveedor…")} value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
           {COMMERCIAL.map((s) => (
-            <option key={s} value={s}>{s === "all" ? t("All statuses", "Todos los estados") : label(s)}</option>
+            <option key={s} value={s}>{s === "all" ? t("All statuses", "Todos los estados") : t(statusLabel(s).en, statusLabel(s).es)}</option>
           ))}
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-600">

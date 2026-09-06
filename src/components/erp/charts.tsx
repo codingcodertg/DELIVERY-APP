@@ -1,6 +1,11 @@
 // Zero-dependency, server-rendered chart primitives (pure SVG/CSS, no client JS).
 // Cost-safe by construction: they render whatever counts the caller passes.
 import type { ReactNode } from "react";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): siguen siendo primitivas de servidor. Los textos que reciben (title, subtitle, label,
+// emptyText) pasan de string a ReactNode para que la página pueda darles una hoja <Tx>; el único texto
+// propio ("total", en el donut) va por <Tx>. Las barras y los segmentos pintan lo que les dan.
 
 export function ChartCard({
   title,
@@ -8,8 +13,8 @@ export function ChartCard({
   children,
   className,
 }: {
-  title: string;
-  subtitle?: string;
+  title: ReactNode;
+  subtitle?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -29,11 +34,11 @@ export type BarItem = { label: string; value: number };
 export function BarList({
   items,
   barClass = "bg-clay-500",
-  emptyText = "Nothing to show.",
+  emptyText = <Tx en="Nothing to show." es="Nada que mostrar." />,
 }: {
   items: BarItem[];
   barClass?: string;
-  emptyText?: string;
+  emptyText?: ReactNode;
 }) {
   if (items.length === 0) return <p className="py-6 text-center text-sm text-slate-400">{emptyText}</p>;
   const max = Math.max(1, ...items.map((i) => i.value));
@@ -52,7 +57,7 @@ export function BarList({
   );
 }
 
-export type DonutSegment = { label: string; value: number; color: string };
+export type DonutSegment = { key: string; label: ReactNode; value: number; color: string };
 
 export function Donut({ segments, size = 150, thickness = 20 }: { segments: DonutSegment[]; size?: number; thickness?: number }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
@@ -69,7 +74,7 @@ export function Donut({ segments, size = 150, thickness = 20 }: { segments: Donu
               const len = (seg.value / total) * circ;
               const el = (
                 <circle
-                  key={seg.label}
+                  key={seg.key}
                   cx={size / 2}
                   cy={size / 2}
                   r={r}
@@ -86,12 +91,12 @@ export function Donut({ segments, size = 150, thickness = 20 }: { segments: Donu
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xl font-semibold tabular-nums">{total.toLocaleString()}</span>
-          <span className="text-[10px] uppercase tracking-wide text-slate-400">total</span>
+          <span className="text-[10px] uppercase tracking-wide text-slate-400"><Tx en="total" es="total" /></span>
         </div>
       </div>
       <div className="space-y-1.5">
         {segments.map((seg) => (
-          <div key={seg.label} className="flex items-center gap-2 text-sm">
+          <div key={seg.key} className="flex items-center gap-2 text-sm">
             <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: seg.color }} />
             <span className="text-slate-600">{seg.label}</span>
             <span className="tabular-nums text-slate-400">{seg.value.toLocaleString()}</span>
@@ -102,7 +107,7 @@ export function Donut({ segments, size = 150, thickness = 20 }: { segments: Donu
   );
 }
 
-export function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+export function Stat({ label, value, sub }: { label: ReactNode; value: string; sub?: ReactNode }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="text-sm text-slate-500">{label}</div>
@@ -118,7 +123,7 @@ export function CoverageStat({
   total,
   color = "bg-clay-500",
 }: {
-  label: string;
+  label: ReactNode;
   value: number;
   total: number;
   color?: string;

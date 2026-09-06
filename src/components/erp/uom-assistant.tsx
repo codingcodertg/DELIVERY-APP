@@ -8,6 +8,10 @@ import { money } from "@/lib/erp/utils";
 import { inlineFix } from "@/lib/erp/actions";
 import { suggestUomFix, isCostOutlier, medianOf, type UomSuggestion } from "@/lib/erp/domain/uom";
 import type { ReviewRow } from "@/components/erp/review-queue";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). La justificación de cada sugerencia
+// (s.rationale, de domain/uom.ts) y la unidad propuesta vienen de la lógica y salen tal cual.
 
 // Group line-mates by vendor + the first token of the name (a collection like "ACUARELA").
 function lineKey(name: string, vendor: string | null): string {
@@ -19,6 +23,7 @@ type Candidate = { r: ReviewRow; s: UomSuggestion; mates: number[]; outlier: boo
 
 export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id: number) => void }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState<Set<number>>(new Set());
@@ -71,19 +76,17 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
-        <strong>Unit-of-measure check.</strong> A cost ≥ 1.5× the price across a line is the signature of a per-box
-        cost stapled to a per-unit price. These are <em>suggestions</em> — review and apply; nothing changes on its
-        own, and every applied fix goes through the audited update path (price_history captured).
+        <strong>{t("Unit-of-measure check.", "Revisión de unidad de medida.")}</strong> {t("A cost ≥ 1.5× the price across a line is the signature of a per-box cost stapled to a per-unit price. These are", "Un costo ≥ 1.5× el precio en toda una línea es la firma de un costo por caja pegado a un precio por unidad. Son")} <em>{t("suggestions", "sugerencias")}</em> {t("— review and apply; nothing changes on its own, and every applied fix goes through the audited update path (price_history captured).", "— revisa y aplica; nada cambia solo, y cada arreglo aplicado pasa por la ruta de actualización auditada (queda en price_history).")}
       </div>
       {err && <p className="px-4 py-2 text-sm text-red-600">{err}</p>}
       <table className="w-full text-sm">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
           <tr>
-            <th className="px-3 py-2.5 font-medium">Product</th>
-            <th className="px-3 py-2.5 text-right font-medium">Price</th>
-            <th className="px-3 py-2.5 text-right font-medium">Cost</th>
-            <th className="px-3 py-2.5 text-right font-medium">Cost÷Price</th>
-            <th className="px-3 py-2.5 font-medium">Suggested fix</th>
+            <th className="px-3 py-2.5 font-medium">{t("Product", "Producto")}</th>
+            <th className="px-3 py-2.5 text-right font-medium">{t("Price", "Precio")}</th>
+            <th className="px-3 py-2.5 text-right font-medium">{t("Cost", "Costo")}</th>
+            <th className="px-3 py-2.5 text-right font-medium">{t("Cost÷Price", "Costo÷Precio")}</th>
+            <th className="px-3 py-2.5 font-medium">{t("Suggested fix", "Arreglo sugerido")}</th>
             <th className="px-3 py-2.5"></th>
           </tr>
         </thead>
@@ -95,7 +98,7 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
                 <div className="font-mono text-xs text-slate-400">{r.sku}</div>
                 {outlier && (
                   <div className="mt-0.5 text-xs text-amber-700">
-                    Outlier vs {mates.length} line-mate{mates.length === 1 ? "" : "s"} (median {money(medianOf(mates))})
+                    {mates.length === 1 ? t("Outlier vs 1 line-mate", "Atípico frente a 1 compañero de línea") : t(`Outlier vs ${mates.length} line-mates`, `Atípico frente a ${mates.length} compañeros de línea`)} ({t("median", "mediana")} {money(medianOf(mates))})
                   </div>
                 )}
               </td>
@@ -107,10 +110,10 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
               <td className="max-w-sm px-3 py-2 text-slate-600">
                 {s.proposedCost != null ? (
                   <>
-                    Set cost → <span className="font-medium">{money(s.proposedCost)}</span>
+                    {t("Set cost →", "Poner costo →")} <span className="font-medium">{money(s.proposedCost)}</span>
                     {s.proposedBaseUnit ? (
                       <>
-                        , unit → <span className="font-medium">{s.proposedBaseUnit}</span>
+                        , {t("unit →", "unidad →")} <span className="font-medium">{s.proposedBaseUnit}</span>
                       </>
                     ) : null}
                     <div className="text-xs text-slate-400">{s.rationale}</div>
@@ -122,17 +125,17 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
               <td className="px-3 py-2 text-right">
                 {s.proposedCost != null ? (
                   <Button size="sm" disabled={isPending && pendingId === r.id} onClick={() => apply({ r, s, mates, outlier })}>
-                    {isPending && pendingId === r.id ? "Applying…" : "Apply fix"}
+                    {isPending && pendingId === r.id ? t("Applying…", "Aplicando…") : t("Apply fix", "Aplicar arreglo")}
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => onEdit(r.id)}>Review</Button>
+                  <Button variant="outline" size="sm" onClick={() => onEdit(r.id)}>{t("Review", "Revisar")}</Button>
                 )}
               </td>
             </tr>
           ))}
           {visible.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-8 text-center text-slate-500">No likely unit-of-measure errors. 🎉</td>
+              <td colSpan={6} className="p-8 text-center text-slate-500">{t("No likely unit-of-measure errors. 🎉", "Sin errores probables de unidad de medida. 🎉")}</td>
             </tr>
           )}
         </tbody>
