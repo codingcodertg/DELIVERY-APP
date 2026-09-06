@@ -9800,7 +9800,7 @@ ficha llegue con el pedido correcto va por la forma (prueba) y por `next/dynamic
 mirado. Los pesos son del build local, no del CI. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **978 pasados | 3 saltados**
 (main 1fcf690: 974 | 3; los +4 son `order-modal-lazy.test.ts`).
 
-## D-NEXT · G-10b: los mensajes del servidor del ERP viajan como código y se traducen en el cliente
+## D-210 · G-10b: los mensajes del servidor del ERP viajan como código y se traducen en el cliente
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo ERP se toca) ·
 **Pedido por:** Andrés (orquestador), sobre la deuda que D-204 dejó declarada («23 mensajes de servidor
