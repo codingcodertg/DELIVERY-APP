@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMyLanguage, setLanguage } from "@/app/timetracker/clock-in/actions/account";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * El idioma en el que llegan los avisos de fichaje, dentro de Mi cuenta.
@@ -19,9 +20,13 @@ import { getMyLanguage, setLanguage } from "@/app/timetracker/clock-in/actions/a
  * en la base. Este es el de los avisos que manda el servidor —recordatorios de turno, partes
  * pendientes— que se escriben antes de que haya ninguna pantalla delante. Merecía decirse en
  * la propia pantalla, porque "Idioma" a secas hace pensar que cambia lo que estás mirando.
+ *
+ * D-NEXT: sus cuatro textos, que estaban en inglés a pelo, pasan a claves emp.acc.notifLang* (vive
+ * en Mi cuenta). "English" / "Español" son los nombres de cada idioma en su propio idioma: dato.
  */
 export function NotificationLanguage() {
   const router = useRouter();
+  const t = useT();
   // Se lee tras montar: este dato no está en el proveedor de Time Tracker y pedirlo al
   // servidor en el render rompería la hidratación.
   const [lang, setLang] = useState<"en" | "es">("en");
@@ -41,7 +46,7 @@ export function NotificationLanguage() {
     setBusy(false);
     if (!res.ok) {
       setLang(before);
-      setErr(res.message ?? "Could not save.");
+      setErr(res.message ?? t("emp.acc.notifLangFail"));
       return;
     }
     setSaved(true);
@@ -51,15 +56,15 @@ export function NotificationLanguage() {
 
   return (
     <div className="field" style={{ maxWidth: 260 }}>
-      <label>Notification language</label>
+      <label>{t("emp.acc.notifLang")}</label>
       <select value={lang} disabled={busy || !loaded} onChange={(e) => pick(e.target.value as "en" | "es")}>
         <option value="en">English</option>
         <option value="es">Español</option>
       </select>
       <div className="hint">
-        Clock-in reminders and approvals arrive in this language. The screens themselves follow your browser.
+        {t("emp.acc.notifLangNote")}
       </div>
-      {saved && <div className="hint" style={{ color: "var(--green)" }}>Saved</div>}
+      {saved && <div className="hint" style={{ color: "var(--green)" }}>{t("emp.acc.notifLangSaved")}</div>}
       {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
     </div>
   );
