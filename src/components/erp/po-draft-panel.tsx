@@ -8,7 +8,11 @@ import { assignDraftSku, linkDraftToProduct } from "@/lib/erp/actions";
 import { Input } from "@/components/erp/ui/input";
 import { Button } from "@/components/erp/ui/button";
 import { money } from "@/lib/erp/utils";
-import { label } from "@/lib/erp/status";
+import { statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). SKU, MPN, proveedor, costo y nombre son
+// dato; el estado es enumerado fijo (statusLabel).
 
 const SKU_RE = /^[A-Z0-9][A-Z0-9-]{0,63}$/;
 type Target = { id: number; sku: string; name: string; status: string };
@@ -25,6 +29,7 @@ export function PoDraftPanel({
   vendorName: string | null;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [mode, setMode] = useState<"assign" | "link">("assign");
   const [sku, setSku] = useState(mpn ? mpn.toUpperCase().replace(/[^A-Z0-9-]/g, "") : "");
   const [err, setErr] = useState<string | null>(null);
@@ -40,7 +45,7 @@ export function PoDraftPanel({
     setErr(null);
     setWarn(null);
     if (!validFormat) {
-      setErr("SKU must start alphanumeric, then uppercase letters/numbers/hyphens, ≤64 chars.");
+      setErr(t("SKU must start alphanumeric, then uppercase letters/numbers/hyphens, ≤64 chars.", "El SKU debe empezar con letra o número y seguir con mayúsculas/números/guiones, ≤64 caracteres."));
       return;
     }
     startTransition(async () => {
@@ -51,11 +56,11 @@ export function PoDraftPanel({
       try {
         data = unwrap(await sb.from("app_products").select("id,name").eq("sku", clean).limit(1), "po-draft-panel: sku check");
       } catch (e) {
-        setErr(`Could not check whether ${clean} is taken: ${dbErrorMessage(e)}`);
+        setErr(t(`Could not check whether ${clean} is taken: ${dbErrorMessage(e)}`, `No se pudo comprobar si ${clean} está en uso: ${dbErrorMessage(e)}`));
         return;
       }
       if (data && data.length) {
-        setWarn(`SKU ${clean} already exists (${data[0].name}). Use "Link to existing", or pick another.`);
+        setWarn(t(`SKU ${clean} already exists (${data[0].name}). Use "Link to existing", or pick another.`, `El SKU ${clean} ya existe (${data[0].name}). Usa "Enlazar a existente" o elige otro.`));
         return;
       }
       const res = await assignDraftSku(productId, clean);
@@ -77,10 +82,10 @@ export function PoDraftPanel({
           "po-draft-panel: sku lookup",
         );
       } catch (e) {
-        setErr(`Lookup failed: ${dbErrorMessage(e)}`);
+        setErr(t(`Lookup failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
         return;
       }
-      if (!data) setErr(`No product with SKU ${lookupSku.trim().toUpperCase()}.`);
+      if (!data) setErr(t(`No product with SKU ${lookupSku.trim().toUpperCase()}.`, `No hay producto con SKU ${lookupSku.trim().toUpperCase()}.`));
       else setTarget(data as Target);
     });
   }
@@ -98,12 +103,12 @@ export function PoDraftPanel({
   return (
     <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
       <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
-        PO import — assign a SKU before publishing
+        {t("PO import — assign a SKU before publishing", "Importado de OC — asigna un SKU antes de publicar")}
       </h2>
       <p className="mb-3 text-sm text-slate-600">
-        Imported from a PO{vendorName ? ` (${vendorName})` : ""}
+        {t("Imported from a PO", "Importado de una OC")}{vendorName ? ` (${vendorName})` : ""}
         {mpn ? ` · MPN ${mpn}` : ""}
-        {cost != null ? ` · cost ${money(cost)}` : ""}. Give it a real internal SKU, or link it to an existing product.
+        {cost != null ? ` · ${t("cost", "costo")} ${money(cost)}` : ""}. {t("Give it a real internal SKU, or link it to an existing product.", "Dale un SKU interno real o enlázalo a un producto existente.")}
       </p>
 
       <div className="mb-3 inline-flex rounded-lg border border-slate-200 bg-white p-1">
@@ -112,14 +117,14 @@ export function PoDraftPanel({
           onClick={() => setMode("assign")}
           className={mode === "assign" ? "rounded-md bg-clay-50 px-3 py-1 text-sm font-medium text-clay-700" : "px-3 py-1 text-sm text-slate-500"}
         >
-          Assign new SKU
+          {t("Assign new SKU", "Asignar SKU nuevo")}
         </button>
         <button
           type="button"
           onClick={() => setMode("link")}
           className={mode === "link" ? "rounded-md bg-clay-50 px-3 py-1 text-sm font-medium text-clay-700" : "px-3 py-1 text-sm text-slate-500"}
         >
-          Link to existing
+          {t("Link to existing", "Enlazar a existente")}
         </button>
       </div>
 
@@ -128,25 +133,25 @@ export function PoDraftPanel({
 
       {mode === "assign" ? (
         <div className="flex flex-wrap items-center gap-2">
-          <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="INTERNAL-SKU" className="max-w-xs font-mono" />
-          {!validFormat && clean !== "" && <span className="text-xs text-red-500">invalid format</span>}
+          <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder={t("INTERNAL-SKU", "SKU-INTERNO")} className="max-w-xs font-mono" />
+          {!validFormat && clean !== "" && <span className="text-xs text-red-500">{t("invalid format", "formato inválido")}</span>}
           <Button onClick={assign} disabled={pending || !validFormat}>
-            Assign SKU
+            {t("Assign SKU", "Asignar SKU")}
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder="existing SKU" className="max-w-xs" />
+            <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder={t("existing SKU", "SKU existente")} className="max-w-xs" />
             <Button variant="outline" onClick={find} disabled={pending || !lookupSku.trim()}>
-              Find
+              {t("Find", "Buscar")}
             </Button>
           </div>
           {target && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-white p-3 text-sm">
-              <span className="font-mono">{target.sku}</span> — {target.name} ({label(target.status)})
+              <span className="font-mono">{target.sku}</span> — {target.name} ({t(statusLabel(target.status).en, statusLabel(target.status).es)})
               <Button size="sm" className="ml-auto" onClick={link} disabled={pending}>
-                Link &amp; archive draft
+                {t("Link & archive draft", "Enlazar y archivar borrador")}
               </Button>
             </div>
           )}
