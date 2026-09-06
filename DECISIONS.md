@@ -9877,7 +9877,7 @@ no por haberlo mirado. Que los 8 textos de `error-codes.ts` no llegan a nadie es
 (`grep` de sus consumidores), no una prueba que lo afirme. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1025 pasados | 3 saltados**
 (main 15d7370: 978 | 3; los +47 son el guardián ampliado). «Compiled with warnings» es `unpdf`, preexistente.
 
-## D-NEXT · G-13 / G-14: HR ya tenía tema oscuro; lo que no cambiaba eran los colores a pelo de sus TSX
+## D-211 · G-13 / G-14: HR ya tenía tema oscuro; lo que no cambiaba eran los colores a pelo de sus TSX
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo HR se toca) ·
 **Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md` (G-14 «recruiting.css tiene

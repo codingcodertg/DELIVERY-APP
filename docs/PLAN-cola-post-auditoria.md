@@ -12,7 +12,7 @@ Una rama cada vez.
 | 3 | `guard-rutas-conectado` | G-29 `updateSession` escrito y sin llamar; cierra G-2 (`/login` sin `next`) | Conectar en `src/middleware.ts`, con prueba de las rutas públicas y del `next` | **fusionado D-208** (PR #24) |
 | 4 | `carga-diferida` | G-20 `OrderModal.tsx` y `routes/page.tsx` con `dynamic()`; `/` pasa de 588 kB | Medir antes/después con `next build` en el commit | **fusionado D-209** (PR #25): / 590 → 297 kB |
 | 5 | `erp-mensajes-servidor` | G-10b: 23 mensajes de `lib/erp` en inglés → códigos + pares en cliente (regla D-201) | Igual que `clock.ts` | **fusionado D-210** (PR #26) |
-| 6 | `hr-tema-oscuro` | G-14 una sola regla dark en `recruiting.css`; G-13 colores a pelo en `style={{}}` (empezar por TopBar, ShiftClock, ModalHost) | Variables de `globals.css`; sin rediseño | en marcha |
+| 6 | `hr-tema-oscuro` | G-14 una sola regla dark en `recruiting.css`; G-13 colores a pelo en `style={{}}` (empezar por TopBar, ShiftClock, ModalHost) | Variables de `globals.css`; sin rediseño | **fusionado D-211** (PR #27); cola vacía |
 
 Fuera de la cola (del dueño): Maps key, protección de rama, rename de repo y
 carpeta, instalador "RTG Hub Setup", VAPID, seguridad diferida, teléfono con GPS
