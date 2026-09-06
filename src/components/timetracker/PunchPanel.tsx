@@ -121,6 +121,23 @@ export function PunchPanel() {
     });
   }
 
+  /**
+   * La misma posición, pero sin exigirla: salir a comer y volver no fichan, así que un GPS que
+   * falla o tarda no puede bloquearlos. Se apunta lo que haya (o nada) y la excepción se graba
+   * igual; Auditoría → Fotos enseña "sin ubicación" cuando no hubo. Ocho segundos y no
+   * quince: quien pulsa "salgo a comer" no espera como quien ficha.
+   */
+  async function ubicacionOpcional(): Promise<{ lat: number; lng: number } | undefined> {
+    if (!navigator.geolocation) return undefined;
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(undefined),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 },
+      );
+    });
+  }
+
   async function subeFoto(file: File): Promise<string | null> {
     if (!d) return null;
     setPaso(t("emp.punch.uploading"));
@@ -167,7 +184,7 @@ export function PunchPanel() {
     }
   }
 
-  /** Acciones que no fichan (almuerzo, salidas): sin foto ni ubicación obligatoria. */
+  /** Acciones que no fichan (almuerzo, salidas): sin foto, y la ubicación si la hay (ubicacionOpcional). */
   async function corre(fn: () => Promise<{ ok: boolean; message?: string }>) {
     setErr(null);
     setOcupado("in");
@@ -297,17 +314,17 @@ export function PunchPanel() {
           <div className="row" style={{ marginTop: 10 }}>
             {d.leave ? (
               <button className="btn-warn" disabled={!!ocupado}
-                onClick={() => corre(() => endLeave(d.leave!.id))}>
+                onClick={() => corre(async () => endLeave(d.leave!.id, await ubicacionOpcional()))}>
                 {d.leave.reason === "lunch" ? t("emp.punch.endLunch") : t("emp.punch.imBack")} · {hhmm(d.leave.leftAt)}
               </button>
             ) : (
               <>
                 <button className="btn-warn" disabled={!!ocupado}
-                  onClick={() => corre(() => startLeave({ reason: "lunch" }))}>
+                  onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
                   🍽 {t("emp.punch.startLunch")}
                 </button>
                 <button className="btn-ghost" disabled={!!ocupado}
-                  onClick={() => corre(() => startLeave({ reason: "customer_visit" }))}>
+                  onClick={() => corre(async () => startLeave({ reason: "customer_visit", geo: await ubicacionOpcional() }))}>
                   🚚 {t("emp.punch.goingOut")}
                 </button>
               </>

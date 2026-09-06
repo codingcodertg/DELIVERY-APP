@@ -3,6 +3,7 @@
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
 import { centralWallToUtc, centralShiftMs } from "@/lib/clockin/tz";
+import { armarFotos, type EntradaTurno, type FilaExcepcion, type FilaFichaje, type FotoCruda, type SitioFoto } from "@/lib/clockin/day-photos";
 
 /**
  * Todas las fotos de un día, para revisarlas de una sentada.
@@ -24,18 +25,15 @@ import { centralWallToUtc, centralShiftMs } from "@/lib/clockin/tz";
  * debería sobrevivir a la sesión de quien las miró.
  */
 
-export type PhotoKind = "in" | "out" | "left" | "back";
+export type { PhotoKind } from "@/lib/clockin/day-photos";
 
-export type DayPhoto = {
-  url: string;
-  who: string;
-  /** UTC ISO del momento en que se tomó. */
-  at: string;
-  kind: PhotoKind;
-  /** true solo cuando el fichaje quedó FUERA de la geocerca; null = no aplica. */
-  offSite: boolean | null;
-  note: string | null;
-};
+/**
+ * Una foto con dónde se tomó. lat/lng son los del fichaje o la excepción (la base los guarda
+ * desde el principio); siteName es el sitio del fichaje o, si cayó fuera, el más cercano;
+ * distanceM son metros a la geocerca de ese sitio (0 = dentro). Los tres van a null cuando el
+ * cliente no mandó posición. El mapeo es lib/clockin/day-photos.ts, puro y con prueba.
+ */
+export type DayPhoto = Omit<FotoCruda, "path"> & { url: string };
 
 export type DayPhotosResult =
   | { ok: true; day: string; photos: DayPhoto[]; latestWithPhotos: string | null }
@@ -58,14 +56,14 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   let punchQ = supabase
     .from("time_entries")
     .select(
-      "employee_id, clock_in_at, clock_out_at, clock_in_photo_path, clock_out_photo_path, clock_in_in_radius, clock_out_in_radius",
+      "id, employee_id, clock_in_at, clock_out_at, clock_in_photo_path, clock_out_photo_path, clock_in_in_radius, clock_out_in_radius, clock_in_lat, clock_in_lng, clock_in_site_id, clock_out_lat, clock_out_lng, clock_out_site_id",
     )
     .eq("company_id", companyId)
     .gte("clock_in_at", from)
     .lt("clock_in_at", to);
   let excQ = supabase
     .from("exceptions")
-    .select("employee_id, type, reason, note, photo_path, returned_photo_path, left_at, returned_at, created_at")
+    .select("employee_id, time_entry_id, type, reason, note, photo_path, returned_photo_path, left_at, returned_at, created_at, latitude, longitude, returned_lat, returned_lng")
     .eq("company_id", companyId)
     .gte("created_at", from)
     .lt("created_at", to);
@@ -101,12 +99,15 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     ultimaExcQ = ultimaExcQ.in("employee_id", inEmp);
   }
 
-  const [{ data: punches }, { data: excs }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }] = await Promise.all([
+  const [{ data: punches }, { data: excs }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }, { data: sites }] = await Promise.all([
     punchQ,
     excQ,
     supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
     ultimaPunchQ,
     ultimaExcQ,
+    // Todos los sitios, también los inactivos: una foto de hace meses se mide contra el sitio
+    // que había entonces, y borrar un sitio no debe dejar sus fotos "sin ubicación".
+    supabase.from("job_sites").select("id, name, latitude, longitude, radius_meters, boundary, padding_meters").eq("company_id", companyId),
   ]);
 
   // El día de cada fuente, y se queda el mayor. Se comparan como FECHA local del negocio y
@@ -119,37 +120,32 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   const latestWithPhotos = [diaPunch, diaExc].filter(Boolean).sort().pop() ?? null;
 
   const name = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
-  type Raw = Omit<DayPhoto, "url"> & { path: string };
-  const raw: Raw[] = [];
 
-  for (const p of punches ?? []) {
-    const who = name.get(p.employee_id as string) ?? "—";
-    if (p.clock_in_photo_path)
-      raw.push({
-        path: p.clock_in_photo_path as string, who, at: p.clock_in_at as string,
-        kind: "in", offSite: p.clock_in_in_radius === false, note: null,
-      });
-    if (p.clock_out_photo_path)
-      raw.push({
-        path: p.clock_out_photo_path as string, who, at: (p.clock_out_at ?? p.clock_in_at) as string,
-        kind: "out", offSite: p.clock_out_in_radius === false, note: null,
-      });
+  // Las excepciones se sitúan en el turno en que ocurrieron: los fichajes del día valen para
+  // casi todas, pero una excepción puede apuntar (time_entry_id) a un fichaje que empezó ayer;
+  // esos se traen aparte, por id.
+  const filasPunch = (punches ?? []) as unknown as (FilaFichaje & { id: string })[];
+  const filasExc = (excs ?? []) as unknown as FilaExcepcion[];
+  const entradas: EntradaTurno[] = filasPunch.map((p) => ({
+    id: p.id, employee_id: p.employee_id, clock_in_at: p.clock_in_at, clock_out_at: p.clock_out_at, clock_in_site_id: p.clock_in_site_id,
+  }));
+  const faltan = [...new Set(filasExc.map((e) => e.time_entry_id).filter((id): id is string => !!id && !entradas.some((x) => x.id === id)))];
+  if (faltan.length) {
+    const { data: otras } = await supabase
+      .from("time_entries")
+      .select("id, employee_id, clock_in_at, clock_out_at, clock_in_site_id")
+      .in("id", faltan);
+    for (const o of (otras ?? []) as unknown as EntradaTurno[]) entradas.push(o);
   }
-  for (const e of excs ?? []) {
-    const who = name.get(e.employee_id as string) ?? "—";
-    const why = (e.note as string) || (e.reason as string) || (e.type as string) || null;
-    if (e.photo_path)
-      raw.push({
-        path: e.photo_path as string, who, at: (e.left_at ?? e.created_at) as string,
-        kind: "left", offSite: null, note: why,
-      });
-    if (e.returned_photo_path)
-      raw.push({
-        path: e.returned_photo_path as string, who, at: (e.returned_at ?? e.created_at) as string,
-        kind: "back", offSite: null, note: why,
-      });
-  }
-  raw.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+
+  const raw = armarFotos({
+    punches: filasPunch,
+    excs: filasExc,
+    sites: (sites ?? []) as unknown as SitioFoto[],
+    entradas,
+    nombre: name,
+  });
+
   if (!raw.length) return { ok: true, day, photos: [], latestWithPhotos };
 
   // Una sola llamada para todas, en vez de una por foto.
@@ -164,7 +160,11 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   const photos: DayPhoto[] = [];
   for (const r of raw) {
     const u = url.get(r.path);
-    if (u) photos.push({ url: u, who: r.who, at: r.at, kind: r.kind, offSite: r.offSite, note: r.note });
+    if (u)
+      photos.push({
+        url: u, who: r.who, at: r.at, kind: r.kind, offSite: r.offSite, note: r.note,
+        lat: r.lat, lng: r.lng, siteName: r.siteName, distanceM: r.distanceM,
+      });
   }
   return { ok: true, day, photos, latestWithPhotos };
 }
