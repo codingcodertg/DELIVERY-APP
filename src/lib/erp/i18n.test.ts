@@ -139,6 +139,7 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/app/erp/po-upload/page.tsx",
     "src/components/erp/category-cards.tsx",
     "src/components/erp/item/pricing-bar.tsx",
+    "src/components/erp/publish-button.tsx",
   ];
 
   // Excepciones EXPLÍCITAS, texto por texto: lo que <Tx> no puede pintar en un server component (un
