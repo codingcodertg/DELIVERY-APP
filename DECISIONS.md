@@ -9548,7 +9548,7 @@ prueba de claves, que ahora sí la cubre). La traducción es la que ya había en
 (D-159), movida a claves, no reescrita. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **890 pasados | 3 saltados**
 (main ec83945: 879 | 3; los +11 son los once ficheros nuevos en la prueba de claves).
 
-## D-NEXT · Auditoría 2026-09-05, G-4 y G-5: se borra la página de aprobaciones que nadie enlazaba, y `/recruiting/users` redirige siempre
+## D-207 · Auditoría 2026-09-05, G-4 y G-5: se borra la página de aprobaciones que nadie enlazaba, y `/recruiting/users` redirige siempre
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Entregas y HR se tocan) ·
 **Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md`, con la decisión ya tomada.

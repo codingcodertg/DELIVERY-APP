@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// G-4 / G-5 (D-NEXT). Dos rutas que estaban donde no debían: una página sin ningún enlace y una
+// G-4 / G-5 (D-207). Dos rutas que estaban donde no debían: una página sin ningún enlace y una
 // redirección metida en un route group cuyo layout la gateaba antes de que corriera. Como este repo
 // no dibuja pantallas en las pruebas, lo que sí se puede afirmar es la forma del árbol de rutas.
 
