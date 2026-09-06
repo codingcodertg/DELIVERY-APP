@@ -5,6 +5,9 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { listCycleCounts, getNegativeBalances } from "@/lib/erp/actions";
 import { InventoryConsole, type StoreOption } from "@/components/erp/inventory-console";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inventory — RTG ERP" };
@@ -28,10 +31,9 @@ export default async function InventoryPage() {
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold">Inventory adjustments &amp; counts</h1>
+          <h1 className="text-2xl font-semibold"><Tx en="Inventory adjustments & counts" es="Ajustes y conteos de inventario" /></h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-500">
-            Cycle-count to verify on-hand, post manual adjustments (damage / shrinkage), and watch for negative
-            balances. Every change is an append-only ledger movement.
+            <Tx en="Cycle-count to verify on-hand, post manual adjustments (damage / shrinkage), and watch for negative balances. Every change is an append-only ledger movement." es="Conteo cíclico para verificar la existencia, ajustes manuales (daño / merma) y vigilancia de saldos negativos. Cada cambio es un movimiento del libro que solo se añade." />
           </p>
         </div>
         <InventoryConsole
