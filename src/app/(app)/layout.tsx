@@ -24,12 +24,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     data: { user },
   } = await supabase.auth.getUser();
   // G-2 (D-198): con ?next=, como erp/layout.tsx y timetracker/(timetracker)/layout.tsx. Un
-  // layout de servidor no ve la ruta exacta, y HOY nadie la conserva: el rebote con la ruta
-  // que hay escrito en lib/supabase/middleware.ts (updateSession) no lo llama nadie
-  // (src/middleware.ts solo invoca refreshSession; es G-29, clase B, del dueño). Así que esto
-  // es un arreglo PARCIAL: el destino es la raíz del grupo (app), "/", el tablero — el chofer
-  // cae ahí y landingRoute lo lleva a /driver; quien iba a /users cae en el tablero, no en
-  // /users. El completo es G-29. Ruta interna fija, nada que sanear; `safeNext` la acepta.
+  // layout de servidor no ve la ruta exacta; desde G-29 (D-NEXT) la conserva el middleware
+  // (updateSession, en lib/supabase/middleware.ts), que rebota ANTES de llegar aquí con
+  // `next=<ruta exacta>`. Esta línea queda como red por si el middleware no corre (es lo que
+  // pasó en D-119): el destino es la raíz del grupo (app), "/", el tablero — el chofer cae ahí
+  // y landingRoute lo lleva a /driver. Ruta interna fija, nada que sanear; `safeNext` la acepta.
   if (!user) redirect("/login?next=/");
 
   const { data: profile } = await supabase

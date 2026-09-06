@@ -9599,3 +9599,87 @@ Ni `canApprove`, ni el Board, ni `OrderModal`, ni el layout de `(recruiting)`, n
 Nadie pidió `/recruiting/users` sin sesión en producción: que acabe en `/home/users` va por la forma
 del árbol (la prueba) y por lo que ya hace `(app)/users`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **895 pasados | 3 saltados**
 (main 1f14ee3: 890 | 3; los +5 son la prueba nueva).
+
+## D-NEXT · G-29: el guard de rutas del middleware se conecta (y cierra G-2)
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (sube las tres apps:
+el middleware es de todo el sitio) · **Pedido por:** Andrés (orquestador), sobre
+`docs/AUDIT-2026-09-05.md` (G-29 y G-2), con la decisión ya tomada: conectar. Sin migración.
+
+### Qué había
+
+`updateSession` (`src/lib/supabase/middleware.ts`) estaba escrito desde D-119 y **nadie lo
+llamaba**: `src/middleware.ts` solo invocaba `refreshSession`, que refresca la sesión y no
+redirige. Sin guard, cada layout rebotaba al login por su cuenta y **perdía la ruta exacta**:
+Entregas mandaba `/login?next=/` (G-2, arreglo parcial en D-198), así que quien iba a `/users`
+sin sesión volvía al tablero. Y el guard, tal como estaba escrito, tenía dos fallos que habrían
+salido el minuto de encenderlo: aceptaba `next=//evil.com` (empieza por `/`, redirección abierta
+protocol-relative) y habría rebotado a `/login` el **service worker** de fichaje
+(`/clockin-sw.js` pasa el matcher, que solo excluye imágenes, y no estaba en la lista de públicas):
+sin worker no hay fichaje offline.
+
+### Qué cambia para quien entra sin sesión
+
+- Una ruta protegida (`/`, `/home`, `/erp/…`, `/timetracker/…`, `/recruiting/…`) manda a
+  **`/login?next=<ruta y query exactas>`**, y al entrar se vuelve ahí. Antes cada layout mandaba a
+  su raíz y la ruta se perdía. Importa sobre todo en el escritorio de Time Tracker (D-076), que
+  no tiene barra de direcciones.
+- Quien **ya entró** y pisa `/login` va a su `next`, saneado por `safeNext` (D-193): solo una ruta
+  interna; `//evil.com`, `/\evil.com`, una URL absoluta, un carácter de control o un salto al propio
+  login caen a `/home`. Fuera la validación a mano.
+- **Nada de esto toca las rutas de datos ni los ficheros:** `/api/*`, `/timetracker/api/*` y
+  `/timetracker/clock-in/api/*` (las 31 `route.ts` del repo, medidas: todas bajo `/api/` o
+  `/auth/`) ni se miran —ni refresco ni guard—, así que los crons de Vercel (`/api/notion-summary`,
+  `/timetracker/clock-in/api/roll-schedules`) y el de GitHub (`/timetracker/clock-in/api/cron`)
+  entran con su secreto como hasta ahora, y una llamada sin sesión sigue dando 401, no el HTML del
+  login. Los ficheros se reconocen **por extensión** (último segmento con `.ext`), no por lista:
+  la lista se queda vieja (cubría el manifest y el favicon y no el service worker). Ninguna
+  página de la app tiene un punto en su último segmento.
+- **Público de verdad y público según la lista, que no es lo mismo:** `isPublicPath` deja pasar
+  `/login`, `/auth/*`, `/reset-password`, `/no-access`, `/track` y `/track/*`. Lo que de verdad se
+  ve sin sesión es `/track/[id]` (el enlace del cliente), `/reset-password` y `/auth/*`;
+  **`/track` raíz y `/no-access` los rebotan sus layouts / páginas** (`no-access/page.tsx` hace
+  `getUser()` y manda a `/login`; `/track` raíz vive en el grupo `(app)`, con sesión). La lista los
+  deja pasar y los layouts mandan; tocar los layouts no era de este encargo.
+
+### Cómo
+
+`src/lib/route-guard.ts`, puro (sin Supabase ni `NextRequest`): `isApiPath`, `isStaticFile`,
+`isPublicPath`, `skipsSession` y `decide(rutaConQuery, next, haySesión)` → `next` | `redirect`.
+`updateSession` queda en leer la cookie (`getUser()`, que es lo que dispara el refresco), aplicar
+la decisión y devolver **la misma respuesta que preparó el refresco** cuando se sirve (ahí van las
+cookies renovadas). El destino de una redirección se construye con `new URL(to, origin)`, como
+`/auth/callback`. `refreshSession` **se retira**: `updateSession` la cubre entera (mismo refresco,
+mismo salto de `/api/`, ampliado a los estáticos). `deps.getUser` existe solo para las pruebas.
+
+### Medido
+
+- **Tabla ruta × sesión** en `route-guard.test.ts` (79 pruebas): las rutas protegidas rebotan con
+  `next` exacto (ruta y query); las 31 `route.ts` recorridas del disco caen bajo `isApiPath` o
+  `/auth/`; los 6 ficheros de `public/`; `/auth/callback`, `/auth/signout`, `/reset-password`,
+  `/track/abc`; los tres crons, también con `?verify=1`; `/login` con sesión y `next` bueno, vacío,
+  bucle, `//evil.com`, `/\evil.com`, absoluto y con tabulador; y `updateSession` sobre `NextRequest`
+  con `getUser` stubbeado: 307 con `Location` exacto, sin arrastrar la query del login, y **cero
+  preguntas por la sesión** en rutas de datos y ficheros. `public-paths.test.ts` (D-156) sigue
+  pasando por el reexport.
+- **Mutaciones:** sin `includes("/api/")` caen **10** pruebas: las 7 filas de rutas de datos de la tabla sin
+  sesión (con sesión siguen sirviendo), el recorrido de las 31 `route.ts`, la de «ni preguntan por la
+  sesión» y la de D-156. (El mensaje del commit `ec71412` dice «las 5 rutas de datos × 2 sesiones»: es
+  una cuenta a ojo, y está mal; la buena es esta.) Sin la regla de extensión caen **9**: los 7 ficheros
+  de la tabla sin sesión y las dos de estáticos.
+- `verify.mjs`: en verde sobre `.next` limpio, en solitario: **974 pasados | 3 saltados** (main f54de75: 895 | 3;
+  los +79 son `route-guard.test.ts`).
+
+### Qué NO cambia
+
+Los layouts siguen con su propia comprobación (red por si el middleware no corre, que es lo que
+pasó en D-119); el matcher del middleware; `safeNext`; `/auth/callback`; las rutas de datos y su
+`cronAuthorized`; `api-auth.ts`.
+
+### Lo no verificado
+
+Nadie pidió las rutas en producción con y sin sesión: la tabla es sobre la función pura y sobre
+`NextRequest` con la sesión stubbeada. Lo que se mide tras el deploy: `/users` sin sesión →
+`/login?next=%2Fusers`; `/clockin-sw.js` sin sesión → 200; `/timetracker/clock-in/api/cron` sin
+secreto → 401 (no 307); y que el cron de GitHub siga en verde. El primer refresco pasada una hora
+en una ruta protegida (la carrera de D-119) sigue sin prueba automática.

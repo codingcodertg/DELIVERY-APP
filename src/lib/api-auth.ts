@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
  * La puerta de las rutas API (D-172, hallazgo A-4 de la auditoría).
  *
  * Diez rutas no la tenían: `/api/notify`, `/api/call`, `/api/help` y los siete proxies de
- * mapas. Y el middleware **salta `/api/`** a propósito (`lib/supabase/middleware.ts:39`, para
+ * mapas. Y el middleware **salta `/api/`** a propósito (`lib/route-guard.ts`, `skipsSession`, para
  * no redirigir a login una llamada de datos), así que no había nada entre internet y ellas.
  * Medido en la auditoría: cualquiera, sin sesión, podía mandar SMS y hacer llamadas desde
  * el número de la empresa, o quemar la cuota de Google.
