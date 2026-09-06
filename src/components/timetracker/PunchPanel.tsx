@@ -35,7 +35,7 @@ import { TripPanel } from "@/components/timetracker/TripPanel";
  * programada, el almuerzo y las salidas del sitio. Lo que NO trae son los viajes de vehículo
  * (con su selección de camión y kilometraje), que siguen en la pantalla de fichaje.
  *
- * D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.punch.*), como el
+ * D-206: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.punch.*), como el
  * resto de Registrar tiempo. Los motivos siguen siendo pares en/es (el `value` se guarda), elegidos
  * ahora por el idioma de Time Tracker.
  */

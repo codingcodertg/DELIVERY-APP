@@ -9,7 +9,7 @@ import type { Screenshot } from "@/lib/timetracker/types";
 // Ported (D-069) from timetracker-clean's employee/EmployeeScreenshots.jsx —
 // thin wrapper around the shared WorkDiary: my own screenshots, with the
 // ability to delete one (RLS allows an employee to delete their own).
-// D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.diary.*).
+// D-206: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.diary.*).
 export default function WorkDiaryPage() {
   const t = useT();
   const { myScreenshots, mySessions, deleteScreenshot } = useData();

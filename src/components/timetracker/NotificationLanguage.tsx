@@ -21,7 +21,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * pendientes— que se escriben antes de que haya ninguna pantalla delante. Merecía decirse en
  * la propia pantalla, porque "Idioma" a secas hace pensar que cambia lo que estás mirando.
  *
- * D-NEXT: sus cuatro textos, que estaban en inglés a pelo, pasan a claves emp.acc.notifLang* (vive
+ * D-206: sus cuatro textos, que estaban en inglés a pelo, pasan a claves emp.acc.notifLang* (vive
  * en Mi cuenta). "English" / "Español" son los nombres de cada idioma en su propio idioma: dato.
  */
 export function NotificationLanguage() {

@@ -16,7 +16,7 @@ import { dateISO, fmtDayLong } from "@/lib/timetracker/helpers";
  * La mitad de gerente de la pantalla vieja —la cola de aprobar— no se mudó aquí: ya estaba en
  * Pendientes desde D-106. Aquí solo hay lo de uno mismo.
  *
- * D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.off.*), como el
+ * D-206: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.off.*), como el
  * resto de Mis solicitudes: la misma pantalla salía mitad en cada idioma según dos conmutadores.
  */
 

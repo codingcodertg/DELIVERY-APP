@@ -550,3 +550,21 @@ Regla: el `switch` va pegado al `merge`, no al principio del comando, y se
 imprime la cuenta activa antes de fusionar. Y si un `gh` de este proyecto
 responde "must be a collaborator" o "does not have the correct permissions", lo
 primero es `gh auth status`, no buscar el error en otro sitio.
+
+## 15. Una clave de i18n construida en el código no se da por muerta buscando literales (medido el 2026-09-06)
+
+D-202 borró 109 claves "muertas" medidas buscando el literal `'clave'` en `src/`.
+Tres de ellas (`reqtype.add/adjust/delete`) se construían con `"reqtype." + type`
+en `team-requests/page.tsx`, y desde ese merge la cola del gerente enseñó
+«reqtype.add» en crudo hasta que el worker lo vio de camino en D-206. Ni la
+medición del worker, ni la del auditor (validó contra su propia lista, con el
+mismo agujero), ni la prueba lo cantaron.
+
+Dos reglas, para worker y auditor:
+
+1. **Toda medición de claves muertas busca el literal Y las tres formas
+   construidas por prefijo**: `"p." +`, `'p.' +` y `` `p.${ ``. Se recorre cada
+   prefijo de las claves que se quieren borrar, no solo los que uno recuerde.
+2. **No se borra una clave si la pantalla que la usaba no está ya en la prueba
+   de claves de D-187.** Primero se añade la pantalla a la prueba; si entonces
+   sigue sin cantar, la clave sí está muerta.

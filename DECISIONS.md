@@ -9490,7 +9490,7 @@ oscuro por defecto de Time Tracker va por lo que ya arregló D-187 (`.timetracke
 no se ha vuelto a mirar. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **880 pasados | 3 saltados** (main 272895b: 879 | 3; el +1 es
 el fichero nuevo en la prueba de claves).
 
-## D-NEXT · Time Tracker: lo que quedaba en inglés o por el idioma del hub, y `reqtype.*` de vuelta
+## D-206 · Time Tracker: lo que quedaba en inglés o por el idioma del hub, y `reqtype.*` de vuelta
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker se toca) ·
 **Pedido por:** Andrés (orquestador), tras cerrar G-9/G-10: los «Admins only.» sueltos, `TimeOffRequests`

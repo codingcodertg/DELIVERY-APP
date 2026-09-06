@@ -97,7 +97,7 @@ export default function ManagerProjectsPage() {
     );
   }
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">{t("mgr.proj.adminsOnly")}</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   return (
     <>

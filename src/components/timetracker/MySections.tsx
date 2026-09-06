@@ -22,7 +22,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * peor elegidas para eso: aquí no entra la oficina, entra la cuadrilla — que mira su horario y
  * escribe sus notas, y en su idioma.
  *
- * D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.my.*), como el
+ * D-206: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.my.*), como el
  * resto de Registrar tiempo.
  */
 
