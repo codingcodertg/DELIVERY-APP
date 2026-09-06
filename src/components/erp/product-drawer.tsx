@@ -6,7 +6,8 @@ import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { inlineFix } from "@/lib/erp/actions";
 import { Input } from "@/components/erp/ui/input";
-import { label } from "@/lib/erp/status";
+import { statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
 import { productImageUrl } from "@/lib/erp/images";
 import { SELL_UNITS, SELL_UNIT_LABEL } from "@/lib/erp/domain/units";
 
@@ -15,23 +16,25 @@ const selCls =
   "h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500";
 
 type FieldType = "text" | "num" | "status" | "category" | "textarea" | "sellunit";
-const FIELDS: { key: string; label: string; cost?: boolean; type?: FieldType }[] = [
-  { key: "name", label: "Name" },
-  { key: "status", label: "Commercial status", type: "status" },
-  { key: "category_id", label: "Category", type: "category" },
-  { key: "price", label: "Price (per sell unit)", type: "num" },
-  { key: "sell_unit", label: "Sell unit", type: "sellunit" },
-  { key: "cost", label: "Cost / box", cost: true, type: "num" },
-  { key: "base_unit", label: "Base unit" },
-  { key: "sf_per_box", label: "SF / box", type: "num" },
-  { key: "pieces_per_box", label: "Pieces / box", type: "num" },
-  { key: "size_in", label: "Size (in)" },
-  { key: "size_cm", label: "Size (cm)" },
-  { key: "material", label: "Material" },
-  { key: "finish", label: "Finish" },
-  { key: "seo_title", label: "SEO title" },
-  { key: "seo_description", label: "SEO description", type: "textarea" },
+type T = (en: string, es: string) => string;
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las claves de campo (lo que se guarda
+// y se parchea) viven en FIELD_KEYS y no cambian; la etiqueta se construye con t(). Los estados son
+// enumerado fijo (statusLabel); categorías y unidades de venta son dato.
+const FIELD_KEYS: { key: string; cost?: boolean; type?: FieldType }[] = [
+  { key: "name" }, { key: "status", type: "status" }, { key: "category_id", type: "category" }, { key: "price", type: "num" },
+  { key: "sell_unit", type: "sellunit" }, { key: "cost", cost: true, type: "num" }, { key: "base_unit" }, { key: "sf_per_box", type: "num" },
+  { key: "pieces_per_box", type: "num" }, { key: "size_in" }, { key: "size_cm" }, { key: "material" }, { key: "finish" },
+  { key: "seo_title" }, { key: "seo_description", type: "textarea" },
 ];
+const fieldLabel = (t: T, key: string): string => ({
+  name: t("Name", "Nombre"), status: t("Commercial status", "Estado comercial"), category_id: t("Category", "Categoría"),
+  price: t("Price (per sell unit)", "Precio (por unidad de venta)"), sell_unit: t("Sell unit", "Unidad de venta"),
+  cost: t("Cost / box", "Costo / caja"), base_unit: t("Base unit", "Unidad base"), sf_per_box: t("SF / box", "SF / caja"),
+  pieces_per_box: t("Pieces / box", "Piezas / caja"), size_in: t("Size (in)", "Tamaño (in)"), size_cm: t("Size (cm)", "Tamaño (cm)"),
+  material: t("Material", "Material"), finish: t("Finish", "Acabado"), seo_title: t("SEO title", "Título SEO"),
+  seo_description: t("SEO description", "Descripción SEO"),
+} as Record<string, string>)[key] ?? key;
+const FIELDS = FIELD_KEYS;
 const SELECT_FIELDS = "id,sku,name,record_status,status,category_id,price,sell_unit,cost,base_unit,sf_per_box,pieces_per_box,size_in,size_cm,material,finish,seo_title,seo_description";
 
 export function ProductDrawer({
@@ -46,6 +49,7 @@ export function ProductDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Record<string, string>>({});
   const [original, setOriginal] = useState<Record<string, string>>({});
@@ -87,7 +91,7 @@ export function ProductDrawer({
       } catch (e) {
         if (!active) return;
         setStatus("error");
-        setErrMsg(`Could not load this product: ${dbErrorMessage(e)}`);
+        setErrMsg(t(`Could not load this product: ${dbErrorMessage(e)}`, `No se pudo cargar este producto: ${dbErrorMessage(e)}`));
       }
       setLoading(false);
     })();
@@ -140,9 +144,9 @@ export function ProductDrawer({
             <div className="font-mono text-xs text-slate-400">{meta?.sku}</div>
           </div>
           <div className="flex items-center gap-3">
-            {canEdit && status === "saving" && <span className="text-xs text-slate-400">Saving…</span>}
-            {canEdit && status === "saved" && <span className="text-xs text-emerald-600">Saved ✓</span>}
-            {canEdit && status === "error" && <span className="text-xs text-red-600">Error</span>}
+            {canEdit && status === "saving" && <span className="text-xs text-slate-400">{t("Saving…", "Guardando…")}</span>}
+            {canEdit && status === "saved" && <span className="text-xs text-emerald-600">{t("Saved ✓", "Guardado ✓")}</span>}
+            {canEdit && status === "error" && <span className="text-xs text-red-600">{t("Error", "Error")}</span>}
             <button onClick={onClose} className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100">
               ✕
             </button>
@@ -150,7 +154,7 @@ export function ProductDrawer({
         </div>
 
         {loading ? (
-          <div className="p-6 text-sm text-slate-500">Loading…</div>
+          <div className="p-6 text-sm text-slate-500">{t("Loading…", "Cargando…")}</div>
         ) : (
           <div className="space-y-3 p-4">
             {productImageUrl(imagePath) && (
@@ -158,17 +162,17 @@ export function ProductDrawer({
             )}
             {!canEdit && (
               <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-500">
-                Read-only — your role can view but not edit (cost hidden).
+                {t("Read-only — your role can view but not edit (cost hidden).", "Solo lectura — tu rol puede ver pero no editar (costo oculto).")}
               </p>
             )}
             {errMsg && <p className="text-sm text-red-600">{errMsg}</p>}
             {FIELDS.filter((f) => !f.cost || canSeeCost).map((f) => (
               <label key={f.key} className="block space-y-1">
-                <span className="text-xs text-slate-500">{f.label}</span>
+                <span className="text-xs text-slate-500">{fieldLabel(t, f.key)}</span>
                 {f.type === "status" ? (
                   <select className={selCls} disabled={!canEdit} value={form[f.key] ?? ""} onChange={(e) => onChange(f.key, e.target.value)}>
                     {STATUSES.map((s) => (
-                      <option key={s} value={s}>{label(s)}</option>
+                      <option key={s} value={s}>{t(statusLabel(s).en, statusLabel(s).es)}</option>
                     ))}
                   </select>
                 ) : f.type === "category" ? (
@@ -206,7 +210,7 @@ export function ProductDrawer({
               </label>
             ))}
             <a href={`/erp/product/${productId}`} className="inline-block pt-2 text-sm text-clay-600 hover:underline">
-              Full detail →
+              {t("Full detail →", "Ficha completa →")}
             </a>
           </div>
         )}
