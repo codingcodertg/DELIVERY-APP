@@ -11,6 +11,10 @@ import {
   type PoReceiving,
   type ProductSearchHit,
 } from "@/lib/erp/actions";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Número de OC, proveedor, estado del
+// pedido, tienda, SKU, nombre y unidad base son dato y salen tal cual.
 
 export type PoOption = { id: number; po_number: string; vendor_name: string | null; status: string };
 export type StoreOption = { id: string; name: string };
@@ -52,6 +56,7 @@ export function Receiving({
 
 /* ----------------------------- Receive against a PO ----------------------------- */
 function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: StoreOption[]; initialPoId?: number }) {
+  const { t } = usePrefs();
   const [poId, setPoId] = useState<number | "">(initialPoId && pos.some((p) => p.id === initialPoId) ? initialPoId : "");
   const [detail, setDetail] = useState<PoReceiving | null>(null);
   const [loading, setLoading] = useState(false);
@@ -122,8 +127,8 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
     setMsg({
       kind: "ok",
       text: r.replayed
-        ? `This receipt was already recorded — showing the original result (${r.lots_created ?? 0} lot(s), PO ${r.po_status ?? "updated"}). Nothing was posted twice.`
-        : `Received ${r.total_qty ?? 0} unit(s) into ${stores.find((s) => s.id === storeId)?.name ?? storeId} — ${r.lots_created ?? 0} lot(s) created. PO is now ${r.po_status ?? "updated"}.`,
+        ? t(`This receipt was already recorded — showing the original result (${r.lots_created ?? 0} lot(s), PO ${r.po_status ?? "updated"}). Nothing was posted twice.`, `Esta recepción ya estaba registrada — se muestra el resultado original (${r.lots_created ?? 0} lote(s), OC ${r.po_status ?? "updated"}). No se registró nada dos veces.`)
+        : t(`Received ${r.total_qty ?? 0} unit(s) into ${stores.find((s) => s.id === storeId)?.name ?? storeId} — ${r.lots_created ?? 0} lot(s) created. PO is now ${r.po_status ?? "updated"}.`, `Recibidas ${r.total_qty ?? 0} unidad(es) en ${stores.find((s) => s.id === storeId)?.name ?? storeId} — ${r.lots_created ?? 0} lote(s) creados. La OC queda ${r.po_status ?? "updated"}.`),
     });
     await load(detail.po_id); // refresh received/remaining
   }
@@ -131,23 +136,22 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-800">Receive against a PO</h2>
+        <h2 className="text-sm font-semibold text-slate-800">{t("Receive against a PO", "Recibir contra una OC")}</h2>
         <p className="text-xs text-slate-500">
-          Each line becomes a lot with its landed cost (base + allocated freight/duty) and a <code>receive</code> movement
-          into the receiving store. Partial receipts advance the PO.
+          {t("Each line becomes a lot with its landed cost (base + allocated freight/duty) and a", "Cada línea se convierte en un lote con su costo en destino (base + flete/arancel repartidos) y un movimiento")} <code>receive</code> {t("movement into the receiving store. Partial receipts advance the PO.", "en la tienda receptora. Las recepciones parciales avanzan la OC.")}
         </p>
       </div>
 
       <div className="space-y-4 p-4">
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Purchase order</span>
+            <span className="mb-1 block text-slate-500">{t("Purchase order", "Orden de compra")}</span>
             <select
               value={poId}
               onChange={(e) => setPoId(e.target.value ? Number(e.target.value) : "")}
               className="h-9 min-w-[18rem] rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
             >
-              <option value="">Select a PO…</option>
+              <option value="">{t("Select a PO…", "Elige una OC…")}</option>
               {pos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.po_number} · {p.vendor_name ?? "—"} · {p.status}
@@ -156,7 +160,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Receiving store</span>
+            <span className="mb-1 block text-slate-500">{t("Receiving store", "Tienda receptora")}</span>
             <select
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
@@ -168,7 +172,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Freight to allocate</span>
+            <span className="mb-1 block text-slate-500">{t("Freight to allocate", "Flete a repartir")}</span>
             <input
               value={freight}
               onChange={(e) => setFreight(e.target.value)}
@@ -177,7 +181,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Duty to allocate</span>
+            <span className="mb-1 block text-slate-500">{t("Duty to allocate", "Arancel a repartir")}</span>
             <input
               value={duty}
               onChange={(e) => setDuty(e.target.value)}
@@ -188,7 +192,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
         </div>
 
         {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
-        {loading && <p className="text-sm text-slate-500">Loading PO lines…</p>}
+        {loading && <p className="text-sm text-slate-500">{t("Loading PO lines…", "Cargando líneas de la OC…")}</p>}
 
         {detail && (
           <>
@@ -196,13 +200,13 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Line</th>
-                    <th className="px-3 py-2 font-medium">Product</th>
-                    <th className="px-3 py-2 text-right font-medium">Ordered</th>
-                    <th className="px-3 py-2 text-right font-medium">Received</th>
-                    <th className="px-3 py-2 text-right font-medium">Remaining</th>
-                    <th className="px-3 py-2 text-right font-medium">Unit cost</th>
-                    <th className="px-3 py-2 text-right font-medium">Receive now</th>
+                    <th className="px-3 py-2 font-medium">{t("Line", "Línea")}</th>
+                    <th className="px-3 py-2 font-medium">{t("Product", "Producto")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("Ordered", "Pedido")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("Received", "Recibido")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("Remaining", "Pendiente")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("Unit cost", "Costo unitario")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("Receive now", "Recibir ahora")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,7 +219,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
                             {l.name ?? l.sku ?? l.vendor_item_no ?? "—"}
                           </Link>
                         ) : (
-                          <span className="text-amber-700">{l.description ?? l.vendor_item_no ?? "—"} · not linked</span>
+                          <span className="text-amber-700">{l.description ?? l.vendor_item_no ?? "—"} · {t("not linked", "sin enlazar")}</span>
                         )}
                         <div className="font-mono text-xs text-slate-400">{l.sku ?? l.vendor_item_no ?? ""}</div>
                       </td>
@@ -233,7 +237,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
                           />
                         ) : (
                           <Link href={`/erp/purchasing/orders/${detail.po_id}`} className="text-xs text-clay-700 hover:underline">
-                            link product →
+                            {t("link product →", "enlazar producto →")}
                           </Link>
                         )}
                       </td>
@@ -245,7 +249,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
 
             <div className="flex items-center justify-end gap-3">
               <span className="text-sm text-slate-500">
-                {receipts.length} line{receipts.length === 1 ? "" : "s"} to receive
+                {receipts.length === 1 ? t("1 line to receive", "1 línea por recibir") : t(`${receipts.length} lines to receive`, `${receipts.length} líneas por recibir`)}
               </span>
               <button
                 type="button"
@@ -253,7 +257,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
                 disabled={busy || receipts.length === 0 || !storeId}
                 className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {busy ? "Receiving…" : "Receive"}
+                {busy ? t("Receiving…", "Recibiendo…") : t("Receive", "Recibir")}
               </button>
             </div>
           </>
@@ -265,6 +269,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
 
 /* ----------------------------- Manual receive (no PO) ----------------------------- */
 function ManualReceive({ stores }: { stores: StoreOption[] }) {
+  const { t } = usePrefs();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ProductSearchHit[]>([]);
   const [picked, setPicked] = useState<ProductSearchHit | null>(null);
@@ -318,7 +323,7 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
     const r = res.result as { lot_id?: number; landed_cost?: number };
     setMsg({
       kind: "ok",
-      text: `Received ${num(qty)} ${picked.base_unit ?? "unit"}(s) of ${picked.sku} into ${stores.find((s) => s.id === storeId)?.name ?? storeId} — lot #${r.lot_id} at landed ${money(r.landed_cost ?? landed)}.`,
+      text: t(`Received ${num(qty)} ${picked.base_unit ?? "unit"}(s) of ${picked.sku} into ${stores.find((s) => s.id === storeId)?.name ?? storeId} — lot #${r.lot_id} at landed ${money(r.landed_cost ?? landed)}.`, `Recibidas ${num(qty)} ${picked.base_unit ?? "unidad"}(es) de ${picked.sku} en ${stores.find((s) => s.id === storeId)?.name ?? storeId} — lote #${r.lot_id} a costo en destino ${money(r.landed_cost ?? landed)}.`),
     });
     setQty("");
     setLotNumber("");
@@ -328,17 +333,17 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-800">Manual receive (no PO)</h2>
-        <p className="text-xs text-slate-500">Add stock not tied to a logged PO — a found lot, a vendor drop, an opening correction.</p>
+        <h2 className="text-sm font-semibold text-slate-800">{t("Manual receive (no PO)", "Recepción manual (sin OC)")}</h2>
+        <p className="text-xs text-slate-500">{t("Add stock not tied to a logged PO — a found lot, a vendor drop, an opening correction.", "Añade existencias sin OC registrada — un lote encontrado, una entrega del proveedor, una corrección inicial.")}</p>
       </div>
 
       <div className="space-y-4 p-4">
         <div className="relative max-w-xl">
-          <span className="mb-1 block text-sm text-slate-500">Product</span>
+          <span className="mb-1 block text-sm text-slate-500">{t("Product", "Producto")}</span>
           <input
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder="Search name or SKU…"
+            placeholder={t("Search name or SKU…", "Buscar nombre o SKU…")}
             className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
           />
           {hits.length > 0 && !picked && (
@@ -361,7 +366,7 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Store</span>
+            <span className="mb-1 block text-slate-500">{t("Store", "Tienda")}</span>
             <select
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
@@ -373,10 +378,10 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
             </select>
           </label>
           {([
-            ["Qty", qty, setQty, "decimal"],
-            ["Base cost", base, setBase, "decimal"],
-            ["Freight", freight, setFreight, "decimal"],
-            ["Duty", duty, setDuty, "decimal"],
+            [t("Qty", "Cant."), qty, setQty, "decimal"],
+            [t("Base cost", "Costo base"), base, setBase, "decimal"],
+            [t("Freight", "Flete"), freight, setFreight, "decimal"],
+            [t("Duty", "Arancel"), duty, setDuty, "decimal"],
           ] as const).map(([lbl, v, set]) => (
             <label key={lbl} className="text-sm">
               <span className="mb-1 block text-slate-500">{lbl}</span>
@@ -389,7 +394,7 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
             </label>
           ))}
           <label className="text-sm">
-            <span className="mb-1 block text-slate-500">Lot # (optional)</span>
+            <span className="mb-1 block text-slate-500">{t("Lot # (optional)", "Lote # (opcional)")}</span>
             <input
               value={lotNumber}
               onChange={(e) => setLotNumber(e.target.value)}
@@ -399,7 +404,7 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
         </div>
 
         <label className="block max-w-xl text-sm">
-          <span className="mb-1 block text-slate-500">Reference / note (optional)</span>
+          <span className="mb-1 block text-slate-500">{t("Reference / note (optional)", "Referencia / nota (opcional)")}</span>
           <input
             value={reference}
             onChange={(e) => setReference(e.target.value)}
@@ -410,14 +415,14 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
         {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
 
         <div className="flex items-center justify-end gap-3">
-          <span className="text-sm text-slate-500">Landed cost {money(landed)}/unit</span>
+          <span className="text-sm text-slate-500">{t("Landed cost", "Costo en destino")} {money(landed)}/{t("unit", "unidad")}</span>
           <button
             type="button"
             onClick={submit}
             disabled={busy || !picked || num(qty) === 0 || !storeId}
             className="rounded-lg bg-clay-600 px-4 py-2 text-sm font-medium text-white hover:bg-clay-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy ? "Receiving…" : "Receive"}
+            {busy ? t("Receiving…", "Recibiendo…") : t("Receive", "Recibir")}
           </button>
         </div>
       </div>
