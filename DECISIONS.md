@@ -9876,3 +9876,108 @@ idioma del usuario va por `failText` (probado en solitario) y por `tsc` (cada pi
 no por haberlo mirado. Que los 8 textos de `error-codes.ts` no llegan a nadie es lectura del código
 (`grep` de sus consumidores), no una prueba que lo afirme. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1025 pasados | 3 saltados**
 (main 15d7370: 978 | 3; los +47 son el guardián ampliado). «Compiled with warnings» es `unpdf`, preexistente.
+
+## D-NEXT · G-13 / G-14: HR ya tenía tema oscuro; lo que no cambiaba eran los colores a pelo de sus TSX
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo HR se toca) ·
+**Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md` (G-14 «recruiting.css tiene
+1 regla dark en 257 líneas» y G-13 «colores a pelo en `style={{}}`»). Sin migración. **Cero cambio
+de valor en claro**, medido hex por hex; en oscuro cambian los que hoy se quedaban claros.
+
+### G-14 era engañoso, medido
+
+La «única regla dark» de `recruiting.css:224` es **la paleta oscura entera**: redefine bajo
+`.recruiting-module` los 20 tokens que el módulo consume en todas partes (21 en claro; el que no se
+redefine es `--brand-surface`, el azul marino de la barra, el chip activo y el toast, que se queda
+igual en los dos temas porque el texto blanco encima también, `recruiting.css:22-27`). HR **ya
+tenía tema oscuro**: `data-theme` va en `<html>` desde `app/layout.tsx:14` (script antes del primer
+pintado) y `prefs.tsx:63`; la preferencia vive en `rtg_prefs` (`localStorage`), común a todo el
+hub, y el conmutador está en la cuenta de Entregas (`(app)/account/page.tsx:147`) y en la barra de
+Time Tracker. HR no tiene conmutador propio y no le hace falta: hereda el atributo.
+
+De los **56** colores de `recruiting.css` antes de este encargo (medidos con el guardián de este
+encargo), **41** son los valores de las dos paletas (21 claros + 20 oscuros) y **15**, en 14 líneas,
+van sueltos: **9 `#fff`** sobre `--brand-surface`,
+`--accent` o `--amber` (`:49 :54 :66 :89 :105 :123 :133 :164 :170`: blanco sobre color, correcto en los
+dos temas), el velo de la ventana `rgba(15,23,42,.55)` (`:108`), el hover de pestaña
+`rgba(255,255,255,.08)` sobre el azul marino (`:55`) y **4 sombras** (`:80 :145 :170 :255`). Ninguno
+cambia: ninguno es «un color que se queda claro en oscuro». D-204 contaba «56 en 14»: la línea `:170`
+lleva dos (blanco y sombra).
+
+### La deuda de verdad: 38 colores a pelo en 12 TSX de HR
+
+Contados con el guardián (`#hex`, `rgb()`, `hsl()` dentro de `style={{}}`, **sin** los respaldos
+`var(--x, #hex)`, donde manda la variable): ModalHost 8, GlobalSearch 6, questions 6, CandidateRow 4,
+settings 4, outcomes 4, TopBar 3, board 2, calendar 1, today 1, metrics 1 = **38**. (El auditor contó
+50 con los respaldos dentro; la diferencia son esos 12.) Tres reglas, valor a valor:
+
+1. **Idéntico a un token → el token** (6): `#eef1f6` → `--track` (`CandidateRow:107`,
+   `ModalHost:1352`), `#fdeaea` → `--tint-red-strong` (`CandidateRow:136`), `#2456c9` → `--accent`
+   (`CandidateRow:145`), `#e5f6ee` → `--tint-green` (`settings:177`), `#d64545` → `--red`
+   (`questions:331`). `#fff` → `--card` **no** vale: en oscuro `--card` es `#18202c` y el blanco
+   sobre accent se volvería gris sobre azul.
+2. **Tinte de estado sin token → token nuevo con par** (9 tokens, 15 sitios), en `recruiting.css:8`
+   (claro = **exactamente el hex que había**) y `:224` (oscuro = el que ya usan los avisos del hub en
+   `globals.css` `.banner.*`, o esta paleta; nada inventado):
+
+   | Token | Claro (el hex de antes) | Oscuro | Dónde |
+   |---|---|---|---|
+   | `--tint-warn` / `--tint-warn-line` | `#fffbeb` / `#fcd34d` | `#3a2f12` / `#5a4415` | borrador restaurado, `ModalHost:1300` |
+   | `--tint-indigo` / `--indigo` | `#eef2ff` / `#4338ca` | `#1e2b45` / `#a9cdf3` | etiqueta de categoría, `questions:310`, `ModalHost:1352` |
+   | `--tint-red-soft` | `#fde2e2` | `#3a1f21` | «sin español», `questions:331` |
+   | `--tint-red-tag` / `--red-deep` | `#fee2e2` / `#b91c1c` | `#3a1620` / `#ffb3bf` | «volver a llamar», `board:102` |
+   | `--green-deep` | `#15803d` | `#8fe3ba` | fecha de presencial, `calendar:100`, `today:108`, `outcomes:62` |
+   | `--surface-soft` | `#f8fafc` | `#212a37` | bloques de registro, `ModalHost:1337`, `:1358` |
+   | `--tint-neutral` | `#eee` | `#2b3646` | vacante cerrada, `settings:177` |
+
+   Dos rojos casi iguales (`#fde2e2` y `#fee2e2`) son dos tokens y no uno porque juntarlos cambiaría
+   un valor en claro, y esa era la vara.
+3. **Un arreglo que no es de color: `outcomes:94`**, `background: var(--ink)` → `var(--brand-surface)`.
+   Mismo `#152238` en claro; en oscuro `--ink` es **texto claro** (`#e8ecf3`) y la tarjeta «Esperando
+   un veredicto» se pintaba clara con su texto blanco encima: ilegible. `--brand-surface` existe para
+   eso.
+
+**Quedan 17 en 7 ficheros, intencionales, uno a uno:** blancos sobre el azul marino de la barra o
+sobre chips (`TopBar:59`, `GlobalSearch:128`, `settings:120 :246`, `ModalHost:132`, `outcomes:94
+:103`); los velos blancos del buscador sobre la barra (`TopBar:64 :73`, `GlobalSearch:126 :127`); las
+sombras del desplegable (`GlobalSearch:144 :145`); el resaltado de fila activa `rgba(37,99,235,.12)`
+(`GlobalSearch:169`, sin token idéntico, y se ve en los dos temas); el rojo claro `#ff8a8a` sobre la
+tarjeta azul marino (`outcomes:103`); el fondo `#e7f0ff` de «también aplicó desde» (`CandidateRow:145`,
+sin token idéntico; con `--accent` encima se lee en los dos temas); y el `#555` de una cabecera
+**solo de impresión** (`metrics:175`, `.print-only`).
+
+### El guardián (`src/lib/inline-colors.ts` + `.test.ts`, 24 casos)
+
+Cuenta por fichero y **cae si sube** respecto a la tabla de arriba (GlobalSearch 6, TopBar 3,
+outcomes 3, settings 2, CandidateRow 1, ModalHost 1, metrics 1, los demás 0): recorre todos los TSX de
+`src/app/recruiting` y `src/components/recruiting`, así que un fichero nuevo con colores sube desde 0
+y cae. No exige cero. La tabla tampoco puede llevar holgura: cada techo es el valor real, para que
+bajar obligue a bajar el techo. En `recruiting.css` afirma que cada token claro tiene su oscuro salvo
+`--brand-surface`, y que los sueltos son 15 y exactamente esos. Se prueba a sí mismo con un fixture
+(cuenta dentro de `style={{}}`, no fuera; un estilo de varias líneas entero; el respaldo de `var()` no
+cuenta).
+
+### Lo que queda de G-13 fuera de HR, con nombre, y no se toca aquí
+
+Entregas y Time Tracker siguen con colores a pelo en `style={{}}` (medidos con el mismo guardián,
+sin respaldos): `routes/page.tsx` 24, `OrderModal.tsx` 21, `timetracker/TopBar.tsx` 9,
+`SessionExpired.tsx` 8, `TopBar.tsx` 7, `map/page.tsx` 6, `account/page.tsx` 6, `ShiftClock.tsx` 5,
+`OrdersTable.tsx` 5, `UserDialog.tsx` 4, y otros ficheros con 1-4. Casi todos son `#fff` sobre color,
+tintes ámbar (`#fff7ec` / `#b9791a`) sin token en `globals.css` y velos blancos sobre la barra; el
+`rgba(16,185,129,0.06)` de `ShiftClock:80` no es `--green` (`#1f9d61`) y cambiarlo cambiaría el
+claro. El orquestador lo sacó de este encargo; el guardián no los mide (solo HR) a propósito, para
+no fijar una tabla que nadie ha revisado valor a valor.
+
+### Qué NO cambia
+
+Ningún valor en claro (comprobado hex a hex: los 6 tokens reutilizados y los 9 nuevos tienen en claro
+el mismo hex que había). Ningún `#fff` sobre color. `recruiting.css` fuera de los dos bloques de
+paleta. Nada de Entregas, Time Tracker ni ERP.
+
+### Lo no verificado
+
+Nadie abrió HR en oscuro en un navegador: que los tintes nuevos se vean bien va por los valores (son
+los de `.banner.*` del hub, que sí se han visto) y por el guardián, no por haberlo mirado. Los
+valores oscuros de `--surface-soft` (`#212a37`, el `--card-hover` oscuro del hub) y `--tint-neutral`
+(`#2b3646`, el `--line` oscuro de HR) son elección mía, dicha aquí. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1049 pasados | 3 saltados**
+(main e83a58a: 1025 | 3; los +24 son el guardián). «Compiled with warnings» es `unpdf`, preexistente.
