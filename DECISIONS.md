@@ -9290,3 +9290,144 @@ que el dueño puede cambiar editando el par). `verify.mjs`: en verde sobre `.nex
 **827 pasados | 3 saltados** (main 53e91cc tras D-202: 819 | 3; los +8 son las dos pruebas con las que el
 guardián se prueba a sí mismo, la del server component sin texto y una por cada uno de los cinco
 ficheros traducidos).
+
+## D-NEXT · Auditoría 2026-09-05, lote 5b (el ERP en dos idiomas, segunda mitad): los otros 51 ficheros, las etiquetas de librería como pares, y la hoja `<Tx>` para los server components
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo `erp` se toca) ·
+**Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-10), segunda de las dos ramas. Un commit
+por fichero, por orden de textos (los de más, primero), más los del mecanismo y los del guardián.
+Solo texto: **ningún comportamiento cambia** (consultas, filtros, guardados, valores que se envían).
+
+### Qué quedaba
+
+Tras 5a (D-203), el guardián medía **510 hallazgos en 51 ficheros** del ERP: 24 `page.tsx` server
+components con texto, 5 componentes sin `"use client"` (`po-reconcile`, `reorder-panel`, `charts`,
+`category-cards`, `pricing-bar`), 22 componentes de cliente, y dos librerías que producían texto
+(`status.ts`, `item-dashboard.ts`).
+
+### La decisión de 5b: (b) sin cookie, en su forma mínima
+
+**Medido antes de elegir**, con los números del CI que pasó el orquestador (PR #18 → #19): mover el
+detalle de producto a un hijo de cliente en 5a costó **9,07 → 12,8 kB** de ruta y **280 → 284 kB** de
+First Load; catálogo y revisión +1 kB; el compartido se quedó en 190 kB. Es decir, **(b) cuesta ~4 kB
+en la ficha más grande** y una cookie espejo no hace falta. Se aplica (b), pero no como en 5a:
+
+- **Páginas servidor (24): la hoja `<Tx en="…" es="…" />`** (`src/components/erp/tx.tsx`), un
+  componente de cliente que pinta `t(en, es)` de `usePrefs`. El árbol, las consultas, el 404 y los
+  cálculos **se quedan en el servidor**; solo el nodo de texto es de cliente. Un chunk compartido, ~0 kB
+  por página. Mover 24 árboles enteros como en 5a habría sido tipar 24 juegos de props para cambiar
+  solo texto.
+- **Componentes sin `"use client"` que solo reciben props serializables y no hacen nada de servidor**
+  (`po-reconcile`, 32 textos; `reorder-panel`, 11): **la frontera sube un nivel**, `"use client"` +
+  `usePrefs`, mismo árbol. Con 32 textos, una hoja por cada uno era peor que mover la frontera.
+- **Primitivas de servidor que reciben texto** (`charts.tsx`: `ChartCard`, `BarList`, `Stat`,
+  `CoverageStat`, `Donut`): sus props de texto pasan de `string` a `ReactNode` para que la página les
+  dé un `<Tx>`; el único texto propio («total», «Nothing to show.») va por `<Tx>`. `DonutSegment`
+  gana una `key` porque la etiqueta ya no es cadena. `category-cards` y `pricing-bar` igual: siguen sin
+  hooks y sus dos textos van por `<Tx>`.
+- **Lo que `<Tx>` no puede pintar** —un atributo `title` de un server component— se queda en inglés y
+  entra como **excepción explícita, texto por texto**, en la prueba (`excepciones` en `i18n.test.ts`):
+  los dos `title="merchandise vs PO (excl. tax & freight)"` de la columna Gap de la lista de OC, y los
+  dos `title` del iframe del PDF en la ficha de OC. También queda en inglés **`export const metadata =
+  { title }`** de cada página: es el título de la pestaña del navegador, que Next lee en el servidor,
+  y el guardián lo deja fuera con un comentario que lo dice.
+- **Primera carga sin preferencia:** igual que en los otros módulos, inglés hasta que `usePrefs` lee
+  `localStorage`; sin cookie no hay desacuerdo servidor/navegador que arbitrar.
+
+**Pesos de ruta, antes → después** (`next build` de `verify.mjs`, main tras D-203 → esta rama):
+
+| Ruta | Antes (ruta / First Load) | Después |
+|---|---|---|
+| `/erp/purchasing/orders/[id]` (po-reconcile pasa a cliente) | 3,19 kB / 275 kB | 6,35 kB / 278 kB |
+| `/erp/purchasing` (reorder-panel pasa a cliente) | 2,6 kB / 206 kB | 3,92 kB / 207 kB |
+| `/erp/product/[id]` | 13 kB / 285 kB | 14,5 kB / 286 kB |
+| `/erp/analytics/vendors` (solo `<Tx>`) | 1,16 kB / 205 kB | 1,27 kB / 205 kB |
+| `/erp/dashboard` (solo `<Tx>`) | 374 B / 204 kB | 375 B / 204 kB |
+| compartido por todas | 190 kB | 190 kB |
+
+El salto mayor es la ficha de OC, **+3 kB de First Load**, por mover `po-reconcile` a cliente; las
+páginas que solo usan `<Tx>` suben ~0,1 kB de ruta y 0–1 kB de First Load (los pares viajan en el
+chunk). Ninguna ruta sube de otro orden: la cookie sigue sin hacer falta.
+
+### Las etiquetas que salían de librería, como pares
+
+`status.ts` gana `statusLabel(s): { en, es }` para los enumerados fijos del código (estado comercial,
+estado de registro, tipo de producto, tipo y estado de solicitud); un valor desconocido cae al
+`label()` de siempre en los dos idiomas. `item-dashboard.ts` devuelve `label`/`note`/`title` como
+pares en `statusView` y `verifiedView`; `analytics.ts` pasa `PERIODS` de `{ v, l }` a `{ v, en, es }`.
+**La librería no lee el idioma**: el componente elige con su `t()` (o con `<Tx en={p.en} es={p.es}>`
+en un server component). Un efecto visible y querido: donde antes salía «special order» en minúscula
+(el `label()` genérico), ahora sale la etiqueta («Special order» / «Pedido especial»); el valor
+guardado no cambia. Los consumidores de 5a (`product-detail`, `catalog-table`, `review-queue`) se
+actualizaron en ese commit; los demás, cada uno en el suyo.
+
+### El guardián, afinado sobre lo medido
+
+Cinco commits pequeños, cada uno con la medición que lo motivó: quita lo que va en `<code>` (un
+comando, un nombre de columna); deja pasar nombres propios (Incoterm, Shopify, Daltile, Excel,
+proforma), dominios (`.com`), siglas de tres letras (ABC, USA, COGS, MPN) y la jerga de familia
+(Bros / Cuz / Subs, que además es el valor guardado); y **una palabra sin ninguna minúscula no es
+texto** («~MERGE», «BELOW COST», «SKU»: etiquetas guardadas o siglas). Los dos fixtures con los que
+se prueba a sí mismo siguen dando lo mismo. También entiende la hoja `<Tx>`: la quita antes de mirar y
+la acepta como señal de fichero traducido.
+
+**Un fallo mío, corregido y dicho:** cinco ficheros (`receiving`, `po-upload`, `request-form`,
+`master-round-trip`, `purchasing/orders/page`) se commitearon traducidos **sin entrar en la lista del
+guardián**: el paso del script que añade la ruta buscaba un anclaje que dejó de existir al meter las
+excepciones, y falló en silencio. Se vio al revisar la salida (la prueba seguía en 11), entraron en un
+commit aparte, y el script quedó con el anclaje nuevo y una aserción que grita.
+
+### Medido: antes → después
+
+- **Guardián sobre todo el ERP:** 510 hallazgos en 51 ficheros → **4 en 2 ficheros, los cuatro
+  excepciones declaradas** (los `title` de arriba). Todo `.tsx` del ERP que pinta texto usa `usePrefs()`
+  o `<Tx>`; los que no lo usan no pintan texto (`layout`, `header`, `nav-state`, `ui/*`,
+  `analytics/page`, `erp/page`, `product/[id]/page`).
+- **Llamadas:** 706 `t("…", "…")` y 234 `<Tx …/>` en `src/app/erp` + `src/components/erp`.
+- **Lista del guardián:** 25 ficheros (5a) → **58**, más el server component sin texto.
+- **Mutación medida:** en `purchasing/receiving/page.tsx`, volviendo a poner «Receiving» a pelo en
+  el `<h1>`, la prueba cae con «src/app/erp/purchasing/receiving/page.tsx:43 [jsx] Receiving».
+- **`verify.mjs`:** en verde sobre `.next` limpio, en solitario: **879 pasados | 3 saltados** (main db29dc2
+  tras D-203: 827 | 3; los +52 son un `it` por cada fichero nuevo en la lista del guardián).
+
+### Qué se tradujo, en una línea por fichero
+
+Los textos de pantalla —títulos, ayudas, cabeceras, botones, placeholders, `title`/`aria-label`,
+mensajes de error y de resultado— en: `po-ingest`, `po-reconcile`, `receiving`, `request-form`,
+`master-round-trip`, `po-upload`, `purchasing/orders`, `charts`, `dashboard`, `analytics/{categories,
+vendors, stores, salespeople}`, `purchasing-groups`, `bulk-bar`, `product-drawer`, `uom-assistant`,
+`decisions-upload`, `request-review`, `reorder-panel`, `review/daltile`, `qoh-panel`, `merge-tool`,
+`po-draft-panel`, `product-family`, `daltile-card`, `product-gallery`, `po-line-link`, `seo-editor`,
+`purchasing/orders/[id]`, `request`, `review/merge`, `decisions`, `purchasing/receiving`,
+`saved-views`, `purchasing/categories`, `purchasing/orders/new`, `purchasing`, `catalog-cards`,
+`suggest-fix-button`, `catalog`, `inventory`, `master`, `requests`, `review`, `po-upload`,
+`category-cards`, `pricing-bar`, `publish-button`, `analytics-nav`, `analytics-controls`,
+`verified-badge`. Cada commit dice cuántos hallazgos había y que quedan 0.
+
+**Dato vs texto (D-187/D-192), lo que no pasa por `t()`:** SKU, MPN, nombres de producto, proveedor,
+tienda, categoría, colección, chips de atributos, `review_tags` («BELOW COST», …), la etiqueta
+`~MERGE`, el estado del pedido de compra (`draft/sent/…`, valor guardado), la acción de cada fila de
+una importación (`preview/applied/skip/error`, del servidor), los motivos (`c.reason`), las columnas
+reconocidas de un CSV, las cabeceras de los ficheros exportados, los nombres de vistas guardadas, y
+todo `res.error` / `error.message` del servidor. **Mapas y constantes con texto** (`PO_HEADER`,
+`FIELDS`, `EDIT_FIELDS`, `ACTION_LABEL`, `TABS`, `RECORD_TABS`…) pasan a funciones con `t()`: la
+`key` / `value` / `href` que se guarda o navega no cambia, solo la etiqueta. Las variables de bucle
+llamadas `t` (etiquetas, pestañas, tipos) se renombran (`tag`, `kind`, `rt`, `pt`) para no pisar `t()`.
+
+### Qué NO cambia
+
+Migraciones (ninguna). Ninguna acción de servidor, consulta, filtro, orden ni valor guardado.
+`prefs.tsx` no se toca; no hay cookie ni tercera clave de idioma. Lo único que se mueve de sitio es la
+frontera cliente/servidor de `po-reconcile`, `reorder-panel` y `verified-badge` (componentes sin nada
+de servidor), y el tipo de tres props de `charts.tsx` (`string` → `ReactNode`).
+
+### Lo no verificado, y lo que queda en inglés a propósito
+
+Nadie abrió las 51 pantallas con sesión real en español (maquetación con Tailwind, anchos fijos). El
+peso de las rutas se mide en el `next build` local, no en el CI. La traducción es del worker («OC»
+por PO, «proforma», «tarima», «merma», «casar líneas» por match, «Costo en destino» por landed cost)
+y el dueño puede cambiar cualquier par editándolo. **Queda en inglés a propósito y está dicho:** los
+`metadata.title` de las pestañas del navegador; los cuatro `title` de atributo declarados como
+excepción; `s.rationale` de `domain/uom.ts` (la justificación de cada sugerencia de unidad de medida
+es lógica de dominio, no se tocó); y los valores guardados de arriba. Fuera del encargo: nada del
+ERP queda sin pasar por el guardián.
