@@ -13,7 +13,7 @@ import { updateSession } from "@/lib/supabase/middleware";
  * recargo" y no habrá nada en pantalla que lo explique. `middleware-location.test.ts` está
  * para que eso salte en las pruebas y no en producción un lunes por la mañana.
  *
- * Desde G-29 (D-NEXT) refresca la sesión Y aplica el guard de rutas: quien entra sin sesión a
+ * Desde G-29 (D-208) refresca la sesión Y aplica el guard de rutas: quien entra sin sesión a
  * una ruta protegida va a `/login?next=<ruta exacta>`; quien ya entró y pisa el login va a su
  * `next` saneado. Lo que se sirve sin sesión y lo que ni se mira está en `lib/route-guard.ts`,
  * con su tabla de pruebas.

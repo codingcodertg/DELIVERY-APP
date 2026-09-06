@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     data: { user },
   } = await supabase.auth.getUser();
   // G-2 (D-198): con ?next=, como erp/layout.tsx y timetracker/(timetracker)/layout.tsx. Un
-  // layout de servidor no ve la ruta exacta; desde G-29 (D-NEXT) la conserva el middleware
+  // layout de servidor no ve la ruta exacta; desde G-29 (D-208) la conserva el middleware
   // (updateSession, en lib/supabase/middleware.ts), que rebota ANTES de llegar aquí con
   // `next=<ruta exacta>`. Esta línea queda como red por si el middleware no corre (es lo que
   // pasó en D-119): el destino es la raíz del grupo (app), "/", el tablero — el chofer cae ahí

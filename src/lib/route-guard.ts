@@ -1,7 +1,7 @@
 import { safeNext } from "@/lib/auth-redirect";
 
 // ============================================================
-// El guard de rutas del middleware, como función pura (G-29, D-NEXT).
+// El guard de rutas del middleware, como función pura (G-29, D-208).
 //
 // `updateSession` (lib/supabase/middleware.ts) estaba escrito desde D-119 y nadie lo llamaba:
 // `src/middleware.ts` solo refrescaba la sesión. Al conectarlo, la parte que decide —qué se sirve,

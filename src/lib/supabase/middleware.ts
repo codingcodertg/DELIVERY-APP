@@ -30,7 +30,7 @@ export { isPublicPath } from "@/lib/route-guard";
  * recibe el HTML ya trae el token nuevo, así que la primera consulta del provider sale
  * autenticada. No hay reintento, ni espera, ni recarga forzada: no hay carrera que ganar.
  *
- * **El guard (G-29, D-NEXT).** Desde D-119 esta función estaba escrita y nadie la llamaba:
+ * **El guard (G-29, D-208).** Desde D-119 esta función estaba escrita y nadie la llamaba:
  * `src/middleware.ts` invocaba `refreshSession`, que solo refrescaba. Sin guard, cada layout
  * rebotaba al login por su cuenta y perdía la ruta exacta (`/login?next=/` en Entregas, G-2).
  * Ahora el middleware la llama, y lo que decide —qué se sirve sin sesión, qué rebota y con qué

@@ -9600,7 +9600,7 @@ Nadie pidió `/recruiting/users` sin sesión en producción: que acabe en `/home
 del árbol (la prueba) y por lo que ya hace `(app)/users`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **895 pasados | 3 saltados**
 (main 1f14ee3: 890 | 3; los +5 son la prueba nueva).
 
-## D-NEXT · G-29: el guard de rutas del middleware se conecta (y cierra G-2)
+## D-208 · G-29: el guard de rutas del middleware se conecta (y cierra G-2)
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (sube las tres apps:
 el middleware es de todo el sitio) · **Pedido por:** Andrés (orquestador), sobre
@@ -9683,3 +9683,11 @@ Nadie pidió las rutas en producción con y sin sesión: la tabla es sobre la fu
 `/login?next=%2Fusers`; `/clockin-sw.js` sin sesión → 200; `/timetracker/clock-in/api/cron` sin
 secreto → 401 (no 307); y que el cron de GitHub siga en verde. El primer refresco pasada una hora
 en una ruta protegida (la carrera de D-119) sigue sin prueba automática.
+
+**Límite conocido (anotado por el orquestador al numerar, observación del auditor).**
+`isStaticFile` toma como estático cualquier último segmento con punto: `/home/users/john.doe`
+o `/erp/product/1.5` se servirían sin pasar por el guard ni por el refresco de sesión. Hoy no
+existe ninguna ruta así (los ids son numéricos o uuid) y los layouts gatean igual, así que no
+hay bypass; lo que perdería esa página es el refresco del middleware. Si algún día entra un
+id con punto en una URL, estrechar la regla a extensiones conocidas. Y con sesión en `/login`
+sin `next`, el destino es `/home` (`safeNext`, D-090/D-193), no `/`.

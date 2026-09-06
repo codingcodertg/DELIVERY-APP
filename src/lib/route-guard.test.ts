@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { decide, isApiPath, isPublicPath, isStaticFile, skipsSession } from "./route-guard";
 import { updateSession } from "./supabase/middleware";
 
-// G-29 (D-NEXT). El guard de rutas se conecta por primera vez, así que aquí está la tabla que
+// G-29 (D-208). El guard de rutas se conecta por primera vez, así que aquí está la tabla que
 // pidió el orquestador: ruta × sesión → sirve / rebota con `next` exacto / redirige desde el
 // login. Y las rutas que NO deben rebotar nunca: ficheros de public/, rutas de datos (los crons
 // de Vercel y el de GitHub entran por ahí con su secreto), /track del cliente, /auth, etc.
