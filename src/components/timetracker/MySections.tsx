@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getMySchedule, getMyNotes, getMyScorecard, type MiHorario, type MiBoletin } from "@/app/timetracker/clock-in/actions/myday";
 import { addNote } from "@/app/timetracker/clock-in/actions/notes";
 import { fmtDayLong } from "@/lib/timetracker/helpers";
-import { usePrefs } from "@/lib/prefs";
+import { useT } from "@/lib/timetracker/i18n";
 
 /**
  * Mi horario, mis notas y mi boletín — desplegables dentro de Registrar tiempo (D-129).
@@ -21,6 +21,9 @@ import { usePrefs } from "@/lib/prefs";
  * **En los dos idiomas desde D-159.** Se migró en inglés y se quedó así, y es de las pantallas
  * peor elegidas para eso: aquí no entra la oficina, entra la cuadrilla — que mira su horario y
  * escribe sus notas, y en su idioma.
+ *
+ * D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.my.*), como el
+ * resto de Registrar tiempo.
  */
 
 /** Carga perezosa: la primera vez que se abre, y no antes. */
@@ -51,7 +54,7 @@ export function MySections() {
 }
 
 function MiHorarioSec() {
-  const { t } = usePrefs();
+  const t = useT();
   const traer = useCallback(async () => {
     const r = await getMySchedule();
     return r.ok ? r.data : null;
@@ -62,15 +65,15 @@ function MiHorarioSec() {
   return (
     <div className="card">
       <details onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) abrir(); }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📅 {t("My schedule", "Mi horario")}</summary>
-        {cargando && <div className="hint">{t("Loading…", "Cargando…")}</div>}
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📅 {t("emp.my.schedule")}</summary>
+        {cargando && <div className="hint">{t("emp.my.loading")}</div>}
         {datos && (
           <>
             {datos.off.length > 0 && (
               // Un día aprobado libre se dice ARRIBA: sin eso, un hueco en el horario parece
               // un olvido y la gente pregunta si tiene que venir.
               <div className="banner info" style={{ marginTop: 10 }}>
-                {t("Approved time off:", "Tiempo libre aprobado:")} {datos.off.map((o) => `${o.type} ${o.start_date}→${o.end_date}`).join(" · ")}
+                {t("emp.my.approvedOff")} {datos.off.map((o) => `${o.type} ${o.start_date}→${o.end_date}`).join(" · ")}
               </div>
             )}
             <table style={{ marginTop: 10 }}>
@@ -82,7 +85,7 @@ function MiHorarioSec() {
                   const turno = datos.shifts.find((x) => x.shift_date === d);
                   return (
                     <tr key={d} style={d === hoy ? { fontWeight: 700 } : undefined}>
-                      <td className="nowrap">{fmtDayLong(d)}{d === hoy ? t(" · today", " · hoy") : ""}</td>
+                      <td className="nowrap">{fmtDayLong(d)}{d === hoy ? t("emp.my.today") : ""}</td>
                       <td className="nowrap">{turno ? `${hhmm(turno.start_time)}–${hhmm(turno.end_time)}` : <span className="muted">—</span>}</td>
                       <td className="small muted nowrap">
                         {turno?.lunch_minutes ? `🍽 ${turno.lunch_minutes}m` : ""}
@@ -101,7 +104,7 @@ function MiHorarioSec() {
 }
 
 function MisNotasSec() {
-  const { t } = usePrefs();
+  const t = useT();
   const traer = useCallback(async () => {
     const r = await getMyNotes();
     return r.ok ? r.notes : null;
@@ -120,7 +123,7 @@ function MisNotasSec() {
     setErr(null);
     const r = await addNote(texto.trim());
     setBusy(false);
-    if (!r.ok) { setErr(r.message ?? t("Could not save.", "No se pudo guardar.")); return; }
+    if (!r.ok) { setErr(r.message ?? t("emp.my.saveFail")); return; }
     setTexto("");
     recargar();
     setAbierta(false);
@@ -130,15 +133,15 @@ function MisNotasSec() {
   return (
     <div className="card">
       <details onToggle={(e) => setAbierta((e.currentTarget as HTMLDetailsElement).open)}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📝 {t("Daily notes", "Notas del día")}</summary>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📝 {t("emp.my.notes")}</summary>
         <div className="row" style={{ marginTop: 10 }}>
-          <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={t("What happened today?", "¿Qué pasó hoy?")} />
-          <button disabled={busy || !texto.trim()} onClick={guardar}>{t("Add", "Agregar")}</button>
+          <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={t("emp.my.notePh")} />
+          <button disabled={busy || !texto.trim()} onClick={guardar}>{t("emp.my.add")}</button>
         </div>
         {err && <div className="banner err">{err}</div>}
-        {cargando && <div className="hint">{t("Loading…", "Cargando…")}</div>}
+        {cargando && <div className="hint">{t("emp.my.loading")}</div>}
         {datos && (datos.length === 0
-          ? <p className="muted" style={{ marginTop: 10 }}>{t("No notes yet.", "Aún no hay notas.")}</p>
+          ? <p className="muted" style={{ marginTop: 10 }}>{t("emp.my.noNotes")}</p>
           : (
             <table style={{ marginTop: 10 }}>
               <tbody>
@@ -157,7 +160,7 @@ function MisNotasSec() {
 }
 
 function MiBoletinSec() {
-  const { t } = usePrefs();
+  const t = useT();
   const traer = useCallback(async () => {
     const r = await getMyScorecard();
     return r.ok ? r.data : null;
@@ -167,23 +170,23 @@ function MiBoletinSec() {
   return (
     <div className="card">
       <details onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) abrir(); }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📊 {t("My scorecard", "Mi boletín")}</summary>
-        {cargando && <div className="hint">{t("Loading…", "Cargando…")}</div>}
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>📊 {t("emp.my.scorecard")}</summary>
+        {cargando && <div className="hint">{t("emp.my.loading")}</div>}
         {datos && (
           <>
-            <p className="small muted" style={{ marginTop: 8 }}>{t("Since", "Desde")} {datos.desde}</p>
+            <p className="small muted" style={{ marginTop: 8 }}>{t("emp.my.since")} {datos.desde}</p>
             <div className="grid g3">
               <div className="stat">
-                <div className="small muted">{t("On time", "Puntual")}</div>
+                <div className="small muted">{t("emp.my.onTime")}</div>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{datos.onTimeDays}</div>
               </div>
               <div className="stat">
-                <div className="small muted">{t("Late", "Tarde")}</div>
+                <div className="small muted">{t("emp.my.late")}</div>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{datos.lateCount}</div>
-                {datos.lateMinTotal > 0 && <div className="small muted">{datos.lateMinTotal} {t("min total", "min en total")}</div>}
+                {datos.lateMinTotal > 0 && <div className="small muted">{datos.lateMinTotal} {t("emp.my.minTotal")}</div>}
               </div>
               <div className="stat">
-                <div className="small muted">{t("Hours", "Horas")}</div>
+                <div className="small muted">{t("emp.my.hours")}</div>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{horas(datos.workedMins)}</div>
               </div>
             </div>
@@ -195,14 +198,14 @@ function MiBoletinSec() {
                     plural cae en sitios distintos ("turno programado sin fichar" →
                     "turnos programados sin fichar"), y una "s" al final no vale. */}
                 {datos.missed > 0 && <li>{datos.missed} {datos.missed === 1
-                  ? t("scheduled shift with no punch", "turno programado sin fichar")
-                  : t("scheduled shifts with no punch", "turnos programados sin fichar")}</li>}
+                  ? t("emp.my.missedOne")
+                  : t("emp.my.missedMany")}</li>}
                 {datos.earlyDepartures > 0 && <li>{datos.earlyDepartures} {datos.earlyDepartures === 1
-                  ? t("early departure", "salida anticipada")
-                  : t("early departures", "salidas anticipadas")}</li>}
+                  ? t("emp.my.earlyOne")
+                  : t("emp.my.earlyMany")}</li>}
                 {datos.longLunches > 0 && <li>{datos.longLunches} {datos.longLunches === 1
-                  ? t("long lunch", "almuerzo largo")
-                  : t("long lunches", "almuerzos largos")}</li>}
+                  ? t("emp.my.longLunchOne")
+                  : t("emp.my.longLunchMany")}</li>}
               </ul>
             )}
           </>
