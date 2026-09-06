@@ -1,32 +1,33 @@
 // Pure helpers for the Item Dashboard (product detail) page. Framework-free so
 // they unit-test cleanly. No cost/margin logic lives here (#29 stays at the DB
 // view layer).
-import { PILL } from "@/lib/erp/status";
+import { PILL, type Pair } from "@/lib/erp/status";
 
 // ── Status / context ─────────────────────────────────────────────────────────
 // A discontinued SKU is NOT the same as inactive: it keeps selling through while
 // stock remains, and only goes truly dead once QOH hits 0. Surface that nuance.
+// G-10 (D-NEXT): label y note son pares {en, es}; el componente elige con t(). La librería no lee el idioma.
 export interface StatusView {
-  label: string;
+  label: Pair;
   tone: string; // a PILL class
-  note: string | null;
+  note: Pair | null;
 }
 
 export function statusView(status: string | null | undefined, totalQoh: number | null | undefined): StatusView {
   const qoh = Number(totalQoh ?? 0);
   switch (status) {
     case "active":
-      return { label: "Active", tone: PILL.green, note: null };
+      return { label: { en: "Active", es: "Activo" }, tone: PILL.green, note: null };
     case "special_order":
-      return { label: "Special order", tone: PILL.amber, note: "made to order — typically no shelf stock" };
+      return { label: { en: "Special order", es: "Pedido especial" }, tone: PILL.amber, note: { en: "made to order — typically no shelf stock", es: "se fabrica bajo pedido — normalmente sin existencia en estante" } };
     case "discontinued":
       return qoh > 0
-        ? { label: "Discontinued", tone: PILL.amber, note: `still selling through — ${qoh.toLocaleString()} on hand` }
-        : { label: "Discontinued", tone: PILL.slate, note: "sold out — no stock remaining" };
+        ? { label: { en: "Discontinued", es: "Descontinuado" }, tone: PILL.amber, note: { en: `still selling through — ${qoh.toLocaleString()} on hand`, es: `se sigue vendiendo — ${qoh.toLocaleString()} en existencia` } }
+        : { label: { en: "Discontinued", es: "Descontinuado" }, tone: PILL.slate, note: { en: "sold out — no stock remaining", es: "agotado — sin existencia" } };
     case "inactive":
-      return { label: "Inactive", tone: PILL.red, note: null };
+      return { label: { en: "Inactive", es: "Inactivo" }, tone: PILL.red, note: null };
     default:
-      return { label: status ? status.replace(/_/g, " ") : "—", tone: PILL.gray, note: null };
+      return { label: { en: status ? status.replace(/_/g, " ") : "—", es: status ? status.replace(/_/g, " ") : "—" }, tone: PILL.gray, note: null };
   }
 }
 
@@ -45,13 +46,13 @@ export function boxesToSqFt(boxes: number | null | undefined, sfPerBox: number |
 export interface VerifiedView {
   marks: 0 | 1 | 2;
   symbol: string; // "", "✓", "✓✓"
-  label: string;
-  title: string;
+  label: Pair;
+  title: Pair;
 }
 
 export function verifiedView(verifiedLevel: number | null | undefined, hasConfirmedRef = false): VerifiedView {
   const eff = Math.max(Number(verifiedLevel ?? 0), hasConfirmedRef ? 2 : 0) as 0 | 1 | 2;
-  if (eff >= 2) return { marks: 2, symbol: "✓✓", label: "Confirmed", title: "Confirmed against the supplier scrape (product_external_refs)" };
-  if (eff === 1) return { marks: 1, symbol: "✓", label: "Reviewed", title: "Human-reviewed and approved" };
-  return { marks: 0, symbol: "", label: "Unverified", title: "Not yet human-reviewed" };
+  if (eff >= 2) return { marks: 2, symbol: "✓✓", label: { en: "Confirmed", es: "Confirmado" }, title: { en: "Confirmed against the supplier scrape (product_external_refs)", es: "Confirmado contra el rastreo del proveedor (product_external_refs)" } };
+  if (eff === 1) return { marks: 1, symbol: "✓", label: { en: "Reviewed", es: "Revisado" }, title: { en: "Human-reviewed and approved", es: "Revisado y aprobado por una persona" } };
+  return { marks: 0, symbol: "", label: { en: "Unverified", es: "Sin verificar" }, title: { en: "Not yet human-reviewed", es: "Aún sin revisión humana" } };
 }

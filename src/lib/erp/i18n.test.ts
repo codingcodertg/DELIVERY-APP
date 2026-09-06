@@ -92,14 +92,25 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/inventory-console.tsx",
     "src/components/erp/po-ingest.tsx",
     "src/components/erp/po-reconcile.tsx",
+    "src/components/erp/item/verified-badge.tsx",
   ];
+
+  // Excepciones EXPLÍCITAS, texto por texto: lo que <Tx> no puede pintar en un server component (un
+  // atributo title/placeholder). Cada una está dicha en la decisión; añadir aquí es decidir, no callar.
+  const excepciones: Record<string, string[]> = {
+    "src/app/erp/purchasing/orders/page.tsx": [
+      "merchandise vs PO (excl. tax &amp; freight)", // title de la cabecera Gap
+      "merchandise vs PO (excl. tax & freight)", // title de la celda Gap
+    ],
+  };
 
   for (const ruta of ficheros) {
     it(`${ruta.split("/").pop()} — usa usePrefs y no deja texto fijo`, () => {
       const src = readFileSync(join(process.cwd(), ruta), "utf8");
       // De cliente: usePrefs(). Server component (5b): la hoja <Tx en es />.
       expect(src, `${ruta} no usa usePrefs() ni <Tx>`).toMatch(/usePrefs\(\)|<Tx /);
-      const h = textoAPelo(src);
+      const permitidos = new Set(excepciones[ruta] ?? []);
+      const h = textoAPelo(src).filter((x) => !permitidos.has(x.texto));
       expect(h.map((x) => `${ruta}:${x.linea} [${x.tipo}] ${x.texto}`)).toEqual([]);
     });
   }
