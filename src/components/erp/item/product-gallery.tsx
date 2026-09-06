@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
 
 // Gallery built from whatever images exist today (image_urls[] + product_images).
 // Convention: the first image is the "pieces" shot (default); hovering the main
@@ -15,6 +17,7 @@ export function ProductGallery({
   folderUrl: string | null;
   alt: string;
 }) {
+  const { t } = usePrefs();
   const [active, setActive] = useState(0); // selected thumbnail
   const [hovering, setHovering] = useState(false);
   const [zoom, setZoom] = useState<string | null>(null);
@@ -22,10 +25,10 @@ export function ProductGallery({
   if (images.length === 0) {
     return (
       <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg bg-slate-50 text-sm text-slate-400">
-        No images yet
+        {t("No images yet", "Aún sin imágenes")}
         {folderUrl && (
           <a href={folderUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-clay-600 hover:underline">
-            Open image folder ↗
+            {t("Open image folder ↗", "Abrir carpeta de imágenes ↗")}
           </a>
         )}
       </div>
@@ -41,7 +44,7 @@ export function ProductGallery({
       {folderUrl && (
         <div className="mb-2 text-right">
           <a href={folderUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-clay-600 hover:underline">
-            Image folder ↗
+            {t("Image folder ↗", "Carpeta de imágenes ↗")}
           </a>
         </div>
       )}
@@ -51,7 +54,7 @@ export function ProductGallery({
         onMouseLeave={() => setHovering(false)}
         onClick={() => setZoom(main)}
         className="block w-full"
-        title={images.length > 1 ? "Hover for room scene · click to enlarge" : "Click to enlarge"}
+        title={images.length > 1 ? t("Hover for room scene · click to enlarge", "Pasa el ratón para la escena · clic para ampliar") : t("Click to enlarge", "Clic para ampliar")}
       >
         <img src={main} alt={alt} loading="lazy" className="mx-auto max-h-72 rounded-lg object-contain" />
       </button>
@@ -79,8 +82,8 @@ export function ProductGallery({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
         >
           <img src={zoom} alt={alt} className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" />
-          <button type="button" onClick={() => setZoom(null)} aria-label="Close" className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-sm font-medium text-slate-700">
-            Close ✕
+          <button type="button" onClick={() => setZoom(null)} aria-label={t("Close", "Cerrar")} className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-sm font-medium text-slate-700">
+            {t("Close ✕", "Cerrar ✕")}
           </button>
         </div>
       )}
