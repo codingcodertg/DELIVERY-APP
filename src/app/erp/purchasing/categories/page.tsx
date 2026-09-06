@@ -8,6 +8,10 @@ import { queryCatalog } from "@/lib/erp/actions";
 import { CATALOG_PAGE } from "@/lib/erp/catalog";
 import { CatalogTable } from "@/components/erp/catalog-table";
 import { CategoryCards, type CategoryCard } from "@/components/erp/category-cards";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// Las categorías son dato.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Browse by category — RTG ERP" };
@@ -31,9 +35,9 @@ export default async function PurchasingCategories({
       <>
         <Header />
         <main className="mx-auto max-w-screen-2xl px-4 py-6">
-          <Link href="/erp/purchasing/categories" className="text-sm text-clay-600 hover:underline">← All categories</Link>
+          <Link href="/erp/purchasing/categories" className="text-sm text-clay-600 hover:underline"><Tx en="← All categories" es="← Todas las categorías" /></Link>
           <h1 className="mt-2 text-2xl font-semibold">{cat}</h1>
-          <p className="mb-4 text-sm text-slate-500">{first.total.toLocaleString()} products in {cat} · priced with cost (manager view, #29).</p>
+          <p className="mb-4 text-sm text-slate-500">{first.total.toLocaleString()} <Tx en="products in" es="productos en" /> {cat} · <Tx en="priced with cost (manager view, #29)." es="con costo (vista de gerente, #29)." /></p>
           <CatalogTable
             initialRows={first.rows}
             initialTotal={first.total}
@@ -69,10 +73,10 @@ export default async function PurchasingCategories({
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <Link href="/erp/purchasing" className="text-sm text-clay-600 hover:underline">← Purchasing</Link>
-        <h1 className="mt-2 text-2xl font-semibold">Browse by category</h1>
+        <Link href="/erp/purchasing" className="text-sm text-clay-600 hover:underline"><Tx en="← Purchasing" es="← Compras" /></Link>
+        <h1 className="mt-2 text-2xl font-semibold"><Tx en="Browse by category" es="Explorar por categoría" /></h1>
         <p className="mb-4 text-sm text-slate-500">
-          {cards.length} categories · click a card to see every product (priced with cost — manager view, #29).
+          {cards.length} <Tx en="categories · click a card to see every product (priced with cost — manager view, #29)." es="categorías · clic en una tarjeta para ver todos los productos (con costo — vista de gerente, #29)." />
         </p>
         <CategoryCards cards={cards} imgMap={imgMap} />
       </main>
