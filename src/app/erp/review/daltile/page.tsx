@@ -5,6 +5,10 @@ import { getSessionInfo } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// SKU, MPN, nombre, título externo, serie, tamaño, método y código son dato.
 
 export const dynamic = "force-dynamic";
 
@@ -57,18 +61,17 @@ export default async function DaltileReviewPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-xl px-4 py-6">
-        <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline">← Catalog</Link>
-        <h1 className="mt-2 text-2xl font-semibold">Daltile match review</h1>
+        <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline"><Tx en="← Catalog" es="← Catálogo" /></Link>
+        <h1 className="mt-2 text-2xl font-semibold"><Tx en="Daltile match review" es="Revisión de coincidencias Daltile" /></h1>
         <p className="mt-1 text-sm text-slate-500">
-          {refs.length} pending suggestion{refs.length === 1 ? "" : "s"}. Confirming a match backfills the product&apos;s
-          MPN from the Daltile code (only when empty) via the audited update path. Rejected matches never reappear.
+          {refs.length} {refs.length === 1 ? <Tx en="pending suggestion." es="sugerencia pendiente." /> : <Tx en="pending suggestions." es="sugerencias pendientes." />} <Tx en="Confirming a match backfills the product's MPN from the Daltile code (only when empty) via the audited update path. Rejected matches never reappear." es="Confirmar una coincidencia rellena el MPN del producto con el código Daltile (solo si está vacío) por la ruta de actualización auditada. Las rechazadas no vuelven a aparecer." />
         </p>
 
-        <Group title={`High confidence (${high.length})`} refs={high} pmap={pmap} />
-        <Group title={`Name + size suggestions (${low.length})`} refs={low} pmap={pmap} />
+        <Group title={<><Tx en="High confidence" es="Confianza alta" /> ({high.length})</>} refs={high} pmap={pmap} />
+        <Group title={<><Tx en="Name + size suggestions" es="Sugerencias por nombre y tamaño" /> ({low.length})</>} refs={low} pmap={pmap} />
         {refs.length === 0 && (
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-            Nothing to review — run the match job to generate suggestions.
+            <Tx en="Nothing to review — run the match job to generate suggestions." es="Nada que revisar — ejecuta el trabajo de coincidencias para generar sugerencias." />
           </div>
         )}
       </main>
@@ -79,7 +82,7 @@ export default async function DaltileReviewPage() {
 function Group({
   title, refs, pmap,
 }: {
-  title: string;
+  title: React.ReactNode;
   refs: Ref[];
   pmap: Map<number, Prod>;
 }) {
@@ -91,10 +94,10 @@ function Group({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">ERP product</th>
+              <th className="px-3 py-2 text-left font-medium"><Tx en="ERP product" es="Producto ERP" /></th>
               <th className="px-3 py-2 text-left font-medium">→ Daltile</th>
-              <th className="px-3 py-2 text-left font-medium">Method</th>
-              <th className="px-3 py-2 text-right font-medium">Actions</th>
+              <th className="px-3 py-2 text-left font-medium"><Tx en="Method" es="Método" /></th>
+              <th className="px-3 py-2 text-right font-medium"><Tx en="Actions" es="Acciones" /></th>
             </tr>
           </thead>
           <tbody>
@@ -106,7 +109,7 @@ function Group({
                     <Link href={`/erp/product/${r.product_id}`} className="font-medium text-clay-600 hover:underline">
                       {p?.name ?? `#${r.product_id}`}
                     </Link>
-                    <div className="font-mono text-xs text-slate-400">{p?.sku}{p?.mpn ? ` · mpn ${p.mpn}` : " · no mpn"}</div>
+                    <div className="font-mono text-xs text-slate-400">{p?.sku}{p?.mpn ? ` · mpn ${p.mpn}` : <> · <Tx en="no mpn" es="sin mpn" /></>}</div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="font-medium">{r.external_title ?? "—"}</div>
@@ -116,16 +119,16 @@ function Group({
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-500">
-                    {r.match_method} · code {r.external_sku}
+                    {r.match_method} · <Tx en="code" es="código" /> {r.external_sku}
                     {r.match_confidence != null ? ` · ${Math.round(r.match_confidence * 100)}%` : ""}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-2">
                       <form action={confirmDaltileMatch.bind(null, r.id)}>
-                        <button className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700">Confirm</button>
+                        <button className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700"><Tx en="Confirm" es="Confirmar" /></button>
                       </form>
                       <form action={rejectDaltileMatch.bind(null, r.id)}>
-                        <button className="rounded-md border px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">Reject</button>
+                        <button className="rounded-md border px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"><Tx en="Reject" es="Rechazar" /></button>
                       </form>
                     </div>
                   </td>
