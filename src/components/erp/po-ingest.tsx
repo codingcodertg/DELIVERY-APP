@@ -7,6 +7,7 @@ import { Button } from "@/components/erp/ui/button";
 import { parseCsv, guessColumn } from "@/lib/erp/csv";
 import { parseDocument, type ParsedDoc } from "@/lib/erp/domain/po-parse";
 import { logPurchaseOrder, logAcknowledgment, parsePdfUpload } from "@/lib/erp/actions";
+import { failText, mensajeTexto } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 
 type DocType = "po" | "ack";
@@ -138,7 +139,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
       });
     }
     setLines(mapLines(doc.lines));
-    setWarnings(doc.warnings);
+    setWarnings(doc.warnings.map((w) => mensajeTexto(w, t)));
   }
 
   function onParse() {
@@ -162,7 +163,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
       const fd = new FormData();
       fd.append("file", file);
       const res = await parsePdfUpload(fd);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else {
         applyParsed(res.doc);
         setText("");
@@ -213,7 +214,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     const headerToSend = pdfPath ? { ...header, source_pdf_ref: pdfPath } : header;
     startTransition(async () => {
       const res = docType === "po" ? await logPurchaseOrder(headerToSend, cleanLines) : await logAcknowledgment(headerToSend, cleanLines);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else setResult(res.result);
     });
   }

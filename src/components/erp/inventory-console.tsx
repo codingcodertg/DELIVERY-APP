@@ -15,6 +15,7 @@ import {
   type CycleCountRow,
   type NegativeBalance,
 } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 
 // G-10 (D-203): texto de pantalla por pares inline (usePrefs). El motivo del ajuste se guarda tal
@@ -214,7 +215,7 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
     setBusy(true); setMsg(null);
     const res = await recordCycleCount({ productId: picked.id, storeId, countedQty: num(counted), tolerancePct: tolerance === "" ? null : num(tolerance) });
     setBusy(false);
-    if (!res.ok) { setMsg({ kind: "err", text: res.error }); return; }
+    if (!res.ok) { setMsg({ kind: "err", text: failText(res, t) }); return; }
     setOpen(res.result as { count_id: number; system_qty: number; counted_qty: number; variance: number; within_tolerance: boolean });
     onDone();
   }
@@ -223,7 +224,7 @@ function CycleCountCard({ stores, onDone }: { stores: StoreOption[]; onDone: () 
     setBusy(true); setMsg(null);
     const res = await reconcileCycleCount(open.count_id);
     setBusy(false);
-    if (!res.ok) { setMsg({ kind: "err", text: res.error }); return; }
+    if (!res.ok) { setMsg({ kind: "err", text: failText(res, t) }); return; }
     const r = res.result as { delta_posted?: number; new_qoh?: number };
     const signo = Number(r.delta_posted ?? 0) > 0 ? "+" : "";
     setMsg({ kind: "ok", text: t(`Reconciled — posted ${signo}${r.delta_posted ?? 0}, on-hand is now ${r.new_qoh ?? "?"} and verified.`, `Conciliado — se registró ${signo}${r.delta_posted ?? 0}, la existencia es ahora ${r.new_qoh ?? "?"} y queda verificada.`) });
@@ -299,7 +300,7 @@ function AdjustCard({ stores, onDone }: { stores: StoreOption[]; onDone: () => v
     setBusy(true); setMsg(null);
     const res = await adjustInventory({ productId: picked.id, storeId, qtyDelta: num(delta), reason, note: note || undefined });
     setBusy(false);
-    if (!res.ok) { setMsg({ kind: "err", text: res.error }); return; }
+    if (!res.ok) { setMsg({ kind: "err", text: failText(res, t) }); return; }
     const r = res.result as { new_qoh?: number; negative?: boolean };
     const signo = num(delta) > 0 ? "+" : "";
     const neg = r.negative ? t(" (negative — flagged)", " (negativa — marcada)") : "";

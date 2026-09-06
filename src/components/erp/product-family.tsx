@@ -15,6 +15,7 @@ import { usePrefs } from "@/lib/prefs";
 // es enumerado fijo (statusLabel). Las relaciones (bro/cuz/sub) son valores guardados: la etiqueta
 // Bros/Cuz/Subs se conserva tal cual porque es la jerga de la casa en los dos idiomas.
 import { addFamilyLink, removeFamilyLink, refileFamilyLink, type FamilyRelation } from "@/lib/erp/actions";
+import { failText, type ErpFail } from "@/lib/erp/messages";
 
 // Quick-view carries price (visible to all) + sell_unit — never cost/margin (#29).
 export type FamilyMember = {
@@ -160,11 +161,11 @@ function FamilyGroup({
     }
   }
 
-  function mutate(fn: () => Promise<{ ok: boolean; error?: string }>) {
+  function mutate(fn: () => Promise<{ ok: true } | { ok: false; error: string } | ErpFail>) {
     setErr(null);
     startTransition(async () => {
       const res = await fn();
-      if (!res.ok) setErr(res.error ?? t("failed", "falló"));
+      if (!res.ok) setErr(failText(res, t));
       else { setAdding(false); setQ(""); setResults([]); router.refresh(); }
     });
   }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/erp/ui/button";
 import { publishProduct } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
@@ -21,7 +22,7 @@ export function PublishButton({ productId }: { productId: number }) {
           setErr(null);
           startTransition(async () => {
             const res = await publishProduct(productId);
-            if (!res.ok) setErr(res.error);
+            if (!res.ok) setErr(failText(res, t));
             else router.refresh();
           });
         }}

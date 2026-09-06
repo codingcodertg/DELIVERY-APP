@@ -10,6 +10,7 @@ import { Input } from "@/components/erp/ui/input";
 import { cn, money } from "@/lib/erp/utils";
 import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
 import { resolveTag } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { exportCsv, exportXlsx } from "@/lib/erp/export";
 import { SavedViews, type SavedView } from "@/components/erp/saved-views";
 import { ProductDrawer } from "@/components/erp/product-drawer";
@@ -161,7 +162,7 @@ export function ReviewQueue({
     setErr(null);
     startTransition(async () => {
       const res = await resolveTag(id, tag);
-      if (!res.ok) setErr(res.error ?? t("Action failed", "La acción falló"));
+      if (!res.ok) setErr(failText(res, t));
       else router.refresh();
     });
   }

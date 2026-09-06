@@ -11,6 +11,8 @@
 // the numeric tokens positionally) which is robust to column spacing and even to PDF copy-paste
 // reordering; header fields use labeled same-line regexes. Anything not found becomes a `warning`.
 
+import type { Mensaje } from "@/lib/erp/messages";
+
 export const UNIT_WORDS = [
   "BOX", "BX", "CJ", "CAJA", "PI2", "SF", "SQFT", "FT2", "M2", "EA", "PC", "PCS", "PZA",
   "CTN", "CASE", "PALLET", "PLT", "ROLL", "LF", "LM", "PIECE", "UN",
@@ -74,8 +76,10 @@ export type ParsedAckLine = {
   pallets: number | null;
 };
 
-export type ParsedPo = { kind: "po"; header: ParsedPoHeader; lines: ParsedPoLine[]; warnings: string[] };
-export type ParsedAck = { kind: "ack"; header: ParsedAckHeader; lines: ParsedAckLine[]; warnings: string[] };
+// Los avisos van como código (+ datos), no como texto: el mismo parser corre en el navegador y en el
+// servidor, y quien los pinta (po-ingest) los traduce con `mensajeTexto` (G-10b).
+export type ParsedPo = { kind: "po"; header: ParsedPoHeader; lines: ParsedPoLine[]; warnings: Mensaje[] };
+export type ParsedAck = { kind: "ack"; header: ParsedAckHeader; lines: ParsedAckLine[]; warnings: Mensaje[] };
 export type ParsedDoc = ParsedPo | ParsedAck;
 
 export interface DocParser {
@@ -287,7 +291,7 @@ const plgPoParser: DocParser = {
   label: "PLG / Rodriguez Purchase Order",
   detect: (t) => /purchase\s+order/i.test(t) && /\bP\.?\s*O\.?\s*No/i.test(t),
   parse(text) {
-    const warnings: string[] = [];
+    const warnings: Mensaje[] = [];
     const header: ParsedPoHeader = {
       po_number: findPoNumber(text),
       vendor_name: firstGroup(text, /Vendor\s*\n+\s*(.+)/i),
@@ -303,11 +307,11 @@ const plgPoParser: DocParser = {
     };
     const lines = parseLineTable(text, parsePoLine).map((l, i) => ({ ...l, line_no: i + 1 }));
 
-    if (!header.po_number) warnings.push("Could not read the PO number — enter it manually.");
-    if (lines.length === 0) warnings.push("No line items recognized — use CSV or manual entry.");
+    if (!header.po_number) warnings.push({ code: "PO_NUMBER_NOT_READ" });
+    if (lines.length === 0) warnings.push({ code: "NO_LINES_RECOGNIZED" });
     if (header.total != null && lines.length) {
       const sum = lines.reduce((s, l) => s + (l.amount ?? 0), 0);
-      if (Math.abs(sum - header.total) > 0.05) warnings.push(`Line amounts sum to ${sum.toFixed(2)} but the document total is ${header.total.toFixed(2)} — review.`);
+      if (Math.abs(sum - header.total) > 0.05) warnings.push({ code: "TOTAL_MISMATCH", params: { sum: sum.toFixed(2), total: header.total.toFixed(2) } });
     }
     return { kind: "po", header, lines, warnings };
   },
@@ -318,7 +322,7 @@ const plgAckParser: DocParser = {
   label: "PLG / Lamosa Acknowledgment of Order",
   detect: (t) => /acknowledg(?:e)?ment\s+of\s+order/i.test(t),
   parse(text) {
-    const warnings: string[] = [];
+    const warnings: Mensaje[] = [];
     const header: ParsedAckHeader = {
       ack_document_no: firstGroup(text, /DOCUMENT\s*NO\.?\s*:?\s*(\S+)/i),
       po_number: firstGroup(text, /PURCHASE\s*ORDER\s*:?\s*(\d{3,8})/i),
@@ -344,9 +348,9 @@ const plgAckParser: DocParser = {
     };
     const lines = parseLineTable(text, parseAckLine);
 
-    if (!header.ack_document_no) warnings.push("Could not read the acknowledgment document number — enter it manually.");
-    if (!header.po_number) warnings.push("Could not read the linked PO number — set it so the proforma matches its PO.");
-    if (lines.length === 0) warnings.push("No line items recognized — use CSV or manual entry.");
+    if (!header.ack_document_no) warnings.push({ code: "ACK_NUMBER_NOT_READ" });
+    if (!header.po_number) warnings.push({ code: "ACK_PO_NOT_READ" });
+    if (lines.length === 0) warnings.push({ code: "NO_LINES_RECOGNIZED" });
     return { kind: "ack", header, lines, warnings };
   },
 };

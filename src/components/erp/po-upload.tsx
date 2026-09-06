@@ -7,6 +7,7 @@ import { money } from "@/lib/erp/utils";
 import { statusLabel } from "@/lib/erp/status";
 import { parseCsv, guessColumn } from "@/lib/erp/csv";
 import { matchPoLines, createPoDrafts, type PoLine, type PoMatch } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). Los tipos de producto son un
@@ -83,7 +84,7 @@ export function PoUpload({ vendors }: { vendors: { id: number; name: string }[] 
     setErr(null);
     startTransition(async () => {
       const res = await createPoDrafts(vendorId ? Number(vendorId) : null, productType, unmatched);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else {
         setResult(t(`Created ${res.count} draft product(s) — flagged "PO IMPORT" in the review queue.`, `Creados ${res.count} producto(s) en borrador — marcados "PO IMPORT" en la cola de revisión.`));
         setUnmatched([]);

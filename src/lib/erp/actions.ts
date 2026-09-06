@@ -10,8 +10,11 @@ import { parseDocument, type ParsedDoc } from "@/lib/erp/domain/po-parse";
 import { CATALOG_PAGE } from "@/lib/erp/catalog";
 import type { CatalogRow, CatalogQuery } from "@/lib/erp/catalog";
 import type { StoreStats, VendorStats, CategoryStats } from "@/lib/erp/analytics";
+import { fail, type ErpFail } from "@/lib/erp/messages";
 
-type Result = { ok: true } | { ok: false; error: string };
+// Un fallo con mensaje propio va como código (ErpFail, G-10b); `error` queda para los mensajes de
+// Supabase, que la pantalla enseña tal cual.
+type Result = { ok: true } | { ok: false; error: string } | ErpFail;
 
 // ---- Catalog: server-side search / pagination / export ----------------------------------------
 // The grid no longer loads all ~6.5k rows; it pages 100 at a time, filtering/sorting/searching IN SQL
@@ -142,7 +145,7 @@ export async function inlineFix(productId: number, patch: Record<string, unknown
   const allowed = new Set<string>([...NUMERIC, ...INTEGER, ...TEXT, "category_id", "status"]);
   const clean: Record<string, string> = {};
   for (const [k, v] of Object.entries(patch)) if (allowed.has(k)) clean[k] = v == null ? "" : String(v);
-  if (Object.keys(clean).length === 0) return { ok: false, error: "no editable fields" };
+  if (Object.keys(clean).length === 0) return fail("NO_EDITABLE_FIELDS");
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_product", { p_id: productId, patch: clean });
   if (error) return { ok: false, error: error.message };
@@ -183,7 +186,7 @@ export async function removeFamilyLink(productId: number, relatedId: number, rel
 export async function refileFamilyLink(
   productId: number, relatedId: number, from: FamilyRelation, to: FamilyRelation,
 ): Promise<Result> {
-  if (from === to) return { ok: false, error: "same relation" };
+  if (from === to) return fail("SAME_RELATION");
   const removed = await removeFamilyLink(productId, relatedId, from);
   if (!removed.ok) return removed;
   return addFamilyLink(productId, relatedId, to);
@@ -193,7 +196,7 @@ export async function refileFamilyLink(
  *  payload + a note) into the existing M1.5 approvals loop. On approve the manager
  *  marks the item human-reviewed (decide_request bumps verified_level). */
 export async function suggestFix(productId: number, reason: string, store?: string): Promise<Result> {
-  if (!reason.trim()) return { ok: false, error: "Describe the fix" };
+  if (!reason.trim()) return fail("DESCRIBE_FIX");
   return submitRequest({ type: "edit", product_id: productId, reason: reason.trim(), payload: {}, store });
 }
 
@@ -237,16 +240,16 @@ export type NewItemInput = {
 /** New-item request → creates a draft product (record_status='draft') + logs a product_request. */
 export async function submitNewItem(
   input: NewItemInput
-): Promise<{ ok: true; sku: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; sku: string } | { ok: false; error: string } | ErpFail> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
+  if (!user) return fail("NOT_SIGNED_IN");
 
   const sku = (input.sku || "").trim().toUpperCase();
   if (!sku || !input.name?.trim() || !input.product_type || !input.status) {
-    return { ok: false, error: "SKU, name, product type and status are required" };
+    return fail("NEW_ITEM_FIELDS_REQUIRED");
   }
 
   const row = {
@@ -296,7 +299,7 @@ export async function submitRequest(input: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
+  if (!user) return fail("NOT_SIGNED_IN");
   const { error } = await supabase.from("product_requests").insert({
     type: input.type,
     product_id: input.product_id,
@@ -372,13 +375,13 @@ export async function createPoDrafts(
   vendorId: number | null,
   productType: string,
   lines: PoLine[]
-): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+): Promise<{ ok: true; count: number } | { ok: false; error: string } | ErpFail> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in" };
-  if (lines.length === 0) return { ok: false, error: "No unmatched lines to import" };
+  if (!user) return fail("NOT_SIGNED_IN");
+  if (lines.length === 0) return fail("NO_UNMATCHED_LINES");
   const stamp = Date.now().toString(36).toUpperCase();
   const rows = lines.map((line, i) => ({
     sku: `PO-${stamp}-${i + 1}`,
@@ -540,18 +543,18 @@ export async function parsePdfUpload(
   form: FormData
 ): Promise<
   | { ok: true; doc: ParsedDoc; storagePath: string | null; storageNote?: string }
-  | { ok: false; error: string }
+  | ErpFail
 > {
   const session = await getSessionInfo();
-  if (!session || !canSeeCost(session.role)) return { ok: false, error: "not authorized" };
+  if (!session || !canSeeCost(session.role)) return fail("NOT_AUTHORIZED");
   const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "No PDF file provided." };
-  if (file.size > 10 * 1024 * 1024) return { ok: false, error: "PDF too large (max 10 MB)." };
+  if (!(file instanceof File) || file.size === 0) return fail("NO_PDF_FILE");
+  if (file.size > 10 * 1024 * 1024) return fail("PDF_TOO_LARGE");
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const text = await pdfToLayoutText(bytes);
     const doc = parseDocument(text);
-    if (!doc) return { ok: false, error: "Couldn't recognize this PDF as a PO or acknowledgment. Try paste / CSV / manual." };
+    if (!doc) return fail("PDF_NOT_RECOGNIZED");
     // Persist the original in the PRIVATE po-docs bucket (it carries cost — service role, #29).
     // Non-fatal: if storage fails, parsing still succeeds, just without a saved document.
     let storagePath: string | null = null;
@@ -571,7 +574,7 @@ export async function parsePdfUpload(
     }
     return { ok: true, doc, storagePath, storageNote };
   } catch (e) {
-    return { ok: false, error: `Couldn't read the PDF: ${e instanceof Error ? e.message : "unknown error"}` };
+    return fail("PDF_READ_FAILED", { detail: e instanceof Error ? e.message : String(e) });
   }
 }
 

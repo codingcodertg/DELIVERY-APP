@@ -13,6 +13,7 @@ import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). El tipo de solicitud es enumerado fijo
 // (statusLabel); nombre de campo, valores, solicitante, tienda y motivo son dato.
 import { decideRequest } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 
 type Product = {
   id: number;
@@ -68,7 +69,7 @@ export function RequestReview({
     setErr(null);
     startTransition(async () => {
       const res = await decideRequest(id, approve, n);
-      if (!res.ok) setErr(res.error ?? t("Failed", "Falló"));
+      if (!res.ok) setErr(failText(res, t));
       else {
         setNoteFor(null);
         setNote("");

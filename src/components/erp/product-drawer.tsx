@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { inlineFix } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { Input } from "@/components/erp/ui/input";
 import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
@@ -113,7 +114,7 @@ export function ProductDrawer({
     const res = await inlineFix(productId, patch);
     if (!res.ok) {
       setStatus("error");
-      setErrMsg(res.error);
+      setErrMsg(failText(res, t));
     } else {
       setOriginal({ ...next });
       setStatus("saved");

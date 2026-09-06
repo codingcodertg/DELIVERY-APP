@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { inlineFix } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { Input } from "@/components/erp/ui/input";
 import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs).
@@ -32,7 +33,7 @@ export function SeoEditor({
     const res = await inlineFix(productId, { seo_title: title, seo_description: desc });
     if (!res.ok) {
       setState("error");
-      setErr(res.error);
+      setErr(failText(res, t));
     } else {
       setState("saved");
       router.refresh();

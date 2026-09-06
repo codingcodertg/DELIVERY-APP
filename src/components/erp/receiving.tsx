@@ -11,6 +11,7 @@ import {
   type PoReceiving,
   type ProductSearchHit,
 } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). Número de OC, proveedor, estado del
@@ -75,7 +76,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
     const res = await getPoReceiving(id);
     setLoading(false);
     if (!res.ok) {
-      setMsg({ kind: "err", text: res.error });
+      setMsg({ kind: "err", text: failText(res, t) });
       return;
     }
     setDetail(res.data);
@@ -119,7 +120,7 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
     setBusy(false);
     if (!res.ok) {
       // Keep the key: a retry of a call that may have committed must replay, not re-post.
-      setMsg({ kind: "err", text: res.error });
+      setMsg({ kind: "err", text: failText(res, t) });
       return;
     }
     receiptKey.current = null; // this receipt is done; the next one is a new event
@@ -317,7 +318,7 @@ function ManualReceive({ stores }: { stores: StoreOption[] }) {
     });
     setBusy(false);
     if (!res.ok) {
-      setMsg({ kind: "err", text: res.error });
+      setMsg({ kind: "err", text: failText(res, t) });
       return;
     }
     const r = res.result as { lot_id?: number; landed_cost?: number };
