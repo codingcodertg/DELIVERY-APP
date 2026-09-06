@@ -115,6 +115,7 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/item/qoh-panel.tsx",
     "src/components/erp/merge-tool.tsx",
     "src/components/erp/po-draft-panel.tsx",
+    "src/components/erp/product-family.tsx",
   ];
 
   // Excepciones EXPLÍCITAS, texto por texto: lo que <Tx> no puede pintar en un server component (un
