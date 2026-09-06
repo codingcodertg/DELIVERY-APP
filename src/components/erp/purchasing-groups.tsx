@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn, money } from "@/lib/erp/utils";
 import { productImageUrl } from "@/lib/erp/images";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, SKU, proveedor, etiqueta del
+// grupo (g.label, viene del servidor) y RP/min/max son dato.
 
 export type PMember = {
   id: number;
@@ -60,6 +64,7 @@ export function PurchasingGroups({
   pages: number;
   canSeeCost: boolean;
 }) {
+  const { t } = usePrefs();
   const [sort, setSort] = useState<"cost" | "lead">("cost");
   const sorted = useMemo(
     () =>
@@ -80,7 +85,7 @@ export function PurchasingGroups({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-slate-500">Sort suppliers by</span>
+        <span className="text-slate-500">{t("Sort suppliers by", "Ordenar proveedores por")}</span>
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
           {(["cost", "lead"] as const).map((s) => (
             <button
@@ -92,7 +97,7 @@ export function PurchasingGroups({
                 sort === s ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
               )}
             >
-              {s === "cost" ? "Cost" : "Lead time"}
+              {s === "cost" ? t("Cost", "Costo") : t("Lead time", "Plazo")}
             </button>
           ))}
         </div>
@@ -100,30 +105,30 @@ export function PurchasingGroups({
 
       {sorted.length === 0 ? (
         <p className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          No comparison groups on this page.
+          {t("No comparison groups on this page.", "No hay grupos de comparación en esta página.")}
         </p>
       ) : (
         <div className="space-y-4">
           {sorted.map((g) => (
             <section key={g.group_key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-                <h2 className="text-sm font-semibold text-slate-800">{g.label || "Group"}</h2>
+                <h2 className="text-sm font-semibold text-slate-800">{g.label || t("Group", "Grupo")}</h2>
                 <span className="rounded-full border border-clay-200 bg-clay-50 px-2 py-0.5 text-xs font-medium text-clay-700">
-                  {g.member_count} sources
+                  {g.member_count} {t("sources", "fuentes")}
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Product</th>
-                      <th className="px-3 py-2 font-medium">Vendor</th>
-                      {canSeeCost && <th className="px-3 py-2 text-right font-medium">Cost</th>}
-                      <th className="px-3 py-2 text-right font-medium">Last price</th>
-                      <th className="px-3 py-2 text-right font-medium">Lead time</th>
+                      <th className="px-3 py-2 font-medium">{t("Product", "Producto")}</th>
+                      <th className="px-3 py-2 font-medium">{t("Vendor", "Proveedor")}</th>
+                      {canSeeCost && <th className="px-3 py-2 text-right font-medium">{t("Cost", "Costo")}</th>}
+                      <th className="px-3 py-2 text-right font-medium">{t("Last price", "Último precio")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("Lead time", "Plazo")}</th>
                       <th className="px-3 py-2 text-right font-medium">MOQ</th>
                       <th className="px-3 py-2 text-right font-medium">QOH*</th>
-                      <th className="px-3 py-2 font-medium">Reorder</th>
+                      <th className="px-3 py-2 font-medium">{t("Reorder", "Reorden")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -140,7 +145,7 @@ export function PurchasingGroups({
                                 </Link>
                                 <div className="font-mono text-xs text-slate-400">
                                   {m.sku}
-                                  {cheapest && <span className="ml-2 rounded bg-emerald-100 px-1 font-sans text-emerald-700">cheapest</span>}
+                                  {cheapest && <span className="ml-2 rounded bg-emerald-100 px-1 font-sans text-emerald-700">{t("cheapest", "más barato")}</span>}
                                 </div>
                               </div>
                             </div>
@@ -156,7 +161,7 @@ export function PurchasingGroups({
                           <td className="px-3 py-2 text-right">
                             <span className={cn("tabular-nums", belowReorder(m) ? "font-medium text-amber-700" : "text-slate-400")}>{num(m.qoh)}</span>
                             {belowReorder(m) && (
-                              <span className="ml-1 rounded bg-amber-50 px-1 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200" title={`At/below reorder point (${num(m.reorder_point)})`}>reorder</span>
+                              <span className="ml-1 rounded bg-amber-50 px-1 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200" title={t(`At/below reorder point (${num(m.reorder_point)})`, `En o bajo el punto de reorden (${num(m.reorder_point)})`)}>{t("reorder", "reordenar")}</span>
                             )}
                           </td>
                           <td className="px-3 py-2 text-xs text-slate-500">{reorderText(m)}</td>
@@ -175,27 +180,24 @@ export function PurchasingGroups({
         <div className="mt-5 flex items-center justify-center gap-3 text-sm">
           {page > 1 ? (
             <Link href={`/erp/purchasing?page=${page - 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
-              ← Prev
+              {t("← Prev", "← Anterior")}
             </Link>
           ) : (
-            <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">← Prev</span>
+            <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">{t("← Prev", "← Anterior")}</span>
           )}
-          <span className="text-slate-500">Page {page} of {pages}</span>
+          <span className="text-slate-500">{t("Page", "Página")} {page} {t("of", "de")} {pages}</span>
           {page < pages ? (
             <Link href={`/erp/purchasing?page=${page + 1}`} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
-              Next →
+              {t("Next →", "Siguiente →")}
             </Link>
           ) : (
-            <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">Next →</span>
+            <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">{t("Next →", "Siguiente →")}</span>
           )}
         </div>
       )}
 
       <p className="mt-4 text-xs leading-relaxed text-slate-400">
-        * QOH is the ledger opening balance (M3) — seeded from the QB snapshot and unverified until a
-        physical count confirms it; below-reorder-point alerts are a later pass. Grouping is attribute-based
-        (size · shape · color/finish/material, plus bros family links); image-based similarity is a future
-        enhancement. This is a comparison view only — it never merges or dup-flags (that&apos;s the separate review tool).
+        {t("* QOH is the ledger opening balance (M3) — seeded from the QB snapshot and unverified until a physical count confirms it; below-reorder-point alerts are a later pass. Grouping is attribute-based (size · shape · color/finish/material, plus bros family links); image-based similarity is a future enhancement. This is a comparison view only — it never merges or dup-flags (that's the separate review tool).", "* QOH es el saldo inicial del libro (M3) — sembrado desde la foto de QB y sin verificar hasta que un conteo físico lo confirme; las alertas por debajo del punto de reorden son un paso posterior. La agrupación es por atributos (tamaño · forma · color/acabado/material, más los enlaces de familia); la similitud por imagen es una mejora futura. Esto es solo una vista de comparación — nunca fusiona ni marca duplicados (eso es la herramienta de revisión aparte).")}
       </p>
     </div>
   );
