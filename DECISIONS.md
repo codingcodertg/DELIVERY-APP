@@ -9654,7 +9654,7 @@ mismo salto de `/api/`, ampliado a los estáticos). `deps.getUser` existe solo p
 
 ### Medido
 
-- **Tabla ruta × sesión** en `route-guard.test.ts` (73 pruebas): las rutas protegidas rebotan con
+- **Tabla ruta × sesión** en `route-guard.test.ts` (79 pruebas): las rutas protegidas rebotan con
   `next` exacto (ruta y query); las 31 `route.ts` recorridas del disco caen bajo `isApiPath` o
   `/auth/`; los 6 ficheros de `public/`; `/auth/callback`, `/auth/signout`, `/reset-password`,
   `/track/abc`; los tres crons, también con `?verify=1`; `/login` con sesión y `next` bueno, vacío,
@@ -9667,8 +9667,8 @@ mismo salto de `/api/`, ampliado a los estáticos). `deps.getUser` existe solo p
   sesión» y la de D-156. (El mensaje del commit `ec71412` dice «las 5 rutas de datos × 2 sesiones»: es
   una cuenta a ojo, y está mal; la buena es esta.) Sin la regla de extensión caen **9**: los 7 ficheros
   de la tabla sin sesión y las dos de estáticos.
-- `verify.mjs`: en verde sobre `.next` limpio, en solitario: **968 pasados | 3 saltados** (main f54de75: 895 | 3;
-  los +73 son `route-guard.test.ts`).
+- `verify.mjs`: en verde sobre `.next` limpio, en solitario: **974 pasados | 3 saltados** (main f54de75: 895 | 3;
+  los +79 son `route-guard.test.ts`).
 
 ### Qué NO cambia
 
