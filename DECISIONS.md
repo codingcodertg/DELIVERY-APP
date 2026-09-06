@@ -9176,6 +9176,17 @@ cambiarlas es editar el diccionario. `verify.mjs` en verde sobre `.next` limpio,
 **819 pasados | 3 saltados** (main f266aa9: 804 | 3; los +15 son los quince ficheros nuevos de la
 prueba de claves, una prueba por fichero).
 
+**Nota del día siguiente (2026-09-06, corrección de G-11):** la medición de claves muertas buscaba
+cada clave **como literal** en `src/` y solo entendía como construido el prefijo `mgr.sch.dow.`. Se le
+escapó `"reqtype." + type` en `team-requests/page.tsx`, y **`reqtype.add`, `reqtype.adjust` y
+`reqtype.delete` se borraron estando en uso**: desde este merge la cola de solicitudes del gerente
+enseñaba el tipo como clave cruda («reqtype.add») en los dos idiomas. Nadie lo vio (ni la auditoría,
+que las contaba entre las 139, ni el auditor de la rama) porque nadie abrió esa pantalla con sesión.
+Las tres claves vuelven, con clave literal por rama, en la decisión siguiente de Time Tracker
+(commit `6f4a0a5`); allí está medido que no queda otra construcción por concatenación sobre un
+prefijo borrado. Regla que queda: **una clave construida en el código no se puede dar por muerta
+buscando literales**; la prueba de D-187 solo ve claves literales, y así hay que escribirlas.
+
 ## D-203 · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
 
 **Fecha:** 2026-09-05 · **Versión:** erp 0.6.0, package.json 1.120.0 (solo `erp` se toca) ·
@@ -9478,3 +9489,61 @@ el guardado y dónde escribe. Las otras cinco pantallas de Time Tracker con «Ad
 oscuro por defecto de Time Tracker va por lo que ya arregló D-187 (`.timetracker-module .modal`),
 no se ha vuelto a mirar. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **880 pasados | 3 saltados** (main 272895b: 879 | 3; el +1 es
 el fichero nuevo en la prueba de claves).
+
+## D-NEXT · Time Tracker: lo que quedaba en inglés o por el idioma del hub, y `reqtype.*` de vuelta
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker se toca) ·
+**Pedido por:** Andrés (orquestador), tras cerrar G-9/G-10: los «Admins only.» sueltos, `TimeOffRequests`
+y lo que quedara a pelo. Un commit por grupo. Solo texto: **ningún comportamiento cambia.**
+
+### Lo que se encontró de camino, y es lo primero: una regresión de D-202
+
+Al meter `team-requests/page.tsx` en la prueba de claves de D-187 saltó `falta reqtype.`: la cola de
+solicitudes del gerente construye la clave con `"reqtype." + type`, y **D-202 borró `reqtype.add`,
+`reqtype.adjust` y `reqtype.delete` como claves muertas** porque la medición de G-11 solo buscaba la
+clave como literal en `src/` (y solo entendía como construida el prefijo `mgr.sch.dow.`). Desde que
+D-202 se fusionó, la cola del gerente enseña el tipo de cada solicitud como clave cruda
+(«reqtype.add») en los dos idiomas. Nadie lo vio: ni mi medición, ni la auditoría (que contaba 139
+muertas, con estas dentro), ni el auditor de la rama, porque nadie abrió esa pantalla con sesión.
+
+**Arreglo (commit `6f4a0a5`):** vuelven las tres claves con sus valores originales («Add time» /
+«Agregar tiempo», …) y `rLabel` pasa a **una clave literal por rama**, que es lo que la prueba de D-187
+ve. **Medido después:** en todo `src/` no queda ninguna otra clave construida por concatenación
+(`"prefijo." + x`) sobre un prefijo borrado en D-202; la única construcción restante es
+`` t(`mgr.sch.dow.${…}`) `` en `ScheduleWeek`, que la prueba ya entiende, y `"tab." + tb.id` en
+`TopBar`, cuyas claves se conservaron. D-202 se corrige con una nota del mismo día, no se reescribe.
+
+### Qué se tradujo
+
+- **`common.adminsOnly`** («Admins only.» / «Solo administradores.») en los ocho sitios que lo tenían
+  a pelo: `insights`, `live`, `people`, `settings`, `team-requests`, `AuditTabs`, `ManagerReports`,
+  `TeamDiary`. Mismo `<div className="card"><p className="muted">`; los ocho ya tenían `useT()`.
+- **Del idioma del hub al de Time Tracker.** Cuatro pantallas estaban en los dos idiomas pero por
+  `usePrefs` (la preferencia del hub), mientras el resto de Time Tracker va por `useT()` (`tt_lang`):
+  la misma pantalla salía mitad en cada idioma según dos conmutadores, como pasó con `DayPhotos` en
+  D-203. Pasan a claves: `TimeOffRequests` (`emp.off.*`, 16), `PunchPanel` (`emp.punch.*`, 42),
+  `MySections` (`emp.my.*`, 21), `diary/page` (`emp.diary.*`, 5). Los **motivos** de fichaje y los
+  **tipos** de tiempo libre siguen siendo pares en/es con el `value` guardado intacto (es la clave con
+  la que cuenta la oficina), elegidos ahora por `getLang()` de Time Tracker.
+- **`NotificationLanguage`** (en Mi cuenta) tenía sus cuatro textos en inglés a pelo: `emp.acc.notifLang*`.
+  «English» / «Español» son el nombre de cada idioma en su propio idioma y se quedan.
+
+**Total:** 92 claves nuevas en los dos idiomas (184 filas), 3 restauradas; 11 ficheros entran en la
+prueba de claves de D-187 (25 → 36). **Mutación medida:** sin la fila española de `common.adminsOnly`
+caen las ocho pruebas que la usan, nombrando clave y fichero.
+
+**Lo que sigue por `usePrefs` a propósito:** solo `TopBar`, y no para texto: lee `theme` / `toggleTheme` del hub
+(el tema sí es una preferencia compartida). Ningún fichero de Time Tracker pinta ya texto por `usePrefs`.
+
+### Qué NO cambia
+
+Migraciones (ninguna). Ubicación obligatoria, foto, límite de 30 s, reenvío con motivo, la carga
+perezosa de las secciones, el borrado de capturas: nada de eso se toca; cada commit es texto → clave.
+`LOCALE`/`fmtDayLong` siguen como en D-202: fechas largas en inglés en las dos lenguas.
+
+### Lo no verificado
+
+Nadie abrió las pantallas con sesión real en español; la cola del gerente arreglada tampoco (va por la
+prueba de claves, que ahora sí la cubre). La traducción es la que ya había en los pares de `usePrefs`
+(D-159), movida a claves, no reescrita. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **890 pasados | 3 saltados**
+(main ec83945: 879 | 3; los +11 son los once ficheros nuevos en la prueba de claves).

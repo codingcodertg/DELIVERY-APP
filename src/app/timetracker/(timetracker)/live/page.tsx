@@ -56,7 +56,7 @@ export default function LiveMonitorPage() {
     return { pill: "on", text: "🟢 " + note };
   }
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   const alertas = (crew?.late.length ?? 0) + (crew?.notInYet.length ?? 0);
 

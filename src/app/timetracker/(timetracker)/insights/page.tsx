@@ -105,7 +105,7 @@ export default function InsightsPage() {
   );
   const actColor = (p: number) => (p >= 60 ? "var(--tt-accent2)" : p >= 25 ? "var(--tt-warn)" : "var(--tt-danger)");
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   return (
     <>

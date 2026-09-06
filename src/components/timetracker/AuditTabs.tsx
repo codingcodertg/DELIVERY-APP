@@ -43,7 +43,7 @@ export function AuditTabs() {
   });
   const days = Array.from(byDay.keys()).sort().reverse();
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   const switcher = (
     <div className="tabs" style={{ marginBottom: 12 }}>
