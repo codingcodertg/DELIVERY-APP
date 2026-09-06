@@ -37,9 +37,11 @@ const PERMITIDAS = new Set([
 ]);
 
 function esTexto(s: string): boolean {
-  // Al menos una palabra de tres letras que no sea sigla permitida.
+  // Al menos una palabra de tres letras con alguna minúscula que no sea sigla permitida. Una
+  // palabra toda en mayúsculas ("~MERGE", "BELOW COST", "SKU") es una etiqueta guardada o una
+  // sigla, no una frase de pantalla.
   const palabras = s.match(/[A-Za-z]{3,}/g) ?? [];
-  return palabras.some((w) => !PERMITIDAS.has(w.toLowerCase()));
+  return palabras.some((w) => /[a-z]/.test(w) && !PERMITIDAS.has(w.toLowerCase()));
 }
 
 /** Quita comentarios, las llamadas t("…", "…") / t(`…`, `…`) y las hojas <Tx en es />: es justo el texto ya traducido. */
