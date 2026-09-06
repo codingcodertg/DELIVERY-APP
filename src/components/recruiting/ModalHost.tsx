@@ -1297,7 +1297,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
       <div className="modal" style={{ maxWidth: 720 }}>
         <h3>🎤 {t("Phone interview", "Entrevista telefónica")} — {c.name}</h3>
         {showRestored && (
-          <div className="q-block" style={{ background: "#fffbeb", border: "1px solid #fcd34d" }}>
+          <div className="q-block" style={{ background: "var(--tint-warn)", border: "1px solid var(--tint-warn-line)" }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13 }}>
                 <b>📝 {t("Draft restored", "Borrador restaurado")}</b>{" "}
@@ -1334,7 +1334,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
           <div className="empty">{t("No active questions for this role. Configure them in Settings.", "No hay preguntas activas para este puesto. Configúralas en Ajustes.")}</div>
         )}
         {c.prescreen?.age && (
-          <div className="q-block" style={{ background: "#f8fafc" }}>
+          <div className="q-block" style={{ background: "var(--surface-soft)" }}>
             <div className="q-text" style={{ fontWeight: 700 }}>
               🎂 {t("Age capacity — from registration (reference only, not scored)", "Capacidad por edad — de registro (solo referencia, no se califica)")}
             </div>
@@ -1349,13 +1349,13 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
           return (
             <div key={q.id} className="q-block" style={{ opacity: a.skipped ? 0.55 : 1 }}>
               <div className="q-text" style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <span>{q.category && <span className="badge" style={{ marginRight: 6, background: "#eef2ff", color: "#4338ca", fontWeight: 700 }}>🏷 {q.category}</span>}{i + 1}. {qText(q, lang)}{a.skipped && <span className="badge" style={{ marginLeft: 6, background: "#eef1f6", color: "var(--gray)" }}>{t("Skipped", "Omitida")}</span>}</span>
+                <span>{q.category && <span className="badge" style={{ marginRight: 6, background: "var(--tint-indigo)", color: "var(--indigo)", fontWeight: 700 }}>🏷 {q.category}</span>}{i + 1}. {qText(q, lang)}{a.skipped && <span className="badge" style={{ marginLeft: 6, background: "var(--track)", color: "var(--gray)" }}>{t("Skipped", "Omitida")}</span>}</span>
                 <button className="btn btn-sm" style={{ color: a.skipped ? "var(--accent)" : "var(--gray)" }} onClick={() => toggleSkip(q.id)}>
                   {a.skipped ? "↩ " + t("Un-skip", "Deshacer") : "⤼ " + t("Skip / N/A", "Omitir / N/A")}
                 </button>
               </div>
               {prescreenAnswer && (
-                <div style={{ background: "#f8fafc", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 8px", marginBottom: 8, fontSize: 12, color: "var(--gray)" }}>
+                <div style={{ background: "var(--surface-soft)", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 8px", marginBottom: 8, fontSize: 12, color: "var(--gray)" }}>
                   <b>{t("From registration:", "De registro:")}</b> {prescreenAnswer}
                 </div>
               )}

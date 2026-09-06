@@ -59,7 +59,7 @@ export default function OutcomesPage() {
           <div style={{ fontSize: 12.5, marginTop: 2 }}>
             <a className="link-tel" href={rcCall(c.phone)} onClick={() => addContact(c.id, { type: "Call", result: "", note: "" })}>📞 {c.phone}</a>
             <a className="link-tel" href={rcSms(c.phone)} style={{ marginLeft: 10 }} onClick={() => addContact(c.id, { type: "SMS", result: "sent", note: "" })}>💬 {t("Text", "Texto")}</a>
-            <span style={{ color: "#15803d", fontWeight: 700, marginLeft: 10 }}>🤝 {fmtDateTime(c.inperson_date)}</span>
+            <span style={{ color: "var(--green-deep)", fontWeight: 700, marginLeft: 10 }}>🤝 {fmtDateTime(c.inperson_date)}</span>
           </div>
           <div style={{ fontSize: 12, marginTop: 3, color: warn ? "var(--red)" : "var(--gray)", fontWeight: warn ? 700 : 500 }}>
             {warn
@@ -91,7 +91,7 @@ export default function OutcomesPage() {
 
   return (
     <div>
-      <div className="card" style={{ background: "var(--ink)", color: "#fff", border: "none" }}>
+      <div className="card" style={{ background: "var(--brand-surface)", color: "#fff", border: "none" }}>
         <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
           {t("In-person interviews", "Entrevistas presenciales")}
         </div>
