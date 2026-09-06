@@ -120,6 +120,7 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/item/product-gallery.tsx",
     "src/components/erp/po-line-link.tsx",
     "src/components/erp/seo-editor.tsx",
+    "src/app/erp/purchasing/orders/[id]/page.tsx",
   ];
 
   // Excepciones EXPLÍCITAS, texto por texto: lo que <Tx> no puede pintar en un server component (un
@@ -128,6 +129,10 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/app/erp/purchasing/orders/page.tsx": [
       "merchandise vs PO (excl. tax &amp; freight)", // title de la cabecera Gap
       "merchandise vs PO (excl. tax & freight)", // title de la celda Gap
+    ],
+    "src/app/erp/purchasing/orders/[id]/page.tsx": [
+      "Purchase order PDF", // title del iframe del documento
+      "Acknowledgment PDF",
     ],
   };
 
