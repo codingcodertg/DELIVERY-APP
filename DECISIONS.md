@@ -9691,3 +9691,111 @@ existe ninguna ruta así (los ids son numéricos o uuid) y los layouts gatean ig
 hay bypass; lo que perdería esa página es el refresco del middleware. Si algún día entra un
 id con punto en una URL, estrechar la regla a extensiones conocidas. Y con sesión en `/login`
 sin `next`, el destino es `/home` (`safeNext`, D-090/D-193), no `/`.
+
+## D-NEXT · G-20: la ficha del pedido (`OrderModal`) se carga en diferido; `routes/page.tsx` no arrastra nada a `/`
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Entregas) ·
+**Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md` (G-20). Sin migración.
+**Cero cambio de comportamiento:** el componente no cambia una línea; cambia cómo llega al navegador.
+
+### Medido ANTES (`next build` limpio sobre main 1fcf690, vía `verify.mjs`)
+
+| Ruta | Tamaño de ruta | First Load JS |
+|---|---|---|
+| `/` (tablero) | 264 kB | **590 kB** |
+| `/routes` | 27,8 kB | 349 kB |
+| `/driver` | 4,36 kB | 330 kB |
+| `/map` | 6,66 kB | 328 kB |
+| `/warehouse` | 2,19 kB | 328 kB |
+| `/summary` | 2,94 kB | 327 kB |
+| `/accounts` / `/my-route` | 4,9 / 4,69 kB | 326 kB |
+| compartido por todas | | 190 kB |
+
+`/` pesaba el doble que cualquier otra. **Un aviso antes de seguir, medido:** el primer build «antes»
+se contaminó porque edité fuentes mientras corría; se repitió con el árbol de trabajo idéntico a
+main (cambios guardados aparte y restaurados después). Los números de arriba son del segundo.
+
+### Qué se hizo
+
+- **`OrderModal` con `next/dynamic`, desde UN punto:** `src/components/OrderModalLazy.tsx` exporta
+  `OrderModal = dynamic(() => import("./OrderModal"))`, y las **ocho** pantallas que la montan
+  (`/`, `/driver`, `/warehouse`, `/map`, `/my-route`, `/summary`, `/accounts`, `/routes`) importan
+  de ahí; ocho `dynamic()` repartidos serían ocho chunks del mismo componente. **Sin `ssr: false`:**
+  la ficha nunca se pinta en el servidor (se monta desde estado de cliente tras un clic,
+  `{open && <OrderModal …/>}`), así que el ajuste por defecto no cambia nada y no se toca.
+- **Estado de carga:** mientras baja el trozo, la misma capa `.overlay`/`.modal` de `globals.css`
+  con el «Cargando…» que ya usa Entregas; nada nuevo. El `Modal` de D-187 es de Time Tracker y no
+  tiene estado de carga: no se usa.
+- **El primer clic no se pierde:** el pedido abierto vive en el estado del padre (`open` /
+  `creating`); el elemento diferido queda montado con las mismas props y el componente real las
+  recibe al llegar. La prueba (`order-modal-lazy.test.ts`) afirma que las ocho pantallas siguen
+  montándola condicionada a ese estado (`{x && <OrderModal`), que ninguna importa el componente
+  pesado directo y que el punto de carga no apaga el SSR. Nadie pulsó el botón en un navegador:
+  va por esa forma y por cómo funciona `next/dynamic`.
+- **`routes/page.tsx` no arrastra nada a `/`:** medido, el fichero solo tiene `export default` y
+  **nadie lo importa** (`grep` de `routes/page` en `src/`: cero); su peso ya iba solo a `/routes`.
+  No hay nada que separar. Lo que sí comparten `/` y `/routes` es `OrderModal` (ahora diferido) y
+  las librerías de `lib/`.
+
+### Medido DESPUÉS
+
+| Ruta | Antes (ruta / First Load) | Después | Diferencia |
+|---|---|---|---|
+| `/` (tablero) | 264 kB / 590 kB | 265 kB / **551 kB** | −39 kB |
+| `/routes` | 27,8 kB / 349 kB | 27,5 kB / 316 kB | −33 kB |
+| `/driver` | 4,36 kB / 330 kB | 5,39 kB / 291 kB | −39 kB |
+| `/warehouse` | 2,19 kB / 328 kB | 6,6 kB / 292 kB | −36 kB |
+| `/map` | 6,66 kB / 328 kB | 7,71 kB / 294 kB | −34 kB |
+| `/summary` | 2,94 kB / 327 kB | 4,01 kB / 289 kB | −38 kB |
+| `/accounts` | 4,9 kB / 326 kB | 6,28 kB / 287 kB | −39 kB |
+| `/my-route` | 4,69 kB / 326 kB | 3,88 kB / 293 kB | −33 kB |
+| compartido por todas | 190 kB | 190 kB | 0 |
+
+Las ocho pantallas bajan entre 33 y 39 kB de First Load (el trozo de la ficha, que ahora se pide al
+abrirla; en las que suben unos kB de ruta es el `loading` y el envoltorio). Las demás rutas se
+mueven ±1 kB por el reparto de chunks. **`/` NO baja del objetivo de 400 kB: queda en 551 kB**, y el
+motivo está medido: su chunk de ruta sigue en 265 kB, y ese chunk no es la ficha, es `lib/export`
+(abajo). Se dice con el número en vez de forzarlo.
+
+### Segundo paso, pedido por el orquestador al ver el número: `exceljs` bajo demanda
+
+`lib/export.ts` importaba `exceljs` estático y el tablero importa `lib/export` para sus botones
+«Excel» y «PDF»: la librería entera iba en el chunk inicial de `/` para un botón que se pulsa de
+tarde en tarde. Ahora `exportExcelByEmployee` hace `await import("exceljs")` al pulsar, como ya
+hacía `lib/erp/export.ts`; el tipo va con `import type`, que no pesa; la función ya era `async`,
+misma firma, mismo fichero generado. **Si el trozo no llega** (sin red, despliegue a medias) la
+promesa se rechaza y el botón lo enseña con el `alert` que ya usa Entregas: con el import
+estático ese caso no existía y no podía quedarse en silencio. «PDF» no cambia. El único
+`import ExcelJS` estático que queda es la ruta de API de informes de Time Tracker: servidor, no
+entra en ningún bundle.
+
+| Ruta | Tras el paso 1 | Tras el paso 2 | Total desde main |
+|---|---|---|---|
+| `/` (tablero) | 265 kB / 551 kB | **11,1 kB / 297 kB** | **590 → 297 kB (−293)** |
+| las otras siete | sin cambio | sin cambio (ninguna importa `lib/export`) | −33 a −39 kB |
+| compartido | 190 kB | 190 kB | 0 |
+
+Con esto `/` baja del objetivo de 400 kB y deja de ser la ruta más pesada (ahora lo es `/routes`,
+316 kB).
+
+### Lo que sigue pesando, con nombre, y no se toca aquí
+
+`src/app/(app)/page.tsx` importa `@/lib/export` para los botones «Excel» y «PDF», y **`lib/export.ts`
+importa `exceljs` estáticamente** (`import ExcelJS from "exceljs"`), así que la librería entera va
+en el chunk inicial del tablero aunque solo se use al pulsar el botón. El ERP ya la carga con
+`await import("exceljs")` dentro de la acción (`lib/erp/export.ts`, `master-round-trip.tsx`). Hacer
+lo mismo aquí era un cambio de dos líneas y cero comportamiento, fuera del alcance inicial del
+encargo; el orquestador lo pidió al ver el número y es el paso 2 de arriba.
+Además `OrderModal` arrastra `MapView` (Leaflet + Google), que ahora baja con la ficha y no antes.
+
+### Qué NO cambia
+
+Ni una línea de `OrderModal.tsx`, ni de las ocho pantallas fuera del `import`. Ni `lib/export`, ni
+`routes/page.tsx`.
+
+### Lo no verificado
+
+Nadie abrió una ficha en un navegador tras el cambio: que el «Cargando…» se vea un instante y la
+ficha llegue con el pedido correcto va por la forma (prueba) y por `next/dynamic`, no por haberlo
+mirado. Los pesos son del build local, no del CI. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **978 pasados | 3 saltados**
+(main 1fcf690: 974 | 3; los +4 son `order-modal-lazy.test.ts`).

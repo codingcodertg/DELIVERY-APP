@@ -1,4 +1,7 @@
-import ExcelJS from "exceljs";
+// exceljs se carga al pulsar "Excel", no con el tablero (G-20, D-NEXT): estático entraba entero
+// en el chunk inicial de `/` (265 kB de ruta) para un botón que casi nadie pulsa. Mismo patrón que
+// lib/erp/export.ts. El tipo se importa aparte porque `import type` no pesa nada.
+import type { WorksheetProperties } from "exceljs";
 import type { Delivery, Profile } from "@/lib/types";
 import { stageLabel } from "@/lib/constants";
 import { fmtDate, orderOwner } from "@/lib/utils";
@@ -52,11 +55,14 @@ function stamp(): string {
 // ---------- Excel (.xlsx) with collapsible per-employee groups ----------
 export async function exportExcelByEmployee(deliveries: Delivery[], users: Profile[], lang: Lang) {
   const cols = columns(lang);
+  // Si el trozo no llega (sin red, despliegue a medias), la promesa se rechaza y el botón lo
+  // enseña; con el import estático este caso no existía y no puede quedarse en silencio.
+  const ExcelJS = (await import("exceljs").catch(() => { throw new Error("exceljs chunk failed to load"); })).default;
   const wb = new ExcelJS.Workbook();
   wb.created = new Date();
   const ws = wb.addWorksheet(lang === "es" ? "Órdenes" : "Orders", {
     views: [{ state: "frozen", ySplit: 1 }],
-    properties: { outlineLevelRow: 1 } as ExcelJS.WorksheetProperties,
+    properties: { outlineLevelRow: 1 } as WorksheetProperties,
   });
   // Summary rows sit ABOVE their detail group.
   (ws.properties as unknown as { outlineProperties: { summaryBelow: boolean; summaryRight: boolean } })
