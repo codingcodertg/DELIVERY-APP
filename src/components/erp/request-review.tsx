@@ -7,7 +7,11 @@ import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { money } from "@/lib/erp/utils";
-import { label } from "@/lib/erp/status";
+import { statusLabel } from "@/lib/erp/status";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). El tipo de solicitud es enumerado fijo
+// (statusLabel); nombre de campo, valores, solicitante, tienda y motivo son dato.
 import { decideRequest } from "@/lib/erp/actions";
 
 type Product = {
@@ -54,6 +58,7 @@ export function RequestReview({
   editable: string[];
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [noteFor, setNoteFor] = useState<number | null>(null);
@@ -63,7 +68,7 @@ export function RequestReview({
     setErr(null);
     startTransition(async () => {
       const res = await decideRequest(id, approve, n);
-      if (!res.ok) setErr(res.error ?? "Failed");
+      if (!res.ok) setErr(res.error ?? t("Failed", "Falló"));
       else {
         setNoteFor(null);
         setNote("");
@@ -75,7 +80,7 @@ export function RequestReview({
   if (requests.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        No pending requests. 🎉
+        {t("No pending requests. 🎉", "Sin solicitudes pendientes. 🎉")}
       </div>
     );
   }
@@ -89,18 +94,18 @@ export function RequestReview({
           <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <Badge className={typePill[r.type] ?? "border-slate-200 bg-slate-100 text-slate-600"}>
-                {label(r.type)}
+                {t(statusLabel(r.type).en, statusLabel(r.type).es)}
               </Badge>
               {r.product ? (
                 <Link href={`/erp/product/${r.product.id}`} className="font-medium hover:text-clay-700">
                   {r.product.name}
                 </Link>
               ) : (
-                <span className="text-slate-500">(product #{r.product_id})</span>
+                <span className="text-slate-500">({t("product", "producto")} #{r.product_id})</span>
               )}
               {r.product && <span className="font-mono text-xs text-slate-400">{r.product.sku}</span>}
               <span className="ml-auto text-xs text-slate-400">
-                by {r.requester_name ?? "—"}
+                {t("by", "por")} {r.requester_name ?? "—"}
                 {r.requester_store ? ` · ${r.requester_store}` : ""} · {new Date(r.created_at).toLocaleDateString()}
               </span>
             </div>
@@ -112,9 +117,9 @@ export function RequestReview({
                 <table className="mb-3 w-full max-w-2xl text-sm">
                   <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
                     <tr>
-                      <th className="py-1 pr-4 font-medium">Field</th>
-                      <th className="py-1 pr-4 font-medium">Current</th>
-                      <th className="py-1 pr-4 font-medium">Proposed</th>
+                      <th className="py-1 pr-4 font-medium">{t("Field", "Campo")}</th>
+                      <th className="py-1 pr-4 font-medium">{t("Current", "Actual")}</th>
+                      <th className="py-1 pr-4 font-medium">{t("Proposed", "Propuesto")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -128,29 +133,29 @@ export function RequestReview({
                   </tbody>
                 </table>
               ) : (
-                <p className="mb-3 text-sm text-slate-400">No field changes specified.</p>
+                <p className="mb-3 text-sm text-slate-400">{t("No field changes specified.", "No se indicaron cambios de campo.")}</p>
               ))}
             {r.type === "reactivate" && (
               <p className="mb-3 text-sm">
-                → set commercial status to <span className="font-medium text-emerald-700">active</span>
+                → {t("set commercial status to", "poner estado comercial en")} <span className="font-medium text-emerald-700">{t(statusLabel("active").en, statusLabel("active").es).toLowerCase()}</span>
               </p>
             )}
             {r.type === "deactivate" && (
               <p className="mb-3 text-sm">
-                → set commercial status to <span className="font-medium text-red-700">inactive</span>
+                → {t("set commercial status to", "poner estado comercial en")} <span className="font-medium text-red-700">{t(statusLabel("inactive").en, statusLabel("inactive").es).toLowerCase()}</span>
               </p>
             )}
 
             {noteFor === r.id ? (
               <div className="flex flex-wrap items-center gap-2">
                 <Input
-                  placeholder="Reason for rejection…"
+                  placeholder={t("Reason for rejection…", "Motivo del rechazo…")}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="max-w-sm"
                 />
                 <Button size="sm" variant="outline" onClick={() => act(r.id, false, note)} disabled={pending}>
-                  Confirm reject
+                  {t("Confirm reject", "Confirmar rechazo")}
                 </Button>
                 <Button
                   size="sm"
@@ -160,16 +165,16 @@ export function RequestReview({
                     setNote("");
                   }}
                 >
-                  Cancel
+                  {t("Cancel", "Cancelar")}
                 </Button>
               </div>
             ) : (
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => act(r.id, true)} disabled={pending}>
-                  Approve
+                  {t("Approve", "Aprobar")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setNoteFor(r.id)} disabled={pending}>
-                  Reject…
+                  {t("Reject…", "Rechazar…")}
                 </Button>
               </div>
             )}
