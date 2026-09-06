@@ -9431,3 +9431,18 @@ y el dueño puede cambiar cualquier par editándolo. **Queda en inglés a propó
 excepción; `s.rationale` de `domain/uom.ts` (la justificación de cada sugerencia de unidad de medida
 es lógica de dominio, no se tocó); y los valores guardados de arriba. Fuera del encargo: nada del
 ERP queda sin pasar por el guardián.
+
+**Nota del mismo día (CAMBIOS del auditor):** lo de arriba no decía que **también quedan en inglés los
+mensajes del servidor de `src/lib/erp` que llegan a pantalla**, y quien lea «el resto del ERP en dos
+idiomas» entendería G-10 cerrado con esos mensajes sin que nadie lo hubiera dicho (D-044). Medido
+con el guardián sobre esos ficheros: **`actions.ts` (6)** («Not signed in», «Describe the fix», «No
+unmatched lines to import», «No PDF file provided.»…), **`error-codes.ts` (8)** («You don't have
+access to this. Ask an admin…», «We couldn't match this item automatically…», «Something went wrong on
+our end…»), **`domain/po-parse.ts` (5)** (los errores de lectura que `po-ingest` enseña: «Could not read
+the PO number — enter it manually.»…) y **`google-maps-loader.ts` (4)**: **23 mensajes de usuario en
+inglés**. Se quedan por la misma regla que aplicó el lote 4 a `clock.ts` (D-201): son mensajes que
+produce el servidor (`res.error` / `error.message`) y las pantallas los enseñan tal cual, sin
+traducirlos ni esconderlos; traducirlos exige que el servidor devuelva códigos o pares y es **deuda
+declarada**, no cerrada aquí. Aparte, `master/fields.ts` da **42** hallazgos que **no** son texto: son
+las cabeceras del Excel de ida y vuelta (`buildHeaderMap`), es decir, **dato** del fichero que se
+exporta y se vuelve a leer, y `domain/uom.ts` (4) es el `s.rationale` ya dicho.
