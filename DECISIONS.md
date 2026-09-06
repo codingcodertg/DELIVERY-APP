@@ -9757,14 +9757,35 @@ mueven ±1 kB por el reparto de chunks. **`/` NO baja del objetivo de 400 kB: qu
 motivo está medido: su chunk de ruta sigue en 265 kB, y ese chunk no es la ficha, es `lib/export`
 (abajo). Se dice con el número en vez de forzarlo.
 
-### Lo que sigue pesando en `/`, con nombre, y no se toca aquí
+### Segundo paso, pedido por el orquestador al ver el número: `exceljs` bajo demanda
+
+`lib/export.ts` importaba `exceljs` estático y el tablero importa `lib/export` para sus botones
+«Excel» y «PDF»: la librería entera iba en el chunk inicial de `/` para un botón que se pulsa de
+tarde en tarde. Ahora `exportExcelByEmployee` hace `await import("exceljs")` al pulsar, como ya
+hacía `lib/erp/export.ts`; el tipo va con `import type`, que no pesa; la función ya era `async`,
+misma firma, mismo fichero generado. **Si el trozo no llega** (sin red, despliegue a medias) la
+promesa se rechaza y el botón lo enseña con el `alert` que ya usa Entregas: con el import
+estático ese caso no existía y no podía quedarse en silencio. «PDF» no cambia. El único
+`import ExcelJS` estático que queda es la ruta de API de informes de Time Tracker: servidor, no
+entra en ningún bundle.
+
+| Ruta | Tras el paso 1 | Tras el paso 2 | Total desde main |
+|---|---|---|---|
+| `/` (tablero) | 265 kB / 551 kB | **11,1 kB / 297 kB** | **590 → 297 kB (−293)** |
+| las otras siete | sin cambio | sin cambio (ninguna importa `lib/export`) | −33 a −39 kB |
+| compartido | 190 kB | 190 kB | 0 |
+
+Con esto `/` baja del objetivo de 400 kB y deja de ser la ruta más pesada (ahora lo es `/routes`,
+316 kB).
+
+### Lo que sigue pesando, con nombre, y no se toca aquí
 
 `src/app/(app)/page.tsx` importa `@/lib/export` para los botones «Excel» y «PDF», y **`lib/export.ts`
 importa `exceljs` estáticamente** (`import ExcelJS from "exceljs"`), así que la librería entera va
 en el chunk inicial del tablero aunque solo se use al pulsar el botón. El ERP ya la carga con
 `await import("exceljs")` dentro de la acción (`lib/erp/export.ts`, `master-round-trip.tsx`). Hacer
-lo mismo aquí es un cambio de dos líneas y cero comportamiento, pero **está fuera del alcance de
-este encargo** (OrderModal y routes/page): se deja escrito con el número, para el siguiente.
+lo mismo aquí era un cambio de dos líneas y cero comportamiento, fuera del alcance inicial del
+encargo; el orquestador lo pidió al ver el número y es el paso 2 de arriba.
 Además `OrderModal` arrastra `MapView` (Leaflet + Google), que ahora baja con la ficha y no antes.
 
 ### Qué NO cambia
