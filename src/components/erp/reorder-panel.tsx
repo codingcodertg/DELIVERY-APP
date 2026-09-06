@@ -1,5 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { cn, money } from "@/lib/erp/utils";
+import { usePrefs } from "@/lib/prefs";
+
+// G-10 (D-NEXT): pasa a componente de cliente, como po-reconcile: no tenía "use client" pero tampoco
+// nada de servidor (recibe props serializables que calcula la página). Tiendas, SKU, nombre, proveedor
+// y clase ABC son dato.
 
 export type ReorderItem = {
   product_id: number;
@@ -34,15 +41,16 @@ export function ReorderPanel({
   store: string | null;
   stores: { id: string; name: string }[];
 }) {
+  const { t } = usePrefs();
   return (
     <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-800">Reorder needed</h2>
+        <h2 className="text-sm font-semibold text-slate-800">{t("Reorder needed", "Hay que reordenar")}</h2>
         <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-          {total.toLocaleString()} at / below reorder point{store ? ` · ${store}` : ""}
+          {total.toLocaleString()} {t("at / below reorder point", "en / bajo el punto de reorden")}{store ? ` · ${store}` : ""}
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-1">
-          <Link href="/erp/purchasing" className={chip(!store)}>All</Link>
+          <Link href="/erp/purchasing" className={chip(!store)}>{t("All", "Todas")}</Link>
           {stores.map((s) => (
             <Link key={s.id} href={`/erp/purchasing?store=${s.id}`} className={chip(store === s.id)} title={s.name}>{s.id}</Link>
           ))}
@@ -50,19 +58,19 @@ export function ReorderPanel({
       </div>
 
       {items.length === 0 ? (
-        <p className="p-4 text-sm text-slate-500">Nothing at or below reorder point{store ? ` for ${store}` : ""}. ✓</p>
+        <p className="p-4 text-sm text-slate-500">{t("Nothing at or below reorder point", "Nada en o bajo el punto de reorden")}{store ? ` ${t("for", "de")} ${store}` : ""}. ✓</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
               <tr>
-                <th className="px-4 py-2 font-medium">Product</th>
-                <th className="px-4 py-2 font-medium">Vendor</th>
-                <th className="px-4 py-2 font-medium">Store</th>
+                <th className="px-4 py-2 font-medium">{t("Product", "Producto")}</th>
+                <th className="px-4 py-2 font-medium">{t("Vendor", "Proveedor")}</th>
+                <th className="px-4 py-2 font-medium">{t("Store", "Tienda")}</th>
                 <th className="px-4 py-2 text-right font-medium">QOH</th>
-                <th className="px-4 py-2 text-right font-medium">Reorder pt</th>
-                <th className="px-4 py-2 text-right font-medium">Suggested</th>
-                <th className="px-4 py-2 text-right font-medium">Cost</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Reorder pt", "Pto. reorden")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Suggested", "Sugerido")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Cost", "Costo")}</th>
                 <th className="px-4 py-2 text-center font-medium">ABC</th>
               </tr>
             </thead>
@@ -89,8 +97,7 @@ export function ReorderPanel({
         </div>
       )}
       <p className="border-t border-slate-100 px-4 py-2 text-xs leading-relaxed text-slate-400">
-        Reorder point = demand × lead time + safety stock (from the loaded planning data). Suggested = bring on-hand up to
-        max level (or the reorder point). Showing up to 100, most urgent first. QOH is the real ledger on-hand.
+        {t("Reorder point = demand × lead time + safety stock (from the loaded planning data). Suggested = bring on-hand up to max level (or the reorder point). Showing up to 100, most urgent first. QOH is the real ledger on-hand.", "Punto de reorden = demanda × plazo + stock de seguridad (de los datos de planificación cargados). Sugerido = llevar la existencia al nivel máximo (o al punto de reorden). Se muestran hasta 100, primero los más urgentes. QOH es la existencia real del libro.")}
       </p>
     </section>
   );
