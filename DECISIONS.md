@@ -9176,9 +9176,9 @@ cambiarlas es editar el diccionario. `verify.mjs` en verde sobre `.next` limpio,
 **819 pasados | 3 saltados** (main f266aa9: 804 | 3; los +15 son los quince ficheros nuevos de la
 prueba de claves, una prueba por fichero).
 
-## D-NEXT · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
+## D-203 · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo `erp` se toca) ·
+**Fecha:** 2026-09-05 · **Versión:** erp 0.6.0, package.json 1.120.0 (solo `erp` se toca) ·
 **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-10), dividido en dos ramas para que el
 auditor pueda medir; esta es la primera. Un commit para el mecanismo y uno por fichero. Solo texto:
 **ningún comportamiento cambia** (consultas, filtros, guardados, valores que se envían).

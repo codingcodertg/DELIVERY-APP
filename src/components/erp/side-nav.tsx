@@ -18,7 +18,7 @@ const roleStyles: Record<string, string> = {
 type Item = { href: string; label: string; managerPlus?: boolean };
 type T = (en: string, es: string) => string;
 
-// G-10 (D-NEXT): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
+// G-10 (D-203): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
 // con pares inline. Las etiquetas del menú se construyen con t() dentro del render en vez de en
 // una constante de módulo, porque una constante no puede cambiar de idioma.
 const items = (t: T): Item[] => [

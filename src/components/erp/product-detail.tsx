@@ -19,7 +19,7 @@ import { SuggestFixButton } from "@/components/erp/item/suggest-fix-button";
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * El detalle de producto, pintado en el cliente (G-10, D-NEXT).
+ * El detalle de producto, pintado en el cliente (G-10, D-203).
  *
  * product/[id]/page.tsx es un server component y era el fichero con más texto del ERP (~69
  * textos). El idioma vive en el navegador (usePrefs, localStorage) y el servidor no lo ve, así

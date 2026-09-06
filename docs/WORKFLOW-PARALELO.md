@@ -535,3 +535,18 @@ solo con los checks de Vercel, mirar `gh pr view <n> --json mergeable`. GitHub
 **no lanza `pull_request`** cuando no puede calcular el merge. La salida es
 rebase del worker sobre `origin/main`, veredicto del auditor sobre el rebase
 (solo comparar diff pre y post, no los nueve puntos), y `--force-with-lease`.
+
+---
+
+## 14. La cuenta de `gh` se conmuta sola: comprobar JUSTO antes de fusionar
+
+Medido el 2026-09-05 en el PR #19: `gh auth switch -u CARRERSRTG` al principio del
+comando, CI verde, y el `gh pr merge` fallo con "andresugarte14 does not have the
+correct permissions". Entre el `switch` y el `merge` (tres minutos de CI) la cuenta
+activa cambio a la otra: en esta maquina hay otra sesion (otro proyecto) que usa
+`andresugarte14` y conmuta la cuenta activa del llavero, que es GLOBAL.
+
+Regla: el `switch` va pegado al `merge`, no al principio del comando, y se
+imprime la cuenta activa antes de fusionar. Y si un `gh` de este proyecto
+responde "must be a collaborator" o "does not have the correct permissions", lo
+primero es `gh auth status`, no buscar el error en otro sitio.

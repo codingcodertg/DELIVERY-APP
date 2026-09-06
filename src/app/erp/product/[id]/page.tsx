@@ -12,7 +12,7 @@ import { ProductDetail, type LotRow, type PriceHistoryRow, type ProductRow } fro
 
 export const dynamic = "force-dynamic";
 
-// G-10 (D-NEXT): esta página es un server component y el idioma vive en el navegador (usePrefs),
+// G-10 (D-203): esta página es un server component y el idioma vive en el navegador (usePrefs),
 // así que aquí no queda texto: se consulta y se calcula todo, y ProductDetail (cliente) lo pinta en
 // el idioma elegido. Los ayudantes de pintado (Field, Section, val, "mgr only", "Phase 2") se fueron
 // con el texto. Las consultas, el 404, la familia, el permiso de costo y los cálculos no cambian.

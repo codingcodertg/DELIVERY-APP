@@ -37,7 +37,7 @@ export type TagFacet = { tag: string; n: number };
 
 const TAG_PILL = "border-amber-200 bg-amber-50 text-amber-700";
 type T = (en: string, es: string) => string;
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las ETIQUETAS de revisión
+// G-10 (D-203): texto de pantalla por pares inline (usePrefs). Las ETIQUETAS de revisión
 // ("BELOW COST", …) son valores guardados en review_tags y se enseñan tal cual; aquí solo se
 // traduce el nombre de cada vista prefijada, que es texto.
 const builtins = (t: T) => [

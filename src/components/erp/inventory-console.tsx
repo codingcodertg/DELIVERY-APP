@@ -17,7 +17,7 @@ import {
 } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). El motivo del ajuste se guarda tal
+// G-10 (D-203): texto de pantalla por pares inline (usePrefs). El motivo del ajuste se guarda tal
 // cual (adjustment/damage/shrinkage); solo cambia la etiqueta de la opción. Estado del conteo,
 // tienda y producto son dato.
 

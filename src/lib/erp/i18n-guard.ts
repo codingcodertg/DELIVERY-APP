@@ -1,5 +1,5 @@
 // ============================================================
-// Guardián de texto a pelo en el ERP (G-10, D-NEXT).
+// Guardián de texto a pelo en el ERP (G-10, D-203).
 //
 // El ERP se traduce con pares inline —`t("English", "Español")` de usePrefs—, así que no hay un
 // diccionario contra el que comprobar claves como en Time Tracker (D-187). Lo que sí se puede

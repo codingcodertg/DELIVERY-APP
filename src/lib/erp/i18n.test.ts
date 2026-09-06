@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { textoAPelo, fuenteSinTraducido } from "./i18n-guard";
 
-// G-10 (D-NEXT). El ERP se traduce con pares inline (usePrefs().t(en, es)), no con claves, así que
+// G-10 (D-203). El ERP se traduce con pares inline (usePrefs().t(en, es)), no con claves, así que
 // la red automática no puede ser "cada clave existe en los dos idiomas" (D-187). Es la contraria:
 // en cada fichero YA traducido no queda texto de pantalla a pelo. Lo mide una regex sobre el fuente
 // (i18n-guard.ts), que primero se prueba a sí misma con dos fixtures.

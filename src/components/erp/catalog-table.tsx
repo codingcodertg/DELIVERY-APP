@@ -37,7 +37,7 @@ function Thumb({ path, alt }: { path?: string | null; alt: string }) {
 const COMMERCIAL = ["all", "active", "special_order", "discontinued", "inactive"];
 type T = (en: string, es: string) => string;
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Lo que se construye con t() va en
+// G-10 (D-203): texto de pantalla por pares inline (usePrefs). Lo que se construye con t() va en
 // funciones y no en constantes de módulo, porque una constante no cambia de idioma. Los VALORES
 // (value, state) son los que se guardan y filtran, y no se tocan; solo cambia la etiqueta.
 const recordTabs = (t: T) => [
