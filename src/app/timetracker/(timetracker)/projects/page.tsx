@@ -10,7 +10,7 @@ import { Modal } from "@/components/timetracker/Modal";
 // Ported (D-071) from timetracker-clean's manager/ManagerProjects.jsx —
 // create/edit projects, browse active + archived, per-project stats.
 //
-// D-NEXT (pedido del dueño: "el crear proyecto también que sea un botón"): el formulario de crear /
+// D-205 (pedido del dueño: "el crear proyecto también que sea un botón"): el formulario de crear /
 // editar ya no ocupa sitio permanente arriba; vive en la ventana de D-187 (Modal) y se abre con un
 // botón junto al título de la lista, como en Asignaciones (D-187) y en los ajustes de Nómina (D-192).
 // Editar abre la misma ventana rellena. Mismos campos, misma validación, misma llamada de guardado.
