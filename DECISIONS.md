@@ -9981,3 +9981,90 @@ los de `.banner.*` del hub, que sí se han visto) y por el guardián, no por hab
 valores oscuros de `--surface-soft` (`#212a37`, el `--card-hover` oscuro del hub) y `--tint-neutral`
 (`#2b3646`, el `--line` oscuro de HR) son elección mía, dicha aquí. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1049 pasados | 3 saltados**
 (main e83a58a: 1025 | 3; los +24 son el guardián). «Compiled with warnings» es `unpdf`, preexistente.
+
+## D-NEXT · Cada foto de fichaje enseña dónde se tomó (Auditoría → Fotos), y salir/volver mandan posición
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Time Tracker y clock-in) ·
+**Pedido por:** Andrés, literal: «el clock-in app tiene que guardar GPS cada vez que se toma una foto,
+y en Audit quiero ver la location de cada foto». Sin migración.
+
+### Medido antes
+
+- **La base ya guardaba la posición junto a cada foto**, desde la migración 072: `time_entries.clock_in_lat/lng`
+  + `clock_in_site_id` + `clock_in_in_radius` (y `clock_out_*`); `exceptions.latitude/longitude` (salir) y
+  `returned_lat/lng` (volver). Lo que no existía era enseñarlo: `getDayPhotos` (`clock-in/actions/photos.ts`)
+  no seleccionaba esas columnas y `DayPhoto` solo llevaba `offSite`.
+- **Captura en el cliente (`PunchPanel.tsx`).** La única toma de foto es `alElegirFoto`, y solo la piden
+  **entrada y salida** (`pide("in"|"out")`): foto → `ubicacion()` obligatoria (15 s, rechaza sin GPS:
+  `emp.punch.noGeo` / `geoRequired`) → `clockIn`/`clockOut` con `lat/lng` + `photoPath`. El servidor
+  exige `lat/lng` para decidir `in_radius`. **Esas dos siempre llevaron posición con la foto.**
+- **El hueco:** `startLeave({ reason })` y `endLeave(id)` se llamaban **sin `geo`**, así que
+  `exceptions.latitude/longitude` y `returned_lat/lng` nacían `null` aunque la acción y las columnas los
+  aceptaban. Salir y volver tampoco toman foto en el cliente actual; las fotos «salió del sitio» que hay en
+  el archivo son de la app vieja (D-161) y de las excepciones que `clock.ts` graba con la foto de entrada
+  cuando el fichaje es fuera de sitio o sin turno.
+- **No hay columna de precisión** (`accuracy`) en `time_entries` ni en `exceptions` (solo
+  `driver_locations.accuracy_m`, de Entregas). `ubicacion()` la captura y el servidor la ignora, como
+  hasta hoy. **Sin migración en este encargo**: se deja dicho; añadirla es una decisión aparte.
+
+### Qué se hizo
+
+1. **`lib/clockin/day-photos.ts`** (nuevo, puro, sin red): la parte que se puede probar en solitario.
+   - `distanciaAGeocerca(lat, lng, site)`: **a la geocerca, no al centro.** Polígono: `pointInPolygon` →
+     0; si no, `distanceToPolygonMeters` (que mide al borde también desde dentro: por eso va detrás).
+     Círculo: `max(0, haversine − radius_meters)`. Misma matemática de `geofence.ts`, reutilizada, no
+     reescrita: «a 35 m» de aquí y el «fuera de la geocerca» del fichaje no pueden contradecirse.
+   - `ubicar`: el sitio del fichaje (`*_site_id`) o, si cayó fuera, **el más cercano**, con la distancia a
+     ese; sin posición o sin sitios, nulos.
+   - `sitioDeExcepcion`: el fichaje **en cuyo turno ocurrió** (por `time_entry_id` si lo trae; si no, el
+     abierto de esa persona en ese instante). Nunca «el último fichaje»: una excepción de ayer no se mide
+     contra el sitio de hoy.
+   - `armarFotos`: filas → fotos ordenadas, con `lat`, `lng`, `siteName`, `distanceM`.
+2. **`photos.ts`**: selecciona las columnas de posición, trae los `job_sites` de la empresa (**también
+   inactivos**: una foto de hace meses se mide contra el sitio que había) y, aparte, los fichajes a los que
+   apunte una excepción fuera del día; delega en `armarFotos`. `DayPhoto` gana `lat`, `lng`, `siteName`,
+   `distanceM` (null si el cliente no mandó posición). Mismo alcance por tienda, mismo gate de gerente.
+3. **`DayPhotos.tsx`**: bajo cada foto, «📍 sitio · en el sitio» (0 m se dice así, nunca «0 m»), «📍 sitio
+   · a 35 m», «📍 fuera de la geocerca · a 1,2 km de sitio» (coherente con el `offSite` que ya se pinta),
+   las coordenadas si la empresa no tiene sitios, o «📍 sin ubicación». Con posición, la línea es un `<a>`
+   a `https://www.google.com/maps?q=lat,lng` en pestaña nueva (`stopPropagation`, para no abrir el
+   visor). **Enlace y no mapa a propósito**: ni Leaflet ni la API de Maps entran en `/timetracker`
+   (First Load: 305 kB en esta rama contra los 304 kB que midió el orquestador en main; el kB es el diccionario de Time Tracker con seis claves más, que cargan todas sus rutas, no una librería; `/timetracker/audit`, donde vive la pantalla, 301 kB), cero llave. Seis claves `mgr.photos.loc*` / `openMap` en `en`/`es`,
+   literales en la pantalla, que ya está en la prueba de claves de D-187.
+4. **`PunchPanel.tsx`, el hueco:** salir y volver pasan `await ubicacionOpcional()`: la misma
+   `getCurrentPosition`, 8 s, y **catch → `undefined`**: si el GPS falla o tarda, la excepción se graba
+   igual sin posición. Salir a comer no ficha y no puede quedarse bloqueado por un permiso. **Entrada y
+   salida no cambian ni una línea**: `ubicacion()` sigue obligatoria y los tipos de `clock.ts` iguales;
+   la regla «sin foto se sigue fichando» sigue como estaba. Salir y volver siguen **sin foto**: añadirles
+   cámara sería un flujo nuevo y no es lo pedido.
+
+### Pruebas (`day-photos.test.ts`, 20 casos)
+
+Los cuatro casos de distancia del auditor (centro +0,00045° N con radio 100 → 0; +0,00135° N → ~50 m;
+centro del polígono → 0; 0,002° N del polígono → ~110 m) y un grado de latitud ≈ 111 km; `ubicar` con
+sitio, sin sitio (el más cercano) y con nulos; `sitioDeExcepcion` por id, por turno y sin turno;
+`armarFotos` con las cuatro clases, orden, `offSite` y nulos; `fmtDistancia` («35 m», «1.2 km», «1,2 km»)
+y `enlaceMapa`. **Mutación:** quitar cualquier columna de posición de las `select`, el `job_sites` con
+nombre y geocerca, o la llamada a `armarFotos`, cae nombrando la columna; la pantalla debe tener
+`enlaceMapa`, `target="_blank"`, las claves literales y **ningún** `leaflet`/`google-maps-loader`; y
+`PunchPanel` debe pasar `ubicacionOpcional()` en las tres llamadas de salir/volver.
+
+### Qué NO cambia
+
+Fichar entrada y salida (ni `ubicacion()`, ni `clock.ts`, ni el orden foto → posición → fichaje). El
+alcance por tienda y el gate de gerente de las fotos. Ningún esquema. Ningún peso nuevo en `/timetracker`.
+
+### Lo que se vio de paso y no se toca
+
+`getDayPhotos` pinta como «salió del sitio» **cualquier** `exceptions.photo_path`, y `clock.ts` graba en
+las excepciones de fichaje fuera de sitio / sin turno **la misma foto de entrada**: ese día Auditoría enseña
+la foto dos veces (entrada y «salió»). Ya pasaba; ahora se nota más porque las dos llevan la misma
+ubicación. Es una decisión de qué es una «foto de excepción», y va aparte.
+
+### Lo no verificado
+
+Nadie fichó ni salió a comer con un móvil tras el cambio, ni abrió Auditoría → Fotos con datos reales:
+la línea de ubicación va por el mapeo puro (probado) y por las columnas (afirmadas en la prueba), no por
+haberla mirado. Que la distancia coincida con lo que el servidor decidió (`in_radius`) va por reutilizar
+la misma función, no por comparar filas reales. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1069 pasados | 3 saltados**
+(main 8494cb5: 1049 | 3; los +20 son `day-photos.test.ts`). «Compiled with warnings» es `unpdf`, preexistente.
