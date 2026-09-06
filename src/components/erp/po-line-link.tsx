@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { getPoLineSuggestions, setPoLineProduct, type PoLineSuggestion } from "@/lib/erp/actions";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// Nombre, SKU y el motivo de la sugerencia (c.reason, del servidor) son dato.
 
 // Per-line product link for the reconcile table. Matched → clickable catalog link; unmatched (and a
 // PO line exists) → a picker that suggests candidates (vendor_sku → MPN → name) and allows manual
@@ -22,6 +25,7 @@ export function PoLineLink({
   canEdit: boolean;
 }) {
   const router = useRouter();
+  const { t } = usePrefs();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [suggestions, setSuggestions] = useState<PoLineSuggestion[] | null>(null);
@@ -53,7 +57,7 @@ export function PoLineLink({
       setResults(((data ?? []) as Array<{ id: number; sku: string; name: string; size_in: string | null }>).map((r) => ({ ...r, reason: "search" })));
     } catch (e) {
       setResults([]);
-      setErr(`Search failed: ${dbErrorMessage(e)}`);
+      setErr(t(`Search failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
     }
   }
 
@@ -75,12 +79,12 @@ export function PoLineLink({
         autoFocus
         value={q}
         onChange={(e) => manualSearch(e.target.value)}
-        placeholder="Search products…"
+        placeholder={t("Search products…", "Buscar productos…")}
         className="h-8 w-full rounded-md border border-slate-300 px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
       />
       <ul className="mt-1 max-h-56 overflow-auto">
         {candidates.length === 0 ? (
-          <li className="px-1 py-2 text-xs text-slate-400">{suggestions === null ? "Loading suggestions…" : "No candidates — type to search."}</li>
+          <li className="px-1 py-2 text-xs text-slate-400">{suggestions === null ? t("Loading suggestions…", "Cargando sugerencias…") : t("No candidates — type to search.", "Sin candidatos — escribe para buscar.")}</li>
         ) : (
           candidates.map((c) => (
             <li key={c.id}>
@@ -100,10 +104,10 @@ export function PoLineLink({
       </ul>
       <label className="mt-1 flex items-center gap-1.5 px-1 text-[11px] text-slate-500">
         <input type="checkbox" checked={alias} onChange={(e) => setAlias(e.target.checked)} />
-        Remember this vendor SKU → product (auto-match future imports)
+        {t("Remember this vendor SKU → product (auto-match future imports)", "Recordar este SKU del proveedor → producto (casa solo las próximas importaciones)")}
       </label>
       {err && <p className="px-1 text-xs text-red-600">{err}</p>}
-      <button type="button" onClick={() => setOpen(false)} className="mt-1 px-1 text-[11px] text-slate-400 hover:text-slate-600">Cancel</button>
+      <button type="button" onClick={() => setOpen(false)} className="mt-1 px-1 text-[11px] text-slate-400 hover:text-slate-600">{t("Cancel", "Cancelar")}</button>
     </div>
   );
 
@@ -111,13 +115,13 @@ export function PoLineLink({
     return (
       <span className="relative inline-flex items-center gap-1">
         <Link href={`/erp/product/${productId}`} className="text-clay-700 hover:underline">{label} ↗</Link>
-        {canEdit && <button type="button" onClick={openPicker} className="text-[11px] text-slate-400 hover:text-slate-600">change</button>}
+        {canEdit && <button type="button" onClick={openPicker} className="text-[11px] text-slate-400 hover:text-slate-600">{t("change", "cambiar")}</button>}
         {picker}
       </span>
     );
   }
   if (!poLineId) return <span className="text-slate-400">—</span>;
-  if (!canEdit) return <span className="text-amber-600">unmatched</span>;
+  if (!canEdit) return <span className="text-amber-600">{t("unmatched", "sin casar")}</span>;
   return (
     <span className="relative inline-block">
       <button
@@ -125,7 +129,7 @@ export function PoLineLink({
         onClick={openPicker}
         className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
       >
-        Link product
+        {t("Link product", "Enlazar producto")}
       </button>
       {picker}
     </span>
