@@ -28,6 +28,8 @@ export type Hallazgo = { linea: number; tipo: "jsx" | "atributo" | "literal"; te
 const PERMITIDAS = new Set([
   "sku", "qoh", "csv", "xlsx", "upc", "mpn", "moq", "seo", "rtg", "erp", "uom", "pdf", "url", "qb",
   "png", "jpg", "svg", "ok", "http", "https",
+  // Nombres propios y términos de comercio iguales en los dos idiomas.
+  "incoterm", "shopify", "daltile", "excel", "proforma",
 ]);
 
 function esTexto(s: string): boolean {
@@ -42,6 +44,8 @@ export function fuenteSinTraducido(src: string): string {
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "")
+    // Lo que va en <code> es literal (un comando, un nombre de columna), no texto de pantalla.
+    .replace(/<code\b[^>]*>[\s\S]*?<\/code>/g, "<code />")
     .replace(/\bt\(\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:[^"\\]|\\.)*"\s*\)/g, "t(…)")
     .replace(/\bt\(\s*`[^`]*`\s*,\s*`[^`]*`\s*\)/g, "t(…)")
     // La hoja de cliente de los server components (5b): <Tx en="…" es="…" />, también traducido.
