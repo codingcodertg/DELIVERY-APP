@@ -6,7 +6,7 @@ import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
 import { createClient } from "@/lib/clockin/supabase/client";
 import { compressImage } from "@/lib/clockin/image";
 import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
-import { usePrefs } from "@/lib/prefs";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { MySections } from "@/components/timetracker/MySections";
 import { TripPanel } from "@/components/timetracker/TripPanel";
 
@@ -34,6 +34,10 @@ import { TripPanel } from "@/components/timetracker/TripPanel";
  * Trae también lo que la pantalla vieja enseñaba nada más entrar: el turno de hoy, la semana
  * programada, el almuerzo y las salidas del sitio. Lo que NO trae son los viajes de vehículo
  * (con su selección de camión y kilometraje), que siguen en la pantalla de fichaje.
+ *
+ * D-NEXT: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.punch.*), como el
+ * resto de Registrar tiempo. Los motivos siguen siendo pares en/es (el `value` se guarda), elegidos
+ * ahora por el idioma de Time Tracker.
  */
 
 /**
@@ -78,7 +82,8 @@ const hhmm = (iso: string) =>
 const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
 
 export function PunchPanel() {
-  const { t, lang } = usePrefs();
+  const t = useT();
+  const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
   const [cargando, setCargando] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -107,10 +112,10 @@ export function PunchPanel() {
   /** Coordenadas del navegador. Sin ellas no se ficha: el servidor las exige. */
   function ubicacion(): Promise<{ lat: number; lng: number; accuracy?: number }> {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error(t("This device cannot report its location.", "Este dispositivo no puede informar su ubicación.")));
+      if (!navigator.geolocation) return reject(new Error(t("emp.punch.noGeo")));
       navigator.geolocation.getCurrentPosition(
         (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
-        () => reject(new Error(t("Location is required to punch. Allow it and try again.", "Se necesita la ubicación para fichar. Permítala y vuelva a intentarlo."))),
+        () => reject(new Error(t("emp.punch.geoRequired"))),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
       );
     });
@@ -118,7 +123,7 @@ export function PunchPanel() {
 
   async function subeFoto(file: File): Promise<string | null> {
     if (!d) return null;
-    setPaso(t("Uploading the photo…", "Subiendo la foto…"));
+    setPaso(t("emp.punch.uploading"));
     const supabase = createClient();
     const body = await compressImage(file);
     const path = `${d.companyId}/${d.userId}/${Date.now()}.jpg`;
@@ -126,7 +131,7 @@ export function PunchPanel() {
       supabase.storage.from("exception-photos").upload(path, body, { contentType: "image/jpeg", upsert: false }),
       new Promise<"timeout">((res) => setTimeout(() => res("timeout"), 30000)),
     ]);
-    if (r === "timeout") { setErr(t("The photo is taking too long — weak signal. Try again.", "La foto está tardando demasiado — señal débil. Inténtelo otra vez.")); return null; }
+    if (r === "timeout") { setErr(t("emp.punch.photoTimeout")); return null; }
     if (r.error) { setErr(r.error.message); return null; }
     return path;
   }
@@ -135,9 +140,9 @@ export function PunchPanel() {
     setErr(null);
     setOcupado(accion);
     try {
-      setPaso(t("Getting your location…", "Obteniendo su ubicación…"));
+      setPaso(t("emp.punch.gettingLocation"));
       const geo = await ubicacion();
-      setPaso(accion === "in" ? t("Clocking in…", "Registrando entrada…") : t("Clocking out…", "Registrando salida…"));
+      setPaso(accion === "in" ? t("emp.punch.clockingIn") : t("emp.punch.clockingOut"));
       if (accion === "in") {
         const res: ClockInResult = await clockIn({ ...geo, photoPath, reasons: razones, note: nota || undefined });
         if (!res.ok) {
@@ -168,7 +173,7 @@ export function PunchPanel() {
     setOcupado("in");
     const res = await fn();
     setOcupado(null);
-    if (!res.ok) { setErr(res.message ?? t("Could not save.", "No se pudo guardar.")); return; }
+    if (!res.ok) { setErr(res.message ?? t("emp.punch.saveFail")); return; }
     await load();
   }
 
@@ -191,8 +196,8 @@ export function PunchPanel() {
     await ficha(accion, path ?? undefined);
   }
 
-  if (cargando) return <div className="card"><div className="hint">{t("Loading…", "Cargando…")}</div></div>;
-  if (!d) return <div className="card"><div className="banner err">{err ?? t("Could not read your day.", "No se pudo leer su día.")}</div></div>;
+  if (cargando) return <div className="card"><div className="hint">{t("emp.punch.loading")}</div></div>;
+  if (!d) return <div className="card"><div className="banner err">{err ?? t("emp.punch.dayFail")}</div></div>;
 
   const dentro = !!d.open;
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
@@ -201,10 +206,10 @@ export function PunchPanel() {
     <>
       <div className="card">
         <div className="between">
-          <h2 style={{ margin: 0 }}>{dentro ? t("You are on the clock", "Está trabajando") : t("Clock in", "Registrar entrada")}</h2>
+          <h2 style={{ margin: 0 }}>{dentro ? t("emp.punch.onClock") : t("emp.punch.clockIn")}</h2>
           {dentro
-            ? <span className="pill on">{t("since", "desde")} {hhmm(d.open!.clockInAt)}</span>
-            : <span className="pill wait">{t("not clocked in", "sin fichar")}</span>}
+            ? <span className="pill on">{t("emp.punch.since")} {hhmm(d.open!.clockInAt)}</span>
+            : <span className="pill wait">{t("emp.punch.notClockedIn")}</span>}
         </div>
 
         <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: "8px 0" }}>
@@ -217,9 +222,9 @@ export function PunchPanel() {
         {pideMotivo ? (
           <div className="box" style={{ marginTop: 10 }}>
             <label>
-              {pideMotivo === "offsite" ? t("You are not at a job site. Why?", "No está en un sitio de trabajo. ¿Por qué?")
-                : pideMotivo === "unscheduled" ? t("You are not on the schedule today. Why?", "Hoy no está en el horario. ¿Por qué?")
-                : t("You are at a different site. Why?", "Está en un sitio distinto. ¿Por qué?")}
+              {pideMotivo === "offsite" ? t("emp.punch.whyOffsite")
+                : pideMotivo === "unscheduled" ? t("emp.punch.whyUnscheduled")
+                : t("emp.punch.whyOtherSite")}
             </label>
             {/* Casillas y no un desplegable (D-163).
                 ---------------------------------------------------------------
@@ -260,17 +265,17 @@ export function PunchPanel() {
                 style={{ marginTop: 8 }}
                 value={notaMotivo}
                 onChange={(e) => setNotaMotivo(e.target.value)}
-                placeholder={t("What happened? (optional)", "¿Qué pasó? (opcional)")}
+                placeholder={t("emp.punch.whatHappened")}
               />
             )}
 
             <div className="row" style={{ marginTop: 10 }}>
               <button disabled={!motivos.length || !!ocupado}
                 onClick={() => ficha("in", undefined, motivos, notaMotivo)}>
-                {t("Clock in", "Registrar entrada")}
+                {t("emp.punch.clockIn")}
               </button>
               <button className="btn-ghost" onClick={() => { setPideMotivo(null); setMotivos([]); setNotaMotivo(""); }}>
-                {t("Cancel", "Cancelar")}
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -278,10 +283,10 @@ export function PunchPanel() {
           <div className="row" style={{ marginTop: 6 }}>
             {dentro
               ? <button className="btn-danger" disabled={!!ocupado} onClick={() => pide("out")}>
-                  {ocupado === "out" ? "…" : t("Clock out", "Registrar salida")}
+                  {ocupado === "out" ? "…" : t("emp.punch.clockOut")}
                 </button>
               : <button disabled={!!ocupado} onClick={() => pide("in")}>
-                  {ocupado === "in" ? "…" : t("Clock in", "Registrar entrada")}
+                  {ocupado === "in" ? "…" : t("emp.punch.clockIn")}
                 </button>}
           </div>
         )}
@@ -293,17 +298,17 @@ export function PunchPanel() {
             {d.leave ? (
               <button className="btn-warn" disabled={!!ocupado}
                 onClick={() => corre(() => endLeave(d.leave!.id))}>
-                {d.leave.reason === "lunch" ? t("End lunch", "Terminar almuerzo") : t("I'm back", "Ya volví")} · {hhmm(d.leave.leftAt)}
+                {d.leave.reason === "lunch" ? t("emp.punch.endLunch") : t("emp.punch.imBack")} · {hhmm(d.leave.leftAt)}
               </button>
             ) : (
               <>
                 <button className="btn-warn" disabled={!!ocupado}
                   onClick={() => corre(() => startLeave({ reason: "lunch" }))}>
-                  🍽 {t("Start lunch", "Empezar almuerzo")}
+                  🍽 {t("emp.punch.startLunch")}
                 </button>
                 <button className="btn-ghost" disabled={!!ocupado}
                   onClick={() => corre(() => startLeave({ reason: "customer_visit" }))}>
-                  🚚 {t("Going out", "Voy a salir")}
+                  🚚 {t("emp.punch.goingOut")}
                 </button>
               </>
             )}
@@ -321,21 +326,21 @@ export function PunchPanel() {
       {(d.shift || d.scheduledMinutes > 0) && (
         <div className="card">
           <div className="between">
-            <span className="muted">{t("Today's shift", "Turno de hoy")}</span>
+            <span className="muted">{t("emp.punch.todayShift")}</span>
             <strong>{d.shift ? `${d.shift.start.slice(0, 5)} – ${d.shift.end.slice(0, 5)}` : "—"}</strong>
           </div>
           {d.shift && (d.shift.lunch > 0 || d.shift.site) && (
             <div className="small muted" style={{ textAlign: "right" }}>
-              {d.shift.lunch > 0 ? t(`${d.shift.lunch}m lunch`, `${d.shift.lunch}m de almuerzo`) : ""}
+              {d.shift.lunch > 0 ? t("emp.punch.lunchMin", { m: d.shift.lunch }) : ""}
               {d.shift.lunch > 0 && d.shift.site ? " · " : ""}
               {d.shift.site ?? ""}
             </div>
           )}
           <div className="between" style={{ marginTop: 6 }}>
             <span className="muted">
-              {t("This pay week", "Esta semana de pago")}
+              {t("emp.punch.payWeek")}
               <span className="small muted" style={{ display: "block", fontWeight: 400 }}>
-                {d.periodStart} → {d.periodEnd} {t("(Fri–Thu)", "(vie–jue)")}
+                {d.periodStart} → {d.periodEnd} {t("emp.punch.friThu")}
               </span>
             </span>
             <strong>
@@ -343,7 +348,7 @@ export function PunchPanel() {
             </strong>
           </div>
           <div className="small muted" style={{ textAlign: "right" }}>
-            {d.scheduledDays === 1 ? t(`${d.scheduledDays} day scheduled`, `${d.scheduledDays} día programado`) : t(`${d.scheduledDays} days scheduled`, `${d.scheduledDays} días programados`)}
+            {d.scheduledDays === 1 ? t("emp.punch.dayScheduled", { n: d.scheduledDays }) : t("emp.punch.daysScheduled", { n: d.scheduledDays })}
           </div>
         </div>
       )}
@@ -355,21 +360,21 @@ export function PunchPanel() {
       <div className="card">
         <div className="grid g2">
           <div className="stat">
-            <div className="small muted">{t("Today", "Hoy")}</div>
+            <div className="small muted">{t("emp.punch.today")}</div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>{horas(d.todayMinutes)}</div>
           </div>
           <div className="stat">
-            <div className="small muted">{t("This pay week", "Esta semana de pago")}</div>
+            <div className="small muted">{t("emp.punch.payWeek")}</div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>{horas(d.weekMinutes)}</div>
           </div>
         </div>
 
-        <h2 style={{ marginTop: 16 }}>{t("Today's punches", "Fichajes de hoy")}</h2>
+        <h2 style={{ marginTop: 16 }}>{t("emp.punch.todayPunches")}</h2>
         {d.today.length === 0 && d.breaks.length === 0 ? (
-          <p className="muted">{t("Nothing yet today.", "Todavía nada hoy.")}</p>
+          <p className="muted">{t("emp.punch.nothingToday")}</p>
         ) : (
           <table>
-            <thead><tr><th>{t("What", "Qué")}</th><th>{t("In", "Entrada")}</th><th>{t("Out", "Salida")}</th><th style={{ textAlign: "right" }}>{t("Time", "Tiempo")}</th></tr></thead>
+            <thead><tr><th>{t("emp.punch.colWhat")}</th><th>{t("emp.punch.colIn")}</th><th>{t("emp.punch.colOut")}</th><th style={{ textAlign: "right" }}>{t("emp.punch.colTime")}</th></tr></thead>
             <tbody>
               {/* Fichajes y descansos EN UNA SOLA tabla, ordenados por hora. Antes solo salían
                   los fichajes, así que un almuerzo de 40 minutos no aparecía por ninguna parte.
@@ -377,12 +382,12 @@ export function PunchPanel() {
                   abajo tal como pasó: entré, comí, volví, salí a repartir. */}
               {[
                 ...d.today.map((e) => ({
-                  k: e.id, orden: e.clockInAt, que: t("⏰ Shift", "⏰ Turno"), cls: "on",
+                  k: e.id, orden: e.clockInAt, que: t("emp.punch.shift"), cls: "on",
                   desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
                 })),
                 ...d.breaks.map((b) => ({
                   k: b.id, orden: b.leftAt,
-                  que: b.reason === "lunch" ? t("🍽 Lunch", "🍽 Almuerzo") : t("🚚 Out", "🚚 Fuera"),
+                  que: b.reason === "lunch" ? t("emp.punch.lunchRow") : t("emp.punch.outRow"),
                   cls: b.reason === "lunch" ? "wait" : "",
                   desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
                 })),
@@ -392,7 +397,7 @@ export function PunchPanel() {
                   <tr key={r.k}>
                     <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
                     <td className="nowrap">{hhmm(r.desde)}</td>
-                    <td className="nowrap">{r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("open", "abierto")}</span>}</td>
+                    <td className="nowrap">{r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("emp.punch.open")}</span>}</td>
                     <td className="nowrap" style={{ textAlign: "right" }}>{horas(r.min)}</td>
                   </tr>
                 ))}
@@ -403,9 +408,9 @@ export function PunchPanel() {
           // El total del día, por separado: comer y salir a repartir no son lo mismo ni para
           // la nómina ni para quien revisa.
           <p className="small muted" style={{ marginTop: 8 }}>
-            {d.lunchMinutes > 0 && <>🍽 {t("Lunch", "Almuerzo")} {d.lunchMinutes} min</>}
+            {d.lunchMinutes > 0 && <>🍽 {t("emp.punch.lunch")} {d.lunchMinutes} min</>}
             {d.lunchMinutes > 0 && d.outMinutes > 0 && " · "}
-            {d.outMinutes > 0 && <>🚚 {t("Out", "Fuera")} {d.outMinutes} min</>}
+            {d.outMinutes > 0 && <>🚚 {t("emp.punch.out")} {d.outMinutes} min</>}
           </p>
         )}
       </div>
