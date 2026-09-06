@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * La ficha del pedido, cargada cuando hace falta (G-20, D-NEXT).
+ * La ficha del pedido, cargada cuando hace falta (G-20, D-209).
  *
  * `OrderModal.tsx` son 3.122 líneas y arrastra el mapa, la firma, el visor de fotos y el
  * albarán. Entraba en el bundle inicial de las OCHO pantallas que la montan —el tablero (`/`),

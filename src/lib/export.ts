@@ -1,4 +1,4 @@
-// exceljs se carga al pulsar "Excel", no con el tablero (G-20, D-NEXT): estático entraba entero
+// exceljs se carga al pulsar "Excel", no con el tablero (G-20, D-209): estático entraba entero
 // en el chunk inicial de `/` (265 kB de ruta) para un botón que casi nadie pulsa. Mismo patrón que
 // lib/erp/export.ts. El tipo se importa aparte porque `import type` no pesa nada.
 import type { WorksheetProperties } from "exceljs";

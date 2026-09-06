@@ -9692,7 +9692,7 @@ hay bypass; lo que perdería esa página es el refresco del middleware. Si algú
 id con punto en una URL, estrechar la regla a extensiones conocidas. Y con sesión en `/login`
 sin `next`, el destino es `/home` (`safeNext`, D-090/D-193), no `/`.
 
-## D-NEXT · G-20: la ficha del pedido (`OrderModal`) se carga en diferido; `routes/page.tsx` no arrastra nada a `/`
+## D-209 · G-20: la ficha del pedido (`OrderModal`) se carga en diferido; `routes/page.tsx` no arrastra nada a `/`
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Entregas) ·
 **Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md` (G-20). Sin migración.

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// G-20 (D-NEXT). La ficha del pedido se carga en diferido desde UN punto (OrderModalLazy.tsx).
+// G-20 (D-209). La ficha del pedido se carga en diferido desde UN punto (OrderModalLazy.tsx).
 // Este repo no dibuja pantallas en las pruebas, así que lo que se afirma es la forma: ninguna
 // pantalla importa el componente pesado directo, todas pasan por el punto de carga, y la manera
 // de montarla —`{open && <OrderModal …/>}`, con el pedido en el estado del padre— es la misma,
