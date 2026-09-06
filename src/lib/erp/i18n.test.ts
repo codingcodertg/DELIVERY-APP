@@ -47,6 +47,7 @@ export function Demo({ busy, n }: { busy: boolean; n: number }) {
       <p>
         {t(\`Nothing flagged here. \${n}\`, \`Nada marcado aquí. \${n}\`)}
       </p>
+      <h3><Tx en="Needs review" es="Requiere revisión" /></h3>
     </div>
   );
 }
@@ -94,7 +95,8 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
   for (const ruta of ficheros) {
     it(`${ruta.split("/").pop()} — usa usePrefs y no deja texto fijo`, () => {
       const src = readFileSync(join(process.cwd(), ruta), "utf8");
-      expect(src, `${ruta} no usa usePrefs()`).toMatch(/usePrefs\(\)/);
+      // De cliente: usePrefs(). Server component (5b): la hoja <Tx en es />.
+      expect(src, `${ruta} no usa usePrefs() ni <Tx>`).toMatch(/usePrefs\(\)|<Tx /);
       const h = textoAPelo(src);
       expect(h.map((x) => `${ruta}:${x.linea} [${x.tipo}] ${x.texto}`)).toEqual([]);
     });

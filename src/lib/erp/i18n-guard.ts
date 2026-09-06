@@ -36,14 +36,16 @@ function esTexto(s: string): boolean {
   return palabras.some((w) => !PERMITIDAS.has(w.toLowerCase()));
 }
 
-/** Quita comentarios y las llamadas t("…", "…") / t(`…`, `…`), que son justo el texto ya traducido. */
+/** Quita comentarios, las llamadas t("…", "…") / t(`…`, `…`) y las hojas <Tx en es />: es justo el texto ya traducido. */
 export function fuenteSinTraducido(src: string): string {
   return src
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "")
     .replace(/\bt\(\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:[^"\\]|\\.)*"\s*\)/g, "t(…)")
-    .replace(/\bt\(\s*`[^`]*`\s*,\s*`[^`]*`\s*\)/g, "t(…)");
+    .replace(/\bt\(\s*`[^`]*`\s*,\s*`[^`]*`\s*\)/g, "t(…)")
+    // La hoja de cliente de los server components (5b): <Tx en="…" es="…" />, también traducido.
+    .replace(/<Tx\s+en="(?:[^"\\]|\\.)*"\s+es="(?:[^"\\]|\\.)*"\s*\/>/g, "{t(…)}");
 }
 
 export function textoAPelo(src: string): Hallazgo[] {
