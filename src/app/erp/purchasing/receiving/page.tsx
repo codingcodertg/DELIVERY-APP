@@ -4,6 +4,9 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { Receiving, type PoOption, type StoreOption } from "@/components/erp/receiving";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Receiving — RTG ERP" };
@@ -38,10 +41,9 @@ export default async function ReceivingPage({
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold">Receiving</h1>
+          <h1 className="text-2xl font-semibold"><Tx en="Receiving" es="Recepción" /></h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-500">
-            Receive stock against a logged PO (creating lots with landed cost) or manually. Every receipt posts an
-            append-only <code>receive</code> movement that bumps on-hand. Landed cost is masked for staff (#29).
+            <Tx en="Receive stock against a logged PO (creating lots with landed cost) or manually. Every receipt posts an append-only" es="Recibe existencias contra una OC registrada (creando lotes con costo en destino) o a mano. Cada recepción registra un movimiento" /> <code>receive</code> <Tx en="movement that bumps on-hand. Landed cost is masked for staff (#29)." es="que solo se añade y sube la existencia. El costo en destino se oculta al personal (#29)." />
           </p>
         </div>
         <Receiving pos={pos} stores={stores} initialPoId={initialPoId} />
