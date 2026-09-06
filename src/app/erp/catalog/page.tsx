@@ -7,6 +7,9 @@ import { unwrap } from "@/lib/erp/db-result";
 import { CatalogTable } from "@/components/erp/catalog-table";
 import { queryCatalog } from "@/lib/erp/actions";
 import { CATALOG_PAGE, type CatalogFacets } from "@/lib/erp/catalog";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Catalog — RTG ERP" };
@@ -45,9 +48,9 @@ export default async function CatalogPage({
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold">Catalog</h1>
+          <h1 className="text-2xl font-semibold"><Tx en="Catalog" es="Catálogo" /></h1>
           <p className="text-sm text-slate-500">
-            Golden-record product catalog · {f.total.toLocaleString()} products.
+            <Tx en="Golden-record product catalog" es="Catálogo maestro de productos" /> · {f.total.toLocaleString()} <Tx en="products." es="productos." />
           </p>
         </div>
         <CatalogTable
