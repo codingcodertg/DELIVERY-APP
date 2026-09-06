@@ -7,7 +7,7 @@ import { canDeliver } from "@/lib/constants";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
-import { OrderModal } from "@/components/OrderModal";
+import { OrderModal } from "@/components/OrderModalLazy";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { fallbackDriverColor, fmtDate, fmtWindows, isOverdue, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";

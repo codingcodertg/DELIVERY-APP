@@ -8,7 +8,7 @@ import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { OrdersBoard } from "@/components/OrdersBoard";
-import { OrderModal } from "@/components/OrderModal";
+import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, todayISO, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";

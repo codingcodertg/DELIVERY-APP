@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { roleLabel, stageInfo, stageLabel } from "@/lib/constants";
-import { OrderModal } from "@/components/OrderModal";
+import { OrderModal } from "@/components/OrderModalLazy";
 import { driverKpis, driverQualityKpis } from "@/lib/analytics";
 import { fmtDate, fmtMoney, isOverdue, orderLabel, orderOwner, shiftDateISO, todayISO, yesterdayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";

@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { canCreate, canDeliver, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { routeOrder } from "@/lib/dispatch";
 import { OrdersTable } from "@/components/OrdersTable";
-import { OrderModal } from "@/components/OrderModal";
+import { OrderModal } from "@/components/OrderModalLazy";
 import { ShiftClock } from "@/components/ShiftClock";
 import { withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";

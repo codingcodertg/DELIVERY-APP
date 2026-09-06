@@ -5,7 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
-import { OrderModal } from "@/components/OrderModal";
+import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
 import { todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
