@@ -34,7 +34,11 @@ function msToMin(ms: number): number { const d = new Date(ms); return d.getHours
 export default function TeamRequestsPage() {
   const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince } = useData();
   const t = useT();
-  const rLabel = (type: RequestType | null) => (type ? t("reqtype." + type) : "—");
+  // Claves literales, no construidas: D-202 borro reqtype.* como "muertas" porque la medicion solo
+  // buscaba literales y esta clave se construia con "reqtype." + type; la cola ensenaba la clave cruda.
+  // Con una clave por rama, la prueba de claves de D-187 las ve.
+  const rLabel = (type: RequestType | null) =>
+    type === "add" ? t("reqtype.add") : type === "adjust" ? t("reqtype.adjust") : type === "delete" ? t("reqtype.delete") : "—";
   const aMap = new Map(assignments.map((a) => [a.id, a]));
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const projName = (aid: string | undefined) => { const a = aid ? aMap.get(aid) : undefined; return a ? pMap.get(a.projectId)?.name ?? "—" : "—"; };
