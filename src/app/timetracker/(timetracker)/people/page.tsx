@@ -38,7 +38,7 @@ export default function ManagerPeoplePage() {
 
   const others = users.filter((u) => u.id !== me.id);
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   return (
     <div className="card">
