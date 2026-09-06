@@ -7,53 +7,58 @@ import { Button } from "@/components/erp/ui/button";
 import { parseCsv, guessColumn } from "@/lib/erp/csv";
 import { parseDocument, type ParsedDoc } from "@/lib/erp/domain/po-parse";
 import { logPurchaseOrder, logAcknowledgment, parsePdfUpload } from "@/lib/erp/actions";
+import { usePrefs } from "@/lib/prefs";
 
 type DocType = "po" | "ack";
 type Field = { key: string; label: string; kind?: "text" | "number" | "date" | "status" | "vendor"; wide?: boolean; required?: boolean };
 type Row = Record<string, string>;
 type Vendor = { id: number; name: string };
+type T = (en: string, es: string) => string;
 
-const PO_HEADER: Field[] = [
-  { key: "po_number", label: "PO number", required: true },
-  { key: "vendor_id", label: "Vendor", kind: "vendor", required: true },
-  { key: "po_date", label: "PO date", kind: "date" },
-  { key: "buyer_user", label: "Buyer" },
-  { key: "currency", label: "Currency" },
-  { key: "status", label: "Status", kind: "status" },
-  { key: "ship_to_name", label: "Ship to", wide: true },
-  { key: "total", label: "PO total", kind: "number" },
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las definiciones de campo pasan de
+// constantes a funciones con t(): la `key` es la que viaja al servidor y no cambia; solo la etiqueta.
+// Los estados del pedido (draft/sent/…) son valores guardados y se enseñan tal cual.
+const poHeader = (t: T): Field[] => [
+  { key: "po_number", label: t("PO number", "Número de OC"), required: true },
+  { key: "vendor_id", label: t("Vendor", "Proveedor"), kind: "vendor", required: true },
+  { key: "po_date", label: t("PO date", "Fecha de OC"), kind: "date" },
+  { key: "buyer_user", label: t("Buyer", "Comprador") },
+  { key: "currency", label: t("Currency", "Moneda") },
+  { key: "status", label: t("Status", "Estado"), kind: "status" },
+  { key: "ship_to_name", label: t("Ship to", "Enviar a"), wide: true },
+  { key: "total", label: t("PO total", "Total de OC"), kind: "number" },
 ];
-const PO_COLS: Field[] = [
+const poCols = (t: T): Field[] => [
   { key: "vendor_item_no", label: "MPN" },
-  { key: "description", label: "Description", wide: true },
-  { key: "qty", label: "Qty", kind: "number" },
-  { key: "uom", label: "UoM" },
-  { key: "unit_rate", label: "Rate", kind: "number" },
-  { key: "amount", label: "Amount", kind: "number" },
+  { key: "description", label: t("Description", "Descripción"), wide: true },
+  { key: "qty", label: t("Qty", "Cant."), kind: "number" },
+  { key: "uom", label: t("UoM", "UdM") },
+  { key: "unit_rate", label: t("Rate", "Tarifa"), kind: "number" },
+  { key: "amount", label: t("Amount", "Importe"), kind: "number" },
 ];
-const ACK_HEADER: Field[] = [
-  { key: "ack_document_no", label: "Document no.", required: true },
-  { key: "po_number", label: "Links to PO #", required: true },
-  { key: "vendor_id", label: "Vendor", kind: "vendor" },
-  { key: "ack_date", label: "Ack date", kind: "date" },
-  { key: "currency", label: "Currency" },
+const ackHeader = (t: T): Field[] => [
+  { key: "ack_document_no", label: t("Document no.", "N.º de documento"), required: true },
+  { key: "po_number", label: t("Links to PO #", "Enlaza con OC #"), required: true },
+  { key: "vendor_id", label: t("Vendor", "Proveedor"), kind: "vendor" },
+  { key: "ack_date", label: t("Ack date", "Fecha de confirmación"), kind: "date" },
+  { key: "currency", label: t("Currency", "Moneda") },
   { key: "incoterm", label: "Incoterm" },
-  { key: "payment_terms", label: "Payment terms" },
-  { key: "salesperson", label: "Salesperson", wide: true },
-  { key: "merchandise_value", label: "Merchandise", kind: "number" },
-  { key: "freight", label: "Freight", kind: "number" },
+  { key: "payment_terms", label: t("Payment terms", "Condiciones de pago") },
+  { key: "salesperson", label: t("Salesperson", "Vendedor"), wide: true },
+  { key: "merchandise_value", label: t("Merchandise", "Mercancía"), kind: "number" },
+  { key: "freight", label: t("Freight", "Flete"), kind: "number" },
   { key: "iva_pct", label: "IVA %", kind: "number" },
   { key: "total", label: "Total", kind: "number" },
 ];
-const ACK_COLS: Field[] = [
+const ackCols = (t: T): Field[] => [
   { key: "item_no", label: "MPN" },
-  { key: "description", label: "Description", wide: true },
-  { key: "uom", label: "UoM" },
-  { key: "quantity", label: "Qty", kind: "number" },
-  { key: "unit_price", label: "Unit price", kind: "number" },
-  { key: "amount", label: "Amount", kind: "number" },
-  { key: "boxes", label: "Boxes", kind: "number" },
-  { key: "pallets", label: "Pallets", kind: "number" },
+  { key: "description", label: t("Description", "Descripción"), wide: true },
+  { key: "uom", label: t("UoM", "UdM") },
+  { key: "quantity", label: t("Qty", "Cant."), kind: "number" },
+  { key: "unit_price", label: t("Unit price", "Precio unitario"), kind: "number" },
+  { key: "amount", label: t("Amount", "Importe"), kind: "number" },
+  { key: "boxes", label: t("Boxes", "Cajas"), kind: "number" },
+  { key: "pallets", label: t("Pallets", "Tarimas"), kind: "number" },
 ];
 const STATUSES = ["draft", "sent", "acknowledged", "partial", "received", "closed"];
 const CSV_SYNONYMS: Record<string, string[]> = {
@@ -76,10 +81,12 @@ const s = (v: unknown) => (v == null ? "" : String(v));
 const blankLine = (cols: Field[]): Row => Object.fromEntries(cols.map((c) => [c.key, ""]));
 
 export function PoIngest({ vendors }: { vendors: Vendor[] }) {
+  const { t } = usePrefs();
+  const PO_HEADER = poHeader(t), PO_COLS = poCols(t), ACK_HEADER = ackHeader(t), ACK_COLS = ackCols(t);
   const [docType, setDocType] = useState<DocType>("po");
   const [text, setText] = useState("");
   const [header, setHeader] = useState<Row>({ currency: "USD", status: "sent" });
-  const [lines, setLines] = useState<Row[]>([blankLine(PO_COLS)]);
+  const [lines, setLines] = useState<Row[]>(() => [blankLine(poCols(t))]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
@@ -98,12 +105,12 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     return hit ? String(hit.id) : "";
   }
 
-  function switchType(t: DocType) {
-    setDocType(t);
+  function switchType(kind: DocType) {
+    setDocType(kind);
     setResult(null);
     setErr(null);
-    setHeader({ currency: "USD", ...(t === "po" ? { status: "sent" } : {}) });
-    setLines([blankLine(t === "po" ? PO_COLS : ACK_COLS)]);
+    setHeader({ currency: "USD", ...(kind === "po" ? { status: "sent" } : {}) });
+    setLines([blankLine(kind === "po" ? PO_COLS : ACK_COLS)]);
     setWarnings([]);
     setPdfPath(null);
   }
@@ -139,7 +146,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     setResult(null);
     const doc = parseDocument(text);
     if (!doc) {
-      setErr("Couldn't recognize this document. Drag the PDF, paste `pdftotext -layout` output, import a CSV, or fill it in manually below.");
+      setErr(t("Couldn't recognize this document. Drag the PDF, paste `pdftotext -layout` output, import a CSV, or fill it in manually below.", "No se reconoció este documento. Arrastra el PDF, pega la salida de `pdftotext -layout`, importa un CSV o rellénalo a mano abajo."));
       return;
     }
     setPdfPath(null); // pasted text isn't the stored PDF
@@ -166,12 +173,12 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
         if (note) {
           setWarnings((w) => [
             ...w,
-            `The original PDF was not archived (${note}). The parsed data below is still correct, but the order will save without an attached document.`,
+            t(`The original PDF was not archived (${note}). The parsed data below is still correct, but the order will save without an attached document.`, `El PDF original no se archivó (${note}). Los datos leídos abajo siguen siendo correctos, pero el pedido se guardará sin documento adjunto.`),
           ]);
         }
       }
     } catch {
-      setErr("Couldn't read that PDF. Try paste / CSV / manual.");
+      setErr(t("Couldn't read that PDF. Try paste / CSV / manual.", "No se pudo leer ese PDF. Prueba pegar texto, CSV o a mano."));
     } finally {
       setParsing(false);
     }
@@ -182,14 +189,14 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     const file = e.target.files?.[0];
     if (!file) return;
     const rows = parseCsv(await file.text());
-    if (rows.length < 2) { setErr("CSV needs a header row plus at least one data row."); return; }
+    if (rows.length < 2) { setErr(t("CSV needs a header row plus at least one data row.", "El CSV necesita una fila de cabecera y al menos una de datos.")); return; }
     const hdr = rows[0];
     const map = Object.fromEntries(lineCols.map((c) => [c.key, guessColumn(hdr, CSV_SYNONYMS[c.key] ?? [c.key])]));
     const mapped = rows.slice(1).map((r) =>
       Object.fromEntries(lineCols.map((c) => [c.key, map[c.key] >= 0 ? (r[map[c.key]] ?? "").trim() : ""]))
     );
     const usable = mapped.filter((l) => Object.values(l).some((v) => v !== ""));
-    if (usable.length === 0) { setErr("No usable rows — check the CSV headers."); return; }
+    if (usable.length === 0) { setErr(t("No usable rows — check the CSV headers.", "No hay filas utilizables — revisa las cabeceras del CSV.")); return; }
     setLines(usable);
     e.target.value = "";
   }
@@ -198,11 +205,11 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     setErr(null);
     setResult(null);
     for (const f of headerFields) {
-      if (f.required && !s(header[f.key]).trim()) { setErr(`${f.label} is required.`); return; }
+      if (f.required && !s(header[f.key]).trim()) { setErr(t(`${f.label} is required.`, `${f.label} es obligatorio.`)); return; }
     }
     const idKey = docType === "po" ? "vendor_item_no" : "item_no";
     const cleanLines = lines.filter((l) => Object.values(l).some((v) => s(v).trim() !== "")).filter((l) => s(l[idKey]).trim() || s(l.description).trim());
-    if (cleanLines.length === 0) { setErr("Add at least one line item."); return; }
+    if (cleanLines.length === 0) { setErr(t("Add at least one line item.", "Añade al menos una línea.")); return; }
     const headerToSend = pdfPath ? { ...header, source_pdf_ref: pdfPath } : header;
     startTransition(async () => {
       const res = docType === "po" ? await logPurchaseOrder(headerToSend, cleanLines) : await logAcknowledgment(headerToSend, cleanLines);
@@ -219,24 +226,24 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
     <div className="space-y-5">
       {/* Doc type tabs */}
       <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-        {(["po", "ack"] as const).map((t) => (
+        {(["po", "ack"] as const).map((kind) => (
           <button
-            key={t}
+            key={kind}
             type="button"
-            onClick={() => switchType(t)}
+            onClick={() => switchType(kind)}
             className={cn(
               "rounded-md px-4 py-1.5 text-sm transition-colors",
-              docType === t ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
+              docType === kind ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
             )}
           >
-            {t === "po" ? "Purchase order" : "Acknowledgment (proforma)"}
+            {kind === "po" ? t("Purchase order", "Orden de compra") : t("Acknowledgment (proforma)", "Confirmación (proforma)")}
           </button>
         ))}
       </div>
 
       {/* Import */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-2 text-sm font-medium">Import</div>
+        <div className="mb-2 text-sm font-medium">{t("Import", "Importar")}</div>
 
         {/* Drag-and-drop PDF (parsed server-side via unpdf) */}
         <div
@@ -249,37 +256,36 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
           )}
         >
           <p className="text-sm font-medium text-slate-700">
-            {parsing ? "Reading PDF…" : "Drag a PO or acknowledgment PDF here"}
+            {parsing ? t("Reading PDF…", "Leyendo PDF…") : t("Drag a PO or acknowledgment PDF here", "Arrastra aquí el PDF de una OC o una confirmación")}
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            or{" "}
+            {t("or", "o")}{" "}
             <label className="cursor-pointer font-medium text-clay-700 hover:underline">
-              browse
+              {t("browse", "examinar")}
               <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={parsing}
                 onChange={(e) => { onPdf(e.target.files?.[0]); e.target.value = ""; }} />
             </label>{" "}
-            — auto-detects PO vs proforma. Everything is editable below before saving.
+            {t("— auto-detects PO vs proforma. Everything is editable below before saving.", "— detecta sola si es OC o proforma. Todo se puede editar abajo antes de guardar.")}
           </p>
         </div>
 
         <div className="my-3 flex items-center gap-3 text-xs text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" /> or paste text <span className="h-px flex-1 bg-slate-200" />
+          <span className="h-px flex-1 bg-slate-200" /> {t("or paste text", "o pega el texto")} <span className="h-px flex-1 bg-slate-200" />
         </div>
         <p className="mb-2 text-xs text-slate-500">
-          Paste <code className="rounded bg-slate-100 px-1 font-mono">pdftotext -layout file.pdf -</code> output (or copy
-          from your PDF viewer) and Parse, import a CSV of the line items, or just fill it in by hand.
+          {t("Paste", "Pega")} <code className="rounded bg-slate-100 px-1 font-mono">pdftotext -layout file.pdf -</code> {t("output (or copy from your PDF viewer) and Parse, import a CSV of the line items, or just fill it in by hand.", "(o copia desde tu visor de PDF) y pulsa Leer, importa un CSV con las líneas, o rellénalo a mano.")}
         </p>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={5}
-          placeholder="Paste the PO / acknowledgment text here…"
+          placeholder={t("Paste the PO / acknowledgment text here…", "Pega aquí el texto de la OC / confirmación…")}
           className="w-full rounded-md border border-slate-300 bg-white p-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
         />
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <Button onClick={onParse} disabled={!text.trim()}>Parse</Button>
+          <Button onClick={onParse} disabled={!text.trim()}>{t("Parse", "Leer")}</Button>
           <label className="cursor-pointer text-sm text-clay-700 hover:underline">
-            Import line items from CSV
+            {t("Import line items from CSV", "Importar líneas desde CSV")}
             <input type="file" accept=".csv,text/csv" onChange={onCsv} className="hidden" />
           </label>
         </div>
@@ -292,7 +298,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
 
       {/* Header fields */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-3 text-sm font-medium">{docType === "po" ? "Purchase order" : "Acknowledgment"} header</div>
+        <div className="mb-3 text-sm font-medium">{docType === "po" ? t("Purchase order header", "Cabecera de la orden de compra") : t("Acknowledgment header", "Cabecera de la confirmación")}</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {headerFields.map((f) => (
             <label key={f.key} className={cn("space-y-1", f.wide && "col-span-2")}>
@@ -325,13 +331,13 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
       {/* Line items */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-medium">Line items ({lines.length})</div>
+          <div className="text-sm font-medium">{t("Line items", "Líneas")} ({lines.length})</div>
           <button
             type="button"
             onClick={() => setLines((p) => [...p, blankLine(lineCols)])}
             className="rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
           >
-            + Add line
+            {t("+ Add line", "+ Añadir línea")}
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -360,7 +366,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
                       type="button"
                       onClick={() => setLines((p) => p.filter((_, j) => j !== i))}
                       className="rounded px-2 py-1 text-xs text-slate-400 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Remove line"
+                      aria-label={t("Remove line", "Quitar línea")}
                     >
                       ✕
                     </button>
@@ -371,43 +377,42 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
           </table>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Lines are matched to catalog products by MPN (vendor SKU → product MPN). Unmatched lines are still saved and
-          reported, so reconciliation never silently drops a line.
+          {t("Lines are matched to catalog products by MPN (vendor SKU → product MPN). Unmatched lines are still saved and reported, so reconciliation never silently drops a line.", "Las líneas se casan con productos del catálogo por MPN (SKU del proveedor → MPN del producto). Las que no casan se guardan e informan igual, así la conciliación nunca pierde una línea en silencio.")}
         </p>
       </div>
 
       {/* Submit + result */}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={onSubmit} disabled={pending}>
-          {pending ? "Saving…" : docType === "po" ? "Save purchase order" : "Save acknowledgment"}
+          {pending ? t("Saving…", "Guardando…") : docType === "po" ? t("Save purchase order", "Guardar orden de compra") : t("Save acknowledgment", "Guardar confirmación")}
         </Button>
         {err && <span className="text-sm text-red-600">{err}</span>}
       </div>
 
       {result && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-          <div className="font-semibold">Saved.</div>
+          <div className="font-semibold">{t("Saved.", "Guardado.")}</div>
           <div className="mt-1 space-y-0.5 text-emerald-700">
             <div>
               {docType === "po"
-                ? `PO ${s(result.po_number)} — ${s(result.lines_inserted)} line(s), ${s(result.matched)} matched, ${s(result.unmatched)} unmatched.`
-                : `Acknowledgment ${s(result.ack_document_no)} — ${s(result.lines_inserted)} line(s), ${s(result.matched_lines)} matched to PO line(s).`}
+                ? t(`PO ${s(result.po_number)} — ${s(result.lines_inserted)} line(s), ${s(result.matched)} matched, ${s(result.unmatched)} unmatched.`, `OC ${s(result.po_number)} — ${s(result.lines_inserted)} línea(s), ${s(result.matched)} casadas, ${s(result.unmatched)} sin casar.`)
+                : t(`Acknowledgment ${s(result.ack_document_no)} — ${s(result.lines_inserted)} line(s), ${s(result.matched_lines)} matched to PO line(s).`, `Confirmación ${s(result.ack_document_no)} — ${s(result.lines_inserted)} línea(s), ${s(result.matched_lines)} casadas con líneas de la OC.`)}
             </div>
             {Array.isArray(result.unmatched_mpns) && (result.unmatched_mpns as string[]).length > 0 && (
-              <div className="text-amber-700">Unmatched MPNs: {(result.unmatched_mpns as string[]).join(", ")}</div>
+              <div className="text-amber-700">{t("Unmatched MPNs:", "MPN sin casar:")} {(result.unmatched_mpns as string[]).join(", ")}</div>
             )}
             {docType === "ack" && !result.po_id && (
-              <div className="text-amber-700">No PO matched this proforma&apos;s PO number — it won&apos;t reconcile until a PO with that number exists.</div>
+              <div className="text-amber-700">{t("No PO matched this proforma's PO number — it won't reconcile until a PO with that number exists.", "Ninguna OC coincide con el número de OC de esta proforma — no se conciliará hasta que exista una OC con ese número.")}</div>
             )}
           </div>
           <div className="mt-3 flex gap-3">
             {poId != null && (
               <Link href={`/erp/purchasing/orders/${poId}`} className="rounded-md bg-clay-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-clay-700">
-                View reconciliation →
+                {t("View reconciliation →", "Ver conciliación →")}
               </Link>
             )}
             <Link href="/erp/purchasing/orders" className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-              All orders
+              {t("All orders", "Todos los pedidos")}
             </Link>
           </div>
         </div>
