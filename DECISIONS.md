@@ -9547,3 +9547,55 @@ Nadie abrió las pantallas con sesión real en español; la cola del gerente arr
 prueba de claves, que ahora sí la cubre). La traducción es la que ya había en los pares de `usePrefs`
 (D-159), movida a claves, no reescrita. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **890 pasados | 3 saltados**
 (main ec83945: 879 | 3; los +11 son los once ficheros nuevos en la prueba de claves).
+
+## D-NEXT · Auditoría 2026-09-05, G-4 y G-5: se borra la página de aprobaciones que nadie enlazaba, y `/recruiting/users` redirige siempre
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Entregas y HR se tocan) ·
+**Pedido por:** Andrés (orquestador), sobre `docs/AUDIT-2026-09-05.md`, con la decisión ya tomada.
+Sin migración.
+
+### G-5 · `src/app/(app)/approvals/page.tsx`, borrada
+
+**Qué era.** Una pantalla completa de Entregas (**64 líneas en main al borrarla**; el informe decía 137 y el
+mensaje del commit lo repitió sin medir: el número real es el del diff, 64) con las etapas de los pedidos en
+pestañas y la cola de aprobación, gateada por `canApprove`. Existía desde el commit inicial
+(`8e2206d`, 2026-07-17) y **nadie la enlazaba**: 0 referencias a `/approvals` en `src/`, `public/`,
+`next.config.mjs` y los documentos de rutas (la única mención está en el propio informe de
+auditoría); no está en `TABS` de `constants.ts`; ni el middleware ni las rutas públicas la nombran.
+Solo se llegaba escribiendo la URL.
+
+**Por qué se borra y no se enlaza.** El Board (`/`) ya enseña las mismas etapas con los mismos
+pedidos y la aprobación se hace desde la ficha del pedido (`OrderModal`, con `canApprove`): enlazar
+la página sería ofrecer dos sitios para lo mismo. Si alguien la busca: **se recupera con un revert de
+este commit**. `canApprove` **se queda**: es una capacidad del rol (la usan `OrderModal` y su prueba),
+no de esta pantalla.
+
+### G-4 · `/recruiting/users` redirigía al login en vez de a Usuarios
+
+**Qué fallaba.** La página es una redirección a `/home/users` que se dejó para marcadores viejos
+(D-056, D-062), pero vivía **dentro del route group `(recruiting)`**, cuyo layout comprueba sesión y
+`recruiting_role` antes de que corra el `redirect()`. Sin sesión, `/recruiting/users` mandaba a
+`/login?next=/recruiting`, y quien no tuviera acceso a HR ni siquiera llegaba a Usuarios.
+
+**Qué se hizo.** Se mueve a `src/app/recruiting/users/page.tsx`, fuera del grupo, con el mismo
+`redirect("/home/users")`, exactamente como hace `src/app/(app)/users/page.tsx`. Comprobado: no hay
+otra ruta `/recruiting/users` (colisión), y no hay `layout.tsx` en `src/app/recruiting/` que la vuelva
+a gatear (la carpeta solo tiene el grupo, `actions/` y el CSS). Quien llegue sin sesión acaba en
+`/home/users`, que ya pide sesión con su propio `next`.
+
+### La prueba
+
+`src/lib/route-groups.test.ts` (5 pruebas) afirma la forma del árbol: `/recruiting/users` vive fuera
+del grupo y sigue siendo un `redirect` sin sesión ni rol por medio; no hay layout en
+`src/app/recruiting/`; `src/app/(app)/approvals` no existe; y ningún fichero de `src/` enlaza
+`/approvals`. Es lo único que se puede afirmar sin dibujar pantallas.
+
+### Qué NO cambia
+
+Ni `canApprove`, ni el Board, ni `OrderModal`, ni el layout de `(recruiting)`, ni `/home/users`.
+
+### Lo no verificado
+
+Nadie pidió `/recruiting/users` sin sesión en producción: que acabe en `/home/users` va por la forma
+del árbol (la prueba) y por lo que ya hace `(app)/users`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **895 pasados | 3 saltados**
+(main 1f14ee3: 890 | 3; los +5 son la prueba nueva).
