@@ -9446,3 +9446,35 @@ traducirlos ni esconderlos; traducirlos exige que el servidor devuelva códigos 
 declarada**, no cerrada aquí. Aparte, `master/fields.ts` da **42** hallazgos que **no** son texto: son
 las cabeceras del Excel de ida y vuelta (`buildHeaderMap`), es decir, **dato** del fichero que se
 exporta y se vuelve a leer, y `domain/uom.ts` (4) es el `s.rationale` ya dicho.
+
+## D-NEXT · Crear / editar proyecto pasa a botón + ventana (Time Tracker)
+
+**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker se toca) ·
+**Pedido por:** Andrés, literal: «el crear proyecto también que sea un botón».
+
+**Qué había.** En Proyectos (`projects/page.tsx`) el formulario de crear / editar ocupaba sitio
+permanente arriba; la lista de proyectos quedaba debajo, y editar hacía `scrollTo(0)` para subir al
+formulario. Es el mismo patrón que se quitó en Asignaciones (D-187) y en los ajustes sueltos de
+Nómina (D-192).
+
+**Qué se hizo.** Un botón «➕ New project» / «➕ Nuevo proyecto» junto al título de la lista abre la
+ventana de D-187 (`Modal`, tal cual: Escape, clic fuera, botón de cerrar). Dentro va el **mismo
+formulario**: mismos campos, misma validación (nombre de dos letras o más; si no, la ventana se queda
+abierta como antes se quedaba el formulario), misma llamada de guardado (`insertProject` /
+`updateProject`, en el mismo sitio); al guardar con éxito se cierra. Editar abre la misma ventana
+rellena. El `scrollTo(0)` de editar se quita: la ventana va encima de donde se está. «Cancelar» pasa
+a estar siempre (antes solo al editar), porque ahora también cierra la ventana.
+
+**Texto.** «Admins only.» era el único texto a pelo de la pantalla: pasa a clave (`mgr.proj.adminsOnly`).
+Dos claves nuevas en los dos idiomas; el fichero entra en la prueba de claves de D-187. **Mutación
+medida:** sin la fila española de `mgr.proj.newBtn` la prueba cae con «falta mgr.proj.newBtn en
+español (usada en …projects/page.tsx)».
+
+**Qué NO cambia.** La lista, el gasto por proyecto, archivar / restaurar, la aritmética, y qué hace
+el guardado y dónde escribe. Las otras cinco pantallas de Time Tracker con «Admins only.» a pelo
+(`insights`, `live`, `people`, `settings`, …) no están en el encargo y se quedan.
+
+**Lo no verificado.** Nadie abrió la pantalla con sesión real: que la ventana se vea bien en el tema
+oscuro por defecto de Time Tracker va por lo que ya arregló D-187 (`.timetracker-module .modal`),
+no se ha vuelto a mirar. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **880 pasados | 3 saltados** (main 272895b: 879 | 3; el +1 es
+el fichero nuevo en la prueba de claves).
