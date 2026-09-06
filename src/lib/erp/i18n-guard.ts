@@ -30,6 +30,8 @@ const PERMITIDAS = new Set([
   "png", "jpg", "svg", "ok", "http", "https",
   // Nombres propios y términos de comercio iguales en los dos idiomas.
   "incoterm", "shopify", "daltile", "excel", "proforma",
+  // Siglas de tres letras que el filtro de "palabra de tres letras" atraparía.
+  "abc", "usa", "cogs", "mpn",
 ]);
 
 function esTexto(s: string): boolean {
