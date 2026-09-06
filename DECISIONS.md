@@ -9799,3 +9799,80 @@ Nadie abrió una ficha en un navegador tras el cambio: que el «Cargando…» se
 ficha llegue con el pedido correcto va por la forma (prueba) y por `next/dynamic`, no por haberlo
 mirado. Los pesos son del build local, no del CI. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **978 pasados | 3 saltados**
 (main 1fcf690: 974 | 3; los +4 son `order-modal-lazy.test.ts`).
+
+## D-NEXT · G-10b: los mensajes del servidor del ERP viajan como código y se traducen en el cliente
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo ERP se toca) ·
+**Pedido por:** Andrés (orquestador), sobre la deuda que D-204 dejó declarada («23 mensajes de servidor
+de `lib/erp` en inglés»). Sin migración. **Cero cambio de comportamiento:** mismos códigos HTTP, mismos
+flujos, mismos textos en inglés; en español se ve el par.
+
+### El inventario, medido otra vez (main 15d7370)
+
+D-204 contaba 23 con el guardián de 5b, y el guardián **no era la herramienta**: su regla de literales
+pide mayúscula inicial y salta minúsculas («not authorized»), siglas («SKU, name…») y plantillas con
+backticks. Contado a mano, fichero por fichero y con quién lo enseña:
+
+| Fichero | Sitios | Distintos | Llega a pantalla | Qué se hace |
+|---|---|---|---|---|
+| `lib/erp/actions.ts` | **13** (D-204: 6) | 11 | sí: `setErr(res.error)` / `setMsg` en 17 componentes | código + `params` |
+| `lib/erp/domain/po-parse.ts` | **6** (D-204: 5) | 5 | sí: `warnings` que pinta `po-ingest` | código + `params` |
+| `lib/erp/error-codes.ts` | 8 | 8 | **no**: solo los consume `api-error.ts` para `/api/erp/jobs/refresh-daltile-matches`, que nadie llama desde el cliente (cron inactivo por diseño, D-184) y que el `AppError` de `unwrap` nunca usa (siempre pasa su propio `message`) | se quedan, dicho aquí |
+| `lib/erp/google-maps-loader.ts` | 4 | 4 | **no**: fichero muerto, cero importadores (§15, literal y construido); los mapas cargan el de la raíz | **se borra** |
+
+**17 mensajes visibles** en total, no 23: los 8 de `error-codes` y los 4 del loader no los ve nadie. Los
+**27** `error: error.message` de Supabase en `actions.ts` no entran: son dato del servidor y se enseñan
+letra por letra (D-192, D-204). En `actions.ts` los 13 sitios son 12 literales más una plantilla,
+``Couldn't read the PDF: ${e.message}``, que era justo concatenación de texto en el servidor; en
+`po-parse.ts`, cuatro literales (uno repetido) y otra plantilla con dos importes.
+
+### Cómo (mismo patrón que `clock-in/actions/clock.ts`, D-201)
+
+El servidor no sabe el idioma: `usePrefs` vive en `localStorage`, sin cookie. Así que **no devuelve
+texto**: devuelve `{ ok: false, code }` y, si el mensaje lleva datos, `params` aparte.
+
+- **`lib/erp/messages.ts`** (nuevo). No había un fichero de textos del ERP —los pares viven inline en
+  cada componente—, y un mapa de códigos necesita un solo sitio. `ERP_MESSAGES = { CÓDIGO: { en, es } }`
+  con los **16** pares (11 + 5); `fail(code, params?)`; `rellenar(plantilla, params)` (`{detail}`,
+  `{sum}`, `{total}`; un hueco sin dato queda vacío, nunca se enseña la llave); `mensajeTexto(m, t)`; y
+  `failText(res, t)`, que devuelve el par si hay código y `res.error` tal cual si es de Supabase. Los
+  textos en inglés son **los literales que había, letra por letra** (también «not authorized» en
+  minúscula: cambiar el inglés no era el encargo).
+- **`actions.ts`:** `Result` gana `| ErpFail`; cada literal pasa a `fail("CÓDIGO")`. Los mismos `if`,
+  los mismos `return`, las mismas firmas salvo el tipo. Ningún `t()` ni concatenación en `lib/erp`; lo
+  mide el guardián.
+- **`po-parse.ts`:** `warnings: Mensaje[]` en vez de `string[]`. El parser corre **dos veces**: en el
+  navegador (`po-ingest`, texto pegado) y en el servidor (`parsePdfUpload`); con el código en el dato,
+  la traducción es una sola, en `po-ingest`, para las dos vías.
+- **17 componentes** que pintaban `res.error` a pelo pasan por `failText(res, t)`. No fue voluntad: al
+  quitar `error` de un miembro de la unión, `tsc` lo exige en cada consumidor; los tres que consumen
+  solo acciones con `error.message` (`catalog-table`, `decisions-upload`, `master-round-trip`) no
+  cambian porque su tipo no lleva código. Los `?? t("Merge failed")` y parecidos desaparecen: nunca se
+  disparaban, `error` siempre era string.
+
+### El guardián, ampliado (`i18n.test.ts`, 60 → 107 casos)
+
+Lo que pedía el encargo era que «un código sin par caiga en la prueba», y eso solo vale si la prueba
+lee los códigos **del fuente**, no de una lista a mano: los recoge con regex de `fail("…")` y
+`warnings.push({ code: "…" })` (13 + 6 sitios, y el recuento es una afirmación), y por cada uno exige
+par `en`/`es` no vacío, distinto, y con los mismos `{marcadores}`. Al revés también: **ningún par sin
+emisor** (un código que nadie devuelve es texto muerto, §15). La **mutación** está escrita: quitar
+`NO_PDF_FILE`, o vaciar el `es` de `TOTAL_MISMATCH`, cae nombrando el código. `actions.ts` y
+`po-parse.ts` entran en el guardián de texto a pelo (0 hallazgos) y no pueden llamar a `t()`; los
+códigos van siempre literales (`fail(variable)` cae). Y los 17 pintores importan de `messages`, usan
+`failText`/`mensajeTexto` y no tienen `res.error` a pelo.
+
+### Qué NO cambia
+
+`error-codes.ts`, `api-error.ts`, `db-result.ts`: ni una línea (sus textos no llegan a pantalla, medido).
+`lib/google-maps-loader.ts` de la raíz. Ningún `error.message` de Supabase. Ninguna firma de acción
+fuera del tipo de retorno. **Una diferencia de dato, dicha:** el `detail` de `PDF_READ_FAILED` cuando lo
+lanzado no es un `Error` era el texto «unknown error» fabricado por el servidor y ahora es `String(e)`.
+
+### Lo no verificado
+
+Nadie subió un PDF ni pulsó «Suggest a fix» en un navegador tras el cambio: que el par salga en el
+idioma del usuario va por `failText` (probado en solitario) y por `tsc` (cada pintor pasa por él),
+no por haberlo mirado. Que los 8 textos de `error-codes.ts` no llegan a nadie es lectura del código
+(`grep` de sus consumidores), no una prueba que lo afirme. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1025 pasados | 3 saltados**
+(main 15d7370: 978 | 3; los +47 son el guardián ampliado). «Compiled with warnings» es `unpdf`, preexistente.

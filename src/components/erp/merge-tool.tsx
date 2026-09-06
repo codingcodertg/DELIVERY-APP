@@ -11,6 +11,7 @@ import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). SKU, nombre, MPN, categoría, proveedor
 // y tamaño son dato; el estado es enumerado fijo (statusLabel). "~MERGE" es la etiqueta guardada.
 import { mergeProducts } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 
 export type MergeProduct = {
   id: number;
@@ -98,7 +99,7 @@ function PairCard({ pair, canSeeCost }: { pair: MergePair; canSeeCost: boolean }
     setErr(null);
     startTransition(async () => {
       const res = await mergeProducts(survivorId, loserId);
-      if (!res.ok) setErr(res.error ?? t("Merge failed", "La fusión falló"));
+      if (!res.ok) setErr(failText(res, t));
       else router.refresh();
     });
   }

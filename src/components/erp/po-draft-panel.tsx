@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { assignDraftSku, linkDraftToProduct } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { Input } from "@/components/erp/ui/input";
 import { Button } from "@/components/erp/ui/button";
 import { money } from "@/lib/erp/utils";
@@ -64,7 +65,7 @@ export function PoDraftPanel({
         return;
       }
       const res = await assignDraftSku(productId, clean);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else router.refresh();
     });
   }
@@ -95,7 +96,7 @@ export function PoDraftPanel({
     setErr(null);
     startTransition(async () => {
       const res = await linkDraftToProduct(productId, target.id);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else router.push(`/erp/product/${target.id}`);
     });
   }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { suggestFix } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
@@ -24,7 +25,7 @@ export function SuggestFixButton({ productId }: { productId: number }) {
     start(async () => {
       const res = await suggestFix(productId, reason);
       if (res.ok) setDone(true);
-      else setErr(res.error);
+      else setErr(failText(res, t));
     });
   }
 

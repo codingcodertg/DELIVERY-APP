@@ -10,6 +10,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { submitNewItem, submitRequest, type NewItemInput } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 
 const PRODUCT_TYPES = ["tile", "trim", "setting_material", "tool", "accessory", "other"];
 const STATUSES = ["active", "special_order", "discontinued", "inactive"];
@@ -150,7 +151,7 @@ export function RequestForm({
         base_unit: f.base_unit, sf_per_box: f.sf_per_box, reason: f.reason,
       };
       const res = await submitNewItem(input);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else {
         setDone(t(`Submitted draft ${res.sku} — pending admin publish.`, `Borrador ${res.sku} enviado — pendiente de que un admin lo publique.`));
         setF({ product_type: "tile", status: "active" });
@@ -207,7 +208,7 @@ export function RequestForm({
         reason,
         payload,
       });
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else {
         setDone(t(`${statusLabel(reqType).en} request submitted for ${target.sku}.`, `Solicitud de ${statusLabel(reqType).es.toLowerCase()} enviada para ${target.sku}.`));
         resetNonNew();

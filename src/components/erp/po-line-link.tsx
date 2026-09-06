@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { getPoLineSuggestions, setPoLineProduct, type PoLineSuggestion } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { usePrefs } from "@/lib/prefs";
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 // Nombre, SKU y el motivo de la sugerencia (c.reason, del servidor) son dato.
@@ -40,7 +41,7 @@ export function PoLineLink({
     if (poLineId && suggestions === null) {
       const res = await getPoLineSuggestions(poLineId);
       if (res.ok) setSuggestions(res.suggestions);
-      else setErr(res.error);
+      else setErr(failText(res, t));
     }
   }
 
@@ -66,7 +67,7 @@ export function PoLineLink({
     setErr(null);
     startTransition(async () => {
       const res = await setPoLineProduct(poLineId, id, alias);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else { setOpen(false); setQ(""); setResults([]); router.refresh(); }
     });
   }

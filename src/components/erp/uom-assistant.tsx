@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/erp/ui/button";
 import { money } from "@/lib/erp/utils";
 import { inlineFix } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { suggestUomFix, isCostOutlier, medianOf, type UomSuggestion } from "@/lib/erp/domain/uom";
 import type { ReviewRow } from "@/components/erp/review-queue";
 import { usePrefs } from "@/lib/prefs";
@@ -65,7 +66,7 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
       if (c.s.proposedBaseUnit) patch.base_unit = c.s.proposedBaseUnit;
       const res = await inlineFix(c.r.id, patch);
       setPendingId(null);
-      if (!res.ok) setErr(res.error);
+      if (!res.ok) setErr(failText(res, t));
       else {
         setDone((d) => new Set(d).add(c.r.id));
         router.refresh();

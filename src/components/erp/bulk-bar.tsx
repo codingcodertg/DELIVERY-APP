@@ -7,6 +7,7 @@ import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { bulkUpdate, bulkResolveTag } from "@/lib/erp/actions";
+import { failText } from "@/lib/erp/messages";
 import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
@@ -69,7 +70,7 @@ export function BulkBar({
         else if (action === "status") patch.status = val;
         res = await bulkUpdate(ids, patch);
       }
-      if (!res.ok) setMsg(res.error);
+      if (!res.ok) setMsg(failText(res, t));
       else {
         // v4_59 (COR-11): a row that failed used to be counted as "skipped" with no reason, so a
         // partial apply looked clean. Show the failures and the first reason.
