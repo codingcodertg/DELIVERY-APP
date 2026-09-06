@@ -10,7 +10,7 @@ import { suggestUomFix, isCostOutlier, medianOf, type UomSuggestion } from "@/li
 import type { ReviewRow } from "@/components/erp/review-queue";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). La justificación de cada sugerencia
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). La justificación de cada sugerencia
 // (s.rationale, de domain/uom.ts) y la unidad propuesta vienen de la lógica y salen tal cual.
 
 // Group line-mates by vendor + the first token of the name (a collection like "ACUARELA").

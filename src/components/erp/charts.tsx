@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): siguen siendo primitivas de servidor. Los textos que reciben (title, subtitle, label,
+// G-10 (D-204): siguen siendo primitivas de servidor. Los textos que reciben (title, subtitle, label,
 // emptyText) pasan de string a ReactNode para que la página pueda darles una hoja <Tx>; el único texto
 // propio ("total", en el donut) va por <Tx>. Las barras y los segmentos pintan lo que les dan.
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { productImageUrl } from "@/lib/erp/images";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): sigue siendo de servidor (lo monta una página servidor); sus dos textos van por <Tx>.
+// G-10 (D-204): sigue siendo de servidor (lo monta una página servidor); sus dos textos van por <Tx>.
 // Categoría, recuento y nombres de muestra son dato.
 
 export type CategoryCard = { category: string; product_count: number; sample: { id: number; name: string }[] };

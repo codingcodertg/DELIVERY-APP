@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/erp/ui/button";
 import { publishProduct } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
 export function PublishButton({ productId }: { productId: number }) {
   const router = useRouter();

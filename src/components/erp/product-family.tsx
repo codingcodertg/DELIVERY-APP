@@ -11,7 +11,7 @@ import { priceUnitSuffix } from "@/lib/erp/domain/units";
 import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, SKU y precio son dato; el estado
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Nombre, SKU y precio son dato; el estado
 // es enumerado fijo (statusLabel). Las relaciones (bro/cuz/sub) son valores guardados: la etiqueta
 // Bros/Cuz/Subs se conserva tal cual porque es la jerga de la casa en los dos idiomas.
 import { addFamilyLink, removeFamilyLink, refileFamilyLink, type FamilyRelation } from "@/lib/erp/actions";

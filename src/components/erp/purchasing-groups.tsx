@@ -6,7 +6,7 @@ import { cn, money } from "@/lib/erp/utils";
 import { productImageUrl } from "@/lib/erp/images";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, SKU, proveedor, etiqueta del
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Nombre, SKU, proveedor, etiqueta del
 // grupo (g.label, viene del servidor) y RP/min/max son dato.
 
 export type PMember = {

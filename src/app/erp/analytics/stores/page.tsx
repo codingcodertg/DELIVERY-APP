@@ -11,7 +11,7 @@ import { ChartCard, BarList, Stat } from "@/components/erp/charts";
 import { money } from "@/lib/erp/utils";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // Tiendas, fechas del rango y `period` son dato y salen tal cual.
 
 export const dynamic = "force-dynamic";

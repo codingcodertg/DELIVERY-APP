@@ -11,7 +11,7 @@ import { ChartCard, BarList, Donut, CoverageStat, type BarItem } from "@/compone
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard — RTG ERP" };
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // El rol y el correo son dato; los estados del donut son enumerados fijos y su etiqueta sale de
 // statusLabel, pintada con <Tx>.
 

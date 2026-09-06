@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn, money } from "@/lib/erp/utils";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): pasa a componente de cliente, como po-reconcile: no tenía "use client" pero tampoco
+// G-10 (D-204): pasa a componente de cliente, como po-reconcile: no tenía "use client" pero tampoco
 // nada de servidor (recibe props serializables que calcula la página). Tiendas, SKU, nombre, proveedor
 // y clase ABC son dato.
 

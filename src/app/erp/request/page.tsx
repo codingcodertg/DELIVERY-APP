@@ -8,7 +8,7 @@ import { Badge } from "@/components/erp/ui/badge";
 import { PILL, statusLabel } from "@/lib/erp/status";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // Estado y tipo de cada solicitud son enumerados fijos: statusLabel pintado con <Tx>. La nota de
 // decisión es dato.
 

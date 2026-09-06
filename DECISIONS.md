@@ -9291,9 +9291,9 @@ que el dueño puede cambiar editando el par). `verify.mjs`: en verde sobre `.nex
 guardián se prueba a sí mismo, la del server component sin texto y una por cada uno de los cinco
 ficheros traducidos).
 
-## D-NEXT · Auditoría 2026-09-05, lote 5b (el ERP en dos idiomas, segunda mitad): los otros 51 ficheros, las etiquetas de librería como pares, y la hoja `<Tx>` para los server components
+## D-204 · Auditoría 2026-09-05, lote 5b (el ERP en dos idiomas, segunda mitad): los otros 51 ficheros, las etiquetas de librería como pares, y la hoja `<Tx>` para los server components
 
-**Fecha:** 2026-09-05 · **Versión:** la asigna el orquestador al fusionar (solo `erp` se toca) ·
+**Fecha:** 2026-09-05 · **Versión:** erp 0.7.0, package.json 1.121.0 (solo `erp` se toca) ·
 **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-10), segunda de las dos ramas. Un commit
 por fichero, por orden de textos (los de más, primero), más los del mecanismo y los del guardián.
 Solo texto: **ningún comportamiento cambia** (consultas, filtros, guardados, valores que se envían).

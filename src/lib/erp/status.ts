@@ -42,7 +42,7 @@ export function recordStatusClass(s: string): string {
 
 export const label = (s: string | null | undefined): string => (s ? s.replace(/_/g, " ") : "—");
 
-// ── Etiquetas en dos idiomas (G-10, D-NEXT) ──────────────────────────────────
+// ── Etiquetas en dos idiomas (G-10, D-204) ──────────────────────────────────
 // Los estados comercial y de registro, los tipos de producto y los tipos de solicitud son
 // enumerados fijos del código (no configurables), así que su etiqueta es texto de pantalla. La
 // librería NO lee el idioma: devuelve el par {en, es} y el componente elige con su t(). Un valor

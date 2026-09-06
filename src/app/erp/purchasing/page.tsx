@@ -8,7 +8,7 @@ import { PurchasingGroups, type PGroup } from "@/components/erp/purchasing-group
 import { ReorderPanel, type ReorderItem } from "@/components/erp/reorder-panel";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Purchasing — RTG ERP" };

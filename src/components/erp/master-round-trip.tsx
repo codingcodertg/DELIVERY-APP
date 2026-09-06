@@ -13,7 +13,7 @@ import {
 import { buildHeaderMap, importableKeys, KEY_FIELD, VERSION_COL } from "@/lib/erp/master/fields";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las acciones del resultado
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las acciones del resultado
 // (preview/new_draft/applied/skip/stale/error) son valores del servidor: la clase se queda en un
 // mapa y la etiqueta pasa a una función con t(). SKU, columnas reconocidas y motivos son dato.
 

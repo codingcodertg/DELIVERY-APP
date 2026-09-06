@@ -6,7 +6,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { cn, money } from "@/lib/erp/utils";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan
 // aquí. El estado del pedido (o.status), proveedor, número de OC y fechas son dato. Los dos `title`
 // de la columna Gap no pueden ir por <Tx> (son atributos de un server component) y se quedan en
 // inglés: es la excepción anotada en la decisión.

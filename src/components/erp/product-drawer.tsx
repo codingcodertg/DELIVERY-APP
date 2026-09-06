@@ -17,7 +17,7 @@ const selCls =
 
 type FieldType = "text" | "num" | "status" | "category" | "textarea" | "sellunit";
 type T = (en: string, es: string) => string;
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las claves de campo (lo que se guarda
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las claves de campo (lo que se guarda
 // y se parchea) viven en FIELD_KEYS y no cambian; la etiqueta se construye con t(). Los estados son
 // enumerado fijo (statusLabel); categorías y unidades de venta son dato.
 const FIELD_KEYS: { key: string; cost?: boolean; type?: FieldType }[] = [

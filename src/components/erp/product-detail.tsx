@@ -29,7 +29,7 @@ import { usePrefs } from "@/lib/prefs";
  *
  * Dato vs texto: nombre, SKU, valores de campo, el estado de un lote y la fuente de un precio son
  * datos y salen tal cual. El estado comercial (sv, de item-dashboard) y el de registro son
- * enumerados fijos: la librería da el par {en, es} y aquí se elige con t() (D-NEXT, 5b).
+ * enumerados fijos: la librería da el par {en, es} y aquí se elige con t() (D-204, 5b).
  */
 
 /** Los campos de app_products que esta pantalla lee. El resto de la fila viaja igual y no se mira. */

@@ -8,7 +8,7 @@ import { cn, money } from "@/lib/erp/utils";
 import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). SKU, nombre, MPN, categoría, proveedor
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). SKU, nombre, MPN, categoría, proveedor
 // y tamaño son dato; el estado es enumerado fijo (statusLabel). "~MERGE" es la etiqueta guardada.
 import { mergeProducts } from "@/lib/erp/actions";
 

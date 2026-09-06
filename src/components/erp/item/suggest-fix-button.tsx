@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { suggestFix } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
 // Lightweight "suggest a fix" — files a product_request into the M1.5 approvals
 // loop. Available to everyone (staff included); a manager reviews + approves.

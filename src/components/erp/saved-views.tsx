@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/erp/supabase/client";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 // Los nombres de las vistas (guardadas y prefijadas) son dato: los da quien las guarda o el llamador.
 
 export type SavedView = { id: number; name: string; state: Record<string, unknown> };

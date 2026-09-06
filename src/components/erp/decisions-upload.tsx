@@ -7,7 +7,7 @@ import { parseCsv } from "@/lib/erp/csv";
 import { runDecisions, type DecisionResult, type DecisionRow } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las cabeceras reconocidas, el campo
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las cabeceras reconocidas, el campo
 // canónico, la acción de cada fila (preview/applied/skip/error, valor del servidor) y los motivos son dato.
 
 // CSV header (lowercased) → canonical product field. Unrecognized columns are ignored.

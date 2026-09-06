@@ -11,7 +11,7 @@ import { money } from "@/lib/erp/utils";
 import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). SKU, MPN, proveedor, costo y nombre son
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). SKU, MPN, proveedor, costo y nombre son
 // dato; el estado es enumerado fijo (statusLabel).
 
 const SKU_RE = /^[A-Z0-9][A-Z0-9-]{0,63}$/;

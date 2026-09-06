@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { inlineFix } from "@/lib/erp/actions";
 import { Input } from "@/components/erp/ui/input";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
 // Inline SEO editor for the product detail page (manager/admin only — gated by update_product).
 // Saves seo_title + seo_description via the same RPC path as the quick-edit drawer.

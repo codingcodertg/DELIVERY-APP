@@ -9,7 +9,7 @@ import { parseCsv, guessColumn } from "@/lib/erp/csv";
 import { matchPoLines, createPoDrafts, type PoLine, type PoMatch } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Los tipos de producto son un
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Los tipos de producto son un
 // enumerado fijo y su etiqueta sale de statusLabel (status.ts); el valor que se guarda no cambia.
 const PRODUCT_TYPES = ["tile", "trim", "setting_material", "tool", "accessory", "other"];
 type T = (en: string, es: string) => string;

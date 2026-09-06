@@ -4,7 +4,7 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { AnalyticsNav } from "@/components/erp/analytics-nav";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Salesperson analytics — RTG ERP" };

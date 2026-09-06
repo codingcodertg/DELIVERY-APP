@@ -10,7 +10,7 @@ import { bulkUpdate, bulkResolveTag } from "@/lib/erp/actions";
 import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las etiquetas de revisión (TAGS) y las
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las etiquetas de revisión (TAGS) y las
 // categorías son dato; los estados son enumerado fijo y salen de statusLabel.
 
 const TAGS = ["BELOW COST", "UNIT MISMATCH?", "store conflict >5%", "POSSIBLE DUP", "SF/BOX CORRUPT", "NOT_FOUND", "PO IMPORT"];

@@ -17,7 +17,7 @@ const REQ_TYPES = ["new", "edit", "reactivate", "deactivate"] as const;
 type ReqType = (typeof REQ_TYPES)[number];
 
 type T = (en: string, es: string) => string;
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las claves de campo son las que
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las claves de campo son las que
 // viajan al servidor y no cambian; solo la etiqueta. Tipos de producto, estados y tipos de
 // solicitud son enumerados fijos: su etiqueta sale de statusLabel (status.ts) y se elige con t().
 const EDIT_KEYS: { key: string; cost?: boolean }[] = [

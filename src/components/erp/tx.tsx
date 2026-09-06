@@ -3,7 +3,7 @@
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * Un texto en dos idiomas, para los server components del ERP (G-10, D-NEXT).
+ * Un texto en dos idiomas, para los server components del ERP (G-10, D-204).
  *
  * El idioma vive en el navegador (usePrefs, localStorage) y el servidor no lo ve. En 5a (D-203) el
  * detalle de producto movió su árbol entero a un hijo de cliente; para las otras 24 páginas

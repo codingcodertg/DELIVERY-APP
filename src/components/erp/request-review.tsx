@@ -10,7 +10,7 @@ import { money } from "@/lib/erp/utils";
 import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). El tipo de solicitud es enumerado fijo
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). El tipo de solicitud es enumerado fijo
 // (statusLabel); nombre de campo, valores, solicitante, tienda y motivo son dato.
 import { decideRequest } from "@/lib/erp/actions";
 

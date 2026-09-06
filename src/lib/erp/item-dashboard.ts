@@ -6,7 +6,7 @@ import { PILL, type Pair } from "@/lib/erp/status";
 // ── Status / context ─────────────────────────────────────────────────────────
 // A discontinued SKU is NOT the same as inactive: it keeps selling through while
 // stock remains, and only goes truly dead once QOH hits 0. Surface that nuance.
-// G-10 (D-NEXT): label y note son pares {en, es}; el componente elige con t(). La librería no lee el idioma.
+// G-10 (D-204): label y note son pares {en, es}; el componente elige con t(). La librería no lee el idioma.
 export interface StatusView {
   label: Pair;
   tone: string; // a PILL class

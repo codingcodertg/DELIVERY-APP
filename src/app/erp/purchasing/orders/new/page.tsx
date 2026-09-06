@@ -7,7 +7,7 @@ import { unwrap } from "@/lib/erp/db-result";
 import { PoIngest } from "@/components/erp/po-ingest";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Log PO / proforma — RTG ERP" };

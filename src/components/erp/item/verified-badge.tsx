@@ -4,7 +4,7 @@ import { verifiedView } from "@/lib/erp/item-dashboard";
 import { PILL } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): verifiedView da label y title como pares {en, es}; aquí se elige con t(). Pasa a
+// G-10 (D-204): verifiedView da label y title como pares {en, es}; aquí se elige con t(). Pasa a
 // componente de cliente para poder leer el idioma: no tenía nada de servidor y ya vivía dentro de
 // product-detail (cliente).
 

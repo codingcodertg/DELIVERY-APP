@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/erp/utils";
 import { PERIODS } from "@/lib/erp/analytics";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 // Las tiendas son dato; los periodos vienen de PERIODS como pares {en, es}.
 
 export function AnalyticsControls({

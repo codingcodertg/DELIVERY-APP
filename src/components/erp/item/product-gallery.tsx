@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 
 // Gallery built from whatever images exist today (image_urls[] + product_images).
 // Convention: the first image is the "pieces" shot (default); hovering the main

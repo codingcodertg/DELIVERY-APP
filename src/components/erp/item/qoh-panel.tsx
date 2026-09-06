@@ -4,7 +4,7 @@ import { useState } from "react";
 import { money } from "@/lib/erp/utils";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Código, descripción, tienda, código y
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Código, descripción, tienda, código y
 // descripción de QB son dato.
 
 export interface StoreQoh {

@@ -15,7 +15,7 @@ type Row = Record<string, string>;
 type Vendor = { id: number; name: string };
 type T = (en: string, es: string) => string;
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Las definiciones de campo pasan de
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las definiciones de campo pasan de
 // constantes a funciones con t(): la `key` es la que viaja al servidor y no cambia; solo la etiqueta.
 // Los estados del pedido (draft/sent/…) son valores guardados y se enseñan tal cual.
 const poHeader = (t: T): Field[] => [

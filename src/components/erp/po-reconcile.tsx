@@ -5,7 +5,7 @@ import { cn, money } from "@/lib/erp/utils";
 import { PoLineLink } from "@/components/erp/po-line-link";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): pasa a componente de cliente. No tenía "use client" pero tampoco nada de servidor:
+// G-10 (D-204): pasa a componente de cliente. No tenía "use client" pero tampoco nada de servidor:
 // recibe `data` (serializable, lo calcula la página) y `canEdit`, y ya montaba PoLineLink (cliente).
 // Con 32 textos, una hoja <Tx> por cada uno sería peor que mover la frontera un nivel arriba; el
 // árbol y los datos no cambian. El estado del pedido (StatusPill) es valor guardado y sale tal cual.

@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 // Título externo, serie, tamaño, acabado, color, etiquetas y método de coincidencia son dato.
 
 export interface DaltileRef {

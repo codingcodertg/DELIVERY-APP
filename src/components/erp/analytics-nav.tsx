@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/erp/utils";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): las pestañas se construyen con t() dentro del render (una constante no cambia de
+// G-10 (D-204): las pestañas se construyen con t() dentro del render (una constante no cambia de
 // idioma); los href no cambian. El guardián no las veía (palabra sola entre comillas), pero son texto.
 type T = (en: string, es: string) => string;
 const tabs = (t: T) => [

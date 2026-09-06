@@ -7,7 +7,7 @@ import { unwrap } from "@/lib/erp/db-result";
 import { confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // SKU, MPN, nombre, título externo, serie, tamaño, método y código son dato.
 
 export const dynamic = "force-dynamic";

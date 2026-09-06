@@ -37,7 +37,7 @@ export type VendorStats = { period: string; trend_sales: TrendItem[]; vendors: V
 export type CategoryRow = Omit<VendorRow, "vendor_id" | "vendor"> & { category: string };
 export type CategoryStats = { period: string; parent: string | null; trend_sales: TrendItem[]; categories: CategoryRow[] };
 
-// G-10 (D-NEXT): la etiqueta de cada periodo es un par {en, es}; el componente elige con su t().
+// G-10 (D-204): la etiqueta de cada periodo es un par {en, es}; el componente elige con su t().
 // La librería no lee el idioma. `v` es el valor de la URL y no cambia.
 export const PERIODS = [
   { v: "week", en: "Week", es: "Semana" },

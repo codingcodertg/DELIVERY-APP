@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/erp/supabase/admin";
 import { PoReconcile, type ReconData } from "@/components/erp/po-reconcile";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // `label` de cada documento pasa de texto ("Purchase order") a clave ("po" | "ack"): era clave interna
 // y a la vez texto de pantalla, y ahora la pantalla lo pinta con <Tx> según la clave. El title del
 // iframe queda en inglés: atributo de server component (excepción dicha en la decisión).

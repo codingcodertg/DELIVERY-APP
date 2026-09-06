@@ -1,7 +1,7 @@
 import { money } from "@/lib/erp/utils";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): sin hooks, se monta dentro de product-detail (cliente) pero no lo necesita: los dos
+// G-10 (D-204): sin hooks, se monta dentro de product-detail (cliente) pero no lo necesita: los dos
 // textos (la etiqueta "Sales" del nivel y la nota de la fase 2) van por <Tx>. ERP/Mgr/Vol son siglas;
 // los valores de kind/mode (general/specific, fixed/leveled) son valores guardados.
 

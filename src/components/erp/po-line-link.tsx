@@ -7,7 +7,7 @@ import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { getPoLineSuggestions, setPoLineProduct, type PoLineSuggestion } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs).
 // Nombre, SKU y el motivo de la sugerencia (c.reason, del servidor) son dato.
 
 // Per-line product link for the reconcile table. Matched → clickable catalog link; unmatched (and a

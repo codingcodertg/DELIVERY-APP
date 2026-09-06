@@ -13,7 +13,7 @@ import {
 } from "@/lib/erp/actions";
 import { usePrefs } from "@/lib/prefs";
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Número de OC, proveedor, estado del
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Número de OC, proveedor, estado del
 // pedido, tienda, SKU, nombre y unidad base son dato y salen tal cual.
 
 export type PoOption = { id: number; po_number: string; vendor_name: string | null; status: string };

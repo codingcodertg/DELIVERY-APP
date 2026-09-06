@@ -20,7 +20,7 @@ function categoryLeaf(path?: string | null): string | null {
   return parts[parts.length - 1] ?? null;
 }
 
-// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs). Nombre, colección, SKU y los chips
+// G-10 (D-204): texto de pantalla por pares inline (usePrefs). Nombre, colección, SKU y los chips
 // (tipo, tamaño, acabado, material, aspecto, origen) son dato; el estado es enumerado fijo.
 function Card({ r }: { r: CatalogRow }) {
   const { t } = usePrefs();

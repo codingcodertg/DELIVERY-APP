@@ -10,7 +10,7 @@ import { CatalogTable } from "@/components/erp/catalog-table";
 import { CategoryCards, type CategoryCard } from "@/components/erp/category-cards";
 import { Tx } from "@/components/erp/tx";
 
-// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
+// G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // Las categorías son dato.
 
 export const dynamic = "force-dynamic";
