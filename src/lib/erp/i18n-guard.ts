@@ -32,6 +32,8 @@ const PERMITIDAS = new Set([
   "incoterm", "shopify", "daltile", "excel", "proforma",
   // Siglas de tres letras que el filtro de "palabra de tres letras" atraparía.
   "abc", "usa", "cogs", "mpn",
+  // Dominios ("daltile.com") no son texto.
+  "com",
 ]);
 
 function esTexto(s: string): boolean {
