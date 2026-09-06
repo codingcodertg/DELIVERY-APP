@@ -5,9 +5,15 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, DAYS, money } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Project } from "@/lib/timetracker/types";
+import { Modal } from "@/components/timetracker/Modal";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerProjects.jsx —
 // create/edit projects, browse active + archived, per-project stats.
+//
+// D-NEXT (pedido del dueño: "el crear proyecto también que sea un botón"): el formulario de crear /
+// editar ya no ocupa sitio permanente arriba; vive en la ventana de D-187 (Modal) y se abre con un
+// botón junto al título de la lista, como en Asignaciones (D-187) y en los ajustes de Nómina (D-192).
+// Editar abre la misma ventana rellena. Mismos campos, misma validación, misma llamada de guardado.
 const PERIODS = ["weekly", "biweekly", "monthly"] as const;
 const perKey = (v: string) => ({ weekly: "mgr.proj.weekly", biweekly: "mgr.proj.biweekly", monthly: "mgr.proj.monthly" } as Record<string, string>)[v] || "mgr.proj.weekly";
 
@@ -20,6 +26,7 @@ export default function ManagerProjectsPage() {
   const empty: FormState = { name: "", client: "", location: "", payPeriod: APP_SETTINGS.payPeriod || "weekly", category: "", positions: "", weekStartDay: "" };
   const [f, setF] = useState<FormState>(empty);
   const [editId, setEditId] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const upd = <K extends keyof FormState>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -28,6 +35,7 @@ export default function ManagerProjectsPage() {
   const assignedTo = (pid: string) => assignments.filter((a) => a.projectId === pid).map((a) => uMap.get(a.employeeUid)).filter((u): u is Employee => !!u);
   const posText = (p: Project) => (p.positions && p.positions.length ? p.positions.join(", ") : "");
 
+  function startNew() { setEditId(null); setF(empty); setAbierta(true); }
   function startEdit(p: Project) {
     setEditId(p.id);
     setF({
@@ -35,9 +43,11 @@ export default function ManagerProjectsPage() {
       payPeriod: p.payPeriod || "weekly", category: p.category || "", positions: posText(p),
       weekStartDay: p.weekStartDay == null ? "" : String(p.weekStartDay),
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Antes hacía scrollTo(0) para llegar al formulario de arriba; la ventana va encima de donde
+    // se está, así que ya no hace falta.
+    setAbierta(true);
   }
-  function cancel() { setEditId(null); setF(empty); }
+  function cancel() { setAbierta(false); setEditId(null); setF(empty); }
 
   async function save() {
     if (f.name.trim().length < 2) return;
@@ -87,12 +97,12 @@ export default function ManagerProjectsPage() {
     );
   }
 
-  if (me.role !== "admin") return <div className="card"><p className="muted">Admins only.</p></div>;
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("mgr.proj.adminsOnly")}</p></div>;
 
   return (
     <>
-      <div className="card">
-        <h2>{editId ? t("mgr.proj.editTitle") : t("mgr.proj.newTitle")}</h2>
+      {abierta && (
+      <Modal title={editId ? t("mgr.proj.editTitle") : t("mgr.proj.newTitle")} onClose={cancel}>
         <div className="grid g2">
           <div><label>{t("mgr.proj.name")}</label><input value={f.name} onChange={(e) => upd("name", e.target.value)} placeholder={t("mgr.proj.namePh")} /></div>
           <div><label>{t("mgr.proj.client")}</label><input value={f.client} onChange={(e) => upd("client", e.target.value)} placeholder={t("mgr.proj.clientPh")} /></div>
@@ -124,14 +134,18 @@ export default function ManagerProjectsPage() {
           </div>
           <div />
         </div>
-        <div className="row" style={{ marginTop: 14 }}>
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={cancel}>{t("common.cancel")}</button>
           <button onClick={save}>{editId ? t("mgr.proj.saveChanges") : t("mgr.proj.create")}</button>
-          {editId && <button className="btn-ghost" onClick={cancel}>{t("common.cancel")}</button>}
         </div>
-      </div>
+      </Modal>
+      )}
 
       <div className="card">
-        <h2>{t("mgr.proj.listTitle")}</h2>
+        <div className="between" style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>{t("mgr.proj.listTitle")}</h2>
+          <button onClick={startNew}>{t("mgr.proj.newBtn")}</button>
+        </div>
         {active.length === 0 ? <p className="muted">{t("mgr.proj.noneActive")}</p> : catNames.map((c) => (
           <div key={c} style={{ marginBottom: 14 }}>
             <div className="small muted" style={{ textTransform: "uppercase", letterSpacing: ".04em" }}>{c}</div>
