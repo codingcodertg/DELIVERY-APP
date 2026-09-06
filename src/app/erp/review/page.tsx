@@ -5,6 +5,9 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { ReviewQueue, type ReviewRow, type TagFacet } from "@/components/erp/review-queue";
+import { Tx } from "@/components/erp/tx";
+
+// G-10 (D-NEXT): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Review queue — RTG ERP" };
@@ -66,16 +69,16 @@ export default async function ReviewPage({
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Review queue</h1>
+            <h1 className="text-2xl font-semibold"><Tx en="Review queue" es="Cola de revisión" /></h1>
             <p className="text-sm text-slate-500">
-              Resolve M0 data-quality flags — edit a value (drawer) or clear a tag. Every change is audited.
+              <Tx en="Resolve M0 data-quality flags — edit a value (drawer) or clear a tag. Every change is audited." es="Resuelve las banderas de calidad de datos de M0 — edita un valor (cajón) o quita una etiqueta. Cada cambio queda auditado." />
             </p>
           </div>
           <Link
             href="/erp/review/merge"
             className="inline-flex h-9 shrink-0 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            Duplicate merge →
+            <Tx en="Duplicate merge →" es="Fusión de duplicados →" />
           </Link>
         </div>
         {queueRes.error ? (
