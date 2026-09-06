@@ -34,6 +34,9 @@ const PERMITIDAS = new Set([
   "abc", "usa", "cogs", "mpn",
   // Dominios ("daltile.com") no son texto.
   "com",
+  // Jerga de la casa para las relaciones de familia (bro/cuz/sub), igual en los dos idiomas y
+  // además el valor guardado de la relación.
+  "bros", "cuz", "subs",
 ]);
 
 function esTexto(s: string): boolean {
