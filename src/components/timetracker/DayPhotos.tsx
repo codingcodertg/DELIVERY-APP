@@ -5,6 +5,7 @@ import { getDayPhotos, type DayPhoto, type PhotoKind } from "@/app/timetracker/c
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { APP_SETTINGS, dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
+import { enlaceMapa, fmtDistancia } from "@/lib/clockin/day-photos";
 
 /**
  * Las fotos de fichaje de un día, dentro de Auditoría.
@@ -26,6 +27,11 @@ import { getLang, useT } from "@/lib/timetracker/i18n";
  * por el idioma del HUB (usePrefs), no por el de Time Tracker: la misma pantalla podía salir
  * mitad y mitad. Ahora todo sale por el idioma de Time Tracker, como el resto de Auditoría.
  * fmtDayLong no se toca: el día largo sigue en inglés.
+ *
+ * Dónde se tomó cada foto: una línea bajo la foto con el sitio y los metros a su geocerca, y el
+ * pin es un enlace a Google Maps en pestaña nueva. Enlace y no mapa a propósito: /timetracker
+ * no carga Leaflet ni la API de Maps, y un mapa embebido por foto costaría llave y peso para
+ * responder una pregunta que un enlace responde igual.
  */
 
 const KIND_CLS: Record<PhotoKind, string> = { in: "on", out: "", left: "wait", back: "" };
@@ -39,9 +45,19 @@ function kindLabel(t: ReturnType<typeof useT>, k: PhotoKind): string {
 
 const ONLY = "en-US";
 
+// Claves literales, una por estado, para la prueba de claves de D-187.
+function locText(t: ReturnType<typeof useT>, lang: "en" | "es", p: DayPhoto): string {
+  if (p.lat == null || p.lng == null) return t("mgr.photos.locNone");
+  if (p.siteName == null || p.distanceM == null) return t("mgr.photos.locNoSite", { lat: p.lat.toFixed(5), lng: p.lng.toFixed(5) });
+  const d = fmtDistancia(p.distanceM, lang);
+  if (p.offSite) return t("mgr.photos.locOff", { d, site: p.siteName });
+  if (p.distanceM === 0) return t("mgr.photos.locOnSite", { site: p.siteName });
+  return t("mgr.photos.locAt", { d, site: p.siteName });
+}
+
 export function DayPhotos() {
   const t = useT();
-  const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
+  const lang = getLang() === "es" ? "es" : "en"; // useT() ya fuerza el re-render al cambiar el idioma
   const [day, setDay] = useState(() => dateISO(new Date()));
   const [photos, setPhotos] = useState<DayPhoto[]>([]);
   // El día más reciente que sí tiene fotos. Es la diferencia entre "no hay nada" y "no hay
@@ -177,6 +193,21 @@ export function DayPhotos() {
                     <span className="small muted">{time(p.at)}</span>
                     {p.offSite && <span className="pill off">{t("mgr.photos.offSite")}</span>}
                     {p.note && <span className="small muted rev-note">{p.note}</span>}
+                    {/* El clic en el pin abre Maps y no el visor: stopPropagation. */}
+                    {p.lat != null && p.lng != null ? (
+                      <a
+                        className="small muted rev-note"
+                        href={enlaceMapa(p.lat, p.lng)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={t("mgr.photos.openMap")}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {locText(t, lang, p)}
+                      </a>
+                    ) : (
+                      <span className="small muted rev-note">{locText(t, lang, p)}</span>
+                    )}
                   </figcaption>
                 </figure>
               );
