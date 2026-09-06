@@ -3,6 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/erp/utils";
 import { PERIODS } from "@/lib/erp/analytics";
+import { usePrefs } from "@/lib/prefs";
+// G-10 (D-NEXT): texto de pantalla por pares inline (usePrefs).
+// Las tiendas son dato; los periodos vienen de PERIODS como pares {en, es}.
 
 export function AnalyticsControls({
   period,
@@ -16,6 +19,7 @@ export function AnalyticsControls({
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
+  const { t } = usePrefs();
 
   function setParam(k: string, v: string) {
     const p = new URLSearchParams(sp.toString());
@@ -37,7 +41,7 @@ export function AnalyticsControls({
               period === p.v ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
             )}
           >
-            {p.l}
+            {t(p.en, p.es)}
           </button>
         ))}
       </div>
@@ -47,7 +51,7 @@ export function AnalyticsControls({
           onChange={(e) => setParam("store", e.target.value)}
           className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
         >
-          <option value="">All stores</option>
+          <option value="">{t("All stores", "Todas las tiendas")}</option>
           {stores.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
