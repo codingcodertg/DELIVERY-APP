@@ -316,7 +316,7 @@ export function normalizeModules(moduleAccess: string[] | null | undefined): str
 
 /**
  * Solo las palabras que la base acepta hoy. Hermana de `normalizeModules`, y deliberadamente
- * NO la misma función (D-NEXT).
+ * NO la misma función (D-217).
  *
  * `normalizeModules` se usa para LEER: traduce 'clockin' a 'timetracker' para que a quien tenga
  * la palabra vieja se le siga dibujando la tarjeta a la que tiene derecho. Esto se usa para

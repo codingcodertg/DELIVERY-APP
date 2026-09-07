@@ -1,5 +1,5 @@
 // ============================================================
-// El fallo de la base al guardar permisos, dicho en cristiano (D-NEXT).
+// El fallo de la base al guardar permisos, dicho en cristiano (D-217).
 //
 // Hasta ahora el aviso pintaba `error.message` tal cual, y lo que veía un administrador al
 // marcar una casilla era:

@@ -10310,7 +10310,7 @@ foto a 1,4 km con la línea hasta la geocerca de Brownsville. `verify.mjs`: en v
 `/timetracker/settings` 7,99 → 9,01 kB / 301 kB, porque `GeofenceMap` importa ahora la geometría de `photo-map.ts`
 aunque Ajustes no la use (mismo dato que el auditor anotó en D-214; si algún día pesa, se saca a su módulo).
 
-## D-NEXT · Conceder un módulo fallaba en los perfiles con la palabra vieja `clockin`, y el ERP se degradaba solo
+## D-217 · Conceder un módulo fallaba en los perfiles con la palabra vieja `clockin`, y el ERP se degradaba solo
 
 **Fecha:** 2026-09-07 · **Versión:** la asigna el orquestador al fusionar (Entregas: el diálogo de
 permisos y el proveedor son del hub) · **Pedido por:** Andrés, con captura: abre el perfil de una

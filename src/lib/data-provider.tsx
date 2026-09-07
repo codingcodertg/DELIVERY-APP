@@ -1329,7 +1329,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const nextRole = granted ? (recruiting_role ?? "recruiter") : null;
       // El array de partida es el de la fila, que puede traer palabras que la base ya no
       // acepta ('clockin'): sin filtrar, conceder un módulo arrastraba la palabra vieja y el
-      // constraint profiles_module_access_known tumbaba el UPDATE entero (D-NEXT).
+      // constraint profiles_module_access_known tumbaba el UPDATE entero (D-217).
       const actuales = knownModules(target?.module_access);
       const nextModules = granted
         ? Array.from(new Set([...actuales, "recruiting"]))

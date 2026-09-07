@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { knownModules, normalizeModules, MODULE_ACCESS } from "./constants";
 import { constraintDe, detalleAConsola, mensajeEscrituraPerfil } from "./user-write-error";
 
-// El bug de Patricia (D-NEXT): su fila lleva module_access = ['clockin'] —la que 095 dejó a
+// El bug de Patricia (D-217): su fila lleva module_access = ['clockin'] —la que 095 dejó a
 // propósito sin tocar— y conceder cualquier módulo desde el diálogo arrastraba esa palabra al
 // UPDATE, que el constraint profiles_module_access_known rechazaba entero.
 
