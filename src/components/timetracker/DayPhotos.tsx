@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getDayPhotos, type DayPhoto, type PhotoKind } from "@/app/timetracker/clock-in/actions/photos";
+import dynamic from "next/dynamic";
+import { getDayPhotos, type DayPhoto, type PhotoKind, type PhotoSite } from "@/app/timetracker/clock-in/actions/photos";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { APP_SETTINGS, dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
-import { enlaceMapa, fmtDistancia } from "@/lib/clockin/day-photos";
+import { fmtDistancia } from "@/lib/clockin/day-photos";
 
 /**
  * Las fotos de fichaje de un día, dentro de Auditoría.
@@ -45,6 +46,12 @@ function kindLabel(t: ReturnType<typeof useT>, k: PhotoKind): string {
 
 const ONLY = "en-US";
 
+// La ventana del mapa entra solo al abrirla (D-209): arrastra el cargador de Google Maps y
+// GeofenceMap, y esta pantalla no los necesita hasta que alguien pulsa una ubicación.
+const PhotoMapModal = dynamic(() => import("./PhotoMapModal"), {
+  loading: () => <div className="overlay"><div className="modal" role="dialog" aria-busy="true"><div className="hint">…</div></div></div>,
+});
+
 // Claves literales, una por estado, para la prueba de claves de D-187.
 function locText(t: ReturnType<typeof useT>, lang: "en" | "es", p: DayPhoto): string {
   if (p.lat == null || p.lng == null) return t("mgr.photos.locNone");
@@ -67,6 +74,10 @@ export function DayPhotos() {
   const [err, setErr] = useState<string | null>(null);
   const [who, setWho] = useState("");
   const [viewing, setViewing] = useState<number | null>(null);
+  // Los sitios con su geocerca viajan una vez con las fotos; `mapa` es la foto cuya ubicación
+  // está abierta en la ventana del mapa.
+  const [sites, setSites] = useState<PhotoSite[]>([]);
+  const [mapa, setMapa] = useState<DayPhoto | null>(null);
 
   // Qué día se está pidiendo ahora mismo. Pulsar la flecha tres veces seguidas lanza tres
   // cargas y no hay nada que garantice que lleguen en orden: sin esto, la respuesta del
@@ -94,6 +105,7 @@ export function DayPhotos() {
     else {
       setErr(null);
       setPhotos(res.photos);
+      setSites(res.sites);
       setUltimoConFotos(res.latestWithPhotos);
       if (!saltoHecho.current) {
         saltoHecho.current = true;
@@ -193,18 +205,18 @@ export function DayPhotos() {
                     <span className="small muted">{time(p.at)}</span>
                     {p.offSite && <span className="pill off">{t("mgr.photos.offSite")}</span>}
                     {p.note && <span className="small muted rev-note">{p.note}</span>}
-                    {/* El clic en el pin abre Maps y no el visor: stopPropagation. */}
+                    {/* El clic en el pin abre la ventana del mapa y no el visor: stopPropagation.
+                        El enlace a Google Maps (D-212) sigue dentro de esa ventana, como respaldo. */}
                     {p.lat != null && p.lng != null ? (
-                      <a
+                      <button
+                        type="button"
                         className="small muted rev-note"
-                        href={enlaceMapa(p.lat, p.lng)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={t("mgr.photos.openMap")}
-                        onClick={(e) => e.stopPropagation()}
+                        style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" }}
+                        title={t("mgr.photos.showMap")}
+                        onClick={(e) => { e.stopPropagation(); setMapa(p); }}
                       >
                         {locText(t, lang, p)}
-                      </a>
+                      </button>
                     ) : (
                       <span className="small muted rev-note">{locText(t, lang, p)}</span>
                     )}
@@ -219,6 +231,8 @@ export function DayPhotos() {
       <p className="small muted" style={{ marginTop: 14 }}>
         {t("mgr.photos.retention")}
       </p>
+
+      {mapa && <PhotoMapModal photo={mapa} sites={sites} onClose={() => setMapa(null)} />}
 
       {viewing !== null && urls[viewing] && (
         <PhotoLightbox
