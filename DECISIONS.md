@@ -10177,7 +10177,7 @@ segundo mapa de Entregas también deja de salir gris y dice por qué. La mutaci�
 `GeofenceMap` escucha y no asigna el global. No verificado: nadie disparó `gm_authFailure` de verdad;
 va por la documentación de Maps.
 
-## D-NEXT · La foto fuera de la geocerca se marca en rojo y más grande (mapa y línea bajo la foto)
+## D-214 · La foto fuera de la geocerca se marca en rojo y más grande (mapa y línea bajo la foto)
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
 **Pedido por:** Andrés, sobre D-213, literal: «quiero que sea un icon rojo más visible». Sin migración.

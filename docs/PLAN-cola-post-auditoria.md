@@ -24,3 +24,4 @@ parado desde el 2026-09-02.
 |---|------|-----|--------|
 | 7 | `fotos-con-ubicacion` | Pedido del dueño 2026-09-06: ubicación GPS de cada foto en Auditoría → Fotos; salir/volver mandan posición | **fusionado D-212** (PR #28) |
 | 8 | `fotos-mapa-geocerca` | Pedido del dueño 2026-09-06: mapa con la geocerca y el punto de la foto, veredicto dentro/fuera; el loader de Maps recuerda la llave rechazada | **fusionado D-213** (PR #29) |
+| 9 | `fotos-icono-rojo` | Pedido del dueño 2026-09-06: marcador rojo y más grande fuera de la geocerca | **fusionado D-214** (PR #30) |
