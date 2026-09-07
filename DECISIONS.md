@@ -10176,3 +10176,40 @@ segundo mapa de Entregas también deja de salir gris y dice por qué. La mutaci�
 `gm_authFailure`, `authFailed` a nivel de módulo, y el rechazo va **antes** del `return loadPromise`;
 `GeofenceMap` escucha y no asigna el global. No verificado: nadie disparó `gm_authFailure` de verdad;
 va por la documentación de Maps.
+
+## D-NEXT · La foto fuera de la geocerca se marca en rojo y más grande (mapa y línea bajo la foto)
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
+**Pedido por:** Andrés, sobre D-213, literal: «quiero que sea un icon rojo más visible». Sin migración.
+**Solo estilo e icono:** `estadoFoto` decide igual; ni una línea de lógica.
+
+**Qué había (D-213).** El marcador de una foto era un círculo de 7 px, verde dentro y **ámbar** fuera,
+con la etiqueta en blanco sin fondo: sobre el satélite híbrido, poco visible.
+
+**Qué se hizo.** Una función pura, `estiloMarcador(estado)` en `lib/clockin/photo-map.ts`, decide color
+y tamaño por estado, y todo lo demás la consume:
+
+| Estado | Relleno | Tamaño | Etiqueta |
+|---|---|---|---|
+| fuera | **rojo del hub `#d64545`** (`--red`, igual en los dos temas) | **13 px**, borde blanco de 3 | distancia en rojo, peso 800, pastilla blanca con **borde rojo** |
+| dentro | verde `#22c55e` | 7 px (el estándar) | nombre en verde oscuro, pastilla blanca |
+| sin sitio | gris neutro `#9aa6b8` | 7 px | nombre en gris oscuro, pastilla blanca |
+
+- `GeofenceMap`: `MapPoint.inside: boolean` pasa a `MapPoint.estado` (dentro / fuera / sinSitio); el
+  marcador sigue siendo `SymbolPath.CIRCLE` (sin fichero en `public/`, sin dependencia). Solo
+  `PhotoMapModal` pasa `points`; Ajustes no cambia.
+- `timetracker.css`: `.tt-map-label` (pastilla blanca con sombra, para leerse sobre el satélite) y
+  `.tt-map-label-out` (borde rojo). Google aplica `className` al elemento de la etiqueta.
+- `DayPhotos`: la línea bajo la foto, cuando es «fuera», en `var(--red)` y peso 600 (misma variable
+  que el marcador, mismo hex). Dentro y sin ubicación, como estaban.
+
+**Pruebas** (`photo-map.test.ts`, 12 → 17): rojo, tamaño ≥ 1,8× el estándar, borde mayor y clase de
+la etiqueta en «fuera»; verde 7 px dentro; gris y nunca rojo sin sitio; **mutación**: los tres estados
+dan tres rellenos distintos y solo «fuera» sale del tamaño estándar; y, por fuente, que el mapa usa
+`estiloMarcador(p.estado)` (y ya no `p.inside`), la ventana pasa `estado: e.kind`, la hoja tiene las
+dos clases y la línea el rojo condicionado a `offSite`.
+
+**Lo no verificado.** Nadie lo vio en un navegador (la llave de Maps sigue restringida al dominio viejo;
+en producción hoy se ve el respaldo). Que la pastilla se pinte va por que Google aplique `className`
+a la etiqueta, documentado, no visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1087 pasados | 3 saltados**
+(main 8ba58bf: 1082 | 3; los +5 son `estiloMarcador`). `/timetracker/audit` 8,42 → 8,44 kB / 302 kB.

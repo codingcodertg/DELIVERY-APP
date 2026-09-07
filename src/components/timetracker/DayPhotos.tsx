@@ -211,7 +211,8 @@ export function DayPhotos() {
                       <button
                         type="button"
                         className="small muted rev-note"
-                        style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" }}
+                        // Fuera de la geocerca: en rojo y seminegrita, a juego con el marcador del mapa (D-213 bis).
+                        style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left", font: "inherit", color: p.offSite ? "var(--red)" : "inherit", fontWeight: p.offSite ? 600 : undefined }}
                         title={t("mgr.photos.showMap")}
                         onClick={(e) => { e.stopPropagation(); setMapa(p); }}
                       >

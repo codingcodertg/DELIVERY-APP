@@ -189,6 +189,10 @@
 .timetracker-module .modal{background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line)}
 .timetracker-module .modal h3{color:var(--tt-txt)}
 .timetracker-module .modal-actions{border-top-color:var(--tt-line)}
+/* Etiqueta del marcador de una foto en el mapa (GeofenceMap con points, D-213): pastilla blanca
+   para leerse sobre el satélite; la de "fuera" lleva borde rojo, a juego con el marcador. */
+.tt-map-label{background:rgba(255,255,255,.94);padding:2px 7px;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap}
+.tt-map-label-out{border:2px solid #d64545}
 
 /* Printable receipt overlay (Reports/Pay, D-071) */
 .timetracker-module .rcpt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:16px;z-index:9998;overflow:auto}

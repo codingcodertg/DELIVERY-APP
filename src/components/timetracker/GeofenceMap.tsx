@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { googleMapsEnabled, loadGoogleMaps, onMapsAuthFailure } from "@/lib/google-maps-loader";
+import { estiloMarcador, type EstadoMarcador } from "@/lib/clockin/photo-map";
 
 export type Fence = {
   id: string;
@@ -36,7 +37,7 @@ export type Fence = {
  * fichajes de esa tienda salen "fuera del sitio", y esconderla convierte eso en un misterio.
  */
 /** Un punto encima de las geocercas: dónde se tomó una foto. `label` va junto al marcador. */
-export type MapPoint = { lat: number; lng: number; label: string; inside: boolean };
+export type MapPoint = { lat: number; lng: number; label: string; estado: EstadoMarcador };
 
 /**
  * `points` (opcional, D-213 tras D-212): marcadores encima de las geocercas, y el encuadre los
@@ -113,13 +114,15 @@ export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallbac
       }
 
       // Los puntos (fotos): marcador clásico con la etiqueta al lado; nada de marcadores
-      // avanzados, que exigen un Map ID. Verde dentro, ámbar fuera, como los pills de Auditoría.
+      // avanzados, que exigen un Map ID. Color y tamaño por estado (estiloMarcador): verde
+      // normal dentro, rojo y casi el doble fuera, gris sin sitio. La etiqueta va sobre una
+      // pastilla blanca (.tt-map-label, timetracker.css) para leerse encima del satélite.
       for (const p of points) {
-        const color = p.inside ? "#22c55e" : "#e9a13b";
+        const s = estiloMarcador(p.estado);
         const marker = new maps.Marker({
           map, position: { lat: p.lat, lng: p.lng }, title: p.label,
-          label: { text: p.label, color: "#fff", fontSize: "12px", fontWeight: "700", className: "tt-map-label" },
-          icon: { path: maps.SymbolPath.CIRCLE, scale: 7, fillColor: color, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2 },
+          label: { text: p.label, color: s.labelColor, fontSize: "12px", fontWeight: s.labelWeight, className: s.labelClass },
+          icon: { path: maps.SymbolPath.CIRCLE, scale: s.scale, fillColor: s.fill, fillOpacity: 1, strokeColor: s.stroke, strokeWeight: s.strokeWeight },
         });
         bounds.extend({ lat: p.lat, lng: p.lng });
         shapes.push(marker);
