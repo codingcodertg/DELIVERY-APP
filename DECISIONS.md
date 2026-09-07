@@ -10068,3 +10068,74 @@ la línea de ubicación va por el mapeo puro (probado) y por las columnas (afirm
 haberla mirado. Que la distancia coincida con lo que el servidor decidió (`in_radius`) va por reutilizar
 la misma función, no por comparar filas reales. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1069 pasados | 3 saltados**
 (main 8494cb5: 1049 | 3; los +20 son `day-photos.test.ts`). «Compiled with warnings» es `unpdf`, preexistente.
+
+## D-NEXT · La ubicación de cada foto se abre en un mapa con su geocerca y el veredicto (dentro / fuera · distancia)
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
+**Pedido por:** Andrés, literal: «quiero que las coordenadas donde se tomó la foto salgan con el
+geofencing visible: si está adentro bien, si está afuera la distancia marcada». Sigue a D-212. Sin
+migración.
+
+### Medido antes
+
+`GeofenceMap.tsx` ya dibujaba las geocercas (círculo por `radius_meters` o polígono por `boundary`)
+con Google Maps vía `@/lib/google-maps-loader`; lo monta `GeofenceSection` en Ajustes, con las seis a
+la vez y sin puntos. `DayPhoto` (D-212) traía `lat`, `lng`, `siteName` y `distanceM`, pero no con qué
+geocerca se había medido. `/timetracker/audit`: 7,35 kB / 301 kB First Load. La clave de navegador de
+Maps está hoy restringida a un dominio viejo (la arregla el dueño en Google Cloud): el mapa **falla**
+en producción hasta entonces, y por eso el camino de fallo es el primero que se va a ver.
+
+### Qué se hizo
+
+1. **Datos, sin duplicar:** `DayPhoto` gana `siteId` (el mismo sitio que ya nombra `siteName`: el del
+   fichaje o, si cayó fuera, el más cercano) y la respuesta de `getDayPhotos` gana `sites`, la lista
+   que el servidor ya traía (id, nombre, centro, radio, polígono, padding), **una vez** y no una por
+   foto. Son columnas que ya se leían. Mismo alcance por tienda, mismo gate.
+2. **`lib/clockin/photo-map.ts`** (puro): `geocercaDeFoto` (solo la de esa foto), `estadoFoto`
+   (`sinCoords` / `sinSitio` / `dentro` / `fuera`) **a partir de `distanceM` y `siteId` que calculó el
+   servidor en D-212**: en el cliente no se mide nada, así que el veredicto de la ventana y la línea de
+   debajo de la foto no pueden discrepar. `comoFence` pone el sitio en la forma de `GeofenceMap`.
+3. **`GeofenceMap` gana dos props opcionales**, y sin ellas es lo de antes (diff funcional vacío en
+   `GeofenceSection`): `points` (marcador clásico `SymbolPath.CIRCLE`, verde dentro / ámbar fuera, con
+   la etiqueta al lado, y `fitBounds` incluye los puntos; un punto solo sin geocerca se frena en zoom 17)
+   y `fallback(message)` (qué pintar si no hay clave o el script no carga). **La distancia va como texto
+   junto al marcador y no como línea hasta el sitio**: la distancia es a la geocerca (D-212), y una línea
+   al centro del sitio diría otra cosa. Nada de marcadores avanzados: exigen Map ID.
+4. **`PhotoMapModal.tsx`** (nuevo): la ventana de D-187 (`Modal`) con el veredicto arriba («✅ Dentro de
+   la geocerca · sitio» / «⚠️ Fuera de la geocerca · a 1,2 km de sitio» / «sin sitio asignado»), el mapa
+   con **solo la geocerca de esa foto** y el punto, y debajo el enlace a Google Maps de D-212 y las
+   coordenadas. Fotos sin coordenadas: la línea sigue sin ser pulsable.
+5. **`DayPhotos`:** la línea de ubicación pasa de enlace a botón que abre la ventana; el enlace de D-212
+   se queda dentro de ella como respaldo. **Carga diferida** (D-209): `PhotoMapModal` entra con
+   `next/dynamic` al abrir, y con él `GeofenceMap` y el cargador de Google; la pantalla no los importa.
+   Medido: `/timetracker/audit` **7,35 kB / 301 kB → 8,42 kB / 302 kB** (+1,1 kB de ruta: el botón, el estado y el `dynamic`; el mapa y el cargador van en su propio trozo, que solo baja al abrir). `/timetracker/settings`, donde vive `GeofenceSection`, 299 kB.
+6. **Si el mapa no carga** (`googleMapsEnabled()` falso o el script falla): «No se pudo cargar el mapa»
+   con el motivo y el enlace a Maps. Nunca un rectángulo en blanco.
+
+Siete claves `mgr.photos.map*` / `showMap` en `en` y `es`, literales; `DayPhotos` y la ventana pasan por
+la prueba de claves.
+
+### Pruebas (`photo-map.test.ts`, 9 casos; `day-photos.test.ts` al día)
+
+Los cuatro estados de `estadoFoto` (sin coordenadas → no pulsable; con coordenadas sin sitio → solo el
+punto; distancia 0 → dentro; distancia > 0 → fuera con **esa** distancia, sin recalcular); la geocerca
+por id y ninguna sin id; `comoFence`. **Mutación:** `DayPhotos` debe traer `PhotoMapModal` con
+`next/dynamic` y no importar `GeofenceMap` ni el cargador; la ventana debe dibujar solo la geocerca de
+esa foto con el punto, tener las siete claves y el enlace de respaldo; `GeofenceSection` debe seguir
+llamando a `GeofenceMap` solo con `fences`. `fitBounds` y el dibujo real no se prueban por lectura,
+como avisó el encargo.
+
+### Qué NO cambia
+
+`GeofenceSection`, el editor de geocercas, `getDayPhotos` en alcance y gate, la línea de texto de D-212
+(mismos estados y textos), el enlace a Google Maps (ahora dentro de la ventana). Ningún esquema. La
+prioridad de sitio (el del fichaje; si no, el más cercano) es la de D-212.
+
+### Lo no verificado
+
+Nadie abrió la ventana en un navegador: con la clave restringida al dominio viejo, en producción hoy
+se vería el respaldo, no el mapa; que el marcador, la etiqueta y el encuadre salgan bien va por leer la
+API de Maps (`Marker` con `label` e `icon`, `LatLngBounds.extend`), no por haberlo mirado. Cuando el
+dueño arregle la clave, la primera comprobación es abrir una foto «fuera» y ver el punto ámbar con su
+distancia fuera del contorno. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1078 pasados | 3 saltados**
+(main 6e427c6: 1069 | 3; los +9 son `photo-map.test.ts`). «Compiled with warnings» es `unpdf`, preexistente.
