@@ -10214,7 +10214,7 @@ en producción hoy se ve el respaldo). Que la pastilla se pinte va por que Googl
 a la etiqueta, documentado, no visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1087 pasados | 3 saltados**
 (main 8ba58bf: 1082 | 3; los +5 son `estiloMarcador`). `/timetracker/audit` 8,42 → 8,44 kB / 302 kB.
 
-## D-NEXT · El veredicto de ubicación bajo la foto es una pastilla que nunca se corta; el sitio va debajo
+## D-215 · El veredicto de ubicación bajo la foto es una pastilla que nunca se corta; el sitio va debajo
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
 **Pedido por:** Andrés, con captura sobre D-214: la línea «📍 Brownsville · on…» / «Brownsville · 8…» se

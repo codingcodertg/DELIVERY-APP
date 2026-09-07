@@ -68,12 +68,12 @@ describe("estiloMarcador: color y tamaño por estado («un icon rojo más visibl
     expect(leer("src/components/timetracker/PhotoMapModal.tsx")).toMatch(/estado: e\.kind/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label\{[^}]*background/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label-out\{border:2px solid #d64545\}/);
-    // Desde D-214 bis la línea es una pastilla (`pill off` = rojo del módulo), ya no un color inline.
+    // Desde D-215 la línea es una pastilla (`pill off` = rojo del módulo), ya no un color inline.
     expect(leer("src/components/timetracker/DayPhotos.tsx")).toMatch(/className=\{`pill \$\{e\.cls\} rev-loc`\}/);
   });
 });
 
-describe("etiquetaFoto: la pastilla bajo la foto y su segunda línea (D-214 bis: el veredicto nunca se corta)", () => {
+describe("etiquetaFoto: la pastilla bajo la foto y su segunda línea (D-215: el veredicto nunca se corta)", () => {
   it("sin coordenadas → «No location», gris, sin segunda línea (y no pulsable)", () => {
     expect(etiquetaFoto({ lat: null, lng: null, siteName: null, distanceM: null, offSite: null })).toEqual({ kind: "none", cls: "neutral", distanceM: null, second: null });
   });

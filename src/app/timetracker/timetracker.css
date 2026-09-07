@@ -231,7 +231,7 @@
 /* La nota de la excepción ocupa toda la línea y se corta: son frases libres y una larga
    descuadraba la tarjeta entera. */
 .timetracker-module .rev-note{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* El veredicto de ubicación (D-214 bis): pastilla, lo primero de la fila, y NUNCA se corta; lo que
+/* El veredicto de ubicación (D-215): pastilla, lo primero de la fila, y NUNCA se corta; lo que
    se corta es la segunda línea con el sitio (.rev-note). Como botón hereda el aspecto de la
    pastilla; sin coordenadas es un span gris (neutral). */
 .timetracker-module .rev-loc{white-space:nowrap;flex-shrink:0;order:-1}

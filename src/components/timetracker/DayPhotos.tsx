@@ -205,7 +205,7 @@ export function DayPhotos() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.url} alt={`${person} · ${k.label}`} loading="lazy" />
                   <figcaption>
-                    {/* El veredicto va PRIMERO y en pastilla, y nunca se corta (D-214 bis: la línea
+                    {/* El veredicto va PRIMERO y en pastilla, y nunca se corta (D-215: la línea
                         se truncaba y no se leía). Con coordenadas es el botón que abre el mapa
                         (D-213); el clic no abre el visor: stopPropagation. La antigua pastilla
                         «off site» sobraba: la roja «Out · 85 m» dice lo mismo y más. */}
