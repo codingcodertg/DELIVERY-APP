@@ -22,7 +22,9 @@ export type ErrorEscritura = { message: string; code?: string | null; details?: 
 type Par = { en: string; es: string };
 
 /**
- * Constraint → qué pasó y qué hacer. El nombre es el de la base (095, 083): si alguien lo
+ * Constraint → qué pasó y qué hacer. El nombre es el de la base —`profiles_module_access_known`
+ * en 095:55, `profiles_timetracker_access_needs_role` en 058:32, `profiles_erp_role_known` en
+ * 101:29, y la prueba comprueba que cada uno sigue estando en SU migración—: si alguien lo
  * renombra, este mapa deja de acertar y se cae en el mensaje crudo, que es el fallo correcto:
  * enseñar de más, nunca callar.
  */

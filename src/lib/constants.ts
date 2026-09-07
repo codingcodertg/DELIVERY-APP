@@ -324,7 +324,7 @@ export function normalizeModules(moduleAccess: string[] | null | undefined): str
  *
  *   1. Concedería un módulo que nadie pidió. Marcar «Entregas» en el diálogo de permisos no
  *      puede, de paso, dar Time Tracker.
- *   2. Reventaría igual. `profiles_timetracker_access_needs_role` (095) exige tramo para tener
+ *   2. Reventaría igual. `profiles_timetracker_access_needs_role` (058:32-33) exige tramo para tener
  *      'timetracker', y la persona con 'clockin' a secas no lo tiene: se cambiaría un
  *      constraint incumplido (`profiles_module_access_known`) por otro.
  *

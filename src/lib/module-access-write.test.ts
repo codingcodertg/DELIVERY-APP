@@ -119,6 +119,24 @@ describe("mensajeEscrituraPerfil: legible, en su idioma, sin tragarse el detalle
       expect(leer(fichero), `${nombre} en ${fichero}`).toContain(`add constraint ${nombre}`);
     }
   });
+  it("y las CITAS de los comentarios mandan al fichero correcto (aquí ya se coló una equivocada)", () => {
+    // Un nombre bien puesto con una cita mala manda al lector a la migración que no es, y eso
+    // no lo veía ninguna prueba: la cita se comprueba pegada al nombre que explica.
+    // Un comentario se parte en varias líneas, así que se lee como texto continuo: sin esto la
+    // cita se escaparía solo por caer justo detrás de un salto.
+    const seguido = (r: string) => leer(r).replace(/\n\s*\*/g, " ").replace(/\s+/g, " ");
+    const citas: [string, string, RegExp][] = [
+      ["src/lib/user-write-error.ts", "profiles_module_access_known", /profiles_module_access_known` en 095/],
+      ["src/lib/user-write-error.ts", "profiles_timetracker_access_needs_role", /profiles_timetracker_access_needs_role` en 058/],
+      ["src/lib/user-write-error.ts", "profiles_erp_role_known", /profiles_erp_role_known` en 101/],
+      ["src/lib/constants.ts", "profiles_timetracker_access_needs_role", /profiles_timetracker_access_needs_role` \(058/],
+    ];
+    for (const [ruta, nombre, cita] of citas) {
+      expect(seguido(ruta), `${nombre} en ${ruta}`).toMatch(cita);
+    }
+    // Y que no quede la cita vieja: 095 no declara el constraint del tramo.
+    expect(seguido("src/lib/constants.ts")).not.toMatch(/profiles_timetracker_access_needs_role` \(095/);
+  });
   it("constraint desconocido: el mensaje crudo, sin inventar un texto genérico", () => {
     expect(mensajeEscrituraPerfil(raro, "es")).toBe("could not connect to server");
   });
