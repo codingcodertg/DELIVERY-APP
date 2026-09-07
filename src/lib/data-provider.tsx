@@ -13,10 +13,11 @@ import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
 import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
-import { canTransition } from "@/lib/constants";
+import { canTransition, knownModules } from "@/lib/constants";
 import { orderOwner, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
+import { detalleAConsola, mensajeEscrituraPerfil } from "@/lib/user-write-error";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
@@ -1326,15 +1327,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const target = users.find((u) => u.id === userId);
       const beforeRole = target?.recruiting_role ?? null;
       const nextRole = granted ? (recruiting_role ?? "recruiter") : null;
+      // El array de partida es el de la fila, que puede traer palabras que la base ya no
+      // acepta ('clockin'): sin filtrar, conceder un módulo arrastraba la palabra vieja y el
+      // constraint profiles_module_access_known tumbaba el UPDATE entero (D-NEXT).
+      const actuales = knownModules(target?.module_access);
       const nextModules = granted
-        ? Array.from(new Set([...(target?.module_access ?? []), "recruiting"]))
-        : (target?.module_access ?? []).filter((m) => m !== "recruiting");
+        ? Array.from(new Set([...actuales, "recruiting"]))
+        : actuales.filter((m) => m !== "recruiting");
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, recruiting_role: nextRole, module_access: nextModules } : u)));
       const { error } = await supabase.from("profiles").update({ recruiting_role: nextRole, module_access: nextModules }).eq("id", userId);
-      if (error) { notify(error.message); reloadAll(); return; }
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
       void logSecurityClient(userId, "recruiting_access_changed", change(beforeRole, nextRole));
     },
-    [supabase, notify, reloadAll, users, logSecurityClient],
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
 
@@ -1345,15 +1350,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     async (userId, { granted }) => {
       const target = users.find((u) => u.id === userId);
       const before = (target?.module_access ?? []).includes("deliveries");
+      const actuales = knownModules(target?.module_access);
       const nextModules = granted
-        ? Array.from(new Set([...(target?.module_access ?? []), "deliveries"]))
-        : (target?.module_access ?? []).filter((m) => m !== "deliveries");
+        ? Array.from(new Set([...actuales, "deliveries"]))
+        : actuales.filter((m) => m !== "deliveries");
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
       const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
-      if (error) { notify(error.message); reloadAll(); return; }
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
       void logSecurityClient(userId, "deliveries_access_changed", change(String(before), String(granted)));
     },
-    [supabase, notify, reloadAll, users, logSecurityClient],
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
   const updateUserErpAccess = useCallback<DataState["updateUserErpAccess"]>(
@@ -1365,16 +1371,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // On revoke: clear the tier. Mirrors recruiting/timetracker so the DB (erp_role) and the
       // module flag never drift (D-181).
       const nextRole = granted ? (erp_role ?? target?.erp_role ?? "staff") : null;
+      const actuales = knownModules(target?.module_access);
       const nextModules = granted
-        ? Array.from(new Set([...(target?.module_access ?? []), "erp"]))
-        : (target?.module_access ?? []).filter((m) => m !== "erp");
+        ? Array.from(new Set([...actuales, "erp"]))
+        : actuales.filter((m) => m !== "erp");
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, erp_role: nextRole, module_access: nextModules } : u)));
       const { error } = await supabase.from("profiles").update({ erp_role: nextRole, module_access: nextModules }).eq("id", userId);
-      if (error) { notify(error.message); reloadAll(); return; }
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
       if (before !== granted) void logSecurityClient(userId, "erp_access_changed", change(String(before), String(granted)));
       if (beforeRole !== nextRole) void logSecurityClient(userId, "erp_role_changed", change(beforeRole, nextRole));
     },
-    [supabase, notify, reloadAll, users, logSecurityClient],
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
   const updateUserTimetrackerAccess = useCallback<DataState["updateUserTimetrackerAccess"]>(
@@ -1382,15 +1389,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const target = users.find((u) => u.id === userId);
       const beforeRole = target?.timetracker_role ?? null;
       const nextRole = granted ? (timetracker_role ?? "employee") : null;
+      const actuales = knownModules(target?.module_access);
       const nextModules = granted
-        ? Array.from(new Set([...(target?.module_access ?? []), "timetracker"]))
-        : (target?.module_access ?? []).filter((m) => m !== "timetracker");
+        ? Array.from(new Set([...actuales, "timetracker"]))
+        : actuales.filter((m) => m !== "timetracker");
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, timetracker_role: nextRole, module_access: nextModules } : u)));
       const { error } = await supabase.from("profiles").update({ timetracker_role: nextRole, module_access: nextModules }).eq("id", userId);
-      if (error) { notify(error.message); reloadAll(); return; }
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
       void logSecurityClient(userId, "timetracker_access_changed", change(beforeRole, nextRole));
     },
-    [supabase, notify, reloadAll, users, logSecurityClient],
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
   const deleteUser = useCallback<DataState["deleteUser"]>(
