@@ -35,7 +35,20 @@ export type Fence = {
  * Las inactivas se dibujan igual, en gris: una geocerca apagada sigue explicando por qué los
  * fichajes de esa tienda salen "fuera del sitio", y esconderla convierte eso en un misterio.
  */
-export function GeofenceMap({ fences, height = 320 }: { fences: Fence[]; height?: number }) {
+/** Un punto encima de las geocercas: dónde se tomó una foto. `label` va junto al marcador. */
+export type MapPoint = { lat: number; lng: number; label: string; inside: boolean };
+
+/**
+ * `points` (opcional, D-NEXT tras D-212): marcadores encima de las geocercas, y el encuadre los
+ * incluye. Un punto fuera lleva su etiqueta de distancia junto al marcador —texto y no una línea
+ * hasta el borde, porque la distancia es a la geocerca (D-212) y una línea al centro del sitio
+ * diría otra cosa—. `fallback` (opcional): qué pintar si no hay clave o el script no carga, en
+ * vez del aviso en inglés de Ajustes; la ventana de Auditoría pone ahí su texto y el enlace.
+ * Sin `points` ni `fallback` es exactamente lo de antes: GeofenceSection no cambia.
+ */
+export function GeofenceMap({ fences, points = [], height = 320, fallback }: {
+  fences: Fence[]; points?: MapPoint[]; height?: number; fallback?: (message: string) => React.ReactNode;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -86,9 +99,26 @@ export function GeofenceMap({ fences, height = 320 }: { fences: Fence[]; height?
         }
       }
 
+      // Los puntos (fotos): marcador clásico con la etiqueta al lado; nada de marcadores
+      // avanzados, que exigen un Map ID. Verde dentro, ámbar fuera, como los pills de Auditoría.
+      for (const p of points) {
+        const color = p.inside ? "#22c55e" : "#e9a13b";
+        const marker = new maps.Marker({
+          map, position: { lat: p.lat, lng: p.lng }, title: p.label,
+          label: { text: p.label, color: "#fff", fontSize: "12px", fontWeight: "700", className: "tt-map-label" },
+          icon: { path: maps.SymbolPath.CIRCLE, scale: 7, fillColor: color, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2 },
+        });
+        bounds.extend({ lat: p.lat, lng: p.lng });
+        shapes.push(marker);
+        algo = true;
+      }
+
       // Encuadra lo que haya. Sin geocercas, el Valle: no dejar el mapa en el Atlántico.
-      if (algo && !bounds.isEmpty()) map.fitBounds(bounds, 24);
-      else map.setCenter({ lat: 26.2, lng: -98.23 }), map.setZoom(10);
+      if (algo && !bounds.isEmpty()) {
+        map.fitBounds(bounds, 40);
+        // Un solo punto sin geocerca: fitBounds sobre un punto acerca hasta el máximo; se frena.
+        if (points.length === 1 && fences.length === 0) map.setZoom(Math.min(map.getZoom() ?? 17, 17));
+      } else map.setCenter({ lat: 26.2, lng: -98.23 }), map.setZoom(10);
     })();
 
     return () => {
@@ -96,9 +126,10 @@ export function GeofenceMap({ fences, height = 320 }: { fences: Fence[]; height?
       shapes.forEach((s) => s.setMap(null));
       shapes = [];
     };
-  }, [fences]);
+  }, [fences, points]);
 
   if (err) {
+    if (fallback) return <>{fallback(err)}</>;
     return (
       <div className="banner warn" style={{ marginTop: 0 }}>
         {err}
