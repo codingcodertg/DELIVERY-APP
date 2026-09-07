@@ -9982,7 +9982,7 @@ valores oscuros de `--surface-soft` (`#212a37`, el `--card-hover` oscuro del hub
 (`#2b3646`, el `--line` oscuro de HR) son elección mía, dicha aquí. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1049 pasados | 3 saltados**
 (main e83a58a: 1025 | 3; los +24 son el guardián). «Compiled with warnings» es `unpdf`, preexistente.
 
-## D-NEXT · Cada foto de fichaje enseña dónde se tomó (Auditoría → Fotos), y salir/volver mandan posición
+## D-212 · Cada foto de fichaje enseña dónde se tomó (Auditoría → Fotos), y salir/volver mandan posición
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (Time Tracker y clock-in) ·
 **Pedido por:** Andrés, literal: «el clock-in app tiene que guardar GPS cada vez que se toma una foto,

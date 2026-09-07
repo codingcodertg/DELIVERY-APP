@@ -17,3 +17,9 @@ Una rama cada vez.
 Fuera de la cola (del dueño): Maps key, protección de rama, rename de repo y
 carpeta, instalador "RTG Hub Setup", VAPID, seguridad diferida, teléfono con GPS
 parado desde el 2026-09-02.
+
+## Encargos posteriores a la cola
+
+| # | Rama | Qué | Estado |
+|---|------|-----|--------|
+| 7 | `fotos-con-ubicacion` | Pedido del dueño 2026-09-06: ubicación GPS de cada foto en Auditoría → Fotos; salir/volver mandan posición | **fusionado D-212** (PR #28) |
