@@ -511,7 +511,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role").order("full_name");
+      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role").order("full_name");
       if (r.data) setUsers(r.data as Profile[]);
       return r;
     },

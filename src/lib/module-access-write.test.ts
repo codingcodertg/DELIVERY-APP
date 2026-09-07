@@ -70,7 +70,7 @@ describe("las cuatro escrituras del provider filtran, y el select trae erp_role"
   it("el select de profiles trae erp_role (el diálogo lo pinta y el guardado lo conserva)", () => {
     const select = /\.from\("profiles"\)\.select\("([^"]+)"\)/.exec(src);
     expect(select).not.toBeNull();
-    for (const col of ["module_access", "recruiting_role", "timetracker_role"]) {
+    for (const col of ["module_access", "recruiting_role", "timetracker_role", "erp_role"]) {
       expect(select![1], col).toContain(col);
     }
   });
