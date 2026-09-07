@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { comoFence, estadoFoto, estiloMarcador, geocercaDeFoto } from "./photo-map";
+import { comoFence, estadoFoto, estiloMarcador, etiquetaFoto, geocercaDeFoto } from "./photo-map";
 import type { SitioFoto } from "./day-photos";
 
 // La ventana del mapa de una foto: estado y geocerca, sin recalcular nada en el cliente.
@@ -68,7 +68,49 @@ describe("estiloMarcador: color y tamaño por estado («un icon rojo más visibl
     expect(leer("src/components/timetracker/PhotoMapModal.tsx")).toMatch(/estado: e\.kind/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label\{[^}]*background/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label-out\{border:2px solid #d64545\}/);
-    expect(leer("src/components/timetracker/DayPhotos.tsx")).toMatch(/color: p\.offSite \? "var\(--red\)" : "inherit", fontWeight: p\.offSite \? 600 : undefined/);
+    // Desde D-214 bis la línea es una pastilla (`pill off` = rojo del módulo), ya no un color inline.
+    expect(leer("src/components/timetracker/DayPhotos.tsx")).toMatch(/className=\{`pill \$\{e\.cls\} rev-loc`\}/);
+  });
+});
+
+describe("etiquetaFoto: la pastilla bajo la foto y su segunda línea (D-214 bis: el veredicto nunca se corta)", () => {
+  it("sin coordenadas → «No location», gris, sin segunda línea (y no pulsable)", () => {
+    expect(etiquetaFoto({ lat: null, lng: null, siteName: null, distanceM: null, offSite: null })).toEqual({ kind: "none", cls: "neutral", distanceM: null, second: null });
+  });
+  it("coordenadas sin sitio → «No site», gris, con las coordenadas en la segunda línea", () => {
+    expect(etiquetaFoto({ lat: 33.00045, lng: -96, siteName: null, distanceM: null, offSite: null })).toEqual({ kind: "noSite", cls: "neutral", distanceM: null, second: "33.00045, -96.00000" });
+  });
+  it("marcada fuera por el servidor → «Out · d», roja, con el sitio debajo", () => {
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "Brownsville", distanceM: 85, offSite: true })).toEqual({ kind: "out", cls: "off", distanceM: 85, second: "Brownsville" });
+  });
+  it("distancia 0 → «On site», verde, con el sitio debajo", () => {
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "Brownsville", distanceM: 0, offSite: false })).toEqual({ kind: "on", cls: "on", distanceM: 0, second: "Brownsville" });
+  });
+  it("con distancia y sin marca de fuera (una excepción lejos, o dentro del margen de GPS) → «d away», ámbar", () => {
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "Brownsville", distanceM: 1234, offSite: null })).toEqual({ kind: "near", cls: "wait", distanceM: 1234, second: "Brownsville" });
+  });
+  it("mutación: el rojo solo con offSite; el verde solo con 0; nunca rojo sin sitio", () => {
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "X", distanceM: 0, offSite: true }).cls).toBe("off");
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "X", distanceM: 5, offSite: false }).cls).not.toBe("on");
+    expect(etiquetaFoto({ lat: 33, lng: -96, siteName: null, distanceM: 5, offSite: true }).cls).toBe("neutral");
+  });
+  it("y la pantalla: la pastilla primero, nunca truncada, con el sitio en la segunda línea (por fuente)", () => {
+    const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
+    const ui = leer("src/components/timetracker/DayPhotos.tsx");
+    expect(ui).toMatch(/const e = etiquetaFoto\(p\);/);
+    // una clave literal por estado, y las claves ya no llevan el sitio dentro
+    for (const k of ["mgr.photos.locNone", "mgr.photos.locNoSite", "mgr.photos.locOnSite", "mgr.photos.locOff", "mgr.photos.locAt"]) expect(ui, k).toContain(`t("${k}"`);
+    expect(ui).not.toMatch(/mgr\.photos\.offSite/);
+    expect(ui).toMatch(/\{e\.second && <span className="small muted rev-note">\{e\.second\}<\/span>\}/);
+    const css = leer("src/app/timetracker/timetracker.css");
+    expect(css).toMatch(/\.rev-loc\{white-space:nowrap;flex-shrink:0;order:-1\}/);
+    expect(css).toMatch(/\.pill\.neutral\{background:var\(--tt-chip\);color:var\(--tt-muted\)\}/);
+    const dict = leer("src/lib/timetracker/i18n.ts");
+    expect(dict).not.toMatch(/mgr\.photos\.offSite/);
+    for (const k of ["locNone", "locNoSite", "locOnSite", "locOff", "locAt"]) {
+      const veces = dict.match(new RegExp(`'mgr\\.photos\\.${k}': '[^']*\\{site\\}`, "g")) ?? [];
+      expect(veces, `${k} ya no lleva {site}`).toHaveLength(0);
+    }
   });
 });
 

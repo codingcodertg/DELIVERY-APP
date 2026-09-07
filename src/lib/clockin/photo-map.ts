@@ -62,6 +62,39 @@ export function estiloMarcador(estado: EstadoMarcador): EstiloMarcador {
   return { fill: "#9aa6b8", scale: 7, stroke: "#fff", strokeWeight: 2, labelColor: "#374151", labelWeight: "700", labelClass: "tt-map-label" };
 }
 
+/**
+ * La etiqueta bajo la foto en Auditoría (pedido del dueño sobre D-214: la línea se cortaba y no se
+ * leía el veredicto). El veredicto va en una pastilla que nunca se trunca; el nombre del sitio (o
+ * las coordenadas) en una segunda línea, que es lo que puede cortarse. Puro: aquí se decide QUÉ
+ * pastilla y qué segunda línea; el texto lo pone la pantalla con claves literales.
+ *
+ *   on      · verde   · «On site»            (distancia 0 y dentro)
+ *   near    · ámbar   · «{d} away»           (con distancia pero no marcada fuera: una excepción
+ *                                             lejos, o un fichaje dentro del margen de GPS)
+ *   out     · rojo    · «Out · {d}»          (el servidor la marcó fuera de la geocerca)
+ *   noSite  · gris    · «No site»            (coordenadas sin ningún sitio contra el que medir)
+ *   none    · gris    · «No location»        (sin coordenadas: no pulsable)
+ */
+export type EtiquetaFoto = {
+  kind: "none" | "noSite" | "on" | "near" | "out";
+  /** Clase de `.pill`: neutral / on / wait / off. Variables del módulo, no hex. */
+  cls: "neutral" | "on" | "wait" | "off";
+  distanceM: number | null;
+  /** Segunda línea: el nombre del sitio, las coordenadas, o nada. */
+  second: string | null;
+};
+
+export function etiquetaFoto(p: {
+  lat: number | null; lng: number | null; siteName: string | null; distanceM: number | null; offSite: boolean | null;
+}): EtiquetaFoto {
+  if (p.lat == null || p.lng == null) return { kind: "none", cls: "neutral", distanceM: null, second: null };
+  const coords = `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
+  if (p.siteName == null || p.distanceM == null) return { kind: "noSite", cls: "neutral", distanceM: null, second: coords };
+  if (p.offSite) return { kind: "out", cls: "off", distanceM: p.distanceM, second: p.siteName };
+  if (p.distanceM === 0) return { kind: "on", cls: "on", distanceM: 0, second: p.siteName };
+  return { kind: "near", cls: "wait", distanceM: p.distanceM, second: p.siteName };
+}
+
 /** Un sitio de las fotos, en la forma que dibuja GeofenceMap (siempre "activo": es la geocerca que se juzga). */
 export function comoFence(s: SitioFoto) {
   return {
