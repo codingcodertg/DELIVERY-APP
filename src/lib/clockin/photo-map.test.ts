@@ -54,8 +54,11 @@ describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa
   it("la ventana dibuja solo la geocerca de esa foto, con el punto, y el respaldo con el enlace", () => {
     const src = leer("src/components/timetracker/PhotoMapModal.tsx");
     expect(src).toMatch(/estadoFoto\(/);
-    expect(src).toMatch(/fences=\{e\.kind === "sinSitio" \? \[\] : \[comoFence\(e\.site\)\]\}/);
-    expect(src).toMatch(/points=\{/);
+    // Solo la geocerca de esa foto, y memoizada: un array inline reconstruiría el mapa por render.
+    expect(src).toMatch(/const fences = useMemo<Fence\[\]>\(\(\) => \(e\.kind === "dentro" \|\| e\.kind === "fuera" \? \[comoFence\(e\.site\)\] : \[\]\)/);
+    expect(src).toMatch(/const points = useMemo<MapPoint\[\]>\(/);
+    expect(src).toMatch(/fences=\{fences\}/);
+    expect(src).toMatch(/points=\{points\}/);
     expect(src).toMatch(/enlaceMapa\(/);
     for (const k of ["mgr.photos.mapTitle", "mgr.photos.mapInside", "mgr.photos.mapOutside", "mgr.photos.mapNoSite", "mgr.photos.mapFailed", "mgr.photos.openMap"]) {
       expect(src, k).toContain(`t("${k}"`);
@@ -64,5 +67,21 @@ describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa
   it("GeofenceMap sigue aceptando solo fences (GeofenceSection no cambia)", () => {
     expect(leer("src/components/timetracker/GeofenceSection.tsx")).toMatch(/<GeofenceMap fences=\{sites\} \/>/);
     expect(leer("src/components/timetracker/GeofenceMap.tsx")).toMatch(/points\?:/);
+  });
+  it("el default de points es una constante de módulo, no un [] en la firma (un [] nuevo por render reconstruiría el mapa en Ajustes)", () => {
+    const src = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(src).toMatch(/^const SIN_PUNTOS: MapPoint\[\] = \[\];/m);
+    expect(src).toMatch(/points = SIN_PUNTOS/);
+    expect(src).not.toMatch(/\{ fences, points = \[\]/);
+    // Y sin puntos, el encuadre de Ajustes es el de siempre (24).
+    expect(src).toMatch(/fitBounds\(bounds, points\.length \? 40 : 24\)/);
+  });
+  it("una llave rechazada por dominio (gm_authFailure) cae en el respaldo, no en un mapa gris", () => {
+    const src = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(src).toMatch(/w\.gm_authFailure = \(\) => \{/);
+    expect(src).toMatch(/delete w\.gm_authFailure/);
+  });
+  it("la ventana está en la prueba de claves de D-187", () => {
+    expect(leer("src/lib/timetracker/i18n.test.ts")).toContain('"src/components/timetracker/PhotoMapModal.tsx"');
   });
 });

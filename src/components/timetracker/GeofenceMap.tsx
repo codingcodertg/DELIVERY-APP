@@ -46,7 +46,13 @@ export type MapPoint = { lat: number; lng: number; label: string; inside: boolea
  * vez del aviso en inglés de Ajustes; la ventana de Auditoría pone ahí su texto y el enlace.
  * Sin `points` ni `fallback` es exactamente lo de antes: GeofenceSection no cambia.
  */
-export function GeofenceMap({ fences, points = [], height = 320, fallback }: {
+// Default ESTABLE, a nivel de módulo. Un `points = []` en la firma sería un array nuevo en cada
+// render y, como `points` es dependencia del efecto que hace `new maps.Map`, cada setState de
+// GeofenceSection reconstruiría el mapa: parpadeo y una carga de Maps facturable por re-render.
+// Lo mismo vale para quien pase `points` o `fences`: memoízalos (PhotoMapModal lo hace).
+const SIN_PUNTOS: MapPoint[] = [];
+
+export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallback }: {
   fences: Fence[]; points?: MapPoint[]; height?: number; fallback?: (message: string) => React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -59,6 +65,15 @@ export function GeofenceMap({ fences, points = [], height = 320, fallback }: {
     }
     let cancelled = false;
     let shapes: { setMap: (m: google.maps.Map | null) => void }[] = [];
+
+    // Una llave rechazada (dominio no autorizado, llave desactivada) NO rechaza la carga: Google
+    // resuelve, pinta el mapa gris y avisa por window.gm_authFailure. Sin capturarlo, el aviso
+    // no llega a nadie y el mapa "está" pero en blanco. Se registra aquí, al montar, y se quita
+    // al desmontar; con dos mapas a la vez el último en montar se queda con el aviso.
+    const w = window as unknown as { gm_authFailure?: () => void };
+    w.gm_authFailure = () => {
+      if (!cancelled) setErr("Google Maps rejected the browser key for this domain (gm_authFailure): check the key's referrer restrictions in Google Cloud.");
+    };
 
     (async () => {
       let maps: typeof google.maps;
@@ -115,7 +130,9 @@ export function GeofenceMap({ fences, points = [], height = 320, fallback }: {
 
       // Encuadra lo que haya. Sin geocercas, el Valle: no dejar el mapa en el Atlántico.
       if (algo && !bounds.isEmpty()) {
-        map.fitBounds(bounds, 40);
+        // 24 como siempre en Ajustes; con puntos, 40 para que un marcador en el borde no quede
+        // pegado al marco. Sin puntos, el encuadre de Ajustes no cambia.
+        map.fitBounds(bounds, points.length ? 40 : 24);
         // Un solo punto sin geocerca: fitBounds sobre un punto acerca hasta el máximo; se frena.
         if (points.length === 1 && fences.length === 0) map.setZoom(Math.min(map.getZoom() ?? 17, 17));
       } else map.setCenter({ lat: 26.2, lng: -98.23 }), map.setZoom(10);
@@ -123,6 +140,7 @@ export function GeofenceMap({ fences, points = [], height = 320, fallback }: {
 
     return () => {
       cancelled = true;
+      if (w.gm_authFailure) delete w.gm_authFailure;
       shapes.forEach((s) => s.setMap(null));
       shapes = [];
     };
