@@ -10139,3 +10139,19 @@ API de Maps (`Marker` con `label` e `icon`, `LatLngBounds.extend`), no por haber
 dueño arregle la clave, la primera comprobación es abrir una foto «fuera» y ver el punto ámbar con su
 distancia fuera del contorno. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1078 pasados | 3 saltados**
 (main 6e427c6: 1069 | 3; los +9 son `photo-map.test.ts`). «Compiled with warnings» es `unpdf`, preexistente.
+
+**Nota del mismo día (CAMBIOS del auditor, antes del merge).** Lo de arriba tenía dos defectos que
+bloqueaban y dos menores, medidos por el auditor y corregidos en la misma rama. (1) `points = []`
+como valor por defecto en la firma de `GeofenceMap` era un array **nuevo en cada render**, y `points`
+es dependencia del efecto que hace `new maps.Map`: en Ajustes, que no pasa puntos, cada `setState` de
+`GeofenceSection` reconstruía el mapa, con parpadeo y una carga de Dynamic Maps **facturable** por
+re-render. El default es ahora una constante de módulo (`SIN_PUNTOS`) y `PhotoMapModal` memoiza
+`fences` y `points` con `useMemo`, que inline tenían el mismo defecto. (2) El caso real de producción
+—llave restringida al dominio viejo— **no caía en el respaldo**: Google no rechaza la carga, resuelve,
+pinta el mapa gris y avisa por `window.gm_authFailure`, que nadie capturaba. `GeofenceMap` lo registra
+al montar (y lo retira al desmontar) y lo convierte en el error que pinta el respaldo con el enlace a
+Maps; Ajustes enseña su aviso en vez del gris. (3) El padding de `fitBounds` había pasado de 24 a 40
+también sin puntos, y eso cambiaba el encuadre de Ajustes: 24 sin puntos, 40 solo con puntos. (4)
+`PhotoMapModal.tsx` entra en la lista de la prueba de claves de D-187. La mutación cubre los cuatro
+(`photo-map.test.ts`, 9 → 12 casos). Lo no verificado no cambia: `gm_authFailure` está capturado por
+lectura de la documentación de Maps, no porque alguien haya abierto la ventana con la llave rota.
