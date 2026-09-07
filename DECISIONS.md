@@ -10213,3 +10213,43 @@ dos clases y la línea el rojo condicionado a `offSite`.
 en producción hoy se ve el respaldo). Que la pastilla se pinte va por que Google aplique `className`
 a la etiqueta, documentado, no visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1087 pasados | 3 saltados**
 (main 8ba58bf: 1082 | 3; los +5 son `estiloMarcador`). `/timetracker/audit` 8,42 → 8,44 kB / 302 kB.
+
+## D-NEXT · El veredicto de ubicación bajo la foto es una pastilla que nunca se corta; el sitio va debajo
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
+**Pedido por:** Andrés, con captura sobre D-214: la línea «📍 Brownsville · on…» / «Brownsville · 8…» se
+cortaba y no se leía el veredicto; quiere que diga claramente «On site» u «Out». Sin migración.
+**Cero lógica:** `estadoFoto` y los datos, igual.
+
+**Por qué se cortaba.** La línea de D-212 era un `.rev-note` (la nota de excepción, con `ellipsis` a
+propósito) y llevaba el sitio ANTES del veredicto: lo que se perdía era justo lo importante.
+
+**Qué se hizo.** `etiquetaFoto(p)` (puro, `lib/clockin/photo-map.ts`) decide la pastilla y la segunda
+línea; la pantalla pone una clave literal por estado:
+
+| Estado | Pastilla | Texto en / es | Segunda línea |
+|---|---|---|---|
+| on (distancia 0) | verde `.pill.on`, la de «Clock in» | 📍 On site / 📍 En el sitio | sitio |
+| out (marcada fuera por el servidor) | roja `.pill.off` (la variable del módulo) | 📍 Out · 85 m / 📍 Fuera · 85 m | sitio |
+| near (distancia > 0 sin marca de fuera: una excepción lejos, o dentro del margen de GPS) | ámbar `.pill.wait` | 📍 1.2 km away / 📍 A 1,2 km | sitio |
+| noSite (coordenadas, sin sitio) | gris `.pill.neutral` (nueva: `--tt-chip` / `--tt-muted`) | 📍 No site / 📍 Sin sitio | coordenadas |
+| none (sin coordenadas) | gris, no pulsable | 📍 No location / 📍 Sin ubicación | — |
+
+- La pastilla es **lo primero de la fila** (`order:-1`), `white-space:nowrap` y `flex-shrink:0`: nunca se
+  trunca. Con coordenadas es el botón que abre el mapa (D-213). El sitio va en `.rev-note`, que es lo que
+  puede cortarse con `ellipsis`.
+- **Claves:** los textos existentes `mgr.photos.loc*` cambian en vez de añadir; `{site}` sale de las
+  claves (va en la segunda línea, como dato). **Se quita `mgr.photos.offSite`** en los dos idiomas: la
+  pastilla «off site» sobraba junto a la roja «Out · 85 m» (§15: buscada literal y construida en `src/`,
+  solo la usaba esa pastilla; `DayPhotos` está en la prueba de claves).
+- Distancia con el formato que ya existe (`fmtDistancia`: m hasta 999, km con un decimal después).
+
+**Pruebas** (`photo-map.test.ts`, 17 → 24): los cinco estados con su clase y su segunda línea; mutación
+(rojo solo con `offSite`, verde solo con 0, nunca rojo sin sitio); y por fuente: la pantalla usa
+`etiquetaFoto`, una clave por estado, sin `offSite`, la segunda línea, las reglas de la hoja, y ninguna
+clave `loc*` lleva ya `{site}`.
+
+**Lo no verificado.** Nadie lo vio en un navegador: que la pastilla no se corte va por `nowrap` +
+`flex-shrink:0` en un `figcaption` con `flex-wrap:wrap` (si no cabe, baja de línea entera, no se
+trunca), por lectura. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1094 pasados | 3 saltados**
+(main 50dd899: 1087 | 3; los +7 son `etiquetaFoto`). `/timetracker/audit` 8,44 → 8,82 kB / 302 kB.
