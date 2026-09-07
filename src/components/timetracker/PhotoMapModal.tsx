@@ -33,7 +33,7 @@ export function PhotoMapModal({ photo, sites, onClose }: { photo: DayPhoto; site
   const points = useMemo<MapPoint[]>(() => {
     if (e.kind === "sinCoords") return [];
     const label = e.kind === "fuera" ? fmtDistancia(e.distanceM, lang) : photo.who;
-    return [{ lat: e.lat, lng: e.lng, label, inside: e.kind === "dentro" }];
+    return [{ lat: e.lat, lng: e.lng, label, estado: e.kind }];
   }, [e, lang, photo.who]);
 
   if (e.kind === "sinCoords") return null; // la línea no es pulsable sin coordenadas

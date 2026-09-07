@@ -31,6 +31,37 @@ export function estadoFoto(
   return { kind: "fuera", lat: p.lat, lng: p.lng, site, distanceM: p.distanceM };
 }
 
+/** Lo que decide el estilo del marcador: el veredicto, sin coordenadas no hay marcador. */
+export type EstadoMarcador = "dentro" | "fuera" | "sinSitio";
+
+export type EstiloMarcador = {
+  /** Relleno del símbolo. Fuera: el rojo del hub (`--red`, #d64545), no ámbar. */
+  fill: string;
+  /** Radio del círculo en px. Fuera es claramente mayor que el estándar. */
+  scale: number;
+  stroke: string;
+  strokeWeight: number;
+  /** Texto de la etiqueta (la distancia, o el nombre). Sobre una pastilla blanca: legible en satélite. */
+  labelColor: string;
+  labelWeight: string;
+  labelClass: string;
+};
+
+/**
+ * Color y tamaño del marcador por estado (pedido del dueño sobre D-213: «un icon rojo más visible»).
+ * Dentro: verde, tamaño normal. Fuera: rojo y casi el doble, con la distancia también en rojo.
+ * Sin sitio: gris neutro. Es lo único que cambia: `estadoFoto` decide igual.
+ */
+export function estiloMarcador(estado: EstadoMarcador): EstiloMarcador {
+  if (estado === "fuera") {
+    return { fill: "#d64545", scale: 13, stroke: "#fff", strokeWeight: 3, labelColor: "#d64545", labelWeight: "800", labelClass: "tt-map-label tt-map-label-out" };
+  }
+  if (estado === "dentro") {
+    return { fill: "#22c55e", scale: 7, stroke: "#fff", strokeWeight: 2, labelColor: "#166534", labelWeight: "700", labelClass: "tt-map-label" };
+  }
+  return { fill: "#9aa6b8", scale: 7, stroke: "#fff", strokeWeight: 2, labelColor: "#374151", labelWeight: "700", labelClass: "tt-map-label" };
+}
+
 /** Un sitio de las fotos, en la forma que dibuja GeofenceMap (siempre "activo": es la geocerca que se juzga). */
 export function comoFence(s: SitioFoto) {
   return {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { comoFence, estadoFoto, geocercaDeFoto } from "./photo-map";
+import { comoFence, estadoFoto, estiloMarcador, geocercaDeFoto } from "./photo-map";
 import type { SitioFoto } from "./day-photos";
 
 // La ventana del mapa de una foto: estado y geocerca, sin recalcular nada en el cliente.
@@ -31,6 +31,44 @@ describe("estadoFoto: qué se pinta", () => {
   });
   it("distancia > 0 del servidor → fuera, con la geocerca y ESA distancia (no se recalcula)", () => {
     expect(estadoFoto({ lat: 33.01, lng: -96, siteId: "s1", distanceM: 1234 }, SITES)).toEqual({ kind: "fuera", lat: 33.01, lng: -96, site: NORTE, distanceM: 1234 });
+  });
+});
+
+describe("estiloMarcador: color y tamaño por estado («un icon rojo más visible», sobre D-213)", () => {
+  const fuera = estiloMarcador("fuera");
+  const dentro = estiloMarcador("dentro");
+  const sinSitio = estiloMarcador("sinSitio");
+  it("fuera: el rojo del hub (--red, #d64545), claramente mayor que el estándar, y la etiqueta en rojo", () => {
+    expect(fuera.fill).toBe("#d64545");
+    expect(fuera.labelColor).toBe("#d64545");
+    expect(fuera.scale).toBeGreaterThanOrEqual(dentro.scale * 1.8);
+    expect(fuera.strokeWeight).toBeGreaterThan(dentro.strokeWeight);
+    expect(fuera.labelClass).toContain("tt-map-label-out");
+  });
+  it("dentro: verde, tamaño normal (7 px, el de siempre)", () => {
+    expect(dentro.fill).toBe("#22c55e");
+    expect(dentro.scale).toBe(7);
+    expect(dentro.labelClass).toBe("tt-map-label");
+  });
+  it("sin sitio: gris neutro, tamaño normal, y nunca el rojo", () => {
+    expect(sinSitio.fill).toBe("#9aa6b8");
+    expect(sinSitio.scale).toBe(dentro.scale);
+    expect(sinSitio.fill).not.toBe(fuera.fill);
+    expect(sinSitio.labelColor).not.toBe(fuera.labelColor);
+  });
+  it("mutación: los tres estados dan tres rellenos distintos, y solo «fuera» sale del tamaño estándar", () => {
+    expect(new Set([fuera.fill, dentro.fill, sinSitio.fill]).size).toBe(3);
+    expect([dentro.scale, sinSitio.scale].every((s) => s === 7)).toBe(true);
+  });
+  it("y el mapa, la ventana, la hoja y la línea bajo la foto lo usan (por fuente)", () => {
+    const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
+    const mapa = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(mapa).toMatch(/const s = estiloMarcador\(p\.estado\)/);
+    expect(mapa).not.toMatch(/p\.inside/);
+    expect(leer("src/components/timetracker/PhotoMapModal.tsx")).toMatch(/estado: e\.kind/);
+    expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label\{[^}]*background/);
+    expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label-out\{border:2px solid #d64545\}/);
+    expect(leer("src/components/timetracker/DayPhotos.tsx")).toMatch(/color: p\.offSite \? "var\(--red\)" : "inherit", fontWeight: p\.offSite \? 600 : undefined/);
   });
 });
 
