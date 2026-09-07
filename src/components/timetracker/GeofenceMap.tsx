@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { googleMapsEnabled, loadGoogleMaps } from "@/lib/google-maps-loader";
+import { googleMapsEnabled, loadGoogleMaps, onMapsAuthFailure } from "@/lib/google-maps-loader";
 
 export type Fence = {
   id: string;
@@ -67,13 +67,11 @@ export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallbac
     let shapes: { setMap: (m: google.maps.Map | null) => void }[] = [];
 
     // Una llave rechazada (dominio no autorizado, llave desactivada) NO rechaza la carga: Google
-    // resuelve, pinta el mapa gris y avisa por window.gm_authFailure. Sin capturarlo, el aviso
-    // no llega a nadie y el mapa "está" pero en blanco. Se registra aquí, al montar, y se quita
-    // al desmontar; con dos mapas a la vez el último en montar se queda con el aviso.
-    const w = window as unknown as { gm_authFailure?: () => void };
-    w.gm_authFailure = () => {
-      if (!cancelled) setErr("Google Maps rejected the browser key for this domain (gm_authFailure): check the key's referrer restrictions in Google Cloud.");
-    };
+    // resuelve, pinta el mapa gris y avisa UNA vez por window.gm_authFailure. Quien lo captura y
+    // lo recuerda es el cargador compartido (google-maps-loader): la primera vez avisa por aquí,
+    // con el mapa ya pintado; las siguientes, loadGoogleMaps() rechaza directamente y cae en el
+    // catch de abajo. Este componente solo escucha; no registra el callback global.
+    const offAuth = onMapsAuthFailure((message) => { if (!cancelled) setErr(message); });
 
     (async () => {
       let maps: typeof google.maps;
@@ -140,7 +138,7 @@ export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallbac
 
     return () => {
       cancelled = true;
-      if (w.gm_authFailure) delete w.gm_authFailure;
+      offAuth();
       shapes.forEach((s) => s.setMap(null));
       shapes = [];
     };

@@ -76,10 +76,23 @@ describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa
     // Y sin puntos, el encuadre de Ajustes es el de siempre (24).
     expect(src).toMatch(/fitBounds\(bounds, points\.length \? 40 : 24\)/);
   });
-  it("una llave rechazada por dominio (gm_authFailure) cae en el respaldo, no en un mapa gris", () => {
-    const src = leer("src/components/timetracker/GeofenceMap.tsx");
-    expect(src).toMatch(/w\.gm_authFailure = \(\) => \{/);
-    expect(src).toMatch(/delete w\.gm_authFailure/);
+  it("una llave rechazada por dominio (gm_authFailure) cae en el respaldo, también en el SEGUNDO mapa de la página", () => {
+    // La fuente de verdad es el cargador compartido: registra el callback una vez al crear el
+    // script, recuerda el motivo a nivel de módulo, y rechaza mientras esté puesto ANTES de
+    // devolver la promesa cacheada (Google solo avisa una vez por carga de script).
+    const loader = leer("src/lib/google-maps-loader.ts");
+    expect(loader).toMatch(/gm_authFailure/);
+    expect(loader).toMatch(/^let authFailed: string \| null = null;/m);
+    const rechaza = loader.indexOf("if (authFailed) return Promise.reject(new Error(authFailed));");
+    const cache = loader.indexOf("if (loadPromise) return loadPromise;");
+    expect(rechaza).toBeGreaterThan(0);
+    expect(cache).toBeGreaterThan(rechaza);
+    expect(loader).toMatch(/export function onMapsAuthFailure\(/);
+    // GeofenceMap escucha (la primera vez, con el mapa ya pintado) y no registra el global.
+    const mapa = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(mapa).toMatch(/onMapsAuthFailure\(\(message\) => \{ if \(!cancelled\) setErr\(message\); \}\)/);
+    expect(mapa).toMatch(/offAuth\(\);/);
+    expect(mapa).not.toMatch(/gm_authFailure\s*=/);
   });
   it("la ventana está en la prueba de claves de D-187", () => {
     expect(leer("src/lib/timetracker/i18n.test.ts")).toContain('"src/components/timetracker/PhotoMapModal.tsx"');
