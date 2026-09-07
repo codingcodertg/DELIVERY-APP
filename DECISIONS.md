@@ -10155,3 +10155,24 @@ también sin puntos, y eso cambiaba el encuadre de Ajustes: 24 sin puntos, 40 so
 `PhotoMapModal.tsx` entra en la lista de la prueba de claves de D-187. La mutación cubre los cuatro
 (`photo-map.test.ts`, 9 → 12 casos). Lo no verificado no cambia: `gm_authFailure` está capturado por
 lectura de la documentación de Maps, no porque alguien haya abierto la ventana con la llave rota.
+
+**Segunda nota del mismo día (CAMBIOS del auditor, antes del merge).** El respaldo de la llave rechazada
+solo funcionaba **la primera vez**: Google llama a `gm_authFailure` una vez, al cargar el script, y
+`google-maps-loader` cachea `loadPromise` en éxito, así que la segunda ventana (o Auditoría después de
+pasar por Ajustes sin recargar) resolvía de caché, nadie avisaba y el mapa salía gris. La fuente de
+verdad pasa al **cargador compartido** `src/lib/google-maps-loader.ts`: instala `window.gm_authFailure`
+una sola vez al crear el script, **recuerda el motivo a nivel de módulo** (`authFailed`), y
+`loadGoogleMaps()` **rechaza con ese motivo mientras esté puesto, antes de devolver la promesa
+cacheada**; expone `onMapsAuthFailure(cb)` para quien ya tenga el mapa pintado cuando llegue el aviso
+(el caso de la primera vez) y `mapsAuthFailure()`. `GeofenceMap` deja de registrar el callback global
+—que pisaba al del cargador— y solo escucha. **Es fichero compartido; lo importan** `GoogleMapView`
+(Entregas), `MapView` (Entregas, solo `googleMapsEnabled`), `GeofenceEditor` y `GeofenceMap` (Time
+Tracker). En el camino feliz no cambia nada para ninguno: mismo `loadPromise`, misma resolución; la
+única diferencia es que, tras un `gm_authFailure`, `loadGoogleMaps()` rechaza en vez de entregar un
+mapa gris, y los dos que lo llaman ya tratan el rechazo: `GoogleMapView` pinta su aviso «No se pudo
+cargar Google Maps. Revisa que la llave del navegador permita este dominio» (`GoogleMapView.tsx:345`) y
+`GeofenceEditor` su `setErr` con el motivo (`GeofenceEditor.tsx:77`). Es decir: con la llave rota, el
+segundo mapa de Entregas también deja de salir gris y dice por qué. La mutación lo afirma por nombre (`photo-map.test.ts`): el cargador contiene
+`gm_authFailure`, `authFailed` a nivel de módulo, y el rechazo va **antes** del `return loadPromise`;
+`GeofenceMap` escucha y no asigna el global. No verificado: nadie disparó `gm_authFailure` de verdad;
+va por la documentación de Maps.
