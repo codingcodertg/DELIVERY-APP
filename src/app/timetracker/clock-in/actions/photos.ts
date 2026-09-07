@@ -35,8 +35,11 @@ export type { PhotoKind } from "@/lib/clockin/day-photos";
  */
 export type DayPhoto = Omit<FotoCruda, "path"> & { url: string };
 
+/** Un sitio con su geocerca, tal cual lo dibuja GeofenceMap; viaja UNA vez, no una por foto. */
+export type PhotoSite = SitioFoto;
+
 export type DayPhotosResult =
-  | { ok: true; day: string; photos: DayPhoto[]; latestWithPhotos: string | null }
+  | { ok: true; day: string; photos: DayPhoto[]; latestWithPhotos: string | null; sites: PhotoSite[] }
   | { ok: false; message: string };
 
 export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
@@ -138,15 +141,16 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     for (const o of (otras ?? []) as unknown as EntradaTurno[]) entradas.push(o);
   }
 
+  const sitios = (sites ?? []) as unknown as SitioFoto[];
   const raw = armarFotos({
     punches: filasPunch,
     excs: filasExc,
-    sites: (sites ?? []) as unknown as SitioFoto[],
+    sites: sitios,
     entradas,
     nombre: name,
   });
 
-  if (!raw.length) return { ok: true, day, photos: [], latestWithPhotos };
+  if (!raw.length) return { ok: true, day, photos: [], latestWithPhotos, sites: sitios };
 
   // Una sola llamada para todas, en vez de una por foto.
   const { data: signed } = await supabase.storage
@@ -163,8 +167,8 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     if (u)
       photos.push({
         url: u, who: r.who, at: r.at, kind: r.kind, offSite: r.offSite, note: r.note,
-        lat: r.lat, lng: r.lng, siteName: r.siteName, distanceM: r.distanceM,
+        lat: r.lat, lng: r.lng, siteName: r.siteName, siteId: r.siteId, distanceM: r.distanceM,
       });
   }
-  return { ok: true, day, photos, latestWithPhotos };
+  return { ok: true, day, photos, latestWithPhotos, sites: sitios };
 }

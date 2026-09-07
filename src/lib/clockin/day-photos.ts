@@ -33,6 +33,8 @@ export type FotoCruda = {
   lng: number | null;
   /** El sitio del fichaje; si el fichaje no cayó en ninguno, el más cercano. null = sin sitios o sin posición. */
   siteName: string | null;
+  /** El id de ese mismo sitio, para buscar su geocerca en la lista que viaja con las fotos. */
+  siteId: string | null;
   /** Metros a la geocerca de ese sitio, redondeados. null = sin posición o sin sitios. */
   distanceM: number | null;
 };
@@ -84,8 +86,8 @@ export function ubicar(
   lng: number | null,
   siteId: string | null,
   sites: SitioFoto[],
-): { siteName: string | null; distanceM: number | null } {
-  if (lat == null || lng == null || !sites.length) return { siteName: null, distanceM: null };
+): { siteName: string | null; siteId: string | null; distanceM: number | null } {
+  if (lat == null || lng == null || !sites.length) return { siteName: null, siteId: null, distanceM: null };
   let sitio = siteId ? sites.find((s) => s.id === siteId) : undefined;
   if (!sitio) {
     let mejor = Infinity;
@@ -94,8 +96,8 @@ export function ubicar(
       if (d < mejor) { mejor = d; sitio = s; }
     }
   }
-  if (!sitio) return { siteName: null, distanceM: null };
-  return { siteName: sitio.name, distanceM: Math.round(distanciaAGeocerca(lat, lng, sitio)) };
+  if (!sitio) return { siteName: null, siteId: null, distanceM: null };
+  return { siteName: sitio.name, siteId: sitio.id, distanceM: Math.round(distanciaAGeocerca(lat, lng, sitio)) };
 }
 
 /** Lo que hace falta de un fichaje para saber en qué turno cayó una excepción. */

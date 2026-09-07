@@ -26,13 +26,45 @@ export function googleMapsEnabled(): boolean {
 
 let loadPromise: Promise<typeof google.maps> | null = null;
 
+// A REJECTED KEY DOES NOT REJECT THE LOAD. When the browser key is restricted to another
+// domain (or disabled), Google still resolves the script, paints a grey map and reports it
+// ONCE, through `window.gm_authFailure`, at script load — never again per `new maps.Map`.
+// With `loadPromise` cached on success, the second map on the page would resolve from cache,
+// get no warning and go grey. So the failure is remembered here, at module level: the hook is
+// installed once when the script is created, `loadGoogleMaps()` rejects with the reason for
+// as long as it is set, and anyone already holding a map can subscribe to hear it.
+const AUTH_FAILURE_MESSAGE =
+  "Google Maps rejected the browser key for this domain (gm_authFailure): check the key's referrer restrictions in Google Cloud.";
+let authFailed: string | null = null;
+const authListeners = new Set<(message: string) => void>();
+
+/** The remembered auth failure, if Google reported one on this page. */
+export function mapsAuthFailure(): string | null {
+  return authFailed;
+}
+
+/** Hear about an auth failure that arrives AFTER the load resolved (the grey-map case). Returns the unsubscribe. */
+export function onMapsAuthFailure(cb: (message: string) => void): () => void {
+  authListeners.add(cb);
+  return () => { authListeners.delete(cb); };
+}
+
+function installAuthHook() {
+  (window as unknown as { gm_authFailure?: () => void }).gm_authFailure = () => {
+    authFailed = AUTH_FAILURE_MESSAGE;
+    authListeners.forEach((cb) => cb(AUTH_FAILURE_MESSAGE));
+  };
+}
+
 /** Resolve the Maps JS namespace, loading the script on first call. */
 export function loadGoogleMaps(): Promise<typeof google.maps> {
   if (typeof window === "undefined") return Promise.reject(new Error("Maps JS is browser-only"));
   if (!BROWSER_MAPS_KEY) return Promise.reject(new Error("No browser Maps key configured"));
+  if (authFailed) return Promise.reject(new Error(authFailed));
   if (loadPromise) return loadPromise;
 
   loadPromise = new Promise((resolve, reject) => {
+    installAuthHook();
     // Another bundle may have injected it already (e.g. a hot reload).
     if (window.google?.maps) { resolve(window.google.maps); return; }
 

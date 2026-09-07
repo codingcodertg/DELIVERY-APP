@@ -33,7 +33,7 @@ describe("distancia a la geocerca (los casos del auditor)", () => {
 
 describe("ubicar: el sitio del fichaje, o el más cercano, o nada", () => {
   it("con sitio del fichaje: su nombre y su distancia", () => {
-    expect(ubicar(33.0 + 0.00135, -96.0, "s1", SITES)).toEqual({ siteName: "Tienda Norte", distanceM: 50 });
+    expect(ubicar(33.0 + 0.00135, -96.0, "s1", SITES)).toEqual({ siteName: "Tienda Norte", siteId: "s1", distanceM: 50 });
   });
   it("sin sitio (fichaje fuera de la geocerca): el más cercano, con la distancia a ESE", () => {
     const r = ubicar(33.1 + 0.002, -96.1, null, SITES);
@@ -42,8 +42,8 @@ describe("ubicar: el sitio del fichaje, o el más cercano, o nada", () => {
     expect(r.distanceM).toBeLessThan(120);
   });
   it("sin posición, o sin sitios: nulos", () => {
-    expect(ubicar(null, null, "s1", SITES)).toEqual({ siteName: null, distanceM: null });
-    expect(ubicar(33, -96, "s1", [])).toEqual({ siteName: null, distanceM: null });
+    expect(ubicar(null, null, "s1", SITES)).toEqual({ siteName: null, siteId: null, distanceM: null });
+    expect(ubicar(33, -96, "s1", [])).toEqual({ siteName: null, siteId: null, distanceM: null });
   });
 });
 
@@ -127,14 +127,17 @@ describe("mutación: la acción selecciona las columnas de posición y pasa por 
     expect(src).toMatch(/name, latitude, longitude, radius_meters, boundary, padding_meters/);
     expect(src).toMatch(/armarFotos\(/);
   });
-  it("y la pantalla pinta el enlace y los tres estados con claves literales", () => {
+  it("y la pantalla pinta los estados con claves literales, y el enlace a Maps vive en la ventana del mapa", () => {
     const ui = readFileSync(join(process.cwd(), "src/components/timetracker/DayPhotos.tsx"), "utf8");
-    expect(ui).toMatch(/enlaceMapa\(/);
-    for (const k of ["mgr.photos.locNone", "mgr.photos.locOff", "mgr.photos.locOnSite", "mgr.photos.locAt", "mgr.photos.openMap"]) {
+    for (const k of ["mgr.photos.locNone", "mgr.photos.locOff", "mgr.photos.locOnSite", "mgr.photos.locAt", "mgr.photos.showMap"]) {
       expect(ui, k).toContain(`t("${k}"`);
     }
-    expect(ui).toMatch(/target="_blank"/);
     expect(ui).not.toMatch(/leaflet|google-maps-loader|GoogleMapView/);
+    // Desde la ventana del mapa (encargo 8), el enlace de D-212 es el respaldo de esa ventana.
+    const modal = readFileSync(join(process.cwd(), "src/components/timetracker/PhotoMapModal.tsx"), "utf8");
+    expect(modal).toMatch(/enlaceMapa\(/);
+    expect(modal).toMatch(/target="_blank"/);
+    expect(modal).toContain('t("mgr.photos.openMap"');
   });
   it("el cliente manda posición al salir y al volver (el hueco de este encargo)", () => {
     const pp = readFileSync(join(process.cwd(), "src/components/timetracker/PunchPanel.tsx"), "utf8");

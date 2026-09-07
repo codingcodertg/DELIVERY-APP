@@ -1,0 +1,100 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { comoFence, estadoFoto, geocercaDeFoto } from "./photo-map";
+import type { SitioFoto } from "./day-photos";
+
+// La ventana del mapa de una foto: estado y geocerca, sin recalcular nada en el cliente.
+
+const NORTE: SitioFoto = { id: "s1", name: "Tienda Norte", latitude: 33, longitude: -96, radius_meters: 100, boundary: null, padding_meters: null };
+const ALMACEN: SitioFoto = { id: "s2", name: "Almacén", latitude: 33.1, longitude: -96.1, radius_meters: 30, padding_meters: 25, boundary: [{ lat: 33.099, lng: -96.101 }, { lat: 33.101, lng: -96.101 }, { lat: 33.101, lng: -96.099 }] };
+const SITES = [NORTE, ALMACEN];
+
+describe("geocercaDeFoto: solo la de esa foto", () => {
+  it("por siteId; sin siteId o desconocido, ninguna", () => {
+    expect(geocercaDeFoto({ siteId: "s2" }, SITES)).toBe(ALMACEN);
+    expect(geocercaDeFoto({ siteId: null }, SITES)).toBeNull();
+    expect(geocercaDeFoto({ siteId: "nope" }, SITES)).toBeNull();
+  });
+});
+
+describe("estadoFoto: qué se pinta", () => {
+  it("sin coordenadas → sinCoords (no pulsable)", () => {
+    expect(estadoFoto({ lat: null, lng: null, siteId: "s1", distanceM: 0 }, SITES)).toEqual({ kind: "sinCoords" });
+  });
+  it("con coordenadas y sin sitio (o sin distancia) → sinSitio, solo el punto", () => {
+    expect(estadoFoto({ lat: 33, lng: -96, siteId: null, distanceM: null }, SITES)).toEqual({ kind: "sinSitio", lat: 33, lng: -96 });
+    expect(estadoFoto({ lat: 33, lng: -96, siteId: "s1", distanceM: null }, SITES)).toEqual({ kind: "sinSitio", lat: 33, lng: -96 });
+  });
+  it("distancia 0 del servidor → dentro, con la geocerca", () => {
+    expect(estadoFoto({ lat: 33.0004, lng: -96, siteId: "s1", distanceM: 0 }, SITES)).toEqual({ kind: "dentro", lat: 33.0004, lng: -96, site: NORTE });
+  });
+  it("distancia > 0 del servidor → fuera, con la geocerca y ESA distancia (no se recalcula)", () => {
+    expect(estadoFoto({ lat: 33.01, lng: -96, siteId: "s1", distanceM: 1234 }, SITES)).toEqual({ kind: "fuera", lat: 33.01, lng: -96, site: NORTE, distanceM: 1234 });
+  });
+});
+
+describe("comoFence: el sitio en la forma de GeofenceMap", () => {
+  it("copia la geocerca y la marca activa", () => {
+    expect(comoFence(ALMACEN)).toEqual({
+      id: "s2", name: "Almacén", active: true, latitude: 33.1, longitude: -96.1,
+      radius_meters: 30, padding_meters: 25, boundary: ALMACEN.boundary,
+    });
+  });
+});
+
+describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa", () => {
+  const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
+  it("DayPhotos carga PhotoMapModal con next/dynamic y no importa GeofenceMap ni el loader", () => {
+    const src = leer("src/components/timetracker/DayPhotos.tsx");
+    expect(src).toMatch(/from "next\/dynamic"/);
+    expect(src).toMatch(/dynamic\(\(\) => import\("\.\/PhotoMapModal"\)/);
+    expect(src).not.toMatch(/from "\.\/GeofenceMap"|google-maps-loader/);
+  });
+  it("la ventana dibuja solo la geocerca de esa foto, con el punto, y el respaldo con el enlace", () => {
+    const src = leer("src/components/timetracker/PhotoMapModal.tsx");
+    expect(src).toMatch(/estadoFoto\(/);
+    // Solo la geocerca de esa foto, y memoizada: un array inline reconstruiría el mapa por render.
+    expect(src).toMatch(/const fences = useMemo<Fence\[\]>\(\(\) => \(e\.kind === "dentro" \|\| e\.kind === "fuera" \? \[comoFence\(e\.site\)\] : \[\]\)/);
+    expect(src).toMatch(/const points = useMemo<MapPoint\[\]>\(/);
+    expect(src).toMatch(/fences=\{fences\}/);
+    expect(src).toMatch(/points=\{points\}/);
+    expect(src).toMatch(/enlaceMapa\(/);
+    for (const k of ["mgr.photos.mapTitle", "mgr.photos.mapInside", "mgr.photos.mapOutside", "mgr.photos.mapNoSite", "mgr.photos.mapFailed", "mgr.photos.openMap"]) {
+      expect(src, k).toContain(`t("${k}"`);
+    }
+  });
+  it("GeofenceMap sigue aceptando solo fences (GeofenceSection no cambia)", () => {
+    expect(leer("src/components/timetracker/GeofenceSection.tsx")).toMatch(/<GeofenceMap fences=\{sites\} \/>/);
+    expect(leer("src/components/timetracker/GeofenceMap.tsx")).toMatch(/points\?:/);
+  });
+  it("el default de points es una constante de módulo, no un [] en la firma (un [] nuevo por render reconstruiría el mapa en Ajustes)", () => {
+    const src = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(src).toMatch(/^const SIN_PUNTOS: MapPoint\[\] = \[\];/m);
+    expect(src).toMatch(/points = SIN_PUNTOS/);
+    expect(src).not.toMatch(/\{ fences, points = \[\]/);
+    // Y sin puntos, el encuadre de Ajustes es el de siempre (24).
+    expect(src).toMatch(/fitBounds\(bounds, points\.length \? 40 : 24\)/);
+  });
+  it("una llave rechazada por dominio (gm_authFailure) cae en el respaldo, también en el SEGUNDO mapa de la página", () => {
+    // La fuente de verdad es el cargador compartido: registra el callback una vez al crear el
+    // script, recuerda el motivo a nivel de módulo, y rechaza mientras esté puesto ANTES de
+    // devolver la promesa cacheada (Google solo avisa una vez por carga de script).
+    const loader = leer("src/lib/google-maps-loader.ts");
+    expect(loader).toMatch(/gm_authFailure/);
+    expect(loader).toMatch(/^let authFailed: string \| null = null;/m);
+    const rechaza = loader.indexOf("if (authFailed) return Promise.reject(new Error(authFailed));");
+    const cache = loader.indexOf("if (loadPromise) return loadPromise;");
+    expect(rechaza).toBeGreaterThan(0);
+    expect(cache).toBeGreaterThan(rechaza);
+    expect(loader).toMatch(/export function onMapsAuthFailure\(/);
+    // GeofenceMap escucha (la primera vez, con el mapa ya pintado) y no registra el global.
+    const mapa = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(mapa).toMatch(/onMapsAuthFailure\(\(message\) => \{ if \(!cancelled\) setErr\(message\); \}\)/);
+    expect(mapa).toMatch(/offAuth\(\);/);
+    expect(mapa).not.toMatch(/gm_authFailure\s*=/);
+  });
+  it("la ventana está en la prueba de claves de D-187", () => {
+    expect(leer("src/lib/timetracker/i18n.test.ts")).toContain('"src/components/timetracker/PhotoMapModal.tsx"');
+  });
+});

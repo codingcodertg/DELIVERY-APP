@@ -123,6 +123,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/VehiclesSection.tsx",
     "src/components/timetracker/EmployeeWeek.tsx",
     "src/components/timetracker/DayPhotos.tsx",
+    "src/components/timetracker/PhotoMapModal.tsx",
     "src/components/timetracker/OfflineIndicator.tsx",
     "src/components/timetracker/UpdateBanner.tsx",
     "src/components/timetracker/NotificationBell.tsx",
