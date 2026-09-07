@@ -10254,7 +10254,7 @@ clave `loc*` lleva ya `{site}`.
 trunca), por lectura. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1094 pasados | 3 saltados**
 (main 50dd899: 1087 | 3; los +7 son `etiquetaFoto`). `/timetracker/audit` 8,44 → 8,82 kB / 302 kB.
 
-## D-NEXT · El mapa de la foto se entiende de un vistazo: geocerca marcada, pin de la foto y línea con la distancia
+## D-216 · El mapa de la foto se entiende de un vistazo: geocerca marcada, pin de la foto y línea con la distancia
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
 **Pedido por:** Andrés, con captura de una foto «fuera» a 1,4 km, ya con la llave de Maps arreglada: el

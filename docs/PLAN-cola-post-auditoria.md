@@ -26,3 +26,4 @@ parado desde el 2026-09-02.
 | 8 | `fotos-mapa-geocerca` | Pedido del dueño 2026-09-06: mapa con la geocerca y el punto de la foto, veredicto dentro/fuera; el loader de Maps recuerda la llave rechazada | **fusionado D-213** (PR #29) |
 | 9 | `fotos-icono-rojo` | Pedido del dueño 2026-09-06: marcador rojo y más grande fuera de la geocerca | **fusionado D-214** (PR #30) |
 | 10 | `fotos-etiqueta-onsite` | Pedido del dueño 2026-09-06: pastilla On site / Out sin cortes, sitio en segunda línea | **fusionado D-215** (PR #31) |
+| 11 | `fotos-mapa-obvio` | Pedido del dueño 2026-09-06: pin, geocerca marcada y línea con flecha y distancia en el mapa de la foto | **fusionado D-216** (PR #32) |
