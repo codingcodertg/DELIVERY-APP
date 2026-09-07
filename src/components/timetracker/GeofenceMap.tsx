@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { googleMapsEnabled, loadGoogleMaps, onMapsAuthFailure } from "@/lib/google-maps-loader";
-import { estiloMarcador, type EstadoMarcador } from "@/lib/clockin/photo-map";
+import {
+  estiloGeocerca, estiloLinea, estiloPin, estiloSitio, puntoMasCercanoGeocerca, puntoMedio, type EstadoMarcador,
+} from "@/lib/clockin/photo-map";
 
 export type Fence = {
   id: string;
@@ -37,7 +39,14 @@ export type Fence = {
  * fichajes de esa tienda salen "fuera del sitio", y esconderla convierte eso en un misterio.
  */
 /** Un punto encima de las geocercas: dónde se tomó una foto. `label` va junto al marcador. */
-export type MapPoint = { lat: number; lng: number; label: string; estado: EstadoMarcador };
+export type MapPoint = {
+  lat: number; lng: number;
+  /** Etiqueta junto al pin («📷 Foto»). */
+  label: string;
+  estado: EstadoMarcador;
+  /** La distancia ya calculada (D-212), para la pastilla centrada sobre la línea. Solo fuera/near. */
+  distanceLabel?: string;
+};
 
 /**
  * `points` (opcional, D-213 tras D-212): marcadores encima de las geocercas, y el encuadre los
@@ -94,9 +103,21 @@ export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallbac
       const bounds = new maps.LatLngBounds();
       let algo = false;
 
+      // Con puntos (la ventana de una foto) la geocerca va marcada: relleno más opaco y trazo
+      // grueso, y un marcador en el centro del sitio con su nombre. Sin puntos (Ajustes), como
+      // siempre: estiloGeocerca(false) es exactamente lo de antes.
+      const g = estiloGeocerca(points.length > 0);
       for (const f of fences) {
         const color = f.active ? "#22c55e" : "#9aa6b8";
-        const base = { strokeColor: color, strokeWeight: 2, fillColor: color, fillOpacity: f.active ? 0.18 : 0.08, clickable: false };
+        const base = { strokeColor: color, strokeWeight: g.strokeWeight, fillColor: color, fillOpacity: f.active ? g.fillOpacity : 0.08, clickable: false };
+        if (points.length && f.latitude != null && f.longitude != null) {
+          const ss = estiloSitio();
+          shapes.push(new maps.Marker({
+            map, position: { lat: f.latitude, lng: f.longitude }, title: f.name, zIndex: 5,
+            label: { text: f.name, color: ss.labelColor, fontSize: "12px", fontWeight: "700", className: ss.labelClass },
+            icon: { path: maps.SymbolPath.CIRCLE, scale: ss.scale, fillColor: ss.fill, fillOpacity: 1, strokeColor: ss.stroke, strokeWeight: ss.strokeWeight, labelOrigin: new maps.Point(0, -3) },
+          }));
+        }
         if (f.boundary && f.boundary.length >= 3) {
           const path = f.boundary.map((p) => ({ lat: p.lat, lng: p.lng }));
           const poly = new maps.Polygon({ ...base, paths: path, map });
@@ -113,27 +134,65 @@ export function GeofenceMap({ fences, points = SIN_PUNTOS, height = 320, fallbac
         }
       }
 
-      // Los puntos (fotos): marcador clásico con la etiqueta al lado; nada de marcadores
-      // avanzados, que exigen un Map ID. Color y tamaño por estado (estiloMarcador): verde
-      // normal dentro, rojo y casi el doble fuera, gris sin sitio. La etiqueta va sobre una
-      // pastilla blanca (.tt-map-label, timetracker.css) para leerse encima del satélite.
+      // Los puntos (fotos), D-216: un PIN (path SVG, no un círculo) grande con borde blanco,
+      // rojo fuera / verde dentro / ámbar cerca / gris sin sitio; un punto pequeño en la punta,
+      // en la coordenada exacta; la etiqueta «📷 Foto» en pastilla; y, si está fuera o cerca,
+      // una línea discontinua con flecha desde el pin hasta el punto más cercano de la
+      // geocerca (puntoMasCercanoGeocerca) con la distancia ya calculada (D-212) en una
+      // pastilla centrada sobre la línea. Nada de marcadores avanzados, que exigen un Map ID.
       for (const p of points) {
-        const s = estiloMarcador(p.estado);
-        const marker = new maps.Marker({
-          map, position: { lat: p.lat, lng: p.lng }, title: p.label,
-          label: { text: p.label, color: s.labelColor, fontSize: "12px", fontWeight: s.labelWeight, className: s.labelClass },
-          icon: { path: maps.SymbolPath.CIRCLE, scale: s.scale, fillColor: s.fill, fillOpacity: 1, strokeColor: s.stroke, strokeWeight: s.strokeWeight },
-        });
-        bounds.extend({ lat: p.lat, lng: p.lng });
-        shapes.push(marker);
+        const s = estiloPin(p.estado);
+        const pos = { lat: p.lat, lng: p.lng };
+        shapes.push(new maps.Marker({
+          map, position: pos, title: p.label, zIndex: 10,
+          label: { text: p.label, color: s.labelColor, fontSize: "12px", fontWeight: "700", className: s.labelClass },
+          icon: {
+            path: s.path, scale: s.scale, fillColor: s.fill, fillOpacity: 1, strokeColor: s.stroke, strokeWeight: s.strokeWeight,
+            anchor: new maps.Point(s.anchor.x, s.anchor.y), labelOrigin: new maps.Point(12, -4),
+          },
+        }));
+        shapes.push(new maps.Marker({
+          map, position: pos, zIndex: 11, clickable: false,
+          icon: { path: maps.SymbolPath.CIRCLE, scale: s.dot.scale, fillColor: s.dot.fill, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
+        }));
+        bounds.extend(pos);
         algo = true;
+
+        // La línea de distancia: solo con distancia (fuera o cerca) y con una geocerca dibujada.
+        const f = fences[0];
+        if ((p.estado === "fuera" || p.estado === "near") && f && f.latitude != null && f.longitude != null) {
+          const l = estiloLinea();
+          const color = p.estado === "fuera" ? l.color : s.fill;
+          const fin = puntoMasCercanoGeocerca(p.lat, p.lng, {
+            id: f.id, name: f.name, latitude: f.latitude, longitude: f.longitude,
+            radius_meters: f.radius_meters ?? 100, boundary: f.boundary, padding_meters: f.padding_meters,
+          });
+          shapes.push(new maps.Polyline({
+            map, path: [pos, fin], clickable: false, zIndex: 8,
+            strokeColor: color, strokeOpacity: 0, // la línea la dibujan los guiones
+            icons: [
+              { icon: { path: "M 0,-1 0,1", strokeOpacity: 1, strokeColor: color, strokeWeight: 3, scale: l.dashScale }, offset: "0", repeat: l.dashRepeat },
+              { icon: { path: maps.SymbolPath.FORWARD_CLOSED_ARROW, strokeOpacity: 1, strokeColor: color, fillColor: color, fillOpacity: 1, scale: l.arrowScale }, offset: "100%" },
+            ],
+          }));
+          if (p.distanceLabel) {
+            shapes.push(new maps.Marker({
+              map, position: puntoMedio(pos, fin), zIndex: 12, clickable: false,
+              label: { text: p.distanceLabel, color: s.labelColor, fontSize: "13px", fontWeight: "800", className: s.labelClass },
+              icon: { path: maps.SymbolPath.CIRCLE, scale: 0, fillOpacity: 0, strokeOpacity: 0 },
+            }));
+          }
+          bounds.extend(fin);
+        }
       }
 
       // Encuadra lo que haya. Sin geocercas, el Valle: no dejar el mapa en el Atlántico.
       if (algo && !bounds.isEmpty()) {
         // 24 como siempre en Ajustes; con puntos, 40 para que un marcador en el borde no quede
         // pegado al marco. Sin puntos, el encuadre de Ajustes no cambia.
-        map.fitBounds(bounds, points.length ? 40 : 24);
+        // Con puntos, 64: las pastillas del pin, del sitio y de la distancia asoman por encima
+        // de sus marcadores y no deben cortarse contra el marco.
+        map.fitBounds(bounds, points.length ? 64 : 24);
         // Un solo punto sin geocerca: fitBounds sobre un punto acerca hasta el máximo; se frena.
         if (points.length === 1 && fences.length === 0) map.setZoom(Math.min(map.getZoom() ?? 17, 17));
       } else map.setCenter({ lat: 26.2, lng: -98.23 }), map.setZoom(10);

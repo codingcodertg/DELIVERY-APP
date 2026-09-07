@@ -10253,3 +10253,59 @@ clave `loc*` lleva ya `{site}`.
 `flex-shrink:0` en un `figcaption` con `flex-wrap:wrap` (si no cabe, baja de línea entera, no se
 trunca), por lectura. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1094 pasados | 3 saltados**
 (main 50dd899: 1087 | 3; los +7 son `etiquetaFoto`). `/timetracker/audit` 8,44 → 8,82 kB / 302 kB.
+
+## D-NEXT · El mapa de la foto se entiende de un vistazo: geocerca marcada, pin de la foto y línea con la distancia
+
+**Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
+**Pedido por:** Andrés, con captura de una foto «fuera» a 1,4 km, ya con la llave de Maps arreglada: el
+polígono verde apenas se distinguía sobre el satélite, el punto de la foto no se veía (solo flotaba la
+pastilla «1.4 km») y no quedaba claro qué estaba lejos de qué. Sin migración. **Solo el mapa de la
+ventana** (`GeofenceMap` con `points`); el de Ajustes, sin puntos, no cambia una línea (medido:
+`estiloGeocerca(false)` es 0,18 / 2, lo de siempre, y el marcador del sitio solo se dibuja con puntos).
+
+**Qué se dibuja ahora, por capas.**
+
+1. **Geocerca marcada:** relleno 0,3 y trazo 4 en el verde de siempre (`estiloGeocerca(true)`), y un
+   marcador en el **centro del sitio** (círculo verde con borde blanco, `estiloSitio`) con el nombre del
+   sitio en pastilla blanca. Se ve sobre satélite y sobre mapa.
+2. **Pin de la foto:** un pin de verdad (`PIN_PATH`, el «place» de Material, con la punta anclada a la
+   coordenada), grande y con borde blanco: **rojo 2,4×** fuera, verde dentro, **ámbar en «near»**, gris
+   sin sitio; un punto pequeño en la punta con la coordenada exacta; y la etiqueta «📷 Photo / Foto» en
+   pastilla junto al pin (clave nueva `mgr.photos.mapPhoto`).
+3. **Línea con la distancia** (solo fuera o «near»): polilínea **discontinua** del pin al **punto más
+   cercano de la geocerca**, con **flecha** en ese extremo (`FORWARD_CLOSED_ARROW` en `icons`), y la
+   distancia **ya calculada en D-212** en una pastilla centrada sobre la línea (un marcador invisible en
+   el punto medio), no flotando aparte. Roja si está fuera; ámbar si es «near». Dentro: sin línea.
+4. `fitBounds` con la geocerca, el pin y el fin de la línea, padding 64 (24 sin puntos, como siempre),
+   para que las pastillas no se corten contra el marco.
+
+**Dónde termina la línea, dicho.** `geofence.ts` mide la distancia al borde pero no devuelve el punto;
+`puntoMasCercanoGeocerca` (puro, en `photo-map.ts`) lo calcula con la **misma proyección plana** (un
+grado de latitud ≈ 110 540 m, uno de longitud 111 320·cos φ): polígono → el punto más cercano de sus
+lados; círculo → el punto del borde en la dirección de la foto (centro + radio), o la propia foto si ya
+está dentro. No se usa el centro salvo como origen de esa dirección. La distancia de la pastilla NO se
+recalcula: es `distanceM` del servidor; la línea es la dirección, la cifra es la de D-212.
+
+**«near» en el mapa.** El pin distingue ahora, como la pastilla de D-215, la foto con distancia pero
+**sin marca de fuera** del servidor (una excepción lejos, o un fichaje dentro del margen de GPS): ámbar
+y no roja. `estadoFoto` no cambia; `PhotoMapModal` deriva `near` de `e.kind === "fuera" && !offSite`.
+
+**Todo por variables ya usadas** (`--red` #d64545, el verde de «on» #22c55e, el ámbar #e9a13b), en
+funciones puras hermanas de `estiloMarcador`, sin dependencia ni fichero nuevo.
+
+**Pruebas** (`photo-map.test.ts`, 24 → 33): punto más cercano en círculo (a `radio` del centro; la propia
+foto si está dentro) y en polígono (0,002° al norte del cuadrado → el lado norte, misma longitud); punto
+medio; estilos por estado con **mutación** (cuatro rellenos distintos, solo «fuera» con la clase roja de
+etiqueta; la geocerca sin puntos idéntica a la de siempre); y por fuente, que `GeofenceMap` usa
+`estiloGeocerca(points.length > 0)`, dibuja el sitio solo con puntos, ancla el pin, pone el punto, traza
+la línea solo con distancia con la flecha y la pastilla en el punto medio; que la ventana pasa `near`,
+la etiqueta y `distanceLabel`; y que la clave existe en los dos idiomas.
+
+**Lo no verificado.** Nadie lo vio en un navegador tras el cambio: que los guiones (`icons` con
+`strokeOpacity: 0` en la línea), la flecha, el `labelOrigin` de la etiqueta del pin y la pastilla del
+punto medio salgan como se describe va por la API de Maps (`Polyline.icons`, `Symbol.anchor`,
+`MarkerLabel.className`), no por haberlo mirado; la primera comprobación es la captura del dueño: la
+foto a 1,4 km con la línea hasta la geocerca de Brownsville. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1103 pasados | 3 saltados**
+(main f6ec269: 1094 | 3; los +9 son la geometría y los estilos). Pesos: `/timetracker/audit` 8,82 → 9,39 kB / 303 kB;
+`/timetracker/settings` 7,99 → 9,01 kB / 301 kB, porque `GeofenceMap` importa ahora la geometría de `photo-map.ts`
+aunque Ajustes no la use (mismo dato que el auditor anotó en D-214; si algún día pesa, se saca a su módulo).
