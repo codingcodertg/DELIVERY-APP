@@ -30,11 +30,15 @@ export function PhotoMapModal({ photo, sites, onClose }: { photo: DayPhoto; site
   // Memoizados: GeofenceMap reconstruye el mapa (una carga de Maps facturable) cuando cambian
   // `fences` o `points`, y un array inline sería uno nuevo en cada re-render de esta ventana.
   const fences = useMemo<Fence[]>(() => (e.kind === "dentro" || e.kind === "fuera" ? [comoFence(e.site)] : []), [e]);
+  const etiquetaFoto = t("mgr.photos.mapPhoto");
   const points = useMemo<MapPoint[]>(() => {
     if (e.kind === "sinCoords") return [];
-    const label = e.kind === "fuera" ? fmtDistancia(e.distanceM, lang) : photo.who;
-    return [{ lat: e.lat, lng: e.lng, label, estado: e.kind }];
-  }, [e, lang, photo.who]);
+    // «near» (D-216): con distancia pero sin marca de fuera del servidor, como la pastilla ámbar
+    // bajo la foto; la distancia va en una pastilla centrada sobre la línea, no junto al pin.
+    const estado = e.kind === "fuera" && !photo.offSite ? "near" : e.kind;
+    const distanceLabel = e.kind === "fuera" ? fmtDistancia(e.distanceM, lang) : undefined;
+    return [{ lat: e.lat, lng: e.lng, label: etiquetaFoto, estado, distanceLabel }];
+  }, [e, lang, photo.offSite, etiquetaFoto]);
 
   if (e.kind === "sinCoords") return null; // la línea no es pulsable sin coordenadas
 

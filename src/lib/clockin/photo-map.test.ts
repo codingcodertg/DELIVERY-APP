@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { comoFence, estadoFoto, estiloMarcador, etiquetaFoto, geocercaDeFoto } from "./photo-map";
+import {
+  comoFence, estadoFoto, estiloGeocerca, estiloLinea, estiloMarcador, estiloPin, estiloSitio, etiquetaFoto, geocercaDeFoto,
+  PIN_PATH, puntoMasCercanoGeocerca, puntoMedio,
+} from "./photo-map";
 import type { SitioFoto } from "./day-photos";
 
 // La ventana del mapa de una foto: estado y geocerca, sin recalcular nada en el cliente.
@@ -63,9 +66,11 @@ describe("estiloMarcador: color y tamaño por estado («un icon rojo más visibl
   it("y el mapa, la ventana, la hoja y la línea bajo la foto lo usan (por fuente)", () => {
     const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
     const mapa = leer("src/components/timetracker/GeofenceMap.tsx");
-    expect(mapa).toMatch(/const s = estiloMarcador\(p\.estado\)/);
+    // Desde D-216 el marcador de la foto es un pin (estiloPin), no el círculo de estiloMarcador.
+    expect(mapa).toMatch(/const s = estiloPin\(p\.estado\)/);
     expect(mapa).not.toMatch(/p\.inside/);
-    expect(leer("src/components/timetracker/PhotoMapModal.tsx")).toMatch(/estado: e\.kind/);
+    // Desde D-216 el estado del pin puede ser «near» (fuera sin marca del servidor).
+    expect(leer("src/components/timetracker/PhotoMapModal.tsx")).toMatch(/label: etiquetaFoto, estado, distanceLabel \}/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label\{[^}]*background/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label-out\{border:2px solid #d64545\}/);
     // Desde D-215 la línea es una pastilla (`pill off` = rojo del módulo), ya no un color inline.
@@ -114,6 +119,81 @@ describe("etiquetaFoto: la pastilla bajo la foto y su segunda línea (D-215: el 
   });
 });
 
+describe("D-216 · el mapa obvio: geometría de la línea de distancia", () => {
+  it("círculo: el punto del borde en la dirección de la foto (a `radio` del centro)", () => {
+    const fin = puntoMasCercanoGeocerca(33 + 0.00135, -96, NORTE); // ~150 m al norte, radio 100
+    expect(fin.lng).toBeCloseTo(-96, 6);
+    expect(fin.lat).toBeCloseTo(33 + 100 / 110540, 5);
+  });
+  it("círculo: una foto ya dentro es su propio punto (no hay línea que trazar)", () => {
+    expect(puntoMasCercanoGeocerca(33 + 0.00045, -96, NORTE)).toEqual({ lat: 33 + 0.00045, lng: -96 });
+  });
+  it("polígono: el punto más cercano de sus lados (0,002° al norte del cuadrado → el lado norte, misma longitud)", () => {
+    const cuadrado: SitioFoto = { ...ALMACEN, boundary: [{ lat: 33.099, lng: -96.101 }, { lat: 33.101, lng: -96.101 }, { lat: 33.101, lng: -96.099 }, { lat: 33.099, lng: -96.099 }] };
+    const fin = puntoMasCercanoGeocerca(33.1 + 0.002, -96.1, cuadrado);
+    expect(fin.lat).toBeCloseTo(33.101, 5);
+    expect(fin.lng).toBeCloseTo(-96.1, 5);
+  });
+  it("puntoMedio: donde va la pastilla de la distancia", () => {
+    const m = puntoMedio({ lat: 33, lng: -96 }, { lat: 33.002, lng: -96.004 });
+    expect(m.lat).toBeCloseTo(33.001, 9);
+    expect(m.lng).toBeCloseTo(-96.002, 9);
+  });
+});
+
+describe("D-216 · estilos del mapa obvio, y que Ajustes no cambia", () => {
+  it("la geocerca sin puntos es exactamente la de siempre (0,18 / 2); con puntos, marcada (0,3 / 4)", () => {
+    expect(estiloGeocerca(false)).toEqual({ fillOpacity: 0.18, strokeWeight: 2 });
+    expect(estiloGeocerca(true)).toEqual({ fillOpacity: 0.3, strokeWeight: 4 });
+  });
+  it("el pin: path SVG de pin (no un círculo), punta anclada, borde blanco; rojo grande fuera, verde dentro, ámbar cerca, gris sin sitio", () => {
+    const fuera = estiloPin("fuera"), dentro = estiloPin("dentro"), near = estiloPin("near"), sin = estiloPin("sinSitio");
+    for (const s of [fuera, dentro, near, sin]) {
+      expect(s.path).toBe(PIN_PATH);
+      expect(s.path).not.toMatch(/^$/);
+      expect(s.anchor).toEqual({ x: 12, y: 22 });
+      expect(s.stroke).toBe("#fff");
+      expect(s.dot.scale).toBeGreaterThan(0);
+    }
+    expect(fuera.fill).toBe("#d64545");
+    expect(dentro.fill).toBe("#22c55e");
+    expect(near.fill).toBe("#e9a13b");
+    expect(sin.fill).toBe("#9aa6b8");
+    expect(fuera.scale).toBeGreaterThan(dentro.scale);
+    expect(fuera.labelClass).toContain("tt-map-label-out");
+  });
+  it("mutación: cuatro rellenos distintos, y solo «fuera» lleva la clase roja de etiqueta", () => {
+    const todos = (["fuera", "dentro", "near", "sinSitio"] as const).map(estiloPin);
+    expect(new Set(todos.map((s) => s.fill)).size).toBe(4);
+    expect(todos.filter((s) => s.labelClass.includes("tt-map-label-out"))).toHaveLength(1);
+  });
+  it("el sitio: círculo verde con borde blanco y nombre en pastilla; la línea: roja, discontinua, con flecha", () => {
+    expect(estiloSitio()).toMatchObject({ fill: "#22c55e", stroke: "#fff", labelClass: "tt-map-label" });
+    expect(estiloLinea()).toMatchObject({ color: "#d64545" });
+    expect(estiloLinea().arrowScale).toBeGreaterThan(0);
+    expect(estiloLinea().dashRepeat).toMatch(/px$/);
+  });
+  it("y GeofenceMap / PhotoMapModal / claves lo usan (por fuente)", () => {
+    const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
+    const mapa = leer("src/components/timetracker/GeofenceMap.tsx");
+    expect(mapa).toMatch(/const g = estiloGeocerca\(points\.length > 0\)/);
+    expect(mapa).toMatch(/strokeWeight: g\.strokeWeight/);
+    expect(mapa).toMatch(/if \(points\.length && f\.latitude != null && f\.longitude != null\)/); // el marcador del sitio solo con puntos
+    expect(mapa).toMatch(/anchor: new maps\.Point\(s\.anchor\.x, s\.anchor\.y\)/);
+    expect(mapa).toMatch(/scale: s\.dot\.scale/);
+    expect(mapa).toMatch(/\(p\.estado === "fuera" \|\| p\.estado === "near"\)/); // la línea solo con distancia
+    expect(mapa).toMatch(/puntoMasCercanoGeocerca\(p\.lat, p\.lng/);
+    expect(mapa).toMatch(/FORWARD_CLOSED_ARROW/);
+    expect(mapa).toMatch(/position: puntoMedio\(pos, fin\)/);
+    const modal = leer("src/components/timetracker/PhotoMapModal.tsx");
+    expect(modal).toContain('t("mgr.photos.mapPhoto"');
+    expect(modal).toMatch(/const estado = e\.kind === "fuera" && !photo\.offSite \? "near" : e\.kind;/);
+    expect(modal).toMatch(/distanceLabel/);
+    const dict = leer("src/lib/timetracker/i18n.ts");
+    expect(dict.match(/'mgr\.photos\.mapPhoto'/g)).toHaveLength(2);
+  });
+});
+
 describe("comoFence: el sitio en la forma de GeofenceMap", () => {
   it("copia la geocerca y la marca activa", () => {
     expect(comoFence(ALMACEN)).toEqual({
@@ -154,7 +234,8 @@ describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa
     expect(src).toMatch(/points = SIN_PUNTOS/);
     expect(src).not.toMatch(/\{ fences, points = \[\]/);
     // Y sin puntos, el encuadre de Ajustes es el de siempre (24).
-    expect(src).toMatch(/fitBounds\(bounds, points\.length \? 40 : 24\)/);
+    // Con puntos, 64 (D-216: las pastillas asoman por encima de los marcadores); sin puntos, 24.
+    expect(src).toMatch(/fitBounds\(bounds, points\.length \? 64 : 24\)/);
   });
   it("una llave rechazada por dominio (gm_authFailure) cae en el respaldo, también en el SEGUNDO mapa de la página", () => {
     // La fuente de verdad es el cargador compartido: registra el callback una vez al crear el
