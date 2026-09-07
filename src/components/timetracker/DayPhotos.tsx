@@ -7,6 +7,7 @@ import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { APP_SETTINGS, dateISO, addDaysISO, fmtDayLong } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { fmtDistancia } from "@/lib/clockin/day-photos";
+import { etiquetaFoto, type EtiquetaFoto } from "@/lib/clockin/photo-map";
 
 /**
  * Las fotos de fichaje de un día, dentro de Auditoría.
@@ -52,14 +53,16 @@ const PhotoMapModal = dynamic(() => import("./PhotoMapModal"), {
   loading: () => <div className="overlay"><div className="modal" role="dialog" aria-busy="true"><div className="hint">…</div></div></div>,
 });
 
-// Claves literales, una por estado, para la prueba de claves de D-187.
-function locText(t: ReturnType<typeof useT>, lang: "en" | "es", p: DayPhoto): string {
-  if (p.lat == null || p.lng == null) return t("mgr.photos.locNone");
-  if (p.siteName == null || p.distanceM == null) return t("mgr.photos.locNoSite", { lat: p.lat.toFixed(5), lng: p.lng.toFixed(5) });
-  const d = fmtDistancia(p.distanceM, lang);
-  if (p.offSite) return t("mgr.photos.locOff", { d, site: p.siteName });
-  if (p.distanceM === 0) return t("mgr.photos.locOnSite", { site: p.siteName });
-  return t("mgr.photos.locAt", { d, site: p.siteName });
+// El veredicto de la pastilla. Claves literales, una por estado, para la prueba de claves de
+// D-187; qué estado es lo decide etiquetaFoto (puro). El nombre del sitio ya no va aquí: es la
+// segunda línea, que es la que puede cortarse; el veredicto nunca.
+function locText(t: ReturnType<typeof useT>, lang: "en" | "es", e: EtiquetaFoto): string {
+  if (e.kind === "none") return t("mgr.photos.locNone");
+  if (e.kind === "noSite") return t("mgr.photos.locNoSite");
+  if (e.kind === "on") return t("mgr.photos.locOnSite");
+  const d = fmtDistancia(e.distanceM ?? 0, lang);
+  if (e.kind === "out") return t("mgr.photos.locOff", { d });
+  return t("mgr.photos.locAt", { d });
 }
 
 export function DayPhotos() {
@@ -196,31 +199,33 @@ export function DayPhotos() {
           <div className="rev-grid">
             {theirs.map((p) => {
               const k = { label: kindLabel(t, p.kind), cls: KIND_CLS[p.kind] };
+              const e = etiquetaFoto(p);
               return (
                 <figure key={p.url} className="rev-item" onClick={() => setViewing(urls.indexOf(p.url))}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.url} alt={`${person} · ${k.label}`} loading="lazy" />
                   <figcaption>
-                    <span className={`pill ${k.cls}`}>{k.label}</span>
-                    <span className="small muted">{time(p.at)}</span>
-                    {p.offSite && <span className="pill off">{t("mgr.photos.offSite")}</span>}
-                    {p.note && <span className="small muted rev-note">{p.note}</span>}
-                    {/* El clic en el pin abre la ventana del mapa y no el visor: stopPropagation.
-                        El enlace a Google Maps (D-212) sigue dentro de esa ventana, como respaldo. */}
-                    {p.lat != null && p.lng != null ? (
+                    {/* El veredicto va PRIMERO y en pastilla, y nunca se corta (D-214 bis: la línea
+                        se truncaba y no se leía). Con coordenadas es el botón que abre el mapa
+                        (D-213); el clic no abre el visor: stopPropagation. La antigua pastilla
+                        «off site» sobraba: la roja «Out · 85 m» dice lo mismo y más. */}
+                    {e.kind !== "none" ? (
                       <button
                         type="button"
-                        className="small muted rev-note"
-                        // Fuera de la geocerca: en rojo y seminegrita, a juego con el marcador del mapa (D-213 bis).
-                        style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left", font: "inherit", color: p.offSite ? "var(--red)" : "inherit", fontWeight: p.offSite ? 600 : undefined }}
+                        className={`pill ${e.cls} rev-loc`}
                         title={t("mgr.photos.showMap")}
-                        onClick={(e) => { e.stopPropagation(); setMapa(p); }}
+                        onClick={(ev) => { ev.stopPropagation(); setMapa(p); }}
                       >
-                        {locText(t, lang, p)}
+                        {locText(t, lang, e)}
                       </button>
                     ) : (
-                      <span className="small muted rev-note">{locText(t, lang, p)}</span>
+                      <span className={`pill ${e.cls} rev-loc`}>{locText(t, lang, e)}</span>
                     )}
+                    <span className={`pill ${k.cls}`}>{k.label}</span>
+                    <span className="small muted">{time(p.at)}</span>
+                    {/* Segunda línea: el sitio (o las coordenadas). Es lo que puede cortarse. */}
+                    {e.second && <span className="small muted rev-note">{e.second}</span>}
+                    {p.note && <span className="small muted rev-note">{p.note}</span>}
                   </figcaption>
                 </figure>
               );
