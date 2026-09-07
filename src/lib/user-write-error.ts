@@ -27,15 +27,17 @@ type Par = { en: string; es: string };
  * enseñar de más, nunca callar.
  */
 const POR_CONSTRAINT: Record<string, Par> = {
+  // Con el filtro de escritura esto ya no debería salir desde esta pantalla; si sale, la lista
+  // llegó de otro sitio, así que el texto pide recargar antes que prometer un arreglo.
   profiles_module_access_known: {
-    en: "This profile still carries an old module name that the database no longer accepts. Save it again after the pending migration is applied, or ask an admin to clean the row.",
-    es: "Este perfil todavía lleva un nombre de módulo antiguo que la base ya no acepta. Vuelve a guardarlo cuando se aplique la migración pendiente, o pide a un administrador que limpie la fila.",
+    en: "The database rejected this profile's module list: it contains a name that is no longer valid. Reload the page and try again; if it keeps failing, the row has to be cleaned by hand.",
+    es: "La base rechazó la lista de módulos de este perfil: contiene un nombre que ya no es válido. Recarga la página y vuelve a intentarlo; si sigue fallando, la fila hay que limpiarla a mano.",
   },
   profiles_timetracker_access_needs_role: {
     en: "Time Tracker needs a tier: pick one for this person before granting the module.",
     es: "Time Tracker necesita un tramo: elige uno para esta persona antes de concederle el módulo.",
   },
-  profiles_erp_role_valid: {
+  profiles_erp_role_known: {
     en: "That ERP tier is not one of the allowed values.",
     es: "Ese tramo del ERP no es uno de los valores permitidos.",
   },

@@ -102,11 +102,22 @@ describe("mensajeEscrituraPerfil: legible, en su idioma, sin tragarse el detalle
     const en = mensajeEscrituraPerfil(conocido, "en");
     expect(es).not.toBe(en);
     expect(es).not.toContain("check constraint");
-    expect(es).toMatch(/módulo antiguo/);
-    expect(en).toMatch(/old module name/);
+    expect(es).toMatch(/nombre que ya no es válido/);
+    expect(en).toMatch(/no longer valid/);
   });
   it("el del tramo de Time Tracker también, porque es el otro que puede saltar aquí", () => {
     expect(mensajeEscrituraPerfil(tramo, "es")).toMatch(/tramo/);
+  });
+  it("los nombres del mapa son los que la base usa de verdad (los declara la migración)", () => {
+    const src = leer("src/lib/user-write-error.ts");
+    for (const [nombre, fichero] of [
+      ["profiles_module_access_known", "supabase/migrations/095_clockin_word_removal.sql"],
+      ["profiles_timetracker_access_needs_role", "supabase/migrations/058_timetracker_access.sql"],
+      ["profiles_erp_role_known", "supabase/migrations/101_erp_role_and_cost.sql"],
+    ]) {
+      expect(src, nombre).toContain(nombre);
+      expect(leer(fichero), `${nombre} en ${fichero}`).toContain(`add constraint ${nombre}`);
+    }
   });
   it("constraint desconocido: el mensaje crudo, sin inventar un texto genérico", () => {
     expect(mensajeEscrituraPerfil(raro, "es")).toBe("could not connect to server");
