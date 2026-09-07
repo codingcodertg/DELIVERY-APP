@@ -314,6 +314,27 @@ export function normalizeModules(moduleAccess: string[] | null | undefined): str
   return sin.includes("timetracker") ? sin : [...sin, "timetracker"];
 }
 
+/**
+ * Solo las palabras que la base acepta hoy. Hermana de `normalizeModules`, y deliberadamente
+ * NO la misma función (D-NEXT).
+ *
+ * `normalizeModules` se usa para LEER: traduce 'clockin' a 'timetracker' para que a quien tenga
+ * la palabra vieja se le siga dibujando la tarjeta a la que tiene derecho. Esto se usa para
+ * ESCRIBIR, y ahí la traducción sería un error de dos maneras:
+ *
+ *   1. Concedería un módulo que nadie pidió. Marcar «Entregas» en el diálogo de permisos no
+ *      puede, de paso, dar Time Tracker.
+ *   2. Reventaría igual. `profiles_timetracker_access_needs_role` (058:32-33) exige tramo para tener
+ *      'timetracker', y la persona con 'clockin' a secas no lo tiene: se cambiaría un
+ *      constraint incumplido (`profiles_module_access_known`) por otro.
+ *
+ * Filtrar, en cambio, es lo único que no decide nada por nadie: se guarda el módulo que el
+ * administrador acaba de tocar y se deja caer la palabra que la app dejó de leer en D-111.
+ */
+export function knownModules(moduleAccess: string[] | null | undefined): string[] {
+  return (moduleAccess ?? []).filter((m): m is ModuleAccessKey => MODULE_ACCESS.some((c) => c.key === m));
+}
+
 // ---- Hub tools (D-056) ------------------------------------------------------
 // Sibling of MODULES, but a different kind of thing: a module is something a
 // person is GRANTED (module_access, opt-in per person); a hub tool is

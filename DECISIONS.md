@@ -10309,3 +10309,93 @@ foto a 1,4 km con la línea hasta la geocerca de Brownsville. `verify.mjs`: en v
 (main f6ec269: 1094 | 3; los +9 son la geometría y los estilos). Pesos: `/timetracker/audit` 8,82 → 9,39 kB / 303 kB;
 `/timetracker/settings` 7,99 → 9,01 kB / 301 kB, porque `GeofenceMap` importa ahora la geometría de `photo-map.ts`
 aunque Ajustes no la use (mismo dato que el auditor anotó en D-214; si algún día pesa, se saca a su módulo).
+
+## D-NEXT · Conceder un módulo fallaba en los perfiles con la palabra vieja `clockin`, y el ERP se degradaba solo
+
+**Fecha:** 2026-09-07 · **Versión:** la asigna el orquestador al fusionar (Entregas: el diálogo de
+permisos y el proveedor son del hub) · **Pedido por:** Andrés, con captura: abre el perfil de una
+empleada en Usuarios, el bloque Entregas sale vacío, y al marcar la casilla salta
+`new row for relation "profiles" violates check constraint "profiles_module_access_known"`.
+**Sin migración**, y eso es una decisión, no un olvido: ver más abajo.
+
+### Diagnóstico, medido
+
+- **La fila.** `role='manager'`, `module_access=['clockin']`, `timetracker_role` nulo. Es
+  **literalmente la fila que `095_clockin_word_removal.sql` decidió no tocar**: su cabecera la nombra
+  en el `DETAIL` del error que tumbó a la 088, y sus líneas 25-40 lo dejan escrito —«no se toca…
+  quitarle la palabra a la brava lo dejaría con `module_access` vacío y aterrizando en `/no-access`…
+  se prefiere dejar el rastro visible»—. Por eso su constraint quedó `not valid` (095:52-56): validar
+  habría exigido tomar por esa persona una decisión que es de quien lleva el personal.
+- **Por qué falla al guardar.** Las cuatro funciones de `data-provider.tsx` que escriben
+  `module_access` construían el array nuevo sobre `target?.module_access ?? []`, o sea sobre el array
+  **crudo de la fila**. Conceder «Entregas» mandaba `['clockin','deliveries']`, y
+  `profiles_module_access_known` (que solo admite las cuatro palabras vivas) rechazaba el UPDATE
+  entero. No es que la casilla no se guarde: es que **ninguna** casilla de ese perfil se puede guardar.
+- **Por qué Entregas sale vacía.** `has_deliveries_access()` (083) es
+  `role='admin' or 'deliveries' = any(module_access)`. Sin esa palabra, la RLS devuelve cero filas. La
+  pantalla en blanco y el error al arreglarlo son **el mismo problema**, y por eso quien lo sufre no
+  puede salir solo.
+- **Alcance del dato** (orquestador, sobre producción): 36 perfiles, **1** con palabra no permitida,
+  10 sin `deliveries`, 0 con `module_access` vacío.
+
+### Qué se hizo: se arregla en la app, no en la base
+
+`knownModules()` en `constants.ts` filtra el array a las claves que declara **`MODULE_ACCESS`** —la
+misma lista cerrada (`ModuleAccessKey`) contra la que el diálogo despacha sus escrituras, no una lista
+escrita a mano— y las cuatro funciones parten de ahí. Con eso **el primer guardado de ese perfil
+escribe la lista sin `clockin`**: el bug queda arreglado y la fila se limpia sola en ese mismo clic,
+sin tocar producción por fuera de la app y sin dejar a nadie en `/no-access`.
+
+**El encargo pedía además una migración** que quitara la palabra y validara el constraint, y **se
+retiró del alcance antes de escribirla**, por dos razones: revierte lo que 095 decidió por escrito (y
+su `not valid` es parte de esa decisión), y **no hace falta** —el saneado en escritura limpia la fila
+en el momento en que alguien la toca—. Si algún día aparecen filas viejas por otra vía, esa limpieza
+será su propio encargo, con su plan. En esta rama no hay ningún `.sql`.
+
+**No se usa `normalizeModules`, que está justo al lado, y esto importa.** Esa traduce `clockin` →
+`timetracker` y es de **lectura**: existe para que a quien lleve la palabra vieja se le siga dibujando
+la tarjeta a la que tiene derecho. Al **escribir** haría dos daños: concedería un módulo que nadie
+pidió (marcar «Entregas» daría de paso Time Tracker), y **fallaría igual**, porque
+`profiles_timetracker_access_needs_role` (058:30-33) exige tramo para tener `timetracker` y esa persona
+no lo tiene. Se cambiaría un constraint incumplido por otro. Filtrar es lo único que no decide nada
+por nadie.
+
+### El error, legible
+
+`src/lib/user-write-error.ts` (puro) traduce al idioma del usuario los **tres** constraints que esta
+pantalla puede tocar (`profiles_module_access_known`, `profiles_timetracker_access_needs_role`,
+`profiles_erp_role_known`) y **deja pasar tal cual cualquier otro fallo**: inventar un texto genérico
+para lo desconocido esconde justo lo que haría falta leer. El crudo, con su `code`, va a la consola.
+Las otras escrituras de perfil (nombre, tienda, rol de Entregas) siguen pintando el mensaje de la base:
+fuera del alcance del encargo, y dicho aquí.
+
+### El hallazgo del punto 4, que resultó ser dos
+
+El select de `profiles` traía `recruiting_role`, `module_access` y `timetracker_role` pero **no
+`erp_role`**, y de esa fila salen dos cosas:
+
+1. **Lo visible:** el diálogo pinta el rol de cada módulo con `u[m.roleColumn]`
+   (`UserDialog.tsx:220`), y el del ERP es `erp_role`. Llegaba siempre `undefined`, así que el
+   selector enseñaba el valor por defecto aunque en la base pusiera «admin».
+2. **Lo que no se veía:** `setModuleAccess` llama a `updateUserErpAccess(id, { granted })` **sin**
+   `erp_role`, y allí `nextRole = granted ? (erp_role ?? target?.erp_role ?? "staff") : null`. Con
+   `target?.erp_role` siempre indefinido, **volver a marcar la casilla del ERP escribía «staff» encima
+   del rol real**: una degradación silenciosa de admin o manager a staff, registrada además como
+   `erp_role_changed`. No es hipótesis: es la cascada leída línea a línea.
+
+Una palabra en el select arregla las dos. `updateUserErpAccess` no se toca: su cascada ya era la
+correcta, le faltaba el dato.
+
+### Qué NO cambia
+
+Ninguna RLS, ninguna función de la base, ningún `.sql`. Ningún permiso efectivo: `clockin` no lo lee
+nadie desde 087 (`has_clockin_access()` mira `timetracker_role`). Las otras escrituras de perfil.
+
+### Lo no verificado
+
+Nadie abrió Usuarios en producción tras el cambio: que el guardado de ese perfil pase ahora va por el
+filtro (probado en solitario) y por leer el constraint, no por haberlo hecho. La degradación del ERP
+está leída en la cascada, no reproducida contra la base. Y queda dicho lo que este arreglo **no**
+hace: a esa persona hay que **concederle un módulo** para que deje de aterrizar en `/no-access`; el
+arreglo hace que ese clic funcione, no lo da por hecho. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1123 pasados | 3 saltados**
+(main 16d4454: 1103 | 3; los +20 son `module-access-write.test.ts`). `/home/users` 11,7 kB / 295 kB, sin cambio.
