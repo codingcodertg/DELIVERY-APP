@@ -10069,7 +10069,7 @@ haberla mirado. Que la distancia coincida con lo que el servidor decidió (`in_r
 la misma función, no por comparar filas reales. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1069 pasados | 3 saltados**
 (main 8494cb5: 1049 | 3; los +20 son `day-photos.test.ts`). «Compiled with warnings» es `unpdf`, preexistente.
 
-## D-NEXT · La ubicación de cada foto se abre en un mapa con su geocerca y el veredicto (dentro / fuera · distancia)
+## D-213 · La ubicación de cada foto se abre en un mapa con su geocerca y el veredicto (dentro / fuera · distancia)
 
 **Fecha:** 2026-09-06 · **Versión:** la asigna el orquestador al fusionar (solo Time Tracker) ·
 **Pedido por:** Andrés, literal: «quiero que las coordenadas donde se tomó la foto salgan con el

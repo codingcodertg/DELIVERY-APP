@@ -39,7 +39,7 @@ export type Fence = {
 export type MapPoint = { lat: number; lng: number; label: string; inside: boolean };
 
 /**
- * `points` (opcional, D-NEXT tras D-212): marcadores encima de las geocercas, y el encuadre los
+ * `points` (opcional, D-213 tras D-212): marcadores encima de las geocercas, y el encuadre los
  * incluye. Un punto fuera lleva su etiqueta de distancia junto al marcador —texto y no una línea
  * hasta el borde, porque la distancia es a la geocerca (D-212) y una línea al centro del sitio
  * diría otra cosa—. `fallback` (opcional): qué pintar si no hay clave o el script no carga, en

@@ -1,5 +1,5 @@
 // ============================================================
-// Qué enseña la ventana del mapa de una foto (Auditoría → Fotos, D-NEXT tras D-212).
+// Qué enseña la ventana del mapa de una foto (Auditoría → Fotos, D-213 tras D-212).
 //
 // Lo puro: dada una foto (con lat/lng, siteId y distanceM ya calculados en el servidor, D-212)
 // y la lista de sitios que viaja con las fotos, decidir el estado y qué geocerca dibujar. No

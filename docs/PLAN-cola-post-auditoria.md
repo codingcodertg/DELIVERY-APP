@@ -23,3 +23,4 @@ parado desde el 2026-09-02.
 | # | Rama | Qué | Estado |
 |---|------|-----|--------|
 | 7 | `fotos-con-ubicacion` | Pedido del dueño 2026-09-06: ubicación GPS de cada foto en Auditoría → Fotos; salir/volver mandan posición | **fusionado D-212** (PR #28) |
+| 8 | `fotos-mapa-geocerca` | Pedido del dueño 2026-09-06: mapa con la geocerca y el punto de la foto, veredicto dentro/fuera; el loader de Maps recuerda la llave rechazada | **fusionado D-213** (PR #29) |
