@@ -14,6 +14,7 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
+import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
 import { tiendasParaElMapa } from "@/lib/store-pins";
@@ -1158,7 +1159,7 @@ export function OrderModal({
   // they render in two different places: the modal footer for office roles, and
   // inside the driver's delivery card (under the notes) for drivers.
   const stageActions = existing ? (
-    <StageActions me={me} stage={stage} busy={busy}
+    <StageActions me={me} stage={stage} busy={busy} pedido={existing}
       onEdit={() => setEditing(true)}
       onMove={move}
       showReject={showReject}
@@ -2568,13 +2569,15 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 
 /** The workflow buttons shown in view mode, gated by role + current stage. */
 function StageActions({
-  me, stage, busy, onEdit, onMove, showReject, setShowReject, rejectReason,
+  me, stage, busy, pedido, onEdit, onMove, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelReason, onPrint, onRequestDeliver, podOpen,
   onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
   me: Profile; stage: Stage; busy: boolean;
+  /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
+  pedido: Delivery;
   onEdit: () => void;
   onMove: (to: Stage, note?: string) => void;
   showReject: boolean; setShowReject: (v: boolean) => void; rejectReason: string;
@@ -2685,6 +2688,9 @@ function StageActions({
         </span>,
       );
     }
+    // No pudo entregarlo: lo descarga en una tienda del grupo y el pedido vuelve a la lista
+    // (D-NEXT). El control decide solo si se enseña —y a quién—, y escribe por el módulo puro.
+    btns.push(<LeaveAtStore key="drop" pedido={pedido} me={me} disabled={busy} />);
     btns.push(<button key="deliv" className="btn btn-green" onClick={onRequestDeliver} disabled={busy}>{t("Mark delivered", "Marcar entregado")}</button>);
   }
 

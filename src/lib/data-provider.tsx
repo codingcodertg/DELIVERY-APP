@@ -113,7 +113,15 @@ export interface DataState {
   /** Move an order to a new workflow stage and log the event. `extra` merges
    * additional column updates into the SAME write (e.g. proof-of-delivery),
    * so they persist atomically instead of being clobbered by a follow-up save. */
-  setStage: (id: string, stage: Stage, note?: string, extra?: Partial<Delivery>) => Promise<boolean>;
+  /**
+   * Mueve la etapa, escribe `extra` con ella y deja el evento de auditoría.
+   *
+   * `kind` es opcional y por defecto es la propia etapa, que es como se ha escrito siempre. Existe
+   * para los gestos que **no son «la etapa cambió» a secas** y que hay que poder distinguir en el
+   * historial años después: hoy, «Dejar en tienda» (D-NEXT), que vuelve a `ready` igual que una
+   * reversión normal pero significa otra cosa.
+   */
+  setStage: (id: string, stage: Stage, note?: string, extra?: Partial<Delivery>, kind?: string) => Promise<boolean>;
   eventsFor: (deliveryId: string) => OrderEvent[];
   /** Append a free-text note to an order's activity thread. */
   addNote: (deliveryId: string, text: string) => Promise<void>;
@@ -1154,7 +1162,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   const setStage = useCallback<DataState["setStage"]>(
-    async (id, stage, note, extra) => {
+    async (id, stage, note, extra, kind) => {
       // Hard guard: reject illegal workflow moves (e.g. straight to fulfilling
       // without manager approval). Admins may override to any status.
       const current = effectiveDeliveries.find((c) => c.id === id);
@@ -1209,7 +1217,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // that nobody is watching, so they run without holding the UI. A driver
       // pressing "Pick up" was waiting through all three.
       const order = deliveries.find((c) => c.id === id);
-      void logEvent(id, stage, note);
+      // `kind` por defecto es la etapa, como siempre. Un gesto con nombre propio —«Dejar en
+      // tienda»— lo pasa, para que en el historial no se confunda con una reversión cualquiera.
+      void logEvent(id, kind ?? stage, note);
       void emitStageNotifs({ stage, order_no: order?.order_no ?? null, order_code: order?.order_code ?? null, delivery_id: id, creatorId: order ? orderOwner(order) : null, reason: note });
       return true;
     },

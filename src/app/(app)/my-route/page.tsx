@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { canDeliver } from "@/lib/constants";
 import { captureLocationSplit } from "@/lib/geo";
 import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
+import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -330,6 +331,16 @@ export default function MyRoutePage() {
                     : `📋 ${t("Open order", "Ver orden")}`}
                 </button>
               </div>
+              {/* La salida cuando no se puede entregar: se descarga en una tienda del grupo y el
+                  pedido vuelve a la lista (D-NEXT). En su propia fila y no junto a «Entregar»:
+                  es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
+                  El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
+                  no se repite ninguna condición. */}
+              {me && (
+                <div style={{ display: "flex", marginTop: 8 }}>
+                  <LeaveAtStore pedido={next} me={me} style={{ flex: 1, justifyContent: "center" }} />
+                </div>
+              )}
             </div>
           )}
 
