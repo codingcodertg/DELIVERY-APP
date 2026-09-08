@@ -17,6 +17,9 @@ export type { LiveDriver, MapLine, MapPoint, StoreMarker };
 
 export interface MapViewProps {
   points?: MapPoint[];
+  /** Contorno de la zona local en verde (D-NEXT). Lo pintan los DOS mapas: `MapView` elige
+   *  Google o Leaflet según haya llave, y la zona tiene que verse en cualquiera de los dos. */
+  zone?: { lat: number; lng: number }[];
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];

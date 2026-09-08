@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
-import type { Map as LeafletMapInstance, Marker, Polyline, LatLng } from "leaflet";
+import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPolygon, LatLng } from "leaflet";
+import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -87,6 +88,7 @@ export interface MapLine {
 
 export function LeafletMap({
   points = [],
+  zone,
   lines = [],
   stores = [],
   liveDrivers = [],
@@ -101,6 +103,9 @@ export function LeafletMap({
   height = 420,
 }: {
   points?: MapPoint[];
+  /** Contorno de la zona local, pintado en verde bajo todo lo demás (D-NEXT). Opcional: los
+   *  mapas que no la pasan quedan exactamente igual. */
+  zone?: { lat: number; lng: number }[];
   /** Route traces drawn under the pins (e.g. per-driver optimized paths). */
   lines?: MapLine[];
   /** Store/branch locations — always drawn as big red points on top. */
@@ -128,6 +133,7 @@ export function LeafletMap({
   // Truck markers + accuracy halos, cleared and redrawn as fixes arrive.
   const liveLayerRef = useRef<{ remove: () => void }[]>([]);
   const linesRef = useRef<Polyline[]>([]);
+  const zoneRef = useRef<LeafletPolygon | null>(null);
   // Polylines that need their sideways offset recomputed whenever the map is
   // zoomed/reset (the offset is in pixels, the stored path is in lat/lng).
   const offsetLinesRef = useRef<{ poly: Polyline; hit: Polyline; base: [number, number][]; offset: number }[]>([]);
@@ -209,6 +215,30 @@ export function LeafletMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // La zona local, en verde y por debajo de todo: al soltar el pin se ve de un vistazo si cae
+  // dentro. Se dibuja en su propio efecto para que no dependa de `lines` ni al revés.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const L = (await import("leaflet")).default;
+      if (cancelled || !mapRef.current) return;
+      zoneRef.current?.remove();
+      zoneRef.current = null;
+      if (!zone || zone.length < 3) return;
+      const color = colorZona();
+      zoneRef.current = L.polygon(zone.map((p) => [p.lat, p.lng] as [number, number]), {
+        color,
+        weight: ESTILO_ZONA.strokeWeight,
+        opacity: ESTILO_ZONA.strokeOpacity,
+        fillColor: color,
+        fillOpacity: ESTILO_ZONA.fillOpacity,
+        interactive: false,
+      }).addTo(mapRef.current);
+      zoneRef.current.bringToBack();
+    })();
+    return () => { cancelled = true; };
+  }, [zone]);
 
   // Keep the traced routes in sync with `lines`. Drawn each time so they
   // stay underneath the pins (markers are re-added after this runs). Dimmed

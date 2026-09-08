@@ -14,6 +14,7 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
+import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
@@ -1459,6 +1460,7 @@ export function OrderModal({
                 </div>
                 <MapView
                   pickable
+                  zone={LOCAL_ZONE_LATLNG}
                   pickedPoint={pinDraft}
                   center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
                   onPick={(lat, lng) => dropPin(lat, lng)}
@@ -1848,6 +1850,7 @@ export function OrderModal({
                 </div>
                 <MapView
                   pickable
+                  zone={LOCAL_ZONE_LATLNG}
                   pickedPoint={pinDraft}
                   center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
                   onPick={(lat, lng) => dropPin(lat, lng)}

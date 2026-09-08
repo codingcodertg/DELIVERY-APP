@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, MAPS_MAP_ID } from "@/lib/google-maps-loader";
+import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 
 // ============================================================
@@ -72,6 +73,7 @@ function dashSymbols(maps: typeof google.maps) {
 
 export function GoogleMapView({
   points = [],
+  zone,
   lines = [],
   stores = [],
   liveDrivers = [],
@@ -86,6 +88,9 @@ export function GoogleMapView({
   height = 420,
 }: {
   points?: MapPoint[];
+  /** Contorno de la zona local, en verde y por debajo de todo (D-NEXT). Opcional: sin él, este
+   *  mapa se comporta exactamente igual que antes. */
+  zone?: { lat: number; lng: number }[];
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];
@@ -109,6 +114,7 @@ export function GoogleMapView({
   const storeMarkersRef = useRef<google.maps.Marker[]>([]);
   const liveRef = useRef<(google.maps.Marker | google.maps.Circle)[]>([]);
   const linesRef = useRef<google.maps.Polyline[]>([]);
+  const zoneRef = useRef<google.maps.Polygon | null>(null);
   const offsetLinesRef = useRef<{ poly: google.maps.Polyline; base: [number, number][]; offset: number }[]>([]);
   const pickMarkerRef = useRef<google.maps.Marker | null>(null);
   const hoverMarkerRef = useRef<google.maps.Marker | null>(null);
@@ -210,6 +216,31 @@ export function GoogleMapView({
   const reapplyOffsets = () => {
     for (const it of offsetLinesRef.current) it.poly.setPath(offsetPath(it.base, it.offset));
   };
+
+  // ---- Zona local ----
+  // El mismo polígono verde que pinta el mapa de Leaflet, con la geometría y el color salidos del
+  // mismo módulo: `MapView` elige uno u otro según haya llave de navegador, y la zona tiene que
+  // verse igual por los dos caminos. `zIndex: 0` y `clickable: false` para que quede debajo y no
+  // robe el clic derecho con el que se suelta el pin.
+  useEffect(() => {
+    const maps = mapsRef.current, map = mapRef.current;
+    if (!ready || !maps || !map) return;
+    zoneRef.current?.setMap(null);
+    zoneRef.current = null;
+    if (!zone || zone.length < 3) return;
+    const color = colorZona();
+    zoneRef.current = new maps.Polygon({
+      map,
+      paths: zone.map((p) => ({ lat: p.lat, lng: p.lng })),
+      strokeColor: color,
+      strokeWeight: ESTILO_ZONA.strokeWeight,
+      strokeOpacity: ESTILO_ZONA.strokeOpacity,
+      fillColor: color,
+      fillOpacity: ESTILO_ZONA.fillOpacity,
+      clickable: false,
+      zIndex: 0,
+    });
+  }, [zone, ready]);
 
   // ---- Routes ----
   useEffect(() => {
