@@ -11062,9 +11062,31 @@ la ficha habría cubierto un camino de varios, y el siguiente sitio que cree ped
 regla y sin que nadie lo notara.
 
 `updateDelivery` se declara después y `ubicarSiHaceFalta` la necesita, así que se accede por
-referencia — el mismo patrón que ya usa el vaciador del outbox con `logEvent`. **No hay recursión**:
-el parche que se escribe trae las coordenadas, así que la segunda vuelta ya no necesita ubicación, y
-hay una prueba que lo fija.
+referencia — el mismo patrón que ya usa el vaciador del outbox con `logEvent`. **No hay recursión**,
+y hay **dos** barreras independientes, no una: el parche que se escribe trae las coordenadas, así
+que la segunda vuelta ya no necesita ubicación (hay prueba que lo fija); y además la clave de esa
+dirección sigue en `ubicacionesEnCurso` cuando entra la segunda vuelta —se borra en el `finally`,
+después de la escritura—, así que aunque la primera barrera cediera, la segunda corta igual. La
+segunda la encontró el auditor simulando el ciclo, no yo escribiéndolo.
+
+### Se ubica al guardar **o al editar**, y es a propósito
+
+El disparo cuelga de `updateDelivery`, así que alcanza **cualquier** edición de un pedido sin punto:
+cambiar la etapa, asignar un chofer, tocar una nota. Es más ancho que «al guardar la ficha» y así se
+decidió, a sabiendas, cuando se planteó estrecharlo.
+
+La razón: es justo lo que hace que los **14 pedidos sin punto que ya existen** se recuperen solos,
+sin que nadie tenga que abrir el Mapa del día correcto — y esos días ya están cerrados. Estrecharlo
+habría arreglado el futuro dejando el presente igual, que es la mitad del encargo. El coste no crece
+por ser ancho: el tope sigue siendo por pedido-sin-punto y por sesión, o sea **14 llamadas como
+techo para todo el histórico**, no 14 por edición.
+
+En una frase, que es como debería leerse dentro de un año:
+
+> **Un pedido con dirección acaba teniendo punto, se toque por donde se toque.**
+
+Queda escrito porque es una propiedad, no un efecto lateral: el siguiente que toque `updateDelivery`
+puede romperla sin enterarse si nadie le ha dicho que existe.
 
 ### El coste, acotado por construcción
 
