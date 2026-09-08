@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "./pin-draft";
 
-// Cierra el camino que dejó dos pedidos del dueño sin coordenadas (D-NEXT): colocó el pin, lo vio
+// Cierra el camino que dejó dos pedidos del dueño sin coordenadas (D-221): colocó el pin, lo vio
 // en el área verde, guardó la orden sin pulsar «Save pin», y el punto se perdió.
 //
 // La regla se importa de `lib/pin-draft.ts` y se prueba de verdad — no una copia—, porque lo que

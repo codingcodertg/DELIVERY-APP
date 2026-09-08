@@ -10810,7 +10810,7 @@ Nadie abrió la ficha en un navegador tras el cambio: que el aviso cambie al sol
 de la captura lo midió el orquestador contra la función de `main`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1234 pasados | 3 saltados**
 (main 77dd7e3: 1217 | 3; los +22 son `zone-source.test.ts` y los cuatro de Lyford).
 
-## D-NEXT · El pin en borrador se guarda con el pedido, con la procedencia que de verdad tiene
+## D-221 · El pin en borrador se guarda con el pedido, con la procedencia que de verdad tiene
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** Andrés (orquestador), sobre la evidencia de D-220. Sin migración.

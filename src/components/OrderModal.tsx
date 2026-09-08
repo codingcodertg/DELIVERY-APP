@@ -127,7 +127,7 @@ export function OrderModal({
   const [viewSig, setViewSig] = useState(false);
   const [showPinPicker, setShowPinPicker] = useState(false);
   const [pinDraft, setPinDraft] = useState<[number, number] | null>(null);
-  // De dónde vino el borrador, porque no todos los pines son «marcados a mano» (D-NEXT). Un pin
+  // De dónde vino el borrador, porque no todos los pines son «marcados a mano» (D-221). Un pin
   // que puso el geocodificador al buscar la dirección NO puede guardarse como "manual": eso
   // enciende el aviso del chofer («se marcó un pin exacto para este sitio, Navegar usa el pin»)
   // sobre un punto que salió justamente de la dirección.
@@ -296,7 +296,7 @@ export function OrderModal({
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
   const zoneWhy = feeSuggestion.zoneSource === "pin"
-    // Tres estados, y ninguno advierte ya de perder el punto: desde D-NEXT el borrador se guarda
+    // Tres estados, y ninguno advierte ya de perder el punto: desde D-221 el borrador se guarda
     // con el pedido, así que la advertencia de D-220 («sin guardar todavía») asustaría sobre algo
     // que ya no ocurre. Y se distingue quién puso el punto, porque «lo colocó usted» sería falso
     // cuando lo propuso el buscador de direcciones.
@@ -584,7 +584,7 @@ export function OrderModal({
   const savePin = async (lat: number, lng: number) => {
     // La procedencia real, no siempre "manual": este botón también cierra un borrador que puso el
     // buscador de direcciones, y etiquetarlo a mano encendería el aviso del chofer sobre un punto
-    // que el usuario no colocó. Mismo criterio que al guardar el pedido (D-NEXT).
+    // que el usuario no colocó. Mismo criterio que al guardar el pedido (D-221).
     set("delivery_lat", lat); set("delivery_lng", lng); set("delivery_pin_source", fuenteAlAplicar(pinDraftSource));
     setShowPinPicker(false);
     // Fill the address if the drop didn't already (e.g. geocode was still in flight).

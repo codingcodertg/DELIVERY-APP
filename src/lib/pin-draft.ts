@@ -1,7 +1,7 @@
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// Qué pin se guarda con el pedido, y con qué procedencia (D-NEXT).
+// Qué pin se guarda con el pedido, y con qué procedencia (D-221).
 //
 // Cierra el camino que dejó dos pedidos sin coordenadas: el usuario colocaba el pin, lo veía en el
 // mapa, guardaba la orden sin pulsar «Save pin» y el punto se perdía, porque el borrador vivía solo

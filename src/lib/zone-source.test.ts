@@ -118,7 +118,7 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
   });
   it("el motivo distingue los TRES estados, y ya no advierte de perder el punto", () => {
     // En D-220 el aviso decía «sin guardar todavía», porque entonces el punto se perdía si no se
-    // pulsaba «Save pin». Desde D-NEXT el borrador se guarda con el pedido, así que esa
+    // pulsaba «Save pin». Desde D-221 el borrador se guarda con el pedido, así que esa
     // advertencia asustaría sobre algo que ya no ocurre; y «lo colocó usted» sería falso cuando el
     // punto lo propuso el buscador de direcciones.
     const src = leer("src/components/OrderModal.tsx");
@@ -135,7 +135,7 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     // Lo encontró el auditor: «Cancelar» solo cerraba el selector y dejaba `pinDraft` puesto, así
     // que el aviso habría seguido enseñando la zona de un pin descartado.
     const src = leer("src/components/OrderModal.tsx");
-    // Desde D-NEXT «Cancelar» limpia también la procedencia del borrador, así que el patrón lleva
+    // Desde D-221 «Cancelar» limpia también la procedencia del borrador, así que el patrón lleva
     // `setPinDraftSource(null)` en medio. Lo que se comprueba sigue siendo lo mismo: que descarta.
     const cancelar = src.match(/onClick=\{\(\) => \{ setPinDraft\(null\); setPinDraftSource\(null\); setShowPinPicker\(false\); \}\}/g) ?? [];
     expect(cancelar).toHaveLength(2);
