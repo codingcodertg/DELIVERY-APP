@@ -10666,6 +10666,21 @@ rayo que traza el algoritmo. Lo que sí está garantizado —y probado— es que
 función de base, ningún `.sql`, ninguna columna. Los cinco mapas que no reciben la zona.
 `GeofenceMap`/`GeofenceSection` (fichaje) fuera del diff. Ninguna tarifa ya guardada.
 
+### Nota del mismo día (tres observaciones del auditor, antes del merge)
+
+1. **Cerrada: un pin en 0,0 ya no decide una tarifa.** `puntoEnZonaLocal(0, 0)` devolvía `false`, no
+   `null`, así que un pin corrupto —0,0 es lo que escribe un geocodificador cuando falla, y cae en el
+   golfo de Guinea— **se saltaba el respaldo por ciudad y el pedido salía NO LOCAL**: 500 + millas y
+   aprobación del gerente, en silencio y aunque la dirección dijera McAllen. Es el mismo tipo de
+   camino que arregla esta decisión, un dato malo decidiendo una tarifa. Hoy no hay ninguna fila así
+   (rango real medido: lat 25,88 → 32,53), o sea que se cierra **antes** de que exista. Un 0 en una
+   sola coordenada sí sigue siendo un punto: no se descarta de más.
+2. **Límite conocido, sin tocar:** un pedido **con pin y sin dirección textual** sigue dando
+   `unknown`, porque `hasAddr` se comprueba antes que el punto. Es lo conservador y encaja con «nada
+   retroactivo», pero el punto existe y en ese caso no se usa.
+3. **Límite conocido, sin tocar:** el *first load* de `/settings` sube **3 kB** (296 → 299) aunque la
+   ruta suba 1,48 — el mapa entra en diferido, pero el módulo compartido se contabiliza ahí.
+
 ### Lo no verificado
 
 Nadie abrió la ficha ni Ajustes en un navegador tras el cambio: que el polígono se pinte va por leer
@@ -10673,6 +10688,6 @@ las dos APIs (`L.polygon`, `google.maps.Polygon`) y por las pruebas de forma, no
 cotejo contra los 102 pedidos reales **lo corre el orquestador** con la función pura —yo no tengo
 `.env.local`— y su resultado entra aquí antes de fusionar. Los 34 puntos de ciudad son coordenadas de
 centro urbano, no direcciones de clientes. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1206 pasados | 3 saltados**
-(main ed65a6f: 1149 | 3; los +67 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
+(main ed65a6f: 1149 | 3; los +68 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
 nuevo y su mapa diferido); `/map` 296, `/market` 295, `/my-route` 296, `/routes` 318, `/track` 295, sin
 cambio funcional en ninguno.
