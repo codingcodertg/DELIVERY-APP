@@ -10500,12 +10500,27 @@ ninguna bloqueaba; dos se cerraron y una queda escrita como límite conocido.
    `delivered` no se vuelve—, pero el módulo existe justo para que las dos vías no discrepen, así que
    se añade. No había razón medida para no borrarla. La prueba fija las siete claves y comprueba que
    la ficha sigue escribiendo la suya.
-2. **El recuento de 0, cerrada — y el agujero era el camino, no la función.** El aviso decía que
-   `actual_pallets: n || null` equivale a main solo mientras `n > 0` o ambos recuentos son nulos. Al
-   escribir la prueba se vio el mecanismo: `??` **no** cae con 0, así que un 0 solo llegaba al helper
-   disfrazado de `null` por el pedido… y entonces caía al estimado y escribía un número que nadie
-   contó. En vez de documentar la trampa, `escrituraRecogida` acepta ahora `pallets` explícito y la
-   ficha le pasa su `n`: un 0 es un 0, con nota sin número y sin `actual_pallets`, igual que main.
+2. **Un recuento de pallets que nadie contó: eso era, y por eso se arregla y no se anota.** El aviso
+   parecía menor —«`actual_pallets: n || null` equivale a main solo mientras `n > 0`»—, y al escribir
+   la prueba resultó ser otra cosa.
+
+   **Qué pasaba.** El primer intento pasaba el recuento *dentro* del pedido:
+   `escrituraRecogida({ pedido: { ...existing, actual_pallets: n || null }, … })`. Con `n = 0`, ese
+   `n || null` lo convertía en `null`, y dentro del helper `palletsDeRecogida` hace
+   `actual_pallets ?? est_pallets ?? 0`. **`??` no cae con 0, solo con nulo**: por eso el 0 tenía que
+   viajar disfrazado de nulo… y justo por eso caía al **estimado**. Un pedido con `est_pallets = 9`
+   del que el camión se lleva 0 se habría guardado como «Cargadas: 9 pallets», con `actual_pallets: 9`
+   escrito en la fila. No es una equivalencia frágil: es **escribir un número que nadie contó en una
+   entrega**, y el `??` es lo que lo escondía —el operador correcto para «si no hay dato, usa el
+   siguiente» es justo el que convierte un cero legítimo en «no hay dato» cuando alguien lo anula
+   antes.
+
+   **Qué escribe ahora.** `escrituraRecogida` acepta `pallets` explícito y la ficha le pasa su `n`
+   directamente; el pedido viaja intacto. Un 0 es un 0: nota «Loaded» sin número y **sin**
+   `actual_pallets` en el `extra`, que es exactamente lo que hacía main. Sin `pallets`, el recuento
+   sigue saliendo del pedido, como antes. Hoy ninguna de las dos vías llama con 0 —la confirmada
+   rechaza `n <= 0` antes, y la rápida solo da 0 cuando ambos recuentos son nulos—, así que **no hay
+   ninguna fila mal escrita en producción por esto**; lo que se cierra es el camino.
 3. **El doble clic, límite conocido y escrito.** `guardando` es **estado de React**, así que dos clics
    en el mismo tick leerían `null` los dos: lo que los para en la práctica es el `disabled` del botón,
    no el `if`. Un `useRef` sería estricto; el auditor lo midió y no lo pidió, y se deja así a
