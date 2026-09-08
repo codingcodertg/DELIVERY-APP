@@ -10400,7 +10400,7 @@ hace: a esa persona hay que **concederle un módulo** para que deje de aterrizar
 arreglo hace que ese clic funcione, no lo da por hecho. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1123 pasados | 3 saltados**
 (main 16d4454: 1103 | 3; los +20 son `module-access-write.test.ts`). `/home/users` 11,7 kB / 295 kB, sin cambio.
 
-## D-NEXT · En Mi ruta, «Recoger» y «Entregar» cierran la parada de un toque (y dejan de prometer etapas imposibles)
+## D-218 · En Mi ruta, «Recoger» y «Entregar» cierran la parada de un toque (y dejan de prometer etapas imposibles)
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** Andrés, literal: *«pickup and delivered needs 2 taps: en Mi ruta, si no he abierto la

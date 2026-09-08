@@ -28,3 +28,4 @@ parado desde el 2026-09-02.
 | 10 | `fotos-etiqueta-onsite` | Pedido del dueño 2026-09-06: pastilla On site / Out sin cortes, sitio en segunda línea | **fusionado D-215** (PR #31) |
 | 11 | `fotos-mapa-obvio` | Pedido del dueño 2026-09-06: pin, geocerca marcada y línea con flecha y distancia en el mapa de la foto | **fusionado D-216** (PR #32) |
 | 12 | `module-access-saneado` | Bug 2026-09-07: el perfil no se podía guardar por la palabra `clockin`; y el ERP degradaba el rol a «staff» al remarcar | **fusionado D-217** (PR #33) |
+| 13 | `mi-ruta-un-toque` | Bug 2026-09-08: Recoger/Entregar en Mi ruta pedían dos toques (el botón solo abría la ficha); de paso, el botón prometía etapas ilegales y un 0 de pallets caía al estimado | **fusionado D-218** (PR #34) |

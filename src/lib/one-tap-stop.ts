@@ -1,5 +1,5 @@
 // ============================================================
-// «¿Este botón puede cerrar la parada de un toque?» (D-NEXT)
+// «¿Este botón puede cerrar la parada de un toque?» (D-218)
 //
 // El botón verde de «Siguiente parada» en Mi ruta decía «Recoger» / «Entregar» y lo único que
 // hacía era abrir la ficha: la etiqueta prometía una etapa y había que volver a pulsar dentro.

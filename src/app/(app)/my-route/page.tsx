@@ -62,7 +62,7 @@ export default function MyRoutePage() {
   }, [stops, settings.driver_capacity, settings.default_truck_capacity, driverName]);
 
   /**
-   * El botón de «Siguiente parada» hace lo que dice (D-NEXT).
+   * El botón de «Siguiente parada» hace lo que dice (D-218).
    *
    * Antes decía «Recoger» / «Entregar» y solo abría la ficha: dos toques para lo que el chofer
    * pidió en uno. Qué acción toca lo decide `accionParada` (lib/one-tap-stop.ts), la misma regla

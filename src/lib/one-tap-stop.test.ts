@@ -7,7 +7,7 @@ import {
 } from "./one-tap-stop";
 
 // El botón de «Siguiente parada» decía «Recoger»/«Entregar» y solo abría la ficha: dos toques
-// para lo que el chofer pedía en uno (D-NEXT). La regla de si se puede cerrar de un toque vive
+// para lo que el chofer pedía en uno (D-218). La regla de si se puede cerrar de un toque vive
 // en un módulo puro que usan las dos pantallas; esto la prueba en solitario.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");

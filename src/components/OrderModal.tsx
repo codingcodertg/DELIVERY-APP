@@ -746,7 +746,7 @@ export function OrderModal({
       }
       return;
     }
-    // La misma escritura que hace el botón de una parada en Mi ruta (D-NEXT): nota, GPS, claim
+    // La misma escritura que hace el botón de una parada en Mi ruta (D-218): nota, GPS, claim
     // y el recuento, construidos en lib/one-tap-stop.ts para que el mismo gesto no escriba dos
     // cosas distintas segun desde donde se pulse.
     const escritura = escrituraRecogida({ pedido: existing, me, gps, t, pallets: n });
@@ -775,7 +775,7 @@ export function OrderModal({
    * When proof IS still owed, the sheet opens and says so; one tap is never
    * worth letting a delivery skip the evidence the office asked for.
    */
-  // La misma regla que usa el botón de una parada en Mi ruta (D-NEXT): vive en
+  // La misma regla que usa el botón de una parada en Mi ruta (D-218): vive en
   // lib/one-tap-stop.ts para que las dos pantallas no puedan discrepar.
   const podFormNeeded = pruebaPendiente(settings, existing?.photos);
 
