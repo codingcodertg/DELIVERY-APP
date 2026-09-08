@@ -10588,6 +10588,29 @@ Isabel, Los Fresnos y Combes); fuera Raymondville, Port Mansfield, Río Grande C
 Houston; y fuera Reynosa, Matamoros, Río Bravo, Nuevo Progreso y Valle Hermoso. **El borde sur es el
 río**, así que México queda fuera por construcción, sin ninguna regla especial que mantener.
 
+### El cotejo contra los 112 pedidos de producción (medición del orquestador)
+
+Con la función pura corrida contra las filas reales, antes de fusionar:
+
+- **102 los decide el polígono** (99 dentro, 3 fuera); **10 sin punto** caen al método viejo.
+- **91 coinciden** con la clasificación de hoy por ciudad; **11 cambian**.
+- **9 pasan de NO LOCAL a LOCAL, y son exactamente el bug que reportó el dueño**: entregas del
+  Valle a las que se estaba cobrando la tarifa de fuera (500 + millas) porque la ciudad no se leía
+  de la dirección. Tres a `32878 Nayeli St, Los Fresnos` (ciudad leída: «TX»), una a
+  `117 Heron Drive, Los Fresnos` («78566»), una a `720 N ARROYO BLVD LOS FRESNOS` (se leía la
+  dirección entera), una a `28 Spoonbill Cove Road, Laguna Vista` («TX»), dos a Rancho Viejo y una
+  a `4512 LOIRA BVILLE, TX. 78520`.
+- **2 pasaban de LOCAL a NO LOCAL, y eran un fallo mío del contorno**, no un acierto: dos
+  direcciones de Brownsville **al norte del río** —(25.8804, −97.4112) y (25.8801, −97.4321)— que mi
+  primer trazado dejaba fuera porque no seguía la bajada del cauce hacia el este. Corregido con seis
+  vértices en ese tramo; el orquestador vuelve a correr el cotejo entero antes del merge.
+
+**Un dato que salió de paso y NO se arregla aquí:** `LOCAL_CITIES_DEFAULT` dice **«Ranch Viejo»** y
+la ciudad es **Rancho Viejo**, así que por el método de ciudad esas entregas no casaban nunca. No se
+toca en esta rama a propósito: el encargo exige que el respaldo quede **idéntico**, y cambiarlo
+alteraría la clasificación de los pedidos sin punto, que es justo lo que no se quería mover. Por el
+punto ya salen locales. Corregir la lista es un cambio de una palabra, y su propio encargo.
+
 ### El contorno vive en el código, y lo que eso NO permite
 
 Se valoró guardarlo en `settings` y **se descartó con la medida delante**: `settings` no es un
