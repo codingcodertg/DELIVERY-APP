@@ -115,6 +115,26 @@ describe("lo que se escribe al recoger: una sola construcción para las dos vía
   it("entregar sin GPS deja las coordenadas nulas, no inventadas", () => {
     expect(extraEntrega(null)).toMatchObject({ pod_lat: null, pod_lng: null, pod_accuracy: null });
   });
+  it("entregar escribe LAS MISMAS claves que la ficha, delivered_address incluida (si no, una vía borra y la otra conserva)", () => {
+    expect(Object.keys(extraEntrega(null)).sort()).toEqual(
+      ["delivered_address", "pod_accuracy", "pod_delivered_at", "pod_lat", "pod_lng", "pod_received_by", "pod_signature"],
+    );
+    expect(extraEntrega(null).delivered_address).toBeNull();
+    // Y la ficha sigue escribiendo esa clave: si alguien la quitara de allí, esta vía se quedaría sola.
+    expect(leer("src/components/OrderModal.tsx")).toMatch(/delivered_address: altAddr \|\| null/);
+  });
+  it("un recuento de 0 se respeta: no se convierte en el estimado ni escribe un número que nadie contó", () => {
+    // El agujero que señaló el auditor era el camino, no la función: `??` no cae con 0, así que un
+    // 0 tenía que pasarse como `null` por el pedido… y entonces caía al estimado. Con `pallets`
+    // explícito, un 0 es un 0: nota sin número y sin `actual_pallets`, igual que hacía la ficha.
+    const e = escrituraRecogida({ pedido: { est_pallets: 9, assigned_driver: "Ana" }, me: chofer, gps, t, pallets: 0 });
+    expect(e.pallets).toBe(0);
+    expect(e.note).toBe("Loaded");
+    expect(e.extra).not.toHaveProperty("actual_pallets");
+    // Y sin `pallets`, el del pedido, como antes.
+    expect(escrituraRecogida({ pedido: { est_pallets: 9 }, me: chofer, gps, t }).pallets).toBe(9);
+    expect(leer("src/components/OrderModal.tsx")).toMatch(/escrituraRecogida\(\{ pedido: existing, me, gps, t, pallets: n \}\)/);
+  });
 });
 
 describe("las dos pantallas usan el módulo, y el botón no dispara dos veces", () => {

@@ -749,7 +749,7 @@ export function OrderModal({
     // La misma escritura que hace el botón de una parada en Mi ruta (D-NEXT): nota, GPS, claim
     // y el recuento, construidos en lib/one-tap-stop.ts para que el mismo gesto no escriba dos
     // cosas distintas segun desde donde se pulse.
-    const escritura = escrituraRecogida({ pedido: { ...existing, actual_pallets: n || null }, me, gps, t });
+    const escritura = escrituraRecogida({ pedido: existing, me, gps, t, pallets: n });
     const ok = await setStage(existing.id, "picked_up", escritura.note, escritura.extra);
     setBusy(false);
     if (ok) { notify(t("Out for delivery", "En reparto")); onClose(); }

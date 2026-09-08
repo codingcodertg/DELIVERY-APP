@@ -108,8 +108,13 @@ export function escrituraRecogida(input: {
   me: { role?: string | null; full_name?: string | null } | null | undefined;
   gps: GpsRecogida | null;
   t: (en: string, es: string) => string;
+  /** El recuento ya decidido por quien llama. Sin él se usa el del pedido. */
+  pallets?: number;
 }): { pallets: number; note: string; extra: Record<string, unknown> } {
-  const n = palletsDeRecogida(input.pedido);
+  // `pallets` explícito y no «cuélalo por el pedido»: `??` no cae con 0, así que un cero que
+  // viajara dentro del pedido se convertiría en el estimado y escribiría un recuento que nadie
+  // contó. Quien ya tiene el número lo pasa; quien no, lo saca del pedido.
+  const n = input.pallets ?? palletsDeRecogida(input.pedido);
   return {
     pallets: n,
     note: n > 0 ? input.t(`Loaded: ${n} pallets`, `Cargadas: ${n} pallets`) : input.t("Loaded", "Cargada"),
@@ -149,6 +154,12 @@ export interface GpsEntrega { lat: number; lng: number; accuracy?: number | null
  * Lo que se escribe al entregar de un toque. Sin nombre de quien recibe y sin firma: esta vía
  * solo existe cuando no había nada que pedir (`pruebaPendiente` = false), y escribir un nombre
  * vacío sería inventarlo. La hora y la posición sí, que son lo que prueba dónde se estuvo.
+ *
+ * `delivered_address: null` va aquí a propósito, y no es relleno: la ficha lo escribe siempre al
+ * entregar —`altAddr || null`, que por esta vía sería siempre null— y sin la clave las dos vías
+ * escribirían cosas distintas por el mismo gesto: la ficha BORRA una dirección alternativa vieja
+ * y esto la habría conservado. Hoy no hay ninguna que borrar (solo se escribe al entregar, y de
+ * `delivered` no se vuelve), pero el objetivo del módulo es justo que no puedan discrepar.
  */
 export function extraEntrega(gps: GpsEntrega | null): Record<string, unknown> {
   return {
@@ -158,5 +169,6 @@ export function extraEntrega(gps: GpsEntrega | null): Record<string, unknown> {
     pod_lat: gps?.lat ?? null,
     pod_lng: gps?.lng ?? null,
     pod_accuracy: gps?.accuracy ?? null,
+    delivered_address: null,
   };
 }
