@@ -10531,3 +10531,115 @@ ninguna bloqueaba; dos se cerraron y una queda escrita como límite conocido.
    en el mismo tick leerían `null` los dos: lo que los para en la práctica es el `disabled` del botón,
    no el `if`. Un `useRef` sería estricto; el auditor lo midió y no lo pidió, y se deja así a
    propósito, dicho aquí para quien lo lea dentro de un año.
+
+## D-NEXT · La zona local de entrega se decide por el punto, no por el nombre de la ciudad, y se ve en verde sobre el mapa
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** Andrés, con captura del Valle: *«quiero que me hagas este geofencing del delivery fee
+porque no está funcionando bien, siguiendo ese boundary y obviamente north del río para que siga en el
+US»*, y después *«cuando se calcule el fee, en el mapa todo el área local se mire en verde»*.
+**Sin migración y sin columna nueva**, y eso es una decisión, no un descuido: ver abajo.
+
+### Por qué fallaba
+
+La zona salía del **nombre de la ciudad**: `cityFromAddress(d.delivery_address, …)` sacaba una palabra
+de la dirección y se comparaba con `LOCAL_CITIES_DEFAULT`. Es sacar un dato de texto libre, y falla por
+donde falla siempre: en las filas reales hay direcciones que terminan en «TX», en el código postal, o
+en minúsculas y sin comas. Ahí no hay ciudad que reconocer, y como una ciudad no reconocida cae a
+`nonlocal`, **una entrega a dos calles del almacén podía salir NO LOCAL** — con aprobación del gerente
+y la tarifa alta (500 + millas en vez de la fórmula local).
+
+El punto sí es fiable: **102 de 112 pedidos tienen `delivery_lat`/`delivery_lng`** (91 %: 97
+geocodificados y 5 puestos a mano; medición del orquestador sobre producción, 2026-09-08).
+
+### Qué se hizo
+
+**`src/lib/delivery-zone.ts`** (puro): `LOCAL_ZONE_DEFAULT` (el contorno, 18 vértices comentados uno a
+uno) y `puntoEnZonaLocal(lat, lng, zona?)`, que devuelve `true` / `false` / **`null`**. El `null` es
+deliberado: quien llama tiene que poder distinguir «está fuera» de «no lo sé», porque lo segundo se
+resuelve cayendo al método viejo y lo primero no.
+
+`suggestDeliveryFee` decide así, en este orden:
+1. **hay punto** → dentro = `local`, fuera = `nonlocal`;
+2. **no hay punto** → el método de ciudad de siempre, **sin cambiarlo** (`isLocalCity`,
+   `localCities`, `LOCAL_CITIES_DEFAULT` intactas);
+3. **no hay dirección** → `unknown`, como antes.
+
+La ciudad se sigue enseñando como texto y **las fórmulas de tarifa no se tocan**: mismo precio para la
+misma zona y las mismas millas. **Nada retroactivo:** no se recalcula ni se toca la tarifa de ningún
+pedido guardado; solo cambia la sugerencia de los nuevos.
+
+`pointInPolygon` no se duplicó: **subió de `lib/clockin/geofence.ts` a `lib/geo.ts`** —la geometría
+neutral que ya usaban Entregas y las analíticas— y `geofence.ts` lo reexporta, así que sus dos
+importadores (`clock.ts`, `day-photos.ts`) no cambian ni un import.
+
+### Dos correcciones al contorno de partida, medidas
+
+1. **El boceto dejaba Matamoros DENTRO**, que es exactamente lo que el dueño pidió evitar. Con los
+   vértices (25.84, −97.38) → (25.88, −97.55), Matamoros (25.880, −97.504) queda al norte de esa
+   recta. La causa es física: ahí el río separa dos ciudades pegadas —Brownsville está a 25.902, unos
+   **2,4 km**— y un borde de dos vértices no puede pasar entre ellas. El tramo del río lleva ahora
+   cinco vértices que lo siguen de cerca: en lng −97.50 el borde va por **25.892**, entre las dos, con
+   ~1 km de margen a cada lado.
+2. **La costa** se ajustó para que South Padre y Port Isabel queden dentro y Port Mansfield fuera.
+
+**Comprobado con 34 ciudades reales:** las 24 locales dentro (incluidas Brownsville, South Padre, Port
+Isabel, Los Fresnos y Combes); fuera Raymondville, Port Mansfield, Río Grande City, Falfurrias y
+Houston; y fuera Reynosa, Matamoros, Río Bravo, Nuevo Progreso y Valle Hermoso. **El borde sur es el
+río**, así que México queda fuera por construcción, sin ninguna regla especial que mantener.
+
+### El contorno vive en el código, y lo que eso NO permite
+
+Se valoró guardarlo en `settings` y **se descartó con la medida delante**: `settings` no es un
+clave-valor, es **una fila con columnas** (`data-provider.tsx:1211` hace `update(patch).eq("id", 1)`),
+así que «guardarlo sin migración» no existía. Las salidas eran columna nueva, reutilizar una columna
+muerta (un nombre que miente) o constante. Se eligió **constante**: mientras nadie pueda dibujar el
+contorno desde la pantalla, una columna nace vacía y sin quien la escriba — código muerto con una
+migración incluida. **Consecuencia, dicha:** mover el contorno **exige un despliegue**. El día que el
+dueño quiera moverlo desde Ajustes, la columna y el editor entran en el mismo encargo. `local_cities`
+se queda donde está y funcionando: es el respaldo de los pedidos sin punto.
+
+### El verde, en los DOS mapas
+
+`MapView` es un **conmutador** (`MapView.tsx:34-35`): con llave de navegador renderiza `GoogleMapView`,
+sin ella `LeafletMap`. La llave **está puesta en producción**, así que pintar la zona solo con Leaflet
+—como decía el encargo— **no se habría visto**. Se pinta en los dos, con la geometría y el color
+salidos del mismo módulo para que no puedan divergir: `L.polygon` y `google.maps.Polygon`, mismo
+`ESTILO_ZONA` (relleno 0,12 para no tapar calles), ambos por debajo de todo y sin capturar el clic con
+el que se suelta el pin. No es exceso: el camino de Leaflet entra justo **cuando la llave falla** —pasó
+hace dos días con el dominio nuevo— y es cuando más falta hace ver la zona.
+
+**El verde no es un hex inventado ni un `var()`** —que ninguna de las dos APIs entiende—: `colorZona()`
+lee `--green` del tema en tiempo de ejecución y solo cae al literal `#1f9d61` cuando no hay DOM, que es
+el mismo `--green` de `globals.css:12`.
+
+La prop `zone` es **opcional**: los siete usos de `MapView` que no la pasan (mapa, mercado, mi ruta,
+rutas, seguimiento) quedan exactamente igual. La usan los **dos** selectores de pin de la ficha y un
+bloque nuevo en Ajustes, que enseña el contorno en solo lectura y en carga diferida (D-209), y dice que
+moverlo exige un despliegue. Se usa `MapView` y no `GeofenceMap`: un solo camino de mapa.
+
+### El borde exacto, medido — y un dato que corregí
+
+Sobre el borde llegó el aviso de que un punto exactamente encima de una arista oblicua cae siempre
+fuera. **En este contorno no es cierto, y se midió antes de escribirlo:** en el punto medio exacto de
+las 18 aristas, unas dan **dentro** y otras **fuera**, según la orientación de la arista respecto al
+rayo que traza el algoritmo. Lo que sí está garantizado —y probado— es que el resultado es
+**determinista** e **invariante al orden de los vértices**. En el río no es un riesgo práctico: hay
+~1 km de margen a cada lado y un pin no cae sobre la línea.
+
+### Qué NO cambia
+
+`listFee`, `discountFee`, `DeliveryZone` y el respaldo por ciudad completo. Ninguna RLS, ninguna
+función de base, ningún `.sql`, ninguna columna. Los cinco mapas que no reciben la zona.
+`GeofenceMap`/`GeofenceSection` (fichaje) fuera del diff. Ninguna tarifa ya guardada.
+
+### Lo no verificado
+
+Nadie abrió la ficha ni Ajustes en un navegador tras el cambio: que el polígono se pinte va por leer
+las dos APIs (`L.polygon`, `google.maps.Polygon`) y por las pruebas de forma, no por haberlo visto. El
+cotejo contra los 102 pedidos reales **lo corre el orquestador** con la función pura —yo no tengo
+`.env.local`— y su resultado entra aquí antes de fusionar. Los 34 puntos de ciudad son coordenadas de
+centro urbano, no direcciones de clientes. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1206 pasados | 3 saltados**
+(main ed65a6f: 1149 | 3; los +57 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
+nuevo y su mapa diferido); `/map` 296, `/market` 295, `/my-route` 296, `/routes` 318, `/track` 295, sin
+cambio funcional en ninguno.
