@@ -10532,7 +10532,7 @@ ninguna bloqueaba; dos se cerraron y una queda escrita como límite conocido.
    no el `if`. Un `useRef` sería estricto; el auditor lo midió y no lo pidió, y se deja así a
    propósito, dicho aquí para quien lo lea dentro de un año.
 
-## D-NEXT · La zona local de entrega se decide por el punto, no por el nombre de la ciudad, y se ve en verde sobre el mapa
+## D-219 · La zona local de entrega se decide por el punto, no por el nombre de la ciudad, y se ve en verde sobre el mapa
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** Andrés, con captura del Valle: *«quiero que me hagas este geofencing del delivery fee

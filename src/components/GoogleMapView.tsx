@@ -88,7 +88,7 @@ export function GoogleMapView({
   height = 420,
 }: {
   points?: MapPoint[];
-  /** Contorno de la zona local, en verde y por debajo de todo (D-NEXT). Opcional: sin él, este
+  /** Contorno de la zona local, en verde y por debajo de todo (D-219). Opcional: sin él, este
    *  mapa se comporta exactamente igual que antes. */
   zone?: { lat: number; lng: number }[];
   lines?: MapLine[];

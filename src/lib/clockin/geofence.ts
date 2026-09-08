@@ -1,7 +1,7 @@
 // Geofence math. Supports both polygon sites (property outline + padding) and
 // legacy circle sites (center + radius). Runs server-side in the clock-in action.
 
-// El par/impar y su tipo viven en lib/geo.ts desde D-NEXT (los comparte la zona de entrega);
+// El par/impar y su tipo viven en lib/geo.ts desde D-219 (los comparte la zona de entrega);
 // se reexportan para que todo lo de fichaje siga importándolos de aquí.
 export { pointInPolygon, type LatLng } from "@/lib/geo";
 import { pointInPolygon, type LatLng } from "@/lib/geo";

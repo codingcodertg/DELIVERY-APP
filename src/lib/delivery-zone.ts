@@ -2,7 +2,7 @@ import { pointInPolygon, type LatLng } from "@/lib/geo";
 
 // ============================================================
 // La zona local de entrega, decidida por DÓNDE está la entrega y no por cómo se escribió la
-// dirección (D-NEXT).
+// dirección (D-219).
 //
 // Hasta ahora la zona salía del nombre de la ciudad: `cityFromAddress` sacaba una palabra de la
 // dirección y se comparaba con una lista. Falla por lo que falla siempre sacar datos de texto

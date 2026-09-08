@@ -7,7 +7,7 @@ import {
 } from "./delivery-zone";
 import { suggestDeliveryFee } from "./pricing";
 
-// La zona local se decide por el PUNTO y no por el nombre de la ciudad (D-NEXT). Aquí van las
+// La zona local se decide por el PUNTO y no por el nombre de la ciudad (D-219). Aquí van las
 // ciudades de verdad: las que tienen que quedar dentro, las de Texas que no son locales, y las
 // mexicanas, que quedan fuera porque el borde sur es el río.
 

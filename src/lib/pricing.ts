@@ -93,7 +93,7 @@ export function suggestDeliveryFee(
   const add = sameDay ? surcharge : 0;
   if (!hasAddr) return { zone: "unknown", city: "", list: null, discount: null, needsApproval: false, sameDay, sameDaySurcharge: add };
 
-  // La zona sale del PUNTO cuando lo hay (D-NEXT): el nombre de la ciudad se saca de texto
+  // La zona sale del PUNTO cuando lo hay (D-219): el nombre de la ciudad se saca de texto
   // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
   const porPunto = puntoEnZonaLocal(d.delivery_lat, d.delivery_lng);
   const local = porPunto ?? isLocalCity(city, s);

@@ -103,7 +103,7 @@ export function LeafletMap({
   height = 420,
 }: {
   points?: MapPoint[];
-  /** Contorno de la zona local, pintado en verde bajo todo lo demás (D-NEXT). Opcional: los
+  /** Contorno de la zona local, pintado en verde bajo todo lo demás (D-219). Opcional: los
    *  mapas que no la pasan quedan exactamente igual. */
   zone?: { lat: number; lng: number }[];
   /** Route traces drawn under the pins (e.g. per-driver optimized paths). */

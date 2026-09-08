@@ -455,7 +455,7 @@ export interface Settings {
   // ya no existe; lo que quedaba era el tipo, prometiendo una configuración que la
   // aplicación ignora. Las columnas siguen en la base (migración 036) y no se
   // tocan: borrar columnas es irreversible y no gana nada.
-  /** Cities that count as the LOCAL delivery zone. Respaldo desde D-NEXT: solo se usa
+  /** Cities that count as the LOCAL delivery zone. Respaldo desde D-219: solo se usa
    *  cuando el pedido no tiene coordenadas. El contorno que decide la zona cuando SÍ hay
    *  punto es `LOCAL_ZONE_DEFAULT` (lib/delivery-zone.ts), constante de código: no hay
    *  columna para él, a propósito, mientras nadie pueda dibujarlo desde Ajustes. */
