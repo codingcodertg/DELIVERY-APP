@@ -67,6 +67,36 @@ describe("al sur del río, fuera — que es lo que pidió el dueño", () => {
   });
 });
 
+// Direcciones REALES de producción, con sus coordenadas: el cotejo del orquestador contra los 112
+// pedidos las señaló una por una. Las nueve primeras son el bug que reportó el dueño —se les
+// cobraba tarifa NO LOCAL porque la ciudad no se leía de la dirección— y las dos de Brownsville
+// son las que destaparon que mi primer trazado del río no bajaba hacia el este.
+const PEDIDOS_REALES: [string, number, number][] = [
+  ["#57/#48/#56 Nayeli St, Los Fresnos", 26.0933, -97.4966],
+  ["#33 Heron Drive, Los Fresnos", 26.0669, -97.4632],
+  ["#17 N Arroyo Blvd, Los Fresnos", 26.0784, -97.4758],
+  ["#80 Spoonbill Cove, Laguna Vista", 26.1163, -97.3031],
+  ["#58 Escandon Ave, Rancho Viejo", 26.0319, -97.5657],
+  ["#2 Enchilada St, Rancho Viejo", 26.0384, -97.5606],
+  ["#16 Loira, Brownsville", 25.9964, -97.5789],
+  ["#26 Lynx, Brownsville", 25.8804, -97.4112],
+  ["#69 Maverick Road, Brownsville", 25.8801, -97.4321],
+];
+
+describe("las entregas reales que el cotejo señaló, todas dentro", () => {
+  for (const [nombre, lat, lng] of PEDIDOS_REALES) {
+    it(`${nombre} → dentro`, () => expect(dentro(lat, lng)).toBe(true));
+  }
+  it("y las dos de Brownsville al norte del río lo siguen estando con Matamoros fuera", () => {
+    // Las dos restricciones que había que cumplir A LA VEZ, y que obligaron a seis vértices en el
+    // tramo del río: el cauce baja hacia el este.
+    expect(dentro(25.8804, -97.4112)).toBe(true);
+    expect(dentro(25.8801, -97.4321)).toBe(true);
+    expect(dentro(25.8797, -97.5044)).toBe(false);  // Matamoros
+    expect(dentro(25.9017, -97.4975)).toBe(true);   // Brownsville centro
+  });
+});
+
 describe("cuándo NO se puede decidir por el punto", () => {
   it("sin coordenadas → null (no `false`): quien llama tiene que poder caer al respaldo", () => {
     expect(puntoEnZonaLocal(null, null)).toBeNull();

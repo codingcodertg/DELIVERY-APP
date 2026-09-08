@@ -39,13 +39,21 @@ export type Vertice = [number, number];
  * desde Ajustes, la columna y el editor entran en el mismo encargo. Los vértices van comentados
  * uno a uno para que se puedan mover a mano sin adivinar cuál es cuál.
  *
- * **El tramo del río se corrigió, y esto importa.** El boceto de partida llevaba el borde sur por
- * (25.84, -97.38) → (25.88, -97.55), y con ese trazado **Matamoros (25.880, -97.504) caía DENTRO**:
- * exactamente lo que el dueño pidió que no pasara. La causa es que ahí el río separa dos ciudades
- * pegadas —Brownsville está a 25.902 y Matamoros a 25.880, unos 2,4 km— así que un borde recto de
- * dos vértices no puede pasar entre ellas. Los cinco vértices del río lo siguen de cerca: en
- * lng −97.50 el borde va por 25.892, entre las dos. El margen es de ~1 km por cada lado, que es lo
- * que da el terreno; si algún día se quiere más holgura, se dibuja el polígono en Ajustes.
+ * **El tramo del río se corrigió dos veces, y las dos por medición.**
+ *
+ * 1. El boceto de partida llevaba el borde sur por (25.84, −97.38) → (25.88, −97.55), y con ese
+ *    trazado **Matamoros (25.880, −97.504) caía DENTRO**: justo lo que el dueño pidió que no
+ *    pasara. Ahí el río separa dos ciudades pegadas —Brownsville a 25.902, unos 2,4 km— y un
+ *    borde de dos vértices no puede pasar entre ellas.
+ * 2. Con el arreglo, el cotejo contra los 112 pedidos reales (lo corrió el orquestador) encontró
+ *    **dos entregas de Brownsville al norte del río que quedaban fuera**: (25.8804, −97.4112) y
+ *    (25.8801, −97.4321). El motivo es que el cauce **baja hacia el este** y yo lo había trazado
+ *    casi recto. Ahora el tramo tiene seis vértices y toca su punto más al sur (~25.852) frente a
+ *    esas direcciones.
+ *
+ * Las dos restricciones se cumplen a la vez, que era lo difícil: en lng −97.50 el borde va por
+ * ~25.89 (Matamoros fuera, Brownsville dentro) y en lng −97.41/−97.43 por ~25.855 (esas dos
+ * entregas dentro). El margen es de ~1 km, que es lo que da el terreno.
  */
 export const LOCAL_ZONE_DEFAULT: Vertice[] = [
   // Norte y oeste: Sullivan City, por encima de Edinburg, bajando a Combes / Rio Hondo.
@@ -58,11 +66,14 @@ export const LOCAL_ZONE_DEFAULT: Vertice[] = [
   // Costa: South Padre y Port Isabel dentro; Port Mansfield queda al norte, fuera.
   [26.16, -97.12],
   [25.96, -97.13],
-  // El RÍO, de la desembocadura (Boca Chica) hacia el oeste. Estos cinco vértices son los que
-  // más se ajustaron respecto al boceto: ver la nota de abajo.
+  // El RÍO, de la desembocadura (Boca Chica) hacia el oeste. Es el tramo que más se ajustó, y
+  // dos veces: ver la nota de abajo. El cauce BAJA hacia el este —hasta ~25.85 frente a
+  // Brownsville— y vuelve a subir; por eso hacen falta seis vértices y no dos.
   [25.955, -97.145],
-  [25.905, -97.30],
-  [25.888, -97.40],
+  [25.905, -97.28],
+  [25.868, -97.35],
+  [25.852, -97.41],  // el punto más al sur: aquí hay entregas reales a 25.880
+  [25.862, -97.46],
   [25.892, -97.50],  // entre Brownsville (25.902) y Matamoros (25.880)
   [25.93, -97.57],
   [26.02, -97.75],   // Los Indios
