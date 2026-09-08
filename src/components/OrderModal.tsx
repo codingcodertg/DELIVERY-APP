@@ -18,6 +18,7 @@ import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
+import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 
 type Draft = Partial<Delivery>;
@@ -704,17 +705,13 @@ export function OrderModal({
     setBusy(true);
     const { immediate, eventual } = captureLocationSplit();
     const gps = await immediate;
-    const gpsExtra = gps
-      ? { pickup_lat: gps.lat, pickup_lng: gps.lng, pickup_gps_at: gps.at }
-      : { pickup_gps_at: new Date().toISOString() };
+    const gpsExtra = extraRecogida(gps);
     if (!gps) void attachLateFix(existing.id, eventual, "pickup");
     // A driver who physically loads an order that was never assigned to anyone
     // becomes its driver. Otherwise it goes "out for delivery" belonging to
     // nobody: it vanishes from every driver's queue (they only see their own)
     // and no one is accountable for it.
-    const claim = me.role === "driver" && !existing.assigned_driver
-      ? { assigned_driver: me.full_name }
-      : {};
+    const claim = claimDelChofer(me, existing.assigned_driver);
 
     if (!quick && total > 0 && n < total) {
       const mySuffix = existing.order_suffix ?? "a";
@@ -749,14 +746,11 @@ export function OrderModal({
       }
       return;
     }
-    const ok = await setStage(
-      existing.id,
-      "picked_up",
-      n > 0 ? t(`Loaded: ${n} pallets`, `Cargadas: ${n} pallets`) : t("Loaded", "Cargada"),
-      // Never write a 0 pallet count over a blank one — a missing number from
-      // the office shouldn't become a wrong number from the truck.
-      { ...gpsExtra, ...claim, ...(n > 0 ? { actual_pallets: n } : {}) },
-    );
+    // La misma escritura que hace el botón de una parada en Mi ruta (D-NEXT): nota, GPS, claim
+    // y el recuento, construidos en lib/one-tap-stop.ts para que el mismo gesto no escriba dos
+    // cosas distintas segun desde donde se pulse.
+    const escritura = escrituraRecogida({ pedido: existing, me, gps, t, pallets: n });
+    const ok = await setStage(existing.id, "picked_up", escritura.note, escritura.extra);
     setBusy(false);
     if (ok) { notify(t("Out for delivery", "En reparto")); onClose(); }
   };
@@ -781,8 +775,9 @@ export function OrderModal({
    * When proof IS still owed, the sheet opens and says so; one tap is never
    * worth letting a delivery skip the evidence the office asked for.
    */
-  const podOwed = !!settings.require_pod && !existing?.photos?.length;
-  const podFormNeeded = signatureOn || podOwed;
+  // La misma regla que usa el botón de una parada en Mi ruta (D-NEXT): vive en
+  // lib/one-tap-stop.ts para que las dos pantallas no puedan discrepar.
+  const podFormNeeded = pruebaPendiente(settings, existing?.photos);
 
   /**
    * Who took each photo, ready for the grid.
@@ -845,7 +840,7 @@ export function OrderModal({
     if (deliveredElsewhere && !deliveredAddress.trim()) {
       return t("Enter the address where you actually delivered.", "Ingrese la dirección donde entregó realmente.");
     }
-    if (settings.require_pod && !podSig && !(existing.photos?.length)) {
+    if (podSinCumplir(settings, existing.photos, podSig)) {
       // With signatures switched off there's only one way to satisfy this, so
       // say that rather than offering a choice the driver doesn't have.
       return signatureOn

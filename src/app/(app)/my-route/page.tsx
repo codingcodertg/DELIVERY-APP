@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canDeliver } from "@/lib/constants";
+import { captureLocationSplit } from "@/lib/geo";
+import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -28,9 +30,12 @@ import type { Delivery } from "@/lib/types";
 const DEFAULT_CAPACITY = 12;
 
 export default function MyRoutePage() {
-  const { me, deliveries, settings, driverLocations, ready } = useData();
+  const { me, deliveries, settings, driverLocations, ready, setStage, updateDelivery, notify } = useData();
   const { t } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
+  // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
+  // el id y no un booleano para que se vea cuál es la parada que está guardándose.
+  const [guardando, setGuardando] = useState<string | null>(null);
 
   const driverName = me?.full_name ?? "";
 
@@ -55,6 +60,57 @@ export default function MyRoutePage() {
     const capacity = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
     return hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
   }, [stops, settings.driver_capacity, settings.default_truck_capacity, driverName]);
+
+  /**
+   * El botón de «Siguiente parada» hace lo que dice (D-NEXT).
+   *
+   * Antes decía «Recoger» / «Entregar» y solo abría la ficha: dos toques para lo que el chofer
+   * pidió en uno. Qué acción toca lo decide `accionParada` (lib/one-tap-stop.ts), la misma regla
+   * que usa la ficha, y lo que se escribe al recoger sale del mismo constructor, así que las dos
+   * vías no pueden guardar cosas distintas.
+   *
+   * El GPS no bloquea: se espera lo poco que espera la ficha (`captureLocationSplit`) y, si no
+   * llega, se guarda igual y la coordenada tardía se adjunta después en silencio. Un chofer en
+   * un sótano no puede quedarse sin poder cerrar la parada.
+   */
+  const cerrarParada = async (d: Delivery) => {
+    const accion = accionParada(d.stage, settings, d.photos);
+    if (accion.kind === "pod" || accion.kind === "open") { setOpen(d); return; }
+    if (guardando) return;
+    setGuardando(d.id);
+    const { immediate, eventual } = captureLocationSplit();
+    const gps = await immediate;
+    if (accion.kind === "pickup") {
+      const escritura = escrituraRecogida({ pedido: d, me, gps, t });
+      const ok = await setStage(d.id, "picked_up", escritura.note, escritura.extra);
+      if (ok) {
+        notify(t("Out for delivery", "En reparto"));
+        if (!gps) void adjuntarTardio(d.id, eventual, "pickup");
+      }
+    } else {
+      const ok = await setStage(d.id, "delivered", t("Delivered", "Entregado"), extraEntrega(gps));
+      if (ok) {
+        notify(t("Delivered", "Entregado"));
+        if (!gps) void adjuntarTardio(d.id, eventual, "pod");
+      }
+    }
+    setGuardando(null);
+  };
+
+  /** La coordenada que llegó tarde, puesta en silencio: el chofer ya siguió y no hay nada que
+   *  pueda hacer al respecto. Mismo comportamiento que la ficha. */
+  const adjuntarTardio = async (
+    id: string,
+    pendiente: Promise<{ lat: number; lng: number; at: string; accuracy?: number | null } | null>,
+    tipo: "pickup" | "pod",
+  ) => {
+    const gps = await pendiente;
+    if (!gps) return;
+    await updateDelivery(id, tipo === "pickup"
+      ? { pickup_lat: gps.lat, pickup_lng: gps.lng, pickup_gps_at: gps.at }
+      : { pod_lat: gps.lat, pod_lng: gps.lng, pod_accuracy: gps.accuracy ?? null },
+      { quiet: true });
+  };
 
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish.
@@ -201,6 +257,9 @@ export default function MyRoutePage() {
   if (!ready) return <div className="empty">{t("Loading…", "Cargando…")}</div>;
 
   const pct = stops.length ? Math.round((done / stops.length) * 100) : 0;
+  // Etiqueta y acción del botón salen de aquí: una sola decisión, no dos que se puedan
+  // desincronizar. `open` (etapa que no es ready ni picked_up) solo abre el pedido.
+  const accionSiguiente = accionParada(next?.stage, settings, next?.photos);
 
   return (
     <>
@@ -252,8 +311,23 @@ export default function MyRoutePage() {
                 <button className="btn btn-primary" style={{ flex: "1 1 140px", justifyContent: "center" }} onClick={() => navigateTo(next)}>
                   🧭 {t("Navigate", "Navegar")}
                 </button>
-                <button className="btn btn-green" style={{ flex: "1 1 140px", justifyContent: "center" }} onClick={() => setOpen(next)}>
-                  {next.stage === "ready" ? `🚚 ${t("Pick up", "Recoger")}` : `✅ ${t("Deliver", "Entregar")}`}
+                {/* La etiqueta la decide la MISMA función que la acción, así que no puede
+                    prometer una etapa que el botón no vaya a hacer. Las etapas que no son
+                    `ready` ni `picked_up` (una parada asignada que el almacén aún no preparó)
+                    siguen teniendo botón, pero dice «Ver orden»: quitarlo dejaría esa tarjeta
+                    sin ninguna forma de abrir el pedido. */}
+                <button
+                  className="btn btn-green"
+                  style={{ flex: "1 1 140px", justifyContent: "center" }}
+                  disabled={guardando === next.id}
+                  onClick={() => void cerrarParada(next)}
+                >
+                  {guardando === next.id
+                    ? t("Saving…", "Guardando…")
+                    : accionSiguiente.kind === "pickup" ? `🚚 ${t("Pick up", "Recoger")}`
+                    : accionSiguiente.kind === "deliver" ? `✅ ${t("Deliver", "Entregar")}`
+                    : accionSiguiente.kind === "pod" ? `✅ ${t("Delivery proof…", "Prueba de entrega…")}`
+                    : `📋 ${t("Open order", "Ver orden")}`}
                 </button>
               </div>
             </div>
