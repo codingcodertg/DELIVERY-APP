@@ -126,6 +126,11 @@ export function OrderModal({
   const [viewSig, setViewSig] = useState(false);
   const [showPinPicker, setShowPinPicker] = useState(false);
   const [pinDraft, setPinDraft] = useState<[number, number] | null>(null);
+  // De dónde vino el borrador, porque no todos los pines son «marcados a mano» (D-NEXT). Un pin
+  // que puso el geocodificador al buscar la dirección NO puede guardarse como "manual": eso
+  // enciende el aviso del chofer («se marcó un pin exacto para este sitio, Navegar usa el pin»)
+  // sobre un punto que salió justamente de la dirección.
+  const [pinDraftSource, setPinDraftSource] = useState<"manual" | "geocoded" | null>(null);
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
   // After a successful delivery we keep the modal open on a success screen so the
   // driver can print the slip; holds the fully-updated (delivered) order.
@@ -436,8 +441,45 @@ export function OrderModal({
     } catch { /* non-blocking */ }
   };
 
+  /**
+   * El pin en borrador que hay que guardar con el pedido, o null (D-NEXT).
+   *
+   * Cierra el camino que dejó dos pedidos del dueño sin coordenadas: colocó el pin, lo vio en el
+   * área verde, guardó la orden sin pulsar «Save pin» y el punto se perdió. Sin diálogo: el
+   * usuario lo está viendo y el aviso de zona ya se calcula con él (D-220), así que perderlo es
+   * lo sorprendente.
+   *
+   * Condiciones, y cada una tapa una puerta distinta:
+   *  · **visible** — la misma noción que decide la zona en D-220. Un borrador de un selector
+   *    cerrado (cancelado, o ya guardado con «Save pin») no se escribe.
+   *  · **distinto del guardado** — abrir el selector sincroniza `pinDraft` con el pin del pedido,
+   *    así que «abrir para mirar» no escribe nada.
+   *  · **según de dónde venga**, que es lo que no es obvio:
+   *     - de `dropPin` (clic derecho) es **una decisión del usuario**: se guarda como `"manual"` y
+   *       pisa lo que hubiera, porque acaba de marcarlo a mano;
+   *     - de `lookupAddress` (el botón «Buscar dirección») es **una propuesta del buscador**: se
+   *       guarda como `"geocoded"` —que es lo que de verdad es— y **solo si el pedido no tenía ya
+   *       pin**. Con pin guardado no se auto-escribe: pulsar «Buscar dirección» para comprobar un
+   *       texto no puede sobrescribir en silencio un punto que alguien eligió antes; para eso
+   *       está «Save pin».
+   *
+   * Etiquetar de `"manual"` un punto del geocodificador no sería un detalle: encendería el aviso
+   * del chofer («sin dirección formal — Navegar usa el pin») justo en el pedido cuya dirección se
+   * acaba de encontrar.
+   */
+  const pinDraftParaGuardar = (): Pick<Delivery, "delivery_lat" | "delivery_lng" | "delivery_pin_source"> | null => {
+    if (!showPinPicker || !pinDraft) return null;
+    const [lat, lng] = pinDraft;
+    if (d.delivery_lat === lat && d.delivery_lng === lng) return null;
+    const yaTeniaPin = d.delivery_lat != null && d.delivery_lng != null;
+    if (pinDraftSource === "geocoded" && yaTeniaPin) return null;
+    // Nunca un valor nuevo: la base solo acepta 'geocoded' y 'manual'
+    // (005_map_and_deadline_alerts.sql:22), y un tercero tumbaría el UPDATE del pedido entero.
+    return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: pinDraftSource ?? "manual" };
+  };
+
   const save = async () => {
-    const payload = withDurations(d);
+    const payload = { ...withDurations(d), ...(pinDraftParaGuardar() ?? {}) };
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
@@ -561,6 +603,7 @@ export function OrderModal({
   // Dropping the pin previews it AND fills the address right away.
   const dropPin = (lat: number, lng: number) => {
     setPinDraft([lat, lng]);
+    setPinDraftSource("manual");   // clic derecho en el mapa: esto sí es a mano
     void geocodePin(lat, lng);
   };
 
@@ -580,7 +623,7 @@ export function OrderModal({
     try {
       const res = await fetch("/api/geocode-point", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr }) });
       const body = await res.json();
-      if (res.ok && body.lat != null) { setPinDraft([body.lat, body.lng]); setShowPinPicker(true); }
+      if (res.ok && body.lat != null) { setPinDraft([body.lat, body.lng]); setPinDraftSource("geocoded"); setShowPinPicker(true); }
       else notify(t("Couldn't find that address on the map — check it or drop a pin.", "No se encontró esa dirección en el mapa — revísela o marque un pin."));
     } catch {
       notify(t("Network error looking up the address.", "Error de red al buscar la dirección."));
@@ -1469,6 +1512,8 @@ export function OrderModal({
               </button>
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
+                // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
+                setPinDraftSource((d.delivery_pin_source as "manual" | "geocoded" | null) ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -1501,10 +1546,10 @@ export function OrderModal({
                   {(d.delivery_lat != null || pinDraft) && (
                     <button className="btn btn-ghost btn-sm" onClick={() => {
                       set("delivery_lat", null); set("delivery_lng", null); set("delivery_pin_source", null);
-                      setPinDraft(null); setShowPinPicker(false);
+                      setPinDraft(null); setPinDraftSource(null); setShowPinPicker(false);
                     }}>{t("Clear pin", "Quitar pin")}</button>
                   )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setPinDraftSource(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
                 </div>
               </div>
             )}
@@ -1862,6 +1907,8 @@ export function OrderModal({
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: showPinPicker ? 8 : 0 }}>
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
+                // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
+                setPinDraftSource((d.delivery_pin_source as "manual" | "geocoded" | null) ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -1897,10 +1944,10 @@ export function OrderModal({
                   {(d.delivery_lat != null || pinDraft) && (
                     <button className="btn btn-ghost btn-sm" onClick={() => {
                       set("delivery_lat", null); set("delivery_lng", null); set("delivery_pin_source", null);
-                      setPinDraft(null); setShowPinPicker(false);
+                      setPinDraft(null); setPinDraftSource(null); setShowPinPicker(false);
                     }}>{t("Clear pin", "Quitar pin")}</button>
                   )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setPinDraftSource(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
                 </div>
               </div>
             )}
