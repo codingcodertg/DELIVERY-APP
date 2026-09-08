@@ -11031,7 +11031,7 @@ limitación que el verde de la zona desde D-219, y no la arregla esta rama. `ver
 en verde sobre `.next` limpio, en solitario: **1285 pasados | 3 saltados**
 (main 0925c0e: 1262 | 3; los +23 son `store-pins.test.ts`).
 
-## D-NEXT · El pedido se ubica al guardarse, y cuando no se puede se dice
+## D-223 · El pedido se ubica al guardarse, y cuando no se puede se dice
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** el dueño, sobre el diagnóstico de D-221/D-222. Sin migración.

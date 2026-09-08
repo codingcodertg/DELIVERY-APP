@@ -13,7 +13,7 @@ const sinPunto = new Set<string>();
  * since the free OSM fallback provider asks for at most ~1 request/second. Shared by the Map and
  * Routes pages. Returns how many geocodes are currently in flight (for a loading hint).
  *
- * Desde D-NEXT esto **ya no es el único camino**: un pedido se ubica al guardarse, en el proveedor
+ * Desde D-223 esto **ya no es el único camino**: un pedido se ubica al guardarse, en el proveedor
  * de datos. Este barrido se queda para los pedidos que ya existían sin punto y que nadie vuelve a
  * guardar, y comparte con aquel las mismas funciones puras —qué es «necesita punto», qué significó
  * la respuesta, qué se escribe— para que no haya dos definiciones que se separen con el tiempo.
