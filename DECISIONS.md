@@ -11030,3 +11030,213 @@ por la geometría del SVG, no por haberlo visto. También sin verificar: si algu
 limitación que el verde de la zona desde D-219, y no la arregla esta rama. `verify.mjs`:
 en verde sobre `.next` limpio, en solitario: **1285 pasados | 3 saltados**
 (main 0925c0e: 1262 | 3; los +23 son `store-pins.test.ts`).
+
+## D-NEXT · El pedido se ubica al guardarse, y cuando no se puede se dice
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** el dueño, sobre el diagnóstico de D-221/D-222. Sin migración.
+
+### El camino que se cierra
+
+Un pedido con dirección y sin coordenadas **solo** se geocodificaba si alguien abría Mapa o Rutas
+**y** ese pedido caía dentro del `dayOrders` de esa pantalla. Los filtros son estrechos: Mapa exige
+`delivery_date === date`; Rutas exige además que la etapa esté en `ROUTE_STAGES`. No hay ningún
+proceso de fondo — `useAutoGeocode` es un hook de cliente llamado desde esas dos páginas y nada más.
+
+Medición del 2026-09-08 (orquestador, contra producción): **13 pedidos sin coordenadas, todos con
+dirección**. Cinco de hoy y mañana, que se arreglarían solos cuando alguien abra esas pantallas; y
+**ocho ya entregados, de días cerrados entre el 31 de julio y el 7 de septiembre**, que por esa vía
+no se recuperan **nunca**, porque nadie vuelve a abrir el mapa de un día pasado. (Esos ocho los
+rellena el orquestador contra la base; no entran en esta rama.)
+
+Y no es cosmético: sin punto, la zona vuelve a decidirse por el nombre de la ciudad (D-219), o sea
+que esto decide una tarifa.
+
+### Dónde va, y por qué no en la ficha
+
+En el **proveedor de datos**, colgado de `addDelivery` y `updateDelivery`. Por esas dos escrituras
+pasan **todas** las formas de crear o editar un pedido: la ficha, la importación de CSV, los
+repartos que crean órdenes hijas. El propio fichero ya usa ese argumento para la autoría de las
+fotos —«hacerlo en cada sitio es una atribución que se pierde»— y aquí vale igual: en `save()` de
+la ficha habría cubierto un camino de varios, y el siguiente sitio que cree pedidos nacería sin la
+regla y sin que nadie lo notara.
+
+`updateDelivery` se declara después y `ubicarSiHaceFalta` la necesita, así que se accede por
+referencia — el mismo patrón que ya usa el vaciador del outbox con `logEvent`. **No hay recursión**,
+y hay **dos** barreras independientes, no una: el parche que se escribe trae las coordenadas, así
+que la segunda vuelta ya no necesita ubicación (hay prueba que lo fija); y además la clave de esa
+dirección sigue en `ubicacionesEnCurso` cuando entra la segunda vuelta —se borra en el `finally`,
+después de la escritura—, así que aunque la primera barrera cediera, la segunda corta igual. La
+segunda la encontró el auditor simulando el ciclo, no yo escribiéndolo.
+
+### Se ubica al guardar **o al editar**, y es a propósito
+
+El disparo cuelga de `updateDelivery`, así que alcanza **cualquier** edición de un pedido sin punto:
+cambiar la etapa, asignar un chofer, tocar una nota. Es más ancho que «al guardar la ficha» y así se
+decidió, a sabiendas, cuando se planteó estrecharlo.
+
+La razón: es justo lo que hace que los **14 pedidos sin punto que ya existen** se recuperen solos,
+sin que nadie tenga que abrir el Mapa del día correcto — y esos días ya están cerrados. Estrecharlo
+habría arreglado el futuro dejando el presente igual, que es la mitad del encargo. El coste no crece
+por ser ancho: el tope sigue siendo por pedido-sin-punto y por sesión, o sea **14 llamadas como
+techo para todo el histórico**, no 14 por edición.
+
+En una frase, que es como debería leerse dentro de un año:
+
+> **Un pedido con dirección acaba teniendo punto, se toque por donde se toque.**
+
+Queda escrito porque es una propiedad, no un efecto lateral: el siguiente que toque `updateDelivery`
+puede romperla sin enterarse si nadie le ha dicho que existe.
+
+### El coste, acotado por construcción
+
+El tope **no** es «una llamada por guardado». Es **una llamada por pedido-sin-punto y por sesión**:
+
+- solo se pide si a la fila **tal como queda guardada** le falta el punto y tiene dirección;
+- en cuanto se encuentra, se escribe y ese pedido no vuelve a pedir nunca;
+- un 404 —dirección que el proveedor no conoce— se **recuerda** y no se repite mientras dure la
+  sesión;
+- un fallo de red **sí** se reintenta al volver a guardar. Esa distinción es deliberada: «sin
+  bucles» no puede significar «sin reintentos nunca», o una caída de dos minutos dejaría una
+  dirección sin punto para siempre.
+
+Un pedido guardado diez veces en una tarde gasta **una** llamada, no diez. Lo que multiplica no es
+guardar: es que existan pedidos sin punto, que es justo lo que esto reduce.
+
+**El ritmo real, medido** (orquestador, 2026-09-08, contra producción): 116 pedidos entre el
+2026-07-24 y el 2026-09-08 — 47 días naturales, 33 con actividad. Media **2,5 pedidos por día
+natural** (2,2 en los últimos 14 días); los tres días más cargados fueron de 9, 8 y 8. Así que el
+coste nuevo es **del orden de 2 o 3 llamadas al día, con techo de unas 9 en el peor día visto**.
+Los 116 tienen dirección; el reparto de procedencia era 97 geocodificados, 5 manuales y 14 sin
+punto (la cifra de «sin punto» se movió de 13 a 14 dentro del mismo día, con los pedidos nuevos).
+
+Nada retroactivo ni masivo: se ubica el pedido que se guarda, y solo ese. Una prueba lee la función
+y exige que no haya bucles ni más de un `fetch`. El sandbox de enseñanza no llama a nadie.
+
+### Que no bloquee el guardado
+
+`void`, sin `await`: el pedido ya está escrito cuando esto empieza. Si el proveedor tarda o falla,
+la orden se guardó igual — exactamente como se comportaba antes. La escritura del punto es una
+**segunda** escritura, y va `quiet` para que un error suyo no parezca que falló el guardado.
+
+### El fallo deja de ser mudo
+
+`useAutoGeocode.ts:41` tenía un `catch {}` que se tragaba cualquier error, sin reintento ni señal:
+una dirección que el proveedor no resuelve se quedaba sin punto para siempre, sin rastro, mientras
+esa misma falta de punto decidía la tarifa por ciudad. Ahora hay **tres estados**, no dos:
+
+| | qué es | qué se hace |
+|---|---|---|
+| `ok` | hay punto | se escribe con `"geocoded"` |
+| `noEncontrada` | 404: la ruta agotó Google, Mapbox y OSM | aviso al usuario **y** evento `geocode_failed` en el registro del pedido; la dirección se recuerda |
+| `falloTemporal` | red, 500, cuerpo sin coordenadas | aviso al usuario; **no** se recuerda |
+
+**El aviso es discreto y empieza diciendo que el pedido sí se guardó.** Si pareciera un error de
+guardado, el usuario volvería a pulsar Guardar: otra llamada y ningún arreglo. El de «no
+encontrada» además dice qué hacer —revisar la dirección o marcar el pin exacto—, porque un aviso que
+solo informa deja al usuario donde estaba.
+
+**Y esto no es hipotético.** Al rellenar a mano los ocho pedidos antiguos, el orquestador midió que
+**seis salieron exactos y dos no**: uno con la calle mal escrita («saval pal circle» por Sabal Palm)
+y otro que el proveedor sencillamente no encuentra. Con el `catch {}` de antes, esos dos se habrían
+quedado sin punto para siempre y **sin que nadie lo supiera** — y el primero se arregla en diez
+segundos si alguien te dice que la dirección no existe. Uno de cada cuatro, en la única muestra que
+tenemos.
+
+**El registro del pedido es el sitio natural del fallo definitivo**, y lleva su propio tipo de
+evento (`geocode_failed`) en vez de colarse como una edición: no lo editó nadie. El fallo temporal
+**no** deja evento — sería una fila por cada vez que la red va mal, y el registro de un pedido no es
+un log de red.
+
+Un `200` con un cuerpo inservible (sin coordenadas, o `0,0`) cuenta como **temporal**, no como
+dirección inexistente: es un fallo de nuestro lado, y marcarla por eso la dejaría sin punto para
+siempre por un motivo que no es suyo.
+
+### `"geocoded"`, nunca `"manual"`
+
+Lo pide el encargo y lo exige D-221: el aviso al chofer —«sin dirección formal, Navegar usa el
+pin»— se enciende **solo** con `"manual"`. Un punto que puso la máquina etiquetado de manual le
+mentiría justo en el pedido cuya dirección se acaba de encontrar.
+
+### El barrido viejo se queda, pero sin lógica propia
+
+`useAutoGeocode` sigue haciendo falta: los pedidos que ya existían sin punto y que nadie vuelve a
+guardar no se ubican solos. Lo que se le quitó son **sus definiciones**: ahora usa las mismas
+funciones puras que el guardado —qué es «necesita punto», qué significó la respuesta, qué se
+escribe—, para que no haya dos ideas de lo mismo separándose con el tiempo. Y recuerda los 404 igual
+que el otro camino, que antes no hacía: el barrido recorre el día entero cada vez que cambia la
+lista, así que una dirección inexistente se pedía una y otra vez.
+
+Lo que **no** se le puso son avisos, y es deliberado: recorre el día por su cuenta y un aviso por
+dirección sería ruido sobre pedidos que quien mira el mapa quizá ni está tocando. El aviso vive
+donde hay un acto del usuario detrás — el guardado.
+
+### `0,0` cuenta como no tener punto
+
+Igual que en D-219. Si aquí dijera «ya tiene punto» y `puntoEnZonaLocal` dijera «no tiene», el
+pedido se quedaría sin ubicar **y** sin zona por pin: lo peor de las dos reglas. Un cero en **una**
+sola de las dos coordenadas sí es legítimo (meridiano, ecuador) y no se toca.
+
+### Qué NO cambia
+
+`/api/geocode-point` sin tocar, `pricing.ts`, `delivery-zone.ts` y `geo.ts` sin tocar: esto es *de
+dónde sale el punto*, no *cómo se decide la zona*. Ninguna columna, ninguna migración, ninguna
+dependencia nueva. El pin manual y su procedencia (D-221) siguen mandando: un pedido con punto no
+se vuelve a geocodificar jamás.
+
+### `necesitaUbicacion` NO es «no tiene punto», y conviene no unificarlas
+
+Medido el 2026-09-08, **en los dos árboles**, porque la diferencia entre ellos cuenta la historia:
+
+```
+git grep -nE "delivery_lat\s*[!=]=\s*null" <árbol> -- 'src/**/*.ts' 'src/**/*.tsx' | grep -v "\.test\."
+```
+
+- **`main` (cb1c215): 33** comprobaciones en 9 ficheros — 10 con `== null`, 23 con `!= null`.
+- **Esta rama: 32** en 8 ficheros — 9 y 23.
+
+La que falta no desapareció: es `useAutoGeocode.ts:20`, la única que **este cambio sustituyó** por
+`necesitaUbicacion`. Las otras 32 siguen ahí, y ninguna es lo mismo que ella. La diferencia importa:
+
+- `necesitaUbicacion` es **«tiene dirección Y no tiene punto»**, y decide una sola cosa: si se
+  gasta una llamada al proveedor.
+- Las otras son **«no tiene punto»** a secas, y deciden cosas distintas: qué se pinta en el mapa
+  (`map/page.tsx:55,124,209,281`), qué se puede planificar (`dispatch.ts:215`), cuántas paradas van
+  sin pin (`routes/page.tsx:1952,2120`) y el aviso de pedidos por ubicar (`attention.ts:59`).
+
+Un pedido **sin dirección y sin punto** es invisible para `necesitaUbicacion` —no hay nada que
+buscar— pero sigue contando en las otras, porque sigue sin poder pintarse ni planificarse. Que las
+dos ideas se parezcan por fuera no las hace la misma, y unificarlas «para quitar duplicación»
+rompería en silencio el mapa o la planificación. Queda escrito porque **una prueba no caza este
+error**: cada lado seguiría pasando sus propias pruebas.
+
+Los números van con el comando al lado a propósito: la forma de contar tiene que poder repetirla
+cualquiera. Y cuenta lo que dice contar — **comprobaciones, no líneas**, con un patrón **literal**
+en vez de una expresión con comodines, que casa de refilón con el `!` de otra variable y se deja
+fuera los `!= null`.
+
+### Dos límites conocidos
+
+**Una importación de CSV grande dispara una llamada por pedido.** El disparo cuelga de
+`addDelivery`, así que también corre en la importación y en los repartos. Con el ritmo de hoy da
+igual (2,5 pedidos al día, techo de 9), pero **importar un histórico completo de golpe pediría una
+geocodificación por cada fila con dirección y sin punto**, en ráfaga. No se ha puesto freno porque
+hoy no hay caso; queda dicho para que ese sea el sitio donde mirar antes de darle al botón.
+
+**Van a empezar a aparecer eventos `geocode_failed`,** y eso es lo que se buscaba: antes ese fallo
+era un `catch {}` mudo. Quien vea el primero en el historial de un pedido debe leerlo como «la
+dirección no se encontró», no como un error del sistema: en la única muestra que hay —los ocho
+pedidos antiguos rellenados a mano— **dos tenían la dirección mal escrita**, y una de ellas se
+arregla en diez segundos («saval pal circle» por Sabal Palm).
+
+### Lo no verificado
+
+Nadie ha guardado un pedido en un navegador: que la llamada salga al guardar y que el punto llegue
+a la base va por las funciones puras —probadas en solitario— y por las pruebas de forma sobre el
+proveedor, no por haberlo hecho. **No se ha llamado ni una vez a `/api/geocode-point` desde esta
+rama**: gastaría cuota de una API de pago con datos de prueba, que es la regla permanente del
+proyecto. La primera comprobación cuando el dueño lo use: crear un pedido con dirección y sin pin,
+guardarlo, y ver que la orden aparece con coordenadas sin abrir Mapa ni Rutas. Y la segunda, con una
+dirección inventada: tiene que salir el aviso y quedar el evento en el registro del pedido.
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1316 pasados | 3 saltados**
+(main cb1c215: 1285 | 3; los +31 son `geocode-on-save.test.ts`).

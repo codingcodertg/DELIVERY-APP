@@ -568,3 +568,35 @@ Dos reglas, para worker y auditor:
 2. **No se borra una clave si la pantalla que la usaba no está ya en la prueba
    de claves de D-187.** Primero se añade la pantalla a la prueba; si entonces
    sigue sin cantar, la clave sí está muerta.
+
+## 16. Un número que llega de la auditoría se recuenta antes de copiarlo (medido el 2026-09-08)
+
+En la rama `geocodificar-al-guardar` el auditor levantó un hallazgo correcto —que
+las comprobaciones de `delivery_lat` contra `null` repartidas por `src` **no** son
+la misma idea que `necesitaUbicacion`, y que unificarlas rompería el mapa o la
+planificación en silencio— y lo acompañó de un recuento: **18 sitios**. Sus ocho
+citas concretas (`map:55,124,209,281`, `routes:1952,2120`, `dispatch:215`,
+`attention:59`) eran **todas correctas**; el recuento no.
+
+El worker midió **32 en la rama** antes de copiarlo, no le cuadró, y lo dijo en vez
+de elegir en silencio; el orquestador midió **33 en `main`**. El auditor revisó su
+propia medición y encontró el motivo: su patrón llevaba una alternativa
+`!.*delivery_lat`, que casa con **cualquier** `!` anterior de la línea —el de otra
+variable— y **no** captura un `delivery_lat != null` normal (contra
+`if (d.delivery_lat != null && …)` da 0 coincidencias). Contaba líneas arbitrarias,
+no comprobaciones. La diferencia 33→32, además, resultó ser información útil: es
+justo la comprobación que esa rama sustituyó por `necesitaUbicacion`.
+
+La regla, para los tres papeles:
+
+1. **Un número que llega de otra sesión se recuenta antes de copiarlo a una
+   decisión**, aunque venga de la auditoría y aunque el fondo del hallazgo sea
+   correcto. Que un dato venga de una auditoría no lo convierte en medición.
+2. **Si no cuadra, se dice y se para.** Ni se copia el ajeno por venir de quien
+   viene, ni se tira el hallazgo entero por el número: son cosas separables. Se
+   verifican una a una las citas concretas —esas sí sostienen el fondo— y se
+   resuelve la cifra antes de fusionar.
+3. **Todo número que entra en una decisión va con el comando que lo reproduce.**
+   Y se cuenta lo que se dice contar: aquí, comprobaciones y no líneas, con un
+   patrón literal en vez de una expresión con comodines que pueda casar de
+   refilón.
