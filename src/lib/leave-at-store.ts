@@ -1,5 +1,5 @@
 // ============================================================
-// «Dejar en tienda»: el chofer descarga un pedido que no pudo entregar y vuelve a la lista (D-NEXT).
+// «Dejar en tienda»: el chofer descarga un pedido que no pudo entregar y vuelve a la lista (D-224).
 //
 // El caso real: un chofer lleva el pedido en el camión, no puede entregarlo, y en vez de devolverlo
 // a la tienda de origen lo descarga en otra tienda del grupo. Otro chofer lo recoge **desde ahí** y

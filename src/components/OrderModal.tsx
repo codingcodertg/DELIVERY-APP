@@ -2689,7 +2689,7 @@ function StageActions({
       );
     }
     // No pudo entregarlo: lo descarga en una tienda del grupo y el pedido vuelve a la lista
-    // (D-NEXT). El control decide solo si se enseña —y a quién—, y escribe por el módulo puro.
+    // (D-224). El control decide solo si se enseña —y a quién—, y escribe por el módulo puro.
     btns.push(<LeaveAtStore key="drop" pedido={pedido} me={me} disabled={busy} />);
     btns.push(<button key="deliv" className="btn btn-green" onClick={onRequestDeliver} disabled={busy}>{t("Mark delivered", "Marcar entregado")}</button>);
   }

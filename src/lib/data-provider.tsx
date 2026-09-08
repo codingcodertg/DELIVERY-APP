@@ -118,7 +118,7 @@ export interface DataState {
    *
    * `kind` es opcional y por defecto es la propia etapa, que es como se ha escrito siempre. Existe
    * para los gestos que **no son «la etapa cambió» a secas** y que hay que poder distinguir en el
-   * historial años después: hoy, «Dejar en tienda» (D-NEXT), que vuelve a `ready` igual que una
+   * historial años después: hoy, «Dejar en tienda» (D-224), que vuelve a `ready` igual que una
    * reversión normal pero significa otra cosa.
    */
   setStage: (id: string, stage: Stage, note?: string, extra?: Partial<Delivery>, kind?: string) => Promise<boolean>;

@@ -332,7 +332,7 @@ export default function MyRoutePage() {
                 </button>
               </div>
               {/* La salida cuando no se puede entregar: se descarga en una tienda del grupo y el
-                  pedido vuelve a la lista (D-NEXT). En su propia fila y no junto a «Entregar»:
+                  pedido vuelve a la lista (D-224). En su propia fila y no junto a «Entregar»:
                   es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
                   El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
                   no se repite ninguna condición. */}

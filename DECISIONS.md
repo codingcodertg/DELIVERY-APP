@@ -11241,7 +11241,7 @@ dirección inventada: tiene que salir el aviso y quedar el evento en el registro
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1316 pasados | 3 saltados**
 (main cb1c215: 1285 | 3; los +31 son `geocode-on-save.test.ts`).
 
-## D-NEXT · «Dejar en tienda»: el chofer descarga lo que no pudo entregar y el pedido vuelve a la lista
+## D-224 · «Dejar en tienda»: el chofer descarga lo que no pudo entregar y el pedido vuelve a la lista
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** el dueño, literal: *«el chofer tiene la opción de dejar el pedido en una tienda para

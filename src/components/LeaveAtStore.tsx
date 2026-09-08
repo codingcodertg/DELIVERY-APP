@@ -9,7 +9,7 @@ import { nombreNormalizado } from "@/lib/store-pins";
 import type { Delivery, Profile } from "@/lib/types";
 
 // ============================================================
-// «Dejar en tienda» (D-NEXT): el control, una sola vez para las dos pantallas.
+// «Dejar en tienda» (D-224): el control, una sola vez para las dos pantallas.
 //
 // Lo ofrecen la ficha del pedido y la tarjeta de «Siguiente parada» en Mi ruta. Vive en un
 // componente compartido y no copiado en cada sitio porque **escribe en la base**: dos copias que
