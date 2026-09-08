@@ -11210,12 +11210,12 @@ dos ideas se parezcan por fuera no las hace la misma, y unificarlas «para quita
 rompería en silencio el mapa o la planificación. Queda escrito porque **una prueba no caza este
 error**: cada lado seguiría pasando sus propias pruebas.
 
-**Procedencia de los números, porque hubo tres.** El hallazgo lo levantó el auditor, y sus ocho
-citas concretas se verificaron una a una: todas existen y dicen lo que dice. Su **recuento** decía
-18 sitios y no se ha averiguado de dónde sale; queda anotado sin darlo por bueno. Las cifras de
-arriba son las medidas con el comando de arriba —una por el worker en la rama, la de `main`
-confirmada por el orquestador y repetida aquí—, y se ponen esas porque son las que cualquiera puede
-repetir. El fondo del hallazgo es del auditor y no depende del número.
+**El hallazgo es del auditor**, y sus citas concretas se verificaron una a una antes de escribirlo:
+todas existen y dicen lo que dice. Las cifras se midieron tres veces con el comando de arriba —en
+la rama, en `main` y de nuevo aquí— y por eso están puestas con el comando al lado: la forma de
+contar tiene que poder repetirla cualquiera. Dos detalles de esa forma, porque una cuenta anterior
+falló justo ahí: se cuentan **comprobaciones y no líneas**, y el patrón es **literal**, no una
+expresión con comodines que pueda casar de refilón con un `!` de otra variable.
 
 ### Dos límites conocidos
 
