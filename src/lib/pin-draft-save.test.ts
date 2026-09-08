@@ -24,8 +24,6 @@ function pinParaGuardar(
   if (!showPinPicker || !pinDraft) return null;
   const [lat, lng] = pinDraft;
   if (d.delivery_lat === lat && d.delivery_lng === lng) return null;
-  const yaTeniaPin = d.delivery_lat != null && d.delivery_lng != null;
-  if (pinDraftSource === "geocoded" && yaTeniaPin) return null;
   return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: pinDraftSource ?? "manual" };
 }
 
@@ -76,14 +74,14 @@ describe("la procedencia no se inventa: el aviso del chofer depende de ella", ()
     expect(r).toMatchObject({ delivery_pin_source: "geocoded" });
     expect(r!.delivery_pin_source).not.toBe("manual");   // el banner solo se enciende con "manual"
   });
-  it("BUSCAR DIRECCIÓN con pin YA guardado: no se auto-escribe — no se pisa una decisión previa", () => {
-    // Comprobar un texto con el buscador no puede sobrescribir en silencio el punto que alguien
-    // eligió antes, sea manual o geocodificado. Para eso está «Save pin».
-    expect(pinParaGuardar(true, NUEVO, "geocoded", CON_PIN)).toBeNull();
+  it("BUSCAR DIRECCIÓN con pin ya guardado: SÍ se guarda el nuevo — se guarda lo que se ve", () => {
+    // Se probó la regla contraria (no pisar un pin previo) y era peor: el usuario veía un punto y
+    // se guardaba otro. Quien solo quería comprobar una dirección, cancela (D-220).
     const conPinManual: Pedido = { delivery_lat: 26.1, delivery_lng: -97.5, delivery_pin_source: "manual" };
-    expect(pinParaGuardar(true, NUEVO, "geocoded", conPinManual)).toBeNull();
+    expect(pinParaGuardar(true, NUEVO, "geocoded", conPinManual)).toMatchObject({ delivery_lat: 26.405, delivery_pin_source: "geocoded" });
+    expect(pinParaGuardar(true, NUEVO, "geocoded", CON_PIN)).toMatchObject({ delivery_pin_source: "geocoded" });
   });
-  it("pero el clic derecho SÍ pisa lo que hubiera: es una decisión, no una propuesta", () => {
+  it("y el clic derecho también pisa lo que hubiera", () => {
     const conPinManual: Pedido = { delivery_lat: 26.1, delivery_lng: -97.5, delivery_pin_source: "manual" };
     expect(pinParaGuardar(true, NUEVO, "manual", conPinManual)).toMatchObject({ delivery_lat: 26.405, delivery_pin_source: "manual" });
   });
@@ -106,6 +104,37 @@ describe("la procedencia no se inventa: el aviso del chofer depende de ella", ()
   });
 });
 
+describe("las transiciones entre puertas: manda el ÚLTIMO gesto", () => {
+  // Lo que se olvida al mirar cada puerta por separado. La procedencia la pone la vía que tocó el
+  // borrador la última vez, así que basta con seguir esa secuencia.
+  it("buscar dirección y luego mover el pin a mano → «manual»: el usuario corrigió la propuesta", () => {
+    let fuente: Fuente = null;
+    fuente = "geocoded";                                   // lookupAddress
+    fuente = "manual";                                     // dropPin encima
+    expect(pinParaGuardar(true, NUEVO, fuente, SIN_PIN)).toMatchObject({ delivery_pin_source: "manual" });
+  });
+  it("poner el pin a mano y luego buscar la dirección → «geocoded», y se guarda ESE punto", () => {
+    // El que peor sienta de los tres, y por eso está escrito: el punto que el usuario había puesto
+    // a mano se sustituye por el del buscador. Es coherente con «se guarda lo que se ve», y quien
+    // no quiera la propuesta la cancela.
+    let fuente: Fuente = null;
+    fuente = "manual";                                     // dropPin
+    fuente = "geocoded";                                   // lookupAddress encima
+    const conPinManual: Pedido = { delivery_lat: 26.1, delivery_lng: -97.5, delivery_pin_source: "manual" };
+    expect(pinParaGuardar(true, NUEVO, fuente, conPinManual)).toMatchObject({ delivery_lat: 26.405, delivery_pin_source: "geocoded" });
+  });
+  it("la procedencia vive en UN estado compartido por las dos vías de mapa, no uno por bloque", () => {
+    const src = leer("src/components/OrderModal.tsx");
+    expect((src.match(/const \[pinDraftSource, setPinDraftSource\] = useState/g) ?? [])).toHaveLength(1);
+    expect((src.match(/const \[pinDraft, setPinDraft\] = useState/g) ?? [])).toHaveLength(1);
+  });
+  it("y el tipo impide inventarse un valor: el estado es una unión cerrada, no `string`", () => {
+    const src = leer("src/components/OrderModal.tsx");
+    expect(src).toMatch(/useState<"manual" \| "geocoded" \| null>\(null\)/);
+    expect(src).toMatch(/const pinDraftParaGuardar = \(\): Pick<Delivery, "delivery_lat" \| "delivery_lng" \| "delivery_pin_source"> \| null/);
+  });
+});
+
 describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
   const src = leer("src/components/OrderModal.tsx");
 
@@ -116,7 +145,6 @@ describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
     const fn = src.slice(src.indexOf("const pinDraftParaGuardar"), src.indexOf("const save = async"));
     expect(fn).toContain("if (!showPinPicker || !pinDraft) return null;");
     expect(fn).toContain("if (d.delivery_lat === lat && d.delivery_lng === lng) return null;");
-    expect(fn).toContain('if (pinDraftSource === "geocoded" && yaTeniaPin) return null;');
     expect(fn).toContain('delivery_pin_source: pinDraftSource ?? "manual"');
   });
   it("cada vía declara su procedencia", () => {

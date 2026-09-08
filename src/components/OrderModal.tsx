@@ -454,25 +454,22 @@ export function OrderModal({
    *    cerrado (cancelado, o ya guardado con «Save pin») no se escribe.
    *  · **distinto del guardado** — abrir el selector sincroniza `pinDraft` con el pin del pedido,
    *    así que «abrir para mirar» no escribe nada.
-   *  · **según de dónde venga**, que es lo que no es obvio:
-   *     - de `dropPin` (clic derecho) es **una decisión del usuario**: se guarda como `"manual"` y
-   *       pisa lo que hubiera, porque acaba de marcarlo a mano;
-   *     - de `lookupAddress` (el botón «Buscar dirección») es **una propuesta del buscador**: se
-   *       guarda como `"geocoded"` —que es lo que de verdad es— y **solo si el pedido no tenía ya
-   *       pin**. Con pin guardado no se auto-escribe: pulsar «Buscar dirección» para comprobar un
-   *       texto no puede sobrescribir en silencio un punto que alguien eligió antes; para eso
-   *       está «Save pin».
+   *  · **con la procedencia real**: `"manual"` si el último gesto fue el clic derecho de
+   *    `dropPin`, `"geocoded"` si fue `lookupAddress`. Etiquetar de `"manual"` un punto del
+   *    geocodificador no sería cosmético: encendería el aviso del chofer («sin dirección formal —
+   *    Navegar usa el pin») justo en el pedido cuya dirección se acaba de encontrar.
    *
-   * Etiquetar de `"manual"` un punto del geocodificador no sería un detalle: encendería el aviso
-   * del chofer («sin dirección formal — Navegar usa el pin») justo en el pedido cuya dirección se
-   * acaba de encontrar.
+   * **Se guarda siempre, también si el pedido ya tenía pin, y eso es deliberado.** Se probó la
+   * regla contraria —no pisar un pin previo con una propuesta del buscador— y producía algo peor:
+   * el usuario veía un punto en el mapa y se guardaba otro, el viejo. Que lo que se ve y lo que se
+   * guarda sean cosas distintas es el fallo que esta decisión viene a cerrar, no uno aceptable. La
+   * protección para quien solo quería comprobar una dirección ya existe y es explícita: **cancelar
+   * descarta el borrador** (D-220). Quien no cancela, se queda lo que está viendo.
    */
   const pinDraftParaGuardar = (): Pick<Delivery, "delivery_lat" | "delivery_lng" | "delivery_pin_source"> | null => {
     if (!showPinPicker || !pinDraft) return null;
     const [lat, lng] = pinDraft;
     if (d.delivery_lat === lat && d.delivery_lng === lng) return null;
-    const yaTeniaPin = d.delivery_lat != null && d.delivery_lng != null;
-    if (pinDraftSource === "geocoded" && yaTeniaPin) return null;
     // Nunca un valor nuevo: la base solo acepta 'geocoded' y 'manual'
     // (005_map_and_deadline_alerts.sql:22), y un tercero tumbaría el UPDATE del pedido entero.
     return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: pinDraftSource ?? "manual" };
