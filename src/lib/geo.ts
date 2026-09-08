@@ -88,6 +88,33 @@ export function mapLink(lat: number, lng: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
+export interface LatLng { lat: number; lng: number }
+
+/**
+ * ¿Cae el punto dentro del polígono? Trazado de rayo (par/impar), en grados.
+ *
+ * Vivía en `lib/clockin/geofence.ts`, que es de fichaje, y ahora lo necesita también la zona de
+ * entrega. Se sube aquí —a la geometría neutral que ya usan Entregas y las analíticas— en vez de
+ * copiarlo: dos copias de un par/impar es exactamente el tipo de duplicado que se descubre el día
+ * que una de las dos arregla un borde y la otra no. `geofence.ts` lo reexporta, así que fichaje
+ * no cambia una línea.
+ *
+ * A escala de una ciudad o una propiedad no hace falta proyectar: la diferencia contra un cálculo
+ * geodésico está muy por debajo de la precisión de un GPS.
+ */
+export function pointInPolygon(lat: number, lng: number, poly: LatLng[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const yi = poly[i].lat;
+    const xi = poly[i].lng;
+    const yj = poly[j].lat;
+    const xj = poly[j].lng;
+    const intersect = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 /** Straight-line distance between two points, in metres (haversine). */
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371000;
