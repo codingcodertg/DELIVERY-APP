@@ -10766,6 +10766,37 @@ de `delivery_lat`/`lng`. Y **sin memoizar** a propósito: `feeSuggestion` se rec
 que es lo que hace que el aviso se actualice solo al mover el pin; la prueba lo fija para que nadie lo
 «optimice».
 
+### Evidencia de campo, y el aviso que se añadió por ella
+
+Mientras se escribía esto, la base pasó de 112 a **114 pedidos, de 10 a 12 sin punto** (medición del
+orquestador). Los dos nuevos son pruebas del dueño de esa misma mañana y **nacieron sin coordenadas**:
+puso el pin, vio el verde… y como no pulsó «Save pin», el pedido se guardó **sin punto** y cayó al
+respaldo por ciudad. Es exactamente el camino que cierra esta decisión, ocurriendo de verdad.
+
+Y destapa un riesgo del propio arreglo: con la zona calculada sobre el borrador, el aviso pasa a ser
+correcto sobre **lo que se ve**, lo cual puede dar falsa tranquilidad si el pin no se guarda. Por eso
+el motivo del borrador no dice solo de dónde sale, sino que **falta guardarlo**: «por el pin que acaba
+de colocar — **sin guardar todavía**». El texto correcto sobre un pin sin guardar sigue siendo un
+texto sobre algo que la base no tiene.
+
+### Lyford entero dentro (mismo asunto, misma rama)
+
+El dueño vio que el contorno **partía Lyford por la mitad** y pidió meterlo entero. Medido: el borde
+norte bajaba en diagonal de (26.45, −97.95) a (26.38, −97.70), y en la longitud de Lyford caía en
+**26.404**; el centro (26.4128) y el extremo norte (~26.425) quedaban **fuera**, aunque unos cientos
+de metros al suroeste ya estuvieran dentro. Un pueblo partido no es una zona de reparto.
+
+El cambio es **un vértice**: el norte se mantiene en 26.45 hasta −97.75 y baja después; el resto del
+contorno no se toca (21 vértices). Las tres restricciones, con margen medido: **Lyford entero dentro**
+(el extremo norte a ~2,8 km del borde), **Raymondville** (26.482) **fuera** a ~3,5 km —el dibujo
+original del dueño la pone en NO LOCAL— y **Port Mansfield** (26.556) **fuera**. La prueba fija Lyford
+por sus **dos** extremos, los dos vecinos, y el margen por ambos lados (26.44 dentro, 26.46 fuera).
+
+**Cotejo del contorno nuevo contra los 114 pedidos** (medición del orquestador): **frente a D-219, ni
+un solo pedido cambia de zona** — no hay ninguna entrega existente en esa franja, así que subir el
+tramo no reclasifica nada ya cobrado. Frente a la clasificación por ciudad siguen siendo **93
+coincidencias y 9 cambios**, los mismos nueve NO LOCAL → LOCAL de D-219.
+
 ### Punto 4 del encargo: dónde más se enseñaba la zona
 
 Los **tres** bloques que enseñan zona o tarifa sugerida —el formulario, el panel de la derecha y el
@@ -10777,4 +10808,4 @@ otro sitio de la app llama a `suggestDeliveryFee`. Nada más que listar.
 Nadie abrió la ficha en un navegador tras el cambio: que el aviso cambie al soltar el pin va por que
 `feeSuggestion` se recalcula en cada render y por las pruebas de forma, no por haberlo visto. El punto
 de la captura lo midió el orquestador contra la función de `main`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1234 pasados | 3 saltados**
-(main 77dd7e3: 1217 | 3; los +17 son `zone-source.test.ts`).
+(main 77dd7e3: 1217 | 3; los +22 son `zone-source.test.ts` y los cuatro de Lyford).
