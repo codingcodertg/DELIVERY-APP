@@ -270,7 +270,31 @@ export function OrderModal({
   // Only ever a SUGGESTION: the fee stays blank until the rep picks List or
   // Discount (or types an amount). It used to auto-fill with List once the
   // miles resolved, which quietly committed a price nobody had agreed to.
-  const feeSuggestion = suggestDeliveryFee(d, settings);
+  // El punto que decide la zona es el que el usuario TIENE DELANTE (D-NEXT). Con un pin en
+  // borrador —soltado en el mapa y todavía sin «Save pin»— `d.delivery_lat/lng` siguen valiendo
+  // lo de antes, así que el aviso se calculaba con el pin viejo (o con ninguno) mientras el mapa
+  // ya enseñaba el nuevo dentro del área verde. El borrador NO se escribe en el pedido: solo
+  // cambia lo que se enseña, y por eso va aquí y no en `dropPin`.
+  //
+  // Dos condiciones, no una, y la segunda la encontró el auditor: «Cancelar» descarta el
+  // borrador (`setPinDraft(null)`, abajo), pero además el borrador **solo cuenta con el selector
+  // abierto**. Si no, un pin soltado y descartado por cualquier otra vía de cierre seguiría
+  // decidiendo la zona de un punto que ya nadie ve. Tras «Save pin» el selector se cierra y el
+  // borrador deja de contar, pero para entonces `d.delivery_lat/lng` ya tienen ese mismo punto:
+  // el resultado no cambia.
+  const pinVisible = showPinPicker && pinDraft ? pinDraft : null;
+  const feeSuggestion = suggestDeliveryFee(
+    pinVisible ? { ...d, delivery_lat: pinVisible[0], delivery_lng: pinVisible[1] } : d,
+    settings,
+  );
+  /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
+   *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
+  const zoneWhy = feeSuggestion.zoneSource === "pin"
+    ? (pinVisible ? t("from the pin you just dropped", "por el pin que acaba de colocar") : t("from the saved pin", "por el pin guardado"))
+    : feeSuggestion.zoneSource === "city"
+      ? t(`from the address city (${feeSuggestion.city || "not recognized"}) — no pin on this order`,
+          `por la ciudad de la dirección (${feeSuggestion.city || "no reconocida"}) — esta orden no tiene pin`)
+      : "";
   /**
    * Esta orden va a salir sin cobrar nada (D-147).
    *
@@ -1474,7 +1498,7 @@ export function OrderModal({
                       setPinDraft(null); setShowPinPicker(false);
                     }}>{t("Clear pin", "Quitar pin")}</button>
                   )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowPinPicker(false)}>{t("Cancel", "Cancelar")}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
                 </div>
               </div>
             )}
@@ -1501,6 +1525,7 @@ export function OrderModal({
             {feeSuggestion.needsApproval && (d.delivery_address || "").trim() && (
               <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
                 ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}
+                {zoneWhy && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {zoneWhy}</span>}
               </div>
             )}
             {feeSuggestion.sameDay && (
@@ -1693,6 +1718,7 @@ export function OrderModal({
                     {feeSuggestion.zone === "local" ? t("LOCAL", "LOCAL") : t("NOT LOCAL", "NO LOCAL")}
                   </span>
                   {feeSuggestion.city && <span className="hint" style={{ margin: 0 }}>{feeSuggestion.city}</span>}
+                  {zoneWhy && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>· {zoneWhy}</span>}
                   {d.route_miles != null && <span className="hint" style={{ margin: 0 }}>· {d.route_miles} mi</span>}
                 </div>
                 {(feeSuggestion.list != null || feeSuggestion.discount != null) ? (
@@ -1715,6 +1741,7 @@ export function OrderModal({
                 {feeSuggestion.needsApproval && (
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
                     ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}
+                    {zoneWhy && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {zoneWhy}</span>}
                   </div>
                 )}
                 {feeSuggestion.sameDay && (
@@ -1867,7 +1894,7 @@ export function OrderModal({
                       setPinDraft(null); setShowPinPicker(false);
                     }}>{t("Clear pin", "Quitar pin")}</button>
                   )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowPinPicker(false)}>{t("Cancel", "Cancelar")}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
                 </div>
               </div>
             )}

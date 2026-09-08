@@ -58,6 +58,13 @@ export function discountFee(miles: number, local = true): number {
 
 export type DeliveryZone = "local" | "nonlocal" | "unknown";
 
+/**
+ * De dónde salió la zona (D-NEXT). No es adorno: el aviso «No local» sin motivo se lee como un
+ * error del sistema, y quien lo mira no sabe si le falta poner el pin o si de verdad la entrega
+ * está fuera. El dueño perdió un rato justo en eso.
+ */
+export type ZoneSource = "pin" | "city" | "none";
+
 export interface FeeSuggestion {
   zone: DeliveryZone;
   /** Detected delivery city (best effort), for display. */
@@ -72,6 +79,8 @@ export interface FeeSuggestion {
   sameDay: boolean;
   /** The same-day surcharge amount folded into list/discount ($), 0 if none. */
   sameDaySurcharge: number;
+  /** Qué decidió la zona: el pin del mapa, la ciudad de la dirección, o nada. */
+  zoneSource: ZoneSource;
 }
 
 /** Suggest the delivery fee for an order from its driving miles (the formulas
@@ -91,7 +100,7 @@ export function suggestDeliveryFee(
   const surcharge = Math.max(0, Number(s?.same_day_surcharge ?? 0));
   const sameDay = !!d.delivery_date && d.delivery_date === todayISO() && surcharge > 0;
   const add = sameDay ? surcharge : 0;
-  if (!hasAddr) return { zone: "unknown", city: "", list: null, discount: null, needsApproval: false, sameDay, sameDaySurcharge: add };
+  if (!hasAddr) return { zone: "unknown", city: "", list: null, discount: null, needsApproval: false, sameDay, sameDaySurcharge: add, zoneSource: "none" };
 
   // La zona sale del PUNTO cuando lo hay (D-219): el nombre de la ciudad se saca de texto
   // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
@@ -100,6 +109,7 @@ export function suggestDeliveryFee(
   const miles = d.route_miles;
   return {
     zone: local ? "local" : "nonlocal",
+    zoneSource: porPunto != null ? "pin" : "city",
     city,
     list: miles != null ? listFee(miles, local) + add : null,
     discount: miles != null ? discountFee(miles, local) + add : null,
