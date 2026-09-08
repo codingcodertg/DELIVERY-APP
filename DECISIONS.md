@@ -10489,3 +10489,24 @@ GPS no se ejerció con un dispositivo: la vía sin fix está probada, la de fix 
 orquestador, no mía. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1147 pasados | 3 saltados**
 (main 2568bfd: 1124 | 3; los +23 son `one-tap-stop.test.ts`). `/my-route` 3,87 → 5,12 kB / 295 kB: +1,25 kB de ruta
 por la acción y el helper; el peso compartido no se mueve.
+
+**Nota del mismo día (tres observaciones del auditor, antes del merge).** Las tres estaban medidas y
+ninguna bloqueaba; dos se cerraron y una queda escrita como límite conocido.
+
+1. **`delivered_address`, cerrada.** `extraEntrega` no incluía la clave y la ficha sí la escribe
+   (`altAddr || null`, `OrderModal.tsx:879`): por la vía rápida siempre sería `null`, así que la
+   diferencia real era que **la ficha borra una dirección alternativa vieja y el helper la
+   conservaba**. Sin efecto práctico hoy —`delivered_address` solo se escribe al entregar y de
+   `delivered` no se vuelve—, pero el módulo existe justo para que las dos vías no discrepen, así que
+   se añade. No había razón medida para no borrarla. La prueba fija las siete claves y comprueba que
+   la ficha sigue escribiendo la suya.
+2. **El recuento de 0, cerrada — y el agujero era el camino, no la función.** El aviso decía que
+   `actual_pallets: n || null` equivale a main solo mientras `n > 0` o ambos recuentos son nulos. Al
+   escribir la prueba se vio el mecanismo: `??` **no** cae con 0, así que un 0 solo llegaba al helper
+   disfrazado de `null` por el pedido… y entonces caía al estimado y escribía un número que nadie
+   contó. En vez de documentar la trampa, `escrituraRecogida` acepta ahora `pallets` explícito y la
+   ficha le pasa su `n`: un 0 es un 0, con nota sin número y sin `actual_pallets`, igual que main.
+3. **El doble clic, límite conocido y escrito.** `guardando` es **estado de React**, así que dos clics
+   en el mismo tick leerían `null` los dos: lo que los para en la práctica es el `disabled` del botón,
+   no el `if`. Un `useRef` sería estricto; el auditor lo midió y no lo pidió, y se deja así a
+   propósito, dicho aquí para quien lo lea dentro de un año.
