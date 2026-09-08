@@ -41,6 +41,14 @@ describe("a quién se le ofrece dejar el pedido en una tienda", () => {
       expect(puedeDejarEnTienda({ ...enCamion, assigned_driver: null }, { role: rol, full_name: "X" }, true), rol).toBe(true);
     }
   });
+  it("sin saber quién pregunta, NO", () => {
+    // Lo encontró el auditor: la comprobación es «¿no es chofer?», y un `me` nulo la cumplía, así
+    // que respondía «puede» cuando la verdad es «no sé quién es». Un permiso concedido por
+    // desconocimiento es un permiso mal escrito, aunque hoy no haya forma de llegar hasta él.
+    expect(puedeDejarEnTienda(enCamion, null, true)).toBe(false);
+    expect(puedeDejarEnTienda(enCamion, undefined, true)).toBe(false);
+    expect(puedeDejarEnTienda(enCamion, {}, true)).toBe(true);   // conocido y sin rol de chofer: sí
+  });
   it("quien no puede mover la etapa, no puede: ningún permiso nuevo", () => {
     // El segundo argumento es el `canDeliver` que ya decide «Marcar entregado». Esta acción no
     // abre una puerta propia: si no podías mover el pedido, sigues sin poder.

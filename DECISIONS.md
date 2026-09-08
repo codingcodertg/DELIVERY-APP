@@ -11310,13 +11310,19 @@ Lo que se limpia: **`departed_at`, `arrived_at`, `pickup_lat`, `pickup_lng`, `pi
 es historia de un **viaje que no llegó a su fin**, y es donde esta decisión se aparta del criterio
 inicial del encargo («se conserva todo»). Cuatro razones, tres de ellas medidas:
 
-- **Precedente**: el reparto de una orden parcial (`OrderModal.tsx:788`) ya descarta exactamente
-  `pickup_lat`, `pickup_lng`, `pickup_gps_at` y `departed_at` al crear el resto como `ready`. Esta
-  es la misma situación, y la app ya la había respondido.
+- **Precedente, y son cuatro campos:** el reparto de una orden parcial (`OrderModal.tsx:788`)
+  descarta `pickup_lat`, `pickup_lng`, `pickup_gps_at` y `departed_at` al crear el resto como
+  `ready`. **`arrived_at` no está en ese precedente**: lo añade esta decisión, por el mismo motivo
+  —es la llegada del viaje viejo—, y se dice aparte para no apoyarse en una autoridad que no
+  existe.
 - Con `departed_at` puesto, el segundo chofer vería «En camino desde» **una hora que no es suya** y
   **no** le saldría el botón de «Iniciar viaje», que solo aparece si no hay sello.
-- `analytics.ts:283` cuenta el tiempo activo desde `departed_at` hasta la entrega y se lo apunta a
-  `assigned_driver` — o sea, **al segundo chofer**. Dejarlo puesto le regalaría el viaje del primero.
+- **El informe de productividad por chofer quedaría inservible.** `analytics.ts:283-292` hace
+  `start = departed_at ?? pickup_gps_at`, mide hasta `pod_delivered_at` y le suma el tramo a
+  `assigned_driver` — que tras la devolución es el **segundo** chofer. Con el sello del primero como
+  inicio, lo que se le apunta no es «un viaje ajeno»: es **todo el tiempo que el pedido pasó parado
+  en la tienda**. Un pedido dejado el viernes y entregado el lunes le sumaría el fin de semana
+  entero como tiempo activo. Y un número raro en un informe no se investiga: se cree.
 - El GPS de recogida **se sobrescribe igualmente** en cuanto alguien vuelva a recoger, así que
   conservarlo no guardaba ninguna historia. Se guarda donde sí dura: en la nota del registro, que
   lleva las coordenadas de la primera recogida.
@@ -11348,15 +11354,38 @@ esto viene a evitar.
 
 ### Límites conocidos
 
-- **Sin conexión no se puede.** El outbox solo encola `picked_up` y `delivered`
-  (`data-provider.tsx:1184`), así que un chofer en zona muerta verá el error y tendrá que repetirlo
-  con señal. No se ha ampliado el outbox: hacerlo es otro encargo y toca la cola de milestones.
+- **Sin conexión no se puede, y a un chofer sin cobertura le va a pasar.** El outbox solo encola
+  `picked_up` y `delivered` (`data-provider.tsx:1184`), así que `ready` no se encola: en zona muerta
+  el chofer verá el error y tendrá que repetirlo cuando tenga señal — con el pedido ya descargado en
+  la tienda, que es cuando menos ganas tiene de pelearse con el teléfono. **No se amplía el outbox
+  aquí**: es una limitación real y merece su propio encargo con su propio cuidado, porque toca la
+  cola de milestones; no una línea de más en este.
 - **Dejarlo en su propia tienda de origen está permitido** y no es un error: es la devolución normal.
   La nota no dice entonces que el origen cambió, porque no cambió.
 - El segundo chofer **no ve las millas** hasta que alguien pulse «Calcular». Es la consecuencia
   elegida arriba, no un olvido.
 
+### Un permiso concedido por desconocimiento
+
+`puedeDejarEnTienda` preguntaba «¿no es chofer?» para dejar pasar al almacén y al admin, y un `me`
+**nulo** cumplía esa condición: la respuesta era «puede» cuando lo que sabía era «no sé quién es».
+Lo encontró el auditor sondeando la función. No era explotable —el control no se pinta sin `me`, el
+proveedor sigue comprobando `canTransition` y la base tiene RLS—, pero se cierra igual (`if (!me)
+return false;`): un permiso que se concede por **ausencia de dato** es de los que muerden cuando
+alguien reutiliza la función en un sitio donde esas tres barreras no están.
+
+### Qué se cumple por construcción, no por cuidado
+
+Ni `delivery_fee`, ni `actual_pallets`, ni las fotos, ni el pin de la entrega **viajan en el
+parche**. No es que no se recalculen: es que el campo no está. Un campo que no está no se puede
+pisar por descuido dentro de seis meses, y la prueba fija la lista completa, así que añadir uno
+obliga a decirlo en voz alta.
+
 ### Lo no verificado
+
+**Cómo queda en una pantalla de móvil estrecha no lo ha visto nadie**, ni el worker ni el auditor:
+el control va en su propia fila bajo la tarjeta de «Siguiente parada», y ahí se queda hasta que
+alguien lo mire en un teléfono de verdad.
 
 Nadie ha soltado un pedido en un navegador: que el botón aparezca solo al chofer que lo lleva, que
 el desplegable se pinte y que el pedido reaparezca en la lista van por las funciones puras —probadas
@@ -11364,5 +11393,5 @@ en solitario— y por las pruebas de forma sobre las dos pantallas, no por haber
 tocado producción ni se ha gastado cuota de ninguna API.** La primera comprobación cuando el dueño
 lo use: llevar un pedido a `picked_up`, dejarlo en otra tienda, y ver que vuelve a la lista con el
 origen nuevo, sin chofer, sin millas y con el evento en el historial. `verify.mjs`:
-en verde sobre `.next` limpio, en solitario: **1342 pasados | 3 saltados**
-(main 70bbe4d: 1316 | 3; los +26 son `leave-at-store.test.ts`).
+en verde sobre `.next` limpio, en solitario: **1343 pasados | 3 saltados**
+(main 70bbe4d: 1316 | 3; los +27 son `leave-at-store.test.ts`).

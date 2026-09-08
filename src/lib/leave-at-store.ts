@@ -47,6 +47,13 @@ export interface QuienDeja {
  *
  * Un pedido en `picked_up` **sin chofer asignado** sí lo puede dejar cualquiera que pueda mover la
  * etapa (almacén, admin): alguien lo tiene físicamente, y no poder soltarlo lo dejaría atascado.
+ *
+ * Y **sin saber quién pregunta, no**. Lo encontró el auditor: la comprobación de abajo es «¿no es
+ * chofer?», y un `me` nulo la cumple, así que la respuesta habría sido «puede» cuando la verdad es
+ * «no sé quién es». Hoy no es explotable —el control no se pinta sin `me`, el proveedor sigue
+ * comprobando `canTransition` y la base tiene RLS—, pero un permiso que se concede por
+ * desconocimiento es un permiso mal escrito: el día que alguien llame a esto desde otro sitio, la
+ * respuesta tiene que ser no.
  */
 export function puedeDejarEnTienda(
   pedido: PedidoParaDejar,
@@ -55,7 +62,8 @@ export function puedeDejarEnTienda(
 ): boolean {
   if (pedido.stage !== "picked_up") return false;
   if (!puedeMoverEtapa) return false;
-  if (me?.role !== "driver") return true;
+  if (!me) return false;
+  if (me.role !== "driver") return true;
   return !!me.full_name && pedido.assigned_driver === me.full_name;
 }
 
