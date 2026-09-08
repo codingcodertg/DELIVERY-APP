@@ -290,7 +290,13 @@ export function OrderModal({
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
   const zoneWhy = feeSuggestion.zoneSource === "pin"
-    ? (pinVisible ? t("from the pin you just dropped", "por el pin que acaba de colocar") : t("from the saved pin", "por el pin guardado"))
+    ? (pinVisible
+        // «not saved yet» no es un adorno: sin pulsar «Save pin» el pedido se guarda SIN punto y
+        // la zona vuelve a decidirse por la ciudad. Pasó de verdad — dos pedidos de prueba del
+        // dueño nacieron así el 2026-09-08 (medición del orquestador). El aviso ahora dice la
+        // verdad de lo que se ve Y avisa de que aún no está guardado.
+        ? t("from the pin you just dropped — not saved yet", "por el pin que acaba de colocar — sin guardar todavía")
+        : t("from the saved pin", "por el pin guardado"))
     : feeSuggestion.zoneSource === "city"
       ? t(`from the address city (${feeSuggestion.city || "not recognized"}) — no pin on this order`,
           `por la ciudad de la dirección (${feeSuggestion.city || "no reconocida"}) — esta orden no tiene pin`)

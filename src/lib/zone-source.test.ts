@@ -114,7 +114,15 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     // La lógica no sabe si el punto vino de un borrador o de lo guardado —recibe el pedido con las
     // coordenadas ya puestas—, así que esa distinción la hace la ficha, que sí lo sabe.
     expect(src).not.toMatch(/zoneSource: "(draft|saved)"/);
-    expect(leer("src/components/OrderModal.tsx")).toMatch(/pinVisible \? t\("from the pin you just dropped"/);
+    expect(leer("src/components/OrderModal.tsx")).toMatch(/\? t\("from the pin you just dropped/);
+  });
+  it("el motivo del borrador avisa de que el pin NO está guardado", () => {
+    // Evidencia de campo: dos pedidos del dueño nacieron sin coordenadas porque puso el pin, vio
+    // el verde y no pulsó «Save pin». El aviso correcto sobre un pin sin guardar puede dar falsa
+    // tranquilidad si no dice que falta guardarlo.
+    const src = leer("src/components/OrderModal.tsx");
+    expect(src).toContain('"from the pin you just dropped — not saved yet"');
+    expect(src).toContain('"por el pin que acaba de colocar — sin guardar todavía"');
   });
   it("«Cancelar» descarta el borrador, en los DOS selectores de pin", () => {
     // Lo encontró el auditor: «Cancelar» solo cerraba el selector y dejaba `pinDraft` puesto, así
