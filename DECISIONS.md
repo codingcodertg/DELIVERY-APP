@@ -10518,9 +10518,15 @@ ninguna bloqueaba; dos se cerraron y una queda escrita como límite conocido.
    **Qué escribe ahora.** `escrituraRecogida` acepta `pallets` explícito y la ficha le pasa su `n`
    directamente; el pedido viaja intacto. Un 0 es un 0: nota «Loaded» sin número y **sin**
    `actual_pallets` en el `extra`, que es exactamente lo que hacía main. Sin `pallets`, el recuento
-   sigue saliendo del pedido, como antes. Hoy ninguna de las dos vías llama con 0 —la confirmada
-   rechaza `n <= 0` antes, y la rápida solo da 0 cuando ambos recuentos son nulos—, así que **no hay
-   ninguna fila mal escrita en producción por esto**; lo que se cierra es el camino.
+   sigue saliendo del pedido, como antes.
+
+   **Y ninguna fila quedó mal escrita, por una razón más simple que la que decía antes esta nota.**
+   Lo primero que se escribió aquí fue que las guardas lo evitaban —la vía confirmada rechaza
+   `n <= 0` antes, la rápida solo da 0 con ambos recuentos nulos—, y es cierto pero no es lo
+   importante: **el camino defectuoso nunca salió de esta rama.** Lo introdujo el commit de la
+   extracción y lo quitó el del arreglo, los dos sin fusionar; en producción no existió nunca. La
+   precisión es del auditor, y la deja anotada con su límite: lo sabe por el repo y su historial, no
+   por consultar la base, porque él no consulta producción.
 3. **El doble clic, límite conocido y escrito.** `guardando` es **estado de React**, así que dos clics
    en el mismo tick leerían `null` los dos: lo que los para en la práctica es el `disabled` del botón,
    no el `if`. Un `useRef` sería estricto; el auditor lo midió y no lo pidió, y se deja así a
