@@ -10691,3 +10691,121 @@ centro urbano, no direcciones de clientes. `verify.mjs`: en verde sobre `.next` 
 (main ed65a6f: 1149 | 3; los +68 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
 nuevo y su mapa diferido); `/map` 296, `/market` 295, `/my-route` 296, `/routes` 318, `/track` 295, sin
 cambio funcional en ninguno.
+
+## D-NEXT · La zona la decide el pin que el usuario está viendo, y el aviso dice de dónde sale
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** Andrés, con captura, en caliente sobre D-219: coloca el pin en el mapa de la ficha,
+**lo ve dentro del área verde**, y debajo sigue leyendo «⚠️ Not local — requires manager approval».
+Sin migración.
+
+### El diagnóstico: la zona no mentía
+
+El punto de su pin (suroeste de Lyford, ~26.405, −97.795) da **DENTRO** con la función que ya estaba
+en `main` — lo comprobó el orquestador. Lo que fallaba es que **el aviso no se calculaba con ese
+punto**:
+
+- `d` en `OrderModal` es el **formulario**, no el pedido guardado.
+- Un pin recién soltado vive en `pinDraft`: `dropPin` solo hace `setPinDraft` y geocodifica.
+- Quien escribe `delivery_lat`/`lng` es `savePin`, atado al botón «Save pin».
+- Entre soltar y guardar, `suggestDeliveryFee(d, settings)` seguía viendo **el pin viejo, o ninguno**.
+
+En la captura los botones «Save pin / Clear pin / Cancel» están visibles: el pin era un borrador sin
+guardar. De ahí el desfase entre lo que el mapa enseña y lo que el aviso dice.
+
+### Qué se hizo
+
+**La precedencia es: borrador visible → pin guardado → ciudad.** El aviso cambia **al mover el pin**,
+sin esperar a «Save pin» ni a «Calculate distance & fee», y el borrador **no escribe nada en el
+pedido**: solo cambia lo que se enseña. Vale en **los dos** selectores de pin de la ficha, que
+comparten `pinDraft` y `dropPin`.
+
+**Dos condiciones, no una, y la segunda es un hallazgo del auditor.** «Cancelar» solo cerraba el
+selector y dejaba el borrador puesto: con la precedencia nueva, un pin **descartado** habría seguido
+decidiendo la zona. Se cierra por partida doble:
+
+1. «Cancelar» pone `pinDraft` en `null` — es lo que la palabra significa, y de paso tapa una fuga de
+   estado que ya existía;
+2. el borrador **solo cuenta con el selector abierto** (`pinVisible = showPinPicker && pinDraft`).
+
+La segunda no cambia nada observable hoy, y aun así se queda, porque el auditor midió **por qué hace
+falta**: en `main` hay **cuatro** sitios que cierran el selector y no todos limpian el borrador —los
+dos «Clear pin» sí, los dos «Cancelar» no (lo que se arregla), y **`savePin` tampoco**—; además la
+búsqueda de dirección **abre** el selector poniendo `pinDraft` desde el geocodificador. Sin el
+invariante, la corrección depende de que las cinco vías —y las que se añadan— se acuerden de limpiar.
+Tras «Save pin» el borrador deja de contar, pero para entonces el pedido ya tiene ese mismo punto: el
+resultado no cambia.
+
+### La otra mitad del problema: por qué decía «No local»
+
+Un «No local» a secas no distingue **«esta dirección no tiene pin»** de **«esta entrega está lejos de
+verdad»**, y el dueño perdió un rato justo ahí. `FeeSuggestion` gana **`zoneSource`** (`"pin"` ·
+`"city"` · `"none"`) y la ficha lo pinta junto a los dos avisos y a la insignia LOCAL / NO LOCAL:
+
+- «por el pin que acaba de colocar» — hay borrador visible;
+- «por el pin guardado» — decidió el punto del pedido;
+- «por la ciudad de la dirección (McAllen) — esta orden no tiene pin».
+
+`zoneSource` es **un código, no una frase**: la función pura dice *qué* decidió, la pantalla elige el
+texto (misma línea que D-210 con los mensajes del ERP). La lógica no puede distinguir borrador de
+guardado —recibe el pedido con las coordenadas ya puestas—, así que esa distinción la hace la ficha,
+que sí lo sabe.
+
+**i18n:** el hub **no** tiene diccionario de claves (`usePrefs().t(en, es)`, pares en línea) y la
+prueba de claves de D-187 cubre solo `timetracker`, así que esta pantalla no entra en ninguna lista:
+cada texto lleva sus dos idiomas en el propio `t(...)`. `city` va dentro del literal porque es **dato**
+y sale igual en los dos idiomas; lo que sí es texto —el «not recognized» / «no reconocida» de cuando
+no hay ciudad— va en **cada** literal, no en una variable.
+
+### Qué NO cambia
+
+La tarifa guardada y las fórmulas (`listFee`, `discountFee`), el respaldo por ciudad completo, el
+flujo de «Calculate distance & fee», `podBlocker` y el resto del modal. `delivery-zone.ts` y `geo.ts`
+**sin tocar**: esto es *de dónde viene el punto*, no *cómo se decide la zona*. Cero escrituras nuevas
+de `delivery_lat`/`lng`. Y **sin memoizar** a propósito: `feeSuggestion` se recalcula en cada render,
+que es lo que hace que el aviso se actualice solo al mover el pin; la prueba lo fija para que nadie lo
+«optimice».
+
+### Evidencia de campo, y el aviso que se añadió por ella
+
+Mientras se escribía esto, la base pasó de 112 a **114 pedidos, de 10 a 12 sin punto** (medición del
+orquestador). Los dos nuevos son pruebas del dueño de esa misma mañana y **nacieron sin coordenadas**:
+puso el pin, vio el verde… y como no pulsó «Save pin», el pedido se guardó **sin punto** y cayó al
+respaldo por ciudad. Es exactamente el camino que cierra esta decisión, ocurriendo de verdad.
+
+Y destapa un riesgo del propio arreglo: con la zona calculada sobre el borrador, el aviso pasa a ser
+correcto sobre **lo que se ve**, lo cual puede dar falsa tranquilidad si el pin no se guarda. Por eso
+el motivo del borrador no dice solo de dónde sale, sino que **falta guardarlo**: «por el pin que acaba
+de colocar — **sin guardar todavía**». El texto correcto sobre un pin sin guardar sigue siendo un
+texto sobre algo que la base no tiene.
+
+### Lyford entero dentro (mismo asunto, misma rama)
+
+El dueño vio que el contorno **partía Lyford por la mitad** y pidió meterlo entero. Medido: el borde
+norte bajaba en diagonal de (26.45, −97.95) a (26.38, −97.70), y en la longitud de Lyford caía en
+**26.404**; el centro (26.4128) y el extremo norte (~26.425) quedaban **fuera**, aunque unos cientos
+de metros al suroeste ya estuvieran dentro. Un pueblo partido no es una zona de reparto.
+
+El cambio es **un vértice**: el norte se mantiene en 26.45 hasta −97.75 y baja después; el resto del
+contorno no se toca (21 vértices). Las tres restricciones, con margen medido: **Lyford entero dentro**
+(el extremo norte a ~2,8 km del borde), **Raymondville** (26.482) **fuera** a ~3,5 km —el dibujo
+original del dueño la pone en NO LOCAL— y **Port Mansfield** (26.556) **fuera**. La prueba fija Lyford
+por sus **dos** extremos, los dos vecinos, y el margen por ambos lados (26.44 dentro, 26.46 fuera).
+
+**Cotejo del contorno nuevo contra los 114 pedidos** (medición del orquestador): **frente a D-219, ni
+un solo pedido cambia de zona** — no hay ninguna entrega existente en esa franja, así que subir el
+tramo no reclasifica nada ya cobrado. Frente a la clasificación por ciudad siguen siendo **93
+coincidencias y 9 cambios**, los mismos nueve NO LOCAL → LOCAL de D-219.
+
+### Punto 4 del encargo: dónde más se enseñaba la zona
+
+Los **tres** bloques que enseñan zona o tarifa sugerida —el formulario, el panel de la derecha y el
+bloque de cobro— salen del **mismo** `feeSuggestion`, así que se arreglan en la misma línea. Ningún
+otro sitio de la app llama a `suggestDeliveryFee`. Nada más que listar.
+
+### Lo no verificado
+
+Nadie abrió la ficha en un navegador tras el cambio: que el aviso cambie al soltar el pin va por que
+`feeSuggestion` se recalcula en cada render y por las pruebas de forma, no por haberlo visto. El punto
+de la captura lo midió el orquestador contra la función de `main`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1234 pasados | 3 saltados**
+(main 77dd7e3: 1217 | 3; los +22 son `zone-source.test.ts` y los cuatro de Lyford).
