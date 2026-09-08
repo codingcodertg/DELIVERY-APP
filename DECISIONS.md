@@ -10902,10 +10902,19 @@ abierto; cancelar lo descarta, ahora también su procedencia). Ninguna migració
 el `payload` de `save()` solo pueden aparecer tres campos nuevos: `delivery_lat`, `delivery_lng` y
 `delivery_pin_source`.
 
+### Que lo que se ve y lo que se guarda sean el mismo dato, no dos que coinciden
+
+La primera versión le pasaba al módulo las piezas sueltas (`selectorAbierto`, `borrador`) y él
+rehacía la noción de «visible» por su cuenta. Coincidía con la de la pantalla, pero por parecido: dos
+expresiones iguales hoy que nada obliga a seguir iguales mañana. Ahora el módulo recibe **`pinVisible`
+ya resuelto** —el mismo valor que decide la zona— y no recibe las piezas, así que no puede
+reconstruirlo distinto. Un aviso que diga una cosa y un guardado que haga otra es justo el fallo que
+esta decisión cierra; conviene que sea imposible, no improbable.
+
 ### Lo no verificado
 
 Nadie ha abierto la ficha en un navegador: que el punto llegue a la base al guardar va por la regla
 —probada en solitario— y por las pruebas de forma sobre el fuente, no por haberlo hecho. La primera
 comprobación cuando el dueño lo use es crear un pedido soltando el pin y **no** pulsar «Save pin»: la
-orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1261 pasados | 3 saltados**
+orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1262 pasados | 3 saltados**
 (main 3689160: 1239 | 3; los +23 son `pin-draft-save.test.ts`).

@@ -21,10 +21,16 @@ export type PinSource = "manual" | "geocoded";
 export type PinParaGuardar = Pick<Delivery, "delivery_lat" | "delivery_lng" | "delivery_pin_source">;
 
 export interface EstadoPin {
-  /** El selector de mapa está abierto: solo entonces hay un borrador «vivo» (D-220). */
-  selectorAbierto: boolean;
-  /** El punto en borrador, o null. */
-  borrador: [number, number] | null;
+  /**
+   * El punto en borrador que el usuario **está viendo**, o `null`.
+   *
+   * Es la misma noción que decide la zona en la ficha (`pinVisible`), y entra ya resuelta a
+   * propósito: si este módulo volviera a calcularla a partir de «hay selector abierto» y «hay
+   * borrador», habría dos definiciones de «visible» —una para lo que se enseña y otra para lo que
+   * se guarda— y nada que impidiera que divergieran. Que el aviso diga una cosa y se guarde otra
+   * es justo el fallo que esta decisión cierra; con un solo dato de entrada, no puede volver.
+   */
+  visible: [number, number] | null;
   /** De dónde vino ese borrador. `null` cuando no se sabe: se trata como manual, que es la vía por defecto del selector. */
   fuente: PinSource | null;
   /** El punto que ya lleva el formulario del pedido. */
@@ -36,8 +42,8 @@ export interface EstadoPin {
  *
  * Tres condiciones, y cada una tapa una puerta distinta:
  *
- *  1. **Visible.** La misma noción que decide la zona en D-220: un borrador de un selector cerrado
- *     —cancelado, o ya aplicado con «Save pin»— no se escribe.
+ *  1. **Visible.** El mismo punto que decide la zona (D-220), recibido ya resuelto: un borrador de
+ *     un selector cerrado —cancelado, o ya aplicado con «Save pin»— no llega hasta aquí.
  *  2. **Distinto del que ya tiene el pedido.** Abrir el selector sincroniza el borrador con el pin
  *     guardado, así que «abrir para mirar» no debe escribir nada; si no, mirar un punto
  *     geocodificado lo reetiquetaría como manual sin que nadie moviera nada.
@@ -52,8 +58,8 @@ export interface EstadoPin {
  * distintas es el fallo que esto viene a cerrar. Quien solo quería comprobar una dirección, cancela.
  */
 export function pinDraftParaGuardar(e: EstadoPin): PinParaGuardar | null {
-  if (!e.selectorAbierto || !e.borrador) return null;
-  const [lat, lng] = e.borrador;
+  if (!e.visible) return null;
+  const [lat, lng] = e.visible;
   if (e.pedido.delivery_lat === lat && e.pedido.delivery_lng === lng) return null;
   return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: e.fuente ?? "manual" };
 }

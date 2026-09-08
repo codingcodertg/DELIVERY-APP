@@ -14,13 +14,17 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
 type Fuente = PinSource | null;
 type Pedido = { delivery_lat: number | null; delivery_lng: number | null; delivery_pin_source: Fuente };
 
-/** La misma llamada que hace la ficha al guardar, con sus cuatro estados. */
+/**
+ * La misma llamada que hace la ficha al guardar. `showPinPicker` y `pinDraft` se combinan aquí en
+ * el punto visible **igual que en la pantalla**, que es de donde sale el único dato que el módulo
+ * recibe: si se enseña, se guarda.
+ */
 const pinParaGuardar = (
   showPinPicker: boolean,
   pinDraft: [number, number] | null,
   pinDraftSource: Fuente,
   d: Pedido,
-) => pinDraftParaGuardar({ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d });
+) => pinDraftParaGuardar({ visible: showPinPicker && pinDraft ? pinDraft : null, fuente: pinDraftSource, pedido: d });
 
 const SIN_PIN: Pedido = { delivery_lat: null, delivery_lng: null, delivery_pin_source: null };
 const CON_PIN: Pedido = { delivery_lat: 26.2034, delivery_lng: -98.23, delivery_pin_source: "geocoded" };
@@ -32,10 +36,15 @@ describe("el pin en borrador se guarda con el pedido", () => {
       delivery_lat: 26.405, delivery_lng: -97.795, delivery_pin_source: "manual",
     });
   });
-  it("mutación: sin esto, el pedido se guardaría sin coordenadas — que es lo que pasó dos veces", () => {
-    const sinLaRegla = null;
-    expect(sinLaRegla).toBeNull();
-    expect(pinParaGuardar(true, NUEVO, "manual", SIN_PIN)).not.toBeNull();
+  it("mutación: la regla vieja —guardar solo lo que ya está en el pedido— dejaba el pedido sin punto", () => {
+    // Lo que hacía main: el payload salía de `d` y el borrador no entraba. Con el pedido sin pin,
+    // eso es exactamente perder el punto, que es lo que le pasó al dueño dos veces.
+    const comoAntes = (d: Pedido) =>
+      d.delivery_lat != null && d.delivery_lng != null
+        ? { delivery_lat: d.delivery_lat, delivery_lng: d.delivery_lng, delivery_pin_source: d.delivery_pin_source }
+        : null;
+    expect(comoAntes(SIN_PIN)).toBeNull();
+    expect(pinParaGuardar(true, NUEVO, "manual", SIN_PIN)).toMatchObject({ delivery_lat: 26.405 });
   });
   it("mueve el pin de un pedido que ya tenía otro → se guarda el nuevo, como «manual»", () => {
     expect(pinParaGuardar(true, NUEVO, "manual", CON_PIN)).toMatchObject({ delivery_lat: 26.405, delivery_pin_source: "manual" });
@@ -134,9 +143,14 @@ describe("las transiciones entre puertas: manda el ÚLTIMO gesto", () => {
 describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
   const src = leer("src/components/OrderModal.tsx");
 
-  it("el guardado del pedido le pasa los cuatro estados de la ficha", () => {
-    expect(src).toMatch(/pinDraftParaGuardar\(\{ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d \}\)/);
+  it("lo que se enseña y lo que se guarda salen del MISMO dato, no de dos expresiones que coinciden", () => {
+    // `pinVisible` decide la zona (:291) y es lo que se le pasa al módulo. Mientras sea el mismo
+    // valor, no puede haber un aviso que diga una cosa y un guardado que haga otra.
+    expect(src).toMatch(/const pinVisible = showPinPicker && pinDraft \? pinDraft : null;/);
+    expect(src).toMatch(/pinDraftParaGuardar\(\{ visible: pinVisible, fuente: pinDraftSource, pedido: d \}\)/);
     expect(src).toMatch(/\.\.\.withDurations\(d\),/);
+    // Y el módulo no puede reconstruir «visible» por su cuenta: no recibe las piezas.
+    expect(leer("src/lib/pin-draft.ts")).not.toContain("selectorAbierto");
   });
   it("y «Save pin» usa la misma fuente, no «manual» a secas", () => {
     expect(fuenteAlAplicar("geocoded")).toBe("geocoded");
@@ -153,7 +167,10 @@ describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
     expect(src).toMatch(/setPinDraftSource\("manual"\);\s+\/\/ clic derecho/);          // dropPin
     expect(src).toMatch(/setPinDraftSource\("geocoded"\); setShowPinPicker\(true\);/);  // lookupAddress
     // Abrir el selector hereda la del pedido, en los DOS mapas.
-    expect(src.match(/setPinDraftSource\(\(d\.delivery_pin_source as PinSource \| null\) \?\? null\);/g) ?? []).toHaveLength(2);
+    // Sin `as`: `Delivery.delivery_pin_source` ya es esa unión, y un cast de más ocultaría mañana
+    // un cambio de tipo.
+    expect(src.match(/setPinDraftSource\(d\.delivery_pin_source \?\? null\);/g) ?? []).toHaveLength(2);
+    expect(src).not.toContain("as PinSource | null");
   });
   it("y limpiar el borrador limpia también su procedencia, en los dos mapas", () => {
     expect(src.match(/setPinDraft\(null\); setPinDraftSource\(null\); setShowPinPicker\(false\);/g) ?? []).toHaveLength(4);

@@ -450,7 +450,9 @@ export function OrderModal({
   const save = async () => {
     const payload = {
       ...withDurations(d),
-      ...(pinDraftParaGuardar({ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d }) ?? {}),
+      // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
+      // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
+      ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
     };
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
@@ -1488,7 +1490,7 @@ export function OrderModal({
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
-                setPinDraftSource((d.delivery_pin_source as PinSource | null) ?? null);
+                setPinDraftSource(d.delivery_pin_source ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -1883,7 +1885,7 @@ export function OrderModal({
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
-                setPinDraftSource((d.delivery_pin_source as PinSource | null) ?? null);
+                setPinDraftSource(d.delivery_pin_source ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
