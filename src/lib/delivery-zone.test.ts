@@ -104,6 +104,17 @@ describe("cuándo NO se puede decidir por el punto", () => {
     expect(puntoEnZonaLocal(undefined, undefined)).toBeNull();
     expect(puntoEnZonaLocal(Number.NaN, -98)).toBeNull();
   });
+  it("el pin en 0,0 es «no decidible», no «fuera»: es lo que escribe un geocodificador roto", () => {
+    // Sin esto, un pin corrupto se saltaría el respaldo por ciudad y el pedido saldría NO LOCAL
+    // —500 + millas y aprobación— en silencio. El golfo de Guinea no es una dirección de reparto.
+    expect(puntoEnZonaLocal(0, 0)).toBeNull();
+    const s = suggestDeliveryFee({ delivery_address: "1 Palm Ave, McAllen, TX", route_miles: 13, delivery_lat: 0, delivery_lng: 0 });
+    expect(s.zone).toBe("local");          // cae al respaldo por ciudad, como si no hubiera pin
+    expect(s.needsApproval).toBe(false);
+    // Y un 0 en UNA sola coordenada sigue siendo un punto: no se descarta de más.
+    expect(puntoEnZonaLocal(0, -98.23)).toBe(false);
+    expect(puntoEnZonaLocal(26.2034, 0)).toBe(false);
+  });
   it("un contorno de menos de tres vértices no es un área → null", () => {
     expect(puntoEnZonaLocal(26.2, -98.23, [])).toBeNull();
     expect(puntoEnZonaLocal(26.2, -98.23, [[26, -98], [27, -97]])).toBeNull();

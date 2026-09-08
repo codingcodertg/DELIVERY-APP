@@ -91,10 +91,18 @@ export function comoLatLng(zona: Vertice[]): LatLng[] {
 /**
  * ¿Está el punto dentro de la zona local?
  *
- * `null` cuando no se puede decidir: sin coordenadas, o con un polígono de menos de tres
- * vértices (que no es un área). Devolver `null` y no `false` es deliberado: quien llama tiene
- * que poder distinguir «está fuera» de «no lo sé», porque lo segundo se resuelve cayendo al
- * método viejo y lo primero no.
+ * `null` cuando no se puede decidir: sin coordenadas, con un polígono de menos de tres vértices
+ * (que no es un área), o con el pin en **0,0**. Devolver `null` y no `false` es deliberado: quien
+ * llama tiene que poder distinguir «está fuera» de «no lo sé», porque lo segundo se resuelve
+ * cayendo al método viejo y lo primero no.
+ *
+ * **Lo de 0,0 no es puntillismo.** Es lo que escribe un geocodificador cuando falla, y cae en el
+ * golfo de Guinea, que no es una dirección de reparto. Sin esta línea, un pin corrupto no sería
+ * «no lo sé» sino «está fuera»: el pedido se saltaría el respaldo por ciudad y saldría NO LOCAL,
+ * con 500 + millas y aprobación del gerente, en silencio y aunque la dirección dijera McAllen. Es
+ * el mismo tipo de camino que arregla esta decisión —un dato malo decidiendo una tarifa— y hoy no
+ * hay ninguna fila así (rango real medido: lat 25,88 → 32,53), o sea que se cierra antes de que
+ * exista, no después.
  */
 export function puntoEnZonaLocal(
   lat: number | null | undefined,
@@ -102,6 +110,7 @@ export function puntoEnZonaLocal(
   zona: Vertice[] = LOCAL_ZONE_DEFAULT,
 ): boolean | null {
   if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat === 0 && lng === 0) return null;
   if (zona.length < 3) return null;
   return pointInPolygon(lat, lng, comoLatLng(zona));
 }
