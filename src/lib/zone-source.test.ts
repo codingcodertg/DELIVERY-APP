@@ -50,6 +50,25 @@ describe("el punto que decide es el que el usuario tiene delante", () => {
   it("sin dirección: `unknown` y sin fuente, como antes", () => {
     expect(conBorrador({ delivery_address: "", route_miles: 20 }, null)).toMatchObject({ zone: "unknown", zoneSource: "none" });
   });
+  it("LA SECUENCIA ENTERA: soltar → cancelar → soltar → guardar, con la zona en cada paso", () => {
+    // Los tres momentos que pidió el auditor, seguidos, porque juntos clavan la precedencia.
+    const guardado = { delivery_address: DIR, route_miles: 30, delivery_lat: FUERA[0], delivery_lng: FUERA[1] };
+
+    // 1. Antes de tocar nada: manda el pin guardado, que está fuera.
+    expect(conBorrador(guardado, null).zone).toBe("nonlocal");
+
+    // 2. Suelta el pin dentro: manda el borrador, y el aviso desaparece SIN guardar nada.
+    expect(conBorrador(guardado, DENTRO)).toMatchObject({ zone: "local", needsApproval: false, zoneSource: "pin" });
+
+    // 3. Cancela: el borrador se descarta (`setPinDraft(null)`) y vuelve lo guardado. Que esto
+    //    funcione es lo que hacía falta arreglar: sin ello, un pin descartado seguiría mandando.
+    expect(conBorrador(guardado, null).zone).toBe("nonlocal");
+
+    // 4. Vuelve a soltarlo dentro y ahora sí guarda: el punto pasa al pedido, el selector se
+    //    cierra y el borrador deja de contar… pero la zona ya no cambia, porque es el mismo punto.
+    const trasGuardar = { ...guardado, delivery_lat: DENTRO[0], delivery_lng: DENTRO[1] };
+    expect(conBorrador(trasGuardar, null)).toMatchObject({ zone: "local", zoneSource: "pin" });
+  });
   it("mutación: si el borrador no se mirara, el caso de la captura seguiría diciendo «No local»", () => {
     const guardado = { delivery_address: DIR, route_miles: 30, delivery_lat: FUERA[0], delivery_lng: FUERA[1] };
     const sinMirarBorrador = suggestDeliveryFee(guardado);
@@ -81,6 +100,21 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     expect(dropPin).not.toContain('set("delivery_lat"');
     // Sin memoizar, a propósito: se recalcula en cada render y por eso el aviso cambia al mover el pin.
     expect(src).not.toMatch(/useMemo\([^)]*suggestDeliveryFee/);
+  });
+  it("el «no reconocida» del motivo va en los dos idiomas, no en una variable", () => {
+    // La frontera que marcó el auditor: `city` es dato y sale igual en los dos idiomas, pero el
+    // respaldo cuando viene vacía SÍ es texto, así que va dentro de cada literal.
+    const src = leer("src/components/OrderModal.tsx");
+    expect(src).toContain('feeSuggestion.city || "not recognized"');
+    expect(src).toContain('feeSuggestion.city || "no reconocida"');
+  });
+  it("`zoneSource` es un código, no una frase: el texto lo elige la pantalla", () => {
+    const src = leer("src/lib/pricing.ts");
+    expect(src).toMatch(/export type ZoneSource = "pin" \| "city" \| "none";/);
+    // La lógica no sabe si el punto vino de un borrador o de lo guardado —recibe el pedido con las
+    // coordenadas ya puestas—, así que esa distinción la hace la ficha, que sí lo sabe.
+    expect(src).not.toMatch(/zoneSource: "(draft|saved)"/);
+    expect(leer("src/components/OrderModal.tsx")).toMatch(/pinVisible \? t\("from the pin you just dropped"/);
   });
   it("«Cancelar» descarta el borrador, en los DOS selectores de pin", () => {
     // Lo encontró el auditor: «Cancelar» solo cerraba el selector y dejaba `pinDraft` puesto, así
