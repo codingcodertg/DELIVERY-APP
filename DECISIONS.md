@@ -10809,3 +10809,89 @@ Nadie abrió la ficha en un navegador tras el cambio: que el aviso cambie al sol
 `feeSuggestion` se recalcula en cada render y por las pruebas de forma, no por haberlo visto. El punto
 de la captura lo midió el orquestador contra la función de `main`. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1234 pasados | 3 saltados**
 (main 77dd7e3: 1217 | 3; los +22 son `zone-source.test.ts` y los cuatro de Lyford).
+
+## D-NEXT · El pin en borrador se guarda con el pedido, con la procedencia que de verdad tiene
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** Andrés (orquestador), sobre la evidencia de D-220. Sin migración.
+
+### El camino que se cierra
+
+Dos pedidos que el dueño creó el 2026-09-08 **nacieron sin coordenadas** (medición del orquestador:
+la base pasó de 112 a 114 pedidos y de 10 a 12 sin punto). Hizo lo razonable: colocó el pin, lo vio
+dentro del área verde, y guardó la orden. Como no pulsó «Save pin», el punto se perdió y la zona
+volvió a decidirse por el nombre de la ciudad — justo lo que D-219 vino a evitar.
+
+El motivo: el borrador vivía solo en el estado de la ficha (`pinDraft`), y `save()` armaba su
+`payload` desde `d`. El punto no llegaba a la base por ninguna vía que no fuera pulsar ese botón.
+
+### La regla, en una frase
+
+**Si al guardar el pedido hay un pin en borrador visible, se guarda con él, con su procedencia
+real.** Sin diálogo: el usuario lo está viendo y el aviso de zona ya se calcula con él (D-220), así
+que perderlo es lo sorprendente. La procedencia es `"manual"` si el último gesto fue el clic derecho
+de `dropPin`, y `"geocoded"` si fue `lookupAddress`.
+
+**Se guarda también cuando el pedido ya tenía pin, y eso costó dos vueltas.** La primera versión no
+auto-guardaba una propuesta del buscador sobre un pin existente, para no pisar una decisión previa.
+El orquestador la retiró con mejor argumento del que yo tenía: esa excepción producía algo peor que
+lo que evitaba —el usuario vería un punto en el mapa y se guardaría **otro**, el viejo—, y que lo que
+se ve y lo que se guarda sean cosas distintas es el fallo que esta decisión viene a cerrar, no uno
+aceptable. La protección para quien solo quería comprobar una dirección ya existe y es explícita:
+**cancelar descarta el borrador** (D-220). Quien no cancela, se queda lo que está viendo.
+
+Con eso se cayó también una ambigüedad que el auditor había levantado —si medir «ya tenía pin» contra
+el formulario o contra la fila guardada—: ya no hay nada que comparar con el pin previo.
+
+### Por qué la procedencia no es cosmética
+
+`OrderModal.tsx:2827` pinta un aviso al chofer **solo** con `delivery_pin_source === "manual"`: «sin
+dirección formal — se marcó un pin exacto para este sitio. Navegar usa el pin». Etiquetar de manual un
+punto que propuso el buscador se lo encendería **justo en el pedido cuya dirección se acaba de
+encontrar**, diciéndole lo contrario de la verdad. Por eso el borrador recuerda de dónde vino.
+
+**Y ningún valor nuevo.** La base solo acepta `'geocoded'` y `'manual'`
+(`005_map_and_deadline_alerts.sql:22`; la 014 redeclara la columna con `add column if not exists`, sin
+tocar el check, y no hay ningún `drop constraint` posterior). Un tercer valor no rompería «el pin»:
+el borrador viaja dentro del `payload` de `save()`, así que **tumbaría el UPDATE del pedido entero**
+—dirección, tarifa, notas— con el error crudo de Postgres, y quien lo sufriera no lo relacionaría con
+haber movido un pin. Es el mismo patrón de D-217 con `module_access`. Se hace **imposible por tipo**:
+el estado es `"manual" | "geocoded" | null` y la función devuelve `Pick<Delivery, …>`, así que un
+valor inventado no compila.
+
+### Por qué esta rama acaba tocando `savePin`
+
+`savePin` escribía `delivery_pin_source: "manual"` **siempre**, incluso al cerrar un borrador que
+había puesto el buscador: la misma mentira que se corrige un piso más arriba, por la puerta vieja.
+Sacarlo a otra rama habría significado fusionar un arreglo que deja abierto su propio caso. Ahora usa
+la procedencia real.
+
+### Los textos que este arreglo convertía en mentira
+
+El aviso de zona de D-220 decía «por el pin que acaba de colocar — **sin guardar todavía**». Esa
+advertencia existía porque el punto se perdía; al eliminar la pérdida, **asustaría sobre algo que ya
+no ocurre** y empujaría a pulsar un botón por miedo. Y «lo colocó usted» sería falso en la puerta del
+buscador. Ahora son tres estados, sin advertencia: «por el pin que acaba de colocar», «por el punto
+que encontró la búsqueda de dirección» y «por el pin guardado».
+
+**«Save pin» no se toca, y esto se midió antes de decidirlo:** ese botón **nunca escribió en la
+base**. `savePin` hace `set(...)`, que es `setD` (`:191`), o sea el **formulario**; lo que persistía
+el punto era «Guardar» del pedido, entonces y ahora. Así que su etiqueta es hoy tan cierta como ayer y
+no hay nada que renombrar; lo que empujaba a pulsarlo por miedo era el aviso, que ya no está. Sigue
+sirviendo para aplicar el punto y cerrar el mapa sin guardar el resto.
+
+### Qué NO cambia
+
+`delivery-zone.ts`, `pricing.ts` y `geo.ts`, sin tocar: esto es *cómo llega el punto al pedido*, no
+*cómo se decide la zona*. Las dos salvaguardas de D-220 (el borrador solo cuenta con el selector
+abierto; cancelar lo descarta, ahora también su procedencia). Ninguna migración, ninguna columna. Y en
+el `payload` de `save()` solo pueden aparecer tres campos nuevos: `delivery_lat`, `delivery_lng` y
+`delivery_pin_source`.
+
+### Lo no verificado
+
+Nadie ha abierto la ficha en un navegador: que el punto llegue a la base al guardar va por la regla
+—probada en solitario— y por las pruebas de forma sobre el fuente, no por haberlo hecho. La primera
+comprobación cuando el dueño lo use es crear un pedido soltando el pin y **no** pulsar «Save pin»: la
+orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1261 pasados | 3 saltados**
+(main 3689160: 1239 | 3; los +22 son `pin-draft-save.test.ts`).
