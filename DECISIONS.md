@@ -10590,21 +10590,31 @@ río**, así que México queda fuera por construcción, sin ninguna regla especi
 
 ### El cotejo contra los 112 pedidos de producción (medición del orquestador)
 
-Con la función pura corrida contra las filas reales, antes de fusionar:
+Se corrió **dos veces** con la función pura contra las filas reales, y las dos entran aquí porque la
+primera es la que encontró un fallo del contorno.
 
-- **102 los decide el polígono** (99 dentro, 3 fuera); **10 sin punto** caen al método viejo.
-- **91 coinciden** con la clasificación de hoy por ciudad; **11 cambian**.
-- **9 pasan de NO LOCAL a LOCAL, y son exactamente el bug que reportó el dueño**: entregas del
+**Primera pasada** (contorno con el río casi recto): 102 decididos por el polígono (99 dentro, 3
+fuera), 91 coincidencias y **11 cambios**. De esos 11, nueve eran el bug del dueño… y **dos eran un
+fallo mío**: dos direcciones de Brownsville **al norte del río** que el trazado dejaba fuera. Se
+corrigió el tramo (seis vértices, el cauce baja hacia el este) y se repitió.
+
+**Segunda pasada** (el contorno que se fusiona, 20 vértices):
+
+- **102 los decide el polígono: 101 dentro, 1 fuera.** **10 sin punto** caen al método viejo.
+- **93 coinciden** con la clasificación de hoy por ciudad; **9 cambian**, y los nueve son
+  **NO LOCAL → LOCAL**. Las dos de Brownsville ya no cambian.
+- **El único que queda fuera es `340 LIBERTY CIRCLE`**, en 32.525, −94.822: este de Texas, a **561
+  millas**. Era no local y lo sigue siendo — el polígono no se traga entregas lejanas.
+- Control de ciudades: **fuera** Matamoros, Reynosa, Río Bravo, Nuevo Progreso, Raymondville, Port
+  Mansfield y Río Grande City; **dentro** McAllen, Brownsville, South Padre, Port Isabel, Harlingen,
+  Los Fresnos y Edinburg.
+
+Los nueve que cambian **son exactamente el bug que reportó el dueño**: entregas del
   Valle a las que se estaba cobrando la tarifa de fuera (500 + millas) porque la ciudad no se leía
   de la dirección. Tres a `32878 Nayeli St, Los Fresnos` (ciudad leída: «TX»), una a
   `117 Heron Drive, Los Fresnos` («78566»), una a `720 N ARROYO BLVD LOS FRESNOS` (se leía la
   dirección entera), una a `28 Spoonbill Cove Road, Laguna Vista` («TX»), dos a Rancho Viejo y una
   a `4512 LOIRA BVILLE, TX. 78520`.
-- **2 pasaban de LOCAL a NO LOCAL, y eran un fallo mío del contorno**, no un acierto: dos
-  direcciones de Brownsville **al norte del río** —(25.8804, −97.4112) y (25.8801, −97.4321)— que mi
-  primer trazado dejaba fuera porque no seguía la bajada del cauce hacia el este. Corregido con seis
-  vértices en ese tramo; el orquestador vuelve a correr el cotejo entero antes del merge.
-
 **Un dato que salió de paso y NO se arregla aquí:** `LOCAL_CITIES_DEFAULT` dice **«Ranch Viejo»** y
 la ciudad es **Rancho Viejo**, así que por el método de ciudad esas entregas no casaban nunca. No se
 toca en esta rama a propósito: el encargo exige que el respaldo quede **idéntico**, y cambiarlo
@@ -10663,6 +10673,6 @@ las dos APIs (`L.polygon`, `google.maps.Polygon`) y por las pruebas de forma, no
 cotejo contra los 102 pedidos reales **lo corre el orquestador** con la función pura —yo no tengo
 `.env.local`— y su resultado entra aquí antes de fusionar. Los 34 puntos de ciudad son coordenadas de
 centro urbano, no direcciones de clientes. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1206 pasados | 3 saltados**
-(main ed65a6f: 1149 | 3; los +57 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
+(main ed65a6f: 1149 | 3; los +67 son `delivery-zone.test.ts`). Pesos: `/settings` 8,06 → 9,53 kB / 299 kB (el bloque
 nuevo y su mapa diferido); `/map` 296, `/market` 295, `/my-route` 296, `/routes` 318, `/track` 295, sin
 cambio funcional en ninguno.
