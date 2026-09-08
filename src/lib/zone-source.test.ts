@@ -114,21 +114,30 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     // La lógica no sabe si el punto vino de un borrador o de lo guardado —recibe el pedido con las
     // coordenadas ya puestas—, así que esa distinción la hace la ficha, que sí lo sabe.
     expect(src).not.toMatch(/zoneSource: "(draft|saved)"/);
-    expect(leer("src/components/OrderModal.tsx")).toMatch(/\? t\("from the pin you just dropped/);
+    expect(leer("src/components/OrderModal.tsx")).toMatch(/pinDraftSource === "geocoded"/);
   });
-  it("el motivo del borrador avisa de que el pin NO está guardado", () => {
-    // Evidencia de campo: dos pedidos del dueño nacieron sin coordenadas porque puso el pin, vio
-    // el verde y no pulsó «Save pin». El aviso correcto sobre un pin sin guardar puede dar falsa
-    // tranquilidad si no dice que falta guardarlo.
+  it("el motivo distingue los TRES estados, y ya no advierte de perder el punto", () => {
+    // En D-220 el aviso decía «sin guardar todavía», porque entonces el punto se perdía si no se
+    // pulsaba «Save pin». Desde D-NEXT el borrador se guarda con el pedido, así que esa
+    // advertencia asustaría sobre algo que ya no ocurre; y «lo colocó usted» sería falso cuando el
+    // punto lo propuso el buscador de direcciones.
     const src = leer("src/components/OrderModal.tsx");
-    expect(src).toContain('"from the pin you just dropped — not saved yet"');
-    expect(src).toContain('"por el pin que acaba de colocar — sin guardar todavía"');
+    expect(src).toContain('"from the pin you just dropped"');
+    expect(src).toContain('"from the point the address search found"');
+    expect(src).toContain('"por el punto que encontró la búsqueda de dirección"');
+    expect(src).toContain('"from the saved pin"');
+    // Ojo: se prohíbe el TEXTO, no la palabra. El comentario de arriba cita la frase vieja para
+    // explicar por qué se fue, y eso tiene que poder quedarse escrito.
+    expect(src).not.toContain('"from the pin you just dropped — not saved yet"');
+    expect(src).not.toContain('"por el pin que acaba de colocar — sin guardar todavía"');
   });
   it("«Cancelar» descarta el borrador, en los DOS selectores de pin", () => {
     // Lo encontró el auditor: «Cancelar» solo cerraba el selector y dejaba `pinDraft` puesto, así
     // que el aviso habría seguido enseñando la zona de un pin descartado.
     const src = leer("src/components/OrderModal.tsx");
-    const cancelar = src.match(/onClick=\{\(\) => \{ setPinDraft\(null\); setShowPinPicker\(false\); \}\}/g) ?? [];
+    // Desde D-NEXT «Cancelar» limpia también la procedencia del borrador, así que el patrón lleva
+    // `setPinDraftSource(null)` en medio. Lo que se comprueba sigue siendo lo mismo: que descarta.
+    const cancelar = src.match(/onClick=\{\(\) => \{ setPinDraft\(null\); setPinDraftSource\(null\); setShowPinPicker\(false\); \}\}/g) ?? [];
     expect(cancelar).toHaveLength(2);
   });
   it("con el selector cerrado la zona vuelve al pin guardado, o a la ciudad", () => {
