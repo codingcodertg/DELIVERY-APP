@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPolygon, LatLng } from "leaflet";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
+import { dibujoTienda, estiloTienda, TIENDA_CLASICA, type PapelTienda } from "@/lib/store-pins";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -54,6 +55,14 @@ export interface StoreMarker {
   name: string;
   lat: number;
   lng: number;
+  /**
+   * Qué es esta tienda **para el pedido que se edita** (D-NEXT): `origen` la del pedido,
+   * `otra` las demás. Solo lo pasa el selector de pin de la ficha.
+   *
+   * Ausente —los cuatro mapas de despacho— es el punto rojo de siempre, sin un pixel de
+   * diferencia: allí no hay pedido con el que comparar, y el rojo no compite con nada.
+   */
+  papel?: PapelTienda;
 }
 
 /** A driver's live position, drawn as a moving truck marker on top of
@@ -339,14 +348,26 @@ export function LeafletMap({
       storeMarkersRef.current = [];
       for (const s of stores) {
         if (s.lat == null || s.lng == null) continue;
-        const icon = L.divIcon({
-          className: "",
-          html: `<div style="width:24px;height:24px;border-radius:50%;background:#e11414;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.55)"></div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        });
-        const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: 1000, interactive: true }).addTo(mapRef.current!);
-        marker.bindTooltip(`🏬 ${s.name}`, { permanent: false, direction: "top" });
+        // Con papel (el selector de pin de la ficha): el cuadrado del módulo compartido, el mismo
+        // SVG que dibuja el mapa de Google. Sin papel: el punto rojo de siempre, intacto.
+        const estilo = s.papel ? estiloTienda(s.papel) : null;
+        const dib = estilo ? dibujoTienda(estilo, s.name) : null;
+        const icon = dib
+          ? L.divIcon({
+              className: "",
+              html: dib.svg,
+              iconSize: [dib.ancho, dib.alto],
+              iconAnchor: [dib.anclaX, dib.anclaY],
+            })
+          : L.divIcon({
+              className: "",
+              html: `<div style="width:${TIENDA_CLASICA.diametro}px;height:${TIENDA_CLASICA.diametro}px;border-radius:50%;background:${TIENDA_CLASICA.fill};border:${TIENDA_CLASICA.grosor}px solid ${TIENDA_CLASICA.borde};box-shadow:0 2px 6px rgba(0,0,0,.55)"></div>`,
+              iconSize: [TIENDA_CLASICA.diametro, TIENDA_CLASICA.diametro],
+              iconAnchor: [TIENDA_CLASICA.diametro / 2, TIENDA_CLASICA.diametro / 2],
+            });
+        const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: estilo ? estilo.zIndex : 1000, interactive: true }).addTo(mapRef.current!);
+        // El nombre de la destacada ya va dentro del dibujo; el resto lo enseña al pasar el ratón.
+        if (!estilo?.etiquetaPermanente) marker.bindTooltip(`🏬 ${s.name}`, { permanent: false, direction: "top" });
         storeMarkersRef.current.push(marker);
       }
     })();
