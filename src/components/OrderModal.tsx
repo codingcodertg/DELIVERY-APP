@@ -295,12 +295,14 @@ export function OrderModal({
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
   const zoneWhy = feeSuggestion.zoneSource === "pin"
+    // Tres estados, y ninguno advierte ya de perder el punto: desde D-NEXT el borrador se guarda
+    // con el pedido, así que la advertencia de D-220 («sin guardar todavía») asustaría sobre algo
+    // que ya no ocurre. Y se distingue quién puso el punto, porque «lo colocó usted» sería falso
+    // cuando lo propuso el buscador de direcciones.
     ? (pinVisible
-        // «not saved yet» no es un adorno: sin pulsar «Save pin» el pedido se guarda SIN punto y
-        // la zona vuelve a decidirse por la ciudad. Pasó de verdad — dos pedidos de prueba del
-        // dueño nacieron así el 2026-09-08 (medición del orquestador). El aviso ahora dice la
-        // verdad de lo que se ve Y avisa de que aún no está guardado.
-        ? t("from the pin you just dropped — not saved yet", "por el pin que acaba de colocar — sin guardar todavía")
+        ? (pinDraftSource === "geocoded"
+            ? t("from the point the address search found", "por el punto que encontró la búsqueda de dirección")
+            : t("from the pin you just dropped", "por el pin que acaba de colocar"))
         : t("from the saved pin", "por el pin guardado"))
     : feeSuggestion.zoneSource === "city"
       ? t(`from the address city (${feeSuggestion.city || "not recognized"}) — no pin on this order`,
@@ -605,7 +607,10 @@ export function OrderModal({
   };
 
   const savePin = async (lat: number, lng: number) => {
-    set("delivery_lat", lat); set("delivery_lng", lng); set("delivery_pin_source", "manual");
+    // La procedencia real, no siempre "manual": este botón también cierra un borrador que puso el
+    // buscador de direcciones, y etiquetarlo a mano encendería el aviso del chofer sobre un punto
+    // que el usuario no colocó. Mismo criterio que al guardar el pedido (D-NEXT).
+    set("delivery_lat", lat); set("delivery_lng", lng); set("delivery_pin_source", pinDraftSource ?? "manual");
     setShowPinPicker(false);
     // Fill the address if the drop didn't already (e.g. geocode was still in flight).
     if (!(d.delivery_address || "").trim()) await geocodePin(lat, lng);
