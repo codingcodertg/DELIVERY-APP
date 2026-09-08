@@ -10399,3 +10399,93 @@ está leída en la cascada, no reproducida contra la base. Y queda dicho lo que 
 hace: a esa persona hay que **concederle un módulo** para que deje de aterrizar en `/no-access`; el
 arreglo hace que ese clic funcione, no lo da por hecho. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1123 pasados | 3 saltados**
 (main 16d4454: 1103 | 3; los +20 son `module-access-write.test.ts`). `/home/users` 11,7 kB / 295 kB, sin cambio.
+
+## D-NEXT · En Mi ruta, «Recoger» y «Entregar» cierran la parada de un toque (y dejan de prometer etapas imposibles)
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** Andrés, literal: *«pickup and delivered needs 2 taps: en Mi ruta, si no he abierto la
+orden, el botón de Pickup o Deliver en vez de cambiar la etapa me abre el formulario y me toca volver
+a presionar»*. Sin migración.
+
+### El bug, medido
+
+`src/app/(app)/my-route/page.tsx:255`: el botón verde de la tarjeta «Siguiente parada» decía
+`🚚 Recoger` o `✅ Entregar` y su `onClick` era `setOpen(next)`. **La etiqueta prometía una etapa y lo
+que hacía era abrir la ficha.** El segundo toque no aportaba nada, porque lo que la ficha pide en ese
+paso hoy no existe:
+
+- **Recoger** ya tenía una vía de un toque documentada dentro de la ficha (`confirmPickup(quickTotal)`,
+  «the driver's one-tap path… no pallet prompt and no split»): el recuento es opcional y no hay nada
+  obligatorio que preguntar.
+- **Entregar** solo abre formulario si hace falta prueba: firma encendida, o comprobante exigido sin
+  fotos. **En producción los dos ajustes están en `false`** (medido por el orquestador), así que hoy no
+  hay nada pendiente y el segundo toque es fricción pura.
+
+### Un segundo bug que apareció al mirar el ternario
+
+`next` es `stops.find((d) => d.stage !== "delivered")` (:61) sobre una lista que solo descarta
+`canceled` y `rejected` (:42-48). O sea que a `next` pueden llegar **seis** etapas: `draft`, `pending`,
+`approved`, `fulfilling`, `ready` y `picked_up`. Con el ternario binario (`stage === "ready" ? Recoger
+: Entregar`), **un pedido en `fulfilling` —lo normal a primera hora, asignado y con fecha de hoy— ya
+pintaba «✅ Entregar»**. Mientras el botón solo abría la ficha era inofensivo; en cuanto ejecuta, sería
+prometer una transición que `LEGAL_TRANSITIONS` (`constants.ts:750-760`) rechaza. Lo trajo el auditor
+en su línea base y lo confirmé leyendo las dos listas.
+
+### Qué se hizo
+
+**`src/lib/one-tap-stop.ts`** (puro, sin React ni red), que usan **las dos** pantallas:
+
+| Función | Qué decide |
+|---|---|
+| `podSinCumplir(ajustes, fotos, firma)` | la primitiva: la oficina exige comprobante y no lo cumple ni foto ni firma |
+| `pruebaPendiente(ajustes, fotos)` | `firma encendida ‖ podSinCumplir(…, null)` — si hace falta el formulario |
+| `accionParada(etapa, ajustes, fotos)` | `pickup` · `deliver` · `pod` · `open` |
+| `escrituraRecogida({pedido, me, gps, t})` | nota + `extra` de la recogida: GPS, claim del chofer y recuento |
+| `extraRecogida` · `extraEntrega` · `claimDelChofer` · `palletsDeRecogida` | las piezas |
+
+- **El botón ejecuta**, con la etiqueta y la acción salidas de la **misma** llamada a `accionParada`:
+  `ready` → recoge; `picked_up` sin prueba pendiente → entrega; `picked_up` con prueba pendiente →
+  abre la ficha y la etiqueta lo dice («Prueba de entrega…»); **las otras cuatro etapas → «Ver
+  orden»**. Se mantiene un botón en esas etapas en vez de esconderlo: la tarjeta no tiene ninguna otra
+  forma de abrir el pedido, y quitarlo cambiaría un botón que miente por una tarjeta sin salida.
+- **Un toque, no dos:** el botón se deshabilita mientras guarda —por id de parada, para que se vea
+  cuál— y la función sale sola si ya hay una escritura en curso.
+- **El GPS no bloquea:** se espera lo mismo que espera la ficha (`captureLocationSplit`, 1,2 s) y, si
+  no llega, se guarda igual y la coordenada tardía se adjunta después en silencio, como hace la ficha.
+- **Entregar de un toque no inventa datos:** escribe hora y posición, y deja `pod_received_by` y
+  `pod_signature` en nulo. Esa vía solo existe cuando no había nada que pedir; escribir un nombre vacío
+  sería fabricar una prueba.
+
+### La duplicación que había, y que era peor de lo que parecía
+
+La regla del comprobante no estaba en un sitio, sino en **dos**: `podFormNeeded` (`signatureOn ||
+podOwed`, :785) y una segunda guarda dentro del guardado (:848) que además aceptaba la firma recién
+hecha. No eran dos copias: eran la misma regla mirada en dos momentos, escritas por separado y libres
+de divergir. Ahora las dos salen de `podSinCumplir`, con la firma como parámetro. La **carga completa**
+—la vía rápida del chofer y la confirmada por la oficina— se escribe con `escrituraRecogida`. La
+**división de carga parcial** no pasa por el helper y sigue igual: su nota y su `order_suffix` son
+suyos, y meterla ahí habría sido generalizar un caso que no comparte con nadie.
+
+### Punto 5: otros botones que prometen una etapa (medido, no tocado)
+
+Buscados `AttentionPanel`, `/driver` y `OrdersTable`: **ninguno** promete una etapa y solo abre la
+ficha. `AttentionPanel` lista avisos («Entregada sin comprobante») y su botón abre el pedido, que es lo
+que dice; `/driver` y `OrdersTable` abren la fila con `onOpen`, sin botón de etapa. **El de
+`my-route:255` era el único.** Nada que arreglar fuera de aquí.
+
+### Qué NO cambia
+
+`OrderModal` fuera de la extracción: mismos textos, mismas columnas, mismas condiciones. La división
+de carga parcial. `LEGAL_TRANSITIONS`, la RLS, el esquema. Ningún ajuste: si mañana se enciende la
+firma, el botón pasa solo a «Prueba de entrega…» porque lee el mismo ajuste que la ficha.
+
+### Lo no verificado
+
+**Nadie pulsó el botón contra producción, a propósito:** cerrar una parada de verdad mueve una entrega
+real, y eso no se hace para probar (regla permanente del proyecto). Que la escritura sea la misma que
+la de la ficha va por compartir el constructor y por la prueba en solitario, no por haberlo visto. El
+GPS no se ejerció con un dispositivo: la vía sin fix está probada, la de fix tardío va por leer
+`captureLocationSplit`. Y el estado de los dos ajustes en producción (`false`) es medición del
+orquestador, no mía. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1147 pasados | 3 saltados**
+(main 2568bfd: 1124 | 3; los +23 son `one-tap-stop.test.ts`). `/my-route` 3,87 → 5,12 kB / 295 kB: +1,25 kB de ruta
+por la acción y el helper; el peso compartido no se mueve.
