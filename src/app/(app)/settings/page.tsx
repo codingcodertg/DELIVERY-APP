@@ -6,7 +6,9 @@ import { usePrefs } from "@/lib/prefs";
 import Link from "next/link";
 import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
+import dynamic from "next/dynamic";
 import { LOCAL_CITIES_DEFAULT } from "@/lib/pricing";
+import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 
 export default function SettingsPage() {
@@ -512,6 +514,16 @@ function TimeInput({ label, value, onSave }: { label: string; value: string; onS
   );
 }
 
+// El mapa de la zona entra solo cuando se abre Ajustes (D-209): arrastra el mapa entero y esta
+// pantalla no lo necesita hasta que alguien mira este bloque.
+const ZoneMap = dynamic(() => import("@/components/MapView").then((m) => {
+  const Zona = ({ height }: { height: number }) => (
+    <m.MapView zone={LOCAL_ZONE_LATLNG} fitTo={LOCAL_ZONE_DEFAULT} height={height} />
+  );
+  Zona.displayName = "ZonaLocalMap";
+  return Zona;
+}), { ssr: false, loading: () => <div className="hint">…</div> });
+
 function LocalZonePricing({ settings, saveSettings, notify, t }: {
   settings: Settings;
   saveSettings: (patch: Partial<Settings>) => void;
@@ -537,6 +549,23 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
           "La tarifa de entrega se calcula automáticamente a partir de las millas de la ruta (fórmula abajo). La lista de ciudades locales solo define la insignia LOCAL / NO-LOCAL — una entrega no local se marca para aprobación del gerente.",
         )}
       </p>
+
+      <div style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ marginTop: 0 }}>{t("The local zone", "La zona local")}</div>
+        <div className="hint" style={{ marginBottom: 8 }}>
+          {t(
+            "An order with a delivery pin is LOCAL when the pin falls inside this outline — the southern edge is the Rio Grande, so anything across the border is out. The city list below is only the fallback for orders with no pin.",
+            "Un pedido con pin de entrega es LOCAL cuando el pin cae dentro de este contorno — el borde sur es el Río Grande, así que lo que queda al otro lado no entra. La lista de ciudades de abajo es solo el respaldo para los pedidos sin pin.",
+          )}
+        </div>
+        <ZoneMap height={300} />
+        <div className="hint" style={{ marginTop: 6 }}>
+          {t(
+            "The outline lives in the code (LOCAL_ZONE_DEFAULT): moving it needs a deploy, not a setting.",
+            "El contorno vive en el código (LOCAL_ZONE_DEFAULT): moverlo necesita un despliegue, no un ajuste.",
+          )}
+        </div>
+      </div>
 
       <div className="field">
         <label>{t("Local cities (comma-separated)", "Ciudades locales (separadas por coma)")}</label>

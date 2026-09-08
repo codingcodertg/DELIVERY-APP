@@ -1,7 +1,10 @@
 // Geofence math. Supports both polygon sites (property outline + padding) and
 // legacy circle sites (center + radius). Runs server-side in the clock-in action.
 
-export type LatLng = { lat: number; lng: number };
+// El par/impar y su tipo viven en lib/geo.ts desde D-NEXT (los comparte la zona de entrega);
+// se reexportan para que todo lo de fichaje siga importándolos de aquí.
+export { pointInPolygon, type LatLng } from "@/lib/geo";
+import { pointInPolygon, type LatLng } from "@/lib/geo";
 
 export type GeoSite = {
   id: string;
@@ -31,19 +34,6 @@ function toXY(lat: number, lng: number, lat0: number, lng0: number) {
     x: (lng - lng0) * Math.cos((lat0 * Math.PI) / 180) * 111320,
     y: (lat - lat0) * 110540,
   };
-}
-
-export function pointInPolygon(lat: number, lng: number, poly: LatLng[]) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const yi = poly[i].lat;
-    const xi = poly[i].lng;
-    const yj = poly[j].lat;
-    const xj = poly[j].lng;
-    const intersect = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
-  }
-  return inside;
 }
 
 function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number) {

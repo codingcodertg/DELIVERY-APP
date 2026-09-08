@@ -1,5 +1,6 @@
 import type { Settings } from "@/lib/types";
 import { cityFromAddress, todayISO } from "@/lib/utils";
+import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formulas).
@@ -77,7 +78,10 @@ export interface FeeSuggestion {
  * above) plus a same-day surcharge when the delivery date is today. The
  * delivery city only sets the zone badge + approval flag. */
 export function suggestDeliveryFee(
-  d: { delivery_address?: string | null; route_miles?: number | null; delivery_date?: string | null },
+  d: {
+    delivery_address?: string | null; route_miles?: number | null; delivery_date?: string | null;
+    delivery_lat?: number | null; delivery_lng?: number | null;
+  },
   s?: Partial<Settings> | null,
 ): FeeSuggestion {
   const hasAddr = !!(d.delivery_address || "").trim();
@@ -89,7 +93,10 @@ export function suggestDeliveryFee(
   const add = sameDay ? surcharge : 0;
   if (!hasAddr) return { zone: "unknown", city: "", list: null, discount: null, needsApproval: false, sameDay, sameDaySurcharge: add };
 
-  const local = isLocalCity(city, s);
+  // La zona sale del PUNTO cuando lo hay (D-NEXT): el nombre de la ciudad se saca de texto
+  // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
+  const porPunto = puntoEnZonaLocal(d.delivery_lat, d.delivery_lng);
+  const local = porPunto ?? isLocalCity(city, s);
   const miles = d.route_miles;
   return {
     zone: local ? "local" : "nonlocal",
