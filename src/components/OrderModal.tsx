@@ -16,6 +16,8 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
+import { tiendasParaElMapa } from "@/lib/store-pins";
+import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
@@ -289,6 +291,18 @@ export function OrderModal({
   // borrador deja de contar, pero para entonces `d.delivery_lat/lng` ya tienen ese mismo punto:
   // el resultado no cambia.
   const pinVisible = showPinPicker && pinDraft ? pinDraft : null;
+
+  // ---- Las tiendas, siempre visibles en el mapa del pin (D-NEXT) ----
+  // Pedido del dueño: al marcar la ubicación exacta, tener delante dónde están las tiendas. El
+  // hook es el mismo que usan Mapa, Rutas, Mi ruta y Rastreo, así que la geocodificación (las 7
+  // ya traen `lat`/`lng`, así que no la hay) y su caché se comparten en vez de duplicarse.
+  const tiendasDelMapa = useStoreMarkers(settings.stores);
+  // La del pedido va destacada: es el origen desde el que se cuentan las millas, y es lo que
+  // convierte el mapa en «de aquí a aquí». Se compara por nombre normalizado — ver `store-pins.ts`.
+  const tiendasConPapel = useMemo(
+    () => tiendasParaElMapa(tiendasDelMapa, d.store),
+    [tiendasDelMapa, d.store],
+  );
   const feeSuggestion = suggestDeliveryFee(
     pinVisible ? { ...d, delivery_lat: pinVisible[0], delivery_lng: pinVisible[1] } : d,
     settings,
@@ -1513,6 +1527,10 @@ export function OrderModal({
                 <MapView
                   pickable
                   zone={LOCAL_ZONE_LATLNG}
+                  // Referencia, no encuadre: las tiendas NO entran en `fitTo` ni en `center`. Con
+                  // siete puntos dentro del marco el mapa se alejaría y se perdería el detalle
+                  // justo donde importa, que es alrededor del pin.
+                  stores={tiendasConPapel}
                   pickedPoint={pinDraft}
                   center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
                   onPick={(lat, lng) => dropPin(lat, lng)}
@@ -1908,6 +1926,10 @@ export function OrderModal({
                 <MapView
                   pickable
                   zone={LOCAL_ZONE_LATLNG}
+                  // Referencia, no encuadre: las tiendas NO entran en `fitTo` ni en `center`. Con
+                  // siete puntos dentro del marco el mapa se alejaría y se perdería el detalle
+                  // justo donde importa, que es alrededor del pin.
+                  stores={tiendasConPapel}
                   pickedPoint={pinDraft}
                   center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
                   onPick={(lat, lng) => dropPin(lat, lng)}

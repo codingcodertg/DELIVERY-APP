@@ -10918,3 +10918,115 @@ Nadie ha abierto la ficha en un navegador: que el punto llegue a la base al guar
 comprobación cuando el dueño lo use es crear un pedido soltando el pin y **no** pulsar «Save pin»: la
 orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1262 pasados | 3 saltados**
 (main 3689160: 1239 | 3; los +23 son `pin-draft-save.test.ts`).
+
+## D-NEXT · Las tiendas se ven siempre en el mapa del pin, y la del pedido va destacada
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** el dueño, literal: *«donde se pone set location, pon los puntos donde están las
+tiendas siempre, para referencia»*. Sin migración.
+
+### Qué faltaba
+
+Al marcar la ubicación exacta de una entrega, el mapa enseñaba calles y un pin. Ningún punto
+conocido con el que comparar: de dónde sale el camión no se veía, aunque las millas se cuenten
+justo desde ahí. Las siete tiendas ya se pintaban en Mapa, Rutas, Mi ruta y Rastreo — en el
+selector de pin, no.
+
+### Lo que ya existía, y por qué esta rama es corta
+
+Casi todo el camino estaba hecho en `main`, y se midió antes de escribir nada (línea base del
+auditor, confirmada por mí):
+
+- `MapView` ya acepta `stores?: StoreMarker[]` y **los dos motores ya los dibujan**, cada uno en su
+  propio efecto.
+- `useStoreMarkers(settings.stores)` ya resuelve cada tienda a un punto, con caché compartida entre
+  pantallas; usa `s.lat`/`s.lng` cuando están —**las siete las tienen**, medido por el
+  orquestador— y solo geocodifica lo que falte. O sea: **cero llamadas nuevas a la API de mapas**.
+
+Así que lo único que faltaba de verdad era pasar esas tiendas a los **dos** selectores de pin de la
+ficha y **destacar la del pedido**. El dibujo existente se **extiende**, no se reescribe: rehacerlo
+habría sido la duplicación que se rechazó en D-218 con `confirmPickup`.
+
+### La tienda del pedido, distinta de las demás y distinta de la entrega
+
+`d.store` es el origen desde el que se cuentan las millas: es lo que convierte el mapa en «de aquí
+a aquí». Va en **azul (`--accent`), más grande y con el nombre siempre puesto**; las otras seis en
+**gris (`--gray`), pequeñas**, con el nombre al pasar el ratón.
+
+**Ni rojo ni verde, y no es estética:** el pin de la entrega es 📍 —rojo— y la zona local es verde
+(D-219). Una tienda roja junto al pin rojo obliga a mirar dos veces para saber cuál es la entrega,
+que es exactamente lo que el encargo venía a evitar. Y la diferencia **no depende solo del color**:
+la tienda es un **cuadrado** con una línea de toldo, mientras los pedidos son círculos y la entrega
+una gota. En blanco y negro también se distinguen.
+
+**Siete nombres permanentes habrían saturado** un mapa de 280 px con las ciudades del Valle tan
+juntas, así que solo la destacada lleva etiqueta fija; en las demás el nombre es *accesible*, no
+*visible*. La etiqueta hace doble trabajo: es el nombre y es parte del destacado.
+
+### Un solo dibujo para los dos motores
+
+La geometría vive en `src/lib/store-pins.ts` y sale como **SVG**: Google lo consume como URL
+`data:` y Leaflet lo mete tal cual en un `divIcon`. `MapView` conmuta según haya llave de navegador
+y **producción usa Google**, así que un cuadrado que solo existiera en un motor sería medio
+arreglo; con un solo SVG los dos mapas enseñan lo mismo por construcción, no por parecido. Una
+prueba compara la URL de Google, decodificada, con el SVG de Leaflet.
+
+### La comparación por nombre, dicha en voz alta
+
+La ficha conoce su tienda por **nombre** (`d.store`, una cadena) y Ajustes tiene otra lista de
+cadenas. Hoy casan exacto los cuatro valores que existen en pedidos reales (medición del orquestador,
+2026-09-08: los cuatro nombres en uso coinciden con los de Ajustes), así que no hay deuda que
+arrastrar. Aun así se compara **normalizado**: `trim`, minúsculas y espacios internos colapsados.
+El motivo es que el fallo contrario sería **mudo**: un nombre con un espacio de más no daría error,
+simplemente no habría destacado y nadie sabría por qué. Y se normaliza **solo eso**: ni prefijos ni
+parecidos — un nombre que sea el principio de otro no lo destaca, y hay pruebas de las dos
+direcciones.
+
+**Las pruebas usan nombres inventados, no los reales, y esto se corrigió sobre la marcha.** La
+primera versión clavaba los cuatro nombres medidos en producción, para que un renombrado saltara.
+El orquestador lo retiró con razón: renombrar una tienda desde Ajustes es algo que el dueño tiene
+todo el derecho a hacer y que no rompe nada, y una prueba así habría puesto el CI en rojo
+señalando un cambio legítimo de datos como si fuera un fallo. Lo que se prueba es la lógica de
+emparejar —que no depende de cómo se llame ninguna tienda— más el caso del renombrado: un pedido
+cuya tienda ya no está en Ajustes no destaca ninguna y no revienta.
+
+### El encuadre no cambia — criterio explícito
+
+Las tiendas **no entran en `fitTo` ni en `center`**. Con siete puntos dentro del marco el mapa se
+alejaría y se perdería el detalle justo alrededor del pin, que es lo que se está mirando. Se ven
+las que caigan dentro, y ya. Está sostenido por construcción —el efecto de tiendas de cada motor no
+toca el encuadre— y por una prueba que lee ese efecto y comprueba que no aparece `fitBounds`,
+`latLngBounds`, `.extend(`, `setView` ni `setZoom`.
+
+### Qué NO cambia
+
+Los **cuatro** mapas de despacho (Mapa, Rutas, Mi ruta, Rastreo) no pasan el campo nuevo, así que
+caen por la rama clásica y siguen con su punto rojo, sin un pixel de diferencia: `papel` es
+opcional. Ninguna escritura sobre `settings.stores` —las tiendas se leen—, ninguna dependencia
+nueva, ninguna migración, ninguna llamada nueva a la API de mapas.
+
+**Los dos motores no dibujan igual esa tienda, y esta rama tampoco lo arregla.** Lo midió el
+auditor sobre `main`: Google es un SVG de 26×26 con `circle r="9"` y el borde **a caballo** del
+trazo; Leaflet es un `div` de 24×24 con el borde **por fuera** y una sombra. Unificarlos habría
+sido lo bonito, y es justo lo que **no** se ha hecho: cada motor conserva su propio dibujo
+carácter a carácter, porque unificar habría cambiado el aspecto de la tienda en cuatro pantallas
+que este encargo no tocaba. El SVG compartido es solo el **cuadrado nuevo**. Que la asimetría siga
+ahí queda escrito para quien algún día quiera cerrarla a propósito.
+
+**El `#e11414` de ese punto rojo se queda, y se dice por qué.** No es una variable del tema, así
+que la regla de «sin hex inventados» pediría cambiarlo; pero cambiarlo aquí movería el color en
+cuatro pantallas dentro de un encargo que pedía otra cosa. Lo que sí se hizo es **sacarlo de los dos
+motores a una sola constante** (`TIENDA_CLASICA`), donde antes estaba escrito dos veces: el color
+pintado es idéntico, y quien lo cambie algún día verá en el mismo sitio que toca los cuatro mapas a
+la vez. Los colores **nuevos** sí salen del tema, leídos en tiempo de ejecución con el literal real
+de `globals.css` como único respaldo, igual que el verde de la zona (D-219).
+
+### Lo no verificado
+
+Nadie ha abierto la ficha en un navegador: que los cuadrados aparezcan, que la etiqueta caiga
+debajo del punto y que el ancla no desplace la tienda destacada van por las pruebas del dibujo y
+por la geometría del SVG, no por haberlo visto. También sin verificar: si alguien cambia de tema
+**con el selector abierto**, los colores no se recalculan hasta que el mapa se redibuje — misma
+limitación que el verde de la zona desde D-219, y no la arregla esta rama. `verify.mjs`:
+en verde sobre `.next` limpio, en solitario: **1285 pasados | 3 saltados**
+(main 0925c0e: 1262 | 3; los +23 son `store-pins.test.ts`).
