@@ -292,7 +292,7 @@ export function OrderModal({
   // el resultado no cambia.
   const pinVisible = showPinPicker && pinDraft ? pinDraft : null;
 
-  // ---- Las tiendas, siempre visibles en el mapa del pin (D-NEXT) ----
+  // ---- Las tiendas, siempre visibles en el mapa del pin (D-222) ----
   // Pedido del dueño: al marcar la ubicación exacta, tener delante dónde están las tiendas. El
   // hook es el mismo que usan Mapa, Rutas, Mi ruta y Rastreo, así que la geocodificación (las 7
   // ya traen `lat`/`lng`, así que no la hay) y su caché se comparten en vez de duplicarse.

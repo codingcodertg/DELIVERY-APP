@@ -32,3 +32,4 @@ parado desde el 2026-09-02.
 | 14 | `zona-local-geocerca` | Pedido del dueño 2026-09-08: la zona local del delivery fee por geocerca (río de borde sur) en vez de por nombre de ciudad, y la zona en verde en los mapas | **fusionado D-219** (PR #35): 9 de 112 pedidos dejan de cobrarse como no locales |
 | 15 | `zona-usa-el-pin` | Bug 2026-09-08: el aviso de zona ignoraba el pin en borrador («estoy dentro del verde y me sale not local»); y Lyford entra entera en la zona | **fusionado D-220** (PR #36) |
 | 16 | `pin-borrador-se-guarda` | Bug 2026-09-08: el pin colocado se perdía al guardar el pedido sin pulsar «Save pin» (dos pedidos nacieron sin coordenadas); se guarda con su procedencia real | **fusionado D-221** (PR #37) |
+| 17 | `tiendas-en-el-mapa` | Pedido del dueño 2026-09-08: las tiendas siempre visibles en el mapa del pin, con la del pedido destacada | **fusionado D-222** (PR #38) |

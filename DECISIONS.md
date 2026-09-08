@@ -10919,7 +10919,7 @@ comprobación cuando el dueño lo use es crear un pedido soltando el pin y **no*
 orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1262 pasados | 3 saltados**
 (main 3689160: 1239 | 3; los +23 son `pin-draft-save.test.ts`).
 
-## D-NEXT · Las tiendas se ven siempre en el mapa del pin, y la del pedido va destacada
+## D-222 · Las tiendas se ven siempre en el mapa del pin, y la del pedido va destacada
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** el dueño, literal: *«donde se pone set location, pon los puntos donde están las

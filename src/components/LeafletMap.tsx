@@ -56,7 +56,7 @@ export interface StoreMarker {
   lat: number;
   lng: number;
   /**
-   * Qué es esta tienda **para el pedido que se edita** (D-NEXT): `origen` la del pedido,
+   * Qué es esta tienda **para el pedido que se edita** (D-222): `origen` la del pedido,
    * `otra` las demás. Solo lo pasa el selector de pin de la ficha.
    *
    * Ausente —los cuatro mapas de despacho— es el punto rojo de siempre, sin un pixel de

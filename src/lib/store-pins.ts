@@ -1,5 +1,5 @@
 // ============================================================
-// Las tiendas en el mapa del selector de pin (D-NEXT).
+// Las tiendas en el mapa del selector de pin (D-222).
 //
 // Pedido del dueño: «donde se pone set location, pon los puntos donde están las tiendas siempre,
 // para referencia». Al soltar el pin de una entrega no había ningún punto conocido con el que
