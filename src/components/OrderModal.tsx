@@ -270,7 +270,7 @@ export function OrderModal({
   // Only ever a SUGGESTION: the fee stays blank until the rep picks List or
   // Discount (or types an amount). It used to auto-fill with List once the
   // miles resolved, which quietly committed a price nobody had agreed to.
-  // El punto que decide la zona es el que el usuario TIENE DELANTE (D-NEXT). Con un pin en
+  // El punto que decide la zona es el que el usuario TIENE DELANTE (D-220). Con un pin en
   // borrador —soltado en el mapa y todavía sin «Save pin»— `d.delivery_lat/lng` siguen valiendo
   // lo de antes, así que el aviso se calculaba con el pin viejo (o con ninguno) mientras el mapa
   // ya enseñaba el nuevo dentro del área verde. El borrador NO se escribe en el pedido: solo

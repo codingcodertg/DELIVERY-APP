@@ -59,7 +59,7 @@ export function discountFee(miles: number, local = true): number {
 export type DeliveryZone = "local" | "nonlocal" | "unknown";
 
 /**
- * De dónde salió la zona (D-NEXT). No es adorno: el aviso «No local» sin motivo se lee como un
+ * De dónde salió la zona (D-220). No es adorno: el aviso «No local» sin motivo se lee como un
  * error del sistema, y quien lo mira no sabe si le falta poner el pin o si de verdad la entrega
  * está fuera. El dueño perdió un rato justo en eso.
  */

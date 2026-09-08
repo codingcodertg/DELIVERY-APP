@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { suggestDeliveryFee } from "./pricing";
 
-// El bug de la captura (D-NEXT): el dueño suelta el pin, lo VE dentro del área verde, y debajo
+// El bug de la captura (D-220): el dueño suelta el pin, lo VE dentro del área verde, y debajo
 // sigue diciendo «No local». La zona no mentía —ese punto está dentro— pero el aviso se calculaba
 // con `d.delivery_lat/lng`, que con un pin en borrador todavía valen lo de antes.
 

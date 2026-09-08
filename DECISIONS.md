@@ -10692,7 +10692,7 @@ centro urbano, no direcciones de clientes. `verify.mjs`: en verde sobre `.next` 
 nuevo y su mapa diferido); `/map` 296, `/market` 295, `/my-route` 296, `/routes` 318, `/track` 295, sin
 cambio funcional en ninguno.
 
-## D-NEXT · La zona la decide el pin que el usuario está viendo, y el aviso dice de dónde sale
+## D-220 · La zona la decide el pin que el usuario está viendo, y el aviso dice de dónde sale
 
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** Andrés, con captura, en caliente sobre D-219: coloca el pin en el mapa de la ficha,
