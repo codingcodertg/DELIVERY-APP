@@ -10880,6 +10880,20 @@ el punto era «Guardar» del pedido, entonces y ahora. Así que su etiqueta es h
 no hay nada que renombrar; lo que empujaba a pulsarlo por miedo era el aviso, que ya no está. Sigue
 sirviendo para aplicar el punto y cerrar el mapa sin guardar el resto.
 
+### La regla vive fuera del componente, y eso lo decidió una debilidad admitida
+
+La primera versión dejaba las cinco líneas dentro de `OrderModal` y las **reproducía** en la prueba,
+afirmando luego contra el fuente que la ficha contenía esas mismas condiciones. Eso comprueba que hoy
+coinciden, no que la regla sea correcta: cambiando la ficha y la copia a la vez, no salta nada. Se
+dijo antes de que nadie firmara, y el orquestador pidió extraerla, con el argumento que la decide —lo
+que esas líneas deciden **no es presentación**: son las coordenadas y la procedencia que acaban en la
+base, y esa procedencia enciende el aviso que lee el chofer—.
+
+`src/lib/pin-draft.ts` (puro) recibe los cuatro estados de la ficha y devuelve qué escribir, o `null`,
+como `escrituraRecogida` en D-218. La prueba **importa la función que corre de verdad**, y una
+afirmación comprueba que la ficha ya no tiene copia propia. El precedente pesa: la prueba real de
+D-218 encontró el recuento de cero **al escribirse**; una prueba espejo confirma, pero no encuentra.
+
 ### Qué NO cambia
 
 `delivery-zone.ts`, `pricing.ts` y `geo.ts`, sin tocar: esto es *cómo llega el punto al pedido*, no
@@ -10894,4 +10908,4 @@ Nadie ha abierto la ficha en un navegador: que el punto llegue a la base al guar
 —probada en solitario— y por las pruebas de forma sobre el fuente, no por haberlo hecho. La primera
 comprobación cuando el dueño lo use es crear un pedido soltando el pin y **no** pulsar «Save pin»: la
 orden tiene que nacer con coordenadas. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1261 pasados | 3 saltados**
-(main 3689160: 1239 | 3; los +22 son `pin-draft-save.test.ts`).
+(main 3689160: 1239 | 3; los +23 son `pin-draft-save.test.ts`).

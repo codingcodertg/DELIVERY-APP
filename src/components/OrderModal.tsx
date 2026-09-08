@@ -15,6 +15,7 @@ import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
+import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
@@ -130,7 +131,7 @@ export function OrderModal({
   // que puso el geocodificador al buscar la dirección NO puede guardarse como "manual": eso
   // enciende el aviso del chofer («se marcó un pin exacto para este sitio, Navegar usa el pin»)
   // sobre un punto que salió justamente de la dirección.
-  const [pinDraftSource, setPinDraftSource] = useState<"manual" | "geocoded" | null>(null);
+  const [pinDraftSource, setPinDraftSource] = useState<PinSource | null>(null);
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
   // After a successful delivery we keep the modal open on a success screen so the
   // driver can print the slip; holds the fully-updated (delivered) order.
@@ -443,42 +444,14 @@ export function OrderModal({
     } catch { /* non-blocking */ }
   };
 
-  /**
-   * El pin en borrador que hay que guardar con el pedido, o null (D-NEXT).
-   *
-   * Cierra el camino que dejó dos pedidos del dueño sin coordenadas: colocó el pin, lo vio en el
-   * área verde, guardó la orden sin pulsar «Save pin» y el punto se perdió. Sin diálogo: el
-   * usuario lo está viendo y el aviso de zona ya se calcula con él (D-220), así que perderlo es
-   * lo sorprendente.
-   *
-   * Condiciones, y cada una tapa una puerta distinta:
-   *  · **visible** — la misma noción que decide la zona en D-220. Un borrador de un selector
-   *    cerrado (cancelado, o ya guardado con «Save pin») no se escribe.
-   *  · **distinto del guardado** — abrir el selector sincroniza `pinDraft` con el pin del pedido,
-   *    así que «abrir para mirar» no escribe nada.
-   *  · **con la procedencia real**: `"manual"` si el último gesto fue el clic derecho de
-   *    `dropPin`, `"geocoded"` si fue `lookupAddress`. Etiquetar de `"manual"` un punto del
-   *    geocodificador no sería cosmético: encendería el aviso del chofer («sin dirección formal —
-   *    Navegar usa el pin») justo en el pedido cuya dirección se acaba de encontrar.
-   *
-   * **Se guarda siempre, también si el pedido ya tenía pin, y eso es deliberado.** Se probó la
-   * regla contraria —no pisar un pin previo con una propuesta del buscador— y producía algo peor:
-   * el usuario veía un punto en el mapa y se guardaba otro, el viejo. Que lo que se ve y lo que se
-   * guarda sean cosas distintas es el fallo que esta decisión viene a cerrar, no uno aceptable. La
-   * protección para quien solo quería comprobar una dirección ya existe y es explícita: **cancelar
-   * descarta el borrador** (D-220). Quien no cancela, se queda lo que está viendo.
-   */
-  const pinDraftParaGuardar = (): Pick<Delivery, "delivery_lat" | "delivery_lng" | "delivery_pin_source"> | null => {
-    if (!showPinPicker || !pinDraft) return null;
-    const [lat, lng] = pinDraft;
-    if (d.delivery_lat === lat && d.delivery_lng === lng) return null;
-    // Nunca un valor nuevo: la base solo acepta 'geocoded' y 'manual'
-    // (005_map_and_deadline_alerts.sql:22), y un tercero tumbaría el UPDATE del pedido entero.
-    return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: pinDraftSource ?? "manual" };
-  };
-
+  // La regla —qué pin se guarda y con qué procedencia— vive en `lib/pin-draft.ts`, no aquí: lo que
+  // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
+  // le pasa el estado de la ficha.
   const save = async () => {
-    const payload = { ...withDurations(d), ...(pinDraftParaGuardar() ?? {}) };
+    const payload = {
+      ...withDurations(d),
+      ...(pinDraftParaGuardar({ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d }) ?? {}),
+    };
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
@@ -610,7 +583,7 @@ export function OrderModal({
     // La procedencia real, no siempre "manual": este botón también cierra un borrador que puso el
     // buscador de direcciones, y etiquetarlo a mano encendería el aviso del chofer sobre un punto
     // que el usuario no colocó. Mismo criterio que al guardar el pedido (D-NEXT).
-    set("delivery_lat", lat); set("delivery_lng", lng); set("delivery_pin_source", pinDraftSource ?? "manual");
+    set("delivery_lat", lat); set("delivery_lng", lng); set("delivery_pin_source", fuenteAlAplicar(pinDraftSource));
     setShowPinPicker(false);
     // Fill the address if the drop didn't already (e.g. geocode was still in flight).
     if (!(d.delivery_address || "").trim()) await geocodePin(lat, lng);
@@ -1515,7 +1488,7 @@ export function OrderModal({
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
-                setPinDraftSource((d.delivery_pin_source as "manual" | "geocoded" | null) ?? null);
+                setPinDraftSource((d.delivery_pin_source as PinSource | null) ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -1910,7 +1883,7 @@ export function OrderModal({
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
-                setPinDraftSource((d.delivery_pin_source as "manual" | "geocoded" | null) ?? null);
+                setPinDraftSource((d.delivery_pin_source as PinSource | null) ?? null);
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}

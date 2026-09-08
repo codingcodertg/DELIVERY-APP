@@ -1,31 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "./pin-draft";
 
 // Cierra el camino que dejó dos pedidos del dueño sin coordenadas (D-NEXT): colocó el pin, lo vio
 // en el área verde, guardó la orden sin pulsar «Save pin», y el punto se perdió.
 //
-// La regla vive en `pinDraftParaGuardar()` dentro de la ficha, así que aquí se reproduce su lógica
-// —que es de cinco líneas— y se comprueba contra el fuente que la ficha la usa tal cual. Es la
-// misma forma que ya usan `one-tap-stop` y `zone-source` para lo que no se puede montar en React.
+// La regla se importa de `lib/pin-draft.ts` y se prueba de verdad — no una copia—, porque lo que
+// decide son las coordenadas y la procedencia que acaban en la base, no cómo se pintan.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
 
-type Fuente = "manual" | "geocoded" | null;
+type Fuente = PinSource | null;
 type Pedido = { delivery_lat: number | null; delivery_lng: number | null; delivery_pin_source: Fuente };
 
-/** La misma decisión que toma la ficha al guardar. */
-function pinParaGuardar(
+/** La misma llamada que hace la ficha al guardar, con sus cuatro estados. */
+const pinParaGuardar = (
   showPinPicker: boolean,
   pinDraft: [number, number] | null,
   pinDraftSource: Fuente,
   d: Pedido,
-): { delivery_lat: number; delivery_lng: number; delivery_pin_source: Fuente } | null {
-  if (!showPinPicker || !pinDraft) return null;
-  const [lat, lng] = pinDraft;
-  if (d.delivery_lat === lat && d.delivery_lng === lng) return null;
-  return { delivery_lat: lat, delivery_lng: lng, delivery_pin_source: pinDraftSource ?? "manual" };
-}
+) => pinDraftParaGuardar({ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d });
 
 const SIN_PIN: Pedido = { delivery_lat: null, delivery_lng: null, delivery_pin_source: null };
 const CON_PIN: Pedido = { delivery_lat: 26.2034, delivery_lng: -98.23, delivery_pin_source: "geocoded" };
@@ -130,28 +125,35 @@ describe("las transiciones entre puertas: manda el ÚLTIMO gesto", () => {
   });
   it("y el tipo impide inventarse un valor: el estado es una unión cerrada, no `string`", () => {
     const src = leer("src/components/OrderModal.tsx");
-    expect(src).toMatch(/useState<"manual" \| "geocoded" \| null>\(null\)/);
-    expect(src).toMatch(/const pinDraftParaGuardar = \(\): Pick<Delivery, "delivery_lat" \| "delivery_lng" \| "delivery_pin_source"> \| null/);
+    expect(src).toMatch(/useState<PinSource \| null>\(null\)/);
+    expect(leer("src/lib/pin-draft.ts")).toMatch(/export type PinSource = "manual" \| "geocoded";/);
+    expect(leer("src/lib/pin-draft.ts")).toMatch(/export type PinParaGuardar = Pick<Delivery, "delivery_lat" \| "delivery_lng" \| "delivery_pin_source">;/);
   });
 });
 
 describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
   const src = leer("src/components/OrderModal.tsx");
 
-  it("el guardado del pedido incluye el borrador", () => {
-    expect(src).toMatch(/const payload = \{ \.\.\.withDurations\(d\), \.\.\.\(pinDraftParaGuardar\(\) \?\? \{\}\) \};/);
+  it("el guardado del pedido le pasa los cuatro estados de la ficha", () => {
+    expect(src).toMatch(/pinDraftParaGuardar\(\{ selectorAbierto: showPinPicker, borrador: pinDraft, fuente: pinDraftSource, pedido: d \}\)/);
+    expect(src).toMatch(/\.\.\.withDurations\(d\),/);
   });
-  it("la regla es la misma que se prueba aquí: visible, distinto del guardado, y con su procedencia", () => {
-    const fn = src.slice(src.indexOf("const pinDraftParaGuardar"), src.indexOf("const save = async"));
-    expect(fn).toContain("if (!showPinPicker || !pinDraft) return null;");
-    expect(fn).toContain("if (d.delivery_lat === lat && d.delivery_lng === lng) return null;");
-    expect(fn).toContain('delivery_pin_source: pinDraftSource ?? "manual"');
+  it("y «Save pin» usa la misma fuente, no «manual» a secas", () => {
+    expect(fuenteAlAplicar("geocoded")).toBe("geocoded");
+    expect(fuenteAlAplicar("manual")).toBe("manual");
+    expect(fuenteAlAplicar(null)).toBe("manual");
+    expect(src).toMatch(/set\("delivery_pin_source", fuenteAlAplicar\(pinDraftSource\)\)/);
+  });
+  it("la ficha NO tiene su propia copia de la regla: la importa", () => {
+    // Lo que hace que esta prueba valga: se prueba la función que corre de verdad, no una copia.
+    expect(src).toMatch(/import \{ fuenteAlAplicar, pinDraftParaGuardar, type PinSource \} from "@\/lib\/pin-draft";/);
+    expect(src).not.toContain("const pinDraftParaGuardar = (");
   });
   it("cada vía declara su procedencia", () => {
     expect(src).toMatch(/setPinDraftSource\("manual"\);\s+\/\/ clic derecho/);          // dropPin
     expect(src).toMatch(/setPinDraftSource\("geocoded"\); setShowPinPicker\(true\);/);  // lookupAddress
     // Abrir el selector hereda la del pedido, en los DOS mapas.
-    expect(src.match(/setPinDraftSource\(\(d\.delivery_pin_source as "manual" \| "geocoded" \| null\) \?\? null\);/g) ?? []).toHaveLength(2);
+    expect(src.match(/setPinDraftSource\(\(d\.delivery_pin_source as PinSource \| null\) \?\? null\);/g) ?? []).toHaveLength(2);
   });
   it("y limpiar el borrador limpia también su procedencia, en los dos mapas", () => {
     expect(src.match(/setPinDraft\(null\); setPinDraftSource\(null\); setShowPinPicker\(false\);/g) ?? []).toHaveLength(4);
