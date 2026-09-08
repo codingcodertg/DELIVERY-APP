@@ -11240,3 +11240,129 @@ guardarlo, y ver que la orden aparece con coordenadas sin abrir Mapa ni Rutas. Y
 dirección inventada: tiene que salir el aviso y quedar el evento en el registro del pedido.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1316 pasados | 3 saltados**
 (main cb1c215: 1285 | 3; los +31 son `geocode-on-save.test.ts`).
+
+## D-NEXT · «Dejar en tienda»: el chofer descarga lo que no pudo entregar y el pedido vuelve a la lista
+
+**Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
+**Pedido por:** el dueño, literal: *«el chofer tiene la opción de dejar el pedido en una tienda para
+que otro lo recoja y lo entregue, y el pedido vuelve a la lista»*. Sin migración.
+
+### El caso
+
+Un chofer va con el pedido en el camión y no puede entregarlo. En vez de devolverlo a la tienda de
+origen, lo descarga en otra tienda del grupo; otro chofer lo recoge **desde ahí** y lo entrega.
+
+### Lo que ya existía
+
+La transición **ya era legal**: `constants.ts` tiene `picked_up: ["delivered", "ready"]`, comentado
+como «driver delivers (or reverts if not taken)». Lo que faltaba no era el camino, sino la acción:
+elegir la tienda, cambiar el origen y soltar el pedido.
+
+Tampoco hacía falta abrir permisos. La única guarda de etapa (`data-provider.tsx:1161`) deja pasar
+cualquier rol si la transición es legal, así que «cero permisos nuevos» sale solo — y hay una prueba
+que fija que ni se añade guarda ni se relaja la que hay.
+
+### Cambiar el origen son DOS campos, no uno
+
+Es el hallazgo que decidió la forma de esta rama. El origen de las millas es una **cascada**
+(`OrderModal.tsx:564-565`):
+
+```
+pickup_address  →  dirección guardada de la tienda `store`  →  nombre de la tienda
+```
+
+Así que poner solo `store` habría dejado un pedido **con `pickup_address` explícita saliendo del
+sitio viejo, en silencio**: el chofer siguiente conduciría a un almacén donde no hay nada, y las
+millas se contarían desde allí. Por eso la acción escribe `store` **y** `pickup_address: null`. La
+razón por la que alguien puso esa dirección deja de aplicar en el momento en que el pedido está
+físicamente en otra tienda.
+
+Y `null` en vez de copiar la dirección de la tienda: así sigue habiendo **una sola** copia de la
+dirección de cada tienda, en Ajustes. Si la tienda se muda, el pedido la sigue.
+
+### Las millas: se borran, y las tres salidas estaban todas pagadas
+
+`route_miles` y `route_duration` pasan a `null`. Las tres opciones y por qué la tercera:
+
+1. **Recalcular** al soltar: gastaría cuota de Google Routes —API de pago— en cada descarga, justo
+   cuando el encargo anterior iba de controlar ese gasto.
+2. **Dejarlas**: la ficha seguiría enseñando (`:1556`, `:1974`) unas millas contadas desde donde el
+   pedido ya no está. Un número que miente es peor que ninguno.
+3. **Borrarlas** (lo elegido): el pedido queda sin millas hasta que alguien pulse «Calcular».
+   Honesto, y no gasta nada que nadie haya pedido.
+
+**`delivery_fee` no se toca**: es lo cotizado y cobrado, y mover el pedido de sitio no reescribe un
+acuerdo. Pero **la tarifa sugerida cambiará** en cuanto alguien recalcule desde el origen nuevo, y
+eso es **buscado, no colateral**: quien recoja en Brownsville no debe cobrar como si saliera de
+McAllen.
+
+**Medido, sobre si esto gasta cuota solo:** el recálculo automático (`OrderModal.tsx:629-637`) se
+dispara al cambiar el origen **solo con la ficha en modo edición** (`if (!editing) return`), y no
+depende de que las millas estén vacías — o sea que ya se comportaba así antes de esta rama. Un
+chofer no lo dispara: `canEditFields("driver", "ready")` es `false`.
+
+### Qué se conserva y qué no
+
+Lo que se conserva: **pallets confirmadas, fotos, notas, ventanas de entrega, el pin de la entrega
+y su procedencia, y la tarifa**. Eso es historia del **pedido**.
+
+Lo que se limpia: **`departed_at`, `arrived_at`, `pickup_lat`, `pickup_lng`, `pickup_gps_at`**. Eso
+es historia de un **viaje que no llegó a su fin**, y es donde esta decisión se aparta del criterio
+inicial del encargo («se conserva todo»). Cuatro razones, tres de ellas medidas:
+
+- **Precedente**: el reparto de una orden parcial (`OrderModal.tsx:788`) ya descarta exactamente
+  `pickup_lat`, `pickup_lng`, `pickup_gps_at` y `departed_at` al crear el resto como `ready`. Esta
+  es la misma situación, y la app ya la había respondido.
+- Con `departed_at` puesto, el segundo chofer vería «En camino desde» **una hora que no es suya** y
+  **no** le saldría el botón de «Iniciar viaje», que solo aparece si no hay sello.
+- `analytics.ts:283` cuenta el tiempo activo desde `departed_at` hasta la entrega y se lo apunta a
+  `assigned_driver` — o sea, **al segundo chofer**. Dejarlo puesto le regalaría el viaje del primero.
+- El GPS de recogida **se sobrescribe igualmente** en cuanto alguien vuelva a recoger, así que
+  conservarlo no guardaba ninguna historia. Se guarda donde sí dura: en la nota del registro, que
+  lleva las coordenadas de la primera recogida.
+
+### El rastro
+
+Evento propio, `dropped_at_store`, y no una etapa a secas: volver a `ready` es también lo que hace
+una reversión normal, y en el historial de un pedido hay que poder distinguir «no lo quisieron» de
+«está en otra tienda». `kind` es texto en `order_events`, así que **no hace falta migración** — pero
+se queda ahí para siempre, así que el nombre se elige una vez, en inglés como `created`, `edited` y
+`geocode_failed`.
+
+La nota dice **quién, dónde, de dónde venía y dónde se recogió la primera vez**, en los dos idiomas.
+Para que `setStage` pueda poner un `kind` distinto de la etapa, gana un quinto parámetro
+**opcional**: sin él se comporta exactamente como antes.
+
+### Un control, dos pantallas
+
+Se ofrece en la ficha (junto a «Marcar entregado») y en la tarjeta de «Siguiente parada» de Mi ruta,
+en su propia fila: es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
+Es **el mismo componente** en los dos sitios, y la regla de qué se escribe vive un piso más abajo,
+en `lib/leave-at-store.ts` — dos copias de un gesto que escribe en la base darían dos efectos con el
+mismo nombre. Misma línea que D-218 con `escrituraRecogida`.
+
+La tienda sale del desplegable de `settings.stores` (nada de texto libre) y se compara con
+`nombreNormalizado` (D-222), para no inventar una tercera forma de comparar nombres de tienda. **Se
+pide la tienda antes de mover nada**: un «dejado» sin decir dónde es justo el pedido perdido que
+esto viene a evitar.
+
+### Límites conocidos
+
+- **Sin conexión no se puede.** El outbox solo encola `picked_up` y `delivered`
+  (`data-provider.tsx:1184`), así que un chofer en zona muerta verá el error y tendrá que repetirlo
+  con señal. No se ha ampliado el outbox: hacerlo es otro encargo y toca la cola de milestones.
+- **Dejarlo en su propia tienda de origen está permitido** y no es un error: es la devolución normal.
+  La nota no dice entonces que el origen cambió, porque no cambió.
+- El segundo chofer **no ve las millas** hasta que alguien pulse «Calcular». Es la consecuencia
+  elegida arriba, no un olvido.
+
+### Lo no verificado
+
+Nadie ha soltado un pedido en un navegador: que el botón aparezca solo al chofer que lo lleva, que
+el desplegable se pinte y que el pedido reaparezca en la lista van por las funciones puras —probadas
+en solitario— y por las pruebas de forma sobre las dos pantallas, no por haberlo hecho. **No se ha
+tocado producción ni se ha gastado cuota de ninguna API.** La primera comprobación cuando el dueño
+lo use: llevar un pedido a `picked_up`, dejarlo en otra tienda, y ver que vuelve a la lista con el
+origen nuevo, sin chofer, sin millas y con el evento en el historial. `verify.mjs`:
+en verde sobre `.next` limpio, en solitario: **1342 pasados | 3 saltados**
+(main 70bbe4d: 1316 | 3; los +26 son `leave-at-store.test.ts`).
