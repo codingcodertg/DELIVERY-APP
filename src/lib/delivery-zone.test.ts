@@ -51,6 +51,27 @@ describe("el contorno deja dentro lo local", () => {
   }
 });
 
+describe("Lyford entero dentro, y sus vecinos del norte fuera (pedido del dueño)", () => {
+  // El borde bajaba en diagonal y en la longitud de Lyford caía en 26.404, así que partía el
+  // pueblo: el centro fuera y unos cientos de metros al suroeste dentro. Se fijan los dos
+  // extremos, no solo el centro, y los dos vecinos que tienen que seguir fuera.
+  it("el centro y el extremo norte de Lyford, dentro", () => {
+    expect(dentro(26.4128, -97.7861)).toBe(true);   // centro
+    expect(dentro(26.425, -97.7861)).toBe(true);    // norte, el que decidía el margen
+  });
+  it("Raymondville sigue fuera — el dibujo del dueño la pone en NO LOCAL", () => {
+    expect(dentro(26.4820, -97.7830)).toBe(false);
+  });
+  it("Port Mansfield sigue fuera", () => {
+    expect(dentro(26.5556, -97.4258)).toBe(false);
+  });
+  it("y el margen es real por los dos lados: ~2,8 km a Lyford norte y ~3,5 km a Raymondville", () => {
+    // Si alguien vuelve a bajar el tramo, esto cae antes de que se note en una tarifa.
+    expect(dentro(26.44, -97.7861)).toBe(true);
+    expect(dentro(26.46, -97.7861)).toBe(false);
+  });
+});
+
 describe("y fuera lo que no lo es", () => {
   for (const [nombre, lat, lng] of FUERA_EEUU) {
     it(`${nombre} → fuera`, () => expect(dentro(lat, lng)).toBe(false));

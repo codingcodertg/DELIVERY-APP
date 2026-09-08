@@ -54,12 +54,24 @@ export type Vertice = [number, number];
  * Las dos restricciones se cumplen a la vez, que era lo difícil: en lng −97.50 el borde va por
  * ~25.89 (Matamoros fuera, Brownsville dentro) y en lng −97.41/−97.43 por ~25.855 (esas dos
  * entregas dentro). El margen es de ~1 km, que es lo que da el terreno.
+ *
+ * **El tramo norte se subió después, para no partir Lyford.** El borde bajaba en diagonal desde
+ * (26.45, −97.95) hasta (26.38, −97.70), y en la longitud de Lyford eso caía en **26.404**: el
+ * pueblo entero —centro 26.4128, extremo norte ~26.425— quedaba fuera, aunque unos cientos de
+ * metros al suroeste ya estuviera dentro. Un pueblo partido por la mitad no es una zona de
+ * reparto, y el dueño pidió meterlo entero. Ahora el norte se mantiene en 26.45 hasta −97.75 y
+ * baja después. Las tres restricciones se cumplen con margen: Lyford norte a **2,8 km** dentro,
+ * **Raymondville** (26.482) a **3,5 km** fuera —el dibujo original del dueño lo pone en NO
+ * LOCAL— y **Port Mansfield** (26.556) muy por encima, fuera. El resto del contorno no se toca.
  */
 export const LOCAL_ZONE_DEFAULT: Vertice[] = [
   // Norte y oeste: Sullivan City, por encima de Edinburg, bajando a Combes / Rio Hondo.
   [26.32, -98.58],
   [26.45, -98.55],
   [26.45, -97.95],
+  // El norte se mantiene en 26.45 hasta pasado Lyford: antes bajaba en diagonal desde aquí y
+  // partía el pueblo por la mitad (ver la nota de abajo).
+  [26.45, -97.75],
   [26.38, -97.70],
   [26.30, -97.45],
   [26.30, -97.30],
