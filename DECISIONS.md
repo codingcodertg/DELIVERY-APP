@@ -11184,6 +11184,42 @@ dónde sale el punto*, no *cómo se decide la zona*. Ninguna columna, ninguna mi
 dependencia nueva. El pin manual y su procedencia (D-221) siguen mandando: un pedido con punto no
 se vuelve a geocodificar jamás.
 
+### `necesitaUbicacion` NO es «no tiene punto», y conviene no unificarlas
+
+Medido en esta rama (`grep` sobre `src`, sin pruebas, 2026-09-08): hay **32 comprobaciones** de
+`delivery_lat` contra `null` repartidas por ocho ficheros — 9 de la forma `== null` y 23 de la
+forma `!= null`. Ninguna es lo mismo que `necesitaUbicacion`, y la diferencia importa:
+
+- `necesitaUbicacion` es **«tiene dirección Y no tiene punto»**, y decide una sola cosa: si se
+  gasta una llamada al proveedor.
+- Las otras son **«no tiene punto»** a secas, y deciden cosas distintas: qué se pinta en el mapa
+  (`map/page.tsx:55,124,209,281`), qué se puede planificar (`dispatch.ts:215`), cuántas paradas van
+  sin pin (`routes/page.tsx:1952,2120`) y el aviso de pedidos por ubicar (`attention.ts:59`).
+
+Un pedido **sin dirección y sin punto** es invisible para `necesitaUbicacion` —no hay nada que
+buscar— pero sigue contando en las otras, porque sigue sin poder pintarse ni planificarse. Que las
+dos ideas se parezcan por fuera no las hace la misma, y unificarlas «para quitar duplicación»
+rompería en silencio el mapa o la planificación. Queda escrito porque **una prueba no caza este
+error**: cada lado seguiría pasando sus propias pruebas.
+
+Lo levantó el auditor. Su recuento decía 18 sitios y el mío da 32; no he averiguado de dónde sale
+la diferencia —seguramente contamos cosas distintas— y pongo el mío porque es el que puedo repetir
+con el comando de arriba. El fondo, que es lo que vale, no depende del número.
+
+### Dos límites conocidos
+
+**Una importación de CSV grande dispara una llamada por pedido.** El disparo cuelga de
+`addDelivery`, así que también corre en la importación y en los repartos. Con el ritmo de hoy da
+igual (2,5 pedidos al día, techo de 9), pero **importar un histórico completo de golpe pediría una
+geocodificación por cada fila con dirección y sin punto**, en ráfaga. No se ha puesto freno porque
+hoy no hay caso; queda dicho para que ese sea el sitio donde mirar antes de darle al botón.
+
+**Van a empezar a aparecer eventos `geocode_failed`,** y eso es lo que se buscaba: antes ese fallo
+era un `catch {}` mudo. Quien vea el primero en el historial de un pedido debe leerlo como «la
+dirección no se encontró», no como un error del sistema: en la única muestra que hay —los ocho
+pedidos antiguos rellenados a mano— **dos tenían la dirección mal escrita**, y una de ellas se
+arregla en diez segundos («saval pal circle» por Sabal Palm).
+
 ### Lo no verificado
 
 Nadie ha guardado un pedido en un navegador: que la llamada salga al guardar y que el punto llegue
