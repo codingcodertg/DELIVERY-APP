@@ -11186,9 +11186,17 @@ se vuelve a geocodificar jamás.
 
 ### `necesitaUbicacion` NO es «no tiene punto», y conviene no unificarlas
 
-Medido en esta rama (`grep` sobre `src`, sin pruebas, 2026-09-08): hay **32 comprobaciones** de
-`delivery_lat` contra `null` repartidas por ocho ficheros — 9 de la forma `== null` y 23 de la
-forma `!= null`. Ninguna es lo mismo que `necesitaUbicacion`, y la diferencia importa:
+Medido el 2026-09-08, **en los dos árboles**, porque la diferencia entre ellos cuenta la historia:
+
+```
+git grep -nE "delivery_lat\s*[!=]=\s*null" <árbol> -- 'src/**/*.ts' 'src/**/*.tsx' | grep -v "\.test\."
+```
+
+- **`main` (cb1c215): 33** comprobaciones en 9 ficheros — 10 con `== null`, 23 con `!= null`.
+- **Esta rama: 32** en 8 ficheros — 9 y 23.
+
+La que falta no desapareció: es `useAutoGeocode.ts:20`, la única que **este cambio sustituyó** por
+`necesitaUbicacion`. Las otras 32 siguen ahí, y ninguna es lo mismo que ella. La diferencia importa:
 
 - `necesitaUbicacion` es **«tiene dirección Y no tiene punto»**, y decide una sola cosa: si se
   gasta una llamada al proveedor.
@@ -11202,9 +11210,12 @@ dos ideas se parezcan por fuera no las hace la misma, y unificarlas «para quita
 rompería en silencio el mapa o la planificación. Queda escrito porque **una prueba no caza este
 error**: cada lado seguiría pasando sus propias pruebas.
 
-Lo levantó el auditor. Su recuento decía 18 sitios y el mío da 32; no he averiguado de dónde sale
-la diferencia —seguramente contamos cosas distintas— y pongo el mío porque es el que puedo repetir
-con el comando de arriba. El fondo, que es lo que vale, no depende del número.
+**Procedencia de los números, porque hubo tres.** El hallazgo lo levantó el auditor, y sus ocho
+citas concretas se verificaron una a una: todas existen y dicen lo que dice. Su **recuento** decía
+18 sitios y no se ha averiguado de dónde sale; queda anotado sin darlo por bueno. Las cifras de
+arriba son las medidas con el comando de arriba —una por el worker en la rama, la de `main`
+confirmada por el orquestador y repetida aquí—, y se ponen esas porque son las que cualquiera puede
+repetir. El fondo del hallazgo es del auditor y no depende del número.
 
 ### Dos límites conocidos
 
