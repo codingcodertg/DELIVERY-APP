@@ -11210,12 +11210,10 @@ dos ideas se parezcan por fuera no las hace la misma, y unificarlas «para quita
 rompería en silencio el mapa o la planificación. Queda escrito porque **una prueba no caza este
 error**: cada lado seguiría pasando sus propias pruebas.
 
-**El hallazgo es del auditor**, y sus citas concretas se verificaron una a una antes de escribirlo:
-todas existen y dicen lo que dice. Las cifras se midieron tres veces con el comando de arriba —en
-la rama, en `main` y de nuevo aquí— y por eso están puestas con el comando al lado: la forma de
-contar tiene que poder repetirla cualquiera. Dos detalles de esa forma, porque una cuenta anterior
-falló justo ahí: se cuentan **comprobaciones y no líneas**, y el patrón es **literal**, no una
-expresión con comodines que pueda casar de refilón con un `!` de otra variable.
+Los números van con el comando al lado a propósito: la forma de contar tiene que poder repetirla
+cualquiera. Y cuenta lo que dice contar — **comprobaciones, no líneas**, con un patrón **literal**
+en vez de una expresión con comodines, que casa de refilón con el `!` de otra variable y se deja
+fuera los `!= null`.
 
 ### Dos límites conocidos
 

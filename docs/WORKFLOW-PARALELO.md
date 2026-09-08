@@ -572,13 +572,20 @@ Dos reglas, para worker y auditor:
 ## 16. Un número que llega de la auditoría se recuenta antes de copiarlo (medido el 2026-09-08)
 
 En la rama `geocodificar-al-guardar` el auditor levantó un hallazgo correcto —que
-las comprobaciones de `delivery_lat == null` repartidas por `src` **no** son la
-misma idea que `necesitaUbicacion`, y que unificarlas rompería el mapa o la
-planificación en silencio— y lo acompañó de un recuento: 18 sitios. El worker
-midió 32 antes de escribirlo, no cuadró, y lo dijo en vez de elegir en silencio.
-El auditor revisó su propia medición y encontró el motivo: su expresión llevaba
-una alternativa `!.*delivery_lat` que casaba con **cualquier** `!` de la línea
-—el de otra variable— y no capturaba los `!= null`. Contaba líneas arbitrarias.
+las comprobaciones de `delivery_lat` contra `null` repartidas por `src` **no** son
+la misma idea que `necesitaUbicacion`, y que unificarlas rompería el mapa o la
+planificación en silencio— y lo acompañó de un recuento: **18 sitios**. Sus ocho
+citas concretas (`map:55,124,209,281`, `routes:1952,2120`, `dispatch:215`,
+`attention:59`) eran **todas correctas**; el recuento no.
+
+El worker midió **32 en la rama** antes de copiarlo, no le cuadró, y lo dijo en vez
+de elegir en silencio; el orquestador midió **33 en `main`**. El auditor revisó su
+propia medición y encontró el motivo: su patrón llevaba una alternativa
+`!.*delivery_lat`, que casa con **cualquier** `!` anterior de la línea —el de otra
+variable— y **no** captura un `delivery_lat != null` normal (contra
+`if (d.delivery_lat != null && …)` da 0 coincidencias). Contaba líneas arbitrarias,
+no comprobaciones. La diferencia 33→32, además, resultó ser información útil: es
+justo la comprobación que esa rama sustituyó por `necesitaUbicacion`.
 
 La regla, para los tres papeles:
 
