@@ -18,6 +18,7 @@ import { orderOwner, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/uti
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { detalleAConsola, mensajeEscrituraPerfil } from "@/lib/user-write-error";
+import { EVENTO_NO_ENCONTRADA, NOTA_NO_ENCONTRADA, avisoUbicacion, claveDireccion, necesitaUbicacion, parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
@@ -786,6 +787,63 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase],
   );
 
+  // ---------------- Ubicar un pedido al guardarlo (D-NEXT) ----------------
+  // Va aquí y no en la ficha por el mismo motivo por el que la autoría de las fotos vive en
+  // `updateDelivery`: **todas** las formas de crear o editar un pedido pasan por estas dos
+  // escrituras —la ficha, la importación de CSV, los repartos— y una regla que dependa de que
+  // cada sitio se acuerde de invocarla es una regla que se pierde. Antes de esto, el punto solo
+  // aparecía si alguien abría Mapa o Rutas con ese pedido dentro del día que miraba.
+  //
+  // `updateDelivery` está declarada MÁS ABAJO y llama a esto, así que se accede por referencia,
+  // igual que hace el vaciador del outbox con `logEvent`. La recursión no existe: el parche que
+  // se escribe trae las coordenadas, así que la segunda vuelta ya no necesita ubicación.
+  const updateDeliveryRef = useRef<DataState["updateDelivery"] | null>(null);
+  // Direcciones que el proveedor dice no conocer. Reintentarlas daría el mismo 404, así que no se
+  // repiten mientras dure la sesión: es lo que separa «una llamada por pedido» de un bucle. Los
+  // fallos temporales NO entran aquí, a propósito — esos sí se reintentan al volver a guardar.
+  const direccionesSinPunto = useRef(new Set<string>());
+  // Lo que se está buscando ahora mismo, para que dos guardados seguidos no pidan lo mismo dos veces.
+  const ubicacionesEnCurso = useRef(new Set<string>());
+
+  const ubicarSiHaceFalta = useCallback(async (id: string, fila: Delivery | Partial<Delivery>) => {
+    if (teaching) return;                                  // el sandbox no gasta cuota de nadie
+    if (!necesitaUbicacion(fila)) return;
+    const clave = claveDireccion(fila.delivery_address);
+    if (direccionesSinPunto.current.has(clave) || ubicacionesEnCurso.current.has(clave)) return;
+    ubicacionesEnCurso.current.add(clave);
+    try {
+      let resultado;
+      try {
+        const res = await fetch("/api/geocode-point", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: fila.delivery_address }),
+        });
+        // Un cuerpo ilegible es un fallo temporal, no una dirección inexistente.
+        const cuerpo = await res.json().catch(() => null);
+        resultado = resultadoDeRespuesta(res.status, cuerpo);
+      } catch {
+        resultado = { kind: "falloTemporal" } as const;
+      }
+      if (resultado.kind === "ok") {
+        // `quiet` porque el pedido ya se guardó: esta es la segunda escritura, y un error suyo no
+        // debe parecer que falló el guardado. El evento de campos cambiados que deja
+        // `updateDelivery` ES el registro de que el punto lo puso la máquina.
+        await updateDeliveryRef.current?.(id, parcheDeUbicacion(resultado), { quiet: true });
+        return;
+      }
+      // Aquí acaba el silencio de `useAutoGeocode`: hasta hoy esto era un `catch {}`.
+      if (resultado.kind === "noEncontrada") {
+        direccionesSinPunto.current.add(clave);
+        await logEvent(id, EVENTO_NO_ENCONTRADA, `${NOTA_NO_ENCONTRADA}: ${fila.delivery_address}`);
+      }
+      const aviso = avisoUbicacion(resultado, lang);
+      if (aviso) notify(aviso);
+    } finally {
+      ubicacionesEnCurso.current.delete(clave);
+    }
+  }, [teaching, logEvent, notify, lang]);
+
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
     async (d) => {
@@ -845,6 +903,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       }
       const row = data as Delivery;
       setDeliveries((prev) => [row, ...prev]);
+      // Sin `await`: el pedido ya está creado y la ficha no espera a esto. Si el proveedor tarda
+      // o falla, la orden se guardó igual — que es como se comportaba antes.
+      void ubicarSiHaceFalta(row.id, row);
       await logEvent(row.id, "created");
       // An order created straight into "pending" (Submit for approval) alerts managers.
       if (row.stage && row.stage !== "draft") {
@@ -852,7 +913,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       }
       return row;
     },
-    [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries],
+    [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries, ubicarSiHaceFalta],
   );
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
@@ -922,12 +983,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           }
         }
       }
+      // Con la fila COMO QUEDA, no con el parche: un guardado que no toca la dirección deja un
+      // pedido que sigue teniéndola y sigue sin punto, y es exactamente el que hay que ubicar.
+      void ubicarSiHaceFalta(id, { ...(before ?? {}), ...patch });
       // Record WHICH fields changed, so the activity log / audit is field-level.
       await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, patch as Record<string, unknown>) || undefined) : undefined);
       return true;
     },
-    [supabase, notify, logEvent, teaching, deliveries, users, me],
+    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta],
   );
+  // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
+  updateDeliveryRef.current = updateDelivery;
 
   // Renumber a route's stops in one shot. The local order is applied FIRST and
   // a write-guard blocks realtime refetches until every row has landed, so the
