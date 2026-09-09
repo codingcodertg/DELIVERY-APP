@@ -11757,7 +11757,7 @@ Y **no se ha ejecutado la app de escritorio**: que el marco nazca del color corr
 arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1440 pasados | 3 saltados**
 (main 7db49a3: 1365 | 3; los +75 son el guardián de Entregas y los tokens).
 
-## D-NEXT · «Todas las apps» solo se pinta si hay apps a las que ir
+## D-227 · «Todas las apps» solo se pinta si hay apps a las que ir
 
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
 **Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y

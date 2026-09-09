@@ -17,7 +17,7 @@ export async function Header() {
       email={session.user.email ?? ""}
       cost={canSeeCost(session.role)}
       // ¿Hay hub al que volver? Se pregunta AQUÍ, una sola vez, con la misma función que usan
-      // `/home` y el conmutador de módulos (D-NEXT). La barra recibe un sí o un no y no vuelve a
+      // `/home` y el conmutador de módulos (D-227). La barra recibe un sí o un no y no vuelve a
       // decidirlo: dos sitios preguntando lo mismo por su cuenta es lo que produjo el fallo.
       hubReachable={canReachHub({ role: session.hubRole, module_access: session.moduleAccess })}
     />

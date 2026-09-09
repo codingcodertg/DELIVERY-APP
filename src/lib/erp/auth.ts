@@ -12,7 +12,7 @@ export type SessionInfo = {
   user: User;
   role: AppRole;
   /**
-   * El MISMO valor de `profiles.role`, sin el molde de `AppRole` (D-NEXT).
+   * El MISMO valor de `profiles.role`, sin el molde de `AppRole` (D-227).
    *
    * `role` de arriba es el rol tal como lo entiende el ERP; las reglas del hub —quién puede
    * llegar al selector de módulos— preguntan por el rol del hub. Es la misma columna y la misma

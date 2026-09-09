@@ -55,7 +55,7 @@ export function SideNav({
   email: string;
   cost: boolean;
   /**
-   * ¿Existe un hub al que volver para esta persona? (D-NEXT)
+   * ¿Existe un hub al que volver para esta persona? (D-227)
    *
    * Lo decide `canReachHub` en `header.tsx`, la misma función que usan `/home` y el conmutador de
    * módulos. Aquí llega ya resuelto a propósito: si esta barra volviera a preguntarlo por su
@@ -164,7 +164,7 @@ export function SideNav({
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
           {/* Este comentario decía «siempre visible… aquí el hub nunca es un callejón sin
-              salida», y era falso (D-NEXT): el ERP también puede ser el único módulo de alguien,
+              salida», y era falso (D-227): el ERP también puede ser el único módulo de alguien,
               exactamente como en rtg-erp. Quien está en ese caso pulsaba, `/home` lo devolvía al
               ERP y no veía ni un error — la pantalla parpadeaba y seguía donde estaba.
               Ahora se pinta solo si hay hub al que volver, con la misma respuesta que el enlace
