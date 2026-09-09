@@ -47,11 +47,43 @@ function leeEstado() {
   return { width: 1280, height: 860 };
 }
 
+// ---------------------------------------------------------------------------
+// El color con el que nace la ventana (D-NEXT)
+// ---------------------------------------------------------------------------
+// Estaba fijo en `#0f151d`, el `--paper` del tema OSCURO, copiado del cliente de Time
+// Tracker — donde sí aplica, porque aquel arranca en oscuro a propósito (D-080). **Aquí no**:
+// el script de pre-pintado del hub (`layout.tsx`) elige oscuro solo si existe
+// `window.ttDesktop`, que lo inyecta un `preload` que esta ventana **no tiene**. Así que el
+// hub arranca en claro y la ventana lo enmarcaba en negro: parpadeo al abrir, y negro en
+// cualquier zona que la web no llegue a pintar.
+//
+// Los dos valores son los `--paper` de `globals.css`, para que el marco y la página sean el
+// mismo color y no haya costura.
+const PAPEL = { light: "#f4f6f9", dark: "#0f151d" };
+
+/**
+ * El tema con el que se pinta el marco: el que se vio la última vez.
+ *
+ * El proceso principal no puede leer el `localStorage` de la página antes de crearla, y sin
+ * `preload` tampoco hay puente. Así que se recuerda: tras cargar, se lee lo que la página
+ * decidió y se guarda para el **próximo** arranque, igual que ya se recuerda el tamaño. La
+ * primera vez sale claro, que es lo que pinta el script de pre-pintado sin preferencia
+ * guardada; a partir de ahí, el marco acompaña a quien haya elegido oscuro.
+ */
+function temaRecordado() {
+  try {
+    const s = JSON.parse(fs.readFileSync(ESTADO(), "utf8"));
+    return s.theme === "dark" ? "dark" : "light";
+  } catch { return "light"; }
+}
+
 function guardaEstado(win) {
   try {
     if (win.isDestroyed() || win.isMinimized()) return;
     const b = win.getBounds();
-    fs.writeFileSync(ESTADO(), JSON.stringify({ ...b, maximized: win.isMaximized() }));
+    // Se conserva el tema recordado: `guardaEstado` escribe el fichero entero y sin esto
+    // borraría lo que aprendió `did-finish-load`.
+    fs.writeFileSync(ESTADO(), JSON.stringify({ ...b, maximized: win.isMaximized(), theme: temaRecordado() }));
   } catch { /* que no se recuerde el tamaño no es motivo para romper nada */ }
 }
 
@@ -82,7 +114,7 @@ function crearVentana() {
     minWidth: 900,
     minHeight: 600,
     title: "RTG Hub",
-    backgroundColor: "#0f151d",
+    backgroundColor: PAPEL[temaRecordado()],
     icon: path.join(__dirname, "build", "icon.ico"),
     // La barra de menú de Electron (Archivo/Editar/Ver…) no pinta nada aquí: la navegación
     // vive dentro de la web. Se quita, pero los atajos de recargar y de las herramientas
@@ -134,6 +166,22 @@ function crearVentana() {
   // origen es porque **nuestro** dominio redirigió allí. Se aprende una sola vez: ver en
   // `origenes.js` por qué la regla general («confía en cualquier redirección desde un origen de
   // confianza») sería peor.
+  // Se guarda el tema que la página acabó usando, para que el marco del PRÓXIMO arranque
+  // nazca del color correcto. Solo lectura y a prueba de fallos: si no se puede leer, se
+  // queda el que hubiera y el usuario ve, como mucho, un parpadeo.
+  win.webContents.on("did-finish-load", () => {
+    win.webContents
+      .executeJavaScript("document.documentElement.getAttribute('data-theme')", true)
+      .then((tema) => {
+        if (tema !== "dark" && tema !== "light") return;
+        try {
+          const s = JSON.parse(fs.readFileSync(ESTADO(), "utf8"));
+          if (s.theme !== tema) fs.writeFileSync(ESTADO(), JSON.stringify({ ...s, theme: tema }));
+        } catch { /* aún no hay fichero de estado: lo escribirá `guardaEstado` al cerrar */ }
+      })
+      .catch(() => undefined);
+  });
+
   win.webContents.once("did-navigate", (_e, url) => {
     const nuevo = confianza.aprendeDeLaPrimeraCarga(url);
     if (nuevo) console.log(`[RTG Hub] el sitio redirige a ${nuevo}; se añade a los orígenes propios`);

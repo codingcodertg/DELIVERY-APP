@@ -232,8 +232,8 @@ export default function TrackPage() {
       {/* What the numbers are worth, said before the numbers. A reader who
           scrolls past this would take a reconstruction for a measurement. */}
       {(summary.sparse || summary.teleports > 0) && summary.fixes > 0 && (
-        <div className="card" style={{ background: "#fff7ec", borderColor: "var(--amber)" }}>
-          <b style={{ color: "#b9791a" }}>⚠ {t("Read these as an outline, not a measurement", "Léalo como un bosquejo, no como una medición")}</b>
+        <div className="card" style={{ background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+          <b style={{ color: "var(--amber-text)" }}>⚠ {t("Read these as an outline, not a measurement", "Léalo como un bosquejo, no como una medición")}</b>
           <div className="hint" style={{ marginTop: 4 }}>
             {t(
               "The phone reports when the truck MOVES, not on a clock, so distance is measured in straight lines between scattered points and comes out lower than the road.",
@@ -270,7 +270,7 @@ export default function TrackPage() {
         </div>
         <div className="card" style={{ margin: 0, borderColor: summary.unknownMinutes > 0 ? "var(--amber)" : undefined }}>
           <div className="hint" style={{ marginTop: 0 }}>{t("Unaccounted for", "Sin determinar")}</div>
-          <div className="display" style={{ fontSize: 26, fontWeight: 800, color: summary.unknownMinutes > 0 ? "#b9791a" : undefined }}>
+          <div className="display" style={{ fontSize: 26, fontWeight: 800, color: summary.unknownMinutes > 0 ? "var(--amber-text)" : undefined }}>
             {fmtMin(summary.unknownMinutes)}
           </div>
         </div>

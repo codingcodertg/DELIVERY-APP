@@ -121,8 +121,8 @@ export function ShiftClock({ driverId }: { driverId: string }) {
         Shown only when the APK could actually read the setting; an older build
         reports undefined and says nothing rather than nagging blindly. */}
     {open && battery?.hibernationExempt === false && (
-      <div className="card" style={{ marginBottom: 12, background: "#fff7ec", borderColor: "var(--amber)" }}>
-        <b style={{ color: "#b9791a" }}>
+      <div className="card" style={{ marginBottom: 12, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+        <b style={{ color: "var(--amber-text)" }}>
           ⏸ {t("Android is set to pause this app", "Android está configurado para pausar esta app")}
         </b>
         <div className="hint" style={{ marginTop: 4 }}>
@@ -140,8 +140,8 @@ export function ShiftClock({ driverId }: { driverId: string }) {
     )}
 
     {open && battery && !battery.ignoring && (
-      <div className="card" style={{ marginBottom: 12, background: "#fff7ec", borderColor: "var(--amber)" }}>
-        <b style={{ color: "#b9791a" }}>
+      <div className="card" style={{ marginBottom: 12, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+        <b style={{ color: "var(--amber-text)" }}>
           🔋 {t("Your phone may pause this app", "Tu teléfono puede pausar esta app")}
         </b>
         <div className="hint" style={{ marginTop: 4 }}>

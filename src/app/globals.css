@@ -14,6 +14,37 @@
   --purple: #7c4dbc;
   --teal: #0f8a8a;
   --gray: #6b7686;
+
+  /* ---------------------------------------------------------------------------
+     Tintes y colores de estado de Entregas (D-NEXT).
+     ---------------------------------------------------------------------------
+     Estaban escritos a pelo dentro de `style={{}}` en los componentes, y por eso
+     Entregas se veía roto en oscuro: el fondo de la app cambiaba y estos no. Cada
+     valor de aquí es EXACTAMENTE el hex que había, para que el modo claro no se
+     mueva ni un punto; los pares oscuros salen de los que ya usaban los avisos
+     (`.banner.warn/err/ok`, más abajo), así que un aviso y una tarjeta teñida del
+     mismo color se ven igual en oscuro.
+
+     Nota para quien venga: `--red-soft` (#fef6f6) y `--red-tint` (#fdeaea) son dos
+     rosas casi iguales que alguien escribió por separado. Se conservan los dos
+     porque unificarlos cambiaría el claro, que es justo lo que esta decisión
+     promete no hacer. Unificarlos es un cambio de una línea el día que se quiera. */
+  --amber-soft: #fff7ec;   /* fondo de tarjeta de aviso */
+  --amber-text: #b9791a;   /* el ámbar oscurecido para que se lea sobre fondo claro */
+  --red-soft: #fef6f6;
+  --red-tint: #fdeaea;
+  --red-chip-bg: #fff1f0;
+  --red-chip-text: #a10e0e;
+  --red-chip-line: #f0c0bd;
+  --green-soft: #e9f7f0;
+  /* El violeta del modo enseñanza, en dos tokens y no uno: el mismo hex se usaba como
+     FONDO de una franja con texto blanco y como TEXTO sobre una tarjeta clara. Un solo
+     token obligaría a elegir entre aclararlo en oscuro (y romper el texto blanco de la
+     franja) o dejarlo (y no poder leer el aviso). NO es `--purple` (#7c4dbc). */
+  --teaching-bg: #7c3aed;
+  --teaching-text: #7c3aed;
+  --panel-line: #dfe3ea;   /* borde de panel; casi --line, pero no idéntico */
+  --row-line: #eef1f5;     /* separador entre filas de una lista */
 }
 /* Le dice al NAVEGADOR en qué tema está, no solo a nuestro CSS.
    ---------------------------------------------------------------------------
@@ -38,6 +69,24 @@
   --accent: #4f82ff;
   --accent-soft: #1e2b45;
   --gray: #93a0b0;
+
+  /* Los pares oscuros de los tintes de Entregas (D-NEXT). Los tres primeros grupos
+     son los mismos valores que ya usaban `.banner.warn`, `.banner.err` y
+     `.banner.ok` en oscuro: un aviso y una tarjeta del mismo color no pueden
+     verse distintos. */
+  --amber-soft: #3a2f12;
+  --amber-text: #ffcf7a;
+  --red-soft: #3a1620;
+  --red-tint: #3a1620;
+  --red-chip-bg: #3a1620;
+  --red-chip-text: #ffb3bf;
+  --red-chip-line: #5e2330;
+  --green-soft: #16352a;
+  /* El fondo NO se aclara: lleva texto blanco encima y funciona igual en los dos temas.
+     El texto sí, porque #7c3aed sobre un fondo oscuro no se lee. */
+  --teaching-text: #b794f6;
+  --panel-line: #2b3644;
+  --row-line: #2b3644;
 }
 /* These element-level defaults are wrapped in a cascade LAYER, and that is
    load-bearing for /erp (D-090).

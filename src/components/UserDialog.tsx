@@ -192,7 +192,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
             )}
             {/* Said here rather than discovered the day they forget. */}
             {signIn && !signIn.can_reset_own_password && (
-              <div className="hint" style={{ color: "#b9791a", fontWeight: 600 }}>
+              <div className="hint" style={{ color: "var(--amber-text)", fontWeight: 600 }}>
                 ⚠ {t(
                   "No email, so this account can never reset its own password — use the button below when they call.",
                   "Sin correo, así que esta cuenta nunca podrá restablecer su contraseña — usa el botón de abajo cuando te hablen.",

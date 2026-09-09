@@ -534,7 +534,7 @@ export default function MapPage() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
             {drivers.map((name) => (
               <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorFor(name), border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
+                <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorFor(name), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{name}</span>
                 {canManageColors && (
                   <input
@@ -547,7 +547,7 @@ export default function MapPage() {
               </div>
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 16, height: 16, borderRadius: "50%", background: UNASSIGNED_COLOR, border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)" }} />
+              <span style={{ width: 16, height: 16, borderRadius: "50%", background: UNASSIGNED_COLOR, border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
               <span style={{ fontSize: 13, fontWeight: 600 }}>{t("Unassigned", "Sin asignar")}</span>
             </div>
           </div>

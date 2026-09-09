@@ -110,3 +110,151 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
     }
   });
 });
+
+// ============================================================
+// Entregas: la otra mitad de la deuda de G-13 (D-NEXT).
+//
+// D-211 cerró HR y dejó anotadas Entregas y Time Tracker. Esta tabla es la de Entregas
+// DESPUÉS del encargo: 117 colores a pelo pasaron a 79. Lo que queda no es residuo — es lo
+// que se decidió dejar, y cada grupo tiene su motivo en la decisión.
+//
+// La regla que explica 63 de los 79: **un blanco sobre un fondo de color fijo no cambia con
+// el tema**. Una pastilla roja con texto blanco se ve igual en claro y en oscuro, porque el
+// rojo no se mueve. Convertirlos a `--card` los rompería justo en oscuro, que es lo contrario
+// de lo que este encargo venía a hacer.
+// ============================================================
+
+describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
+  const TECHO_ENTREGAS: Record<string, number> = {
+    "src/app/(app)/account/page.tsx": 4,
+    "src/app/(app)/accounts/page.tsx": 4,
+    "src/app/(app)/audit/page.tsx": 1,
+    "src/app/(app)/dashboard/page.tsx": 4,
+    "src/app/(app)/data/page.tsx": 4,
+    "src/app/(app)/map/page.tsx": 4,
+    "src/app/(app)/market/page.tsx": 3,
+    "src/app/(app)/my-route/page.tsx": 1,
+    "src/app/(app)/routes/page.tsx": 11,
+    "src/app/(app)/settings/page.tsx": 1,
+    "src/app/(app)/summary/page.tsx": 1,
+    "src/components/AppUpdateBanner.tsx": 2,
+    "src/components/DispatchBoard.tsx": 1,
+    "src/components/NotificationBell.tsx": 1,
+    "src/components/OfflineBanner.tsx": 1,
+    "src/components/OrderModal.tsx": 10,
+    "src/components/OrdersTable.tsx": 5,
+    "src/components/SessionExpired.tsx": 8,
+    "src/components/ShiftClock.tsx": 1,
+    "src/components/TopBar.tsx": 6,
+    "src/components/UserDialog.tsx": 3,
+    "src/components/UsersImportModal.tsx": 3,
+  };
+
+  const norm = (s: string) => s.split("\\").join("/");
+  const RAIZ = norm(process.cwd());
+  const ficherosEntregas: string[] = [];
+  const recorre = (dir: string) => {
+    for (const f of readdirSync(dir)) {
+      const p = join(dir, f);
+      // Fuera las otras apps: HR y Time Tracker tienen su propia deuda y su propia tabla.
+      if (statSync(p).isDirectory()) { if (!/recruiting|timetracker|erp/.test(f)) recorre(p); }
+      else if (f.endsWith(".tsx")) ficherosEntregas.push(norm(p).replace(RAIZ + "/", ""));
+    }
+  };
+  recorre(join(process.cwd(), "src/app/(app)"));
+  recorre(join(process.cwd(), "src/components"));
+
+  it("recorre los ficheros de Entregas (páginas y componentes)", () => {
+    expect(ficherosEntregas.length).toBeGreaterThanOrEqual(40);
+  });
+
+  for (const ruta of ficherosEntregas) {
+    it(`${ruta.replace("src/", "")} — ≤ ${TECHO_ENTREGAS[ruta] ?? 0}`, () => {
+      const h = coloresAPelo(leer(ruta));
+      const detalle = h.map((x) => `${ruta}:${x.linea} ${x.texto}`).join("\n");
+      expect(h.length, detalle).toBeLessThanOrEqual(TECHO_ENTREGAS[ruta] ?? 0);
+    });
+  }
+
+  it("la tabla no lleva techos de más: cada fichero existe y llega a su techo", () => {
+    // Igual que en HR: si un fichero baja, se baja el techo. Que no quede holgura para volver
+    // a subir sin que nadie lo vea.
+    for (const [ruta, techo] of Object.entries(TECHO_ENTREGAS)) {
+      expect(ficherosEntregas, ruta).toContain(ruta);
+      expect(coloresAPelo(leer(ruta)).length, ruta).toBe(techo);
+    }
+  });
+
+  it("el total es 79, y de esos 63 son el blanco sobre color", () => {
+    // El número entero, para que un cambio que reparta colores entre ficheros sin subir
+    // ninguno por encima de su techo no pase desapercibido.
+    let total = 0;
+    let blancos = 0;
+    for (const ruta of ficherosEntregas) {
+      const h = coloresAPelo(leer(ruta));
+      total += h.length;
+      blancos += h.filter((x) => x.texto === "#fff").length;
+    }
+    expect(total).toBe(79);
+    expect(blancos).toBe(63);
+  });
+});
+
+describe("los tokens nuevos de Entregas: mismo valor en claro, par propio en oscuro", () => {
+  // Los finales de línea se normalizan: el fichero está en CRLF en Windows y los cortes de
+  // abajo buscan saltos de línea. Sin esto la prueba mide sobre una cadena vacía y pasa sin
+  // haber comprobado nada, que es peor que fallar.
+  const css = leer("src/app/globals.css").split("\r\n").join("\n");
+  const claro = css.slice(css.indexOf(":root {"), css.indexOf(':root[data-theme="dark"] { color-scheme'));
+  const oscuro = css.slice(css.indexOf(':root[data-theme="dark"] {\n  --ink: #0d1420;'));
+
+  // Cada token nuevo con el hex EXACTO que sustituyó. Si alguien cambia uno, el modo claro se
+  // mueve y esta prueba lo dice — que es la vara que puso D-211 y la que hace esto seguro.
+  const NUEVOS: Record<string, string> = {
+    "--amber-soft": "#fff7ec",
+    "--amber-text": "#b9791a",
+    "--red-soft": "#fef6f6",
+    "--red-tint": "#fdeaea",
+    "--red-chip-bg": "#fff1f0",
+    "--red-chip-text": "#a10e0e",
+    "--red-chip-line": "#f0c0bd",
+    "--green-soft": "#e9f7f0",
+    "--teaching-bg": "#7c3aed",
+    "--teaching-text": "#7c3aed",
+    "--panel-line": "#dfe3ea",
+    "--row-line": "#eef1f5",
+  };
+
+  for (const [token, hex] of Object.entries(NUEVOS)) {
+    it(`${token} vale ${hex} en claro — el color de antes, sin mover`, () => {
+      expect(claro).toContain(`${token}: ${hex};`);
+    });
+  }
+
+  it("todos tienen par oscuro, salvo el fondo del modo enseñanza, que no debe cambiar", () => {
+    // `--teaching-bg` lleva texto blanco encima: aclararlo en oscuro rompería ese texto.
+    for (const token of Object.keys(NUEVOS)) {
+      if (token === "--teaching-bg") { expect(oscuro).not.toContain(`${token}:`); continue; }
+      expect(oscuro, token).toContain(`${token}:`);
+    }
+  });
+
+  it("los tintes oscuros son los que YA usaban los avisos, no unos nuevos", () => {
+    // Un aviso `.banner.warn` y una tarjeta teñida de ámbar no pueden verse distintos en
+    // oscuro. Los valores salen de las reglas que ya existían más abajo en este mismo fichero.
+    expect(oscuro).toContain("--amber-soft: #3a2f12;");
+    expect(css).toContain(".banner.warn { background: #3a2f12;");
+    expect(oscuro).toContain("--red-chip-text: #ffb3bf;");
+    expect(css).toContain(".banner.err  { background: #3a1620; color: #ffb3bf;");
+    expect(oscuro).toContain("--green-soft: #16352a;");
+    expect(css).toContain(".banner.ok   { background: #16352a;");
+  });
+
+  it("no se redefine ningún token que ya existía", () => {
+    // El encargo lo pide y es la mitad de «cero cambio en claro»: los pares nuevos se añaden,
+    // los viejos no se tocan.
+    for (const viejo of ["--ink", "--text", "--paper", "--card", "--line", "--accent", "--amber", "--green", "--red", "--purple", "--teal", "--gray"]) {
+      expect(claro.split(`${viejo}:`).length - 1, viejo).toBe(1);
+    }
+  });
+});
