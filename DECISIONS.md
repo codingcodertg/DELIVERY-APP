@@ -11446,6 +11446,14 @@ entonces se abriría **dentro** de una ventana con la sesión puesta y **sin bar
 La confianza se gana una vez, al arrancar, y no se vuelve a ganar. Estar cargado no vuelve confiable
 a nadie, que es lo que pedía el encargo.
 
+**El precio de ese límite, dicho porque es el único camino por el que esto no arreglaría nada:** la
+oportunidad **se gasta aunque no se aprenda nada**. Si la primera navegación principal de la ventana
+no fuera la carga del sitio, el aprendizaje se perdería hasta reiniciar la app. En la práctica no
+debería ocurrir —`did-navigate` no se dispara con `about:blank` ni con un fallo de red, y la única
+carga que hace esta ventana al arrancar es la suya—, pero se elige así a sabiendas: gastar la
+oportunidad de más es seguro, guardarla para «la próxima navegación buena» sería exactamente la
+regla general que se acaba de descartar.
+
 ### Dónde vive, y por qué eso importa aquí
 
 En `desktop/origenes.js`, no dentro de `main.js`: no depende de Electron, así que **se puede probar
@@ -11463,10 +11471,27 @@ Medido antes de tocar nada: **`productName` y `shortcutName` ya eran «RTG Hub»
 rename (c1bd9e5), y el **`appId` nunca cambió** (`net.rdztilegroup.hub` desde ea2668e). Así que solo
 faltaban dos cosas:
 
-- **El nombre del instalador.** El patrón por defecto de electron-builder es
-  `"${productName} Setup ${version}${arch}.${ext}"` (`NsisTarget.ts:154`), o sea que habría salido
-  **`RTG Hub Setup 1.0.0.exe`, con espacios**. Se declara `artifactName` para que sea
-  `RTG-Hub-Setup-${version}.${ext}`.
+- **El nombre del instalador, y no es cosmético.** El patrón por defecto de la versión que se
+  compila (electron-builder 25.1.8, `NsisTarget.js:99`) es
+  `"${productName} " + "Setup " + "${version}.${ext}"`, o sea **`RTG Hub Setup 1.0.0.exe`, con
+  espacios**. (La cita del `master` del repositorio lleva además un `${arch}` que **en 25.1.8 no
+  existe**: el detalle era mío y estaba mal, el fondo no cambia.)
+
+  Que eso importe se midió en el `dist/` de la compilación que se publicó: **el fichero que salió
+  del compilador se llama `RDZ Hub Setup 1.0.0.exe`, con espacios, y el asset del release se llama
+  `RDZ-Hub-Setup-1.0.0.exe`, con guiones**. Alguien lo renombró **a mano** al subirlo, y tenía que
+  hacerlo, porque el respaldo de la ruta de descarga filtra por `startsWith("RDZ-Hub-Setup")`
+  (`route.ts:49`). O sea que la descarga funcionaba por un **renombrado manual que no estaba
+  escrito en ninguna parte**, y se habría roto el día que publicara otra persona.
+
+  Y se habría roto de una forma difícil de diagnosticar: la ruta prueba **primero el almacén
+  privado**, así que ese filtro solo entra en juego en el respaldo de GitHub; y cuando no encuentra
+  ningún asset que case, no da error — redirige a la **página de releases**
+  (`activo?.browser_download_url ?? pagina`). Nadie ve una excepción en ningún registro: a la
+  persona simplemente la sueltan en GitHub a buscar el `.exe` a mano.
+
+  Declarando `artifactName` como `RTG-Hub-Setup-${version}.${ext}`, el nombre que sale del
+  compilador es ya el que espera la ruta, y el puente manual desaparece.
 - **El agente de usuario**: `RDZHub/` → `RTGHub/`. Se comprobó antes de cambiarlo que **nadie lo
   compara**: el único comparador de agentes es `app-update.ts:31`, que busca `RDZDeliveries/(\d+)`
   —el APK de Android—. Lo que no puede aparecer nunca es una comparación nueva contra la cadena
@@ -11541,6 +11566,9 @@ escrito para que nadie lo tome por un síntoma.
 es del orquestador, no de esta rama. Lo que hay son las funciones puras probadas en solitario y las
 comprobaciones de forma sobre `main.js`. En concreto **no se ha visto correr `did-navigate`**: que
 Electron entregue ahí la URL final tras las redirecciones está tomado de su API, no medido aquí.
+
+Y **no se ha ejecutado nada en Electron**: que `did-navigate` entregue la URL final tras las
+redirecciones está tomado de su API, no medido aquí, ni por el worker ni por el auditor.
 
 **El empaquetado no lo puede comprobar nadie que no compile**, y por eso el orquestador hará dos
 cosas antes de que esto llegue a nadie: abrir el `app.asar` compilado para ver que `origenes.js`
