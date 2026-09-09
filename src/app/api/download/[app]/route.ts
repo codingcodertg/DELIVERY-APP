@@ -31,9 +31,16 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 type Fuente = {
-  /** Dónde vive en el almacén privado. Nombre ESTABLE, sin versión: la versión la lleva
-   *  dentro el instalador, y una URL que cambia con cada publicación es la que se rompe. */
-  blob: string;
+  /**
+   * Dónde vive en el almacén privado, **en orden de preferencia**. Nombre ESTABLE, sin versión:
+   * la versión la lleva dentro el instalador, y una URL que cambia con cada publicación es la que
+   * se rompe.
+   *
+   * Son varios porque el hub se renombró de RDZ a RTG (D-NEXT) y el almacén todavía tiene el
+   * fichero con el nombre viejo. Se prueba el nuevo y se cae al viejo: dejar de servir la versión
+   * que la gente usa hoy sería peor que el fallo que se estaba arreglando.
+   */
+  blobs: string[];
   /** Cómo se llama el fichero al guardarlo. */
   descarga: string;
   /** El respaldo público, por si el almacén no está o falla. */
@@ -43,13 +50,16 @@ type Fuente = {
 
 const FUENTES: Record<string, Fuente> = {
   hub: {
-    blob: "apps/RDZ-Hub-Setup.exe",
-    descarga: "RDZ-Hub-Setup.exe",
+    blobs: ["apps/RTG-Hub-Setup.exe", "apps/RDZ-Hub-Setup.exe"],
+    descarga: "RTG-Hub-Setup.exe",
     repo: "codingcodertg/DELIVERY-APP",
-    esElInstalador: (n) => n.startsWith("RDZ-Hub-Setup") && n.endsWith(".exe"),
+    // Los DOS nombres: el respaldo de GitHub tiene publicaciones con el nombre viejo, y una
+    // publicación vieja que no se encuentre manda a la gente a la página de releases a buscar
+    // a mano.
+    esElInstalador: (n) => /^(RTG|RDZ)-Hub-Setup/.test(n) && n.endsWith(".exe"),
   },
   timetracker: {
-    blob: "apps/TimeTracker-Setup.exe",
+    blobs: ["apps/TimeTracker-Setup.exe"],
     descarga: "TimeTracker-Setup.exe",
     repo: "codingcodertg/timetracker",
     esElInstalador: (n) => n.startsWith("TimeTracker-Setup") && n.endsWith(".exe"),
@@ -100,8 +110,16 @@ export async function GET(_req: Request, ctx: { params: Promise<{ app: string }>
     //
     // `access: "private"` es obligatorio aquí: sin él el SDK ni lo intenta.
     // `get()` devuelve null si el fichero no está — de ahí el respaldo.
-    const r = await get(f.blob, { access: "private" });
-    if (!r || r.statusCode !== 200 || !r.stream) return porGitHub(f);
+    // Se prueban los nombres en orden: el actual primero, el viejo después. `get()` devuelve
+    // `null` si el fichero no está, así que esto no es un `catch` disfrazado — es la misma
+    // comprobación de siempre, repetida por cada nombre posible.
+    let r = null;
+    for (const nombre of f.blobs) {
+      r = await get(nombre, { access: "private" });
+      if (r && r.statusCode === 200 && r.stream) break;
+      r = null;
+    }
+    if (!r) return porGitHub(f);
 
     // Se transmite tal cual llega, sin juntarlo en memoria: 78 MB en la memoria de una
     // función es la forma de tirarla, y además la descarga empieza al instante en vez de
