@@ -104,7 +104,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
     <AppUpdateBanner app="deliveries" />
     <OfflineBanner />
     {teaching && (
-      <div style={{ background: "#7c3aed", color: "#fff", textAlign: "center", padding: "6px 12px",
+      <div style={{ background: "var(--teaching-bg)", color: "#fff", textAlign: "center", padding: "6px 12px",
         fontSize: 12.5, fontWeight: 700, letterSpacing: ".03em" }}>
         🎓 {t("TEACHING MODE — practice data only. Real orders are hidden and untouched.",
              "MODO ENSEÑANZA — solo datos de práctica. Las órdenes reales están ocultas y no se tocan.")}

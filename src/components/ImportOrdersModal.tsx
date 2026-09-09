@@ -88,7 +88,7 @@ export function ImportOrdersModal({ onClose }: { onClose: () => void }) {
               )}
 
               {result.warnings.length > 0 && (
-                <div className="card" style={{ marginTop: 10, background: "#fff7ec", borderColor: "var(--amber)", maxHeight: 140, overflowY: "auto" }}>
+                <div className="card" style={{ marginTop: 10, background: "var(--amber-soft)", borderColor: "var(--amber)", maxHeight: 140, overflowY: "auto" }}>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, lineHeight: 1.5 }}>
                     {result.warnings.slice(0, 40).map((w, i) => <li key={i}>{w}</li>)}
                     {result.warnings.length > 40 && <li>…{result.warnings.length - 40} {t("more", "más")}</li>}

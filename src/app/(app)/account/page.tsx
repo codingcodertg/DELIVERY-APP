@@ -104,7 +104,7 @@ export default function AccountPage() {
             🎓 {t("Teaching", "Enseñanza")}
           </button>
         </div>
-        {teaching && <div className="hint" style={{ color: "#7c3aed", fontWeight: 700 }}>{t("Teaching mode is ON — you are working with practice orders.", "El modo enseñanza está ACTIVO — estás trabajando con órdenes de práctica.")}</div>}
+        {teaching && <div className="hint" style={{ color: "var(--teaching-text)", fontWeight: 700 }}>{t("Teaching mode is ON — you are working with practice orders.", "El modo enseñanza está ACTIVO — estás trabajando con órdenes de práctica.")}</div>}
         {teaching && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
             <button className="btn btn-danger btn-sm" onClick={clearTraining}>🗑 {t("Reset sandbox", "Reiniciar práctica")}</button>
@@ -177,7 +177,7 @@ export default function AccountPage() {
           {extraCaps(me).map((c) => {
             const info = CAPABILITIES.find((x) => x.key === c);
             return (
-              <span key={c} className="pill-item" style={{ borderColor: "var(--amber)", background: "#fff7ec" }}>
+              <span key={c} className="pill-item" style={{ borderColor: "var(--amber)", background: "var(--amber-soft)" }}>
                 ★ {info ? (lang === "es" ? info.es : info.en) : c}
               </span>
             );

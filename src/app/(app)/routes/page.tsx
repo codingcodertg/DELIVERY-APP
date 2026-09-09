@@ -1463,8 +1463,8 @@ export default function RoutesPage() {
            flat battery or no signal will still cut the feed. Surfacing it here
            means a truck goes "not reporting" instead of quietly vanishing. */}
       {trackingIssues.length > 0 && (
-        <div className="card" style={{ marginBottom: 14, background: "#fff7ec", borderColor: "var(--amber)" }}>
-          <b style={{ color: "#b9791a" }}>
+        <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+          <b style={{ color: "var(--amber-text)" }}>
             📡 {t(`${trackingIssues.length} driver(s) on shift aren't reporting their location`,
                   `${trackingIssues.length} chofer(es) en turno no están reportando su ubicación`)}
           </b>
@@ -1481,8 +1481,8 @@ export default function RoutesPage() {
       {dayOrders.length === 0 && (() => {
         const otherDates = deliveries.filter((d) => ROUTE_STAGES.includes(d.stage) && d.delivery_date !== date).length;
         return (
-          <div className="card" style={{ marginBottom: 14, background: "#fff7ec", borderColor: "var(--amber)" }}>
-            <b style={{ color: "#b9791a" }}>⚠ {allDates ? t("No schedulable orders at all.", "No hay órdenes para programar.") : t("No schedulable orders for this date.", "No hay órdenes para programar en esta fecha.")}</b>
+          <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+            <b style={{ color: "var(--amber-text)" }}>⚠ {allDates ? t("No schedulable orders at all.", "No hay órdenes para programar.") : t("No schedulable orders for this date.", "No hay órdenes para programar en esta fecha.")}</b>
             <div className="hint" style={{ marginTop: 4 }}>
               {allDates
                 ? t("Any order that isn't delivered or canceled can be scheduled here — even before it's approved or prepared.", "Cualquier orden que no esté entregada o cancelada se puede programar aquí — incluso antes de aprobarse o prepararse.")
@@ -1586,7 +1586,7 @@ export default function RoutesPage() {
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: on ? "var(--accent-soft)" : undefined }}
                   >
                     <input type="checkbox" checked={on} onClick={(e) => e.stopPropagation()} onChange={() => toggleDriver(u.key)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
-                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: colorFor(u.driver), flex: "0 0 auto", border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)" }} />
+                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: colorFor(u.driver), flex: "0 0 auto", border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
                         {u.label}
@@ -1981,7 +1981,7 @@ export default function RoutesPage() {
                 title={t("Show this route on the map", "Mostrar esta ruta en el mapa")}
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}
               >
-                <span style={{ width: 14, height: 14, borderRadius: "50%", background: colorFor(u.driver), border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
+                <span style={{ width: 14, height: 14, borderRadius: "50%", background: colorFor(u.driver), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
                 <h2 style={{ margin: 0 }}>{u.label}</h2>
                 <span className="hint" style={{ fontSize: 12 }}>🗺</span>
               </span>
@@ -2073,7 +2073,7 @@ export default function RoutesPage() {
             </div>
             {!isC && <>
             {lateStops.length > 0 && (
-              <div className="card" style={{ marginBottom: 8, background: "#fef6f6", borderColor: "var(--red)" }}>
+              <div className="card" style={{ marginBottom: 8, background: "var(--red-soft)", borderColor: "var(--red)" }}>
                 <b style={{ color: "var(--red)" }}>⚠️ {t(`${lateStops.length} stop(s) will miss their delivery window`, `${lateStops.length} parada(s) no llegarán a tiempo a su ventana`)}</b>
                 <div className="hint" style={{ marginTop: 2 }}>
                   {lateStops.slice(0, 6).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}`).join(", ")}{lateStops.length > 6 ? "…" : ""}
@@ -2119,8 +2119,8 @@ export default function RoutesPage() {
             {missingPins > 0 && (() => {
               const noPin = stops.filter((d) => d.delivery_lat == null);
               return (
-                <div className="card" style={{ marginBottom: 8, background: "#fff7ec", borderColor: "var(--amber)" }}>
-                  <b style={{ color: "#b9791a" }}>📍 {t(`${missingPins} stop(s) aren't on the map yet, so the route skips them.`, `${missingPins} parada(s) aún no están en el mapa, así que la ruta las omite.`)}</b>
+                <div className="card" style={{ marginBottom: 8, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+                  <b style={{ color: "var(--amber-text)" }}>📍 {t(`${missingPins} stop(s) aren't on the map yet, so the route skips them.`, `${missingPins} parada(s) aún no están en el mapa, así que la ruta las omite.`)}</b>
                   <div className="hint" style={{ marginTop: 2 }}>
                     {noPin.map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}${d.delivery_address ? "" : " — " + t("no delivery address", "sin dirección de entrega")}`).join(", ")}
                     {" — "}{t("give each a valid delivery address (or drop a map pin) on the Orders page so it geocodes, then re-optimize.", "dé a cada una una dirección de entrega válida (o coloque un pin) en Órdenes para que se ubique, y vuelva a optimizar.")}
@@ -2208,7 +2208,7 @@ export default function RoutesPage() {
                               )}
                               {/* Progress fills in as stops get delivered. */}
                               {doneN > 0 && (
-                                <span className="sema" style={{ marginLeft: 8, background: doneN === batch.length ? "var(--green)" : "#e9f7f0", color: doneN === batch.length ? "#fff" : "var(--green)" }}>
+                                <span className="sema" style={{ marginLeft: 8, background: doneN === batch.length ? "var(--green)" : "var(--green-soft)", color: doneN === batch.length ? "#fff" : "var(--green)" }}>
                                   {doneN === batch.length ? `✓ ${t("load delivered", "viaje entregado")}` : `${doneN}/${batch.length} ${t("delivered", "entregadas")}`}
                                 </span>
                               )}
@@ -2492,7 +2492,7 @@ function DriverIncidents({
           <div className="section-label" style={{ marginTop: 0 }}>{t("Cost by driver", "Costo por chofer")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {totals.map(([name, v]) => (
-              <span key={name} className="sema" style={{ background: "#fff1f0", color: "#a10e0e", border: "1px solid #f0c0bd" }}>
+              <span key={name} className="sema" style={{ background: "var(--red-chip-bg)", color: "var(--red-chip-text)", border: "1px solid var(--red-chip-line)" }}>
                 {name}: {fmtMoney(v.cost)} · {v.count}
               </span>
             ))}

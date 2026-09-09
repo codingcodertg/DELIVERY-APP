@@ -11581,3 +11581,150 @@ caducar para ver que tampoco se abre el navegador solo. La segunda: que el insta
 **reemplace** la instalación vieja en vez de dejar dos entradas en «Agregar o quitar programas».
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1365 pasados | 3 saltados**
 (main b5b9d9a: 1343 | 3; los +22 son `desktop-origins.test.ts`).
+
+## D-NEXT · Entregas en modo oscuro: la otra mitad de la deuda de G-13
+
+**Fecha:** 2026-09-08 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño, que abrió Entregas en oscuro en el escritorio y lo vio roto — «Orders»
+en gris oscuro sobre negro. Eligió arreglarlo de verdad y no forzar el claro.
+
+### La deuda que se cierra
+
+D-211 arregló HR y dejó **anotadas Entregas y Time Tracker**. Aquí se cierra Entregas: TT sigue
+pendiente, y sigue anotado.
+
+El síntoma: `globals.css` tiene reglas para oscuro, pero los componentes llevaban colores escritos
+a pelo dentro de `style={{}}`. En oscuro el fondo cambia y esos no, así que quedaban tarjetas
+crema y textos ámbar oscuro sobre negro, ilegibles.
+
+**El recuento es 117 en 24 ficheros**, medido con `coloresAPelo` de `src/lib/inline-colors.ts` —la
+misma función que ejecuta el guardián—, y confirmado por separado por el auditor y el orquestador.
+(El primer desglose del encargo decía 108 y no mencionaba ocho de esos ficheros: venía de un `grep`
+que solo ve el hex si está en la misma línea que `style={{`, así que se le escapaban los estilos
+escritos en varias líneas. No es otro criterio: era un error, y el número bueno es 117.)
+
+**Quedan 79.** No son residuo: son los que se decidió dejar, y cada grupo tiene su motivo abajo.
+
+### La regla que explica 63 de los 79
+
+**Un blanco sobre un fondo de color fijo no cambia con el tema.** Una pastilla roja con texto
+blanco, un semáforo de etapa, un badge de rol: el fondo es un color fuerte que no se mueve entre
+temas, así que el blanco encima se lee igual en los dos. Convertirlos a `--card` los rompería
+**justo en oscuro**, que es lo contrario de lo que este encargo venía a hacer.
+
+Va como regla y no como 63 entradas sueltas, a propuesta del auditor: una regla se puede comprobar
+y una lista de 63 no la vuelve a leer nadie. El guardián fija el número, así que si mañana aparece
+un blanco que **no** cumple la regla, la cuenta sube y salta.
+
+**Los cuatro `#fff` que sí eran fondo, cambiaron**: el aro blanco alrededor del punto de color de
+cada chofer (`map:537`, `map:550`, `routes:1589`, `routes:1984`) pasó a `var(--card)`. En claro
+`--card` es `#ffffff`, o sea **el mismo color exacto**; en oscuro el aro acompaña a la tarjeta en
+vez de recortarse en blanco.
+
+### Los tokens nuevos: mismo valor en claro, par propio en oscuro
+
+Doce tokens, y cada uno vale en `:root` **exactamente** el hex que sustituyó — la vara de D-211, y
+la que hace esto seguro. Hay una prueba por token que lo fija.
+
+| token | claro (el hex de antes) | oscuro | qué era |
+|---|---|---|---|
+| `--amber-soft` | `#fff7ec` | `#3a2f12` | fondo de tarjeta de aviso (12 usos) |
+| `--amber-text` | `#b9791a` | `#ffcf7a` | el ámbar oscurecido para leerse en claro (11 usos) |
+| `--red-soft` | `#fef6f6` | `#3a1620` | fondo de tarjeta de error |
+| `--red-tint` | `#fdeaea` | `#3a1620` | ídem, otro rosa |
+| `--red-chip-bg/text/line` | `#fff1f0` / `#a10e0e` / `#f0c0bd` | `#3a1620` / `#ffb3bf` / `#5e2330` | la pastilla de chofer sobrecargado |
+| `--green-soft` | `#e9f7f0` | `#16352a` | pastilla de progreso a medias |
+| `--teaching-bg` / `--teaching-text` | `#7c3aed` | (no cambia) / `#b794f6` | el violeta del modo enseñanza |
+| `--panel-line` | `#dfe3ea` | `#2b3644` | borde de panel |
+| `--row-line` | `#eef1f5` | `#2b3644` | separador entre filas |
+
+**Los valores oscuros no son inventados: son los que ya usaban los avisos.** `.banner.warn`,
+`.banner.err` y `.banner.ok` llevan meses con `#3a2f12`, `#3a1620` y `#16352a` en oscuro. Un aviso
+y una tarjeta teñida del mismo color no pueden verse distintos; hay una prueba que ata cada tinte
+nuevo a la regla del banner de la que salió.
+
+**Dos tokens que parecen redundantes y no lo son.** `--red-soft` (`#fef6f6`) y `--red-tint`
+(`#fdeaea`) son dos rosas casi iguales que alguien escribió por separado. Unificarlos sería lo
+correcto **y cambiaría el modo claro**, que es justo lo que esta decisión promete no hacer. Se
+conservan los dos, con el motivo escrito; unificarlos es un cambio de una línea el día que se
+quiera, y entonces será una decisión y no un descuido.
+
+**Y el violeta se partió en dos tokens.** El mismo hex se usaba como **fondo** de una franja con
+texto blanco y como **texto** sobre una tarjeta clara. Con un solo token había que elegir entre
+aclararlo en oscuro —y romper el texto blanco de la franja— o dejarlo —y no poder leer el aviso—.
+Dos tokens resuelven las dos cosas y dicen en su nombre para qué es cada uno.
+
+### Lo que se queda a pelo, con su motivo
+
+Los 79, agrupados. Cada grupo, no cada línea: la lista completa la fija el guardián.
+
+1. **63 blancos sobre color** — la regla de arriba.
+2. **`#000` ×2** (`account:282`, `account:292`): el fondo negro detrás de un vídeo y de una foto.
+   Es un marco de proyección, no un color del tema; en claro y en oscuro se quiere negro.
+3. **5 colores con transparencia** (`rgba(255,255,255,.1)` ×2, `rgba(255,255,255,.25)`,
+   `rgba(16,185,129,0.06)`, `rgba(0,0,0,.35)`): un color con alfa se compone sobre lo que haya
+   debajo, así que **ya se adapta al tema por construcción**. Los dos primeros son realces blancos
+   sobre la barra oscura, que es oscura en los dos temas.
+4. **La pastilla invertida `#3a2a00` + `#ffd98a`** (`routes:2499`, `OrdersTable:58`): fondo oscuro
+   con texto claro **a propósito**, para destacar sobre una fila. Ya funciona en oscuro; volverla
+   token sería cambiarla sin motivo.
+5. **`#b9791a` como FONDO** (`OfflineBanner:34`): el mismo hex que se volvió `--amber-text`, pero
+   aquí es el fondo de una franja con texto blanco. Si usara el token, en oscuro se aclararía y el
+   texto blanco dejaría de leerse. Se queda, y el motivo es exactamente el que partió el violeta
+   en dos.
+6. **Los 8 de `SessionExpired.tsx`** — y esta es la decisión más discutible de la rama, así que va
+   con su razonamiento entero. Es el diálogo de «tu sesión caducó»: el que aparece **cuando la app
+   ya no puede leer sus datos**. Está escrito a propósito sin depender de nada de la app — tiene
+   hasta su propia `fontFamily`— y en oscuro **no se ve roto**: es una tarjeta blanca con texto
+   oscuro sobre un velo, legible en los dos temas. Convertirlo pediría cuatro tokens nuevos de un
+   solo uso (`#1a2233`, `#5c6b86`, `#d7deea`, `#3a63e0`) cuyos valores **no coinciden** con los
+   existentes (`--text` es `#152238`, `--line` es `#dfe5ee`, `--accent` es `#2456c9`), o cambiar el
+   modo claro. Se queda entero y se dice; si el dueño lo prefiere oscuro, es una rama de diez
+   líneas y cuatro tokens.
+
+### Los mapas no entran, y no por cuidado
+
+El criterio del encargo pedía mirar aparte los colores de Leaflet, Google y los marcadores de
+D-214/D-216/D-222. **Se cumple solo**: esos colores no viven en `style={{}}` sino en objetos de
+opciones de los motores y en módulos puros que ni siquiera son `.tsx`. `MapView.tsx` no tiene
+ningún `style={{}}`; los de `LeafletMap` y `GoogleMapView` no llevan color. O sea que el guardián
+**no puede** contarlos, en vez de que haya que acordarse de excluirlos. Esta rama no los toca.
+
+### El fondo de la ventana de escritorio
+
+`desktop/main.js` creaba la ventana con `backgroundColor: "#0f151d"` — el `--paper` del tema
+**oscuro**, copiado del cliente de Time Tracker, donde sí aplica porque aquel arranca en oscuro a
+propósito (D-080). Aquí no: el hub decide el tema en **dos** sitios —`prefs.tsx:40` y el script de
+pre-pintado de `layout.tsx:14`— y los dos miran `window.ttDesktop`, que inyecta un `preload` que
+**esta ventana no tiene**. Así que el hub arranca claro y la ventana lo enmarcaba en negro:
+parpadeo al abrir, y negro en cualquier zona que la web no llegue a pintar.
+
+**El arreglo elegido: el marco recuerda el tema que se vio la última vez.** Un color fijo claro
+habría arreglado el arranque por defecto y dejado el parpadeo —al revés— a quien haya elegido
+oscuro. El proceso principal no puede leer el `localStorage` de la página antes de crearla y sin
+`preload` no hay puente, así que tras cargar se lee **lo que el script de pre-pintado dejó puesto**
+(`document.documentElement.getAttribute('data-theme')`, que es el mismo sitio que decide el color
+real) y se guarda junto al tamaño de la ventana, para el **próximo** arranque. La primera vez sale
+claro, que es lo que pinta ese script sin preferencia guardada.
+
+Los dos valores son los `--paper` de `globals.css` (`#f4f6f9` y `#0f151d`), para que el marco y la
+página sean el mismo color y no haya costura.
+
+### Qué NO cambia
+
+El modo claro, ni un punto: cada token vale lo que valía el hex, y hay una prueba por token. Los
+colores de los mapas. La lógica de orígenes de D-225 (`desktop/origenes.js`), sin tocar. Y ningún
+token que ya existía se redefine — los nuevos se añaden, y hay una prueba que lo comprueba.
+
+### Lo no verificado
+
+**Nadie ha abierto Entregas en oscuro en un navegador tras el cambio.** Lo que hay es que cada
+sustitución conserva el valor en claro (probado token a token) y que los pares oscuros son los que
+ya usaban los avisos. Que el resultado **se vea bien** es cosa de mirarlo: la primera comprobación
+del dueño es abrir en oscuro las tres pantallas donde estaban los 45 colores convertidos —Rutas, la
+ficha de pedido y Seguimiento— y ver los avisos ámbar, las tarjetas de error y la pastilla de
+chofer sobrecargado.
+
+Y **no se ha ejecutado la app de escritorio**: que el marco nazca del color correcto en el segundo
+arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1440 pasados | 3 saltados**
+(main 7db49a3: 1365 | 3; los +75 son el guardián de Entregas y los tokens).

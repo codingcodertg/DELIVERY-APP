@@ -1341,12 +1341,12 @@ export function OrderModal({
             <RoleNotes notes={existing.role_notes ?? []} me={me} onAdd={addRoleNote} onRemove={removeRoleNote} t={t} lang={lang} />
 
             {existing.rejected_reason && (
-              <div className="card" style={{ marginTop: 14, background: "#fef6f6", borderColor: "var(--red)" }}>
+              <div className="card" style={{ marginTop: 14, background: "var(--red-soft)", borderColor: "var(--red)" }}>
                 <b style={{ color: "var(--red)" }}>{t("Rejection reason:", "Motivo del rechazo:")}</b> {existing.rejected_reason}
               </div>
             )}
             {existing.redelivery_of && (
-              <div className="card" style={{ marginTop: 14, background: "#fff7ec", borderColor: "var(--amber)" }}>
+              <div className="card" style={{ marginTop: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
                 <b style={{ color: "var(--amber)" }}>{t("🔁 Re-delivery", "🔁 Reentrega")}</b>
                 {existing.redelivery_reason ? ` — ${existing.redelivery_reason}` : ""}
                 <div className="hint" style={{ marginTop: 4 }}>{t("This order repeats an earlier delivery. Logged for the end-of-week review.", "Esta orden repite una entrega anterior. Registrada para la revisión de fin de semana.")}</div>
@@ -1660,8 +1660,8 @@ export function OrderModal({
               </label>
             )}
             {scheduleWarnings.length > 0 && (
-              <div className="card" style={{ marginTop: 10, background: "#fff7ec", borderColor: "var(--amber)" }}>
-                <b style={{ color: "#b9791a" }}>⚠ {t("Scheduling conflict", "Conflicto de programación")}</b>
+              <div className="card" style={{ marginTop: 10, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+                <b style={{ color: "var(--amber-text)" }}>⚠ {t("Scheduling conflict", "Conflicto de programación")}</b>
                 <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.5 }}>
                   {scheduleWarnings.map((w) => <li key={w.code}>{t(w.en, w.es)}</li>)}
                 </ul>
@@ -2014,8 +2014,8 @@ export function OrderModal({
                   </div>
                 )}
                 {conflicts.length > 0 && (
-                  <div className="card" style={{ marginTop: 10, background: "#fff7ec", borderColor: "var(--amber)" }}>
-                    <b style={{ color: "#b9791a" }}>⚠ {t("Schedule conflict", "Conflicto de horario")}</b>
+                  <div className="card" style={{ marginTop: 10, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+                    <b style={{ color: "var(--amber-text)" }}>⚠ {t("Schedule conflict", "Conflicto de horario")}</b>
                     <div className="hint" style={{ marginTop: 2 }}>
                       {t(
                         `${d.assigned_driver} already has an overlapping window this day:`,
@@ -2061,8 +2061,8 @@ export function OrderModal({
             <b>✅ {t("Delivered to", "Entregado a")}:</b> {existing.pod_received_by}
             {existing.pod_delivered_at && <span className="hint"> · {fmtDateTime(existing.pod_delivered_at)}</span>}
             {existing.delivered_address && (
-              <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "#fff7ec", border: "1px solid var(--amber)", fontSize: 13 }}>
-                <b style={{ color: "#b9791a" }}>⚠ {t("Delivered at a different address", "Entregado en otra dirección")}</b>
+              <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "var(--amber-soft)", border: "1px solid var(--amber)", fontSize: 13 }}>
+                <b style={{ color: "var(--amber-text)" }}>⚠ {t("Delivered at a different address", "Entregado en otra dirección")}</b>
                 <div style={{ marginTop: 2 }}>{existing.delivered_address}</div>
                 <div className="hint" style={{ marginTop: 2 }}>{t("Ordered:", "Pedido:")} {existing.delivery_address || "—"}</div>
               </div>
@@ -2135,7 +2135,7 @@ export function OrderModal({
 
         {/* ---------- STILL MISSING (moved to the bottom, right above the buttons) ---------- */}
         {editing && showFullForm && missing.length > 0 && (
-          <div className="card" style={{ marginTop: 14, marginBottom: 0, background: "#fdeaea", borderColor: "var(--red)" }}>
+          <div className="card" style={{ marginTop: 14, marginBottom: 0, background: "var(--red-tint)", borderColor: "var(--red)" }}>
             <b style={{ color: "var(--red)" }}>{t("Still missing", "Faltan")} ({missing.length})</b>
             <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.5 }}>
               {missing.map((m) => <li key={m.key}>{t(m.en, m.es)}</li>)}
@@ -2451,7 +2451,7 @@ function PastInvoicePicker({ options, current, onPick, t }: {
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
-      <div style={{ maxHeight: 170, overflowY: "auto", border: "1px solid #dfe3ea", borderRadius: 8, marginTop: 6 }}>
+      <div style={{ maxHeight: 170, overflowY: "auto", border: "1px solid var(--panel-line)", borderRadius: 8, marginTop: 6 }}>
         {filtered.length === 0 ? (
           <div className="hint" style={{ padding: 8 }}>{t("No matching past invoices.", "Sin facturas anteriores coincidentes.")}</div>
         ) : (
@@ -2465,7 +2465,7 @@ function PastInvoicePicker({ options, current, onPick, t }: {
                 style={{
                   display: "block", width: "100%", textAlign: "left", padding: "7px 10px",
                   background: picked ? "var(--accent)" : "transparent", color: picked ? "#fff" : "inherit",
-                  border: "none", borderBottom: "1px solid #eef1f5", cursor: "pointer", fontWeight: picked ? 700 : 400,
+                  border: "none", borderBottom: "1px solid var(--row-line)", cursor: "pointer", fontWeight: picked ? 700 : 400,
                 }}
               >
                 {picked ? "✓ " : ""}{o.label}
