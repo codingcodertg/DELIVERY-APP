@@ -17,6 +17,7 @@
     "productName": "RTG Hub",
     "files": [
       "main.js",
+      "origenes.js",
       "build/icon.ico"
     ],
     "win": {
@@ -25,6 +26,7 @@
       ],
       "icon": "build/icon.ico"
     },
+    "artifactName": "RTG-Hub-Setup-${version}.${ext}",
     "nsis": {
       "oneClick": false,
       "perMachine": false,

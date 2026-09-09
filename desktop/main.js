@@ -29,6 +29,7 @@
 const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+const { crearConfianza } = require("./origenes.js");
 
 const SITIO = "https://rtg-hub.vercel.app";
 const INICIO = `${SITIO}/home`;
@@ -103,7 +104,10 @@ function crearVentana() {
   // El agente de usuario dice qué es esto, igual que hace la cáscara de Android. Sirve para
   // que la web pueda distinguirlo el día que haga falta — y para leerlo en un informe de
   // error sin tener que preguntar "¿lo abriste en Chrome o en la app?".
-  const ua = `${win.webContents.getUserAgent()} RDZHub/${app.getVersion()}`;
+  // `RTGHub/`, no `RDZHub/` (D-NEXT). Se comprobó antes de cambiarlo: **nadie compara esta
+  // cadena** — no aparece en `src/` fuera de esta línea. Si algún día la web la mira, tiene que
+  // aceptar las dos, porque las instalaciones viejas seguirán mandando la vieja durante meses.
+  const ua = `${win.webContents.getUserAgent()} RTGHub/${app.getVersion()}`;
   win.webContents.setUserAgent(ua);
 
   win.loadURL(INICIO, { userAgent: ua });
@@ -114,9 +118,26 @@ function crearVentana() {
   // Un enlace a Google Maps, a una factura o a cualquier sitio de fuera abre en el navegador
   // del sistema. Si se abriera aquí dentro, la persona se quedaría sin forma de volver: esta
   // ventana no tiene barra de direcciones ni botón de atrás.
-  const esNuestro = (u) => {
-    try { return new URL(u).origin === ORIGEN; } catch { return false; }
-  };
+  // Qué es «nuestro» NO puede ser una constante que envejece (D-NEXT). La app instalada del 3 de
+  // septiembre lleva embebido el dominio viejo; el sitio se mudó al día siguiente y el dominio
+  // viejo redirige. Resultado: la ventana cargaba bien —el enrutado de cliente no dispara
+  // `will-navigate`— pero el cierre de sesión, que es un POST de página completa, salía al
+  // navegador porque su URL ya no coincidía con la constante. La sesión no se cerraba.
+  //
+  // Así que la confianza empieza en `ORIGEN` y aprende **un** origen más: donde acabe la primera
+  // carga. La regla y su límite viven en `origenes.js`, que no depende de Electron y sí tiene
+  // pruebas.
+  const confianza = crearConfianza(ORIGEN);
+  const esNuestro = (u) => confianza.esNuestro(u);
+
+  // La primera carga la inicia esta app hacia su propia URL de inicio, así que si termina en otro
+  // origen es porque **nuestro** dominio redirigió allí. Se aprende una sola vez: ver en
+  // `origenes.js` por qué la regla general («confía en cualquier redirección desde un origen de
+  // confianza») sería peor.
+  win.webContents.once("did-navigate", (_e, url) => {
+    const nuevo = confianza.aprendeDeLaPrimeraCarga(url);
+    if (nuevo) console.log(`[RTG Hub] el sitio redirige a ${nuevo}; se añade a los orígenes propios`);
+  });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (esNuestro(url)) return { action: "allow" };

@@ -11395,3 +11395,189 @@ lo use: llevar un pedido a `picked_up`, dejarlo en otra tienda, y ver que vuelve
 origen nuevo, sin chofer, sin millas y con el evento en el historial. `verify.mjs`:
 en verde sobre `.next` limpio, en solitario: **1343 pasados | 3 saltados**
 (main 70bbe4d: 1316 | 3; los +27 son `leave-at-store.test.ts`).
+
+## D-NEXT · La ventana de escritorio aprende a qué sitio pertenece, y deja de echar fuera lo suyo
+
+**Fecha:** 2026-09-08 · **Versión:** ninguna app web sube (solo `desktop/` y la ruta de descarga) ·
+**Pedido por:** el dueño: *«en la app de escritorio, Sign out no cierra la sesión: abre el
+navegador»*. Sin migración.
+
+### El fallo, y por qué el caso que se reportó no es el peor
+
+El instalador que la gente tiene —**RDZ Hub 1.0.0, del 2026-09-03**— lleva embebido
+`https://deliveries-app-seven.vercel.app`. El cambio a `rtg-hub.vercel.app` en `desktop/main.js` es
+del commit a591407, del **2026-09-04**: un día después de compilar el instalador.
+
+El dominio viejo redirige con 307 al nuevo, así que **la app carga bien y todo parece funcionar**.
+Y funciona, porque moverse por el hub es enrutado de cliente de Next.js: no hay navegación real y
+`will-navigate` no se dispara nunca.
+
+Se dispara solo en las **navegaciones de página completa**, y ahí la URL ya es de `rtg-hub`, que no
+coincidía con la constante embebida. `esNuestro` decía «esto no es nuestro» y la ventana lo mandaba
+a `shell.openExternal`. De ahí el navegador; y de ahí que la sesión no se cerrara, porque el POST
+salía de la ventana con la sesión dentro.
+
+**El caso que reportó el dueño es el amable.** El peor lo encontró el auditor:
+`SessionExpired.tsx:23-24` hace `window.location.href = "/login?next=…"`, y ese componente lo usan
+los cuatro proveedores de datos vía `session-guard`. O sea que a quien se le caduca la sesión **se
+le abre el navegador solo, sin haber tocado nada**. El signout al menos lo provoca alguien.
+
+Inventario completo de lo que hoy salía por esta puerta: **seis** formularios
+`action="/auth/signout" method="post"` (`HomeSelector:123`, `TopBar:267` y `:279`,
+`erp/side-nav:105`, `recruiting/TopBar:69`, `timetracker/TopBar:100`) más el `window.location.href`
+de `SessionExpired`. Los otros `window.location.href` de la app van a `sms:`, `mailto:` y
+RingCentral: esos **sí** tienen que salir fuera, y siguen saliendo.
+
+### El arreglo no es recompilar
+
+Recompilar habría tapado este caso y dejado la causa: **una app instalada no puede romperse porque
+el sitio cambie de dominio**. La gente no reinstala, y el siguiente cambio de dominio volvería a
+hacer exactamente esto.
+
+Así que `esNuestro` deja de comparar contra una constante. La ventana mantiene una **lista de
+orígenes de confianza** que empieza con el origen compilado y **aprende uno más: el origen donde
+acabó la primera carga**. Esa primera carga la inicia la propia app hacia su URL de inicio, así que
+si termina en otro origen es porque **nuestro propio dominio** redirigió allí.
+
+**Solo la primera, y ese límite es la decisión.** La regla más general —«confía en cualquier origen
+al que te lleve una redirección desde un origen de confianza»— parece mejor y es peor: un flujo que
+redirija a un proveedor externo (un OAuth, una pasarela de pago) lo convertiría en interno, y
+entonces se abriría **dentro** de una ventana con la sesión puesta y **sin barra de direcciones**.
+La confianza se gana una vez, al arrancar, y no se vuelve a ganar. Estar cargado no vuelve confiable
+a nadie, que es lo que pedía el encargo.
+
+**El precio de ese límite, dicho porque es el único camino por el que esto no arreglaría nada:** la
+oportunidad **se gasta aunque no se aprenda nada**. Si la primera navegación principal de la ventana
+no fuera la carga del sitio, el aprendizaje se perdería hasta reiniciar la app. En la práctica no
+debería ocurrir —`did-navigate` no se dispara con `about:blank` ni con un fallo de red, y la única
+carga que hace esta ventana al arrancar es la suya—, pero se elige así a sabiendas: gastar la
+oportunidad de más es seguro, guardarla para «la próxima navegación buena» sería exactamente la
+regla general que se acaba de descartar.
+
+### Dónde vive, y por qué eso importa aquí
+
+En `desktop/origenes.js`, no dentro de `main.js`: no depende de Electron, así que **se puede probar
+de verdad**. `main.js` la importa con `require` y la prueba —`src/lib/desktop-origins.test.ts`, ahí
+para que `vitest` la recoja— carga **ese mismo fichero** con `createRequire`. No hay una copia en
+`src/lib` y otra en `desktop/`: hay una implementación y una prueba que importa el original.
+
+`desktop/` no entraba en `verify.mjs` y **no tenía ninguna prueba**. Ahora sí, por esta vía: 22
+casos que cubren el fallo real con los dominios de verdad, el límite del aprendizaje, los esquemas
+que no son web, las URLs rotas y lo que se empaqueta en el instalador.
+
+### El rename que iba de paso (paso 7 de 11)
+
+Medido antes de tocar nada: **`productName` y `shortcutName` ya eran «RTG Hub»** desde el paso 1 del
+rename (c1bd9e5), y el **`appId` nunca cambió** (`net.rdztilegroup.hub` desde ea2668e). Así que solo
+faltaban dos cosas:
+
+- **El nombre del instalador, y no es cosmético.** El patrón por defecto de la versión que se
+  compila (electron-builder 25.1.8, `NsisTarget.js:99`) es
+  `"${productName} " + "Setup " + "${version}.${ext}"`, o sea **`RTG Hub Setup 1.0.0.exe`, con
+  espacios**. (La cita del `master` del repositorio lleva además un `${arch}` que **en 25.1.8 no
+  existe**: el detalle era mío y estaba mal, el fondo no cambia.)
+
+  Que eso importe se midió en el `dist/` de la compilación que se publicó: **el fichero que salió
+  del compilador se llama `RDZ Hub Setup 1.0.0.exe`, con espacios, y el asset del release se llama
+  `RDZ-Hub-Setup-1.0.0.exe`, con guiones**. Alguien lo renombró **a mano** al subirlo, y tenía que
+  hacerlo, porque el respaldo de la ruta de descarga filtra por `startsWith("RDZ-Hub-Setup")`
+  (`route.ts:49`). O sea que la descarga funcionaba por un **renombrado manual que no estaba
+  escrito en ninguna parte**, y se habría roto el día que publicara otra persona.
+
+  Y se habría roto de una forma difícil de diagnosticar: la ruta prueba **primero el almacén
+  privado**, así que ese filtro solo entra en juego en el respaldo de GitHub; y cuando no encuentra
+  ningún asset que case, no da error — redirige a la **página de releases**
+  (`activo?.browser_download_url ?? pagina`). Nadie ve una excepción en ningún registro: a la
+  persona simplemente la sueltan en GitHub a buscar el `.exe` a mano.
+
+  Declarando `artifactName` como `RTG-Hub-Setup-${version}.${ext}`, el nombre que sale del
+  compilador es ya el que espera la ruta, y el puente manual desaparece.
+- **El agente de usuario**: `RDZHub/` → `RTGHub/`. Se comprobó antes de cambiarlo que **nadie lo
+  compara**: el único comparador de agentes es `app-update.ts:31`, que busca `RDZDeliveries/(\d+)`
+  —el APK de Android—. Lo que no puede aparecer nunca es una comparación nueva contra la cadena
+  vieja, porque las instalaciones ya puestas seguirán mandando `RDZHub/` durante meses.
+
+**El `appId` NO se toca, y esto se verificó en el código de electron-builder, no de oído:**
+
+- El GUID del instalador sale del `appId`: `NsisTarget.ts:182-184` →
+  `this.options.guid || UUID.v5(this.packager.appInfo.id, ELECTRON_BUILDER_NS_UUID)`, con el
+  espacio de nombres `50e065bc-3134-11e6-9bab-38c9862bdaf3` (`progId.ts:4`). No hay `guid`
+  declarado —y **tampoco puede haberlo**: un `guid` explícito gana sobre el derivado, así que
+  añadir uno tendría el mismo efecto que cambiar el `appId`. Hay una prueba que lo prohíbe.
+- Ese GUID nombra la clave del registro (`NsisTarget.ts:219-224`, `:240`).
+- Y el instalador localiza lo anterior **por el registro, no por la carpeta**:
+  `templates/nsis/include/installUtil.nsh:155` lee `UninstallString` de esa clave.
+
+**Y no se quedó en el razonamiento: la fila existe y se ha leído.** El UUID v5 de
+`net.rdztilegroup.hub` con ese espacio de nombres es **`6518596e-df58-5bd6-8ce5-00520ccbd59d`**
+—calculado por el orquestador, por el auditor y por el worker, por separado y con el mismo
+resultado—, y esa clave está en el registro de la máquina del dueño, en **HKLM** (o sea instalación
+para toda la máquina: el instalador pedirá elevación), con `DisplayName = "RDZ Hub 1.0.0"` y
+`UninstallString = "C:\Program Files\RDZ Hub\Uninstall RDZ Hub.exe" /allusers`. No hay ninguna otra
+entrada con «Hub». La fila que el instalador nuevo va a buscar ya está ahí, y sabemos cómo se llama.
+
+**Un detalle que solo aparece al leer la fila de verdad:** su `InstallLocation` está **vacío**. Si
+el instalador dependiera de ese valor —como decía el borrador de esta entrada— no encontraría la
+carpeta vieja. No depende: `installUtil.nsh:169-175` contempla ese caso y, con `InstallLocation`
+vacío, **deduce el directorio del propio `UninstallString`** (`GetFileParent`), citando el issue 735
+de electron-builder. El mecanismo funciona con la fila que hay, no con una fila ideal.
+
+Conclusión: cambiar el nombre visible —y con él la carpeta— **no deja huérfana** la instalación de
+`C:\Program Files\RDZ Hub`. El instalador nuevo la encuentra y la actualiza; no quedan dos apps. Si
+el `appId` cambiara, sí quedarían.
+
+### La descarga acepta los dos nombres
+
+`src/app/api/download/[app]/route.ts` buscaba `apps/RDZ-Hub-Setup.exe` en el almacén privado y
+reconocía los activos de GitHub por `startsWith("RDZ-Hub-Setup")`. Ahora prueba **`RTG-Hub-Setup.exe`
+y, si no está, `RDZ-Hub-Setup.exe`**, y reconoce ambos prefijos en las publicaciones.
+
+No es cortesía: el almacén privado todavía tiene el fichero con el nombre viejo y el respaldo de
+GitHub tiene una publicación con el nombre viejo. Servir solo el nombre nuevo habría roto la
+descarga **de la versión que la gente usa hoy** — un fallo peor que el que se estaba arreglando, y
+en el mismo commit.
+
+### La trampa del empaquetado: `files` es una lista a mano
+
+`desktop/package.json` empaqueta **exactamente** lo que diga `files`, y hasta hoy decía
+`["main.js", "build/icon.ico"]`. Sacar la lógica a `origenes.js` y no añadirlo ahí habría dado un
+`.exe` **sin ese fichero dentro**: la app no arranca.
+
+Y lo que lo hace peligroso es que **no lo detecta nada de lo que corremos**. Con `npm start`
+funciona, porque el fichero está en disco. `tsc` no mira `desktop/` (el `include` del tsconfig es
+solo `**/*.ts` y `**/*.tsx`), `vitest` solo corre `src/**/*.test.ts` y `next build` no lo toca. El
+primero en verlo habría sido quien instala el release —después de fusionar— o el propio dueño.
+
+Lo levantó el auditor antes de que llegara a un binario. Queda dicho porque es una trampa que se
+paga una vez y se olvida: **cualquier fichero nuevo de `desktop/` hay que meterlo en `files` a
+mano**. Y para que no dependa de que alguien lo recuerde, hay una prueba que lee los
+`require("./…")` de `main.js` y exige que cada uno esté en la lista.
+
+### Lo que se pierde con el rename, y no es un fallo
+
+`app.getPath("userData")` depende del nombre del producto, así que **el tamaño y la posición
+guardados de la ventana no se heredan**: la primera vez tras actualizar, la ventana sale con el
+tamaño por defecto. No se migra a propósito —mover ese fichero cuesta más de lo que vale— y queda
+escrito para que nadie lo tome por un síntoma.
+
+### Lo no verificado
+
+**Nada de esto se ha ejecutado en la app de escritorio**, porque compilar y publicar el instalador
+es del orquestador, no de esta rama. Lo que hay son las funciones puras probadas en solitario y las
+comprobaciones de forma sobre `main.js`. En concreto **no se ha visto correr `did-navigate`**: que
+Electron entregue ahí la URL final tras las redirecciones está tomado de su API, no medido aquí.
+
+Y **no se ha ejecutado nada en Electron**: que `did-navigate` entregue la URL final tras las
+redirecciones está tomado de su API, no medido aquí, ni por el worker ni por el auditor.
+
+**El empaquetado no lo puede comprobar nadie que no compile**, y por eso el orquestador hará dos
+cosas antes de que esto llegue a nadie: abrir el `app.asar` compilado para ver que `origenes.js`
+está dentro —la misma técnica con la que se encontró el dominio viejo esta mañana— y, tras
+instalar, volver a leer la clave del registro.
+
+La primera comprobación cuando el dueño instale la versión nueva: abrir la app, pulsar **Cerrar
+sesión** y ver que vuelve a la pantalla de entrar **dentro de la ventana**; y dejar la sesión
+caducar para ver que tampoco se abre el navegador solo. La segunda: que el instalador nuevo
+**reemplace** la instalación vieja en vez de dejar dos entradas en «Agregar o quitar programas».
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1365 pasados | 3 saltados**
+(main b5b9d9a: 1343 | 3; los +22 son `desktop-origins.test.ts`).
