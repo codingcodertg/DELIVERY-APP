@@ -11756,3 +11756,83 @@ chofer sobrecargado.
 Y **no se ha ejecutado la app de escritorio**: que el marco nazca del color correcto en el segundo
 arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1440 pasados | 3 saltados**
 (main 7db49a3: 1365 | 3; los +75 son el guardián de Entregas y los tokens).
+
+## D-NEXT · «Todas las apps» solo se pinta si hay apps a las que ir
+
+**Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
+**Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y
+no pasa nada.
+
+### No es que no pase nada: es que va y vuelve
+
+`/home` comprueba quién puede estar ahí y devuelve a su sitio a quien no
+(`home/page.tsx:53`, `if (!canReachHub(me)) redirect(landingRoute(me))`). Y `canReachHub` es
+**falso** con un solo módulo y sin herramientas de hub visibles. Así que quien solo tiene el ERP
+pulsaba, iba a `/home`, y la app lo mandaba de vuelta al ERP: **la pantalla parpadea y sigues donde
+estabas**, sin un error, sin nada que leer. Un fallo que no se puede ni describir es peor que uno
+que da un mensaje feo.
+
+El perfil con el que lo vio tenía `module_access: ["erp"]` (medición del orquestador, con el
+registro de seguridad).
+
+### La causa: dos sitios decidiendo lo mismo, y uno sin preguntar
+
+`ModuleSwitcher.tsx:82` **sí** pregunta —`if (!canReachHub(...)) return null`— y por eso se esconde
+solo. La barra del ERP no: `erp/side-nav.tsx:83` y `:159` pintaban el enlace **sin ninguna guarda**;
+`canReachHub` no aparecía en el fichero.
+
+Y no fue un descuido, que es lo que lo hace interesante: el comentario de `:153` decía
+
+> *Always shown. In rtg-erp this was gated on having more than one destination, because there the
+> ERP could be somebody's only module. Here the hub is the way back to Deliveries, Recruiting and
+> Time Tracker, so it is never a dead end.*
+
+La suposición estaba **escrita**: se creía que dentro del hub el ERP nunca sería el único módulo de
+nadie. Lo es. Por eso esta rama corrige el comentario además del código — dejarlo habría llevado al
+siguiente lector a la misma conclusión.
+
+### El arreglo: se pregunta una vez, arriba
+
+`header.tsx` —el único sitio que monta la barra— llama a `canReachHub` y le pasa un sí o un no
+(`hubReachable`). La barra **no vuelve a decidirlo**: dos sitios preguntando lo mismo por separado
+es exactamente lo que produjo el fallo, y hay una prueba que exige que `canReachHub` no aparezca en
+el código de `side-nav.tsx` (en los comentarios sí, para decir de dónde viene la respuesta).
+
+Los **dos** enlaces —el de la cabecera, junto a «RTG ERP», y el de la lista lateral— salen del mismo
+valor, así que no pueden discrepar entre ellos.
+
+**El rol del hub viaja en la sesión que ya se leía.** `getSessionInfo` moldea `profiles.role` a
+`AppRole` (el rol tal como lo entiende el ERP), y las preguntas del hub necesitan el rol del hub.
+Es la misma columna y la misma consulta: se expone también como `hubRole` con su tipo propio, para
+no forzar un molde en cada sitio que quiera hacer una pregunta de hub. **Ninguna lectura nueva de
+`profiles`**, y hay una prueba que lo fija.
+
+### Los otros módulos: medidos, no supuestos
+
+- **HR y Time Tracker no tienen enlace propio al hub.** Los dos montan `ModuleSwitcher`, que ya se
+  esconde con la misma regla. Nunca tuvieron este fallo, y no se toca nada en ellos.
+- **El «Volver al hub» de `home/users/page.tsx:125` no puede ser un callejón sin salida.** A esa
+  pantalla solo entran admins —su propio layout redirige a cualquier otro (D-056)— y **todo admin
+  cumple `canReachHub`**, porque Usuarios es una herramienta de hub visible para él. O sea que quien
+  puede ver ese enlace puede, por definición, llegar al hub. Se deja como está, con la medición
+  escrita para que nadie lo «arregle» por simetría.
+
+### Qué NO cambia
+
+**La regla de quién puede llegar al hub, intacta** (D-056/D-173): esta rama arregla quién **pinta**
+el enlace, no quién puede entrar. La tentación contraria —relajar `canReachHub` para que el botón
+funcione— haría desaparecer el síntoma llevando a esa persona a una pantalla que no le sirve, con un
+único módulo y ninguna herramienta. Hay una prueba que fija las dos líneas de `canReachHub` y la
+guarda de `/home`.
+
+Tampoco cambia la excepción del chofer (D-051): nunca ve ninguno de los dos controles, le den lo que
+le den.
+
+### Lo no verificado
+
+**Nadie ha entrado con una cuenta de un solo módulo a mirarlo en un navegador.** Lo que hay es la
+regla probada en solitario —incluido el caso exacto del dueño, `["erp"]` con rol `sales`— y las
+comprobaciones de forma sobre los tres ficheros. La primera comprobación cuando el dueño lo vea: con
+esa misma cuenta, que **el enlace ya no esté**; y con una cuenta de dos módulos, que siga estando y
+lleve al selector. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1453 pasados | 3 saltados**
+(main b781f5e: 1440 | 3; los +13 son `erp-hub-link.test.ts`).

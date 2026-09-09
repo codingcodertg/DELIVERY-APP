@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/erp/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import { canSeeCost, type AppRole } from "@/lib/erp/domain/roles";
+import type { UserRole } from "@/lib/types";
 
 // Re-exported from the framework-free domain module (unit-tested there).
 export { canSeeCost };
@@ -10,6 +11,16 @@ export type { AppRole };
 export type SessionInfo = {
   user: User;
   role: AppRole;
+  /**
+   * El MISMO valor de `profiles.role`, sin el molde de `AppRole` (D-NEXT).
+   *
+   * `role` de arriba es el rol tal como lo entiende el ERP; las reglas del hub —quién puede
+   * llegar al selector de módulos— preguntan por el rol del hub. Es la misma columna y la misma
+   * consulta: se expone con su tipo propio para no tener que forzar un molde en cada sitio que
+   * quiera hacerle una pregunta de hub. Sin esto, la barra del ERP no puede preguntar
+   * `canReachHub` sin inventarse un tipo.
+   */
+  hubRole: UserRole;
   fullName: string | null;
   // Merged-module access (ADR 0010, v4_69). Null/empty for a catalog-only account, which is the
   // correct default — these are opt-in grants, not something every profile carries.
@@ -47,6 +58,7 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
   return {
     user,
     role: (profile?.role as AppRole) ?? "staff",
+    hubRole: (profile?.role as UserRole) ?? "sales",
     fullName: profile?.full_name ?? null,
     moduleAccess: (profile?.module_access as string[] | null) ?? null,
     recruitingRole: (profile?.recruiting_role as string | null) ?? null,

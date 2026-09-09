@@ -48,11 +48,21 @@ export function SideNav({
   fullName,
   email,
   cost,
+  hubReachable,
 }: {
   role: AppRole;
   fullName: string | null;
   email: string;
   cost: boolean;
+  /**
+   * ¿Existe un hub al que volver para esta persona? (D-NEXT)
+   *
+   * Lo decide `canReachHub` en `header.tsx`, la misma función que usan `/home` y el conmutador de
+   * módulos. Aquí llega ya resuelto a propósito: si esta barra volviera a preguntarlo por su
+   * cuenta, habría otra vez dos versiones de la misma regla — que es exactamente lo que dejó los
+   * dos enlaces de abajo prometiendo un sitio al que la app no deja entrar.
+   */
+  hubReachable: boolean;
 }) {
   const pathname = usePathname();
   const { t, lang, setLang } = usePrefs();
@@ -79,13 +89,15 @@ export function SideNav({
   const brand = (
     <div className="flex min-w-0 items-baseline gap-2">
       <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
-      <Link
-        href="/home"
-        title={t("All apps", "Todas las apps")}
-        className="shrink-0 text-sm text-slate-500 hover:text-clay-700"
-      >
-        <span aria-hidden="true">⌂</span> {t("All apps", "Todas las apps")}
-      </Link>
+      {hubReachable && (
+        <Link
+          href="/home"
+          title={t("All apps", "Todas las apps")}
+          className="shrink-0 text-sm text-slate-500 hover:text-clay-700"
+        >
+          <span aria-hidden="true">⌂</span> {t("All apps", "Todas las apps")}
+        </Link>
+      )}
     </div>
   );
   // El conmutador de idioma, como en las barras de HR y Time Tracker: un botón que alterna y
@@ -151,16 +163,20 @@ export function SideNav({
           <div className="min-w-0 flex-1">{brand}</div>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
-          {/* Always shown. In rtg-erp this was gated on having more than one
-              destination, because there the ERP could be somebody's only module.
-              Here the hub is the way back to Deliveries, Recruiting and Time
-              Tracker, so it is never a dead end. */}
-          <Link
-            href="/home"
-            className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          >
-            ⌂ {t("All apps", "Todas las apps")}
-          </Link>
+          {/* Este comentario decía «siempre visible… aquí el hub nunca es un callejón sin
+              salida», y era falso (D-NEXT): el ERP también puede ser el único módulo de alguien,
+              exactamente como en rtg-erp. Quien está en ese caso pulsaba, `/home` lo devolvía al
+              ERP y no veía ni un error — la pantalla parpadeaba y seguía donde estaba.
+              Ahora se pinta solo si hay hub al que volver, con la misma respuesta que el enlace
+              de la cabecera: los dos salen de `hubReachable`, así que no pueden discrepar. */}
+          {hubReachable && (
+            <Link
+              href="/home"
+              className="mb-2 block rounded-md px-3 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            >
+              ⌂ {t("All apps", "Todas las apps")}
+            </Link>
+          )}
           {navItems.map((i) => (
             <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
               {i.label}
