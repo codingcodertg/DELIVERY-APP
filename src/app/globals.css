@@ -16,7 +16,7 @@
   --gray: #6b7686;
 
   /* ---------------------------------------------------------------------------
-     Tintes y colores de estado de Entregas (D-NEXT).
+     Tintes y colores de estado de Entregas (D-226).
      ---------------------------------------------------------------------------
      Estaban escritos a pelo dentro de `style={{}}` en los componentes, y por eso
      Entregas se veía roto en oscuro: el fondo de la app cambiaba y estos no. Cada
@@ -70,7 +70,7 @@
   --accent-soft: #1e2b45;
   --gray: #93a0b0;
 
-  /* Los pares oscuros de los tintes de Entregas (D-NEXT). Los tres primeros grupos
+  /* Los pares oscuros de los tintes de Entregas (D-226). Los tres primeros grupos
      son los mismos valores que ya usaban `.banner.warn`, `.banner.err` y
      `.banner.ok` en oscuro: un aviso y una tarjeta del mismo color no pueden
      verse distintos. */

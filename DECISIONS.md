@@ -11582,7 +11582,7 @@ caducar para ver que tampoco se abre el navegador solo. La segunda: que el insta
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1365 pasados | 3 saltados**
 (main b5b9d9a: 1343 | 3; los +22 son `desktop-origins.test.ts`).
 
-## D-NEXT · Entregas en modo oscuro: la otra mitad de la deuda de G-13
+## D-226 · Entregas en modo oscuro: la otra mitad de la deuda de G-13
 
 **Fecha:** 2026-09-08 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, que abrió Entregas en oscuro en el escritorio y lo vio roto — «Orders»

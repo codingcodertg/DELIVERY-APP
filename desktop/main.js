@@ -48,7 +48,7 @@ function leeEstado() {
 }
 
 // ---------------------------------------------------------------------------
-// El color con el que nace la ventana (D-NEXT)
+// El color con el que nace la ventana (D-226)
 // ---------------------------------------------------------------------------
 // Estaba fijo en `#0f151d`, el `--paper` del tema OSCURO, copiado del cliente de Time
 // Tracker — donde sí aplica, porque aquel arranca en oscuro a propósito (D-080). **Aquí no**:

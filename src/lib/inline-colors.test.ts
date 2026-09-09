@@ -112,7 +112,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 });
 
 // ============================================================
-// Entregas: la otra mitad de la deuda de G-13 (D-NEXT).
+// Entregas: la otra mitad de la deuda de G-13 (D-226).
 //
 // D-211 cerró HR y dejó anotadas Entregas y Time Tracker. Esta tabla es la de Entregas
 // DESPUÉS del encargo: 117 colores a pelo pasaron a 79. Lo que queda no es residuo — es lo
