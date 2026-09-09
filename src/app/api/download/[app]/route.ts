@@ -36,7 +36,7 @@ type Fuente = {
    * la versión la lleva dentro el instalador, y una URL que cambia con cada publicación es la que
    * se rompe.
    *
-   * Son varios porque el hub se renombró de RDZ a RTG (D-NEXT) y el almacén todavía tiene el
+   * Son varios porque el hub se renombró de RDZ a RTG (D-225) y el almacén todavía tiene el
    * fichero con el nombre viejo. Se prueba el nuevo y se cae al viejo: dejar de servir la versión
    * que la gente usa hoy sería peor que el fallo que se estaba arreglando.
    */

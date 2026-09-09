@@ -104,7 +104,7 @@ function crearVentana() {
   // El agente de usuario dice qué es esto, igual que hace la cáscara de Android. Sirve para
   // que la web pueda distinguirlo el día que haga falta — y para leerlo en un informe de
   // error sin tener que preguntar "¿lo abriste en Chrome o en la app?".
-  // `RTGHub/`, no `RDZHub/` (D-NEXT). Se comprobó antes de cambiarlo: **nadie compara esta
+  // `RTGHub/`, no `RDZHub/` (D-225). Se comprobó antes de cambiarlo: **nadie compara esta
   // cadena** — no aparece en `src/` fuera de esta línea. Si algún día la web la mira, tiene que
   // aceptar las dos, porque las instalaciones viejas seguirán mandando la vieja durante meses.
   const ua = `${win.webContents.getUserAgent()} RTGHub/${app.getVersion()}`;
@@ -118,7 +118,7 @@ function crearVentana() {
   // Un enlace a Google Maps, a una factura o a cualquier sitio de fuera abre en el navegador
   // del sistema. Si se abriera aquí dentro, la persona se quedaría sin forma de volver: esta
   // ventana no tiene barra de direcciones ni botón de atrás.
-  // Qué es «nuestro» NO puede ser una constante que envejece (D-NEXT). La app instalada del 3 de
+  // Qué es «nuestro» NO puede ser una constante que envejece (D-225). La app instalada del 3 de
   // septiembre lleva embebido el dominio viejo; el sitio se mudó al día siguiente y el dominio
   // viejo redirige. Resultado: la ventana cargaba bien —el enrutado de cliente no dispara
   // `will-navigate`— pero el cierre de sesión, que es un POST de página completa, salía al

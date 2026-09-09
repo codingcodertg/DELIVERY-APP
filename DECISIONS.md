@@ -11396,7 +11396,7 @@ origen nuevo, sin chofer, sin millas y con el evento en el historial. `verify.mj
 en verde sobre `.next` limpio, en solitario: **1343 pasados | 3 saltados**
 (main 70bbe4d: 1316 | 3; los +27 son `leave-at-store.test.ts`).
 
-## D-NEXT · La ventana de escritorio aprende a qué sitio pertenece, y deja de echar fuera lo suyo
+## D-225 · La ventana de escritorio aprende a qué sitio pertenece, y deja de echar fuera lo suyo
 
 **Fecha:** 2026-09-08 · **Versión:** ninguna app web sube (solo `desktop/` y la ruta de descarga) ·
 **Pedido por:** el dueño: *«en la app de escritorio, Sign out no cierra la sesión: abre el

@@ -1,7 +1,7 @@
 "use strict";
 
 // ============================================================
-// Qué es «nuestro» para la ventana de escritorio (D-NEXT).
+// Qué es «nuestro» para la ventana de escritorio (D-225).
 //
 // El fallo que cierra: en la app instalada, «Cerrar sesión» no cerraba la sesión — abría el
 // navegador. El instalador que la gente tiene (RDZ Hub 1.0.0, del 3 de septiembre) lleva embebido
