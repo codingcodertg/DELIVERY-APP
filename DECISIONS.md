@@ -12289,7 +12289,7 @@ uno **con** Entregas, que el bloque del módulo dice dónde está el rol en vez 
 selector. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1499 pasados | 3 saltados**
 (main 6f5a3ee: 1488 | 3; los +11 son `role-in-identity.test.ts`).
 
-## D-NEXT · El campo del teléfono dice «Phone number», y es una excepción a propósito
+## D-231 · El campo del teléfono dice «Phone number», y es una excepción a propósito
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, literal y en mayúsculas: *«SALE NUMBER PERO TIENE QUE DECIR PHONE
