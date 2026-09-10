@@ -12447,6 +12447,12 @@ prueba recorre los `.tsx`, empareja cada contenedor con su tabla y exige que **l
 `tbl-resize` sean exactamente los que llevan `tbl-fit`** — y que no haya ningún `tbl-fit` sobre una
 tabla que no lo sea, donde `max-content` no cuadraría con un `width: 100%`.
 
+**Y dejar fuera a las otras once no es un criterio que alguien tenga que mantener: es
+estructural.** `table.orders` sin `tbl-resize` es **`width: 100%`** (`globals.css:265`), así que
+llena su contenedor y **no puede dejar hueco**. Las que lo dejan son exactamente las que valen la
+suma de sus columnas. O sea que «y nadie más» es una **consecuencia** de cómo están definidas las
+tablas, no una lista que se pueda quedar desactualizada.
+
 ### Lo que NO se toca, y por qué importa aquí
 
 **Ni el ancho de la tabla ni el de las columnas.** El cambio vive entero en el contenedor: la tabla
@@ -12457,9 +12463,20 @@ Si esta rama hubiera ensanchado la tabla, el recorte habría dejado de caer dond
 las tres pantallas habría cambiado sin que lo cantara ninguna prueba. Al no tocarlo, **el punto
 donde cada celda recorta es exactamente el mismo**.
 
+**Y el contenedor no puede influir en ese recorte, porque la dependencia va en un solo sentido**:
+la tabla es `width: auto` (o fija en píxeles, en `routes:2132`), **nunca `width: 100%`**, así que
+no se mide según su contenedor — es el contenedor el que se mide según ella. La única tabla que sí
+depende del contenedor es `orders-responsive` en el móvil (`width: 100% !important`), y ahí
+`tbl-fit` está desactivada.
+
 Tampoco cambian: el `sticky` de las cabeceras —depende del contenedor con scroll, que sigue
 teniéndolo—, el redimensionado de columnas de `use-col-widths`, ni las otras nueve tablas que usan
 `.tbl-scroll` sin `tbl-resize`.
+
+**Sobre `max-content` y lo que necesita para funcionar:** mide un hijo de ancho **determinado**, y
+en los cinco casos lo es — cuatro por `table-layout: fixed` más el `colgroup`, y el quinto
+(`routes:2132`) por un `width` en píxeles calculado como la suma de columnas. Ese quinto, que
+parecía el más delicado por llevar un ancho en línea, resulta ser **el más seguro de los cinco**.
 
 ### Lo no verificado
 
@@ -12472,5 +12489,7 @@ captura. Las tres cosas que hay que mirar cuando el dueño lo abra:
    aparecer la sombra en el lado que corresponda y poder desplazarse.
 3. **El teléfono**, que las tarjetas sigan ocupando el ancho completo.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1495 pasados | 3 saltados**
-(main 6f5a3ee: 1488 | 3; los +7 son `table-fit.test.ts`).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1512 pasados | 3 saltados**
+(main dd4e951: 1505 | 3; los +7 son `table-fit.test.ts`). Esta rama se rebasó dos veces mientras
+esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506 sobre c344c8c
+(1499). El +7 no se mueve; lo que sube es la base.
