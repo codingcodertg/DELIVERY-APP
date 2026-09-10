@@ -11878,17 +11878,29 @@ conclusión apoyada en la barrera equivocada es una conclusión frágil:
 
 1. **Las URL firmadas del bucket privado `po-docs`.** `erp/purchasing/orders/[id]/page.tsx:48` las
    mina con **service role** sobre los PDF de OC y proforma, que llevan coste del proveedor. Ahí no
-   hay vista que enmascare ni columna que revocar. **Aguanta por una tercera barrera**: la página
-   solo construye esos enlaces si `reconcile_po` devuelve algo, y `reconcile_po`
-   (`064_erp_functions.sql:1917`) es `SECURITY DEFINER` y **se pregunta el rol ella misma** —
-   `if coalesce(erp.current_app_role(),'') not in ('admin','manager') then raise exception 'not
-   authorized'`. Con `erp_role = staff`, 42501 y ni un enlace.
+   hay vista que enmascare ni columna que revocar. **Aguanta por una tercera barrera**: la lista de
+   documentos se construye en **un solo sitio** (`:45`) y **dentro de `if (recon)`** (`:40`);
+   `recon` sale de `reconcile_po` llamada con el cliente **del usuario** (`:30-31`), y
+   `reconcile_po` (`064_erp_functions.sql:1917`) es `SECURITY DEFINER` y **se pregunta el rol ella
+   misma** — `if coalesce(erp.current_app_role(),'') not in ('admin','manager') then raise
+   exception 'not authorized' using errcode = '42501'`. Con `erp_role = staff`: 42501, `recon`
+   nulo, no se entra en el bloque… y **`createAdminClient()` ni siquiera se instancia**, porque se
+   crea dentro del `if`. La superficie es más pequeña de lo que parecía: no es que el cliente
+   privilegiado no se use, es que no llega a existir.
 2. **`parsePdfUpload`** (`lib/erp/actions.ts:549`), y esta es **la excepción de verdad**: está
-   gateada **solo** por la vía equivocada y sube con service role, **sin ninguna barrera detrás**.
-   No hubo fuga porque el fichero lo aporta quien lo sube —no recibe nada que no tuviera— pero era
-   **autoridad de escritura concedida de más**. Medido: `po-docs` tiene **un solo objeto**
-   (`uploads/po12428-demo.pdf`, del 26 de agosto, de la demo y anterior a que Patricia tuviera el
-   ERP) y **cero objetos suyos en cualquier bucket**. Existía y nadie la usó. El arreglo la cierra.
+   gateada **solo** por la vía equivocada —`if (!session || !canSeeCost(session.role)) return
+   fail("NOT_AUTHORIZED")`— y, pasada esa línea, sube con `createAdminClient()` **sin RLS ni
+   función `DEFINER` que vuelva a preguntar**. La única puerta era la del cliente, y era la
+   equivocada.
+
+   **Y era escritura, no lectura**, que es la precisión que evita exagerarlo y minimizarlo a la
+   vez: quien pasaba esa puerta podía **subir** ficheros a un bucket privado y gastar el parseo de
+   PDF de hasta 10 MB. **No** podía leer ningún documento ajeno — el único camino a los PDF
+   guardados es el de las URL firmadas, y ese sí tiene la tercera barrera.
+
+   Medido: `po-docs` tiene **un solo objeto** (`uploads/po12428-demo.pdf`, del 26 de agosto, de la
+   demo y anterior a que Patricia tuviera el ERP) y **cero objetos suyos en cualquier bucket**.
+   Existía y nadie la usó. El arreglo la cierra.
 
 Así que la conclusión, con su motivo correcto: **no hubo fuga, y no por una barrera sino por tres**
 —el enmascarado de la vista, el `REVOKE` sobre la columna base, y las funciones `DEFINER` que
@@ -11934,11 +11946,22 @@ que ya se prueba en solitario:
 
 - **Falla cerrado a `staff`**: sin nivel asignado, el mínimo. Caer al rol de Entregas es el fallo
   que esto cierra, así que ese camino ya no existe.
-- **Y con lista blanca**, que es más de lo que había. `as AppRole` acepta *cualquier* cadena que
-  haya en la columna y la convierte en autoridad; `erpTier` solo reconoce `staff`, `manager` y
-  `admin` —los tres que acepta el `check` de la migración 101— y cualquier otra cosa vale `staff`.
-  Mismo criterio que `canSeeCost`: lista blanca, porque con ocho roles en el enum una lista negra
-  concede por omisión.
+- **Y con lista blanca**, que es más de lo que se pidió y tiene motivo. `as AppRole` acepta
+  *cualquier* cadena que haya en la columna y la convierte en autoridad; `erpTier` solo reconoce
+  `staff`, `manager` y `admin` y cualquier otra cosa vale `staff`. Mismo criterio que `canSeeCost`:
+  lista blanca, porque con ocho roles en el enum una lista negra concede por omisión.
+
+  **Y hace falta, porque el `check` de la columna no garantiza lo que parece.**
+  `profiles_erp_role_known` (migración 101) se creó **`NOT VALID`** y sigue así
+  (`convalidated = false`), o sea que **las filas anteriores nunca se comprobaron** — la misma
+  forma de check que mordió en D-217 con `module_access`. Un molde sobre una columna con un check
+  que no valida lo viejo es una puerta abierta a que un valor raro conceda algo.
+
+  **Aun así, hoy no degrada a nadie, y eso se puede afirmar con un número.** Medido en producción
+  el 2026-09-09: los valores reales de `erp_role` en los 36 perfiles son **nulo 33, admin 2,
+  staff 1**, y `count(*) where erp_role is not null and erp_role not in
+  ('staff','manager','admin')` da **0**. La garantía viene de **haberlo contado**, no del
+  constraint; conviene que quien lea esto dentro de un año sepa la diferencia.
 
 **Los ~38 consumidores no se tocan.** Todos preguntan `session.role`, que ahora **es** el nivel del
 ERP: 30 por `canSeeCost` (las ~20 guardas de página, la exportación, `parsePdfUpload`), 5
@@ -11955,6 +11978,14 @@ Ninguna regla de permisos: ni `canSeeCost`, ni las políticas, ni las funciones 
 `erp_role` desde D-181.
 
 ### Lo no verificado
+
+**La tercera barrera está leída, no ejecutada.** Que `reconcile_po` niegue el paso a un `staff` —y
+con ello que no se firme ninguna URL a los PDF de compras— sale de leer
+`064_erp_functions.sql:1917` y el flujo de la página, **no de haberlo corrido**. No se ejecutó a
+propósito: comprobarlo es llamar a una RPC de producción con la sesión de una persona real para ver
+si le niega el paso, y que el resultado esperado sea un error no lo hace inocuo — para saber que
+falla hay que ejecutarla. Queda anotado con la línea exacta para quien monte algún día un entorno
+de pruebas. Un «no verificado» honesto vale más que una comprobación que mueve datos.
 
 **Nadie ha entrado al ERP con una cuenta de nivel `staff` para ver la pastilla corregida.** Lo que
 hay es la regla probada en solitario —incluido el caso exacto medido, `manager` + `staff` → no ve
