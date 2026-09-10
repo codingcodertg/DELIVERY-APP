@@ -335,6 +335,31 @@ export default function OrdersPage() {
     downloadCSV(`deliveries_${todayISO()}.csv`, toCSV(headers, data));
   };
 
+  // Copiar la lista visible como texto plano para pegar en el grupo de WhatsApp al cerrar el
+  // día ("cerrar la caja"). Copia lo que está en pantalla —respeta el preset (Hoy/Míos) y el
+  // filtro—, una línea por pedido: identificación + cliente + cantidad de pallets (la única
+  // "cantidad" que guarda el pedido). No es un export de datos: son las mismas filas que el
+  // usuario ya ve, así que no va detrás del gate admin de Excel/PDF/CSV.
+  const copyWhatsApp = async () => {
+    if (!rows.length) return;
+    const linea = (d: (typeof rows)[number]) => {
+      const plt = d.actual_pallets ?? d.est_pallets;
+      const cant = plt != null ? ` · ${plt} ${plt === 1 ? "pallet" : "pallets"}` : "";
+      const quien = d.account || d.contact || "";
+      return `• ${orderLabel(d)}${quien ? ` — ${quien}` : ""}${cant}`;
+    };
+    const texto =
+      t(`Orders ${todayISO()} (${rows.length})`, `Pedidos ${todayISO()} (${rows.length})`) +
+      "\n" +
+      rows.map(linea).join("\n");
+    try {
+      await navigator.clipboard.writeText(texto);
+      notify(t("Copied — paste it in WhatsApp", "Copiado — pégalo en WhatsApp"));
+    } catch {
+      notify(t("Could not copy to the clipboard", "No se pudo copiar al portapapeles"));
+    }
+  };
+
   return (
     <>
       <div className="page-head">
@@ -353,6 +378,10 @@ export default function OrdersPage() {
               </button>
             ))}
           </div>
+          {/* Copiar la lista para WhatsApp: disponible para todos los roles que ven esta
+              pantalla (el chofer no llega aquí), porque quien "cierra la caja" y publica al
+              grupo suele ser ventas/oficina, no un admin. */}
+          <button className="btn btn-ghost" onClick={copyWhatsApp} disabled={!rows.length} title={t("Copy the list as text to paste in WhatsApp", "Copiar la lista como texto para pegar en WhatsApp")}>💬 {t("WhatsApp", "WhatsApp")}</button>
           {/* Data exports (Excel / PDF report / CSV) are admin-only. */}
           {me.role === "admin" && <>
             <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || "")))} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
