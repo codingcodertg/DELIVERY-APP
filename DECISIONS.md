@@ -12401,3 +12401,95 @@ hoy a «NOMBRE DE CONTACTO», que mide lo mismo.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1505 pasados | 3 saltados**
 (main c344c8c: 1499 | 3; los +6 son `phone-label.test.ts`). Medido tras rebasar sobre el main que
 ya trae D-230; antes del rebase eran 1494 sobre el main 6f5a3ee, que tenía 1488.
+
+## D-NEXT · El marco de la tabla mide lo que miden sus columnas
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño: a la derecha de la tabla de pedidos hay **«un espacio en blanco que
+parece de la tabla»**.
+
+### Y lo era
+
+`.tbl-scroll` (`globals.css:252`) es un `div`: ocupa el **100%** del ancho disponible y pinta ahí
+su borde y su fondo. La tabla de dentro, `table.tbl-resize` (`:272`), es **`width: auto`** — con
+`table-layout: fixed`, eso significa **la suma de sus columnas**. Cuando las columnas no llegan al
+100%, lo que se ve a la derecha **es el contenedor, vacío**: un rectángulo con el mismo fondo y el
+mismo borde que la tabla, y por eso se lee como parte de ella.
+
+### El arreglo va del lado de la tabla, no del contenedor
+
+Una clase nueva, `tbl-fit`, que solo piden los contenedores que llevan una `tbl-resize` dentro:
+
+```css
+.tbl-scroll.tbl-fit { width: max-content; max-width: 100%; }
+```
+
+**No se toca `.tbl-scroll`, y esa es la decisión.** Ese contenedor lo usan **12 ficheros** y la
+tabla redimensionable solo aparece en **3**; cambiarlo para todos sería tocar once tablas para
+arreglar una. Y su `background-color` **no es decorativo**: es la base de las cuatro sombras de
+desplazamiento de `:248-262` — dos gradientes tapan el borde cuando no hay más contenido y dos
+pintan la sombra cuando sí lo hay, para que una ventana estrecha se lea como «desplázate» y no como
+«faltan columnas». Quitarlo o moverlo habría cambiado esa señal justo donde sirve.
+
+**`max-width: 100%` es lo que conserva el desplazamiento.** Cuando las columnas **sí** suman más
+que el hueco, el marco se queda en el 100%, `overflow-x: auto` sigue haciendo su trabajo y las
+sombras aparecen igual. El encogimiento solo ocurre en el caso que el dueño señaló.
+
+**Y en el teléfono se desactiva.** Dentro de `@media (max-width: 640px)` la tabla se convierte en
+tarjetas al 100% de ancho (`orders-responsive`), así que ahí `tbl-fit` vuelve a `width: auto`: no
+tendría sentido encoger el marco a la suma de unas columnas que ya no se usan.
+
+### Cinco contenedores, y ni uno más
+
+`tbl-fit` se pone en los **cinco** `div.tbl-scroll` que envuelven una `tbl-resize`:
+`accounts/page.tsx:176`, `routes/page.tsx:1709`, `:1843` y `:2132`, y `OrdersTable.tsx:442`. Una
+prueba recorre los `.tsx`, empareja cada contenedor con su tabla y exige que **los que llevan
+`tbl-resize` sean exactamente los que llevan `tbl-fit`** — y que no haya ningún `tbl-fit` sobre una
+tabla que no lo sea, donde `max-content` no cuadraría con un `width: 100%`.
+
+**Y dejar fuera a las otras once no es un criterio que alguien tenga que mantener: es
+estructural.** `table.orders` sin `tbl-resize` es **`width: 100%`** (`globals.css:265`), así que
+llena su contenedor y **no puede dejar hueco**. Las que lo dejan son exactamente las que valen la
+suma de sus columnas. O sea que «y nadie más» es una **consecuencia** de cómo están definidas las
+tablas, no una lista que se pueda quedar desactualizada.
+
+### Lo que NO se toca, y por qué importa aquí
+
+**Ni el ancho de la tabla ni el de las columnas.** El cambio vive entero en el contenedor: la tabla
+sigue midiendo la suma de sus columnas, antes y después. Eso importa más de lo que parece, porque
+`table.tbl-resize th/td` (`:273-274`) recortan con **puntos suspensivos** (`overflow: hidden;
+text-overflow: ellipsis; white-space: nowrap`), que es parte del contrato de `table-layout: fixed`.
+Si esta rama hubiera ensanchado la tabla, el recorte habría dejado de caer donde cae y el aspecto de
+las tres pantallas habría cambiado sin que lo cantara ninguna prueba. Al no tocarlo, **el punto
+donde cada celda recorta es exactamente el mismo**.
+
+**Y el contenedor no puede influir en ese recorte, porque la dependencia va en un solo sentido**:
+la tabla es `width: auto` (o fija en píxeles, en `routes:2132`), **nunca `width: 100%`**, así que
+no se mide según su contenedor — es el contenedor el que se mide según ella. La única tabla que sí
+depende del contenedor es `orders-responsive` en el móvil (`width: 100% !important`), y ahí
+`tbl-fit` está desactivada.
+
+Tampoco cambian: el `sticky` de las cabeceras —depende del contenedor con scroll, que sigue
+teniéndolo—, el redimensionado de columnas de `use-col-widths`, ni las otras nueve tablas que usan
+`.tbl-scroll` sin `tbl-resize`.
+
+**Sobre `max-content` y lo que necesita para funcionar:** mide un hijo de ancho **determinado**, y
+en los cinco casos lo es — cuatro por `table-layout: fixed` más el `colgroup`, y el quinto
+(`routes:2132`) por un `width` en píxeles calculado como la suma de columnas. Ese quinto, que
+parecía el más delicado por llevar un ancho en línea, resulta ser **el más seguro de los cinco**.
+
+### Lo no verificado
+
+**Nadie lo ha visto en un navegador**, y aquí eso pesa más que de costumbre: es un cambio de
+maquetación y lo que hay son comprobaciones sobre el CSS y sobre quién lleva la clase, no una
+captura. Las tres cosas que hay que mirar cuando el dueño lo abra:
+
+1. **El hueco**, en Órdenes con pocas columnas: el marco debe acabar donde acaba la última columna.
+2. **El desplazamiento**, estrechando la ventana hasta que las columnas no quepan: tiene que
+   aparecer la sombra en el lado que corresponda y poder desplazarse.
+3. **El teléfono**, que las tarjetas sigan ocupando el ancho completo.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1512 pasados | 3 saltados**
+(main dd4e951: 1505 | 3; los +7 son `table-fit.test.ts`). Esta rama se rebasó dos veces mientras
+esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506 sobre c344c8c
+(1499). El +7 no se mueve; lo que sube es la base.

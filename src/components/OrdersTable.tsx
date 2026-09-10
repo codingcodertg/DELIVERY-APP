@@ -439,7 +439,7 @@ export function OrdersTable({
 
   return (
     <>
-    <div className="tbl-scroll orders-scroll">
+    <div className="tbl-scroll tbl-fit orders-scroll">
       <table className="orders tbl-resize orders-responsive">
         <colgroup>
           {selectable && <col style={{ width: 34 }} />}
