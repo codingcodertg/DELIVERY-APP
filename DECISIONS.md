@@ -12288,3 +12288,116 @@ uno de los seis perfiles **sin Entregas** y ver que el rol se puede cambiar desd
 uno **con** Entregas, que el bloque del módulo dice dónde está el rol en vez de repetir el
 selector. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1499 pasados | 3 saltados**
 (main 6f5a3ee: 1488 | 3; los +11 son `role-in-identity.test.ts`).
+
+## D-NEXT · El campo del teléfono dice «Phone number», y es una excepción a propósito
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño, literal y en mayúsculas: *«SALE NUMBER PERO TIENE QUE DECIR PHONE
+NUMBER»*.
+
+### El cambio
+
+Una línea. `OrderModal.tsx:1731`, el campo `delivery_phone` de la ficha de pedido:
+
+```
+t("Number", "Número")  →  t("Phone number", "Número de teléfono")
+```
+
+Los dos idiomas en el mismo `t(...)`, que es como habla esta pantalla: el hub no tiene diccionario
+de claves. **El par cambia entero**: dejar `t("Phone number", "Número")` habría hecho el inglés más
+específico y el español menos, y hay una prueba que lo prohíbe.
+
+### Por qué ahí y no en los otros diez
+
+El repo **llama «Phone» / «Teléfono» a este campo en los once sitios** donde lo etiqueta; en uno
+lleva además el signo de obligatorio (`"Phone *"`, `ModalHost:572`). O sea que **«Phone number» es
+una forma nueva**, y entra a sabiendas — esa es la parte que hay que dejar escrita.
+
+*(Se descartó un argumento tentador: que `"Phone *"` probaría que la app «ya adorna la etiqueta
+cuando el sitio lo pide». No se sostiene, y se midió: `grep -rno 't("[^"]* \*"' src --include=*.tsx`
+devuelve **dos**, `"Phone *"` y `"Name *"`, en el mismo formulario, y al lado está la validación
+`t("Name and phone are required", …)` de `ModalHost:480`. **El asterisco es el marcador de campo
+obligatorio**, igual que en «Name \*» — y «Name \*» no es otra forma de llamar a «Name». Y lo
+remata algo que apareció al revisar: `Txt` (`OrderModal.tsx:3116`) **genera ese mismo asterisco en
+código** (`<span className="req-star"> *</span>`) cuando el campo falta, y este campo lo lleva. O
+sea que el `*` es el marcador de obligatorio en **las dos formas en que el repo lo produce**,
+escrito a mano y generado. No hay precedente de que este campo se llame distinto según dónde viva;
+el precedente lo crea esta decisión.)*
+
+Los dos números que contestan la pregunta, cada uno con el comando que lo reproduce — porque un
+número sin su comando al lado vuelve a bailar en cuanto alguien lo recuente:
+
+```
+grep -rn 't("Phone", "Teléfono")' --include=*.tsx src | wc -l   →  10
+grep -rn 't("Number"'             --include=*.tsx src | wc -l   →   1   ← el de la ficha
+```
+
+**Este campo es el único del repo que decía «Number»**, y es el único que está **debajo de «Contact
+name»**, dentro de una ficha que también maneja **número de orden, número de factura y número de
+SO**. Ahí «Number» a secas se lee como cualquiera de los cuatro. En una cabecera de tabla de `data`
+o de `market` esa ambigüedad no existe, porque la columna ya dice de qué va.
+
+Así que **no se unifican los otros diez**: igualarlos sería consistencia por la consistencia, y
+perdería justo lo que el dueño vio. Y no se le baja este a «Phone» porque el problema de ese campo
+no es que fuera corto, es que era **ambiguo en su sitio**.
+
+Queda escrito para que dentro de un año nadie lo «arregle» a «Phone» citando las diez ocurrencias:
+**la excepción es deliberada y esta es su razón.**
+
+### Un dato que costó tres recuentos, y por eso va con su método
+
+La primera versión del inventario decía que las diez ocurrencias de «Phone» son «casi todas
+cabeceras de tabla», y **no es cierto**: al menos dos son etiquetas de formulario con su campo al
+lado —`accounts/page.tsx:264` y `recruiting/ModalHost.tsx:938`, las dos
+`<label>{t("Phone","Teléfono")}</label><input …>`—. Hay una prueba que las fija, porque son las que
+sostienen la frase honesta: **la app dice «Phone» tanto en columnas como en formularios**, y aun así
+este campo se queda distinto.
+
+Y el patrón importa. Con uno amplio (`grep -rEoh 't\("Phone[^"]*"' --include=*.tsx src | sort |
+uniq -c`) salían **17** antes de este cambio, y **decir «17 sitios dicen Phone» es falso**. El
+desglose:
+
+| | |
+|---|---|
+| `"Phone"` | 10 | ← el campo
+| `"Phone *"` | 1 | ← el mismo campo, con el marcador de obligatorio
+| «Phone interview», «Phone call», «Phone interview done», «Phone call scheduled» | 6 | ← no son el campo
+
+**Once etiquetan el teléfono —una forma en once sitios, no once formas— y seis son otra cosa.** El mismo día, dos sesiones midieron **17 y 41**
+con patrones distintos y **las dos tenían razón**: medían cosas distintas. Por eso en esta entrada
+solo entran los dos números que contestan la pregunta del encargo, con su comando pegado, y el
+tercero va con su desglose o no va.
+
+### Qué NO cambia
+
+Ninguna otra etiqueta, ningún ancho, ninguna disposición. **El alineado no puede romperse hacia el
+lado**: `Txt` (`OrderModal.tsx:3111-3121`) pinta el `<label>` **encima** del `<input>` dentro de su
+propio `div.field`, así que una etiqueta más larga crece hacia abajo en su celda, no hacia la
+columna vecina. Y **ninguna prueba dependía de la etiqueta vieja** (0 resultados de «Number» y
+«Número» en `*.test.*` antes del cambio).
+
+**Y no cabe duda de que cabe, sin abrir un navegador**, porque la respuesta estaba en la fila de al
+lado:
+
+| | inglés | | español | |
+|---|---|---|---|---|
+| `Contact name` | 12 | | `Nombre de Contacto` | 18 |
+| `Phone number` | 12 | | `Número de teléfono` | 18 |
+
+**La etiqueta nueva mide exactamente lo mismo que su vecina de la misma fila, en los dos idiomas**,
+con el mismo componente `<Txt>`, la misma clase `.field` y el mismo CSS — y «Contact name» lleva ahí
+desde siempre. No es una estimación: es el mismo número de caracteres en el mismo sitio.
+
+Y si aun así se quedara corta en alguna ventana, el peor caso es que **envuelva**: `globals.css:119`
+da `label { display: block; … }` **sin `white-space: nowrap`, sin `overflow: hidden` y sin ancho
+fijo**. No puede truncarse ni desbordar, y como el `label` es bloque, un salto de línea empuja el
+campo hacia abajo sin tocar la columna vecina.
+
+### Lo no verificado
+
+Nadie lo ha visto en un navegador; lo de arriba sale de contar caracteres y de leer el CSS. Lo único
+que quedaría por ver es **a qué ancho exacto** la etiqueta pasa a dos líneas — y eso ya le pasaría
+hoy a «NOMBRE DE CONTACTO», que mide lo mismo.
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1505 pasados | 3 saltados**
+(main c344c8c: 1499 | 3; los +6 son `phone-label.test.ts`). Medido tras rebasar sobre el main que
+ya trae D-230; antes del rebase eran 1494 sobre el main 6f5a3ee, que tenía 1488.

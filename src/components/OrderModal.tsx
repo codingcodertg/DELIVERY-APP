@@ -1728,7 +1728,7 @@ export function OrderModal({
                 t={t}
               />
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
-              <Txt label={t("Number", "Número")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
+              <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
             {salesFields && !!d.account?.trim() && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
               !savedAccounts.some((a) => a.name.toLowerCase() === d.account!.trim().toLowerCase() && a.contact === d.contact && a.phone === d.delivery_phone
