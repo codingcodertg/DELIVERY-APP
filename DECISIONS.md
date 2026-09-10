@@ -12001,3 +12001,102 @@ coste— y las comprobaciones de forma. La primera comprobación cuando el dueñ
 cuenta de Patricia y que la pastilla diga **«staff»**, sin «cost visible», y que las pantallas de
 compras y analítica la manden al catálogo. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1468 pasados | 3 saltados**
 (main bca4ea9: 1453 | 3; los +15 son `erp-tier.test.ts`).
+
+## D-NEXT · «Tu sesión caducó» dejaba de ser cierto: dos clientes refrescando el mismo token
+
+**Fecha:** 2026-09-09 · **Versión:** la pone el orquestador · Sin migración.
+**Pedido por:** el dueño: el aviso de sesión caducada le salta **muy seguido** en Time Tracker,
+con el temporizador corriendo (1:18:59 en su captura) y con «2 screenshots saved on this device»
+sin sincronizar. La sesión no había caducado.
+
+### La carrera
+
+Esta app monta **cinco clientes de navegador**: el de Entregas y los cuatro que necesitan su
+propio esquema —clockin, ERP, HR y Time Tracker— y que por eso llevan `isSingleton: false` desde
+D-185. Medido en esta rama:
+
+- **Ninguno declara `storageKey` propio**, así que los cinco comparten la misma entrada de
+  `localStorage`: **el mismo token de refresco**.
+- **Ninguno apaga `autoRefreshToken`**, así que cada uno trae su propio temporizador y refresca
+  por su cuenta.
+
+Y Supabase **rota** el token de refresco en cada uso. Si dos clientes refrescan casi a la vez, el
+primero lo rota y el segundo recibe **`400 Invalid Refresh Token: Already Used`** — sobre una
+sesión que **acaba de renovarse**.
+
+`checkSession` trataba cualquier 4xx como sentencia firme. El comentario lo decía y ahí estaba la
+trampa: *«token caducado, ya usado o revocado… es definitivo»*. **«Ya usado» no significa que la
+sesión esté muerta**; significa justo lo contrario, que alguien la acaba de renovar.
+
+Encaja con las dos cosas que contó el dueño: pasa **al volver de suspender el ordenador** —cuando
+los cinco temporizadores disparan a la vez— y pasa **muy seguido**, porque cada ronda de refresco
+es otra oportunidad de perder la carrera.
+
+### El arreglo: preguntar otra vez antes de sentenciar
+
+Ante un 4xx, `checkSession` **vuelve a leer la sesión** antes de declarar `gone`. Si otro cliente
+ganó la carrera, el token nuevo ya está guardado y la relectura lo ve vivo → `ok`. Si lo que sigue
+ahí es el mismo token muerto, → `gone`, como antes.
+
+**Y funciona precisamente porque comparten el `storageKey`.** El cliente que pierde recibe el 400,
+pero el token nuevo **ya está en `localStorage`**, escrito por el que ganó. Si cada cliente tuviera
+su propia llave, este arreglo **no funcionaría**: la relectura no vería nada. Es una dependencia
+real con D-185 y queda escrita para que nadie «aísle» el almacenamiento más adelante creyendo que
+lo mejora. Hay una prueba que exige que ningún cliente declare `storageKey`.
+
+La relectura **exige el mismo margen de vida** que la primera (60 s). Un token que caduca en medio
+minuto caduca a media petición, y aflojar el listón solo aquí habría convertido el arreglo en una
+forma de dar por buena una sesión que no aguanta la siguiente consulta.
+
+### Se puede volver de «gone», y en los tres proveedores
+
+`authGoneRef` era un camino de ida: se ponía a `true` y **ninguna línea lo bajaba**. Así que un
+aviso levantado por la carrera se quedaba puesto aunque la sesión estuviera viva, y solo se salía
+recargando la página — con el fichaje corriendo y capturas sin subir.
+
+Ahora, cuando una comprobación devuelve `ok`, el aviso se retira. Y **volver a la ventana vuelve a
+preguntar aunque la sesión se haya dado por muerta**, que es el momento exacto del fallo: la
+máquina despierta, los cinco temporizadores disparan, uno gana y los demás reciben «Already Used».
+
+**Solo en ese gesto, no en el latido de 15 s**: con una sesión muerta de verdad, un sondeo
+periódico sería una llamada de refresco cada quince segundos contra un token que no va a revivir.
+El reintento periódico sigue saliéndose temprano cuando la sesión está dada por muerta.
+
+Se arregla en los **tres** proveedores que usan `checkSession` —Entregas, HR y Time Tracker— porque
+los tres tenían el mismo camino de ida. **El ERP no entra**: no usa `checkSession`, va por
+componentes de servidor con `getSessionInfo`. Son tres, no cuatro.
+
+### La causa se queda, y es a propósito
+
+Esto **trata el síntoma**, y conviene decirlo en voz alta. La causa es que hay varios refrescadores
+compitiendo por un token que rota. Quitarla exigiría dejar **uno solo** refrescando, y eso abre un
+riesgo peor: si el cliente «principal» no está montado en la pantalla donde está la persona, **no
+refresca nadie** y la sesión caduca de verdad. Absorber el 400 releyendo es más barato y más
+seguro que arbitrar quién refresca.
+
+Así que **la carrera sigue ahí y es esperada**: el próximo que vea un `400 Invalid Refresh Token`
+en los registros no debe salir a cazar un fallo. Lo que era un fallo es lo que se hacía con él.
+
+Y no se toca `isSingleton`: está así por D-185, que arregló que HR y Time Tracker se robaran el
+cliente. La carrera es el precio de aquello, y se paga absorbiéndola, no deshaciéndola.
+
+### Qué NO cambia
+
+Un fallo de red sin `status` sigue siendo `offline` y no cierra la sesión — está bien escrito y con
+su motivo, y hay pruebas de que sigue así, incluidas las excepciones y los 5xx. Los fichajes y las
+capturas pendientes no se tocan. Ninguna migración.
+
+### Lo no verificado
+
+**Nadie ha reproducido la carrera en un navegador.** Lo que hay es: los cinco clientes medidos en
+el código (misma llave, refresco propio cada uno), el comportamiento de rotación de token que
+documenta Supabase, y la regla probada en solitario con las dos ramas —4xx con sesión viva → `ok`,
+4xx con la misma sesión muerta → `gone`—. Que el aviso deje de aparecerle al dueño se sabrá
+usándolo.
+
+**Y la duración del token de acceso no se ha medido**: el comentario de `session-guard.ts` afirma
+que es una hora, pero eso es un ajuste del proyecto de Supabase y no está en el repo. Si de verdad
+es una hora, cada hora había una ronda de refresco de cinco clientes y una oportunidad de perder la
+carrera — que explicaría el «muy seguido» por sí solo. Queda como cifra **no comprobada**, para
+leerla del panel de Supabase. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1487 pasados | 3 saltados**
+(main 805fd81: 1468 | 3; los +19 son `session-race.test.ts`).

@@ -472,6 +472,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // un fallo pasajero, se reintentaba en vano y la pantalla se quedaba vacía y muda.
     const estado = await checkSession(supabase);
     if (estado === "gone") { authGoneRef.current = true; setAuthGone(true); }
+    // Y se puede VOLVER de «gone» (D-NEXT). Antes esto era un camino de ida: el ref se ponía a
+    // `true` y no lo bajaba nadie, así que un aviso levantado por una carrera entre clientes
+    // —dos refrescando el mismo token a la vez— se quedaba puesto aunque la sesión estuviera
+    // viva, y solo se salía recargando la página.
+    else if (estado === "ok" && authGoneRef.current) { authGoneRef.current = false; setAuthGone(false); }
     return estado === "ok";
   }, [supabase]);
 
@@ -641,6 +646,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // un fallo de dentro de una hora tenga sus cinco.
   const reloadRef = useRef(reloadAll);
   reloadRef.current = reloadAll;
+  // Igual que `reloadRef`: el efecto de recuperación se monta una sola vez y no vuelve a leer
+  // las props, así que la comprobación de sesión se alcanza por referencia.
+  const ensureSessionRef = useRef(ensureSession);
+  ensureSessionRef.current = ensureSession;
   useEffect(() => {
     if (typeof window === "undefined") return;
     let stop = false;
@@ -658,7 +667,22 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // Volver a la ventana o recuperar la conexión da intentos NUEVOS: el tope está para que
     // la app no machaque al servidor sola, no para castigar a quien vuelve una hora después
     // y se encuentra la pantalla vacía con los cinco ya gastados.
-    const fresh = () => { retriesRef.current = 0; retry(); };
+    const fresh = () => {
+      retriesRef.current = 0;
+      // Volver a la ventana vuelve a preguntar por la sesión **aunque se la haya dado por
+      // muerta**. Es el momento exacto del fallo: el ordenador despierta, los temporizadores
+      // de los cinco clientes disparan a la vez, uno gana la carrera del refresco y los demás
+      // reciben «Already Used». Si para entonces la sesión está viva, el aviso se retira solo.
+      //
+      // Solo en este gesto y no en el latido de 15 s: con la sesión muerta de verdad, un
+      // sondeo periódico sería una llamada de refresco cada quince segundos contra un token
+      // que no va a revivir.
+      if (authGoneRef.current) {
+        void ensureSessionRef.current().then((ok) => { if (ok) void reloadRef.current(); });
+        return;
+      }
+      retry();
+    };
     window.addEventListener("focus", fresh);
     window.addEventListener("online", fresh);
     document.addEventListener("visibilitychange", fresh);
