@@ -12034,11 +12034,13 @@ es definitivo»*— y la fijó con once pruebas. Así que esto **afina D-110, no
 - **Lo que cambió es que el 4xx resultó ambiguo por un tercer motivo que en D-110 no se conocía**:
   la carrera entre clientes que comparten el token. «Ya usado» no significa que la sesión esté
   muerta; significa justo lo contrario, que alguien la acaba de renovar.
-- **Y la regla vieja sobrevive donde era cierta.** `session-guard.test.ts` **no se ha tocado** —cero
-  líneas de prueba— y sigue verde, incluida la de `:36`, «da gone cuando el servidor rechaza el
-  refresco», que sigue exigiendo `gone`. Solo se corrigió un comentario suyo que decía «caducó **o
-  ya se usó**»: esa disyuntiva dejó de ser exacta, y un comentario falso dentro de la prueba que
-  guarda la regla es justo lo que despista al siguiente.
+- **Y la regla vieja sobrevive donde era cierta.** `session-guard.test.ts` **no se ha tocado en sus
+  asertos** —cero líneas con `expect(`, `it(` o `toBe(`— y sus 13 casos siguen verdes, incluido el
+  de `:36`, «da gone cuando el servidor rechaza el refresco», que sigue exigiendo `gone`. (D-110
+  hablaba de once; el fichero creció desde entonces, no hay contradicción.) Lo único que cambió
+  ahí es **un comentario**, que decía «caducó **o ya se usó**»: esa disyuntiva dejó de ser exacta,
+  y un comentario falso dentro de la prueba que guarda la regla es justo la trampa que este
+  cambio viene a quitar.
 
 El fallo de procedimiento queda anotado: el encargo describió el 4xx-definitivo como un descuido del
 código, y `CLAUDE.md` pide leer `DECISIONS.md` y **decirlo antes de implementar** cuando una petición
