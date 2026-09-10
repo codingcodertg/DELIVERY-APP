@@ -12253,6 +12253,28 @@ Sin Entregas, ese chofer cae en las condiciones de abajo y acaba en su único m�
 en `/no-access`. La línea es correcta hoy; **la prueba nueva es lo que hace que lo siga siendo**
 cuando alguien toque `landingRoute` sin acordarse de este caso.
 
+### Cambiar el rol de alguien sin Entregas: qué dice la guarda
+
+El gesto es nuevo en la interfaz —antes no había control— así que la pregunta es si la base tiene
+algo que decir. **No lo tiene**, y está leído, no supuesto. `public.guard_role_change()`
+(**`supabase/roles.sql:21`**, el fichero que se corre una vez tras `schema.sql`; por eso las cinco
+menciones en `supabase/migrations/` son solo comentarios) comprueba **tres cosas**:
+
+```sql
+if NEW.role is distinct from OLD.role
+   and auth.uid() is not null
+   and coalesce(public.current_user_role(), 'sales') <> 'admin' then
+  raise exception 'Only an admin can change user roles';
+```
+
+Que `role` cambie, que haya sesión, y que quien la hace sea **admin**. **No mira `module_access`
+por ningún lado**, así que el acceso del objetivo a Entregas le es indiferente — como ya decía el
+comentario de `055:53`, «gobierna `role` por su cuenta».
+
+Y si algún día rechazara, la escritura ya lo trata bien (`data-provider.tsx:1383`):
+`notify(error.message)` y **`reloadAll()`**, que revierte el cambio optimista. El peor caso es un
+aviso con el mensaje de la base, no una pantalla que dice una cosa mientras la base hizo otra.
+
 ### Lo no verificado
 
 Nadie ha abierto el diálogo en un navegador. La primera comprobación cuando el dueño lo use: abrir
