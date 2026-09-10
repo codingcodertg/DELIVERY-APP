@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/erp/supabase/server";
 import type { User } from "@supabase/supabase-js";
-import { canSeeCost, type AppRole } from "@/lib/erp/domain/roles";
+import { canSeeCost, erpTier, type AppRole } from "@/lib/erp/domain/roles";
 import type { UserRole } from "@/lib/types";
 
 // Re-exported from the framework-free domain module (unit-tested there).
@@ -10,15 +10,21 @@ export type { AppRole };
 
 export type SessionInfo = {
   user: User;
+  /**
+   * El nivel de esta persona **dentro del ERP**: `profiles.erp_role` (D-181), no el rol de
+   * Entregas. Lo usan las ~20 guardas de coste, `hasCatalogAccess` y los `canEdit`/`isAdmin` de
+   * las pantallas de producto y compras. Sin nivel asignado, `staff`.
+   */
   role: AppRole;
   /**
-   * El MISMO valor de `profiles.role`, sin el molde de `AppRole` (D-227).
+   * El rol del HUB: `profiles.role`, sin el molde de `AppRole` (D-227).
    *
-   * `role` de arriba es el rol tal como lo entiende el ERP; las reglas del hub —quién puede
-   * llegar al selector de módulos— preguntan por el rol del hub. Es la misma columna y la misma
-   * consulta: se expone con su tipo propio para no tener que forzar un molde en cada sitio que
-   * quiera hacerle una pregunta de hub. Sin esto, la barra del ERP no puede preguntar
-   * `canReachHub` sin inventarse un tipo.
+   * Son dos escalafones distintos y esta es la línea que lo dice. `role` decide autoridad dentro
+   * del ERP; `hubRole` contesta preguntas del hub — hoy solo una, si hay selector de módulos al
+   * que volver.
+   *
+   * Se expone con su tipo propio para no forzar un molde en cada sitio que quiera hacer una
+   * pregunta de hub: un `as` oculta un cambio de tipo futuro y un campo con nombre no.
    */
   hubRole: UserRole;
   fullName: string | null;
@@ -51,13 +57,25 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
     // otherwise look for erp.profiles, which does not exist.
     .schema("public")
     .from("profiles")
-    .select("role, full_name, module_access, recruiting_role, timetracker_role, store")
+    .select("role, erp_role, full_name, module_access, recruiting_role, timetracker_role, store")
     .eq("id", user.id)
     .single();
 
   return {
     user,
-    role: (profile?.role as AppRole) ?? "staff",
+    // ---------------------------------------------------------------------------
+    // El rol del ERP sale de `erp_role`, NUNCA del rol de Entregas (D-NEXT)
+    // ---------------------------------------------------------------------------
+    // Aquí ponía `profile?.role`, o sea el rol del HUB con otro molde. Consecuencia medida en
+    // producción: una persona `manager` en Entregas y `staff` en el ERP entraba con autoridad de
+    // manager — la pastilla del panel decía «manager · cost visible» y le abría las pantallas de
+    // coste, compras y márgenes. D-181 creó el escalafón propio del ERP y la base ya lo usa
+    // (`erp.current_app_role()` lee `erp_role`), pero esta línea nunca se enteró: `erp_role`
+    // solo se escribía y nadie lo leía para decidir.
+    //
+    // **Falla cerrado a `staff`**, y eso es deliberado: sin nivel asignado, el mínimo. Caer al
+    // rol de Entregas es exactamente el fallo que esto cierra, así que ese camino no existe.
+    role: erpTier(profile),
     hubRole: (profile?.role as UserRole) ?? "sales",
     fullName: profile?.full_name ?? null,
     moduleAccess: (profile?.module_access as string[] | null) ?? null,
