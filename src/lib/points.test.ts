@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  TASAS_POR_DEFECTO, canje, clavePuntualidad, eventoManual, eventoPuntualidad,
+  ROLES_QUE_PUNTEAN, TASAS_POR_DEFECTO, canje, clavePuntualidad, eventoManual, eventoPuntualidad,
   eventosVisiblesParaEmpleado, puedeConceder, saldo, tasas,
 } from "./points";
 import type { Profile } from "./types";
@@ -196,6 +196,53 @@ describe("105_points_ledger.sql", () => {
     expect(grant![1].trim()).toBe("select, insert");
     // Y un guard que también frena a service_role, que salta la RLS pero no un trigger.
     expect(sql).toMatch(/create trigger point_events_append_only\s+before update or delete/);
+  });
+
+  it("append-only también contra TRUNCATE, que es el que vacía el libro entero", () => {
+    // La cuarta puerta, y la que dejaría irrelevantes a las otras tres: TRUNCATE no
+    // dispara un trigger de fila, no deja rastro y borra todo de un golpe. En Postgres
+    // es una operación aparte, con su propio trigger POR SENTENCIA.
+    expect(sql).toMatch(/create trigger point_events_no_truncate\s+before truncate on public\.point_events\s+for each statement/);
+    // Y el privilegio, por el otro lado: `revoke all` cubre a anon y authenticated, pero
+    // service_role no estaba en ningún revoke — y es el rol con el que corre el servidor.
+    const revokes = sql.match(/revoke ([a-z, ]+) on public\.point_events from ([a-z_, ]+);/gi) ?? [];
+    const aServiceRole = revokes.filter((r) => /service_role/.test(r));
+    expect(aServiceRole.length, "ningún revoke alcanza a service_role").toBeGreaterThan(0);
+    for (const op of ["truncate", "update", "delete"]) {
+      expect(aServiceRole.join(" ").toLowerCase(), op).toContain(op);
+    }
+  });
+
+  it("el `comment on table` no promete nada que la tabla no cumpla", () => {
+    // Si dice «append-only», las cuatro operaciones que escriben tienen que estar
+    // cerradas. Un comentario que promete de más es peor que ninguno: se cita.
+    const comentario = sql.slice(sql.indexOf("comment on table public.point_events"));
+    if (/append-only/i.test(comentario.slice(0, comentario.indexOf(";")))) {
+      for (const op of ["update", "delete", "truncate"]) {
+        expect(sql.toLowerCase(), op).toContain(`revoke`);
+        expect(sql.toLowerCase(), op).toMatch(new RegExp(`(before [a-z ]*${op}|revoke[^;]*${op})`));
+      }
+    }
+  });
+
+  it("la regla de quién puntea es la MISMA en el .sql y en el código", () => {
+    // Mismo molde que la prueba de las tasas, aplicado a la regla en vez de al número.
+    // Sin esto, meter a `sales` en la política y no en la lista de TypeScript —o al
+    // revés— dejaría las dos versiones divergiendo en verde: un botón que la base
+    // rechaza, o peor, una lista que ofrece menos de lo que la base permite.
+    const insert = sql.slice(sql.indexOf('create policy "point_events insert manual"'));
+    const cuerpo = insert.slice(0, insert.indexOf(";"));
+    const enSql = new Set<string>();
+    if (/public\.is_admin\(\)/.test(cuerpo)) enSql.add("admin");
+    for (const m of cuerpo.matchAll(/current_user_role\(\) = '(\w+)'/g)) enSql.add(m[1]);
+    expect([...enSql].sort()).toEqual([...ROLES_QUE_PUNTEAN].sort());
+
+    // Y la otra mitad de la misma regla: nadie sobre sí mismo, en los dos sitios.
+    expect(cuerpo).toMatch(/employee_id <> \(select auth\.uid\(\)\)/);
+    for (const rol of ROLES_QUE_PUNTEAN) {
+      expect(puedeConceder({ id: "yo", role: rol }, "yo"), rol).toBe(false);
+      expect(puedeConceder({ id: "yo", role: rol }, "otro"), rol).toBe(true);
+    }
   });
 
   it("nadie se puntea a sí mismo, y los automáticos no entran desde un cliente", () => {

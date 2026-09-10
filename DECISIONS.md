@@ -12566,12 +12566,45 @@ horario es del encargo 2.
   **nunca sobre sí mismo**. Quien puede darse puntos puede canjearse días libres pagados.
 - **Automático**: **ninguna política lo permite**. Solo entra por `service_role`, que salta la
   RLS. Un cliente del navegador no puede fabricar un `auto` ni con la clave correcta.
-- **Nadie actualiza ni borra**, y esto lleva **dos cierres distintos a propósito**: no hay
-  política de `update`/`delete` (así que `authenticated` no puede), y encima **no hay privilegio**
-  —el `grant` es `select, insert` y nada más—. Y por debajo de los dos, un **trigger** que
-  levanta excepción en `UPDATE` y `DELETE`, que es el único que también frena a `service_role`,
-  porque service_role salta la RLS pero no un trigger. Un libro mayor se corrige con un evento
+- **Nadie actualiza ni borra**, con **cierres distintos a propósito**: no hay política de
+  `update`/`delete` (así que `authenticated` no puede), y encima **no hay privilegio** —el
+  `grant` es `select, insert` y nada más—. Y por debajo de los dos, un **trigger** que levanta
+  excepción en `UPDATE` y `DELETE`, el único que también frena a `service_role`, porque
+  service_role salta la RLS pero no un trigger. Un libro mayor se corrige con un evento
   contrario.
+- **Y `TRUNCATE`, que es la puerta que dejaría irrelevantes a las otras.** La primera versión de
+  esta migración no la cerraba, y lo encontró la auditoría. Un trigger `before update or delete`
+  **no se dispara con `TRUNCATE`**: en Postgres es otra operación, con su propio trigger, por
+  sentencia y no por fila. Y no vacía una fila, vacía **el libro entero, sin dejar rastro**. El
+  `revoke all` inicial se la quitaba a `anon` y `authenticated`, pero **`service_role` no
+  aparecía en ningún `revoke`** — justo el rol con el que corre casi todo lo del servidor aquí.
+  Ahora están las dos cosas: un trigger `before truncate … for each statement` sobre el mismo
+  guard, y `revoke truncate, update, delete … from service_role`.
+
+  **Y el privilegio no era teórico.** Yo lo dejé como «no medido, y no hace falta medirlo para
+  cerrar la puerta»; el orquestador fue a la base y lo midió: `has_table_privilege` dice
+  **TRUE para `authenticated` y para `service_role`** en las 12 tablas de `public`. La causa es
+  el reparto por defecto de `postgres` (`pg_default_acl`), que concede `arwdDxtm` —la `D` es
+  `TRUNCATE`— en **cada tabla nueva**. O sea que `point_events` **nace truncable para los dos**.
+
+  **Lo que sigue sin estar medido, y hay que decirlo igual: no hay camino conocido para
+  invocarlo desde un cliente.** PostgREST no expone `TRUNCATE`. Esto no se cierra porque la
+  puerta esté abierta hoy, sino por el argumento que ya escribió `081_revoke_anon.sql` para
+  `anon`: *«TRUNCATE no pasa por RLS… hoy no hay camino para invocarlo, pero es un permiso a una
+  función RPC de distancia de ser alcanzable, y no hay ninguna razón para que exista»*. Lo único
+  nuevo aquí es que ese razonamiento nunca se aplicó a `authenticated` ni a `service_role`.
+
+  El `revoke` a `service_role` se lleva además `update` y `delete`: la tabla es append-only
+  **para todos**, y service_role no es una excepción. `select` e `insert` se quedan, que son los
+  que necesitan las rutas del servidor y el trabajo diario de los automáticos.
+
+  Y el `comment on table` promete «append-only», así que la promesa tenía que ser cierta para
+  las cuatro operaciones y no para tres; hay una prueba que exige justo eso.
+
+  **Lo que NO entra en esta rama:** que las 89 tablas del proyecto nazcan truncables por
+  `authenticated` es un problema mucho más ancho que este encargo, y se cierra con un
+  `alter default privileges` que aquí sería alcance que nadie pidió. El orquestador lo saca como
+  encargo propio.
 
 ### La regla más delicada: el empleado ve su saldo, no sus restas
 
@@ -12625,6 +12658,30 @@ prueba que recorre **cada** `create` del fichero y lo exige.
 rama del título por persona (revertida hoy, pendiente de volver) y sigue sin aplicarse. Dos
 migraciones con el mismo número serían un choque en el registro.
 
+**Y esto contradice una regla marcada como no negociable, así que se dice.** `CLAUDE.md`,
+*Flujo de ramas*, regla 1: aplicar la migración **es del orquestador, después del merge**. Esa
+regla supone que el hueco entre el merge y la migración es inofensivo, y hoy se vio que no lo es
+cuando el código ya fusionado lee lo que todavía no existe. Para **esta** migración el orden
+invertido no tiene contrapartida: es puramente aditiva y no depende de una línea de esta rama
+—`points.ts` es todo puro y no lee `point_events` ni las columnas nuevas—, así que aplicarla
+antes no puede romper el `main` desplegado. Queda como **excepción escrita de esta rama, no como
+cambio de la regla**: cambiar la regla es del dueño y va con su propia decisión.
+
+### El borrado en cascada, que es decisión y no descuido
+
+`employee_id` es `references profiles(id) on delete cascade`: borrar un perfil se lleva su libro
+mayor entero, sin evento contrario. Se eligió midiéndolo contra el borrado que ya existe
+(`/api/delete-user` → `auth.admin.deleteUser` → `profiles` por cascada, como dice `099`):
+
+- **`on delete restrict`** haría **fallar el borrado de un usuario** en cuanto tuviera un punto.
+- **`on delete set null`** no sirve: dejaría la fila con los **dos** sujetos nulos, contra el
+  `check` de exactamente uno. El borrado fallaría igual, pero por un camino más raro de
+  diagnosticar.
+
+La cascada es lo único que no rompe el flujo que ya existe. Y en la práctica este repo **revoca
+el acceso en vez de borrar personas**, así que debería ser un caso que no ocurre. Queda dicho
+porque, si ocurre, desaparece historia y no salta nada.
+
 ### Lo que NO se hizo
 
 - **Ninguna pantalla**, que es el encargo. Tampoco el trabajo diario de puntualidad ni el canje:
@@ -12648,12 +12705,13 @@ dueño la aplique, en este orden:
 3. Que un empleado con una resta vea **su saldo con la resta contada** y **la resta no** en la
    lista.
 4. Que un `update` o un `delete` sobre una fila —incluso con service_role— levante la excepción
-   del trigger.
+   del trigger, y que un `truncate` levante la suya.
 
 Tampoco lo ha usado nadie: no hay pantalla que llamar. Las funciones de escritura y lectura
 están probadas en su parte pura; lo que hacen contra Supabase se verá en el encargo 2.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1541 pasados | 3 saltados**
-(main 2e9d0ed: 1512 | 3; los +29 son `points.test.ts`). El baseline se midió sobre 4e21f19;
-vale igual para `2e9d0ed` porque el árbol de `src` de los dos es el **mismo objeto**
-—comprobado con `git rev-parse <sha>:src`—, que es lo que deja la reversión del PR #49.
+(main 98a9305: 1512 | 3; los +32 son `points.test.ts`). El baseline ha pasado por tres commits
+de `main` sin moverse: se midió sobre `4e21f19`, vale para `2e9d0ed` porque el árbol de `src`
+de los dos es el **mismo objeto** —comprobado con `git rev-parse <sha>:src`— tras la reversión
+del PR #49, y sobre `98a9305` (D-233) lo midió el orquestador.

@@ -111,6 +111,32 @@ create trigger point_events_append_only
   before update or delete on public.point_events
   for each row execute function public.guard_point_events_append_only();
 
+-- Y TRUNCATE, que es la puerta que deja irrelevante a las otras tres: no dispara un
+-- trigger de fila, no deja rastro, y vacia el libro entero de un golpe. En Postgres es
+-- una operacion aparte y necesita su propio trigger, por sentencia y no por fila.
+drop trigger if exists point_events_no_truncate on public.point_events;
+create trigger point_events_no_truncate
+  before truncate on public.point_events
+  for each statement execute function public.guard_point_events_append_only();
+
+-- Y por el otro lado, el privilegio, que no es teorico: el reparto por defecto de
+-- postgres en `public` (pg_default_acl) concede arwdDxtm —la D es TRUNCATE— a
+-- authenticated y service_role en CADA tabla nueva, asi que esta tabla NACE truncable
+-- para los dos. Medido en produccion por el orquestador con has_table_privilege: true
+-- para los dos en las 12 tablas de public. El `revoke all` de arriba tapa a
+-- authenticated; esta linea tapa a service_role, que es el rol con el que corre casi
+-- todo lo del servidor aqui.
+--
+-- Mismo razonamiento que 081_revoke_anon.sql escribio para anon: TRUNCATE no pasa por
+-- RLS —no mira filas, vacia la tabla—, hoy no hay camino para invocarlo (PostgREST no
+-- lo expone), «pero es un permiso a una funcion RPC de distancia de ser alcanzable, y
+-- no hay ninguna razon para que exista».
+--
+-- Se le quitan tambien update y delete: esta tabla es append-only para todos, y
+-- service_role no es una excepcion. Select e insert se quedan, que son los que usan las
+-- rutas del servidor y el trabajo diario de los automaticos.
+revoke truncate, update, delete on public.point_events from service_role;
+
 -- ===========================================================================
 -- 3. Los saldos, que son funciones y no columnas
 -- ===========================================================================
@@ -166,6 +192,7 @@ alter table public.settings add constraint settings_points_day_off_positive
 -- ===========================================================================
 -- Reversion
 -- ===========================================================================
+--   drop trigger if exists point_events_no_truncate on public.point_events;
 --   drop trigger if exists point_events_append_only on public.point_events;
 --   drop function if exists public.guard_point_events_append_only();
 --   drop function if exists public.my_point_balance();
@@ -180,7 +207,9 @@ alter table public.settings add constraint settings_points_day_off_positive
 --   alter table public.point_events disable trigger point_events_append_only;
 --   ...
 --   alter table public.point_events enable trigger point_events_append_only;
+--
+-- El de TRUNCATE no se desactiva nunca: vaciar el libro no es una correccion.
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('105_points_ledger.sql', '63a44a8e002f0aba21813c099b620746bb3137529aace6a90e603daec4ecf8c5') on conflict (name) do nothing;
+  values ('105_points_ledger.sql', 'a3d5a531cf887b225ccc01b05890dfca9f79091f12b3ef07470ac9eaffb0c702') on conflict (name) do nothing;
