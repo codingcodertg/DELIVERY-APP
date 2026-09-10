@@ -248,7 +248,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // un fallo pasajero, se reintentaba en vano y la pantalla se quedaba vacía y muda.
     const estado = await checkSession(supabase);
     if (estado === "gone") { authGoneRef.current = true; setAuthGone(true); }
-    // Y se puede VOLVER de «gone» (D-NEXT). Antes esto era un camino de ida: el ref se ponía a
+    // Y se puede VOLVER de «gone» (D-229). Antes esto era un camino de ida: el ref se ponía a
     // `true` y no lo bajaba nadie, así que un aviso levantado por una carrera entre clientes
     // —dos refrescando el mismo token a la vez— se quedaba puesto aunque la sesión estuviera
     // viva, y solo se salía recargando la página.

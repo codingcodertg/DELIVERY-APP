@@ -38,7 +38,7 @@ describe("checkSession", () => {
     // queda otro. El servidor CONTESTÓ que no y la relectura confirma que no hay sesión viva —
     // es definitivo, y hay que volver a entrar.
     //
-    // El «o ya se usó» que decía antes este comentario dejó de ser exacto en D-NEXT: un token
+    // El «o ya se usó» que decía antes este comentario dejó de ser exacto en D-229: un token
     // «ya usado» puede significar que **otro cliente acaba de renovar la sesión**, y ese caso
     // ahora da `ok`. Lo que fija esta prueba —4xx sin sesión viva detrás es `gone`— no cambia,
     // y por eso ni ella ni las otras doce se han tocado.

@@ -12002,7 +12002,7 @@ cuenta de Patricia y que la pastilla diga **«staff»**, sin «cost visible», y
 compras y analítica la manden al catálogo. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1468 pasados | 3 saltados**
 (main bca4ea9: 1453 | 3; los +15 son `erp-tier.test.ts`).
 
-## D-NEXT · «Tu sesión caducó» dejaba de ser cierto: dos clientes refrescando el mismo token
+## D-229 · «Tu sesión caducó» dejaba de ser cierto: dos clientes refrescando el mismo token
 
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por:** el dueño: el aviso de sesión caducada le salta **muy seguido** en Time Tracker,
