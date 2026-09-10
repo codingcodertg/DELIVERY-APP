@@ -137,65 +137,6 @@ export function roleLabel(role: UserRole, lang: Lang): string {
   return lang === "es" ? ROLE_INFO[role].label_es : ROLE_INFO[role].label;
 }
 
-// ---- La pastilla de una persona (D-NEXT) ----------------------------------
-// El título es una CAPA sobre el rol, no un reemplazo: sin título la pastilla
-// dice exactamente lo que decía antes, la etiqueta del rol en el idioma
-// activo y su color. Por eso nadie hay que migrar.
-//
-// Un solo texto, sin traducir: lo escribe el dueño y sale igual en los dos
-// idiomas. La frase de debajo (`desc`/`desc_es`) sigue saliendo del rol,
-// porque describe lo que la persona PUEDE hacer, y eso lo sigue decidiendo
-// el rol, no cómo la llamemos.
-
-/** Los colores que puede llevar un título, por token de la paleta. Son los
- * mismos siete que ya usa ROLE_INFO — nada de color libre: este valor acaba
- * dentro de un `style` inline, y la base rechaza cualquier otro (104). */
-export const TITLE_COLORS = ["--red", "--purple", "--accent", "--teal", "--amber", "--green", "--ink-soft"] as const;
-export type TitleColor = (typeof TITLE_COLORS)[number];
-
-/** Cómo se llama cada color en el selector. El token (`--purple`) es lo que se
- * guarda; esto es solo para que la lista se pueda leer. */
-export const TITLE_COLOR_NAMES: Record<TitleColor, { en: string; es: string }> = {
-  "--red":      { en: "Red",    es: "Rojo" },
-  "--purple":   { en: "Purple", es: "Morado" },
-  "--accent":   { en: "Blue",   es: "Azul" },
-  "--teal":     { en: "Teal",   es: "Verde azulado" },
-  "--amber":    { en: "Amber",  es: "Ámbar" },
-  "--green":    { en: "Green",  es: "Verde" },
-  "--ink-soft": { en: "Grey",   es: "Gris" },
-};
-
-/** Tope de largo del título, en la base y en el campo. La pastilla es
- * estrecha y no se puede ensanchar sin mover la cabecera del diálogo. */
-export const TITLE_MAX = 40;
-
-export function isTitleColor(v: unknown): v is TitleColor {
-  return typeof v === "string" && (TITLE_COLORS as readonly string[]).includes(v);
-}
-
-/** Qué dice y de qué color es la pastilla de UNA persona concreta.
- *
- * Único sitio donde vive esta regla: los tres lugares que pintan la insignia
- * de una persona la llaman (`UserDialog`, la lista de Usuarios del hub y Mi
- * cuenta). El conmutador «ver como» de `TopBar` NO la usa, y es a propósito:
- * allí el rol no describe a nadie, es el selector de qué vista estás
- * previsualizando, y tiene que seguir diciendo el rol de verdad.
- *
- * El color solo manda cuando hay título. Un color guardado sin texto no
- * pinta nada: sin título la pastilla es la de antes, entera.
- */
-export function personBadge(
-  p: { role: UserRole; title?: string | null; title_color?: string | null },
-  lang: Lang,
-): { text: string; color: string } {
-  const title = (p.title ?? "").trim();
-  if (!title) return { text: roleLabel(p.role, lang), color: ROLE_INFO[p.role].color };
-  return {
-    text: title.slice(0, TITLE_MAX),
-    color: isTitleColor(p.title_color) ? `var(${p.title_color})` : ROLE_INFO[p.role].color,
-  };
-}
-
 /** The landing page a role works from — where the admin "view as" switcher
  * jumps to so the preview lands on that role's actual view. */
 export function roleHome(role: UserRole): string {
