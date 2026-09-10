@@ -12153,3 +12153,138 @@ solitario con sus dos ramas —4xx con sesión viva → `ok`, 4xx con la misma s
 Más los síntomas del dueño. **Nadie ha reproducido la carrera en un navegador**, y que el aviso deje
 de aparecerle se sabrá usándolo. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1488 pasados | 3 saltados**
 (main 805fd81: 1468 | 3; los +20 son `session-race.test.ts`).
+
+## D-NEXT · El rol de la persona se edita en Identidad, no dentro de un módulo
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño: *«déjame editar esos roles, no están correctos»*, señalando una fila de
+la lista de Usuarios.
+
+### El fallo, y que ya estaba escrito lo que había que hacer
+
+El selector del rol de Entregas vivía **dentro del bloque de su módulo**, detrás de `{granted && …}`
+(`UserDialog.tsx`). Así que quien no tenía Entregas concedida **veía su rol en la lista de Usuarios
+y no podía cambiarlo**. Medido en producción: **33 perfiles, 6 sin el módulo** — seis roles a la
+vista y bloqueados. La fila que señalaba el dueño era una de esas seis.
+
+Y lo que hace este encargo distinto de una decisión de diseño: **el comentario de `MODULE_ACCESS`
+para Entregas ya decía lo contrario de lo que hacía el código** (`constants.ts:670`):
+
+> *«`role` sigue siendo el rol de deliveries y sigue mandando sobre QUÉ ve dentro quien entra… La
+> casilla decide SI entra. Son dos cosas distintas, **y por eso el rol se sigue enseñando aunque la
+> casilla esté apagada**.»*
+
+La intención estaba escrita. El render no la cumplía. Esto no es elegir dónde va el control: es
+**hacer que el código cumpla lo que su propio comentario prometía**.
+
+### Por qué ese rol no es de un módulo
+
+Los otros tres —`recruiting_role`, `timetracker_role`, `erp_role`— **nacen y mueren con el acceso**:
+son nulos cuando no hay módulo y se borran al revocarlo. `profiles.role` no: es **NOT NULL**,
+**sobrevive a quitar el módulo** (D-100 lo dice explícito: quitar la casilla no borra `role`) y
+decide cosas de **toda la app** — `canReachHub`, las herramientas del hub, el encuadre de la propia
+lista de Usuarios, y hasta D-228 también el ERP.
+
+Un rol que sobrevive al módulo no puede editarse solo cuando el módulo está concedido.
+
+### Cómo queda
+
+- **`ModuleAccessConfig` gana `roleEditedIn?: "identity"`**, y solo Entregas lo declara.
+- **El selector se pinta en el bloque «Identidad»**, junto al nombre y el usuario, con la coletilla
+  *«Vale para toda la app, no solo para Entregas»*.
+- **En el bloque del módulo**, donde estaba el selector, ahora se dice **dónde está y por qué**:
+  *«Se elige arriba, en Identidad — vale para toda la app, no solo para aquí.»*
+
+**La excepción la declara el dato, no el render.** La condición es `m.roleEditedIn === "identity"`,
+**no** `m.key === "deliveries"`: el día que otro módulo necesite lo mismo se declara, y mientras
+tanto nadie tiene que acordarse de que Entregas es especial al tocar ese `return`. Hay una prueba
+que exige que en esa rama no aparezca el nombre del módulo.
+
+**Y sigue escribiendo `updateUserRole`**, su función dedicada. No pasa por `setModuleRole` —el
+despacho explícito por módulo de D-057— ni comparte función con ninguna otra columna: **la regla de
+D-053/D-057 no se toca**, y hay una prueba de que el bloque de Identidad no menciona
+`setModuleRole`. El evento de seguridad viaja solo, porque vive **dentro** de `updateUserRole`
+(`data-provider.tsx:1384`, `logSecurityClient(userId, "role_changed", …)`).
+
+### Lo que NO se hizo, y es lo más importante de la rama
+
+**No se le quitó a Entregas su `roleColumn: "role"`**, que era la salida obvia una vez el selector
+se va de ese bloque. Medido antes de tocar nada:
+
+Hay **dos** pruebas idénticas —`erp-module.test.ts:63` y `landing-route.test.ts:89`— que hacen
+`MODULE_ACCESS.map(m => m.roleColumn).filter(Boolean)` y exigen que no haya repetidos. Quitarle el
+`roleColumn` a Entregas **no rompería ninguna de las dos**: seguirían en verde con tres columnas
+distintas. Pero `role` saldría del conjunto vigilado y, a partir de ahí, **otro módulo podría
+reclamarla sin que saltara nada** — que es exactamente el lío `role`/`recruiting_role` de D-052 que
+esas pruebas existen para impedir.
+
+**Un guardián que se queda ciego en silencio es peor que uno que falla**, porque el verde sigue ahí.
+
+Además, la ausencia **ya significa algo concreto** en este diseño; lo dice el comentario de
+`erp-module.test.ts:60-62`: *«Absent is not the same as "role" — the ERP reads that column but never
+writes it»*. Sacar a Entregas de la lista no habría sido quitar ruido: habría sido **afirmar que
+nadie escribe `role`**, que es falso.
+
+**Y se añade lo que faltaba: cobertura, no solo unicidad.** Una prueba nueva fija las **cuatro
+columnas por su nombre** (`role`, `recruiting_role`, `timetracker_role`, `erp_role`). Con un
+`toBe(4)` no bastaría: quitar `role` y añadir otra cualquiera volvería a pasar.
+
+### Dos restos que quedan a la vista, y no se tocan aquí
+
+1. **El texto «este módulo no tiene rol propio» es código muerto desde D-181.** Los cuatro módulos
+   tienen `roleColumn`, así que esa rama del `?:` no la alcanza nadie. No se borra en esta rama
+   —sería alcance que nadie pidió— pero queda dicho para que el siguiente no la lea como un
+   ejemplo vivo.
+2. **`roleNote` está declarado y usado cero veces**, y su prueba (`landing-route.test.ts:141-146`)
+   solo mira los módulos **sin** `roleColumn`: como no hay ninguno, **pasa por vacuidad**. Se
+   descartó reutilizar ese carril para el texto nuevo por dos razones: diría «este módulo no tiene
+   rol propio», que para Entregas es **falso**, y lo metería en un sitio **sin guardián activo**.
+
+### Un rol sin su módulo no crea un callejón
+
+Ahora el rol se puede cambiar sin tener Entregas, así que un `driver` sin el módulo es un perfil
+alcanzable a propósito. `landingRoute` ya exigía **las dos cosas** (`constants.ts:183`):
+
+```ts
+if (me.role === "driver" && granted.includes("deliveries")) return "/driver";
+```
+
+Sin Entregas, ese chofer cae en las condiciones de abajo y acaba en su único módulo, en `/home` o
+en `/no-access`. La línea es correcta hoy; **la prueba nueva es lo que hace que lo siga siendo**
+cuando alguien toque `landingRoute` sin acordarse de este caso.
+
+### Cambiar el rol de alguien sin Entregas: qué dice la guarda
+
+El gesto es nuevo en la interfaz —antes no había control— así que la pregunta es si la base tiene
+algo que decir. **No lo tiene**, y está leído, no supuesto. `public.guard_role_change()`
+(**`supabase/roles.sql:21`**, el fichero que se corre una vez tras `schema.sql`; por eso las cinco
+menciones en `supabase/migrations/` son solo comentarios) comprueba **tres cosas**:
+
+```sql
+if NEW.role is distinct from OLD.role
+   and auth.uid() is not null
+   and coalesce(public.current_user_role(), 'sales') <> 'admin' then
+  raise exception 'Only an admin can change user roles';
+```
+
+Que `role` cambie, que haya sesión, y que quien la hace sea **admin**. **No mira `module_access`
+por ningún lado**, así que el acceso del objetivo a Entregas le es indiferente — como ya decía el
+comentario de `055:53`, «gobierna `role` por su cuenta».
+
+**Y lo que corre en producción es esa misma función, no una copia que haya divergido**: el
+orquestador la volcó de la base el 2026-09-10 y coincide **letra por letra** con `roles.sql`. Ese
+dato no lo puede reproducir esta rama —desde el worktree no hay acceso a la base, a propósito— así
+que va citado como medición suya. El trigger que la engancha está dos líneas más abajo,
+`roles.sql:32-34`, `before update on public.profiles`.
+
+Y si algún día rechazara, la escritura ya lo trata bien (`data-provider.tsx:1383`):
+`notify(error.message)` y **`reloadAll()`**, que revierte el cambio optimista. El peor caso es un
+aviso con el mensaje de la base, no una pantalla que dice una cosa mientras la base hizo otra.
+
+### Lo no verificado
+
+Nadie ha abierto el diálogo en un navegador. La primera comprobación cuando el dueño lo use: abrir
+uno de los seis perfiles **sin Entregas** y ver que el rol se puede cambiar desde Identidad; y en
+uno **con** Entregas, que el bloque del módulo dice dónde está el rol en vez de repetir el
+selector. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1499 pasados | 3 saltados**
+(main 6f5a3ee: 1488 | 3; los +11 son `role-in-identity.test.ts`).

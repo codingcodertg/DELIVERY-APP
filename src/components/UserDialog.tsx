@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
-import { MODULE_ACCESS, ROLE_INFO, roleLabel } from "@/lib/constants";
+import { MODULE_ACCESS, ROLE_INFO, ROLE_ORDER, roleLabel } from "@/lib/constants";
 import type { ModuleAccessKey } from "@/lib/constants";
 import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
@@ -136,6 +136,25 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               />
             </div>
           )}
+          {/* El rol de la persona en la empresa, no su nivel dentro de un módulo (D-NEXT).
+              Vivía dentro del bloque de Entregas, detrás de su casilla, así que quien no tenía
+              ese módulo concedido veía su rol en la lista de Usuarios y no podía cambiarlo —
+              seis perfiles en producción. Y `profiles.role` no es de Entregas: es NOT NULL,
+              sobrevive a quitar el módulo (D-100) y decide `canReachHub`, las herramientas del
+              hub y el encuadre de esta misma lista.
+
+              Escribe con `updateUserRole`, su función dedicada, igual que antes: la regla de
+              D-053/D-057 —cada columna la escribe su propia función— no se toca. Lo único que
+              cambia es dónde está el control. */}
+          <div className="field">
+            <label>{t("Role", "Rol")}</label>
+            <select value={u.role} onChange={(e) => updateUserRole(u.id, e.target.value as UserRole)}>
+              {ROLE_ORDER.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
+            </select>
+            <div className="hint" style={{ marginTop: 4 }}>
+              {t("Applies across the app, not just Deliveries.", "Vale para toda la app, no solo para Entregas.")}
+            </div>
+          </div>
         </div>
 
         {!LOCAL_MODE && (
@@ -264,7 +283,24 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                         EMPTY <select> here, which reads as "the roles are missing"
                         rather than "this module has no roles". Say which dial
                         actually governs it instead. */}
-                    {m.roleColumn ? (
+                    {m.roleEditedIn === "identity" ? (
+                      /* El rol de este módulo se edita arriba, en Identidad (D-NEXT). Se dice
+                         DÓNDE está y POR QUÉ: sin las dos cosas, la ausencia del selector se
+                         lee como que falta algo. Y no vale el texto de abajo —«este módulo no
+                         tiene rol propio»— porque para Entregas sería falso: sí lo tiene.
+
+                         La condición mira el DATO (`roleEditedIn`) y no `m.key === "deliveries"`:
+                         el día que otro módulo necesite lo mismo, se declara y ya está. */
+                      <div className="field">
+                        <label>{t("Role", "Rol")}</label>
+                        <div className="hint" style={{ marginTop: 4 }}>
+                          {t(
+                            "Chosen above, in Identity — it applies across the app, not just here.",
+                            "Se elige arriba, en Identidad — vale para toda la app, no solo para aquí.",
+                          )}
+                        </div>
+                      </div>
+                    ) : m.roleColumn ? (
                       <div className="field">
                         <label>{t("Role", "Rol")}</label>
                         <select
