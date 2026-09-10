@@ -38,7 +38,7 @@ export function canSeeCost(role: AppRole | null | undefined): boolean {
 export const ERP_TIERS = ["staff", "manager", "admin"] as const;
 
 /**
- * El nivel de una persona DENTRO del ERP, a partir de su perfil (D-NEXT).
+ * El nivel de una persona DENTRO del ERP, a partir de su perfil (D-228).
  *
  * Existe porque durante un año el ERP decidió con el rol de **Entregas**: `getSessionInfo` hacía
  * `profile.role as AppRole`, así que un `manager` de Entregas entraba al ERP como manager aunque

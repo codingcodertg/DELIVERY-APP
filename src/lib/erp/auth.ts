@@ -64,7 +64,7 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
   return {
     user,
     // ---------------------------------------------------------------------------
-    // El rol del ERP sale de `erp_role`, NUNCA del rol de Entregas (D-NEXT)
+    // El rol del ERP sale de `erp_role`, NUNCA del rol de Entregas (D-228)
     // ---------------------------------------------------------------------------
     // Aquí ponía `profile?.role`, o sea el rol del HUB con otro molde. Consecuencia medida en
     // producción: una persona `manager` en Entregas y `staff` en el ERP entraba con autoridad de

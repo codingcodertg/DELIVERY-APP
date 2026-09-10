@@ -11837,7 +11837,7 @@ esa misma cuenta, que **el enlace ya no esté**; y con una cuenta de dos módulo
 lleve al selector. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1453 pasados | 3 saltados**
 (main b781f5e: 1440 | 3; los +13 son `erp-hub-link.test.ts`).
 
-## D-NEXT · El ERP decide con su propio escalafón: `erp_role`, no el rol de Entregas
+## D-228 · El ERP decide con su propio escalafón: `erp_role`, no el rol de Entregas
 
 **Fecha:** 2026-09-09 · **Versión:** solo `erp` (la pone el orquestador) · **Sin migración.**
 **Pedido por:** el dueño, con una captura: entra al ERP con la cuenta de Patricia y la pastilla del
