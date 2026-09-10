@@ -5,7 +5,7 @@ import Link from "next/link";
 import { UserDialog } from "@/components/UserDialog";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { ROLE_INFO, ROLE_ORDER, extraCaps, roleLabel } from "@/lib/constants";
+import { ROLE_ORDER, extraCaps, personBadge, roleLabel } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
 import { UsersImportModal } from "@/components/UsersImportModal";
 import type { Profile, UserRole } from "@/lib/types";
@@ -81,7 +81,7 @@ export default function UsersPage() {
   // dropdowns turned the one thing anyone scans for — a name — into the
   // smallest item on the line.
   const renderRow = (u: Profile) => {
-    const info = ROLE_INFO[u.role];
+    const badge = personBadge(u, lang);
     const extra = extraCaps(u);
     return (
       <button
@@ -110,7 +110,7 @@ export default function UsersPage() {
             🧑‍💼 Recruiting
           </span>
         )}
-        <span className="sema" style={{ background: info.color, color: "#fff" }}>{roleLabel(u.role, lang)}</span>
+        <span className="sema" style={{ background: badge.color, color: "#fff" }}>{badge.text}</span>
         <span className="hint" style={{ marginTop: 0 }}>›</span>
       </button>
     );

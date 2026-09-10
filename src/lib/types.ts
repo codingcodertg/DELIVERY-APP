@@ -33,6 +33,16 @@ export interface Profile {
    * tier. Its own column so an office manager of Deliveries doesn't inherit ERP
    * cost by accident (was keyed on `role` until D-181). See D-181. */
   erp_role?: string | null;
+  /** Título escrito a mano para ESTA persona, que sustituye a la etiqueta del
+   * rol en su pastilla (D-NEXT). Null o vacío = la pastilla es la del rol, como
+   * siempre. No se traduce: sale igual en los dos idiomas. Solo un admin lo
+   * escribe, y lo hace cumplir la base (guard_profile_privileged_columns, 104):
+   * un título libre editable por su dueño sería una forma de hacerse pasar por
+   * otra cosa. */
+  title?: string | null;
+  /** Color de esa pastilla, como token de la paleta (`--purple`). Solo los siete
+   * de TITLE_COLORS; la base rechaza el resto. Solo cuenta si hay título. */
+  title_color?: string | null;
   /** employee | manager | owner inside clock-in (071). Null = no access. */
 }
 
