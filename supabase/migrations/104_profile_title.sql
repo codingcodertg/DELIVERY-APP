@@ -36,8 +36,9 @@
 --
 -- Reversion:
 --   alter table public.profiles drop column if exists title, drop column if exists title_color;
---   -- y volver a crear guard_profile_privileged_columns() sin las dos columnas
---   -- (el cuerpo anterior esta en 099_profiles_row_rls.sql:62-75).
+--   -- y volver a crear guard_profile_privileged_columns() sin las dos columnas nuevas.
+--   -- El cuerpo anterior es el de 101_erp_role_and_cost.sql (NO el de 099: 101 le sumo
+--   -- erp_role, y 099 es solo la primera version).
 
 alter table public.profiles
   add column if not exists title       text,
@@ -57,21 +58,29 @@ alter table public.profiles add constraint profiles_title_color_allowed
   check (title_color is null or title_color in
     ('--red', '--purple', '--accent', '--teal', '--amber', '--green', '--ink-soft'));
 
--- El guard de 099, con title y title_color anadidos. Mismo cuerpo, dos condiciones mas.
+-- El guard, con title y title_color anadidos. OJO AL PARTIR DE DONDE: la ultima definicion
+-- de esta funcion NO es la de 099, es la de 101 (D-181), que le sumo erp_role. Un
+-- `create or replace` reemplaza la funcion ENTERA, asi que copiar el cuerpo de 099 habria
+-- borrado esa vigilancia sin tocar ni una linea de 101 ni del trigger, y sin que nada
+-- fallara: el trigger seguiria ahi, mirando una columna menos. Y erp_role no tiene otra
+-- red — el check de 101:30 limita el VALOR ('staff'|'manager'|'admin'), no quien escribe,
+-- asi que un staff se habria puesto erp_role='admin' en SU fila (099 se lo permite) y se
+-- habria dado los costos que D-181 cerro. Por eso aqui estan las CINCO columnas.
 create or replace function public.guard_profile_privileged_columns()
   returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  -- Solo un admin cambia permissions/store/username/title/title_color. Un no-admin
-  -- editando SU fila puede tocar full_name/avatar_url/active_session_id y nada mas.
-  -- Mismo patron que guard_role_change.
+  -- Solo un admin cambia permissions/store/username/erp_role/title/title_color. Un
+  -- no-admin editando SU fila puede tocar full_name/avatar_url/active_session_id y nada
+  -- mas. Mismo patron que guard_role_change.
   if coalesce(public.current_user_role(), 'sales') <> 'admin'
      and auth.uid() is not null
      and ( NEW.permissions is distinct from OLD.permissions
         or NEW.store       is distinct from OLD.store
         or NEW.username    is distinct from OLD.username
+        or NEW.erp_role    is distinct from OLD.erp_role
         or NEW.title       is distinct from OLD.title
         or NEW.title_color is distinct from OLD.title_color ) then
-    raise exception 'Only an admin can change permissions, store, username or title';
+    raise exception 'Only an admin can change permissions, store, username, erp_role or title';
   end if;
   return NEW;
 end $$;
@@ -82,4 +91,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('104_profile_title.sql', 'c03ff763d23b450fc3f30bf82c5c3125d364b10694bcd1398d20960f1f780d1c') on conflict (name) do nothing;
+  values ('104_profile_title.sql', '4c14def50a14031821d34366ffcd183fda457a1aa8df96bbc5f8a47ae2b20cee') on conflict (name) do nothing;

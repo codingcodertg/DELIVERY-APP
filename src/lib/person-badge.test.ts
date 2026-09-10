@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROLE_INFO, TITLE_COLORS, TITLE_MAX, personBadge, roleLabel } from "./constants";
 
@@ -139,16 +139,61 @@ describe("104_profile_title.sql", () => {
     expect(Number(m![1])).toBe(TITLE_MAX);
   });
 
-  it("el guard cubre las dos columnas nuevas además de las tres de 099", () => {
+  it("redefinir el guard no puede PERDER ninguna columna que ya vigilaba", () => {
+    // Esto es lo que se me escapó y encontró la auditoría. `create or replace` reemplaza la
+    // función ENTERA, así que quien la reescriba partiendo de una versión vieja borra lo que
+    // añadió una posterior, sin tocar esa migración y sin que nada falle: el trigger sigue
+    // ahí, mirando una columna menos. Pasó con `erp_role`, que 101 (D-181) añadió y yo, que
+    // copié el cuerpo de 099, dejé fuera. Y `erp_role` no tiene otra red: el `check` de 101
+    // limita el valor, no quién escribe.
+    //
+    // La prueba no enumera columnas: lee TODAS las definiciones del repo, en orden, y exige
+    // que la última sea un superconjunto de la unión de las anteriores.
+    const dir = join(process.cwd(), "supabase/migrations");
+    const cols = (sql: string) => {
+      const i = sql.indexOf("create or replace function public.guard_profile_privileged_columns");
+      if (i < 0) return null;
+      const cuerpo = sql.slice(i, sql.indexOf("end $$;", i));
+      // Solo el cuerpo ejecutable: un `NEW.x` citado dentro de un comentario no vigila nada.
+      const vivo = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+      return new Set([...vivo.matchAll(/NEW\.([a-z_]+)/g)].map((m) => m[1]));
+    };
+    const defs = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => [f, cols(readFileSync(join(dir, f), "utf8"))] as const)
+      .filter((d): d is readonly [string, Set<string>] => d[1] !== null);
+
+    expect(defs.length, "esperaba 099, 101 y 104").toBeGreaterThanOrEqual(3);
+    const ultima = defs[defs.length - 1];
+    expect(ultima[0]).toBe("104_profile_title.sql");
+    for (const [fichero, previas] of defs.slice(0, -1)) {
+      const perdidas = [...previas].filter((c) => !ultima[1].has(c));
+      expect(perdidas, `${ultima[0]} deja de vigilar lo que vigilaba ${fichero}`).toEqual([]);
+    }
+    // Y que de verdad añade las suyas, no que pase por ser idéntica a la anterior.
+    expect(ultima[1].has("title")).toBe(true);
+    expect(ultima[1].has("title_color")).toBe(true);
+  });
+
+  it("el guard cubre las columnas nuevas además de las que ya venían", () => {
     // La RLS de 099 deja a cada quien editar SU fila, así que sin esto un vendedor se
     // pondría «Administrador» en la insignia, y en rojo.
     const i = sql.indexOf("create or replace function public.guard_profile_privileged_columns");
     expect(i).toBeGreaterThan(0);
-    const cuerpo = sql.slice(i);
-    for (const col of ["permissions", "store", "username", "title", "title_color"]) {
-      expect(cuerpo, col).toMatch(new RegExp(`NEW\\.${col}\\s+is distinct from OLD\\.${col}`));
-    }
-    expect(cuerpo).toMatch(/current_user_role\(\), 'sales'\) <> 'admin'/);
+    const cuerpo = sql.slice(i, sql.indexOf("end $$;", i));
+    const vivo = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    // Las SEIS por su nombre, y el conjunto EXACTO: con «que estén las seis» alguien podría
+    // añadir una séptima sin que nadie la mirara, y con un `toHaveLength(6)` podría cambiar
+    // una por otra. El conjunto completo no admite ninguna de las dos.
+    const vigiladas = new Set(
+      [...vivo.matchAll(/NEW\.([a-z_]+)\s+is distinct from OLD\.([a-z_]+)/g)].map(([, a, b]) => {
+        expect(b, "compara una columna con otra distinta").toBe(a);
+        return a;
+      }),
+    );
+    expect([...vigiladas].sort()).toEqual(["erp_role", "permissions", "store", "title", "title_color", "username"]);
+    expect(vivo).toMatch(/current_user_role\(\), 'sales'\) <> 'admin'/);
   });
 
   it("se auto-registra en el ledger, como exige D-184", () => {
