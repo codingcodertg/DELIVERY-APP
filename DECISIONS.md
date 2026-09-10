@@ -12493,3 +12493,22 @@ captura. Las tres cosas que hay que mirar cuando el dueño lo abra:
 (main dd4e951: 1505 | 3; los +7 son `table-fit.test.ts`). Esta rama se rebasó dos veces mientras
 esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506 sobre c344c8c
 (1499). El +7 no se mueve; lo que sube es la base.
+
+---
+
+## D-NEXT · Copiar la lista de pedidos como texto para WhatsApp
+
+**Fecha:** 2026-09-10 · **App:** deliveries · **Pedido por:** Andrés
+
+Al cerrar el día ("cerrar la caja") hay que pasar la lista de pedidos al grupo de WhatsApp, y se
+hacía a mano. Un botón **"💬 WhatsApp"** en la pantalla de Órdenes copia al portapapeles la lista
+**visible** —respeta el preset (Hoy/Míos) y el filtro activo—, una línea por pedido:
+`• <order_code> — <cliente> · <N pallets>`. La "cantidad" es pallets porque es la única que el
+pedido guarda: no hay líneas de producto (ítem×cantidad) en el modelo.
+
+Disponible para **todos los roles que ven esa pantalla** (el chofer no llega ahí), no solo admin:
+son las mismas filas que el usuario ya tiene en pantalla, no un export de datos, y quien cierra la
+caja suele ser ventas/oficina. Los export de Excel/PDF/CSV siguen admin-only.
+
+Usa `navigator.clipboard.writeText`; si el portapapeles no está disponible, avisa en vez de
+fallar en silencio.
