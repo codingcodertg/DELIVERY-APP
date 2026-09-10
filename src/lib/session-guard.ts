@@ -29,9 +29,11 @@ export type SessionState = "ok" | "offline" | "gone";
 /** Margen antes de dar por bueno un token: uno que caduca en 30 s caduca a media petición. */
 const MIN_LIFE_SEC = 60;
 
+type Sesion = { expires_at?: number | null } | null;
+
 type Probe = {
   auth: {
-    getSession: () => Promise<{ data: { session: { expires_at?: number | null } | null } }>;
+    getSession: () => Promise<{ data: { session: Sesion } }>;
     refreshSession: () => Promise<{
       data: { session: unknown };
       error: { status?: number } | null;
@@ -39,13 +41,18 @@ type Probe = {
   };
 };
 
+/** ¿Esta sesión sirve para trabajar durante el próximo minuto? */
+function sirve(session: Sesion): boolean {
+  const nowSec = Math.floor(Date.now() / 1000);
+  return !!session?.expires_at && session.expires_at - nowSec >= MIN_LIFE_SEC;
+}
+
 export async function checkSession(supabase: Probe): Promise<SessionState> {
   let hadSession = false;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     hadSession = !!session;
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (session?.expires_at && session.expires_at - nowSec >= MIN_LIFE_SEC) return "ok";
+    if (sirve(session)) return "ok";
 
     const { data, error } = await supabase.auth.refreshSession();
     if (data?.session) return "ok";
@@ -54,11 +61,27 @@ export async function checkSession(supabase: Probe): Promise<SessionState> {
     // otra pestaña que la cerró, o el almacenamiento limpiado.
     if (!hadSession) return "gone";
 
-    // El servidor CONTESTÓ y dijo que no (400/401/403: token de refresco caducado, ya usado
-    // o revocado). Es definitivo. Un fallo de red no trae status, o trae 0 — ese sí se
-    // reintenta, y por eso no se meten en el mismo saco.
+    // El servidor CONTESTÓ y dijo que no (400/401/403). Aquí estaba el fallo: se daba por
+    // definitivo, y **«ya usado» no significa que la sesión esté muerta**.
+    //
+    // Esta app monta CINCO clientes de navegador —Entregas más los cuatro con esquema propio
+    // que obliga D-185— y todos comparten el mismo token de refresco. Supabase lo **rota** en
+    // cada refresco: si dos clientes refrescan casi a la vez, el primero lo rota y el segundo
+    // recibe `400 Invalid Refresh Token: Already Used`. La sesión está perfectamente viva —
+    // acaba de renovarla el otro cliente— y esto la declaraba muerta y le cerraba la app en
+    // la cara a alguien que estaba fichando.
+    //
+    // Por eso, antes de la sentencia, **se vuelve a leer**. El que ganó la carrera dejó una
+    // sesión nueva en el almacenamiento, así que `getSession()` la ve. Y se le exige el mismo
+    // margen de vida que arriba: si lo que hay sigue siendo el token muerto de antes, no
+    // cuenta como sesión viva y la respuesta vuelve a ser `gone`.
     const status = error?.status;
-    if (typeof status === "number" && status >= 400 && status < 500) return "gone";
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      const { data: { session: recheck } } = await supabase.auth.getSession();
+      return sirve(recheck) ? "ok" : "gone";
+    }
+
+    // Sin status —o con 0, o 5xx— es la red o el servidor, no un veredicto sobre la sesión.
     return "offline";
   } catch {
     // Una excepción aquí es la red o una petición cancelada a media navegación (D-088), no
