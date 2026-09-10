@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { CAPABILITIES, ROLE_INFO, extraCaps, permissionsFor, personBadge } from "@/lib/constants";
+import { CAPABILITIES, ROLE_INFO, extraCaps, permissionsFor, roleLabel } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
 import { tutorialEmbed } from "@/lib/tutorials";
 import type { Profile, Settings, Tutorial } from "@/lib/types";
@@ -26,9 +26,6 @@ export default function AccountPage() {
 
   if (!me) return null;
   const role = ROLE_INFO[me.role];
-  // La pastilla puede llevar el título que le haya puesto un admin (D-NEXT); la frase
-  // de debajo sigue saliendo del rol, porque describe lo que esta persona puede hacer.
-  const badge = personBadge(me, lang);
 
   const clearTraining = async () => {
     if (confirm(t("Discard all practice changes and reset the sandbox to the current real data?",
@@ -59,7 +56,7 @@ export default function AccountPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "Archivo, sans-serif", fontSize: 22, fontWeight: 800 }}>{me.full_name}</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
-              <span className="sema" style={{ background: badge.color, color: "#fff" }}>{badge.text}</span>
+              <span className="sema" style={{ background: role.color, color: "#fff" }}>{roleLabel(me.role, lang)}</span>
               {me.store && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>🏬 {me.store}</span>}
             </div>
             <div className="hint" style={{ marginTop: 6 }}>{lang === "es" ? role.desc_es : role.desc}</div>
