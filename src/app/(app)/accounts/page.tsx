@@ -173,7 +173,7 @@ export default function AccountsPage() {
       ) : rows.length === 0 ? (
         <div className="empty">{t("No accounts match.", "No hay cuentas que coincidan.")}</div>
       ) : (
-        <div className="tbl-scroll">
+        <div className="tbl-scroll tbl-fit">
           <table className="orders tbl-resize">
             <colgroup>{acctCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
             <thead>

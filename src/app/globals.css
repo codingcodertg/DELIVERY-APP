@@ -270,6 +270,26 @@ table.orders { width: 100%; border-collapse: collapse; font-size: 13px; min-widt
    which ignored the set widths and blocked shrinking below the longest value.
    With fixed layout + auto, the table width is the sum of the column widths. */
 table.tbl-resize { table-layout: fixed; min-width: 0; width: auto; }
+
+/* El marco mide lo que miden las columnas (D-NEXT).
+   ---------------------------------------------------------------------------
+   `.tbl-scroll` es un bloque: ocupa el 100% del ancho disponible y pinta ahí su
+   borde y su fondo. Con una tabla `tbl-resize` —que es `width: auto`, o sea la
+   suma de sus columnas— cuando las columnas no llegan al 100% quedaba una
+   franja del contenedor a la derecha, con su fondo y su borde, que se lee como
+   «parte de la tabla vacía».
+
+   Va en una clase aparte y NO en `.tbl-scroll` a propósito: ese contenedor lo
+   usan 12 ficheros y su `background-color` es la base de las cuatro sombras de
+   desplazamiento de arriba. Cambiarlo para todos sería tocar once tablas para
+   arreglar una y, de paso, la señal de «hay más columnas» justo donde sirve.
+   Con `tbl-fit` lo piden los cinco contenedores que llevan una `tbl-resize`
+   dentro, y nadie más.
+
+   `max-width: 100%` es lo que conserva el desplazamiento: cuando las columnas
+   SÍ suman más que el hueco, el marco se queda en el 100% y `overflow-x: auto`
+   sigue haciendo su trabajo, sombras incluidas. */
+.tbl-scroll.tbl-fit { width: max-content; max-width: 100%; }
 table.tbl-resize th { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table.tbl-resize td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-resizer {
@@ -873,6 +893,10 @@ table.orders th { text-align: left; }
 /* ---- Orders table → stacked cards on phones (no horizontal scroll) ---- */
 @media (max-width: 640px) {
   .orders-scroll { overflow-x: visible; border: none; background: none; }
+  /* En el teléfono la tabla se convierte en tarjetas al 100% de ancho, así que
+     aquí el marco NO debe encogerse a la suma de unas columnas que ya no se
+     usan. Se devuelve al comportamiento de siempre. */
+  .tbl-scroll.tbl-fit { width: auto; }
   table.orders-responsive { width: 100% !important; min-width: 0 !important; table-layout: auto; }
   table.orders-responsive colgroup,
   table.orders-responsive thead { display: none; }

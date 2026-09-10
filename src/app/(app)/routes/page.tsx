@@ -1706,7 +1706,7 @@ export default function RoutesPage() {
           {scheduled.length === 0 ? (
             <div className="empty">{t("No orders are assigned to a driver or route yet for this date.", "Aún no hay órdenes asignadas a un chofer o ruta en esta fecha.")}</div>
           ) : (
-            <div className="tbl-scroll">
+            <div className="tbl-scroll tbl-fit">
               <table className="orders tbl-resize">
                 <colgroup>{schedCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                 <thead>
@@ -1840,7 +1840,7 @@ export default function RoutesPage() {
         ) : unassignedShown.length === 0 ? (
           <div className="empty">{t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda.")}</div>
         ) : (
-          <div className="tbl-scroll" style={{ border: "none" }}>
+          <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
             <table className="orders tbl-resize">
               <colgroup>{poolCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
               <thead>
@@ -2129,7 +2129,7 @@ export default function RoutesPage() {
               );
             })()}
             {stops.length > 0 && (
-              <div className="tbl-scroll" style={{ border: "none" }}>
+              <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
                 {/* Address stays on one line (narrow by default) with an
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
