@@ -12271,6 +12271,12 @@ Que `role` cambie, que haya sesión, y que quien la hace sea **admin**. **No mir
 por ningún lado**, así que el acceso del objetivo a Entregas le es indiferente — como ya decía el
 comentario de `055:53`, «gobierna `role` por su cuenta».
 
+**Y lo que corre en producción es esa misma función, no una copia que haya divergido**: el
+orquestador la volcó de la base el 2026-09-10 y coincide **letra por letra** con `roles.sql`. Ese
+dato no lo puede reproducir esta rama —desde el worktree no hay acceso a la base, a propósito— así
+que va citado como medición suya. El trigger que la engancha está dos líneas más abajo,
+`roles.sql:32-34`, `before update on public.profiles`.
+
 Y si algún día rechazara, la escritura ya lo trata bien (`data-provider.tsx:1383`):
 `notify(error.message)` y **`reloadAll()`**, que revierte el cambio optimista. El peor caso es un
 aviso con el mensaje de la base, no una pantalla que dice una cosa mientras la base hizo otra.
