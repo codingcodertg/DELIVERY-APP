@@ -290,6 +290,14 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, full_name: name } : u)) });
   }, [persist]);
 
+  // El modo local no tiene base ni guard: aquí cualquiera es admin de su propio
+  // navegador. La regla de que solo un admin escribe el título vive en 104, y este
+  // provider no la imita — igual que no imita ninguna otra RLS.
+  const updateUserTitle = useCallback<DataState["updateUserTitle"]>(async (userId, patch) => {
+    const s = storeRef.current;
+    persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, ...patch } : u)) });
+  }, [persist]);
+
   const updateUserStore = useCallback<DataState["updateUserStore"]>(async (userId, storeName) => {
     const s = storeRef.current;
     persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, store: storeName } : u)) });
@@ -369,7 +377,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notifications: store.notifications.filter((n) => n.user_id === me.id),
     toast, notify, markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,
@@ -377,7 +385,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserStore, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>

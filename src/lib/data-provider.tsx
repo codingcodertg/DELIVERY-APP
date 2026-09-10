@@ -140,6 +140,11 @@ export interface DataState {
   resetUserPassword: (id: string) => Promise<{ ok: boolean; password?: string; error?: string }>;
   updateUserRole: (userId: string, role: Profile["role"]) => Promise<void>;
   updateUserName: (userId: string, name: string) => Promise<void>;
+  /** El título escrito a mano de la pastilla de esta persona, y su color (D-NEXT).
+   * Vacío = null en las dos columnas: la pastilla vuelve a ser la del rol. Solo un
+   * admin puede escribirlas y lo hace cumplir la base (guard_profile_privileged_columns,
+   * 104), no este método. */
+  updateUserTitle: (userId: string, patch: { title: string | null; title_color: string | null }) => Promise<void>;
   /** Assign the store a warehouse worker / driver is scoped to (null = none). */
   updateUserStore: (userId: string, store: string | null) => Promise<void>;
   /** Grant a specific person extra capabilities on top of their role. */
@@ -525,7 +530,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role").order("full_name");
+      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color").order("full_name");
       if (r.data) setUsers(r.data as Profile[]);
       return r;
     },
@@ -1395,6 +1400,23 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify],
   );
 
+  // Escribe SOLO title/title_color, nunca `role`: la pastilla puede decir lo que el
+  // dueño quiera, y el rol sigue decidiendo lo que la persona puede hacer. Son dos
+  // cosas distintas y esta función es la frontera entre las dos (misma regla que
+  // D-053/D-057 para las columnas de rol de cada módulo).
+  const updateUserTitle = useCallback<DataState["updateUserTitle"]>(
+    async (userId, patch) => {
+      const before = users.find((u) => u.id === userId)?.title ?? null;
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...patch } : u)));
+      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+      // Un no-admin que lo intente choca con el trigger, no con un aviso local: el
+      // error de la base es el que se enseña, y reloadAll deshace lo pintado.
+      if (error) { notify(error.message); reloadAll(); return; }
+      void logSecurityClient(userId, "title_changed", change(before, patch.title));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient],
+  );
+
   const updateUserStore = useCallback<DataState["updateUserStore"]>(
     async (userId, store) => {
       const before = users.find((u) => u.id === userId)?.store ?? null;
@@ -1661,7 +1683,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,
     incidents, addIncident, removeIncident,

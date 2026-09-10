@@ -16,6 +16,7 @@ export type SecurityKind =
   | "store_changed"
   | "permissions_changed"
   | "username_changed"
+  | "title_changed"
   | "email_changed"
   | "password_reset"
   | "recruiting_access_changed"
@@ -41,6 +42,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     store_changed: "Store changed",
     permissions_changed: "Permissions changed",
     username_changed: "Username changed",
+    title_changed: "Badge title changed",
     email_changed: "Email changed",
     password_reset: "Password reset",
     recruiting_access_changed: "Recruiting access changed",
@@ -57,6 +59,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     store_changed: "Tienda cambiada",
     permissions_changed: "Permisos cambiados",
     username_changed: "Usuario cambiado",
+    title_changed: "Título de la pastilla cambiado",
     email_changed: "Correo cambiado",
     password_reset: "Contraseña restablecida",
     recruiting_access_changed: "Acceso a Recruiting cambiado",

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
-import { MODULE_ACCESS, ROLE_INFO, ROLE_ORDER, roleLabel } from "@/lib/constants";
+import { MODULE_ACCESS, ROLE_INFO, ROLE_ORDER, TITLE_COLORS, TITLE_COLOR_NAMES, TITLE_MAX, personBadge, roleLabel } from "@/lib/constants";
 import type { ModuleAccessKey } from "@/lib/constants";
 import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
@@ -27,7 +27,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -38,6 +38,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
   // already looked cleared.
   const [emailDraft, setEmailDraft] = useState("");
   const [newPass, setNewPass] = useState<string | null>(null);
+  // El título se teclea en borrador y se guarda al salir del campo, como el nombre.
+  // Es estado local y no `defaultValue` porque el selector de color de al lado lo
+  // necesita leer: elegir un color guarda los dos valores a la vez.
+  const [titleDraft, setTitleDraft] = useState(u.title ?? "");
   const [busy, setBusy] = useState(false);
 
   // The email lives in auth, not on the profile, so it has to be fetched -
@@ -56,6 +60,18 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
 
   if (!me) return null;
   const info = ROLE_INFO[u.role];
+  // La pastilla de la cabecera enseña lo que se está escribiendo, no lo guardado:
+  // así se ve el título antes de soltarlo. Sin título vuelve a la etiqueta del rol.
+  const preview = personBadge({ role: u.role, title: titleDraft, title_color: u.title_color }, lang);
+
+  // Vacío borra las DOS columnas: un color guardado sin título no pinta nada y
+  // quedaría como dato muerto que reaparece si mañana se escribe otro título.
+  const saveTitle = (raw: string, color: string | null) => {
+    const title = raw.trim().slice(0, TITLE_MAX) || null;
+    const next = { title, title_color: title ? color : null };
+    if (next.title === (u.title ?? null) && next.title_color === (u.title_color ?? null)) return;
+    void updateUserTitle(u.id, next);
+  };
   const scoped = u.role === "manager" || u.role === "logistics";
   const storeScoped = u.role === "warehouse" || u.role === "driver" || u.role === "sales";
 
@@ -105,7 +121,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
           <span className="avatar" style={{ background: avatarColor(u.full_name || "?") }}>{initials(u.full_name || "?")}</span>
           <h3 style={{ margin: 0, flex: 1 }}>{u.full_name}</h3>
-          <span className="sema" style={{ background: info.color, color: "#fff" }}>{roleLabel(u.role, lang)}</span>
+          <span className="sema" style={{ background: preview.color, color: "#fff" }}>{preview.text}</span>
         </div>
         <div className="hint" style={{ marginBottom: 14 }}>{lang === "es" ? info.desc_es : info.desc}</div>
 
@@ -136,6 +152,47 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               />
             </div>
           )}
+          {/* El título de la pastilla (D-NEXT). Lo escribe el dueño, por persona, y no se
+              traduce: sale igual en los dos idiomas. Vacío = la etiqueta del rol, como
+              siempre — por eso el placeholder es justo esa etiqueta, para que se vea qué
+              va a salir si no se escribe nada.
+
+              El color va al lado y solo cuenta si hay título. Los dos se guardan con la
+              misma llamada, así que elegir un color recién escrito el título no pierde
+              ninguno de los dos.
+
+              Quién puede: solo un admin, y lo para el trigger de la base (104), no este
+              diálogo. Un título libre que cada quien se escriba es una forma de hacerse
+              pasar por otra cosa. */}
+          <div className="field">
+            <label>{t("Title (shows on the badge)", "Título (sale en la pastilla)")}</label>
+            <input
+              value={titleDraft}
+              maxLength={TITLE_MAX}
+              placeholder={roleLabel(u.role, lang)}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={() => saveTitle(titleDraft, u.title_color ?? null)}
+            />
+            <div className="hint" style={{ marginTop: 4 }}>
+              {t("Empty = the role's label, as before.", "Vacío = la etiqueta del rol, como hasta ahora.")}
+            </div>
+          </div>
+          <div className="field">
+            <label>{t("Badge colour", "Color de la pastilla")}</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <select
+                style={{ flex: 1, minWidth: 0 }}
+                value={u.title_color ?? ""}
+                onChange={(e) => saveTitle(titleDraft, e.target.value || null)}
+              >
+                <option value="">{t("The role's colour", "El del rol")}</option>
+                {TITLE_COLORS.map((c) => (
+                  <option key={c} value={c}>{lang === "es" ? TITLE_COLOR_NAMES[c].es : TITLE_COLOR_NAMES[c].en}</option>
+                ))}
+              </select>
+              <span className="sema" style={{ background: preview.color, color: "#fff" }}>{preview.text}</span>
+            </div>
+          </div>
           {/* El rol de la persona en la empresa, no su nivel dentro de un módulo (D-230).
               Vivía dentro del bloque de Entregas, detrás de su casilla, así que quien no tenía
               ese módulo concedido veía su rol en la lista de Usuarios y no podía cambiarlo —

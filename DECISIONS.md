@@ -12493,3 +12493,110 @@ captura. Las tres cosas que hay que mirar cuando el dueño lo abra:
 (main dd4e951: 1505 | 3; los +7 son `table-fit.test.ts`). Esta rama se rebasó dos veces mientras
 esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506 sobre c344c8c
 (1499). El +7 no se mueve; lo que sube es la base.
+
+## D-NEXT · La pastilla de una persona la escribe el dueño: título por persona, color de la paleta
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
+`104_profile_title.sql`** (la aplica el orquestador tras el merge).
+**Pedido por:** el dueño, señalando la pastilla «Gerente de Oficina» de una ficha de usuario:
+*«ese tag es el que quiero poder cambiar y hacerlo como yo quiera»*. Preguntado si era por
+persona o renombrar los roles, eligió **por persona**.
+
+### Lo que había
+
+La pastilla decía siempre la etiqueta del rol: `roleLabel(u.role, lang)` con el color de
+`ROLE_INFO` (`constants.ts:126-134`). Todos los `manager` se llamaban igual porque **la etiqueta
+no describía a la persona, describía a su rol**, y el rol es una casilla de permisos que se
+comparte entre varias personas.
+
+### Lo que se añade, y por qué es una capa y no un reemplazo
+
+Dos columnas nulas en `profiles`: `title` y `title_color`. **Vacío = exactamente lo de antes**,
+la etiqueta del rol en el idioma activo y su color. Por eso no hay que migrar a nadie: las filas
+existentes se quedan en `null` y ninguna cambia de aspecto.
+
+Que sea una capa **encima** del rol, y no un cambio del rol, es lo que hace que el resto de la
+app no se entere: `role` sigue decidiendo permisos, aterrizaje (`landingRoute`), el hub
+(`canReachHub`) y **la frase descriptiva que va debajo de la pastilla**, que sale de
+`desc`/`desc_es`. Esa frase dice lo que la persona *puede hacer*; el título dice cómo se la
+*llama*. Son dos cosas distintas y se quedan en dos sitios distintos.
+
+El título **es un solo texto y no se traduce**: lo escribe el dueño y sale igual en inglés y en
+español. Traducirlo habría significado dos campos y la pregunta de qué enseñar cuando solo hay
+uno relleno.
+
+### Una función, tres sitios, y dos que se quedan fuera a propósito
+
+`personBadge(persona, lang)` (`constants.ts`) es el único sitio donde vive la regla. La llaman
+los **tres** lugares que pintan la insignia de una persona concreta: `UserDialog.tsx:124`,
+`home/users/page.tsx` y `account/page.tsx`.
+
+Hay **cuatro** sitios en total que pintan `sema` + `roleLabel` — medido con
+`grep -rn 'roleLabel(' src --include=*.tsx | grep -i sema`. Los otros dos **no** son de una
+persona y se quedan como están:
+
+- **`TopBar`**: es el conmutador de «ver como». Ahí el rol no describe a nadie: dice qué vista
+  estás previsualizando, y tiene que seguir diciendo el rol de verdad. Un título ahí sería una
+  mentira sobre el estado del conmutador.
+- **`settings/page.tsx:439`**: la cabecera del bloque de permisos **por rol**, que se repite una
+  vez por cada rol. No hay ninguna persona detrás de esa pastilla.
+
+Hay una prueba que exige las dos cosas: que los tres usen `personBadge` y que estos dos **no**.
+Es para dentro de seis meses, cuando alguien vea la inconsistencia y la «arregle».
+
+### Lo que hace cumplir la base, y no el diálogo
+
+**Esto es lo importante de la rama, y no se ve en la pantalla.** La RLS de D-179 (`099`) deja a
+cada quien **editar su propia fila**; qué columnas puede tocar un no-admin lo restringe
+`guard_profile_privileged_columns()`. Sin tocar ese guard, **un vendedor se pondría a sí mismo
+«Administrador» en la insignia, y en rojo**: un título libre editable por su dueño es una forma
+de hacerse pasar por otra cosa. Así que `104` añade `title` y `title_color` a ese guard, junto a
+`permissions`, `store` y `username`. Se **añaden dos condiciones al guard que ya existe** en vez
+de escribir uno nuevo — un guard por columna serían cinco triggers preguntando lo mismo.
+
+El color **no es libre**: lista blanca de los siete tokens que ya usa `ROLE_INFO`
+(`--red`, `--purple`, `--accent`, `--teal`, `--amber`, `--green`, `--ink-soft`), y se guarda el
+token pelado. El cliente lo envuelve en `var(...)`, así que ni siquiera un `var(--purple)`
+completo es aceptable en la columna. Se valida **en los dos lados**: la restricción de la base y
+`personBadge`, que ante cualquier valor que no esté en la lista cae al color del rol. La razón de
+la doble validación es que **ese valor acaba dentro de un `style` inline**.
+
+Y hay una prueba que compara **las dos listas blancas**, la de TypeScript y la del `.sql`, y
+exige que sean el mismo conjunto. Es el fallo que nadie vería: el `<select>` ofreciendo un color
+que la base rechaza, o la base aceptando uno que la app no sabe pintar. Lo mismo con el tope de
+**40 caracteres**, que se compara contra el `maxLength` del campo.
+
+### Decisiones pequeñas que se notan al usarlo
+
+- **La pastilla de la cabecera del diálogo previsualiza lo que se está tecleando**, no lo
+  guardado. Por eso el título es estado local y no `defaultValue`.
+- **El placeholder del campo es la etiqueta del rol.** Sin escribir nada se ve qué va a salir.
+- **El selector de color guarda los dos valores a la vez.** Si no, escribir un título y elegir
+  color sin salir antes del campo habría perdido uno de los dos.
+- **Vaciar el título borra también el color.** Un color sin título no pinta nada y quedaría como
+  dato muerto, listo para reaparecer el día que se escriba otro título.
+- **`updateUserTitle` escribe solo esas dos columnas**, nunca `role` — misma regla que
+  D-053/D-057, con prueba de que su cuerpo no menciona `role`. Y deja su rastro en el registro de
+  seguridad como `title_changed`.
+
+### Lo no verificado
+
+**Nada de esto se ha ejecutado contra la base**: la migración se escribe aquí y la aplica el
+orquestador tras el merge, así que el guard, la restricción del color y el tope de 40 están
+comprobados **como texto del `.sql`**, no ejecutándolos. Lo primero que hay que mirar cuando se
+aplique: que un no-admin intentando cambiar su propio `title` reciba la excepción, y que un
+`title_color` fuera de la lista sea rechazado.
+
+Tampoco lo ha visto nadie en un navegador. Cuando el dueño lo abra: escribir un título en una
+ficha y ver que cambia la pastilla de la cabecera, la de la lista de Usuarios y —si es su propia
+ficha— la de Mi cuenta, y que la frase de debajo **no** cambia.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1526 pasados | 3 saltados**
+(main 4e21f19: 1512 | 3; los +14 son `person-badge.test.ts`).
+
+**Un guardián sube, y se dice aquí porque es la única forma de que suba.** La muestra del color
+que va junto al selector es otra pastilla con fondo de color fijo y texto blanco, o sea un
+`#fff` a pelo más en `UserDialog.tsx`. El techo de ese fichero en `inline-colors.test.ts` pasa de
+**3 a 4**, y el total de Entregas de **79 a 80** (63 → 64 blancos). Es el mismo blanco sobre
+color fijo que explica los otros 63, no una excepción nueva: la tabla existe para que subir
+cueste una línea en una decisión, y esta es esa línea.

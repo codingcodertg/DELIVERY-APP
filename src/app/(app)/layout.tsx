@@ -37,7 +37,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // check runs against — without them an admin's own extra grants and store
     // scope silently read as absent. recruiting_role + module_access are here
     // for the same reason: landingRoute() and the module selector need them.
-    .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access")
+    // title/title_color: la pastilla de "Mi cuenta" se pinta con `me`, y sin estas dos
+    // columnas la persona con título vería ahí la etiqueta de su rol y en el resto de
+    // la app su título (D-NEXT).
+    .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, title, title_color")
     .eq("id", user.id)
     .maybeSingle();
 
