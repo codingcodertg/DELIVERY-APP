@@ -11902,17 +11902,25 @@ conclusión apoyada en la barrera equivocada es una conclusión frágil:
    demo y anterior a que Patricia tuviera el ERP) y **cero objetos suyos en cualquier bucket**.
    Existía y nadie la usó. El arreglo la cierra.
 
-Así que la conclusión, con su motivo correcto: **no hubo fuga, y no por una barrera sino por tres**
-—el enmascarado de la vista, el `REVOKE` sobre la columna base, y las funciones `DEFINER` que
-comprueban el rol ellas mismas—. Cada una tapa un camino distinto y **ninguna sola habría bastado**.
+Así que la conclusión, con su motivo correcto: **no hubo fuga de datos, y no por una barrera sino
+por tres** —el enmascarado de la vista, el `REVOKE` sobre la columna base, y las funciones
+`DEFINER` que comprueban el rol ellas mismas—. Cada una tapa un camino distinto y **ninguna sola
+habría bastado**.
 
 Y una cuarta pieza que hace útiles a las dos primeras: las vistas se recrean con
 **`security_invoker = on`** (`101:93,118,132`). Sin eso correrían con los permisos de quien las
 creó y el `REVOKE` no habría servido de nada.
 
-**La defensa en profundidad hizo su trabajo**: un fallo del cliente que llevaba un año ahí no costó
-ni un dato, porque el suelo era duro. Eso es lo que hay que recordar de esta entrada tanto como el
-fallo.
+**Pero «la base lo cerró todo» no sería exacto, y el matiz es la lección de esta entrada.** Lo
+cerró en los caminos que pasan por las vistas —que son casi todos— y quedaba **una escritura sin
+red**. Dicho como toca:
+
+> **La defensa en profundidad funcionó donde la había, y había un sitio donde no la había.**
+
+Un fallo del cliente que llevaba un año ahí no costó ni un dato **en todo lo que tenía suelo
+duro**; en el único sitio sin suelo, lo que se concedía de más era escribir, y nadie lo usó. Las
+dos mitades de esa frase son igual de importantes: la primera explica por qué esto no fue un
+incidente, y la segunda por qué no basta con confiar en que la base lo pare.
 
 ### Por qué tardó un año en verse
 
