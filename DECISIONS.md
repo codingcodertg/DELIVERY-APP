@@ -12525,24 +12525,19 @@ El título **es un solo texto y no se traduce**: lo escribe el dueño y sale igu
 español. Traducirlo habría significado dos campos y la pregunta de qué enseñar cuando solo hay
 uno relleno.
 
-### Una función, tres sitios, y dos que se quedan fuera a propósito
+### Una función, tres sitios, y los que se quedan fuera a propósito
 
 `personBadge(persona, lang)` (`constants.ts`) es el único sitio donde vive la regla. La llaman
 los **tres** lugares que pintan la insignia de una persona concreta: `UserDialog.tsx:124`,
 `home/users/page.tsx` y `account/page.tsx`.
 
-Hay **cuatro** sitios en total que pintan `sema` + `roleLabel` — medido con
-`grep -rn 'roleLabel(' src --include=*.tsx | grep -i sema`. Los otros dos **no** son de una
-persona y se quedan como están:
+Dos sitios más pintan una pastilla con la etiqueta de un rol y **se quedan como están**, porque
+no describen a nadie: **`settings/page.tsx:439`**, la cabecera del bloque de permisos **por
+rol**, que se repite una vez por cada rol y no tiene ninguna persona detrás; y **`TopBar`**, el
+conmutador de «ver como», que tiene su apartado más abajo.
 
-- **`TopBar`**: es el conmutador de «ver como». Ahí el rol no describe a nadie: dice qué vista
-  estás previsualizando, y tiene que seguir diciendo el rol de verdad. Un título ahí sería una
-  mentira sobre el estado del conmutador.
-- **`settings/page.tsx:439`**: la cabecera del bloque de permisos **por rol**, que se repite una
-  vez por cada rol. No hay ninguna persona detrás de esa pastilla.
-
-Hay una prueba que exige las dos cosas: que los tres usen `personBadge` y que estos dos **no**.
-Es para dentro de seis meses, cuando alguien vea la inconsistencia y la «arregle».
+Hay una prueba que exige las dos direcciones: que los tres usen `personBadge` y que estos dos
+**no**. Es para dentro de seis meses, cuando alguien vea la inconsistencia y la «arregle».
 
 ### Lo que hace cumplir la base, y no el diálogo
 
@@ -12579,6 +12574,56 @@ que la base rechaza, o la base aceptando uno que la app no sabe pintar. Lo mismo
   D-053/D-057, con prueba de que su cuerpo no menciona `role`. Y deja su rastro en el registro de
   seguridad como `title_changed`.
 
+### Lo que casi se rompe al escribir el guard, y que lo cazó la auditoría
+
+**Redefinir el guard estuvo a punto de abrir justo el agujero que D-181 cerró.** La primera
+versión de esta migración copió el cuerpo de `099` y le añadió las dos columnas nuevas. Pero
+`099` **no es la última definición** de esa función: `101` (D-181) la había reescrito para
+vigilar también `erp_role`. Y `create or replace` reemplaza la función **entera**.
+
+Resultado, si se hubiera aplicado así: el trigger de `099:77-80` seguiría en su sitio, sin
+tocar, mirando **una columna menos**. La RLS de `099` deja a cada quien editar **su** fila; el
+`check` de `101:30` limita el **valor** de `erp_role` (`staff|manager|admin`), no **quién** lo
+escribe; y esa línea del guard era **la única** que limitaba quién. O sea que un `staff` se
+habría puesto `erp_role='admin'` en su propia fila y se habría dado los costos. Nada habría
+fallado: ni una prueba, ni el trigger, ni `101`, que ni se toca.
+
+Por eso el guard de `104` lleva las **seis** columnas —`permissions`, `store`, `username`,
+`erp_role`, `title`, `title_color`— y la migración dice en un comentario de dónde hay que
+partir.
+
+**Y la prueba que se añade no enumera columnas.** Lee **todas** las definiciones de la función
+que hay en `supabase/migrations`, en orden, y exige que la última sea un **superconjunto** de la
+unión de las anteriores. Una lista fija habría que acordarse de actualizarla, que es el mismo
+olvido que causó esto. Comprobada quitando la línea de `erp_role`: la prueba cae y dice qué
+migración deja de estar cubierta.
+
+La lección, en una línea: **una cita a una función de la base se comprueba contra la ÚLTIMA
+migración que la toca, no contra la que la creó.**
+
+### Cuatro dependencias que se pueden separar en silencio
+
+La lista de siete colores aparece en cuatro sitios, y solo dos están cosidos por una prueba:
+
+1. `TITLE_COLORS` (`constants.ts`) y el `check` del `.sql` — **prueba** que exige el mismo conjunto.
+2. `TITLE_COLOR_NAMES`, que los nombra otra vez — **cosido por `tsc`**, porque es un
+   `Record<TitleColor, …>`: si falta una clave, no compila. Mejor que una prueba.
+3. **Que cada token exista como variable CSS.** Los siete están hoy en `globals.css`, medido.
+   Pero si mañana alguien añade `--rose` a la lista y al `check`, la pastilla saldrá **sin
+   color** y ninguna prueba lo dirá. Queda dicho aquí; no se cierra en esta rama.
+
+### La insignia nueva NO aparece en la barra superior, y es a propósito
+
+`TopBar` pinta el rol de quien ha entrado, pero eso **no es una insignia de identidad**: es el
+conmutador de «ver como», y dice qué vista se está previsualizando. Un título ahí sería una
+mentira sobre el estado del conmutador. Se dice explícitamente porque **es el sitio más visible
+de la app donde el título no va a salir**, y quien lo escriba lo va a notar.
+
+(Nota de conteo, para que nadie repita el error al buscarlo: `grep` de una línea con `sema` y
+`roleLabel` encuentra **cuatro** sitios y `TopBar` **no** está entre ellos — su `className="sema"`
+y su `roleLabel(` viven en líneas distintas, `:246` y `:252`. De esos cuatro, tres pasan a
+`personBadge` y uno se queda, `settings/page.tsx:439`.)
+
 ### Lo no verificado
 
 **Nada de esto se ha ejecutado contra la base**: la migración se escribe aquí y la aplica el
@@ -12591,8 +12636,8 @@ Tampoco lo ha visto nadie en un navegador. Cuando el dueño lo abra: escribir un
 ficha y ver que cambia la pastilla de la cabecera, la de la lista de Usuarios y —si es su propia
 ficha— la de Mi cuenta, y que la frase de debajo **no** cambia.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1526 pasados | 3 saltados**
-(main 4e21f19: 1512 | 3; los +14 son `person-badge.test.ts`).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1527 pasados | 3 saltados**
+(main 4e21f19: 1512 | 3; los +15 son `person-badge.test.ts`).
 
 **Un guardián sube, y se dice aquí porque es la única forma de que suba.** La muestra del color
 que va junto al selector es otra pastilla con fondo de color fijo y texto blanco, o sea un
