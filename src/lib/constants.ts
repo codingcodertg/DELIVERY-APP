@@ -642,6 +642,26 @@ export interface ModuleAccessConfig {
    * alone. The uniqueness rule this field encodes still holds: no two modules
    * may aim at the same column, and absent is not the same as "role". */
   roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role";
+  /**
+   * Dónde se edita ese rol, cuando NO es dentro del bloque del módulo (D-NEXT).
+   *
+   * Solo Entregas: su rol es `profiles.role`, que es **NOT NULL, nunca se borra** —quitar el
+   * módulo no lo toca (D-100)— y decide cosas de toda la app: `canReachHub`, las herramientas
+   * del hub, el encuadre de Usuarios. Los otros tres roles sí son de módulo: nacen y mueren con
+   * el acceso. Un rol que sobrevive al módulo no puede editarse solo cuando el módulo está
+   * concedido, que es lo que pasaba: seis perfiles con el rol a la vista y sin forma de
+   * cambiarlo.
+   *
+   * Se declara en el dato y no con un `if (m.key === "deliveries")` en el render: así el día que
+   * otro módulo necesite lo mismo se declara, y mientras tanto nadie tiene que acordarse de que
+   * Entregas es especial al tocar ese `return`.
+   *
+   * Y el `roleColumn` se **conserva**: es la columna donde vive ese rol, sigue siendo cierto, y
+   * es lo que mantiene `role` reclamada en la prueba de «dos módulos no apuntan a la misma
+   * columna». Quitarlo no rompería esa prueba — la dejaría ciega justo en la columna del lío
+   * `role`/`recruiting_role` de D-052.
+   */
+  roleEditedIn?: "identity";
   roleKeys: readonly string[];
   roleLabel: (key: string, lang: Lang) => string;
   /** Present only for an opt-in module — deliveries has none, everyone
@@ -671,6 +691,10 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     key: "deliveries", label_en: "Deliveries", label_es: "Entregas",
     alwaysOn: false,
     roleColumn: "role",
+    // El selector vive en «Identidad», no aquí. Ver `roleEditedIn` arriba: el comentario de este
+    // mismo bloque ya decía «por eso el rol se sigue enseñando aunque la casilla esté apagada»,
+    // y el render no lo cumplía — estaba dentro del `granted &&`.
+    roleEditedIn: "identity",
     roleKeys: ROLE_ORDER,
     roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
     accessColumn: "module_access",
