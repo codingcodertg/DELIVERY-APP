@@ -116,9 +116,10 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 //
 // D-211 cerró HR y dejó anotadas Entregas y Time Tracker. Esta tabla es la de Entregas
 // DESPUÉS del encargo: 117 colores a pelo pasaron a 79. Lo que queda no es residuo — es lo
-// que se decidió dejar, y cada grupo tiene su motivo en la decisión.
+// que se decidió dejar, y cada grupo tiene su motivo en la decisión. Hoy son 80: D-NEXT
+// sumó uno, la muestra del color de la pastilla en UserDialog, y lo dice ahí.
 //
-// La regla que explica 63 de los 79: **un blanco sobre un fondo de color fijo no cambia con
+// La regla que explica 64 de los 80: **un blanco sobre un fondo de color fijo no cambia con
 // el tema**. Una pastilla roja con texto blanco se ve igual en claro y en oscuro, porque el
 // rojo no se mueve. Convertirlos a `--card` los rompería justo en oscuro, que es lo contrario
 // de lo que este encargo venía a hacer.
@@ -146,7 +147,11 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/components/SessionExpired.tsx": 8,
     "src/components/ShiftClock.tsx": 1,
     "src/components/TopBar.tsx": 6,
-    "src/components/UserDialog.tsx": 3,
+    // 4 desde D-NEXT: la muestra del color junto al selector del titulo es otra pastilla
+    // con fondo de color fijo, y su texto es el mismo blanco que los otros 63. Sube el
+    // techo, no se salta: la regla de la tabla es que un fichero solo sube cuando la
+    // decision lo dice.
+    "src/components/UserDialog.tsx": 4,
     "src/components/UsersImportModal.tsx": 3,
   };
 
@@ -185,7 +190,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     }
   });
 
-  it("el total es 79, y de esos 63 son el blanco sobre color", () => {
+  it("el total es 80, y de esos 64 son el blanco sobre color", () => {
     // El número entero, para que un cambio que reparta colores entre ficheros sin subir
     // ninguno por encima de su techo no pase desapercibido.
     let total = 0;
@@ -195,8 +200,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       total += h.length;
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
-    expect(total).toBe(79);
-    expect(blancos).toBe(63);
+    expect(total).toBe(80);
+    expect(blancos).toBe(64);
   });
 });
 
