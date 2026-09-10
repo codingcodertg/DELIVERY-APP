@@ -678,6 +678,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // sondeo periódico sería una llamada de refresco cada quince segundos contra un token
       // que no va a revivir.
       if (authGoneRef.current) {
+        // Con la pestaña ocultándose, no. `visibilitychange` dispara también AL IRSE, y
+        // preguntar por la sesión de una ventana que deja de verse es una petición que nadie
+        // va a aprovechar. La guarda va solo en esta rama: el reintento de abajo se comportaba
+        // así desde antes y no es de esta decisión cambiarlo.
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
         void ensureSessionRef.current().then((ok) => { if (ok) void reloadRef.current(); });
         return;
       }

@@ -34,8 +34,14 @@ describe("checkSession", () => {
   });
 
   it("da gone cuando el servidor rechaza el refresco", async () => {
-    // El caso de despertar el ordenador: el token de refresco caducó o ya se usó. El servidor
-    // CONTESTÓ que no — es definitivo, y hay que volver a entrar.
+    // El caso de despertar el ordenador: el token de refresco caducó y en el almacenamiento no
+    // queda otro. El servidor CONTESTÓ que no y la relectura confirma que no hay sesión viva —
+    // es definitivo, y hay que volver a entrar.
+    //
+    // El «o ya se usó» que decía antes este comentario dejó de ser exacto en D-NEXT: un token
+    // «ya usado» puede significar que **otro cliente acaba de renovar la sesión**, y ese caso
+    // ahora da `ok`. Lo que fija esta prueba —4xx sin sesión viva detrás es `gone`— no cambia,
+    // y por eso ni ella ni las otras doce se han tocado.
     const c = client({ data: { session: { expires_at: seg(-10) } } }, { data: { session: null }, error: { status: 400 } });
     expect(await checkSession(c)).toBe("gone");
   });

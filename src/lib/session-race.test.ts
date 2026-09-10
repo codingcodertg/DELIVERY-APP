@@ -164,6 +164,14 @@ describe("se puede volver de «gone», y en los TRES proveedores", () => {
       expect(src, p).toContain("void ensureSessionRef.current().then((ok) => { if (ok) void reloadRef.current(); });");
     }
   });
+  it("y con la pestaña ocultándose tampoco pregunta", () => {
+    // `visibilitychange` dispara también al IRSE. Con la sesión dada por muerta, el coste del
+    // arreglo es una petición fallida por evento; ahorrar la de «me estoy ocultando» es media
+    // línea y no la aprovecha nadie.
+    for (const p of proveedores) {
+      expect(leer(p), p).toContain('if (typeof document !== "undefined" && document.visibilityState === "hidden") return;');
+    }
+  });
   it("pero el latido de 15 s NO sondea una sesión muerta", () => {
     // Sería una llamada de refresco cada quince segundos contra un token que no va a revivir.
     // El reintento periódico sigue saliéndose temprano cuando la sesión está dada por muerta.
