@@ -12402,7 +12402,7 @@ hoy a «NOMBRE DE CONTACTO», que mide lo mismo.
 (main c344c8c: 1499 | 3; los +6 son `phone-label.test.ts`). Medido tras rebasar sobre el main que
 ya trae D-230; antes del rebase eran 1494 sobre el main 6f5a3ee, que tenía 1488.
 
-## D-NEXT · El marco de la tabla mide lo que miden sus columnas
+## D-232 · El marco de la tabla mide lo que miden sus columnas
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño: a la derecha de la tabla de pedidos hay **«un espacio en blanco que
