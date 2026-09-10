@@ -82,7 +82,10 @@ export function canje(saldoActual: number, costoDiaLibre: number): { dias: numbe
 
 // ---- Quién puede puntear ---------------------------------------------------
 
-const PUNTUADORES: UserRole[] = ["admin", "manager"];
+/** Los roles que pueden puntear. Exportado porque hay una prueba que compara esta
+ * lista con la política de insert de 105: son la misma regla escrita dos veces, y
+ * separarlas es un fallo silencioso (un botón que la base rechaza, o al revés). */
+export const ROLES_QUE_PUNTEAN: UserRole[] = ["admin", "manager"];
 
 /** ¿Puede esta persona conceder puntos a ese empleado?
  *
@@ -91,7 +94,7 @@ const PUNTUADORES: UserRole[] = ["admin", "manager"];
  * en el `with check` de 105 — esta copia es para no pintar el botón. */
 export function puedeConceder(actor: Pick<Profile, "id" | "role"> | null | undefined, employeeId?: string | null): boolean {
   if (!actor) return false;
-  if (!PUNTUADORES.includes(actor.role)) return false;
+  if (!ROLES_QUE_PUNTEAN.includes(actor.role)) return false;
   return !employeeId || employeeId !== actor.id;
 }
 
