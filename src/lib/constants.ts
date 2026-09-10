@@ -643,7 +643,7 @@ export interface ModuleAccessConfig {
    * may aim at the same column, and absent is not the same as "role". */
   roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role";
   /**
-   * Dónde se edita ese rol, cuando NO es dentro del bloque del módulo (D-NEXT).
+   * Dónde se edita ese rol, cuando NO es dentro del bloque del módulo (D-230).
    *
    * Solo Entregas: su rol es `profiles.role`, que es **NOT NULL, nunca se borra** —quitar el
    * módulo no lo toca (D-100)— y decide cosas de toda la app: `canReachHub`, las herramientas

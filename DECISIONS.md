@@ -12154,7 +12154,7 @@ Más los síntomas del dueño. **Nadie ha reproducido la carrera en un navegador
 de aparecerle se sabrá usándolo. `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1488 pasados | 3 saltados**
 (main 805fd81: 1468 | 3; los +20 son `session-race.test.ts`).
 
-## D-NEXT · El rol de la persona se edita en Identidad, no dentro de un módulo
+## D-230 · El rol de la persona se edita en Identidad, no dentro de un módulo
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño: *«déjame editar esos roles, no están correctos»*, señalando una fila de

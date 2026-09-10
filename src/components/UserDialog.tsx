@@ -136,7 +136,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               />
             </div>
           )}
-          {/* El rol de la persona en la empresa, no su nivel dentro de un módulo (D-NEXT).
+          {/* El rol de la persona en la empresa, no su nivel dentro de un módulo (D-230).
               Vivía dentro del bloque de Entregas, detrás de su casilla, así que quien no tenía
               ese módulo concedido veía su rol en la lista de Usuarios y no podía cambiarlo —
               seis perfiles en producción. Y `profiles.role` no es de Entregas: es NOT NULL,
@@ -284,7 +284,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                         rather than "this module has no roles". Say which dial
                         actually governs it instead. */}
                     {m.roleEditedIn === "identity" ? (
-                      /* El rol de este módulo se edita arriba, en Identidad (D-NEXT). Se dice
+                      /* El rol de este módulo se edita arriba, en Identidad (D-230). Se dice
                          DÓNDE está y POR QUÉ: sin las dos cosas, la ausencia del selector se
                          lee como que falta algo. Y no vale el texto de abajo —«este módulo no
                          tiene rol propio»— porque para Entregas sería falso: sí lo tiene.
