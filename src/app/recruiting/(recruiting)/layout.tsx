@@ -9,6 +9,8 @@ import { VersionFooter } from "@/components/recruiting/VersionFooter";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import type { Profile as RecruitingProfile } from "@/lib/recruiting/types";
 import "../recruiting.css";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 // The root layout (app/layout.tsx) sets the browser tab title to "RTG
 // Hub | Order & Dispatch" — correct for (app), never overridden for
@@ -41,11 +43,18 @@ export default async function RecruitingLayout({ children }: { children: React.R
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/recruiting");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     .select("id, full_name, role, avatar_url, recruiting_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   // No recruiting access at all — bounce to wherever this person actually
   // belongs. Covers direct-URL access exactly like the /home guard does for

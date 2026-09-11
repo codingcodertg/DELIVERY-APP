@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute } from "@/lib/constants";
 import { HomeSelector } from "@/components/HomeSelector";
 import type { Profile } from "@/lib/types";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 // The hub. Landing here automatically vs. being ALLOWED to visit are two
 // different questions now (D-056) — they used to be the same one.
@@ -37,11 +39,18 @@ export default async function HomePage({
   ).toString();
   if (qs) redirect(`/?${qs}`);
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     .select("id, full_name, role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
   // Degraded session, not a new user — see the identical guard in
   // (app)/layout.tsx. Fabricating role:"sales" here used to route people
   // into the wrong module picker for their real role.

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
 import { ErpNavProvider } from "@/components/erp/nav-state";
 import "./erp.css";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const metadata: Metadata = {
   title: "RTG ERP",
@@ -32,11 +34,18 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/erp/catalog");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     .select("role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   const role = profile?.role ?? "sales";
   const hasErp = role === "admin" || !!profile?.module_access?.includes("erp");
