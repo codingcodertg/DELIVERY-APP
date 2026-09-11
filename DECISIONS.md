@@ -12496,7 +12496,7 @@ esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506
 
 ---
 
-## D-NEXT · Copiar la lista de pedidos como texto para WhatsApp
+## D-233 · Copiar la lista de pedidos como texto para WhatsApp
 
 **Fecha:** 2026-09-10 · **App:** deliveries · **Pedido por:** Andrés
 
