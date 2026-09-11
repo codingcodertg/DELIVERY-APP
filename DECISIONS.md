@@ -12995,7 +12995,7 @@ en vez de comprobarse, apoyándose en lo que ya decía el comentario de `NO_MATC
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1582 pasados | 3 saltados**
 (main 0b65f11: 1568 | 3; los +14 son `clockin/sin-tienda.test.ts`).
 
-## D-NEXT · El centinela que faltaba, el valor escrito en ocho sitios, y una premisa falsa que sostuvo tres decisiones
+## D-238 · El centinela que faltaba, el valor escrito en ocho sitios, y una premisa falsa que sostuvo tres decisiones
 
 **Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** lo último que quedaba de la familia D-234 → D-237, encontrado por la auditoría al
