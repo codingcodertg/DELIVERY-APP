@@ -12633,3 +12633,98 @@ Las tres cosas que hay que mirar cuando se pueda:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1539 pasados | 3 saltados**
 (main 98a9305: 1512 | 3; los +27 son 25 de `profile-read.test.ts` y 2 del recorrido por fichero
 de `inline-colors.test.ts`, que ahora ve dos componentes mas).
+
+## D-NEXT · En el ERP, descartar el `error` no daba un bucle: daba un rol equivocado
+
+**Fecha:** 2026-09-10 · **Versión:** solo `erp` (la pone el orquestador) · Sin migración.
+**Pedido por:** el hallazgo de la auditoría de D-234. Buscando el patrón del bucle por la vía de
+los **helpers** —que ni el encargo ni la prueba de aquella rama miraban, porque solo veían
+consultas dentro de `src/app`— apareció `src/lib/erp/auth.ts:55`.
+
+### La misma línea, otra consecuencia
+
+```ts
+const { data: profile } = await supabase.schema("public").from("profiles").select(…).single();
+```
+
+Es el `const { data } = …` de D-234, y la regla es la misma: **descartar el `error` no hace
+fallar nada; sigue con datos incompletos.** Lo que cambia es el camino que ya estaba escrito para
+el caso nulo:
+
+- En un layout, ese camino era `redirect("/login")`, y el login vuelve → **bucle mudo**.
+- Aquí, ese camino son los valores por defecto de `getSessionInfo()`: `erpTier(null)` → `staff`,
+  `hubRole` → `"sales"`. O sea, **el ERP decidía permisos con un perfil que nunca leyó**.
+
+Y `getSessionInfo()` **no devolvía null** en ese caso, así que el `if (!session) redirect("/login")`
+de las ~20 páginas ni se disparaba: la persona entraba, veía el ERP como `staff` y no había nada
+que le dijera que eso no era su nivel sino una avería.
+
+**Falla cerrado, y eso no se toca**: sin nivel asignado, el mínimo (D-181/D-228), así que el
+riesgo es «ves menos de lo que te toca» y nunca al revés. Lo que se arregla es que sea **mudo**.
+
+### Lo que hace ahora
+
+- **Con un error de lectura, lanza** (`PerfilNoLeido`), en vez de construir una sesión. No hay
+  valor por defecto que se pueda confundir con un rol legítimo. Hay prueba de que en el cuerpo de
+  `getSessionInfo` no queda **ni un `profile?.`**: esa interrogación era la marca de que el
+  objeto se construía igual sin perfil.
+- **«No hay fila» no es «no se pudo leer».** Con `.single()`, la fila ausente llega **como
+  error** (`PGRST116`), así que hay que separarla o una sesión degradada se contaría como avería.
+  Se separa y se devuelve `null`, que es lo que las páginas ya traducen a «vuelve a entrar» —el
+  camino de D-081—. Antes, ese caso seguía adelante como `staff`; ahora manda al login, y es un
+  cambio de comportamiento a propósito.
+- **La misma pantalla que D-234**, no una segunda versión: `src/app/erp/error.tsx` recoge lo que
+  se lanza y pinta `ProfileReadError`. Un solo camino de error para todo el hub.
+
+### Lo que la frontera de error NO puede enseñar, y qué se hizo en su lugar
+
+**Next borra el mensaje de un error lanzado en el servidor** antes de mandarlo al navegador y
+solo deja un `digest`. Es una protección suya, no un descuido: un mensaje de servidor puede
+llevar cualquier cosa. Consecuencia honesta: **en el ERP nunca sale el detalle, ni siquiera para
+un admin**, a diferencia de los layouts de D-234, donde el error se lee en el servidor y la
+decisión de enseñarlo se toma allí.
+
+Así que `getSessionInfo()` **escribe el mensaje entero en el log del servidor antes de lanzar**,
+con la misma referencia que verá la pantalla, y la pantalla enseña el `digest`. Con esos dos
+números, quien mire el log encuentra la línea. Hay prueba de que el `console.error` va **antes**
+del `throw`: al revés, el mensaje se perdería.
+
+### Un módulo que ahora sirve en los dos lados
+
+`lib/profile-read.ts` usaba `node:crypto` para la referencia. La frontera de error es un
+componente de **cliente**, así que la huella pasa a ser una función de tres líneas escrita a
+mano. No es criptografía y no tiene que serlo —solo estable y repartida—; lo que no puede es
+arrastrar una dependencia de Node a un bundle de navegador.
+
+### Lo que se encontró y NO entra aquí
+
+Buscando por la misma vía en `src/lib`, hay **tres helpers de fichaje** con el patrón idéntico:
+`clockin/managerCtx.ts:50` y `:59`, `clockin/mgrScope.ts:31` y `clockin/scope.ts:47`. Los tres
+**fallan cerrados** —sin rol, sin permiso de gerente, o una lista de empleados vacía—, así que
+son el mismo silencio con el mismo signo. No se tocan en esta rama: es otro módulo y merece su
+propio encargo, y meterlos aquí sería alcance que nadie pidió.
+
+`canReachHub` y `landingRoute` no leen nada por su cuenta: reciben el perfil que ya leyó quien
+las llama, y esos sitios son los siete que arregló D-234.
+
+### Dos pruebas viejas que cambian
+
+`erp-hub-link.test.ts:65` y `erp-tier.test.ts:77` fijaban la línea **literal**
+`hubRole: (profile?.role as UserRole) ?? "sales"`. Al quitar el `?.` dejaron de pasar. Se
+actualizan con una nota de por qué: lo que esas pruebas defienden —que `hubRole` sale de
+`profiles.role` y no del molde del ERP (D-227)— no cambia; lo que cambia es que el respaldo
+`?? "sales"` ya solo cubre una **columna** nula en una fila que sí se leyó.
+
+### Lo no verificado
+
+**Nadie ha visto la pantalla del ERP en un navegador**, y sigue sin haber forma honesta de
+provocar el fallo desde aquí: haría falta una consulta que falle de verdad contra la base. Lo que
+hay son pruebas sobre la decisión y sobre dónde está la guarda.
+
+Y una que solo se puede comprobar en marcha: **que el `digest` de la pantalla y la referencia del
+log sean encontrables juntos**. El `digest` lo genera Next, no nosotros, así que el emparejamiento
+real —una persona lee un código en pantalla y alguien encuentra esa línea en el log— está
+razonado, no medido.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1550 pasados | 3 saltados**
+(main 5e0a871: 1539 | 3; los +11 son `erp/session-read.test.ts`).

@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 // ============================================================
 // Leer el perfil en un layout: tres desenlaces, no dos (D-NEXT).
 //
@@ -53,8 +51,18 @@ export function estadoDeLectura(res: { data: unknown; error?: ErrorDeLectura | n
  * llaman por lo mismo se reconocen como lo mismo. */
 export function referenciaDeFallo(e: ErrorDeLectura): string {
   const codigo = (e.code ?? "ERR").toString().trim() || "ERR";
-  const huella = createHash("sha1").update(e.message ?? "").digest("hex").slice(0, 6);
-  return `${codigo}-${huella}`.toUpperCase();
+  return `${codigo}-${huella(e.message ?? "")}`.toUpperCase();
+}
+
+/** Una huella corta, hecha a mano y no con `node:crypto`, para que este módulo
+ * sirva en el servidor **y** en el cliente: la frontera de error del ERP es un
+ * componente de cliente y pinta esta misma pantalla (D-NEXT). No es un hash
+ * criptográfico y no hace falta que lo sea — solo tiene que ser estable y
+ * repartir; lo que no puede es traer una dependencia de Node a un bundle. */
+function huella(texto: string): string {
+  let h = 5381;
+  for (let i = 0; i < texto.length; i++) h = (((h << 5) + h) ^ texto.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(6, "0").slice(-6);
 }
 
 /** ¿A esta persona se le enseña el mensaje de Postgres entero?
@@ -91,4 +99,33 @@ export function textoDeFallo(
     detalle: verDetalle ? [e.message, e.details, e.hint].filter(Boolean).join(" · ") : null,
     ref,
   };
+}
+
+/** El codigo con el que PostgREST dice «la consulta no devolvio ninguna fila».
+ * Con `.single()` eso llega como ERROR, no como `data: null`, asi que hay que
+ * separarlo del resto o una sesion degradada se contaria como fallo de lectura. */
+export const SIN_FILA = "PGRST116";
+
+export function esSinFila(e: ErrorDeLectura | null | undefined): boolean {
+  return (e?.code ?? "") === SIN_FILA;
+}
+
+/**
+ * Lo que se lanza cuando el perfil no se pudo leer y el que llama no puede
+ * seguir sin el (D-NEXT).
+ *
+ * Lanzar y no devolver un valor por defecto es la decision: un fallo de lectura
+ * no puede parecerse a un rol legitimo. En `getSessionInfo()` se parecia — el
+ * ERP decidia permisos con `staff` y nadie se enteraba de que era un error.
+ */
+export class PerfilNoLeido extends Error {
+  readonly lectura: ErrorDeLectura;
+  readonly ref: string;
+  constructor(e: ErrorDeLectura) {
+    const ref = referenciaDeFallo(e);
+    super(`No se pudo leer el perfil [${ref}]: ${e.message}`);
+    this.name = "PerfilNoLeido";
+    this.lectura = e;
+    this.ref = ref;
+  }
 }

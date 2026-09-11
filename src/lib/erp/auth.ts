@@ -3,6 +3,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import { canSeeCost, erpTier, type AppRole } from "@/lib/erp/domain/roles";
 import type { UserRole } from "@/lib/types";
+import { PerfilNoLeido, esSinFila, referenciaDeFallo } from "@/lib/profile-read";
 
 // Re-exported from the framework-free domain module (unit-tested there).
 export { canSeeCost };
@@ -52,7 +53,7 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     // profiles is the SHARED identity table in public — the erp-bound client would
     // otherwise look for erp.profiles, which does not exist.
     .schema("public")
@@ -60,6 +61,31 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
     .select("role, erp_role, full_name, module_access, recruiting_role, timetracker_role, store")
     .eq("id", user.id)
     .single();
+
+  // ---------------------------------------------------------------------------
+  // Un fallo de lectura NO se parece a un rol (D-NEXT)
+  // ---------------------------------------------------------------------------
+  // Aqui se descartaba el `error` y se seguia con los valores por defecto de abajo:
+  // `erpTier(null)` da `staff` y `hubRole` daba `sales`. O sea que cuando la consulta
+  // fallaba —una columna que no existe, una politica, la red— el ERP decidia permisos
+  // con un perfil que nunca leyo, y nadie se enteraba. Falla cerrado, asi que el dano
+  // es «ves menos de lo que te toca», pero es mudo: la persona cree que ese es su rol.
+  //
+  // Es el mismo `const { data } = …` que en los layouts producia el bucle de D-234. La
+  // regla es la misma y la consecuencia no: **descartar el error no falla, sigue con
+  // datos incompletos**, y lo que pasa despues lo decide el camino ya escrito para el
+  // caso nulo. Alli era `redirect`; aqui, un rol.
+  //
+  // `single()` convierte «no hay fila» en un error (PGRST116), y eso NO es un fallo de
+  // lectura: es la sesion degradada de D-081. Se devuelve null, que es lo que las
+  // paginas ya traducen a «vuelve a entrar».
+  if (error && !esSinFila(error)) {
+    // Al log del servidor, entero: la frontera de error del ERP no puede ensenarlo
+    // (Next borra el mensaje de un error de servidor y solo deja su digest).
+    console.error(`[erp] perfil ilegible ${referenciaDeFallo(error)}:`, error.message, error.code ?? "");
+    throw new PerfilNoLeido(error);
+  }
+  if (!profile) return null;
 
   return {
     user,
@@ -76,11 +102,13 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
     // **Falla cerrado a `staff`**, y eso es deliberado: sin nivel asignado, el mínimo. Caer al
     // rol de Entregas es exactamente el fallo que esto cierra, así que ese camino no existe.
     role: erpTier(profile),
-    hubRole: (profile?.role as UserRole) ?? "sales",
-    fullName: profile?.full_name ?? null,
-    moduleAccess: (profile?.module_access as string[] | null) ?? null,
-    recruitingRole: (profile?.recruiting_role as string | null) ?? null,
-    timetrackerRole: (profile?.timetracker_role as string | null) ?? null,
-    store: (profile?.store as string | null) ?? null,
+    // Los respaldos de aqui abajo ya no tapan una lectura fallida —si la hubo, esto no
+    // se ejecuta—: son para una COLUMNA nula en una fila que si se leyo.
+    hubRole: (profile.role as UserRole) ?? "sales",
+    fullName: profile.full_name ?? null,
+    moduleAccess: (profile.module_access as string[] | null) ?? null,
+    recruitingRole: (profile.recruiting_role as string | null) ?? null,
+    timetrackerRole: (profile.timetracker_role as string | null) ?? null,
+    store: (profile.store as string | null) ?? null,
   };
 });
