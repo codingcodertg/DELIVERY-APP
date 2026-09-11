@@ -3,7 +3,7 @@
 import { ProfileReadError } from "@/components/ProfileReadError";
 
 /**
- * La frontera de error del ERP (D-NEXT).
+ * La frontera de error del ERP (D-235).
  *
  * `getSessionInfo()` **lanza** cuando el perfil no se puede leer, en vez de
  * seguir con un rol inventado. Lo que lanza cae aquí, y aquí se pinta **la misma

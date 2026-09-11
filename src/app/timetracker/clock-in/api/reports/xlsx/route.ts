@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Lo mismo que en el gemelo de CSV (D-NEXT), y aqui por coherencia mas que por
+  // Lo mismo que en el gemelo de CSV (D-236), y aqui por coherencia mas que por
   // arreglo: esta ruta nunca tuvo el fallo de las dos lecturas, pero es el MISMO boton
   // en la misma pantalla. Un gerente sin tienda que recibiera 403 en CSV y el informe
   // entero en XLSX seria el mismo agujero con otro formato.

@@ -48,7 +48,7 @@ export default async function RecruitingLayout({ children }: { children: React.R
     .select("id, full_name, role, avatar_url, recruiting_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
-  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
   // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
   // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
   if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {

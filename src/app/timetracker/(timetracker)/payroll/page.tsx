@@ -60,7 +60,7 @@ export default async function PayrollPage({
     .select("timetracker_role")
     .eq("id", user.id)
     .maybeSingle();
-  // Igual que en los layouts (D-NEXT): una consulta que FALLA no manda a nadie a otro
+  // Igual que en los layouts (D-234): una consulta que FALLA no manda a nadie a otro
   // sitio. Aqui el rebote es a /timetracker en vez de al login, asi que no hace bucle,
   // pero si hace lo otro: te saca de la pantalla que pediste sin decir por que.
   if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {

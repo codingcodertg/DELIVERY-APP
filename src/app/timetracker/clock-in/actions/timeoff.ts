@@ -126,7 +126,7 @@ export async function getPendingForInbox(): Promise<
   // nuestro PostgREST devuelve vacío con `in.()`, así que la lista vacía YA filtraba y aquí
   // nunca se vieron las ausencias de toda la compañía. El centinela se pone porque los otros
   // cinco sitios del módulo lo ponen, y seis formas iguales valen más que cinco y una
-  // distinta (D-NEXT).
+  // distinta (D-238).
   if (ids) {
     const inIds = ids.length ? ids : NO_MATCH;
     offQ = offQ.in("employee_id", inIds);

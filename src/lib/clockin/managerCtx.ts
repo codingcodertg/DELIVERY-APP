@@ -95,7 +95,7 @@ export async function clockinManagerCtx(): Promise<ClockinCtx> {
     extra_store_ids: viaHubAdmin ? [] : ((mine?.extra_store_ids as string[] | undefined) ?? []),
   };
 
-  // Un gerente sin tienda no ve a nadie (D-NEXT), y tiene que ENTERARSE de por qué: una lista
+  // Un gerente sin tienda no ve a nadie (D-237), y tiene que ENTERARSE de por qué: una lista
   // vacía sin explicación se lee como «no hay nadie fichando», no como «te falta un dato».
   // Va aquí y no en cada pantalla porque este ctx es la puerta de todas las de gerente —
   // horarios, informes, excepciones, fotos, ausencias—, así que la razón se da una vez.

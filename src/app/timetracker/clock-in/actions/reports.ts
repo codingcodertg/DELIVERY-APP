@@ -13,7 +13,7 @@ import { shiftMinutes, payPeriodDates } from "@/lib/clockin/schedule";
 export type ReportResult = { ok: true } | { ok: false; message: string };
 
 /**
- * El contexto de gerente de este fichero, que NO es `clockinManagerCtx` (D-NEXT).
+ * El contexto de gerente de este fichero, que NO es `clockinManagerCtx` (D-237).
  *
  * Era un duplicado con reglas propias, y el duplicado se notó en cuanto la regla de
  * «gerente sin tienda» se puso en el ctx compartido: los informes no pasaban por ahí, así

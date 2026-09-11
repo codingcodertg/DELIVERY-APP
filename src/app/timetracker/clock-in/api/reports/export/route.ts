@@ -41,7 +41,7 @@ export async function GET(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   // ---------------------------------------------------------------------------
-  // UNA sola lectura del perfil, y el acotado sale de ella (D-NEXT)
+  // UNA sola lectura del perfil, y el acotado sale de ella (D-236)
   // ---------------------------------------------------------------------------
   // Aqui habia DOS: una para el rol, validada, y otra despues para la tienda, que
   // descartaba su `error` y no se comprobaba. Si fallaba la segunda y no la primera
