@@ -3,12 +3,14 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { NADIE, NINGUNA_TIENDA, NO_MATCH } from "./scope";
 
-// El último de la familia. `timeoff.ts` era el único de seis que filtraba por una lista de
-// empleados sin el centinela: `if (ids) …in("employee_id", ids)`, y `[]` es verdadero, así que
-// un gerente con tienda pero sin empleados en ella habría visto las ausencias y excepciones
-// pendientes de toda la compañía. Preventivo —hoy hay cero `manager`— pero el más cercano a
-// estar vivo: solo pide que el primer gerente tenga la tienda vacía, que es lo normal el día
-// que se crea.
+// El último de la familia, y el único que NO era un agujero.
+//
+// `timeoff.ts` era el único de seis que filtraba sin el centinela, y lo contamos tres veces
+// como «un gerente con la tienda vacía vería las ausencias de toda la compañía». **Medido
+// después: falso.** Nuestro PostgREST responde `200` con cuerpo vacío a `id=in.()`, así que
+// una lista vacía ya filtraba. Lo que queda en pie —y es lo que estas pruebas fijan— es la
+// consistencia: seis sitios haciendo lo mismo de dos formas es peor que seis iguales, y ocho
+// copias de un valor son ocho sitios donde el día que cambie filtrarían distinto sin fallar.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
@@ -43,9 +45,10 @@ describe("el centinela es un valor, no seis copias", () => {
   });
 });
 
-describe("nadie filtra por una lista que puede venir vacía sin centinela", () => {
-  // El canario recorre en vez de enumerar: cualquier `.in("employee_id", …)` con una variable
-  // tiene que llevar el centinela cerca, porque `[]` puede leerse como «sin filtro».
+describe("todos los que filtran por lista lo hacen igual", () => {
+  // El canario recorre en vez de enumerar. Y lo que defiende es uniformidad, no seguridad:
+  // la lista vacía filtra bien por sí sola (medido), pero que cinco pongan el centinela y
+  // uno no es lo que hace que nadie sepa cuál de las dos formas es la buena.
   const conFiltro = rutas.filter((r) => /\.in\("employee_id",\s*[A-Za-z_$]/.test(sinComentarios(leer(r))));
 
   it("los encuentra todos", () => {
@@ -65,9 +68,9 @@ describe("nadie filtra por una lista que puede venir vacía sin centinela", () =
 describe("timeoff.ts, el que faltaba", () => {
   const src = sinComentarios(leer("src/app/timetracker/clock-in/actions/timeoff.ts"));
 
-  it("distingue «sin acotar» de «nadie»", () => {
+  it("distingue «sin acotar» de «nadie», y lo dice igual que sus cinco vecinos", () => {
     // `ids` null = el dueño, sin filtro. `ids` vacío = un gerente cuya tienda no tiene a
-    // nadie: eso es «nadie», no «todos».
+    // nadie. Las dos ya funcionaban; lo que faltaba era decirlo con la misma forma.
     expect(src).toMatch(/if \(ids\) \{/);
     expect(src).toMatch(/const inIds = ids\.length \? ids : NO_MATCH;/);
     expect(src).toMatch(/offQ\.in\("employee_id", inIds\)/);

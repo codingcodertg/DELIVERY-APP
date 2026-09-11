@@ -122,10 +122,11 @@ export async function getPendingForInbox(): Promise<
     .select("id, employee_id, type, reason, note, created_at, left_at")
     .eq("resolved", false)
     .order("created_at", { ascending: false });
-  // `ids` null = sin acotar (el dueño). Pero una lista VACÍA no es «sin acotar»: es «nadie», y
-  // `.in(col, [])` puede leerse como sin filtro — que aquí enseñaría las ausencias y las
-  // excepciones pendientes de toda la compañía. El centinela es lo que ya hacían los otros
-  // cinco sitios de este módulo; este era el único olvido (D-NEXT).
+  // `ids` null = sin acotar (el dueño); `[]` = nadie. Las dos cosas quedan bien: medido que
+  // nuestro PostgREST devuelve vacío con `in.()`, así que la lista vacía YA filtraba y aquí
+  // nunca se vieron las ausencias de toda la compañía. El centinela se pone porque los otros
+  // cinco sitios del módulo lo ponen, y seis formas iguales valen más que cinco y una
+  // distinta (D-NEXT).
   if (ids) {
     const inIds = ids.length ? ids : NO_MATCH;
     offQ = offQ.in("employee_id", inIds);

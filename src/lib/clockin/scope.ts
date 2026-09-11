@@ -44,10 +44,14 @@ export type StoreScope = {
 /**
  * Una tienda que no existe, para acotar a NADIE sin depender de una lista vacía.
  *
- * `\`.in("store_id", [])\`` no es de fiar: PostgREST puede tratarlo como «sin filtro», que es
- * justo lo contrario de lo que se quiere, y este mismo fichero ya lleva el mismo truco para
- * los ids de empleado (`NO_MATCH`, abajo, con su comentario). Una lista de un elemento
- * imposible sí es fiable: el `.in` se aplica y no encaja con nada.
+ * OJO A LA RAZÓN, que cambió: cuando se escribió esto (D-237) se creía que `.in(col, [])`
+ * podía leerse como «sin filtro». **Es falso en nuestro PostgREST**, medido después:
+ * `supabase-js` construye `id=in.()` y la respuesta es `200` con cuerpo vacío, no la tabla
+ * entera. Así que una lista vacía habría filtrado bien.
+ *
+ * Se mantiene el valor imposible **por consistencia, no por seguridad**: los seis sitios del
+ * módulo que acotan por lista lo usan, y seis haciendo lo mismo de dos formas distintas es
+ * peor que seis haciéndolo igual.
  */
 export const NINGUNA_TIENDA = [NADIE];
 
@@ -84,6 +88,22 @@ export async function storeScope(
   return { scopeStore: storeId, stores, ids: (data ?? []).map((p) => p.id as string) };
 }
 
-// Sentinel used with `.in("employee_id", ...)` so an empty allow-list matches
-// nothing (rather than being dropped and matching everything).
+// Sentinel used with `.in("employee_id", ...)`.
+//
+// El comentario que estuvo aquí desde antes decía que servía «so an empty allow-list matches
+// nothing (rather than being dropped and matching everything)». **Ese «rather than being
+// dropped» nunca se midió, y es falso en nuestro PostgREST.** Medido el 2026-09-11, las dos
+// mitades:
+//
+//   · el cliente SÍ manda el filtro — `postgrest-js/src/PostgrestFilterBuilder.ts:846`
+//     construye `in.()` con la lista vacía, no omite el parámetro;
+//   · y el servidor lo resuelve como cero filas:
+//       GET /rest/v1/profiles?select=id           → Content-Range: 0-32/33
+//       GET /rest/v1/profiles?select=id&id=in.()  → 200, cuerpo []
+//
+// O sea que una lista vacía filtra bien y este centinela no la está salvando de nada.
+//
+// Se queda porque los seis sitios que acotan por lista lo usan y la uniformidad sí vale.
+// Se corrige el comentario en vez de borrarlo: esa frase se heredó como hecho tres veces
+// en un mismo día (D-237 y las dos ramas siguientes), y así nadie vuelve a heredarla.
 export const NO_MATCH = [NADIE];
