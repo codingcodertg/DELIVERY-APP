@@ -202,6 +202,23 @@ describe("106_employee_file_identity.sql", () => {
     expect(sql).toMatch(/if not exists \([\s\S]*?conname = 'employee_docs_file_fkey'/);
   });
 
+  it("el expediente nace con la cuenta, no solo con la migración", () => {
+    // El hueco que encontró la auditoría: sin esto, la migración cumple el encargo el día
+    // que se aplica y lo incumple al siguiente — la persona 34 no tendría expediente y no
+    // saldría en la lista de RR. HH.
+    expect(sql).toMatch(/create trigger profiles_make_employee_file\s+after insert on public\.profiles/);
+    const fn = sql.slice(sql.indexOf("create or replace function recruiting.new_profile_employee_file"));
+    const cuerpo = fn.slice(0, fn.indexOf("end $$;"));
+    expect(cuerpo).toContain("on conflict (id) do nothing");
+    // Y crear una CUENTA no puede fallar por una fila de RR. HH.
+    expect(cuerpo).toMatch(/exception when others then/);
+    expect(cuerpo).toContain("raise warning");
+    // El guard del enlace tiene que dejar pasar ese insert, o dar de alta fallaría para
+    // cualquiera que no sea admin de RR. HH.
+    const guard = sql.slice(sql.indexOf("create or replace function recruiting.guard_employee_file_link"));
+    expect(guard.slice(0, guard.indexOf("end $$;"))).toContain("pg_trigger_depth() > 1");
+  });
+
   it("se auto-registra en el ledger, como exige D-184", () => {
     const [, despues] = sql.split("-- @ledger-below");
     expect(despues).toContain("insert into public.schema_migrations");

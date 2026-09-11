@@ -172,6 +172,10 @@ create or replace function recruiting.guard_employee_file_link()
 begin
   if TG_OP = 'INSERT' and NEW.profile_id is null then return NEW; end if;
   if TG_OP = 'UPDATE' and NEW.profile_id is not distinct from OLD.profile_id then return NEW; end if;
+  -- Un insert que viene de otro trigger (el de mas abajo, cuando nace una cuenta) no es
+  -- alguien enlazando a mano: es la propia base manteniendo su invariante. Sin esto, crear
+  -- una cuenta fallaria en cuanto quien la crea no sea admin de RR. HH.
+  if pg_trigger_depth() > 1 then return NEW; end if;
   -- service_role y las migraciones no tienen sesion: auth.uid() es null y pasan. El
   -- guard existe para el cliente, que es quien llega con una sesion detras.
   if auth.uid() is null then return NEW; end if;
@@ -188,6 +192,39 @@ create trigger employee_files_guard_link
 
 -- Las politicas de 094 no se tocan: admin y gerente leen y escriben, el reclutador no
 -- entra. Lo unico que este trigger anade es la columna del enlace.
+
+-- ===========================================================================
+-- 4b. Y el que entre manana: un expediente nace con cada cuenta
+-- ===========================================================================
+-- Sin esto, la migracion cumpliria el encargo el dia que se aplica y lo incumpliria al
+-- siguiente: las 33 personas de hoy tendrian expediente y la 34 no, no saldria en la lista
+-- de RR. HH., y nadie se enteraria hasta que alguien la buscara y no estuviera. Encontrado
+-- en la auditoria de esta rama.
+--
+-- Va en un trigger y no en los cuatro sitios donde nacen las cuentas (`api/invite`, la
+-- pantalla de Usuarios, el import masivo, el proveedor de datos) porque cuatro sitios son
+-- cuatro oportunidades de olvidarlo, mas la quinta cuando aparezca el siguiente.
+create or replace function recruiting.new_profile_employee_file()
+  returns trigger language plpgsql security definer set search_path = recruiting, public as $$
+begin
+  insert into recruiting.employee_files (id, profile_id, full_name)
+  select NEW.id, NEW.id, NEW.full_name
+   where not exists (select 1 from recruiting.employee_files f where f.profile_id = NEW.id)
+  on conflict (id) do nothing;
+  return NEW;
+exception when others then
+  -- Crear una CUENTA no puede fallar por una fila de RR. HH. El peor caso de tragarse el
+  -- error es un expediente que falta, que es exactamente la situacion de hoy y se ve en la
+  -- lista; el peor caso de no tragarselo es que nadie pueda darse de alta. Queda el aviso
+  -- en el log, y volver a correr esta migracion crea las fichas que falten.
+  raise warning 'no se pudo crear el expediente de %: %', NEW.id, SQLERRM;
+  return NEW;
+end $$;
+
+drop trigger if exists profiles_make_employee_file on public.profiles;
+create trigger profiles_make_employee_file
+  after insert on public.profiles
+  for each row execute function recruiting.new_profile_employee_file();
 
 -- ===========================================================================
 -- 5. Comprobar antes de dar por buena la migracion
@@ -237,6 +274,8 @@ comment on table recruiting.employee_files is
 --   alter table recruiting.employee_docs drop constraint employee_docs_file_fkey;
 --   alter table recruiting.employee_docs add constraint employee_docs_employee_id_fkey
 --     foreign key (employee_id) references public.profiles(id) on delete cascade;
+--   drop trigger if exists profiles_make_employee_file on public.profiles;
+--   drop function if exists recruiting.new_profile_employee_file();
 --   drop trigger if exists employee_files_guard_link on recruiting.employee_files;
 --   drop function if exists recruiting.guard_employee_file_link();
 --   alter table recruiting.employee_files alter column id drop default;
@@ -248,4 +287,4 @@ comment on table recruiting.employee_files is
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('106_employee_file_identity.sql', '46791ae5a7eb2308a61da2746bf8f8c6966743a1ab35957488a78a08c791e031') on conflict (name) do nothing;
+  values ('106_employee_file_identity.sql', 'fe51b81eecf0697d51bc9365aaf2390a7f78dafb934c404e62139edfb059a2a9') on conflict (name) do nothing;
