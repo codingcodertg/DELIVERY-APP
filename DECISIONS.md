@@ -12629,8 +12629,21 @@ Dos detalles del trigger que no son adorno:
   migración, y el único trigger sobre esa tabla es el propio guard. Pero condiciona por
   **profundidad, no por origen**, y `public.profiles` ya tiene nueve triggers colgando: **el día
   que cualquiera de ellos escriba en `employee_files`, se saltará el guard sin que nada avise.**
-  Si eso llega, la forma de estrecharlo es condicionar por origen —un `set_config` local a la
-  transacción que el trigger enciende y el guard mira— en vez de por profundidad.
+  Si eso llega, la forma de estrecharlo es condicionar por origen. Y la comparación, hecha,
+  porque lo que decide no es cuál es más preciso hoy sino **hacia dónde falla cada uno cuando
+  cambian las circunstancias**:
+
+  | Forma | Cuando cambian las circunstancias… |
+  |---|---|
+  | `pg_trigger_depth() > 1` | **falla abriendo**: un trigger nuevo pasa sin avisar |
+  | `set_config` local a la transacción, sin reset | **falla abriendo** dentro de esa transacción |
+  | `set_config` + `set_config('…','off',true)` justo tras el insert | **falla cerrado**: si alguien olvida el reset, el guard bloquea y sale un error visible |
+
+  Para un guard, **fallar cerrado es la propiedad que se quiere**: un error ruidoso se arregla el
+  mismo día, y una puerta abierta no la ve nadie. Se deja la profundidad porque hoy está medido
+  que no hay otro escritor y porque el `set_config` sin reset cambia una imprecisión por otra
+  —es local a la transacción, así que un enlace manual posterior dentro de la misma pasaría
+  igual—. El día que haya un segundo escritor, la tercera fila es la que hay que poner.
 
 Con esto, la invariante del final de la migración vuelve a ser verdad **siempre**, no solo en el
 instante en que se aplica.
