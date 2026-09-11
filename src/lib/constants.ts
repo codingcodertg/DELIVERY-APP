@@ -123,7 +123,7 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
 ];
 
 /**
- * ¿Le corresponde a esta persona la pestaña `id`? (D-NEXT)
+ * ¿Le corresponde a esta persona la pestaña `id`? (D-240)
  *
  * **Es la misma pregunta que decide si la pestaña se pinta**, y ese es el punto: cada
  * pantalla tenía su propia lista de quién NO entra, escrita a mano, y `TABS` tenía la de

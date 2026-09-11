@@ -13243,7 +13243,7 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1614 pasados | 3 saltados**
 (main 3ad25a3: 1595 | 3; los +19 son `history-window.test.ts`).
 
-## D-NEXT · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
+## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** la observación que quedó de D-239 —`accounting` llegaba a Cuentas por URL

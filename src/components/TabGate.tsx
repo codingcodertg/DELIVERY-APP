@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { canOpenTab, tabForPath, TAB_GATE_EXEMPT } from "@/lib/constants";
 
 /**
- * Quién entra a cada pantalla, en un solo sitio (D-NEXT).
+ * Quién entra a cada pantalla, en un solo sitio (D-240).
  *
  * Antes cada página tenía su propia idea, cuando la tenía: tres coincidían con `TABS`,
  * tres llevaban una lista propia que no coincidía, y **cuatro no tenían ninguna** — entre
