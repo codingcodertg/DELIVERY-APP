@@ -12634,7 +12634,7 @@ Las tres cosas que hay que mirar cuando se pueda:
 (main 98a9305: 1512 | 3; los +27 son 25 de `profile-read.test.ts` y 2 del recorrido por fichero
 de `inline-colors.test.ts`, que ahora ve dos componentes mas).
 
-## D-NEXT · En el ERP, descartar el `error` no daba un bucle: daba un rol equivocado
+## D-235 · En el ERP, descartar el `error` no daba un bucle: daba un rol equivocado
 
 **Fecha:** 2026-09-10 · **Versión:** solo `erp` (la pone el orquestador) · Sin migración.
 **Pedido por:** el hallazgo de la auditoría de D-234. Buscando el patrón del bucle por la vía de
