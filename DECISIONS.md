@@ -12728,3 +12728,136 @@ razonado, no medido.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1550 pasados | 3 saltados**
 (main 5e0a871: 1539 | 3; los +11 son `erp/session-read.test.ts`).
+
+## D-NEXT · La falta de un dato tiene que acotar, nunca ampliar
+
+**Fecha:** 2026-09-10 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por:** el cuarto caso de la familia de D-234/D-235, encontrado por la auditoría al
+seguir la pista de los helpers. **Es el primero que falla ABRIENDO.**
+
+### Dos lecturas, y solo una comprobada
+
+`clock-in/api/reports/export/route.ts` leía el perfil **dos veces**:
+
+```ts
+const { data: me } = … .select("role, company_id") … .single();
+if (!me || (me.role !== "manager" && me.role !== "owner")) → 403     // validada
+const { data: meStore } = … .select("store_id, extra_store_ids") …   // descarta el error
+const scopeStore = visibleStores(me.role, meStore?.store_id ?? null, …);
+if (scopeStore) peopleQuery.in("store_id", scopeStore);              // si es null, NO filtra
+```
+
+Si falla **la segunda** y no la primera, `meStore` llega nulo, `visibleStores` devuelve `null`
+—«gerente sin tienda: sin acotar», `scope.ts:33`— y el filtro no se aplica: **un gerente exporta
+el informe de todos los empleados de la compañía, no los de su tienda.**
+
+Que falle solo la segunda no es rebuscado: **son columnas distintas**. Basta con que
+`extra_store_ids` falte o cambie de nombre, que es literalmente el escenario del 2026-09-10.
+
+**Y la RLS no lo contiene.** La política de `profiles` es `using (true)` (`099:39-41`): el
+acotado por tienda es **de aplicación**, así que cuando la aplicación no lo aplica, no hay
+segunda barrera.
+
+### La segunda consulta no se valida: se elimina
+
+Una sola lectura con rol, compañía, tienda y tiendas extra en el mismo `select`, y si falla,
+403. **El gemelo de al lado siempre lo hizo así** (`xlsx/route.ts:38`) y por eso nunca tuvo el
+fallo: la diferencia entre los dos ficheros era **una lectura de más**, y esa era la que nadie
+comprobaba. Añadirle una comprobación habría dejado la lectura de más ahí, esperando a que
+alguien la copiara.
+
+### Un gerente sin tienda no exporta
+
+El `null` de `visibleStores` está pensado para **el dueño**, que no se acota. Para un gerente al
+que le falta el dato significa lo contrario de lo que se quiere, así que el export corta con 403
+y un motivo (`no_store`), antes de calcular el alcance.
+
+Esa es la frase que resume la familia después de cuatro casos, y por eso da título a la entrada:
+**la falta de un dato tiene que acotar, nunca ampliar.** En el layout fue un bucle, en el ERP un
+rol de menos, aquí serían datos de más.
+
+**`visibleStores` no se toca**, y es deliberado: ese `null` lo leen otros cuatro sitios
+(`clock.ts:532`, `reports.ts:286`, `schedule.ts:295`, `mgrScope.ts:37`) y cambiarlo movería el
+alcance de las tres pantallas de fichaje además del export. Es una decisión más ancha que este
+encargo. Lo que cambia es **quién deja que ese null se convierta en un informe**.
+
+**Y hay que decir en qué queda eso, porque no es un cierre completo.** Medido leyendo los cuatro:
+
+| Sitio | Con un gerente sin tienda |
+|---|---|
+| `clock.ts:534`, `reports.ts:287`, `schedule.ts` | `if (suyas)` falso → **toda la compañía** |
+| `mgrScope.ts:38` | `if (!suyas) return true` → **puede ver a cualquiera** |
+| `export` y `xlsx`, tras esta rama | **403** |
+
+O sea: **un gerente sin tienda ve el informe en pantalla y no lo puede exportar.** Es una
+incoherencia visible —el botón le niega lo que está mirando— y, sobre todo, significa que **el
+403 no cierra ningún agujero por sí solo**: los datos ya los tiene delante. Es una puerta
+cerrada al lado de una abierta.
+
+Así que conviene separar las dos cosas que hace esta rama:
+
+- **El arreglo de seguridad es quitar la segunda lectura.** Eso es lo que impedía que el acotado
+  se perdiera **por un error silencioso**, que era el fallo de verdad.
+- **El 403 al gerente sin tienda es una decisión de política**, y queda **a medias** hasta que se
+  aplique también a `reports.ts`, `clock.ts`, `schedule.ts` y `mgrScope.ts`. Escrito como «ahora
+  el export está acotado» parecería cerrado y nadie volvería.
+
+### El gemelo también, y esto lo decidí yo
+
+`xlsx/route.ts` no tenía el fallo de las dos lecturas, pero **es el mismo botón en la misma
+pantalla**: un gerente sin tienda que recibiera 403 en CSV y el informe entero en XLSX sería el
+mismo agujero con otro formato. Lleva el mismo corte. Y de paso recoge el `error` de su única
+lectura, que también lo descartaba — allí no abría nada, pero hacía que un fallo de lectura se
+pareciera a «no tienes permiso».
+
+### La prueba mira la forma, no la lista
+
+El canario de esta rama no comprueba «estas dos rutas están bien»: recorre `src`, encuentra a
+**todos** los que llaman a `visibleStores` y exige que **los tres argumentos cuelguen del mismo
+identificador**. En el fallo, el primero era `me.role` y el segundo `meStore?.store_id`: dos
+lecturas distintas, y eso se ve en la forma de la llamada sin saber nada del fichero.
+
+Lleva su control —si el recorrido encuentra menos de seis ficheros, falla— y quita los moldes de
+tipo antes de mirar, porque `(me as { … }).extra_store_ids` tiene un paréntesis pegado al punto y
+sin limpiarlo el identificador que se lee es el cierre del molde, no `me`.
+
+### Lo que NO se hizo
+
+- **No se tocó `visibleStores`**, por lo dicho arriba.
+- **No se tocaron los tres helpers de fichaje** (`managerCtx.ts:50` y `:59`, `mgrScope.ts:31`,
+  `scope.ts:47`) que descartan el `error` con el mismo patrón: los tres **fallan cerrados** —sin
+  rol, sin permiso de gerente, o una lista vacía—, así que son el mismo silencio con el signo
+  bueno. Encargo aparte.
+- **No se cambió qué se exporta ni su formato.**
+
+### Lo no verificado
+
+**Nada se ha ejecutado**: no hay forma de provocar aquí un fallo de la segunda lectura contra la
+base, y ya no hay segunda lectura que hacer fallar. Lo que hay son pruebas sobre la forma del
+código y sobre `visibleStores`, que sí es pura.
+
+**Cuántos gerentes sin tienda hay: cero.** Medido en producción por el orquestador, sobre
+`clockin.profiles`, que es la tabla que lee esta ruta:
+
+| Rol en fichaje | Cuántos |
+|---|---|
+| `owner` | 3 (los tres sin tienda, que es lo normal) |
+| `employee` | 8 |
+| `manager` | **0** |
+
+Así que el corte **no le cambia el informe a nadie hoy**: entra como regla, no como sorpresa.
+
+Un detalle de esa medición que vale la pena guardar, porque la consulta que yo había dejado
+escrita estaba mal acotada: esta ruta usa el cliente de fichaje
+(`@/lib/clockin/supabase/server`), así que su `from("profiles")` es **`clockin.profiles`**, no
+`public.profiles`. Son dos tablas con el mismo nombre corto y escalafones distintos
+—`owner`/`manager`/`employee` frente a `admin`/`manager`/`sales`…—, y contar en la de `public`
+habría dado un número que no dice nada de este export.
+
+**Y ese mismo cero es el número que importa para lo que queda abierto**: no mide solo a quién
+molesta el 403, mide **cuántas personas están viendo hoy la compañía entera** en las tres
+pantallas de fichaje que siguen tratando el `null` como «sin acotar». Hoy son cero; el día que se
+cree un gerente sin tienda, dejan de serlo.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1568 pasados | 3 saltados**
+(main 2b632c1: 1550 | 3; los +18 son `clockin/export-scope.test.ts`).

@@ -40,12 +40,42 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { data: me } = await supabase.from("profiles").select("role, company_id").eq("id", user.id).single();
-  if (!me || (me.role !== "manager" && me.role !== "owner")) {
+  // ---------------------------------------------------------------------------
+  // UNA sola lectura del perfil, y el acotado sale de ella (D-NEXT)
+  // ---------------------------------------------------------------------------
+  // Aqui habia DOS: una para el rol, validada, y otra despues para la tienda, que
+  // descartaba su `error` y no se comprobaba. Si fallaba la segunda y no la primera
+  // —columnas distintas: basta con que `extra_store_ids` falte o cambie de nombre—
+  // `meStore` llegaba nulo, `visibleStores` devolvia null y el `.in("store_id", …)` de
+  // mas abajo no se aplicaba: **un gerente exportaba a toda la compania en vez de a su
+  // tienda**. Y la RLS no lo contiene, porque la politica de `profiles` es
+  // `using (true)` (099:39-41): el acotado por tienda es de aplicacion.
+  //
+  // La segunda consulta no se "valida": se ELIMINA. El gemelo de al lado
+  // (`xlsx/route.ts:38`) siempre lo hizo asi —rol, compania y tienda en el mismo
+  // select— y por eso nunca tuvo el fallo. La diferencia entre los dos ficheros era
+  // una lectura de mas, que es justo la que nadie comprobaba.
+  const { data: me, error: errorPerfil } = await supabase
+    .from("profiles")
+    .select("role, company_id, store_id, extra_store_ids")
+    .eq("id", user.id)
+    .single();
+  if (errorPerfil || !me || (me.role !== "manager" && me.role !== "owner")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const { data: meStore } = await supabase.from("profiles").select("store_id, extra_store_ids").eq("id", user.id).maybeSingle();
-  const scopeStore = visibleStores(me.role, (meStore?.store_id as string) ?? null, (meStore as { extra_store_ids?: string[] } | null)?.extra_store_ids);
+
+  // Un gerente SIN tienda no exporta a toda la compania. El `null` de
+  // `visibleStores` (scope.ts:33) esta pensado para el dueno, que no se acota; para un
+  // gerente al que le falta el dato significaria lo contrario de lo que se quiere:
+  // **la falta de un dato tiene que acotar, nunca ampliar**. Se para aqui y con su
+  // motivo, en vez de devolver un informe de mas.
+  if (me.role === "manager" && !me.store_id) {
+    return NextResponse.json(
+      { error: "no_store", detail: "This manager has no store assigned, so the export has no scope. Ask an admin to set it." },
+      { status: 403 },
+    );
+  }
+  const scopeStore = visibleStores(me.role, (me.store_id as string) ?? null, (me as { extra_store_ids?: string[] }).extra_store_ids);
 
   const url = new URL(req.url);
   const type = url.searchParams.get("type") === "detail" ? "detail" : "summary";

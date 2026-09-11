@@ -35,13 +35,26 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { data: me } = await supabase
+  // El `error` tambien se recoge aqui: esta ruta ya leia todo de una vez, pero
+  // descartarlo dejaba que un fallo de lectura se pareciera a «no tienes permiso».
+  const { data: me, error: errorPerfil } = await supabase
     .from("profiles")
     .select("role, company_id, store_id, extra_store_ids")
     .eq("id", user.id)
     .single();
-  if (!me || (me.role !== "manager" && me.role !== "owner")) {
+  if (errorPerfil || !me || (me.role !== "manager" && me.role !== "owner")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Lo mismo que en el gemelo de CSV (D-NEXT), y aqui por coherencia mas que por
+  // arreglo: esta ruta nunca tuvo el fallo de las dos lecturas, pero es el MISMO boton
+  // en la misma pantalla. Un gerente sin tienda que recibiera 403 en CSV y el informe
+  // entero en XLSX seria el mismo agujero con otro formato.
+  if (me.role === "manager" && !me.store_id) {
+    return NextResponse.json(
+      { error: "no_store", detail: "This manager has no store assigned, so the export has no scope. Ask an admin to set it." },
+      { status: 403 },
+    );
   }
   const scopeStore = visibleStores(me.role, (me.store_id as string) ?? null, (me as { extra_store_ids?: string[] }).extra_store_ids);
 
