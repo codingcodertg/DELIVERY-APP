@@ -32,7 +32,7 @@ describe("visibleStores no cambia: el null es del dueño", () => {
     expect(visibleStores("manager", "t1", ["t2"])).toEqual(["t1", "t2"]);
   });
 
-  it("un gerente sin tienda ya no se acota a «todo», sino a nada (D-NEXT)", () => {
+  it("un gerente sin tienda ya no se acota a «todo», sino a nada (D-237)", () => {
     // Cuando se escribió esta prueba, `visibleStores` devolvía null —«sin acotar»— y el
     // export lo paraba con un 403 porque era la única puerta que se podía cerrar sin mover
     // otras tres pantallas. Ahora la regla vive en el helper y el 403 es el cinturón.

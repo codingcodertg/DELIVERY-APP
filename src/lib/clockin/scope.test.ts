@@ -34,7 +34,7 @@ describe("visibleStores", () => {
   it("un gerente SIN tienda no ve a nadie — al revés que en D-127", () => {
     // D-127 decidió lo contrario: «no se queda sin ver a nadie», porque una lista vacía
     // parecería que la app está rota cuando lo que falta es configurarle la tienda. El
-    // motivo era bueno y se atiende de otra forma (D-NEXT): `clockinManagerCtx` le dice
+    // motivo era bueno y se atiende de otra forma (D-237): `clockinManagerCtx` le dice
     // por qué no ve nada. Lo que no puede es que un campo vacío AMPLÍE el alcance.
     expect(visibleStores("manager", null, [])).toEqual(NINGUNA_TIENDA);
     // Y no es una lista vacía a propósito: `.in(col, [])` puede leerse como «sin filtro»,

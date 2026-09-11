@@ -74,7 +74,7 @@ describe("el cableado: una sola lectura, y cada rol en su sitio", () => {
   });
   it("`hubRole` sigue siendo el rol de Entregas: D-227 no se rompe", () => {
     // Las preguntas del hub siguen necesitando el rol del hub. Son dos escalafones, no uno.
-    // Sin `?.` desde D-NEXT: un perfil ilegible lanza antes de llegar aquí, así que el
+    // Sin `?.` desde D-235: un perfil ilegible lanza antes de llegar aquí, así que el
     // respaldo `?? "sales"` ya solo cubre una COLUMNA nula, no una lectura fallida.
     expect(auth).toContain('hubRole: (profile.role as UserRole) ?? "sales",');
     expect(leer("src/components/erp/header.tsx"))

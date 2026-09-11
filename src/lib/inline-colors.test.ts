@@ -116,7 +116,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 //
 // D-211 cerró HR y dejó anotadas Entregas y Time Tracker. Esta tabla es la de Entregas
 // DESPUÉS del encargo: 117 colores a pelo pasaron a 79. Lo que queda no es residuo — es lo
-// que se decidió dejar, y cada grupo tiene su motivo en la decisión. Hoy son 80: D-NEXT
+// que se decidió dejar, y cada grupo tiene su motivo en la decisión. Hoy son 80: D-234
 // sumó uno, el blanco del boton de la pantalla de fallo de lectura, y lo dice ahí.
 //
 // La regla que explica 64 de los 80: **un blanco sobre un fondo de color fijo no cambia con
@@ -144,7 +144,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/components/OfflineBanner.tsx": 1,
     "src/components/OrderModal.tsx": 10,
     "src/components/OrdersTable.tsx": 5,
-    // 1 desde D-NEXT: el blanco del texto sobre el azul del boton de reintentar. Todo lo
+    // 1 desde D-234: el blanco del texto sobre el azul del boton de reintentar. Todo lo
     // demas de esa pantalla usa `var(--token, #hex)`, que respeta la paleta del modulo
     // donde salga; el blanco sobre un fondo de color fijo es de los 63 de siempre.
     "src/components/RetryButton.tsx": 1,

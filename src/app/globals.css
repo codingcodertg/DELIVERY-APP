@@ -271,7 +271,7 @@ table.orders { width: 100%; border-collapse: collapse; font-size: 13px; min-widt
    With fixed layout + auto, the table width is the sum of the column widths. */
 table.tbl-resize { table-layout: fixed; min-width: 0; width: auto; }
 
-/* El marco mide lo que miden las columnas (D-NEXT).
+/* El marco mide lo que miden las columnas (D-232).
    ---------------------------------------------------------------------------
    `.tbl-scroll` es un bloque: ocupa el 100% del ancho disponible y pinta ahí su
    borde y su fondo. Con una tabla `tbl-resize` —que es `width: auto`, o sea la

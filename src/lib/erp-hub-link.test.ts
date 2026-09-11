@@ -62,7 +62,7 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
     // Es la misma columna y la misma consulta: se expone con su tipo propio.
     const auth = leer("src/lib/erp/auth.ts");
     expect(auth).toContain("hubRole: UserRole;");
-    // El `?.` se fue en D-NEXT: ahora, si el perfil no se leyó, esto ni se ejecuta.
+    // El `?.` se fue en D-235: ahora, si el perfil no se leyó, esto ni se ejecuta.
     expect(auth).toContain('hubRole: (profile.role as UserRole) ?? "sales",');
     // Y no se añade una segunda lectura de `profiles` para esto.
     expect(auth.match(/\.from\("profiles"\)/g) ?? []).toHaveLength(1);
