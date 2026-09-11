@@ -12862,7 +12862,7 @@ cree un gerente sin tienda, dejan de serlo.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1568 pasados | 3 saltados**
 (main 2b632c1: 1550 | 3; los +18 son `clockin/export-scope.test.ts`).
 
-## D-NEXT · Un gerente sin tienda no ve a nadie: se invierte la mitad de D-127 que ampliaba
+## D-237 · Un gerente sin tienda no ve a nadie: se invierte la mitad de D-127 que ampliaba
 
 **Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** lo que D-236 dejó abierto. Aquel cerró el export con un 403 y dejó escrito que
