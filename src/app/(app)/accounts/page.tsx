@@ -84,7 +84,6 @@ export default function AccountsPage() {
   const current = picked ? accounts.find((a) => a.name === picked) ?? null : null;
 
   if (!me) return null;
-  if (me.role === "sales" || me.role === "driver" || me.role === "warehouse") return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;
 
   const exportAccount = (a: AccountRow) => {
     const headers = deliveryColumns(a.orders[0]).map(([h]) => h).concat("Stage");

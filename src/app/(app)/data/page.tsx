@@ -24,7 +24,6 @@ export default function DataPage() {
   const { t } = usePrefs();
 
   if (!me) return null;
-  if (me.role !== "admin") return <div className="empty">{t("Admins only.", "Solo administradores.")}</div>;
 
   const save = (patch: Partial<Settings>, msg: string) => { saveSettings(patch); notify(msg); };
 

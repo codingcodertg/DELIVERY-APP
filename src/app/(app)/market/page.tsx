@@ -290,9 +290,6 @@ export default function MarketPage() {
   );
 
   if (!me) return null;
-  if (me.role !== "admin") {
-    return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;
-  }
 
   return (
     <>

@@ -60,9 +60,6 @@ export default function AuditPage() {
   }, [events, kind, q, codeById, nameById, lang, t]);
 
   if (!me) return null;
-  if (me.role !== "admin" && me.role !== "manager") {
-    return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;
-  }
 
   return (
     <>

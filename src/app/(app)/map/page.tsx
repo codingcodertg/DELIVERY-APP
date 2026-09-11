@@ -355,7 +355,6 @@ export default function MapPage() {
   const totalPallets = summaryRows.reduce((sum, r) => sum + (r.pallets ?? 0), 0);
 
   if (!me) return null;
-  if (me.role === "warehouse" || me.role === "driver") return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;
 
   return (
     <>

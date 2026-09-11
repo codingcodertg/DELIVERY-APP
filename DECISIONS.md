@@ -13242,3 +13242,144 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1614 pasados | 3 saltados**
 (main 3ad25a3: 1595 | 3; los +19 son `history-window.test.ts`).
+
+## D-NEXT · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
+
+**Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** la observación que quedó de D-239 —`accounting` llegaba a Cuentas por URL
+directa—. **El encargo era Cuentas; lo que se encontró es el patrón.**
+
+### Dos listas en dos ficheros, y nadie las comparaba
+
+`accounts/page.tsx` bloqueaba a `sales|driver|warehouse` —una lista de **negados**— y `TABS`
+daba la pestaña a `admin|manager` —una de **permitidos**—. `accounting` no estaba en ninguna de
+las dos: **sin pestaña y sin bloqueo**. Y la pestaña era la única barrera real, porque ni
+`middleware.ts` ni el layout de `(app)` filtran rutas por rol.
+
+### Lo medido antes de escribir nada, y no era lo que creíamos
+
+Las 13 pestañas de `TABS`, cada una contra la guarda de su página, sobre `main`:
+
+| | Pantallas | Cómo lo decía |
+|---|---|---|
+| **Coincidían con `TABS`** | Auditoría, Mercado, Datos | `me.role !== "…"` |
+| **Coincidían, pero por capacidad** | Recorrido, Chofer, Mi ruta, **Gestor de rutas**, **Almacén** | `canDeliver`, `canPlanRoutes`, `canFulfill` |
+| **Lista propia que NO coincidía** | Tablero (dejaba entrar al chofer), Cuentas (contabilidad y logística), Mapa (contabilidad) | listas de negados |
+| **Sin ninguna guarda de rol** | **Panel y Resumen** | — |
+
+**Las que no tenían guarda eran dos, no siete ni cuatro.** Y ese número tardó tres intentos en
+salir bien, que es lo que de verdad hay que contar aquí.
+
+### Tres mediciones, tres números, y ninguna era mentira
+
+| Quién | Cuántas «sin guarda» | Qué buscaba | Qué se le escapó |
+|---|---|---|---|
+| Auditoría | 7 | `role ===`, `role !==`, `redirect(`, «Not available» | los helpers (`canDeliver`, `canPlanRoutes`, `canFulfill`) |
+| Yo | 4 | `grep -n 'me.role'` sobre cada fichero | los mismos helpers: **`canPlanRoutes(me)` no contiene `me.role`** |
+| Medido al final | **2** | abrir el fichero y buscar el `return` que corta | — |
+
+Corregí su tabla en tres pantallas (`track`, `driver`, `my-route`) y **fallé en las otras dos por
+el mismo motivo que ella**: mi patrón veía una forma de guarda, la mía, y daba por «sin guarda»
+las que usaban otra. `routes/page.tsx:1394` decía `if (!canPlanRoutes(me))` y
+`warehouse/page.tsx:86`, `if (!canFulfill(me))`; las dos equivalen exactamente a lo que dice su
+pestaña, porque `canPlanRoutes` es `hasCap(u, "route_plan")` y esa capacidad la tienen `admin` y
+`logistics` (`constants.ts:594,601`).
+
+**La regla que queda escrita: una guarda tiene tantas formas como el repo haya inventado, y un
+`grep` solo ve la suya.** Lo único que dio el número bueno fue abrir los trece ficheros y buscar
+el `return` que corta — que es, además, lo que hice bien con `driver` y `my-route` y no apliqué
+al resto.
+
+Nada de esto cambia el código: el guard único cubre las trece igual, y en las que ya tenían la
+suya quedan dos capas que dicen lo mismo. **Sí cambia el tamaño del hallazgo**: no eran cuatro
+pantallas abiertas de par en par, eran dos —Panel y Resumen—, y el Gestor de rutas, que era el
+ejemplo alarmante de todos los mensajes, **nunca estuvo abierto**.
+
+### Un guard, no trece
+
+Trece `if` en trece páginas es cómo se llegó aquí, así que la guarda vive en **un solo sitio**:
+`TabGate`, dentro del layout de `(app)`. Con la ruta busca su pestaña (`tabForPath`) y pregunta
+lo mismo que la barra (`canOpenTab`). **Las listas de las páginas se quitan, no se dejan «por si
+acaso»**: dos fuentes es exactamente lo que dejó a `accounting` en medio.
+
+Tres detalles que no son adorno:
+
+- **Va dentro de `DataProvider`**, así que pregunta por `me`, el rol **efectivo**. «Ver como»
+  decide igual que la pestaña: un admin previsualizando almacén entra en `/warehouse` y no en
+  `/routes`. El rol **real** sigue mandando solo donde ya mandaba, la ventana de D-239.
+- **Solo aplica a rutas que son pestaña.** `/account` es la ficha de uno mismo, `/settings` ya
+  se guarda sola con `admin` y `/users` es un `redirect` al hub (D-056). `tabForPath` devuelve
+  `null` para ellas y el guard no las toca. Y no empareja por prefijo: `/accounts` no puede
+  encender `/account`, que sería aplicarle a una pantalla las reglas de otra.
+- **Está en las dos ramas del layout**, la del chofer y la del resto. Con una sola, medio hub se
+  habría quedado sin guarda y nada lo habría dicho; hay una prueba que cuenta dos.
+
+### Quién pierde y quién gana
+
+| Pantalla | Entraba antes | Entra ahora |
+|---|---|---|
+| Tablero | todos menos almacén | admin, manager, sales, logistics, accounting — **el chofer ya no** |
+| Cuentas | todos menos ventas/chofer/almacén | admin, manager — **fuera contabilidad y logística** |
+| Mapa | todos menos almacén/chofer | admin, manager, sales, logistics — **fuera contabilidad** |
+| **Panel** | **cualquiera con sesión** | manager, admin (o `dashboard` concedida) |
+| **Resumen** | **cualquiera con sesión** | admin |
+| Gestor de rutas | logistics, admin (o `route_plan`) — ya acotado | igual |
+| Almacén | warehouse, admin (o `fulfill`) — ya acotado | igual |
+| Auditoría · Mercado · Recorrido | igual que su pestaña | sin cambio |
+| **Datos** | solo `admin` | admin **o `settings` concedida** — **ensancha** |
+| Chofer | `canDeliver` y no almacén | igual (su pestaña dice lo mismo) |
+| **Mi ruta** | `canDeliver` y no almacén | **igual: exenta a propósito** |
+
+**Datos es el único sitio donde esto abre en vez de cerrar**, y va dicho en voz alta. La pestaña
+la da `admin` **o** la capacidad `settings` concedida a una persona; la página solo dejaba entrar
+a `admin`. O sea que a esa persona se le pintaba la pestaña y se le cerraba la puerta. Ahora
+entra, que es lo que el admin quiso al concedérsela. Si no se quiere, lo que se quita es la `cap`
+de esa entrada de `TABS` — no una segunda lista en la página, que fue el fallo original.
+
+**Mi ruta se queda exenta por una decisión escrita antes que esta rama** (`constants.ts`, en el
+comentario de su entrada): la pestaña es solo del chofer **pero** *«the /my-route page itself
+still opens for an admin who navigates there directly»*. Cerrarla es otra decisión. La exención
+está en `TAB_GATE_EXEMPT`, por su id y con el motivo al lado, y una prueba exige que sea la única.
+
+### La prueba, y las dos trampas que evita
+
+Recorre `TABS` —no una lista escrita a mano— y exige que **ninguna página conserve una lista de
+roles propia**. Dos cosas que costaron dos intentos:
+
+- **`warehouse/page.tsx` y `driver/page.tsx` declaran su propia constante `TABS`** para sus
+  sub-pestañas, que no tiene nada que ver con la de `constants.ts`. Una prueba que buscara la
+  palabra «TABS» en el fichero las habría dado por buenas sin que hicieran nada. Se comprueba lo
+  contrario: que **no** traigan el guard, porque el suyo está en el layout.
+- **Solo cuenta la lista que DEVUELVE una pantalla.** El tablero tiene otra lista de roles
+  (`page.tsx:46`) que decide si corre el barrido de auto-cancelación; contarla habría sido un
+  falso positivo. La prueba mira solo líneas con `return <`.
+
+Y lleva control: si el recorrido encuentra menos de doce páginas, falla.
+
+### Lo que NO cambia
+
+- **Ninguna regla de la base.** Esto es una guarda de pantalla, igual de fuerte que las trece que
+  sustituye —todas eran de cliente—. Lo que cada rol puede **escribir** lo siguen decidiendo la
+  RLS y los `guard_*`.
+- **La ventana de historial de D-239**, que sigue preguntando por el rol **real** y no por el
+  efectivo. Son dos preguntas distintas y se quedan distintas: una es «¿puedes abrir esto?» y la
+  otra «¿hasta dónde ves?».
+
+### Lo no verificado
+
+**Nadie lo ha abierto en un navegador**, y hay tres cosas que solo se ven usándolo:
+
+1. Que las dos pantallas que estrenan guarda —Panel y Resumen— no se la apliquen a quien sí
+   debe entrar, y que las que ya la tenían sigan abriéndose igual: **Almacén** es la que más
+   gente usa a diario y ahora tiene dos capas que dicen lo mismo.
+2. Que «ver como» siga entrando donde toca, que es lo que más superficie tiene.
+3. Que ninguna ruta que **no** es pestaña se haya quedado atrapada por el emparejamiento.
+
+**Y lo que hay que retirar, porque se dijo tres veces y era falso:** que un `sales` entraba en
+`/routes` a ver la planificación del día. **No entraba**: `canPlanRoutes(me)` lo paraba desde
+antes de esta rama. Era el ejemplo que hacía urgente el encargo y no existía. Lo que sí existía
+—Panel y Resumen abiertos a cualquiera con sesión— es real y es lo que esta rama cierra.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1628 pasados | 3 saltados**
+(main a06ef0d: 1614 | 3; los +14 son 13 de `tab-gate.test.ts` y uno del recorrido por fichero
+de `inline-colors.test.ts`, que ahora ve un componente más).
