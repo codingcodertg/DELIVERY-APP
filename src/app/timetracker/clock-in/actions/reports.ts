@@ -7,10 +7,26 @@ import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { visibleStores } from "@/lib/clockin/scope";
+import { SIN_TIENDA } from "@/lib/clockin/managerCtx";
 import { shiftMinutes, payPeriodDates } from "@/lib/clockin/schedule";
 
 export type ReportResult = { ok: true } | { ok: false; message: string };
 
+/**
+ * El contexto de gerente de este fichero, que NO es `clockinManagerCtx` (D-NEXT).
+ *
+ * Era un duplicado con reglas propias, y el duplicado se notó en cuanto la regla de
+ * «gerente sin tienda» se puso en el ctx compartido: los informes no pasaban por ahí, así
+ * que a un gerente sin tienda la nómina le salía **vacía y muda** — el mismo agujero que la
+ * regla venía a tapar, por la puerta de al lado.
+ *
+ * Se conserva el ctx propio y **no** se sustituye por el compartido, porque no son lo
+ * mismo: este lee `role/company_id/store_id` con `.single()` y no contempla al admin del
+ * hub (`viaHubAdmin`), que en informes de nómina no entra hoy. Cambiarlo sería mover quién
+ * puede ver la nómina, que no es lo que pide esta rama. Lo que sí se copia es **la regla**,
+ * con el mismo mensaje, y hay una prueba que exige que ningún ctx de gerente de `actions/`
+ * se quede sin ella.
+ */
 async function mgrCtx() {
   if (!isSupabaseConfigured) return { ok: false as const, message: "Not configured." };
   const supabase = await createClient();
@@ -21,6 +37,9 @@ async function mgrCtx() {
   const { data: me } = await supabase.from("profiles").select("role, company_id, store_id").eq("id", user.id).single();
   if (!me || (me.role !== "manager" && me.role !== "owner")) {
     return { ok: false as const, message: "Managers only." };
+  }
+  if (me.role === "manager" && !me.store_id) {
+    return { ok: false as const, message: SIN_TIENDA };
   }
   const meScope: Me = { role: me.role as string, company_id: me.company_id as string, store_id: (me.store_id as string) ?? null };
   return { ok: true as const, supabase, user, companyId: me.company_id as string, role: me.role as string, me: meScope };
