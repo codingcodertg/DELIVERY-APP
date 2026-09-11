@@ -12994,3 +12994,122 @@ en vez de comprobarse, apoyándose en lo que ya decía el comentario de `NO_MATC
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1582 pasados | 3 saltados**
 (main 0b65f11: 1568 | 3; los +14 son `clockin/sin-tienda.test.ts`).
+
+## D-NEXT · El centinela que faltaba, el valor escrito en ocho sitios, y una premisa falsa que sostuvo tres decisiones
+
+**Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por:** lo último que quedaba de la familia D-234 → D-237, encontrado por la auditoría al
+barrer los filtros por lista de empleados.
+
+**Y esta entrada corrige a las anteriores.** Lo empezamos como el quinto agujero de la familia
+—«el más cercano a estar vivo»— y al medir la premisa que lo sostenía resultó **falsa**: no había
+agujero, ni siquiera latente. Lo que queda es un arreglo de **consistencia**, que sigue valiendo,
+pero por otra razón. La medición está abajo, con sus comandos.
+
+### Uno de seis, y por eso es fácil de defender
+
+`timeoff.ts:125` filtraba así:
+
+```ts
+if (ids) {
+  offQ = offQ.in("employee_id", ids);
+  excQ = excQ.in("employee_id", ids);
+}
+```
+
+`ids` nulo es «sin acotar», que es correcto para el dueño. Y `[]` es «nadie», que entra en el
+`if` y hace `.in("employee_id", [])`.
+
+**Aquí es donde lo contamos mal tres veces.** Dijimos que PostgREST podía leer esa lista vacía
+como «sin filtro», y que por tanto un gerente con la tienda vacía vería las ausencias y
+excepciones de toda la compañía. **Es falso en nuestro PostgREST**, y lo midió el orquestador
+contra producción, de solo lectura:
+
+```
+GET /rest/v1/profiles?select=id           → Content-Range: 0-32/33
+GET /rest/v1/profiles?select=id&id=in.()  → HTTP 200, cuerpo: []
+```
+
+Y la mitad del cliente la comprobó el auditor por su cuenta, que es la que sí se puede medir sin
+tocar producción: `postgrest-js/src/PostgrestFilterBuilder.ts:846` hace
+`searchParams.append(column, "in.(" + cleanedValues + ")")`, y con la lista vacía
+`cleanedValues` es `''`, así que **el filtro se manda** como `in.()` en vez de omitirse. Las dos
+mitades juntas: el cliente lo manda y el servidor lo resuelve como **ninguna fila**.
+Así que `timeoff.ts` filtraba bien: devolvía cero, igual que sus vecinos con centinela. **El
+agujero no existía.**
+
+**Lo que sí queda en pie, y es el único motivo de esta rama:** `clock.ts:539`, `reports.ts`,
+`schedule.ts:312`, `exceptions.ts:61` y `photos.ts:57` ya ponían el centinela y `timeoff.ts` no.
+**Seis sitios haciendo lo mismo de dos formas distintas es peor que seis haciéndolo igual**,
+porque el que llega no sabe cuál de las dos es la buena — y si elige la que parece más simple,
+copia la que nadie ha comprobado. No faltaba una idea ni una defensa: faltaba una forma común.
+
+### El valor estaba escrito a mano en ocho sitios
+
+Al ir a importarlo apareció lo de al lado: el uuid de ceros estaba **literal en seis** sitios
+—`clock.ts`, `reports.ts` (con su propio `noneMatch`), `schedule.ts`, el export de CSV, y **dos
+veces** en el de XLSX— más las **dos** definiciones de `scope.ts` (`NO_MATCH` y, desde D-237,
+`NINGUNA_TIENDA`). Ocho copias del mismo valor.
+
+El riesgo no es que alguien lo escriba mal —es un uuid de ceros— sino lo que pasaría si un día
+hubiera que cambiarlo: **los que no se enterasen no fallarían, filtrarían distinto**. Que es
+exactamente la clase de fallo que esta familia lleva cinco entradas persiguiendo — y el único que
+sigue siendo real en esta.
+
+Ahora hay **una** constante, `NADIE`, y de ella cuelgan las dos listas. Una prueba exige que el
+literal no aparezca en ningún fichero de `src` fuera de esa definición, y que dentro de ella
+aparezca **una sola vez**.
+
+### La prueba recorre, no enumera
+
+Como las de las tres ramas anteriores: busca en todo `src` cualquier `.in("employee_id", …)` con
+una variable, y a cada uno le exige el centinela a la vista. No sabe cuáles son los seis; los
+encuentra. Y lleva su control —si el recorrido da menos de cinco ficheros, falla— porque un
+canario que deja de ver ficheros pasa en verde sin comprobar nada.
+
+### De dónde salió la premisa falsa, y qué arrastra
+
+La frase venía del comentario de `NO_MATCH`, escrito **antes** de esta familia: *«so an empty
+allow-list matches nothing (rather than being dropped and matching everything)»*. Nadie la
+inventó hoy; **se heredó como hecho tres veces en el mismo día** — en D-237, para justificar que
+`visibleStores` devolviera una tienda imposible en vez de `[]`; en el encargo de esta rama; y en
+mi propio aviso al auditor, donde al menos la dejé escrita como premisa y no como medición. Que
+estuviera marcada como no verificada es lo que permitió corregirla ahora y no dentro de un año.
+
+**Qué arrastra, dicho una por una:**
+
+- **D-237 no se toca.** Su elección —tienda imposible en vez de lista vacía— es inofensiva y ya
+  está numerada. Pero su **motivo** era este, así que aquí queda escrito: **se mantiene por
+  consistencia, no por seguridad.**
+- **El comentario de `NO_MATCH` se corrige en el código**, con la medición y su fecha, en vez de
+  borrarlo. Una frase que se heredó tres veces no se arregla quitándola: se arregla dejando al
+  lado por qué no era cierta.
+- **Las pruebas de esta rama se quedan**, y su descripción cambia: fijan **uniformidad**, no una
+  defensa.
+
+### Lo no verificado
+
+La medición de arriba la hizo el orquestador contra producción; **yo no la he ejecutado**, y no
+puedo desde el worktree. Lo que sí comprobé es que el resultado es coherente con lo que se ve en
+la app: si `in.()` devolviera la tabla entera, las cinco pantallas con centinela funcionarían y
+solo la de ausencias enseñaría de más, y eso se habría notado.
+
+Y sigue sin ejecutarse nada de esta rama contra la base: lo que hay son pruebas de forma.
+
+### Con esta, la familia queda cerrada
+
+| Entrada | Dónde | Qué producía descartar/ignorar el dato |
+|---|---|---|
+| D-234 | los siete puntos de entrada | bucle de redirecciones |
+| D-235 | `erp/auth.ts` | un rol equivocado, en silencio |
+| D-236 | el export de informes | el informe de toda la compañía |
+| D-237 | `visibleStores` y las pantallas de gerente | la compañía entera en pantalla |
+| **D-NEXT** | `timeoff.ts` | **nada: el centinela no hacía falta para filtrar.** Se unifica para que el valor viva en un sitio y las seis formas sean una |
+
+La frase que explica las cuatro primeras sigue siendo la de D-236: **la falta de un dato tiene
+que acotar, nunca ampliar.** La quinta añade la suya, que es de otro tipo y vale para leer las
+otras cuatro: **una premisa heredada no es una medición**, y la diferencia solo se ve el día que
+alguien la mide.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1595 pasados | 3 saltados**
+(main a4f802e: 1582 | 3; los +13 son `clockin/centinela.test.ts`).

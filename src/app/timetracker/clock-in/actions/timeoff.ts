@@ -3,7 +3,7 @@
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
-import { storeScope } from "@/lib/clockin/scope";
+import { NO_MATCH, storeScope } from "@/lib/clockin/scope";
 
 export type TimeOffResult = { ok: true } | { ok: false; message: string };
 
@@ -122,9 +122,15 @@ export async function getPendingForInbox(): Promise<
     .select("id, employee_id, type, reason, note, created_at, left_at")
     .eq("resolved", false)
     .order("created_at", { ascending: false });
+  // `ids` null = sin acotar (el dueño); `[]` = nadie. Las dos cosas quedan bien: medido que
+  // nuestro PostgREST devuelve vacío con `in.()`, así que la lista vacía YA filtraba y aquí
+  // nunca se vieron las ausencias de toda la compañía. El centinela se pone porque los otros
+  // cinco sitios del módulo lo ponen, y seis formas iguales valen más que cinco y una
+  // distinta (D-NEXT).
   if (ids) {
-    offQ = offQ.in("employee_id", ids);
-    excQ = excQ.in("employee_id", ids);
+    const inIds = ids.length ? ids : NO_MATCH;
+    offQ = offQ.in("employee_id", inIds);
+    excQ = excQ.in("employee_id", inIds);
   }
 
   const [{ data: off }, { data: exc }, { data: people }] = await Promise.all([

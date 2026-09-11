@@ -4,7 +4,7 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
 import { canManageEmployee } from "@/lib/clockin/mgrScope";
-import { visibleStores } from "@/lib/clockin/scope";
+import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 
 export type ShiftResult = { ok: true } | { ok: false; message: string };
 const DENY_SCOPE = "That employee isn't in your store." as const;
@@ -309,7 +309,7 @@ export async function getScheduleWeek(periodStart?: string): Promise<
   if (suyas) {
     const { data: crew } = await supabase.from("profiles").select("id").eq("company_id", me.company_id).in("store_id", suyas);
     const ids = (crew ?? []).map((c) => c.id as string);
-    shiftsQ = shiftsQ.in("employee_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    shiftsQ = shiftsQ.in("employee_id", ids.length ? ids : NO_MATCH);
   }
 
   const [{ data: people }, { data: sites }, { data: shiftRows }] = await Promise.all([

@@ -9,7 +9,7 @@ import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { dayAndWeekStart } from "@/lib/clockin/time";
 import { todayAlerts } from "@/lib/clockin/scorecard";
-import { visibleStores } from "@/lib/clockin/scope";
+import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { centralDateStr, payPeriodDates, shiftMinutes } from "@/lib/clockin/schedule";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 
@@ -536,7 +536,7 @@ export async function getCrewNow(): Promise<
   const { data: people } = await peopleQ.order("full_name");
   const nombre = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
   const ids = [...nombre.keys()];
-  const inIds = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
+  const inIds = ids.length ? ids : NO_MATCH;
 
   const [{ data: entries }, { data: shifts }, { data: salidas }, { data: pausasHoy }] = await Promise.all([
     supabase
