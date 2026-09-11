@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * «Reintentar» de la pantalla de fallo de lectura (D-NEXT).
+ * «Reintentar» de la pantalla de fallo de lectura (D-234).
  *
  * Recarga la MISMA dirección, y eso es el punto: el fallo que enseña esa
  * pantalla suele ser pasajero (una migración a medio aplicar, la red), así que

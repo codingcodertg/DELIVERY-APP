@@ -12,7 +12,7 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
  * La regla, en una frase: **el dueño lo ve todo; un gerente ve su tienda más las que se le
  * hayan concedido; un gerente sin tienda NO VE A NADIE**.
  *
- * **Esa última mitad la decidió D-127 al revés, y D-NEXT la invierte.** D-127 lo escribió como
+ * **Esa última mitad la decidió D-127 al revés, y D-237 la invierte.** D-127 lo escribió como
  * el fallo fácil de evitar: acotar a una lista vacía dejaría a alguien sin cuadrilla y
  * «parecería que la app está rota, cuando lo que falta es configurarle la tienda». El motivo
  * era bueno; la salida, no. Un campo vacío ampliaba el alcance, que es la puerta abierta al
@@ -25,7 +25,7 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
 
 /**
  * El id que no es de nadie: un uuid de ceros. Vive en UNA constante porque de él cuelgan las
- * dos listas centinela de este fichero y los sitios que las usan (D-NEXT). Estaba escrito a
+ * dos listas centinela de este fichero y los sitios que las usan (D-238). Estaba escrito a
  * mano en SEIS —`clock.ts`, `reports.ts`, `schedule.ts`, el export de CSV, y dos veces en el
  * de XLSX— mas las dos definiciones de aqui: ocho copias del mismo valor son ocho sitios donde
  * cambiarlo mal.
@@ -62,7 +62,7 @@ export function visibleStores(
   extra: string[] | null | undefined,
 ): string[] | null {
   if (role !== "manager") return null;      // el dueño, y cualquier otro nivel, no se acota
-  // Gerente sin tienda: NO VE A NADIE (D-NEXT). Antes devolvía null —«sin acotar»— y eso le
+  // Gerente sin tienda: NO VE A NADIE (D-237). Antes devolvía null —«sin acotar»— y eso le
   // enseñaba la compañía entera en las tres pantallas de fichaje y le autorizaba cualquier
   // acción en `canManageEmployee`. Devolver una tienda imposible en vez de una lista vacía
   // es lo que hace que los siete sitios que llaman aquí acoten sin tocar ninguno.

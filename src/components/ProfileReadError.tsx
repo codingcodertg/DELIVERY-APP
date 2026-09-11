@@ -3,7 +3,7 @@ import type { ErrorDeLectura } from "@/lib/profile-read";
 import { RetryButton } from "@/components/RetryButton";
 
 /**
- * La pantalla que sale cuando la consulta del perfil FALLA (D-NEXT).
+ * La pantalla que sale cuando la consulta del perfil FALLA (D-234).
  *
  * Es lo que sustituye al `redirect("/login")` en ese camino. No es un detalle de
  * estilo: mientras el fallo mandaba al login, el login devolvía aquí y el

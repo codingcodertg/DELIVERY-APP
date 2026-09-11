@@ -23,7 +23,7 @@ export default function LiveMonitorPage() {
   // trabajar conviviendo, respondía por media empresa sin decirlo — y por eso un admin fichaba
   // a alguien y no lo veía aparecer aquí.
   const [crew, setCrew] = useState<Crew | null>(null);
-  // Y el motivo cuando NO se puede (D-NEXT). Antes solo se miraba `r.ok`: con un `false`
+  // Y el motivo cuando NO se puede (D-237). Antes solo se miraba `r.ok`: con un `false`
   // —«te falta la tienda», «no configurado»— no pasaba nada y la pantalla se quedaba
   // esperando, que es justo el miedo de D-127: parece la app rota y no un dato que falta.
   const [aviso, setAviso] = useState<string | null>(null);

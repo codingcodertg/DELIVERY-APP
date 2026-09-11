@@ -63,7 +63,7 @@ export const getSessionInfo = cache(async (): Promise<SessionInfo | null> => {
     .single();
 
   // ---------------------------------------------------------------------------
-  // Un fallo de lectura NO se parece a un rol (D-NEXT)
+  // Un fallo de lectura NO se parece a un rol (D-235)
   // ---------------------------------------------------------------------------
   // Aqui se descartaba el `error` y se seguia con los valores por defecto de abajo:
   // `erpTier(null)` da `staff` y `hubRole` daba `sales`. O sea que cuando la consulta

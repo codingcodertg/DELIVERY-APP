@@ -1,5 +1,5 @@
 // ============================================================
-// Leer el perfil en un layout: tres desenlaces, no dos (D-NEXT).
+// Leer el perfil en un layout: tres desenlaces, no dos (D-234).
 //
 // Todos los puntos de entrada hacen lo mismo:
 //
@@ -56,7 +56,7 @@ export function referenciaDeFallo(e: ErrorDeLectura): string {
 
 /** Una huella corta, hecha a mano y no con `node:crypto`, para que este módulo
  * sirva en el servidor **y** en el cliente: la frontera de error del ERP es un
- * componente de cliente y pinta esta misma pantalla (D-NEXT). No es un hash
+ * componente de cliente y pinta esta misma pantalla (D-235). No es un hash
  * criptográfico y no hace falta que lo sea — solo tiene que ser estable y
  * repartir; lo que no puede es traer una dependencia de Node a un bundle. */
 function huella(texto: string): string {
@@ -112,7 +112,7 @@ export function esSinFila(e: ErrorDeLectura | null | undefined): boolean {
 
 /**
  * Lo que se lanza cuando el perfil no se pudo leer y el que llama no puede
- * seguir sin el (D-NEXT).
+ * seguir sin el (D-235).
  *
  * Lanzar y no devolver un valor por defecto es la decision: un fallo de lectura
  * no puede parecerse a un rol legitimo. En `getSessionInfo()` se parecia — el
