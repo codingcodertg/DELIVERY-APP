@@ -241,7 +241,7 @@ export default function LoginPage() {
                   spellCheck={false}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com  ·  maximo"
+                  placeholder="you@company.com  ·  username"
                 />
               </div>
             )}
