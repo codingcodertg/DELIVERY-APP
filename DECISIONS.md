@@ -12512,3 +12512,154 @@ caja suele ser ventas/oficina. Los export de Excel/PDF/CSV siguen admin-only.
 
 Usa `navigator.clipboard.writeText`; si el portapapeles no está disponible, avisa en vez de
 fallar en silencio.
+
+## D-NEXT · El expediente deja de ser la cuenta: RR. HH. pasa a llevar personas, no usuarios
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
+`106_employee_file_identity.sql`**, que **aplica el dueño a mano antes de fusionar**.
+**Pedido por:** el dueño: en HR quiere «afuera» los expedientes de todos los empleados —cuándo
+ingresaron, cuándo se fueron, si están desactivados, si tienen usuario creado, si lo ocupan,
+correo, teléfono, si tienen RingCentral— y Reclutamiento como un botón dentro.
+
+**Este encargo no trae pantalla**: datos y librería. La pantalla es el siguiente.
+
+### El problema entero cabe en una línea de 093
+
+```sql
+id uuid primary key references public.profiles(id) on delete cascade
+```
+
+El expediente **era** la cuenta. De ahí salen las tres cosas que el dueño no puede hacer hoy:
+
+- **Sin cuenta no hay expediente.** Alguien a quien todavía no se le crea usuario no existe
+  para RR. HH.
+- **Borrar la cuenta borra el expediente**, con sus documentos por cascada. Y la única baja que
+  existe hoy es `/api/delete-user`, que borra la cuenta — o sea que dar de baja a alguien
+  destruye justo lo que RR. HH. necesita conservar.
+- **No hay «desactivado»**: o tienes cuenta o no existes.
+
+La 106 invierte la dependencia. El expediente tiene identidad propia y la cuenta pasa a ser un
+dato **dentro** de él: `profile_id`, nulo cuando no la hay, **único** cuando la hay, y
+`on delete set null` — la cuenta se va, el expediente se queda. Esa cláusula es la rama entera;
+con `cascade` volveríamos a 093 con otro nombre, y hay una prueba que lo exige literalmente.
+
+### Lo que casi se rompe al mover la identidad, y no se ve en el diff
+
+`employee_docs.employee_id` apuntaba a `profiles`. Al mover la identidad hay que reapuntarlo al
+expediente, y ahí había **dos trampas**:
+
+1. **Un documento sin expediente deja la FK nueva a medias.** Los documentos se crean con el id
+   de la persona **exista o no** su fila de expediente. Por eso la migración, **antes** de tocar
+   ninguna FK, le crea un expediente a cada perfil que no lo tenga, **con el mismo id que su
+   cuenta**. Así ni un solo `employee_id` hay que reescribir: todos los valores que ya existen
+   siguen siendo válidos. Y al final cuenta los documentos y los compara con los que quedan
+   ligados; si no cuadra, `raise exception` y la transacción entera se cae.
+2. **`created_by` también apunta a `profiles`.** Un `drop constraint` buscado por tabla y
+   destino se la habría llevado por delante, en silencio. La migración restringe la búsqueda a
+   la columna `employee_id`; hay prueba, y mutarla quitando esa restricción la hace caer.
+
+Las dos FK se buscan **por catálogo, no por nombre**. `employee_files_id_fkey` es el nombre que
+Postgres le habría puesto, pero un `drop constraint if exists` con el nombre equivocado **no
+hace nada y no falla**: el expediente seguiría atado a la cuenta y se descubriría el día que
+alguien diera de alta a una persona sin usuario.
+
+### El estado no se guarda: se deriva
+
+`date_left` y nada más. Sin fecha, activo; con fecha, baja. Una columna de estado junto a su
+fecha se desincroniza en el primer guardado a medias, y entonces hay dos respuestas a «¿sigue
+aquí?». Hay una prueba que exige que la migración **no añada** ninguna columna de estado.
+
+### La cuenta se apaga, no se borra
+
+`deactivateEmployee` pone la fecha de salida **y** deshabilita la cuenta en Auth (un ban
+indefinido); `reactivateEmployee` hace lo contrario. `/api/delete-user` **no se toca**: sigue
+existiendo para lo que es, borrar de verdad. Hay una prueba de que estas acciones nuevas usan el
+ban y **no** contienen ninguna llamada de borrado — porque un «dar de baja» que acabara llamando
+a `delete-user` destruiría el expediente que esta rama viene a conservar.
+
+Tres detalles del orden y del alcance:
+
+- **La fecha se escribe antes que el ban.** Si el ban falla, la baja queda registrada y se puede
+  reintentar; al revés —cuenta apagada y expediente sin fecha— nadie sabría por qué esa persona
+  no puede entrar. Hay una prueba del orden.
+- **Nadie se da de baja a sí mismo**, como en `delete-user`.
+- **El expediente conserva su `profile_id` al darse de baja**, a propósito: «¿tenía cuenta?»
+  sigue teniendo respuesta después de que la persona se vaya.
+
+### Los hechos de la cuenta se leen; no se copian nunca
+
+`accountFactsFor` pregunta a Auth, por cada `profile_id`, si la cuenta existe, si se entra con
+correo o con usuario, cuándo fue el último acceso y si está deshabilitada. **Nada de eso se
+guarda en el expediente**, y es una decisión, no un olvido: «último acceso» envejece solo, y
+«deshabilitada» la puede cambiar cualquiera desde el panel de Supabase sin pasar por aquí.
+Copiarlo sería mentir en cuanto alguien iniciara sesión.
+
+Dos preguntas del dueño que parecían una: **«si tienen usuario creado»** y **«si lo ocupan»**.
+Una cuenta creada y nunca usada es justo el caso que quiere encontrar, así que `resumenDeCuenta`
+las distingue: `tieneCuenta` y `ocupada` (hay cuenta **y** alguien ha entrado alguna vez).
+
+### Quién enlaza una cuenta con un expediente
+
+La RLS de 094 no se toca: admin y gerente de RR. HH. leen y escriben, el reclutador no entra.
+Lo que se añade es que **`profile_id` solo lo escribe el admin del módulo**, porque es lo que
+dice de quién es este expediente. Va en un **trigger** y no en una política porque la RLS no
+filtra por columna: solo puede permitir o negar la fila entera. El trigger se mete únicamente
+cuando el enlace **cambia**, para que un gerente pueda seguir editando el teléfono de una ficha
+ya enlazada.
+
+Es el rol del módulo (`current_recruiting_role()`), no `profiles.role`: cada módulo decide con
+el suyo (D-053/D-057).
+
+### RingCentral: lo único que hoy se puede saber
+
+`ringcentral_ext`, a mano. La integración es **de empresa** —un JWT en `lib/ringcentral.ts`, sin
+ningún dato por persona—, así que no hay nada que sincronizar. Se valida la forma (2 a 6
+dígitos) y se guarda solo con dígitos.
+
+### Acoplada a su migración… o casi: qué pasa si se ejecuta el código antes
+
+El auditor pregunta esto en cada rama desde la caída del 2026-09-10, y aquí la respuesta tiene
+matiz.
+
+**La lectura tolera la tabla vieja.** `select("*")` no falla por una columna que aún no existe:
+la devuelve **ausente**. Y `filasDeExpediente` —la función que arma la lista, pura y probada—
+detecta que no viene `profile_id` y usa el id del expediente como id de cuenta, que es
+exactamente lo que era antes de la 106. Con la tabla vieja la lista sigue en pie; lo único que
+no puede haber son expedientes sin cuenta, que en la tabla vieja no pueden existir.
+
+**La escritura no.** Guardar `ringcentral_ext` o una fecha de salida contra la tabla vieja
+devuelve un error de Postgres con su mensaje. No hay pantalla que lo dispare todavía —esta rama
+no trae ninguna— y el error es legible, no un bucle.
+
+Así que **el orden sigue siendo migración primero**, pero si se invirtiera no habría caída: lo
+peor que pasa es que una escritura falle con un mensaje claro. Es deliberado y por eso está
+probado, con una prueba que simula la tabla anterior.
+
+### Lo que NO se hizo
+
+- **Ninguna pantalla**, que es el encargo. La lista, el botón de Reclutamiento dentro y la ficha
+  vienen después.
+- **No se tocó `/api/delete-user`**, ni sus permisos, ni su comportamiento.
+- **No se sincroniza nada con RingCentral.**
+- **No se creó una fecha de ingreso nueva**: `date_hired` ya existía y es la que el dueño llama
+  «cuándo ingresaron».
+
+### Lo no verificado
+
+**Nada se ha ejecutado contra una base**, y en esta rama eso pesa más que en las anteriores
+porque la migración **mueve datos**, no solo esquema. Lo que hay que mirar cuando el dueño la
+aplique, en este orden:
+
+1. Que corra **dos veces** seguidas sin error.
+2. Que el `raise notice` del final cuadre: tantos documentos, tantos perfiles, tantos
+   expedientes con cuenta — y que ningún `raise exception` salte.
+3. Que un documento existente siga abriéndose desde su expediente (la FK reapuntada).
+4. Que un gerente de RR. HH. **no** pueda enlazar una cuenta y un admin **sí**.
+5. Que dar de baja a alguien deshabilite su cuenta y **no** borre nada.
+
+La reversión existe pero **no es simétrica, y conviene saberlo antes de necesitarla**: volver a
+093 significa **borrar los expedientes sin cuenta**, porque en aquel modelo no caben. Está
+escrita al final del `.sql` con esa advertencia.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1542 pasados | 3 saltados**
+(main 98a9305: 1512 | 3; los +30 son `employee-file.test.ts`).

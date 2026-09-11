@@ -1,6 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isSyntheticEmail } from "@/lib/username";
+import { extensionValida, filasDeExpediente, limpiaExtension, parcheAlta, parcheBaja } from "@/lib/recruiting/employee-file";
+import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -36,13 +40,21 @@ async function tier(
 }
 
 export type EmployeeFile = {
+  /** El id del EXPEDIENTE (106), que ya no es el de la cuenta. Para las personas que
+   *  ya estaban coincide con su `profile_id`, porque la migración conservó cada id. */
   id: string;
+  /** La cuenta, si tiene. Null = expediente sin cuenta, que ahora es válido. */
+  profile_id: string | null;
   full_name: string;
+  /** Correo de contacto, no el de acceso. */
+  email: string | null;
   employee_code: string | null;
   birthday: string | null;
   date_hired: string | null;
+  date_left: string | null;
   phone: string | null;
   address: string | null;
+  ringcentral_ext: string | null;
   days_off: number | null;
   notes: string | null;
 };
@@ -57,7 +69,18 @@ export type EmployeeDoc = {
   note: string | null;
 };
 
-/** La plantilla con su ficha, para la lista. Sin documentos: esos se piden al abrir a alguien. */
+/**
+ * La plantilla con su ficha, para la lista.
+ *
+ * **Ahora la lista sale del EXPEDIENTE, no de `profiles`** (106): esa es la rama entera.
+ * Antes se recorrían las cuentas y se les pegaba su ficha, así que una persona sin
+ * cuenta —una baja, alguien que aún no la tiene— no existía. Ahora se recorren los
+ * expedientes y la cuenta es un dato de cada uno.
+ *
+ * El nombre del perfil sigue mandando cuando hay cuenta: es el que se edita en Usuarios
+ * y el que sale en el resto de la app. El del expediente es el respaldo, y el único que
+ * hay para quien no tiene cuenta.
+ */
 export async function listEmployeeFiles(): Promise<
   { ok: true; rows: (EmployeeFile & { docKinds: string[] })[] } | { ok: false; message: string }
 > {
@@ -65,40 +88,21 @@ export async function listEmployeeFiles(): Promise<
   const yo = await tier(supabase);
   if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
 
-  const [{ data: people, error }, { data: files }, { data: docs }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name").order("full_name"),
+  const [{ data: files, error }, { data: people }, { data: docs }] = await Promise.all([
     supabase.schema("recruiting").from("employee_files").select("*"),
+    supabase.from("profiles").select("id, full_name"),
     // Solo `kind` y de quién: la lista únicamente necesita saber QUÉ hay, no su contenido.
     supabase.schema("recruiting").from("employee_docs").select("employee_id, kind, signed_at"),
   ]);
   if (error) return { ok: false, message: error.message };
 
-  const porId = new Map((files ?? []).map((f) => [f.id as string, f]));
-  const kindsDe = new Map<string, string[]>();
-  for (const d of docs ?? []) {
-    // Un papel sin fecha de firma está empezado, no hecho: no cuenta como entregado.
-    if (!d.signed_at) continue;
-    const k = d.employee_id as string;
-    kindsDe.set(k, [...(kindsDe.get(k) ?? []), d.kind as string]);
-  }
-
   return {
     ok: true,
-    rows: (people ?? []).map((p) => {
-      const f = porId.get(p.id as string);
-      return {
-        id: p.id as string,
-        full_name: (p.full_name as string) ?? "—",
-        employee_code: (f?.employee_code as string) ?? null,
-        birthday: (f?.birthday as string) ?? null,
-        date_hired: (f?.date_hired as string) ?? null,
-        phone: (f?.phone as string) ?? null,
-        address: (f?.address as string) ?? null,
-        days_off: (f?.days_off as number) ?? null,
-        notes: (f?.notes as string) ?? null,
-        docKinds: kindsDe.get(p.id as string) ?? [],
-      };
-    }),
+    rows: filasDeExpediente(
+      (files ?? []) as Record<string, unknown>[],
+      (people ?? []) as { id: string; full_name?: string | null }[],
+      (docs ?? []) as { employee_id: string; kind: string; signed_at?: string | null }[],
+    ),
   };
 }
 
@@ -120,9 +124,12 @@ export async function getEmployeeDocs(employeeId: string): Promise<
   return { ok: true, docs: (data ?? []) as EmployeeDoc[] };
 }
 
-/** Guarda la parte de INFO. Crea la fila la primera vez. */
+/** Guarda la parte de INFO. Crea la fila la primera vez.
+ *
+ * `fileId` es el id del EXPEDIENTE desde la 106, no el de la cuenta. Para quien ya
+ * estaba son el mismo numero, porque la migracion conservo cada id. */
 export async function saveEmployeeFile(
-  employeeId: string,
+  fileId: string,
   patch: Partial<Omit<EmployeeFile, "id" | "full_name">>,
 ): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
@@ -130,14 +137,152 @@ export async function saveEmployeeFile(
   if (!yo) return { ok: false, message: "Not signed in." };
   if (!PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
 
-  // Las fechas vacías se guardan como NULL y no como "": una cadena vacía en una columna de
+  // Enlazar o quitar la cuenta es del admin de RR. HH., no del gerente: es lo que dice de
+  // quien es este expediente. Lo para el trigger de la 106 igual que aqui; esto solo
+  // convierte un error de Postgres en una frase.
+  if ("profile_id" in patch && yo.role !== "admin") {
+    return { ok: false, message: "Only an HR admin can link an employee file to an account." };
+  }
+  if (patch.ringcentral_ext !== undefined && !extensionValida(patch.ringcentral_ext)) {
+    return { ok: false, message: "A RingCentral extension is 2 to 6 digits." };
+  }
+
+  // Las fechas vacias se guardan como NULL y no como "": una cadena vacia en una columna de
   // fecha la rechaza Postgres, y el formulario manda "" en cuanto alguien borra el campo.
-  const limpio: Record<string, unknown> = { id: employeeId, updated_at: new Date().toISOString(), updated_by: yo.userId };
+  const limpio: Record<string, unknown> = { id: fileId, updated_at: new Date().toISOString(), updated_by: yo.userId };
   for (const [k, v] of Object.entries(patch)) limpio[k] = v === "" ? null : v;
+  if (patch.ringcentral_ext !== undefined) limpio.ringcentral_ext = limpiaExtension(patch.ringcentral_ext);
 
   const { error } = await supabase.schema("recruiting").from("employee_files").upsert(limpio);
   if (error) return { ok: false, message: error.message };
   return { ok: true };
+}
+
+// ============================================================
+// La cuenta: se apaga, no se borra (D-NEXT)
+//
+// Hasta hoy la unica baja era `/api/delete-user`, que borra la cuenta de Auth y con ella
+// el perfil, y mientras el expediente colgaba de el, tambien el expediente. O sea que dar
+// de baja a alguien borraba justo lo que RR. HH. necesita conservar.
+//
+// Aqui no se borra nada: se pone la fecha de salida y se deshabilita la cuenta. El
+// expediente CONSERVA su `profile_id`, a proposito, para que la pregunta "tenia cuenta?"
+// siga teniendo respuesta despues de que la persona se vaya.
+//
+// `delete-user` no se toca: sigue existiendo para lo que es, borrar de verdad.
+// ============================================================
+
+/** Un ban sin fecha practica de vuelta. Auth no tiene "deshabilitado" como estado, asi
+ *  que un ban largo es la forma que hay; `none` es lo que lo levanta. */
+const BAN_INDEFINIDO = "876000h"; // ~100 anos
+
+async function comoAdminDeHr(): Promise<
+  { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; userId: string } | { ok: false; message: string }
+> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo) return { ok: false, message: "Not signed in." };
+  // Apagar una cuenta es mas que editar una ficha, asi que pide el mismo tramo que
+  // enlazarla: el admin de RR. HH. Y es el rol del modulo, no `profiles.role` (D-053/D-057).
+  if (yo.role !== "admin") return { ok: false, message: "Only an HR admin can deactivate or reactivate someone." };
+  return { ok: true, supabase, userId: yo.userId };
+}
+
+/** Da de baja: fecha de salida en el expediente y cuenta deshabilitada, si tiene. */
+export async function deactivateEmployee(
+  fileId: string,
+  dateLeft?: string | null,
+): Promise<{ ok: boolean; message?: string }> {
+  const acceso = await comoAdminDeHr();
+  if (!acceso.ok) return acceso;
+  const { supabase, userId } = acceso;
+
+  const { data: file, error: leer } = await supabase
+    .schema("recruiting").from("employee_files").select("id, profile_id").eq("id", fileId).maybeSingle();
+  if (leer) return { ok: false, message: leer.message };
+  if (!file) return { ok: false, message: "No such employee file." };
+  if (file.profile_id === userId) return { ok: false, message: "You can't deactivate your own account." };
+
+  // La fecha primero: si el ban falla, la baja queda registrada y se puede reintentar. Al
+  // reves, cuenta apagada y expediente sin fecha, nadie sabria por que esa persona no entra.
+  const { error } = await supabase.schema("recruiting").from("employee_files")
+    .update({ ...parcheBaja(dateLeft), updated_at: new Date().toISOString(), updated_by: userId })
+    .eq("id", fileId);
+  if (error) return { ok: false, message: error.message };
+
+  if (!file.profile_id) return { ok: true };
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "Marked as left, but the account could not be disabled: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  const { error: banError } = await admin.auth.admin.updateUserById(file.profile_id as string, { ban_duration: BAN_INDEFINIDO });
+  if (banError) return { ok: false, message: `Marked as left, but the account could not be disabled: ${banError.message}` };
+  return { ok: true };
+}
+
+/** Lo contrario: se borra la fecha y la cuenta vuelve a entrar. */
+export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean; message?: string }> {
+  const acceso = await comoAdminDeHr();
+  if (!acceso.ok) return acceso;
+  const { supabase, userId } = acceso;
+
+  const { data: file, error: leer } = await supabase
+    .schema("recruiting").from("employee_files").select("id, profile_id").eq("id", fileId).maybeSingle();
+  if (leer) return { ok: false, message: leer.message };
+  if (!file) return { ok: false, message: "No such employee file." };
+
+  const { error } = await supabase.schema("recruiting").from("employee_files")
+    .update({ ...parcheAlta(), updated_at: new Date().toISOString(), updated_by: userId })
+    .eq("id", fileId);
+  if (error) return { ok: false, message: error.message };
+
+  if (!file.profile_id) return { ok: true };
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "Marked as active, but the account could not be re-enabled: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  const { error: banError } = await admin.auth.admin.updateUserById(file.profile_id as string, { ban_duration: "none" });
+  if (banError) return { ok: false, message: `Marked as active, but the account could not be re-enabled: ${banError.message}` };
+  return { ok: true };
+}
+
+/**
+ * Lo que Auth sabe de estas cuentas: si existen, como entran, cuando entraron por ultima
+ * vez y si estan deshabilitadas.
+ *
+ * NADA de esto se guarda en el expediente, y esa es la decision. Copiarlo seria mentir en
+ * cuanto alguien iniciara sesion: "ultimo acceso" envejece solo, y "deshabilitada" la puede
+ * cambiar cualquiera desde el panel de Supabase sin pasar por aqui.
+ */
+export async function accountFactsFor(profileIds: string[]): Promise<
+  { ok: true; facts: HechosDeCuenta[] } | { ok: false; message: string }
+> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+
+  const ids = [...new Set(profileIds.filter(Boolean))];
+  if (ids.length === 0) return { ok: true, facts: [] };
+
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "Server not configured: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+
+  const facts = await Promise.all(ids.map(async (id): Promise<HechosDeCuenta> => {
+    const { data } = await admin.auth.admin.getUserById(id);
+    const u = data?.user;
+    if (!u) return { profile_id: id, existe: false, acceso: null, last_sign_in_at: null, deshabilitada: false };
+    const email = u.email ?? "";
+    // `banned_until` trae una fecha lejana cuando la cuenta esta apagada. Se compara con
+    // ahora en vez de mirar solo si existe: un ban ya caducado no deshabilita nada.
+    const hasta = (u as { banned_until?: string }).banned_until;
+    return {
+      profile_id: id,
+      existe: true,
+      acceso: email ? (isSyntheticEmail(email) ? "usuario" : "correo") : null,
+      last_sign_in_at: u.last_sign_in_at ?? null,
+      deshabilitada: !!hasta && new Date(hasta).getTime() > Date.now(),
+    };
+  }));
+  return { ok: true, facts };
 }
 
 /** Añade o actualiza un documento. Sin `id` es alta; con `id`, corrección. */
