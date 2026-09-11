@@ -10,8 +10,17 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
  * verdad; esto es lo que por fin lo usa.
  *
  * La regla, en una frase: **el dueño lo ve todo; un gerente ve su tienda más las que se le
- * hayan concedido; un gerente sin tienda ve todo** (no tener tienda es no estar acotado, no
- * estar acotado a nada — lo contrario dejaría a alguien sin ver a nadie por un campo vacío).
+ * hayan concedido; un gerente sin tienda NO VE A NADIE**.
+ *
+ * **Esa última mitad la decidió D-127 al revés, y D-NEXT la invierte.** D-127 lo escribió como
+ * el fallo fácil de evitar: acotar a una lista vacía dejaría a alguien sin cuadrilla y
+ * «parecería que la app está rota, cuando lo que falta es configurarle la tienda». El motivo
+ * era bueno; la salida, no. Un campo vacío ampliaba el alcance, que es la puerta abierta al
+ * lado de la que cerró D-236.
+ *
+ * La objeción de D-127 se atiende por otro lado: `clockinManagerCtx` no le deja entrar y le
+ * dice POR QUÉ, así que ya no parece una app rota. La regla de la familia manda:
+ * **la falta de un dato acota, nunca amplía.**
  */
 
 export type StoreScope = {
@@ -23,14 +32,28 @@ export type StoreScope = {
   ids: string[] | null;
 };
 
-/** Las tiendas que ve alguien: null = todas. */
+/**
+ * Una tienda que no existe, para acotar a NADIE sin depender de una lista vacía.
+ *
+ * `\`.in("store_id", [])\`` no es de fiar: PostgREST puede tratarlo como «sin filtro», que es
+ * justo lo contrario de lo que se quiere, y este mismo fichero ya lleva el mismo truco para
+ * los ids de empleado (`NO_MATCH`, abajo, con su comentario). Una lista de un elemento
+ * imposible sí es fiable: el `.in` se aplica y no encaja con nada.
+ */
+export const NINGUNA_TIENDA = ["00000000-0000-0000-0000-000000000000"];
+
+/** Las tiendas que ve alguien: null = todas, `NINGUNA_TIENDA` = ninguna. */
 export function visibleStores(
   role: string,
   storeId: string | null,
   extra: string[] | null | undefined,
 ): string[] | null {
   if (role !== "manager") return null;      // el dueño, y cualquier otro nivel, no se acota
-  if (!storeId) return null;                // gerente sin tienda: sin acotar, como siempre
+  // Gerente sin tienda: NO VE A NADIE (D-NEXT). Antes devolvía null —«sin acotar»— y eso le
+  // enseñaba la compañía entera en las tres pantallas de fichaje y le autorizaba cualquier
+  // acción en `canManageEmployee`. Devolver una tienda imposible en vez de una lista vacía
+  // es lo que hace que los siete sitios que llaman aquí acoten sin tocar ninguno.
+  if (!storeId) return NINGUNA_TIENDA;
   const todas = [storeId, ...(extra ?? [])].filter(Boolean);
   return [...new Set(todas)];
 }

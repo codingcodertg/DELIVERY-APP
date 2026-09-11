@@ -90,5 +90,17 @@ export async function clockinManagerCtx(): Promise<ClockinCtx> {
     extra_store_ids: viaHubAdmin ? [] : ((mine?.extra_store_ids as string[] | undefined) ?? []),
   };
 
+  // Un gerente sin tienda no ve a nadie (D-NEXT), y tiene que ENTERARSE de por qué: una lista
+  // vacía sin explicación se lee como «no hay nadie fichando», no como «te falta un dato».
+  // Va aquí y no en cada pantalla porque este ctx es la puerta de todas las de gerente —
+  // horarios, informes, excepciones, fotos, ausencias—, así que la razón se da una vez.
+  // Un dueño no pasa por aquí (`effectiveRole` es "owner", con o sin tienda).
+  if (effectiveRole === "manager" && !me.store_id) {
+    return {
+      ok: false,
+      message: "This manager has no store assigned, so there is no crew to show. Ask an owner to set one.",
+    };
+  }
+
   return { ok: true, supabase, user, companyId, role: effectiveRole, storeId: me.store_id, me, viaHubAdmin };
 }

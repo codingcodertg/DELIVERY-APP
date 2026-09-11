@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { visibleStores } from "./scope";
+import { NINGUNA_TIENDA, visibleStores } from "./scope";
 
 // El cuarto caso de la familia de D-234/D-235, y el primero que falla ABRIENDO: el export
 // de informes leía el perfil DOS veces —una para el rol, validada, y otra para la tienda,
@@ -32,11 +32,12 @@ describe("visibleStores no cambia: el null es del dueño", () => {
     expect(visibleStores("manager", "t1", ["t2"])).toEqual(["t1", "t2"]);
   });
 
-  it("un gerente sin tienda devuelve null, que es «sin acotar» — por eso la ruta lo para", () => {
-    // Esta es la línea que hacía peligroso el fallo de lectura, y sigue igual a propósito:
-    // cambiarla afectaría a los otros cuatro sitios que la llaman. Lo que cambia es que
-    // el export ya no deja que ese null se convierta en un informe de toda la compañía.
-    expect(visibleStores("manager", null, ["t2"])).toBeNull();
+  it("un gerente sin tienda ya no se acota a «todo», sino a nada (D-NEXT)", () => {
+    // Cuando se escribió esta prueba, `visibleStores` devolvía null —«sin acotar»— y el
+    // export lo paraba con un 403 porque era la única puerta que se podía cerrar sin mover
+    // otras tres pantallas. Ahora la regla vive en el helper y el 403 es el cinturón.
+    expect(visibleStores("manager", null, ["t2"])).not.toBeNull();
+    expect(visibleStores("manager", null, ["t2"])).toEqual(NINGUNA_TIENDA);
   });
 });
 

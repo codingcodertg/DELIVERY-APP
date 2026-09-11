@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { visibleStores } from "./scope";
+import { NINGUNA_TIENDA, visibleStores } from "./scope";
 
 // D-127. Esta regla existía desde hacía meses y NUNCA se aplicaba: la condición era
 // `role === "manager"` y `clockin.profiles` solo emitía "owner" o "employee", así que todo el
@@ -31,10 +31,15 @@ describe("visibleStores", () => {
     expect(visibleStores("manager", A, [A, B])).toEqual([A, B]);
   });
 
-  it("un gerente SIN tienda no se queda sin ver a nadie", () => {
-    // Es el fallo fácil: acotar a una lista vacía dejaría a la persona sin cuadrilla y
-    // parecería que la app está rota, cuando lo que falta es configurarle la tienda.
-    expect(visibleStores("manager", null, [])).toBeNull();
+  it("un gerente SIN tienda no ve a nadie — al revés que en D-127", () => {
+    // D-127 decidió lo contrario: «no se queda sin ver a nadie», porque una lista vacía
+    // parecería que la app está rota cuando lo que falta es configurarle la tienda. El
+    // motivo era bueno y se atiende de otra forma (D-NEXT): `clockinManagerCtx` le dice
+    // por qué no ve nada. Lo que no puede es que un campo vacío AMPLÍE el alcance.
+    expect(visibleStores("manager", null, [])).toEqual(NINGUNA_TIENDA);
+    // Y no es una lista vacía a propósito: `.in(col, [])` puede leerse como «sin filtro»,
+    // que sería otra vez lo contrario de lo que se quiere.
+    expect(visibleStores("manager", null, [])).toHaveLength(1);
   });
 
   it("una lista extra ausente se trata como vacía", () => {
