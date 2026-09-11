@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { driverNames, stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { MapView, type MapPoint, type MapLine } from "@/components/MapView";
-import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, shiftDateISO, todayISO } from "@/lib/utils";
+import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { assignmentWarnings, autoAssign, recommendDriver, type AssignWarning } from "@/lib/dispatch";
@@ -17,7 +17,7 @@ const UNASSIGNED_COLOR = "#6b7686";
 const DEFAULT_CAPACITY = 12;
 
 export default function MapPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, pushNotifs, ready, driverLocations } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, pushNotifs, ready, driverLocations, realRole } = useData();
   const { lang, t } = usePrefs();
   const [date, setDate] = useState(todayISO());
   const [open, setOpen] = useState<Delivery | null>(null);
@@ -46,9 +46,17 @@ export default function MapPage() {
   // view never opens the order detail modal for sales, even for their own
   // orders — clicking a pin or row is purely visual here; they still edit
   // their orders from the Orders page as usual.
+  // La ventana también aquí (D-NEXT): esta pantalla es un día de pedidos que un rol
+  // no exento puede abrir, y su selector de fecha llegaba hasta donde uno quisiera.
+  // Se acota el SELECTOR además de la lista: filtrar solo la lista dejaría un día
+  // vacío sin explicación, y el `min` del campo dice por qué sin escribir un aviso.
+  const veTodoElHistorial = seesAllHistory(realRole);
+  const pisoFecha = retentionFloorISO();
+  const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
+
   const dayOrders = useMemo(() => {
-    return deliveries.filter((d) => d.delivery_date === date && d.stage !== "canceled");
-  }, [deliveries, date]);
+    return deliveries.filter((d) => d.delivery_date === fecha && d.stage !== "canceled");
+  }, [deliveries, fecha]);
 
   // Unassigned orders that have a delivery point — the ones we auto-route.
   const unassignedOrders = useMemo(
@@ -355,8 +363,8 @@ export default function MapPage() {
         <h2>{t("Delivery Map", "Mapa de Entregas")} <span className="count-tag">{points.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div className="viewtoggle">
-            <button className="vt" onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
+            <button className="vt" onClick={() => setDate((d) => { const p = shiftDateISO(d, -1); return veTodoElHistorial || p >= pisoFecha ? p : d; })} title={t("Previous day", "Día anterior")}>◀</button>
+            <input type="date" value={fecha} min={veTodoElHistorial ? undefined : pisoFecha} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
             <button className="vt" onClick={() => setDate((d) => shiftDateISO(d, 1))} title={t("Next day", "Día siguiente")}>▶</button>
           </div>
           {date !== todayISO() && (

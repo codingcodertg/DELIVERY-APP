@@ -13113,3 +13113,132 @@ alguien la mide.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1595 pasados | 3 saltados**
 (main a4f802e: 1582 | 3; los +13 son `clockin/centinela.test.ts`).
+
+## D-NEXT · La ventana de ayer-hoy-futuro es para todos menos admin y logística
+
+**Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño, literal: *«in deliveries app the same rule that you can only see
+yesterday today and future applies to everyone except admin and logistic manager»*.
+
+### La ventana ya existía; lo que no existía era quién queda fuera
+
+`withinRetention` (`utils.ts:357`, con `RETENTION_DAYS_BACK = 1`) ya dice lo mismo que el dueño describe: ayer,
+hoy y todo lo futuro, y los pedidos sin fecha siempre visibles. Lo que no estaba escrito en
+ningún sitio era **a quién se le aplica**. Estaba en tres pantallas, de tres formas distintas:
+
+| Pantalla | Cómo preguntaba |
+|---|---|
+| Tablero | `adminAllAccess` **y además** una lista `nearTerm` de tres roles (`sales`, `driver`, `warehouse`) |
+| Chofer | `adminAllAccess` |
+| Almacén | `realRole !== "admin"` |
+
+**Y así fue como `logistics` quedó fuera por omisión y no por decisión.** Nadie decidió que un
+gerente de logística viera el historial entero en el tablero: simplemente no estaba en la lista
+de los que se filtran. Lo mismo, al revés, con `manager` y `accounting`, que tampoco estaban y
+por eso veían todo. Tres condiciones para una pregunta es cómo se cuela un rol.
+
+Ahora la pregunta se escribe **una vez**: `seesAllHistory(role)`, que devuelve `true` solo para
+`admin` y `logistics`. Hay una prueba que **recorre `ROLE_INFO`** en vez de repetir la lista, así
+que un rol nuevo entra en la ventana por defecto —el lado seguro— y para dejarlo exento hay que
+decirlo a propósito. Que es exactamente lo que no pasó con logística.
+
+### Se compara el rol REAL, no el de «ver como»
+
+Un admin previsualizando a un vendedor sigue viendo todo. No es nuevo: almacén ya usaba
+`realRole` y el tablero también. Lo que cambia es que ahora las tres lo hacen igual y hay una
+prueba que lo fija, porque con `me.role` la previsualización se habría acotado sola y habría
+parecido un fallo de la app.
+
+### Qué hace cada pantalla, y por qué
+
+La regla para decidir: **una lista de pedidos que un rol no exento pueda abrir lleva la ventana;
+un agregado o una pantalla de solo admin/logística, no.**
+
+| Pantalla | Quién entra | Qué es | Ventana |
+|---|---|---|---|
+| **Tablero** (`page.tsx`) | admin, manager, sales, logistics, accounting | lista de pedidos | **Sí** — y ahora para manager y accounting también |
+| **Chofer** | driver, admin | lista de pedidos | **Sí**, ya la tenía |
+| **Almacén** | warehouse, admin | lista de pedidos | **Sí**, ya la tenía |
+| **Mapa** | admin, manager, sales, logistics | los pedidos de **un día**, con selector | **Sí** (nuevo): se acota el selector |
+| **Recorrido** | admin, manager, logistics | el rastro GPS de un día + sus entregas | **Sí** (nuevo): se acota el selector |
+| **Cuentas** | admin, manager | ficha por cliente: totales, entregados, última fecha | **No** — ver abajo |
+| **Panel** | manager, admin | KPIs y gráficas | **No**: agregado |
+| **Auditoría** | manager, admin | registro de eventos, no de pedidos | **No** |
+| **Resumen**, **Datos** | admin | — | **No**: solo admin, ya exento |
+| **Gestor de rutas** | logistics, admin | — | **No**: los dos exentos |
+| **Mi ruta** | driver | sus paradas de hoy **+ las atrasadas** | **No**, y es deliberado — ver abajo |
+
+**Cuentas es el caso discutible, y lo dejo fuera con su razón. Escrito con el rol delante,
+porque no es abstracto: un `manager` ve Cuentas** (`constants.ts:92`, `roles: ["admin",
+"manager"]`) **y un `manager` NO está exento.** O sea que a partir de esta rama tiene ventana de
+ayer-hoy-futuro en el tablero y **sigue viendo el historial completo por cliente en Cuentas**.
+Es una puerta lateral de la regla y hay que llamarla por su nombre, o quien lea «Cuentas queda
+fuera» no sabrá que existe.
+
+Se deja así porque la alternativa es peor. Es una lista de pedidos que un gerente puede abrir,
+así que por la letra de la regla llevaría ventana. Pero la pantalla es un
+libro por cliente: sus columnas son **total**, **entregados**, **atrasados** y **última fecha**,
+o sea historia agregada. Acotarla a dos días no la haría más estricta, la haría **falsa**: los
+totales dirían 2 donde el cliente tiene 40. Y acotar solo el desglose sin los totales sería peor,
+porque los números no cuadrarían con las filas. Si el dueño quiere que un gerente no vea ahí el
+historial, lo que hay que cambiar es qué pantalla es, no ponerle un filtro por fecha encima.
+
+**Y una observación de la auditoría que NO es de esta rama, apuntada porque hoy va de quién ve
+qué:** la página de Cuentas bloquea a `sales`, `driver` y `warehouse` (`accounts/page.tsx:87`),
+pero la pestaña solo la dan `admin` y `manager` (`constants.ts:92`). `logistics` y `accounting`
+no tienen pestaña **y tampoco están bloqueados por la página**, y ni el middleware ni el layout
+de `(app)` filtran rutas por rol. Por URL directa entrarían. **No está probado** —ninguno de los
+dos abre producción— y no se toca aquí: es un encargo propio, y para `logistics` ni siquiera
+cambiaría nada, porque está exento.
+
+**Mi ruta no lleva ventana a propósito**: filtra a hoy **más lo atrasado** (`isOverdue`), y una
+parada que se pasó de fecha sigue siendo del chofer hasta que la cierra. Es la misma excepción
+que ya estaba escrita ahí y no la toca esta rama.
+
+### Los dos selectores: se acota el selector, no solo la lista
+
+Mapa y Recorrido no filtran pedido a pedido: enseñan **un día** elegido con un `<input
+type="date">` que llegaba hasta donde uno quisiera. Se acota el propio selector con `min`, y
+además la fecha efectiva se limita en el código: **si solo se filtrara la lista, el usuario
+elegiría el martes pasado y vería un día vacío sin saber por qué** — que es la pantalla muda que
+ya nos costó una decisión entera (D-237). Con `min`, el navegador dice que no y no hace falta
+escribir un aviso.
+
+Y las consultas de esas dos pantallas usan la **fecha acotada**, no la del estado: si una
+filtrara por una y el selector por la otra, un estado viejo enseñaría un día que el selector ya
+no deja elegir. Hay prueba de las dos mitades.
+
+**Recorrido es la decisión más discutible de la rama y la dejo señalada.** Es una herramienta de
+**revisión** —«a ver qué pasó el martes pasado»— y acotarla a ayer se la quita a un gerente. Se
+acota igual porque la frase del dueño no distingue pantallas y porque quien planifica rutas
+—admin y logística— la conserva entera. Si prefiere que Recorrido quede exenta, es quitar dos
+líneas.
+
+### Lo que NO se tocó
+
+- **`withinRetention` y `RETENTION_DAYS_BACK`**: la ventana es la misma, solo cambia a quién se
+  le aplica.
+- **El piso de búsqueda de ventas** (30 días, `salesSearchFloor`): es otra regla y sigue igual.
+- **La búsqueda por factura** sigue llegando al historial en las tres listas, como ya decían sus
+  comentarios. La ventana es de la lista, no del buscador.
+- **Nada en la base**: no hay RLS por fecha en los pedidos y esto sigue siendo una regla de
+  pantalla. Quien llame a PostgREST por su cuenta ve lo que su RLS le deje, igual que antes.
+- **`adminAllAccess` en Chofer**, que decide otra cosa —ver los pedidos de otros choferes— y se
+  queda como estaba. En el tablero, en cambio, **la bandera se renombró** a `veTodoElHistorial`:
+  con logística dentro, «adminAllAccess» habría sido un nombre que miente, y un nombre que miente
+  es lo que hace falsa la siguiente lectura.
+
+### Lo no verificado
+
+**Nadie lo ha visto en un navegador.** Lo que hay son pruebas sobre la función y sobre la forma
+de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abra:
+
+1. Con una cuenta **manager**: que el tablero enseñe solo desde ayer, y que buscando una factura
+   vieja siga apareciendo.
+2. En **Mapa** y **Recorrido** con esa misma cuenta: que el calendario no deje ir más atrás de
+   ayer.
+3. Con **logística**: que no cambie nada — es el rol que esta rama saca de la ventana, y el
+   único cuyo comportamiento **se amplía** en vez de estrecharse.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1614 pasados | 3 saltados**
+(main 3ad25a3: 1595 | 3; los +19 son `history-window.test.ts`).

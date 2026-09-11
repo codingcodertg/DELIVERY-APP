@@ -345,7 +345,8 @@ export const RETENTION_DAYS_BACK = 1;
  * a driver wanting to see what's coming had no way to, and a warehouse
  * preparing ahead couldn't either.
  *
- * Office roles (admin, manager, logistics, accounting) are never filtered.
+ * QUIÉN queda fuera de la ventana lo dice `seesAllHistory` (abajo), no una lista
+ * escrita en cada pantalla.
  *
  * Undated orders always stay visible — they're still being scheduled, and
  * hiding one nobody has dated yet would strand it.
@@ -360,6 +361,35 @@ export function withinRetention(
 ): boolean {
   if (!d.delivery_date) return true;            // undated — still being scheduled
   return d.delivery_date.slice(0, 10) >= shiftDateISO(today, -RETENTION_DAYS_BACK);
+}
+
+/**
+ * Quién ve el historial entero, y por tanto queda fuera de la ventana: **solo el
+ * admin y el gerente de logística** (D-NEXT).
+ *
+ * El dueño: *«the same rule that you can only see yesterday today and future
+ * applies to everyone except admin and logistic manager»*.
+ *
+ * Antes esto no existía como regla, sino como tres condiciones distintas escritas
+ * en tres pantallas: `adminAllAccess` en el tablero, `realRole !== "admin"` en
+ * almacén y una lista `nearTerm` de tres roles. **Y así fue como `logistics` quedó
+ * fuera por omisión y no por decisión**: nadie decidió que un gerente de logística
+ * viera todo el historial en el tablero; simplemente no estaba en la lista de los
+ * que se filtraban. Una regla escrita una vez no tiene ese fallo.
+ *
+ * Se compara contra el rol REAL, no el de «ver como»: un admin previsualizando a
+ * un vendedor sigue viendo todo, que es lo que ya hacía almacén.
+ */
+export const HISTORY_EXEMPT_ROLES = ["admin", "logistics"] as const;
+
+export function seesAllHistory(role: string | null | undefined): boolean {
+  return (HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "");
+}
+
+/** El día más antiguo que ve quien no está exento: ayer. Para los selectores de
+ *  fecha, que si no dejarían escribir una fecha anterior y enseñar el día vacío. */
+export function retentionFloorISO(today: string = todayISO()): string {
+  return shiftDateISO(today, -RETENTION_DAYS_BACK);
 }
 
 /** Human "2 h 5 min" from a millisecond span (drops zero parts). "—" if invalid. */

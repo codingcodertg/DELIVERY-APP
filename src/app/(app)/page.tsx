@@ -10,7 +10,7 @@ import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/Orders
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
-import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, todayISO, withinRetention } from "@/lib/utils";
+import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
@@ -27,7 +27,11 @@ export default function OrdersPage() {
   const { me, users, deliveries, settings, ready, teaching, realRole, updateDelivery, setStage, notify, ensureDeliveriesSince } = useData();
   // An admin previewing a role (view-as) sees EVERY order — none of the
   // role-scoped/date-window restrictions apply, so they can test with all data.
-  const adminAllAccess = realRole === "admin";
+  // Quién ve el historial entero: admin y gerente de logística (D-NEXT). Antes era
+  // `realRole === "admin"` aquí y otra condición distinta en cada pantalla. Cambia
+  // también el NOMBRE: `veTodoElHistorial` ya no diría la verdad con logística dentro,
+  // y un nombre que miente es lo que hace que la siguiente lectura sea falsa.
+  const veTodoElHistorial = seesAllHistory(realRole);
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -63,7 +67,7 @@ export default function OrdersPage() {
   // G-16: the provider keeps a window of orders; an admin typing a search may be looking for an
   // old one, so the first non-empty search asks for the whole history (once; idempotent). Sales
   // are capped at 30 days below anyway, well inside the window.
-  useEffect(() => { if (adminAllAccess && q.trim()) void ensureDeliveriesSince(null); }, [q, adminAllAccess, ensureDeliveriesSince]);
+  useEffect(() => { if (veTodoElHistorial && q.trim()) void ensureDeliveriesSince(null); }, [q, veTodoElHistorial, ensureDeliveriesSince]);
   const [view, setView] = useState<"table" | "board">("table");
   const [open, setOpen] = useState<Delivery | null>(null);
   const [creating, setCreating] = useState(false);
@@ -159,7 +163,7 @@ export default function OrdersPage() {
     return deliveries.filter((d) => {
       // Teaching mode is a fully open sandbox — every user sees every practice
       // order, so none of the role-scoped restrictions below apply.
-      if (!teaching && !adminAllAccess) {
+      if (!teaching && !veTodoElHistorial) {
         // Sales only ever sees their own orders — a hard boundary, not
         // relaxed by search, unlike the date-window restriction below.
         // "Own" includes orders an office/admin/driver assigned to them.
@@ -175,20 +179,20 @@ export default function OrdersPage() {
         // there, reached by searching (an invoice #) rather than scrolled to,
         // so the list stays on active work.
         //
-        // This used to name sales only, which is why a driver's list still
-        // reached back weeks: the driver page filtered, this one didn't, and
-        // this is the one they land on.
-        const nearTerm = me?.role === "sales" || me?.role === "driver" || me?.role === "warehouse";
-        if (!teaching && !adminAllAccess && nearTerm && !withinRetention(d)) return false;
+        // Aquí había una lista de tres roles (`nearTerm`: sales, driver, warehouse) y
+        // por eso `manager` y `accounting` veían el historial entero: no estaban en
+        // ella. La ventana ya no pregunta quién trabaja «el corto plazo», sino quién
+        // NO está exento — que es una sola pregunta y se contesta en un sitio (D-NEXT).
+        if (!teaching && !veTodoElHistorial && !withinRetention(d)) return false;
         return true;
       }
       // Sales can only search 30 days back; older orders stay out of reach.
-      if (!teaching && !adminAllAccess && me?.role === "sales" && d.delivery_date && d.delivery_date < salesSearchFloor) return false;
+      if (!teaching && !veTodoElHistorial && me?.role === "sales" && d.delivery_date && d.delivery_date < salesSearchFloor) return false;
       const hay = [d.order_code, d.order_no, d.account, d.so_num, d.po2, d.invoice_num, d.store, d.delivery_address, d.contact, d.assigned_driver, d.delivery_phone]
         .map((x) => String(x ?? "").toLowerCase()).join(" ");
       return hay.includes(needle);
     });
-  }, [deliveries, q, me?.id, me?.role, teaching, adminAllAccess, salesSearchFloor]);
+  }, [deliveries, q, me?.id, me?.role, teaching, veTodoElHistorial, salesSearchFloor]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: visible.length };
