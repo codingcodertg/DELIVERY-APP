@@ -3,7 +3,7 @@
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
-import { storeScope } from "@/lib/clockin/scope";
+import { NO_MATCH, storeScope } from "@/lib/clockin/scope";
 
 export type TimeOffResult = { ok: true } | { ok: false; message: string };
 
@@ -122,9 +122,14 @@ export async function getPendingForInbox(): Promise<
     .select("id, employee_id, type, reason, note, created_at, left_at")
     .eq("resolved", false)
     .order("created_at", { ascending: false });
+  // `ids` null = sin acotar (el dueño). Pero una lista VACÍA no es «sin acotar»: es «nadie», y
+  // `.in(col, [])` puede leerse como sin filtro — que aquí enseñaría las ausencias y las
+  // excepciones pendientes de toda la compañía. El centinela es lo que ya hacían los otros
+  // cinco sitios de este módulo; este era el único olvido (D-NEXT).
   if (ids) {
-    offQ = offQ.in("employee_id", ids);
-    excQ = excQ.in("employee_id", ids);
+    const inIds = ids.length ? ids : NO_MATCH;
+    offQ = offQ.in("employee_id", inIds);
+    excQ = excQ.in("employee_id", inIds);
   }
 
   const [{ data: off }, { data: exc }, { data: people }] = await Promise.all([

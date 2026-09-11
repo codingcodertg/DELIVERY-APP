@@ -6,7 +6,7 @@ import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib
 import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
-import { visibleStores } from "@/lib/clockin/scope";
+import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { SIN_TIENDA } from "@/lib/clockin/managerCtx";
 import { shiftMinutes, payPeriodDates } from "@/lib/clockin/schedule";
 
@@ -307,8 +307,7 @@ export async function getPayrollPeriod(periodStart: string): Promise<
   if (me.role !== "owner") peopleQuery.neq("role", "owner");
   const { data: people } = await peopleQuery;
   const allowedIds = (people ?? []).map((p) => p.id as string);
-  const noneMatch = ["00000000-0000-0000-0000-000000000000"];
-  const inIds = allowedIds.length ? allowedIds : noneMatch;
+  const inIds = allowedIds.length ? allowedIds : NO_MATCH;
 
   // El tipo de trabajador vive en el OTRO esquema (timetracker.employee_settings): fichaje no
   // tiene ese concepto. Se pide aquí para poder marcar en el parte a quien cobra por lo

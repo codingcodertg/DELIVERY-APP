@@ -12994,3 +12994,85 @@ en vez de comprobarse, apoyándose en lo que ya decía el comentario de `NO_MATC
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1582 pasados | 3 saltados**
 (main 0b65f11: 1568 | 3; los +14 son `clockin/sin-tienda.test.ts`).
+
+## D-NEXT · El centinela que faltaba en un sitio, y el valor que estaba escrito en ocho
+
+**Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por:** lo último que quedaba de la familia D-234 → D-237, encontrado por la auditoría al
+barrer los filtros por lista de empleados.
+
+**Preventivo**, como los cuatro anteriores, y con el matiz que lo ordena en la cola: **es el más
+cercano a estar vivo de los cinco**. No pide ninguna condición rara — solo que el primer gerente
+que se cree tenga la tienda vacía, que es lo normal el día que se crea. Hoy hay **cero**
+`manager` en `clockin.profiles`, así que no hay nadie viendo de más.
+
+### Uno de seis, y por eso es fácil de defender
+
+`timeoff.ts:125` filtraba así:
+
+```ts
+if (ids) {
+  offQ = offQ.in("employee_id", ids);
+  excQ = excQ.in("employee_id", ids);
+}
+```
+
+`ids` nulo es «sin acotar», que es correcto para el dueño. Pero **`[]` no es «sin acotar», es
+«nadie»** — y `[]` es verdadero, así que entraba en el `if` y hacía `.in("employee_id", [])`, que
+PostgREST puede leer como sin filtro. Un gerente con tienda cuya tienda no tenga empleados habría
+visto **las ausencias y las excepciones pendientes de toda la compañía**.
+
+Lo que hace este caso distinto de los anteriores es que **el patrón correcto ya estaba en los
+otros cinco**: `clock.ts:539`, `reports.ts`, `schedule.ts:312`, `exceptions.ts:61` y
+`photos.ts:57` ya convertían la lista vacía en el centinela. No faltaba una idea; faltaba una
+línea, y se arregla copiando la del vecino.
+
+### El valor estaba escrito a mano en ocho sitios
+
+Al ir a importarlo apareció lo de al lado: el uuid de ceros estaba **literal en seis** sitios
+—`clock.ts`, `reports.ts` (con su propio `noneMatch`), `schedule.ts`, el export de CSV, y **dos
+veces** en el de XLSX— más las **dos** definiciones de `scope.ts` (`NO_MATCH` y, desde D-237,
+`NINGUNA_TIENDA`). Ocho copias del mismo valor.
+
+El riesgo no es que alguien lo escriba mal —es un uuid de ceros— sino lo que pasaría si un día
+hubiera que cambiarlo: **los que no se enterasen no fallarían, filtrarían distinto**. Que es
+exactamente la clase de fallo que esta familia lleva cinco entradas persiguiendo.
+
+Ahora hay **una** constante, `NADIE`, y de ella cuelgan las dos listas. Una prueba exige que el
+literal no aparezca en ningún fichero de `src` fuera de esa definición, y que dentro de ella
+aparezca **una sola vez**.
+
+### La prueba recorre, no enumera
+
+Como las de las tres ramas anteriores: busca en todo `src` cualquier `.in("employee_id", …)` con
+una variable, y a cada uno le exige el centinela a la vista. No sabe cuáles son los seis; los
+encuentra. Y lleva su control —si el recorrido da menos de cinco ficheros, falla— porque un
+canario que deja de ver ficheros pasa en verde sin comprobar nada.
+
+### Lo no verificado
+
+**Nada se ha ejecutado contra la base.** En particular, y es el mismo hueco que en D-237: **no
+está medido qué hace este PostgREST con `.in(col, [])`**. Se evita en vez de comprobarse,
+apoyándose en el comentario que ya traía `NO_MATCH` desde antes de esta familia — «so an empty
+allow-list matches nothing (rather than being dropped and matching everything)». Si algún día
+alguien lo mide y resulta que aquí filtra bien, este trabajo seguiría estando bien hecho por otra
+razón: seis sitios haciendo lo mismo de dos formas distintas es peor que seis haciéndolo igual.
+
+Y lo que hay que mirar cuando exista el primer gerente: que con la tienda vacía **no vea
+ninguna** ausencia ni excepción pendiente, en vez de las de toda la compañía.
+
+### Con esta, la familia queda cerrada
+
+| Entrada | Dónde | Qué producía descartar/ignorar el dato |
+|---|---|---|
+| D-234 | los siete puntos de entrada | bucle de redirecciones |
+| D-235 | `erp/auth.ts` | un rol equivocado, en silencio |
+| D-236 | el export de informes | el informe de toda la compañía |
+| D-237 | `visibleStores` y las pantallas de gerente | la compañía entera en pantalla |
+| **D-NEXT** | `timeoff.ts` | las ausencias de toda la compañía |
+
+La frase que las explica todas sigue siendo la de D-236: **la falta de un dato tiene que acotar,
+nunca ampliar.**
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1595 pasados | 3 saltados**
+(main a4f802e: 1582 | 3; los +13 son `clockin/centinela.test.ts`).

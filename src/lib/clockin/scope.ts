@@ -23,6 +23,15 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
  * **la falta de un dato acota, nunca amplía.**
  */
 
+/**
+ * El id que no es de nadie: un uuid de ceros. Vive en UNA constante porque de él cuelgan las
+ * dos listas centinela de este fichero y los sitios que las usan (D-NEXT). Estaba escrito a
+ * mano en SEIS —`clock.ts`, `reports.ts`, `schedule.ts`, el export de CSV, y dos veces en el
+ * de XLSX— mas las dos definiciones de aqui: ocho copias del mismo valor son ocho sitios donde
+ * cambiarlo mal.
+ */
+export const NADIE = "00000000-0000-0000-0000-000000000000";
+
 export type StoreScope = {
   /** La tienda "principal", o null si no está acotado. Se conserva por compatibilidad. */
   scopeStore: string | null;
@@ -40,7 +49,7 @@ export type StoreScope = {
  * los ids de empleado (`NO_MATCH`, abajo, con su comentario). Una lista de un elemento
  * imposible sí es fiable: el `.in` se aplica y no encaja con nada.
  */
-export const NINGUNA_TIENDA = ["00000000-0000-0000-0000-000000000000"];
+export const NINGUNA_TIENDA = [NADIE];
 
 /** Las tiendas que ve alguien: null = todas, `NINGUNA_TIENDA` = ninguna. */
 export function visibleStores(
@@ -77,4 +86,4 @@ export async function storeScope(
 
 // Sentinel used with `.in("employee_id", ...)` so an empty allow-list matches
 // nothing (rather than being dropped and matching everything).
-export const NO_MATCH = ["00000000-0000-0000-0000-000000000000"];
+export const NO_MATCH = [NADIE];

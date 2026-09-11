@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { visibleStores } from "@/lib/clockin/scope";
+import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { createClient } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
@@ -89,12 +89,11 @@ export async function GET(req: Request) {
   const { data: people } = await peopleQuery;
   const allowedIds = (people ?? []).map((p) => p.id as string);
 
-  const emptyIds = ["00000000-0000-0000-0000-000000000000"];
   const [{ data: entryRows }, { data: lunchRows }, { data: approvals }] = await Promise.all([
     supabase
       .from("time_entries")
       .select("id, employee_id, clock_in_at, clock_out_at, lunch_minutes, status, manual, edit_note")
-      .in("employee_id", allowedIds.length ? allowedIds : emptyIds)
+      .in("employee_id", allowedIds.length ? allowedIds : NO_MATCH)
       .gte("clock_in_at", startUtc)
       .lt("clock_in_at", endUtc)
       .order("clock_in_at", { ascending: true }),
@@ -102,7 +101,7 @@ export async function GET(req: Request) {
       .from("exceptions")
       .select("time_entry_id, left_at, returned_at")
       .eq("reason", "lunch")
-      .in("employee_id", allowedIds.length ? allowedIds : emptyIds)
+      .in("employee_id", allowedIds.length ? allowedIds : NO_MATCH)
       .gte("left_at", startUtc)
       .lt("left_at", endUtc),
     supabase.from("timesheet_approvals").select("employee_id").eq("period_start", monday),
