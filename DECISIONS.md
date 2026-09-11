@@ -12781,6 +12781,27 @@ rol de menos, aquí serían datos de más.
 alcance de las tres pantallas de fichaje además del export. Es una decisión más ancha que este
 encargo. Lo que cambia es **quién deja que ese null se convierta en un informe**.
 
+**Y hay que decir en qué queda eso, porque no es un cierre completo.** Medido leyendo los cuatro:
+
+| Sitio | Con un gerente sin tienda |
+|---|---|
+| `clock.ts:534`, `reports.ts:287`, `schedule.ts` | `if (suyas)` falso → **toda la compañía** |
+| `mgrScope.ts:38` | `if (!suyas) return true` → **puede ver a cualquiera** |
+| `export` y `xlsx`, tras esta rama | **403** |
+
+O sea: **un gerente sin tienda ve el informe en pantalla y no lo puede exportar.** Es una
+incoherencia visible —el botón le niega lo que está mirando— y, sobre todo, significa que **el
+403 no cierra ningún agujero por sí solo**: los datos ya los tiene delante. Es una puerta
+cerrada al lado de una abierta.
+
+Así que conviene separar las dos cosas que hace esta rama:
+
+- **El arreglo de seguridad es quitar la segunda lectura.** Eso es lo que impedía que el acotado
+  se perdiera **por un error silencioso**, que era el fallo de verdad.
+- **El 403 al gerente sin tienda es una decisión de política**, y queda **a medias** hasta que se
+  aplique también a `reports.ts`, `clock.ts`, `schedule.ts` y `mgrScope.ts`. Escrito como «ahora
+  el export está acotado» parecería cerrado y nadie volvería.
+
 ### El gemelo también, y esto lo decidí yo
 
 `xlsx/route.ts` no tenía el fallo de las dos lecturas, pero **es el mismo botón en la misma
@@ -12815,12 +12836,28 @@ sin limpiarlo el identificador que se lee es el cierre del molde, no `me`.
 base, y ya no hay segunda lectura que hacer fallar. Lo que hay son pruebas sobre la forma del
 código y sobre `visibleStores`, que sí es pura.
 
-Y lo que hay que mirar cuando alguien lo use: **que ningún gerente se quede sin poder exportar
-por sorpresa**. Si en producción hay gerentes sin `store_id`, hoy exportan la compañía entera y
-mañana verán un 403 con su motivo. Eso es lo correcto —el informe que reciben ahora no es el
-suyo— pero es un cambio visible, y conviene que el dueño lo sepa antes de que alguien llame
-diciendo que «el export dejó de funcionar». **Cuántos son, no lo sé desde aquí**: se cuenta con
-`select count(*) from profiles where role = 'manager' and store_id is null`.
+**Cuántos gerentes sin tienda hay: cero.** Medido en producción por el orquestador, sobre
+`clockin.profiles`, que es la tabla que lee esta ruta:
+
+| Rol en fichaje | Cuántos |
+|---|---|
+| `owner` | 3 (los tres sin tienda, que es lo normal) |
+| `employee` | 8 |
+| `manager` | **0** |
+
+Así que el corte **no le cambia el informe a nadie hoy**: entra como regla, no como sorpresa.
+
+Un detalle de esa medición que vale la pena guardar, porque la consulta que yo había dejado
+escrita estaba mal acotada: esta ruta usa el cliente de fichaje
+(`@/lib/clockin/supabase/server`), así que su `from("profiles")` es **`clockin.profiles`**, no
+`public.profiles`. Son dos tablas con el mismo nombre corto y escalafones distintos
+—`owner`/`manager`/`employee` frente a `admin`/`manager`/`sales`…—, y contar en la de `public`
+habría dado un número que no dice nada de este export.
+
+**Y ese mismo cero es el número que importa para lo que queda abierto**: no mide solo a quién
+molesta el 403, mide **cuántas personas están viendo hoy la compañía entera** en las tres
+pantallas de fichaje que siguen tratando el `null` como «sin acotar». Hoy son cero; el día que se
+cree un gerente sin tienda, dejan de serlo.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1568 pasados | 3 saltados**
 (main 2b632c1: 1550 | 3; los +18 son `clockin/export-scope.test.ts`).
