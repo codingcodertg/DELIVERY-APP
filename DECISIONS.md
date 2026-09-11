@@ -12512,3 +12512,206 @@ caja suele ser ventas/oficina. Los export de Excel/PDF/CSV siguen admin-only.
 
 Usa `navigator.clipboard.writeText`; si el portapapeles no está disponible, avisa en vez de
 fallar en silencio.
+
+## D-NEXT · Los cimientos del sistema de puntos: un libro mayor, no un saldo
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
+`105_points_ledger.sql`**, que **la aplica el dueño a mano ANTES de fusionar esta rama**.
+**Pedido por:** el dueño. Puntos con dos públicos: los **empleados** suman por hacer las cosas
+bien —empezando por llegar puntual— y restan por hacerlas mal, y con suficientes puntos canjean
+un día libre pagado; los **clientes** suman subiendo fotos de sus proyectos con nuestros
+productos. Preguntado, eligió: los dos públicos, puntean **él y los gerentes**, y el empleado
+**solo ve su saldo**, no el detalle de las restas.
+
+Este es el **encargo 1 de cinco** y **no trae una sola pantalla**. Las otras cuatro —puntear a
+mano, la puntualidad automática, el canje y la subida del cliente— se apoyan aquí, así que lo
+único que importa de esta rama es que el modelo aguante las cuatro sin cambiarlo.
+
+### El saldo se suma; no existe como columna
+
+`public.point_events`: quién, cuánto, motivo, tipo, quién lo concedió, cuándo y una nota.
+**Ningún sitio guarda un total.** Un saldo guardado se desincroniza en la primera escritura que
+falle a medias, y cuando alguien pregunta *«¿por qué tengo 46 puntos?»* no hay respuesta. Un
+libro mayor siempre la tiene, y el canje de un día libre —que es dinero— va a necesitar esa
+respuesta.
+
+Hay una prueba que exige que **la migración no cree ninguna columna de saldo**. No es paranoia:
+la tentación de cachear el total llega en el encargo del canje, cuando haya que leerlo en cada
+pantalla.
+
+### Un apunte es de un empleado **o** de un cliente
+
+`employee_id` (a `profiles`) y `account` (el nombre de cuenta del pedido), con un `check` de
+exactamente uno de los dos. **Un cliente no tiene cuenta en la app** y no se la vamos a crear:
+su única credencial es el enlace privado de seguimiento de su pedido (`/track/[id]`,
+identificado por el id del pedido). Por eso el sujeto cliente es un texto y no una referencia.
+
+Dos tablas separadas habrían duplicado el canje y las reglas de escritura, que son las mismas.
+
+### Idempotencia de los automáticos, antes de que exista el automático
+
+Un evento `auto` lleva `source_key` —`punctual:<empleado>:<fecha>`— con **índice único
+parcial**, y un `check` que **rechaza un `auto` sin clave**: uno sin clave no se puede
+desduplicar, así que no entra. El trabajo diario que conceda la puntualidad se va a ejecutar dos
+veces algún día, y ese día no puede pagar dos veces.
+
+La puntualidad **no hay que inventarla**: `clockin.scheduled_shifts` (`072:119`) tiene el
+horario esperado y `todayAlerts` (`clockin/scorecard.ts:150-168`) ya calcula el retraso contra
+`start_time` más el margen. Este encargo solo deja la clave y la forma del evento; leer el
+horario es del encargo 2.
+
+### Quién escribe, y por qué lo dice la base
+
+- **Manual**: admin o gerente, **firmando con su propio id** (`granted_by = auth.uid()`), y
+  **nunca sobre sí mismo**. Quien puede darse puntos puede canjearse días libres pagados.
+- **Automático**: **ninguna política lo permite**. Solo entra por `service_role`, que salta la
+  RLS. Un cliente del navegador no puede fabricar un `auto` ni con la clave correcta.
+- **Nadie actualiza ni borra**, con **cierres distintos a propósito**: no hay política de
+  `update`/`delete` (así que `authenticated` no puede), y encima **no hay privilegio** —el
+  `grant` es `select, insert` y nada más—. Y por debajo de los dos, un **trigger** que levanta
+  excepción en `UPDATE` y `DELETE`, el único que también frena a `service_role`, porque
+  service_role salta la RLS pero no un trigger. Un libro mayor se corrige con un evento
+  contrario.
+- **Y `TRUNCATE`, que es la puerta que dejaría irrelevantes a las otras.** La primera versión de
+  esta migración no la cerraba, y lo encontró la auditoría. Un trigger `before update or delete`
+  **no se dispara con `TRUNCATE`**: en Postgres es otra operación, con su propio trigger, por
+  sentencia y no por fila. Y no vacía una fila, vacía **el libro entero, sin dejar rastro**. El
+  `revoke all` inicial se la quitaba a `anon` y `authenticated`, pero **`service_role` no
+  aparecía en ningún `revoke`** — justo el rol con el que corre casi todo lo del servidor aquí.
+  Ahora están las dos cosas: un trigger `before truncate … for each statement` sobre el mismo
+  guard, y `revoke truncate, update, delete … from service_role`.
+
+  **Y el privilegio no era teórico.** Yo lo dejé como «no medido, y no hace falta medirlo para
+  cerrar la puerta»; el orquestador fue a la base y lo midió: `has_table_privilege` dice
+  **TRUE para `authenticated` y para `service_role`** en las 12 tablas de `public`. La causa es
+  el reparto por defecto de `postgres` (`pg_default_acl`), que concede `arwdDxtm` —la `D` es
+  `TRUNCATE`— en **cada tabla nueva**. O sea que `point_events` **nace truncable para los dos**.
+
+  **Lo que sigue sin estar medido, y hay que decirlo igual: no hay camino conocido para
+  invocarlo desde un cliente.** PostgREST no expone `TRUNCATE`. Esto no se cierra porque la
+  puerta esté abierta hoy, sino por el argumento que ya escribió `081_revoke_anon.sql` para
+  `anon`: *«TRUNCATE no pasa por RLS… hoy no hay camino para invocarlo, pero es un permiso a una
+  función RPC de distancia de ser alcanzable, y no hay ninguna razón para que exista»*. Lo único
+  nuevo aquí es que ese razonamiento nunca se aplicó a `authenticated` ni a `service_role`.
+
+  El `revoke` a `service_role` se lleva además `update` y `delete`: la tabla es append-only
+  **para todos**, y service_role no es una excepción. `select` e `insert` se quedan, que son los
+  que necesitan las rutas del servidor y el trabajo diario de los automáticos.
+
+  Y el `comment on table` promete «append-only», así que la promesa tenía que ser cierta para
+  las cuatro operaciones y no para tres; hay una prueba que exige justo eso.
+
+  **Lo que NO entra en esta rama:** que las 89 tablas del proyecto nazcan truncables por
+  `authenticated` es un problema mucho más ancho que este encargo, y se cierra con un
+  `alter default privileges` que aquí sería alcance que nadie pidió. El orquestador lo saca como
+  encargo propio.
+
+### La regla más delicada: el empleado ve su saldo, no sus restas
+
+Es decisión del dueño y se hace cumplir **en la capa que sirve los datos**, no escondiéndolo en
+el cliente: una pantalla que filtra sigue bajando las filas al navegador, donde cualquiera las
+lee. Así que la política de lectura le deja ver **sus eventos positivos** y nada más.
+
+Pero el saldo **sí** tiene que contar las restas, o el empleado suma lo que ve y no le cuadra.
+De ahí que el saldo sea una **función** y no una consulta: `my_point_balance()` es
+`SECURITY DEFINER`, suma todo lo suyo y devuelve **un entero, nunca filas**. Las restas entran
+en el número sin aparecer en ninguna lista.
+
+Hay una prueba de las dos mitades a la vez: que la política filtra por `points > 0` y que la
+función **no** lo hace. Y otra en la librería que enseña que las dos sumas dan distinto (8 y 12
+sobre los mismos apuntes), que es justo el motivo de que el saldo lo dé la base.
+
+`point_balance(uuid)`, para las pantallas de quien puntea, **comprueba el rol ella misma**: es
+`SECURITY DEFINER`, así que la RLS no la frena, y sin esa comprobación sería una puerta trasera
+al historial de cualquiera. Mismo patrón de tres barreras que el ERP.
+
+### Las tasas viven en Ajustes
+
+`points_per_punctual_day` y `points_per_day_off`, con `DEFAULT` **2** y **100** —los propuestos—
+y `check > 0`. Cambiar lo que vale un día puntual **no puede ser un despliegue**.
+
+El código tiene los mismos dos números como **respaldo**, no como configuración: `tasas()` usa
+lo de Ajustes cuando es un entero positivo y cae al respaldo con `null`, cero, negativo o
+decimal. Y hay una prueba que **lee el `DEFAULT` del `.sql` y lo compara con el respaldo del
+código**, porque son dos sitios que pueden separarse sin que nada avise.
+
+No hace falta tocar ninguna consulta: `settings` se lee con `select("*")`
+(`data-provider.tsx:514`), medido. Queda una prueba fijándolo, porque el día que alguien lo
+estreche a una lista de columnas las tasas dejarían de llegar y el sistema seguiría funcionando
+con los números del respaldo, en silencio.
+
+### La migración se aplica ANTES de fusionar, y por qué
+
+Hoy mismo se fusionó una rama con su migración sin aplicar: el código pidió columnas que no
+existían y **el hub entró en bucle de redirecciones en producción**. Así que esta se escribe
+para el orden contrario: **no depende de una sola línea del código de esta rama**. Crea tabla,
+índices, políticas, funciones, trigger y columnas de Ajustes, y nada de eso necesita que el
+despliegue haya salido.
+
+Y es **idempotente de arriba abajo** —`create table if not exists`, `create index if not
+exists`, `add column if not exists`, `drop policy if exists` antes de cada `create policy`,
+`drop trigger if exists` antes del `create trigger`, `create or replace` en las funciones—
+porque quien la aplique a mano no puede quedarse con la duda de si ya la había corrido. Hay una
+prueba que recorre **cada** `create` del fichero y lo exige.
+
+**Numeración:** es la **105** aunque en `main` no haya una `104`, porque la `104` existe en la
+rama del título por persona (revertida hoy, pendiente de volver) y sigue sin aplicarse. Dos
+migraciones con el mismo número serían un choque en el registro.
+
+**Y esto contradice una regla marcada como no negociable, así que se dice.** `CLAUDE.md`,
+*Flujo de ramas*, regla 1: aplicar la migración **es del orquestador, después del merge**. Esa
+regla supone que el hueco entre el merge y la migración es inofensivo, y hoy se vio que no lo es
+cuando el código ya fusionado lee lo que todavía no existe. Para **esta** migración el orden
+invertido no tiene contrapartida: es puramente aditiva y no depende de una línea de esta rama
+—`points.ts` es todo puro y no lee `point_events` ni las columnas nuevas—, así que aplicarla
+antes no puede romper el `main` desplegado. Queda como **excepción escrita de esta rama, no como
+cambio de la regla**: cambiar la regla es del dueño y va con su propia decisión.
+
+### El borrado en cascada, que es decisión y no descuido
+
+`employee_id` es `references profiles(id) on delete cascade`: borrar un perfil se lleva su libro
+mayor entero, sin evento contrario. Se eligió midiéndolo contra el borrado que ya existe
+(`/api/delete-user` → `auth.admin.deleteUser` → `profiles` por cascada, como dice `099`):
+
+- **`on delete restrict`** haría **fallar el borrado de un usuario** en cuanto tuviera un punto.
+- **`on delete set null`** no sirve: dejaría la fila con los **dos** sujetos nulos, contra el
+  `check` de exactamente uno. El borrado fallaría igual, pero por un camino más raro de
+  diagnosticar.
+
+La cascada es lo único que no rompe el flujo que ya existe. Y en la práctica este repo **revoca
+el acceso en vez de borrar personas**, así que debería ser un caso que no ocurre. Queda dicho
+porque, si ocurre, desaparece historia y no salta nada.
+
+### Lo que NO se hizo
+
+- **Ninguna pantalla**, que es el encargo. Tampoco el trabajo diario de puntualidad ni el canje:
+  este deja la clave, la forma del evento y la tasa que los dos van a leer.
+- **Ningún saldo por cliente**: los apuntes de cliente se guardan y se leen desde el staff, pero
+  la lectura desde la página pública de seguimiento es del encargo 5, y va a necesitar decidir
+  qué se le enseña a alguien que solo tiene el enlace de un pedido. No se adelanta aquí.
+- **No se toca ninguna política de `settings`**: quién edita las tasas ya está resuelto en
+  `100_settings_events_rls.sql` (solo `is_admin()`). Hay una prueba de que esta migración no
+  crea ni borra políticas de otra tabla.
+
+### Lo no verificado
+
+**Nada se ha ejecutado contra una base.** La tabla, la RLS, el trigger, los `check` y las dos
+funciones están comprobados **como texto del `.sql`**, leyéndolo. Lo que hay que mirar cuando el
+dueño la aplique, en este orden:
+
+1. Que corra **dos veces** seguidas sin error.
+2. Que un vendedor **no** pueda insertar un apunte, y que un gerente **no** pueda insertarse uno
+   a sí mismo.
+3. Que un empleado con una resta vea **su saldo con la resta contada** y **la resta no** en la
+   lista.
+4. Que un `update` o un `delete` sobre una fila —incluso con service_role— levante la excepción
+   del trigger, y que un `truncate` levante la suya.
+
+Tampoco lo ha usado nadie: no hay pantalla que llamar. Las funciones de escritura y lectura
+están probadas en su parte pura; lo que hacen contra Supabase se verá en el encargo 2.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1541 pasados | 3 saltados**
+(main 98a9305: 1512 | 3; los +32 son `points.test.ts`). El baseline ha pasado por tres commits
+de `main` sin moverse: se midió sobre `4e21f19`, vale para `2e9d0ed` porque el árbol de `src`
+de los dos es el **mismo objeto** —comprobado con `git rev-parse <sha>:src`— tras la reversión
+del PR #49, y sobre `98a9305` (D-233) lo midió el orquestador.
