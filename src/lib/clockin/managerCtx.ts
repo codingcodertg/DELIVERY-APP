@@ -23,6 +23,11 @@ import type { Me } from "@/lib/clockin/mgrScope";
  * person configuring roles from the hub is exactly who should hold that. It does not travel the
  * other way — a clock-in owner gains nothing in the hub.
  */
+/** El motivo, en un solo sitio: lo usan este ctx y el propio de `reports.ts`, que no pasa
+ * por aquí. Dos textos distintos para la misma situación serían dos verdades a medias. */
+export const SIN_TIENDA =
+  "This manager has no store assigned, so there is no crew to show. Ask an owner to set one.";
+
 export type ClockinCtx =
   | { ok: false; message: string }
   | {
@@ -96,10 +101,7 @@ export async function clockinManagerCtx(): Promise<ClockinCtx> {
   // horarios, informes, excepciones, fotos, ausencias—, así que la razón se da una vez.
   // Un dueño no pasa por aquí (`effectiveRole` es "owner", con o sin tienda).
   if (effectiveRole === "manager" && !me.store_id) {
-    return {
-      ok: false,
-      message: "This manager has no store assigned, so there is no crew to show. Ask an owner to set one.",
-    };
+    return { ok: false, message: SIN_TIENDA };
   }
 
   return { ok: true, supabase, user, companyId, role: effectiveRole, storeId: me.store_id, me, viaHubAdmin };

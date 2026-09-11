@@ -12899,7 +12899,7 @@ tocar los cuatro sitios. Con la tienda imposible que ahora devuelve:
 |---|---|---|
 | `clock.ts:534`, `reports.ts:287`, `schedule.ts:295` | `if (suyas) …in("store_id", suyas)` | el filtro se aplica y no encaja nadie |
 | `mgrScope.ts:38` | `if (!suyas) return true; suyas.includes(…)` | no es null → `includes` falso → **deniega** |
-| `storeScope` (`scope.ts:45`) | `.in("store_id", stores)` → `ids` | `ids` vacío → sus tres consumidores ya lo convierten en `NO_MATCH` |
+| `storeScope` (`scope.ts:45`) | `.in("store_id", stores)` → `ids` | `ids` vacío → **dos** de sus tres consumidores lo convierten en `NO_MATCH`; al tercero lo salva el corte del ctx (ver más abajo) |
 | `export:78`, `xlsx:59` | 403 antes de llegar (D-236) | sin cambio |
 
 **Ninguno de los siete hubo que tocarlo**, que era la preferencia del orquestador: la regla vive
@@ -12930,6 +12930,57 @@ ids de empleado. `NINGUNA_TIENDA` es el mismo truco para las tiendas, y la prueb
 registrada tenía pruebas que la defendían, y cambiarla tenía que costar exactamente eso. Las dos
 se actualizan **citando D-127 y su motivo**, no borrándolo.
 
+### Dos huecos más, encontrados después de la primera versión
+
+La regla se puso en `clockinManagerCtx` y el comentario decía que ese ctx «es la puerta de todas
+las pantallas de gerente». **Era falso para dos sitios**, y los dos dejaban justo el efecto que
+D-127 temía: una pantalla muda.
+
+1. **`reports.ts` tiene su propio `mgrCtx()`**, un duplicado sin la regla, y por ahí pasan la
+   nómina y la semana del empleado. Un gerente sin tienda entraba, `visibleStores` le daba la
+   tienda imposible, y la nómina le salía **vacía y sin explicación**. Ahora aplica el mismo
+   corte con el **mismo mensaje** — `SIN_TIENDA`, una constante exportada, porque dos textos
+   para la misma situación son dos verdades a medias.
+
+   **No se sustituye por el ctx compartido**, y es una decisión: el de `reports.ts` no contempla
+   al admin del hub (`viaHubAdmin`), así que unificarlos cambiaría **quién puede ver la nómina**,
+   que no es lo que pide esta rama. Se copia la regla, no el contexto.
+
+2. **La pantalla «en vivo» se tragaba el `ok:false`**: `if (vivo && r.ok) setCrew(r)` y nada
+   más, así que con un fallo se quedaba esperando para siempre. Ahora guarda el mensaje y lo
+   pinta.
+
+**Y la prueba que sale de esto es la que más vale de la rama**: no comprueba «`reports.ts` tiene
+la regla», sino que **recorre `actions/` buscando cualquier ctx propio** y separa los que acotan
+por tienda de los que no. Los que acotan tienen que llevar la regla y el mensaje compartido; los
+que no —`sites.ts`, que es del dueño, y `vehicles.ts`, que gestiona vehículos de la compañía sin
+tienda de por medio— tienen que **seguir sin acotar**, y si mañana acotan, la prueba se lo pide.
+Esos dos aparecieron al escribirla, no antes.
+
+### Una corrección a la tabla de arriba
+
+Escribí que `storeScope` «acaba en el `NO_MATCH` que ya existía». **Es cierto en dos de sus tres
+consumidores, no en los tres**, y lo cazó la auditoría. Medido sobre los seis sitios que filtran
+por una lista de empleados que puede venir vacía:
+
+| Sitio | Con la lista vacía |
+|---|---|
+| `clock.ts:539`, `reports.ts:292`, `schedule.ts:312`, `exceptions.ts:61`, `photos.ts:57` | centinela → no encaja nadie |
+| `timeoff.ts:125-128` | `if (ids)` — y `[]` es **verdadero** → `.in("employee_id", [])` |
+
+Cinco de seis aplican el patrón y **`timeoff.ts` es el único olvido**. En esta rama el resultado
+final es el mismo, porque el corte del ctx devuelve antes de llegar a `storeScope` — pero **de
+qué depende, no**: en cinco depende del centinela y en uno de una guarda que está en otro
+fichero.
+
+**Y queda un caso abierto que esta rama no cierra**: un gerente **con** tienda cuya tienda no
+tenga empleados. El ctx no corta —tiene `store_id`—, `ids` sale vacío y `timeoff.ts` pierde el
+filtro. Sigue haciendo falta que exista un `manager`, y hoy hay cero, así que también es
+preventivo; lo que lo hace el más cercano a estar vivo es que no necesita ninguna condición rara
+además de esa: basta con que el primer gerente tenga la tienda vacía, que es lo normal el día
+que se crea. Va como encargo aparte (`timeoff-centinela`), con el detalle de que **tres de los
+cinco escriben el UUID de ceros a mano** en vez de importar `NO_MATCH`.
+
 ### Lo no verificado
 
 **Nada de esto se ha ejecutado contra la base**, y hay una cosa concreta que no puedo comprobar
@@ -12941,5 +12992,5 @@ tres es cosa de cada pantalla, y eso solo se ve usándolas.
 Tampoco está medido el comportamiento real de `.in("store_id", [])` en este PostgREST: se evita
 en vez de comprobarse, apoyándose en lo que ya decía el comentario de `NO_MATCH`.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1576 pasados | 3 saltados**
-(main 0b65f11: 1568 | 3; los +8 son `clockin/sin-tienda.test.ts`).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1582 pasados | 3 saltados**
+(main 0b65f11: 1568 | 3; los +14 son `clockin/sin-tienda.test.ts`).

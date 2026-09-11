@@ -23,9 +23,18 @@ export default function LiveMonitorPage() {
   // trabajar conviviendo, respondía por media empresa sin decirlo — y por eso un admin fichaba
   // a alguien y no lo veía aparecer aquí.
   const [crew, setCrew] = useState<Crew | null>(null);
+  // Y el motivo cuando NO se puede (D-NEXT). Antes solo se miraba `r.ok`: con un `false`
+  // —«te falta la tienda», «no configurado»— no pasaba nada y la pantalla se quedaba
+  // esperando, que es justo el miedo de D-127: parece la app rota y no un dato que falta.
+  const [aviso, setAviso] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
-    const traer = () => { void getCrewNow().then((r) => { if (vivo && r.ok) setCrew(r); }); };
+    const traer = () => {
+      void getCrewNow().then((r) => {
+        if (!vivo) return;
+        if (r.ok) { setCrew(r); setAviso(null); } else { setAviso(r.message); }
+      });
+    };
     traer();
     // Cada 10 s, y no medio minuto como al principio: con 30 s se podía empezar el almuerzo,
     // terminarlo y volver a salir entre dos latidos, y el tablero enseñaba un estado que ya no
@@ -57,6 +66,7 @@ export default function LiveMonitorPage() {
   }
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
+  if (aviso) return <div className="card"><p className="muted">{aviso}</p></div>;
 
   const alertas = (crew?.late.length ?? 0) + (crew?.notInYet.length ?? 0);
 

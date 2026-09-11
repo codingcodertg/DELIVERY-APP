@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NINGUNA_TIENDA, visibleStores } from "./scope";
 
@@ -62,13 +62,67 @@ describe("y se entera de por qué", () => {
     expect(i, "falta el corte del gerente sin tienda").toBeGreaterThan(0);
     const bloque = ctx.slice(i, i + 400);
     expect(bloque).toContain("ok: false");
-    expect(bloque).toMatch(/no store assigned/i);
+    // El texto vive en `SIN_TIENDA`, una constante exportada, porque `reports.ts` lo usa
+    // también y dos mensajes distintos para lo mismo serían dos verdades a medias.
+    expect(bloque).toContain("SIN_TIENDA");
   });
 
   it("va después de resolver el rol efectivo, o dejaría fuera a un admin del hub", () => {
     // Un admin del hub entra como `owner` aunque no tenga fila de fichaje ni tienda.
     expect(ctx.indexOf("const effectiveRole")).toBeLessThan(ctx.indexOf('effectiveRole === "manager" && !me.store_id'));
     expect(ctx).toMatch(/effectiveRole = viaHubAdmin \? "owner"/);
+  });
+});
+
+describe("ningún contexto de gerente ACOTADO se queda sin la regla", () => {
+  // El duplicado se notó en cuanto la regla existió: `reports.ts` tiene su propio `mgrCtx()`
+  // y no pasa por `clockinManagerCtx`, así que a un gerente sin tienda la nómina le salía
+  // vacía y muda — el mismo agujero, por la puerta de al lado. La prueba busca CUALQUIER ctx
+  // propio en `actions/`, no solo el que ya conocemos.
+  //
+  // Y separa los que acotan por tienda de los que no: la regla es para el alcance por
+  // tienda, no para «ser gerente». Exigirla donde no hay tienda de por medio sería ruido, y
+  // no exigirla en los que sí acotan fue justo el fallo.
+  const dir = join(process.cwd(), "src/app/timetracker/clock-in/actions");
+  const conCtxPropio = readdirSync(dir)
+    .filter((f) => f.endsWith(".ts"))
+    .filter((f) => /async function \w*[Cc]tx\s*\(/.test(leer(`src/app/timetracker/clock-in/actions/${f}`)));
+  const acota = (f: string) => /visibleStores|storeScope|canManageEmployee/.test(leer(`src/app/timetracker/clock-in/actions/${f}`));
+
+  it("encuentra los que tienen ctx propio", () => {
+    expect(conCtxPropio.length).toBeGreaterThanOrEqual(2);
+  });
+
+  for (const f of conCtxPropio) {
+    it(`${f} — ${acota(f) ? "acota por tienda: lleva la regla" : "no acota por tienda: no le toca"}`, () => {
+      const src = sinComentarios(leer(`src/app/timetracker/clock-in/actions/${f}`));
+      if (acota(f)) {
+        expect(src).toMatch(/role === "manager" && !\w*\.?store_id/);
+        // Y con el MISMO mensaje que el ctx compartido, no con uno parecido.
+        expect(src).toContain("SIN_TIENDA");
+      } else {
+        // Que no acote hoy es lo que le exime; si mañana acota, esta prueba se lo pide.
+        expect(src).not.toMatch(/visibleStores|storeScope|canManageEmployee/);
+      }
+    });
+  }
+
+  it("el mensaje vive en un solo sitio", () => {
+    const ctx = leer("src/lib/clockin/managerCtx.ts");
+    expect(ctx).toMatch(/export const SIN_TIENDA/);
+    expect(ctx).toMatch(/no store assigned/i);
+  });
+});
+
+describe("la pantalla en vivo dice por qué no hay nada", () => {
+  const src = sinComentarios(leer("src/app/timetracker/(timetracker)/live/page.tsx"));
+
+  it("no se traga un `ok:false`", () => {
+    // Antes: `if (vivo && r.ok) setCrew(r)` — con false no pasaba nada y la pantalla se
+    // quedaba esperando, que es exactamente lo que D-127 temía.
+    expect(src).toMatch(/if \(r\.ok\)/);
+    expect(src).toMatch(/setAviso\(r\.message\)/);
+    expect(src).toMatch(/if \(aviso\) return/);
   });
 });
 
