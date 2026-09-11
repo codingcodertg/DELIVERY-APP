@@ -13168,13 +13168,28 @@ un agregado o una pantalla de solo admin/logística, no.**
 | **Gestor de rutas** | logistics, admin | — | **No**: los dos exentos |
 | **Mi ruta** | driver | sus paradas de hoy **+ las atrasadas** | **No**, y es deliberado — ver abajo |
 
-**Cuentas es el caso discutible, y lo dejo fuera con su razón.** Es una lista de pedidos que un
-gerente puede abrir, así que por la letra de la regla llevaría ventana. Pero la pantalla es un
+**Cuentas es el caso discutible, y lo dejo fuera con su razón. Escrito con el rol delante,
+porque no es abstracto: un `manager` ve Cuentas** (`constants.ts:92`, `roles: ["admin",
+"manager"]`) **y un `manager` NO está exento.** O sea que a partir de esta rama tiene ventana de
+ayer-hoy-futuro en el tablero y **sigue viendo el historial completo por cliente en Cuentas**.
+Es una puerta lateral de la regla y hay que llamarla por su nombre, o quien lea «Cuentas queda
+fuera» no sabrá que existe.
+
+Se deja así porque la alternativa es peor. Es una lista de pedidos que un gerente puede abrir,
+así que por la letra de la regla llevaría ventana. Pero la pantalla es un
 libro por cliente: sus columnas son **total**, **entregados**, **atrasados** y **última fecha**,
 o sea historia agregada. Acotarla a dos días no la haría más estricta, la haría **falsa**: los
 totales dirían 2 donde el cliente tiene 40. Y acotar solo el desglose sin los totales sería peor,
 porque los números no cuadrarían con las filas. Si el dueño quiere que un gerente no vea ahí el
 historial, lo que hay que cambiar es qué pantalla es, no ponerle un filtro por fecha encima.
+
+**Y una observación de la auditoría que NO es de esta rama, apuntada porque hoy va de quién ve
+qué:** la página de Cuentas bloquea a `sales`, `driver` y `warehouse` (`accounts/page.tsx:87`),
+pero la pestaña solo la dan `admin` y `manager` (`constants.ts:92`). `logistics` y `accounting`
+no tienen pestaña **y tampoco están bloqueados por la página**, y ni el middleware ni el layout
+de `(app)` filtran rutas por rol. Por URL directa entrarían. **No está probado** —ninguno de los
+dos abre producción— y no se toca aquí: es un encargo propio, y para `logistics` ni siquiera
+cambiaría nada, porque está exento.
 
 **Mi ruta no lleva ventana a propósito**: filtra a hoy **más lo atrasado** (`isOverdue`), y una
 parada que se pasó de fecha sigue siendo del chofer hasta que la cierra. Es la misma excepción
