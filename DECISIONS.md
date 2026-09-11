@@ -12563,6 +12563,59 @@ Postgres le habría puesto, pero un `drop constraint if exists` con el nombre eq
 hace nada y no falla**: el expediente seguiría atado a la cuenta y se descubriría el día que
 alguien diera de alta a una persona sin usuario.
 
+### Cuántas personas son, medido, y por qué esto es un estreno y no un cambio
+
+La migración le crea un expediente a cada perfil, y eso es el efecto más visible que va a tener.
+Medido en producción por el orquestador **antes de aplicar nada**, que es lo que convierte la
+pregunta en contestable:
+
+| | |
+|---|---|
+| Expedientes hoy | **0** |
+| Perfiles hoy | **33** (14 ventas · 6 contabilidad · 5 gerencia · 4 almacén · 2 admin · 1 logística · 1 chofer) |
+| Filas que crea la 106 | **33** |
+| Documentos sin expediente | **0** |
+
+La tabla está **vacía**: no hay ninguna lista que esta rama sustituya, la **estrena**. Y el
+pedido del dueño fue literal —«los expedientes de todos los empleados»—, así que crear los 33 es
+el encargo, no un exceso.
+
+**Aun así el dueño lo confirma antes de que se aplique**, con la frase con el número delante:
+«la lista pasa de vacía a las 33 personas con cuenta». Porque la comprobación del final de la
+migración fija esa invariante, y si mañana dijera «los choferes no», no bastaría con filtrar la
+pantalla: habría que borrar filas.
+
+**Y el cero de documentos huérfanos dice algo que conviene no confundir:** el paso de crear las
+fichas antes de tocar la FK **hoy no hacía falta**. Sigue siendo lo correcto —un solo documento
+huérfano habría dejado la FK a medias, y eso no se sabía al escribirlo— pero es una red que hoy
+no atrapa nada, no una corrección de algo roto.
+
+### El perfil número 34: la promesa se cumplía un día y se rompía al siguiente
+
+Lo encontró la auditoría y es el mejor hallazgo de la rama. La migración crea los 33 de hoy y
+ahí se acababa: **nada creaba el expediente de la siguiente persona que entrara al hub**. El
+encargo habría sido cierto el día de la migración y falso al día siguiente, sin que nadie se
+enterara hasta buscar a alguien y no encontrarlo. Es la clase de promesa que se degrada sola.
+
+Se cierra con un **trigger `after insert on public.profiles`** que crea el expediente con cada
+cuenta nueva. Se eligió frente a las otras dos salidas por lo que dijo el orquestador y suscribo:
+crearlo desde los cuatro sitios donde nacen las cuentas son cuatro oportunidades de olvidarlo,
+más la quinta cuando aparezca el siguiente; y dejarlo para el encargo 2 deja abierta justo la
+ventana que el hallazgo describe.
+
+Dos detalles del trigger que no son adorno:
+
+- **Crear una cuenta no puede fallar por una fila de RR. HH.** Si el insert falla, el trigger
+  traga el error y deja un `raise warning` en el log. El peor caso de tragárselo es un
+  expediente que falta —que es exactamente la situación de hoy, y se ve en la lista—; el peor
+  caso de no tragárselo es que **nadie pueda darse de alta**.
+- **El guard del enlace deja pasar los inserts anidados** (`pg_trigger_depth() > 1`). Sin eso,
+  crear una cuenta fallaría en cuanto quien la crea no fuera admin de RR. HH., que es casi
+  siempre: el enlace lo estaría poniendo la base, no una persona.
+
+Con esto, la invariante del final de la migración vuelve a ser verdad **siempre**, no solo en el
+instante en que se aplica.
+
 ### El estado no se guarda: se deriva
 
 `date_left` y nada más. Sin fecha, activo; con fecha, baja. Una columna de estado junto a su
@@ -12656,10 +12709,12 @@ aplique, en este orden:
 3. Que un documento existente siga abriéndose desde su expediente (la FK reapuntada).
 4. Que un gerente de RR. HH. **no** pueda enlazar una cuenta y un admin **sí**.
 5. Que dar de baja a alguien deshabilite su cuenta y **no** borre nada.
+6. Que **crear una cuenta nueva** cree su expediente — y que crearla siga funcionando desde una
+   sesión que no sea admin de RR. HH., que es lo que el trigger del enlace podría haber roto.
 
 La reversión existe pero **no es simétrica, y conviene saberlo antes de necesitarla**: volver a
 093 significa **borrar los expedientes sin cuenta**, porque en aquel modelo no caben. Está
 escrita al final del `.sql` con esa advertencia.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1542 pasados | 3 saltados**
-(main 98a9305: 1512 | 3; los +30 son `employee-file.test.ts`).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1543 pasados | 3 saltados**
+(main 98a9305: 1512 | 3; los +31 son `employee-file.test.ts`).
