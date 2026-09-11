@@ -4,6 +4,8 @@ import { DataProvider } from "@/lib/data-provider";
 import { ConfirmProvider } from "@/lib/confirm";
 import { landingRoute } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 // Users' own gate (D-056) — a Server Component redirect, not the Client
 // Component "Admins only" message the page used to show after already
@@ -25,11 +27,18 @@ export default async function HomeUsersLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/home/users");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   // Degraded session, not a new user — see the identical guard in
   // (app)/layout.tsx.

@@ -9,6 +9,8 @@ import { TtUpdateBanner } from "@/components/timetracker/UpdateBanner";
 import { OfflineIndicator } from "@/components/timetracker/OfflineIndicator";
 import type { Employee } from "@/lib/timetracker/types";
 import "../timetracker.css";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 // Same reason recruiting's layout overrides the root's browser-tab title
 // (D-060) — inherited otherwise, and this module has nothing to do with
@@ -39,11 +41,18 @@ export default async function TimetrackerLayout({ children }: { children: React.
   // D-119.)
   if (!user) redirect("/login?next=/timetracker");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     .select("id, full_name, role, avatar_url, timetracker_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   // No timetracker access at all — bounce to wherever this person actually
   // belongs, exactly like recruiting's own layout guard (D-052).

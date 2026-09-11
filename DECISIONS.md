@@ -12512,3 +12512,124 @@ caja suele ser ventas/oficina. Los export de Excel/PDF/CSV siguen admin-only.
 
 Usa `navigator.clipboard.writeText`; si el portapapeles no está disponible, avisa en vez de
 fallar en silencio.
+
+## D-NEXT · Un `redirect` en el camino de error convierte cualquier fallo de consulta en un bucle
+
+**Fecha:** 2026-09-10 · **Versión:** la ponen las tres apps al fusionar (el orquestador) · Sin
+migración.
+**Pedido por:** la caída de hoy. Se fusionó una rama cuya migración no se había aplicado, el
+`select` del perfil pidió columnas que no existían y **el hub entró en bucle de redirecciones en
+producción**. El dueño lo descubrió entrando. Salió en la auditoría de esa rama.
+
+### La causa no fue la migración
+
+`src/app/(app)/layout.tsx:34` hacía —y lo mismo los otros seis puntos de entrada—:
+
+```ts
+const { data: profile } = await supabase.from("profiles").select(…).maybeSingle();
+…
+if (!profile) redirect("/login?next=/");
+```
+
+**Descarta el `error`.** Y eso mete en el mismo cajón dos situaciones que no se parecen:
+
+- **No hay fila** (`data: null`, `error: null`): la sesión degradada de D-081. Mandar al login es
+  correcto, hay que volver a autenticarse.
+- **La consulta falló** (`data: null` **y** `error` con mensaje): una columna que no existe, una
+  política, la red. Mandar al login **no arregla nada**, y como el login devuelve aquí, el fallo
+  se convierte en un bucle.
+
+El comentario que hay encima de ese `redirect` es correcto y explica bien el primer caso. Lo que
+faltaba era que el segundo existiera. **El mismo despliegue, mirando el `error`, habría sido
+«column profiles.title does not exist» en pantalla en vez de `ERR_TOO_MANY_REDIRECTS`.**
+
+Por eso la decisión no se titula con el layout sino con la regla, que es lo que hay que recordar:
+**un `redirect` en el camino de error convierte cualquier fallo de consulta en una caída muda.**
+
+### Tres desenlaces, y el error se pregunta primero
+
+`estadoDeLectura()` (`lib/profile-read.ts`) devuelve `fallo`, `sin-fila` u `ok`, y mira el error
+**antes** que los datos. Con `data` nulo y error presente, «no hay fila» es una conclusión falsa:
+no se sabe si la hay. Hay prueba de que un error manda **aunque lleguen datos**.
+
+- `fallo` → se pinta `ProfileReadError`, y **no se redirige a ningún sitio**.
+- `sin-fila` → lo de siempre, al login. D-081 no cambia.
+- `ok` → lo de siempre.
+
+### Siete puntos de entrada, no uno, y tres más que no estaban en el encargo
+
+El encargo listaba cinco. Buscando `from("profiles")` junto a `redirect(` en `src/app` salen
+**once** ficheros, y de esos:
+
+- **Siete** son el patrón exacto y llevan la guarda: `(app)/layout.tsx`, `erp/layout.tsx`,
+  `home/page.tsx`, `home/users/layout.tsx`, `no-access/page.tsx`,
+  `recruiting/(recruiting)/layout.tsx` y **`timetracker/(timetracker)/layout.tsx`**, que no
+  estaba en la lista.
+- **Tres** son páginas del Time Tracker (`assignments`, `audit`, `payroll`) que hacen lo mismo
+  pero rebotan a `/timetracker` en vez de al login. **No hacen bucle**, pero sí lo otro: te sacan
+  de la pantalla que pediste sin decir por qué. Llevan la misma guarda.
+- **Uno**, `erp/requests/page.tsx`, **no** tiene el problema y se deja como está: usa `unwrap()`
+  (`lib/erp/db-result.ts:78`), que **lanza** con el mensaje y el código. El ERP ya tenía resuelto
+  esto por su cuenta.
+
+**La prueba no enumera ficheros.** Recorre `src/app`, se queda con los que consultan `profiles` y
+redirigen, y exige de cada uno que recoja el `error` y que la guarda esté **antes** del primer
+`redirect` que sigue a la consulta. Así el patrón no vuelve a entrar por una puerta nueva. Y
+lleva un control: si el recorrido encuentra menos de diez ficheros, falla — un canario que deja
+de ver ficheros pasa por vacuidad y no se entera nadie.
+
+### Qué se enseña, y a quién
+
+- **El mensaje de Postgres entero, solo a un admin.** Puede nombrar tablas y columnas, y no todo
+  el que tenga sesión debe verlas.
+- **Y hay que decidirlo sin el perfil**, que es justo lo que no se pudo leer. La fuente es el rol
+  que viaja en los metadatos del usuario de Auth — de donde `handle_new_user` lo saca al crear la
+  cuenta. Puede quedarse viejo si a alguien le cambian el rol después, **y eso está bien en esta
+  dirección**: el que se quede corto ve el texto genérico, que sirve para reportar. Lo que no
+  puede pasar es lo contrario.
+- **Una referencia corta y estable** (`42703-9F3A1C`): el mismo fallo da la misma, así que dos
+  personas que llaman por lo mismo se reconocen como lo mismo. No lleva el mensaje dentro; hay
+  prueba de las dos cosas.
+- **Bilingüe a la vez, sin `usePrefs`.** Las preferencias viven en el cliente y detrás del
+  proveedor de datos, que es exactamente lo que no ha podido arrancar.
+- **El botón recarga la misma dirección.** Mandar al login desde la pantalla de error sería
+  reconstruir el bucle a mano; hay prueba de que no lo hace.
+
+### Lo que NO se tocó
+
+- **Ni una consulta**: no cambia qué columnas se piden ni ningún tipo. Este encargo es **cómo se
+  trata el fallo**, no qué se pide.
+- **El camino de la fila ausente**, que sigue yendo al login en los mismos sitios.
+- **`erp/requests`**, por lo dicho arriba.
+
+### Un guardián sube en uno
+
+La pantalla usa `var(--token, #hex)` en todo —así respeta la paleta del módulo donde salga, que
+puede ser el hub, el ERP, Reclutamiento o el fichaje— salvo el **blanco del texto sobre el azul
+del botón**, que es un color a pelo. El techo de `RetryButton.tsx` en `inline-colors.test.ts`
+queda en **1** y el total de Entregas pasa de **79 a 80** (63 → 64 blancos). Es el mismo blanco
+sobre fondo de color fijo que explica los otros 63.
+
+### Versiones
+
+Toca puntos de entrada de **las tres apps**, así que las tres suben. **La rama no las toca** (el
+worker no escribe `APP_VERSIONS`): lo hace el orquestador al fusionar, y queda dicho aquí para
+que no se le pase.
+
+### Lo no verificado
+
+**Nadie ha visto la pantalla en un navegador, y no hay forma honesta de provocarla desde aquí**:
+haría falta una consulta que falle de verdad contra la base, y esta rama no puede tocar
+producción. Lo que hay son pruebas sobre la decisión (`estadoDeLectura`, la referencia, quién ve
+el detalle) y sobre dónde está puesta la guarda.
+
+Las tres cosas que hay que mirar cuando se pueda:
+
+1. Que con un fallo real salga la pantalla **y no un bucle** — la forma natural de comprobarlo es
+   justo el día que una migración vaya por detrás del código, que es de donde viene esta rama.
+2. Que un no-admin vea el texto genérico **con** su referencia y **sin** el mensaje.
+3. Que el botón de reintentar vuelva a la misma dirección.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1539 pasados | 3 saltados**
+(main 98a9305: 1512 | 3; los +27 son 25 de `profile-read.test.ts` y 2 del recorrido por fichero
+de `inline-colors.test.ts`, que ahora ve dos componentes mas).

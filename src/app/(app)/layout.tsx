@@ -12,6 +12,8 @@ import { AssignmentPing } from "@/components/AssignmentPing";
 import { PushRegistrar } from "@/components/PushRegistrar";
 import { LocationTracker } from "@/components/LocationTracker";
 import type { Profile } from "@/lib/types";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -31,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // y landingRoute lo lleva a /driver. Ruta interna fija, nada que sanear; `safeNext` la acepta.
   if (!user) redirect("/login?next=/");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
     // permissions + store come along because `me` is what every capability
     // check runs against — without them an admin's own extra grants and store
@@ -40,6 +42,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   // A valid `user` but no `profile` row is a degraded session (RLS reading
   // this request as effectively anonymous — same class of bug as D-081,

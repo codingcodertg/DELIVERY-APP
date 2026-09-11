@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { accessibleModules, landingRoute } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 import SignOut from "./SignOut";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const dynamic = "force-dynamic";
 
@@ -22,11 +24,18 @@ export default async function NoAccessPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: me } = await supabase
+  const { data: me, error: errorPerfil } = await supabase
     .from("profiles")
     .select("full_name, role, module_access")
     .eq("id", user.id)
     .maybeSingle();
+  // Tres desenlaces, no dos (D-NEXT): si la CONSULTA fallo no se redirige, porque el
+  // login vuelve aqui y el fallo se convierte en un bucle. Solo la fila ausente
+  // —error nulo— sigue siendo la sesion degradada de D-081 que manda al login.
+  if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
 
   if (me && accessibleModules(me.module_access).length > 0) {
     redirect(landingRoute({ role: me.role as UserRole, module_access: me.module_access }));

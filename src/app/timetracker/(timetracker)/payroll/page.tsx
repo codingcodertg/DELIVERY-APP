@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
 import { periodStartOf } from "@/lib/timetracker/period";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const dynamic = "force-dynamic";
 
@@ -53,11 +55,18 @@ export default async function PayrollPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/timetracker/payroll");
 
-  const { data: me } = await supabase
+  const { data: me, error: errorPerfil } = await supabase
     .from("profiles")
     .select("timetracker_role")
     .eq("id", user.id)
     .maybeSingle();
+  // Igual que en los layouts (D-NEXT): una consulta que FALLA no manda a nadie a otro
+  // sitio. Aqui el rebote es a /timetracker en vez de al login, asi que no hace bucle,
+  // pero si hace lo otro: te saca de la pantalla que pediste sin decir por que.
+  if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
   // Las horas de todo el mundo son cosa de quien lleva la nómina.
   if (me?.timetracker_role !== "admin") redirect("/timetracker");
 

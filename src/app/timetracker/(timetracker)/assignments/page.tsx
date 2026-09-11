@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AssignmentsTabs } from "@/components/timetracker/AssignmentsTabs";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +21,18 @@ export default async function AssignmentsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/timetracker/assignments");
 
-  const { data: me } = await supabase
+  const { data: me, error: errorPerfil } = await supabase
     .from("profiles")
     .select("timetracker_role")
     .eq("id", user.id)
     .maybeSingle();
+  // Igual que en los layouts (D-NEXT): una consulta que FALLA no manda a nadie a otro
+  // sitio. Aqui el rebote es a /timetracker en vez de al login, asi que no hace bucle,
+  // pero si hace lo otro: te saca de la pantalla que pediste sin decir por que.
+  if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {
+    return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+  }
+
   if (me?.timetracker_role !== "admin") redirect("/timetracker");
 
   return <AssignmentsTabs />;
