@@ -12580,6 +12580,12 @@ La tabla está **vacía**: no hay ninguna lista que esta rama sustituya, la **es
 pedido del dueño fue literal —«los expedientes de todos los empleados»—, así que crear los 33 es
 el encargo, no un exceso.
 
+**Y un matiz que hace la pregunta aún más fácil de contestar:** la lista mostraría a las 33
+personas **aunque la migración no insertara ni una fila**, porque `filasDeExpediente` completa
+con una fila sintética por cada perfil sin expediente. Lo que decide el insert masivo no es
+quién aparece, sino **qué filas existen** — y con ellas, dónde se puede empezar a escribir un
+teléfono o una fecha de ingreso sin crear nada antes.
+
 **Aun así el dueño lo confirma antes de que se aplique**, con la frase con el número delante:
 «la lista pasa de vacía a las 33 personas con cuenta». Porque la comprobación del final de la
 migración fija esa invariante, y si mañana dijera «los choferes no», no bastaría con filtrar la
@@ -12606,12 +12612,25 @@ ventana que el hallazgo describe.
 Dos detalles del trigger que no son adorno:
 
 - **Crear una cuenta no puede fallar por una fila de RR. HH.** Si el insert falla, el trigger
-  traga el error y deja un `raise warning` en el log. El peor caso de tragárselo es un
-  expediente que falta —que es exactamente la situación de hoy, y se ve en la lista—; el peor
-  caso de no tragárselo es que **nadie pueda darse de alta**.
-- **El guard del enlace deja pasar los inserts anidados** (`pg_trigger_depth() > 1`). Sin eso,
-  crear una cuenta fallaría en cuanto quien la crea no fuera admin de RR. HH., que es casi
-  siempre: el enlace lo estaría poniendo la base, no una persona.
+  traga el error y deja un `raise warning` en el log. Y tragárselo solo vale si el fallo **se
+  ve sin mirar el log**, porque el log de Postgres no lo mira nadie: se ve, y no por
+  casualidad. `filasDeExpediente` **completa la lista con una fila sintética por cada perfil
+  sin expediente**, así que un trigger que falle produce una persona con la ficha vacía, no una
+  ausencia silenciosa. El peor caso de no tragárselo, en cambio, es que **nadie pueda darse de
+  alta**.
+- **El guard del enlace deja pasar los inserts anidados** (`pg_trigger_depth() > 1`). No es una
+  comodidad: la cadena real al crear una cuenta tiene **cuatro niveles** —`auth.users` →
+  `on_auth_user_created` → `profiles` → `profiles_make_employee_file` → `employee_files`—, así
+  que sin el bypass **ninguna cuenta podría crearse desde Auth**, que es el camino normal.
+
+  **Y la condición que hace que eso sea seguro, medida, para quien venga después:** hoy
+  `pg_trigger_depth() > 1` equivale a «viene de mi trigger» porque **ningún otro escribe en
+  `employee_files`** — las cuatro escrituras que hay en `supabase/` están todas en esta
+  migración, y el único trigger sobre esa tabla es el propio guard. Pero condiciona por
+  **profundidad, no por origen**, y `public.profiles` ya tiene nueve triggers colgando: **el día
+  que cualquiera de ellos escriba en `employee_files`, se saltará el guard sin que nada avise.**
+  Si eso llega, la forma de estrecharlo es condicionar por origen —un `set_config` local a la
+  transacción que el trigger enciende y el guard mira— en vez de por profundidad.
 
 Con esto, la invariante del final de la migración vuelve a ser verdad **siempre**, no solo en el
 instante en que se aplica.
