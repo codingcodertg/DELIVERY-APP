@@ -12729,7 +12729,7 @@ razonado, no medido.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1550 pasados | 3 saltados**
 (main 5e0a871: 1539 | 3; los +11 son `erp/session-read.test.ts`).
 
-## D-NEXT · La falta de un dato tiene que acotar, nunca ampliar
+## D-236 · La falta de un dato tiene que acotar, nunca ampliar
 
 **Fecha:** 2026-09-10 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** el cuarto caso de la familia de D-234/D-235, encontrado por la auditoría al
