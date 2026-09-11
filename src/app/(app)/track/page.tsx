@@ -190,9 +190,6 @@ export default function TrackPage() {
     [deliveries, driverName, fecha],
   );
 
-  if (me && !["admin", "manager", "logistics"].includes(me.role)) {
-    return <div className="card"><b>{t("Not available for your role.", "No disponible para su rol.")}</b></div>;
-  }
 
   return (
     <>

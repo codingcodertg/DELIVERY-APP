@@ -221,7 +221,6 @@ export default function OrdersPage() {
   ];
 
   if (!me) return null;
-  if (me.role === "warehouse") return <div className="empty">{t("Not available for your role — use the Warehouse or Driver view.", "No disponible para su rol — use la vista de Almacén o Chofer.")}</div>;
 
   // Who gets the checkbox column.
   //

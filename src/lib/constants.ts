@@ -122,6 +122,53 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // TopBar) rather than a nav tab.
 ];
 
+/**
+ * ¿Le corresponde a esta persona la pestaña `id`? (D-NEXT)
+ *
+ * **Es la misma pregunta que decide si la pestaña se pinta**, y ese es el punto: cada
+ * pantalla tenía su propia lista de quién NO entra, escrita a mano, y `TABS` tenía la de
+ * quién SÍ. Dos listas en dos ficheros y nadie las comparaba nunca.
+ *
+ * Así fue como `accounting` acabó en medio: `accounts/page.tsx` bloqueaba a
+ * `sales|driver|warehouse` —una lista de negados— y `TABS` daba la pestaña a
+ * `admin|manager` —una de permitidos—. `accounting` no estaba en ninguna de las dos, así
+ * que no veía la pestaña **y** la página lo dejaba pasar por URL. Nada filtra rutas por
+ * rol (ni el middleware ni el layout de `(app)`), así que la página es la puerta.
+ *
+ * La capacidad cuenta igual que en la barra: un admin puede conceder `settings` o
+ * `route_plan` a una persona concreta, y entonces la pestaña se le pinta. Si se le pinta,
+ * la página tiene que abrirse — lo contrario es ofrecer una puerta y cerrarla en la cara.
+ */
+export function canOpenTab(id: string, u: CapUser | null | undefined): boolean {
+  if (!u) return false;
+  const tb = TABS.find((t) => t.id === id);
+  if (!tb) return false;
+  return !tb.roles || tb.roles.includes(u.role) || (tb.cap ? extraCaps(u).includes(tb.cap) : false);
+}
+
+/**
+ * La pestaña a la que pertenece una ruta, o `null` si la ruta no es una pestaña.
+ *
+ * Mismo emparejamiento que usa la barra para saber cuál está activa: la ruta exacta o una
+ * sub-ruta, nunca un prefijo de otra («/accounts» no puede encender «/account»).
+ */
+export function tabForPath(pathname: string): (typeof TABS)[number] | null {
+  const limpia = pathname.replace(/\/+$/, "") || "/";
+  return (
+    TABS.find((tb) => (tb.href === "/" ? limpia === "/" : limpia === tb.href || limpia.startsWith(tb.href + "/"))) ??
+    null
+  );
+}
+
+/**
+ * Pestañas cuya PÁGINA se abre a propósito para más gente que su pestaña.
+ *
+ * Solo `myroute`, y no es un olvido: `TABS` lo dice desde antes de esta rama (arriba, en su
+ * comentario) — la pestaña es solo del chofer, pero «the /my-route page itself still opens
+ * for an admin who navigates there directly». Cerrarla es otra decisión y no la de aquí.
+ */
+export const TAB_GATE_EXEMPT: string[] = ["myroute"];
+
 // ---- Role metadata --------------------------------------------------------
 export const ROLE_INFO: Record<UserRole, { label: string; label_es: string; color: string; desc: string; desc_es: string }> = {
   admin:     { label: "Admin",          label_es: "Administrador",     color: "var(--red)",    desc: "Full access + manage users",               desc_es: "Acceso total + gestión de usuarios" },

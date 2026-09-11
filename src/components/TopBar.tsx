@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { TABS, ROLE_INFO, ROLE_ORDER, extraCaps, roleHome, roleLabel } from "@/lib/constants";
+import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, extraCaps, roleHome, roleLabel } from "@/lib/constants";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
@@ -76,9 +76,10 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // their role happens to carry that capability (e.g. warehouse has the
   // "deliver" capability so fulfillment actions work, but that alone shouldn't
   // surface the Driver tab).
-  const visibleTabs = TABS.filter(
-    (tb) => !tb.roles || tb.roles.includes(me.role) || (tb.cap ? extraCaps(me).includes(tb.cap) : false),
-  );
+  // La condición vive en `canOpenTab` (D-NEXT), no aquí: es la misma pregunta que hacen
+  // las páginas para decidir si se abren, y tenerla en dos sitios es como una pantalla
+  // acabó dejando entrar a quien no tenía pestaña.
+  const visibleTabs = TABS.filter((tb) => canOpenTab(tb.id, me));
   const mainTabs = visibleTabs.filter((tb) => tb.group !== "general");
   const generalTabs = visibleTabs.filter((tb) => tb.group === "general");
 
