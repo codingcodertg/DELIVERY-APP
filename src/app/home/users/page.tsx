@@ -144,7 +144,7 @@ export default function UsersPage() {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="maximo"
+              placeholder="username"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
