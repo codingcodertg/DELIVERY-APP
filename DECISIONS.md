@@ -13260,22 +13260,40 @@ las dos: **sin pestaña y sin bloqueo**. Y la pestaña era la única barrera rea
 
 Las 13 pestañas de `TABS`, cada una contra la guarda de su página, sobre `main`:
 
-| | Pantallas |
-|---|---|
-| **Coincidían con `TABS`** | Auditoría, Mercado, Datos, **Recorrido** |
-| **Lista propia que NO coincidía** | Tablero (dejaba entrar al chofer), Cuentas (contabilidad y logística), Mapa (contabilidad) |
-| **Sin ninguna guarda de rol** | **Panel, Gestor de rutas, Resumen, Almacén** |
-| Guarda por capacidad, no por rol | Chofer y Mi ruta (`canDeliver`) |
+| | Pantallas | Cómo lo decía |
+|---|---|---|
+| **Coincidían con `TABS`** | Auditoría, Mercado, Datos | `me.role !== "…"` |
+| **Coincidían, pero por capacidad** | Recorrido, Chofer, Mi ruta, **Gestor de rutas**, **Almacén** | `canDeliver`, `canPlanRoutes`, `canFulfill` |
+| **Lista propia que NO coincidía** | Tablero (dejaba entrar al chofer), Cuentas (contabilidad y logística), Mapa (contabilidad) | listas de negados |
+| **Sin ninguna guarda de rol** | **Panel y Resumen** | — |
 
-**Cuatro pantallas no tenían guarda ninguna.** La que importa es el **Gestor de rutas**: un
-`sales` que escribiera `/routes` entraba en la pantalla donde se asignan choferes.
+**Las que no tenían guarda eran dos, no siete ni cuatro.** Y ese número tardó tres intentos en
+salir bien, que es lo que de verdad hay que contar aquí.
 
-**Y una corrección a la línea base que me llegó, medida con
-`git show origin/main:<fichero> | grep -n 'me.role'`:** en la tabla que recibí, `track`,
-`driver` y `my-route` figuraban «sin guarda» y **las tres la tenían** — `track:193` con
-`["admin","manager","logistics"]`, exactamente lo que dice su pestaña. De las siete «sin
-guarda», cuatro lo eran. Importa porque tocar las otras tres habría sido cambiar lo que ya
-funcionaba.
+### Tres mediciones, tres números, y ninguna era mentira
+
+| Quién | Cuántas «sin guarda» | Qué buscaba | Qué se le escapó |
+|---|---|---|---|
+| Auditoría | 7 | `role ===`, `role !==`, `redirect(`, «Not available» | los helpers (`canDeliver`, `canPlanRoutes`, `canFulfill`) |
+| Yo | 4 | `grep -n 'me.role'` sobre cada fichero | los mismos helpers: **`canPlanRoutes(me)` no contiene `me.role`** |
+| Medido al final | **2** | abrir el fichero y buscar el `return` que corta | — |
+
+Corregí su tabla en tres pantallas (`track`, `driver`, `my-route`) y **fallé en las otras dos por
+el mismo motivo que ella**: mi patrón veía una forma de guarda, la mía, y daba por «sin guarda»
+las que usaban otra. `routes/page.tsx:1394` decía `if (!canPlanRoutes(me))` y
+`warehouse/page.tsx:86`, `if (!canFulfill(me))`; las dos equivalen exactamente a lo que dice su
+pestaña, porque `canPlanRoutes` es `hasCap(u, "route_plan")` y esa capacidad la tienen `admin` y
+`logistics` (`constants.ts:594,601`).
+
+**La regla que queda escrita: una guarda tiene tantas formas como el repo haya inventado, y un
+`grep` solo ve la suya.** Lo único que dio el número bueno fue abrir los trece ficheros y buscar
+el `return` que corta — que es, además, lo que hice bien con `driver` y `my-route` y no apliqué
+al resto.
+
+Nada de esto cambia el código: el guard único cubre las trece igual, y en las que ya tenían la
+suya quedan dos capas que dicen lo mismo. **Sí cambia el tamaño del hallazgo**: no eran cuatro
+pantallas abiertas de par en par, eran dos —Panel y Resumen—, y el Gestor de rutas, que era el
+ejemplo alarmante de todos los mensajes, **nunca estuvo abierto**.
 
 ### Un guard, no trece
 
@@ -13304,9 +13322,9 @@ Tres detalles que no son adorno:
 | Cuentas | todos menos ventas/chofer/almacén | admin, manager — **fuera contabilidad y logística** |
 | Mapa | todos menos almacén/chofer | admin, manager, sales, logistics — **fuera contabilidad** |
 | **Panel** | **cualquiera con sesión** | manager, admin (o `dashboard` concedida) |
-| **Gestor de rutas** | **cualquiera con sesión** | logistics, admin (o `route_plan`) |
 | **Resumen** | **cualquiera con sesión** | admin |
-| **Almacén** | **cualquiera con sesión** | warehouse, admin (o `fulfill`) |
+| Gestor de rutas | logistics, admin (o `route_plan`) — ya acotado | igual |
+| Almacén | warehouse, admin (o `fulfill`) — ya acotado | igual |
 | Auditoría · Mercado · Recorrido | igual que su pestaña | sin cambio |
 | **Datos** | solo `admin` | admin **o `settings` concedida** — **ensancha** |
 | Chofer | `canDeliver` y no almacén | igual (su pestaña dice lo mismo) |
@@ -13351,17 +13369,17 @@ Y lleva control: si el recorrido encuentra menos de doce páginas, falla.
 
 **Nadie lo ha abierto en un navegador**, y hay tres cosas que solo se ven usándolo:
 
-1. Que las cuatro pantallas que estrenan guarda no se la apliquen a quien sí debe entrar, sobre
-   todo **Almacén**, donde el rol `warehouse` trabaja todo el día.
+1. Que las dos pantallas que estrenan guarda —Panel y Resumen— no se la apliquen a quien sí
+   debe entrar, y que las que ya la tenían sigan abriéndose igual: **Almacén** es la que más
+   gente usa a diario y ahora tiene dos capas que dicen lo mismo.
 2. Que «ver como» siga entrando donde toca, que es lo que más superficie tiene.
 3. Que ninguna ruta que **no** es pestaña se haya quedado atrapada por el emparejamiento.
 
-**Y una que no puedo medir desde aquí y que cambia lo grave que era esto:** qué podía **hacer**
-un `sales` dentro de `/routes`. La pantalla se abría; si la base le dejaba asignar un chofer es
-otra capa (`guard_delivery_stage`, RLS) y eso pide una prueba con `ROLLBACK` contra producción,
-que no se hace desde la rama. Lo que sí es cierto sin medirlo: **veía** la planificación del día
-entera.
+**Y lo que hay que retirar, porque se dijo tres veces y era falso:** que un `sales` entraba en
+`/routes` a ver la planificación del día. **No entraba**: `canPlanRoutes(me)` lo paraba desde
+antes de esta rama. Era el ejemplo que hacía urgente el encargo y no existía. Lo que sí existía
+—Panel y Resumen abiertos a cualquiera con sesión— es real y es lo que esta rama cierra.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1628 pasados | 3 saltados**
-(main a28049d: 1614 | 3; los +14 son 13 de `tab-gate.test.ts` y uno del recorrido por fichero
+(main a06ef0d: 1614 | 3; los +14 son 13 de `tab-gate.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, que ahora ve un componente más).
