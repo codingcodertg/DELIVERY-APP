@@ -48,7 +48,7 @@ export default function TrackPage() {
 
   const [driverId, setDriverId] = useState<string>("");
   const [date, setDate] = useState(todayISO());
-  // La ventana también aquí (D-NEXT). Es la decisión más discutible de la rama y va
+  // La ventana también aquí (D-239). Es la decisión más discutible de la rama y va
   // dicha en la entrada: Recorrido es una herramienta de REVISIÓN, y acotarla a ayer
   // le quita a un gerente el «a ver qué pasó el martes pasado». Se acota igual porque
   // la regla del dueño no distingue pantallas, y quien planifica rutas —admin y

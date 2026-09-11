@@ -53,7 +53,7 @@ export default function DriverPage() {
       // reachable by the invoice search above; reprogramming a slipped order
       // back into the window brings it straight back.
       // La ventana pregunta por el historial, no por «ser admin»: exentos, admin y
-      // logística (D-NEXT). Se deja aparte de `adminAllAccess`, que aquí decide otra
+      // logística (D-239). Se deja aparte de `adminAllAccess`, que aquí decide otra
       // cosa —ver los pedidos de OTROS choferes— y esa no cambia en esta rama.
       if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
       return true;

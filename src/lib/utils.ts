@@ -365,7 +365,7 @@ export function withinRetention(
 
 /**
  * Quién ve el historial entero, y por tanto queda fuera de la ventana: **solo el
- * admin y el gerente de logística** (D-NEXT).
+ * admin y el gerente de logística** (D-239).
  *
  * El dueño: *«the same rule that you can only see yesterday today and future
  * applies to everyone except admin and logistic manager»*.

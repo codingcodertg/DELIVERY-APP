@@ -64,7 +64,7 @@ export default function WarehousePage() {
       if (needle) return (d.invoice_num || "").toLowerCase().includes(needle);
       // Near-term work only: two days back through tomorrow. Older history is
       // reachable by the invoice search above.
-      // Quien ve todo el historial (admin y logística, D-NEXT) no se filtra, y se
+      // Quien ve todo el historial (admin y logística, D-239) no se filtra, y se
       // mira el rol REAL: un admin previsualizando almacén sigue viendo todo.
       if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
       return true;

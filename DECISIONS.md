@@ -13114,7 +13114,7 @@ alguien la mide.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1595 pasados | 3 saltados**
 (main a4f802e: 1582 | 3; los +13 son `clockin/centinela.test.ts`).
 
-## D-NEXT · La ventana de ayer-hoy-futuro es para todos menos admin y logística
+## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, literal: *«in deliveries app the same rule that you can only see

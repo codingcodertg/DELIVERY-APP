@@ -27,7 +27,7 @@ export default function OrdersPage() {
   const { me, users, deliveries, settings, ready, teaching, realRole, updateDelivery, setStage, notify, ensureDeliveriesSince } = useData();
   // An admin previewing a role (view-as) sees EVERY order — none of the
   // role-scoped/date-window restrictions apply, so they can test with all data.
-  // Quién ve el historial entero: admin y gerente de logística (D-NEXT). Antes era
+  // Quién ve el historial entero: admin y gerente de logística (D-239). Antes era
   // `realRole === "admin"` aquí y otra condición distinta en cada pantalla. Cambia
   // también el NOMBRE: `veTodoElHistorial` ya no diría la verdad con logística dentro,
   // y un nombre que miente es lo que hace que la siguiente lectura sea falsa.
@@ -182,7 +182,7 @@ export default function OrdersPage() {
         // Aquí había una lista de tres roles (`nearTerm`: sales, driver, warehouse) y
         // por eso `manager` y `accounting` veían el historial entero: no estaban en
         // ella. La ventana ya no pregunta quién trabaja «el corto plazo», sino quién
-        // NO está exento — que es una sola pregunta y se contesta en un sitio (D-NEXT).
+        // NO está exento — que es una sola pregunta y se contesta en un sitio (D-239).
         if (!teaching && !veTodoElHistorial && !withinRetention(d)) return false;
         return true;
       }

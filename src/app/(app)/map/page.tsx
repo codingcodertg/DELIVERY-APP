@@ -46,7 +46,7 @@ export default function MapPage() {
   // view never opens the order detail modal for sales, even for their own
   // orders — clicking a pin or row is purely visual here; they still edit
   // their orders from the Orders page as usual.
-  // La ventana también aquí (D-NEXT): esta pantalla es un día de pedidos que un rol
+  // La ventana también aquí (D-239): esta pantalla es un día de pedidos que un rol
   // no exento puede abrir, y su selector de fecha llegaba hasta donde uno quisiera.
   // Se acota el SELECTOR además de la lista: filtrar solo la lista dejaría un día
   // vacío sin explicación, y el `min` del campo dice por qué sin escribir un aviso.
