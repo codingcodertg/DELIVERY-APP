@@ -12513,7 +12513,7 @@ caja suele ser ventas/oficina. Los export de Excel/PDF/CSV siguen admin-only.
 Usa `navigator.clipboard.writeText`; si el portapapeles no está disponible, avisa en vez de
 fallar en silencio.
 
-## D-NEXT · Un `redirect` en el camino de error convierte cualquier fallo de consulta en un bucle
+## D-234 · Un `redirect` en el camino de error convierte cualquier fallo de consulta en un bucle
 
 **Fecha:** 2026-09-10 · **Versión:** la ponen las tres apps al fusionar (el orquestador) · Sin
 migración.
