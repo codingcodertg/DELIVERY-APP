@@ -7,7 +7,7 @@ import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
-import { todayISO, withinRetention } from "@/lib/utils";
+import { seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 const TABS = [
@@ -64,8 +64,9 @@ export default function WarehousePage() {
       if (needle) return (d.invoice_num || "").toLowerCase().includes(needle);
       // Near-term work only: two days back through tomorrow. Older history is
       // reachable by the invoice search above.
-      // An admin previewing the warehouse role bypasses the window (sees all).
-      if (realRole !== "admin" && !withinRetention(d)) return false;
+      // Quien ve todo el historial (admin y logística, D-NEXT) no se filtra, y se
+      // mira el rol REAL: un admin previsualizando almacén sigue viendo todo.
+      if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
       return true;
     });
   }, [deliveries, effectiveStore, atStore, q, realRole]);

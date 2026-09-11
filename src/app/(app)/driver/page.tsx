@@ -8,7 +8,7 @@ import { routeOrder } from "@/lib/dispatch";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ShiftClock } from "@/components/ShiftClock";
-import { withinRetention } from "@/lib/utils";
+import { seesAllHistory, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // Full workflow visible to drivers now, in order: an order is approved but
@@ -52,10 +52,13 @@ export default function DriverPage() {
       // Near-term work only: two days back through tomorrow. Older history is
       // reachable by the invoice search above; reprogramming a slipped order
       // back into the window brings it straight back.
-      if (!adminAllAccess && !withinRetention(d)) return false;
+      // La ventana pregunta por el historial, no por «ser admin»: exentos, admin y
+      // logística (D-NEXT). Se deja aparte de `adminAllAccess`, que aquí decide otra
+      // cosa —ver los pedidos de OTROS choferes— y esa no cambia en esta rama.
+      if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
       return true;
     });
-  }, [deliveries, me, storeFilter, q, adminAllAccess]);
+  }, [deliveries, me, storeFilter, q, adminAllAccess, realRole]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};

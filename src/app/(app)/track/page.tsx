@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { orderLabel, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
+import { orderLabel, retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
 
@@ -42,12 +42,20 @@ function clock(iso: string | null, lang: string): string {
 }
 
 export default function TrackPage() {
-  const { users, deliveries, settings, me } = useData();
+  const { users, deliveries, settings, me, realRole } = useData();
   const { lang, t } = usePrefs();
   const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
 
   const [driverId, setDriverId] = useState<string>("");
   const [date, setDate] = useState(todayISO());
+  // La ventana también aquí (D-NEXT). Es la decisión más discutible de la rama y va
+  // dicha en la entrada: Recorrido es una herramienta de REVISIÓN, y acotarla a ayer
+  // le quita a un gerente el «a ver qué pasó el martes pasado». Se acota igual porque
+  // la regla del dueño no distingue pantallas, y quien planifica rutas —admin y
+  // logística— la conserva entera.
+  const veTodoElHistorial = seesAllHistory(realRole);
+  const pisoFecha = retentionFloorISO();
+  const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
   const [fixes, setFixes] = useState<Fix[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -70,8 +78,8 @@ export default function TrackPage() {
       // fijaciones entre las 23:00 y la medianoche caían en el día equivocado, mientras la
       // tira de días de abajo clasifica con America/Chicago. Mismo helper DST-aware que el
       // fichaje (src/lib/clockin/tz.ts).
-      const from = centralWallToUtc(`${date}T00:00`);
-      const to = centralWallToUtc(`${shiftDateISO(date, 1)}T00:00`);
+      const from = centralWallToUtc(`${fecha}T00:00`);
+      const to = centralWallToUtc(`${shiftDateISO(fecha, 1)}T00:00`);
       const { data, error } = await supabase
         .from("driver_locations")
         .select("lat, lng, accuracy_m, recorded_at")
@@ -86,7 +94,7 @@ export default function TrackPage() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [driverId, date]);
+  }, [driverId, fecha]);
 
   // Which of the recent days this driver actually reported on. A date picker
   // that lets you land on an empty day is a date picker that wastes clicks —
@@ -178,8 +186,8 @@ export default function TrackPage() {
   );
 
   const done = useMemo(
-    () => deliveries.filter((d) => d.assigned_driver === driverName && d.stage === "delivered" && (d.delivery_date ?? "").slice(0, 10) === date),
-    [deliveries, driverName, date],
+    () => deliveries.filter((d) => d.assigned_driver === driverName && d.stage === "delivered" && (d.delivery_date ?? "").slice(0, 10) === fecha),
+    [deliveries, driverName, fecha],
   );
 
   if (me && !["admin", "manager", "logistics"].includes(me.role)) {
@@ -195,12 +203,13 @@ export default function TrackPage() {
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
           </select>
           <button className="btn btn-ghost btn-sm" title={t("Previous day", "Día anterior")}
-            onClick={() => setDate((d) => shiftDateISO(d, -1))}>◀</button>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
+            disabled={!veTodoElHistorial && fecha <= pisoFecha}
+            onClick={() => setDate((d) => { const p = shiftDateISO(d, -1); return veTodoElHistorial || p >= pisoFecha ? p : d; })}>◀</button>
+          <input type="date" value={fecha} min={veTodoElHistorial ? undefined : pisoFecha} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
           {/* Never past today: there is no track for a day that hasn't happened. */}
-          <button className="btn btn-ghost btn-sm" disabled={date >= todayISO()} title={t("Next day", "Día siguiente")}
+          <button className="btn btn-ghost btn-sm" disabled={fecha >= todayISO()} title={t("Next day", "Día siguiente")}
             onClick={() => setDate((d) => shiftDateISO(d, 1))}>▶</button>
-          <button className="btn btn-ghost btn-sm" disabled={date === todayISO()}
+          <button className="btn btn-ghost btn-sm" disabled={fecha === todayISO()}
             onClick={() => setDate(todayISO())}>{t("Today", "Hoy")}</button>
         </div>
       </div>
@@ -215,8 +224,8 @@ export default function TrackPage() {
           return (
             <button
               key={d}
-              className={"chip" + (d === date ? " on" : "")}
-              style={!has && d !== date ? { opacity: 0.45 } : undefined}
+              className={"chip" + (d === fecha ? " on" : "")}
+              style={!has && d !== fecha ? { opacity: 0.45 } : undefined}
               title={has ? d : t(`${d} — nothing reported`, `${d} — sin reportes`)}
               onClick={() => setDate(d)}
             >
