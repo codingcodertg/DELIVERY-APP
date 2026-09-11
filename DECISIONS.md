@@ -13104,7 +13104,7 @@ Y sigue sin ejecutarse nada de esta rama contra la base: lo que hay son pruebas 
 | D-235 | `erp/auth.ts` | un rol equivocado, en silencio |
 | D-236 | el export de informes | el informe de toda la compañía |
 | D-237 | `visibleStores` y las pantallas de gerente | la compañía entera en pantalla |
-| **D-NEXT** | `timeoff.ts` | **nada: el centinela no hacía falta para filtrar.** Se unifica para que el valor viva en un sitio y las seis formas sean una |
+| **D-238** | `timeoff.ts` | **nada: el centinela no hacía falta para filtrar.** Se unifica para que el valor viva en un sitio y las seis formas sean una |
 
 La frase que explica las cuatro primeras sigue siendo la de D-236: **la falta de un dato tiene
 que acotar, nunca ampliar.** La quinta añade la suya, que es de otro tipo y vale para leer las
