@@ -22,7 +22,7 @@ const noHayCapturas = { uploadScreenshot: vi.fn(async () => ({}) as never) };
 
 beforeEach(() => { almacen.clear(); });
 
-describe("flush · un latido tardío no pisa una sesión cerrada (D-NEXT)", () => {
+describe("flush · un latido tardío no pisa una sesión cerrada (D-241)", () => {
   it("reenvía por la vía VIVA, no por la que actualiza cualquier fila", async () => {
     queueSession("s1", { endMs: 111, liveNote: "active" });
     const updateLiveSession = vi.fn(async () => true);

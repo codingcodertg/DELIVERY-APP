@@ -71,7 +71,7 @@ interface DataState {
    * blind tick write must not retouch end_ms/duration_seconds of a closed session. Stop, the
    * explicit reopen, manual edits and approvals keep using updateSession, which writes
    * closed rows on purpose. Una fila cerrada afecta a CERO filas y no es un error, así que
-   * desde D-NEXT eso se devuelve en vez de callarse. */
+   * desde D-241 eso se devuelve en vez de callarse. */
   updateLiveSession: (id: string, patch: Partial<Session>) => Promise<boolean>;
 
   // ---- screenshots (desktop-captured) ----
@@ -638,7 +638,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (error) throw error;
   }, [supabase]);
 
-  // Devuelve si el latido cayó en una fila VIVA (D-NEXT). Antes no devolvía nada, y eso
+  // Devuelve si el latido cayó en una fila VIVA (D-241). Antes no devolvía nada, y eso
   // escondía el caso que de verdad muerde: **un UPDATE que afecta a cero filas no es un error
   // para PostgREST**. Si la fila ya está cerrada —la cerró el cron, o la pantalla— o si la RLS
   // la filtra porque ya entró en nómina (`080_initplan_all_modules.sql:132`: la cláusula de
@@ -834,7 +834,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // dropped connection, and keep retrying on an interval + on reconnect
   // (D-074). Works on web too; most valuable on the desktop app, where a
   // field site's flaky wifi shouldn't lose tracked time.
-  // La cola reenvía por la vía VIVA, no por `updateSession` (D-NEXT). Un latido que se quedó
+  // La cola reenvía por la vía VIVA, no por `updateSession` (D-241). Un latido que se quedó
   // en la cola y sale media hora tarde no es un dato, es ruido tardío: aplicado sobre una fila
   // ya cerrada le pisaba `end_ms` y `live_note`, y con ello borraba la marca `closed:cron` de
   // la que depende reabrir en D-197. Con la guarda de `is_live`, ese parche no encuentra fila.

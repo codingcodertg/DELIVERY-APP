@@ -1,5 +1,5 @@
 /**
- * Cuando el cronómetro deja de guardar, tiene que decirlo (D-NEXT).
+ * Cuando el cronómetro deja de guardar, tiene que decirlo (D-241).
  *
  * El incidente: la sesión del dueño caducó a media jornada. El tick de diez segundos siguió
  * corriendo y escribiendo contra Supabase, la base respondió que no —el JWT ya no valía— y

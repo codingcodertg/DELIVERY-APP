@@ -13384,7 +13384,7 @@ antes de esta rama. Era el ejemplo que hacía urgente el encargo y no existía. 
 (main a06ef0d: 1614 | 3; los +14 son 13 de `tab-gate.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, que ahora ve un componente más).
 
-## D-NEXT · Un cronómetro que ya no puede guardar tiene que decirlo, y su cierre tiene que ser reversible
+## D-241 · Un cronómetro que ya no puede guardar tiene que decirlo, y su cierre tiene que ser reversible
 
 **Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, sobre su propia jornada: el reloj marcaba horas en pantalla y la base

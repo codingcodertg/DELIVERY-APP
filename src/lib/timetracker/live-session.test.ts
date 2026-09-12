@@ -184,7 +184,7 @@ describe("backoff de la confirmación", () => {
   });
 });
 
-// ---- El cierre desde pantalla también se puede deshacer (D-NEXT) -------------------------
+// ---- El cierre desde pantalla también se puede deshacer (D-241) -------------------------
 describe("decisionReabrir · el cierre que decide una máquina", () => {
   const base = {
     me: "u1",

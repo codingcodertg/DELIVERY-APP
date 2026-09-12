@@ -107,7 +107,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/MySections.tsx",
     "src/components/timetracker/PunchPanel.tsx",
     "src/components/timetracker/TimeOffRequests.tsx",
-    // Y la pantalla del cronómetro, que era el hueco más grande del canario (D-NEXT): usa más
+    // Y la pantalla del cronómetro, que era el hueco más grande del canario (D-241): usa más
     // claves `track.*` que ninguna otra y no estaba en la lista, así que sus traducciones
     // cuadraban por disciplina y no por prueba.
     "src/app/timetracker/(timetracker)/page.tsx",

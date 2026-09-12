@@ -36,7 +36,7 @@ export type QueuedShotRec = {
 type StoredShot = QueuedShotRec & { id: number };
 
 export type OfflineOps = {
-  /** La vía viva, con la guarda de `is_live`. `false` = ya no hay fila viva (D-NEXT). */
+  /** La vía viva, con la guarda de `is_live`. `false` = ya no hay fila viva (D-241). */
   updateLiveSession: (id: string, patch: Partial<Session>) => Promise<boolean>;
   uploadScreenshot: (rec: QueuedShotRec) => Promise<Screenshot>;
 };
@@ -106,7 +106,7 @@ export async function flush(ops: OfflineOps) {
     for (const id of Object.keys(patches)) {
       try {
         // El valor que devuelve dice si había fila viva, y aquí los dos casos acaban igual:
-        // el parche se quita de la cola (D-NEXT). Si entró, porque ya está guardado. Si no
+        // el parche se quita de la cola (D-241). Si entró, porque ya está guardado. Si no
         // había fila viva —la sesión se cerró mientras esto esperaba, o entró en nómina y la
         // RLS la filtra— porque no hay dónde aplicarlo, y guardarlo para el próximo intento
         // sería atascar la cola entera detrás de un parche que no va a entrar nunca. Lo que

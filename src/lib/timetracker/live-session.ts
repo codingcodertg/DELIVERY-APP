@@ -83,13 +83,13 @@ export function markCovers(mark: ResumeMark | null, sessionId: string | null | u
  * que el tick sobreescribe cada diez segundos mientras la sesión vive ("active", "idle",
  * "break", el nombre de la app) y que "Trabajando ahora" solo lee en filas `is_live`: en una
  * fila cerrada nadie lo mira, así que sirve de marca sin migración. Un Stop escribe `null`.
- * Desde D-NEXT marcan los DOS cierres automáticos —el cron y la pantalla—, cada uno con el
+ * Desde D-241 marcan los DOS cierres automáticos —el cron y la pantalla—, cada uno con el
  * suyo; antes la pantalla no marcaba y su cierre era indistinguible de un Stop.
  */
 export const CRON_CLOSE_NOTE = "closed:cron";
 
 /**
- * Y el que deja la PANTALLA cuando cierra una huérfana (D-NEXT).
+ * Y el que deja la PANTALLA cuando cierra una huérfana (D-241).
  *
  * Hasta ahora ese cierre no dejaba marca: la fila quedaba con el `live_note` del último
  * latido —`active`, `idle`, el nombre de la app— y `decisionReabrir` lo leía como «la cerró
