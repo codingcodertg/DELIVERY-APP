@@ -14,9 +14,10 @@ import {
 import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
-import { isSessionExpired, isAlreadyRunning } from "@/lib/session-guard";
+import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-guard";
+import { horaCorta, minutosSinGuardar } from "@/lib/timetracker/save-state";
 import {
-  backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, PAGE_ORPHAN_CLOSE_NOTE, parseResumeMark, resumeKey, RESUME_MAX_MS,
   tickContinuo,
 } from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
@@ -338,6 +339,12 @@ export default function TrackTimePage() {
     });
   }, [notify]);
 
+  /**
+   * Lo que puede pasarle a un latido. `true` guardó; `"queued"` es la red y se recupera sola;
+   * `"overlap"`, `"auth"` y `"cerrada"` NO se recuperan solos y por eso se ven en pantalla.
+   */
+  type EscrituraLatido = boolean | "queued" | "overlap" | "auth" | "cerrada";
+
   function netSeconds(el: number): number { return Math.max(0, el - lunchRef.current - brkRef.current - idleRef.current); }
   function breakEventsPayload() { return breakEventsRef.current.map((e) => ({ kind: e.kind, start: e.start, end: e.end || null })); }
 
@@ -348,18 +355,33 @@ export default function TrackTimePage() {
   // always carries the full up-to-date duration once it flushes.
   // `soloViva` (D-197): el tick escribe con updateLiveSession, que filtra por is_live = true, para
   // no retocar end_ms/duration_seconds de una fila que el cron ya cerró (tras despertar, por
-  // ejemplo). Stop escribe is_live = false a propósito y sigue por updateSession. Lo que cae a la
-  // cola offline se reenvía por el updateSession del proveedor, sin filtro: límite conocido,
-  // anotado en la decisión.
-  async function writeSession(id: string, patch: Partial<Session>, tries = 3, soloViva = false): Promise<boolean | "queued" | "overlap"> {
-    const write = soloViva ? updateLiveSession : updateSession;
+  // ejemplo). Stop escribe is_live = false a propósito y sigue por updateSession: cerrar tiene
+  // que funcionar. Y desde D-NEXT la cola también reenvía por la vía viva, así que el límite que
+  // aquí se daba por conocido —un parche encolado pisando una fila ya cerrada— ya no existe.
+  async function writeSession(id: string, patch: Partial<Session>, tries = 3, soloViva = false): Promise<EscrituraLatido> {
     for (let i = 0; i < tries; i++) {
-      try { await write(id, patch); return true; }
+      try {
+        if (!soloViva) { await updateSession(id, patch); return true; }
+        // La vía viva dice ADEMÁS si había fila que actualizar (D-NEXT). Cero filas no es un
+        // error para PostgREST, así que sin esta respuesta un latido contra una sesión ya
+        // cerrada —o ya en nómina— volvía «bien» y el reloj seguía como si guardara.
+        return (await updateLiveSession(id, patch)) ? true : "cerrada";
+      }
       catch (e) {
         // Un solape (082) no se arregla esperando: la base lo va a rechazar igual
         // dentro de una hora. Encolarlo sería reintentar en silencio para siempre
         // mientras el reloj sigue en pantalla como si estuviera guardando.
         if (isOverlapError(e)) return "overlap";
+        // Una sesión caducada tampoco se arregla esperando (D-NEXT). El proveedor ya reintentó
+        // con token fresco antes de llegar aquí, así que esto es un no definitivo: reintentar
+        // tres veces más con medio segundo entre medias no va a resucitar el JWT.
+        //
+        // El parche SÍ se encola, y esa parte de D-074 estaba bien: si la persona vuelve a
+        // entrar, el `flush` lo aplica con la duración completa y el tramo se recupera. Lo que
+        // estaba mal era devolver `"queued"` y callar, porque una cola se vacía sola cuando lo
+        // que falló es la red y NO se vacía sola cuando lo que falló es la sesión. Se encola y
+        // se dice, que son dos cosas distintas.
+        if (isAuthDenied(e)) { queueSession(id, patch); return "auth"; }
         await new Promise((r) => setTimeout(r, 500 * (i + 1)));
       }
     }
@@ -429,7 +451,11 @@ export default function TrackTimePage() {
         // comparten esta pantalla y el cron que cierra huérfanas (D-195). Eran 5 minutos;
         // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
         if (esHuerfana(mine, Date.now())) {
-          await updateSession(mine.id, cierreHuerfana(mine)).catch(() => {});
+          // Con marca propia (D-NEXT): este cierre lo decide una máquina, igual que el del
+          // cron, y `decisionReabrir` tiene que poder distinguirlo de un Stop. Sin ella, la
+          // fila se quedaba con el `live_note` del último latido —`active` en el caso del
+          // dueño— y se leía como «la cerró una persona».
+          await updateSession(mine.id, { ...cierreHuerfana(mine), liveNote: PAGE_ORPHAN_CLOSE_NOTE }).catch(() => {});
           try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
           setRunning(false);
           setWorked(0);
@@ -754,11 +780,41 @@ export default function TrackTimePage() {
             if (r === "overlap" && !stoppedRef.current) {
               notify(t("track.overlap"));
               void stop();
+              return;
+            }
+            // Los dos fallos que NO se recuperan solos se ven en el acto y una sola vez
+            // (D-NEXT). El cronómetro no se para: el trabajo se está haciendo, lo que falta
+            // es dónde guardarlo, y pararlo por su cuenta sería tirar los minutos que aún se
+            // pueden recuperar. Lo que se acaba es aparentar que se guarda.
+            if (r === "auth" || r === "cerrada") {
+              if (sinGuardarDesdeRef.current === null) {
+                sinGuardarDesdeRef.current = ultimoGuardadoRef.current ?? Date.now();
+                setSinGuardarDesde(sinGuardarDesdeRef.current);
+                notify(t(r === "auth" ? "track.authLost" : "track.rowClosed"));
+              }
+              return;
+            }
+            // Y cualquier escritura buena borra el aviso y mueve el suelo: entre el fallo y
+            // ahora puede haber entrado un reintento, y el minuto que se enseña tiene que ser
+            // el del último guardado de verdad, no el del primer error.
+            if (r === true) {
+              ultimoGuardadoRef.current = Date.now();
+              if (sinGuardarDesdeRef.current !== null) {
+                sinGuardarDesdeRef.current = null;
+                setSinGuardarDesde(null);
+              }
             }
           });
         }
       }, 1000);
   }
+
+  // Desde cuándo el reloj de pantalla no corresponde a nada guardado (D-NEXT). El ref es el
+  // que lee el tick —corre dentro de un setInterval y no ve el estado nuevo— y el estado es el
+  // que pinta el aviso. `ultimoGuardadoRef` es el suelo: la última escritura que sí entró.
+  const ultimoGuardadoRef = useRef<number | null>(null);
+  const sinGuardarDesdeRef = useRef<number | null>(null);
+  const [sinGuardarDesde, setSinGuardarDesde] = useState<number | null>(null);
 
   const arrancandoRef = useRef(false);
 
@@ -903,6 +959,10 @@ export default function TrackTimePage() {
     // saying once — the entry is not lost, it just is not on the server yet.
     if (ok === "queued") notify(t("track.savedOffline"));
     if (ok === "overlap") notify(t("track.overlap"));
+    // Un Stop con la sesión caducada (D-NEXT). El parche queda encolado, así que la entrada no
+    // se pierde, pero no está en el servidor y no va a estarlo hasta que la persona vuelva a
+    // entrar — que es justo lo que hay que decirle, y lo que antes no se decía.
+    if (ok === "auth") notify(t("track.authLostOnStop"));
   }
   stopRef.current = stop;
 
@@ -1003,6 +1063,15 @@ export default function TrackTimePage() {
         )}
         {overLimit && (
           <div className="banner warn">{t("track.overWarning")}</div>
+        )}
+        {/* El reloj puede seguir corriendo, pero no puede seguir pareciendo que guarda
+            (D-NEXT). El aviso dice la hora del último guardado bueno y cuántos minutos van sin
+            salvar, que es lo que de verdad se juega quien lo lee. Se repinta cada segundo
+            porque el tick actualiza el estado del reloj cada segundo. */}
+        {sinGuardarDesde !== null && (
+          <div className="banner warn">
+            {t("track.unsaved", { hora: horaCorta(sinGuardarDesde), mins: String(minutosSinGuardar(sinGuardarDesde, Date.now())) })}
+          </div>
         )}
 
         <div className="hr" />

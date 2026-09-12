@@ -36,7 +36,8 @@ export type QueuedShotRec = {
 type StoredShot = QueuedShotRec & { id: number };
 
 export type OfflineOps = {
-  updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
+  /** La vía viva, con la guarda de `is_live`. `false` = ya no hay fila viva (D-NEXT). */
+  updateLiveSession: (id: string, patch: Partial<Session>) => Promise<boolean>;
   uploadScreenshot: (rec: QueuedShotRec) => Promise<Screenshot>;
 };
 
@@ -103,7 +104,16 @@ export async function flush(ops: OfflineOps) {
     // 1) session patches
     const patches = loadPatches();
     for (const id of Object.keys(patches)) {
-      try { await ops.updateSession(id, patches[id]); delete patches[id]; savePatches(patches); }
+      try {
+        // El valor que devuelve dice si había fila viva, y aquí los dos casos acaban igual:
+        // el parche se quita de la cola (D-NEXT). Si entró, porque ya está guardado. Si no
+        // había fila viva —la sesión se cerró mientras esto esperaba, o entró en nómina y la
+        // RLS la filtra— porque no hay dónde aplicarlo, y guardarlo para el próximo intento
+        // sería atascar la cola entera detrás de un parche que no va a entrar nunca. Lo que
+        // NO puede pasar es lo de antes: aplicarlo sobre la fila cerrada y pisarle el cierre.
+        await ops.updateLiveSession(id, patches[id]);
+        delete patches[id]; savePatches(patches);
+      }
       catch { break; } // still offline / server error — retry next time
     }
     // 2) screenshots

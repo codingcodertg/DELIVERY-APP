@@ -82,10 +82,28 @@ export function markCovers(mark: ResumeMark | null, sessionId: string | null | u
  * La marca que deja el cron en `live_note` al cerrar una huérfana. `live_note` es texto libre
  * que el tick sobreescribe cada diez segundos mientras la sesión vive ("active", "idle",
  * "break", el nombre de la app) y que "Trabajando ahora" solo lee en filas `is_live`: en una
- * fila cerrada nadie lo mira, así que sirve de marca sin migración. Un Stop escribe `null`,
- * y el guardián de la propia pantalla no marca: solo el cron.
+ * fila cerrada nadie lo mira, así que sirve de marca sin migración. Un Stop escribe `null`.
+ * Desde D-NEXT marcan los DOS cierres automáticos —el cron y la pantalla—, cada uno con el
+ * suyo; antes la pantalla no marcaba y su cierre era indistinguible de un Stop.
  */
 export const CRON_CLOSE_NOTE = "closed:cron";
+
+/**
+ * Y el que deja la PANTALLA cuando cierra una huérfana (D-NEXT).
+ *
+ * Hasta ahora ese cierre no dejaba marca: la fila quedaba con el `live_note` del último
+ * latido —`active`, `idle`, el nombre de la app— y `decisionReabrir` lo leía como «la cerró
+ * una persona», que es lo mismo que un Stop. No lo es: **un Stop lo pulsa alguien y esto lo
+ * decide una máquina**, con la misma regla y la misma aritmética que el cron.
+ *
+ * Con marca propia, las dos cosas se distinguen: el cierre automático se puede deshacer si
+ * hay prueba de que el reloj de este cliente nunca se detuvo (las cuatro condiciones de
+ * D-197, sin relajar ninguna), y un Stop no se deshace nunca.
+ */
+export const PAGE_ORPHAN_CLOSE_NOTE = "closed:orphan-page";
+
+/** Los cierres que decidió una máquina, no una persona. */
+export const CIERRES_AUTOMATICOS = [CRON_CLOSE_NOTE, PAGE_ORPHAN_CLOSE_NOTE];
 
 export type FilaSesion = {
   id: string;
@@ -105,7 +123,8 @@ export type MotivoNoReabrir =
  * cliente nunca se detuvo. Las cuatro condiciones, todas obligatorias:
  *
  *  1. Es SU fila, y está cerrada.
- *  2. La cerró EL CRON (`live_note = CRON_CLOSE_NOTE`), no una persona ni un Stop.
+ *  2. La cerró una MÁQUINA (`live_note` en `CIERRES_AUTOMATICOS`: el cron o la propia
+ *     pantalla al ver una huérfana), no una persona ni un Stop.
  *  3. Hay marca de reanudación reciente PARA ESA sesión, y evidencia local continua: el tick
  *     siguió corriendo (la marca se refresca en cada escritura del tick) o la página acaba de
  *     recargarse con la marca del `pagehide`.
@@ -123,7 +142,7 @@ export function decisionReabrir(args: {
   if (!fila) return { reabrir: false, motivo: "sin-fila" };
   if (fila.employeeUid !== me) return { reabrir: false, motivo: "no-es-mia" };
   if (fila.isLive) return { reabrir: false, motivo: "sigue-viva" };
-  if (fila.liveNote !== CRON_CLOSE_NOTE) return { reabrir: false, motivo: "la-cerro-una-persona" };
+  if (!CIERRES_AUTOMATICOS.includes(fila.liveNote ?? "")) return { reabrir: false, motivo: "la-cerro-una-persona" };
   if (!markCovers(mark, fila.id)) return { reabrir: false, motivo: "sin-marca" };
   if (!evidenciaLocal) return { reabrir: false, motivo: "sin-evidencia-local" };
   if (otrasVivas.some((id) => id !== fila.id)) return { reabrir: false, motivo: "otra-viva" };
