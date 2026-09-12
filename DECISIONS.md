@@ -14059,3 +14059,121 @@ con el token de la sesión ajena antes de restaurar.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1719 pasados | 3 saltados**
 (main 085428e: 1708 | 3; los +11 son 6 de `impersonation-revoke.test.ts` y 5 de
 `security-log-notice.test.ts`).
+
+## D-NEXT · Tras una recarga, la marca es la evidencia — y no se tira antes de leerla
+
+**Fecha:** 2026-09-12 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño**, sobre su propia jornada de hoy.
+
+### Lo que le pasó, con los números
+
+Sesión `904f97d1…`: arranque **10:54:31**, último latido **13:49:21**, capturas hasta 13:38,
+`live_note = 'closed:orphan-page'`, **2 h 55 min guardadas**. Paró a las **14:40**, así que
+trabajó 3 h 46 min. **El tramo perdido son 51 minutos**, de 13:49 a 14:40.
+
+*(La primera estimación fue «cuatro horas». La corrige el dato del dueño sobre su hora de parada,
+y se deja escrita la cifra medida en vez de la impresión.)*
+
+En medio: vio «Something went wrong», pulsó «Reload app», y al volver la sesión estaba cerrada.
+
+**Qué reventó a las 13:49 sigue sin medirse** — se le pidió el «Copy details» de esa pantalla y
+no ha llegado. Esto recupera lo que se perdía, **no arregla la causa**.
+
+### El hueco: una promesa que no se podía cumplir
+
+D-241 hizo que el cierre desde pantalla dejara su propia marca (`closed:orphan-page`) para poder
+deshacerlo. Pero la condición 3 de D-197 exige **evidencia local**, y esa evidencia era
+`continuoRef && tickRef !== null && runningRef && sessionIdRef === id`.
+
+**Tras una recarga nada de eso existe**, porque acaba de reiniciarse. Así que la reapertura de un
+cierre de pantalla era **imposible por construcción** justo en el caso más común —crash, «Reload
+app», navegador cerrado—, que es precisamente para el que se escribió.
+
+Y encima, al cargar, la pantalla cerraba la fila huérfana y **borraba la marca en el mismo
+paso**: tiraba la prueba antes de que nadie la consultara.
+
+### Dos veces «un arreglo que parece hecho», en la misma rama
+
+La primera versión de esto **no hacía nada**, y las dos razones merecen quedarse porque son la
+misma familia que ya aparece tres veces en este documento.
+
+**Uno: se preguntaba por una nota que aún no existía.** La página le pasaba a `decisionReabrir`
+la fila **viva**, con el `live_note` del último tick (`active`, `break`), y la condición «la
+cerró una máquina» la rechazaba **siempre**. La nota de cierre que esa condición esperaba la
+escribe la propia página **dos líneas más abajo**. Así que la reapertura no ocurría en ninguna
+carga real.
+
+Y la prueba pasaba porque le daba de comer una fila **ya cerrada con la nota puesta**: una
+entrada que la página no produce en ese punto. Compilaba, se leía bien, sus mutantes caían.
+
+Lo que lo arregla no es un `if` más: es que en `tras-carga` **la pregunta es otra**. No es
+«¿la cerró una máquina?» —nadie la ha cerrado; la máquina que iba a cerrarla es esta página—
+sino **«¿la adopto en vez de cerrarla?»**.
+
+**Dos: la ventana era vacía por construcción.** `esHuerfana` mide `ahora − endMs > 15 min`;
+`parseResumeMark` descarta la marca si `ahora − at > 15 min`; y **la marca la escribe el mismo
+tick que escribe `endMs`**. Mismo ancla, mismo umbral: **cuando la fila es huérfana, la marca ya
+caducó**. Siempre. Ni con lo anterior arreglado se habría reabierto nada.
+
+### Dos contextos con nombre, porque son dos pruebas distintas
+
+`decisionReabrir` recibe ahora un contexto:
+
+- **`sin-red`** — la pantalla sigue abierta y contando cuando descubre que el servidor cerró la
+  fila. La prueba es el tick corriendo. **D-197 no se relaja: sigue exigiéndolo.**
+- **`tras-carga`** — la página acaba de arrancar. La prueba es la **marca**, que vive en
+  `localStorage` y sobrevive precisamente a lo que borra la memoria.
+
+**En `tras-carga` el límite es la jornada, no los quince minutos**, y es lo que hace que esto
+sirva de algo — con el tope de la marca la ventana era vacía, como se explica arriba.
+
+Relajarlo **no reabre la puerta de D-098**, y la razón es concreta: en este contexto **el hueco
+no se paga**. La pantalla adelanta el arranque tanto como duró, así que los minutos sin latidos
+no entran en la nómina pase lo que pase. Lo único que se decide aquí es la **continuidad** — si
+el trabajo de después sigue en la misma fila o pide un Start nuevo.
+
+**Al día siguiente, no.** Una fila de ayer se cierra como huérfana, igual que hoy: reabrirla
+sería juntar dos jornadas en una. La jornada es la de negocio (Chicago), la misma con la que se
+cuenta todo lo demás.
+
+Y `markCovers` sigue exigiendo que la marca sea **de esa sesión**, y un Stop sigue sin deshacerse
+nunca. Hay prueba de las dos direcciones, alimentada con **la entrada que la página produce de
+verdad**: fila viva, `live_note = "active"`, marca de hace 51 minutos.
+
+Y el orden en la carga se invierte: **decidir, y solo si no se reabre, borrar.**
+
+### El tramo sin latidos no se inventa
+
+Del último latido a la recarga no hay **ninguna** evidencia de que se estuviera trabajando: ni
+actividad, ni capturas, nada. Rellenarlo sería pagar un hueco por si acaso, que es exactamente lo
+que prohibió D-098.
+
+Así que el reloj sigue **desde donde se quedó**: se adelanta el arranque tantos milisegundos como
+duró el hueco, de modo que el tiempo que se enseña no lo incluye. Y la pantalla lo dice con las
+dos horas: «N min entre HH:MM y HH:MM no se registraron».
+
+**Ese tramo, si hay que pagarlo, va como entrada manual.** El sistema no lo reconstruye, y los 51
+minutos de hoy entran por ahí. Lo que sí recupera esto es **la continuidad**: de aquí en adelante
+un crash a media jornada no parte el día en dos sesiones ni pierde lo trabajado después.
+
+### Dos cosas del encargo que ya estaban hechas
+
+Se midieron antes de escribirlas otra vez, y no se tocó nada:
+
+- **«Que cada latido refresque la marca»** — ya lo hace desde D-197 (`page.tsx:837-841`, dentro
+  del tick de diez segundos). No es solo en `pagehide`. El peor caso ya era un hueco de ~10 s.
+- **«Que el `ErrorBoundary` escriba la marca antes de pintar el error»** — con lo anterior, eso
+  compra **diez segundos**, y a cambio pediría acoplar un componente que usan las cinco apps al
+  Time Tracker: la clave es `resumeKey(me.id)` y el boundary no conoce ni al usuario ni la
+  sesión. **No se hace.** La pérdida no venía de ahí; venía de tirar la marca antes de leerla.
+
+### Lo no verificado
+
+- **Qué falló a las 13:49.** Sin el «Copy details», la causa del crash no está medida. Esta
+  entrada trata la consecuencia.
+- **Nadie lo ha visto en un navegador**: ni la reapertura tras recargar, ni el aviso con las dos
+  horas. Probado está lo que decide —los dos contextos, los cuatro rechazos que siguen en pie, el
+  orden de la carga y la aritmética del hueco— con mutantes en las tres piezas.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1737 pasados | 3 saltados**
+(main 45b1bd1: 1719 | 3; los +18 son de `reabrir-tras-carga.test.ts`).
