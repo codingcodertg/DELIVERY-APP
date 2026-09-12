@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
+import { fallóElRegistro } from "@/lib/security-log-notice";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
 import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, knownModules } from "@/lib/constants";
@@ -1345,13 +1346,26 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   ) => {
     if (!me) return;
     const target = users.find((u) => u.id === targetId);
+    // El `error` de un `insert` NO se descartaba por descuido de estilo: `insert()` **no lanza**
+    // cuando la base rechaza, devuelve `{ error }`. El `catch` de antes solo cazaba fallos de
+    // red, así que un permiso mal puesto se iba sin dejar rastro — ni la fila, ni el aviso, ni
+    // una línea en la consola. Un registro que puede fallar así es un registro a medias
+    // (D-NEXT).
+    //
+    // No bloquea: el cambio que se acaba de hacer ya ocurrió, y deshacerlo por no poder
+    // apuntarlo sería peor. Pero se dice, **una vez**: quien está cambiando permisos a diez
+    // personas no necesita diez avisos iguales, necesita saber que el registro no está
+    // funcionando.
     try {
-      await supabase.from("security_events").insert({
+      const { error } = await supabase.from("security_events").insert({
         actor_id: me.id, target_id: targetId,
         target_name: target?.full_name ?? null, kind, detail,
       });
-    } catch { /* logging must never be the thing that fails */ }
-  }, [supabase, me, users]);
+      if (error) fallóElRegistro(error.message, notify, lang);
+    } catch (e) {
+      fallóElRegistro(e instanceof Error ? e.message : String(e), notify, lang);
+    }
+  }, [supabase, me, users, notify, lang]);
 
   const setUserIdentity = useCallback<DataState["setUserIdentity"]>(async (id, patch) => {
     const res = await fetch("/api/user-identity", {

@@ -4,6 +4,7 @@ import { createClient as createSSRClient } from "@/lib/supabase/server";
 import { apuntarImpersonacion } from "@/lib/impersonation-log";
 import { EVENTO_VOLVER } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
+import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
 /**
  * Volver a mi cuenta (D-243).
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
   // rama —devolver al admin sin contraseña— no se cumplía ni una vez, y la fila de «fin» no se
   // escribía nunca porque el error salía antes. Nadie lo habría visto hasta producción: se sale
   // igual, solo que al login.
+  // El token de la sesión impersonada, ANTES de restaurar: después la cookie ya es del admin y
+  // no habría de dónde sacarlo (D-NEXT).
+  const { data: { session: sesionAjena } } = await ssr.auth.getSession();
+
   const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
 
   if (error) {
@@ -61,6 +66,11 @@ export async function POST(request: Request) {
     await ssr.auth.signOut().catch(() => {});
     return NextResponse.json({ ok: false, salida: "login" });
   }
+
+  // Y se cierra en el servidor la sesión del vendedor, solo esa. No bloquea: si falla, el admin
+  // ya tiene su cuenta de vuelta y queda una sesión caducando sola, que es infinitamente mejor
+  // que negarle el regreso.
+  void revocarSesionImpersonada(sesionAjena?.access_token);
 
   void apuntarImpersonacion({
     actorId: guardado.adminId,
