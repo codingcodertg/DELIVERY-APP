@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { apuntarImpersonacion } from "@/lib/impersonation-log";
 import { EVENTO_VOLVER } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
+import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
 /**
  * La vuelta que nadie pulsa (D-NEXT, al rebasar «entrar como» con el cierre de las 18:30).
@@ -44,13 +45,26 @@ export async function GET(request: Request) {
     return alLogin();
   }
 
+  // El token de la sesión impersonada, ANTES de restaurar (D-245): después la cookie ya es la
+  // del admin y se revocaría la sesión que acaba de recuperar.
+  const { data: { session: sesionAjena } } = await ssr.auth.getSession();
+
   const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
   if (error) {
     await ssr.auth.signOut().catch(() => {});
     return alLogin();
   }
 
-  void apuntarImpersonacion({
+  // La sesión del vendedor se cierra en el servidor, y solo esa (D-245). Aquí llega por el
+  // corte de las 18:30 o por los 60 minutos, y en los dos casos la impersonación se acabó — que
+  // la sesión ajena siguiera viva sería lo mismo que en la vuelta manual.
+  //
+  // **Con `await`, no soltada**: esto termina en un `redirect`, y en Vercel la función se puede
+  // congelar al devolver la respuesta. Lo soltado tras responder no tiene garantía de correr, y
+  // si no corriera no lo diría nadie.
+  await revocarSesionImpersonada(sesionAjena?.access_token);
+
+  await apuntarImpersonacion({
     actorId: guardado.adminId,
     targetId: guardado.comoId,
     targetName: null,

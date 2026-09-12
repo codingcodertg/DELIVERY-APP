@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
+import { readFileSync } from "node:fs";
 import { updateSession, type PuertaDeSesion } from "@/lib/supabase/middleware";
 import { COOKIE_RETORNO, empaquetar } from "@/lib/impersonation-cookie";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
@@ -114,5 +115,40 @@ describe("un parpadeo de red antes del corte no le quita la vuelta al admin", ()
       getUser: async () => false, ahora: manana, gate: async () => puerta({}),
     });
     expect(r.cookies.getAll().map((c) => c.name)).toContain(COOKIE_RETORNO);
+  });
+});
+
+// ---- La vuelta automática cierra la sesión ajena igual que la manual (D-245, al rebasar) -----
+// Esta ruta no existía cuando se escribió el endurecimiento: es de esta rama. Sin esto, volver
+// por el corte de las 18:30 o por los 60 minutos dejaba viva la sesión del vendedor, y volver
+// pulsando el botón no. La misma acción con dos finales distintos según por dónde se llegara.
+describe("auto-return revoca la sesión ajena, en el orden y esperándola", () => {
+  const src = readFileSync("src/app/api/impersonate/auto-return/route.ts", "utf8");
+  const codigo = src.split(/\r?\n/).filter((l) => {
+    const t = l.trim();
+    return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*");
+  }).join("\n");
+
+  it("toma el token de la sesión impersonada ANTES de restaurar al admin", () => {
+    const iToken = codigo.indexOf("getSession()");
+    const iRestaurar = codigo.indexOf("refreshSession(");
+    expect(iToken).toBeGreaterThan(-1);
+    expect(iRestaurar).toBeGreaterThan(-1);
+    expect(iToken).toBeLessThan(iRestaurar);
+  });
+
+  it("y la espera, porque esto acaba en un redirect y la función se puede congelar", () => {
+    expect(codigo).toMatch(/await revocarSesionImpersonada\(/);
+    expect(codigo).not.toMatch(/void revocarSesionImpersonada\(/);
+    expect(codigo).toMatch(/await apuntarImpersonacion\(/);
+    expect(codigo).not.toMatch(/void apuntarImpersonacion\(/);
+  });
+
+  it("las dos vueltas hacen lo mismo: ninguna se queda sin revocar", () => {
+    // El control de que no vuelva a haber una sola de las dos arreglada.
+    const manual = readFileSync("src/app/api/impersonate/return/route.ts", "utf8");
+    for (const [nombre, s] of [["manual", manual], ["automática", src]] as const) {
+      expect(s, nombre).toContain("revocarSesionImpersonada");
+    }
   });
 });

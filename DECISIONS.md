@@ -14561,6 +14561,21 @@ Con `sinUsuarioConfirmado` la cookie sobrevive al parpadeo y la segunda navegaci
 restaurador. O sea que lo que salvó este cruce fue la distinción entre «no hay sesión» y «no pude
 preguntar», y no la suerte.
 
+### La vuelta automática también cierra la sesión ajena
+
+Se escribió al rebasar sobre D-245, y es el segundo trozo que solo se podía escribir aquí: la
+ruta de vuelta automática es de esta rama y el endurecimiento era de la otra.
+
+Sin esto, la misma acción tenía dos finales según por dónde se llegara: volver **pulsando el
+botón** cerraba la sesión del vendedor en el servidor, y volver **por el corte de las 18:30 o por
+los 60 minutos** la dejaba viva. Ahora las dos hacen lo mismo, con el mismo orden —el token de la
+sesión ajena tomado **antes** de restaurar, porque después la cookie ya es del admin— y las dos
+**esperando**, que es lo que D-245 aprendió: esto acaba en una redirección, y en Vercel la
+función se puede congelar al devolver la respuesta.
+
+Hay una prueba que exige que **ninguna de las dos vueltas se quede sin revocar**, porque el fallo
+natural aquí es arreglar una y olvidar la otra.
+
 ### Lo no verificado
 
 - **Que `auth.jwt()` traiga `session_id` en este proyecto.** Es un claim obligatorio según el
@@ -14573,10 +14588,11 @@ preguntar», y no la suerte.
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1773 pasados | 3 saltados**
-(main 085428e, que ya lleva D-243 y D-244 dentro: 1708 | 3; los +65 son 35 de `session-cutoff.test.ts`,
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1787 pasados | 3 saltados**
+(main 45b1bd1, que ya lleva D-243, D-244 y D-245 dentro: 1719 | 3; los +68 son 35 de `session-cutoff.test.ts`,
 13 de `use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts`, 8 de
-`cutoff-impersonation.test.ts` —el cruce con D-243, nuevo en el rebase— y uno del canario de
+`cutoff-impersonation.test.ts` —el cruce con D-243 y la revocación de D-245, nueva en este
+rebase— y uno del canario de
 traducciones del Time Tracker, que ve una clave nueva).
 
 Nota de entorno, porque el número no significa nada sin ella: **el `verify` se colgó dos veces en
