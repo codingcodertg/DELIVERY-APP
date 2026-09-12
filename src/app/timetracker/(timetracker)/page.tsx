@@ -459,10 +459,16 @@ export default function TrackTimePage() {
           //
           // La marca es la evidencia en este caso, y no el tick: la página acaba de arrancar,
           // así que no hay tick, ni `running`, ni id en memoria. Ver `ContextoReapertura`.
+          // La marca se lee **sin el tope de 15 minutos**: aquí el límite es la jornada, y lo
+          // aplica `decisionReabrir`. Con el tope de siempre la ventana era vacía —cuando la
+          // fila es huérfana la marca tiene la misma edad, porque las escribe el mismo tick—.
           let marca = null;
-          try { marca = parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { marca = null; }
+          try { marca = parseResumeMark(localStorage.getItem(LS_RESUME), Date.now(), Number.POSITIVE_INFINITY); } catch { marca = null; }
+          // La fila **tal como está en la base**: viva, con el `live_note` del último tick. Pasar
+          // aquí una nota de cierre que todavía no existe era preguntar por algo que la página
+          // escribe dos líneas más abajo, y por eso no se reabría nunca.
           const dec = decisionReabrir({
-            fila: { id: mine.id, employeeUid: me.id, isLive: false, liveNote: mine.liveNote ?? null },
+            fila: { id: mine.id, employeeUid: me.id, isLive: !!mine.isLive, liveNote: mine.liveNote ?? null, startMs: mine.startMs ?? null },
             me: me.id, mark: marca, evidenciaLocal: false, otrasVivas: [], contexto: "tras-carga",
           });
 

@@ -20,6 +20,8 @@
  * 3. **El backoff** de los reintentos de confirmación.
  */
 
+import { BUSINESS_TZ } from "@/lib/utils";
+
 /** Sin latido durante más de esto, la sesión viva es huérfana. UNA constante para todos. */
 export const LATIDO_MAX_MS = 15 * 60_000;
 /** Una marca de reanudación más vieja que esto no vale: se cae al comportamiento de D-096. */
@@ -110,10 +112,18 @@ export type FilaSesion = {
   employeeUid: string;
   isLive: boolean;
   liveNote: string | null;
+  /** Cuándo arrancó. Solo lo mira el caso `tras-carga`, para exigir la misma jornada. */
+  startMs?: number | null;
 };
 
+/** La jornada de negocio (Chicago) de un instante, como `YYYY-MM-DD`. */
+export const jornadaDe = (ms: number): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(new Date(ms));
+
 export type MotivoNoReabrir =
-  | "sin-fila" | "no-es-mia" | "sigue-viva" | "la-cerro-una-persona" | "sin-marca" | "sin-evidencia-local" | "otra-viva";
+  | "sin-fila" | "no-es-mia" | "sigue-viva" | "la-cerro-una-persona" | "sin-marca" | "sin-evidencia-local"
+  | "otra-jornada" | "otra-viva";
 
 /**
  * De dónde sale la prueba de que este reloj no se detuvo. **Son dos casos distintos**, y
@@ -157,17 +167,58 @@ export function decisionReabrir(args: {
   evidenciaLocal: boolean;
   otrasVivas: string[];
   contexto?: ContextoReapertura;
+  /** Para poder fijar la jornada en las pruebas sin tocar el reloj. */
+  ahora?: number;
 }): { reabrir: true } | { reabrir: false; motivo: MotivoNoReabrir } {
   const { fila, me, mark, otrasVivas } = args;
   const contexto = args.contexto ?? "sin-red";
-  // Tras una carga la marca ES la evidencia: no hay tick que mirar porque acaba de nacer.
-  const evidenciaLocal = contexto === "tras-carga" ? true : args.evidenciaLocal;
+  const ahora = args.ahora ?? Date.now();
   if (!fila) return { reabrir: false, motivo: "sin-fila" };
   if (fila.employeeUid !== me) return { reabrir: false, motivo: "no-es-mia" };
-  if (fila.isLive) return { reabrir: false, motivo: "sigue-viva" };
-  if (!CIERRES_AUTOMATICOS.includes(fila.liveNote ?? "")) return { reabrir: false, motivo: "la-cerro-una-persona" };
+
+  if (contexto === "sin-red") {
+    // El de D-197, intacto: la fila ya está cerrada por una máquina y el tick sigue corriendo.
+    if (fila.isLive) return { reabrir: false, motivo: "sigue-viva" };
+    if (!CIERRES_AUTOMATICOS.includes(fila.liveNote ?? "")) return { reabrir: false, motivo: "la-cerro-una-persona" };
+    if (!markCovers(mark, fila.id)) return { reabrir: false, motivo: "sin-marca" };
+    if (!args.evidenciaLocal) return { reabrir: false, motivo: "sin-evidencia-local" };
+    if (otrasVivas.some((id) => id !== fila.id)) return { reabrir: false, motivo: "otra-viva" };
+    return { reabrir: true };
+  }
+
+  // `tras-carga`. La pregunta NO es «¿la cerró una máquina?» —**nadie la ha cerrado todavía**:
+  // la máquina que iba a cerrarla es esta misma página, dos líneas después—. La pregunta es
+  // «¿la adopto en vez de cerrarla?».
+  //
+  // Preguntar lo otro fue el fallo que costó una vuelta entera: la fila que llega aquí está
+  // VIVA y su `live_note` es el del último tick (`active`, `break`), así que la condición de
+  // «cerrada por máquina» la rechazaba **siempre** y la reapertura no ocurría en ninguna carga
+  // real. La prueba pasaba porque le daba una fila con la nota de cierre ya puesta: una entrada
+  // que la página no produce en ese punto.
+  //
+  // Si además llega cerrada —el cron se adelantó mientras no estábamos— vale igual, pero solo
+  // si la cerró una máquina: un Stop no se deshace nunca.
+  if (!fila.isLive && !CIERRES_AUTOMATICOS.includes(fila.liveNote ?? "")) {
+    return { reabrir: false, motivo: "la-cerro-una-persona" };
+  }
   if (!markCovers(mark, fila.id)) return { reabrir: false, motivo: "sin-marca" };
-  if (!evidenciaLocal) return { reabrir: false, motivo: "sin-evidencia-local" };
+
+  // **El límite aquí es la jornada, no los quince minutos**, y esa diferencia es lo que hace
+  // que esto sirva de algo. Con el umbral de la marca (`RESUME_MAX_MS`) la ventana era **vacía
+  // por construcción**: `esHuerfana` mide desde `endMs`, la marca la escribe el mismo tick que
+  // escribe `endMs`, y los dos umbrales son 15 min — así que cuando la fila es huérfana la
+  // marca ya caducó, siempre.
+  //
+  // Relajarlo no reabre la puerta de D-098 porque en `tras-carga` **el hueco no se paga**: la
+  // pantalla adelanta el arranque tanto como duró, así que los minutos sin latidos no entran en
+  // la nómina pase lo que pase. Lo único que se decide aquí es la **continuidad** — si el
+  // trabajo de después sigue en la misma fila o pide un Start nuevo.
+  //
+  // Al día siguiente no: reabrir una fila de ayer sería juntar dos jornadas en una.
+  const arranque = fila.startMs ?? mark?.at ?? null;
+  if (arranque == null || jornadaDe(arranque) !== jornadaDe(ahora)) {
+    return { reabrir: false, motivo: "otra-jornada" };
+  }
   if (otrasVivas.some((id) => id !== fila.id)) return { reabrir: false, motivo: "otra-viva" };
   return { reabrir: true };
 }
