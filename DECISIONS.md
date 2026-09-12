@@ -13622,3 +13622,175 @@ un límite aceptado y no lo herede como si fuera lo pretendido.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1656 pasados | 3 saltados**
 (main 957c1f9: 1644 | 3; los +12 son los del bloque de descartados y el de `hayAlgoQueDecir` en
 `offlineQueue.test.ts`, más los tres que leen el componente).
+
+## D-NEXT · Entrar como otra persona: identidad de verdad, con rastro y con salida
+
+**Fecha:** 2026-09-12 · **Versión:** las tres apps (banner y rutas son del hub) · Sin migración.
+**Pedido por el dueño:** desde su perfil admin, entrar directamente como cualquier usuario, sin
+contraseña, *«como change roles pero desde el usuario»*.
+
+### Por qué «ver como» no servía
+
+Ya existe `setViewAs`: cambia **el rol** en el cliente. Un admin mirando la app como vendedor
+sigue siendo el admin para la base — ve sus propios datos con otra pintura. No sirve para
+reproducir el fallo que reporta Patricia, porque lo que falla suele ser **sus** datos, su tienda,
+sus permisos concedidos, su RLS.
+
+Así que esto cambia la **identidad**: crea en el navegador del admin una sesión real del usuario
+elegido. Las dos herramientas se quedan, y son distintas: una es el rol, la otra la persona.
+
+### Cómo, y en qué orden
+
+Ruta de servidor con la llave de servicio, `generateLink` de tipo `magiclink` y su canje
+inmediato con `verifyOtp`. No se manda ningún correo: la llamada **devuelve** el `hashed_token` y
+el canje lo hace el propio servidor.
+
+El orden de los pasos es la mitad del diseño y no es el orden natural:
+
+| | Paso | Por qué ahí |
+|---|---|---|
+| 1 | La bandera | Si está apagada, la ruta responde **404**, no 403: una función que no está no se anuncia |
+| 2 | Quién llama | De la cookie de sesión |
+| 3 | Los dos roles | **De la base**, con la llave de servicio |
+| 4 | El permiso | `puedeEntrarComo`, función pura y probada |
+| 5 | Que el destino exista | **Antes de generar nada** — ver abajo |
+| 6 | El refresh token del admin | Antes del canje: después, la cookie ya es de otro |
+| 7 | El rastro | **Si no entra, se acaba aquí** |
+| 8 | Enlace y canje | |
+| 9 | La cookie de vuelta | |
+
+### La trampa del paso 5, que no estaba en el encargo
+
+`generateLink()` **crea el usuario** si el correo no existe — lo dice la propia documentación de
+`@supabase/auth-js`, para `signup`, `invite` y **`magiclink`**. O sea que una llamada con un
+correo mal escrito **no falla: crea una cuenta** en el Auth de producción, y nadie se entera.
+
+Por eso la ruta **no recibe un correo, recibe un id**. Con ese id hace `getUserById`, que confirma
+que la cuenta existe y devuelve su correo canónico **de Auth**; solo entonces genera el enlace.
+Así el correo que se le pasa es siempre el de una cuenta que acaba de confirmarse, y no hay forma
+de crear a nadie por accidente.
+
+### Quién puede entrar como quién
+
+Cuatro condiciones, todas negando por defecto, en una función pura:
+
+1. **Quien entra es admin de Entregas**, con el rol leído de `public.profiles` en el servidor.
+   Nunca de `user_metadata`: eso lo puede escribir la propia persona desde el navegador, y
+   usarlo aquí sería regalar la impersonación a cualquiera que lo sepa.
+2. **El destino no es admin.** Entrar como otro administrador es escalar a donde ya se puede todo
+   y deja un rastro que no distingue quién hizo qué. Cuesta —dos admins no pueden mirarse la
+   pantalla— y se queda: para eso está compartir pantalla.
+3. **No es uno mismo.**
+4. **Hay destino.**
+
+Un canario recorre `ROLE_INFO` y exige que el único que puede impersonar sea `admin` y el único
+intocable sea `admin`. Un rol nuevo entra por el lado seguro en las dos direcciones.
+
+### El rastro puede fallar, y por eso no se reutiliza el que ya había
+
+`logSecurity` **nunca lanza**, a propósito y bien: *«una línea que falta es un problema más
+pequeño que un cambio a medio aplicar»*. Para un restablecimiento de contraseña que ya ocurrió,
+eso es correcto.
+
+Aquí el contrato es el contrario: **sin fila no hay sesión**. Cuando se escribe la fila la sesión
+todavía no existe, así que no hay nada a medio aplicar que proteger — solo hay que no empezar. De
+ahí un `apuntarImpersonacion` aparte que **devuelve si entró**, y una ruta que aborta con 503.
+
+**Dos filas y no una:** una al entrar y otra al volver, con hora. Lo que se lee en el registro es
+«cuánto duró», y eso solo se lee si el principio y el fin son dos líneas.
+
+**Y no hay marca en el JWT**, que era la otra opción del encargo. La única forma de poner algo en
+`app_metadata` es `updateUserById`, que lo escribe **de forma permanente en la cuenta del
+empleado**: si el regreso falla o el navegador se cierra, esa persona queda marcada para siempre.
+Cambiar el registro permanente de alguien para señalar algo temporal es peor que el problema. El
+límite, dicho: una escritura hecha durante una impersonación **no lleva marca propia**, y
+relacionarla con quien la hizo de verdad es cosa de cruzar por persona y ventana de tiempo.
+
+### La vuelta es la única promesa dura
+
+La sesión del admin se guarda antes de entrar, en una cookie `httpOnly` propia. «Volver» la
+restaura y la borra.
+
+**La ruta de volver está escrita al revés que la de entrar:** allí cualquier duda aborta, y aquí
+cualquier duda **sale igual**. Sin cookie, con la cookie rota o con el refresh token ya inválido,
+se cierra la sesión y se manda al login. Peor que pedir una contraseña es quedarse dentro de la
+identidad de otra persona sin salida.
+
+Por lo mismo, **volver y el banner no están detrás de la bandera**: si alguien apaga
+`IMPERSONATION_ENABLED` con una sesión impersonada viva, quien esté dentro tiene que poder salir y
+tiene que seguir viendo el aviso. Una bandera que atrapa a la gente al apagarse no es un freno.
+
+**La cookie no va firmada ni cifrada, y es deliberado.** Guarda el refresh token *del propio
+admin* en *su propio navegador*, junto a la cookie de sesión que ya tenía: quien pudiera leer una
+podría leer la otra, así que una firma no defiende de nadie nuevo y añade un secreto que nadie
+rota. Lo que defiende es `httpOnly`, `secure`, `sameSite` y durar poco. Lo que de verdad importa
+es **borrarla** — al volver, al caducar y al salir.
+
+### Que se vea, y que se acabe
+
+El banner es fijo, no se puede cerrar, está en el layout raíz y por tanto en las cinco apps, y
+habla en los dos idiomas a la vez **a propósito**: la preferencia de idioma que hay cargada es la
+de la persona en la que se entró, no la del admin que lee el aviso.
+
+La caducidad tiene dos caminos y no es duplicación:
+
+- **Con la pestaña abierta**, el banner devuelve al admin **a su cuenta** al cumplirse la hora.
+  Es la salida buena.
+- **Con la pestaña cerrada o sin JavaScript**, el middleware solo puede **cortar**: fuera las
+  cookies y al login. Es peor, y sigue siendo mejor que una sesión ajena abierta y sin vigilancia
+  en un equipo compartido.
+
+Una cookie ilegible se trata como si no hubiera impersonación; una con hora imposible, como
+caducada. En esto la duda cierra, al revés que en el corte de las 18:30, donde la duda no puede
+echar a la empresa de la app: aquí la duda no puede dejar a nadie dentro de una identidad ajena.
+
+### Dónde está el botón, y dónde no
+
+En la ficha del usuario. **No en la fila de la lista**, aunque el encargo pedía los dos sitios:
+cada fila de `home/users` es ella misma un `<button>`, y anidar otro dentro es HTML inválido —el
+navegador rompe el anidado y el clic de la fila deja de funcionar—. Reestructurar esa pantalla es
+otra cosa y no la de aquí.
+
+El botón se esconde para quien no es admin y sobre quien sí lo es, pero **un botón que no se
+pinta no es una barrera**: la ruta vuelve a preguntar lo mismo con el rol leído de la base.
+
+### Lo que se encontró de camino y no era de esta rama
+
+- **`logSecurity` se traga los errores**, y eso es cierto y merece una rama corta: un registro
+  que puede fallar en silencio es un registro a medias.
+
+  **Lo que dije de más, y queda corregido aquí en vez de borrado:** afirmé que el registro de
+  seguridad «podría llevar tiempo sin escribir y nadie lo sabría», porque
+  `src/lib/supabase/admin.ts` lee `SUPABASE_SERVICE_ROLE_KEY` a pelo y el cliente del ERP
+  documenta que las llaves con forma de JWT están deshabilitadas y responden 401. **Medido en
+  producción: el registro escribe.** 79 filas, 51 en los últimos siete días, la última el
+  2026-09-11 a las 16:20, y con esa misma llave `eyJ…`. El comentario del ERP no describe este
+  proyecto hoy.
+
+  Construí una conclusión sobre un comentario de otro fichero en vez de sobre una medición, que
+  es exactamente lo que este repo lleva dos días aprendiendo a no hacer. Lo que sí queda en pie:
+  que lo de esta rama use `adminKey()` está bien, porque es el camino que sobrevive el día que
+  roten la llave a `sb_secret_…`.
+- **Dos etiquetas del registro faltaban en español** (`deliveries_access_changed`,
+  `clockin_access_changed`): caían al `?? kind` y enseñaban la clave cruda. Se añaden, porque es
+  el mismo mapa que había que tocar.
+
+### Lo no verificado
+
+- **Si este proyecto de Supabase dispara además su propio correo al generar el enlace.** La
+  biblioteca documenta `generateLink` como «para mandar con tu propio proveedor», pero que el
+  proyecto alojado no mande nada es una propiedad del proyecto, y comprobarlo desde la rama
+  significaría escribirle de verdad a un empleado. **Por eso existe la bandera**, apagada por
+  defecto: el despliegue no enciende nada solo. El dueño lo comprueba contra un buzón suyo antes
+  de encenderla.
+- **Nadie ha entrado como nadie en un navegador.** Probado está lo que decide: el permiso, la
+  cookie, la caducidad y el corte del middleware. El canje del enlace no tiene prueba: pedía el
+  proveedor de Auth de verdad.
+- **Qué hace la regla de las 18:30 con una sesión impersonada.** Esa rama (PR #66) no está
+  fusionada, así que aquí no se puede escribir: al rebasar habrá que decidir que el corte
+  restaure al admin en vez de mandarlo al login como el vendedor, que es lo que haría hoy.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1681 pasados | 3 saltados**
+(main 5738e39: 1656 | 3; los +25 son 14 de `impersonation.test.ts`, 6 de
+`impersonation-cookie.test.ts`, 4 de `impersonation-middleware.test.ts` y uno del recorrido por
+fichero de `inline-colors.test.ts`, que ve un componente más).

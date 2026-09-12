@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PrefsProvider } from "@/lib/prefs";
 import { VersionStamp } from "@/components/VersionStamp";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
 // timetracker desktop shell (window.ttDesktop, injected by its Electron
@@ -40,6 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* Antes que nada, y fuera de `PrefsProvider` a propósito: no usa `usePrefs` —habla en
+            los dos idiomas a la vez— porque quien lee esto necesita entenderlo aunque la
+            preferencia de idioma sea la de la persona en la que se entró, no la suya (D-NEXT). */}
+        <ImpersonationBanner />
         <PrefsProvider>{children}</PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
         <VersionStamp />

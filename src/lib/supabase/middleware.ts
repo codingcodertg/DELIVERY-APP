@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { decide, skipsSession } from "@/lib/route-guard";
+import { impersonacionCaducada } from "@/lib/impersonation";
+import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 
 // La lista de públicas vive ahora en lib/route-guard.ts; se reexporta para quien la importaba
 // de aquí (public-paths.test.ts, D-156).
@@ -58,6 +60,21 @@ export async function updateSession(
   // como JSON.
   if (skipsSession(path)) {
     return NextResponse.next({ request });
+  }
+
+  // El respaldo de la caducidad de «entrar como» (D-NEXT). Cuando la pestaña está abierta, el
+  // banner devuelve al admin a su cuenta al cumplirse la hora, que es la salida buena. Esto es
+  // para la que no lo está: sin JavaScript corriendo, lo único que se puede hacer desde aquí es
+  // **cortar** —fuera las cookies de sesión y al login—, y eso es mejor que una sesión ajena
+  // abierta y sin vigilancia en un equipo compartido.
+  const vuelta = desempaquetar(request.cookies.get(COOKIE_RETORNO)?.value ?? null);
+  if (vuelta && impersonacionCaducada(vuelta.inicio, Date.now())) {
+    const fuera = NextResponse.redirect(new URL("/login", request.nextUrl.origin));
+    for (const c of request.cookies.getAll()) {
+      if (c.name.startsWith("sb-")) fuera.cookies.delete(c.name);
+    }
+    fuera.cookies.delete(COOKIE_RETORNO);
+    return fuera;
   }
 
   let response = NextResponse.next({ request });
