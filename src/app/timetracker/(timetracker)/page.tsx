@@ -452,7 +452,7 @@ export default function TrackTimePage() {
         // comparten esta pantalla y el cron que cierra huérfanas (D-195). Eran 5 minutos;
         // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
         if (esHuerfana(mine, Date.now())) {
-          // **Antes de cerrar, mirar si hay que reabrir** (D-NEXT). Este orden es el arreglo
+          // **Antes de cerrar, mirar si hay que reabrir** (D-246). Este orden es el arreglo
           // entero: hasta aquí se cerraba y se borraba la marca en el mismo paso, así que la
           // reapertura tras una recarga era imposible aunque D-241 dijera que estaba permitida
           // — la prueba se destruía antes de consultarla. El dueño perdió cuatro horas por esto.
@@ -602,7 +602,7 @@ export default function TrackTimePage() {
    * Si el UPDATE choca con cualquiera de las dos, no se reabre y se avisa.
    */
   /**
-   * Reabrir una sesión que la propia pantalla iba a cerrar al arrancar (D-NEXT).
+   * Reabrir una sesión que la propia pantalla iba a cerrar al arrancar (D-246).
    *
    * El caso: crash o «Reload app» a media jornada. La fila queda viva sin latidos, al cargar se
    * ve huérfana, y hasta ahora se cerraba en su último latido — perdiendo todo lo trabajado

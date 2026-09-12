@@ -127,7 +127,7 @@ export type MotivoNoReabrir =
 
 /**
  * De dónde sale la prueba de que este reloj no se detuvo. **Son dos casos distintos**, y
- * confundirlos fue el hueco que costó cuatro horas del dueño (D-NEXT).
+ * confundirlos fue el hueco que costó cuatro horas del dueño (D-246).
  *
  *  · `"sin-red"` — la pantalla **sigue abierta y contando** y descubre que el servidor cerró la
  *    fila. La prueba es el propio tick corriendo: es el caso de D-197.

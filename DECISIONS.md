@@ -14060,7 +14060,7 @@ con el token de la sesión ajena antes de restaurar.
 (main 085428e: 1708 | 3; los +11 son 6 de `impersonation-revoke.test.ts` y 5 de
 `security-log-notice.test.ts`).
 
-## D-NEXT · Tras una recarga, la marca es la evidencia — y no se tira antes de leerla
+## D-246 · Tras una recarga, la marca es la evidencia — y no se tira antes de leerla
 
 **Fecha:** 2026-09-12 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño**, sobre su propia jornada de hoy.
