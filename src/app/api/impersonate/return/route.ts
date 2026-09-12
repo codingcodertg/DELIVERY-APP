@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   // escribía nunca porque el error salía antes. Nadie lo habría visto hasta producción: se sale
   // igual, solo que al login.
   // El token de la sesión impersonada, ANTES de restaurar: después la cookie ya es del admin y
-  // no habría de dónde sacarlo (D-NEXT).
+  // no habría de dónde sacarlo (D-245).
   const { data: { session: sesionAjena } } = await ssr.auth.getSession();
 
   const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   // Y se cierra en el servidor la sesión del vendedor, solo esa.
   //
-  // **Se espera, no se suelta con `void`** (D-NEXT). Esto corre en Vercel, donde la función se
+  // **Se espera, no se suelta con `void`** (D-245). Esto corre en Vercel, donde la función se
   // puede congelar en cuanto devuelve la respuesta: el trabajo lanzado después no tiene ninguna
   // garantía de correr, y no hay en este repo ni un `after()` ni un `waitUntil` que digan lo
   // contrario. Soltarlo dejaba **el propósito entero de esto** dependiendo de que la plataforma

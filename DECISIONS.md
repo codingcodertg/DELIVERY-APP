@@ -13952,7 +13952,7 @@ caminos distintos, y no se toca ninguna de las dos guardas.
 componente más. Las 16 de `pricing.test.ts` siguen
 pasando **sin tocarlas**, que es la señal de que el refactor no movió ningún precio).
 
-## D-NEXT · Al volver de una impersonación se cierra la sesión ajena, y el registro deja de callar
+## D-245 · Al volver de una impersonación se cierra la sesión ajena, y el registro deja de callar
 
 **Fecha:** 2026-09-12 · **Versión:** las tres apps (registro y rutas son del hub) · Sin migración.
 **Pedido por:** dos cosas que la auditoría de D-243 dejó anotadas y no abrió allí, porque no eran

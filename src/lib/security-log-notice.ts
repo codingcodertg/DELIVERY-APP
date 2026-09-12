@@ -1,5 +1,5 @@
 /**
- * El aviso de que el registro de seguridad no pudo escribir (D-NEXT).
+ * El aviso de que el registro de seguridad no pudo escribir (D-245).
  *
  * Vive aparte por dos razones y ninguna es de estilo: se puede probar sin dibujar nada, y **la
  * regla de «una sola vez» tiene que ser de módulo**. Quien cambia permisos a diez personas

@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { adminKey } from "@/lib/erp/supabase/admin";
 
 /**
- * Cerrar en el servidor la sesión impersonada, y **solo esa** (D-NEXT).
+ * Cerrar en el servidor la sesión impersonada, y **solo esa** (D-245).
  *
  * Lo que faltaba en D-243: al volver, `refreshSession` sustituye la sesión en el navegador del
  * admin, pero la del vendedor seguía viva en `auth.sessions` hasta caducar. Una sesión que nadie

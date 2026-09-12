@@ -1350,7 +1350,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // cuando la base rechaza, devuelve `{ error }`. El `catch` de antes solo cazaba fallos de
     // red, así que un permiso mal puesto se iba sin dejar rastro — ni la fila, ni el aviso, ni
     // una línea en la consola. Un registro que puede fallar así es un registro a medias
-    // (D-NEXT).
+    // (D-245).
     //
     // No bloquea: el cambio que se acaba de hacer ya ocurrió, y deshacerlo por no poder
     // apuntarlo sería peor. Pero se dice, **una vez**: quien está cambiando permisos a diez

@@ -4,7 +4,7 @@ import type { SecurityKind } from "@/lib/security-log";
 /**
  * Write one line to the security log. SERVER ONLY.
  *
- * **No bloquea, pero ya no calla** (D-NEXT). El contrato de antes era «nunca lanza y nunca
+ * **No bloquea, pero ya no calla** (D-245). El contrato de antes era «nunca lanza y nunca
  * bloquea», y la primera mitad sigue siendo correcta por la razón que se escribió entonces: *una
  * línea que falta es un problema más pequeño que un cambio a medio aplicar*. Un restablecimiento
  * de contraseña que ya ocurrió no se deshace porque no se pudiera apuntar.
