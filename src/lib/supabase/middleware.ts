@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { decide, skipsSession } from "@/lib/route-guard";
 import { impersonacionCaducada } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
+import { debeCerrarSesion } from "@/lib/session-cutoff";
 
 // La lista de públicas vive ahora en lib/route-guard.ts; se reexporta para quien la importaba
 // de aquí (public-paths.test.ts, D-156).
@@ -40,12 +41,37 @@ export { isPublicPath } from "@/lib/route-guard";
  * su tabla de pruebas. `refreshSession` se retira: esta función la cubre entera (mismo refresco,
  * mismo salto de `/api/`, ampliado a los ficheros estáticos).
  *
- * `deps.getUser` existe solo para las pruebas: sustituye la consulta al servidor de auth por
- * una respuesta fija, sin red.
+ * **El cierre de las 18:30 (D-NEXT).** Aquí, y no en un cron ni en la pantalla, porque este es
+ * el único punto por el que pasa **cada navegación** autenticada de las cinco apps. No es «a las
+ * 18:30 corre un cierre»: es que una sesión de un rol no exento **no vale** si se autenticó
+ * antes del último corte que ya pasó. Escrito así cubre los tres casos con una sola condición
+ * —la app abierta a esa hora, la cookie de ayer usada de noche, y la cookie de ayer usada esta
+ * mañana— y no depende de que ningún proceso se despierte a la hora justa.
+ *
+ * Los tres datos vienen de `public.session_gate()` (migración 107), una llamada por navegación.
+ * No es gratis, pero es la única que hay: la hora de autenticación vive en `auth.sessions`, que
+ * no se puede leer de otra forma, y guardarla en una cookie sería dejar que la editara justo
+ * quien querría alargarse el plazo.
+ *
+ * Y si esa llamada falla —la 107 todavía no aplicada, o el JWT sin `session_id`— **no se cierra
+ * a nadie**. Un error leyendo la hora no puede dejar a la empresa entera fuera de la app.
+ *
+ * `deps.getUser` y `deps.gate` existen solo para las pruebas: sustituyen la consulta al servidor
+ * de auth y la de la puerta por respuestas fijas, sin red.
  */
+export type PuertaDeSesion = {
+  session_created_at: string | null;
+  deliveries_role: string | null;
+  clockin_role: string | null;
+};
+
 export async function updateSession(
   request: NextRequest,
-  deps: { getUser?: (req: NextRequest) => Promise<boolean> } = {},
+  deps: {
+    getUser?: (req: NextRequest) => Promise<boolean>;
+    gate?: (req: NextRequest) => Promise<PuertaDeSesion | null>;
+    ahora?: Date;
+  } = {},
 ) {
   // Local demo mode: skip all auth — the app has no backend.
   if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") {
@@ -67,15 +93,21 @@ export async function updateSession(
   // para la que no lo está: sin JavaScript corriendo, lo único que se puede hacer desde aquí es
   // **cortar** —fuera las cookies de sesión y al login—, y eso es mejor que una sesión ajena
   // abierta y sin vigilancia en un equipo compartido.
+  // La ruta que devuelve al admin a su cuenta sin que nadie pulse nada. Lleva `/api/` a
+  // propósito: `skipsSession` la salta, así que no se mira a sí misma ni entra en bucle.
+  const RUTA_VUELTA_AUTOMATICA = "/api/impersonate/auto-return";
+
   const cruda = request.cookies.get(COOKIE_RETORNO)?.value ?? null;
   const vuelta = desempaquetar(cruda);
   if (vuelta && impersonacionCaducada(vuelta.inicio, Date.now())) {
-    const fuera = NextResponse.redirect(new URL("/login", request.nextUrl.origin));
-    for (const c of request.cookies.getAll()) {
-      if (c.name.startsWith("sb-")) fuera.cookies.delete(c.name);
-    }
-    fuera.cookies.delete(COOKIE_RETORNO);
-    return fuera;
+    // Se manda al restaurador, no al login (D-NEXT, al rebasar sobre D-243). Antes esto cortaba
+    // —fuera cookies y a poner la contraseña— porque el middleware no tenía forma de devolver
+    // la sesión del admin; con la ruta de vuelta sí la hay, y la vuelta buena es la misma que
+    // pulsando el botón. **Sin borrar nada aquí**: la cookie de retorno es lo único de donde
+    // puede salir esa sesión.
+    return NextResponse.redirect(
+      new URL(`${RUTA_VUELTA_AUTOMATICA}?motivo=expired`, request.nextUrl.origin),
+    );
   }
   // Una cookie de retorno que no se entiende se **barre**, no se ignora. Ignorarla la dejaba
   // viva hasta una hora llevando dentro el refresh token de un admin, y sin forma de usarla
@@ -92,6 +124,7 @@ export async function updateSession(
   // que una sesión que no existe, y aquí el `error` se descartaba — que es cómo se sigue con
   // datos incompletos sin que nada falle.
   let sinUsuarioConfirmado: boolean;
+  let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
   if (deps.getUser) {
     hasUser = await deps.getUser(request);
     sinUsuarioConfirmado = !hasUser;
@@ -118,6 +151,49 @@ export async function updateSession(
     const { data: { user }, error: errUsuario } = await supabase.auth.getUser();
     hasUser = !!user;
     sinUsuarioConfirmado = !user && !errUsuario;
+    if (user) leerPuerta = async () => {
+      const { data, error } = await supabase.rpc("session_gate").single<PuertaDeSesion>();
+      // Cualquier fallo —la función no existe todavía, la red, un permiso— vale `null`, y
+      // `null` significa «no cerrar». Es la dirección segura y además resuelve el orden de
+      // despliegue: hasta que la 107 esté aplicada, la regla simplemente no aplica.
+      return error ? null : data;
+    };
+  }
+
+  // El cierre diario, antes del guard: si esta sesión ya no vale, lo que decida el guard sobre
+  // la ruta da igual, porque la persona va al login de todas formas.
+  if (hasUser) {
+    const leer = deps.gate ?? leerPuerta;
+    const puerta = leer ? await leer(request).catch(() => null) : null;
+    if (puerta && debeCerrarSesion({
+      sesionCreadaEn: puerta.session_created_at ? new Date(puerta.session_created_at) : null,
+      rolEntregas: puerta.deliveries_role,
+      rolFichaje: puerta.clockin_role,
+      ahora: deps.ahora,
+    })) {
+      // Se va al login con la ruta a la que iba, igual que cualquier otro rebote sin sesión: al
+      // volver a entrar, la persona aterriza donde estaba. Las cookies de sesión se borran en
+      // la respuesta; `remembered-accounts` vive en `localStorage` y esto no lo toca, que es
+      // lo que hace que el login rápido siga estando (D-193).
+      // …salvo si quien está dentro es un admin impersonando (D-243 + D-NEXT). Mandarlo al
+      // login **como el vendedor** sería justo lo que la decisión de «entrar como» promete que
+      // no pasa: quedarse fuera de la propia cuenta por una regla que ni siquiera es suya. Se
+      // le devuelve su sesión, y la fila de fin se escribe con motivo `cutoff`.
+      //
+      // Y aquí NO se borra ninguna cookie: la de retorno es de donde sale la sesión del admin,
+      // y borrarla ahora dejaría al restaurador sin nada que restaurar.
+      if (vuelta) {
+        return NextResponse.redirect(
+          new URL(`${RUTA_VUELTA_AUTOMATICA}?motivo=cutoff`, request.nextUrl.origin),
+        );
+      }
+      const login = new URL(`/login?next=${encodeURIComponent(path + request.nextUrl.search)}`, request.nextUrl.origin);
+      const fuera = NextResponse.redirect(login);
+      for (const c of request.cookies.getAll()) {
+        if (c.name.startsWith("sb-")) fuera.cookies.delete(c.name);
+      }
+      return fuera;
+    }
   }
 
   // Y la que sobrevive a un cierre de sesión: cookie de retorno sin usuario es huérfana por

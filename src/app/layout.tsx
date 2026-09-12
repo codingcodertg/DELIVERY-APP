@@ -3,6 +3,7 @@ import "./globals.css";
 import { PrefsProvider } from "@/lib/prefs";
 import { VersionStamp } from "@/components/VersionStamp";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { CierreDiario } from "@/components/CierreDiario";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
 // timetracker desktop shell (window.ttDesktop, injected by its Electron
@@ -41,11 +42,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        {/* Antes que nada, y fuera de `PrefsProvider` a propósito: no usa `usePrefs` —habla en
+        {/* Antes que nada, y FUERA de `PrefsProvider` a propósito: no usa `usePrefs` —habla en
             los dos idiomas a la vez— porque quien lee esto necesita entenderlo aunque la
-            preferencia de idioma sea la de la persona en la que se entró, no la suya (D-243). */}
+            preferencia de idioma cargada sea la de la persona en la que se entró, no la suya
+            (D-243). Que uno de los dos avisos vaya fuera y el otro dentro no es descuido: es
+            que preguntan cosas distintas. */}
         <ImpersonationBanner />
-        <PrefsProvider>{children}</PrefsProvider>
+        <PrefsProvider>
+          {children}
+          {/* El aviso del cierre de las 18:30 (D-NEXT), aquí por lo mismo que `VersionStamp`:
+              es el único layout por el que pasan las cinco apps. No cierra nada — la barrera
+              es el middleware.
+
+              DENTRO de `PrefsProvider` y no al lado, que fue mi primer intento: usa `usePrefs`
+              para hablar en los dos idiomas, y colgado fuera reventaba el prerender de
+              `/recruiting` y `/erp/analytics` con «usePrefs must be used within PrefsProvider».
+              No es un detalle de estilo: el build entero fallaba. */}
+          <CierreDiario />
+        </PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
         <VersionStamp />
       </body>

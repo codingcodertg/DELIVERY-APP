@@ -12,6 +12,7 @@ import {
   desktopOnPower, desktopOnShot, desktopStart, desktopStop, isDesktop,
 } from "@/lib/timetracker/desktop";
 import { ackDiscarded, queueSession, queueShot, subscribeOfflineStatus } from "@/lib/timetracker/offlineQueue";
+import { horaDelNegocio, pasoElCorte } from "@/lib/session-cutoff";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-guard";
@@ -916,6 +917,35 @@ export default function TrackTimePage() {
   useEffect(() => subscribeOfflineStatus((st) => {
     if (st.discarded > 0 && sinGuardarDesdeRef.current !== null) ackDiscarded();
   }), []);
+
+  /**
+   * El cronómetro se para SOLO antes del cierre de las 18:30 (D-NEXT).
+   *
+   * Si la sesión se cierra con el reloj corriendo, la fila queda viva sin nadie que la lata y
+   * a los quince minutos la cierra el guardián de huérfanas — en su último latido, perdiendo
+   * el tramo final, que es exactamente el incidente de D-241. Un Stop normal, antes, escribe
+   * la duración de verdad.
+   *
+   * Se para en el minuto del corte, no unos minutos antes: el trabajo hecho hasta las 18:30 es
+   * trabajo, y adelantarlo sería quitar minutos que alguien trabajó.
+   *
+   * **El fichaje de clock-in no se toca**, y eso es decisión escrita: un fichaje abierto es el
+   * registro de la jornada, y cerrarlo por una regla de sesión sería inventar una hora de
+   * salida en la nómina. Si el dueño quiere que también se cierre, es otra decisión suya.
+   */
+  const paradoPorCorteRef = useRef(false);
+  useEffect(() => {
+    const mirar = () => {
+      if (paradoPorCorteRef.current || !pasoElCorte(horaDelNegocio())) return;
+      if (!runningRef.current || stoppedRef.current) return;
+      paradoPorCorteRef.current = true;
+      notify(t("track.closingForCutoff"));
+      stopRef.current();
+    };
+    mirar();
+    const id = setInterval(mirar, 30_000);
+    return () => clearInterval(id);
+  }, [notify, t]);
 
   const arrancandoRef = useRef(false);
 

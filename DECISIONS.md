@@ -14275,3 +14275,142 @@ que obliga a mirar cada vez en vez de dejar margen «por si acaso».
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1756 pasados | 3 saltados**
 (main e371534: 1737 | 3; los +19 son 18 de `switch-user.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).
+## D-NEXT · La sesión se cierra a las 18:30, y eso es una frontera, no un reloj
+
+**Fecha:** 2026-09-11 · **Versión:** las tres apps y `package.json` (las pone el orquestador).
+**Con migración: la 107, y esta rama va ACOPLADA a ella** — el middleware la llama.
+**Pedido por el dueño**, literal: *«a las 6:30 PM de todos los días todos los usuarios excepto
+admin y owner hacen un automatic sign out, sin perder el fast login que ya está: ahí queda
+guardado el perfil y solo deben poner la contraseña»*.
+
+### No es «a las 18:30 corre un cierre»
+
+Escrito como un proceso que se despierta a esa hora, esto falla en los dos casos que importan:
+la persona que tenía la app abierta y no vuelve a tocarla, y la cookie de ayer que se usa hoy.
+Escrito como frontera funciona con una sola condición:
+
+> **Una sesión de un rol no exento no vale si se autenticó antes del último corte de las 18:30
+> (Chicago) que ya haya pasado.**
+
+Los tres casos, con la misma frase: a las 18:35 el último corte es el de hoy y la sesión de esta
+mañana es anterior, así que cierra. A las 20:00 con una cookie de ayer, igual. **Y a las 09:00 el
+último corte es el de ayer**, así que la cookie de ayer tampoco vale — que es el caso que un
+cierre programado a las 18:30 no cubre. Quien entró hoy a las 08:00 sigue trabajando a las 17:00,
+porque su sesión es posterior al corte de ayer.
+
+Vive en `updateSession` (`lib/supabase/middleware.ts`), que es el único punto por el que pasa
+**cada navegación** autenticada de las cinco apps.
+
+### De dónde sale «cuándo se autenticó», y por qué no del JWT
+
+El encargo decía «mide qué trae el JWT y decide con eso». Medido, y **no lo trae**. En
+`@supabase/auth-js` los claims obligatorios son `iss, sub, aud, exp, iat, role, aal, session_id`.
+`amr` —el que llevaría la marca de tiempo del login— es **opcional** y puede venir como lista de
+cadenas sin marca. Y `iat` **se renueva en cada refresco**, cada hora: dice cuándo se emitió este
+token, no cuándo se puso la contraseña.
+
+Lo único obligatorio y estable entre refrescos es `session_id`, que es un identificador. La hora
+está en `auth.sessions.created_at` — medido en producción sobre sesiones reales: una del 09-09
+con refrescos hasta el 09-12 conserva su `created_at`, y lo que se mueve es `refreshed_at`.
+
+**Y esa tabla no se puede leer desde la app.** `auth` no está expuesto por PostgREST, y exponerlo
+para una columna abriría de paso la tabla de usuarios y la de identidades. De ahí la migración
+107: `public.session_gate()`, `security definer`, que devuelve **la hora de la sesión y los dos
+roles en una fila**.
+
+**No recibe argumentos, y eso es lo que la hace segura.** Un `session_gate(uuid)` dejaría
+preguntar por la sesión de cualquiera; aquí el id sale del JWT de quien llama y el usuario de
+`auth.uid()`, con las dos condiciones a la vez. Así que solo se puede leer la propia sesión, que
+es justo lo que la regla necesita. Se llama **con el cliente de la cookie del usuario**: la llave
+de servicio no entra en el middleware.
+
+### Lo que se descartó, y por qué
+
+**`user_metadata.role`**, que era el sitio obvio y gratis: lo pone `handle_new_user` y
+`profile-read.ts` ya lo lee. Pero **lo puede escribir la propia persona** —la llave anón está en
+el navegador y `auth.updateUser({ data: { role: "admin" } })` se escribe sola—, y no hay ninguna
+guarda en las migraciones que lo impida. Para decidir una exención eso es un pase permanente para
+quien lo sepa. Fíjese en que `profile-read.ts` ya avisaba del riesgo y lo usa **solo en la
+dirección segura**, la de enseñar menos. Aquí la dirección es la contraria. *(El agujero es
+preexistente y ajeno a esta rama; queda anotado como encargo de endurecimiento aparte.)*
+
+**Guardar la hora en una cookie** para ahorrarse la consulta: lo único que alguien querría editar
+es exactamente esa hora, así que habría que firmarla, y firmarla cuesta más que la consulta que
+ahorra.
+
+**Una consulta perezosa** —solo después del corte—, que fue mi primera propuesta y **es
+incompatible con la regla final**: a las 09:00 el último corte es el de ayer, así que hay que
+preguntar igual. Por eso las tres cosas van en **una** llamada y no en tres.
+
+**Su coste, medido:** el middleware **no** corre en las llamadas de datos. `skipsSession` salta
+las rutas de API, y las consultas a Supabase van del navegador a otro origen sin pasar por aquí.
+O sea que la llamada nueva es **una por navegación**, no una por petición, junto al `getUser()`
+que ya había.
+
+### Falla hacia no cerrar, y eso resuelve el orden de despliegue
+
+Si `session_gate()` no existe todavía, o devuelve nada, o revienta, **no se cierra a nadie**. Una
+hora ilegible tampoco cierra. Es deliberado y es la asimetría de todo esto: equivocarse cerrando
+deja a la empresa entera fuera de la app; equivocarse abriendo alarga una sesión hasta el corte
+siguiente.
+
+Y de paso ordena el despliegue: **la 107 la aplica el dueño a mano antes del merge**, pero si
+tarda, el código no rompe nada — la regla simplemente no aplica hasta que la función esté.
+
+### Quién no cierra, y por qué son dos preguntas
+
+`admin` es de Entregas (`public.profiles.role`) y `owner` es de fichaje
+(`clockin.profiles.role`): **tablas distintas**. Una sola lista de dos cadenas habría dejado colar
+`owner` por el lado de Entregas y `admin` por el de fichaje, y hay una prueba que lo exige.
+
+Las listas dicen a quién se **exime**, no a quién se cierra, así que **un rol nuevo cierra por
+defecto**. Un canario recorre `ROLE_INFO` y comprueba que el único exento sea `admin`, con su
+control por si el recorrido saliera vacío.
+
+### El aviso, el cronómetro y el fichaje
+
+**El aviso** (`CierreDiario`, en el layout raíz, como `VersionStamp`) no cierra nada: diez minutos
+antes lo dice, y a la hora provoca una navegación para que el servidor decida en ese momento en
+vez de esperar a un clic. Pregunta **una vez** si está exento —`/auth/cutoff`, que devuelve un
+booleano y nada más— porque avisar a un admin de un cierre que no le va a pasar es peor que no
+avisar. No hay una segunda copia de la regla en el cliente: eso es como se cuela un rol (D-240).
+
+**El cronómetro se para solo**, con el Stop normal, en el minuto del corte. Si la sesión se cerrara
+con el reloj corriendo, la fila quedaría viva sin nadie que la lata y a los quince minutos la
+cerraría el guardián de huérfanas en su último latido — el incidente de D-241 otra vez. No se
+adelanta: el trabajo hecho hasta las 18:30 es trabajo.
+
+**El fichaje de clock-in NO se toca**, y va escrito porque es una omisión deliberada: un fichaje
+abierto es el registro de la jornada, y cerrarlo por una regla de sesión sería inventar una hora
+de salida en la nómina. Si el dueño quiere que también se cierre, es decisión suya y es otra.
+
+### El login rápido sigue estando
+
+Se cumple por construcción —las cuentas recordadas viven en `localStorage` (D-193) y el cierre
+solo borra cookies `sb-`— y por construcción es justo lo que se rompe sin darse cuenta. Hay un
+canario que recorre **los cuatro caminos de cierre** del repo y exige que ninguno mencione esa
+clave, mirando el código y no los comentarios.
+
+### Por qué las 18:30 no es un ajuste editable
+
+Un ajuste de esto no es un campo más: es una palanca que deja gente fuera, y escribir «8:30» por
+error cierra la empresa a media mañana. Mientras sea una hora para todos, un despliegue es un
+precio bajo por que el cambio pase por una revisión. Si el dueño la quiere mover sin desplegar,
+es otro encargo y lleva su propia validación.
+
+### Lo no verificado
+
+- **Que `auth.jwt()` traiga `session_id` en este proyecto.** Es un claim obligatorio según el
+  tipo, pero no lo he comprobado contra la base: desde la rama no hay `.env.local`, a propósito.
+  Lo cubre el fallo hacia no cerrar, y se comprueba llamando a la función con una sesión real una
+  vez aplicada la 107.
+- **Nadie lo ha visto en un navegador a las 18:30.** Ni el aviso, ni el rebote, ni la parada del
+  cronómetro. Probado está lo que decide: la regla, el camino del middleware y los caminos de
+  cierre.
+- **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
+  —una por navegación— pero no cuánto tarda.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1693 pasados | 3 saltados**
+(main 5738e39: 1656 | 3; los +37 son 28 de `session-cutoff.test.ts`, 8 de
+`session-cutoff-middleware.test.ts` y uno del canario de traducciones del Time Tracker, que ve
+una clave nueva).
