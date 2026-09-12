@@ -7,7 +7,7 @@ import Link from "next/link";
 import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
 import dynamic from "next/dynamic";
-import { LOCAL_CITIES_DEFAULT } from "@/lib/pricing";
+import { LOCAL_CITIES_DEFAULT, filasDeLaFormula } from "@/lib/pricing";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 
@@ -583,6 +583,52 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
           {t(
             "Added to the delivery fee when the delivery date is today. 0 = off.",
             "Se suma a la tarifa cuando la fecha de entrega es hoy. 0 = desactivado.",
+          )}
+        </div>
+      </div>
+
+      {/* La fórmula entera, para consultarla sin abrir un pedido (D-NEXT).
+          **Generada desde los umbrales y las constantes de `pricing.ts`**, no copiada: si
+          alguien cambia un 120 allí, esta tabla cambia con él. Una segunda copia escrita a mano
+          diría lo de antes con la firma de la app detrás, que es peor que no tenerla.
+          NO es editable: la fórmula sigue viviendo en el código. */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontWeight: 700 }}>{t("Delivery fee formula", "Fórmula de la tarifa de entrega")}</div>
+        <div className="hint" style={{ marginTop: 2 }}>
+          {t(
+            "Read-only: these rules live in the code. Miles are driving miles; every result rounds to the nearest $10.",
+            "Solo lectura: estas reglas viven en el código. Las millas son de recorrido y todo resultado se redondea a $10.",
+          )}
+        </div>
+        <div style={{ overflowX: "auto", marginTop: 8 }}>
+          {/* `orders` es la clase de tabla de esta app —`tbl` no existe en el CSS y habría
+              salido sin estilo—, con `tbl-resize` para que no herede el `min-width: 820px`
+              que esa clase trae para las tablas de pedidos. */}
+          <table className="orders tbl-resize" style={{ minWidth: 420 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>{t("Zone", "Zona")}</th>
+                <th style={{ textAlign: "left" }}>{t("Distance", "Distancia")}</th>
+                <th style={{ textAlign: "left" }}>{t("List", "Lista")}</th>
+                <th style={{ textAlign: "left" }}>{t("Discount", "Descuento")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filasDeLaFormula().map((f) => (
+                <tr key={f.tramo}>
+                  <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
+                  <td>{f.rango}</td>
+                  <td>{f.lista}</td>
+                  <td>{f.descuento}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="hint" style={{ marginTop: 6 }}>
+          {t(
+            "A not-local delivery also needs manager approval.",
+            "Una entrega no local además requiere aprobación del gerente.",
           )}
         </div>
       </div>

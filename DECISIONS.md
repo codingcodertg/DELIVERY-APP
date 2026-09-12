@@ -13844,3 +13844,82 @@ Se cierra por tres sitios, y el del medio es el que de verdad lo sostiene:
 (main 5738e39: 1656 | 3; los +32 son 14 de `impersonation.test.ts`, 6 de
 `impersonation-cookie.test.ts`, 11 de `impersonation-middleware.test.ts` y uno del recorrido por
 fichero de `inline-colors.test.ts`, que ve un componente más).
+
+## D-NEXT · La fórmula del recargo de entrega se puede ver, y sale del mismo sitio que el precio
+
+**Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño:** *«solo para admin en delivery app quiero que él pueda ver la fórmula que
+se usa para el delivery fee»*.
+
+### Lo que se enseña, y lo que no
+
+Dos cosas distintas, porque responden a preguntas distintas:
+
+- **En el pedido**, junto a los botones de tarifa sugerida: «¿Cómo se calculó?», que despliega el
+  camino **de ese pedido** — el tramo que aplicó con su regla, el bruto, el redondeo a $10 y el
+  recargo de mismo día si lo hay, hasta el importe del botón.
+- **En Ajustes**, la fórmula entera en una tabla, para consultarla sin abrir nada.
+
+**No es editable.** La fórmula sigue viviendo en el código. Si el dueño quiere cambiarla desde
+Ajustes, es otro encargo: una palanca que mueve precios pide su propia validación y su propio
+rastro, y no se cuela dentro de un cambio que era para mirar.
+
+### Lo que hace que la explicación no pueda mentir
+
+No es escribirla bien: es que **salga del mismo cálculo que el número**. Una explicación que
+discrepa del importe es peor que no explicar nada, porque el que la lee ya no sabe cuál de las
+dos creerse.
+
+Así que la fórmula pasa a ser **datos**: los dos umbrales (`UMBRAL_CORTO` 11, `UMBRAL_LARGO` 50),
+el factor del tramo del medio (0,8) y dos tablas de cuatro cifras, una para lista y otra para
+descuento. Sobre eso hay **una sola función**, `pasoTarifa`, que devuelve el tramo y su
+aritmética — y **`listFee` y `discountFee` se construyen encima de ella**, no al lado.
+
+De ahí salen las tres cosas: el precio, el desglose del pedido y la tabla de Ajustes. Cambiar un
+120 mueve las tres a la vez, o no mueve ninguna. La prueba que lo fija no es de espejo: recorre
+doce distancias por local/no local, con y sin recargo, y exige que el redondeo del bruto más el
+recargo sea **exactamente** el total, y que `listFee` coincida con su propio paso. Un mutante que
+le devuelva a `listFee` un `if` propio hace caer tres.
+
+### Los bordes de los tramos, que es donde una tabla escrita a mano miente
+
+El código dice `miles < 11` y `miles > 50`. O sea que **11 y 50 caen los dos en el tramo del
+medio**. Una tabla que dijera «hasta 10 / 11 a 49 / 50 o más» sería falsa en dos puntos, y nadie
+lo notaría hasta que un pedido de 50 millas cobrara distinto de lo que dice la pantalla.
+
+Por eso los rangos de la tabla **se generan evaluando** `pasoTarifa` con una milla de muestra de
+cada tramo, no describiéndolo. Y hay prueba en 10,9 · 11 · 50 · 50,1, más un control explícito de
+que en 50 el precio es el del medio y **no** el del tramo largo.
+
+**Y son ocho reglas, no cinco:** tres tramos locales por dos columnas, más la de fuera de zona por
+dos. El encargo decía cinco; se contaron al leer el código.
+
+### Quién lo ve
+
+El desglose del pedido, solo un admin **por su rol real**, no por «ver como». Es información de
+cómo se fija un precio, y quien previsualiza la pantalla de un vendedor tiene que ver lo que ve el
+vendedor.
+
+La tabla de Ajustes hereda la guarda que esa pantalla ya tenía, que mira el rol **efectivo**: un
+admin con «ver como» puesto no entra en Ajustes en absoluto. Las dos acaban en el mismo sitio por
+caminos distintos, y no se toca ninguna de las dos guardas.
+
+### Lo que NO cambia
+
+- **Ningún precio.** Es un refactor con las mismas cifras: las 16 pruebas de `pricing.test.ts`
+  pasaban antes y pasan después sin tocarlas, que es la única señal de regresión que vale aquí.
+- **La zona.** El desglose dice de dónde salió —el pin o la ciudad— con la línea que la ficha ya
+  enseñaba, y no reproduce esa decisión: es otro cálculo y ya tiene su mapa (D-219/D-220).
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Ni el desplegable del pedido ni la tabla de Ajustes.
+  Probado está lo que decide: la aritmética, los bordes y que la tabla se genera de las
+  constantes.
+- **Que la tabla se vea bien en un móvil.** Va dentro de un contenedor con desplazamiento y usa
+  la clase de tabla de la app; no se ha mirado a 400 px.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1703 pasados | 3 saltados**
+(main 3af8815: 1688 | 3; los +15 son 14 de `fee-breakdown.test.ts` y uno del recorrido por
+fichero de `inline-colors.test.ts`, que ve un componente más. Las 16 de `pricing.test.ts` siguen
+pasando **sin tocarlas**, que es la señal de que el refactor no movió ningún precio).

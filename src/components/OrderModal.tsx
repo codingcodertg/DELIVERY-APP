@@ -7,6 +7,7 @@ import { useConfirm } from "@/lib/confirm";
 import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
+import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
@@ -62,7 +63,7 @@ export function OrderModal({
   startEditing: boolean;
   onClose: () => void;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, saveSettings, notify } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, saveSettings, notify, realRole } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -1784,6 +1785,12 @@ export function OrderModal({
                   </div>
                 ) : (
                   <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route below to price this delivery by miles.", "Calcule la ruta abajo para cotizar esta entrega por millas.")}</div>
+                )}
+                {/* La fórmula con los números de este pedido, solo para admin y **por su rol
+                    real** (D-NEXT): quien está previsualizando la pantalla de un vendedor con
+                    «ver como» tiene que ver lo que ve el vendedor, y esto no lo ve. */}
+                {realRole === "admin" && feeSuggestion.breakdown && (
+                  <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
                 )}
                 {feeSuggestion.needsApproval && (
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
