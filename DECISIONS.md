@@ -13579,6 +13579,13 @@ correcta, no que el indicador la pregunte.
 un total histórico: cada tanda avisa una vez y la siguiente vuelve a avisar. Si nadie lo
 reconoce, el número espera — que es el caso para el que se hizo.
 
+**Y «Entendido» borra la cuenta sin dejar constancia de cuántos hubo.** Es decisión, no olvido:
+el encargo pedía poder ponerlo a cero, y un contador que nadie puede borrar acaba siendo ruido
+permanente que se ignora, que es la forma lenta de volver al silencio de antes. El precio es que
+después de reconocerlo **nadie puede volver a contar la pérdida**. Si algún día hace falta la
+cifra —para una reclamación, o para saber cuánto pasa esto— es otra rama, y lo que se guarda
+entonces es un registro con fecha, no un contador más grande.
+
 ### La regla contra el aviso doble, escrita y no descubierta en pantalla
 
 `flush` corre en todas las pestañas y `localStorage` lo comparten todas, así que sin una regla la
@@ -13588,6 +13595,14 @@ el del recuadro, después.
 La marca `sinGuardarDesde` de D-241 es exactamente «esta pestaña ya se lo dijo». Cuando está
 puesta y el contador sube, la pantalla del cronómetro lo **reconoce en silencio**. La noticia ya
 se dio; darla dos veces con palabras distintas se lee como dos problemas.
+
+**Y ese reconocimiento silencioso es global, no de esta pestaña.** `ackDiscarded()` pone a cero
+**todo** el contador, porque el contador es uno solo y compartido. O sea que si esta pestaña ya
+avisó y **en ese mismo instante** otra ventana o el escritorio descarta un parche suyo, este
+reconocimiento se lo lleva por delante y ese descarte no lo ve nadie. Es un caso de borde
+—requiere que las dos cosas caigan en la misma vuelta— y la alternativa, llevar la cuenta por
+pestaña, cuesta más de lo que arregla. Queda escrito para que el siguiente que lo lea sepa que es
+un límite aceptado y no lo herede como si fuera lo pretendido.
 
 ### Lo que NO cambia
 
