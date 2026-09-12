@@ -588,7 +588,7 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
         </div>
       </div>
 
-      {/* La fórmula entera, para consultarla sin abrir un pedido (D-NEXT).
+      {/* La fórmula entera, para consultarla sin abrir un pedido (D-244).
           **Generada desde los umbrales y las constantes de `pricing.ts`**, no copiada: si
           alguien cambia un 120 allí, esta tabla cambia con él. Una segunda copia escrita a mano
           diría lo de antes con la firma de la app detrás, que es peor que no tenerla.

@@ -1,7 +1,7 @@
 import { fmtMoney } from "@/lib/utils";
 
 /**
- * Cómo se dicen un rango y una regla de la fórmula, en el idioma de quien mira (D-NEXT).
+ * Cómo se dicen un rango y una regla de la fórmula, en el idioma de quien mira (D-244).
  *
  * Vive aparte porque lo piden **dos** pantallas —el desglose de un pedido y la tabla de
  * Ajustes— y una regla escrita dos veces es una regla que acaba diciendo dos cosas. Recibe la

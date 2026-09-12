@@ -1787,7 +1787,7 @@ export function OrderModal({
                   <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route below to price this delivery by miles.", "Calcule la ruta abajo para cotizar esta entrega por millas.")}</div>
                 )}
                 {/* La fórmula con los números de este pedido, solo para admin y **por su rol
-                    real** (D-NEXT): quien está previsualizando la pantalla de un vendedor con
+                    real** (D-244): quien está previsualizando la pantalla de un vendedor con
                     «ver como» tiene que ver lo que ve el vendedor, y esto no lo ve. */}
                 {realRole === "admin" && feeSuggestion.breakdown && (
                   <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />

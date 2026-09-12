@@ -13845,7 +13845,7 @@ Se cierra por tres sitios, y el del medio es el que de verdad lo sostiene:
 `impersonation-cookie.test.ts`, 11 de `impersonation-middleware.test.ts` y uno del recorrido por
 fichero de `inline-colors.test.ts`, que ve un componente más).
 
-## D-NEXT · La fórmula del recargo de entrega se puede ver, y sale del mismo sitio que el precio
+## D-244 · La fórmula del recargo de entrega se puede ver, y sale del mismo sitio que el precio
 
 **Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** *«solo para admin en delivery app quiero que él pueda ver la fórmula que

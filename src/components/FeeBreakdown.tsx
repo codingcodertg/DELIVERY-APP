@@ -7,7 +7,7 @@ import type { FeeBreakdown as Desglose, PasoTarifa } from "@/lib/pricing";
 import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 
 /**
- * «¿Cómo se calculó?» — la fórmula con los números de ESTE pedido (D-NEXT).
+ * «¿Cómo se calculó?» — la fórmula con los números de ESTE pedido (D-244).
  *
  * El dueño pidió ver la fórmula del recargo de entrega. Lo que se enseña no es la fórmula en
  * abstracto —eso está en Ajustes, para consultarla sin abrir nada— sino **el camino que llevó a

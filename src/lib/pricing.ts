@@ -39,7 +39,7 @@ export function isLocalCity(city: string, s?: Partial<Settings> | null): boolean
 /** Round to the nearest $10 (Excel ROUND(x, -1) for non-negative amounts). */
 const round10 = (x: number) => Math.round(x / 10) * 10;
 
-// ---- La fórmula, como datos (D-NEXT) -------------------------------------------------------
+// ---- La fórmula, como datos (D-244) -------------------------------------------------------
 //
 // El dueño pidió poder VER la fórmula. Lo que hace que la explicación no pueda mentir no es
 // escribirla bien: es que **salga del mismo sitio que el número**. Así que los umbrales y las
@@ -118,7 +118,7 @@ export function pasoTarifa(miles: number, local: boolean, t: TablaTarifa, recarg
 }
 
 /**
- * La fórmula entera, como filas, **generada desde los mismos umbrales y constantes** (D-NEXT).
+ * La fórmula entera, como filas, **generada desde los mismos umbrales y constantes** (D-244).
  *
  * Es lo que se enseña en Ajustes para consultarla sin abrir un pedido. Nada de una segunda copia
  * escrita a mano: si alguien cambia un 120 en `TARIFA_LISTA`, esta tabla cambia con él, y si
@@ -209,7 +209,7 @@ export interface FeeSuggestion {
   /** Qué decidió la zona: el pin del mapa, la ciudad de la dirección, o nada. */
   zoneSource: ZoneSource;
   /**
-   * Cómo se llegó a esos dos números (D-NEXT). `null` mientras no haya millas, que es cuando
+   * Cómo se llegó a esos dos números (D-244). `null` mientras no haya millas, que es cuando
    * tampoco hay precio que explicar.
    *
    * Sale del **mismo** cálculo que `list` y `discount`, no de uno paralelo: por eso la
