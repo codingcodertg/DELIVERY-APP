@@ -17,14 +17,19 @@ const pedir = (cookie?: string) => {
 const vuelta = (inicio: number) => empaquetar({ refresh: "rt", adminId: "a1", comoId: "v1", inicio });
 
 describe("el middleware corta una impersonación caducada", () => {
-  it("pasada la hora, al login y sin cookies de sesión", async () => {
+  // Cambiado al rebasar sobre D-243: antes esto cortaba al login, porque el middleware no tenía
+  // forma de devolverle la sesión al admin. Con la ruta de vuelta sí la hay, así que la salida
+  // buena —la misma que pulsando el botón— también vale cuando nadie pulsa nada.
+  it("pasada la hora, al restaurador y SIN borrar nada", async () => {
     const vieja = Date.now() - (IMPERSONACION_MINUTOS + 1) * 60_000;
     const r = await updateSession(pedir(vuelta(vieja)), { getUser: async () => true });
     expect(r.status).toBe(307);
-    expect(r.headers.get("location")).toBe("https://hub.test/login");
+    expect(r.headers.get("location")).toBe("https://hub.test/api/impersonate/auto-return?motivo=expired");
+    // Lo que NO puede pasar: llegar al restaurador con la cookie ya borrada, porque entonces no
+    // tendría de dónde restaurar y acabaría mandando al admin al login igual.
     const puestas = r.cookies.getAll().map((c) => c.name);
-    expect(puestas).toContain("sb-access-token");
-    expect(puestas).toContain(COOKIE_RETORNO);
+    expect(puestas).not.toContain(COOKIE_RETORNO);
+    expect(puestas).not.toContain("sb-access-token");
   });
 
   it("dentro de la hora no corta nada", async () => {
