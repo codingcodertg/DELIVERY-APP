@@ -67,7 +67,7 @@ describe("flush · un latido tardío no pisa una sesión cerrada (D-241)", () =>
   });
 });
 
-// ---- El descarte deja rastro (D-NEXT) ----------------------------------------------------
+// ---- El descarte deja rastro (D-242) ----------------------------------------------------
 // Sin esto el parche se iba en silencio: correcto para la cola —no hay dónde aplicarlo— y
 // mudo para la persona, que en otra pestaña o en otro dispositivo no vio el aviso del tick.
 describe("flush · cuenta lo que descarta", () => {
@@ -124,7 +124,7 @@ describe("flush · cuenta lo que descarta", () => {
   });
 });
 
-// ---- Y el rastro se tiene que poder ver (D-NEXT) ------------------------------------------
+// ---- Y el rastro se tiene que poder ver (D-242) ------------------------------------------
 // La pieza que un verify en verde no echa en falta. El indicador se ocultaba con
 // `online && total === 0`, y un descarte llega JUSTO cuando la cola se vació y `total` es
 // cero: el contador habría sido perfecto y no se habría pintado nunca.

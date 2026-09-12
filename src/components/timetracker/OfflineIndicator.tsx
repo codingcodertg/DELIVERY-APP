@@ -11,7 +11,7 @@ export function OfflineIndicator() {
   const t = useT();
   const [s, setS] = useState<OfflineStatus>({ online: true, sessions: 0, shots: 0, total: 0, discarded: 0 });
   useEffect(() => subscribeOfflineStatus(setS), []);
-  // La condición vive en `offlineQueue` y está probada allí (D-NEXT). Antes era
+  // La condición vive en `offlineQueue` y está probada allí (D-242). Antes era
   // `s.online && s.total === 0`, que escondía el indicador exactamente cuando hay un descarte
   // que contar: para entonces la cola ya se vació y `total` es cero.
   if (!hayAlgoQueDecir(s)) return null;

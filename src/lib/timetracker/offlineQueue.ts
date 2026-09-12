@@ -23,7 +23,7 @@ import type { Screenshot, Session } from "@/lib/timetracker/types";
 
 const LS_SESSIONS = "tt_offline_sessions";
 /**
- * Los parches que la cola tiró porque ya no había fila viva donde aplicarlos (D-NEXT).
+ * Los parches que la cola tiró porque ya no había fila viva donde aplicarlos (D-242).
  *
  * Vive en `localStorage`, al lado de la propia cola y por la misma razón: un descarte que se
  * pierde al recargar es un descarte que nadie llega a ver. Es un contador, no una lista — lo
@@ -143,7 +143,7 @@ export async function flush(ops: OfflineOps) {
         // cola entera detrás de un parche que no va a entrar nunca. Lo que NO puede pasar es
         // lo de antes: aplicarlo sobre la fila cerrada y pisarle el cierre.
         //
-        // Pero los dos casos no son lo mismo, y desde D-NEXT dejan de contarse igual: uno se
+        // Pero los dos casos no son lo mismo, y desde D-242 dejan de contarse igual: uno se
         // guardó y el otro se perdió. El segundo se apunta, porque si el aviso del tick no
         // llegó —otra pestaña, otro dispositivo, la página cerrada— este contador es lo único
         // que queda de un cambio que desapareció.
@@ -177,7 +177,7 @@ export type OfflineStatus = {
   sessions: number;
   shots: number;
   total: number;
-  /** Parches que la cola tiró por no encontrar fila viva, sin reconocer todavía (D-NEXT). */
+  /** Parches que la cola tiró por no encontrar fila viva, sin reconocer todavía (D-242). */
   discarded: number;
 };
 const listeners = new Set<(s: OfflineStatus) => void>();
@@ -197,7 +197,7 @@ async function status(): Promise<OfflineStatus> {
 function emit() { status().then((s) => listeners.forEach((cb) => { try { cb(s); } catch { /* ignore */ } })); }
 
 /**
- * ¿Hay algo que decirle a la persona? (D-NEXT)
+ * ¿Hay algo que decirle a la persona? (D-242)
  *
  * La condición vive aquí y no dentro del componente porque es la pieza que un verify en verde
  * no echa en falta: el indicador se ocultaba con `online && total === 0`, y un descarte llega

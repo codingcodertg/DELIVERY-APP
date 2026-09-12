@@ -817,7 +817,7 @@ export default function TrackTimePage() {
   const [sinGuardarDesde, setSinGuardarDesde] = useState<number | null>(null);
 
   /**
-   * Esta pestaña ya se enteró, así que el indicador no lo repite (D-NEXT).
+   * Esta pestaña ya se enteró, así que el indicador no lo repite (D-242).
    *
    * El aviso del contador de descartados es para el caso en que **ningún tick avisó**: otra
    * pestaña, otro dispositivo, la página cerrada. Pero `flush` corre en todas las pestañas y el

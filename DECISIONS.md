@@ -13535,7 +13535,7 @@ falla nombrando la clave y el fichero.
 `live-session.test.ts`, 4 de `offlineQueue.test.ts` —que no tenía pruebas— y uno del canario de
 traducciones, que ahora recorre un fichero más).
 
-## D-NEXT · Un cambio que se pierde deja rastro, y el rastro se tiene que poder ver
+## D-242 · Un cambio que se pierde deja rastro, y el rastro se tiene que poder ver
 
 **Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** una observación no bloqueante del auditor sobre D-241, hecha después de firmarla.
