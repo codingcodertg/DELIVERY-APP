@@ -22,6 +22,15 @@
 import type { Screenshot, Session } from "@/lib/timetracker/types";
 
 const LS_SESSIONS = "tt_offline_sessions";
+/**
+ * Los parches que la cola tiró porque ya no había fila viva donde aplicarlos (D-NEXT).
+ *
+ * Vive en `localStorage`, al lado de la propia cola y por la misma razón: un descarte que se
+ * pierde al recargar es un descarte que nadie llega a ver. Es un contador, no una lista — lo
+ * que hay que decir es «se perdieron N cambios», y guardar los parches enteros sería guardar
+ * indefinidamente datos que ya no tienen dónde entrar.
+ */
+const LS_DISCARDED = "tt_offline_discarded";
 const DB_NAME = "tt_offline";
 const DB_VERSION = 1;
 const STORE = "shots";
@@ -95,23 +104,51 @@ async function deleteShot(id: number) {
   await idbReq(tx.objectStore(STORE).delete(id));
 }
 
+// --- descartados (contador que sobrevive a la recarga) ----------------------
+function loadDiscarded(): number {
+  try { const n = Number(localStorage.getItem(LS_DISCARDED)); return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; }
+  catch { return 0; }
+}
+function addDiscarded(n: number) {
+  try { localStorage.setItem(LS_DISCARDED, String(loadDiscarded() + n)); } catch { /* quota — ignore */ }
+}
+
+/**
+ * Poner el contador a cero, cuando alguien ya lo ha visto.
+ *
+ * Lo llama quien enseña el aviso, DESPUÉS de enseñarlo, y por eso el contador se comporta como
+ * un buzón y no como un total histórico: cada tanda de descartes avisa una vez, y la siguiente
+ * vuelve a avisar. Si nadie lo reconoce —la pestaña estaba cerrada— el número espera.
+ */
+export function ackDiscarded() {
+  try { localStorage.removeItem(LS_DISCARDED); } catch { /* ignore */ }
+  emit();
+}
+
 // --- flush (send everything buffered, oldest first; stop on first failure) -
 let flushing = false;
 export async function flush(ops: OfflineOps) {
   if (flushing || !navigator.onLine) return;
   flushing = true;
+  let descartados = 0;
   try {
     // 1) session patches
     const patches = loadPatches();
     for (const id of Object.keys(patches)) {
       try {
-        // El valor que devuelve dice si había fila viva, y aquí los dos casos acaban igual:
-        // el parche se quita de la cola (D-241). Si entró, porque ya está guardado. Si no
-        // había fila viva —la sesión se cerró mientras esto esperaba, o entró en nómina y la
-        // RLS la filtra— porque no hay dónde aplicarlo, y guardarlo para el próximo intento
-        // sería atascar la cola entera detrás de un parche que no va a entrar nunca. Lo que
-        // NO puede pasar es lo de antes: aplicarlo sobre la fila cerrada y pisarle el cierre.
-        await ops.updateLiveSession(id, patches[id]);
+        // El valor que devuelve dice si había fila viva, y el parche se quita de la cola en
+        // los dos casos (D-241). Si entró, porque ya está guardado. Si no había fila viva
+        // —la sesión se cerró mientras esto esperaba, o entró en nómina y la RLS la filtra—
+        // porque no hay dónde aplicarlo, y guardarlo para el próximo intento sería atascar la
+        // cola entera detrás de un parche que no va a entrar nunca. Lo que NO puede pasar es
+        // lo de antes: aplicarlo sobre la fila cerrada y pisarle el cierre.
+        //
+        // Pero los dos casos no son lo mismo, y desde D-NEXT dejan de contarse igual: uno se
+        // guardó y el otro se perdió. El segundo se apunta, porque si el aviso del tick no
+        // llegó —otra pestaña, otro dispositivo, la página cerrada— este contador es lo único
+        // que queda de un cambio que desapareció.
+        const viva = await ops.updateLiveSession(id, patches[id]);
+        if (!viva) descartados += 1;
         delete patches[id]; savePatches(patches);
       }
       catch { break; } // still offline / server error — retry next time
@@ -127,12 +164,22 @@ export async function flush(ops: OfflineOps) {
     }
   } finally {
     flushing = false;
+    // Se suma una vez por tanda y antes del `emit`, para que quien escuche el estado vea el
+    // número ya completo y no lo enseñe a trozos mientras la vuelta sigue en curso.
+    if (descartados > 0) addDiscarded(descartados);
     emit();
   }
 }
 
 // --- status subscription (for the UI indicator) ----------------------------
-export type OfflineStatus = { online: boolean; sessions: number; shots: number; total: number };
+export type OfflineStatus = {
+  online: boolean;
+  sessions: number;
+  shots: number;
+  total: number;
+  /** Parches que la cola tiró por no encontrar fila viva, sin reconocer todavía (D-NEXT). */
+  discarded: number;
+};
 const listeners = new Set<(s: OfflineStatus) => void>();
 export function subscribeOfflineStatus(cb: (s: OfflineStatus) => void): () => void {
   listeners.add(cb);
@@ -142,9 +189,27 @@ export function subscribeOfflineStatus(cb: (s: OfflineStatus) => void): () => vo
 async function status(): Promise<OfflineStatus> {
   const sessions = Object.keys(loadPatches()).length;
   const shots = await countShots();
-  return { online: navigator.onLine, sessions, shots, total: sessions + shots };
+  // `total` sigue contando SOLO lo pendiente, que es lo que mide el indicador de la esquina.
+  // Un descarte no está pendiente: ya no va a salir. Sumarlo ahí habría hecho que el indicador
+  // dijera «sincronizando» para siempre por algo que no se puede sincronizar.
+  return { online: navigator.onLine, sessions, shots, total: sessions + shots, discarded: loadDiscarded() };
 }
 function emit() { status().then((s) => listeners.forEach((cb) => { try { cb(s); } catch { /* ignore */ } })); }
+
+/**
+ * ¿Hay algo que decirle a la persona? (D-NEXT)
+ *
+ * La condición vive aquí y no dentro del componente porque es la pieza que un verify en verde
+ * no echa en falta: el indicador se ocultaba con `online && total === 0`, y un descarte llega
+ * **justo** cuando la cola ya se vació y `total` es cero. O sea que contar los descartes sin
+ * tocar esta condición habría dado un contador perfecto que no se pinta nunca.
+ *
+ * Separada del JSX se puede probar de verdad, con los tres estados que importan: conectado y
+ * sin nada (callar), conectado y sin cola pero con un descarte (hablar), y sin conexión.
+ */
+export function hayAlgoQueDecir(s: OfflineStatus): boolean {
+  return !s.online || s.total > 0 || s.discarded > 0;
+}
 
 // --- init: flush on reconnect + periodic retry ------------------------------
 let inited = false;
