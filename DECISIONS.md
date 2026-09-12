@@ -14398,6 +14398,70 @@ error cierra la empresa a media mañana. Mientras sea una hora para todos, un de
 precio bajo por que el cambio pase por una revisión. Si el dueño la quiere mover sin desplegar,
 es otro encargo y lleva su propia validación.
 
+### Y el reloj solo se para a quien va a perder la sesión
+
+La primera versión paraba el cronómetro de **todos** a las 18:30, incluido el `owner`, y el
+título de esta entrada dice «salvo admin y owner». La razón escrita para pararlo —no dejar una
+fila viva sin nadie que la lata— **solo alcanza a quien pierde la sesión**. A un exento no se le
+cierra, así que su reloj puede seguir latiendo y no hay huérfana posible; pararlo igual sería una
+regla de nómina, «a las 18:30 cierra el negocio», que nadie ha pedido, disfrazada de regla de
+sesión.
+
+**Y la forma obvia de arreglarlo estaba mal, de la peor manera: habría parecido hecha.**
+`exentoDelCierre({ fichaje: me.role })` en la pantalla del cronómetro compila, se lee bien y
+**siempre daría `false`**, o sea que el reloj del dueño se habría seguido parando con el arreglo
+dentro y ninguna prueba lo habría dicho.
+
+El motivo es que `clockin.profiles` **es una vista** (`089_store_manager.sql:40-49`) y su `role`
+es un valor **derivado**:
+
+```sql
+case when p.role = 'admin' or p.timetracker_role = 'admin' then 'owner'
+     when p.timetracker_role = 'manager' then 'manager' else 'employee' end as role
+```
+
+El `me.role` de la pantalla no es eso: es `profiles.timetracker_role` a secas
+(`timetracker-data-provider.tsx:441`), con valores `admin | employee`. **`'owner'` no existe en el
+cliente.** Se llama igual, viene de la misma persona, y es otra columna.
+
+Traducirlo en la pantalla tampoco: sería copiar la regla de la vista en el cliente, y **solo la
+mitad**, porque el `admin` del hub que la vista también convierte en `owner` no viaja en
+`Employee`. Es lo que esta misma entrada prohíbe cuatro párrafos más arriba.
+
+Así que el cronómetro pregunta a `/auth/cutoff`, que responde con los dos roles que trae
+`session_gate()` — **la misma verdad que usa el middleware**, y la única que ve el `owner`
+derivado, porque el servidor lee la vista. La respuesta se comparte con el aviso de la esquina
+por un hook, para que no sean dos peticiones ni dos respuestas que puedan no coincidir.
+
+**Y sin respuesta se para, que es lo contrario de lo que parece razonable.** Solo un «sí» libra
+del paro; `null` para.
+
+La razón es que **`/auth/cutoff` no es una consulta inofensiva después del corte**, y esto es una
+consecuencia real de la 107 que conviene tener escrita: esa ruta no lleva `/api/`, así que
+`skipsSession` no la salta y **la puerta corre también sobre ella**. A un no exento que pregunte a
+las 18:31 no le contesta `{exento:false}`: le devuelve la redirección al login con las cookies ya
+borradas, y el `json()` revienta. O sea que **después del corte, `null` no es el caso raro: es
+justo el caso del no exento.**
+
+Con la dirección cómoda —«sin respuesta, no paro»— la secuencia para un vendedor a las 18:31
+habría sido: pregunta, redirección, error, «exento», el reloj sigue con la cookie muerta, los
+latidos a 401, «sin guardar» de D-241, fila huérfana, el cron la cierra a las 18:45, y a la mañana
+siguiente D-197 puede reabrirla. **El incidente de D-241 fabricado a propósito, y con la nómina
+contando una noche.**
+
+Por eso se pregunta **en la ventana previa**, diez minutos antes, cuando la puerta todavía no
+cierra a nadie y la respuesta es JSON para todos; y por eso sin respuesta se para. Es el fallo
+recuperable: a un exento le cuesta un clic en Empezar y no pierde nada, y al que no lo es le evita
+todo lo anterior.
+
+El aviso resuelve el mismo `null` **al revés** —no avisa—, y también está razonado: asustar a
+alguien por un fallo de red es peor que callarse. Que la misma incertidumbre se resuelva en
+direcciones opuestas no es una incoherencia; es que el coste de equivocarse no es el mismo, y por
+eso el hook devuelve `null` en vez de un valor cómodo y deja que decida cada quien.
+
+**La regla que queda escrita, y es del auditor:** un rol se compara contra la fuente que lo
+produce; si es una vista que lo deriva, el cliente no lo tiene, aunque la variable se llame igual.
+
 ### Una migración no lleva nunca el marcador de decisión sin numerar
 
 Regla nueva, y sale de un tropiezo de esta rama: la 107 se escribió con el marcador puesto, como
@@ -14426,7 +14490,11 @@ por la puerta de atrás. Un fichero que no puede contener una cadena tampoco pue
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1693 pasados | 3 saltados**
-(main 5738e39: 1656 | 3; los +37 son 28 de `session-cutoff.test.ts`, 8 de
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1700 pasados | 3 saltados**
+(main 5738e39: 1656 | 3; los +44 son 35 de `session-cutoff.test.ts`, 8 de
 `session-cutoff-middleware.test.ts` y uno del canario de traducciones del Time Tracker, que ve
 una clave nueva).
+
+Nota de entorno, porque el número no significa nada sin ella: **el `verify` se colgó dos veces en
+esta rama** con cinco `next build` a la vez en la máquina, y una hubo que matarla y relanzarla. El
+número de arriba es el de una pasada completa sobre `.next` limpio.

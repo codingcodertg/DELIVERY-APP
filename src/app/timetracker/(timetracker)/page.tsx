@@ -12,7 +12,8 @@ import {
   desktopOnPower, desktopOnShot, desktopStart, desktopStop, isDesktop,
 } from "@/lib/timetracker/desktop";
 import { ackDiscarded, queueSession, queueShot, subscribeOfflineStatus } from "@/lib/timetracker/offlineQueue";
-import { horaDelNegocio, pasoElCorte } from "@/lib/session-cutoff";
+import { horaDelNegocio, pasoElCorte, tocaAvisar } from "@/lib/session-cutoff";
+import { useCutoffExempt } from "@/lib/use-cutoff-exempt";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-guard";
@@ -929,14 +930,38 @@ export default function TrackTimePage() {
    * Se para en el minuto del corte, no unos minutos antes: el trabajo hecho hasta las 18:30 es
    * trabajo, y adelantarlo sería quitar minutos que alguien trabajó.
    *
+   * **Y solo a quien va a perder la sesión.** La razón de arriba es la única razón que hay, y no
+   * le aplica a un `admin` de Entregas ni a un `owner` de fichaje: a ellos no se les cierra, así
+   * que su reloj puede seguir latiendo y no hay huérfana posible. Pararlo igual sería una regla
+   * de nómina —«a las 18:30 cierra el negocio»— que nadie ha pedido, disfrazada de regla de
+   * sesión.
+   *
+   * La exención se pregunta al servidor porque **aquí no se puede saber**: el `me.role` de esta
+   * pantalla es `"admin" | "employee"` y sale de `profiles.timetracker_role`, que es otra
+   * columna y otra pregunta. Un `admin` de Time Tracker no es un `admin` de Entregas.
+   *
    * **El fichaje de clock-in no se toca**, y eso es decisión escrita: un fichaje abierto es el
    * registro de la jornada, y cerrarlo por una regla de sesión sería inventar una hora de
    * salida en la nómina. Si el dueño quiere que también se cierre, es otra decisión suya.
    */
   const paradoPorCorteRef = useRef(false);
+  const [cerca, setCerca] = useState(false);
+  // Se pregunta en la VENTANA PREVIA, no al llegar el corte, y esa diferencia es todo el
+  // arreglo: pasado el corte, `/auth/cutoff` ya no contesta a un no exento —la puerta del
+  // middleware corre también sobre ella y le devuelve la redirección al login—, así que
+  // preguntar tarde no da «no exento», da un error.
+  const exentoDelCorte = useCutoffExempt(cerca);
   useEffect(() => {
     const mirar = () => {
-      if (paradoPorCorteRef.current || !pasoElCorte(horaDelNegocio())) return;
+      if (paradoPorCorteRef.current) return;
+      const ahora = horaDelNegocio();
+      if (tocaAvisar(ahora) || pasoElCorte(ahora)) setCerca(true);
+      if (!pasoElCorte(ahora)) return;
+      // Solo un «sí» explícito libra del paro. `null` —sin respuesta, o pestaña abierta después
+      // del corte— PARA, porque es el fallo recuperable: a un exento le cuesta un clic en
+      // Empezar y no pierde nada, y al que no lo es le evita quedarse con la sesión muerta, el
+      // reloj corriendo y una huérfana que el cron cierra a los quince minutos (D-241).
+      if (exentoDelCorte === true) return;
       if (!runningRef.current || stoppedRef.current) return;
       paradoPorCorteRef.current = true;
       notify(t("track.closingForCutoff"));
@@ -945,7 +970,7 @@ export default function TrackTimePage() {
     mirar();
     const id = setInterval(mirar, 30_000);
     return () => clearInterval(id);
-  }, [notify, t]);
+  }, [notify, t, exentoDelCorte]);
 
   const arrancandoRef = useRef(false);
 

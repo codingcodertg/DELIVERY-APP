@@ -6,6 +6,7 @@ import {
   ultimoCortePasado, debeCerrarSesion,
 } from "./session-cutoff";
 import { ROLE_INFO } from "./constants";
+import { isApiPath, skipsSession } from "./route-guard";
 import { ACCOUNTS_KEY } from "./remembered-accounts";
 import { readFileSync } from "node:fs";
 
@@ -228,5 +229,78 @@ describe("el cierre de sesión no borra las cuentas recordadas", () => {
     // `localStorage` a propósito, para decir que NO se toca, y un `toContain` a secas lo
     // contaba como si se tocara. Es el mismo mordisco de siempre.
     expect(codigoDe(src)).not.toContain("localStorage");
+  });
+});
+
+// ---- El reloj solo se para a quien pierde la sesión ---------------------------------------
+// El auditor lo cazó y tenía razón: la razón de parar el cronómetro es no dejar una fila
+// huérfana cuando cae la sesión, y a quien está exento no le cae. Pararlo igual sería una regla
+// de nómina —«a las 18:30 cierra el negocio»— que nadie pidió, disfrazada de regla de sesión.
+//
+// Se comprueba por texto porque el paro vive dentro de un componente de mil doscientas líneas
+// con `setInterval`, que vitest en node no puede montar. Lo que se puede exigir es que pregunte.
+describe("el cronómetro respeta la misma exención que el middleware", () => {
+  const page = codigoDe(readFileSync("src/app/timetracker/(timetracker)/page.tsx", "utf8"));
+  // El efecto que decide el paro, de su ref al cierre del `useEffect`.
+  const bloqueDelCorte = page.slice(page.indexOf("const paradoPorCorteRef"), page.indexOf("const arrancandoRef"));
+
+  it("solo un «sí» explícito libra del paro: sin respuesta, para", () => {
+    expect(page).toContain("useCutoffExempt");
+    // La asimetría es el arreglo entero. `!== false` habría dejado que un `null` —sin respuesta,
+    // o pestaña abierta después del corte— librara del paro, y ahí es justo donde no puede:
+    // pasado el corte, `/auth/cutoff` ya no contesta a un no exento, así que `null` es su caso
+    // más probable, no el raro.
+    expect(bloqueDelCorte).toMatch(/if \(exentoDelCorte === true\) return;/);
+    expect(bloqueDelCorte).not.toContain("exentoDelCorte !== false");
+  });
+
+  it("y pregunta en la ventana previa, no al llegar el corte", () => {
+    // Preguntar tarde no da «no exento»: da un error, porque la puerta del middleware corre
+    // también sobre `/auth/cutoff` —no lleva `/api/`, así que `skipsSession` no la salta— y a
+    // un no exento le devuelve la redirección al login con las cookies borradas.
+    expect(bloqueDelCorte).toMatch(/tocaAvisar\(ahora\)/);
+    expect(bloqueDelCorte).toContain("setCerca(true)");
+  });
+
+  it("y esa ruta NO está entre las que el middleware se salta: es lo que obliga a lo anterior", () => {
+    // Medido aquí para que el día que alguien meta `/auth/cutoff` en `skipsSession` esta
+    // prueba lo obligue a releer el porqué en vez de descubrirlo en producción.
+    expect(isApiPath("/auth/cutoff")).toBe(false);
+    expect(skipsSession("/auth/cutoff")).toBe(false);
+    expect(skipsSession("/timetracker/api/heartbeat")).toBe(true); // control
+  });
+
+  it("y sigue preguntando por la hora con la función compartida, no con una copia", () => {
+    expect(bloqueDelCorte).toContain("horaDelNegocio()");
+    expect(bloqueDelCorte).toContain("pasoElCorte(ahora)");
+    // Control: si alguien reescribiera la hora a mano, esto no lo vería, así que además se
+    // exige que no aparezca la hora escrita como literal en la pantalla.
+    expect(page).not.toContain('"18:30"');
+  });
+
+  it("la respuesta viene del servidor, y aquí no se compara ningún rol", () => {
+    // El hook es quien pregunta; lo que se exige de la pantalla es que NO decida por su cuenta.
+    const hook = codigoDe(readFileSync("src/lib/use-cutoff-exempt.ts", "utf8"));
+    expect(hook).toContain("/auth/cutoff");
+    // Acotado AL BLOQUE del corte, no al fichero: `page.tsx` compara `me.role === "admin"` en
+    // otro sitio (`:1063`, para pintar la vista de admin del Time Tracker) y eso es legítimo y
+    // no tiene nada que ver con esto. Una aserción sobre el fichero entero prohibía código
+    // inocente — el mismo error que un grep demasiado ancho, en la otra dirección.
+    expect(bloqueDelCorte).not.toContain("owner");
+    expect(bloqueDelCorte).not.toMatch(/me\.role/);
+  });
+
+  it("el bloque del corte existe y es lo que se está midiendo", () => {
+    // Control: sin esto, un cambio de nombre dejaría el bloque vacío y las dos aserciones de
+    // arriba pasarían por no encontrar nada.
+    expect(bloqueDelCorte.length).toBeGreaterThan(200);
+    expect(bloqueDelCorte).toContain("stopRef.current()");
+  });
+
+  it("no deduce la exención del rol que tiene a mano, que es otra pregunta", () => {
+    // `me.role` aquí es "admin" | "employee" y sale de `profiles.timetracker_role`. Un admin
+    // de Time Tracker no es un admin de Entregas ni un owner de fichaje, y usarlo habría
+    // eximido a gente que no lo está.
+    expect(page).not.toMatch(/exentoDelCierre\(/);
   });
 });

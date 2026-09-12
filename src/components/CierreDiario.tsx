@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { isPublicPath } from "@/lib/route-guard";
 import { usePrefs } from "@/lib/prefs";
 import { CIERRE_DIARIO, horaDelNegocio, minutosHastaElCorte, pasoElCorte, tocaAvisar } from "@/lib/session-cutoff";
+import { useCutoffExempt } from "@/lib/use-cutoff-exempt";
 
 /**
  * El aviso de que la sesión se va a cerrar a las 18:30 (D-NEXT).
@@ -26,7 +27,6 @@ export function CierreDiario() {
   const router = useRouter();
   const { t } = usePrefs();
   const [ahora, setAhora] = useState<string | null>(null);
-  const [exento, setExento] = useState<boolean | null>(null);
   const [cerrado, setCerrado] = useState(false);
 
   // Cada medio minuto basta: lo que se mira es el minuto, y un reloj por segundo aquí serían
@@ -42,18 +42,10 @@ export function CierreDiario() {
   const enVentana = !!ahora && tocaAvisar(ahora);
   const yaPaso = !!ahora && pasoElCorte(ahora);
 
-  // Se pregunta UNA vez, cuando el aviso empieza a ser relevante. Antes de eso no hay nada que
-  // saber, y preguntarlo al cargar cada página sería una llamada por navegación para nada.
-  useEffect(() => {
-    if (enPublica || exento !== null || !(enVentana || yaPaso)) return;
-    let vivo = true;
-    fetch("/auth/cutoff")
-      .then((r) => r.json())
-      .then((d: { exento?: boolean }) => { if (vivo) setExento(!!d.exento); })
-      // Sin respuesta no se avisa: un aviso equivocado asusta a alguien sin motivo.
-      .catch(() => { if (vivo) setExento(true); });
-    return () => { vivo = false; };
-  }, [enPublica, enVentana, yaPaso, exento]);
+  // Se pregunta UNA vez, cuando el aviso empieza a ser relevante, y por el hook compartido:
+  // el cronómetro hace la misma pregunta y no tiene sentido que sean dos peticiones ni dos
+  // respuestas que podrían no coincidir.
+  const exento = useCutoffExempt(!enPublica && (enVentana || yaPaso));
 
   // A la hora, una navegación para que el middleware resuelva. Una sola vez: si la persona
   // está exenta no pasa nada, y si no lo está, el propio refresco la manda al login.
