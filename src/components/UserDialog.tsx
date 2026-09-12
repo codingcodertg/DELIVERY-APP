@@ -9,6 +9,7 @@ import type { ModuleAccessKey } from "@/lib/constants";
 import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
 import type { Profile, UserRole } from "@/lib/types";
+import { esAdmin } from "@/lib/impersonation";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -32,6 +33,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
   const confirmAction = useConfirm();
 
   const [signIn, setSignIn] = useState<SignIn | null>(null);
+  const [entrando, setEntrando] = useState(false);
   // Controlled, not defaultValue: signIn is fetched AFTER mount, and React
   // never refreshes an uncontrolled input. The email box showed blank for
   // everyone who had one, so "clearing" it was a no-op on something that
@@ -451,6 +453,50 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
 
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={onClose}>{t("Done", "Listo")}</button>
+          {/* «Entrar como» (D-NEXT). Vive SOLO en la ficha y no en la fila de la lista, aunque
+              el encargo pedía los dos sitios: cada fila de `home/users` es ella misma un
+              `<button>`, y meter otro dentro es HTML inválido —el navegador rompe el anidado y
+              el clic de la fila deja de funcionar—. Reestructurar esa pantalla es otra cosa.
+
+              Lo que decide de verdad es el servidor: este botón se esconde para quien no es
+              admin y sobre quien sí lo es, pero un botón que no se pinta no es una barrera.
+              `/api/impersonate` vuelve a preguntar lo mismo con el rol leído de la base. */}
+          {esAdmin(me.role) && !esAdmin(u.role) && u.id !== me.id && (
+            <button
+              className="btn btn-amber btn-sm"
+              disabled={entrando}
+              onClick={async () => {
+                if (!await confirmAction(
+                  t(
+                    `Sign in as ${u.full_name}? Everything you do will be recorded as done by them, and it is logged.`,
+                    `¿Entrar como ${u.full_name}? Todo lo que hagas quedará registrado como hecho por esa persona, y queda en el registro de seguridad.`,
+                  ),
+                  { confirmLabel: t("Sign in as", "Entrar como") },
+                )) return;
+                setEntrando(true);
+                try {
+                  const r = await fetch("/api/impersonate", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ targetId: u.id }),
+                  });
+                  if (!r.ok) {
+                    setEntrando(false);
+                    notify(t("Could not sign in as this user.", "No se pudo entrar como este usuario."));
+                    return;
+                  }
+                  // Recarga entera: cambia la identidad de la sesión, y todo lo que hay en
+                  // memoria es del admin. Ver abajo, en el banner, el mismo motivo al volver.
+                  window.location.href = "/";
+                } catch {
+                  setEntrando(false);
+                  notify(t("Could not sign in as this user.", "No se pudo entrar como este usuario."));
+                }
+              }}
+            >
+              {entrando ? t("Signing in…", "Entrando…") : t("Sign in as", "Entrar como")}
+            </button>
+          )}
           <span style={{ flex: 1 }} />
           {/* An admin can't delete themselves out of the only admin account. */}
           {u.id !== me.id && (

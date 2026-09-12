@@ -23,7 +23,12 @@ export type SecurityKind =
   | "erp_access_changed"
   | "erp_role_changed"
   | "deliveries_access_changed"
-  | "clockin_access_changed";
+  | "clockin_access_changed"
+  // D-NEXT: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
+  // clases y no una con un detalle, porque lo que se lee en el registro es «cuánto duró», y eso
+  // solo se puede leer si el principio y el fin son dos líneas con su hora.
+  | "impersonation_start"
+  | "impersonation_end";
 
 export interface SecurityEventSeed {
   target_id: string | null;
@@ -49,6 +54,8 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     erp_role_changed: "ERP tier changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
+    impersonation_start: "Signed in as this user",
+    impersonation_end: "Returned to own account",
   };
   const es: Record<string, string> = {
     user_created: "Usuario creado",
@@ -63,6 +70,14 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     timetracker_access_changed: "Acceso a Timetracker cambiado",
     erp_access_changed: "Acceso al ERP cambiado",
     erp_role_changed: "Nivel de ERP cambiado",
+    // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
+    // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
+    // porque es el mismo mapa que estoy tocando y dejar el hueco al lado de las líneas nuevas
+    // habría sido raro. Va dicho en la entrada, no colado.
+    deliveries_access_changed: "Acceso a Entregas cambiado",
+    clockin_access_changed: "Acceso a Fichaje cambiado",
+    impersonation_start: "Entró como este usuario",
+    impersonation_end: "Volvió a su cuenta",
   };
   return (lang === "es" ? es : en)[kind] ?? kind;
 }
