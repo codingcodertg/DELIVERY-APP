@@ -116,7 +116,21 @@ export type MotivoNoReabrir =
   | "sin-fila" | "no-es-mia" | "sigue-viva" | "la-cerro-una-persona" | "sin-marca" | "sin-evidencia-local" | "otra-viva";
 
 /**
- * ¿Se puede reabrir una sesión que el cron cerró mientras la persona trabajaba SIN INTERNET?
+ * De dónde sale la prueba de que este reloj no se detuvo. **Son dos casos distintos**, y
+ * confundirlos fue el hueco que costó cuatro horas del dueño (D-NEXT).
+ *
+ *  · `"sin-red"` — la pantalla **sigue abierta y contando** y descubre que el servidor cerró la
+ *    fila. La prueba es el propio tick corriendo: es el caso de D-197.
+ *  · `"tras-carga"` — la página **acaba de arrancar**: hubo un crash, un «Reload app», un
+ *    cierre del navegador. Aquí no hay tick, ni `running`, ni id en memoria, **porque todo eso
+ *    se acaba de reiniciar**. Exigirlos es exigir lo imposible, y por eso la reapertura tras un
+ *    reload no ocurría nunca aunque D-241 dijera que sí. La prueba es la **marca**, que vive en
+ *    `localStorage` y sobrevive precisamente a lo que borra la memoria.
+ */
+export type ContextoReapertura = "sin-red" | "tras-carga";
+
+/**
+ * ¿Se puede reabrir una sesión que una máquina cerró mientras la persona seguía trabajando?
  *
  * Es una excepción acotada a D-195, no una relajación del freno: el freno sigue cerrando a los
  * 15 min sin latido, y esto solo deshace ese cierre cuando hay prueba de que el reloj de ESTE
@@ -125,11 +139,16 @@ export type MotivoNoReabrir =
  *  1. Es SU fila, y está cerrada.
  *  2. La cerró una MÁQUINA (`live_note` en `CIERRES_AUTOMATICOS`: el cron o la propia
  *     pantalla al ver una huérfana), no una persona ni un Stop.
- *  3. Hay marca de reanudación reciente PARA ESA sesión, y evidencia local continua: el tick
- *     siguió corriendo (la marca se refresca en cada escritura del tick) o la página acaba de
- *     recargarse con la marca del `pagehide`.
+ *  3. Hay marca de reanudación reciente PARA ESA sesión — y, **solo en el caso `sin-red`**,
+ *     además evidencia local continua: el tick sigue corriendo ahora mismo sobre esa sesión.
+ *     Tras una carga esa evidencia no puede existir; ver `ContextoReapertura`.
  *  4. No hay OTRA sesión viva de la misma persona (092: una sola viva). Si arrancó otra
  *     mientras tanto, esta no se reabre y se anota.
+ *
+ * Que la marca baste tras una carga **no la debilita**: `parseResumeMark` ya la descarta si es
+ * más vieja que `RESUME_MAX_MS`, que son los mismos 15 minutos del freno, y `markCovers` exige
+ * que sea de esa sesión y no de otra. Una máquina que estuvo apagada de verdad no tiene marca
+ * fresca y sigue sin reabrir nada.
  */
 export function decisionReabrir(args: {
   fila: FilaSesion | null;
@@ -137,8 +156,12 @@ export function decisionReabrir(args: {
   mark: ResumeMark | null;
   evidenciaLocal: boolean;
   otrasVivas: string[];
+  contexto?: ContextoReapertura;
 }): { reabrir: true } | { reabrir: false; motivo: MotivoNoReabrir } {
-  const { fila, me, mark, evidenciaLocal, otrasVivas } = args;
+  const { fila, me, mark, otrasVivas } = args;
+  const contexto = args.contexto ?? "sin-red";
+  // Tras una carga la marca ES la evidencia: no hay tick que mirar porque acaba de nacer.
+  const evidenciaLocal = contexto === "tras-carga" ? true : args.evidenciaLocal;
   if (!fila) return { reabrir: false, motivo: "sin-fila" };
   if (fila.employeeUid !== me) return { reabrir: false, motivo: "no-es-mia" };
   if (fila.isLive) return { reabrir: false, motivo: "sigue-viva" };

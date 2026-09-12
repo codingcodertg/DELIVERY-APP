@@ -18,6 +18,7 @@ import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-
 import { horaCorta, minutosSinGuardar } from "@/lib/timetracker/save-state";
 import {
   backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, PAGE_ORPHAN_CLOSE_NOTE, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  ultimoLatidoDe,
   tickContinuo,
 } from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
@@ -451,11 +452,34 @@ export default function TrackTimePage() {
         // comparten esta pantalla y el cron que cierra huérfanas (D-195). Eran 5 minutos;
         // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
         if (esHuerfana(mine, Date.now())) {
+          // **Antes de cerrar, mirar si hay que reabrir** (D-NEXT). Este orden es el arreglo
+          // entero: hasta aquí se cerraba y se borraba la marca en el mismo paso, así que la
+          // reapertura tras una recarga era imposible aunque D-241 dijera que estaba permitida
+          // — la prueba se destruía antes de consultarla. El dueño perdió cuatro horas por esto.
+          //
+          // La marca es la evidencia en este caso, y no el tick: la página acaba de arrancar,
+          // así que no hay tick, ni `running`, ni id en memoria. Ver `ContextoReapertura`.
+          let marca = null;
+          try { marca = parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { marca = null; }
+          const dec = decisionReabrir({
+            fila: { id: mine.id, employeeUid: me.id, isLive: false, liveNote: mine.liveNote ?? null },
+            me: me.id, mark: marca, evidenciaLocal: false, otrasVivas: [], contexto: "tras-carga",
+          });
+
+          if (dec.reabrir) {
+            const desdeMs = ultimoLatidoDe(mine);
+            const reabierta = await reabrirTrasCarga(mine, desdeMs);
+            if (reabierta) return;
+            // Si la base la rechaza (solape, otra viva), se sigue al cierre de siempre.
+          }
+
           // Con marca propia (D-241): este cierre lo decide una máquina, igual que el del
           // cron, y `decisionReabrir` tiene que poder distinguirlo de un Stop. Sin ella, la
           // fila se quedaba con el `live_note` del último latido —`active` en el caso del
           // dueño— y se leía como «la cerró una persona».
           await updateSession(mine.id, { ...cierreHuerfana(mine), liveNote: PAGE_ORPHAN_CLOSE_NOTE }).catch(() => {});
+          // La marca se borra **aquí**, cuando ya se decidió que no se reabre. Borrarla antes
+          // era tirar la prueba antes de leerla.
           try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
           setRunning(false);
           setWorked(0);
@@ -571,6 +595,60 @@ export default function TrackTimePage() {
    * La base tiene la última palabra: una sola viva por persona (092) y sin solapes (082).
    * Si el UPDATE choca con cualquiera de las dos, no se reabre y se avisa.
    */
+  /**
+   * Reabrir una sesión que la propia pantalla iba a cerrar al arrancar (D-NEXT).
+   *
+   * El caso: crash o «Reload app» a media jornada. La fila queda viva sin latidos, al cargar se
+   * ve huérfana, y hasta ahora se cerraba en su último latido — perdiendo todo lo trabajado
+   * después. Cuatro horas, en el incidente que lo destapó.
+   *
+   * **El tramo sin latidos NO se inventa.** Del último latido a ahora no hay ninguna evidencia
+   * de que se estuviera trabajando —ni actividad, ni capturas, nada— y rellenarlo sería pagar
+   * un hueco por si acaso, que es exactamente lo que D-098 prohibió. Así que el reloj sigue
+   * desde donde se quedó: se adelanta el arranque tantos milisegundos como duró el hueco, y el
+   * tiempo que se enseña no lo incluye. La pantalla lo dice con las dos horas.
+   */
+  async function reabrirTrasCarga(mine: Session, ultimoLatido: number): Promise<boolean> {
+    const hueco = Math.max(0, Date.now() - ultimoLatido);
+    try {
+      await updateSession(mine.id, { isLive: true, liveNote: "reopened" });
+    } catch {
+      return false; // solape, otra viva, o sin red: se sigue al cierre de siempre
+    }
+
+    sessionIdRef.current = mine.id;
+    // El arranque se corre hacia delante lo que duró el hueco: así `Date.now() - startMs` sigue
+    // valiendo lo mismo que valía en el último latido, más lo que se cuente desde ahora.
+    startMsRef.current = (mine.startMs || Date.now()) + hueco;
+    setRemoteOwner(null);
+    try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: startMsRef.current, source: mine.source })); } catch { /* ignore */ }
+    lunchRef.current = mine.lunchSeconds || 0;
+    brkRef.current = mine.breakSeconds || 0;
+    breakEventsRef.current = mine.breakEvents || [];
+    keystrokesRef.current = mine.keystrokes || 0;
+    clicksRef.current = mine.clicks || 0;
+    activeSecondsRef.current = mine.activeSeconds || 0;
+    onBreakRef.current = null;
+    if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+    setMemo(mine.memo || "");
+    setBreaks({ lunch: mine.lunchSeconds || 0, brk: mine.breakSeconds || 0 });
+    setBreakList(mine.breakEvents || []);
+    setWorked(Math.floor((Date.now() - startMsRef.current) / 1000));
+    setOnBreak(null);
+    setRunning(true);
+    desktopStart({ sessionId: mine.id, intervalMin: shotMin });
+    reiniciarContinuidad();
+    beginTicking();
+
+    const minutos = Math.round(hueco / 60_000);
+    notify(t("track.reopenedAfterReload", {
+      min: String(minutos),
+      desde: horaCorta(ultimoLatido),
+      hasta: horaCorta(Date.now()),
+    }));
+    return true;
+  }
+
   const reabriendoRef = useRef(false);
   async function intentarReabrir(id: string): Promise<boolean> {
     if (reabriendoRef.current) return false;
