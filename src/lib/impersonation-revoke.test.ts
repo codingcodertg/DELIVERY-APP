@@ -48,9 +48,25 @@ describe("la vuelta revoca la sesión ajena, y en el orden correcto", () => {
     expect(iToken).toBeLessThan(iRestaurar);
   });
 
-  it("y la revocación no bloquea la vuelta", () => {
-    // `void`: se dispara y no se espera. Si se esperara y fallara, el admin podría quedarse sin
-    // su cuenta por no haber podido cerrar la de otro, que es lo único que esto no puede hacer.
-    expect(codigo).toMatch(/void revocarSesionImpersonada\(/);
+  it("se ESPERA, porque en Vercel lo que se suelta tras responder puede no correr", () => {
+    // Soltarlo con `void` dejaba el propósito entero de la rama dependiendo de que la
+    // plataforma no congelara la función al devolver la respuesta — y si no corriera, no lo
+    // diría nadie. No hay en este repo ni un `after()` ni un `waitUntil` que sirvan de
+    // precedente.
+    expect(codigo).toMatch(/await revocarSesionImpersonada\(/);
+    expect(codigo).not.toMatch(/void revocarSesionImpersonada\(/);
+    expect(codigo).toMatch(/await apuntarImpersonacion\(/);
+  });
+
+  it("y «no bloquea» es una PROPIEDAD de las funciones, no la forma de llamarlas", () => {
+    // Lo que hace que esperar sea seguro: las dos capturan todo y devuelven `false`, nunca
+    // lanzan. Por eso un fallo no puede cambiar la respuesta ni dejar al admin sin su cuenta.
+    // La prueba de antes fijaba el `void`, que era la forma — y una forma que fijaba la duda.
+    for (const f of ["src/lib/impersonation-revoke.ts", "src/lib/impersonation-log.ts"]) {
+      const src = sinComentarios(readFileSync(f, "utf8"));
+      expect(src, f).toMatch(/catch \([\w]*\) \{/);
+      expect(src, f).toMatch(/return false;/);
+      expect(src, f).not.toMatch(/throw /);
+    }
   });
 });

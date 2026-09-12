@@ -67,12 +67,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, salida: "login" });
   }
 
-  // Y se cierra en el servidor la sesión del vendedor, solo esa. No bloquea: si falla, el admin
-  // ya tiene su cuenta de vuelta y queda una sesión caducando sola, que es infinitamente mejor
-  // que negarle el regreso.
-  void revocarSesionImpersonada(sesionAjena?.access_token);
+  // Y se cierra en el servidor la sesión del vendedor, solo esa.
+  //
+  // **Se espera, no se suelta con `void`** (D-NEXT). Esto corre en Vercel, donde la función se
+  // puede congelar en cuanto devuelve la respuesta: el trabajo lanzado después no tiene ninguna
+  // garantía de correr, y no hay en este repo ni un `after()` ni un `waitUntil` que digan lo
+  // contrario. Soltarlo dejaba **el propósito entero de esto** dependiendo de que la plataforma
+  // fuera amable, y si no corriera no lo diría nadie. Lo mismo valía para la fila de fin de
+  // D-243, que llevaba `void` desde el principio.
+  //
+  // «No bloquea» se conserva entera, y no depende del `void`: las dos funciones capturan todo y
+  // devuelven `false`, nunca lanzan. Un fallo no cambia la respuesta — solo la hace esperar dos
+  // peticiones cortas.
+  await revocarSesionImpersonada(sesionAjena?.access_token);
 
-  void apuntarImpersonacion({
+  await apuntarImpersonacion({
     actorId: guardado.adminId,
     targetId: guardado.comoId,
     targetName: null,

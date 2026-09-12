@@ -14014,6 +14014,29 @@ fallo puede ser de otra clase que el primero, y quien depura necesita los dos.
 (D-243), con su contrato aparte, porque allí la sesión todavía no existe cuando se escribe la
 fila y no hay nada a medio aplicar que proteger.
 
+### Y esperar, en vez de soltarlo y confiar
+
+Lo encontró la auditoría y es el fallo más silencioso de los tres. La revocación y la fila de fin
+iban con `void`: se lanzan y no se esperan, **después de que la respuesta ya está decidida**.
+
+Eso corre en Vercel, donde una función se puede congelar en cuanto devuelve la respuesta. El
+trabajo lanzado después no tiene ninguna garantía, y **en este repo no hay ni un `after()` ni un
+`waitUntil`** que sirvan de precedente: esas dos eran las únicas promesas sueltas tras responder
+en todas las rutas de `api/`. O sea que el propósito entero de esta rama dependía de que la
+plataforma fuera amable, y si no corriera **no lo diría nadie** — la vuelta del admin funciona
+igual de bien con la sesión ajena viva.
+
+Lo mismo valía para la fila `impersonation_end`, que llevaba `void` desde D-243.
+
+Ahora se esperan las dos. **Y «no bloquea» se conserva entera**, porque nunca dependió del
+`void`: las dos funciones capturan todo y devuelven `false`, así que un fallo no puede cambiar la
+respuesta ni dejar al admin sin su cuenta. Lo único que cambia es que la respuesta espera dos
+peticiones cortas.
+
+La prueba también cambió de sitio, y esa es la parte que enseña: **fijaba el `void`, que era la
+forma**, y una forma que precisamente fijaba la duda. Ahora fija la propiedad — que las dos
+funciones no lanzan nunca — más el `await`.
+
 ### Lo que esta rama NO puede cubrir
 
 **`auto-return` no existe aquí.** Es de la rama del cierre de las 18:30, que sigue sin fusionar,
@@ -14033,6 +14056,6 @@ con el token de la sesión ajena antes de restaurar.
 - **Nadie ha visto el aviso del registro en pantalla.** Probado está que sale una sola vez, que
   la consola los recibe todos y que los dos registros leen el `error`.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1718 pasados | 3 saltados**
-(main 085428e: 1708 | 3; los +10 son 5 de `impersonation-revoke.test.ts` y 5 de
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1719 pasados | 3 saltados**
+(main 085428e: 1708 | 3; los +11 son 6 de `impersonation-revoke.test.ts` y 5 de
 `security-log-notice.test.ts`).
