@@ -8,6 +8,7 @@ import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDef
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
 import dynamic from "next/dynamic";
 import { LOCAL_CITIES_DEFAULT, filasDeLaFormula } from "@/lib/pricing";
+import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 
@@ -617,9 +618,9 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
               {filasDeLaFormula().map((f) => (
                 <tr key={f.tramo}>
                   <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
-                  <td>{f.rango}</td>
-                  <td>{f.lista}</td>
-                  <td>{f.descuento}</td>
+                  <td>{textoDelRango(t, f.desde, f.hasta)}</td>
+                  <td>{textoDeLaRegla(t, f.lista.base, f.lista.factor)}</td>
+                  <td>{textoDeLaRegla(t, f.descuento.base, f.descuento.factor)}</td>
                 </tr>
               ))}
             </tbody>
@@ -633,15 +634,6 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
         </div>
       </div>
 
-      <div style={{ marginTop: 14 }}>
-        <div className="section-label" style={{ marginTop: 0 }}>{t("Fee formula (by driving miles)", "Fórmula de tarifa (por millas)")}</div>
-        <div className="hint" style={{ lineHeight: 1.7 }}>
-          <b>{t("LOCAL — List:", "LOCAL — Lista:")}</b> &lt; 11 mi → $100 · &gt; 50 mi → 350 + mi · {t("else", "si no")} → 120 + mi × 0.8<br />
-          <b>{t("LOCAL — Discount:", "LOCAL — Descuento:")}</b> &lt; 11 mi → $80 · &gt; 50 mi → 200 + mi · {t("else", "si no")} → 100 + mi × 0.8<br />
-          <b>{t("NOT LOCAL — List:", "NO LOCAL — Lista:")}</b> 500 + mi · <b>{t("Discount:", "Descuento:")}</b> 400 + mi<br />
-          <span style={{ opacity: 0.8 }}>{t("All rounded to the nearest $10.", "Todas redondeadas al $10 más cercano.")}</span>
-        </div>
-      </div>
     </div>
   );
 }

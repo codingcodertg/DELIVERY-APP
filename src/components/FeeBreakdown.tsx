@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { fmtMoney } from "@/lib/utils";
 import type { FeeBreakdown as Desglose, PasoTarifa } from "@/lib/pricing";
+import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 
 /**
  * «¿Cómo se calculó?» — la fórmula con los números de ESTE pedido (D-NEXT).
@@ -55,18 +56,10 @@ export function FeeBreakdownDetails({ desglose }: { desglose: Desglose }) {
 function Camino({ titulo, paso }: { titulo: string; paso: PasoTarifa }) {
   const { t } = usePrefs();
 
-  // El rango se dice con los comparadores del código: 11 y 50 caen en el tramo del medio, así
-  // que «11–50» es cierto y «hasta 10 / 11 a 49» sería mentira.
-  const rango =
-    paso.desde == null && paso.hasta == null ? t("any distance", "cualquier distancia")
-    : paso.desde == null ? t(`under ${paso.hasta} mi`, `menos de ${paso.hasta} mi`)
-    : paso.hasta == null ? t(`over ${paso.desde} mi`, `más de ${paso.desde} mi`)
-    : `${paso.desde}–${paso.hasta} mi`;
-
-  const regla =
-    paso.factor === 0 ? t(`flat ${fmtMoney(paso.base)}`, `${fmtMoney(paso.base)} fijo`)
-    : paso.factor === 1 ? `${paso.base} + mi`
-    : `${paso.base} + ${paso.factor} × mi`;
+  // El rango y la regla se dicen en un solo sitio, compartido con la tabla de Ajustes: la misma
+  // frase escrita dos veces acaba diciendo dos cosas.
+  const rango = textoDelRango(t, paso.desde, paso.hasta);
+  const regla = textoDeLaRegla(t, paso.base, paso.factor);
 
   return (
     <div>

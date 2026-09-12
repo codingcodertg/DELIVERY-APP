@@ -13894,6 +13894,33 @@ que en 50 el precio es el del medio y **no** el del tramo largo.
 **Y son ocho reglas, no cinco:** tres tramos locales por dos columnas, más la de fuera de zona por
 dos. El encargo decía cinco; se contaron al leer el código.
 
+### Y había ya una copia a mano, justo debajo
+
+Lo encontró la auditoría y es el mejor ejemplo de lo que esta entrada predica. Ajustes **ya
+tenía** la fórmula escrita a mano —`< 11 mi → $100 · > 50 mi → 350 + mi · si no → 120 + mi ×
+0.8`, y las otras dos líneas— desde antes de esta rama. Puse la tabla generada encima y me quedé
+tan ancho: la pantalla enseñaba la fórmula **dos veces**, y la de abajo era exactamente lo que el
+párrafo anterior dice que no puede existir.
+
+Hoy coincidían. El día que alguien cambiara un 120, la tabla cambiaría y el bloque no, uno encima
+del otro y los dos con la firma de la app detrás. Se quita el bloque, que es una resta de diez
+líneas, y hay un canario que recorre la pantalla y falla si vuelve a aparecer una constante de la
+fórmula escrita a mano.
+
+### El idioma es de quien mira, no del cálculo
+
+Segundo hallazgo de la auditoría, y del mismo tamaño: `filasDeLaFormula` devolvía **frases ya
+formadas, y solo en español**. Iban a parar bajo cabeceras que sí se traducen, así que un admin
+en inglés leía «Zone · Distance · List · Discount» y debajo «cualquier distancia» y «$100 fijo».
+
+Ahora devuelve **datos** —los bordes y el par base/factor— y el texto lo forma la pantalla con su
+`t`. Los ayudantes que lo dicen viven en un solo sitio, compartidos con el desglose del pedido,
+porque la misma frase escrita dos veces acaba diciendo dos cosas.
+
+Y las pruebas de la tabla pasaron de comparar cadenas a comparar los datos, que es mejor prueba
+por una razón concreta: **una prueba sobre cadenas en español habría pasado igual con el fallo
+dentro.**
+
 ### Quién lo ve
 
 El desglose del pedido, solo un admin **por su rol real**, no por «ver como». Es información de
@@ -13919,7 +13946,8 @@ caminos distintos, y no se toca ninguna de las dos guardas.
 - **Que la tabla se vea bien en un móvil.** Va dentro de un contenedor con desplazamiento y usa
   la clase de tabla de la app; no se ha mirado a 400 px.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1703 pasados | 3 saltados**
-(main 3af8815: 1688 | 3; los +15 son 14 de `fee-breakdown.test.ts` y uno del recorrido por
-fichero de `inline-colors.test.ts`, que ve un componente más. Las 16 de `pricing.test.ts` siguen
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1708 pasados | 3 saltados**
+(main 3af8815: 1688 | 3; los +20 son 14 de `fee-breakdown.test.ts`, 5 de
+`fee-formula-text.test.ts` y uno del recorrido por fichero de `inline-colors.test.ts`, que ve un
+componente más. Las 16 de `pricing.test.ts` siguen
 pasando **sin tocarlas**, que es la señal de que el refactor no movió ningún precio).

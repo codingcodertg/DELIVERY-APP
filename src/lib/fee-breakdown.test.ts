@@ -117,23 +117,26 @@ describe("filasDeLaFormula", () => {
     expect(filas.flatMap((f) => [f.lista, f.descuento])).toHaveLength(8);
   });
 
-  it("los rangos son los comparadores del código, con 11 y 50 en el medio", () => {
-    expect(filas.map((f) => f.rango)).toEqual([
-      `< ${UMBRAL_CORTO} mi`,
-      `${UMBRAL_CORTO}–${UMBRAL_LARGO} mi`,
-      `> ${UMBRAL_LARGO} mi`,
-      "cualquier distancia",
+  // Se comparan los DATOS y no las frases: el texto es de quien pinta, y en su idioma. Una
+  // prueba sobre cadenas en español habría pasado igual con la tabla saliendo solo en español
+  // bajo cabeceras traducidas, que es exactamente el fallo que tenía.
+  it("los bordes son los comparadores del código, con 11 y 50 en el medio", () => {
+    expect(filas.map((f) => [f.desde, f.hasta])).toEqual([
+      [null, UMBRAL_CORTO],
+      [UMBRAL_CORTO, UMBRAL_LARGO],
+      [UMBRAL_LARGO, null],
+      [null, null],
     ]);
   });
 
   it("y las reglas llevan las constantes de verdad, no números escritos aparte", () => {
     const local = filas.filter((f) => f.zona === "local");
-    expect(local[0].lista).toBe(`$${TARIFA_LISTA.planoCorto} fijo`);
-    expect(local[0].descuento).toBe(`$${TARIFA_DESCUENTO.planoCorto} fijo`);
-    expect(local[1].lista).toBe(`${TARIFA_LISTA.baseMedio} + ${FACTOR_MEDIO} × mi`);
-    expect(local[2].lista).toBe(`${TARIFA_LISTA.baseLargo} + mi`);
-    expect(filas[3].lista).toBe(`${TARIFA_LISTA.baseNoLocal} + mi`);
-    expect(filas[3].descuento).toBe(`${TARIFA_DESCUENTO.baseNoLocal} + mi`);
+    expect(local[0].lista).toEqual({ base: TARIFA_LISTA.planoCorto, factor: 0 });
+    expect(local[0].descuento).toEqual({ base: TARIFA_DESCUENTO.planoCorto, factor: 0 });
+    expect(local[1].lista).toEqual({ base: TARIFA_LISTA.baseMedio, factor: FACTOR_MEDIO });
+    expect(local[2].lista).toEqual({ base: TARIFA_LISTA.baseLargo, factor: 1 });
+    expect(filas[3].lista).toEqual({ base: TARIFA_LISTA.baseNoLocal, factor: 1 });
+    expect(filas[3].descuento).toEqual({ base: TARIFA_DESCUENTO.baseNoLocal, factor: 1 });
   });
 
   it("cada fila nombra el tramo que de verdad aplica a esas millas", () => {

@@ -131,28 +131,25 @@ export function pasoTarifa(miles: number, local: boolean, t: TablaTarifa, recarg
  */
 export type FilaFormula = {
   tramo: TramoId;
-  /** «Local · menos de 11 mi», ya legible. */
   zona: "local" | "nolocal";
-  rango: string;
-  /** «$100 fijo» o «120 + 0.8 × mi». */
-  lista: string;
-  descuento: string;
+  /** Los bordes del tramo, tal como los decide `pasoTarifa`. `null` = sin límite por ese lado. */
+  desde: number | null;
+  hasta: number | null;
+  /** La parte fija y el multiplicador de cada columna. El texto lo pone quien pinta. */
+  lista: { base: number; factor: number };
+  descuento: { base: number; factor: number };
 };
 
-const reglaDe = (p: PasoTarifa): string =>
-  p.factor === 0 ? `$${p.base} fijo`
-  : p.factor === 1 ? `${p.base} + mi`
-  : `${p.base} + ${p.factor} × mi`;
-
-const rangoDe = (p: PasoTarifa): string =>
-  p.desde == null && p.hasta == null ? "cualquier distancia"
-  : p.desde == null ? `< ${p.hasta} mi`
-  : p.hasta == null ? `> ${p.desde} mi`
-  : `${p.desde}–${p.hasta} mi`;
-
 /**
- * Las ocho filas. Se generan **evaluando** `pasoTarifa` con una milla de muestra de cada tramo,
- * no describiéndolo: así el rango y la regla no pueden decir una cosa y el precio hacer otra.
+ * Las ocho reglas, **como datos y no como frases**.
+ *
+ * Devolver texto ya formado fue mi primera versión y estaba mal en un sitio concreto: salía solo
+ * en español, y acababa bajo cabeceras traducidas — «Zone · Distance» arriba y «cualquier
+ * distancia» debajo. El idioma es de quien mira, no del cálculo, así que aquí salen los números
+ * y la pantalla los dice en su idioma.
+ *
+ * Se generan **evaluando** `pasoTarifa` con una milla de muestra de cada tramo, no
+ * describiéndolo: así el rango y la regla no pueden decir una cosa y el precio hacer otra.
  */
 export function filasDeLaFormula(): FilaFormula[] {
   const muestras: { local: boolean; mi: number }[] = [
@@ -167,9 +164,10 @@ export function filasDeLaFormula(): FilaFormula[] {
     return {
       tramo: l.tramo,
       zona: local ? "local" : "nolocal",
-      rango: rangoDe(l),
-      lista: reglaDe(l),
-      descuento: reglaDe(d),
+      desde: l.desde,
+      hasta: l.hasta,
+      lista: { base: l.base, factor: l.factor },
+      descuento: { base: d.base, factor: d.factor },
     };
   });
 }
