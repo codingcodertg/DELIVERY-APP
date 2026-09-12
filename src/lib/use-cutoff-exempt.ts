@@ -33,27 +33,84 @@ import { useEffect, useState } from "react";
  */
 let enCurso: Promise<boolean | null> | null = null;
 
-function preguntar(): Promise<boolean | null> {
+/**
+ * La consulta, compartida. **Se cachea el «sí» y el «no», no el «no se sabe».**
+ *
+ * Un `sí` o un `no` son estables: van con el rol, que no cambia a media tarde. Un fallo no es
+ * una respuesta, y dejarlo cacheado convertía un parpadeo de red de las 18:20 en un `null`
+ * permanente **para toda la vida de la pestaña** — y el cronómetro es justo la pestaña que se
+ * deja abierta, así que al `owner` se le habría parado el reloj hoy y todos los días hasta que
+ * recargara, sin que nada lo dijera.
+ *
+ * `exento` puede venir `null` del servidor cuando la puerta no contesta, y aquí se respeta tal
+ * cual en vez de aplanarlo a `false`: quien decide la dirección es cada consumidor.
+ */
+export function consultarExencion(): Promise<boolean | null> {
   enCurso ??= fetch("/auth/cutoff")
     .then((r) => r.json())
-    .then((d: { exento?: boolean }) => !!d.exento)
-    // Sin respuesta se devuelve `null` y NO un valor cómodo: inventarse un `true` aquí sería
-    // decidir por los dos consumidores a la vez, y cada uno necesita la contraria.
-    .catch(() => null);
+    .then((d: { exento?: boolean | null }) => (d.exento === true ? true : d.exento === false ? false : null))
+    .catch(() => null)
+    .then((v) => {
+      if (v === null) enCurso = null; // no se sabe: la próxima vez se vuelve a preguntar
+      return v;
+    });
   return enCurso;
 }
 
-/** Solo para las pruebas: olvida la respuesta compartida. */
+/**
+ * Olvida la respuesta compartida. **Se llama al cerrar sesión**, y hace falta de verdad.
+ *
+ * La caché es de módulo, o sea de la carga de página. El «Cerrar sesión» de la pantalla sin
+ * acceso hace `router.replace("/login")` —una navegación de cliente, sin recarga—, así que en
+ * una tienda donde sale un `owner` y entra un vendedor en el mismo equipo, el vendedor heredaría
+ * el `true` del anterior y a las 18:30 su reloj no se pararía. La respuesta va con la persona.
+ *
+ * También la usan las pruebas para aislarse entre casos; ese es su segundo motivo, no el primero.
+ */
 export function olvidarExencion() { enCurso = null; }
+
+/** Cada cuánto se reintenta mientras no haya respuesta. El mismo tic que mira la hora. */
+export const REINTENTO_MS = 30_000;
+
+/**
+ * Pregunta hasta tener una respuesta de verdad, y entonces para.
+ *
+ * Vaciar la caché tras un fallo **no basta**, y es un detalle que engaña: deja el sitio libre
+ * pero nadie vuelve a ocuparlo. En el hook, `setExento(null)` sobre un estado que ya es `null`
+ * no re-renderiza, y el `activo` del cronómetro pasa de `false` a `true` una sola vez, así que
+ * sin esto un parpadeo de red a las 18:20 seguiría siendo un `null` definitivo — el mismo daño
+ * que la caché pegada, con el arreglo puesto.
+ *
+ * Vive fuera del hook, como función corriente, para poder probar justo esa propiedad: **mientras
+ * no se sabe se vuelve a preguntar; en cuanto se sabe, se deja de preguntar.**
+ *
+ * Un reintento que llega tarde no hace daño: como en el minuto del corte `null` para, solo
+ * puede convertir un paro en un no-paro **antes** de las 18:30, nunca después.
+ */
+export function vigilarExencion(alSaber: (v: boolean) => void, intervaloMs: number = REINTENTO_MS): () => void {
+  let vivo = true;
+  let id: ReturnType<typeof setInterval> | null = null;
+  const parar = () => { if (id !== null) { clearInterval(id); id = null; } };
+
+  const intentar = () => {
+    void consultarExencion().then((v) => {
+      if (!vivo || v === null) return;
+      parar();
+      alSaber(v);
+    });
+  };
+
+  intentar();
+  id = setInterval(intentar, intervaloMs);
+  return () => { vivo = false; parar(); };
+}
 
 export function useCutoffExempt(activo: boolean): boolean | null {
   const [exento, setExento] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!activo || exento !== null) return;
-    let vivo = true;
-    preguntar().then((v) => { if (vivo) setExento(v); });
-    return () => { vivo = false; };
+    return vigilarExencion(setExento);
   }, [activo, exento]);
 
   return exento;

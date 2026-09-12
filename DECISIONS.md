@@ -14454,6 +14454,41 @@ cierra a nadie y la respuesta es JSON para todos; y por eso sin respuesta se par
 recuperable: a un exento le cuesta un clic en Empezar y no pierde nada, y al que no lo es le evita
 todo lo anterior.
 
+### Y `null` tiene que llegar entero desde el servidor, y no quedarse pegado
+
+Dos fallos de la misma familia, los dos en la pieza nueva y los dos encontrados por la auditoría.
+Van escritos porque **la entrada prometía «solo un sí libra del paro» y la cadena real no lo
+cumplía**, cada uno por su lado.
+
+**Uno: la ruta fabricaba el «sí».** `/auth/cutoff` se escribió para el aviso, donde «si falla,
+digo que está exento y no molesto» era la dirección segura. Al pasar a servir también al
+cronómetro, esa misma línea libraba del paro a un vendedor por un parpadeo de la base a las 18:20
+—y a las 18:31 el middleware, cuya consulta sí funciona, le cerraba la sesión igual, con el reloj
+corriendo—. La huérfana de D-241 por la puerta de atrás. **La ruta no puede resolver la duda por
+consumidores que la resuelven al revés**, que es lo mismo que ya se decía del hook: ahora responde
+`null` y cada quien decide.
+
+**Dos: el «no se sabe» se quedaba cacheado para siempre.** La consulta es compartida, y una
+promesa resuelta a `null` seguía ahí toda la vida de la pestaña. El cronómetro es justo la pestaña
+que se deja abierta: al `owner` se le habría parado el reloj hoy y todos los días hasta recargar.
+Ahora se cachea el `sí` y el `no`, que son estables porque van con el rol, y **el fallo no**.
+
+**Y vaciar la caché no bastaba, que es la parte que engaña.** Deja el sitio libre y nadie vuelve a
+ocuparlo: en el hook, poner `null` sobre un estado que ya es `null` no re-renderiza, y el
+`activo` del cronómetro pasa de `false` a `true` una sola vez. Con el arreglo puesto, el daño era
+idéntico. Hace falta **volver a preguntar**, y por eso el reintento vive en una función corriente
+fuera del hook: para poder probar la propiedad que importa —*mientras no se sabe se pregunta otra
+vez; en cuanto se sabe, se deja de preguntar*— en vez de la forma.
+
+**Y la respuesta se olvida al cerrar sesión**, que es el tercer borde de la misma caché. Es de
+módulo, o sea de la carga de página, y el «Cerrar sesión» de la pantalla sin acceso navega **sin
+recargar**: en una tienda donde sale un `owner` y entra un vendedor en el mismo equipo, el
+vendedor heredaría el `true` del anterior y a las 18:30 su reloj no se pararía. La respuesta va
+con la persona, no con la pestaña.
+
+Un reintento que llega tarde no hace daño: como en el minuto del corte `null` para, solo puede
+convertir un paro en un no-paro **antes** de las 18:30, nunca después.
+
 El aviso resuelve el mismo `null` **al revés** —no avisa—, y también está razonado: asustar a
 alguien por un fallo de red es peor que callarse. Que la misma incertidumbre se resuelva en
 direcciones opuestas no es una incoherencia; es que el coste de equivocarse no es el mismo, y por
@@ -14490,10 +14525,10 @@ por la puerta de atrás. Un fichero que no puede contener una cadena tampoco pue
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1700 pasados | 3 saltados**
-(main 5738e39: 1656 | 3; los +44 son 35 de `session-cutoff.test.ts`, 8 de
-`session-cutoff-middleware.test.ts` y uno del canario de traducciones del Time Tracker, que ve
-una clave nueva).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1713 pasados | 3 saltados**
+(main 5738e39: 1656 | 3; los +57 son 35 de `session-cutoff.test.ts`, 13 de
+`use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts` y uno del canario de
+traducciones del Time Tracker, que ve una clave nueva).
 
 Nota de entorno, porque el número no significa nada sin ella: **el `verify` se colgó dos veces en
 esta rama** con cinco `next build` a la vez en la máquina, y una hubo que matarla y relanzarla. El
