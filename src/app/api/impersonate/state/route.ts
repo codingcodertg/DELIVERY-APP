@@ -4,7 +4,7 @@ import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * ¿Estoy dentro de la sesión de otra persona? (D-NEXT)
+ * ¿Estoy dentro de la sesión de otra persona? (D-243)
  *
  * La pregunta del banner, y solo eso. Devuelve el nombre de la persona en la que se entró y
  * cuándo empezó; nada de ids, ni del admin, ni de la cookie.

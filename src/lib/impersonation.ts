@@ -1,5 +1,5 @@
 /**
- * Entrar como otra persona (D-NEXT).
+ * Entrar como otra persona (D-243).
  *
  * El dueño lo pidió así: *«como change roles pero desde el usuario»*. La diferencia con «ver
  * como» (`setViewAs`) no es de grado: aquel cambia **el rol** en el cliente y esto cambia **la

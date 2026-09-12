@@ -453,7 +453,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
 
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={onClose}>{t("Done", "Listo")}</button>
-          {/* «Entrar como» (D-NEXT). Vive SOLO en la ficha y no en la fila de la lista, aunque
+          {/* «Entrar como» (D-243). Vive SOLO en la ficha y no en la fila de la lista, aunque
               el encargo pedía los dos sitios: cada fila de `home/users` es ella misma un
               `<button>`, y meter otro dentro es HTML inválido —el navegador rompe el anidado y
               el clic de la fila deja de funcionar—. Reestructurar esa pantalla es otra cosa.

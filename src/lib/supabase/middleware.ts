@@ -62,7 +62,7 @@ export async function updateSession(
     return NextResponse.next({ request });
   }
 
-  // El respaldo de la caducidad de «entrar como» (D-NEXT). Cuando la pestaña está abierta, el
+  // El respaldo de la caducidad de «entrar como» (D-243). Cuando la pestaña está abierta, el
   // banner devuelve al admin a su cuenta al cumplirse la hora, que es la salida buena. Esto es
   // para la que no lo está: sin JavaScript corriendo, lo único que se puede hacer desde aquí es
   // **cortar** —fuera las cookies de sesión y al login—, y eso es mejor que una sesión ajena

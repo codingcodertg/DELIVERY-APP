@@ -24,7 +24,7 @@ export type SecurityKind =
   | "erp_role_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed"
-  // D-NEXT: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
+  // D-243: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
   // clases y no una con un detalle, porque lo que se lee en el registro es «cuánto duró», y eso
   // solo se puede leer si el principio y el fin son dos líneas con su hora.
   | "impersonation_start"

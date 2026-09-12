@@ -1,7 +1,7 @@
 import "server-only";
 
 /**
- * La bandera que mantiene «entrar como» apagado hasta que alguien lo encienda a mano (D-NEXT).
+ * La bandera que mantiene «entrar como» apagado hasta que alguien lo encienda a mano (D-243).
  *
  * No es un ajuste de producto: es un **freno de despliegue**. Queda una cosa sin comprobar en
  * esta rama —si el proyecto de Supabase dispara además su propio correo al generar el enlace

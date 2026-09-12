@@ -9,7 +9,7 @@ import { AJUSTES_COOKIE, COOKIE_RETORNO, empaquetar } from "@/lib/impersonation-
 import { impersonacionActiva } from "@/lib/impersonation-flag";
 
 /**
- * Entrar como otra persona (D-NEXT).
+ * Entrar como otra persona (D-243).
  *
  * Crea en el navegador del admin una sesión **real** del usuario elegido: lo que ve a partir de
  * ahí es lo que vería esa persona, con su RLS. No es un disfraz de rol como «ver como».

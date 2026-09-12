@@ -6,7 +6,7 @@ import { EVENTO_VOLVER } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 
 /**
- * Volver a mi cuenta (D-NEXT).
+ * Volver a mi cuenta (D-243).
  *
  * **Esta ruta no puede fallar hacia «te quedas como Patricia».** Es la única promesa dura de
  * todo el encargo, y por eso está escrita al revés que la de entrar: allí cualquier duda aborta,

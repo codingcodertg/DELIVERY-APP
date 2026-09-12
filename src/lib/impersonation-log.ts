@@ -5,7 +5,7 @@ import { adminKey } from "@/lib/erp/supabase/admin";
 import type { SecurityKind } from "@/lib/security-log";
 
 /**
- * El rastro de «entrar como», que **sí** puede fallar (D-NEXT).
+ * El rastro de «entrar como», que **sí** puede fallar (D-243).
  *
  * Existe al lado de `logSecurity` y no dentro, porque su contrato es el contrario, y esa
  * diferencia es una decisión y no una duplicación:

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
 /**
- * «Estás como Patricia Hernández — volver a mi cuenta» (D-NEXT).
+ * «Estás como Patricia Hernández — volver a mi cuenta» (D-243).
  *
  * Es la pieza que hace que esto sea una herramienta y no una trampa. Un admin dentro de la
  * sesión de otra persona **escribe como esa persona**: aprueba, ficha, cambia una orden. Si se

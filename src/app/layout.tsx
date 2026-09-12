@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {/* Antes que nada, y fuera de `PrefsProvider` a propósito: no usa `usePrefs` —habla en
             los dos idiomas a la vez— porque quien lee esto necesita entenderlo aunque la
-            preferencia de idioma sea la de la persona en la que se entró, no la suya (D-NEXT). */}
+            preferencia de idioma sea la de la persona en la que se entró, no la suya (D-243). */}
         <ImpersonationBanner />
         <PrefsProvider>{children}</PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}

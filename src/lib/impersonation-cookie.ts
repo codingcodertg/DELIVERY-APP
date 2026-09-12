@@ -1,7 +1,7 @@
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
 /**
- * La cookie que guarda la sesión del admin mientras está dentro de otra (D-NEXT).
+ * La cookie que guarda la sesión del admin mientras está dentro de otra (D-243).
  *
  * Sin esto, «volver a mi cuenta» pediría la contraseña, y un admin que entra treinta veces al
  * día a mirar bugs acabaría no usándolo o dejando la sesión ajena abierta — que es el fallo

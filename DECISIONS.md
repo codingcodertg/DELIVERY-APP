@@ -13623,7 +13623,7 @@ un límite aceptado y no lo herede como si fuera lo pretendido.
 (main 957c1f9: 1644 | 3; los +12 son los del bloque de descartados y el de `hayAlgoQueDecir` en
 `offlineQueue.test.ts`, más los tres que leen el componente).
 
-## D-NEXT · Entrar como otra persona: identidad de verdad, con rastro y con salida
+## D-243 · Entrar como otra persona: identidad de verdad, con rastro y con salida
 
 **Fecha:** 2026-09-12 · **Versión:** las tres apps (banner y rutas son del hub) · Sin migración.
 **Pedido por el dueño:** desde su perfil admin, entrar directamente como cualquier usuario, sin
