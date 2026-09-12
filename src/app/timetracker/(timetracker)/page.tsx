@@ -11,7 +11,7 @@ import {
   DESKTOP_SHOT_MIN, desktopGetActivity, desktopGetContext, desktopNotifyShotStatus,
   desktopOnPower, desktopOnShot, desktopStart, desktopStop, isDesktop,
 } from "@/lib/timetracker/desktop";
-import { queueSession, queueShot } from "@/lib/timetracker/offlineQueue";
+import { ackDiscarded, queueSession, queueShot, subscribeOfflineStatus } from "@/lib/timetracker/offlineQueue";
 import type { Assignment, BreakEvent, Session } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-guard";
@@ -815,6 +815,23 @@ export default function TrackTimePage() {
   const ultimoGuardadoRef = useRef<number | null>(null);
   const sinGuardarDesdeRef = useRef<number | null>(null);
   const [sinGuardarDesde, setSinGuardarDesde] = useState<number | null>(null);
+
+  /**
+   * Esta pestaña ya se enteró, así que el indicador no lo repite (D-NEXT).
+   *
+   * El aviso del contador de descartados es para el caso en que **ningún tick avisó**: otra
+   * pestaña, otro dispositivo, la página cerrada. Pero `flush` corre en todas las pestañas y el
+   * contador vive en `localStorage`, que las pestañas comparten, así que sin esta regla la
+   * misma persona vería dos avisos por un solo descarte — el «cerrada» del tick, en el
+   * momento, y el del recuadro de la esquina, después.
+   *
+   * La marca `sinGuardarDesde` es exactamente «esta pestaña ya se lo dijo». Cuando está puesta
+   * y el contador sube, se reconoce en silencio: la noticia ya se dio, y darla dos veces con
+   * palabras distintas se lee como dos problemas.
+   */
+  useEffect(() => subscribeOfflineStatus((st) => {
+    if (st.discarded > 0 && sinGuardarDesdeRef.current !== null) ackDiscarded();
+  }), []);
 
   const arrancandoRef = useRef(false);
 

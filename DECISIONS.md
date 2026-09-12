@@ -13534,3 +13534,91 @@ falla nombrando la clave y el fichero.
 (main 7de7027: 1628 | 3; los +16 son 5 de `save-state.test.ts`, 6 del bloque nuevo de
 `live-session.test.ts`, 4 de `offlineQueue.test.ts` —que no tenía pruebas— y uno del canario de
 traducciones, que ahora recorre un fichero más).
+
+## D-NEXT · Un cambio que se pierde deja rastro, y el rastro se tiene que poder ver
+
+**Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por:** una observación no bloqueante del auditor sobre D-241, hecha después de firmarla.
+Se dejó fuera de aquella rama a propósito —tocar código tras la firma obliga a otra firma, y no
+era un defecto de lo aprobado— y vuelve aquí como encargo propio.
+
+### El hueco que abre el arreglo anterior
+
+D-241 le enseñó a la cola a distinguir «se guardó» de «no había dónde guardarlo»: reenvía por la
+vía viva y `updateLiveSession` devuelve si tocó una fila. Pero `flush` **hacía lo mismo con los
+dos**: quitar el parche de la cola. Correcto para la cola —un parche que no puede entrar no debe
+atascar a los que sí— y mudo para la persona.
+
+Hoy lo tapa que el tick avisa `"cerrada"` en el momento. **El hueco es la pestaña que no estaba
+mirando**: otra ventana, otro dispositivo, o la página cerrada mientras el intervalo de treinta
+segundos vacía la cola. Ahí no hay tick que avise y el cambio desaparece sin que quede nada.
+
+### Tres piezas, y la del medio es la que no se echa en falta
+
+**1 · La cola cuenta lo que tira.** `flush` acumula los descartes de la vuelta y los suma una sola
+vez al final, en `localStorage` junto a los propios parches — al lado y por la misma razón: un
+descarte que se pierde al recargar es un descarte que nadie llega a ver. Es un contador y no una
+lista, porque lo que hay que decir es «se perdieron N cambios», y guardar los parches enteros
+sería guardar para siempre datos que ya no tienen dónde entrar.
+
+`status()` lo publica como `discarded`. **No entra en `total`**, que sigue contando solo lo
+pendiente: un descarte no está pendiente, ya no va a salir, y sumarlo ahí habría dejado el
+indicador diciendo «sincronizando» para siempre por algo que no se puede sincronizar.
+
+**2 · La condición de visibilidad, que es donde esto se habría muerto en silencio.** El indicador
+se ocultaba con `s.online && s.total === 0`. Un descarte llega **justo** cuando la cola acaba de
+vaciarse y `total` es cero, así que un contador impecable no se habría pintado **nunca**, y el
+verify habría estado en verde todo el rato.
+
+La condición se saca del JSX a `hayAlgoQueDecir(s)`, en `offlineQueue.ts`, y se prueba con los
+tres estados que importan. Y una prueba aparte **lee el componente** y exige que pregunte por
+esa función y no conserve la condición vieja: probar la función pura demuestra que la regla es
+correcta, no que el indicador la pregunte.
+
+**3 · Reconocerlo lo pone a cero.** Un botón, y el contador se comporta como un buzón y no como
+un total histórico: cada tanda avisa una vez y la siguiente vuelve a avisar. Si nadie lo
+reconoce, el número espera — que es el caso para el que se hizo.
+
+**Y «Entendido» borra la cuenta sin dejar constancia de cuántos hubo.** Es decisión, no olvido:
+el encargo pedía poder ponerlo a cero, y un contador que nadie puede borrar acaba siendo ruido
+permanente que se ignora, que es la forma lenta de volver al silencio de antes. El precio es que
+después de reconocerlo **nadie puede volver a contar la pérdida**. Si algún día hace falta la
+cifra —para una reclamación, o para saber cuánto pasa esto— es otra rama, y lo que se guarda
+entonces es un registro con fecha, no un contador más grande.
+
+### La regla contra el aviso doble, escrita y no descubierta en pantalla
+
+`flush` corre en todas las pestañas y `localStorage` lo comparten todas, así que sin una regla la
+misma persona vería **dos avisos por un solo descarte**: el `"cerrada"` del tick, en el momento, y
+el del recuadro, después.
+
+La marca `sinGuardarDesde` de D-241 es exactamente «esta pestaña ya se lo dijo». Cuando está
+puesta y el contador sube, la pantalla del cronómetro lo **reconoce en silencio**. La noticia ya
+se dio; darla dos veces con palabras distintas se lee como dos problemas.
+
+**Y ese reconocimiento silencioso es global, no de esta pestaña.** `ackDiscarded()` pone a cero
+**todo** el contador, porque el contador es uno solo y compartido. O sea que si esta pestaña ya
+avisó y **en ese mismo instante** otra ventana o el escritorio descarta un parche suyo, este
+reconocimiento se lo lleva por delante y ese descarte no lo ve nadie. Es un caso de borde
+—requiere que las dos cosas caigan en la misma vuelta— y la alternativa, llevar la cuenta por
+pestaña, cuesta más de lo que arregla. Queda escrito para que el siguiente que lo lea sepa que es
+un límite aceptado y no lo herede como si fuera lo pretendido.
+
+### Lo que NO cambia
+
+- **Nada de lo que decide qué se guarda.** Esto solo cuenta y enseña; `flush` descarta lo mismo
+  que descartaba ayer, por la misma razón.
+- **El indicador sigue diciendo lo de siempre** cuando hay cola o no hay conexión. Lo único que
+  cambia es que ya no se calla cuando lo que hay que contar es una pérdida.
+
+### Lo no verificado
+
+- **Nadie lo ha visto en un navegador.** En particular la regla del aviso doble, que vive dentro
+  del componente del cronómetro y no tiene prueba: lo que está probado es que el contador sube,
+  que se reconoce y que la condición deja ver el recuadro.
+- **Dos pestañas de verdad.** El razonamiento se apoya en que `localStorage` es compartido, que es
+  cierto, pero el comportamiento con dos ventanas abiertas a la vez no se ha medido.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1656 pasados | 3 saltados**
+(main 957c1f9: 1644 | 3; los +12 son los del bloque de descartados y el de `hayAlgoQueDecir` en
+`offlineQueue.test.ts`, más los tres que leen el componente).
