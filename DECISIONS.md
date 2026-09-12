@@ -13740,9 +13740,9 @@ La caducidad tiene dos caminos y no es duplicación:
   cookies y al login. Es peor, y sigue siendo mejor que una sesión ajena abierta y sin vigilancia
   en un equipo compartido.
 
-Una cookie ilegible se trata como si no hubiera impersonación; una con hora imposible, como
-caducada. En esto la duda cierra, al revés que en el corte de las 18:30, donde la duda no puede
-echar a la empresa de la app: aquí la duda no puede dejar a nadie dentro de una identidad ajena.
+Una cookie ilegible **se barre**: no corta la sesión —no hay impersonación que cortar— pero no
+se queda ahí. En esto la duda tira, al revés que en el corte de las 18:30, donde la duda no puede
+echar a la empresa de la app: aquí la duda no puede dejar viva una llave que ya no sirve.
 
 ### Dónde está el botón, y dónde no
 
@@ -13753,6 +13753,56 @@ otra cosa y no la de aquí.
 
 El botón se esconde para quien no es admin y sobre quien sí lo es, pero **un botón que no se
 pinta no es una barrera**: la ruta vuelve a preguntar lo mismo con el rol leído de la base.
+
+### Dos fallos que hacían de esto una función muerta y un agujero, encontrados en auditoría
+
+Los dos iban juntos, y el segundo solo se abría al arreglar el primero. Van escritos porque el
+primero es el ejemplo más limpio de la tarde de un arreglo que parece hecho.
+
+**Uno: «volver a mi cuenta» no volvía nunca.** La primera versión hacía
+`setSession({ access_token: "", refresh_token })`, que se lee razonable: no tengo el access token,
+tengo el refresh, que lo renueve. Medido en `@supabase/auth-js` 2.112.4, `_setSession` empieza con
+`if (!currentSession.access_token || !currentSession.refresh_token) throw AuthSessionMissingError`
+— **la comprobación va antes de mirar el refresh token**, así que el `""` la disparaba siempre.
+
+Consecuencias, y ninguna se veía: la única promesa dura de la rama no se cumplía **ni una vez**;
+la fila de `impersonation_end` **no se escribía nunca**, porque el error salía antes, así que el
+registro habría tenido principios sin fin; y no había prueba que lo cazara, porque el canje contra
+el proveedor de Auth no se puede probar sin el proveedor. **No era una trampa —se salía igual, al
+login— pero la función estaba muerta y nadie lo habría dicho hasta producción.**
+
+Lo correcto en la misma versión es `refreshSession({ refresh_token })`, que exige solo eso. Y como
+el comportamiento no se puede probar, hay una prueba de **forma** que falla si vuelve el
+`setSession` con el `access_token` vacío. No es lo mismo que probar que funciona, y por eso está
+dicho; pero impide que vuelva lo que no funcionaba.
+
+**Dos: la cookie de retorno sobrevivía a un cierre de sesión.** El comentario prometía borrarla
+«al volver, al caducar y al cerrar sesión», y lo tercero no ocurría en ninguno de los tres
+cierres reales. Es `httpOnly`, así que los dos de cliente no podrían aunque quisieran.
+
+El escenario, en un equipo de tienda: el admin entra como Patricia, pulsa **«Cerrar sesión»** en
+la barra en vez de **«Volver»**, y se va. La cookie con **su propio refresh token** sigue viva
+hasta una hora. El siguiente que entre en ese equipo con sus credenciales ve el banner y un botón
+«Volver a mi cuenta» que —con el fallo uno arreglado— **le entrega la sesión del admin**.
+
+Mientras «volver» estaba roto, esto no se podía explotar: llevaba al login. **Arreglar el uno sin
+el dos era abrir el agujero**, y por eso los dos son un solo cambio.
+
+Se cierra por tres sitios, y el del medio es el que de verdad lo sostiene:
+
+- El cierre de sesión de servidor borra la cookie.
+- **El middleware la barre cuando hay cookie y no hay usuario**, que es la red que cubre los dos
+  cierres de cliente sin tocarlos: una cookie de retorno sin sesión es huérfana por definición.
+
+  Y con «no hay usuario» **confirmado**, no con «no pude preguntar». Medido en la biblioteca:
+  `getUser` devuelve `{ user: null, error }` ante cualquier error de auth, y un fallo de red es
+  uno de ellos — así que un parpadeo tiene la misma forma que una sesión que no existe. Borrar
+  ahí le quitaría al admin la vuelta y lo dejaría en el login con la sesión de la otra persona
+  todavía viva. El `error` de `getUser`, que en este fichero se descartaba, ahora decide.
+- Y barre también la que **no se entiende**. Antes se ignoraba, que la dejaba viva una hora
+  llevando dentro el refresh token de un admin y sin poder usarse para nada bueno. Lo que no se
+  puede usar, se tira — y con eso el texto, el título de la prueba y el código dicen por fin lo
+  mismo, que era el tercer hallazgo de la auditoría.
 
 ### Lo que se encontró de camino y no era de esta rama
 
@@ -13790,7 +13840,7 @@ pinta no es una barrera**: la ruta vuelve a preguntar lo mismo con el rol leído
   fusionada, así que aquí no se puede escribir: al rebasar habrá que decidir que el corte
   restaure al admin en vez de mandarlo al login como el vendedor, que es lo que haría hoy.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1681 pasados | 3 saltados**
-(main 5738e39: 1656 | 3; los +25 son 14 de `impersonation.test.ts`, 6 de
-`impersonation-cookie.test.ts`, 4 de `impersonation-middleware.test.ts` y uno del recorrido por
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1688 pasados | 3 saltados**
+(main 5738e39: 1656 | 3; los +32 son 14 de `impersonation.test.ts`, 6 de
+`impersonation-cookie.test.ts`, 11 de `impersonation-middleware.test.ts` y uno del recorrido por
 fichero de `inline-colors.test.ts`, que ve un componente más).

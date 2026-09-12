@@ -46,10 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, salida: "login" });
   }
 
-  const { error } = await ssr.auth.setSession({
-    access_token: "",
-    refresh_token: guardado.refresh,
-  });
+  // `refreshSession({ refresh_token })` y NO `setSession({ access_token: "", refresh_token })`,
+  // que fue mi primera versión y **fallaba siempre**: medido en `@supabase/auth-js` 2.112.4,
+  // `_setSession` lanza `AuthSessionMissingError` si el `access_token` viene vacío, y esa
+  // comprobación va antes de mirar el refresh token. O sea que la única promesa dura de esta
+  // rama —devolver al admin sin contraseña— no se cumplía ni una vez, y la fila de «fin» no se
+  // escribía nunca porque el error salía antes. Nadie lo habría visto hasta producción: se sale
+  // igual, solo que al login.
+  const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
 
   if (error) {
     // El refresh token del admin ya no vale (caducó, o cerró sesión en otro sitio). Misma

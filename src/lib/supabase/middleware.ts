@@ -67,7 +67,8 @@ export async function updateSession(
   // para la que no lo está: sin JavaScript corriendo, lo único que se puede hacer desde aquí es
   // **cortar** —fuera las cookies de sesión y al login—, y eso es mejor que una sesión ajena
   // abierta y sin vigilancia en un equipo compartido.
-  const vuelta = desempaquetar(request.cookies.get(COOKIE_RETORNO)?.value ?? null);
+  const cruda = request.cookies.get(COOKIE_RETORNO)?.value ?? null;
+  const vuelta = desempaquetar(cruda);
   if (vuelta && impersonacionCaducada(vuelta.inicio, Date.now())) {
     const fuera = NextResponse.redirect(new URL("/login", request.nextUrl.origin));
     for (const c of request.cookies.getAll()) {
@@ -76,12 +77,24 @@ export async function updateSession(
     fuera.cookies.delete(COOKIE_RETORNO);
     return fuera;
   }
+  // Una cookie de retorno que no se entiende se **barre**, no se ignora. Ignorarla la dejaba
+  // viva hasta una hora llevando dentro el refresh token de un admin, y sin forma de usarla
+  // para nada bueno: `desempaquetar` ya dijo que no vale. Lo que no se puede usar, se tira.
+  const barrerHuerfana = !!cruda && !vuelta;
 
   let response = NextResponse.next({ request });
 
   let hasUser: boolean;
+  // Y si el «no hay usuario» es una RESPUESTA o un «no pude preguntar», que no es lo mismo para
+  // quien barre cookies. Medido en `@supabase/auth-js` 2.112.4: `_getUser` devuelve
+  // `{ data: { user: null }, error }` ante cualquier `AuthError`, y un fallo de red lo es
+  // (`AuthRetryableFetchError`). O sea que un parpadeo de red tiene exactamente la misma forma
+  // que una sesión que no existe, y aquí el `error` se descartaba — que es cómo se sigue con
+  // datos incompletos sin que nada falle.
+  let sinUsuarioConfirmado: boolean;
   if (deps.getUser) {
     hasUser = await deps.getUser(request);
+    sinUsuarioConfirmado = !hasUser;
   } else {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,16 +115,30 @@ export async function updateSession(
     // getUser() y no getSession(): el primero valida contra el servidor de auth, que es lo que
     // dispara el refresco. getSession() se conforma con lo que traiga la cookie y no renovaría
     // nada — justo el fallo que se está arreglando.
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: errUsuario } = await supabase.auth.getUser();
     hasUser = !!user;
+    sinUsuarioConfirmado = !user && !errUsuario;
   }
 
+  // Y la que sobrevive a un cierre de sesión: cookie de retorno sin usuario es huérfana por
+  // definición. Es la red de seguridad de los dos cierres de cliente, que no pueden borrarla
+  // ellos porque es `httpOnly`.
+  //
+  // **Con «no hay usuario» confirmado, no con «no pude preguntar».** Si un fallo de red de un
+  // instante borrara la cookie, el admin perdería la vuelta y acabaría en el login con la
+  // sesión de la otra persona todavía viva. Tiene salida —el login— así que no es una trampa,
+  // pero es justo lo que esta rama promete que no pasa.
+  const barrer = barrerHuerfana || (!!cruda && sinUsuarioConfirmado);
+
   const d = decide(path + request.nextUrl.search, request.nextUrl.searchParams.get("next"), hasUser);
+  if (barrer) response.cookies.delete(COOKIE_RETORNO);
   if (d.kind === "redirect") {
     // La URL de destino es siempre interna (route-guard la sanea); se construye sobre el origen
     // de la petición y no sobre `nextUrl.clone()` para que el `?next=` no arrastre la query
     // anterior.
-    return NextResponse.redirect(new URL(d.to, request.nextUrl.origin));
+    const salto = NextResponse.redirect(new URL(d.to, request.nextUrl.origin));
+    if (barrer) salto.cookies.delete(COOKIE_RETORNO);
+    return salto;
   }
 
   // Lo público y lo protegido con sesión se sirven con LA MISMA respuesta que preparó el
