@@ -14573,8 +14573,8 @@ preguntar», y no la suerte.
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1753 pasados | 3 saltados**
-(main 3af8815, que ya lleva D-243 dentro: 1688 | 3; los +65 son 35 de `session-cutoff.test.ts`,
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1773 pasados | 3 saltados**
+(main 085428e, que ya lleva D-243 y D-244 dentro: 1708 | 3; los +65 son 35 de `session-cutoff.test.ts`,
 13 de `use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts`, 8 de
 `cutoff-impersonation.test.ts` —el cruce con D-243, nuevo en el rebase— y uno del canario de
 traducciones del Time Tracker, que ve una clave nueva).
