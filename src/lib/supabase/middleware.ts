@@ -57,7 +57,10 @@ export { isPublicPath } from "@/lib/route-guard";
  * a nadie**. Un error leyendo la hora no puede dejar a la empresa entera fuera de la app.
  *
  * `deps.getUser` y `deps.gate` existen solo para las pruebas: sustituyen la consulta al servidor
- * de auth y la de la puerta por respuestas fijas, sin red.
+ * de auth y la de la puerta por respuestas fijas, sin red. `getUser` devuelve **tres** cosas y no
+ * dos —`true`, `false` y `null`— porque en producción hay tres: hay sesión, no la hay, y **no se
+ * pudo preguntar**. Un stub booleano no puede expresar la tercera, y es justo la que decide si se
+ * barre la cookie de retorno.
  */
 export type PuertaDeSesion = {
   session_created_at: string | null;
@@ -68,7 +71,7 @@ export type PuertaDeSesion = {
 export async function updateSession(
   request: NextRequest,
   deps: {
-    getUser?: (req: NextRequest) => Promise<boolean>;
+    getUser?: (req: NextRequest) => Promise<boolean | null>;
     gate?: (req: NextRequest) => Promise<PuertaDeSesion | null>;
     ahora?: Date;
   } = {},
@@ -126,8 +129,10 @@ export async function updateSession(
   let sinUsuarioConfirmado: boolean;
   let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
   if (deps.getUser) {
-    hasUser = await deps.getUser(request);
-    sinUsuarioConfirmado = !hasUser;
+    const v = await deps.getUser(request);
+    hasUser = v === true;
+    // `null` es «no pude preguntar»: ni hay usuario ni está confirmado que no lo haya.
+    sinUsuarioConfirmado = v === false;
   } else {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

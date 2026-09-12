@@ -84,3 +84,35 @@ describe("el orden de las dos comprobaciones", () => {
     expect(r.cookies.getAll().map((c) => c.name)).not.toContain(COOKIE_RETORNO);
   });
 });
+
+// ---- Donde `hasUser` y «ausencia confirmada» SÍ se separan --------------------------------
+// Al entregar el rebase dije que el barrido habría funcionado igual con `hasUser` a secas, «por
+// casualidad». La auditoría midió la secuencia entera y no es verdad: las dos formas se separan
+// un paso antes, y hacen falta DOS navegaciones para verlo — que es justo lo que ninguna prueba
+// de una sola petición enseña.
+describe("un parpadeo de red antes del corte no le quita la vuelta al admin", () => {
+  it("la cookie sobrevive al fallo, y la navegación siguiente acaba en el restaurador", async () => {
+    const cookie = vuelta(Date.now());
+
+    // 1) Después de las 18:30, con impersonación viva, y `getUser` que NO puede contestar.
+    //    Con `!hasUser` a secas esto barrería la cookie; con ausencia confirmada, no.
+    const r1 = await updateSession(pedir(cookie), {
+      getUser: async () => null, ahora: manana, gate: async () => puerta({}),
+    });
+    expect(r1.cookies.getAll().map((c) => c.name)).not.toContain(COOKIE_RETORNO);
+
+    // 2) Vuelve la red. Como la cookie sigue ahí, el corte la encuentra y devuelve al admin.
+    //    Sin ella habría acabado en el login COMO EL VENDEDOR, y con las `sb-` borradas.
+    const r2 = await updateSession(pedir(cookie), {
+      getUser: async () => true, ahora: manana, gate: async () => puerta({}),
+    });
+    expect(r2.headers.get("location")).toBe(`${AUTO}?motivo=cutoff`);
+  });
+
+  it("y con una ausencia CONFIRMADA sí se barre, que es el control", async () => {
+    const r = await updateSession(pedir(vuelta(Date.now())), {
+      getUser: async () => false, ahora: manana, gate: async () => puerta({}),
+    });
+    expect(r.cookies.getAll().map((c) => c.name)).toContain(COOKIE_RETORNO);
+  });
+});

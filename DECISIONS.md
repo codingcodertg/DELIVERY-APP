@@ -14513,6 +14513,54 @@ Y el remate, que es lo que casi se cuela: el propio párrafo que explicaba esto 
 marcador**, así que el `grep` del release lo habría sustituido igual y habría movido el checksum
 por la puerta de atrás. Un fichero que no puede contener una cadena tampoco puede nombrarla.
 
+### Y qué pasa si el corte pilla a un admin dentro de la sesión de otro
+
+Esta sección se escribió al rebasar sobre D-243, que entró antes. Es el único sitio donde las dos
+decisiones se tocan, y el trabajo no se podía escribir en ninguna de las dos por separado.
+
+Sin nada, el corte de las 18:30 habría mandado a ese admin **al login como el vendedor**: fuera de
+su propia cuenta, por una regla que ni siquiera es suya, y teniendo que pedirle la contraseña a
+alguien. Es justo lo que D-243 promete que no pasa.
+
+Ahora el middleware, antes de rebotar, mira si hay cookie de retorno válida y desvía a
+`/api/impersonate/auto-return?motivo=cutoff`, que **devuelve al admin a su cuenta** y escribe la
+fila de fin con ese motivo. La caducidad de los 60 minutos hace lo mismo con `motivo=expired`:
+antes cortaba al login porque el middleware no tenía forma de restaurar, y con esa ruta ya la hay.
+Va por `/api/` a propósito — `skipsSession` la salta, así que el middleware no se mira a sí mismo
+y no hay bucle.
+
+**Dos detalles que parecen de fontanería y son el arreglo entero:**
+
+- **Ni el corte ni la caducidad borran nada.** La cookie de retorno es lo único de donde puede
+  salir la sesión del admin: borrarla al empezar dejaría al restaurador sin nada que restaurar, y
+  el admin acabaría en el login igual, con el desvío puesto y sin efecto. Se borra **al final del
+  retorno**.
+- **El barrido de huérfana no se cuela por delante.** Los dos caminos retornan antes de que el
+  barrido siquiera se calcule.
+
+**El orden importa:** la caducidad de los 60 minutos va **antes** que la puerta de las 18:30. Las
+dos pueden aplicar a la vez, y la primera es la única que sabe que hay una impersonación; al revés
+se resolvería como un corte cualquiera y el rastro llevaría el motivo equivocado.
+
+### La bandera de «ausencia confirmada» no era una precaución de otra rama
+
+Al entregar esto dije que el barrido no tocara la cookie en el instante del corte «habría
+funcionado igual con `hasUser` a secas, por casualidad». **La auditoría midió la secuencia entera
+y no es verdad**, y la corrección merece quedarse porque explica por qué esa bandera existe.
+
+Donde las dos formas se separan es **un paso antes**, y hacen falta dos navegaciones para verlo —
+que es justo lo que ninguna prueba de una sola petición enseña:
+
+1. Navegación después de las 18:30, con impersonación viva, y `getUser` fallando por red. Con
+   `!hasUser` a secas ese error **barre la cookie**; el guard manda al login sin borrar las `sb-`.
+2. Vuelve la red. La siguiente navegación pasa la puerta, el corte dispara, y ya **no hay cookie
+   de retorno**: al login **como el vendedor**, con las `sb-` borradas. El admin, fuera de su
+   cuenta.
+
+Con `sinUsuarioConfirmado` la cookie sobrevive al parpadeo y la segunda navegación acaba en el
+restaurador. O sea que lo que salvó este cruce fue la distinción entre «no hay sesión» y «no pude
+preguntar», y no la suerte.
+
 ### Lo no verificado
 
 - **Que `auth.jwt()` traiga `session_id` en este proyecto.** Es un claim obligatorio según el
@@ -14525,9 +14573,10 @@ por la puerta de atrás. Un fichero que no puede contener una cadena tampoco pue
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1713 pasados | 3 saltados**
-(main 5738e39: 1656 | 3; los +57 son 35 de `session-cutoff.test.ts`, 13 de
-`use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts` y uno del canario de
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1753 pasados | 3 saltados**
+(main 3af8815, que ya lleva D-243 dentro: 1688 | 3; los +65 son 35 de `session-cutoff.test.ts`,
+13 de `use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts`, 8 de
+`cutoff-impersonation.test.ts` —el cruce con D-243, nuevo en el rebase— y uno del canario de
 traducciones del Time Tracker, que ve una clave nueva).
 
 Nota de entorno, porque el número no significa nada sin ella: **el `verify` se colgó dos veces en
