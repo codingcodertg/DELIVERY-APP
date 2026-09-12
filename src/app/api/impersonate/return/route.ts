@@ -4,6 +4,7 @@ import { createClient as createSSRClient } from "@/lib/supabase/server";
 import { apuntarImpersonacion } from "@/lib/impersonation-log";
 import { EVENTO_VOLVER } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
+import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
 /**
  * Volver a mi cuenta (D-243).
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
   // rama —devolver al admin sin contraseña— no se cumplía ni una vez, y la fila de «fin» no se
   // escribía nunca porque el error salía antes. Nadie lo habría visto hasta producción: se sale
   // igual, solo que al login.
+  // El token de la sesión impersonada, ANTES de restaurar: después la cookie ya es del admin y
+  // no habría de dónde sacarlo (D-NEXT).
+  const { data: { session: sesionAjena } } = await ssr.auth.getSession();
+
   const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
 
   if (error) {
@@ -62,7 +67,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, salida: "login" });
   }
 
-  void apuntarImpersonacion({
+  // Y se cierra en el servidor la sesión del vendedor, solo esa.
+  //
+  // **Se espera, no se suelta con `void`** (D-NEXT). Esto corre en Vercel, donde la función se
+  // puede congelar en cuanto devuelve la respuesta: el trabajo lanzado después no tiene ninguna
+  // garantía de correr, y no hay en este repo ni un `after()` ni un `waitUntil` que digan lo
+  // contrario. Soltarlo dejaba **el propósito entero de esto** dependiendo de que la plataforma
+  // fuera amable, y si no corriera no lo diría nadie. Lo mismo valía para la fila de fin de
+  // D-243, que llevaba `void` desde el principio.
+  //
+  // «No bloquea» se conserva entera, y no depende del `void`: las dos funciones capturan todo y
+  // devuelven `false`, nunca lanzan. Un fallo no cambia la respuesta — solo la hace esperar dos
+  // peticiones cortas.
+  await revocarSesionImpersonada(sesionAjena?.access_token);
+
+  await apuntarImpersonacion({
     actorId: guardado.adminId,
     targetId: guardado.comoId,
     targetName: null,

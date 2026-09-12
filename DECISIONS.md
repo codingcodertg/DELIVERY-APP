@@ -13951,3 +13951,111 @@ caminos distintos, y no se toca ninguna de las dos guardas.
 `fee-formula-text.test.ts` y uno del recorrido por fichero de `inline-colors.test.ts`, que ve un
 componente más. Las 16 de `pricing.test.ts` siguen
 pasando **sin tocarlas**, que es la señal de que el refactor no movió ningún precio).
+
+## D-NEXT · Al volver de una impersonación se cierra la sesión ajena, y el registro deja de callar
+
+**Fecha:** 2026-09-12 · **Versión:** las tres apps (registro y rutas son del hub) · Sin migración.
+**Pedido por:** dos cosas que la auditoría de D-243 dejó anotadas y no abrió allí, porque no eran
+de aquella rama.
+
+### Uno: la sesión del vendedor seguía viva
+
+Al volver, `refreshSession` sustituye la sesión en el navegador del admin — pero la del vendedor
+seguía en `auth.sessions` hasta caducar. Una sesión que nadie usa, que no se ve desde ninguna
+pantalla y que nació de una acción que ya terminó.
+
+**El riesgo de esta pieza no es que no cierre: es que cierre de más.** Un alcance equivocado echa
+a un chofer de la app en mitad de una ruta, y eso no lo enseñaría ningún error — la vuelta del
+admin funcionaría igual de bien.
+
+Medido en `@supabase/auth-js` 2.112.4, donde `SIGN_OUT_SCOPES = ['global', 'local', 'others']` y
+`admin.signOut(jwt, scope)` va a `POST /logout?scope=…` con ese JWT:
+
+| Alcance | Qué cierra | |
+|---|---|---|
+| `global` | **todas** las sesiones de esa persona, su teléfono incluido | echa a alguien de la calle |
+| `others` | las suyas de verdad, y **deja viva la impersonada** | justo al revés |
+| `local` | la del JWT que se le pasa | la impersonada y ninguna más |
+
+Así que `local`, con el token tomado **antes** de restaurar al admin: después la cookie ya es la
+suya, y pedirlo entonces revocaría la sesión que acaba de recuperar. Hay prueba del orden, y un
+mutante que lo invierta la hace caer.
+
+**Y no bloquea la vuelta.** Si la revocación falla, el admin recupera su cuenta igual y queda una
+sesión caducando sola. Al revés —negarle el regreso por no poder cerrar la otra— sería dejarlo
+dentro de una identidad ajena, que es lo único que D-243 no permite.
+
+### Dos: el registro de seguridad no fallaba en silencio, fallaba en un silencio peor
+
+El encargo decía «`logSecurity` deja de tragarse los errores». Al abrirlo, el problema era otro y
+mayor: **no es que se tragara las excepciones, es que nunca leía el `error`**.
+
+`insert()` de PostgREST **no lanza** cuando la base rechaza: devuelve `{ error }`. El `catch`
+vacío solo cazaba fallos de red, así que un permiso mal puesto o una columna que no cuadra se
+iban **sin fila, sin aviso y sin una línea en la consola**. Pasaba en los dos registros: el de
+servidor (`security-log-server.ts`) y el del cliente (`data-provider.tsx`), que ni siquiera
+destructuraba el `error`.
+
+Es la misma familia que ya está escrita en este documento —descartar el error no falla, sigue con
+datos incompletos— y aquí lo que quedaba incompleto era la prueba de quién hizo qué.
+
+Ahora los dos leen el `error`. **La mitad de «no bloquea» se queda como estaba**, y por la razón
+que se escribió entonces: *una línea que falta es un problema más pequeño que un cambio a medio
+aplicar*. Un restablecimiento de contraseña que ya ocurrió no se deshace porque no se pudiera
+apuntar. Lo que cambia es que se dice: el de servidor devuelve si entró y deja el motivo en el
+log, y el de cliente avisa en pantalla.
+
+**El aviso es único por carga de página**, y la marca vive en un módulo y no en un componente:
+quien cambia permisos a diez personas seguidas no necesita diez avisos iguales, necesita saber
+una vez que el registro no está funcionando. A la consola, en cambio, van **todos** — el segundo
+fallo puede ser de otra clase que el primero, y quien depura necesita los dos.
+
+**La excepción que no cambia:** en «entrar como» la regla sigue siendo **sin fila no hay sesión**
+(D-243), con su contrato aparte, porque allí la sesión todavía no existe cuando se escribe la
+fila y no hay nada a medio aplicar que proteger.
+
+### Y esperar, en vez de soltarlo y confiar
+
+Lo encontró la auditoría y es el fallo más silencioso de los tres. La revocación y la fila de fin
+iban con `void`: se lanzan y no se esperan, **después de que la respuesta ya está decidida**.
+
+Eso corre en Vercel, donde una función se puede congelar en cuanto devuelve la respuesta. El
+trabajo lanzado después no tiene ninguna garantía, y **en este repo no hay ni un `after()` ni un
+`waitUntil`** que sirvan de precedente: esas dos eran las únicas promesas sueltas tras responder
+en todas las rutas de `api/`. O sea que el propósito entero de esta rama dependía de que la
+plataforma fuera amable, y si no corriera **no lo diría nadie** — la vuelta del admin funciona
+igual de bien con la sesión ajena viva.
+
+Lo mismo valía para la fila `impersonation_end`, que llevaba `void` desde D-243.
+
+Ahora se esperan las dos. **Y «no bloquea» se conserva entera**, porque nunca dependió del
+`void`: las dos funciones capturan todo y devuelven `false`, así que un fallo no puede cambiar la
+respuesta ni dejar al admin sin su cuenta. Lo único que cambia es que la respuesta espera dos
+peticiones cortas.
+
+La prueba también cambió de sitio, y esa es la parte que enseña: **fijaba el `void`, que era la
+forma**, y una forma que precisamente fijaba la duda. Ahora fija la propiedad — que las dos
+funciones no lanzan nunca — más el `await`.
+
+### Lo que esta rama NO puede cubrir
+
+**`auto-return` no existe aquí.** Es de la rama del cierre de las 18:30, que sigue sin fusionar,
+así que la revocación entra ahí **en el rebase de la última de las dos ramas que se fusione** —
+igual que pasó con el cruce del corte.
+
+Queda preparado para que ese rebase sea una línea y no un rediseño: la revocación vive en
+`impersonation-revoke.ts` con el alcance ya razonado, y en `auto-return` solo hay que llamarla
+con el token de la sesión ajena antes de restaurar.
+
+### Lo no verificado
+
+- **Que `local` cierre de verdad solo esa sesión** en este proyecto. Se midió el contrato de la
+  biblioteca y el significado del alcance, no el efecto contra la base: comprobarlo pide dos
+  sesiones reales de la misma persona y mirar `auth.sessions`, y eso no se hace desde la rama.
+  **Es lo primero que hay que mirar cuando se encienda la impersonación**, junto a lo del correo.
+- **Nadie ha visto el aviso del registro en pantalla.** Probado está que sale una sola vez, que
+  la consola los recibe todos y que los dos registros leen el `error`.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1719 pasados | 3 saltados**
+(main 085428e: 1708 | 3; los +11 son 6 de `impersonation-revoke.test.ts` y 5 de
+`security-log-notice.test.ts`).
