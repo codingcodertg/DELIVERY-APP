@@ -1,4 +1,12 @@
--- 107_session_gate.sql — lo que el middleware necesita para el cierre de las 18:30 (D-NEXT)
+-- 107_session_gate.sql — lo que el middleware necesita para el cierre de las 18:30
+--
+-- La decisión que la acompaña es la de la rama `cierre-sesion-1830`, en DECISIONS.md.
+--
+-- SIN EL MARCADOR DE DECISIÓN SIN NUMERAR, Y NO ES UN OLVIDO. Una migración se ejecuta a mano y su fila en
+-- `schema_migrations` guarda el checksum del cuerpo; numerar la decisión después cambiaría ese
+-- cuerpo y `migrate-status` diría «cambiada» para siempre. Y dejarlo sin numerar dejaría un
+-- comentario apuntando a nada en el único fichero que ya no se puede tocar. Así que aquí se
+-- cita la rama, que no cambia, y el número vive en la entrada.
 --
 -- El dueño pidió que a las 6:30 PM salga todo el mundo menos él y los administradores. Para
 -- decidirlo, el middleware necesita tres datos de quien llega:
@@ -49,8 +57,8 @@ as $$
 $$;
 
 comment on function public.session_gate() is
-  'D-NEXT: la hora en que se autenticó ESTA sesión y los dos roles de quien la trae, para el '
-  'cierre diario de las 18:30. Solo la propia sesión: el id sale del JWT, no de un argumento.';
+  'La hora en que se autenticó ESTA sesión y los dos roles de quien la trae, para el cierre '
+  'diario de las 18:30. Solo la propia sesión: el id sale del JWT, no de un argumento.';
 
 -- Nadie sin sesión tiene nada que preguntar aquí, y `public` incluye a `anon`.
 revoke execute on function public.session_gate() from public, anon;
@@ -58,4 +66,4 @@ grant  execute on function public.session_gate() to authenticated;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('107_session_gate.sql', '0bf08b00e1cbd649edcc9a4044908bc8fac5201bfcc40eef0731b19367994869') on conflict (name) do nothing;
+  values ('107_session_gate.sql', 'e672ab2c35119cfa3bdd795ae00c06433aea0bc9bd21fa0ca8a971761276392c') on conflict (name) do nothing;

@@ -14398,6 +14398,22 @@ error cierra la empresa a media mañana. Mientras sea una hora para todos, un de
 precio bajo por que el cambio pase por una revisión. Si el dueño la quiere mover sin desplegar,
 es otro encargo y lleva su propia validación.
 
+### Una migración no lleva nunca el marcador de decisión sin numerar
+
+Regla nueva, y sale de un tropiezo de esta rama: la 107 se escribió con el marcador puesto, como
+cualquier otro fichero, y **eso no se puede hacer en un `.sql`**.
+
+El motivo es el checksum. Una migración se ejecuta a mano y su fila en `schema_migrations` guarda
+el checksum del cuerpo. Si el número se sustituye después, el cuerpo cambia y `migrate-status`
+dice «cambiada» **para siempre**; y si no se sustituye, queda un comentario apuntando a nada en el
+único fichero que ya no se puede editar. Las dos salidas son malas, así que no se entra.
+
+Lo que va en el `.sql` es **la rama**, que no cambia nunca, y el número vive en la entrada.
+
+Y el remate, que es lo que casi se cuela: el propio párrafo que explicaba esto **nombraba el
+marcador**, así que el `grep` del release lo habría sustituido igual y habría movido el checksum
+por la puerta de atrás. Un fichero que no puede contener una cadena tampoco puede nombrarla.
+
 ### Lo no verificado
 
 - **Que `auth.jwt()` traiga `session_id` en este proyecto.** Es un claim obligatorio según el
