@@ -3,7 +3,7 @@ import {
   LATIDO_MAX_MS, RESUME_MAX_MS,
   ultimoLatidoDe, esHuerfana, cierreHuerfana, huerfanasDe,
   parseResumeMark, markCovers, resumeKey, backoffMs,
-  CRON_CLOSE_NOTE, decisionReabrir, tickContinuo,
+  CRON_CLOSE_NOTE, PAGE_ORPHAN_CLOSE_NOTE, CIERRES_AUTOMATICOS, decisionReabrir, tickContinuo,
 } from "./live-session";
 
 // D-195. El cronómetro sobrevive a la actualización: el umbral de huérfana sube de 5 a 15
@@ -181,5 +181,49 @@ describe("backoff de la confirmación", () => {
   it("2, 4, 8, 16, 30, 30…", () => {
     expect([0, 1, 2, 3, 4, 5, 9].map((a) => backoffMs(a))).toEqual([2000, 4000, 8000, 16000, 30000, 30000, 30000]);
     expect(backoffMs(-3)).toBe(2000);
+  });
+});
+
+// ---- El cierre desde pantalla también se puede deshacer (D-NEXT) -------------------------
+describe("decisionReabrir · el cierre que decide una máquina", () => {
+  const base = {
+    me: "u1",
+    mark: { sessionId: "s1", at: 1_000 },
+    evidenciaLocal: true,
+    otrasVivas: [] as string[],
+  };
+  const fila = (liveNote: string | null) => ({ id: "s1", employeeUid: "u1", isLive: false, liveNote });
+
+  it("reabre lo que cerró el cron (D-197, sin cambio)", () => {
+    expect(decisionReabrir({ ...base, fila: fila(CRON_CLOSE_NOTE) })).toEqual({ reabrir: true });
+  });
+
+  it("reabre lo que cerró la pantalla al ver su propia huérfana", () => {
+    expect(decisionReabrir({ ...base, fila: fila(PAGE_ORPHAN_CLOSE_NOTE) })).toEqual({ reabrir: true });
+  });
+
+  // El control que hace que este bloque signifique algo: si la lista se ampliara de más y
+  // dejara pasar cualquier nota, estas dos seguirían fallando.
+  it("NO reabre un Stop, que escribe null", () => {
+    expect(decisionReabrir({ ...base, fila: fila(null) })).toEqual({ reabrir: false, motivo: "la-cerro-una-persona" });
+  });
+
+  it("NO reabre una fila con la nota de un latido cualquiera", () => {
+    for (const nota of ["active", "idle", "break", "Figma"]) {
+      expect(decisionReabrir({ ...base, fila: fila(nota) })).toEqual({ reabrir: false, motivo: "la-cerro-una-persona" });
+    }
+  });
+
+  it("las otras tres condiciones de D-197 siguen mandando sobre la nota nueva", () => {
+    const f = fila(PAGE_ORPHAN_CLOSE_NOTE);
+    expect(decisionReabrir({ ...base, fila: f, evidenciaLocal: false })).toEqual({ reabrir: false, motivo: "sin-evidencia-local" });
+    expect(decisionReabrir({ ...base, fila: f, mark: null })).toEqual({ reabrir: false, motivo: "sin-marca" });
+    expect(decisionReabrir({ ...base, fila: f, otrasVivas: ["s2"] })).toEqual({ reabrir: false, motivo: "otra-viva" });
+    expect(decisionReabrir({ ...base, fila: { ...f, employeeUid: "u2" } })).toEqual({ reabrir: false, motivo: "no-es-mia" });
+  });
+
+  it("las dos marcas son distintas entre sí", () => {
+    expect(CRON_CLOSE_NOTE).not.toBe(PAGE_ORPHAN_CLOSE_NOTE);
+    expect(CIERRES_AUTOMATICOS).toEqual([CRON_CLOSE_NOTE, PAGE_ORPHAN_CLOSE_NOTE]);
   });
 });

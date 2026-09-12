@@ -13383,3 +13383,154 @@ antes de esta rama. Era el ejemplo que hacía urgente el encargo y no existía. 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1628 pasados | 3 saltados**
 (main a06ef0d: 1614 | 3; los +14 son 13 de `tab-gate.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, que ahora ve un componente más).
+
+## D-NEXT · Un cronómetro que ya no puede guardar tiene que decirlo, y su cierre tiene que ser reversible
+
+**Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
+**Pedido por:** el dueño, sobre su propia jornada: el reloj marcaba horas en pantalla y la base
+tenía la sesión cerrada a las **15:24:39**, con `live_note = 'active'`.
+
+### Lo que le pasó, eslabón a eslabón
+
+Su sesión de Supabase caducó a media tarde. A partir de ahí:
+
+1. El tick de diez segundos siguió corriendo y escribiendo. La base contestaba que no —el JWT ya
+   no valía—, y `writeSession` hacía lo que hace con **cualquier** fallo: tres reintentos y a la
+   cola sin conexión, devolviendo `"queued"`.
+2. **Nadie miraba ese valor** salvo para el solape. El reloj siguió en pantalla, subiendo, sin
+   que un solo segundo llegara a la base.
+3. A los quince minutos sin latido (`LATIDO_MAX_MS`, D-195) la fila era huérfana. La cerró la
+   propia pantalla, **en su último latido**, que es lo correcto para una huérfana de verdad y lo
+   incorrecto aquí: no había perdido a su cliente, había perdido la sesión.
+4. Y D-197, que existe justamente para deshacer un cierre así, **no podía**: su condición 2
+   exige que la cerrara el cron.
+
+**Lo perdido: de 15:24 a la hora en que paró, no medida.** La hora real de parada no llegó a esta
+rama; el tramo se anota sin número a propósito, porque inventarlo sería peor que dejarlo abierto.
+
+### La distinción que faltaba, y es una sola frase
+
+**Una cola se vacía sola cuando lo que falla es la red, y NO se vacía sola cuando lo que falla es
+la sesión.** Sin red, el parche sale al volver la conexión — eso es D-074 y funciona. Sin JWT
+válido no sale hasta que alguien vuelva a entrar, y puede que nadie sepa que tiene que hacerlo.
+
+Nótese lo que **no** es el arreglo: **el parche se sigue encolando** en los dos casos, y eso está
+bien — si la persona vuelve a entrar, el `flush` lo aplica con la duración completa y el tramo se
+recupera. Lo que estaba mal era devolver `"queued"` y **callar**, porque `"queued"` significa dos
+cosas muy distintas según qué haya fallado. Se encola **y** se dice.
+
+### Tres cosas cambian, en este orden
+
+**1 · La cola deja de poder pisar una fila cerrada.** Va primero porque **destruye la evidencia**
+de la que dependen las otras dos. `flush` reenviaba por `updateSession`
+(`timetracker-data-provider.tsx`), que filtra por `id` y nada más; la RLS de `sessions`
+(`080_initplan_all_modules.sql:132`) tampoco distingue viva de cerrada, solo exige
+`payroll_id IS NULL`. Un latido encolado que salía media hora tarde aterrizaba sobre la fila ya
+cerrada y le pisaba `end_ms` y `live_note` — **borrando la marca `closed:cron`** que D-197
+necesita. Ahora la cola reenvía por `updateLiveSession`, con `.eq("is_live", true)`.
+
+Y esa vía **devuelve** ahora si tocó una fila, porque el caso contrario es igual de silencioso:
+**un `UPDATE` que afecta a cero filas no es un error para PostgREST**. Con la sesión ya en nómina
+la RLS filtra la fila, la petición vuelve limpia y sin filas, y `flush` daba el parche por
+aplicado y lo tiraba. Ahora se descarta **sabiendo** que se descarta, que no es lo mismo aunque
+el parche acabe igual: un latido tardío sobre una sesión que ya no está viva no es un dato, es
+ruido, y atascar la cola detrás de él tampoco arregla nada.
+
+**2 · Un latido rechazado por autenticación se ve, en el acto.** `writeSession` distingue tres
+finales que **no se recuperan solos** —`"overlap"`, `"auth"`, `"cerrada"`— del que sí
+(`"queued"`, la red). Con un 401 avisa una vez («tu sesión caducó; vuelve a entrar para seguir
+grabando») y la pantalla queda marcada **«sin guardar desde HH:MM — N min»**, con la hora del
+último guardado bueno y no la del primer error, porque entre uno y otro puede haber entrado un
+reintento. Cualquier escritura buena borra el aviso.
+
+Y el Stop tiene su propio aviso, porque su silencio era el peor de los dos: pulsar Stop con la
+sesión caducada dejaba la entrada solo en este equipo sin decir nada, y la persona se iba a casa
+creyendo que había fichado.
+
+**El cronómetro no se para.** El trabajo se está haciendo; lo que falta es dónde guardarlo, y
+pararlo por su cuenta sería tirar los minutos que aún se pueden recuperar. Lo que se acaba es
+aparentar que se guarda.
+
+Reconocer el 401 **no** estrena función: lo hace `isAuthDenied` (`session-guard.ts`), que ya
+conoce el caso de 081 —sin sesión la petición sale como `anon`, y Postgres corta con *"permission
+denied for schema timetracker"*, que no dice "row-level security" por ningún lado—. Escribir un
+segundo reconocedor habría sido tener dos respuestas para una pregunta. Y `updateLiveSession`
+estrena el reintento con token fresco que los `insert` ya tenían: sin él, el rollover normal del
+JWT —cada hora— habría encendido el aviso de sesión caducada a gente que no tenía ningún problema.
+
+**3 · El cierre desde pantalla deja su propia marca, y por eso se puede deshacer.**
+`PAGE_ORPHAN_CLOSE_NOTE = "closed:orphan-page"`, junto al `closed:cron` del cron, en
+`CIERRES_AUTOMATICOS`.
+
+### Esto contradice D-197, y aquí está por qué
+
+D-197, condición 2, dice literalmente: *«el guardián de la propia pantalla no marca (ese cierre lo
+hace el mismo cliente al descubrir su propia sesión muerta, y **reabrirla sería un error**)»*.
+
+Esa razón asumía algo que resultó falso: **que si esta pantalla cierra su fila por huérfana, es
+porque esta pantalla estuvo parada.** El caso del dueño es el contrario — el reloj no se detuvo ni
+un segundo, lo que se detuvo fue la autenticación—, y ahí reabrir no es un error: es lo único que
+recupera el tramo.
+
+**Ninguna de las cuatro condiciones se relaja.** La 3 —marca de reanudación reciente para ESA
+sesión *y* evidencia local continua, medida por el hueco entre ticks— es la que hacía el trabajo
+de verdad, y la exclusión de la 2 era un cinturón encima del tirante. Una pantalla que estuvo
+apagada de verdad no tiene marca fresca (`RESUME_MAX_MS` = 15 min) y sigue sin reabrir nada.
+
+### Una corrección a la línea base con la que llegó el encargo
+
+Se dijo, por dos vías, que **el pulso periódico escribe sin la guarda de `is_live`**. Medido: el
+tick llama `writeSession(..., 3, true)` y ese `soloViva = true` lo manda por `updateLiveSession`,
+que **sí** la lleva. Importa porque decide dónde va el arreglo. El inventario completo de vías de
+escritura en `main`, cada llamada leída hasta su paréntesis de cierre:
+
+| Vía | Va por | Guarda |
+|---|---|---|
+| El pulso (`page.tsx:738-749`) | `updateLiveSession` | **sí** |
+| Stop (`page.tsx:900`) | `updateSession` | no, **y es correcto**: cerrar tiene que funcionar |
+| La cola (`flush:106`) | `updateSession` | **no — la única que pisa cerradas** |
+
+Las dos primeras se quedan como están. El arreglo va en la tercera.
+
+(Y en sentido contrario: una lectura de línea base hecha sobre este worktree en vez de sobre
+`origin/main` dio por existente `PAGE_ORPHAN_CLOSE_NOTE`, que es código de esta rama. Se corrigió
+sola. Queda anotado porque el remedio es el que ya está escrito: la línea base se lee con
+`git show origin/main:<fichero>`, nunca con el árbol de trabajo.)
+
+### Lo que NO cambia
+
+- **El freno de quince minutos y el cron** (D-195), intactos. Esto no alarga la vida de una
+  huérfana: cambia quién puede deshacer su cierre y con qué prueba.
+- **La aritmética del cierre.** `cierreHuerfana` sigue cerrando en el último latido, con la misma
+  duración. Solo se le añade la nota.
+- **Un Stop no se deshace nunca.** Escribe `live_note = null`, que no está en
+  `CIERRES_AUTOMATICOS`, y hay prueba que lo exige.
+
+### De paso, el hueco más grande del canario de traducciones
+
+El canario de `i18n.test.ts` recorre una lista enumerada de ficheros y exige que cada `t("…")`
+tenga `en` y `es`. **`(timetracker)/page.tsx` no estaba en la lista** — la pantalla que más claves
+`track.*` usa, sin cubrir. Sus traducciones cuadraban por disciplina, no por prueba, y las cuatro
+claves nuevas de esta rama se habrían podido quedar a medias sin que nada lo dijera. Se añade
+aquí, que es donde se notó. Comprobado quitando `track.unsaved` del bloque español: el canario
+falla nombrando la clave y el fichero.
+
+### Lo no verificado
+
+- **Nadie lo ha visto en un navegador con una sesión caducada de verdad.** Provocarlo pide una
+  cookie muerta contra producción; desde la rama no hay `.env.local` y no se hace. Lo que sí está
+  probado con datos sintéticos: la cola (cuatro casos, con el control de que un fallo de red **sí**
+  conserva el parche) y `decisionReabrir` (las dos marcas, el Stop, las notas de latido y las
+  otras tres condiciones).
+- **El tick no tiene prueba unitaria.** Vive dentro de un componente de 1.200 líneas con
+  `setInterval`; lo que se probó es la lógica que llama, no la llamada.
+- **Si la cola llegó a pisar esa fila concreta.** No hace falta para explicarla —el cierre de
+  pantalla en `main` no toca `live_note`, así que el `'active'` es el del último latido y ya está
+  explicado—, y por eso el arreglo 1 no se justifica con este incidente sino por sí mismo: borra
+  evidencia y no se ve hasta que pasa. Comprobar si además ocurrió aquí es mirar producción, que
+  no es de la rama.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1644 pasados | 3 saltados**
+(main 7de7027: 1628 | 3; los +16 son 5 de `save-state.test.ts`, 6 del bloque nuevo de
+`live-session.test.ts`, 4 de `offlineQueue.test.ts` —que no tenía pruebas— y uno del canario de
+traducciones, que ahora recorre un fichero más).
