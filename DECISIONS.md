@@ -14588,8 +14588,8 @@ natural aquí es arreglar una y olvidar la otra.
 - **El coste real de la llamada extra** en tiempo de respuesta. Está medido *cuántas* veces ocurre
   —una por navegación— pero no cuánto tarda.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1787 pasados | 3 saltados**
-(main 45b1bd1, que ya lleva D-243, D-244 y D-245 dentro: 1719 | 3; los +68 son 35 de `session-cutoff.test.ts`,
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1805 pasados | 3 saltados**
+(main e371534, que ya lleva D-243, D-244, D-245 y D-246 dentro: 1737 | 3; los +68 son 35 de `session-cutoff.test.ts`,
 13 de `use-cutoff-exempt.test.ts`, 8 de `session-cutoff-middleware.test.ts`, 8 de
 `cutoff-impersonation.test.ts` —el cruce con D-243 y la revocación de D-245, nueva en este
 rebase— y uno del canario de
