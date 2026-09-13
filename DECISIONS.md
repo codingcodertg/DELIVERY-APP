@@ -14598,3 +14598,41 @@ traducciones del Time Tracker, que ve una clave nueva).
 Nota de entorno, porque el número no significa nada sin ella: **el `verify` se colgó dos veces en
 esta rama** con cinco `next build` a la vez en la máquina, y una hubo que matarla y relanzarla. El
 número de arriba es el de una pasada completa sobre `.next` limpio.
+
+## D-NEXT · El desglose de la tarifa, en los dos sitios donde se enseña la tarifa
+
+**Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño:** abrió «Nueva orden» como admin, calculó distancia y tarifa, y **no vio
+el «¿Cómo se calculó?»** que D-244 había prometido.
+
+### El fallo era de sitio, no de lógica
+
+`OrderModal.tsx` pinta «Tarifa sugerida» en **dos** bloques: el del paso del mapa, junto a
+«Calcular distancia y tarifa», y el de la zona local. D-244 puso el desglose **solo en el
+segundo** — y el primero es justamente el que ve quien crea un pedido paso a paso, que es lo que
+estaba haciendo el dueño.
+
+No es un fallo de cálculo ni de permisos: el componente, la condición y los números son los
+mismos. Faltaba en el sitio por el que se pasa primero.
+
+### La prueba recorre, no enumera
+
+Arreglar el segundo sitio y seguir habría dejado el mismo agujero esperando al tercero. Así que
+la prueba **recorre el fichero**: cuenta dónde se pinta «Tarifa sugerida», cuenta los desgloses,
+y exige que haya uno **dentro del tramo de cada uno** — que los números cuadren no basta, porque
+los dos podrían estar juntos al final y la mitad de la pantalla seguiría sin explicación.
+
+Con su control, que es lo que hace que signifique algo: si el recorrido encontrara **menos de
+dos** sitios, falla. Sin él, el día que alguien reordene el fichero la prueba pasaría sin
+comprobar nada — que es exactamente cómo D-244 se quedó a medias.
+
+**Medido:** volver al estado de `main` —el desglose solo en el bloque de zona local— hace caer
+**tres**; ponerlos los dos juntos al final, **una**.
+
+### Lo no verificado
+
+Nadie lo ha abierto en un navegador. Lo que está probado es que el desglose existe en los dos
+bloques y con la misma guarda de rol real; cómo se ve al desplegarlo en el paso del mapa, no.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1828 pasados | 3 saltados**
+(main 0ad2b01: 1824 | 3; los +4 son de `fee-breakdown.test.ts`).
