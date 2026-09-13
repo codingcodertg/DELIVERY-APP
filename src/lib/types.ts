@@ -455,6 +455,16 @@ export interface Settings {
   // ya no existe; lo que quedaba era el tipo, prometiendo una configuración que la
   // aplicación ignora. Las columnas siguen en la base (migración 036) y no se
   // tocan: borrar columnas es irreversible y no gana nada.
+  // ---- Puntos (D-NEXT) ----
+  // Las dos tasas del sistema de puntos, editables en Ajustes para que cambiar
+  // lo que vale un dia puntual no sea un despliegue. Sus columnas nacen con
+  // DEFAULT 2 y 100 en la migracion 105; `tasas()` (lib/points.ts) repite esos
+  // numeros como respaldo por si la fila llegara sin ellos.
+  /** Puntos que gana un empleado por un dia trabajado puntual. */
+  points_per_punctual_day?: number | null;
+  /** Puntos que cuesta canjear un dia libre pagado. */
+  points_per_day_off?: number | null;
+
   /** Cities that count as the LOCAL delivery zone. Respaldo desde D-219: solo se usa
    *  cuando el pedido no tiene coordenadas. El contorno que decide la zona cuando SÍ hay
    *  punto es `LOCAL_ZONE_DEFAULT` (lib/delivery-zone.ts), constante de código: no hay
