@@ -15295,3 +15295,9 @@ cueste una línea en una decisión, y esta es esa línea.
 >
 > La 104 **ya está aplicada en producción**, así que esta rama tampoco depende del orden de
 > fusión.
+
+Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol final:
+**1843 pasados | 3 saltados** (c615270: 1828 | 3). Los +15 son enteros de
+`person-badge.test.ts`, que en solitario da 15; `inline-colors.test.ts` sigue dando 106
+como en `main`, porque el guardián cuenta un caso por fichero recorrido y esta rama no
+añade ninguno.
