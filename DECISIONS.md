@@ -14652,6 +14652,13 @@ productos. Preguntado, eligió: los dos públicos, puntean **él y los gerentes*
 > Ya está aplicada en producción, con el checksum del fichero tal como está en esta rama, así
 > que esta rama ya no depende del orden de fusión. Se anota en vez de reescribir la frase.
 
+> **Nota (2) — la migracion se queda sin marcador de decision (2026-09-13).** El `.sql` llevaba
+> el marcador sin numerar en la cabecera y dentro de un `comment on`, y el checksum inscrito en
+> produccion lo incluia: sustituirlo al numerar habria dejado `migrate-status` diciendo
+> «cambiada» para siempre. Ahora cita la rama, como hace `107_session_gate.sql`, y el
+> orquestador alinea la fila del ledger antes de fusionar. Checksum viejo `a3d5a531…c702`,
+> nuevo `a10a95e7…d9c2`.
+
 Este es el **encargo 1 de cinco** y **no trae una sola pantalla**. Las otras cuatro —puntear a
 mano, la puntualidad automática, el canje y la subida del cliente— se apoyan aquí, así que lo
 único que importa de esta rama es que el modelo aguante las cuatro sin cambiarlo.

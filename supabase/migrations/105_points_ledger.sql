@@ -1,4 +1,11 @@
--- 105 · Cimientos del sistema de puntos (D-NEXT): libro mayor, tasas y quien escribe
+-- 105 · Cimientos del sistema de puntos: libro mayor, tasas y quien escribe
+--
+-- La decision que la acompana es la de la rama `puntos-base`, en DECISIONS.md.
+--
+-- SIN EL MARCADOR DE DECISION SIN NUMERAR, Y NO ES UN OLVIDO. Una migracion se ejecuta a
+-- mano y su fila en `schema_migrations` guarda el checksum del cuerpo; sustituir el marcador
+-- por el numero despues cambiaria ese cuerpo y `migrate-status` diria «cambiada» para
+-- siempre. Por eso se cita la rama, que no cambia al numerar.
 --
 -- El dueno quiere puntos con dos publicos: EMPLEADOS, que suman por hacer las cosas
 -- bien (empezando por llegar puntual, que la app ya mide en clockin.scheduled_shifts)
@@ -61,7 +68,7 @@ create index if not exists point_events_account_idx
   on public.point_events (account, created_at desc);
 
 comment on table public.point_events is
-  'Libro mayor de puntos (D-NEXT). El saldo se suma, nunca se guarda. Append-only: se corrige con un evento contrario.';
+  'Libro mayor de puntos (rama `puntos-base`). El saldo se suma, nunca se guarda. Append-only: se corrige con un evento contrario.';
 
 -- ===========================================================================
 -- 2. Quien escribe, y quien ve que
@@ -212,4 +219,4 @@ alter table public.settings add constraint settings_points_day_off_positive
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('105_points_ledger.sql', 'a3d5a531cf887b225ccc01b05890dfca9f79091f12b3ef07470ac9eaffb0c702') on conflict (name) do nothing;
+  values ('105_points_ledger.sql', 'a10a95e76cb06076b60e31013b984da06d94c218ef6d21fba8979839ea1cd9c2') on conflict (name) do nothing;
