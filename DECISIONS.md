@@ -15301,3 +15301,8 @@ Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol f
 `person-badge.test.ts`, que en solitario da 15; `inline-colors.test.ts` sigue dando 106
 como en `main`, porque el guardián cuenta un caso por fichero recorrido y esta rama no
 añade ninguno.
+
+Y tras el segundo rebase, ya sobre `main` 123a6fb (D-250 y D-251 dentro): **1906 pasados |
+3 saltados** (123a6fb: 1891 | 3). Los +15 siguen siendo enteros de `person-badge.test.ts`.
+En `src/lib/types.ts` los diez tipos de esta rama se apilan junto a los diez que trajo D-250,
+sin tocarlos: el aporte propio conserva su contenido byte a byte (`35e0a6bd`).
