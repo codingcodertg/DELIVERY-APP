@@ -14857,3 +14857,271 @@ Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol f
 que corriendo en solitario da 32 — o sea que ninguna prueba de recorrido de `main` cambió de
 cuenta al aparecer los ficheros nuevos. La cifra de arriba (+29) es de antes del commit que
 cerró el `TRUNCATE`, y se deja como estaba.
+
+## D-NEXT · El expediente deja de ser la cuenta: RR. HH. pasa a llevar personas, no usuarios
+
+**Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
+`106_employee_file_identity.sql`**, que **aplica el dueño a mano antes de fusionar**.
+**Pedido por:** el dueño: en HR quiere «afuera» los expedientes de todos los empleados —cuándo
+ingresaron, cuándo se fueron, si están desactivados, si tienen usuario creado, si lo ocupan,
+correo, teléfono, si tienen RingCentral— y Reclutamiento como un botón dentro.
+
+> **Nota al rebasar sobre `main` c615270 (2026-09-13).** Dos cosas que la entrada daba por
+> pendientes ya pasaron. La 106 **está aplicada en producción**, así que la frase de arriba
+> —que la aplica el dueño antes de fusionar— describe lo que se planeó, no lo que queda por
+> hacer, y esta rama ya no depende del orden de fusión.
+>
+> Y el `.sql` **se queda sin el marcador de decisión sin numerar**: lo llevaba en la cabecera y
+> dentro del `comment on` de la tabla, y el checksum inscrito lo incluía, así que sustituirlo al
+> numerar habría dejado `migrate-status` diciendo «cambiada» para siempre. Ahora cita la rama,
+> como hace `107_session_gate.sql`. Checksum viejo `fe51b81e…a2a9`, nuevo `cbf01016…02d4`; la
+> fila del ledger la realinea el orquestador antes de fusionar, y queda declarado aquí en vez
+> de tapado.
+
+**Este encargo no trae pantalla**: datos y librería. La pantalla es el siguiente.
+
+### El problema entero cabe en una línea de 093
+
+```sql
+id uuid primary key references public.profiles(id) on delete cascade
+```
+
+El expediente **era** la cuenta. De ahí salen las tres cosas que el dueño no puede hacer hoy:
+
+- **Sin cuenta no hay expediente.** Alguien a quien todavía no se le crea usuario no existe
+  para RR. HH.
+- **Borrar la cuenta borra el expediente**, con sus documentos por cascada. Y la única baja que
+  existe hoy es `/api/delete-user`, que borra la cuenta — o sea que dar de baja a alguien
+  destruye justo lo que RR. HH. necesita conservar.
+- **No hay «desactivado»**: o tienes cuenta o no existes.
+
+La 106 invierte la dependencia. El expediente tiene identidad propia y la cuenta pasa a ser un
+dato **dentro** de él: `profile_id`, nulo cuando no la hay, **único** cuando la hay, y
+`on delete set null` — la cuenta se va, el expediente se queda. Esa cláusula es la rama entera;
+con `cascade` volveríamos a 093 con otro nombre, y hay una prueba que lo exige literalmente.
+
+### Lo que casi se rompe al mover la identidad, y no se ve en el diff
+
+`employee_docs.employee_id` apuntaba a `profiles`. Al mover la identidad hay que reapuntarlo al
+expediente, y ahí había **dos trampas**:
+
+1. **Un documento sin expediente deja la FK nueva a medias.** Los documentos se crean con el id
+   de la persona **exista o no** su fila de expediente. Por eso la migración, **antes** de tocar
+   ninguna FK, le crea un expediente a cada perfil que no lo tenga, **con el mismo id que su
+   cuenta**. Así ni un solo `employee_id` hay que reescribir: todos los valores que ya existen
+   siguen siendo válidos. Y al final cuenta los documentos y los compara con los que quedan
+   ligados; si no cuadra, `raise exception` y la transacción entera se cae.
+2. **`created_by` también apunta a `profiles`.** Un `drop constraint` buscado por tabla y
+   destino se la habría llevado por delante, en silencio. La migración restringe la búsqueda a
+   la columna `employee_id`; hay prueba, y mutarla quitando esa restricción la hace caer.
+
+Las dos FK se buscan **por catálogo, no por nombre**. `employee_files_id_fkey` es el nombre que
+Postgres le habría puesto, pero un `drop constraint if exists` con el nombre equivocado **no
+hace nada y no falla**: el expediente seguiría atado a la cuenta y se descubriría el día que
+alguien diera de alta a una persona sin usuario.
+
+### Cuántas personas son, medido, y por qué esto es un estreno y no un cambio
+
+La migración le crea un expediente a cada perfil, y eso es el efecto más visible que va a tener.
+Medido en producción por el orquestador **antes de aplicar nada**, que es lo que convierte la
+pregunta en contestable:
+
+| | |
+|---|---|
+| Expedientes hoy | **0** |
+| Perfiles hoy | **33** (14 ventas · 6 contabilidad · 5 gerencia · 4 almacén · 2 admin · 1 logística · 1 chofer) |
+| Filas que crea la 106 | **33** |
+| Documentos sin expediente | **0** |
+
+> **La tabla es del 2026-09-10 y los números envejecieron; se anota, no se reescribe.** Al
+> rebasar sobre `main` c615270 (2026-09-13) la migración ya estaba aplicada en producción, y
+> lo medido allí por el orquestador es **35 perfiles y 35 expedientes**, no 33: entraron dos
+> cuentas más entre una fecha y otra. Los documentos huérfanos siguen en **0**. El reparto por
+> rol de arriba es el de aquel día y no se ha vuelto a contar. Yo no lo he medido: desde una
+> rama no se toca producción, así que este número llega de la sesión que la aplicó.
+>
+> Lo que el cambio de cifra no cambia: la 106 crea una fila por perfil sin expediente, sean 33
+> o 35, y la lista habría enseñado a todos igual por la fila sintética de `filasDeExpediente`.
+
+La tabla está **vacía**: no hay ninguna lista que esta rama sustituya, la **estrena**. Y el
+pedido del dueño fue literal —«los expedientes de todos los empleados»—, así que crear los 33 es
+el encargo, no un exceso.
+
+**Y un matiz que hace la pregunta aún más fácil de contestar:** la lista mostraría a las 33
+personas **aunque la migración no insertara ni una fila**, porque `filasDeExpediente` completa
+con una fila sintética por cada perfil sin expediente. Lo que decide el insert masivo no es
+quién aparece, sino **qué filas existen** — y con ellas, dónde se puede empezar a escribir un
+teléfono o una fecha de ingreso sin crear nada antes.
+
+**Aun así el dueño lo confirma antes de que se aplique**, con la frase con el número delante:
+«la lista pasa de vacía a las 33 personas con cuenta». Porque la comprobación del final de la
+migración fija esa invariante, y si mañana dijera «los choferes no», no bastaría con filtrar la
+pantalla: habría que borrar filas.
+
+**Y el cero de documentos huérfanos dice algo que conviene no confundir:** el paso de crear las
+fichas antes de tocar la FK **hoy no hacía falta**. Sigue siendo lo correcto —un solo documento
+huérfano habría dejado la FK a medias, y eso no se sabía al escribirlo— pero es una red que hoy
+no atrapa nada, no una corrección de algo roto.
+
+### El perfil número 34: la promesa se cumplía un día y se rompía al siguiente
+
+Lo encontró la auditoría y es el mejor hallazgo de la rama. La migración crea los 33 de hoy y
+ahí se acababa: **nada creaba el expediente de la siguiente persona que entrara al hub**. El
+encargo habría sido cierto el día de la migración y falso al día siguiente, sin que nadie se
+enterara hasta buscar a alguien y no encontrarlo. Es la clase de promesa que se degrada sola.
+
+Se cierra con un **trigger `after insert on public.profiles`** que crea el expediente con cada
+cuenta nueva. Se eligió frente a las otras dos salidas por lo que dijo el orquestador y suscribo:
+crearlo desde los cuatro sitios donde nacen las cuentas son cuatro oportunidades de olvidarlo,
+más la quinta cuando aparezca el siguiente; y dejarlo para el encargo 2 deja abierta justo la
+ventana que el hallazgo describe.
+
+Dos detalles del trigger que no son adorno:
+
+- **Crear una cuenta no puede fallar por una fila de RR. HH.** Si el insert falla, el trigger
+  traga el error y deja un `raise warning` en el log. Y tragárselo solo vale si el fallo **se
+  ve sin mirar el log**, porque el log de Postgres no lo mira nadie: se ve, y no por
+  casualidad. `filasDeExpediente` **completa la lista con una fila sintética por cada perfil
+  sin expediente**, así que un trigger que falle produce una persona con la ficha vacía, no una
+  ausencia silenciosa. El peor caso de no tragárselo, en cambio, es que **nadie pueda darse de
+  alta**.
+- **El guard del enlace deja pasar los inserts anidados** (`pg_trigger_depth() > 1`). No es una
+  comodidad: la cadena real al crear una cuenta tiene **cuatro niveles** —`auth.users` →
+  `on_auth_user_created` → `profiles` → `profiles_make_employee_file` → `employee_files`—, así
+  que sin el bypass **ninguna cuenta podría crearse desde Auth**, que es el camino normal.
+
+  **Y la condición que hace que eso sea seguro, medida, para quien venga después:** hoy
+  `pg_trigger_depth() > 1` equivale a «viene de mi trigger» porque **ningún otro escribe en
+  `employee_files`** — las cuatro escrituras que hay en `supabase/` están todas en esta
+  migración, y el único trigger sobre esa tabla es el propio guard. Pero condiciona por
+  **profundidad, no por origen**, y `public.profiles` ya tiene nueve triggers colgando: **el día
+  que cualquiera de ellos escriba en `employee_files`, se saltará el guard sin que nada avise.**
+  Si eso llega, la forma de estrecharlo es condicionar por origen. Y la comparación, hecha,
+  porque lo que decide no es cuál es más preciso hoy sino **hacia dónde falla cada uno cuando
+  cambian las circunstancias**:
+
+  | Forma | Cuando cambian las circunstancias… |
+  |---|---|
+  | `pg_trigger_depth() > 1` | **falla abriendo**: un trigger nuevo pasa sin avisar |
+  | `set_config` local a la transacción, sin reset | **falla abriendo** dentro de esa transacción |
+  | `set_config` + `set_config('…','off',true)` justo tras el insert | **falla cerrado**: si alguien olvida el reset, el guard bloquea y sale un error visible |
+
+  Para un guard, **fallar cerrado es la propiedad que se quiere**: un error ruidoso se arregla el
+  mismo día, y una puerta abierta no la ve nadie. Se deja la profundidad porque hoy está medido
+  que no hay otro escritor y porque el `set_config` sin reset cambia una imprecisión por otra
+  —es local a la transacción, así que un enlace manual posterior dentro de la misma pasaría
+  igual—. El día que haya un segundo escritor, la tercera fila es la que hay que poner.
+
+Con esto, la invariante del final de la migración vuelve a ser verdad **siempre**, no solo en el
+instante en que se aplica.
+
+### El estado no se guarda: se deriva
+
+`date_left` y nada más. Sin fecha, activo; con fecha, baja. Una columna de estado junto a su
+fecha se desincroniza en el primer guardado a medias, y entonces hay dos respuestas a «¿sigue
+aquí?». Hay una prueba que exige que la migración **no añada** ninguna columna de estado.
+
+### La cuenta se apaga, no se borra
+
+`deactivateEmployee` pone la fecha de salida **y** deshabilita la cuenta en Auth (un ban
+indefinido); `reactivateEmployee` hace lo contrario. `/api/delete-user` **no se toca**: sigue
+existiendo para lo que es, borrar de verdad. Hay una prueba de que estas acciones nuevas usan el
+ban y **no** contienen ninguna llamada de borrado — porque un «dar de baja» que acabara llamando
+a `delete-user` destruiría el expediente que esta rama viene a conservar.
+
+Tres detalles del orden y del alcance:
+
+- **La fecha se escribe antes que el ban.** Si el ban falla, la baja queda registrada y se puede
+  reintentar; al revés —cuenta apagada y expediente sin fecha— nadie sabría por qué esa persona
+  no puede entrar. Hay una prueba del orden.
+- **Nadie se da de baja a sí mismo**, como en `delete-user`.
+- **El expediente conserva su `profile_id` al darse de baja**, a propósito: «¿tenía cuenta?»
+  sigue teniendo respuesta después de que la persona se vaya.
+
+### Los hechos de la cuenta se leen; no se copian nunca
+
+`accountFactsFor` pregunta a Auth, por cada `profile_id`, si la cuenta existe, si se entra con
+correo o con usuario, cuándo fue el último acceso y si está deshabilitada. **Nada de eso se
+guarda en el expediente**, y es una decisión, no un olvido: «último acceso» envejece solo, y
+«deshabilitada» la puede cambiar cualquiera desde el panel de Supabase sin pasar por aquí.
+Copiarlo sería mentir en cuanto alguien iniciara sesión.
+
+Dos preguntas del dueño que parecían una: **«si tienen usuario creado»** y **«si lo ocupan»**.
+Una cuenta creada y nunca usada es justo el caso que quiere encontrar, así que `resumenDeCuenta`
+las distingue: `tieneCuenta` y `ocupada` (hay cuenta **y** alguien ha entrado alguna vez).
+
+### Quién enlaza una cuenta con un expediente
+
+La RLS de 094 no se toca: admin y gerente de RR. HH. leen y escriben, el reclutador no entra.
+Lo que se añade es que **`profile_id` solo lo escribe el admin del módulo**, porque es lo que
+dice de quién es este expediente. Va en un **trigger** y no en una política porque la RLS no
+filtra por columna: solo puede permitir o negar la fila entera. El trigger se mete únicamente
+cuando el enlace **cambia**, para que un gerente pueda seguir editando el teléfono de una ficha
+ya enlazada.
+
+Es el rol del módulo (`current_recruiting_role()`), no `profiles.role`: cada módulo decide con
+el suyo (D-053/D-057).
+
+### RingCentral: lo único que hoy se puede saber
+
+`ringcentral_ext`, a mano. La integración es **de empresa** —un JWT en `lib/ringcentral.ts`, sin
+ningún dato por persona—, así que no hay nada que sincronizar. Se valida la forma (2 a 6
+dígitos) y se guarda solo con dígitos.
+
+### Acoplada a su migración… o casi: qué pasa si se ejecuta el código antes
+
+El auditor pregunta esto en cada rama desde la caída del 2026-09-10, y aquí la respuesta tiene
+matiz.
+
+**La lectura tolera la tabla vieja.** `select("*")` no falla por una columna que aún no existe:
+la devuelve **ausente**. Y `filasDeExpediente` —la función que arma la lista, pura y probada—
+detecta que no viene `profile_id` y usa el id del expediente como id de cuenta, que es
+exactamente lo que era antes de la 106. Con la tabla vieja la lista sigue en pie; lo único que
+no puede haber son expedientes sin cuenta, que en la tabla vieja no pueden existir.
+
+**La escritura no.** Guardar `ringcentral_ext` o una fecha de salida contra la tabla vieja
+devuelve un error de Postgres con su mensaje. No hay pantalla que lo dispare todavía —esta rama
+no trae ninguna— y el error es legible, no un bucle.
+
+Así que **el orden sigue siendo migración primero**, pero si se invirtiera no habría caída: lo
+peor que pasa es que una escritura falle con un mensaje claro. Es deliberado y por eso está
+probado, con una prueba que simula la tabla anterior.
+
+### Lo que NO se hizo
+
+- **Ninguna pantalla**, que es el encargo. La lista, el botón de Reclutamiento dentro y la ficha
+  vienen después.
+- **No se tocó `/api/delete-user`**, ni sus permisos, ni su comportamiento.
+- **No se sincroniza nada con RingCentral.**
+- **No se creó una fecha de ingreso nueva**: `date_hired` ya existía y es la que el dueño llama
+  «cuándo ingresaron».
+
+### Lo no verificado
+
+**Nada se ha ejecutado contra una base**, y en esta rama eso pesa más que en las anteriores
+porque la migración **mueve datos**, no solo esquema. Lo que hay que mirar cuando el dueño la
+aplique, en este orden:
+
+1. Que corra **dos veces** seguidas sin error.
+2. Que el `raise notice` del final cuadre: tantos documentos, tantos perfiles, tantos
+   expedientes con cuenta — y que ningún `raise exception` salte.
+3. Que un documento existente siga abriéndose desde su expediente (la FK reapuntada).
+4. Que un gerente de RR. HH. **no** pueda enlazar una cuenta y un admin **sí**.
+5. Que dar de baja a alguien deshabilite su cuenta y **no** borre nada.
+6. Que **crear una cuenta nueva** cree su expediente — y que crearla siga funcionando desde una
+   sesión que no sea admin de RR. HH., que es lo que el trigger del enlace podría haber roto.
+
+La reversión existe pero **no es simétrica, y conviene saberlo antes de necesitarla**: volver a
+093 significa **borrar los expedientes sin cuenta**, porque en aquel modelo no caben. Está
+escrita al final del `.sql` con esa advertencia.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1543 pasados | 3 saltados**
+(main 98a9305: 1512 | 3; los +31 son `employee-file.test.ts`).
+
+Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol final:
+**1859 pasados | 3 saltados** (c615270: 1828 | 3). Los +31 vuelven a ser enteros de
+`employee-file.test.ts`, que en solitario da 31 — o sea que ninguna prueba de recorrido de
+`main` cambió de cuenta al aparecer los ficheros nuevos.
+
+Y tras el segundo rebase, ya sobre `main` 83553e8 (D-250 dentro): **1891 pasados | 3
+saltados** (83553e8: 1860 | 3). Los +31 siguen siendo enteros de `employee-file.test.ts`.
