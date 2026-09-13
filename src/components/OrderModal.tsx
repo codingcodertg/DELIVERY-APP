@@ -1570,7 +1570,7 @@ export function OrderModal({
                 )}
               </div>
             )}
-            {/* Y aquí también (D-NEXT). D-244 puso el desglose solo en el bloque de zona local,
+            {/* Y aquí también (D-249). D-244 puso el desglose solo en el bloque de zona local,
                 y este es el que ve quien crea un pedido paso a paso — el dueño calculó la
                 tarifa desde el mapa y no encontró el «¿Cómo se calculó?». Mismo componente y
                 misma condición: rol REAL admin. */}

@@ -14599,7 +14599,7 @@ Nota de entorno, porque el número no significa nada sin ella: **el `verify` se 
 esta rama** con cinco `next build` a la vez en la máquina, y una hubo que matarla y relanzarla. El
 número de arriba es el de una pasada completa sobre `.next` limpio.
 
-## D-NEXT · El desglose de la tarifa, en los dos sitios donde se enseña la tarifa
+## D-249 · El desglose de la tarifa, en los dos sitios donde se enseña la tarifa
 
 **Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** abrió «Nueva orden» como admin, calculó distancia y tarifa, y **no vio

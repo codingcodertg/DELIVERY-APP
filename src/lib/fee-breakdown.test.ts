@@ -150,7 +150,7 @@ describe("filasDeLaFormula", () => {
   });
 });
 
-// ---- Donde se enseña la tarifa, se enseña cómo salió (D-NEXT) -------------------------------
+// ---- Donde se enseña la tarifa, se enseña cómo salió (D-249) -------------------------------
 // D-244 puso el desglose en UN sitio, y «Tarifa sugerida» se pinta en dos: el bloque de zona
 // local y el del paso del mapa. El dueño calculó la tarifa desde el mapa —que es el camino de
 // quien crea un pedido paso a paso— y no encontró el «¿Cómo se calculó?».
