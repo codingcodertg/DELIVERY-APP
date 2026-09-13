@@ -11,14 +11,14 @@ import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
+import { AppUpdateBanner } from "@/components/AppUpdateBanner";
+import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
+import type { Profile, UserRole } from "@/lib/types";
 
 /** El fondo translúcido de los botones de la barra, en un solo sitio: lo usan «Salir» y
  *  «Switch usuario», y escribirlo dos veces habría subido el techo de colores del fichero
  *  (`inline-colors.test.ts`) por una repetición, no por una decisión de diseño. */
 const FONDO_BOTON_BARRA = "rgba(255,255,255,.1)";
-import { AppUpdateBanner } from "@/components/AppUpdateBanner";
-import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
-import type { Profile, UserRole } from "@/lib/types";
 
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
@@ -32,7 +32,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   useEffect(() => {
     if (realRole !== "admin") return;
     let vivo = true;
-    fetch("/api/impersonate/state")
+    // Con `?ask=switch`: sin él la ruta no toca la base, y así el banner —que la llama en cada
+    // carga de las cinco apps, para todo el mundo— sigue costando lo que costaba.
+    fetch("/api/impersonate/state?ask=switch")
       .then((r) => r.json())
       .then((d: { habilitado?: boolean }) => { if (vivo) setPuedeSwitch(!!d.habilitado); })
       .catch(() => { /* sin respuesta, el botón no aparece: la dirección segura */ });

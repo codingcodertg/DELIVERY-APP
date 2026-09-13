@@ -14241,6 +14241,19 @@ Dos detalles de esa respuesta, porque no son gratis:
 Y si la pregunta no obtiene respuesta, el botón **no aparece**. La dirección segura aquí es
 esconderlo: lo que se pierde es un atajo, no una capacidad.
 
+**Y preguntar cuesta, así que solo paga quien pregunta.** La primera versión metió la consulta
+del rol en el camino común de `/api/impersonate/state` — y esa ruta **la llama el banner en cada
+carga de página de las cinco apps, para todo el mundo**. Con la bandera apagada, que es el estado
+de producción hoy, eso le habría cobrado a cada persona una ida al servidor de auth y otra a
+`profiles` en cada carga, para calcular un `habilitado` que iba a ser `false` siempre. La
+cabecera del propio fichero prometía «no puede costar más que una petición», y dejó de ser verdad
+en el mismo commit.
+
+Ahora el dato caro se pide con `?ask=switch`, y **sin ese parámetro la ruta cuesta exactamente lo
+que costaba**: sin cookie, cero idas a la base. Lo pide solo el botón, que además ya sabe por su
+lado que quien mira es admin. La bandera se lee antes que nada porque es una variable de entorno
+y es gratis. Hay prueba del orden y del reparto, con mutantes en los dos.
+
 ### Un color que se escribió dos veces
 
 El fondo translúcido de los botones de la barra estaba a pelo en «Salir» y el botón nuevo iba a
@@ -14259,6 +14272,6 @@ que obliga a mirar cada vez en vez de dejar margen «por si acaso».
   antes las dos comprobaciones de producción de D-243 y D-245: el correo del enlace mágico y que
   `scope=local` cierre solo la sesión impersonada.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1753 pasados | 3 saltados**
-(main e371534: 1737 | 3; los +16 son 15 de `switch-user.test.ts` y uno del recorrido por fichero
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1756 pasados | 3 saltados**
+(main e371534: 1737 | 3; los +19 son 18 de `switch-user.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { agruparPorTienda, totalFilas } from "./switch-user";
 import type { NamedLocation, Profile } from "@/lib/types";
+import { readFileSync } from "node:fs";
 
 const u = (id: string, full_name: string, role: string, store: string | null): Profile =>
   ({ id, full_name, role, store, username: null } as unknown as Profile);
@@ -110,5 +111,43 @@ describe("casos de borde que no deben romper la lista", () => {
     const conVacia = [...TIENDAS, { name: "  ", address: "" }];
     const grupos = agruparPorTienda(GENTE, conVacia);
     expect(grupos.map((g) => g.tienda)).toEqual(["McAllen", "Brownsville", null]);
+  });
+});
+
+// ---- Lo que cuesta preguntar, que es lo que casi se cuela ----------------------------------
+// `/api/impersonate/state` la llama el banner en CADA carga de página de las cinco apps, para
+// todo el mundo. Meter ahí la consulta del rol le habría cobrado a cada persona una ida al
+// servidor de auth y otra a `profiles` en cada carga, para calcular un `habilitado` que hoy
+// —bandera apagada— es siempre `false`. El parámetro existe para no cobrárselo a quien no
+// pregunta.
+describe("el coste de /api/impersonate/state", () => {
+  const src = readFileSync("src/app/api/impersonate/state/route.ts", "utf8");
+  const codigo = src.split(/\r?\n/).filter((l) => {
+    const t = l.trim();
+    return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*");
+  }).join("\n");
+
+  it("la salida sin cookie va ANTES de tocar la base", () => {
+    const iSalida = codigo.indexOf("if (!guardado && !(preguntanPorElBoton && activa))");
+    const iAuth = codigo.indexOf("auth.getUser()");
+    const iPerfil = codigo.indexOf('.from("profiles")');
+    expect(iSalida).toBeGreaterThan(-1);
+    expect(iAuth).toBeGreaterThan(-1);
+    expect(iPerfil).toBeGreaterThan(-1);
+    expect(iSalida).toBeLessThan(iAuth);
+    expect(iSalida).toBeLessThan(iPerfil);
+  });
+
+  it("y la bandera se lee antes que nada, porque es gratis", () => {
+    // Es una lectura de entorno; ponerla después de la consulta no ahorraría nada.
+    expect(codigo.indexOf("impersonacionActiva()")).toBeLessThan(codigo.indexOf("auth.getUser()"));
+  });
+
+  it("solo el botón pide el dato caro, y el banner no", () => {
+    const barra = readFileSync("src/components/TopBar.tsx", "utf8");
+    expect(barra).toContain("/api/impersonate/state?ask=switch");
+    const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
+    expect(banner).toContain('fetch("/api/impersonate/state")');
+    expect(banner).not.toContain("ask=switch");
   });
 });
