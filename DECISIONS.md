@@ -14177,3 +14177,88 @@ Se midieron antes de escribirlas otra vez, y no se tocó nada:
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1737 pasados | 3 saltados**
 (main 45b1bd1: 1719 | 3; los +18 son de `reabrir-tras-carga.test.ts`).
+
+## D-NEXT · «Switch usuario»: la lista por tienda, que es una puerta y no una función nueva
+
+**Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño:** *«en el hub haya un botón que diga switch usuario y ahí tenga la lista
+sorted por tienda»*.
+
+### Qué añade, y qué no
+
+**No añade ninguna capacidad.** Entrar como otra persona existe desde D-243, con sus cuatro
+condiciones, su rastro y su cookie de vuelta; lo que faltaba era **llegar hasta ahí**. Hasta hoy
+vivía solo dentro de la ficha de cada usuario: para reproducir el fallo de Patricia había que
+acordarse de su nombre, abrir Usuarios, encontrarla y abrirla.
+
+El panel usa **exactamente el mismo camino de servidor** —`/api/impersonate` con el id— y no
+puede saltarse nada aunque quisiera: lo que pinta o deja de pintar es comodidad, y la barrera
+sigue estando en la ruta, que vuelve a preguntar el rol contra la base.
+
+La ficha conserva su botón. Son **dos puertas al mismo camino**, a propósito: quien ya está
+mirando a alguien no debería tener que salir a buscarlo en una lista.
+
+### El orden es la mitad del encargo
+
+El dueño no pidió «una lista», pidió *«sorted por tienda»*, y esa palabra es la funcionalidad:
+quien busca a alguien para reproducir un fallo no piensa «Patricia Hernández», piensa **«la de
+McAllen»**. Agrupar convierte una lista de treinta nombres en cuatro listas cortas.
+
+Las reglas del orden viven en una función pura y probada:
+
+- **Las tiendas en el orden de Ajustes, no alfabético.** Ese orden lo puso alguien y suele ser el
+  que tiene en la cabeza quien mira.
+- Dentro de cada tienda, por nombre.
+- **Los que no tienen tienda van al final, en su propio grupo** — no se reparten ni se esconden.
+  Y con ellos los de una tienda **que ya no está en Ajustes**: si alguien borra «Weslaco», su
+  gente no puede desaparecer de la lista. Hay prueba de ese caso, que es el que se olvida.
+- Una tienda **sin gente no sale**: un grupo vacío es ruido en una lista que existe para
+  encontrar rápido.
+- El buscador filtra **antes** de agrupar, así que una tienda cuyos miembros no casan desaparece
+  en vez de quedarse como cabecera huérfana.
+
+### Un admin sale en la lista, pero sin botón
+
+D-243 no deja entrar como otro administrador, y aquí eso se ve en vez de esconderse: la fila
+aparece con un guion y el motivo al pasar el ratón. **Esconder la fila habría sido peor**: quien
+no encuentra a alguien en una lista supone que la lista está rota, no que hay una regla.
+
+### Que el botón no exista si la función está apagada
+
+`IMPERSONATION_ENABLED` sale apagada (D-243) y la va a encender el dueño a mano. Un botón que
+abre una lista para luego chocar contra el 404 de la ruta es peor que no estar, así que el botón
+pregunta primero: `/api/impersonate/state` responde ahora `habilitado`.
+
+Dos detalles de esa respuesta, porque no son gratis:
+
+- **Solo se le dice a un admin**, con el rol leído de la base. A cualquier otro se le contesta
+  que no aunque la bandera esté encendida: quien no puede usar la función tampoco necesita saber
+  que existe.
+- **Dentro de una impersonación es siempre `false`.** Ahí manda el banner con «volver», y el rol
+  que se lee es el del impersonado, así que saldría `false` solo — se deja explícito para que no
+  dependa de esa coincidencia.
+
+Y si la pregunta no obtiene respuesta, el botón **no aparece**. La dirección segura aquí es
+esconderlo: lo que se pierde es un atajo, no una capacidad.
+
+### Un color que se escribió dos veces
+
+El fondo translúcido de los botones de la barra estaba a pelo en «Salir» y el botón nuevo iba a
+repetirlo. El guardián de colores lo cazó —`TopBar.tsx` pasaba de 6 a 7— y la respuesta no fue
+subir el techo sino **quitar la repetición**: una constante, y el techo **baja** a 5.
+
+Merece la pena decirlo porque la tabla de techos **no admite holgura**: al bajar el fichero a 5,
+la prueba exige que el techo sea 5. Eso es lo que la hace un techo y no una estimación, y es lo
+que obliga a mirar cada vez en vez de dejar margen «por si acaso».
+
+### Lo no verificado
+
+- **Nadie ha abierto el panel en un navegador.** Probado está el orden, con sus casos de borde, y
+  que la lista no pierde ni duplica a nadie. Lo que no se ha visto es cómo se ve.
+- **Ni se ha entrado como nadie desde él**, porque la bandera sigue apagada — y encenderla pide
+  antes las dos comprobaciones de producción de D-243 y D-245: el correo del enlace mágico y que
+  `scope=local` cierre solo la sesión impersonada.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1753 pasados | 3 saltados**
+(main e371534: 1737 | 3; los +16 son 15 de `switch-user.test.ts` y uno del recorrido por fichero
+de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).
