@@ -1,4 +1,11 @@
--- 104 · Titulo por persona en la pastilla del perfil (D-NEXT)
+-- 104 · Titulo por persona en la pastilla del perfil
+--
+-- La decision que la acompana es la de la rama `titulo-por-persona`, en DECISIONS.md.
+--
+-- SIN EL MARCADOR DE DECISION SIN NUMERAR, Y NO ES UN OLVIDO. Una migracion se ejecuta a
+-- mano y su fila en `schema_migrations` guarda el checksum del cuerpo; sustituir el marcador
+-- por el numero despues cambiaria ese cuerpo y `migrate-status` diria «cambiada» para
+-- siempre. Por eso se cita la rama, que no cambia al numerar.
 --
 -- Hasta hoy la pastilla de una persona decia SIEMPRE la etiqueta de su rol
 -- (ROLE_INFO, constants.ts): "Gerente de Oficina" para todos los manager. El
@@ -91,4 +98,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('104_profile_title.sql', '4c14def50a14031821d34366ffcd183fda457a1aa8df96bbc5f8a47ae2b20cee') on conflict (name) do nothing;
+  values ('104_profile_title.sql', '74b87f6fe3d86df0f9a023815d627f1bbe0373380333282428a0edaaf1c8c657') on conflict (name) do nothing;

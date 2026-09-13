@@ -15277,3 +15277,21 @@ que va junto al selector es otra pastilla con fondo de color fijo y texto blanco
 **3 a 4**, y el total de Entregas de **79 a 80** (63 → 64 blancos). Es el mismo blanco sobre
 color fijo que explica los otros 63, no una excepción nueva: la tabla existe para que subir
 cueste una línea en una decisión, y esta es esa línea.
+
+> **Los números de arriba son del 2026-09-10 y el rebase los movió; se anota, no se reescribe.**
+> Sobre `main` c615270 la tabla ya no es la de entonces: D-234 sumó el blanco del botón de
+> reintentar y D-247 bajó la barra superior de 6 a 5 al dejar de repetir un color. Con esos dos
+> dentro, el total de Entregas pasa de **79 a 80** y los blancos de **64 a 65** al sumar el de
+> esta rama. El techo de `UserDialog.tsx` sigue siendo el que dice el párrafo, **3 → 4**, que es
+> lo único que esta decisión autoriza. Medido: el guardián pasa entero con esos números, y como
+> la tabla no admite holgura, pasar significa que cada fichero llega exacto a su techo.
+>
+> **Y la migración se queda sin el marcador de decisión sin numerar.** Lo llevaba en la
+> cabecera, y el checksum inscrito en producción lo incluía: sustituirlo al numerar habría
+> dejado `migrate-status` diciendo «cambiada» para siempre. Ahora cita la rama, como hace
+> `107_session_gate.sql`. Checksum viejo `4c14def5…2cee`, nuevo `74b87f6f…c657`; la fila la
+> realinea el orquestador antes de fusionar. Los dos `comment on` de columna de la 104 no
+> llevaban marcador y no se han tocado.
+>
+> La 104 **ya está aplicada en producción**, así que esta rama tampoco depende del orden de
+> fusión.
