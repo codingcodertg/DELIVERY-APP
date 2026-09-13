@@ -14844,3 +14844,9 @@ están probadas en su parte pura; lo que hacen contra Supabase se verá en el en
 de `main` sin moverse: se midió sobre `4e21f19`, vale para `2e9d0ed` porque el árbol de `src`
 de los dos es el **mismo objeto** —comprobado con `git rev-parse <sha>:src`— tras la reversión
 del PR #49, y sobre `98a9305` (D-233) lo midió el orquestador.
+
+Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol final:
+**1860 pasados | 3 saltados** (c615270: 1828 | 3). Los +32 son enteros de `points.test.ts`,
+que corriendo en solitario da 32 — o sea que ninguna prueba de recorrido de `main` cambió de
+cuenta al aparecer los ficheros nuevos. La cifra de arriba (+29) es de antes del commit que
+cerró el `TRUNCATE`, y se deja como estaba.
