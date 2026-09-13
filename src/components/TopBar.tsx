@@ -298,7 +298,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </div>
           )
         )}
-        {/* «Switch usuario» (D-NEXT): la puerta cómoda a lo que D-243 ya permitía desde la
+        {/* «Switch usuario» (D-247): la puerta cómoda a lo que D-243 ya permitía desde la
             ficha de cada usuario. Solo para el rol REAL admin —un admin previsualizando como
             vendedor tiene que ver lo que ve el vendedor— y solo si la función está encendida:
             un botón que abre una lista para luego chocar con el 404 de `/api/impersonate` es

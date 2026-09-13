@@ -20,7 +20,7 @@ import { esAdmin } from "@/lib/impersonation";
  *
  * ---
  *
- * **`?ask=switch` (D-NEXT), y el parámetro existe para no cobrarle a quien no pregunta.**
+ * **`?ask=switch` (D-247), y el parámetro existe para no cobrarle a quien no pregunta.**
  *
  * El botón «Switch usuario» necesita saber si la función está encendida, y eso exige leer el rol
  * de la base. Pero esta ruta la llama **el banner en cada carga de página de las cinco apps**,

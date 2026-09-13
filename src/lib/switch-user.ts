@@ -2,7 +2,7 @@ import type { NamedLocation, Profile } from "@/lib/types";
 import { esAdmin } from "@/lib/impersonation";
 
 /**
- * La lista de «Switch usuario», agrupada por tienda (D-NEXT).
+ * La lista de «Switch usuario», agrupada por tienda (D-247).
  *
  * El dueño lo pidió así —*«la lista sorted por tienda»*— y el orden importa más de lo que
  * parece: quien busca a alguien para reproducir un fallo no piensa «Patricia Hernández», piensa

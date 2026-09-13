@@ -14178,7 +14178,7 @@ Se midieron antes de escribirlas otra vez, y no se tocó nada:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1737 pasados | 3 saltados**
 (main 45b1bd1: 1719 | 3; los +18 son de `reabrir-tras-carga.test.ts`).
 
-## D-NEXT · «Switch usuario»: la lista por tienda, que es una puerta y no una función nueva
+## D-247 · «Switch usuario»: la lista por tienda, que es una puerta y no una función nueva
 
 **Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** *«en el hub haya un botón que diga switch usuario y ahí tenga la lista

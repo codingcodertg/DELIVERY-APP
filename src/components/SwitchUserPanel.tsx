@@ -10,7 +10,7 @@ import { agruparPorTienda, totalFilas } from "@/lib/switch-user";
 import type { UserRole } from "@/lib/types";
 
 /**
- * «Switch usuario»: la lista por tienda desde la barra del hub (D-NEXT).
+ * «Switch usuario»: la lista por tienda desde la barra del hub (D-247).
  *
  * Es una **puerta**, no una función nueva. Entrar como alguien ya existía desde D-243, pero solo
  * dentro de la ficha de cada usuario: para reproducir el fallo de Patricia había que acordarse

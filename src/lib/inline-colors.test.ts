@@ -150,7 +150,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/components/RetryButton.tsx": 1,
     "src/components/SessionExpired.tsx": 8,
     "src/components/ShiftClock.tsx": 1,
-    // Baja de 6 a 5 (D-NEXT): el fondo translúcido de los botones de la barra estaba escrito
+    // Baja de 6 a 5 (D-247): el fondo translúcido de los botones de la barra estaba escrito
     // dos veces y ahora es una constante. El techo baja con él — la tabla no admite holgura, y
     // eso es lo que hace que sea un techo y no una estimación.
     "src/components/TopBar.tsx": 5,
