@@ -207,7 +207,7 @@ describe("debeCerrarSesion · los tres casos que pidió el dueño, y los que no"
 // ninguno toque esa clave.
 describe("el cierre de sesión no borra las cuentas recordadas", () => {
   const caminos = [
-    "src/lib/supabase/middleware.ts",       // el cierre de las 18:30 (D-NEXT)
+    "src/lib/supabase/middleware.ts",       // el cierre de las 18:30 (D-248)
     "src/app/auth/signout/route.ts",        // el Salir de servidor
     "src/app/no-access/SignOut.tsx",        // el Salir de la pantalla sin acceso
     "src/lib/timetracker-data-provider.tsx", // el signOut global del Time Tracker

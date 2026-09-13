@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exentoDelCierre } from "@/lib/session-cutoff";
 
 /**
- * ¿A quien pregunta le toca el cierre de las 18:30? (D-NEXT)
+ * ¿A quien pregunta le toca el cierre de las 18:30? (D-248)
  *
  * Existe por una razón estrecha: **el aviso previo**. La barrera es el middleware y no cambia;
  * lo que la pantalla necesita saber es si tiene que avisar, y avisar a un admin de un cierre

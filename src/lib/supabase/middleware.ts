@@ -41,7 +41,7 @@ export { isPublicPath } from "@/lib/route-guard";
  * su tabla de pruebas. `refreshSession` se retira: esta función la cubre entera (mismo refresco,
  * mismo salto de `/api/`, ampliado a los ficheros estáticos).
  *
- * **El cierre de las 18:30 (D-NEXT).** Aquí, y no en un cron ni en la pantalla, porque este es
+ * **El cierre de las 18:30 (D-248).** Aquí, y no en un cron ni en la pantalla, porque este es
  * el único punto por el que pasa **cada navegación** autenticada de las cinco apps. No es «a las
  * 18:30 corre un cierre»: es que una sesión de un rol no exento **no vale** si se autenticó
  * antes del último corte que ya pasó. Escrito así cubre los tres casos con una sola condición
@@ -103,7 +103,7 @@ export async function updateSession(
   const cruda = request.cookies.get(COOKIE_RETORNO)?.value ?? null;
   const vuelta = desempaquetar(cruda);
   if (vuelta && impersonacionCaducada(vuelta.inicio, Date.now())) {
-    // Se manda al restaurador, no al login (D-NEXT, al rebasar sobre D-243). Antes esto cortaba
+    // Se manda al restaurador, no al login (D-248, al rebasar sobre D-243). Antes esto cortaba
     // —fuera cookies y a poner la contraseña— porque el middleware no tenía forma de devolver
     // la sesión del admin; con la ruta de vuelta sí la hay, y la vuelta buena es la misma que
     // pulsando el botón. **Sin borrar nada aquí**: la cookie de retorno es lo único de donde
@@ -180,7 +180,7 @@ export async function updateSession(
       // volver a entrar, la persona aterriza donde estaba. Las cookies de sesión se borran en
       // la respuesta; `remembered-accounts` vive en `localStorage` y esto no lo toca, que es
       // lo que hace que el login rápido siga estando (D-193).
-      // …salvo si quien está dentro es un admin impersonando (D-243 + D-NEXT). Mandarlo al
+      // …salvo si quien está dentro es un admin impersonando (D-243 + D-248). Mandarlo al
       // login **como el vendedor** sería justo lo que la decisión de «entrar como» promete que
       // no pasa: quedarse fuera de la propia cuenta por una regla que ni siquiera es suya. Se
       // le devuelve su sesión, y la fila de fin se escribe con motivo `cutoff`.

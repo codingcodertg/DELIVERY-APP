@@ -14275,7 +14275,7 @@ que obliga a mirar cada vez en vez de dejar margen «por si acaso».
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1756 pasados | 3 saltados**
 (main e371534: 1737 | 3; los +19 son 18 de `switch-user.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).
-## D-NEXT · La sesión se cierra a las 18:30, y eso es una frontera, no un reloj
+## D-248 · La sesión se cierra a las 18:30, y eso es una frontera, no un reloj
 
 **Fecha:** 2026-09-11 · **Versión:** las tres apps y `package.json` (las pone el orquestador).
 **Con migración: la 107, y esta rama va ACOPLADA a ella** — el middleware la llama.

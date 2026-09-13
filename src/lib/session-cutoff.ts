@@ -1,5 +1,5 @@
 /**
- * El cierre de sesión de las 18:30 (D-NEXT).
+ * El cierre de sesión de las 18:30 (D-248).
  *
  * Pedido por el dueño: a las 6:30 PM todo el mundo sale, menos él y los administradores, y al
  * volver solo hay que poner la contraseña — la cuenta sigue recordada (D-193).

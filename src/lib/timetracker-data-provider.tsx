@@ -830,7 +830,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     const { error } = await supabase.auth.signOut({ scope: "global" });
     if (error) throw error;
     // Igual que en el otro cierre: la exención del corte de las 18:30 es de la persona, y esto
-    // no recarga la página (D-NEXT).
+    // no recarga la página (D-248).
     olvidarExencion();
   }, [supabase]);
 

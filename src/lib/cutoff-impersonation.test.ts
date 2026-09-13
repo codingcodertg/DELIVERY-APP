@@ -5,7 +5,7 @@ import { updateSession, type PuertaDeSesion } from "@/lib/supabase/middleware";
 import { COOKIE_RETORNO, empaquetar } from "@/lib/impersonation-cookie";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
-// Donde se cruzan las dos ramas: el corte de las 18:30 (D-NEXT) pillando a un admin dentro de la
+// Donde se cruzan las dos ramas: el corte de las 18:30 (D-248) pillando a un admin dentro de la
 // sesión de otra persona (D-243). Mandarlo al login COMO EL VENDEDOR sería dejarlo fuera de su
 // propia cuenta por una regla que ni siquiera es suya — y es justo lo que «entrar como» promete
 // que no pasa.

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * ¿A quien está mirando le toca el cierre de las 18:30? (D-NEXT)
+ * ¿A quien está mirando le toca el cierre de las 18:30? (D-248)
  *
  * Lo pregunta al servidor, porque **el cliente no lo puede saber**. La exención es «admin de
  * Entregas» (`public.profiles.role`) u «owner de fichaje» (`clockin.profiles.role`), y ninguno de

@@ -13,7 +13,7 @@ export default function SignOut() {
       onClick={async () => {
         await createClient().auth.signOut();
         // La respuesta de «¿estás exento del cierre de las 18:30?» va con la persona, y esta
-        // navegación no recarga la página (D-NEXT). Sin esto, quien entre después en el mismo
+        // navegación no recarga la página (D-248). Sin esto, quien entre después en el mismo
         // equipo hereda la del anterior.
         olvidarExencion();
         router.replace("/login");

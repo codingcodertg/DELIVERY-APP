@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ImpersonationBanner />
         <PrefsProvider>
           {children}
-          {/* El aviso del cierre de las 18:30 (D-NEXT), aquí por lo mismo que `VersionStamp`:
+          {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:
               es el único layout por el que pasan las cinco apps. No cierra nada — la barrera
               es el middleware.
 

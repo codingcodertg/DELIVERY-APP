@@ -8,7 +8,7 @@ import { CIERRE_DIARIO, horaDelNegocio, minutosHastaElCorte, pasoElCorte, tocaAv
 import { useCutoffExempt } from "@/lib/use-cutoff-exempt";
 
 /**
- * El aviso de que la sesión se va a cerrar a las 18:30 (D-NEXT).
+ * El aviso de que la sesión se va a cerrar a las 18:30 (D-248).
  *
  * **Esto no cierra nada.** La barrera es el middleware, que comprueba en cada navegación si la
  * sesión se autenticó antes del último corte. Este componente existe para que el corte no sea

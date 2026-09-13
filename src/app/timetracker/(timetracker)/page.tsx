@@ -920,7 +920,7 @@ export default function TrackTimePage() {
   }), []);
 
   /**
-   * El cronómetro se para SOLO antes del cierre de las 18:30 (D-NEXT).
+   * El cronómetro se para SOLO antes del cierre de las 18:30 (D-248).
    *
    * Si la sesión se cierra con el reloj corriendo, la fila queda viva sin nadie que la lata y
    * a los quince minutos la cierra el guardián de huérfanas — en su último latido, perdiendo

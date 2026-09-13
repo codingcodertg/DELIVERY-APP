@@ -7,7 +7,7 @@ import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
 /**
- * La vuelta que nadie pulsa (D-NEXT, al rebasar «entrar como» con el cierre de las 18:30).
+ * La vuelta que nadie pulsa (D-248, al rebasar «entrar como» con el cierre de las 18:30).
  *
  * Hace lo mismo que `/api/impersonate/return`, pero por `GET` y terminando en una redirección,
  * porque quien la llama es **el middleware** y desde ahí solo se puede redirigir.
