@@ -15122,3 +15122,6 @@ Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol f
 **1859 pasados | 3 saltados** (c615270: 1828 | 3). Los +31 vuelven a ser enteros de
 `employee-file.test.ts`, que en solitario da 31 — o sea que ninguna prueba de recorrido de
 `main` cambió de cuenta al aparecer los ficheros nuevos.
+
+Y tras el segundo rebase, ya sobre `main` 83553e8 (D-250 dentro): **1891 pasados | 3
+saltados** (83553e8: 1860 | 3). Los +31 siguen siendo enteros de `employee-file.test.ts`.
