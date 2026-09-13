@@ -1570,6 +1570,13 @@ export function OrderModal({
                 )}
               </div>
             )}
+            {/* Y aquí también (D-NEXT). D-244 puso el desglose solo en el bloque de zona local,
+                y este es el que ve quien crea un pedido paso a paso — el dueño calculó la
+                tarifa desde el mapa y no encontró el «¿Cómo se calculó?». Mismo componente y
+                misma condición: rol REAL admin. */}
+            {realRole === "admin" && feeSuggestion.breakdown && (
+              <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
+            )}
             {feeSuggestion.needsApproval && (d.delivery_address || "").trim() && (
               <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
                 ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}

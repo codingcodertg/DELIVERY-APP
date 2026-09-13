@@ -4,6 +4,7 @@ import {
   TARIFA_LISTA, TARIFA_DESCUENTO, UMBRAL_CORTO, UMBRAL_LARGO, FACTOR_MEDIO, filasDeLaFormula,
 } from "./pricing";
 import { todayISO } from "./utils";
+import { readFileSync } from "node:fs";
 
 // El desglose existe para que un admin pueda ver POR QUÉ el botón dice lo que dice. Si pudiera
 // discrepar del botón sería peor que no tenerlo, así que lo que se prueba aquí no es que el
@@ -146,5 +147,49 @@ describe("filasDeLaFormula", () => {
     expect(filas[1].tramo).toBe(pasoTarifa(UMBRAL_CORTO, true, TARIFA_LISTA).tramo);
     expect(filas[2].tramo).toBe(pasoTarifa(UMBRAL_LARGO + 1, true, TARIFA_LISTA).tramo);
     expect(filas[3].tramo).toBe(pasoTarifa(0, false, TARIFA_LISTA).tramo);
+  });
+});
+
+// ---- Donde se enseña la tarifa, se enseña cómo salió (D-NEXT) -------------------------------
+// D-244 puso el desglose en UN sitio, y «Tarifa sugerida» se pinta en dos: el bloque de zona
+// local y el del paso del mapa. El dueño calculó la tarifa desde el mapa —que es el camino de
+// quien crea un pedido paso a paso— y no encontró el «¿Cómo se calculó?».
+//
+// La prueba recorre el fichero en vez de mirar una lista escrita a mano, así que el tercer sitio
+// que aparezca tampoco podrá quedarse sin él.
+describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", () => {
+  const src = readFileSync("src/components/OrderModal.tsx", "utf8");
+  const lineas = src.split(/\r?\n/);
+
+  const dondeSePinta = (aguja: string) =>
+    lineas.reduce<number[]>((acc, l, i) => (l.includes(aguja) ? [...acc, i] : acc), []);
+
+  const sitios = dondeSePinta('t("Suggested fee:"');
+  const desgloses = dondeSePinta("<FeeBreakdownDetails");
+
+  it("hay al menos dos sitios, que es lo que hizo falta descubrir", () => {
+    // Control: si el recorrido devolviera cero o uno, la prueba de abajo pasaría sin comprobar
+    // nada — que es exactamente cómo D-244 se quedó a medias.
+    expect(sitios.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("y hay un desglose por cada uno", () => {
+    expect(desgloses).toHaveLength(sitios.length);
+  });
+
+  it("cada desglose va después de su «Tarifa sugerida» y antes del siguiente", () => {
+    // Que los números cuadren no basta: los dos desgloses podrían estar juntos al final. Se
+    // exige que cada bloque tenga el suyo dentro de su tramo.
+    for (let i = 0; i < sitios.length; i++) {
+      const desde = sitios[i];
+      const hasta = i + 1 < sitios.length ? sitios[i + 1] : lineas.length;
+      const dentro = desgloses.filter((d) => d > desde && d < hasta);
+      expect(dentro, `el bloque de la línea ${desde + 1} no tiene desglose`).toHaveLength(1);
+    }
+  });
+
+  it("y los dos con la misma condición: rol REAL admin", () => {
+    const conGuarda = lineas.filter((l) => l.includes('realRole === "admin" && feeSuggestion.breakdown'));
+    expect(conGuarda).toHaveLength(sitios.length);
   });
 });
