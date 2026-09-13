@@ -14866,6 +14866,18 @@ cerró el `TRUNCATE`, y se deja como estaba.
 ingresaron, cuándo se fueron, si están desactivados, si tienen usuario creado, si lo ocupan,
 correo, teléfono, si tienen RingCentral— y Reclutamiento como un botón dentro.
 
+> **Nota al rebasar sobre `main` c615270 (2026-09-13).** Dos cosas que la entrada daba por
+> pendientes ya pasaron. La 106 **está aplicada en producción**, así que la frase de arriba
+> —que la aplica el dueño antes de fusionar— describe lo que se planeó, no lo que queda por
+> hacer, y esta rama ya no depende del orden de fusión.
+>
+> Y el `.sql` **se queda sin el marcador de decisión sin numerar**: lo llevaba en la cabecera y
+> dentro del `comment on` de la tabla, y el checksum inscrito lo incluía, así que sustituirlo al
+> numerar habría dejado `migrate-status` diciendo «cambiada» para siempre. Ahora cita la rama,
+> como hace `107_session_gate.sql`. Checksum viejo `fe51b81e…a2a9`, nuevo `cbf01016…02d4`; la
+> fila del ledger la realinea el orquestador antes de fusionar, y queda declarado aquí en vez
+> de tapado.
+
 **Este encargo no trae pantalla**: datos y librería. La pantalla es el siguiente.
 
 ### El problema entero cabe en una línea de 093
@@ -14920,6 +14932,16 @@ pregunta en contestable:
 | Perfiles hoy | **33** (14 ventas · 6 contabilidad · 5 gerencia · 4 almacén · 2 admin · 1 logística · 1 chofer) |
 | Filas que crea la 106 | **33** |
 | Documentos sin expediente | **0** |
+
+> **La tabla es del 2026-09-10 y los números envejecieron; se anota, no se reescribe.** Al
+> rebasar sobre `main` c615270 (2026-09-13) la migración ya estaba aplicada en producción, y
+> lo medido allí por el orquestador es **35 perfiles y 35 expedientes**, no 33: entraron dos
+> cuentas más entre una fecha y otra. Los documentos huérfanos siguen en **0**. El reparto por
+> rol de arriba es el de aquel día y no se ha vuelto a contar. Yo no lo he medido: desde una
+> rama no se toca producción, así que este número llega de la sesión que la aplicó.
+>
+> Lo que el cambio de cifra no cambia: la 106 crea una fila por perfil sin expediente, sean 33
+> o 35, y la lista habría enseñado a todos igual por la fila sintética de `filasDeExpediente`.
 
 La tabla está **vacía**: no hay ninguna lista que esta rama sustituya, la **estrena**. Y el
 pedido del dueño fue literal —«los expedientes de todos los empleados»—, así que crear los 33 es

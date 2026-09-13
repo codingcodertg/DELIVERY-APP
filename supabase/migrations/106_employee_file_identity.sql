@@ -1,4 +1,11 @@
--- 106 · El expediente deja de depender de la cuenta (D-NEXT)
+-- 106 · El expediente deja de depender de la cuenta
+--
+-- La decision que la acompana es la de la rama `hr-expediente-propio`, en DECISIONS.md.
+--
+-- SIN EL MARCADOR DE DECISION SIN NUMERAR, Y NO ES UN OLVIDO. Una migracion se ejecuta a
+-- mano y su fila en `schema_migrations` guarda el checksum del cuerpo; sustituir el marcador
+-- por el numero despues cambiaria ese cuerpo y `migrate-status` diria «cambiada» para
+-- siempre. Por eso se cita la rama, que no cambia al numerar.
 --
 -- El dueno quiere en HR el expediente de TODA la plantilla: cuando ingresaron, cuando
 -- se fueron, si estan desactivados, si tienen usuario creado, si lo ocupan, correo,
@@ -262,7 +269,7 @@ begin
 end $$;
 
 comment on table recruiting.employee_files is
-  'Ficha principal de la persona en RR. HH. (D-NEXT). Identidad propia: la cuenta (profile_id) es opcional y puede faltar o irse sin llevarse el expediente. Solo admin y gerente de RR. HH. (094).';
+  'Ficha principal de la persona en RR. HH. (rama `hr-expediente-propio`). Identidad propia: la cuenta (profile_id) es opcional y puede faltar o irse sin llevarse el expediente. Solo admin y gerente de RR. HH. (094).';
 
 -- ===========================================================================
 -- Reversion
@@ -287,4 +294,4 @@ comment on table recruiting.employee_files is
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('106_employee_file_identity.sql', 'fe51b81eecf0697d51bc9365aaf2390a7f78dafb934c404e62139edfb059a2a9') on conflict (name) do nothing;
+  values ('106_employee_file_identity.sql', 'cbf01016cde68beab5d4af188275a9e702c0472a631442945e98c4428ad302d4') on conflict (name) do nothing;
