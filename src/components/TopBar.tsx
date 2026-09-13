@@ -10,14 +10,36 @@ import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
 import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
 import type { Profile, UserRole } from "@/lib/types";
+
+/** El fondo translúcido de los botones de la barra, en un solo sitio: lo usan «Salir» y
+ *  «Switch usuario», y escribirlo dos veces habría subido el techo de colores del fichero
+ *  (`inline-colors.test.ts`) por una repetición, no por una decisión de diseño. */
+const FONDO_BOTON_BARRA = "rgba(255,255,255,.1)";
 
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, deliveries, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching } = useData();
+  // Si la función está encendida lo dice el servidor, no el cliente: la bandera vive en el
+  // entorno y aquí no se puede leer. `/api/impersonate/state` contesta `habilitado` solo a un
+  // admin, y `false` mientras se está dentro de una impersonación.
+  const [puedeSwitch, setPuedeSwitch] = useState(false);
+  const [switchAbierto, setSwitchAbierto] = useState(false);
+  useEffect(() => {
+    if (realRole !== "admin") return;
+    let vivo = true;
+    // Con `?ask=switch`: sin él la ruta no toca la base, y así el banner —que la llama en cada
+    // carga de las cinco apps, para todo el mundo— sigue costando lo que costaba.
+    fetch("/api/impersonate/state?ask=switch")
+      .then((r) => r.json())
+      .then((d: { habilitado?: boolean }) => { if (vivo) setPuedeSwitch(!!d.habilitado); })
+      .catch(() => { /* sin respuesta, el botón no aparece: la dirección segura */ });
+    return () => { vivo = false; };
+  }, [realRole]);
   const { lang, t } = usePrefs();
   // `me` is the EFFECTIVE user — its role follows the admin "view as" preview.
   const me = ctxMe ?? propMe;
@@ -276,9 +298,27 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </div>
           )
         )}
+        {/* «Switch usuario» (D-NEXT): la puerta cómoda a lo que D-243 ya permitía desde la
+            ficha de cada usuario. Solo para el rol REAL admin —un admin previsualizando como
+            vendedor tiene que ver lo que ve el vendedor— y solo si la función está encendida:
+            un botón que abre una lista para luego chocar con el 404 de `/api/impersonate` es
+            peor que no estar. Dentro de una impersonación tampoco: ahí manda el banner. */}
+        {realRole === "admin" && puedeSwitch && (
+          <div style={{ position: "relative" }}>
+            <button
+              className="tab"
+              onClick={() => setSwitchAbierto((v) => !v)}
+              aria-expanded={switchAbierto}
+              style={{ background: FONDO_BOTON_BARRA }}
+            >
+              ⇄ {t("Switch user", "Switch usuario")}
+            </button>
+            {switchAbierto && <SwitchUserPanel onClose={() => setSwitchAbierto(false)} />}
+          </div>
+        )}
         {realRole === "admin" && (
           <form action="/auth/signout" method="post">
-            <button className="tab" type="submit" style={{ background: "rgba(255,255,255,.1)" }}>
+            <button className="tab" type="submit" style={{ background: FONDO_BOTON_BARRA }}>
               {t("Sign out", "Salir")}
             </button>
           </form>

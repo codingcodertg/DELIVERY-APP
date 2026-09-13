@@ -150,7 +150,10 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/components/RetryButton.tsx": 1,
     "src/components/SessionExpired.tsx": 8,
     "src/components/ShiftClock.tsx": 1,
-    "src/components/TopBar.tsx": 6,
+    // Baja de 6 a 5 (D-NEXT): el fondo translúcido de los botones de la barra estaba escrito
+    // dos veces y ahora es una constante. El techo baja con él — la tabla no admite holgura, y
+    // eso es lo que hace que sea un techo y no una estimación.
+    "src/components/TopBar.tsx": 5,
     "src/components/UserDialog.tsx": 3,
     "src/components/UsersImportModal.tsx": 3,
   };
@@ -190,7 +193,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     }
   });
 
-  it("el total es 80, y de esos 64 son el blanco sobre color", () => {
+  it("el total es 79, y de esos 64 son el blanco sobre color", () => {
     // El número entero, para que un cambio que reparta colores entre ficheros sin subir
     // ninguno por encima de su techo no pase desapercibido.
     let total = 0;
@@ -200,7 +203,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       total += h.length;
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
-    expect(total).toBe(80);
+    expect(total).toBe(79);
     expect(blancos).toBe(64);
   });
 });
