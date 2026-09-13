@@ -154,7 +154,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               />
             </div>
           )}
-          {/* El título de la pastilla (D-NEXT). Lo escribe el dueño, por persona, y no se
+          {/* El título de la pastilla (D-252). Lo escribe el dueño, por persona, y no se
               traduce: sale igual en los dos idiomas. Vacío = la etiqueta del rol, como
               siempre — por eso el placeholder es justo esa etiqueta, para que se vea qué
               va a salir si no se escribe nada.

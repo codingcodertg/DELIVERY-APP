@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // for the same reason: landingRoute() and the module selector need them.
     // title/title_color: la pastilla de "Mi cuenta" se pinta con `me`, y sin estas dos
     // columnas la persona con título vería ahí la etiqueta de su rol y en el resto de
-    // la app su título (D-NEXT).
+    // la app su título (D-252).
     .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, title, title_color")
     .eq("id", user.id)
     .maybeSingle();

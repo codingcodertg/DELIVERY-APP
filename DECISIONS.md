@@ -15126,7 +15126,7 @@ Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol f
 Y tras el segundo rebase, ya sobre `main` 83553e8 (D-250 dentro): **1891 pasados | 3
 saltados** (83553e8: 1860 | 3). Los +31 siguen siendo enteros de `employee-file.test.ts`.
 
-## D-NEXT · La pastilla de una persona la escribe el dueño: título por persona, color de la paleta
+## D-252 · La pastilla de una persona la escribe el dueño: título por persona, color de la paleta
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
 `104_profile_title.sql`** (la aplica el orquestador tras el merge).

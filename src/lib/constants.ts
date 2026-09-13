@@ -184,7 +184,7 @@ export function roleLabel(role: UserRole, lang: Lang): string {
   return lang === "es" ? ROLE_INFO[role].label_es : ROLE_INFO[role].label;
 }
 
-// ---- La pastilla de una persona (D-NEXT) ----------------------------------
+// ---- La pastilla de una persona (D-252) ----------------------------------
 // El título es una CAPA sobre el rol, no un reemplazo: sin título la pastilla
 // dice exactamente lo que decía antes, la etiqueta del rol en el idioma
 // activo y su color. Por eso nadie hay que migrar.

@@ -34,7 +34,7 @@ export interface Profile {
    * cost by accident (was keyed on `role` until D-181). See D-181. */
   erp_role?: string | null;
   /** Título escrito a mano para ESTA persona, que sustituye a la etiqueta del
-   * rol en su pastilla (D-NEXT). Null o vacío = la pastilla es la del rol, como
+   * rol en su pastilla (D-252). Null o vacío = la pastilla es la del rol, como
    * siempre. No se traduce: sale igual en los dos idiomas. Solo un admin lo
    * escribe, y lo hace cumplir la base (guard_profile_privileged_columns, 104):
    * un título libre editable por su dueño sería una forma de hacerse pasar por

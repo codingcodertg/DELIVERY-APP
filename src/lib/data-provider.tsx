@@ -141,7 +141,7 @@ export interface DataState {
   resetUserPassword: (id: string) => Promise<{ ok: boolean; password?: string; error?: string }>;
   updateUserRole: (userId: string, role: Profile["role"]) => Promise<void>;
   updateUserName: (userId: string, name: string) => Promise<void>;
-  /** El título escrito a mano de la pastilla de esta persona, y su color (D-NEXT).
+  /** El título escrito a mano de la pastilla de esta persona, y su color (D-252).
    * Vacío = null en las dos columnas: la pastilla vuelve a ser la del rol. Solo un
    * admin puede escribirlas y lo hace cumplir la base (guard_profile_privileged_columns,
    * 104), no este método. */

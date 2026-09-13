@@ -26,7 +26,7 @@ export default function AccountPage() {
 
   if (!me) return null;
   const role = ROLE_INFO[me.role];
-  // La pastilla puede llevar el título que le haya puesto un admin (D-NEXT); la frase
+  // La pastilla puede llevar el título que le haya puesto un admin (D-252); la frase
   // de debajo sigue saliendo del rol, porque describe lo que esta persona puede hacer.
   const badge = personBadge(me, lang);
 

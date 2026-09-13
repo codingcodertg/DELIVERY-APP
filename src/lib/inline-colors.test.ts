@@ -118,7 +118,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 // DESPUÉS del encargo: 117 colores a pelo pasaron a 79. Lo que queda no es residuo — es lo
 // que se decidió dejar, y cada grupo tiene su motivo en la decisión. Hoy son 80: D-234
 // sumó uno, el blanco del boton de la pantalla de fallo de lectura; D-247 quitó uno de la
-// barra al dejar de repetir un color; y D-NEXT suma otro, la muestra del color de la
+// barra al dejar de repetir un color; y D-252 suma otro, la muestra del color de la
 // pastilla en UserDialog. Cada uno lo dice en su decisión.
 //
 // La regla que explica 65 de los 80: **un blanco sobre un fondo de color fijo no cambia con
@@ -156,7 +156,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // dos veces y ahora es una constante. El techo baja con él — la tabla no admite holgura, y
     // eso es lo que hace que sea un techo y no una estimación.
     "src/components/TopBar.tsx": 5,
-    // 4 desde D-NEXT: la muestra del color junto al selector del titulo es otra pastilla
+    // 4 desde D-252: la muestra del color junto al selector del titulo es otra pastilla
     // con fondo de color fijo, y su texto es el mismo blanco que los demas. Sube el
     // techo, no se salta: la regla de la tabla es que un fichero solo sube cuando la
     // decision lo dice.
