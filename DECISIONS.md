@@ -14636,6 +14636,7 @@ bloques y con la misma guarda de rol real; cómo se ve al desplegarlo en el paso
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1828 pasados | 3 saltados**
 (main 0ad2b01: 1824 | 3; los +4 son de `fee-breakdown.test.ts`).
+
 ## D-NEXT · Los cimientos del sistema de puntos: un libro mayor, no un saldo
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
@@ -14645,6 +14646,11 @@ bien —empezando por llegar puntual— y restan por hacerlas mal, y con suficie
 un día libre pagado; los **clientes** suman subiendo fotos de sus proyectos con nuestros
 productos. Preguntado, eligió: los dos públicos, puntean **él y los gerentes**, y el empleado
 **solo ve su saldo**, no el detalle de las restas.
+
+> **Nota al rebasar sobre `main` c615270 (2026-09-13).** Cuando se escribió esto la
+> migración estaba pendiente y por eso la entrada dice que se aplica **antes** de fusionar.
+> Ya está aplicada en producción, con el checksum del fichero tal como está en esta rama, así
+> que esta rama ya no depende del orden de fusión. Se anota en vez de reescribir la frase.
 
 Este es el **encargo 1 de cinco** y **no trae una sola pantalla**. Las otras cuatro —puntear a
 mano, la puntualidad automática, el canje y la subida del cliente— se apoyan aquí, así que lo
