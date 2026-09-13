@@ -15117,3 +15117,8 @@ escrita al final del `.sql` con esa advertencia.
 
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1543 pasados | 3 saltados**
 (main 98a9305: 1512 | 3; los +31 son `employee-file.test.ts`).
+
+Tras rebasar sobre `main` c615270 (2026-09-13), vuelto a medir sobre el árbol final:
+**1859 pasados | 3 saltados** (c615270: 1828 | 3). Los +31 vuelven a ser enteros de
+`employee-file.test.ts`, que en solitario da 31 — o sea que ninguna prueba de recorrido de
+`main` cambió de cuenta al aparecer los ficheros nuevos.
