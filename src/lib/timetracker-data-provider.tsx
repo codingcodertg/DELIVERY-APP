@@ -14,6 +14,7 @@ import { rowToCamel, toSnakeRow } from "@/lib/timetracker/supabase/rowcase";
 import { isDesktop } from "@/lib/timetracker/desktop";
 import { dateISO, APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/timetracker/helpers";
 import { initOfflineQueue } from "@/lib/timetracker/offlineQueue";
+import { olvidarExencion } from "@/lib/use-cutoff-exempt";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, RequestType, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
 import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -828,6 +829,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const signOutEverywhere = useCallback<DataState["signOutEverywhere"]>(async () => {
     const { error } = await supabase.auth.signOut({ scope: "global" });
     if (error) throw error;
+    // Igual que en el otro cierre: la exención del corte de las 18:30 es de la persona, y esto
+    // no recarga la página (D-NEXT).
+    olvidarExencion();
   }, [supabase]);
 
   // Flush any session patches / screenshots buffered locally from a prior
