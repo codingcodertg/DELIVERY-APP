@@ -1,5 +1,5 @@
 /**
- * El expediente como ficha principal de la persona (D-NEXT).
+ * El expediente como ficha principal de la persona (D-251).
  *
  * Hasta la 106, el expediente **era** la cuenta: su clave primaria era la del perfil
  * (`093:25`), así que sin cuenta no había expediente y borrar la cuenta se llevaba el

@@ -159,7 +159,7 @@ export async function saveEmployeeFile(
 }
 
 // ============================================================
-// La cuenta: se apaga, no se borra (D-NEXT)
+// La cuenta: se apaga, no se borra (D-251)
 //
 // Hasta hoy la unica baja era `/api/delete-user`, que borra la cuenta de Auth y con ella
 // el perfil, y mientras el expediente colgaba de el, tambien el expediente. O sea que dar

@@ -14858,7 +14858,7 @@ que corriendo en solitario da 32 — o sea que ninguna prueba de recorrido de `m
 cuenta al aparecer los ficheros nuevos. La cifra de arriba (+29) es de antes del commit que
 cerró el `TRUNCATE`, y se deja como estaba.
 
-## D-NEXT · El expediente deja de ser la cuenta: RR. HH. pasa a llevar personas, no usuarios
+## D-251 · El expediente deja de ser la cuenta: RR. HH. pasa a llevar personas, no usuarios
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · **Migración:
 `106_employee_file_identity.sql`**, que **aplica el dueño a mano antes de fusionar**.
