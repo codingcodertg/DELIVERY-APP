@@ -1,5 +1,5 @@
 // ============================================================
-// Puntos: el libro mayor y sus reglas (D-NEXT).
+// Puntos: el libro mayor y sus reglas (D-250).
 //
 // Encargo 1 de cinco, y ninguna pantalla. Aquí vive lo que los otros cuatro
 // —puntear a mano, la puntualidad automática, el canje y la subida del

@@ -455,7 +455,7 @@ export interface Settings {
   // ya no existe; lo que quedaba era el tipo, prometiendo una configuración que la
   // aplicación ignora. Las columnas siguen en la base (migración 036) y no se
   // tocan: borrar columnas es irreversible y no gana nada.
-  // ---- Puntos (D-NEXT) ----
+  // ---- Puntos (D-250) ----
   // Las dos tasas del sistema de puntos, editables en Ajustes para que cambiar
   // lo que vale un dia puntual no sea un despliegue. Sus columnas nacen con
   // DEFAULT 2 y 100 en la migracion 105; `tasas()` (lib/points.ts) repite esos
