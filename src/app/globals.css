@@ -430,6 +430,43 @@ input.invalid, select.invalid, textarea.invalid {
 }
 .bulk-bar select { padding: 6px 9px; font-size: 12.5px; background: var(--card); color: var(--text); }
 
+/* ---------- Panel de «Switch usuario» (D-NEXT) ----------
+   Cuelga de la barra superior, que es oscura y pinta su texto de blanco. Sin colores propios
+   el panel HEREDA ese blanco sobre su fondo claro y los nombres se vuelven invisibles: es
+   literalmente lo que vio el dueño. Así que aquí se dicen los tres: fondo, texto y borde, con
+   los tokens de la paleta para que valgan en claro y en oscuro.
+
+   Y opaco de verdad, con su sombra: antes se leía el «+ Nueva orden» de la página por detrás. */
+.switch-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 9990;
+  width: 340px; max-width: 92vw; max-height: 70vh; overflow-y: auto;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(10,20,40,.2); padding: 12px;
+}
+.switch-panel-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.switch-panel-head .inp { flex: 1; min-width: 0; }
+
+/* La cabecera de tienda se queda a la vista al recorrer una lista larga. `top: 0` a secas y no
+   la medida del banner de D-253: el scroll de aquí es el del propio panel, así que el borde de
+   arriba es el suyo y el banner no lo alcanza nunca. */
+.switch-panel-store {
+  position: sticky; top: 0; z-index: 1; background: var(--card);
+  font-size: 12px; font-weight: 800; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: 6px 0 4px; border-bottom: 1px solid var(--line);
+}
+
+/* Cuatro columnas, y el nombre en una sola línea. Antes era una caja flexible con el nombre y
+   el rol dentro del mismo hueco: «Patricia Hernández Gerente de Oficina» partía en tres líneas
+   y el rol se pegaba al nombre. */
+.switch-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 8px; align-items: center; padding: 5px 0;
+}
+.switch-row-name { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.switch-row-role { white-space: nowrap; margin: 0; }
+
 /* ---------- Column picker ---------- */
 .col-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 210px; max-width: 90vw;
