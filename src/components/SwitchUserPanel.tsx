@@ -69,15 +69,14 @@ export function SwitchUserPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="box" style={{ position: "absolute", right: 0, top: "100%", zIndex: 9990, width: 340, maxHeight: "70vh", overflowY: "auto", padding: 12 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+    <div className="switch-panel">
+      <div className="switch-panel-head">
         <input
           className="inp"
           autoFocus
           placeholder={t("Search by name…", "Buscar por nombre…")}
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
-          style={{ flex: 1 }}
         />
         <button className="btn btn-ghost btn-sm" onClick={onClose}>{t("Close", "Cerrar")}</button>
       </div>
@@ -88,18 +87,16 @@ export function SwitchUserPanel({ onClose }: { onClose: () => void }) {
         <div className="hint">{t("Nobody matches that.", "Nadie coincide con eso.")}</div>
       ) : grupos.map((g) => (
         <div key={g.tienda ?? "__sin_tienda__"} style={{ marginBottom: 10 }}>
-          <div className="section-label" style={{ marginTop: 0 }}>
+          <div className="switch-panel-store">
             {g.tienda ?? t("No store", "Sin tienda")}
           </div>
           {g.filas.map(({ user, puedeEntrar }) => (
-            <div key={user.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
-              <span className="avatar" style={{ background: avatarColor(user.full_name || "?") }}>
+            <div key={user.id} className="switch-row">
+              <span className="avatar sm" style={{ background: avatarColor(user.full_name || "?") }}>
                 {initials(user.full_name || "?")}
               </span>
-              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span style={{ fontWeight: 600 }}>{user.full_name}</span>
-                <span className="hint" style={{ marginLeft: 6 }}>{roleLabel(user.role as UserRole, lang)}</span>
-              </span>
+              <span className="switch-row-name">{user.full_name}</span>
+              <span className="hint switch-row-role">{roleLabel(user.role as UserRole, lang)}</span>
               {puedeEntrar ? (
                 <button
                   className="btn btn-amber btn-sm"

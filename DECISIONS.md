@@ -15394,3 +15394,60 @@ alguien — y es la comprobación que le pediría antes de dar el fallo por cerr
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1916 pasados | 3 saltados**
 (main dfe8720: 1906 | 3; los +10 son de `impersonation-banner.test.ts`). La primera versión de
 esta rama medía 1915: la décima prueba es la que exige que la tabla de exentos no lleve de más.
+
+## D-NEXT · El panel de «Switch usuario» dice sus propios colores
+
+**Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño:** una captura del panel abierto y una palabra, «solucionalo». En la
+captura los nombres no están: se ve el avatar, se ve el rol, y entre los dos un hueco.
+
+### Los nombres no estaban en blanco por casualidad
+
+El panel usaba `className="box"`, y **`.box` no existe en `globals.css`** — solo en la hoja del
+Time Tracker, con su propio prefijo de módulo. O sea que el panel no decía **ningún** color ni
+fondo propios, y cuelga de la barra superior, que es oscura y pinta su texto de blanco. Heredó
+ese blanco sobre un fondo claro. Los roles se leían porque `hint` sí trae su color; los nombres
+no llevaban ninguno y desaparecieron.
+
+Lo mismo explica lo demás de la captura: sin fondo, el panel era transparente y por detrás se
+veían el «+ Nueva orden» y el «WhatsApp» de la página.
+
+Es el mismo patrón que D-253, dos encargos atrás: **un elemento que no dice lo suyo hereda lo de
+al lado**, y la barra oscura es una vecina peligrosa. Allí era la posición, aquí el color.
+
+### Lo que se añade, y por qué en el CSS y no en el componente
+
+El panel tiene ahora sus reglas propias con los tokens de la paleta: fondo, texto, borde, sombra
+y su `z-index`. En tokens y no en un `#hex`, que es lo que lo hace funcionar también en oscuro y
+lo que evita subir el techo del guardián de colores — que sigue en 106 casos, sin tocar.
+
+Y una rejilla de cuatro columnas: avatar, nombre, rol, botón. **El nombre es la única columna que
+se encoge**, con `nowrap` y elipsis; el rol no envuelve. Antes nombre y rol compartían un hueco
+flexible y «Patricia Hernández Gerente de Oficina» se partía en tres líneas.
+
+La cabecera de tienda se queda a la vista al recorrer la lista. Se pega con `top: 0` **a secas**,
+no con la medida del banner de D-253: el scroll de aquí es el del propio panel, así que el borde
+de arriba es el suyo y el banner nunca lo alcanza. Queda apuntado en la tabla de exentos de esa
+prueba, con ese motivo.
+
+### La prueba mira la herencia, no el aspecto
+
+Cómo se ve no se prueba desde aquí. Lo que se fija es lo que falló: que el panel **diga** su
+color y su fondo, con tokens y no con un hex suelto; que sea opaco y esté por encima, con borde,
+sombra y `z-index`; que el nombre se recorte en vez de envolver; y que la clase que no existía no
+vuelva — la prueba también exige que `.box` siga sin estar en `globals.css`, porque el día que
+alguien la cree, este panel dejaría de ser el aviso.
+
+**Medido:** quitar el `color` propio del panel tira **una**; dejar que el nombre envuelva, **una**;
+devolver `className="box"`, **una**.
+
+### Lo no verificado
+
+Nadie lo ha abierto en un navegador, ni en claro ni en oscuro. Probado está que las reglas dicen
+lo que tienen que decir y que el componente las usa. Que el nombre más largo de la plantilla
+quepa en 340 píxeles sin recortarse antes de tiempo, eso lo dirá la pantalla.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1921 pasados | 3 saltados**
+(main a7656a0: 1916 | 3; los +5 son el bloque nuevo de `switch-user.test.ts`). El guardián de
+colores sigue en 106 casos y su tabla de techos no se toca: el panel no añade ni un color a
+pelo, porque todo va en el CSS con tokens.

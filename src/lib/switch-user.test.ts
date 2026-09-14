@@ -151,3 +151,57 @@ describe("el coste de /api/impersonate/state", () => {
     expect(banner).not.toContain("ask=switch");
   });
 });
+
+// El panel se leía mal en pantalla, y el motivo no estaba en el panel: cuelga de la barra
+// superior, que es oscura y pinta su texto de blanco, y el panel no decía ningún color propio,
+// así que HEREDABA ese blanco sobre su fondo claro. Los nombres eran invisibles; los roles se
+// leían porque `hint` sí trae color. Tampoco tenía fondo: por detrás se veía la página.
+//
+// Lo que se fija aquí es que el panel diga sus tres colores y su fondo, y que un nombre largo no
+// pueda volver a partirse en tres líneas. El aspecto no se prueba desde aquí; la herencia sí.
+describe("el panel de «Switch usuario» no hereda el color de la barra", () => {
+  const css = readFileSync("src/app/globals.css", "utf8");
+  const panel = readFileSync("src/components/SwitchUserPanel.tsx", "utf8");
+  const regla = (nombre: string) => {
+    const i = css.indexOf(`.${nombre} {`);
+    return i === -1 ? "" : css.slice(i, css.indexOf("}", i));
+  };
+
+  it("las reglas existen (control)", () => {
+    expect(regla("switch-panel").length).toBeGreaterThan(50);
+    expect(regla("switch-row").length).toBeGreaterThan(30);
+    expect(regla("switch-row-name").length).toBeGreaterThan(30);
+  });
+
+  it("dice su color y su fondo, con tokens y no con un hex suelto", () => {
+    const r = regla("switch-panel");
+    expect(r).toMatch(/color:\s*var\(--/);
+    expect(r).toMatch(/background:\s*var\(--/);
+    expect(r).not.toMatch(/#[0-9a-fA-F]{3,6}\b(?![^;]*rgba)/);
+  });
+
+  it("es opaco y va por encima de la página: borde, sombra y `z-index`", () => {
+    const r = regla("switch-panel");
+    expect(r).toMatch(/border:\s*1px solid var\(--/);
+    expect(r).toContain("box-shadow");
+    expect(r).toMatch(/z-index:\s*\d/);
+  });
+
+  it("un nombre largo se recorta, no envuelve ni empuja al rol", () => {
+    const nombre = regla("switch-row-name");
+    expect(nombre).toContain("white-space: nowrap");
+    expect(nombre).toContain("text-overflow: ellipsis");
+    expect(regla("switch-row-role")).toContain("white-space: nowrap");
+    // Cuatro columnas: avatar, nombre, rol y botón. Con el nombre en la única que se encoge.
+    expect(regla("switch-row")).toMatch(/grid-template-columns:\s*auto minmax\(0, 1fr\) auto auto/);
+  });
+
+  it("y el componente usa esas clases en vez de estilos sueltos", () => {
+    expect(panel).toContain('className="switch-panel"');
+    expect(panel).toContain('className="switch-row"');
+    expect(panel).toContain('className="switch-row-name"');
+    // La caja que heredaba: `.box` no existe en `globals.css`, y por eso no pintaba nada.
+    expect(panel).not.toContain('className="box"');
+    expect(css).not.toContain(".box {");
+  });
+});
