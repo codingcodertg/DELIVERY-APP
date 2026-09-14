@@ -12498,6 +12498,7 @@ esperaba: los conteos anteriores fueron 1495 sobre el main 6f5a3ee (1488) y 1506
 
 ## D-233 · Copiar la lista de pedidos como texto para WhatsApp
 
+> **Reemplazada por D-255** (2026-09-13): el dueño retiró el botón tres días después. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-09-10 · **App:** deliveries · **Pedido por:** Andrés
 
 Al cerrar el día ("cerrar la caja") hay que pasar la lista de pedidos al grupo de WhatsApp, y se
@@ -15452,7 +15453,7 @@ quepa en 340 píxeles sin recortarse antes de tiempo, eso lo dirá la pantalla.
 colores sigue en 106 casos y su tabla de techos no se toca: el panel no añade ni un color a
 pelo, porque todo va en el CSS con tokens.
 
-## D-NEXT · Se retira el botón «WhatsApp» de Órdenes, y con él D-233
+## D-255 · Se retira el botón «WhatsApp» de Órdenes, y con él D-233
 
 **Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** una captura de la barra de Órdenes y tres palabras, «remueve eso de
