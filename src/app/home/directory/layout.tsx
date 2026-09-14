@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
  *
  * No hay comprobación de rol ni de módulo, y no es un olvido: es lo que se pidió. Lo que
  * decide qué datos se ven no está aquí de todas formas — está en `public.phone_book()`,
- * que expone siete columnas y solo de las personas activas. Una guarda de pantalla que
+ * que expone ocho columnas y solo de las personas activas. Una guarda de pantalla que
  * dijera que no, sin una barrera detrás, sería teatro; y aquí la barrera es la función.
  *
  * Sin `DataProvider`: esta pantalla no toca nada de Entregas. Montarlo aquí abriría sus

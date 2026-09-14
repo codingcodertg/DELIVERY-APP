@@ -15495,7 +15495,7 @@ mueve porque ninguna lo cubría — el botón nunca tuvo una.
 (main 2e81ef9: 1921 | 3). La cifra no se mueve, y eso es el dato: ninguna prueba cubría el
 botón.
 
-## D-NEXT · El directorio de la compañía: una cascada, y una función que enseña siete columnas
+## D-NEXT · El directorio de la compañía: una cascada, y una función que enseña ocho columnas
 
 **Fecha:** 2026-09-14 · **Versión:** las tres apps (las pone el orquestador) · **Migración:
 `108_phone_book.sql`**, que **se aplica antes de fusionar** — esta rama está acoplada a ella
@@ -15503,6 +15503,17 @@ porque el expediente ya escribe `department`.
 **Pedido por el dueño:** un directorio en el hub que vea **toda la plantilla**, para buscar a
 alguien y ver su teléfono y su correo. Y con la navegación dicha por él: **Directorio → tienda
 → departamento → personas → la persona**, «un poquito más difícil que solo buscar».
+
+> **Se dijo «siete columnas» y son ocho.** Lo contó otra sesión al revisar: la enumeración se
+> dejaba fuera el orden de la tienda, que también sale de la función. El número está corregido
+> aquí, en el comentario del `.sql` y en el título de la prueba —la prueba en sí ya afirmaba las
+> ocho, una por una, así que medía bien lo que su título contaba mal—. Se anota porque un número
+> que sale en tres sitios se copia, y el copiado no lo recuenta nadie.
+>
+> **Los seis departamentos de partida llevan acento** («Almacén», «Logística»). Se escribieron
+> primero sin él por prudencia con el cuerpo de una migración, y el orquestador lo corrigió
+> antes de aplicarla: UTF-8 en un `.sql` es tan estable como cualquier otro byte, y lo que
+> congela el checksum es cambiar el fichero **después** de ejecutarlo, no que lleve tilde.
 
 ### La cascada es el encargo, no una decisión de pantalla
 
@@ -15526,8 +15537,9 @@ viven dirección, cumpleaños, días libres y notas.
 
 **Abrirla con una política de lectura habría expuesto la fila entera**, porque la RLS permite o
 niega filas, no columnas. Por eso el directorio lee por una función `security definer`,
-`public.phone_book()`, que devuelve **siete columnas y ninguna más** —nombre, título, tienda,
-departamento, teléfono, extensión y correo— de las personas **activas**. La 094 no se toca: un
+`public.phone_book()`, que devuelve **ocho columnas y ninguna más** —nombre, título, tienda,
+departamento, teléfono, extensión y correo, más el orden de su tienda— de las personas
+**activas**. La 094 no se toca: un
 vendedor sigue sin poder leer la tabla, y hay prueba de las dos mitades.
 
 Que solo salgan las activas no es un filtro de pantalla: es `date_left is null` dentro de la
@@ -15560,10 +15572,16 @@ y no se han bajado de listón: dicen lo mismo con la respuesta nueva y con el mo
 una de ellas comprueba además lo que la hace cierta —que esa persona tiene una herramienta suya
 al otro lado—, porque la regla que defienden sigue siendo «hay botón solo si hay algo detrás».
 
-**El candado del chofer (D-173) no se toca**, y eso deja un hueco que el dueño tiene que decidir:
-un chofer no llega al hub por una regla incondicional y anterior a esto, así que **hoy no tiene
-puerta al directorio**, aunque la pantalla en sí no le está cerrada. Cambiar esa regla no era
-parte del encargo y no se ha tocado por mi cuenta.
+**El candado del chofer (D-173) no se toca, y aun así el chofer entra.** Esa regla es
+incondicional a propósito —su app es su ruta, y un selector de módulos en medio del reparto es
+lo que D-051 quitó—, así que relajarla para colar el directorio habría sido pagar la puerta con
+la regla. Lo que se hace es lo contrario: **la ruta del directorio nunca estuvo detrás de ese
+candado** —solo pide sesión— y el chofer recibe un enlace propio en su pantalla, que es donde
+está. El hub sigue sin ser para él; el directorio sí lo es.
+
+Y es quien más lo necesita: es el que está fuera y tiene que llamar a la tienda. Las tres piezas
+—ruta abierta, enlace puesto, candado intacto— se prueban juntas, porque quitar cualquiera de
+las tres deja al chofer fuera o convierte la excepción en otra cosa.
 
 ### Medido, rompiendo cada pieza
 
@@ -15596,5 +15614,6 @@ memoria.
 - **Los datos los carga el dueño después.** Hasta que llegue su hoja, la cascada enseñará lo que
   hoy tienen los expedientes: mucha gente sin departamento, todos en el grupo de abajo.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1944 pasados | 3 saltados**
-(main 1659c24: 1921 | 3; los +23 son de `phone-book.test.ts`, que en solitario da 23).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1948 pasados | 3 saltados**
+(main 1659c24: 1921 | 3; los +27 son de `phone-book.test.ts`, que en solitario da 27 — cuatro
+de ellos son la puerta del chofer, que se añadió después de la primera medición).

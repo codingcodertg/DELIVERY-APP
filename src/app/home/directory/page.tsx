@@ -16,7 +16,7 @@ import {
  * la persona**, «un poquito más difícil que solo buscar». Y con un buscador arriba que se la
  * salta, para quien ya sabe el nombre.
  *
- * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, que devuelve siete
+ * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, que devuelve ocho
  * columnas y solo de las personas activas. Esta pantalla no puede enseñar de más aunque se
  * equivoque: lo que no vuelve de esa función no está aquí.
  */

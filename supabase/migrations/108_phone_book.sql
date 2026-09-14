@@ -21,7 +21,7 @@
 -- POR QUE UNA FUNCION Y NO UNA POLITICA NUEVA
 --
 -- Abrir `employee_files` a `authenticated` con una politica de lectura expondria la FILA
--- ENTERA: la RLS permite o niega filas, no columnas. Esta funcion expone SIETE COLUMNAS y
+-- ENTERA: la RLS permite o niega filas, no columnas. Esta funcion expone OCHO COLUMNAS y
 -- ninguna mas, y se lee de una sola forma. La 094 no se toca: quien no era de RR. HH.
 -- sigue sin poder leer la tabla directamente.
 --
@@ -44,7 +44,7 @@ comment on column recruiting.employee_files.department is
 -- dueno; la cierra el desde Ajustes.
 alter table recruiting.settings
   add column if not exists departments text[] not null
-  default array['Ventas','Almacen','Oficina','Choferes','Contabilidad','Logistica']::text[];
+  default array['Ventas','Almacén','Oficina','Choferes','Contabilidad','Logística']::text[];
 
 comment on column recruiting.settings.departments is
   'Departamentos que se pueden elegir en el expediente (directorio de la compania). Editable por admin y gerente de RR. HH.';
@@ -109,7 +109,7 @@ as $$
 $$;
 
 comment on function public.phone_book() is
-  'Directorio de la compania: nombre, titulo, tienda, departamento, telefono, extension y correo de contacto de las personas ACTIVAS. Para authenticated. No expone direccion, cumpleanos, dias libres ni notas.';
+  'Directorio de la compania: nombre, titulo, tienda (con su orden de Ajustes), departamento, telefono, extension y correo de contacto de las personas ACTIVAS. Para authenticated. No expone direccion, cumpleanos, dias libres ni notas.';
 
 revoke execute on function public.phone_book() from public, anon;
 grant  execute on function public.phone_book() to authenticated;
@@ -123,4 +123,4 @@ grant  execute on function public.phone_book() to authenticated;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('108_phone_book.sql', 'a72880204a19d66ecedb92fecd318ab8138773e2b93c8fd9118f633b64575b11') on conflict (name) do nothing;
+  values ('108_phone_book.sql', '0351ee61ef6388c0037bfb6042f1df4cc34006889f0e493b7c85dff2d8a5239f') on conflict (name) do nothing;

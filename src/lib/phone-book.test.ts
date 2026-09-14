@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { canReachHub, HUB_TOOLS } from "./constants";
 import {
   buscaPersonas, departamentosDe, mailtoHref, normaliza, personasDe, telHref, tiendasDelDirectorio,
   type PersonaDirectorio,
@@ -123,7 +124,7 @@ describe("108_phone_book.sql: qué expone la función, y qué no", () => {
     expect(sql).toContain("create or replace function public.phone_book()");
   });
 
-  it("expone EXACTAMENTE siete columnas, y son las de una tarjeta de contacto", () => {
+  it("expone EXACTAMENTE ocho columnas, y son las de una tarjeta de contacto", () => {
     const bloque = sql.slice(sql.indexOf("returns table ("), sql.indexOf(")\nlanguage sql"));
     const columnas = [...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1]);
     expect(columnas).toEqual([
@@ -166,5 +167,42 @@ describe("108_phone_book.sql: qué expone la función, y qué no", () => {
 
   it("no lleva el marcador de decisión sin numerar: su checksum la congela", () => {
     expect(sql).not.toContain("D-" + "NEXT");
+  });
+});
+
+// El chofer: la puerta que no pasa por el hub.
+//
+// D-173 le cierra el hub sin condiciones y esa regla NO se relaja aquí — su app es su ruta. Lo
+// que se hace es lo contrario de relajarla: se le da una puerta propia a una ruta que nunca
+// estuvo detrás de ese candado. Las tres piezas tienen que estar a la vez, y por eso se prueban
+// juntas: si la ruta se cerrara al chofer, el enlace sería un botón que rebota; si el enlace
+// desapareciera, el chofer volvería a no tener forma de llegar; y si D-173 se hubiera relajado,
+// esto habría dejado de ser una excepción acotada para convertirse en otra cosa.
+describe("el chofer llega al directorio sin pasar por el hub", () => {
+  const layout = leer("src/app/home/directory/layout.tsx");
+  const chofer = leer("src/app/(app)/driver/page.tsx");
+
+  it("la ruta del directorio solo pide sesión: ni rol, ni módulo, ni hub", () => {
+    expect(layout).toContain("auth.getUser()");
+    expect(layout).toContain('redirect("/login?next=/home/directory")');
+    expect(layout).not.toContain("canReachHub");
+    expect(layout).not.toContain("landingRoute");
+    expect(layout).not.toMatch(/role\s*[!=]==?\s*"/);
+  });
+
+  it("y la pantalla del chofer tiene su enlace", () => {
+    expect(chofer).toContain('href="/home/directory"');
+  });
+
+  it("D-173 sigue en pie: el hub NO se le abre al chofer", () => {
+    expect(canReachHub({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe(false);
+    expect(canReachHub({ role: "driver", module_access: ["deliveries", "erp", "recruiting"] })).toBe(false);
+  });
+
+  it("la herramienta del hub sigue siendo visible para todos, que es lo que la hace de todos", () => {
+    const dir = HUB_TOOLS.find((t) => t.key === "directory")!;
+    for (const role of ["admin", "manager", "sales", "warehouse", "driver", "logistics", "accounting"] as const) {
+      expect(dir.visible({ role }), role).toBe(true);
+    }
   });
 });
