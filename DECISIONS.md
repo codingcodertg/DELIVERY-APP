@@ -15306,3 +15306,91 @@ Y tras el segundo rebase, ya sobre `main` 123a6fb (D-250 y D-251 dentro): **1906
 3 saltados** (123a6fb: 1891 | 3). Los +15 siguen siendo enteros de `person-badge.test.ts`.
 En `src/lib/types.ts` los diez tipos de esta rama se apilan junto a los diez que trajo D-250,
 sin tocarlos: el aporte propio conserva su contenido byte a byte (`35e0a6bd`).
+
+## D-NEXT · El banner de «entrar como» empuja la barra en vez de taparla
+
+**Fecha:** 2026-09-13 · **Versión:** las tres apps (las pone el orquestador) · Sin migración.
+**Pedido por el dueño:** la primera vez que usó «Entrar como» en producción, a las 18:51. Su
+captura enseña el banner naranja encima de la barra superior, con el borde azul de la barra
+asomando por debajo y ningún botón alcanzable.
+
+### El fallo no era el banner, era que nadie le hizo sitio
+
+D-243 lo dejó `position: fixed` pegado al borde de arriba, y nada compensaba su alto: el layout
+raíz no añadía espacio y la barra seguía donde siempre. Un elemento `fixed` sale del flujo, así
+que lo que viene detrás **no se entera de que existe**. Funcionó mientras nadie lo vio.
+
+Ahora va **en el flujo y `sticky`**. En flujo porque así empuja lo que viene detrás sin que
+nadie tenga que saber cuánto mide; `sticky` porque el aviso tiene que seguir ahí al bajar por
+una lista larga, que es justo cuando uno se olvida de que no es él mismo.
+
+**Se descartó dejarlo `fixed` y que el layout raíz añadiera un hueco de su altura.** Habría
+funcionado hoy y se habría roto el día que el banner se parta en dos líneas en un móvil: dos
+sitios distintos que tienen que estar de acuerdo sobre un número, y solo uno de ellos lo sabe.
+
+### El ERP es la excepción, y no por capricho
+
+Entregas, RR. HH. y Time Tracker tienen su barra en el flujo del documento: el banner va delante
+de ellas y las empuja, sin que haya que tocar nada. El ERP no — su barra lateral es `fixed`
+contra la ventana y empieza en el borde de arriba, donde ahora está el banner. Sin desplazarla
+le taparía el logo y el botón de plegarla, que es la única forma de recuperarla cuando se pliega.
+
+Así que el banner **publica su alto medido** en una propiedad CSS mientras está montado, y las
+dos piezas `fixed` del ERP la usan con respaldo de cero. Medido en vez de escrito, por lo mismo
+que arriba. Y **se borra al desmontarse**: fuera de una impersonación la propiedad no existe y el
+respaldo deja todo donde estaba, así que la inmensa mayoría de las cargas no cambian en nada.
+
+### Tres más se pegaban al mismo borde, y la primera prueba no podía verlos
+
+La primera versión de este arreglo movió el banner y desplazó la barra lateral del ERP, y su
+prueba prometía que **ningún componente** podía colgarse del borde de arriba. No era cierto:
+solo miraba el estilo escrito a mano, y hay dos formas más de decir lo mismo —una clase de
+Tailwind y una regla CSS— que se le escapaban enteras.
+
+Detrás de esas dos formas había tres elementos reales, que solo se ven **al hacer scroll** con
+una impersonación viva:
+
+- **La barra de acciones en bloque de Reclutamiento** (`recruiting.css`), `sticky` en el borde.
+- **La cabecera móvil del ERP** (`side-nav.tsx`), que lleva dentro el botón de navegación: en un
+  móvil es exactamente el incidente otra vez, un botón inalcanzable.
+- **La barra del Time Tracker** (`timetracker.css`). Y esta corrige algo que yo había afirmado:
+  dije que las tres barras estaban en el flujo porque `.topbar` de `globals.css` no tiene
+  `position`. Es cierto para Entregas y RR. HH., pero **el Time Tracker redefine su propia
+  regla** y la suya es `sticky`. La lección es que «está en flujo» se mide con la regla que
+  **aplica en ese módulo**, no con la global que comparte el nombre de clase.
+
+Los tres usan ahora la misma medida del banner, así que no hay un cuarto mecanismo que mantener.
+
+**Lo que NO se tocó, y por qué:** las cabeceras de tabla del ERP y del catálogo, y `table.orders
+th` en `globals.css`, también se pegan arriba — pero dentro de un contenedor con scroll propio,
+así que su borde de arriba es el de su caja y el banner no las alcanza nunca. Están en la tabla
+de exentos de la prueba, cada una con el contenedor que la salva.
+
+### La prueba recorre, además de fijar la forma
+
+Fija lo que importa: que el banner no sea `fixed`, que sea `sticky` arriba, que vaya delante del
+contenido en el layout raíz, que la medida se publique midiendo y se borre al desmontar, y que
+las dos piezas del ERP la usen.
+
+Y añade un recorrido en las tres formas —estilo suelto, clase y regla CSS—, porque el fallo de
+verdad no fue escribir mal el banner: fue que **nadie comprobaba si algo se ponía encima de la
+barra**. Lo que se pegue arriba, o usa la medida del banner, o está en la tabla de exentos con
+el contenedor que lo salva. La tabla **no admite holgura**: cada exento tiene que seguir
+existiendo y con su cuenta exacta. Y con su control: si el recorrido no encuentra al menos
+cinco sitios pegados arriba, falla, porque un recorrido que no ve ninguno está roto, no limpio.
+
+**Medido:** volver el banner a `fixed` tira **tres** pruebas; quitar el borrado de la propiedad
+al desmontar, **una**; quitar el desplazamiento de la barra lateral del ERP, **una**; y quitar
+la medida de la barra de Reclutamiento, de la del Time Tracker o de la cabecera móvil del ERP,
+**una** cada uno.
+
+### Lo no verificado
+
+**Nadie lo ha visto en un navegador, ni con una impersonación viva.** Lo comprobado es la forma
+del arreglo en los ficheros. Que el banner quede exactamente encima de la barra en las tres apps
+y que la lateral del ERP baje lo justo, eso lo dirá la próxima vez que el dueño entre como
+alguien — y es la comprobación que le pediría antes de dar el fallo por cerrado.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1916 pasados | 3 saltados**
+(main dfe8720: 1906 | 3; los +10 son de `impersonation-banner.test.ts`). La primera versión de
+esta rama medía 1915: la décima prueba es la que exige que la tabla de exentos no lleve de más.
