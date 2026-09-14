@@ -107,6 +107,7 @@ const DEFAULT_SETTINGS: Settings = {
   id: 1,
   app_name: "RECRUIT·HN",
   roles: ["Dispatcher", "Customer Service", "Sales"],
+  departments: ["Ventas", "Almacen", "Oficina", "Choferes", "Contabilidad", "Logistica"],
   scale: DEFAULT_SCALE,
 };
 

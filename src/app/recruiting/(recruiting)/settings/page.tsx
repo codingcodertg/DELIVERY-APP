@@ -54,6 +54,7 @@ export default function SettingsPage() {
 
   const [appName, setAppName] = useState(settings.app_name);
   const [newRole, setNewRole] = useState("");
+  const [newDept, setNewDept] = useState("");
   const [cfLabel, setCfLabel] = useState("");
   const [tplLabel, setTplLabel] = useState("");
   const [tplText, setTplText] = useState("");
@@ -65,6 +66,21 @@ export default function SettingsPage() {
     setNewRole("");
   };
   const removeRole = (r: string) => saveSettings({ roles: roles.filter((x) => x !== r) });
+
+  // Los departamentos del directorio de la compañía (D-NEXT). Viven aquí y no en los ajustes
+  // de Entregas porque quien los usa es el expediente, que es de RR. HH.: la lista y el sitio
+  // donde se elige tienen que poder abrirlos las mismas personas.
+  const departments = settings.departments ?? [];
+  const addDept = () => {
+    const d = newDept.trim();
+    if (!d || departments.includes(d)) return;
+    saveSettings({ departments: [...departments, d] });
+    setNewDept("");
+  };
+  // Quitar uno de la lista NO lo borra de los expedientes que ya lo tienen: el selector de la
+  // ficha conserva el valor guardado aunque no esté en la lista, y el directorio lo sigue
+  // agrupando. Se deja de poder ELEGIR, que es lo que se pidió.
+  const removeDept = (d: string) => saveSettings({ departments: departments.filter((x) => x !== d) });
 
   return (
     <div>
@@ -124,6 +140,36 @@ export default function SettingsPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <input placeholder={t("New role...", "Nuevo puesto...")} value={newRole} onChange={(e) => setNewRole(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addRole()} />
           <button className="btn btn-primary" onClick={addRole}>{t("Add", "Agregar")}</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>🏢 {t("Departments", "Departamentos")}</h2>
+        <div className="hint" style={{ marginTop: -6 }}>
+          {t(
+            "Used by the company phone book: each employee file picks one from this list.",
+            "Los usa el directorio de la compañía: cada expediente elige uno de esta lista.",
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
+          {departments.map((d) => (
+            <span key={d} className="chip on" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+              {d}
+              <button className="chip-x" onClick={() => removeDept(d)}>×</button>
+            </span>
+          ))}
+          {departments.length === 0 && (
+            <span className="hint">{t("No departments yet.", "Todavía no hay departamentos.")}</span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            placeholder={t("New department...", "Nuevo departamento...")}
+            value={newDept}
+            onChange={(e) => setNewDept(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addDept()}
+          />
+          <button className="btn btn-primary" onClick={addDept}>{t("Add", "Agregar")}</button>
         </div>
       </div>
 

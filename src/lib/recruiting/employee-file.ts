@@ -32,6 +32,8 @@ export interface EmployeeFileRow {
   date_left: string | null;
   phone?: string | null;
   address?: string | null;
+  /** Departamento, para el directorio de la compañía (D-NEXT). */
+  department?: string | null;
   ringcentral_ext: string | null;
   days_off?: number | null;
   notes?: string | null;
@@ -168,6 +170,7 @@ export type FilaExpediente = {
   phone: string | null;
   address: string | null;
   ringcentral_ext: string | null;
+  department: string | null;
   days_off: number | null;
   notes: string | null;
   docKinds: string[];
@@ -214,6 +217,7 @@ export function filasDeExpediente(
     phone: (f.phone as string) ?? null,
     address: (f.address as string) ?? null,
     ringcentral_ext: (f.ringcentral_ext as string) ?? null,
+    department: (f.department as string) ?? null,
     days_off: (f.days_off as number) ?? null,
     notes: (f.notes as string) ?? null,
     docKinds: kindsDe.get(f.id as string) ?? [],

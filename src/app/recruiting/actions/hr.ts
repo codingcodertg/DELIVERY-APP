@@ -55,6 +55,8 @@ export type EmployeeFile = {
   phone: string | null;
   address: string | null;
   ringcentral_ext: string | null;
+  /** Departamento, para el directorio de la compañía (D-NEXT). */
+  department: string | null;
   days_off: number | null;
   notes: string | null;
 };

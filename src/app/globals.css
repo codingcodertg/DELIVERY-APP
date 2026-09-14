@@ -430,6 +430,34 @@ input.invalid, select.invalid, textarea.invalid {
 }
 .bulk-bar select { padding: 6px 9px; font-size: 12.5px; background: var(--card); color: var(--text); }
 
+/* ---------- Directorio de la compania (D-NEXT) ----------
+   Cada nivel de la cascada es una fila que se pulsa, y por eso son `button` y no `div`: se
+   llega con el tabulador y responden al Intro, que en una lista de treinta personas es la
+   diferencia entre usarla con el teclado o no usarla. Colores con tokens, para que valgan
+   en claro y en oscuro sin sumar ni un color a pelo. */
+.dir-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; text-align: left; padding: 9px 10px; margin: 0;
+  background: transparent; color: var(--text);
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 8px;
+  font-size: 14px; cursor: pointer;
+}
+.dir-row:last-child { border-bottom: 0; }
+.dir-row:hover { background: var(--card-hover); }
+.dir-row-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dir-row-side { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+
+/* Las migas: por donde se ha bajado, y el camino de vuelta. */
+.dir-crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+/* La tarjeta: etiqueta a la izquierda, dato a la derecha, sin que un correo largo empuje
+   la etiqueta fuera. */
+.dir-card-grid {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px; align-items: baseline; margin-top: 12px;
+}
+.dir-card-grid > span:nth-child(even) { overflow-wrap: anywhere; }
+
 /* ---------- Panel de «Switch usuario» (D-254) ----------
    Cuelga de la barra superior, que es oscura y pinta su texto de blanco. Sin colores propios
    el panel HEREDA ese blanco sobre su fondo claro y los nombres se vuelven invisibles: es

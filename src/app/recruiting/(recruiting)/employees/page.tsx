@@ -91,6 +91,7 @@ export default function EmployeeFilesPage() {
                 <th>ID</th>
                 <th>{t("Hired", "Contratado")}</th>
                 <th>{t("Phone", "Teléfono")}</th>
+                <th>{t("Department", "Departamento")}</th>
                 <th>{t("Paperwork", "Papeles")}</th>
                 <th />
               </tr>
@@ -104,6 +105,7 @@ export default function EmployeeFilesPage() {
                     <td>{r.employee_code || "—"}</td>
                     <td>{r.date_hired || "—"}</td>
                     <td>{r.phone || "—"}</td>
+                    <td>{r.department || "—"}</td>
                     <td>
                       {/* Lo que FALTA, no lo que hay: un expediente completo no hace falta
                           mirarlo, y listar los cinco papeles presentes escondería el que no
@@ -146,12 +148,13 @@ export default function EmployeeFilesPage() {
 /** El expediente de una persona: INFO arriba, y debajo HR y FORMS. */
 function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: () => void; onClose: () => void }) {
   const { t } = usePrefs();
-  const { notify } = useData();
+  const { notify, settings } = useData();
   const [info, setInfo] = useState({
     employee_code: persona.employee_code ?? "",
     birthday: persona.birthday ?? "",
     date_hired: persona.date_hired ?? "",
     phone: persona.phone ?? "",
+    department: persona.department ?? "",
     address: persona.address ?? "",
     days_off: persona.days_off != null ? String(persona.days_off) : "",
     notes: persona.notes ?? "",
@@ -210,6 +213,28 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
         {campo("date_hired", t("Date hired", "Fecha de contratación"), "date")}
         {campo("phone", t("Phone", "Teléfono"))}
+        {/* Departamento (D-NEXT): se ELIGE de la lista de Ajustes en vez de escribirse, porque
+            de esto vive el directorio de la compañía y «Almacen», «almacén» y «Almacén» serían
+            tres departamentos distintos en la cascada. La opción vacía existe a propósito:
+            «sin departamento» es un estado válido y el directorio lo agrupa aparte. */}
+        <div>
+          <label>{t("Department", "Departamento")}</label>
+          <select
+            value={info.department}
+            onChange={(e) => setInfo({ ...info, department: e.target.value })}
+          >
+            <option value="">{t("— none —", "— sin departamento —")}</option>
+            {(settings.departments ?? []).map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+            {/* El que ya tuviera guardado y ya no esté en la lista NO se pierde al abrir la
+                ficha: sin esto, el selector no lo encontraría, caería en la opción vacía y el
+                primer «Guardar datos» lo borraría sin que nadie lo tocara. */}
+            {info.department && !(settings.departments ?? []).includes(info.department) && (
+              <option value={info.department}>{info.department}</option>
+            )}
+          </select>
+        </div>
         {campo("days_off", t("Attendance — days off", "Asistencia — días libres"), "number")}
       </div>
       <div style={{ marginTop: 12 }}>
