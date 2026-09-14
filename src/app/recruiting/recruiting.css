@@ -100,7 +100,7 @@
 .recruiting-module .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .recruiting-module .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 600; color: var(--ink-soft); }
 .recruiting-module .chip.on { background: var(--brand-surface); color: #fff; border-color: var(--brand-surface); }
-/* La × de una etiqueta que se puede quitar (D-NEXT). Hereda el color de la etiqueta en vez
+/* La × de una etiqueta que se puede quitar (D-256). Hereda el color de la etiqueta en vez
    de repetir el blanco a mano: el guardián de colores cuenta los `#fff` sueltos, y este ya
    está dicho una línea más arriba. */
 .recruiting-module .chip-x { color: inherit; font-weight: 800; background: none; border: 0; cursor: pointer; line-height: 1; }

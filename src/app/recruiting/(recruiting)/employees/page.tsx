@@ -213,7 +213,7 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
         {campo("date_hired", t("Date hired", "Fecha de contratación"), "date")}
         {campo("phone", t("Phone", "Teléfono"))}
-        {/* Departamento (D-NEXT): se ELIGE de la lista de Ajustes en vez de escribirse, porque
+        {/* Departamento (D-256): se ELIGE de la lista de Ajustes en vez de escribirse, porque
             de esto vive el directorio de la compañía y «Almacen», «almacén» y «Almacén» serían
             tres departamentos distintos en la cascada. La opción vacía existe a propósito:
             «sin departamento» es un estado válido y el directorio lo agrupa aparte. */}

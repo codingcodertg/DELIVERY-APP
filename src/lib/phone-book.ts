@@ -1,5 +1,5 @@
 /**
- * El directorio de la compañía: la cascada, y quién sale en cada nivel (D-NEXT).
+ * El directorio de la compañía: la cascada, y quién sale en cada nivel (D-256).
  *
  * El dueño lo pidió con la navegación por delante: **tienda → departamento → personas →
  * la persona**, y dijo por qué — que sea «un poquito más difícil que solo buscar». Así que

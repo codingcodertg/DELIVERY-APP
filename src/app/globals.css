@@ -430,7 +430,7 @@ input.invalid, select.invalid, textarea.invalid {
 }
 .bulk-bar select { padding: 6px 9px; font-size: 12.5px; background: var(--card); color: var(--text); }
 
-/* ---------- Directorio de la compania (D-NEXT) ----------
+/* ---------- Directorio de la compania (D-256) ----------
    Cada nivel de la cascada es una fila que se pulsa, y por eso son `button` y no `div`: se
    llega con el tabulador y responden al Intro, que en una lista de treinta personas es la
    diferencia entre usarla con el teclado o no usarla. Colores con tokens, para que valgan

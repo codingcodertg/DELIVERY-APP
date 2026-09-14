@@ -67,7 +67,7 @@ export default function SettingsPage() {
   };
   const removeRole = (r: string) => saveSettings({ roles: roles.filter((x) => x !== r) });
 
-  // Los departamentos del directorio de la compañía (D-NEXT). Viven aquí y no en los ajustes
+  // Los departamentos del directorio de la compañía (D-256). Viven aquí y no en los ajustes
   // de Entregas porque quien los usa es el expediente, que es de RR. HH.: la lista y el sitio
   // donde se elige tienen que poder abrirlos las mismas personas.
   const departments = settings.departments ?? [];

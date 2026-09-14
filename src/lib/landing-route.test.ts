@@ -201,7 +201,7 @@ describe("canReachHub", () => {
     expect(canReachHub({ role: "sales", module_access: ["deliveries", "timetracker"] })).toBe(true);
   });
 
-  // D-NEXT le dio la vuelta a este caso, y no por un descuido: el directorio de la compañía
+  // D-256 le dio la vuelta a este caso, y no por un descuido: el directorio de la compañía
   // es la primera herramienta del hub visible para TODO EL MUNDO, así que «un solo módulo y
   // sin herramientas» ya no existe para nadie que no sea chofer. Lo que la prueba defiende
   // sigue siendo lo mismo: que el hub no sea un callejón sin salida, y ahora nunca lo es.

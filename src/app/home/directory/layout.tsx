@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * El directorio es para TODA la plantilla, así que esta puerta solo pregunta una cosa:
- * si hay sesión (D-NEXT).
+ * si hay sesión (D-256).
  *
  * No hay comprobación de rol ni de módulo, y no es un olvido: es lo que se pidió. Lo que
  * decide qué datos se ven no está aquí de todas formas — está en `public.phone_book()`,

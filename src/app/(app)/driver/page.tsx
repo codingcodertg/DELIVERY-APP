@@ -102,7 +102,7 @@ export default function DriverPage() {
               </select>
             </label>
           )}
-          {/* La puerta del chofer al directorio de la compañía (D-NEXT).
+          {/* La puerta del chofer al directorio de la compañía (D-256).
 
               Vive AQUÍ y no en el hub porque el chofer no llega al hub: D-173 se lo cierra sin
               condiciones, y esa regla no se relaja — su app es su ruta, y meterle un selector

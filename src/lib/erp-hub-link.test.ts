@@ -16,7 +16,7 @@ const erpYEntregas = { role: "sales" as const, module_access: ["erp", "deliverie
 describe("LA REGLA: quién tiene un hub al que volver", () => {
   // EL CASO DEL DUEÑO, y cómo cambió. Cuando se escribió esta prueba, un perfil con
   // `module_access: ["erp"]` no tenía NADA en el hub, así que el botón de volver lo mandaba a
-  // una pantalla que lo devolvía al ERP: ida y vuelta. D-NEXT añadió el directorio de la
+  // una pantalla que lo devolvía al ERP: ida y vuelta. D-256 añadió el directorio de la
   // compañía, visible para todo el mundo, y con eso el hub dejó de estar vacío para él.
   //
   // La regla que esta prueba defiende NO ha cambiado —«hay botón solo si hay algo al otro
@@ -39,7 +39,7 @@ describe("LA REGLA: quién tiene un hub al que volver", () => {
     expect(canReachHub({ role: "driver", module_access: ["erp", "deliveries", "recruiting"] })).toBe(false);
   });
   it("sin módulos o con la lista vacía, el hub sigue llegando: el directorio es de todos", () => {
-    // Antes de D-NEXT esto era `false` para los cuatro casos. Ojo con lo que significa: no es
+    // Antes de D-256 esto era `false` para los cuatro casos. Ojo con lo que significa: no es
     // que ahora se le abra ningún módulo, es que el hub tiene una pantalla suya —el directorio—
     // y por eso ir allí ya no es un viaje de ida y vuelta.
     for (const acceso of [null, undefined, [], ["erp"]]) {

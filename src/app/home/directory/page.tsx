@@ -10,7 +10,7 @@ import {
 } from "@/lib/phone-book";
 
 /**
- * El directorio de la compañía (D-NEXT).
+ * El directorio de la compañía (D-256).
  *
  * En cascada porque así se pidió, con su motivo dicho: **tienda → departamento → personas →
  * la persona**, «un poquito más difícil que solo buscar». Y con un buscador arriba que se la

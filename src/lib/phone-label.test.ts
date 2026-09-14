@@ -55,7 +55,7 @@ describe("el vocabulario que ya había, para que la elección conste", () => {
       "existe para que la decisión de llamarlo de otra forma se tome mirando, no por inercia. " +
       "Ver la nota de arriba y la entrada de la decisión.",
     ).toBe(11);
-    // Sube de 10 a 11 con D-NEXT: la tarjeta del directorio de la compañía. Es una etiqueta de
+    // Sube de 10 a 11 con D-256: la tarjeta del directorio de la compañía. Es una etiqueta de
     // campo, no una cabecera, y usa el vocabulario que ya había A PROPÓSITO — el problema que
     // obligó a decir «Phone number» era la ambigüedad con el número de orden en la ficha de
     // pedido, y en una tarjeta de contacto esa ambigüedad no existe.

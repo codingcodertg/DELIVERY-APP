@@ -15495,7 +15495,7 @@ mueve porque ninguna lo cubría — el botón nunca tuvo una.
 (main 2e81ef9: 1921 | 3). La cifra no se mueve, y eso es el dato: ninguna prueba cubría el
 botón.
 
-## D-NEXT · El directorio de la compañía: una cascada, y una función que enseña ocho columnas
+## D-256 · El directorio de la compañía: una cascada, y una función que enseña ocho columnas
 
 **Fecha:** 2026-09-14 · **Versión:** las tres apps (las pone el orquestador) · **Migración:
 `108_phone_book.sql`**, que **se aplica antes de fusionar** — esta rama está acoplada a ella

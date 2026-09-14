@@ -77,7 +77,7 @@ export interface Settings {
   id: number;
   app_name: string;
   roles: string[];
-  /** Departamentos que se pueden elegir en el expediente, para el directorio (D-NEXT). */
+  /** Departamentos que se pueden elegir en el expediente, para el directorio (D-256). */
   departments?: string[];
   scale?: ScaleLevel[]; // global interview scoring scale (1..4)
 }
