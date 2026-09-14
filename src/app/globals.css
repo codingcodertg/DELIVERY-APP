@@ -430,7 +430,7 @@ input.invalid, select.invalid, textarea.invalid {
 }
 .bulk-bar select { padding: 6px 9px; font-size: 12.5px; background: var(--card); color: var(--text); }
 
-/* ---------- Panel de «Switch usuario» (D-NEXT) ----------
+/* ---------- Panel de «Switch usuario» (D-254) ----------
    Cuelga de la barra superior, que es oscura y pinta su texto de blanco. Sin colores propios
    el panel HEREDA ese blanco sobre su fondo claro y los nombres se vuelven invisibles: es
    literalmente lo que vio el dueño. Así que aquí se dicen los tres: fondo, texto y borde, con

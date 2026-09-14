@@ -105,7 +105,7 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     "src/components/erp/review-queue.tsx": 1,
     // `table.orders th` dentro de `.tbl-scroll`, que es caja de scroll en los dos ejes porque
     // `overflow-x: auto` hace que el otro eje deje de ser `visible`.
-    // Y la cabecera de tienda del panel de «Switch usuario» (D-NEXT), que se pega al borde del
+    // Y la cabecera de tienda del panel de «Switch usuario» (D-254), que se pega al borde del
     // propio panel, que tiene su `overflow-y: auto`: el banner queda fuera de esa caja.
     "src/app/globals.css": 2,
     // El propio banner: es EL elemento que se pega arriba, y de ahí sale la medida que usan

@@ -15395,7 +15395,7 @@ alguien — y es la comprobación que le pediría antes de dar el fallo por cerr
 (main dfe8720: 1906 | 3; los +10 son de `impersonation-banner.test.ts`). La primera versión de
 esta rama medía 1915: la décima prueba es la que exige que la tabla de exentos no lleve de más.
 
-## D-NEXT · El panel de «Switch usuario» dice sus propios colores
+## D-254 · El panel de «Switch usuario» dice sus propios colores
 
 **Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** una captura del panel abierto y una palabra, «solucionalo». En la
