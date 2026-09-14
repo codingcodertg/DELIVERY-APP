@@ -222,7 +222,13 @@ export function SideNav({
       </aside>
 
       {/* Mobile: top bar with horizontal nav */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white lg:hidden">
+      {/* El `top` sale de la misma medida que la barra lateral: esta cabecera es la de móvil y
+          también se pega al borde de la ventana, así que sin desplazarla el banner se le pone
+          encima justo al bajar — con su botón de navegación dentro. */}
+      <header
+        className="sticky z-30 border-b border-slate-200 bg-white lg:hidden"
+        style={{ top: "var(--banner-impersonacion, 0px)" }}
+      >
         <div className="flex h-14 items-center gap-3 px-4">
           {brand}
           <div className="ml-auto flex items-center gap-2">

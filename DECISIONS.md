@@ -15340,19 +15340,49 @@ dos piezas `fixed` del ERP la usan con respaldo de cero. Medido en vez de escrit
 que arriba. Y **se borra al desmontarse**: fuera de una impersonación la propiedad no existe y el
 respaldo deja todo donde estaba, así que la inmensa mayoría de las cargas no cambian en nada.
 
+### Tres más se pegaban al mismo borde, y la primera prueba no podía verlos
+
+La primera versión de este arreglo movió el banner y desplazó la barra lateral del ERP, y su
+prueba prometía que **ningún componente** podía colgarse del borde de arriba. No era cierto:
+solo miraba el estilo escrito a mano, y hay dos formas más de decir lo mismo —una clase de
+Tailwind y una regla CSS— que se le escapaban enteras.
+
+Detrás de esas dos formas había tres elementos reales, que solo se ven **al hacer scroll** con
+una impersonación viva:
+
+- **La barra de acciones en bloque de Reclutamiento** (`recruiting.css`), `sticky` en el borde.
+- **La cabecera móvil del ERP** (`side-nav.tsx`), que lleva dentro el botón de navegación: en un
+  móvil es exactamente el incidente otra vez, un botón inalcanzable.
+- **La barra del Time Tracker** (`timetracker.css`). Y esta corrige algo que yo había afirmado:
+  dije que las tres barras estaban en el flujo porque `.topbar` de `globals.css` no tiene
+  `position`. Es cierto para Entregas y RR. HH., pero **el Time Tracker redefine su propia
+  regla** y la suya es `sticky`. La lección es que «está en flujo» se mide con la regla que
+  **aplica en ese módulo**, no con la global que comparte el nombre de clase.
+
+Los tres usan ahora la misma medida del banner, así que no hay un cuarto mecanismo que mantener.
+
+**Lo que NO se tocó, y por qué:** las cabeceras de tabla del ERP y del catálogo, y `table.orders
+th` en `globals.css`, también se pegan arriba — pero dentro de un contenedor con scroll propio,
+así que su borde de arriba es el de su caja y el banner no las alcanza nunca. Están en la tabla
+de exentos de la prueba, cada una con el contenedor que la salva.
+
 ### La prueba recorre, además de fijar la forma
 
 Fija lo que importa: que el banner no sea `fixed`, que sea `sticky` arriba, que vaya delante del
 contenido en el layout raíz, que la medida se publique midiendo y se borre al desmontar, y que
 las dos piezas del ERP la usen.
 
-Y añade un recorrido, porque el fallo de verdad no fue escribir mal el banner: fue que **nadie
-comprobaba si algo se ponía encima de la barra**. Ahora ningún componente puede ser `fixed`
-pegado arriba y a todo lo ancho sin que una prueba lo diga. Con su control: si el recorrido no
-encuentra al menos cuarenta componentes, falla.
+Y añade un recorrido en las tres formas —estilo suelto, clase y regla CSS—, porque el fallo de
+verdad no fue escribir mal el banner: fue que **nadie comprobaba si algo se ponía encima de la
+barra**. Lo que se pegue arriba, o usa la medida del banner, o está en la tabla de exentos con
+el contenedor que lo salva. La tabla **no admite holgura**: cada exento tiene que seguir
+existiendo y con su cuenta exacta. Y con su control: si el recorrido no encuentra al menos
+cinco sitios pegados arriba, falla, porque un recorrido que no ve ninguno está roto, no limpio.
 
 **Medido:** volver el banner a `fixed` tira **tres** pruebas; quitar el borrado de la propiedad
-al desmontar, **una**; quitar el desplazamiento de la barra lateral del ERP, **una**.
+al desmontar, **una**; quitar el desplazamiento de la barra lateral del ERP, **una**; y quitar
+la medida de la barra de Reclutamiento, de la del Time Tracker o de la cabecera móvil del ERP,
+**una** cada uno.
 
 ### Lo no verificado
 
@@ -15361,5 +15391,6 @@ del arreglo en los ficheros. Que el banner quede exactamente encima de la barra 
 y que la lateral del ERP baje lo justo, eso lo dirá la próxima vez que el dueño entre como
 alguien — y es la comprobación que le pediría antes de dar el fallo por cerrado.
 
-`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1915 pasados | 3 saltados**
-(main dfe8720: 1906 | 3; los +9 son de `impersonation-banner.test.ts`).
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1916 pasados | 3 saltados**
+(main dfe8720: 1906 | 3; los +10 son de `impersonation-banner.test.ts`). La primera versión de
+esta rama medía 1915: la décima prueba es la que exige que la tabla de exentos no lleve de más.

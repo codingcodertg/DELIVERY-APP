@@ -57,38 +57,95 @@ describe("la medida que usa el ERP existe solo mientras el banner está puesto",
     expect(src).toContain(`removeProperty("${VARIABLE}")`);
   });
 
-  it("la barra lateral del ERP y su botón la usan, con respaldo de cero", () => {
+  it("las tres piezas del ERP que se pegan a la ventana usan la medida, con respaldo de cero", () => {
     const src = leer(SIDE_NAV);
     const usos = src.split(`var(${VARIABLE}, 0px)`).length - 1;
-    // Dos: la barra lateral `fixed inset-y-0` y el botón de desplegarla, que también es `fixed`.
-    expect(usos).toBe(2);
+    // Tres: la barra lateral `fixed inset-y-0`, el botón de desplegarla, y la cabecera de móvil,
+    // que es `sticky` y se pega al mismo borde en cuanto se baja la página.
+    expect(usos).toBe(3);
   });
 });
 
 describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
   // Recorre en vez de enumerar: el fallo no fue que el banner estuviera mal escrito, fue que
-  // NADIE comprobaba si algo se ponía encima de la barra. Si mañana aparece otro aviso `fixed`
-  // pegado arriba y ocupando todo el ancho, esta prueba lo cuenta antes que el dueño.
-  const tsx: string[] = [];
-  const recorre = (dir: string) => {
-    for (const f of readdirSync(dir)) {
-      const p = join(dir, f);
-      if (statSync(p).isDirectory()) recorre(p);
-      else if (f.endsWith(".tsx")) tsx.push(p);
-    }
-  };
-  recorre(join(process.cwd(), "src/components"));
+  // NADIE comprobaba si algo se ponía encima de la barra. Y el recorrido mira los tres sitios
+  // donde se puede escribir eso —estilo suelto, clase de Tailwind y regla CSS—, porque la
+  // primera versión de esta prueba solo miraba el primero y dejó fuera tres elementos reales.
 
-  it("recorre los componentes (control)", () => {
-    expect(tsx.length).toBeGreaterThanOrEqual(40);
+  const ficheros = (raiz: string, ext: string) => {
+    const out: string[] = [];
+    const recorre = (dir: string) => {
+      for (const f of readdirSync(dir)) {
+        const p = join(dir, f);
+        if (statSync(p).isDirectory()) recorre(p);
+        else if (f.endsWith(ext)) out.push(p.split("\\").join("/"));
+      }
+    };
+    recorre(join(process.cwd(), raiz).split("\\").join("/"));
+    return out;
+  };
+
+  const RAIZ = process.cwd().split("\\").join("/") + "/";
+  const rel = (p: string) => p.replace(RAIZ, "");
+
+  // Los que se pegan arriba pero DENTRO de un contenedor con scroll propio: ahí el borde de
+  // arriba es el de su caja, no el de la ventana, así que el banner no los alcanza. Cada uno con
+  // el contenedor que lo salva, y la cuenta exacta — si un fichero deja de tener el suyo, la
+  // prueba lo pide igual que si fuera nuevo.
+  const EXENTOS: Record<string, number> = {
+    // `h-[calc(100vh-340px)] overflow-auto` en la tabla del catálogo.
+    "src/components/erp/catalog-table.tsx": 1,
+    // `max-h-[28rem] overflow-auto`.
+    "src/components/erp/decisions-upload.tsx": 1,
+    // `max-h-[32rem] overflow-auto`.
+    "src/components/erp/master-round-trip.tsx": 1,
+    // El cajón lateral entero es `overflow-y-auto`.
+    "src/components/erp/product-drawer.tsx": 1,
+    // `max-h-[70vh] overflow-auto` en la cola de revisión.
+    "src/components/erp/review-queue.tsx": 1,
+    // `table.orders th` dentro de `.tbl-scroll`, que es caja de scroll en los dos ejes porque
+    // `overflow-x: auto` hace que el otro eje deje de ser `visible`.
+    "src/app/globals.css": 1,
+    // El propio banner: es EL elemento que se pega arriba, y de ahí sale la medida que usan
+    // los demás. Si algún día dejara de aparecer aquí, es que dejó de estar en el borde.
+    "src/components/ImpersonationBanner.tsx": 1,
+  };
+
+  const CLASE = /className=\{?\s*["`][^"`]*\b(?:sticky|fixed)\b[^"`]*\btop-0\b/g;
+  const ESTILO = /position:\s*["']?(?:sticky|fixed)["']?[^}]{0,200}?top:\s*0\b/g;
+  const REGLA = /position:\s*(?:sticky|fixed)[^}]{0,300}?top:\s*0(?![.\d])/g;
+
+  const candidatos = new Map<string, number>();
+  for (const p of ficheros("src", ".tsx")) {
+    const src = readFileSync(p, "utf8");
+    const n = (src.match(CLASE) ?? []).length + (src.match(ESTILO) ?? []).length;
+    if (n) candidatos.set(rel(p), n);
+  }
+  for (const p of ficheros("src", ".css")) {
+    const src = readFileSync(p, "utf8");
+    const n = (src.match(REGLA) ?? []).length;
+    if (n) candidatos.set(rel(p), n);
+  }
+
+  it("recorre los ficheros de verdad (control)", () => {
+    expect(ficheros("src", ".tsx").length).toBeGreaterThanOrEqual(60);
+    expect(ficheros("src", ".css").length).toBeGreaterThanOrEqual(3);
+    // Y encuentra algo: un recorrido que no ve ni un `sticky top-0` está roto, no limpio.
+    expect(candidatos.size).toBeGreaterThanOrEqual(5);
   });
 
-  it("ninguno es `fixed` con `insetInline: 0` y `top: 0`", () => {
+  it("todo lo que se pega al borde de arriba, o usa la medida del banner, o está exento", () => {
     const culpables: string[] = [];
-    for (const p of tsx) {
-      const src = readFileSync(p, "utf8");
-      if (/position:\s*"fixed"[^}]*insetInline:\s*0[^}]*top:\s*0/.test(src)) culpables.push(p);
+    for (const [ruta, n] of candidatos) {
+      if (EXENTOS[ruta] === n) continue;
+      culpables.push(`${ruta}: ${n} pegado(s) arriba, exentos ${EXENTOS[ruta] ?? 0}`);
     }
-    expect(culpables, culpables.join("\n")).toEqual([]);
+    expect(culpables, culpables.join(" · ")).toEqual([]);
+  });
+
+  it("la tabla de exentos no lleva de más: cada uno sigue existiendo, con su cuenta", () => {
+    for (const [ruta, n] of Object.entries(EXENTOS)) {
+      expect(candidatos.get(ruta), ruta).toBe(n);
+    }
   });
 });

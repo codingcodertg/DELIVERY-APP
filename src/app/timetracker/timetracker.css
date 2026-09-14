@@ -72,7 +72,7 @@
    solid dark bar, white text, no background pill on inactive tabs (exactly
    deliveries' own .tab styling, globals.css) — only the active tab gets a
    background, and it's a solid accent color so it reads in both themes. */
-.timetracker-module .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin-bottom:6px;position:sticky;top:0;z-index:20;background:var(--ink);color:#fff}
+.timetracker-module .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin-bottom:6px;position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;background:var(--ink);color:#fff}
 .timetracker-module .brand{font-weight:800;font-size:18px;letter-spacing:.02em;color:#fff}
 .timetracker-module .brand span{color:var(--tt-accent2)}
 .timetracker-module .timer-big{font-size:52px;font-weight:800;font-variant-numeric:tabular-nums}
