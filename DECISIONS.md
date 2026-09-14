@@ -15451,3 +15451,45 @@ quepa en 340 píxeles sin recortarse antes de tiempo, eso lo dirá la pantalla.
 (main a7656a0: 1916 | 3; los +5 son el bloque nuevo de `switch-user.test.ts`). El guardián de
 colores sigue en 106 casos y su tabla de techos no se toca: el panel no añade ni un color a
 pelo, porque todo va en el CSS con tokens.
+
+## D-NEXT · Se retira el botón «WhatsApp» de Órdenes, y con él D-233
+
+**Fecha:** 2026-09-13 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
+**Pedido por el dueño:** una captura de la barra de Órdenes y tres palabras, «remueve eso de
+WhatsApp».
+
+### Revierte D-233, que pidió él mismo hace tres días
+
+D-233 (2026-09-10) añadió ese botón por una razón concreta: al cerrar el día había que pasar la
+lista de pedidos al grupo de WhatsApp a mano, y el botón copiaba la lista **visible** —con su
+preset y su filtro— como texto. La razón no se ha demostrado falsa; el dueño simplemente ya no
+lo quiere en la pantalla. Es su decisión, tres días después, y se anota como tal en vez de
+buscarle una justificación técnica que no tengo.
+
+**Se quita, no se esconde.** Un botón comentado o detrás de una bandera es código que nadie
+mantiene y que nadie borra nunca. Si vuelve, vuelve con `git revert` de este commit, que trae de
+golpe la función, el botón y su texto.
+
+### Qué se fue exactamente, medido antes de tocar
+
+`git grep copyWhatsApp -- src` daba **dos** apariciones, las dos en `(app)/page.tsx`: la función
+y el `onClick` del botón. Nada más la usaba. Se fueron las dos, el comentario que las explicaba y
+las cuatro cadenas que solo vivían ahí —el título del botón, su etiqueta y los dos avisos de
+copiado—, que van escritas en la propia llamada de traducción y por eso desaparecen con ella: no
+hay fichero de claves que quede con huérfanas.
+
+**Lo que NO se toca, y conviene decirlo porque comparte el nombre:** el botón «🟢 WhatsApp» de la
+ficha de un pedido (`OrderModal.tsx`), que abre WhatsApp con el mensaje al cliente preparado.
+Es otra función, de otra decisión, y el dueño señaló la barra de Órdenes. También sigue la
+mención de WhatsApp en Ajustes, que describe esos botones manuales.
+
+### Sin prueba nueva, a propósito
+
+Una prueba que exigiera que el botón **no** existe convertiría el `git revert` en un fallo rojo,
+que es justo el camino de vuelta que esta entrada deja abierto. Lo que sostiene el borrado es el
+compilador: si algo más usara la función, `tsc` no pasaría, y pasa. El recuento de pruebas no se
+mueve porque ninguna lo cubría — el botón nunca tuvo una.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1921 pasados | 3 saltados**
+(main 2e81ef9: 1921 | 3). La cifra no se mueve, y eso es el dato: ninguna prueba cubría el
+botón.
