@@ -14,9 +14,17 @@ const soloErp = { role: "sales" as const, module_access: ["erp"] };
 const erpYEntregas = { role: "sales" as const, module_access: ["erp", "deliveries"] };
 
 describe("LA REGLA: quién tiene un hub al que volver", () => {
-  it("EL CASO DEL DUEÑO: con el ERP como único módulo, NO hay hub", () => {
-    // El perfil con el que lo vio tenía `module_access: ["erp"]`.
-    expect(canReachHub(soloErp)).toBe(false);
+  // EL CASO DEL DUEÑO, y cómo cambió. Cuando se escribió esta prueba, un perfil con
+  // `module_access: ["erp"]` no tenía NADA en el hub, así que el botón de volver lo mandaba a
+  // una pantalla que lo devolvía al ERP: ida y vuelta. D-NEXT añadió el directorio de la
+  // compañía, visible para todo el mundo, y con eso el hub dejó de estar vacío para él.
+  //
+  // La regla que esta prueba defiende NO ha cambiado —«hay botón solo si hay algo al otro
+  // lado»—; lo que cambió es que ahora siempre hay algo. Por eso se afirma lo que la hace
+  // cierta, en vez de bajar el listón: que lo que le espera es una herramienta suya.
+  it("EL CASO DEL DUEÑO: con el ERP como único módulo, ahora el hub tiene algo suyo", () => {
+    expect(canReachHub(soloErp)).toBe(true);
+    expect(HUB_TOOLS.some((t) => t.visible({ role: soloErp.role }))).toBe(true);
   });
   it("con dos módulos sí lo hay, que es para lo que existe el selector", () => {
     expect(canReachHub(erpYEntregas)).toBe(true);
@@ -30,9 +38,12 @@ describe("LA REGLA: quién tiene un hub al que volver", () => {
   it("un chofer nunca, le den lo que le den (D-051)", () => {
     expect(canReachHub({ role: "driver", module_access: ["erp", "deliveries", "recruiting"] })).toBe(false);
   });
-  it("sin módulos o con la lista vacía, tampoco", () => {
+  it("sin módulos o con la lista vacía, el hub sigue llegando: el directorio es de todos", () => {
+    // Antes de D-NEXT esto era `false` para los cuatro casos. Ojo con lo que significa: no es
+    // que ahora se le abra ningún módulo, es que el hub tiene una pantalla suya —el directorio—
+    // y por eso ir allí ya no es un viaje de ida y vuelta.
     for (const acceso of [null, undefined, [], ["erp"]]) {
-      expect(canReachHub({ role: "manager", module_access: acceso }), JSON.stringify(acceso)).toBe(false);
+      expect(canReachHub({ role: "manager", module_access: acceso }), JSON.stringify(acceso)).toBe(true);
     }
   });
 });

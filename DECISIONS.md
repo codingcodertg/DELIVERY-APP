@@ -15494,3 +15494,126 @@ mueve porque ninguna lo cubría — el botón nunca tuvo una.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1921 pasados | 3 saltados**
 (main 2e81ef9: 1921 | 3). La cifra no se mueve, y eso es el dato: ninguna prueba cubría el
 botón.
+
+## D-NEXT · El directorio de la compañía: una cascada, y una función que enseña ocho columnas
+
+**Fecha:** 2026-09-14 · **Versión:** las tres apps (las pone el orquestador) · **Migración:
+`108_phone_book.sql`**, que **se aplica antes de fusionar** — esta rama está acoplada a ella
+porque el expediente ya escribe `department`.
+**Pedido por el dueño:** un directorio en el hub que vea **toda la plantilla**, para buscar a
+alguien y ver su teléfono y su correo. Y con la navegación dicha por él: **Directorio → tienda
+→ departamento → personas → la persona**, «un poquito más difícil que solo buscar».
+
+> **Se dijo «siete columnas» y son ocho.** Lo contó otra sesión al revisar: la enumeración se
+> dejaba fuera el orden de la tienda, que también sale de la función. El número está corregido
+> aquí, en el comentario del `.sql` y en el título de la prueba —la prueba en sí ya afirmaba las
+> ocho, una por una, así que medía bien lo que su título contaba mal—. Se anota porque un número
+> que sale en tres sitios se copia, y el copiado no lo recuenta nadie.
+>
+> **Los seis departamentos de partida llevan acento** («Almacén», «Logística»). Se escribieron
+> primero sin él por prudencia con el cuerpo de una migración, y el orquestador lo corrigió
+> antes de aplicarla: UTF-8 en un `.sql` es tan estable como cualquier otro byte, y lo que
+> congela el checksum es cambiar el fichero **después** de ejecutarlo, no que lleve tilde.
+
+### La cascada es el encargo, no una decisión de pantalla
+
+Un buscador plano habría sido menos trabajo y peor encargo: el dueño explicó por qué la quería
+en cascada. Así que el orden y el agrupado viven en una función pura y probada, no en el JSX, y
+lo que se prueba son las reglas: las tiendas **en el orden de Ajustes** y no alfabético; los
+departamentos alfabéticos dentro de cada tienda; «sin tienda» y «sin departamento» como grupos
+propios al final, nunca como agujeros; y la gente de una tienda **borrada de Ajustes** que no
+se evapora, sino que cae al final con su nombre — la misma regla que D-247 fijó para «Switch
+usuario», por el mismo motivo.
+
+**El buscador salta la cascada** y busca por nombre, que es lo que se pidió. Con el campo vacío
+no devuelve la plantilla entera: eso sería el directorio plano que no se quiso.
+
+### Lo que costaba: la tabla es de RR. HH. y el directorio es de todos
+
+Los datos ya existían —el expediente (D-251) guarda teléfono, extensión y correo de contacto; la
+tienda está en `profiles.store`; el título de la pastilla en `profiles.title` (D-252)—, pero
+`recruiting.employee_files` la cierra la 094 a admin y gerente de RR. HH., y con razón: ahí
+viven dirección, cumpleaños, días libres y notas.
+
+**Abrirla con una política de lectura habría expuesto la fila entera**, porque la RLS permite o
+niega filas, no columnas. Por eso el directorio lee por una función `security definer`,
+`public.phone_book()`, que devuelve **ocho columnas y ninguna más** —nombre, título, tienda,
+departamento, teléfono, extensión y correo, más el orden de su tienda— de las personas
+**activas**. La 094 no se toca: un
+vendedor sigue sin poder leer la tabla, y hay prueba de las dos mitades.
+
+Que solo salgan las activas no es un filtro de pantalla: es `date_left is null` dentro de la
+función. Quien se va desaparece del directorio ese mismo día, sin que nadie tenga que acordarse
+de borrarlo de una lista aparte.
+
+**El orden de las tiendas también sale de la función**, como un número por fila. Parece un
+rodeo y no lo es: `public.settings` la cierra la 100 a quien tiene Entregas, así que pedirla
+desde la pantalla habría dejado sin orden justo a quien no tiene ese módulo — parte de la gente
+a la que esto viene a servir.
+
+### «Departamento» no existía, y ahora es una columna con su lista
+
+La 108 la añade al expediente y añade la lista para elegirla a los ajustes **de RR. HH.**, no a
+los de Entregas: quien la usa es el expediente, así que la lista y el sitio donde se elige
+tienen que poder abrirlos las mismas personas. Se **elige**, no se escribe, porque de esto vive
+la cascada y «Almacen», «almacén» y «Almacén» serían tres departamentos distintos.
+
+Dos detalles que no son adorno. Un expediente con un departamento que ya no está en la lista
+**conserva el suyo** en el selector: sin eso, abrir la ficha lo dejaría en la opción vacía y el
+primer «Guardar datos» lo borraría sin que nadie lo tocara. Y quitar uno de la lista no borra
+nada: deja de poder elegirse, que es lo que se pidió.
+
+### Lo que este encargo cambia sin que nadie lo pidiera, y hay que decirlo
+
+Es la **primera herramienta del hub visible para todo el mundo**, y `canReachHub` es «más de un
+módulo **o** alguna herramienta visible». Así que ahora el hub es alcanzable para cualquiera que
+no sea chofer, incluida la persona con un solo módulo. **Cuatro pruebas afirmaban lo contrario**
+y no se han bajado de listón: dicen lo mismo con la respuesta nueva y con el motivo escrito, y
+una de ellas comprueba además lo que la hace cierta —que esa persona tiene una herramienta suya
+al otro lado—, porque la regla que defienden sigue siendo «hay botón solo si hay algo detrás».
+
+**El candado del chofer (D-173) no se toca, y aun así el chofer entra.** Esa regla es
+incondicional a propósito —su app es su ruta, y un selector de módulos en medio del reparto es
+lo que D-051 quitó—, así que relajarla para colar el directorio habría sido pagar la puerta con
+la regla. Lo que se hace es lo contrario: **la ruta del directorio nunca estuvo detrás de ese
+candado** —solo pide sesión— y el chofer recibe un enlace propio en su pantalla, que es donde
+está. El hub sigue sin ser para él; el directorio sí lo es.
+
+Y es quien más lo necesita: es el que está fuera y tiene que llamar a la tienda. Las tres piezas
+—ruta abierta, enlace puesto, candado intacto— se prueban juntas, porque quitar cualquiera de
+las tres deja al chofer fuera o convierte la excepción en otra cosa.
+
+### Medido, rompiendo cada pieza
+
+Quitar el filtro de activos de la función tira **una** prueba; añadirle una columna de las
+que RR. HH. guarda de puertas adentro, **una**; ordenar las tiendas por alfabeto en vez de por
+Ajustes, **una**; y hacer que el buscador vacío devuelva la plantilla entera, **una**.
+
+La tercera **no caía al principio**, y merece quedar escrito. Los datos de esa prueba tenían
+las tiendas en un orden en el que Ajustes y el alfabeto coincidían, así que el mutante pasaba
+en verde: la prueba era un espejo de la implementación y no comprobaba nada. Se cambiaron los
+datos para que los dos órdenes **se contradigan**, y entonces sí cae. Una prueba de ordenación
+con datos ya ordenados no prueba la ordenación.
+
+### Un canario que había que subir mirando
+
+La tarjeta pone una etiqueta «Phone / Teléfono», y hay un canario que **cuenta cuántas hay en
+todo el repo** para que llamar al campo de otra forma sea una decisión y no una inercia (D-232).
+Pasa de 10 a 11, y con el motivo escrito al lado: es una etiqueta de campo, no una cabecera, y
+usa el vocabulario que ya había **a propósito** — lo que obligó a decir «Phone number» en la
+ficha de pedido era la ambigüedad con el número de orden, y en una tarjeta de contacto esa
+ambigüedad no existe. El número se midió con el mismo comando que documenta el canario, no de
+memoria.
+
+### Lo no verificado
+
+- **Nadie ha abierto la pantalla en un navegador**, ni con datos reales. Probado está el orden,
+  el agrupado, el buscador, los enlaces de llamar y escribir, y lo que la función expone.
+- **Nadie ha llamado a `phone_book()` contra la base**: la migración no está aplicada cuando se
+  escribe esto. Lo que se ha medido es el texto del `.sql`, no su resultado.
+- **Los datos los carga el dueño después.** Hasta que llegue su hoja, la cascada enseñará lo que
+  hoy tienen los expedientes: mucha gente sin departamento, todos en el grupo de abajo.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1948 pasados | 3 saltados**
+(main 1659c24: 1921 | 3; los +27 son de `phone-book.test.ts`, que en solitario da 27 — cuatro
+de ellos son la puerta del chofer, que se añadió después de la primera medición).

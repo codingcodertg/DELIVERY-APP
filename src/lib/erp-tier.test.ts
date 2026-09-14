@@ -79,9 +79,12 @@ describe("el cableado: una sola lectura, y cada rol en su sitio", () => {
     expect(auth).toContain('hubRole: (profile.role as UserRole) ?? "sales",');
     expect(leer("src/components/erp/header.tsx"))
       .toContain("hubReachable={canReachHub({ role: session.hubRole, module_access: session.moduleAccess })}");
-    // Y la regla del hub sigue contestando lo suyo con el rol del hub.
+    // Y la regla del hub sigue contestando lo suyo con el rol del hub. Lo que cambió con
+    // D-NEXT es la RESPUESTA del segundo caso, no la pregunta: el directorio de la compañía
+    // es una herramienta de hub visible para todos, así que quien solo tiene el ERP también
+    // tiene ahora algo suyo al otro lado del botón.
     expect(canReachHub({ role: "manager", module_access: ["erp", "deliveries"] })).toBe(true);
-    expect(canReachHub({ role: "manager", module_access: ["erp"] })).toBe(false);
+    expect(canReachHub({ role: "manager", module_access: ["erp"] })).toBe(true);
   });
   it("ningún consumidor del ERP se quedó preguntando por el rol de Entregas", () => {
     // Los ~38 consumidores usan `session.role`, que ahora ES el nivel del ERP. Lo que no puede

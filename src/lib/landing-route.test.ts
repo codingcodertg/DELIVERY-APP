@@ -201,8 +201,12 @@ describe("canReachHub", () => {
     expect(canReachHub({ role: "sales", module_access: ["deliveries", "timetracker"] })).toBe(true);
   });
 
-  it("con uno solo y sin herramientas, no", () => {
-    expect(canReachHub({ role: "sales", module_access: ["deliveries"] })).toBe(false);
+  // D-NEXT le dio la vuelta a este caso, y no por un descuido: el directorio de la compañía
+  // es la primera herramienta del hub visible para TODO EL MUNDO, así que «un solo módulo y
+  // sin herramientas» ya no existe para nadie que no sea chofer. Lo que la prueba defiende
+  // sigue siendo lo mismo: que el hub no sea un callejón sin salida, y ahora nunca lo es.
+  it("con uno solo, ahora sí: le espera el directorio", () => {
+    expect(canReachHub({ role: "sales", module_access: ["deliveries"] })).toBe(true);
   });
 
   it("un admin con un solo módulo sí: tiene Usuarios esperándole (D-056)", () => {

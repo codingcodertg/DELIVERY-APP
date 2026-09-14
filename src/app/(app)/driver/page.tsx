@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canCreate, canDeliver, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
@@ -101,6 +102,17 @@ export default function DriverPage() {
               </select>
             </label>
           )}
+          {/* La puerta del chofer al directorio de la compañía (D-NEXT).
+
+              Vive AQUÍ y no en el hub porque el chofer no llega al hub: D-173 se lo cierra sin
+              condiciones, y esa regla no se relaja — su app es su ruta, y meterle un selector
+              de módulos en medio del reparto sería justo lo que D-051 quitó. Pero el dueño pidió
+              el directorio para TODOS los empleados, y un chofer es quien más lo necesita: es
+              el que está fuera y tiene que llamar a la tienda.
+              
+              Así que la puerta es suya y la ruta está fuera del candado: `/home/directory` solo
+              pide sesión. El hub sigue sin ser para el chofer; el directorio sí lo es. */}
+          <Link href="/home/directory" className="btn btn-ghost">📇 {t("Directory", "Directorio")}</Link>
           {canCreate(me) && (
             <button className="btn btn-primary" onClick={() => setCreating(true)}>+ {t("New order", "Nueva orden")}</button>
           )}

@@ -467,6 +467,21 @@ export const HUB_TOOLS: HubTool[] = [
     desc_es: "Gestiona el acceso del equipo entre módulos",
     visible: (me) => me.role === "admin",
   },
+  {
+    key: "directory",
+    href: "/home/directory",
+    emoji: "📇",
+    label_en: "Company phone book",
+    label_es: "Directorio de la compañía",
+    desc_en: "Find anyone by store and department",
+    desc_es: "Encuentra a cualquiera por tienda y departamento",
+    // La primera herramienta del hub que ve TODO EL MUNDO, y por eso cambia algo más que
+    // esta lista: `canReachHub` es «más de un módulo **o** alguna herramienta visible», así
+    // que con esto el hub deja de ser un callejón sin salida para quien solo tiene un
+    // módulo — ahora hay algo suyo allí. El candado del chofer (D-173) sigue delante y no
+    // se toca: su app es su ruta, y esa regla es incondicional a propósito.
+    visible: () => true,
+  },
 ];
 
 // ---- Apps que se instalan --------------------------------------------------
