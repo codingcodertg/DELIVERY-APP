@@ -145,7 +145,7 @@ export function SideNav({
     <>
       {/* Collapsed: the only way back. Fixed so it stays put while the page scrolls, and
           desktop-only because the mobile layout has its own top bar below. */}
-      {/* El `top` sale del banner de «entrar como» (D-NEXT): este botón es `fixed` contra la
+      {/* El `top` sale del banner de «entrar como» (D-253): este botón es `fixed` contra la
           ventana y el banner ocupa esa franja. Fuera de una impersonación la propiedad no
           existe y el respaldo lo deja donde estaba. */}
       {collapsed && (

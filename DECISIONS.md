@@ -15307,7 +15307,7 @@ Y tras el segundo rebase, ya sobre `main` 123a6fb (D-250 y D-251 dentro): **1906
 En `src/lib/types.ts` los diez tipos de esta rama se apilan junto a los diez que trajo D-250,
 sin tocarlos: el aporte propio conserva su contenido byte a byte (`35e0a6bd`).
 
-## D-NEXT · El banner de «entrar como» empuja la barra en vez de taparla
+## D-253 · El banner de «entrar como» empuja la barra en vez de taparla
 
 **Fecha:** 2026-09-13 · **Versión:** las tres apps (las pone el orquestador) · Sin migración.
 **Pedido por el dueño:** la primera vez que usó «Entrar como» en producción, a las 18:51. Su
