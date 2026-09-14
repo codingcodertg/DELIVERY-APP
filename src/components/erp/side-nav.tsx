@@ -145,18 +145,28 @@ export function SideNav({
     <>
       {/* Collapsed: the only way back. Fixed so it stays put while the page scrolls, and
           desktop-only because the mobile layout has its own top bar below. */}
+      {/* El `top` sale del banner de «entrar como» (D-NEXT): este botón es `fixed` contra la
+          ventana y el banner ocupa esa franja. Fuera de una impersonación la propiedad no
+          existe y el respaldo lo deja donde estaba. */}
       {collapsed && (
-        <div className="fixed left-2 top-2 z-40 hidden lg:block">
+        <div
+          className="fixed left-2 z-40 hidden lg:block"
+          style={{ top: "calc(var(--banner-impersonacion, 0px) + 0.5rem)" }}
+        >
           <div className="rounded-md border border-slate-200 bg-white shadow-sm">{burger}</div>
         </div>
       )}
 
-      {/* Desktop: fixed left sidebar */}
+      {/* Desktop: fixed left sidebar. El `top` es lo mismo que arriba: `inset-y-0` la pega al
+          borde de la ventana, que es donde vive el banner de «entrar como», y sin desplazarla
+          le taparía el logo y el botón de plegarla. Es el único módulo que lo necesita: los
+          otros tres tienen su barra en el flujo del documento y el banner las empuja. */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-slate-200 bg-white",
           collapsed ? "lg:hidden" : "lg:flex"
         )}
+        style={{ top: "var(--banner-impersonacion, 0px)" }}
       >
         <div className="flex h-14 shrink-0 items-center gap-1 px-2">
           {burger}

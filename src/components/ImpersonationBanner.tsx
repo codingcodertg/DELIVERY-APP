@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
 /**
@@ -28,6 +28,8 @@ export function ImpersonationBanner() {
   const [estado, setEstado] = useState<Estado>(null);
   const [volviendo, setVolviendo] = useState(false);
   const [quedan, setQuedan] = useState<number | null>(null);
+
+  const caja = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -67,13 +69,35 @@ export function ImpersonationBanner() {
     return () => clearInterval(id);
   }, [estado, volviendo, volver]);
 
+  // La altura del banner, publicada para quien no está en el flujo. Las barras de Entregas,
+  // RR. HH. y Time Tracker no la necesitan: el banner va delante de ellas en el documento y las
+  // empuja. El ERP sí, porque su barra lateral es `fixed` contra la ventana y empieza en el
+  // borde de arriba, donde ahora está el banner — sin esto le taparía el logo y el botón de
+  // plegarla, que es la única forma de recuperarla.
+  //
+  // Se mide en vez de escribirse: el banner cambia de alto al partirse en dos líneas en un
+  // móvil, y un número copiado en el CSS habría quedado corto justo ahí.
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const raiz = document.documentElement;
+    const publica = () => raiz.style.setProperty("--banner-impersonacion", `${el.offsetHeight}px`);
+    publica();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(publica) : null;
+    ro?.observe(el);
+    // Al desmontar se BORRA, no se pone a cero: fuera de una impersonación la propiedad no
+    // existe y el `var(--banner-impersonacion, 0px)` del CSS usa su respaldo.
+    return () => { ro?.disconnect(); raiz.style.removeProperty("--banner-impersonacion"); };
+  }, [estado]);
+
   if (!estado) return null;
 
   return (
     <div
+      ref={caja}
       role="alert"
       style={{
-        position: "fixed", insetInline: 0, top: 0, zIndex: 9999,
+        position: "sticky", top: 0, zIndex: 9999,
         display: "flex", gap: 12, alignItems: "center", justifyContent: "center",
         flexWrap: "wrap", padding: "8px 16px",
         background: "var(--amber, #fbf1df)", color: "var(--ink, #152238)",
