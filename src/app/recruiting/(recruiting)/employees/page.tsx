@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
-  listEmployeeFiles, getEmployeeDocs, saveEmployeeFile, saveEmployeeDoc, deleteEmployeeDoc,
+  listEmployeeFiles, getEmployeeDocs, saveEmployeeFile, saveEmployeeDoc, deleteEmployeeDoc, listStoreNames,
   signDocUrl, uploadDocFile,
   type EmployeeDoc, type EmployeeFile,
 } from "@/app/recruiting/actions/hr";
 import { DOC_KINDS, REQUIRED_FORMS } from "@/lib/recruiting/hr";
+import { puedeElegirTienda, tiendaVisible } from "@/lib/recruiting/employee-file";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -155,11 +156,21 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
     date_hired: persona.date_hired ?? "",
     phone: persona.phone ?? "",
     department: persona.department ?? "",
+    store: persona.store ?? "",
     address: persona.address ?? "",
     days_off: persona.days_off != null ? String(persona.days_off) : "",
     notes: persona.notes ?? "",
   });
   const [docs, setDocs] = useState<EmployeeDoc[] | null>(null);
+  // Las tiendas para elegir (D-NEXT). Vienen de `store_names()` y no de los Ajustes de Entregas,
+  // porque RR. HH. no tiene por qué tener Entregas. Si falla, la lista queda vacía y el campo
+  // conserva el valor guardado: no se puede elegir, pero tampoco se borra nada.
+  const [tiendas, setTiendas] = useState<string[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void listStoreNames().then((r) => { if (vivo && r.ok) setTiendas(r.names); });
+    return () => { vivo = false; };
+  }, []);
   const [busy, setBusy] = useState(false);
 
   const cargaDocs = useCallback(async () => {
@@ -175,8 +186,13 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
 
   async function guardaInfo() {
     setBusy(true);
+    // La tienda solo se manda si la persona NO tiene cuenta. Con cuenta, el servidor la
+    // rechazaría —manda `profiles.store`— y el «Guardar» fallaría por un campo que ni se
+    // puede tocar desde aquí.
+    const { store, ...resto } = info;
     const r = await saveEmployeeFile(persona.id, {
-      ...info,
+      ...resto,
+      ...(puedeElegirTienda(persona) ? { store } : {}),
       days_off: info.days_off === "" ? null : Number(info.days_off),
     });
     setBusy(false);
@@ -213,6 +229,30 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
         {campo("date_hired", t("Date hired", "Fecha de contratación"), "date")}
         {campo("phone", t("Phone", "Teléfono"))}
+        {/* Tienda (D-NEXT). Con cuenta se ENSEÑA la de la cuenta y no se edita: esa tienda decide
+            qué ve la persona en Entregas y se cambia en Usuarios. Sin cuenta se elige de la lista
+            de tiendas, y es la que usa el directorio. */}
+        <div>
+          <label>{t("Store", "Tienda")}</label>
+          {puedeElegirTienda(persona) ? (
+            <select value={info.store} onChange={(e) => setInfo({ ...info, store: e.target.value })}>
+              <option value="">{t("— none —", "— sin tienda —")}</option>
+              {tiendas.map((n) => <option key={n} value={n}>{n}</option>)}
+              {/* Una tienda guardada que ya no está en Ajustes no se pierde al abrir la ficha. */}
+              {info.store && !tiendas.includes(info.store) && (
+                <option value={info.store}>{info.store}</option>
+              )}
+            </select>
+          ) : (
+            <input
+              value={tiendaVisible(persona) ?? ""}
+              placeholder={t("— none —", "— sin tienda —")}
+              readOnly
+              disabled
+              title={t("This person has an account: change their store in Users.", "Esta persona tiene cuenta: su tienda se cambia en Usuarios.")}
+            />
+          )}
+        </div>
         {/* Departamento (D-256): se ELIGE de la lista de Ajustes en vez de escribirse, porque
             de esto vive el directorio de la compañía y «Almacen», «almacén» y «Almacén» serían
             tres departamentos distintos en la cascada. La opción vacía existe a propósito:

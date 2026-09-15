@@ -14,6 +14,10 @@ import {
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sql = leer("supabase/migrations/108_phone_book.sql");
+// La definición VIGENTE de la función vive en la 109, que la reemplaza entera. Lo que se afirma
+// sobre lo que la función expone HOY se mide ahí; el bloque de la 108 queda como historia de lo
+// que esa migración hizo, que sigue siendo cierto de ese fichero.
+const sql109 = leer("supabase/migrations/109_employee_file_store.sql");
 
 const persona = (extra: Partial<PersonaDirectorio> = {}): PersonaDirectorio => ({
   full_name: "Ana", title: null, store: "McAllen", store_rank: 1, department: "Ventas",
@@ -204,5 +208,83 @@ describe("el chofer llega al directorio sin pasar por el hub", () => {
     for (const role of ["admin", "manager", "sales", "warehouse", "driver", "logistics", "accounting"] as const) {
       expect(dir.visible({ role }), role).toBe(true);
     }
+  });
+});
+
+describe("109: la función vigente, con la tienda del expediente para quien no tiene cuenta", () => {
+  const cuerpo = sql109.slice(sql109.indexOf("create or replace function public.phone_book()"),
+    sql109.indexOf("create or replace function public.store_names()"));
+
+  it("el fichero está y redefine la función (control)", () => {
+    expect(cuerpo).toContain("create or replace function public.phone_book()");
+    expect(cuerpo.length).toBeGreaterThan(500);
+  });
+
+  it("misma firma: las mismas ocho columnas, en el mismo orden", () => {
+    const bloque = cuerpo.slice(cuerpo.indexOf("returns table ("), cuerpo.indexOf(")\nlanguage sql"));
+    const columnas = [...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1]);
+    expect(columnas).toEqual([
+      "full_name", "title", "store", "store_rank", "department", "phone", "ringcentral_ext", "email",
+    ]);
+  });
+
+  it("la tienda es la de la cuenta y, si no la dice, la del expediente", () => {
+    expect(cuerpo).toMatch(/coalesce\(\s*nullif\(btrim\(coalesce\(p\.store, ''\)\), ''\),\s*nullif\(btrim\(coalesce\(f\.store, ''\)\), ''\)\s*\) as tienda/);
+  });
+
+  it("y ESA tienda es la que se devuelve Y la que cruza con el orden de Ajustes", () => {
+    // Si solo cambiara la columna, quien no tiene cuenta saldría bajo su tienda pero SIN rango,
+    // detrás de todas las demás: el fallo que no se ve a simple vista.
+    expect(cuerpo).toContain("x.tienda::text           as store,");
+    expect(cuerpo).toContain("left join orden o on o.nombre = x.tienda;");
+    expect(cuerpo).not.toContain("o.nombre = p.store");
+  });
+
+  it("sigue sin exponer lo de puertas adentro, y sigue solo con las activas", () => {
+    for (const col of ["address", "birthday", "days_off", "notes", "employee_code", "date_hired"]) {
+      // `String.raw`: dentro de una plantilla normal, la secuencia de límite de palabra es el
+      // carácter RETROCESO, no un límite, y la prueba no podía fallar nunca. Lo midió otra
+      // sesión: pasaba igual con una columna privada dentro del cuerpo.
+      expect(cuerpo, col).not.toMatch(new RegExp(String.raw`\b${col}\b`));
+    }
+    expect(cuerpo).toMatch(/where\s+f\.date_left\s+is\s+null/);
+  });
+
+  it("conserva `security definer`, su `search_path` y los permisos", () => {
+    expect(cuerpo).toContain("security definer");
+    expect(cuerpo).toContain("set search_path = public, recruiting, pg_temp");
+    expect(sql109).toContain("revoke execute on function public.phone_book() from public, anon;");
+    expect(sql109).toContain("grant  execute on function public.phone_book() to authenticated;");
+  });
+
+  it("la columna nueva es idempotente y no se abre la tabla del expediente", () => {
+    expect(sql109).toContain("add column if not exists store text;");
+    expect(sql109).not.toMatch(/create policy[^;]*employee_files/i);
+    expect(sql109).not.toMatch(/grant\s+select[^;]*employee_files/i);
+  });
+});
+
+describe("109: la lista de tiendas para elegir expone nombre y orden, nada más", () => {
+  const fn = sql109.slice(sql109.indexOf("create or replace function public.store_names()"));
+
+  it("devuelve exactamente dos columnas: nombre y posición", () => {
+    const bloque = fn.slice(fn.indexOf("returns table ("), fn.indexOf(")\nlanguage sql"));
+    expect([...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1])).toEqual(["name", "rank"]);
+  });
+
+  it("no saca direcciones, coordenadas ni la aprobación automática", () => {
+    const cuerpo = fn.slice(fn.indexOf("as $$"), fn.indexOf("$$;"));
+    for (const k of ["address", "lat", "lng", "auto_approve"]) expect(cuerpo, k).not.toContain(k);
+  });
+
+  it("es `security definer` con `search_path` y la ejecuta solo quien tiene sesión", () => {
+    expect(fn).toContain("security definer");
+    expect(fn).toContain("set search_path = public, pg_temp");
+    expect(sql109).toContain("revoke execute on function public.store_names() from public, anon;");
+    expect(sql109).toContain("grant  execute on function public.store_names() to authenticated;");
+  });
+
+  it("no lleva el marcador de decisión sin numerar: su checksum la congela", () => {
+    expect(sql109).not.toContain("D-" + "NEXT");
   });
 });

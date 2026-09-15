@@ -57,6 +57,10 @@ export type EmployeeFile = {
   ringcentral_ext: string | null;
   /** Departamento, para el directorio de la compañía (D-256). */
   department: string | null;
+  /** Tienda del EXPEDIENTE, solo para quien no tiene cuenta (D-NEXT). */
+  store: string | null;
+  /** Tienda de la CUENTA, si la hay; cuando existe es la que vale. De solo lectura aquí. */
+  account_store: string | null;
   days_off: number | null;
   notes: string | null;
 };
@@ -92,7 +96,10 @@ export async function listEmployeeFiles(): Promise<
 
   const [{ data: files, error }, { data: people }, { data: docs }] = await Promise.all([
     supabase.schema("recruiting").from("employee_files").select("*"),
-    supabase.from("profiles").select("id, full_name"),
+    // La tienda del perfil viaja con la fila para que la ficha la enseñe de solo lectura cuando
+    // la persona tiene cuenta (D-NEXT). `profiles` la lee cualquier sesión (099), así que no
+    // abre nada que RR. HH. no pudiera ver ya.
+    supabase.from("profiles").select("id, full_name, store"),
     // Solo `kind` y de quién: la lista únicamente necesita saber QUÉ hay, no su contenido.
     supabase.schema("recruiting").from("employee_docs").select("employee_id, kind, signed_at"),
   ]);
@@ -102,7 +109,7 @@ export async function listEmployeeFiles(): Promise<
     ok: true,
     rows: filasDeExpediente(
       (files ?? []) as Record<string, unknown>[],
-      (people ?? []) as { id: string; full_name?: string | null }[],
+      (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
       (docs ?? []) as { employee_id: string; kind: string; signed_at?: string | null }[],
     ),
   };
@@ -132,7 +139,7 @@ export async function getEmployeeDocs(employeeId: string): Promise<
  * estaba son el mismo numero, porque la migracion conservo cada id. */
 export async function saveEmployeeFile(
   fileId: string,
-  patch: Partial<Omit<EmployeeFile, "id" | "full_name">>,
+  patch: Partial<Omit<EmployeeFile, "id" | "full_name" | "account_store">>,
 ): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -144,6 +151,20 @@ export async function saveEmployeeFile(
   // convierte un error de Postgres en una frase.
   if ("profile_id" in patch && yo.role !== "admin") {
     return { ok: false, message: "Only an HR admin can link an employee file to an account." };
+  }
+  // La tienda del expediente es SOLO para quien no tiene cuenta (D-NEXT). Con cuenta manda
+  // `profiles.store`, que decide qué ve esa persona en Entregas. La ficha enseña el campo de
+  // solo lectura, pero eso es comodidad: la barrera está aquí, porque una llamada directa a
+  // esta acción no pasa por la pantalla.
+  if ("store" in patch) {
+    const { data: actual, error: errActual } = await supabase
+      .schema("recruiting").from("employee_files").select("profile_id").eq("id", fileId).maybeSingle();
+    // Si no se pudo preguntar, NO se guarda: descartar el error y seguir escribiría la tienda
+    // justo en el caso que esta comprobación existe para parar.
+    if (errActual) return { ok: false, message: errActual.message };
+    if (actual?.profile_id) {
+      return { ok: false, message: "This person has an account: change their store in Users." };
+    }
   }
   if (patch.ringcentral_ext !== undefined && !extensionValida(patch.ringcentral_ext)) {
     return { ok: false, message: "A RingCentral extension is 2 to 6 digits." };
@@ -382,4 +403,20 @@ export async function signDocUrl(path: string): Promise<string | null> {
 
   const { data } = await supabase.storage.from(HR_BUCKET).createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
+}
+
+// ============================================================
+// Las tiendas para elegir en el expediente (D-NEXT)
+//
+// RR. HH. no tiene por qué tener Entregas, y `public.settings` la cierra la 100 a quien sí. Por
+// eso la lista viene de `public.store_names()` (109), que devuelve solo nombre y orden. Sin
+// sesión de RR. HH. no se pregunta: la lista solo sirve dentro de la ficha.
+// ============================================================
+export async function listStoreNames(): Promise<{ ok: true; names: string[] } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+  const { data, error } = await supabase.rpc("store_names");
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, names: ((data ?? []) as { name: string }[]).map((r) => r.name) };
 }

@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   conHechosDeCuenta, estadoEmpleado, extensionValida, filasDeExpediente, limpiaExtension,
-  nombreVisible, parcheAlta, parcheBaja, puedeEnlazarCuenta, puedeVerExpedientes,
-  resumenDeCuenta, tipoDeAcceso,
+  nombreVisible, parcheAlta, parcheBaja, puedeElegirTienda, puedeEnlazarCuenta, puedeVerExpedientes,
+  resumenDeCuenta, tiendaVisible, tipoDeAcceso,
 } from "./employee-file";
 import type { HechosDeCuenta } from "./employee-file";
 
@@ -307,5 +307,64 @@ describe("armar la lista", () => {
     const filas = filasDeExpediente([{ id: "f-1", profile_id: null, full_name: "Ex Empleado" }], [], []);
     expect(filas).toHaveLength(1);
     expect(filas[0].full_name).toBe("Ex Empleado");
+  });
+});
+
+// La tienda de quien no tiene cuenta (D-NEXT). Con cuenta manda `profiles.store`; la del
+// expediente solo existe para quien no la tiene. Tres piezas y las tres se prueban: la regla pura,
+// que la lista la reciba de verdad, y la barrera del servidor.
+describe("la tienda: con cuenta manda la cuenta", () => {
+  it("con cuenta vale la de la cuenta, aunque el expediente diga otra", () => {
+    expect(tiendaVisible({ account_store: "McAllen", store: "Weslaco" })).toBe("McAllen");
+  });
+
+  it("sin cuenta vale la del expediente", () => {
+    expect(tiendaVisible({ account_store: null, store: "Weslaco" })).toBe("Weslaco");
+  });
+
+  it("una cuenta con la tienda en blanco no tapa la del expediente", () => {
+    expect(tiendaVisible({ account_store: "   ", store: "Weslaco" })).toBe("Weslaco");
+  });
+
+  it("sin ninguna de las dos, sin tienda", () => {
+    expect(tiendaVisible({ account_store: null, store: "  " })).toBeNull();
+  });
+
+  it("solo se elige en un expediente sin cuenta", () => {
+    expect(puedeElegirTienda({ profile_id: null })).toBe(true);
+    expect(puedeElegirTienda({ profile_id: "u-1" })).toBe(false);
+  });
+
+  it("la lista recibe las DOS tiendas, cada una en su campo", () => {
+    const filas = filasDeExpediente(
+      [ficha({ id: "f-1", profile_id: "u-1", store: "Weslaco" }), ficha({ id: "f-2", profile_id: null, store: "Pharr" })],
+      [{ id: "u-1", full_name: "Ana", store: "McAllen" }],
+      [],
+    );
+    const conCuenta = filas.find((f) => f.id === "f-1")!;
+    const sinCuenta = filas.find((f) => f.id === "f-2")!;
+    expect(conCuenta.account_store).toBe("McAllen");
+    expect(tiendaVisible(conCuenta)).toBe("McAllen");
+    expect(sinCuenta.account_store).toBeNull();
+    expect(tiendaVisible(sinCuenta)).toBe("Pharr");
+  });
+});
+
+describe("la barrera del servidor: no se guarda tienda en un expediente con cuenta", () => {
+  it("la acción pregunta de quién es el expediente antes de guardar la tienda", () => {
+    expect(acciones).toContain('if ("store" in patch) {');
+    expect(acciones).toContain('.select("profile_id").eq("id", fileId).maybeSingle();');
+  });
+
+  it("si no pudo preguntar, NO guarda: el error no se descarta", () => {
+    expect(acciones).toContain("if (errActual) return { ok: false, message: errActual.message };");
+  });
+
+  it("con cuenta, rechaza con el motivo", () => {
+    expect(acciones).toContain('return { ok: false, message: "This person has an account: change their store in Users." };');
+  });
+
+  it("y la lista lee la tienda del perfil, que es la que se enseña de solo lectura", () => {
+    expect(acciones).toContain('supabase.from("profiles").select("id, full_name, store"),');
   });
 });
