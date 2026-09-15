@@ -30,7 +30,7 @@ const config: CapacitorConfig = {
     // the APK and which build. That's what the in-app update prompt compares
     // against — no extra plugin, and it works on the very first page load.
     // KEEP THE NUMBER IN SYNC WITH versionCode IN android/app/build.gradle.
-    appendUserAgent: "RDZDeliveries/4",
+    appendUserAgent: "RDZDeliveries/5",
   },
   plugins: {
     BackgroundGeolocation: {},
