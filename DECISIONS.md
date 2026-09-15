@@ -15725,6 +15725,18 @@ Cinco mutantes, y cada uno tira **una** prueba:
 - que la barrera del servidor **descarte el error** al preguntar de quién es el expediente y siga;
 - y que una cuenta con la tienda en blanco tape la del expediente.
 
+> **Una de las pruebas no podía fallar, y la encontró otra sesión.** La que comprueba que la
+> función de la 109 no expone lo de puertas adentro construía su expresión con una plantilla
+> normal, y ahí la secuencia de límite de palabra es el carácter **retroceso**, no un límite. Los
+> seis `not.toMatch` pasaban siempre, expusiera la función lo que expusiera. El mutante de la
+> columna privada sí caía, pero por **otra** prueba —la de las ocho columnas en su orden—, así que
+> la que decía defender justo eso estaba muerta sin que nada lo delatara.
+>
+> Se arregló con `String.raw`, que conserva la secuencia tal cual. Y se comprobó de la única
+> forma que vale: dos mutantes que **no cambian la firma** —una columna privada en el `select` de
+> fuera, y otra arrastrada por la CTE— y que ahora caen **por esta prueba**, mientras la de las
+> ocho columnas sigue en verde. Si cayeran por la otra, no demostrarían nada.
+
 ### Lo no verificado
 
 - **Nadie ha abierto la ficha ni el directorio en un navegador** con una persona sin cuenta.

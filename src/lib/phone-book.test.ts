@@ -242,7 +242,10 @@ describe("109: la función vigente, con la tienda del expediente para quien no t
 
   it("sigue sin exponer lo de puertas adentro, y sigue solo con las activas", () => {
     for (const col of ["address", "birthday", "days_off", "notes", "employee_code", "date_hired"]) {
-      expect(cuerpo, col).not.toMatch(new RegExp(`\b${col}\b`));
+      // `String.raw`: dentro de una plantilla normal, la secuencia de límite de palabra es el
+      // carácter RETROCESO, no un límite, y la prueba no podía fallar nunca. Lo midió otra
+      // sesión: pasaba igual con una columna privada dentro del cuerpo.
+      expect(cuerpo, col).not.toMatch(new RegExp(String.raw`\b${col}\b`));
     }
     expect(cuerpo).toMatch(/where\s+f\.date_left\s+is\s+null/);
   });
