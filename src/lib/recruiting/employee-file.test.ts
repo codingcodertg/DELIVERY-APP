@@ -310,7 +310,7 @@ describe("armar la lista", () => {
   });
 });
 
-// La tienda de quien no tiene cuenta (D-NEXT). Con cuenta manda `profiles.store`; la del
+// La tienda de quien no tiene cuenta (D-258). Con cuenta manda `profiles.store`; la del
 // expediente solo existe para quien no la tiene. Tres piezas y las tres se prueban: la regla pura,
 // que la lista la reciba de verdad, y la barrera del servidor.
 describe("la tienda: con cuenta manda la cuenta", () => {

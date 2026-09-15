@@ -15659,7 +15659,7 @@ llevan los APK ya instalados; se cambia el día que todos estén en el 5 o poste
 **Regla que sale de aquí:** un cambio de dominio o de nombre en `mobile/` no está hecho hasta
 que hay un APK publicado con él; el repo describe la intención y Storage lo que corre.
 
-## D-NEXT · La tienda de quien no tiene cuenta vive en su expediente, y con cuenta manda la cuenta
+## D-258 · La tienda de quien no tiene cuenta vive en su expediente, y con cuenta manda la cuenta
 
 **Fecha:** 2026-09-15 · **Versión:** RR. HH. y `package.json` (los pone el orquestador) · **Migración:
 `109_employee_file_store.sql`**, que **se aplica antes de fusionar**: la ficha ya escribe `store`.

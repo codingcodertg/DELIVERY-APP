@@ -34,7 +34,7 @@ export interface EmployeeFileRow {
   address?: string | null;
   /** Departamento, para el directorio de la compañía (D-256). */
   department?: string | null;
-  /** Tienda, SOLO para quien no tiene cuenta: con cuenta manda `profiles.store` (D-NEXT). */
+  /** Tienda, SOLO para quien no tiene cuenta: con cuenta manda `profiles.store` (D-258). */
   store?: string | null;
   ringcentral_ext: string | null;
   days_off?: number | null;
@@ -249,7 +249,7 @@ export function filasDeExpediente(
 }
 
 /**
- * La tienda que vale para una persona (D-NEXT): la de su cuenta si la dice, la del expediente si
+ * La tienda que vale para una persona (D-258): la de su cuenta si la dice, la del expediente si
  * no. Es la misma regla que aplica `public.phone_book()` (migración 109), escrita aquí para que la
  * ficha de RR. HH. enseñe lo mismo que el directorio.
  *

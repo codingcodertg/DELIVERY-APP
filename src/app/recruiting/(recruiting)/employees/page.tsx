@@ -162,7 +162,7 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
     notes: persona.notes ?? "",
   });
   const [docs, setDocs] = useState<EmployeeDoc[] | null>(null);
-  // Las tiendas para elegir (D-NEXT). Vienen de `store_names()` y no de los Ajustes de Entregas,
+  // Las tiendas para elegir (D-258). Vienen de `store_names()` y no de los Ajustes de Entregas,
   // porque RR. HH. no tiene por qué tener Entregas. Si falla, la lista queda vacía y el campo
   // conserva el valor guardado: no se puede elegir, pero tampoco se borra nada.
   const [tiendas, setTiendas] = useState<string[]>([]);
@@ -229,7 +229,7 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
         {campo("date_hired", t("Date hired", "Fecha de contratación"), "date")}
         {campo("phone", t("Phone", "Teléfono"))}
-        {/* Tienda (D-NEXT). Con cuenta se ENSEÑA la de la cuenta y no se edita: esa tienda decide
+        {/* Tienda (D-258). Con cuenta se ENSEÑA la de la cuenta y no se edita: esa tienda decide
             qué ve la persona en Entregas y se cambia en Usuarios. Sin cuenta se elige de la lista
             de tiendas, y es la que usa el directorio. */}
         <div>

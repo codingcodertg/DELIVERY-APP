@@ -57,7 +57,7 @@ export type EmployeeFile = {
   ringcentral_ext: string | null;
   /** Departamento, para el directorio de la compañía (D-256). */
   department: string | null;
-  /** Tienda del EXPEDIENTE, solo para quien no tiene cuenta (D-NEXT). */
+  /** Tienda del EXPEDIENTE, solo para quien no tiene cuenta (D-258). */
   store: string | null;
   /** Tienda de la CUENTA, si la hay; cuando existe es la que vale. De solo lectura aquí. */
   account_store: string | null;
@@ -97,7 +97,7 @@ export async function listEmployeeFiles(): Promise<
   const [{ data: files, error }, { data: people }, { data: docs }] = await Promise.all([
     supabase.schema("recruiting").from("employee_files").select("*"),
     // La tienda del perfil viaja con la fila para que la ficha la enseñe de solo lectura cuando
-    // la persona tiene cuenta (D-NEXT). `profiles` la lee cualquier sesión (099), así que no
+    // la persona tiene cuenta (D-258). `profiles` la lee cualquier sesión (099), así que no
     // abre nada que RR. HH. no pudiera ver ya.
     supabase.from("profiles").select("id, full_name, store"),
     // Solo `kind` y de quién: la lista únicamente necesita saber QUÉ hay, no su contenido.
@@ -152,7 +152,7 @@ export async function saveEmployeeFile(
   if ("profile_id" in patch && yo.role !== "admin") {
     return { ok: false, message: "Only an HR admin can link an employee file to an account." };
   }
-  // La tienda del expediente es SOLO para quien no tiene cuenta (D-NEXT). Con cuenta manda
+  // La tienda del expediente es SOLO para quien no tiene cuenta (D-258). Con cuenta manda
   // `profiles.store`, que decide qué ve esa persona en Entregas. La ficha enseña el campo de
   // solo lectura, pero eso es comodidad: la barrera está aquí, porque una llamada directa a
   // esta acción no pasa por la pantalla.
@@ -406,7 +406,7 @@ export async function signDocUrl(path: string): Promise<string | null> {
 }
 
 // ============================================================
-// Las tiendas para elegir en el expediente (D-NEXT)
+// Las tiendas para elegir en el expediente (D-258)
 //
 // RR. HH. no tiene por qué tener Entregas, y `public.settings` la cierra la 100 a quien sí. Por
 // eso la lista viene de `public.store_names()` (109), que devuelve solo nombre y orden. Sin
