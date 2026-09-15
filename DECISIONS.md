@@ -15620,7 +15620,7 @@ de ellos son la puerta del chofer, que se añadió después de la primera medici
 
 ---
 
-## D-NEXT · APK 5: la cáscara Android vuelve a cargar el hub
+## D-257 · APK 5: la cáscara Android vuelve a cargar el hub
 
 **Fecha:** 2026-09-14 · **App:** deliveries (APK) · **Pedido por:** Andrés («el apk no me funciona, se quedó con rdz deliveries»).
 
