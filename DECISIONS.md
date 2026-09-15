@@ -15658,3 +15658,81 @@ llevan los APK ya instalados; se cambia el día que todos estén en el 5 o poste
 
 **Regla que sale de aquí:** un cambio de dominio o de nombre en `mobile/` no está hecho hasta
 que hay un APK publicado con él; el repo describe la intención y Storage lo que corre.
+
+## D-NEXT · La tienda de quien no tiene cuenta vive en su expediente, y con cuenta manda la cuenta
+
+**Fecha:** 2026-09-15 · **Versión:** RR. HH. y `package.json` (los pone el orquestador) · **Migración:
+`109_employee_file_store.sql`**, que **se aplica antes de fusionar**: la ficha ya escribe `store`.
+**Pedido por:** el orquestador, al cargar la hoja del dueño en el directorio (D-256).
+
+### El hueco
+
+De 47 personas de la hoja, **20 no tienen cuenta**: asociados de almacén, choferes, corporativo.
+`phone_book()` sacaba la tienda de `profiles.store`, y el expediente no tenía dónde guardarla —
+D-251 la dejó en la cuenta cuando todo expediente tenía una. Así que esas veinte caían en «Sin
+tienda», que es falso, y la cascada de D-256 perdía justo su primer nivel para casi la mitad.
+
+### La regla: si hay cuenta, manda la cuenta
+
+`profiles.store` no es un dato de ficha: decide **qué pedidos ve un vendedor y de qué tienda es
+un gerente**. La columna nueva del expediente existe solo para quien no tiene cuenta, y la función
+la usa **únicamente cuando la cuenta no dice nada**. Así las dos no pueden contar cosas distintas
+de la misma persona: una no se consulta mientras la otra exista.
+
+Un detalle que no es adorno: una cuenta con la tienda **en blanco** cuenta como «no dice nada».
+Sin eso, un espacio en `profiles.store` taparía la tienda del expediente y la persona volvería a
+«Sin tienda» sin que nadie supiera por qué.
+
+**La tienda se usa en los dos sitios de la función**, la columna que se devuelve y el cruce con el
+orden de Ajustes. Cambiar solo la primera dejaba a esas personas bajo su tienda **pero sin
+rango**, detrás de todas las demás — un fallo que no se ve mirando la lista. Hay prueba de las dos.
+
+La 109 redefine `phone_book()` **partiendo de la definición vigente de la 108**, porque `create or
+replace` la reemplaza entera: lo que no se copia se pierde en producción. Misma firma, las mismas
+ocho columnas en el mismo orden, y la prueba lo afirma sobre el fichero nuevo, que es donde vive
+ahora la función.
+
+### Elegir la tienda sin tener Entregas
+
+La lista de tiendas está en `public.settings`, y la 100 la cierra a quien tiene Entregas; RR. HH.
+no tiene por qué tenerlo. Es la misma pared con la que chocó `store_rank` en la 108, y se salta
+igual: **`public.store_names()`**, `security definer`, que devuelve **solo el nombre de cada tienda
+y su posición**. Direcciones, coordenadas y la aprobación automática se quedan dentro, y la prueba
+lo comprueba columna a columna.
+
+### La barrera está en el servidor; el campo de solo lectura es comodidad
+
+En la ficha, con cuenta el campo **se enseña con la tienda de la cuenta y no se edita**: esa tienda
+se cambia en Usuarios, porque cambiarla es cambiar lo que la persona ve en Entregas. Sin cuenta se
+elige de la lista.
+
+Pero eso es la pantalla, y una llamada directa a la acción no pasa por ella. **La acción de guardar
+rechaza `store` en un expediente con cuenta**, preguntando antes de quién es. Y si no puede
+preguntar, **no guarda**: descartar ese error y seguir escribiría la tienda justo en el caso que la
+comprobación existe para parar.
+
+La ficha, por su parte, no manda la tienda cuando no se puede elegir. Si la mandara, el servidor la
+rechazaría y «Guardar datos» fallaría por un campo que ni siquiera se puede tocar.
+
+### Medido, rompiendo cada pieza
+
+Cinco mutantes, y cada uno tira **una** prueba:
+
+- que el cruce con el orden de Ajustes siga usando la tienda **de la cuenta**, el fallo que deja
+  a quien no tiene cuenta sin rango;
+- quitar la tienda del expediente como respaldo;
+- que la lista de tiendas saque también la dirección;
+- que la barrera del servidor **descarte el error** al preguntar de quién es el expediente y siga;
+- y que una cuenta con la tienda en blanco tape la del expediente.
+
+### Lo no verificado
+
+- **Nadie ha abierto la ficha ni el directorio en un navegador** con una persona sin cuenta.
+- **Nadie ha llamado a `phone_book()` ni a `store_names()` contra la base**: la migración no está
+  aplicada cuando se escribe esto. Del `.sql` se ha medido el texto.
+- **Las veinte personas no tienen tienda todavía.** La columna nace vacía; hasta que alguien la
+  rellene —a mano en la ficha o con la importación del orquestador—, siguen en «Sin tienda».
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1969 pasados | 3 saltados**.
+La rama añade 21 pruebas y no quita ninguna —11 en `phone-book.test.ts`, 10 en
+`employee-file.test.ts`, contadas en el diff—, así que `main` 2ce5806 está en 1948 | 3.

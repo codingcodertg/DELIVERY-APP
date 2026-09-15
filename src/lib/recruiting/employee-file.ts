@@ -34,6 +34,8 @@ export interface EmployeeFileRow {
   address?: string | null;
   /** Departamento, para el directorio de la compañía (D-256). */
   department?: string | null;
+  /** Tienda, SOLO para quien no tiene cuenta: con cuenta manda `profiles.store` (D-NEXT). */
+  store?: string | null;
   ringcentral_ext: string | null;
   days_off?: number | null;
   notes?: string | null;
@@ -171,6 +173,10 @@ export type FilaExpediente = {
   address: string | null;
   ringcentral_ext: string | null;
   department: string | null;
+  /** La tienda guardada en el EXPEDIENTE. Solo cuenta si no hay cuenta. */
+  store: string | null;
+  /** La tienda de la CUENTA, si la hay. Cuando existe, es la que vale. */
+  account_store: string | null;
   days_off: number | null;
   notes: string | null;
   docKinds: string[];
@@ -191,10 +197,11 @@ export type FilaExpediente = {
  */
 export function filasDeExpediente(
   files: Record<string, unknown>[],
-  perfiles: { id: string; full_name?: string | null }[],
+  perfiles: { id: string; full_name?: string | null; store?: string | null }[],
   docsEntregados: { employee_id: string; kind: string; signed_at?: string | null }[],
 ): FilaExpediente[] {
   const nombreDePerfil = new Map(perfiles.map((p) => [p.id, (p.full_name ?? "").trim()]));
+  const tiendaDePerfil = new Map(perfiles.map((p) => [p.id, (p.store ?? "").trim() || null]));
   const kindsDe = new Map<string, string[]>();
   for (const d of docsEntregados) {
     // Un papel sin fecha de firma está empezado, no hecho: no cuenta como entregado.
@@ -218,6 +225,8 @@ export function filasDeExpediente(
     address: (f.address as string) ?? null,
     ringcentral_ext: (f.ringcentral_ext as string) ?? null,
     department: (f.department as string) ?? null,
+    store: (f.store as string) ?? null,
+    account_store: profileId ? (tiendaDePerfil.get(profileId) ?? null) : null,
     days_off: (f.days_off as number) ?? null,
     notes: (f.notes as string) ?? null,
     docKinds: kindsDe.get(f.id as string) ?? [],
@@ -237,4 +246,30 @@ export function filasDeExpediente(
 
   filas.sort((a, b) => a.full_name.localeCompare(b.full_name));
   return filas;
+}
+
+/**
+ * La tienda que vale para una persona (D-NEXT): la de su cuenta si la dice, la del expediente si
+ * no. Es la misma regla que aplica `public.phone_book()` (migración 109), escrita aquí para que la
+ * ficha de RR. HH. enseñe lo mismo que el directorio.
+ *
+ * Con cuenta manda la cuenta porque `profiles.store` tiene consecuencias en Entregas —qué pedidos
+ * ve un vendedor, de qué tienda es un gerente—, y la del expediente solo existe para quien no la
+ * tiene. Así las dos no pueden contar cosas distintas de la misma persona.
+ */
+export function tiendaVisible(f: { account_store?: string | null; store?: string | null }): string | null {
+  const cuenta = (f.account_store ?? "").trim();
+  if (cuenta) return cuenta;
+  const expediente = (f.store ?? "").trim();
+  return expediente || null;
+}
+
+/**
+ * ¿Se puede elegir la tienda desde el expediente? Solo si la persona no tiene cuenta.
+ *
+ * Con cuenta, el campo se enseña pero no se edita: cambiar la tienda de alguien con usuario es
+ * cambiar lo que ve en Entregas, y eso se hace en Usuarios, no en RR. HH.
+ */
+export function puedeElegirTienda(f: { profile_id?: string | null }): boolean {
+  return !f.profile_id;
 }
