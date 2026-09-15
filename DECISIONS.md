@@ -15617,3 +15617,44 @@ memoria.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1948 pasados | 3 saltados**
 (main 1659c24: 1921 | 3; los +27 son de `phone-book.test.ts`, que en solitario da 27 — cuatro
 de ellos son la puerta del chofer, que se añadió después de la primera medición).
+
+---
+
+## D-NEXT · APK 5: la cáscara Android vuelve a cargar el hub
+
+**Fecha:** 2026-09-14 · **App:** deliveries (APK) · **Pedido por:** Andrés («el apk no me funciona, se quedó con rdz deliveries»).
+
+### Qué fallaba, medido
+
+El APK publicado en Supabase Storage (`app/RDZ-Deliveries.apk`, 3.578.909 bytes, del 2026-08-18)
+era el mismo fichero que `mobile/android/app/build/outputs/apk/release/app-release.apk` de esa
+fecha (sha256 idéntico). Su `assets/capacitor.config.json` decía `appName: "RDZ Deliveries"`,
+`server.url: "https://deliveries-app-seven.vercel.app"` y `appendUserAgent: "RDZDeliveries/4"`.
+El repo ya llevaba «RTG Hub» y `rtg-hub.vercel.app` desde el 2026-09-04, pero **nadie había
+compilado ni publicado un APK nuevo**. Como el actualizador compara `versionCode` instalado (4)
+con `LATEST_APK_VERSION_CODE` (4), ningún teléfono recibía aviso; y el dominio viejo responde
+307 hacia `rtg-hub.vercel.app`, que la cáscara trata como origen ajeno: el mismo fallo que el
+escritorio en D-225, en versión Android.
+
+### Qué se hizo
+
+- `versionCode` 4 → 5, `versionName` 1.9.3 → 1.10.0, `appendUserAgent` → `RDZDeliveries/5`
+  (el token no se renombra: `installedApkVersion()` lo busca por ese nombre).
+- `npx cap sync android` + `gradlew assembleRelease` con el JBR de Android Studio y la llave de
+  release de `android/keystore.properties`. **Misma huella de certificado que el APK publicado**
+  (`58:5D:33:06:FF:E8:3B:AD:01:5C:C9:3B:D4:69:3B:38…`, medida con `keytool -printcert` en los dos):
+  se instala encima sin desinstalar.
+- Subido a la **misma ruta** de Storage (`x-upsert`), para que el `APK_DOWNLOAD_URL` de los
+  teléfonos viejos siga valiendo. Comprobado tras subir: 3.578.902 bytes, config embebida con
+  «RTG Hub», `rtg-hub.vercel.app` y `RDZDeliveries/5`, sha256 igual al compilado.
+- `LATEST_APK_VERSION_CODE` 4 → 5 en el web, que es lo que dispara el aviso de actualización.
+
+### Lo que no cubre
+
+Un teléfono cuya cáscara vieja **no consigue cargar** el sitio (por el 307) no llega al aviso:
+ahí la instalación es manual, desde la URL de descarga, y se instala encima por la misma firma.
+Y el nombre del fichero sigue siendo `RDZ-Deliveries.apk`: renombrarlo rompería la URL que
+llevan los APK ya instalados; se cambia el día que todos estén en el 5 o posterior.
+
+**Regla que sale de aquí:** un cambio de dominio o de nombre en `mobile/` no está hecho hasta
+que hay un APK publicado con él; el repo describe la intención y Storage lo que corre.
