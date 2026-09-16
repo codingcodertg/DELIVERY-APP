@@ -97,7 +97,7 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    // Se pide desde el SERVIDOR (D-NEXT), no con el cliente del navegador: ese es PKCE y deja el
+    // Se pide desde el SERVIDOR (D-263), no con el cliente del navegador: ese es PKCE y deja el
     // verificador en ESTE navegador, así que el enlace fallaba al abrirse en otro equipo. La ruta
     // contesta lo mismo exista o no la cuenta, así que aquí tampoco se puede prometer que llegue.
     let valido = true;

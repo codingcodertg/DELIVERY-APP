@@ -5,7 +5,7 @@ import {
   resumenDelFallo, type RegistroDeFallo,
 } from "./password-recovery";
 
-// «¿Olvidaste tu contraseña?» en cualquier equipo (D-NEXT). Sin correos ni Auth real: el envío se
+// «¿Olvidaste tu contraseña?» en cualquier equipo (D-263). Sin correos ni Auth real: el envío se
 // simula, y lo que se prueba es lo que decide. Dos clases de prueba que no se mezclan: las que
 // importan la función y las que leen el fichero que la usa.
 

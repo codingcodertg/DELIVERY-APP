@@ -16179,7 +16179,7 @@ Nadie lo ha abierto en un navegador, ni como admin ni como otro rol.
 añade 6 pruebas, todas en `hub-apps.test.ts`, fichero nuevo, y no toca ningún otro fichero de
 prueba; así que `main` fbc323a está en 2030 | 3.
 
-## D-NEXT · «¿Olvidaste tu contraseña?» funciona abriendo el correo en cualquier equipo
+## D-263 · «¿Olvidaste tu contraseña?» funciona abriendo el correo en cualquier equipo
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño:** «me manda el correo pero al ingresar solo me lleva al RTG Hub lobby y nada más».
@@ -16293,3 +16293,8 @@ está en 2036 | 3.
 
 `verify.mjs` tras registrar el fallo, sobre `.next` limpio: **2062 pasados | 3 saltados**. Las 5
 pruebas de más son las del registro, en `password-recovery.test.ts`; la base sigue siendo 6e3b404.
+
+> **Nota del orquestador, al fusionar D-263:** el reset ahora se pide desde el servidor, así que
+> sale de las IP de Vercel. El límite por IP de Supabase lo comparten todas las peticiones de
+> reset a la vez, y quien lo agote bloquea a las demás un rato. Como el cliente recibe siempre
+> `{ ok: true }`, esos fallos solo se ven en los logs de Vercel (`[auth/forgot]`).

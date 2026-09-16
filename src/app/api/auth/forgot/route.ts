@@ -3,7 +3,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { pideRecuperacion } from "@/lib/password-recovery";
 
 /**
- * Pide el correo de «olvidé mi contraseña» desde el servidor (D-NEXT).
+ * Pide el correo de «olvidé mi contraseña» desde el servidor (D-263).
  *
  * Con un cliente de flujo **implícito**, no el PKCE del navegador: así el enlace del correo no depende
  * de ningún verificador guardado en el navegador que lo pidió, y se puede abrir en cualquier equipo.

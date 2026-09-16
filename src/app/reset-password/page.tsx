@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
-    // El enlace del correo vuelve aquí con la sesión en el fragmento (D-NEXT). Se lee UNA vez y se
+    // El enlace del correo vuelve aquí con la sesión en el fragmento (D-263). Se lee UNA vez y se
     // BORRA de la URL antes de hacer nada más, para que los tokens no queden en el historial, en una
     // captura de pantalla o en un enlace copiado. El cliente del navegador, que es PKCE, no lo
     // consume ni lo borra por su cuenta: medido en auth-js 2.112.4, lo rechaza y sigue.

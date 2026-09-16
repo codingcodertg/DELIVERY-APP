@@ -158,7 +158,7 @@ describe("updateSession sobre NextRequest, con getUser stubbeado (sin red)", () 
   });
 });
 
-// El error de un enlace de correo no se lo traga el login (D-NEXT). El síntoma del dueño:
+// El error de un enlace de correo no se lo traga el login (D-263). El síntoma del dueño:
 // «me manda el correo pero al ingresar solo me lleva al RTG Hub lobby y nada más». Con sesión
 // en ese navegador, `/login?error=…` redirigía al hub antes de que la pantalla pudiera decirlo.
 describe("con sesión, un /login que trae un error se sirve para que lo enseñe", () => {

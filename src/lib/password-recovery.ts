@@ -1,5 +1,5 @@
 /**
- * «¿Olvidaste tu contraseña?» que funciona abriendo el correo en CUALQUIER equipo (D-NEXT).
+ * «¿Olvidaste tu contraseña?» que funciona abriendo el correo en CUALQUIER equipo (D-263).
  *
  * EL FALLO. El login pedía el correo con el cliente del navegador, que es PKCE: el verificador del
  * código se queda en las cookies del navegador que lo pidió. Quien abría el correo en otro sitio

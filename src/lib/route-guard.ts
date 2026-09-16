@@ -91,7 +91,7 @@ export function decide(pathWithSearch: string, next: string | null, hasUser: boo
   const path = q === -1 ? pathWithSearch : pathWithSearch.slice(0, q);
 
   if (hasUser && (path === "/login" || path.startsWith("/login/"))) {
-    // Salvo que el login venga a CONTAR algo (D-NEXT). `/auth/callback` manda aquí con
+    // Salvo que el login venga a CONTAR algo (D-263). `/auth/callback` manda aquí con
     // `?error=` cuando un enlace de correo no se pudo canjear; con sesión en este navegador,
     // la redirección de abajo lo llevaba al hub y el error desaparecía sin que nadie lo viera.
     // Fue exactamente el síntoma del dueño: «me manda el correo pero al ingresar solo me lleva
