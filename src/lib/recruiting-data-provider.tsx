@@ -107,7 +107,10 @@ const DEFAULT_SETTINGS: Settings = {
   id: 1,
   app_name: "RECRUIT·HN",
   roles: ["Dispatcher", "Customer Service", "Sales"],
-  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Contabilidad", "Logística"],
+  // «Contabilidad» se fue (D-NEXT): el dueño la fundió en Oficina. Es solo el valor de partida
+  // antes de cargar los ajustes; la lista de verdad vive en la base y la cambia el orquestador.
+  // El rol `accounting` de Entregas no tiene nada que ver con esto y no se toca.
+  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Logística"],
   scale: DEFAULT_SCALE,
 };
 

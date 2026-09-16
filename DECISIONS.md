@@ -16012,3 +16012,89 @@ que cada bloque que se abre se cierra.
 - **Que la pantalla de Ajustes conserve `directory_code` al guardar las tiendas** es de la otra
   rama. Si algún guardado reconstruyera los objetos de tienda sin esa clave, los códigos se
   perderían en silencio y el directorio volvería a los nombres.
+
+## D-NEXT · El directorio se mantiene desde las pantallas, y editar una tienda ya no borra lo que no enseña
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración propia: **acoplada a la
+111**, que escribe otro worker y crea `recruiting.employee_files.directory_group` y el uso de
+`settings.stores[*].directory_code`. No se fusiona antes que ella.
+**Pedido por:** el orquestador, para que los grupos y los códigos de tienda del directorio (D-256)
+se mantengan desde la app y no a mano en la base.
+
+### Primero, un fallo que ya existía: editar un lugar borraba sus claves
+
+Antes de añadir el código de directorio a las tiendas se midió si guardar Tiendas conservaba las
+claves que el formulario no conoce. **No las conservaba.** Al confirmar el formulario de un lugar en
+Datos, el editor construía un registro **nuevo** con nombre y dirección, le añadía la aprobación
+automática y copiaba el pin verificado si la dirección no cambiaba. Todo lo demás se perdía: el
+primer admin que editara una tienda le habría borrado, sin saberlo, el `directory_code` que le
+pusiera la carga del directorio.
+
+Se midió en rojo, no leyendo: ese comportamiento se sacó **copiado literalmente** a una función
+pura, se escribió la prueba contra la copia, y cayeron las dos —la clave desconocida y el código de
+directorio—. Solo después se cambió la función. Borrar un lugar y verificar su dirección **sí**
+conservaban las claves, porque ya partían del registro anterior.
+
+El arreglo es que el registro **parte del anterior**: lo que el formulario no enseña se conserva,
+y lo que enseña se sobrescribe. Dos reglas que había que mantener y tienen prueba: el pin verificado
+sigue valiendo solo si la dirección no cambia —si cambia, **se borra**, porque el de antes apuntaría
+a otro sitio—, y la aprobación automática se conserva al editar el nombre.
+
+**Es el único sitio que escribe las tiendas.** Se barrió el código dos veces —la clave con dos
+puntos, y la forma abreviada o con `...settings`— y no hay otro escritor de `settings.stores` fuera
+de Datos. Así que con este arreglo ningún guardado de la app puede borrar `directory_code` ni
+`auto_approve`.
+
+### El código de directorio, en Tiendas
+
+Un campo por tienda, solo en la lista de tiendas. Se guarda recortado, y **vaciarlo quita la clave**
+en vez de guardar una cadena vacía, para que el directorio no tenga que distinguir entre vacío y
+ausente. Varias tiendas pueden compartir código; la app no lo impide, porque es justo lo que se pidió.
+
+### El grupo de directorio, en el expediente: solo el admin de RR. HH.
+
+Un selector con Normal, Remoto y Sin tienda, que escribe `directory_group` con el vocabulario del
+`check` de la 111: `null` es normal, y vacío se guarda como `null`, no como cadena vacía, que el
+`check` rechazaría haciendo fallar el guardado por elegir la opción por defecto.
+
+Lo edita **solo el admin de RR. HH.**; el gerente edita el resto de la ficha pero no esto, porque
+decide dónde sale alguien en el directorio de toda la empresa, fuera de la cascada de tiendas. La
+ficha solo enseña el selector a un admin, **pero la barrera está en la acción de guardar**, que
+comprueba el rol y rechaza un valor que la base no admitiría. Y la ficha no manda el grupo cuando
+quien guarda no es admin: si lo mandara, el servidor lo rechazaría y «Guardar datos» fallaría por un
+campo que ni siquiera se ve.
+
+### «Contabilidad» sale de la lista de departamentos por defecto
+
+El dueño la fundió en Oficina. Lo que cambia aquí es **solo el valor de partida** que usa la app
+antes de cargar los ajustes; la lista de verdad vive en la base y la cambia el orquestador. El rol
+`accounting` de Entregas no tiene nada que ver y no se toca.
+
+Queda un rastro que no se puede quitar y no hace daño: el valor por defecto de la columna en la 108
+sigue diciendo «Contabilidad». Ese valor solo se usaría al **insertar** la fila de ajustes, y esa
+tabla es de una sola fila (`check (id = 1)`, 056) que ya existe; y la 108 está aplicada, así que
+tocarla cambiaría su checksum.
+
+### Medido, rompiendo cada pieza, y mirando qué prueba cae
+
+Siete mutantes, leídos por nombre:
+
+- reconstruir el registro de cero —el fallo original— tira las dos pruebas pensadas para él, y
+  además las dos que dependen de partir del registro anterior;
+- conservar el pin aunque cambie la dirección tira la del pin;
+- guardar el código vacío como cadena vacía tira la suya;
+- que el editor de Datos deje de llamar a la función tira la que comprueba que la llama;
+- quitar la comprobación de rol en la acción tira la de la barrera;
+- dejar que el gerente edite el grupo tira la del rol;
+- y guardar el grupo vacío como cadena vacía tira la de `null`.
+
+### Lo no verificado
+
+- **Nadie ha abierto Datos ni la ficha en un navegador.**
+- **Nadie ha guardado contra la base**: la 111 no está aplicada, así que el `check` de
+  `directory_group` y la lectura de `directory_code` en el directorio son del otro worker y no se
+  han medido desde esta rama.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **1987 pasados | 3 saltados**.
+La rama añade 18 pruebas y no quita ninguna —11 en `named-location.test.ts`, fichero nuevo, y 7
+en `employee-file.test.ts`, contadas en el diff—, así que `main` 0719da0 está en 1969 | 3.

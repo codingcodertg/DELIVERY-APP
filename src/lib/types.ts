@@ -300,6 +300,9 @@ export interface NamedLocation {
    * edited (so it always reflects a real confirmation). */
   lat?: number | null;
   lng?: number | null;
+  /** Stores only: the short code the company directory groups by (D-NEXT). Several stores
+   * can share one. Absent or empty = no code. */
+  directory_code?: string | null;
 }
 
 /** A saved customer/site account — picking it on an order auto-fills who to

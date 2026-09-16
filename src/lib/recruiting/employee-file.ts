@@ -36,6 +36,8 @@ export interface EmployeeFileRow {
   department?: string | null;
   /** Tienda, SOLO para quien no tiene cuenta: con cuenta manda `profiles.store` (D-258). */
   store?: string | null;
+  /** Grupo especial del directorio (D-NEXT): «remote», «sin_tienda», o null = normal. */
+  directory_group?: string | null;
   ringcentral_ext: string | null;
   days_off?: number | null;
   notes?: string | null;
@@ -177,6 +179,8 @@ export type FilaExpediente = {
   store: string | null;
   /** La tienda de la CUENTA, si la hay. Cuando existe, es la que vale. */
   account_store: string | null;
+  /** Grupo especial del directorio: «remote», «sin_tienda», o null = normal. */
+  directory_group: string | null;
   days_off: number | null;
   notes: string | null;
   docKinds: string[];
@@ -227,6 +231,7 @@ export function filasDeExpediente(
     department: (f.department as string) ?? null,
     store: (f.store as string) ?? null,
     account_store: profileId ? (tiendaDePerfil.get(profileId) ?? null) : null,
+    directory_group: (f.directory_group as string) ?? null,
     days_off: (f.days_off as number) ?? null,
     notes: (f.notes as string) ?? null,
     docKinds: kindsDe.get(f.id as string) ?? [],
@@ -272,4 +277,35 @@ export function tiendaVisible(f: { account_store?: string | null; store?: string
  */
 export function puedeElegirTienda(f: { profile_id?: string | null }): boolean {
   return !f.profile_id;
+}
+
+/**
+ * Los grupos especiales del directorio (D-NEXT), con el mismo vocabulario que el `check` de la
+ * migración que crea la columna. `null` es «normal»: la persona sale bajo su tienda.
+ */
+export const GRUPOS_DIRECTORIO = ["remote", "sin_tienda"] as const;
+export type GrupoDirectorio = (typeof GRUPOS_DIRECTORIO)[number];
+
+/**
+ * Lo que llega del formulario, pasado al valor que se guarda. Vacío es «normal» y se guarda como
+ * `null`, no como cadena vacía: el `check` de la base no la admitiría, y el guardado fallaría por
+ * elegir la opción por defecto.
+ *
+ * Devuelve `undefined` si el valor no es de los que admite la base, para que quien llama lo
+ * rechace con un motivo en vez de mandarle a Postgres algo que va a devolver un error críptico.
+ */
+export function normalizaGrupoDirectorio(v: string | null | undefined): GrupoDirectorio | null | undefined {
+  const limpio = (v ?? "").trim();
+  if (!limpio) return null;
+  return (GRUPOS_DIRECTORIO as readonly string[]).includes(limpio) ? (limpio as GrupoDirectorio) : undefined;
+}
+
+/**
+ * ¿Puede esta persona cambiar el grupo de directorio de un expediente? Solo el admin de RR. HH.
+ *
+ * El gerente de RR. HH. edita el resto de la ficha, pero no esto: decide dónde sale alguien en el
+ * directorio de toda la empresa, fuera de la cascada normal de tiendas.
+ */
+export function puedeEditarGrupoDirectorio(recruitingRole: string | null | undefined): boolean {
+  return recruitingRole === "admin";
 }

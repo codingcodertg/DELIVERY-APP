@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   conHechosDeCuenta, estadoEmpleado, extensionValida, filasDeExpediente, limpiaExtension,
-  nombreVisible, parcheAlta, parcheBaja, puedeElegirTienda, puedeEnlazarCuenta, puedeVerExpedientes,
+  normalizaGrupoDirectorio, nombreVisible, parcheAlta, parcheBaja, puedeEditarGrupoDirectorio,
+  puedeElegirTienda, puedeEnlazarCuenta, puedeVerExpedientes,
   resumenDeCuenta, tiendaVisible, tipoDeAcceso,
 } from "./employee-file";
 import type { HechosDeCuenta } from "./employee-file";
@@ -366,5 +367,48 @@ describe("la barrera del servidor: no se guarda tienda en un expediente con cuen
 
   it("y la lista lee la tienda del perfil, que es la que se enseña de solo lectura", () => {
     expect(acciones).toContain('supabase.from("profiles").select("id, full_name, store"),');
+  });
+});
+
+// El grupo del directorio (D-NEXT): solo el admin de RR. HH., con el vocabulario del `check`.
+describe("el grupo del directorio", () => {
+  it("vacío es «normal» y se guarda como null, no como cadena vacía", () => {
+    expect(normalizaGrupoDirectorio("")).toBeNull();
+    expect(normalizaGrupoDirectorio("   ")).toBeNull();
+    expect(normalizaGrupoDirectorio(null)).toBeNull();
+  });
+
+  it("los dos grupos que admite la base pasan tal cual", () => {
+    expect(normalizaGrupoDirectorio("remote")).toBe("remote");
+    expect(normalizaGrupoDirectorio(" sin_tienda ")).toBe("sin_tienda");
+  });
+
+  it("cualquier otro valor se marca como no válido, para rechazarlo con motivo", () => {
+    expect(normalizaGrupoDirectorio("Remote")).toBeUndefined();
+    expect(normalizaGrupoDirectorio("otro")).toBeUndefined();
+  });
+
+  it("solo el admin de RR. HH. lo edita; el gerente no", () => {
+    expect(puedeEditarGrupoDirectorio("admin")).toBe(true);
+    expect(puedeEditarGrupoDirectorio("manager")).toBe(false);
+    expect(puedeEditarGrupoDirectorio("")).toBe(false);
+    expect(puedeEditarGrupoDirectorio(null)).toBe(false);
+  });
+
+  it("la lista lo recibe del expediente", () => {
+    const [fila] = filasDeExpediente([ficha({ directory_group: "remote" })], [], []);
+    expect(fila.directory_group).toBe("remote");
+  });
+});
+
+describe("la barrera del servidor: solo un admin cambia el grupo del directorio", () => {
+  it("la acción comprueba el rol antes de aceptar el campo", () => {
+    expect(acciones).toContain('if ("directory_group" in patch) {');
+    expect(acciones).toContain("if (!puedeEditarGrupoDirectorio(yo.role)) {");
+    expect(acciones).toContain('return { ok: false, message: "Only an HR admin can change the directory group." };');
+  });
+
+  it("y rechaza un valor que la base no admitiría", () => {
+    expect(acciones).toContain('if (grupo === undefined) return { ok: false, message: "Unknown directory group." };');
   });
 });

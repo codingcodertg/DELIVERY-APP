@@ -9,7 +9,7 @@ import {
   type EmployeeDoc, type EmployeeFile,
 } from "@/app/recruiting/actions/hr";
 import { DOC_KINDS, REQUIRED_FORMS } from "@/lib/recruiting/hr";
-import { puedeElegirTienda, tiendaVisible } from "@/lib/recruiting/employee-file";
+import { puedeEditarGrupoDirectorio, puedeElegirTienda, tiendaVisible } from "@/lib/recruiting/employee-file";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -149,7 +149,10 @@ export default function EmployeeFilesPage() {
 /** El expediente de una persona: INFO arriba, y debajo HR y FORMS. */
 function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: () => void; onClose: () => void }) {
   const { t } = usePrefs();
-  const { notify, settings } = useData();
+  const { notify, settings, me } = useData();
+  // El grupo del directorio es solo del admin de RR. HH. (D-NEXT). `me.role` es el rol de RR. HH.
+  // (el layout del módulo lo monta así); la barrera de verdad está en la acción de guardar.
+  const editaGrupo = puedeEditarGrupoDirectorio(me?.role);
   const [info, setInfo] = useState({
     employee_code: persona.employee_code ?? "",
     birthday: persona.birthday ?? "",
@@ -157,6 +160,7 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
     phone: persona.phone ?? "",
     department: persona.department ?? "",
     store: persona.store ?? "",
+    directory_group: persona.directory_group ?? "",
     address: persona.address ?? "",
     days_off: persona.days_off != null ? String(persona.days_off) : "",
     notes: persona.notes ?? "",
@@ -189,10 +193,13 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
     // La tienda solo se manda si la persona NO tiene cuenta. Con cuenta, el servidor la
     // rechazaría —manda `profiles.store`— y el «Guardar» fallaría por un campo que ni se
     // puede tocar desde aquí.
-    const { store, ...resto } = info;
+    const { store, directory_group, ...resto } = info;
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
       ...(puedeElegirTienda(persona) ? { store } : {}),
+      // Solo un admin manda el grupo: a un gerente el servidor se lo rechazaría, y «Guardar
+      // datos» fallaría por un campo que ni siquiera ve.
+      ...(editaGrupo ? { directory_group } : {}),
       days_off: info.days_off === "" ? null : Number(info.days_off),
     });
     setBusy(false);
@@ -253,6 +260,19 @@ function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: 
             />
           )}
         </div>
+        {editaGrupo && (
+          <div>
+            <label>{t("Directory", "Directorio")}</label>
+            <select
+              value={info.directory_group}
+              onChange={(e) => setInfo({ ...info, directory_group: e.target.value })}
+            >
+              <option value="">{t("Normal", "Normal")}</option>
+              <option value="remote">{t("Remote", "Remoto")}</option>
+              <option value="sin_tienda">{t("No store", "Sin tienda")}</option>
+            </select>
+          </div>
+        )}
         {/* Departamento (D-256): se ELIGE de la lista de Ajustes en vez de escribirse, porque
             de esto vive el directorio de la compañía y «Almacen», «almacén» y «Almacén» serían
             tres departamentos distintos en la cascada. La opción vacía existe a propósito:
