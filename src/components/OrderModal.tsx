@@ -23,6 +23,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
+import { mismaDireccion, opcionesSinLaOtraPunta, origenEsDestino } from "@/lib/order-endpoints";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
@@ -234,9 +235,10 @@ export function OrderModal({
   const missingSet = new Set(missingKeys(d, settings.order_type_rules));
   if (needsSalesRep && !d.assigned_sales_rep) missingSet.add("assigned_sales_rep");
 
-  // Pickup and delivery can't be the same place — an order that "goes" nowhere.
-  const normAddr = (s: string | null | undefined) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-  const pickupEqualsDropoff = !!normAddr(d.pickup_address) && normAddr(d.pickup_address) === normAddr(d.delivery_address);
+  // Pickup and delivery can't be the same place — an order that "goes" nowhere. The comparison
+  // lives in lib/order-endpoints (D-NEXT), shared with `submitBlockers`, so the save below and the
+  // create-and-submit button can't disagree about what «the same place» means.
+  const pickupEqualsDropoff = mismaDireccion(d);
 
   // ---- Duplicate-order warning (#34): same account + date + PO already logged ----
   const duplicateOf = (draft: Draft): Delivery | undefined =>
@@ -367,11 +369,15 @@ export function OrderModal({
   const blockSubmit = (draft: Partial<Delivery>): boolean => {
     const blockers = submitBlockers(draft, settings.order_type_rules);
     if (!blockers.length) return false;
-    const list = blockers.map((m) => `• ${t(m.en, m.es)}`).join("\n");
-    notify(t(
-      `Can't submit for approval — still missing:\n\n${list}`,
-      `No se puede enviar a aprobación — todavía falta:\n\n${list}`,
-    ));
+    // What is MISSING and what CONTRADICTS itself read differently (D-NEXT): «still missing: the
+    // origin and destination are the same» would make no sense.
+    const lista = (ms: typeof blockers) => ms.map((m) => `• ${t(m.en, m.es)}`).join("\n");
+    const faltan = blockers.filter((m) => !m.conflict);
+    const choques = blockers.filter((m) => m.conflict);
+    const partes: string[] = [];
+    if (choques.length) partes.push(t(`It goes nowhere:\n\n${lista(choques)}`, `No va a ningún sitio:\n\n${lista(choques)}`));
+    if (faltan.length) partes.push(t(`Still missing:\n\n${lista(faltan)}`, `Todavía falta:\n\n${lista(faltan)}`));
+    notify(t("Can't submit for approval — ", "No se puede enviar a aprobación — ") + partes.join("\n\n"));
     return true;
   };
 
@@ -535,6 +541,9 @@ export function OrderModal({
   // Store-to-store still routes the DESTINATION to another store (dropdown
   // instead of a free address); the customer/contact fields stay visible.
   const isIntraStore = storeToStore;
+  // A store move whose origin is its own destination (D-NEXT). Refused at submit by `submitBlockers`;
+  // flagged here so the rep sees it before pressing anything.
+  const origenIgualDestino = origenEsDestino(d, storeToStore);
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
@@ -1480,7 +1489,8 @@ export function OrderModal({
               <Sel
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
-                opts={settings.stores.map((s) => s.name)}
+                // In a store move, the destination is not offered as the origin (D-NEXT).
+                opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)}
                 on={(v) => {
                   const st = settings.stores.find((s) => s.name === v);
                   setD((p) => ({ ...p, store: v, pickup_name: v || p.pickup_name, pickup_address: st?.address ? st.address : p.pickup_address }));
@@ -1836,7 +1846,7 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={settings.stores.map((s) => s.name)} on={(v) => {
+              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 const st = settings.stores.find((s) => s.name === v);
                 setD((p) => ({
@@ -1880,7 +1890,8 @@ export function OrderModal({
                 <Sel
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
-                  opts={settings.stores.map((s) => s.name)}
+                  // The origin store is not offered as the destination (D-NEXT).
+                  opts={opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.store, deliveryStore)}
                   on={(v) => {
                     const st = settings.stores.find((s) => s.name === v);
                     // The destination store IS the dropoff name for a transfer.
@@ -1963,6 +1974,12 @@ export function OrderModal({
                   )}
                   <button className="btn btn-ghost btn-sm" onClick={() => { setPinDraft(null); setPinDraftSource(null); setShowPinPicker(false); }}>{t("Cancel", "Cancelar")}</button>
                 </div>
+              </div>
+            )}
+
+            {origenIgualDestino && (
+              <div className="hint" style={{ color: "var(--red)", fontWeight: 600, marginBottom: 10 }}>
+                ⚠ {t("The origin store and the destination store are the same — they must be different.", "La tienda de origen y la de destino son la misma — deben ser diferentes.")}
               </div>
             )}
 

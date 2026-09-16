@@ -1,4 +1,5 @@
 import type { Delivery, OrderTypeRule } from "@/lib/types";
+import { mismaDireccion, origenEsDestino } from "@/lib/order-endpoints";
 
 // ============================================================
 // Required-field rules for an order.
@@ -24,6 +25,9 @@ import type { Delivery, OrderTypeRule } from "@/lib/types";
 export interface MissingField {
   /** Matches the form field so the UI can highlight it. */
   key: string;
+  /** True when the order is not MISSING something but CONTRADICTS itself — the same place at both
+   * ends (D-NEXT). The submit message words these differently from «still missing». */
+  conflict?: boolean;
   en: string;
   es: string;
 }
@@ -137,7 +141,27 @@ const SUBMIT_BLOCKING_KEYS: ReadonlySet<string> = new Set(["est_pallets", "doc_r
 /** The subset of missingFields() that must hard-block a draft → pending
  * submission (or a resubmit). Everything else stays a dismissible warning. */
 export function submitBlockers(d: Partial<Delivery>, rules?: OrderTypeRules): MissingField[] {
-  return missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key));
+  const out = missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key));
+
+  // An order that goes nowhere (D-NEXT): «a store can't sell to itself, nor pick up and deliver at
+  // itself». These also refuse, not warn — same mechanism as pallets and the document. Living here,
+  // and not only in the modal's save, is what makes them apply to BOTH submit paths: the old
+  // same-address check ran on save and the create-and-submit button skipped it.
+  if (origenEsDestino(d, isStoreToStore(d.order_type, rules))) {
+    out.push({
+      key: "store", conflict: true,
+      en: "The origin store and the destination store are the same",
+      es: "La tienda de origen y la de destino son la misma",
+    });
+  }
+  if (mismaDireccion(d)) {
+    out.push({
+      key: "delivery_address", conflict: true,
+      en: "Pickup and delivery are at the same address",
+      es: "La recolección y la entrega están en la misma dirección",
+    });
+  }
+  return out;
 }
 
 /** Field keys to highlight in the form. */
