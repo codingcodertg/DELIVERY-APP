@@ -16098,3 +16098,13 @@ Siete mutantes, leídos por nombre:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1987 pasados | 3 saltados**.
 La rama añade 18 pruebas y no quita ninguna —11 en `named-location.test.ts`, fichero nuevo, y 7
 en `employee-file.test.ts`, contadas en el diff—, así que `main` 0719da0 está en 1969 | 3.
+
+> **Rebasada sobre `main` 715b758 (2026-09-16), con la 111 ya aplicada y D-259 y D-260 dentro.**
+> Lo que arriba se dice en futuro —que la 111 crea la columna y el `check`, que no está aplicada—
+> ya pasó; la rama deja de estar bloqueada por ella. El rebase **solo movió prosa**: la huella
+> de `git diff <base>..<rama> -- src/` es la misma antes y después, `66457c897a833a5e6efb`, y
+> `main` no tocó ninguno de los ficheros de código de esta rama desde 0719da0.
+
+`verify.mjs` tras el rebase, sobre `.next` limpio: **2030 pasados | 3 saltados**. La rama sigue
+añadiendo las mismas 18 pruebas y no quita ninguna, contadas en el diff contra `main` nuevo, así
+que 715b758 está en 2012 | 3.
