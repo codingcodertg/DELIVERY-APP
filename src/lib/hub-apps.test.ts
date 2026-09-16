@@ -4,7 +4,7 @@ import { veAppsParaInstalar } from "./hub-apps";
 import { ROLE_ORDER } from "./constants";
 import type { Profile } from "./types";
 
-// «Apps para instalar» en el hub, solo para el admin (D-NEXT). Dos mitades, y hacen falta las
+// «Apps para instalar» en el hub, solo para el admin (D-262). Dos mitades, y hacen falta las
 // dos: la decisión, alimentada con el mismo `me` que recibe la pantalla, y que la pantalla
 // efectivamente la use para envolver la sección entera. Sin la segunda, la primera protegería
 // una función que el hub podría dejar de llamar.

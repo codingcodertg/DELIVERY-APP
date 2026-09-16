@@ -2,7 +2,7 @@ import { esAdmin } from "./impersonation";
 import type { Profile } from "./types";
 
 /**
- * ¿Ve esta persona «Apps para instalar» en el hub? Solo el admin de Entregas (D-NEXT).
+ * ¿Ve esta persona «Apps para instalar» en el hub? Solo el admin de Entregas (D-262).
  *
  * Decisión del dueño del 2026-09-16, que da la vuelta a D-167: allí se enseñaban a todo el mundo
  * para que nadie tuviera que pedir una app. Ahora es el admin quien las reparte.

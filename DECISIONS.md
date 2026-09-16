@@ -16112,7 +16112,7 @@ en `employee-file.test.ts`, contadas en el diff—, así que `main` 0719da0 est�
 añadiendo las mismas 18 pruebas y no quita ninguna, contadas en el diff contra `main` nuevo, así
 que 715b758 está en 2012 | 3.
 
-## D-NEXT · «Apps para instalar» solo la ve el admin
+## D-262 · «Apps para instalar» solo la ve el admin
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño**, el 2026-09-16: la sección de apps para instalar del hub, solo para el admin.

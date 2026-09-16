@@ -63,7 +63,7 @@ export function HomeSelector({ me }: { me: Profile }) {
             repartía por WhatsApp y la de escritorio había que pedirla, y una app
             que hay que pedir es una app que la mitad de la gente no tiene.
 
-            **Solo para el admin desde D-NEXT** (2026-09-16, decisión del dueño). Lo
+            **Solo para el admin desde D-262** (2026-09-16, decisión del dueño). Lo
             que sigue es lo que decía D-167, y se deja escrito porque explica por qué
             estuvo abierto: ahora las reparte el admin, y el resto no ve ni el título
             ni el contador. Solo se esconde la sección; las descargas no cambian.
