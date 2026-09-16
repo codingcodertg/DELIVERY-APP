@@ -141,6 +141,9 @@
 .hub-signout { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); text-align: center; }
 .hub-signout-btn { font-size: 13px; font-weight: 600; color: var(--gray); padding: 8px 16px; border-radius: 8px; }
 .hub-signout-btn:hover { background: var(--card-hover); color: var(--text); }
+/* Mi perfil, bajo el saludo: visible sin competir con los módulos. */
+.hub-profile-link { display: inline-block; font-size: 13px; font-weight: 600; color: var(--gray); margin: 2px 0 10px; padding: 4px 8px; border-radius: 8px; text-decoration: none; }
+.hub-profile-link:hover { background: var(--card-hover); color: var(--text); }
 
 /* Name/avatar in the top bar doubles as the link to the account view. */
 .account-link { cursor: pointer; transition: background .12s ease; }

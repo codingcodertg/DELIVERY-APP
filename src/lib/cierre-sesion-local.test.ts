@@ -177,6 +177,8 @@ describe("cada signOut de src/ dice su alcance", () => {
       "src/app/api/impersonate/auto-return/route.ts",
       "src/app/api/impersonate/return/route.ts",
       "src/app/api/impersonate/return/route.ts",
+      // «Mi perfil» (D-NEXT): cierra la sesión de COMPROBACIÓN de la contraseña actual, local.
+      "src/app/api/profile/password/route.ts",
       "src/app/auth/signout/route.ts",
       "src/app/no-access/SignOut.tsx",
       "src/lib/impersonation-revoke.ts",

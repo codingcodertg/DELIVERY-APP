@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
 import { useData } from "@/lib/timetracker-data-provider";
-import { getLang, setLang, useT } from "@/lib/timetracker/i18n";
+import { useT } from "@/lib/timetracker/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
 import { ModuleSwitcher } from "@/components/ModuleSwitcher";
@@ -26,10 +25,9 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   // to expose a way to change it; the desktop shell now defaults to dark
   // (layout.tsx's inline theme script + prefs.tsx's defaultTheme()), but
   // this toggle lets anyone — web or desktop — switch either way.
-  const { theme, toggleTheme } = usePrefs();
-  // useT()'s own subscription already re-renders this component on any
-  // setLang() call; this local state just remembers which icon to show.
-  const [lang, setLangState] = useState(getLang());
+  // El idioma también sale de aquí (D-NEXT): es uno para todas las apps y lo guarda el proveedor.
+  // Cambiarlo avisa a useT(), que vuelve a pintar esta barra y el resto de Time Tracker.
+  const { theme, toggleTheme, lang, toggleLang } = usePrefs();
   const tabs = me.role === "admin" ? MANAGER_TABS : TABS;
 
   return (
@@ -83,7 +81,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
         <button
           className="btn-ghost btn-sm"
           style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
-          onClick={() => { const next = lang === "es" ? "en" : "es"; setLang(next); setLangState(next); }}
+          onClick={toggleLang}
           title={t("lang.label")}
         >
           {lang === "es" ? "🇬🇧 EN" : "🇪🇸 ES"}

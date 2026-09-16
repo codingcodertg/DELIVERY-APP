@@ -103,7 +103,6 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // G-9 (D-202): las pantallas de empleado y los componentes de Time Tracker que quedaban en inglés.
     "src/app/timetracker/(timetracker)/account/page.tsx",
     "src/app/timetracker/(timetracker)/diary/page.tsx",
-    "src/components/timetracker/NotificationLanguage.tsx",
     "src/components/timetracker/MySections.tsx",
     "src/components/timetracker/PunchPanel.tsx",
     "src/components/timetracker/TimeOffRequests.tsx",

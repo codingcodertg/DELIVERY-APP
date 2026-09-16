@@ -92,7 +92,6 @@ interface DataState {
 
   // ---- account ----
   updateMyAccount: (patch: { fullName: string; city: string; payMethod: string; payDetails: string }) => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
   signOutEverywhere: () => Promise<void>;
 
   // ---- manager-only (D-070) ----
@@ -821,11 +820,6 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (es.error) throw es.error;
   }, [supabase, me.id]);
 
-  const updatePassword = useCallback<DataState["updatePassword"]>(async (newPassword) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw error;
-  }, [supabase]);
-
   const signOutEverywhere = useCallback<DataState["signOutEverywhere"]>(async () => {
     const { error } = await supabase.auth.signOut({ scope: "global" });
     if (error) throw error;
@@ -851,7 +845,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
     myScreenshots: screenshots, latestScreenshot: screenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
-    updateMyAccount, updatePassword, signOutEverywhere,
+    updateMyAccount, signOutEverywhere,
     allEmployees, allProjects, allAssignments, allRequests, sessionsSince, sessionsByProject,
     auditLog, logAudit, liveSessions,
     insertSession, removeSession,

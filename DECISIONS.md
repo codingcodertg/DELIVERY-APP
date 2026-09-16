@@ -16376,3 +16376,268 @@ prueba no fije el formato.
   cliente y aquí no se monta React.
 - **Quien ya perdió la sesión en su escritorio** tiene que volver a entrar una vez. Esto evita que
   vuelva a pasar; no devuelve lo que ya se revocó.
+
+## D-NEXT · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
+apps y del hub · **Sin migración** · **Pedido por:** el dueño: *«los usuarios en el RTG Hub
+deberían poder acceder a su perfil y setear todo desde el hub para todas las apps; es un solo
+usuario y password»*, y *«en vez de hacerlo desde Deliveries, change password será en el hub
+lobby»*.
+
+**Revierte en parte:**
+- **D-069**, que portó «Mi cuenta» de Time Tracker con su formulario de contraseña.
+- **D-052**, que portó los Ajustes de RR. HH. con su formulario de «Mi cuenta».
+- El formulario de la «Cuenta» de Entregas no tiene decisión registrada: entró con el commit
+  `f7e6e78` (v0.2.23, 2026-07-22), *«Add self-service Change Password to the Account tab»*.
+
+En los tres casos lo que cambia es **dónde** se cambia la contraseña. Lo demás de esas pantallas
+sigue igual. La razón de entonces —que cada app era casi un producto aparte— ya no vale: es una sola
+cuenta.
+
+### Qué había
+
+Tres formularios, medidos con grep, y los tres distintos:
+
+- **Entregas** (`(app)/account`) pedía la contraseña actual y la «comprobaba» con
+  `signInWithPassword` **en el cliente de la propia sesión**. En auth-js eso **reemplaza la sesión**
+  de la persona por una nueva, y con ella su hora de inicio, que es justo lo que mira el cierre de
+  las 18:30 (D-248).
+- **RR. HH.** (Ajustes → «Mi cuenta») y **Time Tracker** (`/timetracker/account`,
+  `updatePassword` del proveedor) **no pedían la actual**. Bastaba una sesión abierta en un equipo
+  ajeno para quedarse con la cuenta.
+
+### Qué hay
+
+- **`/home/profile`, «Mi perfil»**, enlazado desde el lobby, bajo el saludo y para todos los roles
+  que llegan ahí. Lleva:
+  - **la cuenta**: el nombre, y con qué se entra —el usuario si la dirección es la inventada
+    (`lib/username.ts`), el correo si es real—, todo de solo lectura;
+  - **el cambio de contraseña**, pidiendo la actual;
+  - **el tema**.
+- **En las tres apps** el formulario se va y queda un enlace «Cambiar contraseña → Mi perfil
+  (hub)». El resto de cada pantalla no cambia. En Time Tracker, «Cerrar sesión en todos los
+  dispositivos» colgaba del mismo componente y se queda. `updatePassword` sale del proveedor de
+  Time Tracker, y sus ocho textos de idioma también: los usaba solo ese formulario, medido con grep.
+
+### La contraseña actual, comprobada en el servidor
+
+`POST /api/profile/password` recibe la actual y la nueva. Comprueba la actual con **un cliente
+aislado**, sin guardar sesión ni cookies. Si vale, **cierra esa sesión de comprobación en el acto**
+(`scope: "local"`, solo esa) y cambia la contraseña con la sesión de siempre, que no se toca. Si la
+contraseña resulta ser de otra cuenta, no vale.
+
+Lo que se descartó, y por qué:
+- **`reauthenticate()`** manda un código por correo o SMS: es un efecto fuera de esta máquina, y
+  quien entra con usuario tiene una dirección inventada que no recibe nada.
+- **`updateUser({ current_password })`** solo lo exige el servidor si el proyecto tiene activado un
+  ajuste que desde el repo no se ve. Si no lo tiene, se ignora en silencio.
+- **Seguir comprobando en el navegador**, como Entregas, reemplaza la sesión de la persona.
+
+De paso, **un admin que haya entrado como otra persona no puede cambiarle la contraseña**, porque no
+la sabe.
+
+### Decisiones que tomé yo
+
+- **La puerta de `/home/profile` solo pide sesión, no `canReachHub`.** El chofer no entra al lobby
+  (D-173), pero tenía «Cambiar contraseña» en la «Cuenta» de Entregas, que sí ve. Si «Mi perfil»
+  exigiera el lobby, el chofer se quedaría **sin forma de cambiar su contraseña**. Llega por el
+  enlace de su «Cuenta», igual que llega al directorio (D-256).
+> **Superado el mismo día por la entrada siguiente.** El dueño pidió que el idioma sea uno para
+> todo, y ahora está en «Mi perfil» y vale para todas las apps y los avisos. Lo que dice este punto
+> sigue siendo cierto de cuando se escribió: entonces Time Tracker tenía su propio idioma.
+
+- **El tema sí, el idioma no.** El tema vive en `rtg_prefs` y lo aplican todas las apps, Time Tracker
+  incluido: lo lee el script del layout raíz y lo cambia la barra de Time Tracker. El idioma del hub
+  no llega a Time Tracker, que tiene el suyo (D-206). Ponerlo en «Mi perfil» prometería un «para
+  todas las apps» que no es verdad.
+- **El nombre se enseña, no se edita.** Así se pidió: solo lectura. Hoy se edita en la cuenta de cada
+  app, y eso no se tocó. Si se quiere editable aquí, es otro cambio.
+- **El mínimo sigue siendo 6**, el que pedían los tres formularios.
+
+### Medido, rompiendo cada pieza
+
+Quince cambios: **catorce caen y un gemelo se queda en verde**.
+
+- **En la ruta:** no comprobar la actual; cambiar antes de comprobar; comprobar con el cliente de la
+  propia sesión; que el cliente de comprobación guarde sesión; no cerrar la sesión de comprobación, o
+  cerrarla en global; no mirar que la contraseña sea de esta cuenta.
+- **Fuera de la ruta:** un mínimo de 5; que RR. HH. vuelva a cambiar contraseñas con un `updateUser`
+  partido en varias líneas; que la puerta de «Mi perfil» exija el lobby; que el enlace del lobby sea
+  solo para admin; que Time Tracker pierda «todos los dispositivos»; que la dirección inventada se
+  enseñe como correo; y que Entregas vuelva a tener un campo de contraseña.
+- **El gemelo:** el `updateUser` de «Mi perfil» partido en varias líneas. Se queda en verde, para
+  que el barrido no fije el formato.
+
+### Lo no verificado
+
+- **Nadie ha cambiado una contraseña de verdad.** La ruta se probó con Auth falso: la regla de las
+  pruebas no deja tocar Auth de producción.
+- **No se sabe si el proyecto exige re-autenticación reciente para `updateUser`**
+  (`SECURITY_UPDATE_PASSWORD_REQUIRE_REAUTHENTICATION`). Los tres formularios que había llamaban a
+  `updateUser` igual, así que no debería cambiar nada, pero no se ha medido.
+- **Nadie ha abierto `/home/profile` ni el lobby en un navegador.**
+- **La sesión de comprobación** se cierra con `signOut({ scope: "local" })`. Si esa llamada fallara,
+  quedaría viva hasta caducar: no se ha visto fallar, pero se ignora su error para no impedir el
+  cambio.
+
+## D-NEXT · Un solo idioma para todas las apps y los avisos, que sigue a la persona
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia el proveedor de
+preferencias del hub, Time Tracker y «Mi perfil» · **Migración: `112_profile_language.sql`**, que
+aplica el orquestador **antes de fusionar**: la columna tiene que existir cuando llegue el código ·
+**Pedido por:** el dueño: *«EL IDIOMA DEBE SER GENERAL PARA TODO»*, al leer por qué la entrada
+anterior lo dejaba fuera de «Mi perfil».
+
+**Revierte en parte:**
+- **D-206**, que pasó Time Tracker a su propio idioma (`tt_lang`) en vez del del hub.
+- **D-106 #1**, que trajo «Idioma de los avisos» a la cuenta de Time Tracker como un idioma
+  **aparte** del de las pantallas, a propósito.
+- **Cierra lo que D-122 dejó pendiente:** anotó los tres idiomas independientes y dijo que
+  unificarlos era *«una decisión aparte»*. Es esta.
+
+**No cambia D-203:** el ERP ya seguía el idioma del hub, y lo sigue.
+
+### El inventario, medido con grep
+
+| dónde | se guarda en | por | lo cambiaba |
+|---|---|---|---|
+| hub, Entregas, RR. HH., ERP | `localStorage` `rtg_prefs.lang` | equipo | cuenta de Entregas, barras de RR. HH. y ERP (`usePrefs().setLang`) |
+| Time Tracker | `localStorage` `tt_lang` | equipo | su barra (`setLang` de `timetracker/i18n`) |
+| avisos de fichaje | `clockin.employee_settings.language`, leída por la vista `clockin.profiles` | persona | «Idioma de los avisos» en la cuenta de Time Tracker (acción `setLanguage`) |
+
+Dos aclaraciones:
+- **D-122 decía «columna `profiles.language`»**, pero la columna vive en
+  `clockin.employee_settings`, y la vista `clockin.profiles` la expone con ese nombre.
+- **`src/lib/clockin/i18n.ts` no lo importa nadie**, así que no es un cuarto idioma. Y el selector
+  English/Español de `recruiting/ModalHost` elige el idioma de **un documento** (el resumen de una
+  entrevista para el gerente), no el de la pantalla: queda fuera.
+
+### La fuente única
+
+**`public.profiles.language`**, por persona, para que el idioma la siga entre equipos. Las dos claves
+de `localStorage` se quedan **como copia**, para pintar antes de que responda la red. Y la vista
+`clockin.profiles` lee `coalesce(p.language, es.language, 'en')`, así que **los avisos también la
+siguen**.
+
+Cada persona escribe su propia fila: la política de la 099 lo permite, y el guard de columnas
+privilegiadas (104) prohíbe una lista cerrada en la que el idioma no está. No hubo que tocar
+políticas ni guards.
+
+### Entre la base vieja y la pantalla, manda la pantalla
+
+El idioma de los avisos que ya había en la base **no decide** el idioma nuevo. Es el que el servidor
+usaba para escribir, casi nadie lo cambió (vale `'en'` por defecto) y no es lo que la persona ve.
+
+### La regla de precedencia, para que nadie vea su app cambiar de idioma solo por desplegar
+
+La columna **nace vacía** y la migración **no rellena a nadie**. Rellenarla en la base obligaría a
+elegir sin saber qué idioma tiene cada uno en su pantalla. Al cargar, `lib/idioma.ts` decide:
+
+1. **Si la base tiene idioma, manda la base.** Es alguien que ya eligió con el sistema nuevo.
+2. **Si no, y las dos copias de este equipo coinciden** (o solo hay una), ese es su idioma: se usa y
+   **se siembra** en la base. No cambia nada de lo que ve.
+3. **Si las dos copias dicen cosas distintas, no se elige por la persona.** Cada app sigue con el
+   suyo, como antes, y no se guarda nada. Se unifica en cuanto elija un idioma en cualquier sitio.
+4. **Sin nada en ningún sitio**, no se decide: el inglés de siempre.
+5. **Si leer la base falla, no se decide nada**, tampoco sembrar. Es el caso de un código que llegue
+   antes que la migración.
+
+**El único cambio que alguien puede notar:** los avisos de quien tenía «Idioma de los avisos»
+distinto del de su pantalla. Mientras la columna esté vacía, siguen en el idioma de siempre, porque
+la vista usa el viejo de respaldo. Cuando la regla 2 la llena, pasan a seguir la pantalla. Y eso
+llega al abrir una app, no al desplegar. La 112 trae la consulta para contar a cuántos puede
+afectar.
+
+> **Corregido en la revisión: los avisos en español sí cuentan.** La regla de arriba dejaba fuera el
+> idioma de los avisos, con el argumento de que casi nadie lo había cambiado. El orquestador lo midió
+> en producción: **6 personas tienen `employee_settings.language = 'es'`**. Como el valor por defecto
+> es `'en'`, ese `'es'` es una elección. Con la regla original, si una de ellas abría la app en un
+> equipo con la pantalla en inglés —un PC de tienda compartido—, se sembraba `'en'` y **sus SMS
+> pasaban a inglés sin que nadie lo viera**: justo el cambio silencioso que la regla quería evitar.
+>
+> Ahora hay una regla más: **un `'es'` en los avisos cuenta como una copia más, pero solo para no
+> coincidir.** Si choca con la pantalla del equipo, no se siembra y todo sigue como está hasta que la
+> persona elija. Un `'en'` en los avisos no cuenta, porque no se distingue del valor por defecto. Y los
+> avisos solos no deciden: sin copias de pantalla se sigue viendo inglés, y sembrar `'es'` cambiaría
+> la pantalla solo por desplegar.
+>
+> **Se leen de la vista `clockin.profiles`**, que con `profiles.language` vacía devuelve el de
+> `employee_settings`, y **solo cuando la base no tiene idioma**. Si la lectura falla, no se decide.
+> Quien no tiene fila en `employee_settings` **o no puede leerla** no tiene avisos que contar: la RLS
+> de la 074 exige `has_clockin_access()`, que (087) es tener rol de Time Tracker o ser admin.
+>
+> La 112 ya estaba aplicada y no se tocó. Su comentario habla de «las dos copias locales» y se queda
+> corto con esta regla: la regla vigente es la de `lib/idioma.ts`.
+
+### Los selectores: todos escriben en la misma fuente, y el de los avisos se va
+
+**Se eligió que cada conmutador escriba en la fuente única**, no quitarlos:
+- `usePrefs().setLang` es el único sitio que escribe el idioma: la base, las dos copias locales y un
+  aviso en la ventana.
+- Los conmutadores de la barra de RR. HH., la del ERP y la cuenta de Entregas **ya lo llamaban**, así
+  que no se tocaron. La barra de Time Tracker pasa a llamarlo, y «Mi perfil» gana su selector.
+
+La razón es que quitar los conmutadores de las barras obligaría a ir al hub para algo que hoy es un
+clic en la pantalla que se está mirando. Lo que el dueño no puede tener —dos sitios guardando idiomas
+distintos— desaparece igual, porque hay **una sola función que escribe**.
+
+**El selector «Idioma de los avisos» se quitó.** Guardaba un idioma distinto, y es justo lo que no
+puede quedar. Con él se van su componente, sus dos acciones de servidor (solo las usaba él, medido
+con grep) y sus cuatro textos. En su sitio queda una línea que dice que los avisos llegan en el mismo
+idioma que las apps, y un enlace a «Mi perfil».
+
+### Time Tracker sin cargar su diccionario en todas las apps
+
+Time Tracker **ya no guarda** su idioma. Lee la copia `tt_lang` al arrancar y **escucha un aviso** de
+la ventana para cambiar sin recargar. Se descartó que el proveedor del hub importara el diccionario
+de Time Tracker (unas 1.700 líneas): el proveedor está en todas las páginas, y el diccionario entraría
+en el bundle de todas las apps. Su `setLang` se queda, pero solo en memoria: lo usan el aviso y sus
+pruebas.
+
+### Medido, rompiendo cada pieza
+
+Dieciséis cambios: **quince caen y un gemelo se queda en verde.**
+
+- **La regla:** que la base no mande; que en desacuerdo gane la copia del hub; volver a sembrar
+  cuando la base ya tiene idioma; decidir aunque la lectura falle; no sembrar nunca.
+- **Time Tracker:** que no escuche el aviso; que vuelva a guardar `tt_lang`; que su barra use su
+  propio `setLang`.
+- **Quién escribe:** que la cuenta de Entregas guarde el idioma por su cuenta (con el `update` partido
+  en líneas); que elegir idioma deje de guardarlo en la base; que «Mi perfil» pierda el selector.
+- **La migración:** que la vista no lea la columna nueva; que al copiar la vista se pierda una
+  columna; que se siembre a todo el mundo; que la columna nazca con valor por defecto.
+- **El gemelo:** el `update` de `setLang` partido en líneas. Queda en verde.
+
+> **Una prueba contaba de más, y cayó al correrla, no con un mutante.** El barrido de «quién escribe
+> las copias locales» buscaba `setItem(KEY`, y `KEY` es un nombre corriente: lo usan también el menú
+> del ERP y el id del aparato. Ahora solo cuenta donde `KEY` es la clave del idioma.
+>
+> **Y otra no habría visto un fallo:** un `setLang` que dejara de guardar en la base seguiría en
+> verde, porque la siembra de la carga también escribe en el mismo fichero. Se añadió una prueba
+> sobre el cuerpo de `setLang`, y el mutante cae por ella.
+
+La prueba de cobertura de claves de Time Tracker genera una comprobación por fichero, y uno de ellos
+era el componente borrado. Esa entrada se quitó de la lista: **una prueba menos**, a propósito.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 112 no está aplicada cuando se escribe esto, y nadie ha escrito ni leído
+  `profiles.language` de verdad.
+- **Nadie ha abierto una app en un navegador** para ver la siembra, el aviso a Time Tracker o la app
+  de escritorio siguiendo el cambio.
+- **Si guardar el idioma falla**, o actualiza cero filas sin error, el cambio se queda solo en este
+  equipo, y la próxima carga trae el de la base: el idioma «vuelve». No se avisa en pantalla.
+- **Cuántas personas tienen hoy los avisos en español**, que son las que pueden notar el cambio. La
+  consulta está en la 112. *(Medido después por el orquestador: 6. Es lo que llevó a la corrección de
+  arriba.)*
+- **El idioma no se aplica al entrar, hasta la siguiente carga completa.** El proveedor lee la base
+  una vez, al montar. Si el login navega sin recargar la página, el idioma de la base no llega hasta
+  que se recarga.
+- **Un admin que haya entrado como otra persona y toque el conmutador cambia el idioma DE ESA
+  PERSONA.** La escritura va a la fila de la sesión, y durante la impersonación la sesión es la ajena.
+- **Quien tiene los avisos en español pero ya no tiene acceso a fichaje** no puede leer su fila, así
+  que su `'es'` no cuenta y podría sembrarse `'en'`. Sin acceso a fichaje no debería recibir esos
+  avisos, pero no se ha medido.
+- **El servidor sigue sin saber el idioma** de las páginas que se pintan en el servidor (D-203). La
+  columna nueva lo haría posible, pero este cambio no lo usa.

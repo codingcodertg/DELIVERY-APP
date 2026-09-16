@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtPct, pctToScore } from "@/lib/recruiting/utils";
@@ -33,23 +34,14 @@ export default function SettingsPage() {
   const [jSet, setJSet] = useState("");
   const jobCount = (jobId: string) => candidates.filter((c) => c.job_id === jobId && !c.archived).length;
 
-  // account: display name + password
+  // account: display name. La contraseña se cambia en «Mi perfil», en el hub (D-NEXT).
   const [displayName, setDisplayName] = useState(me?.full_name ?? "");
-  const [pw1, setPw1] = useState("");
-  const [pw2, setPw2] = useState("");
 
   const saveName = async () => {
     if (!me) return;
     // profiles lives in public, not recruiting (this client defaults to recruiting).
     const { error } = await supabase.schema("public").from("profiles").update({ full_name: displayName.trim() }).eq("id", me.id);
     notify(error ? "Error: " + error.message : t("Name saved ✓", "Nombre guardado ✓"));
-  };
-  const changePassword = async () => {
-    if (pw1.length < 6) { notify(t("Password must be at least 6 characters", "La contraseña debe tener al menos 6 caracteres")); return; }
-    if (pw1 !== pw2) { notify(t("Passwords don't match", "Las contraseñas no coinciden")); return; }
-    const { error } = await supabase.auth.updateUser({ password: pw1 });
-    if (error) { notify("Error: " + error.message); return; }
-    setPw1(""); setPw2(""); notify(t("Password changed ✓", "Contraseña cambiada ✓"));
   };
 
   const [appName, setAppName] = useState(settings.app_name);
@@ -95,14 +87,12 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        <div className="grid g3" style={{ marginTop: 12 }}>
-          <div><label>{t("New password", "Nueva contraseña")}</label><input type="password" value={pw1} onChange={(e) => setPw1(e.target.value)} placeholder="••••••••" /></div>
-          <div><label>{t("Confirm password", "Confirmar contraseña")}</label><input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="••••••••" /></div>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <button className="btn btn-primary" onClick={changePassword}>{t("Change password", "Cambiar contraseña")}</button>
-          </div>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/home/profile" className="btn btn-primary">
+            {t("Change password → My profile (hub)", "Cambiar contraseña → Mi perfil (hub)")}
+          </Link>
         </div>
-        <div className="hint">{t("Your password updates immediately — no email needed while you're signed in.", "Tu contraseña se actualiza de inmediato — no se necesita correo mientras estés conectado.")}</div>
+        <div className="hint">{t("One password for every app, changed in one place.", "Una sola contraseña para todas las apps, y se cambia en un solo sitio.")}</div>
       </div>
 
       <div className="card">

@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, effBreaks, effTrackMode, effWorkerType } from "@/lib/timetracker/helpers";
 import type { Employee } from "@/lib/timetracker/types";
-import { NotificationLanguage } from "@/components/timetracker/NotificationLanguage";
 
 // Ported (D-069) from timetracker-clean's employee/MyAccount.jsx — name/city/
-// pay-info self-edit, read-only "my setup" chips (set by a manager), change
-// password, and sign out of every device.
+// pay-info self-edit, read-only "my setup" chips (set by a manager), a link to
+// change the password in «Mi perfil» (D-NEXT), and sign out of every device.
 //
 // G-9 (D-202): traducida entera por claves `emp.acc.*`. Los métodos de pago
 // (APP_SETTINGS.paymentMethods) son DATO configurado por la empresa y se enseñan tal cual.
@@ -79,46 +79,29 @@ export default function MyAccountPage() {
         <span className="chip">{tm === "activity" ? t("emp.acc.activityTracking") : t("emp.acc.inOutOnly")}</span>
         <span className="chip">{br ? t("emp.acc.breaksOn") : t("emp.acc.breaksOff")}</span>
       </div>
-      {/* El idioma de los avisos vivía en la pantalla de cuenta de fichaje, que no tenía
-          nada más que esto y una contraseña que YA estaba aquí, duplicada. Traerlo deja una
-          sola pantalla de "mis cosas" en vez de dos que hacían media cada una. */}
+      {/* El idioma de los avisos tenía selector propio aquí (D-106), aparte del de la pantalla. Ya
+          no: el idioma es uno solo para todas las apps y para los avisos, y se elige en «Mi
+          perfil» (D-NEXT). Dos selectores que guardan idiomas distintos es lo que se quitó. */}
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.acc.notifications")}</h3>
-      <NotificationLanguage />
+      <div className="hint">{t("emp.acc.notifLangUnified")}</div>
+      <Link href="/home/profile" className="btn">{t("emp.acc.langMoved")}</Link>
 
-      <ChangePassword />
+      <PasswordEnMiPerfil />
     </div>
   );
 }
 
-function ChangePassword() {
-  const { updatePassword } = useData();
+// La contraseña es una sola para todas las apps y se cambia en un solo sitio: «Mi perfil», en el
+// hub (D-NEXT). Aquí queda el camino hasta allí. «Cerrar sesión en todos los dispositivos» colgaba
+// de este mismo bloque y se queda igual.
+function PasswordEnMiPerfil() {
   const t = useT();
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function save() {
-    setMsg(""); setErr("");
-    if (pw.length < 6) { setErr(t("emp.acc.pwTooShort")); return; }
-    if (pw !== pw2) { setErr(t("emp.acc.pwMismatch")); return; }
-    setBusy(true);
-    try { await updatePassword(pw); setPw(""); setPw2(""); setMsg(t("emp.acc.pwUpdated")); }
-    catch (e) { const error = e as { message?: string } | null; setErr(error?.message || t("emp.acc.pwFail")); }
-    finally { setBusy(false); }
-  }
   return (
     <>
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.acc.pwTitle")}</h3>
-      {msg && <div className="banner ok">{msg}</div>}
-      {err && <div className="banner err">{err}</div>}
-      <div className="grid g2">
-        <div><label>{t("emp.acc.pwNew")}</label><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" /></div>
-        <div><label>{t("emp.acc.pwConfirm")}</label><input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && save()} /></div>
-      </div>
-      <button style={{ marginTop: 12 }} disabled={busy} onClick={save}>{busy ? t("emp.acc.saving") : t("emp.acc.pwUpdate")}</button>
+      <Link href="/home/profile" className="btn">{t("emp.acc.pwMoved")}</Link>
       <SignOutEverywhere />
     </>
   );
