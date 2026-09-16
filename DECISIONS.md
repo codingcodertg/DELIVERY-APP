@@ -15750,7 +15750,7 @@ Cinco mutantes, y cada uno tira **una** prueba:
 La rama añade 21 pruebas y no quita ninguna —11 en `phone-book.test.ts`, 10 en
 `employee-file.test.ts`, contadas en el diff—, así que `main` 2ce5806 está en 1948 | 3.
 
-## D-NEXT · El directorio omite a quien no tiene ningún dato de contacto
+## D-259 · El directorio omite a quien no tiene ningún dato de contacto
 
 **Fecha:** 2026-09-15 · **Versión:** la pone el orquestador al fusionar; el cambio vive entero en
 la base, así que le toca la excepción de `CLAUDE.md` —solo `package.json`, sin `APP_VERSIONS`—
@@ -15857,7 +15857,7 @@ tiene que quedarse en verde**. Los que importan:
 > demás de aquí sigue en pie: `date_left` no se usa para esconder a nadie, y el filtro vive en la
 > función y no en la pantalla.
 
-## D-NEXT · Directorio: solo con extensión, grupos «Remote» y «Sin tienda» por rol, y código de tienda
+## D-260 · Directorio: solo con extensión, grupos «Remote» y «Sin tienda» por rol, y código de tienda
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. **Esta ya no es solo de
 base**: cambia `src/lib/phone-book.ts` y `src/app/home/directory/page.tsx`, así que no le toca la
