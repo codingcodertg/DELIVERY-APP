@@ -10,6 +10,7 @@
 // component using useT() re-renders when the language changes. Strings
 // fall back to English, then to the key itself. {vars} are interpolated.
 import { useEffect, useState } from "react";
+import { CLAVE_TT, EVENTO_IDIOMA, esIdioma } from "@/lib/idioma";
 
 export const DICT: Record<"en" | "es", Record<string, string>> = {
   en: {
@@ -345,10 +346,8 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.diary.unknownError': 'unknown error',
     'emp.diary.title': 'Work diary',
     'emp.diary.note': 'One screenshot per ~10-minute segment (up to 6/hour), taken at a random time. The bar shows that segment’s activity. Deleting a shot removes it for your manager too.',
-    'emp.acc.notifLangFail': 'Could not save.',
-    'emp.acc.notifLang': 'Notification language',
-    'emp.acc.notifLangNote': 'Clock-in reminders and approvals arrive in this language. The screens themselves follow your browser.',
-    'emp.acc.notifLangSaved': 'Saved',
+    'emp.acc.notifLangUnified': 'Reminders and approvals arrive in the same language as every app.',
+    'emp.acc.langMoved': 'Language → My profile (hub)',
     'emp.my.schedule': 'My schedule',
     'emp.my.loading': 'Loading…',
     'emp.my.approvedOff': 'Approved time off:',
@@ -535,14 +534,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.acc.breaksOff': 'Lunch & break: off',
     'emp.acc.notifications': 'Notifications',
     'emp.acc.pwTitle': 'Change password',
-    'emp.acc.pwTooShort': 'Password must be at least 6 characters.',
-    'emp.acc.pwMismatch': 'Passwords do not match.',
-    'emp.acc.pwUpdated': 'Password updated.',
-    'emp.acc.pwFail': 'Could not update password.',
-    'emp.acc.pwNew': 'New password',
-    'emp.acc.pwConfirm': 'Confirm password',
-    'emp.acc.saving': 'Saving…',
-    'emp.acc.pwUpdate': 'Update password',
+    'emp.acc.pwMoved': 'Change password → My profile (hub)',
     'emp.acc.signOutAllConfirm': 'Sign out of every device, including this one? You will need to log in again everywhere.',
     'emp.acc.signOutAllFail': 'Could not sign out everywhere.',
     'emp.acc.devices': 'Devices',
@@ -1195,10 +1187,8 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.diary.unknownError': 'error desconocido',
     'emp.diary.title': 'Diario de trabajo',
     'emp.diary.note': 'Una captura por cada segmento de ~10 minutos (hasta 6 por hora), tomada a una hora al azar. La barra muestra la actividad de ese segmento. Borrar una captura la elimina también para su encargado.',
-    'emp.acc.notifLangFail': 'No se pudo guardar.',
-    'emp.acc.notifLang': 'Idioma de los avisos',
-    'emp.acc.notifLangNote': 'Los recordatorios de fichaje y las aprobaciones llegan en este idioma. Las pantallas siguen el idioma elegido en el navegador.',
-    'emp.acc.notifLangSaved': 'Guardado',
+    'emp.acc.notifLangUnified': 'Los recordatorios y las aprobaciones llegan en el mismo idioma que todas las apps.',
+    'emp.acc.langMoved': 'Idioma → Mi perfil (hub)',
     'emp.my.schedule': 'Mi horario',
     'emp.my.loading': 'Cargando…',
     'emp.my.approvedOff': 'Tiempo libre aprobado:',
@@ -1385,14 +1375,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.acc.breaksOff': 'Almuerzo y descanso: no',
     'emp.acc.notifications': 'Notificaciones',
     'emp.acc.pwTitle': 'Cambiar contraseña',
-    'emp.acc.pwTooShort': 'La contraseña debe tener al menos 6 caracteres.',
-    'emp.acc.pwMismatch': 'Las contraseñas no coinciden.',
-    'emp.acc.pwUpdated': 'Contraseña actualizada.',
-    'emp.acc.pwFail': 'No se pudo actualizar la contraseña.',
-    'emp.acc.pwNew': 'Nueva contraseña',
-    'emp.acc.pwConfirm': 'Confirmar contraseña',
-    'emp.acc.saving': 'Guardando…',
-    'emp.acc.pwUpdate': 'Actualizar contraseña',
+    'emp.acc.pwMoved': 'Cambiar contraseña → Mi perfil (hub)',
     'emp.acc.signOutAllConfirm': '¿Cerrar sesión en todos los dispositivos, incluido este? Tendrás que volver a entrar en todos.',
     'emp.acc.signOutAllFail': 'No se pudo cerrar sesión en todos los dispositivos.',
     'emp.acc.devices': 'Dispositivos',
@@ -1713,16 +1696,28 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
   },
 };;
 
+// El idioma ya no es de Time Tracker: es uno para todas las apps, por persona (D-NEXT, revierte
+// D-206 en esto). Lo elige y lo guarda el proveedor del hub (`lib/prefs.tsx`), que deja una copia
+// en `tt_lang` y avisa con un evento. Aquí solo se lee esa copia al arrancar y se escucha el aviso.
 let lang: "en" | "es" = ((): "en" | "es" => {
-  try { return (localStorage.getItem("tt_lang") as "en" | "es") || "en"; } catch { return "en"; }
+  try { const v = localStorage.getItem(CLAVE_TT); return esIdioma(v) ? v : "en"; } catch { return "en"; }
 })();
 const subs = new Set<(l: "en" | "es") => void>();
 
 export function getLang(): "en" | "es" { return lang; }
+/**
+ * Cambia el idioma de ESTE diccionario, en memoria. **No guarda nada**: guardar es del proveedor del
+ * hub, que es el único que escribe el idioma. Lo usan el aviso de abajo y las pruebas.
+ */
 export function setLang(l: "en" | "es"): void {
   lang = l;
-  try { localStorage.setItem("tt_lang", l); } catch { /* ignore */ }
   subs.forEach((f) => f(l));
+}
+if (typeof window !== "undefined") {
+  window.addEventListener(EVENTO_IDIOMA, (e) => {
+    const l = (e as CustomEvent).detail;
+    if (esIdioma(l) && l !== lang) setLang(l);
+  });
 }
 export function t(key: string, vars?: Record<string, string | number>): string {
   let s = (DICT[lang] && DICT[lang][key]) ?? DICT.en[key] ?? key;

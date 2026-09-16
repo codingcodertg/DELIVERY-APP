@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
 import { CAPABILITIES, ROLE_INFO, extraCaps, permissionsFor, personBadge } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
 import { tutorialEmbed } from "@/lib/tutorials";
@@ -15,8 +14,6 @@ import type { Profile, Settings, Tutorial } from "@/lib/types";
 // Shows who they are, what they're allowed to do, and their personal
 // preferences. A summary of their own work lives on the Summary tab.
 // ============================================================
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default function AccountPage() {
   const { me, settings, users, updateUserName, notify, teaching, setTeaching, clearTrainingData, saveSettings } = useData();
@@ -157,16 +154,18 @@ export default function AccountPage() {
       {/* ---------- Change password ---------- */}
       <div className="card">
         <h2>🔒 {t("Change password", "Cambiar contraseña")}</h2>
-        {LOCAL_MODE ? (
-          <p className="hint" style={{ marginTop: 0 }}>
-            {t(
-              "Not available in local demo mode — there's no real account here, so no password to change.",
-              "No disponible en modo demo local — no hay una cuenta real aquí, así que no hay contraseña que cambiar.",
-            )}
-          </p>
-        ) : (
-          <ChangePassword t={t} />
-        )}
+        {/* La contraseña es una sola para todas las apps, y se cambia en un solo sitio: «Mi
+            perfil», en el hub (D-NEXT). El chofer también llega por aquí: su puerta es de sesión,
+            no del lobby. */}
+        <p className="hint" style={{ marginTop: 0 }}>
+          {t(
+            "Your password is the same for every app, and it's changed in one place.",
+            "Tu contraseña es la misma para todas las apps, y se cambia en un solo sitio.",
+          )}
+        </p>
+        <Link href="/home/profile" className="btn btn-primary">
+          {t("Change password → My profile (hub)", "Cambiar contraseña → Mi perfil (hub)")}
+        </Link>
       </div>
 
       {/* ---------- What I can do ---------- */}
@@ -305,70 +304,3 @@ function TutorialsSection({ tutorials, canManage, me, saveSettings, notify, t }:
     </div>
   );
 }
-
-/** Self-service password change — verifies the current password before
- * setting the new one, same as any account-security page should. */
-function ChangePassword({ t }: { t: (en: string, es: string) => string }) {
-  const supabase = createClient();
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
-
-  const submit = async () => {
-    setMsg(null);
-    if (next.length < 6) {
-      setMsg({ text: t("New password must be at least 6 characters.", "La nueva contraseña debe tener al menos 6 caracteres."), ok: false });
-      return;
-    }
-    if (next !== confirm) {
-      setMsg({ text: t("New passwords don't match.", "Las contraseñas nuevas no coinciden."), ok: false });
-      return;
-    }
-    setBusy(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error(t("Could not verify your account.", "No se pudo verificar su cuenta."));
-      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email, password: current });
-      if (verifyErr) throw new Error(t("Current password is incorrect.", "La contraseña actual es incorrecta."));
-      const { error } = await supabase.auth.updateUser({ password: next });
-      if (error) throw error;
-      setMsg({ text: t("Password updated.", "Contraseña actualizada."), ok: true });
-      setCurrent(""); setNext(""); setConfirm("");
-    } catch (e) {
-      setMsg({ text: (e as Error).message, ok: false });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="grid g2" style={{ maxWidth: 520 }}>
-        <div className="field">
-          <label>{t("Current password", "Contraseña actual")}</label>
-          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-        </div>
-        <div />
-        <div className="field">
-          <label>{t("New password", "Nueva contraseña")}</label>
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
-        </div>
-        <div className="field">
-          <label>{t("Confirm new password", "Confirmar nueva contraseña")}</label>
-          <input
-            type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="••••••••" autoComplete="new-password"
-          />
-        </div>
-      </div>
-      <button className="btn btn-primary" onClick={submit} disabled={busy || !current || !next || !confirm}>
-        {busy ? "…" : t("Update password", "Actualizar contraseña")}
-      </button>
-      {msg && <div className="hint" style={{ marginTop: 10, color: msg.ok ? "var(--green)" : "var(--red)" }}>{msg.text}</div>}
-    </>
-  );
-}
-
