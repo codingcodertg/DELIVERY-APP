@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   correoParaRecuperar, destinoDelEnlace, leeFragmentoRecuperacion, pideRecuperacion, RESPUESTA_OLVIDO,
+  resumenDelFallo, type RegistroDeFallo,
 } from "./password-recovery";
 
 // «¿Olvidaste tu contraseña?» en cualquier equipo (D-NEXT). Sin correos ni Auth real: el envío se
@@ -119,5 +120,58 @@ describe("la pantalla de restablecer toma el fragmento y lo borra", () => {
   it("y si el fragmento trae error, lo enseña", () => {
     expect(pagina).toContain('if (lectura.kind === "error") {');
     expect(pagina).toContain("lectura.mensaje");
+  });
+});
+
+// Al cliente, lo mismo pase lo que pase; pero el fallo queda en el log del servidor, y sin el correo.
+// Sin esto, «no me llegó el correo» no tendría respuesta: el límite de Supabase, un 5xx y un correo
+// mal escrito se verían igual desde fuera.
+describe("el fallo del envío se registra en el servidor, sin el correo", () => {
+  const origen = "https://hub.example.test";
+  const correo = "ana@example.test";
+
+  const conRegistro = () => {
+    const registros: RegistroDeFallo[] = [];
+    return { registros, registrar: (r: RegistroDeFallo) => { registros.push(r); } };
+  };
+
+  it("un { error } devuelto se registra con estado, código y mensaje, y el cliente sigue viendo ok", async () => {
+    const { registros, registrar } = conRegistro();
+    const res = await pideRecuperacion(correo, origen, async () => ({
+      error: { status: 429, code: "over_email_send_rate_limit", message: "email rate limit exceeded" },
+    }), registrar);
+    expect(res).toEqual({ status: 200, body: { ...RESPUESTA_OLVIDO } });
+    expect(registros).toEqual([
+      { origen: "error", status: 429, code: "over_email_send_rate_limit", mensaje: "email rate limit exceeded" },
+    ]);
+  });
+
+  it("una excepción también se registra, y el cliente sigue viendo ok", async () => {
+    const { registros, registrar } = conRegistro();
+    const res = await pideRecuperacion(correo, origen, async () => { throw new TypeError("fetch failed"); }, registrar);
+    expect(res.body).toEqual({ ...RESPUESTA_OLVIDO });
+    expect(registros).toEqual([{ origen: "excepcion", nombre: "TypeError", mensaje: "fetch failed" }]);
+  });
+
+  it("un envío bueno no deja nada en el log", async () => {
+    const { registros, registrar } = conRegistro();
+    await pideRecuperacion(correo, origen, async () => ({ error: null }), registrar);
+    await pideRecuperacion(correo, origen, async () => undefined, registrar);
+    expect(registros).toEqual([]);
+  });
+
+  it("el correo NO llega al log aunque el mensaje de Supabase lo incluya", async () => {
+    const { registros, registrar } = conRegistro();
+    await pideRecuperacion(correo, origen, async () => ({
+      error: { status: 400, message: `Email address "${correo}" is invalid` },
+    }), registrar);
+    expect(JSON.stringify(registros)).not.toContain(correo);
+    expect(registros[0].mensaje).toBe('Email address "[correo]" is invalid');
+  });
+
+  it("y el resumen nunca lleva el correo aunque venga en otra forma", () => {
+    expect(resumenDelFallo(new Error("user ana.maria+x@sub.example.test not allowed"), "excepcion").mensaje)
+      .toBe("user [correo] not allowed");
+    expect(resumenDelFallo(null, "error").mensaje).toBe("sin mensaje");
   });
 });

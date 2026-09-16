@@ -37,6 +37,30 @@ export function destinoDelEnlace(origen: string): string {
 
 export type EnviarRecuperacion = (correo: string, redirectTo: string) => Promise<{ error: unknown } | void>;
 
+/** Lo que se deja en el log del servidor cuando el envío falla. Nunca lleva el correo. */
+export type RegistroDeFallo = { origen: "error" | "excepcion"; status?: number; code?: string; nombre?: string; mensaje: string };
+export type RegistrarFallo = (r: RegistroDeFallo) => void;
+
+/** Por defecto, a `console.error`: en Vercel acaba en los logs de la función. */
+export const registrarEnConsola: RegistrarFallo = (r) => console.error("[auth/forgot] el envío del reset falló", r);
+
+/**
+ * Lo registrable de un error, sin datos personales.
+ *
+ * El mensaje se registra, porque es lo que distingue el límite de Supabase de un 5xx o de un correo
+ * mal escrito. Pero los mensajes de validación de Supabase pueden **incluir la propia dirección**, así
+ * que cualquier cosa con forma de correo se tapa antes de escribirlo.
+ */
+export function resumenDelFallo(err: unknown, origen: RegistroDeFallo["origen"]): RegistroDeFallo {
+  const e = (err ?? {}) as { status?: unknown; code?: unknown; name?: unknown; message?: unknown };
+  const crudo = typeof e.message === "string" ? e.message : typeof err === "string" ? err : "sin mensaje";
+  const r: RegistroDeFallo = { origen, mensaje: crudo.replace(/[^\s@"'<>()]+@[^\s@"'<>()]+/g, "[correo]") };
+  if (typeof e.status === "number") r.status = e.status;
+  if (typeof e.code === "string") r.code = e.code;
+  if (typeof e.name === "string") r.nombre = e.name;
+  return r;
+}
+
 /**
  * El núcleo de la ruta. **Contesta lo mismo exista o no la cuenta, y pase lo que pase al enviar**,
  * para que la ruta no sirva para averiguar qué correos están dados de alta.
@@ -51,13 +75,18 @@ export async function pideRecuperacion(
   entrada: unknown,
   origen: string,
   enviar: EnviarRecuperacion,
+  registrar: RegistrarFallo = registrarEnConsola,
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   const correo = correoParaRecuperar(entrada);
   if (!correo) return { status: 400, body: { error: "invalid_email" } };
+  // Al cliente, lo mismo pase lo que pase. Pero el fallo SE REGISTRA en el servidor: si no, cuando
+  // alguien diga «no me llegó el correo», nadie podría saber si fue el límite de Supabase, un 5xx o
+  // un correo mal escrito. Descartar el error no falla, y por eso se esconde.
   try {
-    await enviar(correo, destinoDelEnlace(origen));
-  } catch {
-    // Mismo silencio que con un error devuelto: la respuesta no puede depender de lo que pasó.
+    const r = await enviar(correo, destinoDelEnlace(origen));
+    if (r && r.error) registrar(resumenDelFallo(r.error, "error"));
+  } catch (e) {
+    registrar(resumenDelFallo(e, "excepcion"));
   }
   return { status: 200, body: { ...RESPUESTA_OLVIDO } };
 }

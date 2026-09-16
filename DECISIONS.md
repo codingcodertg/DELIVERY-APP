@@ -16277,3 +16277,19 @@ Siete mutantes, cada uno cazado por la prueba pensada para él:
 sobre `main` 6e3b404. La rama añade 21 pruebas y no quita ninguna —16 en `password-recovery.test.ts`,
 fichero nuevo, y 5 en `route-guard.test.ts`, contadas en el diff contra esa base—, así que 6e3b404
 está en 2036 | 3.
+
+> **El fallo del envío ahora se registra en el servidor (2026-09-16, a petición de otra sesión al
+> revisar).** La primera versión contestaba lo mismo al cliente pasara lo que pasara, que es lo
+> correcto, pero **descartaba el error sin dejar rastro**: cuando alguien dijera «no me llegó el
+> correo», nadie podría saber si fue el límite de Supabase, un 5xx o un correo mal escrito. Ahora
+> el error devuelto y la excepción van a `console.error`, que en Vercel acaba en los logs de la
+> función, con estado, código y mensaje. La respuesta al cliente no cambia.
+>
+> **Sin el correo, y no basta con no pasarlo.** Los mensajes de validación de Supabase pueden
+> incluir la propia dirección en el texto, así que cualquier cosa con forma de correo se tapa antes de
+> registrarla. Cuatro mutantes, cada uno cazado por su prueba: volver a tragarse el error devuelto,
+> volver a tragarse la excepción, registrar el mensaje sin tapar el correo, y registrar también
+> cuando el envío va bien.
+
+`verify.mjs` tras registrar el fallo, sobre `.next` limpio: **2062 pasados | 3 saltados**. Las 5
+pruebas de más son las del registro, en `password-recovery.test.ts`; la base sigue siendo 6e3b404.
