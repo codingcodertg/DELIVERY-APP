@@ -97,12 +97,25 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    });
+    // Se pide desde el SERVIDOR (D-NEXT), no con el cliente del navegador: ese es PKCE y deja el
+    // verificador en ESTE navegador, así que el enlace fallaba al abrirse en otro equipo. La ruta
+    // contesta lo mismo exista o no la cuenta, así que aquí tampoco se puede prometer que llegue.
+    let valido = true;
+    try {
+      const r = await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      valido = r.status !== 400;
+    } catch {
+      setLoading(false);
+      say(t("Could not reach the server. Try again.", "No se pudo contactar con el servidor. Vuelve a intentarlo."));
+      return;
+    }
     setLoading(false);
-    if (error) say(error.message);
-    else say(t("Check your email for a password-reset link.", "Revisa tu correo: te mandamos un enlace para cambiar la contraseña."), true);
+    if (!valido) say(t("That doesn't look like an email address.", "Eso no parece un correo."));
+    else say(t("If that email has an account, a password-reset link is on its way. It works on any device.", "Si ese correo tiene cuenta, te llega un enlace para cambiar la contraseña. Funciona en cualquier equipo."), true);
   };
 
   /** Tras entrar: guarda o quita la cuenta en la lista de este aparato. Nunca la contraseña. */

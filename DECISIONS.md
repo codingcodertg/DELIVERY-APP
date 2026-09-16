@@ -16178,3 +16178,97 @@ Nadie lo ha abierto en un navegador, ni como admin ni como otro rol.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **2036 pasados | 3 saltados**. La rama
 añade 6 pruebas, todas en `hub-apps.test.ts`, fichero nuevo, y no toca ningún otro fichero de
 prueba; así que `main` fbc323a está en 2030 | 3.
+
+## D-NEXT · «¿Olvidaste tu contraseña?» funciona abriendo el correo en cualquier equipo
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
+**Pedido por el dueño:** «me manda el correo pero al ingresar solo me lleva al RTG Hub lobby y nada más».
+
+### El fallo, medido en dos capas
+
+**En la base, por el orquestador, sin mandar ningún correo:** tres filas `recovery` en
+`auth.flow_state` con el código emitido y la fila todavía viva —una de ellas con el clic a los veinte
+segundos—. El enlace se verificaba en Supabase, pero el código **nunca se canjeaba** en la app.
+
+**En el código, leyendo la versión instalada:**
+
+- El login pedía el correo con el cliente del navegador, y ese cliente es PKCE: `@supabase/ssr` 0.12.5
+  fija `flowType: "pkce"`. El verificador del código se queda en las cookies del navegador que lo pidió.
+- `/auth/callback` canjea el código con las cookies de quien **abre** el enlace. Desde otro navegador o
+  equipo —Gmail en el móvil, otro navegador que el de la app— no hay verificador, el canje falla, y la
+  ruta manda a `/login?error=…`.
+- Y ahí el guardián de rutas, al ver una sesión abierta en ese navegador, redirigía `/login` al hub
+  **sin mirar el error**. El error se perdía: exactamente lo que vio el dueño.
+
+La lista de redirecciones permitidas **no era la causa**: el orquestador midió que acepta la URL del
+callback.
+
+### La decisión: seguir con el correo de Supabase, sin PKCE
+
+Se plantearon dos caminos y decidió el orquestador.
+
+**Descartado:** generar el enlace con `admin.generateLink` y mandar el correo nosotros por Resend. En el
+repo **no hay ningún limitador de peticiones** para rutas de API, y una ruta pública que manda correos
+sin límite dejaría lanzar correos sin tope a cualquier empleado. Un limitador de verdad en Vercel pide
+tabla y migración, que es más alcance del que pedía esto.
+
+**Elegido:** pedir el reset desde el servidor con un cliente de flujo **implícito**. Supabase sigue
+mandando su correo, con su plantilla y **su propio límite de envíos**, y el enlace ya no depende de nada
+guardado en el navegador de origen. Medido en `auth-js` 2.112.4: con flujo implícito,
+`resetPasswordForEmail` no manda reto PKCE. El enlace vuelve a `/reset-password` con la sesión en el
+**fragmento** de la URL.
+
+El coste, dicho: el token viaja en el fragmento, que es lo que PKCE evita. Se mitiga borrándolo en cuanto
+se lee (abajo), y es el flujo estándar de Supabase para esto.
+
+### Las piezas
+
+**La ruta de servidor contesta lo mismo exista o no la cuenta**, y pase lo que pase al enviar. Eso
+incluye el límite de envíos: el de Supabase por usuario solo salta para cuentas que existen, así que un
+«demasiados intentos» contaría precisamente eso. Quien choque con el límite no se entera; se acepta,
+porque lo contrario sirve para averiguar qué correos tienen cuenta. Solo un correo sin forma de correo
+recibe otra respuesta, y eso no dice nada de nadie.
+
+**La pantalla de restablecer lee el fragmento y lo borra de la URL antes de hacer nada más**, para que
+los tokens no queden en el historial, en una captura o en un enlace copiado. Solo acepta una sesión **de
+recuperación** con sus dos tokens: un fragmento de otro tipo no abre la pantalla de cambiar la contraseña
+de nadie. Se midió antes de apoyarse en ello que el cliente del navegador, siendo PKCE, **no consume ni
+borra** ese fragmento: lo detecta, lanza un error de flujo que él mismo captura, y sigue sin tocar la
+sesión.
+
+**Si el fragmento trae un error, se enseña.** El formato real lo midió el orquestador en producción: el
+error de un enlace caducado llega en el fragmento, con su descripción legible y una clave `sb` vacía al
+final que no es un token. La prueba usa ese fragmento literal.
+
+**Y el guardián ya no se traga el error:** con sesión, `/login` sigue llevando al hub, salvo que traiga
+un `error` con contenido, y entonces se sirve para que la pantalla lo diga.
+
+**La redirección a `/reset-password` está permitida**, medido por el orquestador. Y un dato que no cambia
+nada aquí pero conviene no citar mal: la lista de Supabase **admite cualquier ruta del dominio**, así que
+no es una lista estricta.
+
+`/auth/callback` se queda sin quien la llame desde el código, porque su único llamador era este login.
+No se quita: puede estar referenciada desde la configuración de Supabase, que desde una rama no se puede
+medir.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Siete mutantes, cada uno cazado por la prueba pensada para él:
+
+- que la respuesta cambie cuando el envío falla —la puerta para enumerar cuentas— tira la de «la misma
+  respuesta»;
+- que cualquier tipo de sesión abra la pantalla tira la de «otro tipo no abre»;
+- que el error tome el código corto en vez de la descripción tira **la del fragmento real** de producción;
+- que la pantalla no borre el fragmento tira la del borrado antes de abrir la sesión;
+- que la ruta vuelva a PKCE tira la del cliente implícito;
+- que el login vuelva a pedirlo desde el navegador tira sus dos;
+- y que el guardián vuelva a tragarse el error tira sus dos, incluida la que pasa por el middleware real
+  con la sesión simulada.
+
+### Lo no verificado
+
+- **Nadie ha pedido un correo real ni ha abierto un enlace** desde esta rama: la regla de no disparar
+  efectos en terceros lo impide, y lo probado es la lógica con el envío simulado.
+- **Nadie lo ha visto en un navegador**, ni en el equipo que pide el correo ni en otro.
+- Las tres filas `recovery` sin canjear que midió el orquestador siguen en `auth.flow_state`; caducan
+  solas y no estorban.

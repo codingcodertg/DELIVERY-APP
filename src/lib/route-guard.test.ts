@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
-import { decide, isApiPath, isPublicPath, isStaticFile, skipsSession } from "./route-guard";
+import { decide, isApiPath, isPublicPath, isStaticFile, skipsSession, tieneError } from "./route-guard";
 import { updateSession } from "./supabase/middleware";
 
 // G-29 (D-208). El guard de rutas se conecta por primera vez, así que aquí está la tabla que
@@ -154,6 +154,35 @@ describe("updateSession sobre NextRequest, con getUser stubbeado (sin red)", () 
   });
   it("/track/abc sin sesión se sirve (el cliente no tiene cuenta)", async () => {
     const res = await updateSession(req("/track/abc"), { getUser: async () => false });
+    expect(res.headers.get("location")).toBeNull();
+  });
+});
+
+// El error de un enlace de correo no se lo traga el login (D-NEXT). El síntoma del dueño:
+// «me manda el correo pero al ingresar solo me lleva al RTG Hub lobby y nada más». Con sesión
+// en ese navegador, `/login?error=…` redirigía al hub antes de que la pantalla pudiera decirlo.
+describe("con sesión, un /login que trae un error se sirve para que lo enseñe", () => {
+  it("con sesión y ?error=: sirve, no redirige", () => {
+    expect(decide("/login?error=Link%20expired", null, true)).toEqual({ kind: "next" });
+  });
+
+  it("con sesión y sin error: sigue redirigiendo al hub, como siempre", () => {
+    expect(decide("/login", null, true)).toEqual({ kind: "redirect", to: "/home" });
+    expect(decide("/login?next=%2Ftimetracker", "/timetracker", true)).toEqual({ kind: "redirect", to: "/timetracker" });
+  });
+
+  it("un error vacío no cuenta: no abre el login a quien ya entró", () => {
+    expect(decide("/login?error=", null, true)).toEqual({ kind: "redirect", to: "/home" });
+    expect(tieneError("/login?error=%20%20")).toBe(false);
+  });
+
+  it("solo mira la query de verdad, no un «error» metido en otro parámetro", () => {
+    expect(tieneError("/login?next=%2Fhome%3Ferror%3Dx")).toBe(false);
+    expect(tieneError("/login")).toBe(false);
+  });
+
+  it("y por el middleware real, con la sesión simulada y sin red", async () => {
+    const res = await updateSession(new NextRequest(new URL("/login?error=missing_code", "http://localhost")), { getUser: async () => true });
     expect(res.headers.get("location")).toBeNull();
   });
 });
