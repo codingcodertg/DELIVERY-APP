@@ -236,7 +236,7 @@ export function OrderModal({
   if (needsSalesRep && !d.assigned_sales_rep) missingSet.add("assigned_sales_rep");
 
   // Pickup and delivery can't be the same place — an order that "goes" nowhere. The comparison
-  // lives in lib/order-endpoints (D-NEXT), shared with `submitBlockers`, so the save below and the
+  // lives in lib/order-endpoints (D-267), shared with `submitBlockers`, so the save below and the
   // create-and-submit button can't disagree about what «the same place» means.
   const pickupEqualsDropoff = mismaDireccion(d);
 
@@ -369,7 +369,7 @@ export function OrderModal({
   const blockSubmit = (draft: Partial<Delivery>): boolean => {
     const blockers = submitBlockers(draft, settings.order_type_rules);
     if (!blockers.length) return false;
-    // What is MISSING and what CONTRADICTS itself read differently (D-NEXT): «still missing: the
+    // What is MISSING and what CONTRADICTS itself read differently (D-267): «still missing: the
     // origin and destination are the same» would make no sense.
     const lista = (ms: typeof blockers) => ms.map((m) => `• ${t(m.en, m.es)}`).join("\n");
     const faltan = blockers.filter((m) => !m.conflict);
@@ -541,7 +541,7 @@ export function OrderModal({
   // Store-to-store still routes the DESTINATION to another store (dropdown
   // instead of a free address); the customer/contact fields stay visible.
   const isIntraStore = storeToStore;
-  // A store move whose origin is its own destination (D-NEXT). Refused at submit by `submitBlockers`;
+  // A store move whose origin is its own destination (D-267). Refused at submit by `submitBlockers`;
   // flagged here so the rep sees it before pressing anything.
   const origenIgualDestino = origenEsDestino(d, storeToStore);
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
@@ -1489,7 +1489,7 @@ export function OrderModal({
               <Sel
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
-                // In a store move, the destination is not offered as the origin (D-NEXT).
+                // In a store move, the destination is not offered as the origin (D-267).
                 opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)}
                 on={(v) => {
                   const st = settings.stores.find((s) => s.name === v);
@@ -1890,7 +1890,7 @@ export function OrderModal({
                 <Sel
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
-                  // The origin store is not offered as the destination (D-NEXT).
+                  // The origin store is not offered as the destination (D-267).
                   opts={opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.store, deliveryStore)}
                   on={(v) => {
                     const st = settings.stores.find((s) => s.name === v);

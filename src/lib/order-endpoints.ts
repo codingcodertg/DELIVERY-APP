@@ -1,7 +1,7 @@
 import type { Delivery } from "./types";
 
 /**
- * Una orden no puede ir de un sitio a ese mismo sitio (D-NEXT).
+ * Una orden no puede ir de un sitio a ese mismo sitio (D-267).
  *
  * El dueño: «no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí misma; no
  * tiene sentido». Dos reglas, y cada una con su comparación, porque no valen lo mismo en todos los

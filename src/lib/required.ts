@@ -26,7 +26,7 @@ export interface MissingField {
   /** Matches the form field so the UI can highlight it. */
   key: string;
   /** True when the order is not MISSING something but CONTRADICTS itself — the same place at both
-   * ends (D-NEXT). The submit message words these differently from «still missing». */
+   * ends (D-267). The submit message words these differently from «still missing». */
   conflict?: boolean;
   en: string;
   es: string;
@@ -143,7 +143,7 @@ const SUBMIT_BLOCKING_KEYS: ReadonlySet<string> = new Set(["est_pallets", "doc_r
 export function submitBlockers(d: Partial<Delivery>, rules?: OrderTypeRules): MissingField[] {
   const out = missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key));
 
-  // An order that goes nowhere (D-NEXT): «a store can't sell to itself, nor pick up and deliver at
+  // An order that goes nowhere (D-267): «a store can't sell to itself, nor pick up and deliver at
   // itself». These also refuse, not warn — same mechanism as pallets and the document. Living here,
   // and not only in the modal's save, is what makes them apply to BOTH submit paths: the old
   // same-address check ran on save and the create-and-submit button skipped it.

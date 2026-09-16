@@ -16642,7 +16642,7 @@ era el componente borrado. Esa entrada se quitó de la lista: **una prueba menos
 - **El servidor sigue sin saber el idioma** de las páginas que se pintan en el servidor (D-203). La
   columna nueva lo haría posible, pero este cambio no lo usa.
 
-## D-NEXT · Una orden no puede ir de un sitio a ese mismo sitio
+## D-267 · Una orden no puede ir de un sitio a ese mismo sitio
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño:** «no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí

@@ -4,7 +4,7 @@ import { submitBlockers } from "./required";
 import { mismaDireccion, normalizaLugar, opcionesSinLaOtraPunta, origenEsDestino } from "./order-endpoints";
 import type { Delivery, OrderTypeRule, NamedLocation } from "./types";
 
-// Una orden no puede ir de un sitio a ese mismo sitio (D-NEXT). Lo que decide —`submitBlockers`— se
+// Una orden no puede ir de un sitio a ese mismo sitio (D-267). Lo que decide —`submitBlockers`— se
 // importa de verdad, y se le da el borrador tal como lo arma el modal: en una Intertienda,
 // `withTypeDefaults` pone la tienda del usuario como destino, y al elegir «Sold From» se copian su
 // nombre y su dirección a la recogida. Nombres de tienda neutros: nada de los datos del dueño.
