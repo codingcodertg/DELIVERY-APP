@@ -16641,3 +16641,88 @@ era el componente borrado. Esa entrada se quitó de la lista: **una prueba menos
   avisos, pero no se ha medido.
 - **El servidor sigue sin saber el idioma** de las páginas que se pintan en el servidor (D-203). La
   columna nueva lo haría posible, pero este cambio no lo usa.
+
+## D-NEXT · Una orden no puede ir de un sitio a ese mismo sitio
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
+**Pedido por el dueño:** «no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí
+misma; no tiene sentido».
+
+### Lo que ya había, y por dónde se colaba
+
+Medido por el orquestador en producción: 65 Intertienda, y **una** con la tienda de origen igual a la de
+destino y la misma dirección en las dos puntas; 68 entregas a cliente sin ningún caso.
+
+Al leer el modal apareció que **la regla de misma dirección ya existía**, sin decisión escrita: compara
+la dirección de recogida y la de entrega normalizadas (recorte, minúsculas y espacios). Pero **solo corría
+al guardar**. El botón de crear una orden y enviarla a aprobación de una vez arma la orden, pasa por la
+comprobación previa al envío y la crea, **sin mirar las direcciones**. Por ahí se podía colar.
+
+### Dónde vive ahora
+
+En `submitBlockers`, con el mismo mecanismo que pallets y documento (D-049): **rechaza**, no avisa. Estar
+ahí es lo que la hace valer en **los dos caminos** de envío, porque los dos pasan por esa comprobación.
+El modal usa la **misma** función para su regla de guardado, así que ya no hay dos definiciones de «el
+mismo sitio».
+
+Dos reglas, y cada una con la comparación que de verdad aguanta:
+
+- **Misma dirección, en cualquier tipo de orden.** Dirección normalizada, la de siempre.
+- **Misma tienda, solo en tienda-a-tienda:** la tienda de origen igual a la de destino, por nombre
+  normalizado. Ahí el nombre es robusto porque los dos salen de la lista de tiendas de Ajustes. En una
+  entrega a cliente **no**: dos sitios con el mismo nombre y distinta dirección son legítimos, como dos
+  locales de una cadena, y bloquearlos sería un falso positivo. Ahí solo manda la dirección.
+
+**Las coordenadas no sirven para esto**, medido en el tipo de la orden: `pickup_lat` y `pickup_lng` son
+la posición **del chofer** al recoger, no la del sitio de recogida, y ese sitio no tiene pin propio.
+
+El mensaje al enviar distingue lo que **falta** de lo que **se contradice**: decir «todavía falta: la
+tienda de origen y la de destino son la misma» no tendría sentido.
+
+### Los desplegables, y la orden vieja
+
+En un tipo tienda-a-tienda, los dos selectores de «Sold From» no ofrecen la tienda de destino, y el de
+destino no ofrece la de origen. **Conservan el valor que ya tenga la orden**, aunque sea la otra punta:
+una orden vieja que ya lo tiene tiene que poder abrirse y corregirse, y si su valor desapareciera de la
+lista, el selector se vería vacío con un valor guardado detrás. Un aviso en rojo dice que origen y
+destino coinciden.
+
+Así, la orden vieja **se ve y se corrige, pero no vuelve a enviarse así**: guardar una orden que no es
+borrador pasa por `submitBlockers`, y la bloquea hasta corregirla.
+
+Una asimetría que conviene saber: guardar un **borrador** con la misma dirección ya estaba bloqueado desde
+antes y sigue igual; con la misma tienda pero direcciones distintas, el borrador se guarda y el bloqueo
+llega al enviar, como el resto de D-049. En una Intertienda las dos cosas van juntas —la recogida toma la
+dirección de la tienda de origen—, así que en la práctica también se para al guardar.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Las pruebas le dan a `submitBlockers` el borrador tal como lo arma el modal, con las reglas de producción,
+y nombres de tienda neutros. Siete mutantes, cada uno cazado por la prueba pensada para él:
+
+- quitar la regla de misma tienda tira la de la tienda a sí misma, la del nombre escrito distinto y la de
+  otros tipos tienda-a-tienda;
+- quitar la de misma dirección tira la de las mayúsculas y espacios;
+- normalizar sin pasar a minúsculas tira las de comparación normalizada;
+- aplicar la de misma tienda fuera de tienda-a-tienda tira la que lo prohíbe;
+- que el desplegable pierda el valor actual tira la de la orden vieja;
+- que el destino vuelva a ofrecer todas las tiendas tira la del modal;
+- y dejar los choques sin marcar tira la que los separa de lo que falta.
+
+### Lo no verificado
+
+**Solo se cierra en la app**, como se pidió: sin migración ni guardia en la base. Otras vías que escriben
+órdenes y **se lo saltarían**, sin ampliar este encargo:
+
+- **La importación de órdenes** crea cada fila sin ninguna validación, ni esta ni las de D-049.
+- **La re-entrega** crea una copia ya aprobada de la orden de origen: si la de origen tenía el problema, la
+  copia lo hereda.
+- **Aprobar o mover de etapa desde la lista** no abre el modal, así que una orden pendiente vieja con el
+  problema se puede aprobar sin pasar por aquí.
+- **La base** no tiene ninguna regla que lo impida.
+
+Y nadie lo ha abierto en un navegador.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2145 pasados | 3 saltados**. La rama añade 19
+pruebas, todas en `order-endpoints.test.ts`, fichero nuevo, y no cambia ningún otro fichero de prueba;
+así que `main` 61dd0d7 está en 2126 | 3.
