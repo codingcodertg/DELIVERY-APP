@@ -16111,3 +16111,70 @@ en `employee-file.test.ts`, contadas en el diff—, así que `main` 0719da0 est�
 `verify.mjs` tras el rebase, sobre `.next` limpio: **2030 pasados | 3 saltados**. La rama sigue
 añadiendo las mismas 18 pruebas y no quita ninguna, contadas en el diff contra `main` nuevo, así
 que 715b758 está en 2012 | 3.
+
+## D-NEXT · «Apps para instalar» solo la ve el admin
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
+**Pedido por el dueño**, el 2026-09-16: la sección de apps para instalar del hub, solo para el admin.
+
+### Revierte D-167, a conciencia
+
+D-167 (2026-09-02) puso las apps en el hub **para todo el mundo**, con un motivo concreto: el APK se
+repartía por WhatsApp y la de escritorio había que pedirla, y «una app que hay que pedir es una que
+la mitad de la gente no tiene». El dueño ahora quiere que las reparta el admin. Es su decisión y se
+anota como tal, sin buscarle otra razón.
+
+Un dato del encargo que se corrigió midiendo: la frase «se enseñan a todo el mundo» es de **D-167**.
+D-168 enlazó Time Tracker y D-169 plegó la sección; el plegado sigue igual, ahora solo para el admin.
+El comentario del bloque en el hub conserva lo que decía D-167 y añade encima que ya no es así, para
+que no afirme algo falso ni pierda por qué estuvo abierto.
+
+### Qué se esconde, y cómo
+
+Para quien no es admin **no se pinta nada**: ni el título plegado ni el contador. La condición envuelve
+el `<details>` entero, no la lista de dentro; si envolviera solo la lista, el resto seguiría viendo
+«Apps para instalar 3» con un desplegable vacío.
+
+Admin es el rol de Entregas, comparado con `esAdmin`, que ya existía como el único sitio donde se
+escribe «admin» (D-243) y no importa nada, así que sirve igual en un componente de cliente. Se midió
+antes de usarlo, no se supuso.
+
+### No cambia: solo se esconde la sección
+
+Medido en el código, porque «siguen abiertas» no es exacto para las tres:
+
+- **Las dos descargas de escritorio** pasan por `/api/download/*`, que **pide sesión** y manda al login
+  si no la hay (D-170). Así que siguen al alcance de **cualquiera con sesión** que tenga el enlace,
+  no de cualquiera.
+- **El APK** es un objeto **público** del almacenamiento de Supabase: lo baja cualquiera con el enlace,
+  con sesión o sin ella.
+- **El aviso de actualizar el APK** se monta en los layouts del hub, de RR. HH., de Time Tracker y en
+  la barra de Entregas, nunca en el selector, y no mira el rol. Sigue saliéndole a quien tenga la app
+  vieja, con su botón que lleva a esa URL pública. Es decir: quien ya tiene la app puede seguir
+  actualizándola sin ser admin.
+
+### La prueba, y por qué no renderiza el componente
+
+La configuración de pruebas solo incluye ficheros `.test.ts` y dice explícitamente que son **sin
+React**. Una primera prueba que renderizara componentes cambiaría esa convención, y eso no se decide
+de paso en un encargo pequeño.
+
+Así que son dos mitades y hacen falta las dos. La decisión recibe **el mismo `me` que la pantalla**,
+para cada rol real de la lista de roles de la app, no un texto suelto. Y una prueba del fichero exige
+que la condición vaya justo delante del `<details>`: sin esa segunda, la primera protegería una función
+que el hub podría dejar de llamar.
+
+**Medido, rompiendo y mirando qué prueba cae:**
+
+- quitar la condición del hub —el mutante que pedía el encargo— tira la que exige que la condición
+  envuelva la sección;
+- que la decisión deje pasar a cualquiera tira «cualquier otro rol, no» y «sin perfil, tampoco»;
+- y mover la condición solo a la lista, dejando título y contador a la vista, tira la misma del hub.
+
+### Lo no verificado
+
+Nadie lo ha abierto en un navegador, ni como admin ni como otro rol.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2036 pasados | 3 saltados**. La rama
+añade 6 pruebas, todas en `hub-apps.test.ts`, fichero nuevo, y no toca ningún otro fichero de
+prueba; así que `main` fbc323a está en 2030 | 3.
