@@ -1,5 +1,5 @@
 /**
- * El idioma es uno solo, y sigue a la persona (D-NEXT).
+ * El idioma es uno solo, y sigue a la persona (D-266).
  *
  * Hasta ahora había tres, independientes, y D-122 lo dejó escrito como «decisión aparte»:
  *   · hub, Entregas, RR. HH. y ERP → `localStorage` `rtg_prefs.lang`, por equipo;

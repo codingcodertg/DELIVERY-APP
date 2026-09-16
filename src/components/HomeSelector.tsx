@@ -26,7 +26,7 @@ export function HomeSelector({ me }: { me: Profile }) {
           {t("Hi, ", "Hola, ")}
           {me.full_name}
         </h1>
-        {/* Mi perfil (D-NEXT): una cuenta y una contraseña para todas las apps, así que su sitio
+        {/* Mi perfil (D-265): una cuenta y una contraseña para todas las apps, así que su sitio
             es el lobby y no ninguna de ellas. Para todos los roles que llegan aquí; el chofer, que
             no llega (D-173), entra desde la «Cuenta» de Entregas. */}
         <Link href="/home/profile" className="hub-profile-link">

@@ -16377,7 +16377,7 @@ prueba no fije el formato.
 - **Quien ya perdió la sesión en su escritorio** tiene que volver a entrar una vez. Esto evita que
   vuelva a pasar; no devuelve lo que ya se revocó.
 
-## D-NEXT · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
+## D-265 · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
 apps y del hub · **Sin migración** · **Pedido por:** el dueño: *«los usuarios en el RTG Hub
@@ -16481,7 +16481,7 @@ Quince cambios: **catorce caen y un gemelo se queda en verde**.
   quedaría viva hasta caducar: no se ha visto fallar, pero se ignora su error para no impedir el
   cambio.
 
-## D-NEXT · Un solo idioma para todas las apps y los avisos, que sigue a la persona
+## D-266 · Un solo idioma para todas las apps y los avisos, que sigue a la persona
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia el proveedor de
 preferencias del hub, Time Tracker y «Mi perfil» · **Migración: `112_profile_language.sql`**, que

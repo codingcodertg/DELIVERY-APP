@@ -7,7 +7,7 @@ import { identidadVisible } from "./profile-identity";
 import { emailForUsername } from "./username";
 
 /**
- * «Mi perfil»: la contraseña se cambia en un solo sitio, y pidiendo la actual (D-NEXT).
+ * «Mi perfil»: la contraseña se cambia en un solo sitio, y pidiendo la actual (D-265).
  *
  * Cuatro clases de prueba:
  *   1. La ruta `POST /api/profile/password`, importada y llamada con Auth falso. Nada de esto

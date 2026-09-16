@@ -3,7 +3,7 @@ import { identidadVisible } from "@/lib/profile-identity";
 import { ProfileView } from "@/components/profile/ProfileView";
 
 /**
- * Mi perfil (D-NEXT): una cuenta y una contraseña para todas las apps del hub, y un solo sitio
+ * Mi perfil (D-265): una cuenta y una contraseña para todas las apps del hub, y un solo sitio
  * donde verla y cambiarla.
  *
  * La sesión la garantiza `layout.tsx`. Aquí se lee lo que se enseña: el nombre de `profiles` y con

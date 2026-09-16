@@ -155,7 +155,7 @@ export default function AccountPage() {
       <div className="card">
         <h2>🔒 {t("Change password", "Cambiar contraseña")}</h2>
         {/* La contraseña es una sola para todas las apps, y se cambia en un solo sitio: «Mi
-            perfil», en el hub (D-NEXT). El chofer también llega por aquí: su puerta es de sesión,
+            perfil», en el hub (D-265). El chofer también llega por aquí: su puerta es de sesión,
             no del lobby. */}
         <p className="hint" style={{ marginTop: 0 }}>
           {t(

@@ -9,7 +9,7 @@ import type { Employee } from "@/lib/timetracker/types";
 
 // Ported (D-069) from timetracker-clean's employee/MyAccount.jsx — name/city/
 // pay-info self-edit, read-only "my setup" chips (set by a manager), a link to
-// change the password in «Mi perfil» (D-NEXT), and sign out of every device.
+// change the password in «Mi perfil» (D-265), and sign out of every device.
 //
 // G-9 (D-202): traducida entera por claves `emp.acc.*`. Los métodos de pago
 // (APP_SETTINGS.paymentMethods) son DATO configurado por la empresa y se enseñan tal cual.
@@ -81,7 +81,7 @@ export default function MyAccountPage() {
       </div>
       {/* El idioma de los avisos tenía selector propio aquí (D-106), aparte del de la pantalla. Ya
           no: el idioma es uno solo para todas las apps y para los avisos, y se elige en «Mi
-          perfil» (D-NEXT). Dos selectores que guardan idiomas distintos es lo que se quitó. */}
+          perfil» (D-266). Dos selectores que guardan idiomas distintos es lo que se quitó. */}
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.acc.notifications")}</h3>
       <div className="hint">{t("emp.acc.notifLangUnified")}</div>
@@ -93,7 +93,7 @@ export default function MyAccountPage() {
 }
 
 // La contraseña es una sola para todas las apps y se cambia en un solo sitio: «Mi perfil», en el
-// hub (D-NEXT). Aquí queda el camino hasta allí. «Cerrar sesión en todos los dispositivos» colgaba
+// hub (D-265). Aquí queda el camino hasta allí. «Cerrar sesión en todos los dispositivos» colgaba
 // de este mismo bloque y se queda igual.
 function PasswordEnMiPerfil() {
   const t = useT();

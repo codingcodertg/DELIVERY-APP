@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { EVENTO_IDIOMA, idiomaAlCargar, idiomaDeRtgPrefs, sincronizaIdiomaAlCargar, type Idioma } from "./idioma";
 
 /**
- * Un solo idioma para todas las apps, por persona (D-NEXT).
+ * Un solo idioma para todas las apps, por persona (D-266).
  *
  * Cuatro clases de prueba:
  *   1. La regla de carga, con datos, y la carga entera con la base falsa: qué se aplica, qué se

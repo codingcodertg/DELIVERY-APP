@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/api-auth";
 import { validaCambioDeContrasena, type CodigoContrasena } from "@/lib/profile-password";
 
 /**
- * Cambiar la propia contraseña, desde «Mi perfil» (D-NEXT). Es el único sitio que lo hace.
+ * Cambiar la propia contraseña, desde «Mi perfil» (D-265). Es el único sitio que lo hace.
  *
  * **Pide la contraseña actual, y la comprueba aquí.** Una sesión abierta en un equipo ajeno —la
  * tienda, un teléfono prestado— no basta para quedarse con la cuenta. Y un admin que haya

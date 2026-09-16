@@ -1,7 +1,7 @@
 import { INTERNAL_EMAIL_DOMAIN, isSyntheticEmail } from "@/lib/username";
 
 /**
- * Con qué entra esta persona, para enseñárselo en «Mi perfil» (D-NEXT).
+ * Con qué entra esta persona, para enseñárselo en «Mi perfil» (D-265).
  *
  * Quien no tiene correo entra con un usuario, y su «correo» es una dirección inventada que no
  * recibe nada (`lib/username.ts`). Enseñar esa dirección como su correo sería mentir: se enseña

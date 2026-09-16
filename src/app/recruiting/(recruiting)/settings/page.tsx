@@ -34,7 +34,7 @@ export default function SettingsPage() {
   const [jSet, setJSet] = useState("");
   const jobCount = (jobId: string) => candidates.filter((c) => c.job_id === jobId && !c.archived).length;
 
-  // account: display name. La contraseña se cambia en «Mi perfil», en el hub (D-NEXT).
+  // account: display name. La contraseña se cambia en «Mi perfil», en el hub (D-265).
   const [displayName, setDisplayName] = useState(me?.full_name ?? "");
 
   const saveName = async () => {

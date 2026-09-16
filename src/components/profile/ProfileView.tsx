@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena } from "@/lib/profile-password";
 
 /**
- * Lo que se ve en «Mi perfil» (D-NEXT).
+ * Lo que se ve en «Mi perfil» (D-265).
  *
  * Solo lo que vale para TODAS las apps, medido y no supuesto:
  *   · la cuenta —nombre y con qué se entra—, que es una sola;

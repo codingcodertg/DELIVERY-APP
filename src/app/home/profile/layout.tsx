@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * «Mi perfil» es de cualquiera que tenga cuenta, así que la puerta solo pregunta si hay sesión
- * (D-NEXT), igual que el directorio (D-256).
+ * (D-265), igual que el directorio (D-256).
  *
  * **No usa `canReachHub`, y es a propósito.** El chofer no entra al lobby (D-173), pero hasta ahora
  * cambiaba su contraseña en la «Cuenta» de Entregas, que sí tiene. Ese formulario se va y queda un

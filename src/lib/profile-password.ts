@@ -1,5 +1,5 @@
 /**
- * Cambiar la contraseña desde «Mi perfil» (D-NEXT): la única pantalla que lo hace.
+ * Cambiar la contraseña desde «Mi perfil» (D-265): la única pantalla que lo hace.
  *
  * Una sola cuenta y una sola contraseña valen para todas las apps del hub, así que hay un solo
  * sitio para cambiarla. Aquí vive lo que se decide sin red: qué se acepta y con qué código se

@@ -25,7 +25,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   // to expose a way to change it; the desktop shell now defaults to dark
   // (layout.tsx's inline theme script + prefs.tsx's defaultTheme()), but
   // this toggle lets anyone — web or desktop — switch either way.
-  // El idioma también sale de aquí (D-NEXT): es uno para todas las apps y lo guarda el proveedor.
+  // El idioma también sale de aquí (D-266): es uno para todas las apps y lo guarda el proveedor.
   // Cambiarlo avisa a useT(), que vuelve a pintar esta barra y el resto de Time Tracker.
   const { theme, toggleTheme, lang, toggleLang } = usePrefs();
   const tabs = me.role === "admin" ? MANAGER_TABS : TABS;

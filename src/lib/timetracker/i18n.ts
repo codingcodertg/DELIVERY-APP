@@ -1696,7 +1696,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
   },
 };;
 
-// El idioma ya no es de Time Tracker: es uno para todas las apps, por persona (D-NEXT, revierte
+// El idioma ya no es de Time Tracker: es uno para todas las apps, por persona (D-266, revierte
 // D-206 en esto). Lo elige y lo guarda el proveedor del hub (`lib/prefs.tsx`), que deja una copia
 // en `tt_lang` y avisa con un evento. Aquí solo se lee esa copia al arrancar y se escucha el aviso.
 let lang: "en" | "es" = ((): "en" | "es" => {

@@ -7,7 +7,7 @@ import { CLAVE_TT, EVENTO_IDIOMA, idiomaDeRtgPrefs, sincronizaIdiomaAlCargar, ty
 // ============================================================
 // UI preferences: language (EN/ES) + theme (light/dark).
 // Theme: persisted to localStorage, applied to <html> via data-theme.
-// Language: ONE for every app, per person, in public.profiles.language (D-NEXT).
+// Language: ONE for every app, per person, in public.profiles.language (D-266).
 // localStorage keeps a copy (rtg_prefs.lang, and tt_lang for Time Tracker) so the
 // page paints in the right language before the network answers.
 // ============================================================
