@@ -5,6 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AddressInput } from "@/components/AddressInput";
+import { registroDeLugar } from "@/lib/named-location";
 import type { Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 
 // ============================================================
@@ -65,6 +66,7 @@ export default function DataPage() {
         deliveries={deliveries}
         autoApprove
         onChange={(v) => save({ stores: v }, t("Stores saved", "Tiendas guardadas"))}
+        directoryCode
         t={t}
       />
 
@@ -266,7 +268,7 @@ function OrderTypesRulesEditor({
 
 /** Editable table of named locations, with in-place edit + usage-aware delete. */
 function LocationTable({
-  title, blurb, items, usageField, deliveries, onChange, autoApprove, t,
+  title, blurb, items, usageField, deliveries, onChange, autoApprove, directoryCode, t,
 }: {
   title: string;
   blurb: string;
@@ -275,6 +277,8 @@ function LocationTable({
   deliveries: Delivery[];
   /** Stores only: expose the "auto-approve orders" per-location toggle. */
   autoApprove?: boolean;
+  /** Stores only: expose the company-directory code (D-NEXT). */
+  directoryCode?: boolean;
   onChange: (v: NamedLocation[]) => void;
   t: (en: string, es: string) => string;
 }) {
@@ -303,14 +307,10 @@ function LocationTable({
     const clash = items.some((x, i) => x.name.toLowerCase() === name.toLowerCase() && i !== editing);
     if (clash) { await confirmAction(t(`"${name}" already exists.`, `"${name}" ya existe.`), { alertOnly: true }); return; }
     const next = [...items];
-    const rec: NamedLocation = { name, address: draft.address.trim() };
-    if (autoApprove) rec.auto_approve = !!draft.auto_approve;
-    // Keep the verified pin only if the address itself didn't change; editing
-    // the address requires a fresh verify.
+    // Parte del registro anterior (D-NEXT): hasta ahora se construía uno nuevo con nombre y
+    // dirección, y editar una tienda borraba cualquier clave que este formulario no enseñara.
     const prev = editing != null ? items[editing] : undefined;
-    if (prev && prev.address === rec.address && prev.lat != null && prev.lng != null) {
-      rec.lat = prev.lat; rec.lng = prev.lng;
-    }
+    const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });
     if (adding) next.push(rec);
     else if (editing != null) next[editing] = rec;
     onChange(next);
@@ -345,6 +345,16 @@ function LocationTable({
           placeholder={t("Search an address…", "Busca una dirección…")}
         />
       </div>
+      {directoryCode && (
+        <div className="field" style={{ marginTop: 10, maxWidth: 260 }}>
+          <label>{t("Directory code", "Código directorio")}</label>
+          <input
+            value={draft.directory_code ?? ""}
+            placeholder={t("e.g. ABC — several stores can share it", "ej. ABC — varias tiendas pueden compartirlo")}
+            onChange={(e) => setDraft({ ...draft, directory_code: e.target.value })}
+          />
+        </div>
+      )}
       {autoApprove && (
         <label className="perm-opt" style={{ marginTop: 10, maxWidth: 520 }}>
           <input
@@ -385,6 +395,9 @@ function LocationTable({
             <div className="loc-item" key={i}>
               <div>
                 <b>{it.name}</b>
+                {directoryCode && it.directory_code && (
+                  <span className="hint" style={{ marginLeft: 6 }}>· {t("Directory", "Directorio")}: {it.directory_code}</span>
+                )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>
               <div style={{ display: "flex", gap: 6, alignItems: "center", flex: "0 0 auto" }}>
