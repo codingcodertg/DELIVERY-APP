@@ -2,9 +2,9 @@ import type { NamedLocation } from "./types";
 
 /**
  * El registro que se guarda al confirmar el formulario de un lugar en Datos: tiendas, puntos de
- * recolección y sitios de entrega (D-NEXT).
+ * recolección y sitios de entrega (D-261).
  *
- * **Parte del registro anterior, no de cero.** Hasta D-NEXT el formulario construía un objeto
+ * **Parte del registro anterior, no de cero.** Hasta D-261 el formulario construía un objeto
  * nuevo con nombre y dirección, y solo añadía lo que conocía —la aprobación automática y el pin
  * verificado—. Cualquier otra clave del lugar **se perdía al editarlo**: el primer admin que
  * cambiara la dirección de una tienda le borraba, sin saberlo, lo que otra pantalla o una carga
@@ -27,7 +27,7 @@ export function registroDeLugar(
   const mismoPin = prev && prev.address === rec.address && prev.lat != null && prev.lng != null;
   if (!mismoPin) { delete rec.lat; delete rec.lng; }
 
-  // El código de directorio (D-NEXT): texto corto que varias tiendas pueden compartir. Vacío
+  // El código de directorio (D-261): texto corto que varias tiendas pueden compartir. Vacío
   // significa «sin código», y se quita la clave en vez de guardar una cadena vacía, para que el
   // directorio no tenga que distinguir entre «» y ausente.
   if (opts.directoryCode) {

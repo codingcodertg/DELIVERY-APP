@@ -370,7 +370,7 @@ describe("la barrera del servidor: no se guarda tienda en un expediente con cuen
   });
 });
 
-// El grupo del directorio (D-NEXT): solo el admin de RR. HH., con el vocabulario del `check`.
+// El grupo del directorio (D-261): solo el admin de RR. HH., con el vocabulario del `check`.
 describe("el grupo del directorio", () => {
   it("vacío es «normal» y se guarda como null, no como cadena vacía", () => {
     expect(normalizaGrupoDirectorio("")).toBeNull();

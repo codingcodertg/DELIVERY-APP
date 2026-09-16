@@ -36,7 +36,7 @@ export interface EmployeeFileRow {
   department?: string | null;
   /** Tienda, SOLO para quien no tiene cuenta: con cuenta manda `profiles.store` (D-258). */
   store?: string | null;
-  /** Grupo especial del directorio (D-NEXT): «remote», «sin_tienda», o null = normal. */
+  /** Grupo especial del directorio (D-261): «remote», «sin_tienda», o null = normal. */
   directory_group?: string | null;
   ringcentral_ext: string | null;
   days_off?: number | null;
@@ -280,7 +280,7 @@ export function puedeElegirTienda(f: { profile_id?: string | null }): boolean {
 }
 
 /**
- * Los grupos especiales del directorio (D-NEXT), con el mismo vocabulario que el `check` de la
+ * Los grupos especiales del directorio (D-261), con el mismo vocabulario que el `check` de la
  * migración que crea la columna. `null` es «normal»: la persona sale bajo su tienda.
  */
 export const GRUPOS_DIRECTORIO = ["remote", "sin_tienda"] as const;

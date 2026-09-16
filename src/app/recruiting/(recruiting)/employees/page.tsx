@@ -150,7 +150,7 @@ export default function EmployeeFilesPage() {
 function Ficha({ persona, onSaved, onClose }: { persona: EmployeeFile; onSaved: () => void; onClose: () => void }) {
   const { t } = usePrefs();
   const { notify, settings, me } = useData();
-  // El grupo del directorio es solo del admin de RR. HH. (D-NEXT). `me.role` es el rol de RR. HH.
+  // El grupo del directorio es solo del admin de RR. HH. (D-261). `me.role` es el rol de RR. HH.
   // (el layout del módulo lo monta así); la barrera de verdad está en la acción de guardar.
   const editaGrupo = puedeEditarGrupoDirectorio(me?.role);
   const [info, setInfo] = useState({

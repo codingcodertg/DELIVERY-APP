@@ -16012,8 +16012,11 @@ que cada bloque que se abre se cierra.
 - **Que la pantalla de Ajustes conserve `directory_code` al guardar las tiendas** es de la otra
   rama. Si algún guardado reconstruyera los objetos de tienda sin esa clave, los códigos se
   perderían en silencio y el directorio volvería a los nombres.
+  > **Nota del orquestador, al fusionar D-261:** la pantalla que escribe las tiendas es **Datos**
+  > (`src/app/(app)/data/page.tsx`), no Ajustes, que solo enseña el recuento. Lo arregló D-261
+  > (`registroDeLugar`), y los códigos cargados en producción el 2026-09-16 no se pierden al editar.
 
-## D-NEXT · El directorio se mantiene desde las pantallas, y editar una tienda ya no borra lo que no enseña
+## D-261 · El directorio se mantiene desde las pantallas, y editar una tienda ya no borra lo que no enseña
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración propia: **acoplada a la
 111**, que escribe otro worker y crea `recruiting.employee_files.directory_group` y el uso de

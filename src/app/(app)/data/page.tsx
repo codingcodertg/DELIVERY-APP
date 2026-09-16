@@ -277,7 +277,7 @@ function LocationTable({
   deliveries: Delivery[];
   /** Stores only: expose the "auto-approve orders" per-location toggle. */
   autoApprove?: boolean;
-  /** Stores only: expose the company-directory code (D-NEXT). */
+  /** Stores only: expose the company-directory code (D-261). */
   directoryCode?: boolean;
   onChange: (v: NamedLocation[]) => void;
   t: (en: string, es: string) => string;
@@ -307,7 +307,7 @@ function LocationTable({
     const clash = items.some((x, i) => x.name.toLowerCase() === name.toLowerCase() && i !== editing);
     if (clash) { await confirmAction(t(`"${name}" already exists.`, `"${name}" ya existe.`), { alertOnly: true }); return; }
     const next = [...items];
-    // Parte del registro anterior (D-NEXT): hasta ahora se construía uno nuevo con nombre y
+    // Parte del registro anterior (D-261): hasta ahora se construía uno nuevo con nombre y
     // dirección, y editar una tienda borraba cualquier clave que este formulario no enseñara.
     const prev = editing != null ? items[editing] : undefined;
     const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });

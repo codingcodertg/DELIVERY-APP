@@ -64,7 +64,7 @@ export type EmployeeFile = {
   store: string | null;
   /** Tienda de la CUENTA, si la hay; cuando existe es la que vale. De solo lectura aquí. */
   account_store: string | null;
-  /** Grupo especial del directorio (D-NEXT): «remote», «sin_tienda», o null = normal. Solo admin. */
+  /** Grupo especial del directorio (D-261): «remote», «sin_tienda», o null = normal. Solo admin. */
   directory_group: string | null;
   days_off: number | null;
   notes: string | null;
@@ -157,7 +157,7 @@ export async function saveEmployeeFile(
   if ("profile_id" in patch && yo.role !== "admin") {
     return { ok: false, message: "Only an HR admin can link an employee file to an account." };
   }
-  // El grupo del directorio (D-NEXT) es SOLO del admin de RR. HH.: decide dónde sale alguien en
+  // El grupo del directorio (D-261) es SOLO del admin de RR. HH.: decide dónde sale alguien en
   // el directorio de toda la empresa, fuera de la cascada de tiendas. La ficha solo enseña el
   // selector a un admin, pero la barrera está aquí, porque una llamada directa a esta acción no
   // pasa por la pantalla.
