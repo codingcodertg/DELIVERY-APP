@@ -50,7 +50,7 @@ export type GrupoDepartamento = { departamento: string | null; personas: number 
 
 /** Sin acentos y en minúsculas: quien busca "nunez" tiene que encontrar a "Núñez". */
 export function normaliza(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
 const vacio = (s: string | null | undefined) => !s || !s.trim();
