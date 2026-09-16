@@ -15622,6 +15622,7 @@ de ellos son la puerta del chofer, que se añadió después de la primera medici
 
 ## D-257 · APK 5: la cáscara Android vuelve a cargar el hub
 
+> **Sin revisión aparte.** Esta entrada la escribió y la fusionó el orquestador sin que otra sesión> la revisara: el papel de auditor se retiró el 2026-09-15, y en esta ya no hubo firma externa. Las> mediciones de abajo son todas suyas. Se deja dicho para que quien lea el historial no le atribuya> un segundo par de ojos que no tuvo.
 **Fecha:** 2026-09-14 · **App:** deliveries (APK) · **Pedido por:** Andrés («el apk no me funciona, se quedó con rdz deliveries»).
 
 ### Qué fallaba, medido
