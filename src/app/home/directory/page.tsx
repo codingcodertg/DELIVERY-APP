@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
-  buscaPersonas, departamentosDe, mailtoHref, personasDe, telHref, tiendasDelDirectorio,
-  type PersonaDirectorio,
+  buscaPersonas, departamentosDe, grupoDe, mailtoHref, personasDe, saltaDepartamentos, telHref,
+  tiendasDelDirectorio, type GrupoTienda, type PersonaDirectorio,
 } from "@/lib/phone-book";
 
 /**
@@ -16,18 +16,18 @@ import {
  * la persona**, «un poquito más difícil que solo buscar». Y con un buscador arriba que se la
  * salta, para quien ya sabe el nombre.
  *
- * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, que devuelve ocho
- * columnas, y solo de las personas activas que tienen algún dato de contacto — sin teléfono,
- * extensión ni correo no hay tarjeta que pintar, y la función ya no las manda (110). Esta
- * pantalla no puede enseñar de más aunque se equivoque: lo que no vuelve de esa función no
- * está aquí, y tampoco hay un segundo filtro aquí que pueda decir otra cosa.
+ * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, y solo de las personas
+ * activas con extensión de RingCentral (111). Quién ve los grupos «Remote» y «Sin tienda» lo
+ * decide esa función según el rol, no esta pantalla. Esta pantalla no puede enseñar de más
+ * aunque se equivoque: lo que no vuelve de esa función no está aquí, y tampoco hay un segundo
+ * filtro aquí que pueda decir otra cosa.
  */
 export default function DirectoryPage() {
   const { t } = usePrefs();
   const [filas, setFilas] = useState<PersonaDirectorio[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [tienda, setTienda] = useState<string | null | undefined>(undefined);
+  const [grupo, setGrupo] = useState<string | undefined>(undefined);
   const [depto, setDepto] = useState<string | null | undefined>(undefined);
   const [persona, setPersona] = useState<PersonaDirectorio | null>(null);
 
@@ -45,20 +45,32 @@ export default function DirectoryPage() {
   }, []);
 
   const encontradas = useMemo(() => buscaPersonas(filas ?? [], busca), [filas, busca]);
-  const tiendas = useMemo(() => tiendasDelDirectorio(filas ?? []), [filas]);
+  const grupos = useMemo(() => tiendasDelDirectorio(filas ?? []), [filas]);
+  const elegido = grupos.find((g) => g.clave === grupo);
+  // Sin nivel de departamento cuando su única opción sería «Sin departamento» (D-256, 111).
+  const sinNivelDepto = grupo !== undefined && saltaDepartamentos(filas ?? [], grupo);
   const deptos = useMemo(
-    () => (tienda === undefined ? [] : departamentosDe(filas ?? [], tienda)),
-    [filas, tienda],
+    () => (grupo === undefined ? [] : departamentosDe(filas ?? [], grupo)),
+    [filas, grupo],
   );
   const personas = useMemo(
-    () => (tienda === undefined || depto === undefined ? [] : personasDe(filas ?? [], tienda, depto)),
-    [filas, tienda, depto],
+    () => (grupo === undefined || depto === undefined ? [] : personasDe(filas ?? [], grupo, depto)),
+    [filas, grupo, depto],
   );
 
-  const nombreTienda = (s: string | null) => s ?? t("No store", "Sin tienda");
+  const nombreGrupo = (g: Pick<GrupoTienda, "tipo" | "tienda"> | undefined) =>
+    !g ? ""
+      : g.tipo === "remote" ? "Remote"
+      : g.tipo === "sin_tienda" ? t("No store", "Sin tienda")
+      : (g.tienda as string);
   const nombreDepto = (s: string | null) => s ?? t("No department", "Sin departamento");
 
-  const volverATiendas = () => { setTienda(undefined); setDepto(undefined); setPersona(null); };
+  const eligeGrupo = (clave: string) => {
+    setGrupo(clave);
+    // Saltar el nivel es entrar directo en su única opción, que es «sin departamento».
+    setDepto(saltaDepartamentos(filas ?? [], clave) ? null : undefined);
+  };
+  const volverAGrupos = () => { setGrupo(undefined); setDepto(undefined); setPersona(null); };
   const volverADeptos = () => { setDepto(undefined); setPersona(null); };
 
   return (
@@ -93,19 +105,21 @@ export default function DirectoryPage() {
             <div className="hint">{t("Nobody matches that.", "Nadie coincide con eso.")}</div>
           ) : (
             encontradas.map((p, i) => (
-              <FilaPersona key={`${p.full_name}-${i}`} p={p} onPick={() => setPersona(p)} conSitio />
+              <FilaPersona
+                key={`${p.full_name}-${i}`} p={p} sitio={nombreGrupo(grupoDe(p))} onPick={() => setPersona(p)}
+              />
             ))
           )}
         </div>
-      ) : tienda === undefined ? (
+      ) : grupo === undefined ? (
         <div className="card">
           <div className="section-label" style={{ marginTop: 0 }}>{t("Stores", "Tiendas")}</div>
-          {tiendas.length === 0 ? (
+          {grupos.length === 0 ? (
             <div className="hint">{t("Nobody in the directory yet.", "Todavía no hay nadie en el directorio.")}</div>
           ) : (
-            tiendas.map((g) => (
-              <button key={g.tienda ?? "__sin__"} className="dir-row" onClick={() => setTienda(g.tienda)}>
-                <span className="dir-row-name">{nombreTienda(g.tienda)}</span>
+            grupos.map((g) => (
+              <button key={g.clave} className="dir-row" onClick={() => eligeGrupo(g.clave)}>
+                <span className="dir-row-name">{nombreGrupo(g)}</span>
                 <span className="hint">{g.personas}</span>
               </button>
             ))
@@ -114,8 +128,8 @@ export default function DirectoryPage() {
       ) : depto === undefined ? (
         <div className="card">
           <div className="dir-crumbs">
-            <button className="btn btn-ghost btn-sm" onClick={volverATiendas}>← {t("Stores", "Tiendas")}</button>
-            <span className="section-label" style={{ margin: 0 }}>{nombreTienda(tienda)}</span>
+            <button className="btn btn-ghost btn-sm" onClick={volverAGrupos}>← {t("Stores", "Tiendas")}</button>
+            <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}</span>
           </div>
           {deptos.map((g) => (
             <button key={g.departamento ?? "__sin__"} className="dir-row" onClick={() => setDepto(g.departamento)}>
@@ -127,9 +141,16 @@ export default function DirectoryPage() {
       ) : (
         <div className="card">
           <div className="dir-crumbs">
-            <button className="btn btn-ghost btn-sm" onClick={volverATiendas}>← {t("Stores", "Tiendas")}</button>
-            <button className="btn btn-ghost btn-sm" onClick={volverADeptos}>← {nombreTienda(tienda)}</button>
-            <span className="section-label" style={{ margin: 0 }}>{nombreDepto(depto)}</span>
+            <button className="btn btn-ghost btn-sm" onClick={volverAGrupos}>← {t("Stores", "Tiendas")}</button>
+            {sinNivelDepto ? (
+              // Sin nivel de departamento no hay a dónde volver en medio: el grupo es el título.
+              <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}</span>
+            ) : (
+              <>
+                <button className="btn btn-ghost btn-sm" onClick={volverADeptos}>← {nombreGrupo(elegido)}</button>
+                <span className="section-label" style={{ margin: 0 }}>{nombreDepto(depto)}</span>
+              </>
+            )}
           </div>
           {personas.map((p, i) => (
             <FilaPersona key={`${p.full_name}-${i}`} p={p} onPick={() => setPersona(p)} />
@@ -137,24 +158,27 @@ export default function DirectoryPage() {
         </div>
       )}
 
-      {persona && <TarjetaPersona p={persona} onClose={() => setPersona(null)} />}
+      {persona && (
+        <TarjetaPersona p={persona} sitio={nombreGrupo(grupoDe(persona))} onClose={() => setPersona(null)} />
+      )}
     </>
   );
 }
 
-function FilaPersona({ p, onPick, conSitio }: { p: PersonaDirectorio; onPick: () => void; conSitio?: boolean }) {
+/** `sitio` solo en los resultados de búsqueda, donde la persona llega sin la cascada encima. */
+function FilaPersona({ p, onPick, sitio }: { p: PersonaDirectorio; onPick: () => void; sitio?: string }) {
   return (
     <button className="dir-row" onClick={onPick}>
       <span className="dir-row-name">{p.full_name}</span>
       <span className="hint dir-row-side">
-        {[p.title, conSitio ? p.store : null, conSitio ? p.department : null].filter(Boolean).join(" · ")}
+        {[p.title, sitio, sitio !== undefined ? p.department : null].filter(Boolean).join(" · ")}
       </span>
     </button>
   );
 }
 
 /** La tarjeta de una persona: lo que se vino a buscar, con los enlaces que se pueden pulsar. */
-function TarjetaPersona({ p, onClose }: { p: PersonaDirectorio; onClose: () => void }) {
+function TarjetaPersona({ p, sitio, onClose }: { p: PersonaDirectorio; sitio: string; onClose: () => void }) {
   const { t } = usePrefs();
   const tel = telHref(p.phone);
   const correo = mailtoHref(p.email);
@@ -179,8 +203,10 @@ function TarjetaPersona({ p, onClose }: { p: PersonaDirectorio; onClose: () => v
           <span className="hint">{t("Email", "Correo")}</span>
           <span>{correo ? <a href={correo}>{p.email}</a> : sinDato}</span>
 
+          {/* El sitio de la cascada, no `p.store`: una fila de grupo llega sin tienda, y la
+              tarjeta tiene que decir lo mismo que la lista de donde se abrió. */}
           <span className="hint">{t("Store", "Tienda")}</span>
-          <span>{p.store || sinDato}</span>
+          <span>{sitio || sinDato}</span>
 
           <span className="hint">{t("Department", "Departamento")}</span>
           <span>{p.department || sinDato}</span>
