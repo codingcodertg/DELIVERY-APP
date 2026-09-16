@@ -16272,3 +16272,8 @@ Siete mutantes, cada uno cazado por la prueba pensada para él:
 - **Nadie lo ha visto en un navegador**, ni en el equipo que pide el correo ni en otro.
 - Las tres filas `recovery` sin canjear que midió el orquestador siguen en `auth.flow_state`; caducan
   solas y no estorban.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2057 pasados | 3 saltados**, ya rebasada
+sobre `main` 6e3b404. La rama añade 21 pruebas y no quita ninguna —16 en `password-recovery.test.ts`,
+fichero nuevo, y 5 en `route-guard.test.ts`, contadas en el diff contra esa base—, así que 6e3b404
+está en 2036 | 3.
