@@ -5,6 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
 import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
+import { veAppsParaInstalar } from "@/lib/hub-apps";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
@@ -62,6 +63,11 @@ export function HomeSelector({ me }: { me: Profile }) {
             repartía por WhatsApp y la de escritorio había que pedirla, y una app
             que hay que pedir es una app que la mitad de la gente no tiene.
 
+            **Solo para el admin desde D-NEXT** (2026-09-16, decisión del dueño). Lo
+            que sigue es lo que decía D-167, y se deja escrito porque explica por qué
+            estuvo abierto: ahora las reparte el admin, y el resto no ve ni el título
+            ni el contador. Solo se esconde la sección; las descargas no cambian.
+
             Se enseñan las tres a todo el mundo, con su "para quién" delante.
             Esconderle la de choferes a la oficina obligaría a pedirla de nuevo
             el día que un gerente quiera probarla; decir para quién es basta, y
@@ -76,6 +82,7 @@ export function HomeSelector({ me }: { me: Profile }) {
             foco, se busca dentro con Ctrl+F aunque esté cerrado, y no hay nada
             escrito que pueda fallar. El número al lado dice que hay algo dentro,
             que si no un título plegado se lee como un título y nadie lo toca. */}
+        {veAppsParaInstalar(me) && (
         <details className="hub-apps">
           <summary className="hub-tools-label hub-apps-summary">
             {t("Installable apps", "Apps para instalar")}
@@ -116,6 +123,7 @@ export function HomeSelector({ me }: { me: Profile }) {
           );
         })}
         </details>
+        )}
 
         {/* Signing out from the hub. Every module's own topbar has this, but the hub sits
             above all of them — without it, leaving meant entering an app you did not want
