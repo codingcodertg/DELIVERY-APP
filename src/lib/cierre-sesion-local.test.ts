@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { empaquetar } from "./impersonation-cookie";
 
 /**
- * «Cerrar sesión» cierra ESTE equipo, no la cuenta en todos (D-NEXT).
+ * «Cerrar sesión» cierra ESTE equipo, no la cuenta en todos (D-264).
  *
  * En `@supabase/auth-js` 2.112.4 —la instalada— `signOut()` sin argumentos es
  * `signOut({ scope: 'global' })`: revoca todas las sesiones de la cuenta. Cerrar sesión en la web

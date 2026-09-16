@@ -16299,7 +16299,7 @@ pruebas de más son las del registro, en `password-recovery.test.ts`; la base si
 > reset a la vez, y quien lo agote bloquea a las demás un rato. Como el cliente recibe siempre
 > `{ ok: true }`, esos fallos solo se ven en los logs de Vercel (`[auth/forgot]`).
 
-## D-NEXT · «Cerrar sesión» cierra este equipo, no la cuenta en todos
+## D-264 · «Cerrar sesión» cierra este equipo, no la cuenta en todos
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar; cambia código de cliente y
 de servidor (rutas de salida y de vuelta de «entrar como») · **Sin migración** · **Pedido por:** el
