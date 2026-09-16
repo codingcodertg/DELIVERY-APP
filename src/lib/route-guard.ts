@@ -78,11 +78,25 @@ export function skipsSession(path: string): boolean {
  * direcciones. El `next` de vuelta pasa por `safeNext` (D-193): solo una ruta interna, nada de
  * `//evil.com`, `/\evil.com`, caracteres de control ni un salto al propio login.
  */
+/** ¿Trae la URL un `error` con contenido? Solo mira la query, nunca el fragmento. */
+export function tieneError(pathWithSearch: string): boolean {
+  const q = pathWithSearch.indexOf("?");
+  if (q === -1) return false;
+  const valor = new URLSearchParams(pathWithSearch.slice(q + 1)).get("error");
+  return !!valor && valor.trim() !== "";
+}
+
 export function decide(pathWithSearch: string, next: string | null, hasUser: boolean): Decision {
   const q = pathWithSearch.indexOf("?");
   const path = q === -1 ? pathWithSearch : pathWithSearch.slice(0, q);
 
   if (hasUser && (path === "/login" || path.startsWith("/login/"))) {
+    // Salvo que el login venga a CONTAR algo (D-NEXT). `/auth/callback` manda aquí con
+    // `?error=` cuando un enlace de correo no se pudo canjear; con sesión en este navegador,
+    // la redirección de abajo lo llevaba al hub y el error desaparecía sin que nadie lo viera.
+    // Fue exactamente el síntoma del dueño: «me manda el correo pero al ingresar solo me lleva
+    // al RTG Hub lobby y nada más».
+    if (tieneError(pathWithSearch)) return { kind: "next" };
     return { kind: "redirect", to: safeNext(next, "/home") };
   }
   if (isPublicPath(path)) return { kind: "next" };
