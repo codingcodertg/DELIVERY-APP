@@ -43,7 +43,9 @@ export async function POST(request: Request) {
 
   if (!guardado) {
     // No había vuelta: se sale del todo. No se deja a nadie dentro de una identidad ajena.
-    await ssr.auth.signOut().catch(() => {});
+    // `local`: la sesión que hay en esta cookie puede ser la del VENDEDOR impersonado. Un
+    // `signOut()` sin alcance es global en auth-js y lo sacaría también de su teléfono y su PC.
+    await ssr.auth.signOut({ scope: "local" }).catch(() => {});
     return NextResponse.json({ ok: false, salida: "login" });
   }
 
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
   if (error) {
     // El refresh token del admin ya no vale (caducó, o cerró sesión en otro sitio). Misma
     // salida: fuera, y a poner la contraseña.
-    await ssr.auth.signOut().catch(() => {});
+    await ssr.auth.signOut({ scope: "local" }).catch(() => {});
     return NextResponse.json({ ok: false, salida: "login" });
   }
 

@@ -11,7 +11,8 @@ export default function SignOut() {
     <button
       className="btn btn-ghost btn-sm"
       onClick={async () => {
-        await createClient().auth.signOut();
+        // Solo este equipo (`local`): sin alcance, auth-js cierra la cuenta en todos.
+        await createClient().auth.signOut({ scope: "local" });
         // La respuesta de «¿estás exento del cierre de las 18:30?» va con la persona, y esta
         // navegación no recarga la página (D-248). Sin esto, quien entre después en el mismo
         // equipo hereda la del anterior.
