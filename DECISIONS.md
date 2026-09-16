@@ -15749,3 +15749,266 @@ Cinco mutantes, y cada uno tira **una** prueba:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1969 pasados | 3 saltados**.
 La rama añade 21 pruebas y no quita ninguna —11 en `phone-book.test.ts`, 10 en
 `employee-file.test.ts`, contadas en el diff—, así que `main` 2ce5806 está en 1948 | 3.
+
+## D-NEXT · El directorio omite a quien no tiene ningún dato de contacto
+
+**Fecha:** 2026-09-15 · **Versión:** la pone el orquestador al fusionar; el cambio vive entero en
+la base, así que le toca la excepción de `CLAUDE.md` —solo `package.json`, sin `APP_VERSIONS`—
+· **Migración: `110_phone_book_con_contacto.sql`**, que **aplica el orquestador**, no la rama ·
+**Pedido por:** el dueño, sobre el directorio de D-256: *«si no tiene tiendas o puestos y así
+entonces omítelo por ahora»*.
+
+### El hueco
+
+Cargada la hoja del dueño en los expedientes (D-258), `phone_book()` devuelve **49 personas**, y
+**cuatro** no tienen ni teléfono, ni extensión, ni correo: cuentas sueltas que no están en la hoja
+de RR. HH. Hoy salen en «(sin tienda) → (sin departamento)», así que quien baja los tres niveles
+de la cascada llega a una tarjeta con tres rayas. No es un dato que falte en una fila: es una fila
+que no lleva a ninguna parte.
+
+### Lo que se filtra es «no hay nada que enseñar», no «no tiene departamento»
+
+Son dos reglas distintas que **con los datos de hoy tacharían a las mismas cuatro personas**, y
+por eso los datos no sirven para elegir entre ellas: las cuatro sin contacto son también las
+cuatro sin departamento. Hay que elegir en el código, y se eligió el contacto:
+
+- **Edgar Ayala no tiene departamento, tiene la extensión 332, y tiene que seguir saliendo**, en
+  Pharr. Quien tiene una extensión es exactamente a quien alguien va a buscar en un directorio.
+- El filtro mira los **tres campos que la tarjeta pinta** —teléfono, extensión y correo—, y basta
+  con uno. Los tres salen de `employee_files`, los mismos que se devuelven, así que «tiene algo
+  que enseñar» y «se enseña algo» no pueden discrepar.
+- Un campo **en blanco no es un dato**: los tres pasan por `nullif(btrim(...), '')`, igual que la
+  tienda en la 109. Sin eso, un espacio en una extensión colaría a alguien con una tarjeta
+  igual de vacía.
+
+La prueba fija los dos casos por separado —el que se queda y el que desaparece—, que es lo único
+que distingue esta regla de la otra mientras los datos no las distingan.
+
+### Lo que se descartó
+
+- **Marcar a esas personas como dadas de baja.** `date_left` es la fecha en que alguien se fue.
+  Usarla para esconder una ficha incompleta sería escribir una mentira en el expediente para
+  arreglar una pantalla, y la mentira sobreviviría al arreglo. El filtro vive en la función; el
+  expediente no se toca, la persona sigue entera en RR. HH., y **vuelve al directorio sola** el
+  día que alguien le ponga una extensión.
+- **Filtrar en el cliente.** El directorio ya tiene una regla: lo que no vuelve de la función no
+  está en la pantalla (D-256). Un segundo filtro en React sería una segunda verdad sobre quién
+  sale, y las dos se separan en cuanto alguien toque una.
+- **Filtrar por departamento o por tienda**, que es lo que la frase del dueño dice en su letra.
+  Se implementó lo que pedía —que no salga quien no lleva a ninguna parte— sin tachar a quien sí
+  lleva. Si el dueño quiere la otra, es un cambio de una línea y una prueba.
+
+### La 110 parte de la 109, entera
+
+`create or replace` reemplaza la función completa: lo que la migración no copie se pierde en
+producción. La tienda del expediente de D-258 sigue en **los dos sitios** donde se usa —la columna
+que se devuelve y el cruce con el orden de Ajustes—, y hay prueba de eso, porque copiar solo la
+primera es el fallo que no se ve mirando la lista.
+
+### La etiqueta de «sin departamento» ya estaba
+
+Se fue a mirar qué pinta la cascada cuando `department` viene nulo, por si el grupo salía sin
+nombre: `src/app/home/directory/page.tsx:57` ya tiene `t("No department", "Sin departamento")`,
+bilingüe y pegada a la de «sin tienda» de la línea de encima. **No se tocó nada.**
+
+### Medido, rompiendo cada pieza
+
+Doce cambios sobre el `.sql`, cada uno corrido entero: **once que tienen que caer y uno que
+tiene que quedarse en verde**. Los que importan:
+
+- filtrar por **departamento** en vez de por contacto → caen tres pruebas, entre ellas la de
+  Edgar Ayala;
+- **dejarse la extensión** fuera del filtro;
+- **exigir los tres datos** en vez de uno, escrito conservando la forma del filtro —mismas tres
+  columnas, mismo saneado— para que caiga **solo** la prueba del «o», y no otra de rebote;
+- la **misma regla escrita con `or`**, que no es un fallo: se comprueba que **se queda en verde**,
+  para que las pruebas no estén fijando mi manera de escribirlo;
+- quedarse **sin filtro**, esconder a la gente con `date_left`, perder la tienda de la 109,
+  perder `store_rank` de la firma, dejar de ser `security definer`, y **arrastrar una columna
+  privada por la CTE sin tocar la firma** — el mutante de D-258, que cae por la prueba que dice
+  defender eso y no por la de las ocho columnas.
+
+> **Una prueba no medía nada, y la delató la propia tanda.** La del «o» recortaba el filtro
+> buscando el texto `and coalesce(`; el mutante que lo reescribía hacía desaparecer ese ancla,
+> `indexOf` devolvía −1, y el recorte quedaba en **un carácter**: el `not.toMatch` pasaba
+> siempre. En la tanda salía como «cae por otras tres pruebas», que es justo lo que enmascara
+> el problema. Se arregló anclando el recorte en la condición de `date_left` —que no depende de
+> cómo se escriba el filtro— y con un ayudante que **revienta si el ancla falta**, en vez de
+> devolver un recorte absurdo. Es el mismo fallo que D-258 contó con `String.raw`, por otro
+> camino: una prueba que no puede fallar.
+
+### Lo no verificado
+
+- **Nadie ha llamado a `phone_book()` contra la base.** Cuando se escribe esto la migración no
+  está aplicada, y una rama no la aplica. De la función se ha medido el **texto** del `.sql`, no
+  su resultado. Las tres consultas de solo lectura para confirmarlo están al final del propio
+  fichero.
+- **Los números de arriba —49, 4, y los cuatro nombres— los midió el orquestador**, no esta rama:
+  el worktree no tiene `.env.local` a propósito. Aquí no se han recontado.
+- **«45 después del filtro» es una resta, no una medida.** Sale de 49 − 4 y de que los cuatro sin
+  contacto sean los mismos cuatro sin extensión; si esa coincidencia no fuera cierta, el número
+  cambiaría sin que el filtro estuviera mal.
+- **Nadie ha abierto el directorio en un navegador** después del cambio.
+- **Qué pasa si la hoja crece con alguien que tiene tienda y puesto pero ningún contacto**: esa
+  persona tampoco saldrá. Es lo que la regla dice, y hoy no hay ningún caso así para verlo.
+
+> **Reemplazada en parte el 2026-09-16 por la entrada siguiente (111).** El filtro de esta entrada
+> —«algún dato de contacto»— pasó a **solo extensión de RingCentral**, por decisión del dueño. Lo
+> demás de aquí sigue en pie: `date_left` no se usa para esconder a nadie, y el filtro vive en la
+> función y no en la pantalla.
+
+## D-NEXT · Directorio: solo con extensión, grupos «Remote» y «Sin tienda» por rol, y código de tienda
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. **Esta ya no es solo de
+base**: cambia `src/lib/phone-book.ts` y `src/app/home/directory/page.tsx`, así que no le toca la
+excepción de `CLAUDE.md` · **Migración: `111_phone_book_grupos.sql`**, que aplica el orquestador;
+**la página nueva necesita la novena columna**, y la función nueva sin la página deja a Remote y a
+«Sin tienda» sin etiqueta, así que van juntas · **Pedido por:** el dueño, por el orquestador.
+**Reemplaza el filtro de la entrada anterior** (110, «algún dato de contacto»).
+
+### Las tres reglas
+
+1. **Solo sale quien tiene extensión de RingCentral.** Con los datos medidos el 2026-09-15 esto
+   deja a las mismas personas que el filtro de la 110 —toda la que tenía algún dato tenía
+   extensión—, así que la base no distingue una regla de la otra. La prueba sí: el filtro mira
+   `ringcentral_ext` y ninguna columna más, y el mutante que vuelve al de la 110 cae.
+2. **Dos grupos que no son una tienda**, marcados en el expediente con `directory_group`:
+   - `remote` → «Remote», **lo ven manager y admin**;
+   - `sin_tienda` → «Sin tienda», **lo ve solo admin**. Quien no tiene tienda resuelta cae aquí
+     sin marcarlo.
+3. **Código de tienda**: `directory_code`, opcional, en cada tienda de Ajustes. Con código, la
+   tienda sale con el código, y las que comparten código son **un solo grupo en el menor de sus
+   rangos**. Sin código, el nombre, como hasta ahora.
+
+### Quién ve qué se decide en la función, no en la pantalla
+
+`phone_book()` es `security definer` y filtra por el rol de quien llama; la página pinta lo que le
+llega. Los helpers se midieron en el repo, no se supusieron:
+
+- `public.is_admin()` —vigente en la 099— es `current_user_role() = 'admin'`;
+- `public.current_user_role()` sale de `supabase/roles.sql` y **ninguna migración la redefine**:
+  es `profiles.role` de `auth.uid()`;
+- **no existe `is_manager()`**, así que manager se lee de `current_user_role()`.
+
+Los dos van envueltos en `coalesce(…, false)`: sin sesión dan null, y null **no** cuenta como sí.
+
+### Solo un admin de RR. HH. cambia la marca
+
+La ficha limita el selector de `directory_group` al admin de RR. HH., pero la RLS de la 094 deja
+escribir el expediente entero a **admin y gerente** de RR. HH., y un gerente que escriba por REST
+directo no pasa por la ficha. La barrera va en la base, en el guard que la 106 puso para
+`profile_id` (`recruiting.guard_employee_file_link`), por la misma razón que allí: la RLS no
+filtra por columna. **Añadido por el orquestador a mitad del encargo.**
+
+Se partió de la definición vigente, **medida**: ningún fichero de `supabase/` redefine el guard
+después de la 106, y `current_recruiting_role()` es la de la 055.
+
+**No bastaba con añadir una línea.** La 106 salía con `return NEW` en cuanto `profile_id` no
+cambiaba, así que una comprobación del grupo puesta detrás no se habría ejecutado nunca en un update
+que solo toca el grupo, que es justo el caso a parar. Ahora se calcula primero qué cambia —el enlace,
+el grupo o los dos— y solo se sale si no cambia ninguno. Para el enlace todo sigue igual que en la
+106, incluido su mensaje.
+
+La salida por `pg_trigger_depth() > 1` —la cuenta que nace y crea su expediente— **sigue valiendo
+para el enlace y no para el grupo**: ningún trigger escribe `directory_group`, y una puerta que
+nadie necesita es una puerta. El trigger no se rehace: `create or replace function` conserva el
+enlace de la 106.
+
+### Decisiones que tomé yo, y por qué
+
+- **Si un expediente dice `remote`, manda eso aunque no tenga tienda.** Marcarlo es una decisión;
+  no tener tienda es solo que falta un dato. Con el orden al revés, un remoto sin tienda se
+  escondería de los managers.
+- **Una fila de grupo sale sin tienda y sin rango.** `profiles.store` no se toca —acota lo que la
+  persona ve en Entregas—, así que alguien puede tener tienda allí y estar en «Sin tienda» en el
+  directorio. Si la fila llevara esa tienda, la tarjeta diría una cosa y la cascada otra.
+- **La firma pasa a nueve columnas.** Sin una columna de grupo, Remote y «Sin tienda» llegan
+  iguales: los dos sin tienda. Codificarlo en `store` con un valor especial chocaría con una
+  tienda que se llamara así. Como `create or replace` no puede cambiar las columnas de una función
+  que devuelve tabla, la 111 **la borra y la crea**, vuelve a dar los permisos (una función nueva
+  nace ejecutable por PUBLIC) y **tiene que aplicarse en una sola transacción**: entre el `drop` y
+  el `create` el directorio no existe.
+- **El cruce con Ajustes sigue siendo por nombre.** La tienda de una persona es un nombre de tienda,
+  no un código; el código solo cambia lo que se devuelve y cómo se agrupa.
+- **En la página, las claves de grupo llevan prefijo** (`tienda:…`, `grupo:remote`), así que una
+  tienda cuyo código fuera justo «remote» no se funde con el grupo.
+- **«Remote → Sin departamento» se arregla con una regla, no con una excepción:** el nivel de
+  departamento **se salta cuando su única opción sería «Sin departamento»**. Vale para Remote, para
+  «Sin tienda» y para cualquier tienda donde nadie tenga departamento; y en cuanto alguien de Remote
+  tenga uno, el nivel vuelve solo. Al saltarlo, la miga de pan no enseña un paso intermedio que no
+  existe.
+- **La etiqueta es «Remote» en los dos idiomas**, porque así lo nombró el dueño. «Sin tienda» sigue
+  bilingüe, como estaba.
+- **La tarjeta enseña el sitio de la cascada**, no `store` a secas, para que diga «Remote» o «Sin
+  tienda» igual que la lista de donde se abrió.
+
+### Lo que no se tocó
+
+- `profiles.store` ni nada de Entregas.
+- **Ningún nombre ni código de tienda** en el `.sql` ni en las pruebas: son datos del dueño y los
+  carga él en Ajustes. Una prueba lo vigila: todo literal de la función tiene que estar en una lista
+  corta de palabras que no son tiendas.
+- La UI para editar `directory_group` en el expediente y `directory_code` en Ajustes, que la hace
+  otra rama en paralelo.
+
+### Medido, rompiendo cada pieza
+
+Treinta cambios, cada uno corrido entero y leído del informe JSON de vitest: **veintiocho que
+tienen que caer y dos que tienen que quedarse en verde**.
+
+En la función: volver al filtro de la 110; que un manager vea «Sin tienda»; que cualquiera vea
+Remote; que Remote pida admin **y** manager, que no lo vería nadie; invertir el orden del `case`;
+quitar la caída a «Sin tienda» de quien no tiene tienda; que una fila de grupo lleve la tienda de la
+cuenta; no tomar el menor rango; cruzar por código en vez de por nombre; clavar un nombre de tienda;
+una rama de más en el `where`; `is_admin()` sin `coalesce`; un tercer valor en el `check`; y quitar
+el `drop`, que no cae por una prueba sino porque **el fichero entero no llega a correr** —el
+ayudante que recorta el `.sql` revienta al no encontrar el `create`—, que también es rojo. El
+gemelo, Remote con `q.manager or q.admin` en el otro orden, **se queda en verde**.
+
+En la cascada: mirar la tienda vacía antes que el grupo, que manda a todo Remote a «Sin tienda»;
+claves sin prefijo; saltar cualquier nivel de una sola opción; no saltar nunca; «Sin tienda» antes
+que Remote; y quedarse con el rango de la primera fila o de la última en vez del menor.
+
+En el guard: salir como la 106 en cuanto `profile_id` no cambia; dejar al gerente cambiar el grupo;
+que un insert o un update del grupo no cuenten como cambio; que la salida de triggers anidados valga
+también para el grupo; y rehacer el trigger. El gemelo —las dos asignaciones del insert en el otro
+orden— **se queda en verde**. Y un `do $$` convertido en `do $`, que cae **solo** por la prueba de
+que cada bloque que se abre se cierra.
+
+> **Dos de esos cambios no cayeron a la primera, y ninguno era un fallo del código.**
+>
+> - **Quedarse con el rango de la última fila pasaba**, porque en la fixture la última fila era
+>   justo la de menor rango: la prueba de orden tenía datos que no la contradecían. Ahora primero,
+>   último y menor son distintos (4, 2, 5) y la otra tienda cae en medio (3); caen los dos mutantes,
+>   el de la primera y el de la última.
+> - **Las claves sin prefijo no chocaban**, porque el mutante quitaba el prefijo de las tiendas y se
+>   lo dejaba a los grupos. Estaba mal escrito el mutante, no la prueba: quitándolo de los dos lados,
+>   cae la prueba de la tienda que se llama como un grupo.
+
+> **Y una edición rompió el `.sql` sin que nada lo dijera.** El guard se metió en el fichero con
+> `String.replace` y una cadena de reemplazo, y ahí `$$` significa «un `$`»: el cuerpo quedó como
+> `as $` … `end $;`, SQL inválido, con el checksum ya calculado sobre esa versión rota. Lo cazó la
+> propia prueba del guard, porque su recorte no encontró `end $$;` y reventó el fichero entero en
+> vez de dejar un verde vacío. Se reparó, se recalculó el checksum, y se añadió una prueba que lo dice
+> directo: cuántos bloques se abren y cuántos se cierran.
+
+### Lo no verificado
+
+- **Nadie ha llamado a la función contra la base.** La matriz por rol —admin, manager, vendedor—,
+  de solo lectura y con `ROLLBACK`, está al final del `.sql`, con `<uuid-…>` en vez de cuentas
+  reales.
+- **Nadie ha probado el guard contra la base.** La prueba por rol —gerente de RR. HH. rechazado,
+  admin pasa, gerente que edita otro campo sin tocar el grupo pasa—, con `ROLLBACK`, está al final
+  del `.sql`. Esa sí escribe dentro de la transacción; el único trigger de `employee_files` es este
+  guard, que no llama a nada de fuera.
+- **Si la ficha manda `directory_group` en cada guardado**, el de un gerente fallará en cuanto el
+  valor que mande no sea el que ya hay (por ejemplo, null sobre un `remote`). Es de la otra rama;
+  el patrón que evita eso ya existe en D-258 con la tienda: no mandar el campo cuando quien guarda no
+  puede cambiarlo.
+- **Nadie ha abierto la página en un navegador**: ni el salto del nivel de departamento, ni la miga
+  de pan, ni la tarjeta de alguien de Remote.
+- **Qué número de personas verá cada rol** depende de los `directory_group` y los códigos que cargue
+  el orquestador; aquí no hay nada que contar.
+- **Que la pantalla de Ajustes conserve `directory_code` al guardar las tiendas** es de la otra
+  rama. Si algún guardado reconstruyera los objetos de tienda sin esa clave, los códigos se
+  perderían en silencio y el directorio volvería a los nombres.
