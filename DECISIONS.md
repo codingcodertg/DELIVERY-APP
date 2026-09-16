@@ -16298,3 +16298,81 @@ pruebas de más son las del registro, en `password-recovery.test.ts`; la base si
 > sale de las IP de Vercel. El límite por IP de Supabase lo comparten todas las peticiones de
 > reset a la vez, y quien lo agote bloquea a las demás un rato. Como el cliente recibe siempre
 > `{ ok: true }`, esos fallos solo se ven en los logs de Vercel (`[auth/forgot]`).
+
+## D-NEXT · «Cerrar sesión» cierra este equipo, no la cuenta en todos
+
+**Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar; cambia código de cliente y
+de servidor (rutas de salida y de vuelta de «entrar como») · **Sin migración** · **Pedido por:** el
+dueño, porque la app de escritorio del Time Tracker le cerraba la sesión sola.
+
+### Qué fallaba
+
+En `@supabase/auth-js` 2.112.4 —la instalada, y la única copia en `node_modules`—
+`signOut()` sin argumentos es `signOut({ scope: 'global' })` (`dist/main/GoTrueClient.js:3405`), y
+el cliente de admin manda `POST /logout?scope=global`: **revoca todas las sesiones de la cuenta**.
+Todos los «Cerrar sesión» del hub lo llamaban así.
+
+El orquestador lo encontró en producción: la cuenta del dueño tenía dos sesiones, la web y la de la
+app de escritorio (Electron), y las cookies del escritorio persistían hasta 2027. Nada caducaba:
+alguien revocaba la sesión, y encajaba con un «Cerrar sesión» en otro equipo.
+
+**Había un caso peor.** Las dos rutas de vuelta de «entrar como» (`/api/impersonate/return` y
+`/api/impersonate/auto-return`) llaman a `signOut()` cuando no hay cookie de retorno o el refresh
+del admin ya no vale. En ese momento la sesión de la cookie puede ser **la del vendedor
+impersonado**, y el global lo sacaba también de su teléfono y de su PC, sin que él hubiera hecho
+nada.
+
+### Qué cambia
+
+Los seis `signOut()` sin alcance pasan a `signOut({ scope: "local" })`, que con 2.112.4 hace
+`POST /logout?scope=local` y borra la sesión de este equipo:
+
+- `src/app/auth/signout/route.ts`, a la que postean los seis formularios de «Cerrar sesión»
+  (TopBar ×2, TopBar de RR. HH. y del Time Tracker, `HomeSelector` y el menú del ERP; contados con
+  grep);
+- `src/app/no-access/SignOut.tsx`;
+- las dos llamadas de `impersonate/return` y las dos de `impersonate/auto-return`.
+
+**No cambia:** `signOutEverywhere` del Time Tracker, el botón «Cerrar sesión en todos los
+dispositivos», que es global a propósito y ahora la prueba lo exige así. Tampoco la revocación de la
+sesión impersonada por la API de admin, que ya era `local` (D-245).
+
+Ninguna decisión anterior eligió el cierre global para «Cerrar sesión»: se buscó en este fichero. Era
+el valor por defecto de la librería, no una decisión.
+
+### Cómo se encontraron todas
+
+La lista llegó del orquestador y **no se tomó por buena**: se barrió `src/` y el resto del repo
+(fuera `node_modules`) buscando `signOut`, `/logout` y `logout?scope`. Salen las seis de la lista, la
+global del Time Tracker y la de admin, y ninguna más. La prueba repite ese barrido cada vez,
+**contando paréntesis**, así que una llamada partida en varias líneas sale entera.
+
+### La prueba
+
+- **Se importan las tres rutas y se llaman**, con Supabase, cookies, el rastro y la revocación
+  falsos: nada llama a Auth de verdad. Se exige que `signOut` se llame exactamente con
+  `{ scope: "local" }`, por los cinco caminos: salir, y las dos vueltas sin cookie y con el refresh
+  caducado. La cookie de retorno se fabrica con `empaquetar`, la misma función que la escribe. Un
+  control comprueba que, si la vuelta sale bien, no se llama a `signOut`: si no, las otras podrían
+  pasar por un camino que lo llama siempre.
+- **Se barre el código de `src/`** sin comentarios: la lista de sitios con `signOut` tiene que ser
+  exactamente la conocida, cada una `local`, salvo el botón de todos los dispositivos, que tiene que
+  ser `global`. Un control comprueba que el detector ve una llamada partida en varias líneas y no ve
+  un comentario.
+
+**Medido con diez cambios, nueve que caen y un gemelo en verde:** volver a `signOut()` en cada uno
+de los seis sitios (las cuatro llamadas de las vueltas caen cada una por su prueba de
+comportamiento, y la de la pantalla sin acceso, que es un componente de cliente, por el barrido);
+pedir `global` explícito en la ruta de salida; que el botón de todos los dispositivos deje de ser
+global; y una llamada nueva sin alcance, partida en varias líneas, en otro fichero. El gemelo —la
+misma llamada `local` escrita en varias líneas con coma final— se queda en verde, para que la
+prueba no fije el formato.
+
+### Lo no verificado
+
+- **Nadie ha cerrado sesión de verdad** en un equipo para ver que el otro sigue dentro. Eso toca
+  Auth de producción, y la regla de las pruebas lo deja fuera.
+- **La pantalla sin acceso** solo está cubierta por el barrido, no llamándola: es un componente de
+  cliente y aquí no se monta React.
+- **Quien ya perdió la sesión en su escritorio** tiene que volver a entrar una vez. Esto evita que
+  vuelva a pasar; no devuelve lo que ya se revocó.

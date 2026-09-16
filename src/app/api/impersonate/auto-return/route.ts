@@ -41,7 +41,9 @@ export async function GET(request: Request) {
   const alLogin = () => NextResponse.redirect(new URL("/login", url.origin));
 
   if (!guardado) {
-    await ssr.auth.signOut().catch(() => {});
+    // `local`: la sesión que hay en esta cookie puede ser la del VENDEDOR impersonado. Un
+    // `signOut()` sin alcance es global en auth-js y lo sacaría también de su teléfono y su PC.
+    await ssr.auth.signOut({ scope: "local" }).catch(() => {});
     return alLogin();
   }
 
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
 
   const { error } = await ssr.auth.refreshSession({ refresh_token: guardado.refresh });
   if (error) {
-    await ssr.auth.signOut().catch(() => {});
+    await ssr.auth.signOut({ scope: "local" }).catch(() => {});
     return alLogin();
   }
 
