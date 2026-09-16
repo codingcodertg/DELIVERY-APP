@@ -15749,3 +15749,105 @@ Cinco mutantes, y cada uno tira **una** prueba:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **1969 pasados | 3 saltados**.
 La rama añade 21 pruebas y no quita ninguna —11 en `phone-book.test.ts`, 10 en
 `employee-file.test.ts`, contadas en el diff—, así que `main` 2ce5806 está en 1948 | 3.
+
+## D-NEXT · El directorio omite a quien no tiene ningún dato de contacto
+
+**Fecha:** 2026-09-15 · **Versión:** la pone el orquestador al fusionar; el cambio vive entero en
+la base, así que le toca la excepción de `CLAUDE.md` —solo `package.json`, sin `APP_VERSIONS`—
+· **Migración: `110_phone_book_con_contacto.sql`**, que **aplica el orquestador**, no la rama ·
+**Pedido por:** el dueño, sobre el directorio de D-256: *«si no tiene tiendas o puestos y así
+entonces omítelo por ahora»*.
+
+### El hueco
+
+Cargada la hoja del dueño en los expedientes (D-258), `phone_book()` devuelve **49 personas**, y
+**cuatro** no tienen ni teléfono, ni extensión, ni correo: cuentas sueltas que no están en la hoja
+de RR. HH. Hoy salen en «(sin tienda) → (sin departamento)», así que quien baja los tres niveles
+de la cascada llega a una tarjeta con tres rayas. No es un dato que falte en una fila: es una fila
+que no lleva a ninguna parte.
+
+### Lo que se filtra es «no hay nada que enseñar», no «no tiene departamento»
+
+Son dos reglas distintas que **con los datos de hoy tacharían a las mismas cuatro personas**, y
+por eso los datos no sirven para elegir entre ellas: las cuatro sin contacto son también las
+cuatro sin departamento. Hay que elegir en el código, y se eligió el contacto:
+
+- **Edgar Ayala no tiene departamento, tiene la extensión 332, y tiene que seguir saliendo**, en
+  Pharr. Quien tiene una extensión es exactamente a quien alguien va a buscar en un directorio.
+- El filtro mira los **tres campos que la tarjeta pinta** —teléfono, extensión y correo—, y basta
+  con uno. Los tres salen de `employee_files`, los mismos que se devuelven, así que «tiene algo
+  que enseñar» y «se enseña algo» no pueden discrepar.
+- Un campo **en blanco no es un dato**: los tres pasan por `nullif(btrim(...), '')`, igual que la
+  tienda en la 109. Sin eso, un espacio en una extensión colaría a alguien con una tarjeta
+  igual de vacía.
+
+La prueba fija los dos casos por separado —el que se queda y el que desaparece—, que es lo único
+que distingue esta regla de la otra mientras los datos no las distingan.
+
+### Lo que se descartó
+
+- **Marcar a esas personas como dadas de baja.** `date_left` es la fecha en que alguien se fue.
+  Usarla para esconder una ficha incompleta sería escribir una mentira en el expediente para
+  arreglar una pantalla, y la mentira sobreviviría al arreglo. El filtro vive en la función; el
+  expediente no se toca, la persona sigue entera en RR. HH., y **vuelve al directorio sola** el
+  día que alguien le ponga una extensión.
+- **Filtrar en el cliente.** El directorio ya tiene una regla: lo que no vuelve de la función no
+  está en la pantalla (D-256). Un segundo filtro en React sería una segunda verdad sobre quién
+  sale, y las dos se separan en cuanto alguien toque una.
+- **Filtrar por departamento o por tienda**, que es lo que la frase del dueño dice en su letra.
+  Se implementó lo que pedía —que no salga quien no lleva a ninguna parte— sin tachar a quien sí
+  lleva. Si el dueño quiere la otra, es un cambio de una línea y una prueba.
+
+### La 110 parte de la 109, entera
+
+`create or replace` reemplaza la función completa: lo que la migración no copie se pierde en
+producción. La tienda del expediente de D-258 sigue en **los dos sitios** donde se usa —la columna
+que se devuelve y el cruce con el orden de Ajustes—, y hay prueba de eso, porque copiar solo la
+primera es el fallo que no se ve mirando la lista.
+
+### La etiqueta de «sin departamento» ya estaba
+
+Se fue a mirar qué pinta la cascada cuando `department` viene nulo, por si el grupo salía sin
+nombre: `src/app/home/directory/page.tsx:57` ya tiene `t("No department", "Sin departamento")`,
+bilingüe y pegada a la de «sin tienda» de la línea de encima. **No se tocó nada.**
+
+### Medido, rompiendo cada pieza
+
+Doce cambios sobre el `.sql`, cada uno corrido entero: **once que tienen que caer y uno que
+tiene que quedarse en verde**. Los que importan:
+
+- filtrar por **departamento** en vez de por contacto → caen tres pruebas, entre ellas la de
+  Edgar Ayala;
+- **dejarse la extensión** fuera del filtro;
+- **exigir los tres datos** en vez de uno, escrito conservando la forma del filtro —mismas tres
+  columnas, mismo saneado— para que caiga **solo** la prueba del «o», y no otra de rebote;
+- la **misma regla escrita con `or`**, que no es un fallo: se comprueba que **se queda en verde**,
+  para que las pruebas no estén fijando mi manera de escribirlo;
+- quedarse **sin filtro**, esconder a la gente con `date_left`, perder la tienda de la 109,
+  perder `store_rank` de la firma, dejar de ser `security definer`, y **arrastrar una columna
+  privada por la CTE sin tocar la firma** — el mutante de D-258, que cae por la prueba que dice
+  defender eso y no por la de las ocho columnas.
+
+> **Una prueba no medía nada, y la delató la propia tanda.** La del «o» recortaba el filtro
+> buscando el texto `and coalesce(`; el mutante que lo reescribía hacía desaparecer ese ancla,
+> `indexOf` devolvía −1, y el recorte quedaba en **un carácter**: el `not.toMatch` pasaba
+> siempre. En la tanda salía como «cae por otras tres pruebas», que es justo lo que enmascara
+> el problema. Se arregló anclando el recorte en la condición de `date_left` —que no depende de
+> cómo se escriba el filtro— y con un ayudante que **revienta si el ancla falta**, en vez de
+> devolver un recorte absurdo. Es el mismo fallo que D-258 contó con `String.raw`, por otro
+> camino: una prueba que no puede fallar.
+
+### Lo no verificado
+
+- **Nadie ha llamado a `phone_book()` contra la base.** Cuando se escribe esto la migración no
+  está aplicada, y una rama no la aplica. De la función se ha medido el **texto** del `.sql`, no
+  su resultado. Las tres consultas de solo lectura para confirmarlo están al final del propio
+  fichero.
+- **Los números de arriba —49, 4, y los cuatro nombres— los midió el orquestador**, no esta rama:
+  el worktree no tiene `.env.local` a propósito. Aquí no se han recontado.
+- **«45 después del filtro» es una resta, no una medida.** Sale de 49 − 4 y de que los cuatro sin
+  contacto sean los mismos cuatro sin extensión; si esa coincidencia no fuera cierta, el número
+  cambiaría sin que el filtro estuviera mal.
+- **Nadie ha abierto el directorio en un navegador** después del cambio.
+- **Qué pasa si la hoja crece con alguien que tiene tienda y puesto pero ningún contacto**: esa
+  persona tampoco saldrá. Es lo que la regla dice, y hoy no hay ningún caso así para verlo.

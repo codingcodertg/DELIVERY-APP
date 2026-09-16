@@ -14,10 +14,34 @@ import {
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sql = leer("supabase/migrations/108_phone_book.sql");
-// La definición VIGENTE de la función vive en la 109, que la reemplaza entera. Lo que se afirma
-// sobre lo que la función expone HOY se mide ahí; el bloque de la 108 queda como historia de lo
-// que esa migración hizo, que sigue siendo cierto de ese fichero.
 const sql109 = leer("supabase/migrations/109_employee_file_store.sql");
+const sql110 = leer("supabase/migrations/110_phone_book_con_contacto.sql");
+
+// Cada migración redefine la función ENTERA, así que «lo que la función hace hoy» se mide
+// siempre en la última que la toca —hoy la 110—, y los bloques de las anteriores quedan como
+// historia de lo que cada una hizo, que sigue siendo cierto de esos ficheros.
+
+/** El `.sql` sin sus comentarios: una prueba sobre el filtro mide el filtro, no lo que cuenta. */
+const sinComentarios = (s: string) => s.split("\n").map((l) => l.replace(/--.*$/, "")).join("\n");
+
+/**
+ * Recorta un trozo del `.sql` entre anclas, y REVIENTA si alguna falta. Un `indexOf` que
+ * devuelve -1 no da error: devuelve un recorte absurdo, y las pruebas que miran ese recorte
+ * pasan sin medir nada. Medido: con el recorte anterior, el mutante que exigía los tres datos
+ * de contacto a la vez dejaba `contacto` en un carácter y la prueba del «o» pasaba igual.
+ */
+function corta(texto: string, a: { desde?: RegExp; tras?: RegExp; hasta?: RegExp }): string {
+  let t = texto;
+  for (const [clave, ancla] of [["desde", a.desde], ["tras", a.tras], ["hasta", a.hasta]] as const) {
+    if (!ancla) continue;
+    const m = ancla.exec(t);
+    if (!m) throw new Error(`falta el ancla ${clave}: ${ancla}`);
+    t = clave === "desde" ? t.slice(m.index)
+      : clave === "tras" ? t.slice(m.index + m[0].length)
+      : t.slice(0, m.index);
+  }
+  return t;
+}
 
 const persona = (extra: Partial<PersonaDirectorio> = {}): PersonaDirectorio => ({
   full_name: "Ana", title: null, store: "McAllen", store_rank: 1, department: "Ventas",
@@ -211,7 +235,7 @@ describe("el chofer llega al directorio sin pasar por el hub", () => {
   });
 });
 
-describe("109: la función vigente, con la tienda del expediente para quien no tiene cuenta", () => {
+describe("109: la tienda del expediente entra en la función, para quien no tiene cuenta", () => {
   const cuerpo = sql109.slice(sql109.indexOf("create or replace function public.phone_book()"),
     sql109.indexOf("create or replace function public.store_names()"));
 
@@ -286,5 +310,123 @@ describe("109: la lista de tiendas para elegir expone nombre y orden, nada más"
 
   it("no lleva el marcador de decisión sin numerar: su checksum la congela", () => {
     expect(sql109).not.toContain("D-" + "NEXT");
+  });
+});
+
+// La definicion VIGENTE de la funcion vive en la 110, que la reemplaza entera. Lo que se afirma
+// sobre lo que la funcion hace HOY se mide ahi; los bloques de la 108 y la 109 quedan como
+// historia de lo que cada una hizo, que sigue siendo cierto de esos ficheros.
+describe("110: el directorio solo enseña a quien tiene algo que enseñar", () => {
+  // Esto mide el TEXTO del `.sql`, no una base ejecutándolo: cuando se escribe, la migración no
+  // está aplicada. Lo que fija es la forma del filtro —sobre qué columnas decide y sobre cuáles
+  // no—, que es donde caben los dos errores que importan. Las consultas de solo lectura para
+  // confirmarlo contra la base están al final del propio `.sql`.
+  const cuerpo = sinComentarios(corta(sql110, { desde: /create or replace function public\.phone_book\(\)/ }));
+
+  // El filtro de la CTE `personas`: del `from` de la tabla al cierre de la CTE. Se corta
+  // ANTES del `select` de la CTE a propósito, para que la prueba del departamento mida el
+  // FILTRO y no la columna que se devuelve — que sigue estando, y tiene que seguir.
+  const filtro = corta(cuerpo, {
+    desde: /from recruiting\.employee_files f/,
+    hasta: /\n {2}\)\n {2}select/,
+  });
+  // Lo que el `where` exige ADEMÁS de que la persona siga activa. Se ancla en la condición de
+  // `date_left`, no en la forma del filtro: así un filtro reescrito de otra manera se sigue
+  // midiendo, en vez de desaparecer del recorte y dejar las pruebas en verde por nada.
+  const contacto = corta(filtro, { tras: /where\s+f\.date_left\s+is\s+(?:not\s+)?null/ });
+
+  it("el fichero está, redefine la función, y el filtro se encontró (control)", () => {
+    expect(cuerpo).toContain("create or replace function public.phone_book()");
+    expect(filtro).toMatch(/where\s+f\.date_left\s+is\s+null/);
+    expect(contacto).toContain("is not null");
+    expect(contacto.length).toBeGreaterThan(50);
+  });
+
+  it("misma firma: las mismas ocho columnas, en el mismo orden", () => {
+    const bloque = cuerpo.slice(cuerpo.indexOf("returns table ("), cuerpo.indexOf(")\nlanguage sql"));
+    const columnas = [...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1]);
+    expect(columnas).toEqual([
+      "full_name", "title", "store", "store_rank", "department", "phone", "ringcentral_ext", "email",
+    ]);
+  });
+
+  it("decide sobre los TRES campos de contacto, y sobre ninguno más", () => {
+    // Set, no texto: una reescritura del filtro que siga mirando estas tres columnas —y solo
+    // estas— pasa. La que se deja una fuera, no: quien solo tuviera ESE dato desaparecería.
+    const columnas = [...contacto.matchAll(/f\.(\w+)/g)].map((m) => m[1]).sort();
+    expect(columnas).toEqual(["email", "phone", "ringcentral_ext"]);
+  });
+
+  it("el departamento NO decide: sin departamento pero con extensión, se queda", () => {
+    // El caso con nombre: Edgar Ayala no tiene departamento, tiene la extensión 332, y sale en
+    // Pharr. Es la diferencia entre «no hay nada que enseñar» y «no tiene departamento», y con
+    // los datos de hoy NO se puede distinguir midiendo la base: las cuatro personas sin
+    // contacto son también las cuatro sin departamento, así que los dos filtros darían el mismo
+    // número. Lo que separa un filtro del otro es esta prueba.
+    expect(filtro).not.toMatch(/\bdepartment\b/);
+  });
+
+  it("basta con uno de los tres: es un «o», no un «y»", () => {
+    // Un mutante que encadene las tres condiciones con `and` exige los tres datos y vacía el
+    // directorio hasta dejar solo a quien lo tiene todo. Se mide en el tramo que va de la
+    // primera columna a la última, para no depender de en qué orden se escribieron.
+    const entreRamas = contacto.slice(contacto.indexOf("f."), contacto.lastIndexOf("f."));
+    expect(entreRamas).not.toMatch(/\band\b/i);
+  });
+
+  it("un espacio en blanco no es un dato de contacto", () => {
+    // Misma regla que la tienda en la 109. Sin el `btrim`, una extensión con un espacio colaría
+    // a alguien en el directorio con una tarjeta igual de vacía.
+    const saneados = contacto.match(/nullif\(btrim\(coalesce\(f\.\w+, ''\)\), ''\)/g) ?? [];
+    expect(saneados).toHaveLength(3);
+  });
+
+  it("nadie se marca como dado de baja para esconderlo: la migración no escribe nada", () => {
+    // `date_left` es la fecha en que alguien se fue. Usarla para tapar una ficha incompleta
+    // sería escribir una mentira en el expediente para arreglar una pantalla.
+    expect(sql110).not.toMatch(/\bdate_left\s+is\s+not\s+null\b/);
+    expect(sql110).not.toMatch(/\bset\s+date_left\b/i);
+    for (const escritura of [/insert\s+into\s+recruiting/i, /update\s+recruiting/i, /delete\s+from\s+recruiting/i]) {
+      expect(sql110, String(escritura)).not.toMatch(escritura);
+    }
+  });
+
+  it("la tienda de la 109 sobrevive entera, en los dos sitios donde se usa", () => {
+    // `create or replace` reemplaza la función entera: lo que esta migración no copie, se pierde
+    // en producción. El fallo silencioso es copiar la columna y olvidar el cruce con Ajustes.
+    expect(cuerpo).toMatch(/coalesce\(\s*nullif\(btrim\(coalesce\(p\.store, ''\)\), ''\),\s*nullif\(btrim\(coalesce\(f\.store, ''\)\), ''\)\s*\) as tienda/);
+    expect(cuerpo).toContain("x.tienda::text           as store,");
+    expect(cuerpo).toContain("left join orden o on o.nombre = x.tienda;");
+    expect(cuerpo).not.toContain("o.nombre = p.store");
+  });
+
+  it("sigue sin exponer lo que RR. HH. guarda de puertas adentro", () => {
+    for (const col of ["address", "birthday", "days_off", "notes", "employee_code", "date_hired"]) {
+      // `String.raw`, no plantilla normal: ahí la secuencia de límite de palabra es el carácter
+      // RETROCESO y el `not.toMatch` no podría fallar nunca (está contado en D-258).
+      expect(cuerpo, col).not.toMatch(new RegExp(String.raw`\b${col}\b`));
+    }
+  });
+
+  it("conserva `security definer`, su `search_path` y los permisos", () => {
+    expect(cuerpo).toContain("security definer");
+    expect(cuerpo).toContain("set search_path = public, recruiting, pg_temp");
+    expect(sql110).toContain("revoke execute on function public.phone_book() from public, anon;");
+    expect(sql110).toContain("grant  execute on function public.phone_book() to authenticated;");
+  });
+
+  it("no abre la tabla del expediente ni de paso", () => {
+    expect(sql110).not.toMatch(/create policy[^;]*employee_files/i);
+    expect(sql110).not.toMatch(/grant\s+select[^;]*employee_files/i);
+  });
+
+  it("se auto-registra en el ledger, como exige D-184", () => {
+    const [, despues] = sql110.split("-- @ledger-below");
+    expect(despues).toContain("insert into public.schema_migrations");
+    expect(despues).toContain("110_phone_book_con_contacto.sql");
+  });
+
+  it("no lleva el marcador de decisión sin numerar: su checksum la congela", () => {
+    expect(sql110).not.toContain("D-" + "NEXT");
   });
 });
