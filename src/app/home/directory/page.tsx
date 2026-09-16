@@ -17,8 +17,10 @@ import {
  * salta, para quien ya sabe el nombre.
  *
  * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, que devuelve ocho
- * columnas y solo de las personas activas. Esta pantalla no puede enseñar de más aunque se
- * equivoque: lo que no vuelve de esa función no está aquí.
+ * columnas, y solo de las personas activas que tienen algún dato de contacto — sin teléfono,
+ * extensión ni correo no hay tarjeta que pintar, y la función ya no las manda (110). Esta
+ * pantalla no puede enseñar de más aunque se equivoque: lo que no vuelve de esa función no
+ * está aquí, y tampoco hay un segundo filtro aquí que pueda decir otra cosa.
  */
 export default function DirectoryPage() {
   const { t } = usePrefs();

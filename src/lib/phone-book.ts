@@ -12,7 +12,12 @@
  * nombre escribe y lo tiene, y quien no, baja por tiendas.
  */
 
-/** Una fila tal como la devuelve `public.phone_book()` (migración 108). */
+/**
+ * Una fila tal como la devuelve `public.phone_book()`. La definición vigente es la de la
+ * migración **110**: cada una redefine la función entera, así que la última que la toca es la
+ * que manda. La 108 la creó, la 109 le puso la tienda del expediente y la 110 dejó fuera a
+ * quien no tiene ningún dato de contacto.
+ */
 export type PersonaDirectorio = {
   full_name: string;
   title: string | null;
