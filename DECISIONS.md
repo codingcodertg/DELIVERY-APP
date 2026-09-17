@@ -36968,12 +36968,23 @@ aprobación de oficina»*, con cuatro cuentas nombradas.
 - **La base también lo hace cumplir (123).** El `auto` del guard ahora es «la tienda aprueba sola **y**
   la cuenta no está marcada». La función nueva `account_requires_approval(text)` lee la marca de
   Ajustes, comparando el nombre sin espacios ni mayúsculas, y una cuenta sin marca es una cuenta sin
-  marca. El guard se copia de la vigente (118) y **solo cambia esa línea**: una prueba lo deshace y lo
+  marca. El guard se copia de la vigente y **solo cambia esa línea**: una prueba lo deshace y lo
   compara.
 - **El botón lo dice.** Donde antes ponía «Crear orden (aprobada)» o «Crear (auto-aprobada)», con una
   cuenta marcada pone «Enviar a aprobación», porque eso es lo que va a pasar.
 - **Los nombres de las cuatro cuentas no están en el repo.** Los marca el orquestador en Ajustes; aquí,
   ni en pruebas ni en el `.sql`.
+
+### La vigente no era la que yo creía
+
+Esta rama empezó copiando el guard de la **118**, que era la vigente al abrirla. Mientras estaba
+abierta, la **122** —anular con motivo, de otra rama— lo redefinió entero. Aplicar mi copia después
+habría devuelto el guard a antes de la 122 y se habría llevado por delante lo del motivo de anulación,
+en silencio y sin conflicto de git: son ficheros distintos.
+
+Se vio al rebasar, comprobando si la 122 tocaba el mismo objeto. La 123 se regeneró desde la 122 y
+**la prueba ya no cita ningún número**: busca las migraciones que definen el guard, toma la anterior a
+la 123 y compara contra esa. Si mañana entra una 124 que lo redefina, la prueba lo dice sola.
 
 ### El límite, dicho
 

@@ -17,8 +17,13 @@
 -- la cuenta gana a la tienda tambien en la base.
 --
 -- QUE CAMBIA, EXACTAMENTE. Una linea del guard: el `auto` que ya se calculaba con la tienda ahora
--- ademas exige que la cuenta NO este marcada. Todo lo demas de la 118 se copia tal cual —office como
--- gerente, los grupos, las etapas de cada rol— y una prueba lo comprueba deshaciendo el cambio.
+-- ademas exige que la cuenta NO este marcada.
+--
+-- SE COPIA DE LA VIGENTE, QUE ES LA 122, no la 118. La 122 (anular con motivo) redefinio el guard
+-- entero mientras esta rama estaba abierta; partir de la 118 habria devuelto el guard a antes de ella
+-- y se habria llevado por delante lo de anular con motivo sin que nadie lo notara. Todo lo demas de la
+-- 122 se copia tal cual —office como gerente, los grupos, las etapas por rol y las reglas de
+-- anulacion— y una prueba lo comprueba deshaciendo el cambio.
 --
 -- LAS ORDENES YA CREADAS NO SE TOCAN. Esto solo decide que puede nacer o a que etapa se puede mover a
 -- partir de ahora; ninguna fila se reescribe. Una orden de esas cuentas que ya este aprobada sigue
@@ -48,11 +53,47 @@ declare
   new_stage text := NEW.stage;
   auto boolean := public.store_auto_approves(NEW.store)
                   and not public.account_requires_approval(NEW.account);
+  -- Esta escritura mete la orden en 'canceled' ahora mismo (no estaba ya anulada).
+  entrando boolean := new_stage = 'canceled'
+                      and (TG_OP = 'INSERT' or old_stage is distinct from 'canceled');
   -- Scratch copy of NEW used to prove that a location-stamp patch changed
   -- nothing else.
   probe public.deliveries%rowtype;
 begin
   if auth.uid() is null then return NEW; end if;
+
+  -- ---- Invariantes de la anulacion (122) ----
+  -- Van antes de la salida de admin A PROPOSITO: no son permisos de un rol, son cosas que no pasan.
+  -- El admin se salta los permisos; no se salta que una entrega hecha salga del computo.
+  if TG_OP = 'UPDATE' and old_stage = 'delivered' and new_stage = 'canceled' then
+    raise exception 'A delivered order is not canceled: log a re-delivery or a note instead';
+  end if;
+
+  if entrando then
+    if coalesce(btrim(NEW.canceled_reason), '') = '' then
+      raise exception 'A canceled order needs a reason';
+    end if;
+    -- La unica clave que la base conoce por su nombre: la sembrada para «otro», que la pantalla de
+    -- Datos no deja borrar. Cualquier otra clave la decide el admin y aqui da igual cual sea.
+    if NEW.canceled_reason = 'other' and coalesce(btrim(NEW.canceled_reason_note), '') = '' then
+      raise exception 'The other cancellation reason needs its free text';
+    end if;
+    -- Quien y cuando los pone la base, no el cliente.
+    NEW.canceled_by := auth.uid();
+    NEW.canceled_at := now();
+  end if;
+
+  -- El motivo es historia: escrito una vez, no se reescribe. Se exceptua `entrando`, que es una
+  -- anulacion nueva de una orden que un admin habia revivido; esa deja su motivo nuevo, y las dos
+  -- vueltas quedan en order_events.
+  if TG_OP = 'UPDATE' and not entrando and OLD.canceled_reason is not null
+     and (NEW.canceled_reason      is distinct from OLD.canceled_reason
+       or NEW.canceled_reason_note is distinct from OLD.canceled_reason_note
+       or NEW.canceled_by          is distinct from OLD.canceled_by
+       or NEW.canceled_at          is distinct from OLD.canceled_at) then
+    raise exception 'A cancellation reason is history: it cannot be rewritten';
+  end if;
+
   if r = 'admin' then return NEW; end if;
 
   if TG_OP = 'INSERT' then
@@ -107,6 +148,8 @@ begin
     or (old_stage = 'rejected' and new_stage = 'pending')
     or (old_stage = 'draft'    and new_stage = 'canceled')
     or (old_stage = 'rejected' and new_stage = 'canceled')
+    -- 122: gerente y office anulan una orden viva; el motivo lo exige el bloque de arriba.
+    or (r in ('manager','accounting') and new_stage = 'canceled' and old_stage in ('pending','approved','fulfilling','ready'))
     or (r in ('sales','driver') and new_stage = 'approved' and old_stage in ('draft','pending') and auto)  -- auto-approve store
     or (r = 'driver' and old_stage = 'ready'     and new_stage = 'picked_up')
     or (r = 'driver' and old_stage = 'picked_up' and new_stage = 'delivered')
@@ -132,14 +175,14 @@ begin
 
   raise exception 'Not allowed';
 end $function$
-
 ;
 
 -- ===========================================================================
 -- Reversion
 -- ===========================================================================
 --   Volver a aplicar el bloque `create or replace function public.guard_delivery_stage()` de
---   118_guard_office_como_manager.sql, que es la definicion anterior a esta. Una sola sentencia, sin
+--   122_anular_con_motivo.sql, que es la definicion anterior a esta (NO la de la 118: la 122 la
+--   reescribio despues). Una sola sentencia, sin
 --   drop: el trigger no se toca. La funcion `account_requires_approval` puede quedarse —no la llama
 --   nadie mas— o borrarse con:
 --     drop function if exists public.account_requires_approval(text);
@@ -203,7 +246,7 @@ end $function$
 --   ) as a(caso, sentencia);
 --     -- ANTES:   PERMITIDO · PERMITIDO
 --     -- DESPUES: PERMITIDO · PERMITIDO
---     -- Ojo: el gerente crea aprobada POR SU ROL (rama `r in ('manager','accounting')` de la 118), no
+--     -- Ojo: el gerente crea aprobada POR SU ROL (rama `r in ('manager','accounting')` del guard), no
 --     -- por `auto`. Esta migracion NO se lo quita: la marca de la cuenta gana a la tienda, y a la
 --     -- pantalla, pero un gerente sigue pudiendo aprobar lo que crea. Si el dueno quiere cerrarle
 --     -- tambien esa puerta, es otra decision y otra migracion.
@@ -222,4 +265,4 @@ end $function$
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('123_cuentas_con_aprobacion.sql', '87c92f77794e7c500d0f3000ad0ae2c10cfc575aef2f548db4d5f6b6f1a0a7e3') on conflict (name) do nothing;
+  values ('123_cuentas_con_aprobacion.sql', '3f384b739b5587c305c15dc09c2574e25b6454cf6bd03ff978909de332d1bb75') on conflict (name) do nothing;

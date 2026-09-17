@@ -78,17 +78,22 @@ describe("123: la base también lo hace cumplir", () => {
     return texto.slice(i, j);
   };
 
-  it("la 123 es la última que define el guard (control)", () => {
-    const conGuard = readdirSync(join(process.cwd(), dir))
-      .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
-      .sort();
+  /** Las migraciones que definen el guard, en orden. La última es esta; la anterior es de la que
+   *  hay que copiar, sea cual sea su número: mientras esta rama estaba abierta, la 122 redefinió el
+   *  guard, y partir de la 118 —que era la vigente al empezar— habría deshecho lo suyo. */
+  const conGuard = readdirSync(join(process.cwd(), dir))
+    .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
+    .sort();
+
+  it("la 123 es la última que define el guard, y se sabe cuál es la anterior (control)", () => {
     expect(conGuard.at(-1)).toBe("123_cuentas_con_aprobacion.sql");
+    expect(conGuard.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("es la 118 con un solo cambio: el `auto` mira también la cuenta", () => {
+  it("es la ANTERIOR con un solo cambio: el `auto` mira también la cuenta", () => {
     // Los dos crudos, con sus comentarios: la copia los trae y quitárselos a uno solo compararía
     // cosas distintas.
-    const f118 = guard(leer(`${dir}/118_guard_office_como_manager.sql`));
+    const anterior = guard(leer(`${dir}/${conGuard.at(-2)!}`));
     const f123 = guard(sql);
     // Primero, que el cambio ESTÉ. Sin esto, un guard idéntico a la 118 —o sea, sin la cuenta—
     // pasaría la comparación de abajo sin más: medido con un mutante.
@@ -96,7 +101,7 @@ describe("123: la base también lo hace cumplir", () => {
     // Y ahora, que sea lo ÚNICO que cambia. Se quita la condición sin fijar su forma exacta: con
     // paréntesis o sin ellos es la misma condición, y el gemelo lo comprobó.
     const sinCuenta = plano(f123).replace(/\s*and\s*\(?\s*not\s+public\.account_requires_approval\(\s*NEW\.account\s*\)\s*\)?/, "");
-    expect(sinCuenta).toBe(plano(f118));
+    expect(sinCuenta).toBe(plano(anterior));
   });
 
   it("la marca se lee de Ajustes, sin espacios ni mayúsculas, y ausente es false", () => {
