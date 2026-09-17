@@ -196,9 +196,11 @@ describe("el modal y los dos proveedores usan esto", () => {
     expect(modal).toContain("const withTypeDefaults = (p: Draft, newType: string): Draft => aplicaTipo(p, newType, contextoDelUsuario);");
     // Los dos selectores de tipo y la cuenta que trae su tipo pasan por ahí.
     expect(modal.split("withTypeDefaults(").length - 1).toBe(3);
-    expect(modal).toContain("on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}");
-    expect(modal).toContain("setD((p) => eligeOrigen(p, v, settings.stores));");
-    expect(modal).toContain("on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}");
+    // Envuelto en `conContactoDeOrigen` desde D-NEXT, que en Intertienda deja el contacto en la
+    // tienda que envía; para el resto de tipos no cambia nada.
+    expect(modal).toContain("on={(v) => setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules))}");
+    expect(modal).toContain("setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules));");
+    expect(modal).toContain("on={(v) => setD((p) => conContactoDeOrigen(eligeDestino(p, v, settings.stores), settings.order_type_rules))}");
     expect(modal).toContain("const deliveryStore = tiendaDestinoMostrada(d, settings.stores);");
     expect(modal).toContain("const payload: Draft = borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason });");
     expect(modal).toContain("const origenIgualDestino = origenEsDestino(d, storeToStore, settings.stores);");
