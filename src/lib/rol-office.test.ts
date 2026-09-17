@@ -7,7 +7,7 @@ import {
 import { seesAllHistory } from "./utils";
 import type { UserRole } from "./types";
 
-// `accounting` se ve como «Office» y crea órdenes como el gerente (D-NEXT). La clave no cambia.
+// `accounting` se ve como «Office» y crea órdenes como el gerente (D-279). La clave no cambia.
 // La migración del guard que se lo permite en la base es de otra rama (`guard-office-como-manager`).
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

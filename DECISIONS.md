@@ -1290,7 +1290,7 @@ exótico ahí produce una cuenta que se ve bien y **no puede entrar**.
 ---
 
 ## D-044 · Contabilidad revisa y aprueba; no crea
-> **Reemplazada en parte por D-NEXT** (2026-09-17): crear y Duplicar. El dueño renombró el rol a «Office» y pidió que *«toda la gente de office debe poder crear órdenes»*, y la migración del guard de la rama `guard-office-como-manager` le abre en la base las ramas que esta entrada midió cerradas. Lo del enlace de seguimiento sigue en pie. El texto de abajo se conserva tal cual.
+> **Reemplazada en parte por D-279** (2026-09-17): crear y Duplicar. El dueño renombró el rol a «Office» y pidió que *«toda la gente de office debe poder crear órdenes»*, y la migración del guard de la rama `guard-office-como-manager` le abre en la base las ramas que esta entrada midió cerradas. Lo del enlace de seguimiento sigue en pie. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-08-16 · **Versión:** v1.8.0 · **Pedido por:** Andrés
 
@@ -17866,7 +17866,7 @@ pruebas y no quita ninguna: 13 en `order-document.test.ts` y 12 en `mobile-previ
 una del canario de `profile-read.test.ts` por la puerta nueva. Ese canario cayó la primera vez: la puerta
 recogía el error como `error`, sin la forma `error: nombre` que exige, y se renombró. `main` 34d37b8, medido en un worktree aparte, está en 2343 | 3.
 
-## D-NEXT · «Office»: `accounting` se llama Oficina, y crea y aprueba órdenes como el gerente
+## D-279 · «Office»: `accounting` se llama Oficina, y crea y aprueba órdenes como el gerente
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:** ninguna en esta
 rama. La del guard es la **118** (`118_guard_office_como_manager.sql`, D-277): la escribió, ensayó y

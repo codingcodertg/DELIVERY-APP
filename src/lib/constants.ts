@@ -177,7 +177,7 @@ export const ROLE_INFO: Record<UserRole, { label: string; label_es: string; colo
   warehouse: { label: "Warehouse",      label_es: "Almacén",           color: "var(--teal)",   desc: "Prepares approved orders",                 desc_es: "Prepara las órdenes aprobadas" },
   driver:    { label: "Driver",         label_es: "Chofer",            color: "var(--amber)",  desc: "Delivers orders and can log new ones",     desc_es: "Entrega órdenes y puede registrar nuevas" },
   logistics: { label: "Logistics Manager", label_es: "Gerente de Logística", color: "var(--green)", desc: "Assigns and optimizes driver routes",  desc_es: "Asigna y optimiza las rutas de los choferes" },
-  // Se ve como «Office / Oficina» (D-NEXT): el dueño lo renombró. La CLAVE sigue siendo `accounting`
+  // Se ve como «Office / Oficina» (D-279): el dueño lo renombró. La CLAVE sigue siendo `accounting`
   // en la base, los tipos y las reglas; solo cambia lo que se lee. `manager` sigue siendo «Office Manager».
   accounting: { label: "Office",         label_es: "Oficina",           color: "var(--ink-soft)", desc: "Creates, edits and approves orders", desc_es: "Crea, edita y aprueba órdenes" },
 };
@@ -736,7 +736,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
   // dispatched by the logistics manager. A driver only delivers what's assigned.
   driver:    ["deliver"],
   logistics: ["route_plan", "approve"],
-  // Office (the `accounting` key, D-NEXT): creates and approves like the Office Manager, without the
+  // Office (the `accounting` key, D-279): creates and approves like the Office Manager, without the
   // dashboard. It used to be approve-only (D-044, replaced in part), and the database refused even that:
   // until 118 the guard had no branch for this role at all.
   accounting: ["create", "approve"],
@@ -924,7 +924,7 @@ export function canTransition(from: Stage, to: Stage): boolean {
 }
 
 /**
- * Roles whose orders the app handles like the Office Manager's (D-NEXT): editable in any stage, the sales
+ * Roles whose orders the app handles like the Office Manager's (D-279): editable in any stage, the sales
  * fields open, a sales rep to credit on a customer order, created already approved, and a re-delivery can
  * be logged. `accounting` («Office») joined `manager` here when 118 gave it the same branches in the
  * database guard. The two have to move together: a role the app treats as office but the guard doesn't is
