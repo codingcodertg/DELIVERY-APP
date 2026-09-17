@@ -12406,6 +12406,7 @@ hoy a «NOMBRE DE CONTACTO», que mide lo mismo.
 ya trae D-230; antes del rebase eran 1494 sobre el main 6f5a3ee, que tenía 1488.
 
 ## D-232 · El marco de la tabla mide lo que miden sus columnas
+> **Reemplazada por D-NEXT** (2026-09-17): el objetivo se conserva —nada de rectángulo vacío con borde—, pero el mecanismo cambia: en vez de encoger el marco hasta las columnas, la tabla se estira hasta el marco. El dueño pidió lo contrario que aquí, con la misma franja delante: «only sales people gets the table cropped». El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño: a la derecha de la tabla de pedidos hay **«un espacio en blanco que
@@ -18034,3 +18035,74 @@ Time Tracker.
 pruebas y no quita ninguna: 11 en `desktop-shell.test.ts`, fichero nuevo, y 1 que genera el barrido de colores
 de `inline-colors.test.ts` por `BotonRecargar.tsx`. `main` 2a157f1, medido en un worktree aparte, está en
 2387 | 3.
+
+## D-NEXT · La tabla ocupa el ancho con cualquier número de columnas
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, con captura: *«only sales people gets the table cropped»* — la tabla de Órdenes
+acaba a media pantalla con la sesión de un vendedor.
+
+### Por qué solo a ventas
+
+`table.tbl-resize` es `table-layout: fixed` con `width: auto`, y eso significa **la suma de los anchos
+de sus columnas** (las pone `use-col-widths` en cada `<col>`). Un vendedor ve **seis** columnas
+(`ROLE_DEFAULT_COLUMNS.sales`); un chofer ocho y almacén diez. Con seis, la suma no llega al hueco y la
+tabla se queda corta. No estaba recortada: lo que sobraba a la derecha era hueco.
+
+**No se arregla dándole más columnas a ventas.** El hueco vuelve con cualquier combinación corta, y
+cualquiera puede llegar a una desde ⚙ Columnas, que deja esconder las que no usa. El problema es el
+ancho de la tabla, no la lista de columnas de un rol.
+
+### El arreglo, y qué pasa con D-232
+
+Una regla:
+
+```css
+table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }   /* min-width era 0 */
+```
+
+- Si las columnas **no llegan**, la tabla se estira hasta el marco y el navegador reparte el sobrante
+  entre ellas, respetando su proporción.
+- Si **se pasan**, manda `width: auto` —la suma— y el desplazamiento horizontal sigue igual, con sus
+  sombras.
+
+**Esto cambia el mecanismo de D-232, y conserva su objetivo.** D-232 (2026-09-10) venía de la queja
+contraria —«un espacio en blanco que parece de la tabla»— y la resolvió **encogiendo el marco** hasta
+las columnas (`.tbl-scroll.tbl-fit { width: max-content }`). Las dos quejas son el mismo hueco visto al
+revés. Ahora la tabla se estira, así que **no queda franja vacía que tapar** y el objetivo de D-232 se
+cumple igual, sin que la tabla acabe a media pantalla.
+
+El `max-content` **tiene que irse**, no es cosmética: un contenedor que se encoge al contenido no da un
+ancho contra el que resolver un `min-width: 100%`, y el estirado no ocurriría. La clase `tbl-fit` se
+queda —con `width: auto; max-width: 100%`— para no volver a tocar `.tbl-scroll`, que usan 12 ficheros y
+cuyas cuatro sombras de desplazamiento dependen de su fondo, que es el motivo por el que D-232 la creó.
+
+**Las cinco tablas que la piden ganan lo mismo:** Órdenes, Cuentas y las tres de Rutas. Una prueba las
+cuenta, para que no se quede ninguna fuera ni aparezca una sexta sin querer.
+
+**En el teléfono no cambia nada:** por debajo de 640 px la tabla de Órdenes ya se convierte en tarjetas
+con `width: 100% !important; min-width: 0 !important`, que gana a esta regla. La línea que devolvía el
+marco a su ancho normal en ese tamaño se quita porque ya no hace falta, y queda dicho en el CSS para que
+nadie la reponga.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+La regla se lee del CSS, que es lo que corre. Ocho mutantes, cada uno cazado por la prueba pensada para
+él: devolver el `min-width: 0`, poner la tabla siempre al 100% —que rompería el desplazamiento—, quitar
+el `table-layout: fixed`, devolver el `max-content` al marco, quitarle el `max-width`, quitarle al
+teléfono su 100%, dejar una de las cinco tablas sin marco, y darle a ventas las columnas de almacén
+—que taparía el síntoma sin arreglar la causa—.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** En particular, **el reparto del sobrante entre columnas no
+  está visto**: que la tabla se estire es lo que dice la regla, pero cómo queda cada columna con seis y
+  con diez hay que mirarlo. Conviene probarlo con pocas y con muchas columnas, y después de cambiar un
+  ancho a mano.
+- **Los anchos guardados** (`localStorage`, por persona y tabla) siguen ahí: el reparto no los toca,
+  solo añade el sobrante encima.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2393 pasados | 3 saltados**. La rama añade 6
+pruebas, todas en `tabla-ancho.test.ts`, fichero nuevo, y no quita ninguna: `table-fit.test.ts`, el de D-232,
+sigue con sus 7, reescritas tres para el mecanismo nuevo. `main` 2a157f1, medido en un worktree aparte para la
+rama anterior (el mismo commit), está en 2387 | 3.

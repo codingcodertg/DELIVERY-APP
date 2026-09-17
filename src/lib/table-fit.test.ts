@@ -6,6 +6,12 @@ import { join } from "node:path";
 // `.tbl-scroll` es un bloque al 100% con su borde y su fondo, y `table.tbl-resize` es `width: auto`
 // —la suma de sus columnas—. Cuando las columnas no llegan al 100%, lo que se ve a la derecha es el
 // contenedor, vacío.
+//
+// D-NEXT le da la vuelta al arreglo: en vez de encoger el marco hasta las columnas, **la tabla se
+// estira hasta el marco** (`min-width: 100%`), porque el dueño volvió con la queja contraria —«only
+// sales people gets the table cropped»—. El objetivo de aquí no cambia: que no quede un rectángulo
+// vacío con borde. Lo que cambia es de qué lado se cierra el hueco, y estas pruebas con él. La regla
+// de ancho vive ahora en `tabla-ancho.test.ts`; aquí se queda lo que D-232 protegía del contenedor.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
 const css = leer("src/app/globals.css").split("\r\n").join("\n");
@@ -40,15 +46,20 @@ function contenedores() {
   return { conResize, total, conFit, fitSinResize };
 }
 
-describe("el marco mide lo que miden las columnas", () => {
-  it("la regla existe y se apoya en `max-content`, con tope del 100%", () => {
-    // `max-content` encoge el marco a la suma de las columnas; `max-width: 100%` es lo que
-    // conserva el desplazamiento cuando la tabla SÍ es más ancha que el hueco.
-    expect(css).toContain(".tbl-scroll.tbl-fit { width: max-content; max-width: 100%; }");
+describe("el marco ya no encoge, y por eso no hay franja vacía", () => {
+  it("la clase se queda, sin `max-content` y con tope del 100% (D-NEXT)", () => {
+    // Sin `max-content` el marco vuelve a ocupar el hueco, que es contra lo que la tabla resuelve
+    // su `min-width: 100%`. El tope conserva el desplazamiento cuando la tabla es más ancha.
+    expect(css).toContain(".tbl-scroll.tbl-fit { width: auto; max-width: 100%; }");
+    // Sin comentarios: el porqué del cambio sí nombra `max-content`, y contar sobre el fichero
+    // entero mediría el comentario en vez de la regla.
+    const reglas = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(reglas).not.toContain("max-content");
   });
-  it("y en el teléfono se desactiva, donde la tabla ya son tarjetas al 100%", () => {
+  it("y en el teléfono no hay nada que desactivar: ahí la tabla ya son tarjetas al 100%", () => {
     const movil = css.slice(css.indexOf("@media (max-width: 640px)"));
-    expect(movil).toContain(".tbl-scroll.tbl-fit { width: auto; }");
+    expect(movil).not.toContain(".tbl-scroll.tbl-fit {");
+    expect(movil).toContain("table.orders-responsive { width: 100% !important; min-width: 0 !important;");
   });
 });
 
@@ -70,10 +81,10 @@ describe("no se toca el contenedor de las otras once tablas", () => {
     expect(base).not.toContain("width:");
     expect(base).toContain("overflow-x: auto;");
   });
-  it("y la tabla tampoco cambia: sigue siendo `width: auto` con `table-layout: fixed`", () => {
+  it("la tabla sigue siendo `width: auto` con `table-layout: fixed`, y ahora con mínimo del 100%", () => {
     // El comentario que hay encima explica por qué no puede ser `max-content`: ignoraría los
-    // anchos por columna y bloquearía encoger. Esta rama no lo toca.
-    expect(css).toContain("table.tbl-resize { table-layout: fixed; min-width: 0; width: auto; }");
+    // anchos por columna y bloquearía encoger. El mínimo lo puso D-NEXT; lo demás es de D-232.
+    expect(css).toContain("table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }");
   });
 });
 
@@ -86,8 +97,8 @@ describe("quién lleva la clase", () => {
   });
   it("los demás `.tbl-scroll` del repo se quedan como estaban", () => {
     // El número importa: si mañana alguien le pone `tbl-fit` a un contenedor con una tabla
-    // normal (`width: 100%`), no gana nada y se arriesga a encogerlo por un `max-content` que
-    // no cuadra con el 100%.
+    // normal (`width: 100%`), no gana nada; y la clase solo tiene sentido junto a una
+    // `tbl-resize`, que es la que se estira.
     const usos = tsx.filter((r) => leer(r).includes('className="tbl-scroll')).length;
     expect(usos).toBeGreaterThanOrEqual(10);
   });
