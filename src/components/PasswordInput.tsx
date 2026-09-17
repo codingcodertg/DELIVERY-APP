@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * Un campo de contraseña con el ojo para ver lo que se escribe (D-NEXT).
+ * Un campo de contraseña con el ojo para ver lo que se escribe (D-271).
  *
  * El dueño: «al cambiar la contraseña, pon el ojo para ver el texto, porque no me deja». El login ya
  * lo tenía; «Mi perfil» y la pantalla de restablecer, no. Ahora los cinco campos de contraseña de la

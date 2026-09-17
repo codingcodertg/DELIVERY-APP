@@ -17053,7 +17053,7 @@ del `.sql`, por rol y con `ROLLBACK`:
   teléfono, ni el formulario de edición.
 - **Dos admins editando a la vez** se pueden pisar, como en D-268 y D-269.
 
-## D-NEXT · El ojo en todas las contraseñas, y un rechazo de Supabase que dice por qué
+## D-271 · El ojo en todas las contraseñas, y un rechazo de Supabase que dice por qué
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño:** «al cambiar la contraseña, pon el ojo para ver el texto, porque no me deja».

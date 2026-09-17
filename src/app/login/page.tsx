@@ -261,7 +261,7 @@ export default function LoginPage() {
 
             <div style={{ marginBottom: 16 }}>
               <label>{t("Password", "Contraseña")}</label>
-              {/* El ojo es el componente compartido (D-NEXT): una sola implementación para los cinco
+              {/* El ojo es el componente compartido (D-271): una sola implementación para los cinco
                   campos de contraseña de la app. */}
               <PasswordInput
                 value={password}

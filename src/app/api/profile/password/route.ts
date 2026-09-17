@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   const { error: errorAlGuardar } = await supabase.auth.updateUser({ password: nueva });
   if (errorAlGuardar) {
-    // El motivo de Supabase se DICE (D-NEXT): igual a la anterior, o débil y por qué. Antes todo era
+    // El motivo de Supabase se DICE (D-271): igual a la anterior, o débil y por qué. Antes todo era
     // «no_guardada», cuyo texto invita a reintentar algo que va a fallar igual.
     const fallo = codigoDeFalloAlGuardar(errorAlGuardar);
     // Lo que no se reconoce queda en el log del servidor, con código, estado y mensaje, y nunca la

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { AuthApiError, AuthWeakPasswordError } from "@supabase/supabase-js";
 import { codigoDeFalloAlGuardar, mensajeDeContrasena } from "./profile-password";
 
-// El ojo en las contraseñas, y que un rechazo de Supabase diga por qué (D-NEXT). Este fichero NO simula
+// El ojo en las contraseñas, y que un rechazo de Supabase diga por qué (D-271). Este fichero NO simula
 // Supabase: los errores son las clases reales de la librería instalada, que es la entrada que de verdad
 // le llega a la ruta. Las pruebas de la ruta, que sí lo simulan, usan objetos con estos mismos campos, y
 // la primera prueba de aquí fija que esos campos existen en las clases reales.

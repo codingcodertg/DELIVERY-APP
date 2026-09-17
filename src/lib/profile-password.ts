@@ -16,7 +16,7 @@ export type CodigoContrasena =
   | "no_coinciden"
   | "actual_incorrecta"
   | "sin_correo"
-  // Supabase rechazó la nueva y dijo por qué (D-NEXT): antes los dos acababan en «no_guardada».
+  // Supabase rechazó la nueva y dijo por qué (D-271): antes los dos acababan en «no_guardada».
   | "misma_contrasena"
   | "debil"
   | "no_guardada";
@@ -25,7 +25,7 @@ export type CodigoContrasena =
 export type MotivoDebil = "length" | "characters" | "pwned";
 
 /**
- * El código con el que se contesta cuando Supabase NO guarda la nueva contraseña (D-NEXT).
+ * El código con el que se contesta cuando Supabase NO guarda la nueva contraseña (D-271).
  *
  * Hasta aquí todo fallo acababa en «no_guardada», cuyo texto es «inténtalo otra vez». Y eso es falso
  * justo en los casos que más pasan: una contraseña igual a la anterior, o más débil de lo que exige el

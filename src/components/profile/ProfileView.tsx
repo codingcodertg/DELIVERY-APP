@@ -120,7 +120,7 @@ function CambiarContrasena() {
         setNueva("");
         setConfirmacion("");
       } else {
-        // Con los motivos que dé Supabase, para que el aviso diga qué cambiar (D-NEXT).
+        // Con los motivos que dé Supabase, para que el aviso diga qué cambiar (D-271).
         setAviso({ texto: mensajeDeContrasena(cuerpo?.codigo ?? "no_guardada", t, cuerpo?.motivos ?? []), ok: false });
       }
     } catch {

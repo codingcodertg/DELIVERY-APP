@@ -138,7 +138,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
     expect((await r.json()).codigo).toBe("no_guardada");
   });
 
-  // Un rechazo de Supabase dice por qué (D-NEXT). Los errores tienen los campos de las clases reales
+  // Un rechazo de Supabase dice por qué (D-271). Los errores tienen los campos de las clases reales
   // de la librería, que fija `password-input.test.ts` sin simular nada.
   it("débil: contesta «debil» con los motivos de Supabase", async () => {
     falso.updateUser.mockImplementation(async () => ({
