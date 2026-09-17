@@ -13851,7 +13851,7 @@ Se cierra por tres sitios, y el del medio es el que de verdad lo sostiene:
 fichero de `inline-colors.test.ts`, que ve un componente más).
 
 ## D-244 · La fórmula del recargo de entrega se puede ver, y sale del mismo sitio que el precio
-> **Reemplazada en parte por D-NEXT** (2026-09-17): las cifras y las dos columnas, lista y descuento. Lo que esta entrada decidió —que la fórmula salga del mismo sitio que el precio y que la pantalla la genere— sigue en pie, y D-NEXT lo extiende al escalón del redondeo. El texto de abajo se conserva tal cual.
+> **Reemplazada en parte por D-283** (2026-09-17): las cifras y las dos columnas, lista y descuento. Lo que esta entrada decidió —que la fórmula salga del mismo sitio que el precio y que la pantalla la genere— sigue en pie, y D-283 lo extiende al escalón del redondeo. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** *«solo para admin en delivery app quiero que él pueda ver la fórmula que
@@ -36055,7 +36055,7 @@ en 25 y `order-endpoints.test.ts` en 19, con tres barridos actualizados porque e
 tres veces en el modal. `main` 3b549ca, medido en un worktree aparte, está en 2371 | 3. (Rebasada sobre ese
 `main` después de que entrara D-278, así que los dos números subieron 28 respecto de la primera medida.)
 
-## D-NEXT · La tarifa local, de nuevo: un solo precio, 0,80 por milla y redondeo a 5
+## D-283 · La tarifa local, de nuevo: un solo precio, 0,80 por milla y redondeo a 5
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, literal: *«new local delivery fee formula: more than 50 miles 300+(0.80$ x mile), when

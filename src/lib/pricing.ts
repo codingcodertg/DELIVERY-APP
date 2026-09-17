@@ -4,7 +4,7 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formula).
-// ONE price per order since D-NEXT: the "discount" column is gone — the owner
+// ONE price per order since D-283: the "discount" column is gone — the owner
 // asked for a single fee. Everything rounds to the nearest $5. It depends on whether
 // the delivery city is LOCAL:
 //
@@ -35,7 +35,7 @@ export function isLocalCity(city: string, s?: Partial<Settings> | null): boolean
 }
 
 /**
- * El escalón del redondeo, en dólares (D-NEXT). El dueño: «round to the nearest 5». Antes eran
+ * El escalón del redondeo, en dólares (D-283). El dueño: «round to the nearest 5». Antes eran
  * $10, y ese «$10» estaba escrito a mano en dos pantallas; ahora las dos lo leen de aquí.
  */
 export const REDONDEO = 5;
@@ -66,7 +66,7 @@ export const UMBRAL_CORTO = 11;
 /** Por encima de estas, el tramo largo: `miles > UMBRAL_LARGO`. */
 export const UMBRAL_LARGO = 50;
 /**
- * Lo que multiplica a las millas (D-NEXT). Antes solo lo llevaba el tramo del medio; ahora lo
+ * Lo que multiplica a las millas (D-283). Antes solo lo llevaba el tramo del medio; ahora lo
  * llevan los tres que cuentan millas —medio, largo y fuera de zona—, y por eso ya no se llama
  * `FACTOR_MEDIO`.
  */
@@ -83,7 +83,7 @@ export const FACTOR_MILLA = 0.8;
  */
 export const MINIMO_MEDIO = 105;
 
-/** Las cuatro cifras de la fórmula. Una sola columna de precios desde D-NEXT. */
+/** Las cuatro cifras de la fórmula. Una sola columna de precios desde D-283. */
 export type TablaTarifa = {
   /** Tramo corto: precio plano, sin millas. */
   planoCorto: number;
@@ -159,7 +159,7 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0): PasoTari
  * escrita a mano: si alguien cambia un 105 en `TARIFA`, esta tabla cambia con él, y si
  * cambia un comparador, el rango que se lee cambia también.
  *
- * Son **cuatro** reglas desde D-NEXT —tres tramos locales y la de fuera de zona—, y no ocho: ya
+ * Son **cuatro** reglas desde D-283 —tres tramos locales y la de fuera de zona—, y no ocho: ya
  * no hay columna de descuento. Los rangos salen de los comparadores de `pasoTarifa`, así que dicen `< 11`,
  * `11–50` y `> 50` — con **11 y 50 dentro del tramo del medio**, que es donde los pone el
  * código y no donde los pondría la intuición.
@@ -205,7 +205,7 @@ export function filasDeLaFormula(): FilaFormula[] {
 }
 
 /**
- * La tarifa de entrega de esas millas, sin el recargo de mismo día (D-NEXT).
+ * La tarifa de entrega de esas millas, sin el recargo de mismo día (D-283).
  *
  * Es UNA, no dos: donde había «lista» y «descuento» ahora hay un precio. Quien quiera cobrar
  * menos escribe el importe a mano, y la pantalla avisa de que eso necesita aprobación.

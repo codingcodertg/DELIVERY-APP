@@ -43,7 +43,7 @@ export function FeeBreakdownDetails({ desglose }: { desglose: Desglose }) {
             {" · "}
             {t(`${desglose.miles} driving miles`, `${desglose.miles} millas de recorrido`)}
           </div>
-          {/* Un solo precio desde D-NEXT: antes había dos caminos, lista y descuento. */}
+          {/* Un solo precio desde D-283: antes había dos caminos, lista y descuento. */}
           <Camino paso={desglose.paso} />
         </div>
       )}

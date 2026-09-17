@@ -21,7 +21,7 @@ describe("isLocalCity", () => {
   });
 });
 
-// La fórmula del dueño (D-NEXT): «more than 50 miles 300+(0.80$ x mile), when below 50 miles
+// La fórmula del dueño (D-283): «more than 50 miles 300+(0.80$ x mile), when below 50 miles
 // min 105+(0.80 per mile) and round to the nearest 5». El tramo plano de menos de 11 millas se
 // queda, por respuesta suya.
 describe("deliveryFee: un solo precio, redondeado a 5", () => {

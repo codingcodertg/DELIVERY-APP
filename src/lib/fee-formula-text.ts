@@ -41,7 +41,7 @@ export function textoDeLaRegla(t: Traducir, base: number, factor: number, minimo
 }
 
 /**
- * «Redondeado a $5». El escalón llega de `pricing.ts` y no escrito a mano: hasta D-NEXT el «$10»
+ * «Redondeado a $5». El escalón llega de `pricing.ts` y no escrito a mano: hasta D-283 el «$10»
  * vivía suelto en dos pantallas, y al cambiar el redondeo las dos habrían mentido.
  */
 export function textoDelRedondeo(t: Traducir, redondeo: number): string {

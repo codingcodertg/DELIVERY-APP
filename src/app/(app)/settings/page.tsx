@@ -597,7 +597,7 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
       <div style={{ marginTop: 18 }}>
         <div style={{ fontWeight: 700 }}>{t("Delivery fee formula", "Fórmula de la tarifa de entrega")}</div>
         <div className="hint" style={{ marginTop: 2 }}>
-          {/* El escalón del redondeo sale de `pricing.ts` (D-NEXT): estaba escrito «$10» a mano
+          {/* El escalón del redondeo sale de `pricing.ts` (D-283): estaba escrito «$10» a mano
               y habría mentido el día que cambiara, que es justo lo que pasó. */}
           {t(
             `Read-only: these rules live in the code. Miles are driving miles; every result rounds to the nearest $${REDONDEO}.`,

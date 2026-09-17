@@ -197,7 +197,7 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
   });
 });
 
-// ---- Un solo precio, en las tres pantallas (D-NEXT) ----------------------------------------
+// ---- Un solo precio, en las tres pantallas (D-283) ----------------------------------------
 describe("donde había dos precios ahora hay uno", () => {
   const modal = readFileSync("src/components/OrderModal.tsx", "utf8");
   const desglose = readFileSync("src/components/FeeBreakdown.tsx", "utf8");
@@ -209,7 +209,7 @@ describe("donde había dos precios ahora hay uno", () => {
   });
 
   it("y cobrar por debajo de ESE precio sigue pidiendo aprobación", () => {
-    // Hasta D-NEXT el suelo del aviso era el descuento. Al quedar un solo precio, el suelo es
+    // Hasta D-283 el suelo del aviso era el descuento. Al quedar un solo precio, el suelo es
     // ese; si el aviso desapareciera, nadie se enteraría de que hace falta aprobación.
     expect(modal).toContain("d.delivery_fee < feeSuggestion.fee");
     expect(modal).toMatch(/requires approval/);

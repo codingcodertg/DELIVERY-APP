@@ -1566,7 +1566,7 @@ export function OrderModal({
               <span className="hint" style={{ margin: 0 }}>{t("Delivery Fee", "Costo de Entrega")}: <b>{d.delivery_fee == null ? "—" : fmtMoney(d.delivery_fee)}</b></span>
             </div>
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
-            {/* Un solo precio (D-NEXT): antes eran dos botones, Lista y Descuento. Quien quiera
+            {/* Un solo precio (D-283): antes eran dos botones, Lista y Descuento. Quien quiera
                 cobrar menos escribe el importe, y el aviso de abajo dice que eso pide aprobación. */}
             {feeSuggestion.fee != null && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
@@ -1821,7 +1821,7 @@ export function OrderModal({
                     ⚡ {t(`Same-day delivery — includes ${fmtMoney(feeSuggestion.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(feeSuggestion.sameDaySurcharge)}.`)}
                   </div>
                 )}
-                {/* Cobrar por debajo del precio pide aprobación. Hasta D-NEXT el suelo era el
+                {/* Cobrar por debajo del precio pide aprobación. Hasta D-283 el suelo era el
                     descuento; al quedar un solo precio, el suelo es ese. */}
                 {feeSuggestion.fee != null && d.delivery_fee != null && d.delivery_fee < feeSuggestion.fee && (
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>

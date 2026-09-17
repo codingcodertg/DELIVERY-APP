@@ -45,7 +45,7 @@ describe("las reglas se dicen según el factor", () => {
       textoDelRango(en, f.desde, f.hasta),
       textoDeLaRegla(en, f.regla.base, f.regla.factor, f.regla.minimo),
     ]);
-    expect(celdas).toHaveLength(8); // control: 4 filas × 2 celdas, desde D-NEXT
+    expect(celdas).toHaveLength(8); // control: 4 filas × 2 celdas, desde D-283
     for (const c of celdas) {
       expect(c, c).not.toMatch(/fijo|cualquier|menos de|más de|mín\./);
     }
@@ -62,7 +62,7 @@ describe("las reglas se dicen según el factor", () => {
   it("el escalón del redondeo se dice con el número que manda pricing.ts", () => {
     expect(textoDelRedondeo(en, REDONDEO)).toBe("Rounded to " + fmtMoney(REDONDEO));
     expect(textoDelRedondeo(es, REDONDEO)).toBe("Redondeado a " + fmtMoney(REDONDEO));
-    // El control del fallo que se arregló con D-NEXT: el escalón estaba escrito «$10» a mano en
+    // El control del fallo que se arregló con D-283: el escalón estaba escrito «$10» a mano en
     // estas dos pantallas, y al cambiarlo las dos habrían mentido. Se miran sin los comentarios,
     // porque uno de ellos cita a propósito el «$10» de antes.
     const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
