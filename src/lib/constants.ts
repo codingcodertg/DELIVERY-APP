@@ -950,7 +950,7 @@ export function ordersLikeOfficeManager(r: string | null | undefined): boolean {
 /** Can this role edit the order's data fields while it sits in `stage`? */
 export function canEditFields(r: UserRole, stage: Stage): boolean {
   if (r === "admin") return true;
-  // Un borrador lo edita cualquiera que lo pueda ver (D-NEXT).
+  // Un borrador lo edita cualquiera que lo pueda ver (D-286).
   // -------------------------------------------------------------------------
   // El dueño: «cuando un sales o cualquiera tiene un borrador no lo puede volver a editar; para
   // borrador, deja que cualquiera pueda volver y editarlo». Antes, a ventas se le devolvía `false`

@@ -1,7 +1,7 @@
 import type { Delivery } from "./types";
 
 /**
- * Duplicar una orden (D-NEXT).
+ * Duplicar una orden (D-286).
  *
  * El dueño: «duplicar no está funcionando tan bien», sin decir qué. Medido de punta a punta, lo que
  * hacía la copia era perder cuatro cosas que nadie ve hasta que hacen falta:

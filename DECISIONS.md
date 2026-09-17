@@ -36346,7 +36346,7 @@ pruebas y no quita ninguna: 22 en `help-requests.test.ts`, fichero nuevo, y 1 qu
 por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con su doble de sesión ampliado
 —la ruta ahora guarda antes de mandar—. `main` 21e2b89, medido en un worktree aparte, está en 2460 | 3.
 
-## D-NEXT · Un borrador se puede retomar, y duplicar deja de perder cosas
+## D-286 · Un borrador se puede retomar, y duplicar deja de perder cosas
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«cuando un sales o cualquiera tiene un borrador no lo puede volver

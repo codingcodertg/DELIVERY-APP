@@ -5,7 +5,7 @@ import { borradorDuplicado } from "./order-duplicate";
 import type { Delivery, UserRole } from "./types";
 
 /**
- * El borrador se puede retomar, y duplicar copia lo que hacía falta (D-NEXT).
+ * El borrador se puede retomar, y duplicar copia lo que hacía falta (D-286).
  *
  * La regla del borrador vive en la app, pero la de verdad la pone la base: por eso la primera prueba
  * compara `canEditFields` con las ramas del `guard_delivery_stage` de la 118, leídas del `.sql`. Si un

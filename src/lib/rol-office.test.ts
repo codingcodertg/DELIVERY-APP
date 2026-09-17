@@ -77,7 +77,7 @@ describe("Office crea y aprueba, como el gerente sin el panel", () => {
   });
 
   it("los demás roles no ganan nada por esta decisión: logística sigue sin editar una aprobada", () => {
-    // Ventas y el borrador cambiaron de signo en D-NEXT, y no por esta decisión: el dueño pidió que
+    // Ventas y el borrador cambiaron de signo en D-286, y no por esta decisión: el dueño pidió que
     // un borrador lo pueda retomar cualquiera. Lo que D-277 dio a Office sigue sin tocar al resto.
     expect(canEditFields("sales", "draft")).toBe(true);
     expect(canEditFields("sales", "approved")).toBe(false);

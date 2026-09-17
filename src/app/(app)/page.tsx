@@ -175,7 +175,7 @@ export default function OrdersPage() {
         // relaxed by search, unlike the date-window restriction below.
         // "Own" includes orders an office/admin/driver assigned to them.
         //
-        // **Menos los borradores** (D-NEXT). El dueño: «para borrador, deja que cualquiera pueda
+        // **Menos los borradores** (D-286). El dueño: «para borrador, deja que cualquiera pueda
         // volver y editarlo», y un borrador que no se ve no se puede editar. Es un cambio de
         // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
         // vuelve a ser el de siempre.

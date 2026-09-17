@@ -74,7 +74,7 @@ export function OrderModal({
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
-  // Al duplicar, la ficha se queda abierta ENSEÑANDO LA COPIA (D-NEXT). Antes se cerraba y dejaba un
+  // Al duplicar, la ficha se queda abierta ENSEÑANDO LA COPIA (D-286). Antes se cerraba y dejaba un
   // aviso con el número: se pulsaba, desaparecía todo y parecía que no había pasado nada. La lista de
   // fuera sigue con la orden de origen; al cerrar, se vuelve a ella.
   const [copia, setCopia] = useState<Delivery | null>(null);
@@ -1023,7 +1023,7 @@ export function OrderModal({
   };
 
   // Clone this order into a fresh draft (repeat customers, standing orders). Qué se copia y qué no,
-  // en `lib/order-duplicate` (D-NEXT), que es donde se puede leer y probar.
+  // en `lib/order-duplicate` (D-286), que es donde se puede leer y probar.
   const duplicate = async () => {
     if (!existing) return;
     const payload: Draft = borradorDuplicado(existing, todayISO());
