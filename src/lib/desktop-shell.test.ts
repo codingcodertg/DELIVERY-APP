@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { enAppDeEscritorio } from "./desktop-shell";
 
-/** El botón ⟳ de recargar, solo dentro de una app de escritorio (D-NEXT). */
+/** El botón ⟳ de recargar, solo dentro de una app de escritorio (D-280). */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";

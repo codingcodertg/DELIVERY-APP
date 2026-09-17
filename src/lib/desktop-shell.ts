@@ -1,5 +1,5 @@
 /**
- * ¿Esta página corre dentro de una app de escritorio? (D-NEXT)
+ * ¿Esta página corre dentro de una app de escritorio? (D-280)
  *
  * El dueño: «pon un botón de recargar en la app de escritorio». Hay **dos**, y se detectan de dos formas
  * distintas, medidas el 2026-09-17:

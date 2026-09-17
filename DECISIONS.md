@@ -17971,7 +17971,7 @@ lo que office puede pulsar está dentro de lo que la base le permite.
   - `driver` puede crear en la base pero no en la app.
   Ninguna de las dos se toca aquí.
 
-## D-NEXT · Un botón de recargar dentro de las apps de escritorio
+## D-280 · Un botón de recargar dentro de las apps de escritorio
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y Time Tracker) · Sin migración.
 **Pedido por el dueño:** *«pon un botón de recargar en la app de escritorio»*.

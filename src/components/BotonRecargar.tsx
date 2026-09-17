@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { enAppDeEscritorio } from "@/lib/desktop-shell";
 
 /**
- * El botón ⟳ de recargar, **solo dentro de una app de escritorio** (D-NEXT).
+ * El botón ⟳ de recargar, **solo dentro de una app de escritorio** (D-280).
  *
  * Vive en la web, no en las cáscaras: así lo tienen las dos sin reinstalar nada, y la de Time Tracker
  * —que no tiene menú ni atajos— deja de estar sin salida cuando una pantalla se queda a medias.
