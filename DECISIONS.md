@@ -16645,7 +16645,7 @@ era el componente borrado. Esa entrada se quitó de la lista: **una prueba menos
   columna nueva lo haría posible, pero este cambio no lo usa.
 
 ## D-267 · Una orden no puede ir de un sitio a ese mismo sitio
-> **Ampliada por D-NEXT** (2026-09-17): la regla mira también la dirección de la tienda de origen, los desplegables y los valores por defecto ya no dejan el choque, y los proveedores de datos lo rechazan al enviar, aprobar o crear. Los huecos de «Lo no verificado» de abajo que tocan a esta regla (re-entrega, aprobar desde la lista) quedan cerrados allí. El texto de abajo se conserva tal cual.
+> **Ampliada por D-276** (2026-09-17): la regla mira también la dirección de la tienda de origen, los desplegables y los valores por defecto ya no dejan el choque, y los proveedores de datos lo rechazan al enviar, aprobar o crear. Los huecos de «Lo no verificado» de abajo que tocan a esta regla (re-entrega, aprobar desde la lista) quedan cerrados allí. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño:** «no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí
@@ -17547,7 +17547,7 @@ Los dos menús, al cerrar:
 - **Tacto:** el cierre usa `mousedown`, como los demás menús de la app. En una pantalla táctil, ese evento
   llega después del toque; no está probado.
 
-## D-NEXT · Intertienda: el destino no puede ser «Vendido desde» por ningún camino
+## D-276 · Intertienda: el destino no puede ser «Vendido desde» por ningún camino
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«la regla de tienda a tienda (vender a la misma tienda) funcionó en el preview
@@ -17561,7 +17561,7 @@ pero no en el formulario final; o sea, en Intertienda el destino no puede ser la
   permitida en pantalla.
 - **«Preview» como el despliegue de preview del PR #87.** El código de D-267 **no cambió** entre ese
   preview y producción. Medido con `git log` de `OrderModal.tsx`, `required.ts` y `order-endpoints.ts`:
-  después de 85e03dc solo está el release bebc00d, que cambia comentarios (`D-NEXT` → `D-267`). La
+  después de 85e03dc solo está el release bebc00d, que cambia comentarios (`D-276` → `D-267`). La
   diferencia no está en el código, sino en el camino: quién abre la orden y en qué orden elige.
 - **«Preview» como el primer paso de una orden nueva** («Nueva orden», antes de «Siguiente»). Ese paso
   enseña «Vendido desde» pero no el destino, y el aviso rojo de D-267 vive solo en el formulario

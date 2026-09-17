@@ -114,7 +114,7 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
 });
 
 describe("los desplegables no ofrecen la otra punta", () => {
-  // Desde D-NEXT el filtro pregunta a la regla con el mismo manejador que aplica la elección; los
+  // Desde D-276 el filtro pregunta a la regla con el mismo manejador que aplica la elección; los
   // recorridos completos, en cualquier orden, están en order-sites.test.ts.
   const tres: NamedLocation[] = [...TIENDAS, { name: "Tienda Este", address: "300 Este Rd, Ciudad TX" }];
   const nombres = tres.map((s) => s.name);

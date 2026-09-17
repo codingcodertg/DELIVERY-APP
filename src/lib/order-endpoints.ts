@@ -19,7 +19,7 @@ import type { Delivery, NamedLocation } from "./types";
  * Las coordenadas no sirven para esto, medido en el tipo: `pickup_lat/lng` son la posición del chofer
  * al recoger, no la del sitio de recogida, y ese sitio no tiene pin propio.
  *
- * **D-NEXT: el destino tenía dos definiciones.** La regla y el filtro de «Vendido desde» miraban
+ * **D-276: el destino tenía dos definiciones.** La regla y el filtro de «Vendido desde» miraban
  * `delivery_name`; el desplegable de destino enseña la tienda cuya dirección es `delivery_address`.
  * Cuando no coincidían —una entrega a cliente con la dirección de una tienda pasada a Intertienda, o
  * un nombre vacío—, «Vendido desde» ofrecía la tienda que el destino tenía delante, y la regla no la
@@ -50,7 +50,7 @@ function direccionDeTienda(nombre: string | null | undefined, tiendas: NamedLoca
  *
  * Por nombre (`delivery_name`), o porque la entrega va a la dirección guardada de la tienda de origen,
  * que es lo que enseña el desplegable de destino. `tiendas` es obligatorio a propósito: sin la lista,
- * la segunda comparación no existe y el hueco de D-NEXT vuelve en silencio.
+ * la segunda comparación no existe y el hueco de D-276 vuelve en silencio.
  */
 export function origenEsDestino(
   d: Pick<Partial<Delivery>, "store" | "delivery_name" | "delivery_address">,

@@ -141,7 +141,7 @@ const SUBMIT_BLOCKING_KEYS: ReadonlySet<string> = new Set(["est_pallets", "doc_r
 /** The subset of missingFields() that must hard-block a draft → pending
  * submission (or a resubmit). Everything else stays a dismissible warning.
  * `tiendas` (settings.stores) is required: the same-store rule compares the
- * origin store's saved address too (D-NEXT). */
+ * origin store's saved address too (D-276). */
 export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tiendas: NamedLocation[]): MissingField[] {
   return [...missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key)), ...conflictosDeSitio(d, rules, tiendas)];
 }
@@ -152,7 +152,7 @@ export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tien
  * and not only in the modal's save, is what makes them apply to BOTH submit paths: the old
  * same-address check ran on save and the create-and-submit button skipped it.
  *
- * Its own function since D-NEXT, because approving and every write that puts an order into
+ * Its own function since D-276, because approving and every write that puts an order into
  * pending or approved check THIS and only this (`order-sites.ts`): extending D-049's missing-field
  * gate to approval was not asked for.
  */

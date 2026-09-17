@@ -3,7 +3,7 @@ import { conflictosDeSitio, isStoreToStore, orderTypeRule, type MissingField, ty
 import { normalizaLugar, origenEsDestino } from "./order-endpoints";
 
 /**
- * Por dónde pasa una orden tienda-a-tienda antes de ir a su propio sitio (D-NEXT).
+ * Por dónde pasa una orden tienda-a-tienda antes de ir a su propio sitio (D-276).
  *
  * El dueño, sobre D-267: «en Intertienda el destino no puede ser la misma que la tienda "vendido
  * desde"». La regla existía y bloqueaba al enviar desde el modal, pero había caminos que la dejaban
@@ -44,7 +44,7 @@ function sinDestino(d: Borrador): Borrador {
  * (`homeIsDestination`) la tienda del usuario pasa a ser el destino y el origen lo elige él; si no, el
  * origen por defecto es su tienda.
  *
- * **Desde D-NEXT, un tipo tienda-a-tienda nunca queda con el origen en el destino.** Si con las dos
+ * **Desde D-276, un tipo tienda-a-tienda nunca queda con el origen en el destino.** Si con las dos
  * puntas puestas chocan, se vacía la que el tipo deja elegir: el origen en un tipo que recibe, el
  * destino en los demás.
  */

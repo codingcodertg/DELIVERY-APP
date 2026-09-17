@@ -891,7 +891,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
     async (d) => {
-      // No order goes into pending or approved going to its own place, from any screen (D-NEXT).
+      // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, settings.order_type_rules, settings.stores);
       if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return null; }
       // Teaching mode: build the order entirely client-side and keep it in the
@@ -965,7 +965,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
     async (id, patchIn, opts) => {
-      // No order goes into pending or approved going to its own place, from any screen (D-NEXT).
+      // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlEditar = escrituraQueNoVaANingunSitio(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules, settings.stores);
       if (choqueAlEditar.length) { if (!opts?.quiet) notify(avisoNoVaANingunSitio(choqueAlEditar, lang)); return false; }
       let patch = patchIn;
@@ -1212,7 +1212,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         notify("This order must be approved by a manager first.");
         return false;
       }
-      // No order goes into pending or approved going to its own place, from any screen (D-NEXT). Admins too: this is not a workflow step
+      // No order goes into pending or approved going to its own place, from any screen (D-276). Admins too: this is not a workflow step
       // they may skip, it's an order with nowhere to go.
       const choqueAlMover = escrituraQueNoVaANingunSitio(current, { stage, ...extra }, settings.order_type_rules, settings.stores);
       if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return false; }

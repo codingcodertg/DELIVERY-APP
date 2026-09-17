@@ -6,7 +6,7 @@ import { aplicaTipo, borradorDeReentrega, borradorInicial, escrituraQueNoVaANing
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * Intertienda: el destino no puede ser la tienda «Vendido desde», por ningún camino (D-NEXT).
+ * Intertienda: el destino no puede ser la tienda «Vendido desde», por ningún camino (D-276).
  *
  * Cada prueba arma el borrador **con los mismos manejadores que usa el modal**, en el orden en que los
  * pulsa una persona: el valor por defecto de una orden nueva, cambiar el tipo, elegir «Vendido desde»,

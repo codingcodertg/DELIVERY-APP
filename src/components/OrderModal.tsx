@@ -349,7 +349,7 @@ export function OrderModal({
   useEffect(() => {
     if (!isNew || defaultedRef.current || settings.order_types.length === 0) return;
     defaultedRef.current = true;
-    // `borradorInicial` (D-NEXT): the rep's store as Sold From, except when that would make a store
+    // `borradorInicial` (D-276): the rep's store as Sold From, except when that would make a store
     // move go to its own store — which is exactly what office roles got, by default, until then.
     setD((p) => borradorInicial(p, contextoDelUsuario));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -547,7 +547,7 @@ export function OrderModal({
   // Apply a newly-chosen order type's directional defaults. For a receiving
   // type the rep's store becomes the destination and Sold From is theirs to
   // pick; otherwise Sold From defaults back to the rep's store. Lives in
-  // `aplicaTipo` (D-NEXT), which also never leaves a store move going to its own store.
+  // `aplicaTipo` (D-276), which also never leaves a store move going to its own store.
   const contextoDelUsuario: ContextoDelUsuario = {
     rol: me.role, miTienda: me.store, tipos: settings.order_types, tiendas: settings.stores, reglas: settings.order_type_rules,
   };
@@ -982,7 +982,7 @@ export function OrderModal({
     if (!existing || !redeliverReason.trim()) return;
     setBusy(true);
     const src = existing;
-    // Built by `borradorDeReentrega` (D-NEXT), so the write guard is tested against this exact copy.
+    // Built by `borradorDeReentrega` (D-276), so the write guard is tested against this exact copy.
     const payload: Draft = borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason });
     const row = await addDelivery(payload);
     setBusy(false);
@@ -1457,7 +1457,7 @@ export function OrderModal({
               <Sel
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
-                // In a store move, the destination is not offered as the origin (D-267, D-NEXT).
+                // In a store move, the destination is not offered as the origin (D-267, D-276).
                 opts={opcionesDeOrigen(d, settings.stores, storeToStore)}
                 on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
                 disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)}
@@ -1849,7 +1849,7 @@ export function OrderModal({
                 <Sel
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
-                  // Neither the origin store nor the pickup address is offered as the destination (D-267, D-NEXT).
+                  // Neither the origin store nor the pickup address is offered as the destination (D-267, D-276).
                   opts={opcionesDeDestino(d, settings.stores)}
                   // The destination store IS the dropoff name for a transfer.
                   on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}

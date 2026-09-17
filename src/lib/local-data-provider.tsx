@@ -122,7 +122,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const addDelivery = useCallback<DataState["addDelivery"]>(async (d) => {
     const s = storeRef.current;
-    // Same write guard as the real provider (D-NEXT).
+    // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, "en")); return null; }
     const nextNo = s.deliveries.reduce((m, x) => Math.max(m, x.order_no), 1000) + 1;
@@ -151,7 +151,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patch) => {
     const s = storeRef.current;
-    // Same write guard as the real provider (D-NEXT).
+    // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlEditar.length) { notify(avisoNoVaANingunSitio(choqueAlEditar, "en")); return false; }
     persist({
@@ -217,7 +217,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       notify("This order must be approved by a manager first.");
       return false;
     }
-    // Same write guard as the real provider (D-NEXT).
+    // Same write guard as the real provider (D-276).
     const choqueAlMover = escrituraQueNoVaANingunSitio(cur, { stage, ...extra }, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, "en")); return false; }
     const patch: Partial<Delivery> = { stage, ...extra, updated_at: new Date().toISOString() };
