@@ -36824,3 +36824,119 @@ en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
 - **No se comprobó si el dueño quiere que el gerente aparezca también en las tiendas que sí tienen
   vendedores.** Con esta regla aparece: es «quien puede crear órdenes de esa tienda», no «quien es del
   rol ventas y de esa tienda».
+
+## D-NEXT · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración: 122** (la aplica
+el orquestador, después de fusionar).
+**Pedido por el dueño:** *«agrega una opción para anular órdenes y deben dejar razón por qué la
+anularon, ya sea duplicación, o cliente canceló, o cliente recogerá en tienda»*.
+
+### Lo que ya había, medido antes de construir
+
+Media función, y con dos agujeros:
+
+- La ficha **ya enseñaba un selector de motivo** con seis motivos **fijos en el código**
+  (`OrderModal.tsx`), que el admin no podía tocar y donde faltaba el de recoger en tienda.
+- El motivo **no se guardaba en ninguna columna**: viajaba solo como nota del evento de etapa. Y lo que
+  viajaba era la **etiqueta traducida**, así que la misma causa quedaba escrita «Customer canceled» o
+  «Cliente canceló» según el idioma de quien anulara. Contar eso en un reporte no se puede.
+- **Anular en bloque desde la lista no mandaba motivo ninguno** (`bulkStage("canceled")` llamaba a
+  `setStage` sin nada). Convivían «en la ficha el motivo es obligatorio» y «en la lista no hace falta».
+- La **barrida automática por retraso** (hoy apagada, `AUTO_CANCEL_LATE_ENABLED = false`) anulaba con una
+  nota suelta en inglés y sin motivo.
+- Solo se anulaba desde `draft` y `rejected` —app y base de acuerdo—, salvo el **admin, que se salta el
+  guard entero** y podía anular cualquier cosa, incluida una entregada, sin motivo.
+- Y **logística veía el botón de anular en bloque** que la base le rechazaba: no está en ninguna rama del
+  guard.
+
+### Quién anula y desde dónde (aprobado por el dueño)
+
+| Desde | admin | gerente / office | ventas / chofer | almacén | logística |
+|---|---|---|---|---|---|
+| draft, rejected | sí | sí *(ya)* | sí *(ya)* | no | no |
+| pending, approved, fulfilling, ready | sí | **sí (nuevo)** | no | no | no |
+| picked_up | sí | no | no | no | no |
+| delivered | **no** | no | no | no | no |
+
+`pending` y `approved` son el caso del dueño: el cliente llama y cancela, o pasará a recoger.
+`fulfilling` y `ready` se abren porque el almacén ya preparó y alguien tiene que poder pararlo — lo hace
+el gerente, no el almacén. Con la carga en el camión (`picked_up`) solo queda el admin.
+
+**Una entregada no se anula, ni el admin** — preguntado y contestado por el dueño. Eso le **quita** al
+admin un atajo que hoy tiene, y es deliberado: sacar del cómputo algo ya entregado es justo lo que no
+queremos; una entrega que salió mal se corrige con una re-entrega o una nota. En el `.sql`, esa comproba-
+ción y la de «sin motivo no se queda anulada» van **antes** de la salida temprana del admin, porque no
+son permisos de un rol: son cosas que no pasan.
+
+La regla vive una vez, en `puedeAnular(rol, etapa)` (`lib/constants`), y **la prueba no la copia: la lee
+del `.sql`** y compara rol por rol y etapa por etapa. Si la app y la base se separan, cae ahí y no
+cuando alguien pulse un botón que la base le rechaza.
+
+### El motivo: una clave, no un texto traducido
+
+Lo que se guarda en `deliveries.canceled_reason` es la **clave** (`duplicate`, `customer_canceled`,
+`customer_pickup`, `other`…), y la pantalla la traduce. La lista la edita el admin en **Datos → Motivos
+de anulación**, donde puede renombrar las etiquetas en los dos idiomas: **renombrar no reescribe la
+historia**, porque la clave se calcula una vez, al crear la fila, y ya no cambia. Dos motivos no se
+pueden borrar: «otro», que el guard nombra por su clave para exigirle texto libre, y el del retraso, que
+escribe la barrida.
+
+Quién anuló y cuándo **los estampa la base** (`canceled_by := auth.uid()`, `canceled_at := now()`), no
+el cliente. Y una vez escrito, el motivo es historia: el guard rechaza cambiar esas cuatro columnas
+(mismo patrón que la 120 con las solicitudes de ayuda).
+
+### Que se note
+
+- **En la ficha**, arriba de la historia: el motivo, su texto libre, quién y cuándo.
+- **En la lista**, al lado de la píldora gris de la etapa, para ver de un vistazo que media tarde de
+  órdenes se cayó por duplicadas.
+- **En los totales no hace falta tocar nada**, y se comprobó: las cuotas de Cuentas y de Resumen, el
+  mapa, la ruta del chofer y el filtro de «activas» ya excluían `canceled`. La lista del tablero no
+  tiene fila de totales.
+
+### Los dos agujeros, cerrados
+
+- **Anular en bloque** pide el motivo **una vez** para toda la selección y lo escribe en cada orden. El
+  botón solo sale si hay algo en la selección que ese rol pueda anular, y **logística ya no lo ve**.
+- **La barrida automática** sigue apagada —la prueba fija que `AUTO_CANCEL_LATE_ENABLED` es `false`— y,
+  si algún día se enciende, anula con el motivo sembrado «atrasada sin reprogramar».
+
+Y los dos proveedores de datos comprueban el motivo **antes** de escribir, con la misma función que
+usa el formulario: ningún camino llega a la base sin motivo para que la base lo rechace con un error de
+Postgres en la cara del usuario.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Catorce mutantes, cada uno cazado por la prueba pensada para él: que gerente y office pierdan las etapas
+nuevas, que el admin recupere la entregada, que la invariante de la entregada se mueva detrás de la
+salida de admin, que el guard deje de exigir motivo, que se caiga su rama de gerente/office, que «otro»
+deje de pedir texto, que una lista vacía deje el desplegable sin opciones, que la ficha vuelva a mandar
+la etiqueta traducida, que el bloque vuelva a ir sin motivo, que la barrida también, que el proveedor
+deje de comprobar, que una clave desconocida se enseñe vacía, que el motivo se pinte en cualquier etapa
+y que dos motivos compartan clave.
+
+Uno **sobrevivió** y por eso se cuenta: esconder la comprobación del proveedor tras un `if (false)`
+dejaba la llamada en el fichero, así que la prueba —que solo miraba que el nombre apareciera— seguía
+verde. Ahora se exige la **condición entera**, no el nombre.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2575 pasados | 3 saltados**. La rama añade 30
+pruebas, todas en `anular-con-motivo.test.ts`, fichero nuevo, y no quita ninguna. `main` cbed9c8, medido
+en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
+
+### Lo no verificado
+
+- **La matriz por rol con `ROLLBACK` está escrita en el `.sql`, pero no se ha corrido**: una rama no
+  toca producción. La corre el orquestador antes de aplicar la 122.
+- **Nadie lo ha abierto en un navegador.**
+- **Las órdenes ya anuladas antes de la 122 no tienen motivo** (`canceled_reason` nulo) y la ficha dirá
+  «sin motivo registrado». No se migran: lo que se anotó entonces está en la nota de su evento, en el
+  idioma en que se anotó. No se contaron cuántas son.
+- **Hay una forma de reescribir un motivo**, y se deja dicha en vez de esconderla: un admin puede sacar
+  una orden de `canceled` y volver a anularla con otro motivo. Las dos vueltas quedan en `order_events`,
+  y solo el admin puede hacerlo, pero la columna acaba enseñando el segundo.
+- **El guard conoce una clave por su nombre**, `other`, para exigirle texto libre. Si alguien la borra
+  de la base a mano, la app y la base dejan de estar de acuerdo; por eso el editor de Datos no la deja
+  quitar.

@@ -10,6 +10,7 @@ export function mkDelivery(over: Partial<Delivery> = {}): Delivery {
     order_suffix: null,
     stage: "draft" as Stage,
     rejected_reason: null,
+    canceled_reason: null, canceled_reason_note: null, canceled_by: null, canceled_at: null,
     is_training: false,
     redelivery_of: null,
     redelivery_reason: null,

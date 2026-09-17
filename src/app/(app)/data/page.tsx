@@ -6,7 +6,8 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AddressInput } from "@/components/AddressInput";
 import { registroDeLugar } from "@/lib/named-location";
-import type { Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
+import type { CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
+import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 
 // ============================================================
 // Data — the reusable reference lists behind the order form: pickup points,
@@ -71,6 +72,7 @@ export default function DataPage() {
       />
 
       <OrderTypesRulesEditor settings={settings} deliveries={deliveries} save={save} t={t} />
+      <CancelReasonsEditor settings={settings} deliveries={deliveries} save={save} t={t} />
 
       <AccountsEditor settings={settings} save={save} t={t} />
     </>
@@ -158,6 +160,123 @@ function AccountsEditor({
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+/**
+ * Los motivos de anulación (122). Mismo patrón que los tipos de orden: filas, guardar, descartar.
+ *
+ * Lo que NO se puede tocar, y por qué: la **clave** de un motivo que ya existe. Es lo que quedó escrito
+ * en las órdenes anuladas, y renombrar la etiqueta no puede reescribir la historia — por eso la clave se
+ * calcula una vez, al crear la fila, y después solo se editan las etiquetas. Y dos motivos no se borran
+ * nunca: «otro», que el guard de la base nombra por su clave, y el del retraso, que escribe la barrida
+ * automática.
+ */
+function CancelReasonsEditor({
+  settings, deliveries, save, t,
+}: {
+  settings: Settings;
+  deliveries: Delivery[];
+  save: (patch: Partial<Settings>, msg: string) => void;
+  t: (en: string, es: string) => string;
+}) {
+  const build = (): CancelReason[] => motivosDeAnulacion(settings).map((r) => ({ ...r }));
+  const [rows, setRows] = useState<CancelReason[]>(build);
+  const [dirty, setDirty] = useState(false);
+
+  /** Cuántas órdenes anuladas cita cada motivo: borrar uno que se usó deja esas órdenes enseñando la
+   *  clave pelada, y eso conviene verlo antes y no después. */
+  const usadas = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of deliveries) if (d.canceled_reason) m.set(d.canceled_reason, (m.get(d.canceled_reason) ?? 0) + 1);
+    return m;
+  }, [deliveries]);
+
+  const update = (i: number, patch: Partial<CancelReason>) => { setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r))); setDirty(true); };
+  const add = () => { setRows((rs) => [...rs, { key: "", en: "", es: "" }]); setDirty(true); };
+  const remove = (i: number) => { setRows((rs) => rs.filter((_, idx) => idx !== i)); setDirty(true); };
+  const reset = () => { setRows(build()); setDirty(false); };
+
+  const commit = () => {
+    const fuera: CancelReason[] = [];
+    for (const r of rows) {
+      const en = r.en.trim();
+      const es = r.es.trim() || en;
+      if (!en && !es) continue;                                   // fila en blanco
+      // La clave se calcula UNA vez. Una fila que ya la tiene la conserva pase lo que pase con su
+      // etiqueta: es lo que está escrito en las órdenes ya anuladas.
+      const key = r.key || claveDesdeEtiqueta(en || es, fuera.map((x) => x.key));
+      if (fuera.some((x) => x.key === key)) continue;             // duplicada
+      fuera.push({ key, en: en || es, es, ...(r.free_text ? { free_text: true } : {}) });
+    }
+    // Los que la app nombra por su clave vuelven aunque alguien los haya quitado de la tabla.
+    for (const k of MOTIVOS_QUE_NO_SE_BORRAN) {
+      if (!fuera.some((x) => x.key === k)) {
+        const sembrado = motivosDeAnulacion({}).find((x) => x.key === k);
+        if (sembrado) fuera.push({ ...sembrado });
+      }
+    }
+    if (!fuera.length) return;
+    save({ cancel_reasons: fuera }, t("Cancellation reasons saved", "Motivos de anulación guardados"));
+    setDirty(false);
+  };
+
+  return (
+    <div className="card">
+      <h2>🚫 {t("Cancellation reasons", "Motivos de anulación")}</h2>
+      <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
+        {t(
+          "Why an order was canceled, picked from this list. What gets saved on the order is the key, not the label — renaming a label does not rewrite what was already recorded. «Other» always asks for free text, and it cannot be removed.",
+          "Por qué se anuló una orden, elegido de esta lista. En la orden se guarda la clave, no la etiqueta — renombrar una etiqueta no reescribe lo ya registrado. «Otro» siempre pide texto libre, y no se puede quitar.",
+        )}
+      </p>
+      <div className="tbl-scroll" style={{ border: "none" }}>
+        <table className="orders" style={{ minWidth: 720 }}>
+          <thead>
+            <tr>
+              <th>{t("English", "Inglés")}</th>
+              <th>{t("Spanish", "Español")}</th>
+              <th>{t("Key (saved on the order)", "Clave (lo que se guarda)")}</th>
+              <th style={{ textAlign: "center" }}>{t("Asks why", "Pide texto")}</th>
+              <th style={{ textAlign: "center" }}>{t("In use", "En uso")}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.key || `nueva-${i}`}>
+                <td><input value={r.en} onChange={(e) => update(i, { en: e.target.value })} placeholder={t("Reason", "Motivo")} /></td>
+                <td><input value={r.es} onChange={(e) => update(i, { es: e.target.value })} placeholder={t("Reason", "Motivo")} /></td>
+                <td className="hint" style={{ fontFamily: "monospace" }}>{r.key || t("- on save -", "- al guardar -")}</td>
+                <td style={{ textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={r.free_text === true}
+                    disabled={r.key === "other"}
+                    onChange={(e) => update(i, { free_text: e.target.checked })}
+                    aria-label={t("Asks why", "Pide texto")}
+                  />
+                </td>
+                <td style={{ textAlign: "center" }}>{usadas.get(r.key) ?? 0}</td>
+                <td>
+                  {!MOTIVOS_QUE_NO_SE_BORRAN.includes(r.key) && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>x</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
+        <button className="btn btn-ghost" onClick={add}>+ {t("Add reason", "Agregar motivo")}</button>
+        <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
+        {dirty && <button className="btn btn-ghost btn-sm" onClick={reset}>{t("Discard", "Descartar")}</button>}
+        {dirty && <span className="hint">{t("Unsaved changes", "Cambios sin guardar")}</span>}
+      </div>
+    </div>
+  );
+}
+
 // Order types + their field rules. Each type has an editable name, a
 // store-to-store flag (hides the external-customer fields), and a document-
 // reference requirement. Edits are staged locally and written on Save.

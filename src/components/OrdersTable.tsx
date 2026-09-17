@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { stageInfo, stageLabel } from "@/lib/constants";
+import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { useColWidthMap } from "@/lib/use-col-widths";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
-import type { Delivery } from "@/lib/types";
+import type { CancelReason, Delivery } from "@/lib/types";
 
 type Ctx = {
   lang: "en" | "es";
@@ -16,6 +17,8 @@ type Ctx = {
   /** Drivers identify a load by the invoice on the paperwork in their hand,
    * not by the system's order code — so their ID column shows that instead. */
   byInvoice?: boolean;
+  /** Los motivos de anulación vigentes, para traducir la clave que guarda la orden (122). */
+  motivos?: CancelReason[];
 };
 type CellValue = string | number | null;
 
@@ -36,9 +39,17 @@ export interface OrderColumn {
 }
 
 export const ORDER_COLUMNS: OrderColumn[] = [
-  { key: "stage", en: "Stage", es: "Etapa", value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang }) => {
+  { key: "stage", en: "Stage", es: "Etapa", value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos }) => {
       const s = stageInfo(d.stage);
-      return <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>;
+      // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
+      // media tarde de órdenes se cayó por duplicadas (122).
+      const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
+      return (
+        <>
+          <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
+          {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
+        </>
+      );
     } },
   { key: "type", en: "Type", es: "Tipo", value: (d) => d.order_type, cell: (d) => d.order_type || "—" },
   { key: "store", en: "Store", es: "Tienda", value: (d) => d.store, cell: (d) => d.store || "—" },
@@ -331,7 +342,7 @@ export function OrdersTable({
   collapsible?: boolean;
 }) {
   const { lang, t } = usePrefs();
-  const { me } = useData();
+  const { me, settings } = useData();
   // Which rows the driver has opened. Collapsed is the default, so this only
   // ever holds the handful they're actively looking at.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -345,7 +356,7 @@ export function OrdersTable({
   // the warehouse on the paperwork, the driver at the tailgate. The order code
   // is still shown, just as the second line rather than the headline.
   const byInvoice = true;
-  const ctx: Ctx = { lang, t, byInvoice };
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings) };
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});

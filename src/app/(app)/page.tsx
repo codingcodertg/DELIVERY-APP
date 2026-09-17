@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
-import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
+import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
+import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
@@ -53,7 +54,10 @@ export default function OrdersPage() {
         && daysBetween(todayISO(), d.delivery_date) > LATE_GRACE_DAYS,
     );
     for (const d of stale) {
-      void setStage(d.id, "canceled", "Auto-canceled: 2+ days late without reprogramming");
+      // Con motivo, como cualquier otra anulación: si un día se enciende, no deja órdenes anuladas
+      // sin poder explicar por qué (122). El guard rechazaría la escritura sin ella.
+      void setStage(d.id, "canceled", "Auto-canceled: 2+ days late without reprogramming",
+        { canceled_reason: MOTIVO_POR_RETRASO });
     }
   }, [ready, teaching, me, deliveries, setStage]);
 
@@ -79,6 +83,11 @@ export default function OrdersPage() {
   const [cols, setCols] = useState<string[]>(DEFAULT_COLUMNS);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /** Anular en bloque pide el motivo UNA vez y lo escribe en cada orden. Antes este camino no
+   *  mandaba motivo ninguno, así que convivía con «en la ficha es obligatorio» (122). */
+  const [bulkCancel, setBulkCancel] = useState(false);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkReasonNote, setBulkReasonNote] = useState("");
 
   // Managers land on Pending Approval instead of All — that's the queue they
   // actually need to act on. Only applied once per role, on first load, so
@@ -232,6 +241,8 @@ export default function OrdersPage() {
     { id: "today", en: "Today", es: "Hoy" },
   ];
 
+  const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
+
   if (!me) return null;
 
   // Who gets the checkbox column.
@@ -274,11 +285,15 @@ export default function OrdersPage() {
     setSelected(new Set());
   };
 
-  const bulkStage = async (to: "pending" | "approved" | "canceled") => {
+  /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
+   *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. */
+  const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage));
+
+  const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>) => {
     if (!chosen.length) return;
     setBulkBusy(true);
     let ok = 0;
-    for (const d of chosen) { if (await setStage(d.id, to)) ok++; }
+    for (const d of chosen) { if (await setStage(d.id, to, undefined, extra)) ok++; }
     setBulkBusy(false);
     notify(t(`${ok} of ${chosen.length} order(s) updated`, `${ok} de ${chosen.length} orden(es) actualizadas`));
     setSelected(new Set());
@@ -461,10 +476,31 @@ export default function OrdersPage() {
           {["manager", "admin", "logistics"].includes(me.role) && (
             <button className="btn btn-green btn-sm" disabled={bulkBusy} onClick={() => bulkStage("approved")}>{t("Approve", "Aprobar")}</button>
           )}
-          {["manager", "admin", "logistics"].includes(me.role) && (
-            <button className="btn btn-danger btn-sm" disabled={bulkBusy} onClick={async () => {
-              if (await confirmAction(t(`Cancel ${chosen.length} selected order(s)?`, `¿Cancelar ${chosen.length} orden(es) seleccionada(s)?`), { danger: true, confirmLabel: t("Cancel orders", "Cancelar órdenes") })) bulkStage("canceled");
-            }}>{t("Cancel", "Cancelar")}</button>
+{/* Anular en bloque: el motivo se pide UNA vez para toda la selección y se escribe en cada
+              orden. Logística ya no lo ve — veía el botón y la base le rechazaba la escritura (122). */}
+          {puedeAnularAlgoDeLaSeleccion && !bulkCancel && (
+            <button className="btn btn-danger btn-sm" disabled={bulkBusy} onClick={() => { setBulkCancel(true); setBulkReason(""); setBulkReasonNote(""); }}>{t("Cancel", "Cancelar")}</button>
+          )}
+          {puedeAnularAlgoDeLaSeleccion && bulkCancel && (
+            <>
+              <select value={bulkReason} disabled={bulkBusy} style={{ width: "auto" }} onChange={(e) => { setBulkReason(e.target.value); setBulkReasonNote(""); }}>
+                <option value="">{t("Cancellation reason…", "Motivo de anulación…")}</option>
+                {motivos.map((r) => <option key={r.key} value={r.key}>{t(r.en, r.es)}</option>)}
+              </select>
+              {pideTextoLibre(bulkReason, motivos) && (
+                <input style={{ width: 220 }} value={bulkReasonNote} disabled={bulkBusy} onChange={(e) => setBulkReasonNote(e.target.value)} placeholder={t("Say why (required)", "Escriba por qué (obligatorio)")} />
+              )}
+              <button className="btn btn-ghost btn-sm" disabled={bulkBusy} onClick={() => setBulkCancel(false)}>{t("Back", "Atrás")}</button>
+              <button
+                className="btn btn-danger btn-sm"
+                disabled={bulkBusy || !!faltaParaAnular(bulkReason, bulkReasonNote, motivos, lang)}
+                onClick={async () => {
+                  if (!(await confirmAction(t(`Cancel ${chosen.length} selected order(s)?`, `¿Anular ${chosen.length} orden(es) seleccionada(s)?`), { danger: true, confirmLabel: t("Cancel orders", "Anular órdenes") }))) return;
+                  await bulkStage("canceled", { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null });
+                  setBulkCancel(false);
+                }}
+              >{t("Confirm cancel", "Confirmar anulación")}</button>
+            </>
           )}
           {me.role === "admin" && (
             <button className="btn btn-green btn-sm" disabled={bulkBusy} onClick={bulkMarkDelivered} title={t("Close orders already delivered before the system (onboarding)", "Cerrar órdenes ya entregadas antes del sistema (implementación)")}>✅ {t("Mark delivered", "Marcar entregadas")}</button>

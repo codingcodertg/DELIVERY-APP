@@ -8,6 +8,7 @@ import { canTransition } from "@/lib/constants";
 import { orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
+import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
 
@@ -220,9 +221,22 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlMover = escrituraQueNoVaANingunSitio(cur, { stage, ...extra }, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, "en")); return false; }
+    // Mismo espejo del guard que el proveedor real (D-NEXT, 122).
+    const entrandoEnAnulada = stage === "canceled" && (!cur || cur.stage !== "canceled");
+    if (entrandoEnAnulada) {
+      const falta = faltaParaAnular(
+        (extra?.canceled_reason as string | null | undefined) ?? null,
+        (extra?.canceled_reason_note as string | null | undefined) ?? null,
+        motivosDeAnulacion(s.settings), "en",
+      );
+      if (falta) { notify(falta); return false; }
+    }
     const patch: Partial<Delivery> = { stage, ...extra, updated_at: new Date().toISOString() };
     if (stage === "approved") { patch.approved_by = me.id; patch.approved_at = new Date().toISOString(); }
     if (stage === "rejected") patch.rejected_reason = note ?? null;
+    // Quien y cuando los estampa el guard en producción; aquí no hay guard, así que los pone el
+    // proveedor para que el modo local enseñe lo mismo que la app de verdad.
+    if (entrandoEnAnulada) { patch.canceled_by = me.id; patch.canceled_at = new Date().toISOString(); }
     const base: Store = {
       ...s,
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch } : c)),
@@ -409,7 +423,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 function seedRow(n: number): Delivery {
   const now = new Date().toISOString();
   return {
-    id: "", order_no: n, order_code: null, order_suffix: null, stage: "draft", rejected_reason: null,
+    id: "", order_no: n, order_code: null, order_suffix: null, stage: "draft", rejected_reason: null, canceled_reason: null, canceled_reason_note: null, canceled_by: null, canceled_at: null,
     is_training: false, redelivery_of: null, redelivery_reason: null,
     order_type: null, store: null,
     po2: null, so_num: null, invoice_num: null, estimate_num: null, input_date: todayISO(), input_time: null,

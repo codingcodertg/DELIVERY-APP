@@ -922,14 +922,19 @@ export const canPlanRoutes = (u: CapUser) => hasCap(u, "route_plan");
 // approved by a manager — no matter how setStage is called.
 const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   draft:      ["pending", "canceled"],
-  pending:    ["approved", "rejected"],
+  // Anular una orden viva es de gerente, office y admin — la etapa lo permite y `puedeAnular` dice
+  // quién (D-NEXT, 122). Antes solo se anulaba un borrador o una rechazada, así que el cliente que
+  // llamaba para cancelar una orden ya aprobada no tenía camino.
+  pending:    ["approved", "rejected", "canceled"],
   rejected:   ["pending", "canceled"],
-  approved:   ["fulfilling", "pending"],   // pending = manager "unlock"
-  fulfilling: ["ready"],
+  approved:   ["fulfilling", "pending", "canceled"],   // pending = manager "unlock"
+  fulfilling: ["ready", "canceled"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
-  ready:      ["picked_up", "fulfilling"], // el chofer la recoge, o almacén la devuelve a preparar
+  ready:      ["picked_up", "fulfilling", "canceled"], // el chofer la recoge, o almacén la devuelve a preparar
+  // `picked_up` NO lleva "canceled" aunque el admin pueda anular desde ahí: el admin se salta esta
+  // lista entera en los dos proveedores, y nadie más anula con la carga en el camión (`puedeAnular`).
   picked_up:  ["delivered", "ready"],      // driver delivers (or reverts if not taken)
   delivered:  [],
   canceled:   [],
@@ -937,6 +942,27 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
 
 export function canTransition(from: Stage, to: Stage): boolean {
   return LEGAL_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/**
+ * Desde qué etapas anula cada rol (D-NEXT, migración 122). `LEGAL_TRANSITIONS` dice qué saltos existen;
+ * esta dice quién los da, que es lo que decide qué botón se pinta.
+ *
+ * **Es el espejo del guard de la 122**, y la prueba lo compara rama por rama contra el `.sql`: la app y
+ * la base tienen que decir lo mismo, o alguien ve un botón que la base le va a rechazar — que es
+ * exactamente lo que pasaba con logística, que veía «Cancelar» en la lista y no podía anular nada.
+ */
+export function puedeAnular(r: UserRole, stage: Stage): boolean {
+  // Una entrega hecha no se anula: se corrige con una re-entrega o una nota. Tampoco el admin — es lo
+  // único que la 122 le quita, y a propósito: sacar del cómputo algo ya entregado es justo lo que no
+  // queremos. Y una ya anulada no se vuelve a anular.
+  if (stage === "delivered" || stage === "canceled") return false;
+  if (r === "admin") return true;
+  // Con la mercancía ya en el camión solo queda el admin.
+  if (stage === "picked_up") return false;
+  if (ordersLikeOfficeManager(r)) return true;
+  if (r === "sales" || r === "driver") return stage === "draft" || stage === "rejected";
+  return false;   // almacén y logística no anulan
 }
 
 /**
