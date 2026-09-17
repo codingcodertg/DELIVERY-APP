@@ -7,7 +7,7 @@ import {
 } from "./help-attachments";
 
 /**
- * Documentos y fotos en la solicitud de ayuda (D-NEXT).
+ * Documentos y fotos en la solicitud de ayuda (D-284).
  *
  * **Ningún correo sale de aquí.** La ruta se prueba con el proveedor simulado: `fetch` es un doble, así
  * que Resend no se llama nunca, y lo que se mira es el cuerpo que la ruta habría mandado.

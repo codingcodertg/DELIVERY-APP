@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   const who = body.senderName?.trim() || senderEmail || "A user";
   const roleLabel = body.role ? ` (${body.role})` : "";
 
-  // Los adjuntos (D-NEXT). Se firma SOLO lo que está en la carpeta de quien manda la solicitud: la
+  // Los adjuntos (D-284). Se firma SOLO lo que está en la carpeta de quien manda la solicitud: la
   // ruta llega del cliente, y sin esta comprobación bastaría con escribir la carpeta de otra persona
   // para llevarse un enlace firmado a su fichero. El cubo ya lo impide al leer con la sesión, pero
   // aquí se firma con la llave de servicio, que se salta RLS.

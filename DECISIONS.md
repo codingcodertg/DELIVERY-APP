@@ -36162,7 +36162,7 @@ redondear. Lo que decidió el dueño, pregunta por pregunta:
 - **Si el escalón de las 11 millas le parece bien al dueño.** Está dicho arriba y en el mensaje al
   orquestador; sale de sus cifras, y cambiarlo es otra decisión.
 
-## D-NEXT · Documentos y fotos en la solicitud de ayuda
+## D-284 · Documentos y fotos en la solicitud de ayuda
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración:
 `119_help_files_bucket.sql`**, que aplica el orquestador.

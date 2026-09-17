@@ -1,5 +1,5 @@
 /**
- * Documentos y fotos en la solicitud de ayuda (D-NEXT).
+ * Documentos y fotos en la solicitud de ayuda (D-284).
  *
  * El dueño: «en la solicitud de ayuda, que se puedan añadir documentos o fotos». Lo que se decide aquí
  * —qué fichero se acepta, con qué nombre se guarda y de quién es— vive fuera de la pantalla y de la
