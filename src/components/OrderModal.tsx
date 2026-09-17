@@ -11,6 +11,7 @@ import { suggestDeliveryFee } from "@/lib/pricing";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
+import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -232,7 +233,13 @@ export function OrderModal({
   // behalf need one.
   const needsSalesRep = isNew && (ordersLikeOfficeManager(me.role) || me.role === "admin" || me.role === "driver")
     && !isStoreToStore(d.order_type, settings.order_type_rules);
-  const salesReps = useMemo(() => users.filter((u) => u.role === "sales"), [users]);
+  // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
+  // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
+  // vende elegirse a sí mismo (D-NEXT). La regla entera vive en lib/sales-reps.
+  const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep), [users, d.store, d.assigned_sales_rep]);
+  // Solo para avisar cuando se está enseñando el respaldo: la tienda está puesta y no tiene a nadie, así
+  // que la lista de arriba son todos. Hoy no le pasa a ninguna tienda (medido 2026-09-17).
+  const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store).length === 0;
 
   // ---- Required fields (#31) — see lib/required.ts for the rules ----
   // Live list of what's still missing, used to highlight the empty fields.
@@ -1665,6 +1672,9 @@ export function OrderModal({
                       <option value="">{t("Select sales rep…", "Seleccione vendedor…")}</option>
                       {salesReps.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                     </select>
+                    {tiendaSinVendedores && (
+                      <div className="hint">{t("Nobody is assigned to this store — showing everyone who can create orders.", "Esta tienda no tiene a nadie asignado — se muestran todos los que pueden crear órdenes.")}</div>
+                    )}
                   </div>
                 ) : <div />}
                 {salesFields && (
