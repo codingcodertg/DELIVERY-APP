@@ -7,7 +7,7 @@ import Link from "next/link";
 import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleHome, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
 import dynamic from "next/dynamic";
-import { LOCAL_CITIES_DEFAULT, filasDeLaFormula } from "@/lib/pricing";
+import { LOCAL_CITIES_DEFAULT, filasDeLaFormula, REDONDEO } from "@/lib/pricing";
 import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
@@ -597,9 +597,11 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
       <div style={{ marginTop: 18 }}>
         <div style={{ fontWeight: 700 }}>{t("Delivery fee formula", "Fórmula de la tarifa de entrega")}</div>
         <div className="hint" style={{ marginTop: 2 }}>
+          {/* El escalón del redondeo sale de `pricing.ts` (D-NEXT): estaba escrito «$10» a mano
+              y habría mentido el día que cambiara, que es justo lo que pasó. */}
           {t(
-            "Read-only: these rules live in the code. Miles are driving miles; every result rounds to the nearest $10.",
-            "Solo lectura: estas reglas viven en el código. Las millas son de recorrido y todo resultado se redondea a $10.",
+            `Read-only: these rules live in the code. Miles are driving miles; every result rounds to the nearest $${REDONDEO}.`,
+            `Solo lectura: estas reglas viven en el código. Las millas son de recorrido y todo resultado se redondea a $${REDONDEO}.`,
           )}
         </div>
         <div style={{ overflowX: "auto", marginTop: 8 }}>
@@ -611,8 +613,7 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
               <tr>
                 <th style={{ textAlign: "left" }}>{t("Zone", "Zona")}</th>
                 <th style={{ textAlign: "left" }}>{t("Distance", "Distancia")}</th>
-                <th style={{ textAlign: "left" }}>{t("List", "Lista")}</th>
-                <th style={{ textAlign: "left" }}>{t("Discount", "Descuento")}</th>
+                <th style={{ textAlign: "left" }}>{t("Price", "Precio")}</th>
               </tr>
             </thead>
             <tbody>
@@ -620,8 +621,7 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
                 <tr key={f.tramo}>
                   <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
                   <td>{textoDelRango(t, f.desde, f.hasta)}</td>
-                  <td>{textoDeLaRegla(t, f.lista.base, f.lista.factor)}</td>
-                  <td>{textoDeLaRegla(t, f.descuento.base, f.descuento.factor)}</td>
+                  <td>{textoDeLaRegla(t, f.regla.base, f.regla.factor, f.regla.minimo)}</td>
                 </tr>
               ))}
             </tbody>

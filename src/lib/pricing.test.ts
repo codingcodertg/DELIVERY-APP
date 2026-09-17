@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { isLocalCity, listFee, discountFee, suggestDeliveryFee } from "@/lib/pricing";
+import {
+  conSuelo, deliveryFee, isLocalCity, MINIMO_MEDIO, pasoTarifa, redondear, REDONDEO, suggestDeliveryFee,
+  UMBRAL_CORTO, UMBRAL_LARGO,
+} from "@/lib/pricing";
 import { todayISO } from "@/lib/utils";
 
 describe("isLocalCity", () => {
@@ -18,37 +21,89 @@ describe("isLocalCity", () => {
   });
 });
 
-describe("listFee (office formula, rounded to $10)", () => {
-  it("is a flat $100 under 11 miles", () => {
-    expect(listFee(0)).toBe(100);
-    expect(listFee(10)).toBe(100);
+// La fórmula del dueño (D-NEXT): «more than 50 miles 300+(0.80$ x mile), when below 50 miles
+// min 105+(0.80 per mile) and round to the nearest 5». El tramo plano de menos de 11 millas se
+// queda, por respuesta suya.
+describe("deliveryFee: un solo precio, redondeado a 5", () => {
+  it("es plano de $100 por debajo de 11 millas", () => {
+    expect(deliveryFee(0)).toBe(100);
+    expect(deliveryFee(10)).toBe(100);
+    expect(deliveryFee(10.9)).toBe(100);
   });
-  it("uses 120 + mi*0.8 between 11 and 50 miles", () => {
-    expect(listFee(11)).toBe(130); // round10(128.8)
-    expect(listFee(13)).toBe(130); // round10(130.4)
-    expect(listFee(27)).toBe(140); // round10(141.6)
-    expect(listFee(50)).toBe(160); // round10(160)
+
+  it("de 11 a 50 millas: 105 + 0,80 × millas", () => {
+    expect(deliveryFee(11)).toBe(115);   // 105 + 8,8 = 113,8 → 115
+    expect(deliveryFee(13)).toBe(115);   // 105 + 10,4 = 115,4 → 115
+    expect(deliveryFee(27)).toBe(125);   // 105 + 21,6 = 126,6 → 125
+    expect(deliveryFee(50)).toBe(145);   // 105 + 40 = 145 → 145
   });
-  it("uses 350 + mi over 50 miles", () => {
-    expect(listFee(51)).toBe(400); // round10(401)
-    expect(listFee(60)).toBe(410); // round10(410)
-    expect(listFee(180)).toBe(530); // round10(530)
+
+  it("por encima de 50 millas: 300 + 0,80 × millas", () => {
+    expect(deliveryFee(50.1)).toBe(340); // 300 + 40,08 = 340,08 → 340
+    expect(deliveryFee(51)).toBe(340);   // 300 + 40,8 = 340,8 → 340
+    expect(deliveryFee(60)).toBe(350);   // 300 + 48 = 348 → 350
+    expect(deliveryFee(180)).toBe(445);  // 300 + 144 = 444 → 445
+  });
+
+  it("el borde de las 50 millas está en el tramo de abajo, no en el de arriba", () => {
+    expect(pasoTarifa(UMBRAL_LARGO, true).tramo).toBe("local-medio");
+    expect(pasoTarifa(UMBRAL_LARGO + 0.1, true).tramo).toBe("local-largo");
+    // Y el salto que eso deja, que es de los números del dueño: 145 a 50 millas y 340 a 50,1.
+    expect([deliveryFee(UMBRAL_LARGO), deliveryFee(UMBRAL_LARGO + 0.1)]).toEqual([145, 340]);
+  });
+
+  it("el borde de las 11 millas: plano abajo, fórmula desde 11, con su escalón", () => {
+    expect(pasoTarifa(UMBRAL_CORTO - 0.1, true).tramo).toBe("local-corto");
+    expect(pasoTarifa(UMBRAL_CORTO, true).tramo).toBe("local-medio");
+    // 10,9 millas cuestan 100 y 11 millas cuestan 115: el escalón sube 15 al cruzar.
+    expect([deliveryFee(10.9), deliveryFee(11)]).toEqual([100, 115]);
+  });
+
+  it("fuera de la zona local: 500 + 0,80 × millas", () => {
+    expect(deliveryFee(13, false)).toBe(510);  // 500 + 10,4 = 510,4 → 510
+    expect(deliveryFee(60, false)).toBe(550);  // 500 + 48 = 548 → 550
   });
 });
 
-describe("discountFee (office formula, rounded to $10)", () => {
-  it("is a flat $80 under 11 miles", () => {
-    expect(discountFee(0)).toBe(80);
-    expect(discountFee(10)).toBe(80);
+describe("el redondeo y el suelo", () => {
+  it("redondea al múltiplo de 5 más cercano, y el medio sube", () => {
+    expect(REDONDEO).toBe(5);
+    expect(redondear(2.5)).toBe(5);
+    expect(redondear(7.5)).toBe(10);
+    expect(redondear(2.4)).toBe(0);
+    expect(redondear(117.5)).toBe(120);
+    // Una tarifa real que cae justo en el medio: 105 + 0,8 × 15,625 = 117,5.
+    expect(deliveryFee(15.625)).toBe(120);
   });
-  it("uses 100 + mi*0.8 between 11 and 50 miles", () => {
-    expect(discountFee(13)).toBe(110); // round10(110.4)
-    expect(discountFee(27)).toBe(120); // round10(121.6)
-    expect(discountFee(50)).toBe(140); // round10(140)
+
+  it("baja cuando toca bajar", () => {
+    expect(redondear(126.6)).toBe(125);
+    expect(deliveryFee(27)).toBe(125);
   });
-  it("uses 200 + mi over 50 miles", () => {
-    expect(discountFee(60)).toBe(260); // round10(260)
-    expect(discountFee(180)).toBe(380); // round10(380)
+
+  it("el suelo se aplica DESPUÉS de redondear, así que el redondeo no se lo come", () => {
+    expect(conSuelo(100, MINIMO_MEDIO)).toBe(MINIMO_MEDIO);
+    expect(conSuelo(110, MINIMO_MEDIO)).toBe(110);
+    expect(conSuelo(100, null)).toBe(100);
+    // Con un suelo que no sea múltiplo del escalón, el orden importa: redondear después lo
+    // dejaría por debajo del mínimo.
+    expect(conSuelo(redondear(101), 103)).toBe(103);
+    expect(redondear(conSuelo(101, 103))).toBe(105);
+  });
+
+  it("ningún precio del tramo del medio queda por debajo del suelo", () => {
+    for (let mi = UMBRAL_CORTO; mi <= UMBRAL_LARGO; mi += 0.5) {
+      expect(deliveryFee(mi), `${mi} mi`).toBeGreaterThanOrEqual(MINIMO_MEDIO);
+    }
+  });
+
+  it("hoy el suelo no muerde, y el tramo plano se queda por debajo de él", () => {
+    // Está escrito, no porque haga falta con estas cifras, sino para que siga estando el día que
+    // alguien baje la base. Si algún día muerde, este falso cae y hay que mirar por qué.
+    for (const mi of [UMBRAL_CORTO, 20, UMBRAL_LARGO]) expect(pasoTarifa(mi, true).minimoAplicado).toBe(false);
+    // Y el suelo es del tramo del medio, no de todo lo local: el plano sigue en 100 < 105.
+    expect(pasoTarifa(0, true).minimo).toBeNull();
+    expect(deliveryFee(0)).toBeLessThan(MINIMO_MEDIO);
   });
 });
 
@@ -56,25 +111,19 @@ describe("suggestDeliveryFee", () => {
   it("prices by miles and marks a local city as no-approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "123 Main St, McAllen, TX 78501", route_miles: 13 });
     expect(s.zone).toBe("local");
-    expect(s.list).toBe(130);
-    expect(s.discount).toBe(110);
+    expect(s.fee).toBe(115);
     expect(s.needsApproval).toBe(false);
   });
-  it("uses the not-local formula (500+mi / 400+mi) and flags for approval", () => {
+  it("uses the not-local formula (500 + mi·0.8) and flags for approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "500 Ranch Rd, Falfurrias, TX", route_miles: 60 });
     expect(s.zone).toBe("nonlocal");
-    expect(s.list).toBe(560);      // round10(500 + 60)
-    expect(s.discount).toBe(460);  // round10(400 + 60)
+    expect(s.fee).toBe(550);       // 500 + 48 = 548 → 550
     expect(s.needsApproval).toBe(true);
-  });
-  it("not-local fee helpers", () => {
-    expect(listFee(60, false)).toBe(560);
-    expect(discountFee(60, false)).toBe(460);
   });
   it("leaves the fee null until the route miles are known", () => {
     const s = suggestDeliveryFee({ delivery_address: "1 Palm Ave, McAllen, TX", route_miles: null });
-    expect(s.list).toBeNull();
-    expect(s.discount).toBeNull();
+    expect(s.fee).toBeNull();
+    expect(s.breakdown).toBeNull();
   });
   it("stays 'unknown' with no delivery address", () => {
     expect(suggestDeliveryFee({ delivery_address: "", route_miles: 20 }).zone).toBe("unknown");
@@ -91,17 +140,26 @@ describe("suggestDeliveryFee", () => {
     const same = suggestDeliveryFee({ ...base, delivery_date: iso }, { same_day_surcharge: 50 });
     expect(same.sameDay).toBe(true);
     expect(same.sameDaySurcharge).toBe(50);
-    expect(same.list).toBe(180);      // 130 + 50
-    expect(same.discount).toBe(160);  // 110 + 50
+    expect(same.fee).toBe(165);  // 115 + 50: el recargo se suma DESPUÉS de redondear
 
     const other = suggestDeliveryFee({ ...base, delivery_date: "2020-01-01" }, { same_day_surcharge: 50 });
     expect(other.sameDay).toBe(false);
-    expect(other.list).toBe(130);
+    expect(other.fee).toBe(115);
   });
 
   it("does not surcharge when the amount is 0 (feature off)", () => {
     const s = suggestDeliveryFee({ delivery_address: "1 Palm Ave, McAllen, TX", route_miles: 13, delivery_date: todayISO() }, { same_day_surcharge: 0 });
     expect(s.sameDay).toBe(false);
-    expect(s.list).toBe(130);
+    expect(s.fee).toBe(115);
+  });
+
+  it("es una SUGERENCIA: no toca la orden que recibe", () => {
+    const orden = { delivery_address: "123 Main St, McAllen, TX 78501", route_miles: 13, delivery_fee: 999 };
+    const copia = { ...orden };
+    const s = suggestDeliveryFee(orden);
+    expect(orden).toEqual(copia);
+    // Y la tarifa guardada sigue siendo la que estaba, no la sugerida.
+    expect(orden.delivery_fee).toBe(999);
+    expect(s.fee).toBe(115);
   });
 });

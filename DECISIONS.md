@@ -13851,6 +13851,7 @@ Se cierra por tres sitios, y el del medio es el que de verdad lo sostiene:
 fichero de `inline-colors.test.ts`, que ve un componente más).
 
 ## D-244 · La fórmula del recargo de entrega se puede ver, y sale del mismo sitio que el precio
+> **Reemplazada en parte por D-NEXT** (2026-09-17): las cifras y las dos columnas, lista y descuento. Lo que esta entrada decidió —que la fórmula salga del mismo sitio que el precio y que la pantalla la genere— sigue en pie, y D-NEXT lo extiende al escalón del redondeo. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-12 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por el dueño:** *«solo para admin en delivery app quiero que él pueda ver la fórmula que
@@ -36053,3 +36054,110 @@ pruebas, todas en `intertienda-contacto.test.ts`, fichero nuevo, y no quita ning
 en 25 y `order-endpoints.test.ts` en 19, con tres barridos actualizados porque el selector de origen ahora sale
 tres veces en el modal. `main` 3b549ca, medido en un worktree aparte, está en 2371 | 3. (Rebasada sobre ese
 `main` después de que entrara D-278, así que los dos números subieron 28 respecto de la primera medida.)
+
+## D-NEXT · La tarifa local, de nuevo: un solo precio, 0,80 por milla y redondeo a 5
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
+por:** el dueño, literal: *«new local delivery fee formula: more than 50 miles 300+(0.80$ x mile), when
+below 50 miles min 105+(0.80 per mile) and round to the nearest 5»*. Las cuatro dudas que dejaba se le
+preguntaron y las contestó él; van abajo, cada una en su sitio.
+
+**Reemplaza en parte a D-244:** sus cifras y sus dos columnas. Lo que D-244 decidió —que la fórmula
+salga del mismo sitio que el precio, y que la pantalla la genere en vez de copiarla— sigue en pie, y
+esta entrada lo extiende al escalón del redondeo, que era lo único que seguía escrito a mano.
+
+### Qué había
+
+`src/lib/pricing.ts`, con **dos** precios por orden: «lista» y «descuento» (el que un vendedor podía
+ofrecer). Medido ejecutando el código antes de tocarlo:
+
+| tramo | lista | descuento |
+|---|---|---|
+| local, menos de 11 mi | $100 plano | $80 plano |
+| local, 11–50 mi | 120 + 0,8 × mi | 100 + 0,8 × mi |
+| local, más de 50 mi | 350 + mi | 200 + mi |
+| fuera de zona | 500 + mi | 400 + mi |
+
+Todo redondeado a $10, y el recargo de mismo día sumado **después** de redondear. La tabla de Ajustes y
+el «¿Cómo se calculó?» ya se generaban de ahí (D-244, D-249), pero el «$10» estaba escrito a mano en
+`settings/page.tsx` y en `FeeBreakdown.tsx`.
+
+### Qué hay
+
+| tramo | precio |
+|---|---|
+| local, menos de 11 mi | $100 plano |
+| local, 11–50 mi | 105 + 0,80 × mi, con **$105 de suelo** |
+| local, más de 50 mi | 300 + 0,80 × mi |
+| fuera de zona | 500 + 0,80 × mi |
+
+Todo redondeado **al múltiplo de 5 más cercano**, y el recargo de mismo día se sigue sumando después de
+redondear. Lo que decidió el dueño, pregunta por pregunta:
+
+1. **Un solo precio.** El descuento desaparece: donde había dos botones —«Lista» y «Descuento»— queda
+   uno con el importe. Quien quiera cobrar menos escribe la cifra a mano.
+2. **El tramo plano de menos de 11 millas se queda** en $100. La fórmula del pedido cubría «below 50»
+   entero, y podía leerse como que lo sustituía; dijo que no.
+3. **Fuera de zona también cambia:** 500 + 0,80 × mi, un precio, redondeado a 5. Antes era 500 + mi.
+4. **El redondeo a 5 vale para toda la app**, local y fuera de zona.
+5. **El suelo de 105 queda escrito** aunque hoy no pueda morder.
+
+### Las consecuencias, que son de los números del pedido
+
+- **El escalón de las 11 millas sube.** A 10,9 millas se cobran $100 y a 11 millas, $115: el tramo plano
+  acaba por debajo de donde arranca la fórmula. Antes el escalón también existía (100 → 130), y ahora es
+  de 15 en vez de 30. **No se ha suavizado por cuenta propia**, porque son las cifras que dio el dueño.
+- **El salto de las 50 millas sigue:** $145 a 50 millas y $340 a 50,1. Antes era 160 → 400.
+- **Casi todo baja.** Medido con la fórmula vieja y la nueva, lo local: +15 por debajo de 11 millas
+  (100 → 115 en el borde), −15 entre 11 y 50, y entre −60 y −80 por encima de 50 (a 75 millas,
+  430 → 360). Fuera de zona sube un poco en las cortas (510 en 13 millas) y baja en las largas
+  (560 → 550 en 60 millas).
+- **El suelo de 105 no puede morder.** Con `105 + 0,80 × millas` el resultado ya empieza en 105 y solo
+  sube; está escrito para el día que alguien baje la base, y una prueba fija que sigue siendo el suelo.
+  Es del **tramo del medio** y no de todo lo local: un suelo global habría subido el tramo plano de 100
+  a 105 en silencio, y el dueño quiere el plano en 100.
+
+### Cómo queda escrito
+
+- **La fórmula, en un solo sitio.** `pricing.ts` tiene los umbrales (11 y 50), el factor
+  (`FACTOR_MILLA = 0.8`), el suelo (`MINIMO_MEDIO = 105`), el escalón (`REDONDEO = 5`) y una sola tabla
+  de cuatro cifras (`TARIFA`). `pasoTarifa` calcula, `deliveryFee` lo devuelve redondeado, y
+  `filasDeLaFormula` genera las **cuatro** filas de Ajustes evaluando `pasoTarifa` — antes eran ocho,
+  tres tramos por dos columnas más la de fuera de zona por dos.
+- **El escalón y el suelo viajan en el paso** (`redondeo`, `minimo`, `minimoAplicado`), así que el
+  desglose los dice sin escribirlos: se acabó el «$10» a mano en dos pantallas. Una prueba barre las dos
+  y falla si vuelve a aparecer, con el control de que sí mencionan el escalón por su nombre.
+- **El suelo se aplica después de redondear.** Con un suelo múltiplo del escalón —105 y 5 lo son— los dos
+  órdenes dan lo mismo; se deja en ese orden porque es el que sobrevive a un suelo que no sea múltiplo,
+  y una prueba lo fija con un suelo de 103.
+- **Cobrar por debajo del precio sigue pidiendo aprobación.** Ese aviso miraba el descuento, que era el
+  precio más bajo aprobado; al quedar uno, el suelo es ese. **Decisión mía**, dicha al orquestador.
+- **Las órdenes guardadas no se tocan.** La tarifa vive en la fila; esto solo cambia lo que se sugiere.
+  Medido: el único sitio que llama a `suggestDeliveryFee` es `OrderModal`, y todo lo demás
+  —`analytics`, `export`, la tabla, los totales de cuentas— lee `delivery_fee` de la fila. Una prueba
+  comprueba además que la sugerencia no modifica la orden que recibe.
+
+### Medido, rompiendo cada pieza
+
+23 cambios: **20 caen, cada uno por la prueba que lleva su nombre, y los 3 gemelos se quedan en verde.**
+
+- **Las cifras:** las millas valen 1 en vez de 0,80; la base del medio vuelve a 120; la del largo a 350;
+  la de fuera de zona baja a 400; el tramo largo cuenta las millas enteras.
+- **El redondeo:** a 10 en vez de a 5; truncar en vez de redondear.
+- **El suelo:** se vuelve techo; no se aplica (cae solo su prueba, que es la que lo nombra, porque con
+  estas cifras no muerde); se aplica también al tramo plano; el paso dice siempre que mordió.
+- **Los bordes:** el plano hasta 12 millas; el tramo largo desde 49.
+- **El recargo:** el de mismo día se pierde.
+- **Las pantallas:** el desglose escribe el escalón a mano; el desglose no enseña el mínimo; Ajustes
+  vuelve a escribir «$10»; la tabla de Ajustes pierde el suelo; el modal vuelve a mirar el descuento; el
+  modal se queda sin el aviso de igualar precio.
+- **Los gemelos:** el suelo antes de redondear; `conSuelo` escrito con `if`; `minimoAplicado` con `>` en
+  vez de `!==`.
+
+### Lo no verificado
+
+- **Nadie ha abierto la app.** Ni el botón único, ni el desglose, ni la tabla de Ajustes están vistos en
+  un navegador: el worktree no tiene `.env.local`, a propósito.
+- **Nada contra producción.** No se ha recalculado ni comparado ninguna orden real.
+- **Si el escalón de las 11 millas le parece bien al dueño.** Está dicho arriba y en el mensaje al
+  orquestador; sale de sus cifras, y cambiarlo es otra decisión.

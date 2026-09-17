@@ -29,13 +29,26 @@ export function textoDelRango(t: Traducir, desde: number | null, hasta: number |
 }
 
 /**
- * «$100 fijo», «350 + mi», «120 + 0.8 × mi».
+ * «$100 fijo», «300 + 0.8 × mi», «105 + 0.8 × mi (mín. $105)».
  *
- * El factor decide la forma: 0 es un precio plano, 1 es «base + millas», y cualquier otro lleva
- * el multiplicador a la vista. No hay una cuarta forma porque no hay un cuarto tramo.
+ * El factor decide la forma: 0 es un precio plano, 1 sería «base + millas», y cualquier otro lleva
+ * el multiplicador a la vista. El suelo se dice solo cuando el tramo tiene uno.
  */
-export function textoDeLaRegla(t: Traducir, base: number, factor: number): string {
+export function textoDeLaRegla(t: Traducir, base: number, factor: number, minimo: number | null = null): string {
   if (factor === 0) return t(`flat ${fmtMoney(base)}`, `${fmtMoney(base)} fijo`);
-  if (factor === 1) return `${base} + mi`;
-  return `${base} + ${factor} × mi`;
+  const regla = factor === 1 ? `${base} + mi` : `${base} + ${factor} × mi`;
+  return minimo == null ? regla : `${regla} ${t(`(min ${fmtMoney(minimo)})`, `(mín. ${fmtMoney(minimo)})`)}`;
+}
+
+/**
+ * «Redondeado a $5». El escalón llega de `pricing.ts` y no escrito a mano: hasta D-NEXT el «$10»
+ * vivía suelto en dos pantallas, y al cambiar el redondeo las dos habrían mentido.
+ */
+export function textoDelRedondeo(t: Traducir, redondeo: number): string {
+  return t(`Rounded to ${fmtMoney(redondeo)}`, `Redondeado a ${fmtMoney(redondeo)}`);
+}
+
+/** «Mínimo $105». Solo se enseña cuando el suelo de verdad subió el precio. */
+export function textoDelMinimo(t: Traducir, minimo: number): string {
+  return t(`Minimum ${fmtMoney(minimo)}`, `Mínimo ${fmtMoney(minimo)}`);
 }

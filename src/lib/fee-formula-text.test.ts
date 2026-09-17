@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { textoDelRango, textoDeLaRegla, type Traducir } from "./fee-formula-text";
-import { filasDeLaFormula, UMBRAL_CORTO, UMBRAL_LARGO, FACTOR_MEDIO, TARIFA_LISTA } from "./pricing";
+import { textoDelMinimo, textoDelRango, textoDeLaRegla, textoDelRedondeo, type Traducir } from "./fee-formula-text";
+import { filasDeLaFormula, MINIMO_MEDIO, REDONDEO, UMBRAL_CORTO, UMBRAL_LARGO, FACTOR_MILLA, TARIFA } from "./pricing";
 import { fmtMoney } from "./utils";
 
 const en: Traducir = (a) => a;
@@ -35,7 +35,7 @@ describe("las reglas se dicen según el factor", () => {
     expect(textoDeLaRegla(en, 100, 0)).toBe(`flat ${fmtMoney(100)}`);
     expect(textoDeLaRegla(es, 100, 0)).toBe(`${fmtMoney(100)} fijo`);
     expect(textoDeLaRegla(en, 350, 1)).toBe("350 + mi");
-    expect(textoDeLaRegla(en, 120, FACTOR_MEDIO)).toBe(`120 + ${FACTOR_MEDIO} × mi`);
+    expect(textoDeLaRegla(en, 300, FACTOR_MILLA)).toBe(`300 + ${FACTOR_MILLA} × mi`);
   });
 
   it("y las ocho celdas de la tabla se pueden decir en inglés sin que quede nada suelto", () => {
@@ -43,27 +43,57 @@ describe("las reglas se dicen según el factor", () => {
     // recorrería la tabla entera y lo encontraría.
     const celdas = filasDeLaFormula().flatMap((f) => [
       textoDelRango(en, f.desde, f.hasta),
-      textoDeLaRegla(en, f.lista.base, f.lista.factor),
-      textoDeLaRegla(en, f.descuento.base, f.descuento.factor),
+      textoDeLaRegla(en, f.regla.base, f.regla.factor, f.regla.minimo),
     ]);
-    expect(celdas).toHaveLength(12); // control: 4 filas × 3 celdas
+    expect(celdas).toHaveLength(8); // control: 4 filas × 2 celdas, desde D-NEXT
     for (const c of celdas) {
-      expect(c, c).not.toMatch(/fijo|cualquier|menos de|más de/);
+      expect(c, c).not.toMatch(/fijo|cualquier|menos de|más de|mín\./);
     }
+  });
+
+  it("el suelo se dice solo donde lo hay, y en el idioma de quien mira", () => {
+    expect(textoDeLaRegla(en, 105, FACTOR_MILLA, MINIMO_MEDIO))
+      .toBe("105 + " + FACTOR_MILLA + " × mi (min " + fmtMoney(MINIMO_MEDIO) + ")");
+    expect(textoDeLaRegla(es, 105, FACTOR_MILLA, MINIMO_MEDIO))
+      .toBe("105 + " + FACTOR_MILLA + " × mi (mín. " + fmtMoney(MINIMO_MEDIO) + ")");
+    expect(textoDeLaRegla(en, 300, FACTOR_MILLA, null)).not.toMatch(/min/);
+  });
+
+  it("el escalón del redondeo se dice con el número que manda pricing.ts", () => {
+    expect(textoDelRedondeo(en, REDONDEO)).toBe("Rounded to " + fmtMoney(REDONDEO));
+    expect(textoDelRedondeo(es, REDONDEO)).toBe("Redondeado a " + fmtMoney(REDONDEO));
+    // El control del fallo que se arregló con D-NEXT: el escalón estaba escrito «$10» a mano en
+    // estas dos pantallas, y al cambiarlo las dos habrían mentido. Se miran sin los comentarios,
+    // porque uno de ellos cita a propósito el «$10» de antes.
+    const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    for (const f of ["src/components/FeeBreakdown.tsx", "src/app/(app)/settings/page.tsx"]) {
+      const codigo = sinComentarios(readFileSync(f, "utf8"));
+      expect(codigo, f).not.toMatch(/\$10\b/);
+      // Y el control de que el barrido no es vacuo: el fichero sí menciona el escalón, por su
+      // nombre, en vez de por su número.
+      expect(codigo, f).toMatch(/REDONDEO|paso\.redondeo/);
+    }
+  });
+
+  it("y el mínimo se dice con su número", () => {
+    expect(textoDelMinimo(en, MINIMO_MEDIO)).toBe("Minimum " + fmtMoney(MINIMO_MEDIO));
+    expect(textoDelMinimo(es, MINIMO_MEDIO)).toBe("Mínimo " + fmtMoney(MINIMO_MEDIO));
   });
 });
 
 // Y que no vuelva a haber dos fórmulas en la misma pantalla. La copia escrita a mano ya existía
 // en Ajustes desde antes de esta rama; añadir la tabla generada al lado dejaba las dos, y la de
-// abajo se habría quedado vieja el día que alguien cambiara un 120.
+// abajo se habría quedado vieja el día que alguien cambiara un 105.
 describe("Ajustes enseña la fórmula una sola vez", () => {
   const src = readFileSync("src/app/(app)/settings/page.tsx", "utf8");
 
   it("la tabla se genera, y no quedan constantes de la fórmula escritas a mano", () => {
     expect(src).toContain("filasDeLaFormula()");
-    for (const n of [TARIFA_LISTA.baseMedio, TARIFA_LISTA.baseLargo, TARIFA_LISTA.baseNoLocal]) {
+    for (const n of [TARIFA.baseMedio, TARIFA.baseLargo, TARIFA.baseNoLocal]) {
       expect(src, `la constante ${n} no puede estar escrita en la pantalla`).not.toContain(`${n} + mi`);
     }
     expect(src).not.toContain("Fee formula (by driving miles)");
+    // Y el suelo llega a la tabla: una regla con mínimo que se pintara sin él mentiría.
+    expect(src).toContain("f.regla.minimo");
   });
 });
