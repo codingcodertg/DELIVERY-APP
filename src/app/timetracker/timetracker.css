@@ -141,6 +141,9 @@
    -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
    El subrayado al pasar por encima es lo que dice que se puede pulsar; sin él, un nombre
    suelto en una barra no invita a tocarlo. */
+/* El ⟳ de recargar, solo dentro de la app de escritorio (D-NEXT). Mismo aire que los botones de
+   idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
+.timetracker-module .topbar .tt-recargar{background:rgba(255,255,255,.1);color:#fff;font-size:15px;line-height:1;padding:5px 9px}
 .timetracker-module .topbar a.tt-me{color:#fff;opacity:.8;font-size:12px;font-weight:600;text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
 .timetracker-module .topbar a.tt-me:hover{opacity:1;text-decoration:underline;background:rgba(255,255,255,.08)}
 .timetracker-module .topbar a.tt-me.active{opacity:1;background:var(--tt-accent);text-decoration:none}

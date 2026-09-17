@@ -10,6 +10,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
 import { HubHomeLink } from "@/components/HubHomeLink";
+import { BotonRecargar } from "@/components/BotonRecargar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
@@ -262,6 +263,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </div>
           )}
         </div>
+        <BotonRecargar titulo={t("Reload the app", "Recargar la app")} />
         <NotificationBell />
         {/* Tu nombre abre el menú de la cuenta (D-274). Antes llevaba a la pantalla de Cuenta y
             al lado iba la etiqueta del rol; el dueño pidió quitar las dos cosas. */}
