@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { cuentaRequiereAprobacion, naceAprobada } from "./cuenta-aprobacion";
 import type { AccountRecord } from "./types";
 
-// Cuentas que siempre pasan por oficina (D-NEXT, migración 123). Nombres inventados: las cuatro
+// Cuentas que siempre pasan por oficina (D-292, migración 123). Nombres inventados: las cuatro
 // cuentas de verdad las carga el orquestador en Ajustes.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

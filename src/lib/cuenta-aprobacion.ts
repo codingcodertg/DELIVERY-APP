@@ -1,7 +1,7 @@
 import type { AccountRecord } from "@/lib/types";
 
 /**
- * Cuentas que SIEMPRE pasan por oficina (D-NEXT).
+ * Cuentas que SIEMPRE pasan por oficina (D-292).
  *
  * El dueño: «ya que se den de alta los clientes, estos clientes siempre van a requerir aprobación
  * de oficina». Es una marca por cuenta —`requires_approval`— que gana a la aprobación automática
@@ -38,7 +38,7 @@ export type QuienCrea = {
   creaComoOficina: boolean;
   /** La tienda desde la que se vende aprueba sola (`auto_approve` en Ajustes). */
   tiendaAutoAprueba: boolean;
-  /** La cuenta de la orden está marcada como «siempre con aprobación» (D-NEXT). */
+  /** La cuenta de la orden está marcada como «siempre con aprobación» (D-292). */
   cuentaPideAprobacion: boolean;
   /** Intertienda sin PO: eso ya iba a pendiente antes de esta regla. */
   intertiendaSinPo: boolean;

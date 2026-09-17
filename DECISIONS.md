@@ -36941,7 +36941,7 @@ en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
   de la base a mano, la app y la base dejan de estar de acuerdo; por eso el editor de Datos no la deja
   quitar.
 
-## D-NEXT · Cuentas que siempre pasan por oficina
+## D-292 · Cuentas que siempre pasan por oficina
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
 `123_cuentas_con_aprobacion.sql`**, que aplica el orquestador tras su respaldo y su ensayo ·

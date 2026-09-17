@@ -332,7 +332,7 @@ export interface AccountRecord {
    * defaults the type to Intertienda; a customer account defaults to Customer. */
   intertienda?: boolean;
   /**
-   * Esta cuenta SIEMPRE pasa por oficina (D-NEXT): sus órdenes nacen `pending` aunque la tienda
+   * Esta cuenta SIEMPRE pasa por oficina (D-292): sus órdenes nacen `pending` aunque la tienda
    * apruebe sola o la cree la propia oficina. Lo mismo lo hace cumplir el guard de la base (123),
    * no solo la pantalla.
    */

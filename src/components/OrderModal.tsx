@@ -212,7 +212,7 @@ export function OrderModal({
   // A store can be flagged "auto-approve" (Data page) — orders sold from it
   // skip manager approval and are created already Approved, for any creator.
   const storeAutoApprove = !!settings.stores.find((s) => s.name === d.store)?.auto_approve;
-  // La cuenta manda sobre la tienda (D-NEXT): marcada, la orden nace pendiente pase lo que pase.
+  // La cuenta manda sobre la tienda (D-292): marcada, la orden nace pendiente pase lo que pase.
   const cuentaPideAprobacion = cuentaRequiereAprobacion(settings.accounts, d.account);
   // Belt and braces. The PO is now a REQUIRED field for Intertienda (the "po"
   // docRef rule), so submitting without one is refused before this is reached

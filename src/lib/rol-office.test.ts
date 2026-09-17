@@ -109,7 +109,7 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   });
 
   it("crea la orden ya aprobada, y el botón lo dice", () => {
-    // Hasta D-NEXT esto era una expresión suelta en el modal. Ahora la decide `naceAprobada`, que
+    // Hasta D-292 esto era una expresión suelta en el modal. Ahora la decide `naceAprobada`, que
     // añade la marca por cuenta —una cuenta de «siempre con aprobación» gana a office y a la
     // tienda—. Lo que esta prueba fija sigue siendo lo mismo: que office entra en esa decisión y
     // que el botón lo dice. La regla en sí se prueba en `cuenta-aprobacion.test.ts`.
