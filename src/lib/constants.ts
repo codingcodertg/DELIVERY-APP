@@ -497,6 +497,19 @@ export const HUB_TOOLS: HubTool[] = [
     // base, no esta lista. El chofer, que no entra al lobby (D-173), llega desde su «Cuenta».
     visible: () => true,
   },
+  {
+    key: "help-requests",
+    href: "/home/solicitudes-de-ayuda",
+    emoji: "🆘",
+    label_en: "Help requests",
+    label_es: "Solicitudes de ayuda",
+    desc_en: "Everything people asked for help with",
+    desc_es: "Todo lo que la gente ha pedido por el botón de ayuda",
+    // Solo el admin, como Usuarios. La puerta de verdad son las dos de siempre: el `layout` del
+    // servidor y la RLS de la 120, que además deja a cada persona ver las suyas por la API aunque
+    // esta herramienta no le salga aquí.
+    visible: (me) => me.role === "admin",
+  },
 ];
 
 // ---- Apps que se instalan --------------------------------------------------

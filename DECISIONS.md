@@ -36248,3 +36248,100 @@ Dos cosas que sacó la tanda, y por eso se cuenta:
 pruebas, todas en `help-attachments.test.ts`, fichero nuevo, y no quita ninguna. `main` 5725514, medido en un
 worktree aparte, está en 2399 | 3 (rebasada sobre ese `main` después de que entrara D-280). `migrate-status` no se puede correr desde la rama —el worktree no tiene las
 variables, a propósito—, así que el estado de la 119 lo mira el orquestador antes de aplicarla.
+
+## D-NEXT · El historial de solicitudes de ayuda, en el hub
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración:
+`120_help_requests.sql`**, que aplica el orquestador.
+**Pedido por el dueño:** *«en mi usuario de Andrés, créame una vista para ver todas las solicitudes de
+ayuda en el hub»*.
+
+### No había historial que enseñar
+
+Medido antes de construir: `/api/help` mandaba el correo y **no guardaba nada**. D-284 le añadió los
+adjuntos, también sin guardar. Así que una solicitud que no llegara —o que llegara a una bandeja que
+nadie mira— se perdía sin rastro, y no había ninguna vista posible.
+
+### Qué se guarda, y en qué orden
+
+Tabla `public.help_requests` con lo que el correo ya llevaba —quién, cuándo, su rol, la página, la
+versión, el idioma y el mensaje—, los adjuntos y el resultado del envío. Tres decisiones que no son
+obvias:
+
+- **Los adjuntos se guardan por su CLAVE del cubo, no por su enlace.** El del correo es firmado y caduca
+  a los 30 días (D-284): guardarlo sería guardar algo que mañana no abre nada. La pantalla firma uno
+  nuevo, de cinco minutos, cada vez que se abre un adjunto.
+- **El nombre de quien escribe se guarda también como texto.** Si esa cuenta se borra, el historial no
+  puede quedarse mudo.
+- **Primero se guarda, luego se manda el correo.** Si la llamada a Resend tarda o revienta, la solicitud
+  ya está. El resultado del envío se anota justo después, sobre esa misma fila, con la llave de
+  servicio: la política deja actualizar solo al admin, y quien pide ayuda casi nunca lo es.
+
+**Y si no se puede guardar, no se manda el correo.** Eso no estaba en el encargo y es una decisión: un
+correo cuya solicitud no se puede volver a encontrar es justo lo que este cambio viene a quitar. La
+pantalla ya sabía decir «no se pudo enviar».
+
+### Quién ve qué
+
+En la base, no en la pantalla (la 120):
+
+- **escribe** cualquiera con sesión, y solo para sí mismo: `user_id` tiene que ser el suyo, así que
+  nadie puede sembrar el historial en nombre de otra persona;
+- **lee** el admin todo; cada persona, las suyas;
+- **actualiza** solo el admin.
+
+Y un guardia de columnas encima: lo que contó la persona —mensaje, página, adjuntos, quién y cuándo— es
+historial y **no se reescribe, ni con la llave de servicio**, que se salta RLS pero no los disparadores.
+Lo único que cambia después es el estado y el resultado del correo.
+
+### La vista
+
+Herramienta nueva del hub, **solo para el admin**: «🆘 Solicitudes de ayuda». La puerta es doble, como
+en Usuarios (D-056): el `layout` del servidor mira el rol de la sesión, y la RLS decide de verdad.
+
+- Lo más reciente primero, con filtro por persona y por días, y un interruptor de «solo pendientes» con
+  su cuenta.
+- Cada solicitud se abre en su sitio: mensaje completo, página, versión, qué pasó con el correo y los
+  adjuntos, que se firman **al abrirlos**.
+- **Atender:** un botón que la pasa a atendida y otro que la devuelve a pendiente. Al atenderla se
+  guarda **quién y cuándo** —la 120 no acepta ese estado sin los dos— y al devolverla se limpian, para
+  que no quede la firma de algo que ya no está atendido. El guardado comprueba las filas afectadas: un
+  UPDATE que la política no deja pasar vuelve limpio y con cero filas, y eso no es haber guardado.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Ninguna prueba manda un correo ni toca la base: `fetch` y los dos clientes de Supabase son dobles.
+Veintiséis mutantes, cada uno cazado por la prueba pensada para él: los filtros —persona, días con sus
+dos extremos, pendientes—, quién escribe, el día local, el resumen del correo, atender y desatender, los
+adjuntos sin clave, que la ruta no guarde, que guarde en otra tabla, que guarde los adjuntos ajenos, que
+mande el correo aunque no haya podido guardar, que no anote ninguno de los tres desenlaces del envío, la
+herramienta visible a cualquiera o apuntando a otra ruta, la puerta abierta, la pantalla sin mirar las
+filas afectadas, el enlace del adjunto durando un mes, la tabla sin RLS, cualquiera actualizando,
+cualquiera escribiendo en nombre de otro, y el historial reescribible.
+
+**Cuatro de esos mutantes no midieron nada a la primera, y eso es parte de la medición:**
+
+- **dos eran inválidos** —dejaban el fichero sin compilar—: el informe decía «cae 1», pero el título era
+  «el fichero no cargó». Reescritos como cambios de verdad.
+- **uno sobrevivió porque la prueba del día era inerte:** comparaba contra un instante cuyo día en UTC y
+  en local coinciden en esta máquina. Como el CI corre en UTC y esta máquina no, ahora la prueba usa dos
+  instantes elegidos para que **en cualquier huso** al menos uno delate al que corta el texto.
+- **otro sobrevivió porque la prueba del guardia solo miraba que nombrara las columnas:** un `if false
+  and …` lo dejaba mudo sin quitar una línea. Ahora se exige que la condición empiece por la comparación
+  y que no haya ninguna constante dentro.
+
+### Lo no verificado
+
+- **La 120 no está aplicada** cuando se escribe esto, así que **nada de esto ha corrido contra la base**:
+  ni la tabla, ni las políticas, ni el guardia. La matriz por rol con `ROLLBACK` está escrita en el
+  `.sql`, para ejecutarla al aplicarla.
+- **Nadie ha abierto la pantalla**: ni los filtros, ni abrir un adjunto, ni marcar una atendida.
+- **El historial empieza vacío.** Las solicitudes de antes de esta migración no están en ninguna parte
+  —solo en el correo—, y no hay nada que importar.
+- **No hay paginación:** la pantalla trae las 500 más recientes. Con el ritmo de hoy sobra; el día que no
+  sobre, se verá.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2483 pasados | 3 saltados**. La rama añade 23
+pruebas y no quita ninguna: 22 en `help-requests.test.ts`, fichero nuevo, y 1 que genera el barrido de colores
+por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con su doble de sesión ampliado
+—la ruta ahora guarda antes de mandar—. `main` 21e2b89, medido en un worktree aparte, está en 2460 | 3.

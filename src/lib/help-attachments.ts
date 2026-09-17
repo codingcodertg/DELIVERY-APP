@@ -37,6 +37,8 @@ export const LIMITES_DE_ADJUNTOS = {
 } as const;
 
 export type FicheroElegido = { name: string; size: number; type: string };
+/** Un adjunto ya subido: la clave dentro del cubo y el nombre con el que se eligió. */
+export type FicheroAdjunto = { path: string; nombre: string };
 export type FalloDeAdjunto = { motivo: "cuantos" | "tamano" | "tipo"; fichero?: string };
 
 /** Lo que la pantalla comprueba antes de subir. El cubo lo vuelve a comprobar; esto es para avisar. */

@@ -82,6 +82,40 @@ export async function POST(req: Request) {
     }
   }
 
+  // Se guarda antes de intentar el correo (D-NEXT). Si la llamada a Resend revienta o tarda, la
+  // solicitud ya está en el historial que el admin ve en el hub; el resultado del envío se anota
+  // justo después, sobre esta misma fila.
+  const { data: fila, error: errorAlGuardar } = await auth.supabase
+    .from("help_requests")
+    .insert({
+      user_id: auth.user.id,
+      sender_name: body.senderName?.trim() || null,
+      sender_email: senderEmail || null,
+      role_label: body.role?.trim() || null,
+      page: body.page?.trim() || null,
+      app_version: body.appVersion?.trim() || null,
+      lang: body.lang?.trim() || null,
+      message,
+      files: mios.map((a) => ({ path: (a.path || "").trim(), nombre: (a.nombre || "").trim() })),
+      email_to: to,
+    })
+    .select("id")
+    .maybeSingle();
+  // Guardar es lo importante: si ni eso se pudo, se dice, en vez de mandar un correo que nadie podrá
+  // volver a encontrar.
+  if (errorAlGuardar) {
+    return NextResponse.json({ error: "could not save the request", detail: errorAlGuardar.message }, { status: 500 });
+  }
+
+  /** El resultado del envío, sobre la fila recién creada. Con la llave de servicio: la política de la
+   *  120 deja actualizar solo al admin, y quien escribe la solicitud casi nunca lo es. */
+  const anotaElEnvio = async (ok: boolean, error?: string) => {
+    if (!fila?.id) return;
+    try {
+      await createAdminClient().from("help_requests").update({ email_ok: ok, email_error: error ?? null }).eq("id", fila.id);
+    } catch { /* el correo ya se intentó; no se pierde la solicitud por no poder anotarlo */ }
+  };
+
   const subject = `Help request from ${who}${roleLabel}`;
   const text = [
     message,
@@ -101,7 +135,9 @@ export async function POST(req: Request) {
   const from = resendFrom();
   if (!key || !from) {
     // No mail provider yet — don't fail the button; report dry-run so the UI
-    // can tell the user their request was recorded but email isn't live.
+    // can tell the user their request was recorded but email isn't live. La solicitud SÍ queda
+    // guardada, y el historial dice que no salió correo.
+    await anotaElEnvio(false, "email provider not configured");
     return NextResponse.json({ ok: false, dryRun: true, reason: "email provider not configured", to });
   }
 
@@ -119,10 +155,13 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
+      await anotaElEnvio(false, `email send failed (${res.status}) ${detail}`.trim());
       return NextResponse.json({ error: `email send failed (${res.status})`, detail }, { status: 502 });
     }
+    await anotaElEnvio(true);
     return NextResponse.json({ ok: true, to });
   } catch (e) {
+    await anotaElEnvio(false, (e as Error).message);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
