@@ -1,7 +1,8 @@
 import { normaliza } from "@/lib/phone-book";
 import { esAdmin } from "@/lib/impersonation";
-import { ROLE_INFO, ROLE_ORDER } from "@/lib/constants";
-import type { Tutorial, TutorialApp, UserRole } from "@/lib/types";
+import { CLOCKIN_ROLE_LABELS, MODULE_ACCESS, ROLE_ORDER } from "@/lib/constants";
+import type { Lang } from "@/lib/prefs";
+import type { Tutorial, TutorialApp } from "@/lib/types";
 
 /**
  * Los tutoriales del hub (D-268): agrupar, buscar, quién los gestiona, y guardarlos.
@@ -55,7 +56,7 @@ export function nuevoTutorial(
     description: entrada.description?.trim() || null,
     url,
     app: entrada.app === "general" ? null : entrada.app,
-    roles: limpiaRoles(entrada.roles),
+    roles: rolesParaApp(entrada.app, entrada.roles),
     added_by: autor.id,
     added_at: cuando.toISOString(),
   };
@@ -94,52 +95,99 @@ export async function guardaTutoriales(
   return { ok: true, tutoriales: siguiente };
 }
 
-// ---- Para quién es cada video (D-269) ---------------------------------------------------------
+// ---- Para quién es cada video: roles de SU app (D-269, y por app desde D-NEXT) ------------------
 //
-// La audiencia de un video son roles de Entregas que ya existen (`ROLE_INFO`). Vacío = para todos.
-// **Quién ve qué NO se decide aquí**: lo decide `public.tutorials()` en la base (114). Aquí solo se
-// cambia la lista y se avisa al admin de lo que no va a encontrar nadie.
+// La audiencia de un video son roles que ya existen **en la app del video**: los de Entregas para un
+// video de Entregas, los de RR. HH. para uno de RR. HH., y así. Vacío = para todos. General usa los de
+// Entregas, como en D-269, así que un video sin app y con roles de Entregas se ve igual que antes.
+//
+// **Quién ve qué NO se decide aquí**: lo decide `public.tutorials()` en la base (115). Aquí están los
+// vocabularios, que salen de lo que ya usa cada módulo (`MODULE_ACCESS`, `CLOCKIN_ROLE_LABELS`), y lo
+// que se guarda.
 
-/** Los roles que se pueden elegir como audiencia, en el orden de siempre. El admin no: ya lo ve todo. */
-export const ROLES_DE_AUDIENCIA: readonly UserRole[] = ROLE_ORDER.filter((r) => r !== "admin");
+type Vocabulario = { claves: readonly string[]; etiqueta: (clave: string, lang: Lang) => string };
 
-const esRolConocido = (r: string): r is UserRole => Object.prototype.hasOwnProperty.call(ROLE_INFO, r);
+const deModulo = (key: string): Vocabulario => {
+  const m = MODULE_ACCESS.find((x) => x.key === key);
+  if (!m) throw new Error(`sin módulo ${key}`);
+  return { claves: m.roleKeys, etiqueta: m.roleLabel };
+};
 
-/** Solo roles elegibles, sin repetir, en el orden de `ROLE_ORDER`. */
-export function limpiaRoles(roles: readonly string[] | null | undefined): UserRole[] {
+/**
+ * Los roles de cada app, con sus etiquetas.
+ *
+ * - **Entregas y General:** `ROLE_ORDER` menos `admin`, porque el admin de Entregas es el admin del hub
+ *   y ya lo ve todo (D-269).
+ * - **RR. HH., Time Tracker y ERP:** los de `MODULE_ACCESS`, **con** su admin: el admin de RR. HH. no
+ *   es admin del hub, así que un video solo para él tiene sentido.
+ * - **Fichaje:** owner, manager y employee, los que emite la vista `clockin.profiles`.
+ */
+export const ROLES_POR_APP: Record<TutorialApp | "general", Vocabulario> = (() => {
+  const entregas = deModulo("deliveries");
+  const sinAdmin: Vocabulario = { claves: ROLE_ORDER.filter((r) => r !== "admin"), etiqueta: entregas.etiqueta };
+  return {
+    deliveries: sinAdmin,
+    general: sinAdmin,
+    recruiting: deModulo("recruiting"),
+    timetracker: deModulo("timetracker"),
+    clockin: {
+      claves: Object.keys(CLOCKIN_ROLE_LABELS),
+      etiqueta: (k, lang) => (lang === "es" ? CLOCKIN_ROLE_LABELS[k]?.es : CLOCKIN_ROLE_LABELS[k]?.en) ?? k,
+    },
+    erp: deModulo("erp"),
+  };
+})();
+
+/** El vocabulario de un video según su app. Sin app, o con una que no existe, el de General. */
+export const vocabularioDe = (app: Tutorial["app"] | "general" | undefined): Vocabulario =>
+  ROLES_POR_APP[appDeTutorial({ app: app === "general" ? null : app })];
+
+/** Solo roles de esa app, sin repetir, en el orden de la app. */
+export function rolesParaApp(app: Tutorial["app"] | "general" | undefined, roles: readonly string[] | null | undefined): string[] {
   const set = new Set(roles ?? []);
-  return ROLES_DE_AUDIENCIA.filter((r) => set.has(r));
+  return vocabularioDe(app).claves.filter((r) => set.has(r));
 }
 
 /**
- * Los roles de un video que no existen en `ROLE_INFO`. Si algún día se renombra un rol, un video que
- * lo tenga deja de encontrarlo cualquiera que no sea admin: por eso se enseña al admin, no se calla.
+ * Los roles de un video que no son de su app. Pasa si se renombra un rol, o si alguien cambia la app a
+ * mano en la base: no coinciden con nadie, así que se le enseñan al admin.
  */
-export function rolesDesconocidos(roles: readonly string[] | null | undefined): string[] {
-  return [...new Set((roles ?? []).filter((r) => !esRolConocido(r)))];
+export function rolesDesconocidos(app: Tutorial["app"] | "general" | undefined, roles: readonly string[] | null | undefined): string[] {
+  const validos = new Set(vocabularioDe(app).claves);
+  return [...new Set((roles ?? []).filter((r) => !validos.has(r)))];
+}
+
+/** ¿Solo lo ve el admin? Sí cuando tiene audiencia y ninguno de sus roles es de su app. */
+export function soloLoVeElAdmin(app: Tutorial["app"] | "general" | undefined, roles: readonly string[] | null | undefined): boolean {
+  return (roles ?? []).length > 0 && rolesParaApp(app, roles).length === 0;
 }
 
 /**
- * ¿Solo lo ve el admin? Sí cuando tiene audiencia y ninguno de sus roles existe: ni es «para todos»
- * ni coincide con el rol de nadie. `admin` como audiencia cuenta como conocido pero no añade a nadie.
+ * Cambiar la app de lo que se está editando. **Los roles que no son de la app nueva se quitan**, y se
+ * devuelven para decirlo en el formulario: dejarlos colgando haría que el video no lo viera nadie más
+ * que el admin, sin que nada lo avisara. Los que existen en las dos apps (p. ej. `manager`) se quedan.
  */
-export function soloLoVeElAdmin(roles: readonly string[] | null | undefined): boolean {
-  const lista = roles ?? [];
-  return lista.length > 0 && limpiaRoles(lista).length === 0;
+export function cambiaApp(
+  roles: readonly string[],
+  nuevaApp: TutorialApp | "general",
+): { roles: string[]; quitados: string[] } {
+  const quedan = rolesParaApp(nuevaApp, roles);
+  return { roles: quedan, quitados: roles.filter((r) => !quedan.includes(r)) };
 }
 
-/** Poner o quitar un rol en la audiencia de un video. Los desconocidos que tuviera se conservan. */
-export function alternaRolDeTutorial(lista: Tutorial[], tutorialId: string, rol: UserRole): Tutorial[] {
-  if (!ROLES_DE_AUDIENCIA.includes(rol)) return lista;
-  return lista.map((t) => {
-    if (t.id !== tutorialId) return t;
-    const actuales = t.roles ?? [];
-    const roles = actuales.includes(rol) ? actuales.filter((r) => r !== rol) : [...actuales, rol];
-    return { ...t, roles };
-  });
-}
-
-/** Quitar de un video los roles que no existen. Si no le queda ninguno, vuelve a ser para todos. */
-export function quitaRolesDesconocidos(lista: Tutorial[], tutorialId: string): Tutorial[] {
-  return lista.map((t) => (t.id === tutorialId ? { ...t, roles: (t.roles ?? []).filter((r) => esRolConocido(r)) } : t));
+/**
+ * Editar un video: título, descripción, enlace, app y roles, con las mismas reglas que al añadir. Se
+ * conservan la id, el autor y la fecha. `null` si falta el título o el enlace, o si el video no existe.
+ */
+export function editaTutorial(
+  lista: Tutorial[],
+  id: string,
+  entrada: { title: string; url: string; description?: string; app: TutorialApp | "general"; roles?: readonly string[] },
+): Tutorial[] | null {
+  const actual = lista.find((t) => t.id === id);
+  if (!actual) return null;
+  const nuevo = nuevoTutorial(entrada, { id: actual.added_by ?? "" }, new Date(actual.added_at ?? 0), id);
+  if (!nuevo) return null;
+  const editado: Tutorial = { ...actual, ...nuevo, added_by: actual.added_by, added_at: actual.added_at };
+  return lista.map((t) => (t.id === id ? editado : t));
 }
