@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // Se guarda antes de intentar el correo (D-NEXT). Si la llamada a Resend revienta o tarda, la
+  // Se guarda antes de intentar el correo (D-285). Si la llamada a Resend revienta o tarda, la
   // solicitud ya está en el historial que el admin ve en el hub; el resultado del envío se anota
   // justo después, sobre esta misma fila.
   const { data: fila, error: errorAlGuardar } = await auth.supabase

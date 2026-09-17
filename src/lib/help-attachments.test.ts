@@ -22,7 +22,7 @@ const falso = vi.hoisted(() => ({
   firmar: vi.fn(async (_ruta?: string, _seg?: number) => ({ data: { signedUrl: "https://firmado.example/x" }, error: null as unknown })),
   from: vi.fn((_cubo?: string) => ({ createSignedUrl: falso.firmar })),
   enviados: [] as { url: string; cuerpo: Record<string, unknown> }[],
-  // Desde D-NEXT la ruta guarda la solicitud antes de mandar el correo: aquí solo hace falta que la
+  // Desde D-285 la ruta guarda la solicitud antes de mandar el correo: aquí solo hace falta que la
   // escritura conteste algo. Lo que se guarda se prueba en `help-requests.test.ts`.
   guardado: null as Record<string, unknown> | null,
 }));

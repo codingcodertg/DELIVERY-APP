@@ -1,7 +1,7 @@
 import type { FicheroAdjunto } from "./help-attachments";
 
 /**
- * El historial de solicitudes de ayuda (D-NEXT).
+ * El historial de solicitudes de ayuda (D-285).
  *
  * El dueño: «en mi usuario de Andrés, créame una vista para ver todas las solicitudes de ayuda en el
  * hub». Antes no había historial: `/api/help` mandaba el correo y no guardaba nada, así que una

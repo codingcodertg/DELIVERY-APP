@@ -8,7 +8,7 @@ import {
 import { HUB_TOOLS } from "./constants";
 
 /**
- * El historial de solicitudes de ayuda (D-NEXT).
+ * El historial de solicitudes de ayuda (D-285).
  *
  * **Ningún correo sale de aquí**: `fetch` es un doble. Y ninguna prueba toca la base: el cliente de la
  * sesión y el de servicio son dobles, y lo que se mira es lo que la ruta habría escrito.

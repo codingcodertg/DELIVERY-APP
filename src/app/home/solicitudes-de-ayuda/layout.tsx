@@ -5,7 +5,7 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 /**
- * El historial de solicitudes de ayuda es del admin (D-NEXT), y se decide en el servidor con el rol de
+ * El historial de solicitudes de ayuda es del admin (D-285), y se decide en el servidor con el rol de
  * la sesión, igual que Usuarios (D-056) y la vista móvil (D-278).
  *
  * No es la única puerta: la 120 pone RLS sobre la tabla, así que quien llegue por la API sin ser admin

@@ -36249,7 +36249,7 @@ pruebas, todas en `help-attachments.test.ts`, fichero nuevo, y no quita ninguna.
 worktree aparte, está en 2399 | 3 (rebasada sobre ese `main` después de que entrara D-280). `migrate-status` no se puede correr desde la rama —el worktree no tiene las
 variables, a propósito—, así que el estado de la 119 lo mira el orquestador antes de aplicarla.
 
-## D-NEXT · El historial de solicitudes de ayuda, en el hub
+## D-285 · El historial de solicitudes de ayuda, en el hub
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración:
 `120_help_requests.sql`**, que aplica el orquestador.

@@ -11,9 +11,9 @@ import {
 } from "@/lib/help-requests";
 
 /**
- * Las solicitudes de ayuda, en el hub y solo para el admin (D-NEXT).
+ * Las solicitudes de ayuda, en el hub y solo para el admin (D-285).
  *
- * Lo que se ve sale de `public.help_requests`, que guarda la ruta desde D-NEXT. Quién ve qué lo decide
+ * Lo que se ve sale de `public.help_requests`, que guarda la ruta desde D-285. Quién ve qué lo decide
  * la 120, no esta pantalla: el admin lee todo y cada persona lee las suyas, así que esto no puede
  * enseñar de más aunque se equivoque.
  *
