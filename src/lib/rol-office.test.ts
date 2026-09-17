@@ -109,8 +109,19 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   });
 
   it("crea la orden ya aprobada, y el botón lo dice", () => {
-    expect(modal).toContain("const autoApprove = (ordersLikeOfficeManager(me.role) || storeAutoApprove) && !intertiendaNeedsPo;");
-    expect(modal).toContain("{ordersLikeOfficeManager(me.role) && !intertiendaNeedsPo");
+    // Hasta D-NEXT esto era una expresión suelta en el modal. Ahora la decide `naceAprobada`, que
+    // añade la marca por cuenta —una cuenta de «siempre con aprobación» gana a office y a la
+    // tienda—. Lo que esta prueba fija sigue siendo lo mismo: que office entra en esa decisión y
+    // que el botón lo dice. La regla en sí se prueba en `cuenta-aprobacion.test.ts`.
+    const desde = modal.indexOf("const autoApprove = naceAprobada(");
+    expect(desde).toBeGreaterThan(-1);
+    // El cierre se busca DESPUÉS del inicio: `const payload` también aparece antes en el fichero, y
+    // un recorte al revés sale vacío y hace pasar cualquier cosa.
+    const decision = modal.slice(desde, modal.indexOf("const payload", desde));
+    expect(decision).toContain("creaComoOficina: ordersLikeOfficeManager(me.role)");
+    expect(decision).toContain("tiendaAutoAprueba: storeAutoApprove");
+    expect(decision).toContain("cuentaPideAprobacion");
+    expect(modal).toContain('t("Create order (approved)", "Crear orden (aprobada)")');
   });
 
   it("puede registrar una re-entrega, porque la 118 se lo deja", () => {

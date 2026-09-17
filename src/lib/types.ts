@@ -331,6 +331,12 @@ export interface AccountRecord {
   /** An internal branch account (store-to-store). Picking it on an order
    * defaults the type to Intertienda; a customer account defaults to Customer. */
   intertienda?: boolean;
+  /**
+   * Esta cuenta SIEMPRE pasa por oficina (D-NEXT): sus órdenes nacen `pending` aunque la tienda
+   * apruebe sola o la cree la propia oficina. Lo mismo lo hace cumplir el guard de la base (123),
+   * no solo la pantalla.
+   */
+  requires_approval?: boolean;
 }
 
 /** Explicit field-requirement rules for one order type. Replaces guessing the

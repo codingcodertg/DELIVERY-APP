@@ -36940,3 +36940,100 @@ en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
 - **El guard conoce una clave por su nombre**, `other`, para exigirle texto libre. Si alguien la borra
   de la base a mano, la app y la base dejan de estar de acuerdo; por eso el editor de Datos no la deja
   quitar.
+
+## D-NEXT · Cuentas que siempre pasan por oficina
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
+`123_cuentas_con_aprobacion.sql`**, que aplica el orquestador tras su respaldo y su ensayo ·
+**Pedido por:** el dueño: *«ya que se den de alta los clientes, estos clientes siempre van a requerir
+aprobación de oficina»*, con cuatro cuentas nombradas.
+
+### Qué había
+
+- **Las cuentas viven en Ajustes**, no en una tabla: `public.settings.accounts`, un jsonb con
+  `{ name, contact, phone, address?, intertienda? }`. Medido por el orquestador: **hoy ese array está
+  vacío**, así que las cuatro cuentas se dan de alta con esto ya puesto.
+- **Quién nacía aprobada:** la tienda con `auto_approve` en Ajustes, o que la creara oficina o el
+  gerente (D-279). La Intertienda sin PO iba a pendiente.
+- Eso lo decidía **una expresión suelta** dentro del modal y, en la base, el `auto` del guard, que solo
+  miraba la tienda.
+
+### Qué hay
+
+- **Una marca por cuenta:** `requires_approval`, clave opcional de cada cuenta de Ajustes, igual que
+  `intertienda`. La pone un admin en Datos → Cuentas, en una columna nueva.
+- **La marca gana a todo lo demás.** Una orden de una cuenta marcada **nace pendiente**, aunque la
+  tienda apruebe sola y aunque la cree la propia oficina. La regla vive en `src/lib/cuenta-aprobacion.ts`
+  (`cuentaRequiereAprobacion` y `naceAprobada`), no en una expresión dentro de la pantalla.
+- **La base también lo hace cumplir (123).** El `auto` del guard ahora es «la tienda aprueba sola **y**
+  la cuenta no está marcada». La función nueva `account_requires_approval(text)` lee la marca de
+  Ajustes, comparando el nombre sin espacios ni mayúsculas, y una cuenta sin marca es una cuenta sin
+  marca. El guard se copia de la vigente y **solo cambia esa línea**: una prueba lo deshace y lo
+  compara.
+- **El botón lo dice.** Donde antes ponía «Crear orden (aprobada)» o «Crear (auto-aprobada)», con una
+  cuenta marcada pone «Enviar a aprobación», porque eso es lo que va a pasar.
+- **Los nombres de las cuatro cuentas no están en el repo.** Los marca el orquestador en Ajustes; aquí,
+  ni en pruebas ni en el `.sql`.
+
+### La vigente no era la que yo creía
+
+Esta rama empezó copiando el guard de la **118**, que era la vigente al abrirla. Mientras estaba
+abierta, la **122** —anular con motivo, de otra rama— lo redefinió entero. Aplicar mi copia después
+habría devuelto el guard a antes de la 122 y se habría llevado por delante lo del motivo de anulación,
+en silencio y sin conflicto de git: son ficheros distintos.
+
+Se vio al rebasar, comprobando si la 122 tocaba el mismo objeto. La 123 se regeneró desde la 122 y
+**la prueba ya no cita ningún número**: busca las migraciones que definen el guard, toma la anterior a
+la 123 y compara contra esa. Si mañana entra una 124 que lo redefina, la prueba lo dice sola.
+
+### El límite, dicho
+
+Esto **no** le quita al gerente aprobar lo que él mismo crea: su rama del guard (`r in ('manager',
+'accounting')`) le deja insertar en `approved` por su rol, no por el `auto` de la tienda. Lo que la marca
+cierra es la aprobación automática —de la tienda y de la pantalla—. Cerrarle también esa puerta sería
+otra decisión y otra migración; está anotado en el ensayo del `.sql` para que quien lo corra lo vea.
+
+### Un arreglo que salió de camino
+
+Guardar la tabla de cuentas **borraba el `address` de todas**. El editor reconstruía cada cuenta con
+solo los cuatro campos del formulario, y `address` —que se rellena al elegir la cuenta en una orden— no
+está en ese formulario. Ahora la fila lleva la cuenta entera y el guardado solo pisa lo que edita. Es la
+misma lección de D-261 con las tiendas, y estaba a punto de repetirse con la marca nueva.
+
+### Las órdenes ya creadas no se tocan
+
+Ni la migración ni la pantalla reescriben ninguna fila: esto decide qué puede **nacer** y a qué etapa se
+puede mover desde ahora. Una orden de una de esas cuentas que ya esté aprobada sigue aprobada.
+
+### Medido, rompiendo cada pieza
+
+19 cambios: **17 caen, cada uno por la prueba que lleva su nombre, y los 2 gemelos se quedan en verde.**
+
+- **La regla:** la marca deja de mirarse; cualquier cuenta conocida pide aprobación; el nombre se compara
+  tal cual (con espacios y mayúsculas); sin cuenta se pide aprobación igual; la cuenta deja de ganarle a
+  la tienda y a oficina; la Intertienda sin PO vuelve a nacer aprobada; oficina deja de crear aprobada.
+- **La 123:** el guard no mira la cuenta; la marca se lee distinguiendo mayúsculas; una cuenta sin marca
+  cuenta como marcada; la función queda abierta a `anon`; se cambia otra cosa del guard de paso; el
+  ensayo pierde el caso del gerente.
+- **Las pantallas:** la orden nueva ignora la cuenta; el botón decide por su cuenta; guardar cuentas
+  vuelve a perder lo que no enseña; el admin se queda sin la casilla.
+- **Los gemelos:** la regla escrita con un solo `return`; el `and not` del SQL escrito `and (not …)`.
+
+**Tres pruebas mías no medían lo que decían, y las cazó la tanda:**
+1. la que compara la 123 con la 118 pasaba también con el cambio **quitado**, porque su sustitución no
+   encontraba nada y comparaba dos textos ya iguales: ahora primero exige que el cambio esté;
+2. la del botón contaba apariciones de `naceAprobada`, así que un mutante que colara otra condición
+   **delante** pasaba: ahora se mira que la etiqueta empiece por ella;
+3. la del ensayo solo pedía que `<uuid-manager>` apareciera, y aparecía en un comentario: ahora exige la
+   línea que se hace pasar por él.
+
+Y el gemelo del `and (not …)` enseñó que la comparación estaba pegada a la forma exacta del SQL; ahora
+quita la condición sin fijar los paréntesis.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 123 no está aplicada. Su ensayo, con `ROLLBACK`, inventa una tienda que
+  auto-aprueba y dos cuentas —una marcada y otra no— y compara antes y después con vendedor y con
+  gerente.
+- **Nadie ha abierto la app**: ni la casilla nueva de Datos, ni el botón con una cuenta marcada.
+- **Que el array de cuentas siga vacío** cuando esto se aplique: lo midió el orquestador, no yo.
