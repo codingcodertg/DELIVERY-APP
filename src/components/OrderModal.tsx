@@ -8,6 +8,7 @@ import { ChoferYPallets } from "@/components/ChoferYPallets";
 import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
+import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
@@ -211,6 +212,8 @@ export function OrderModal({
   // A store can be flagged "auto-approve" (Data page) — orders sold from it
   // skip manager approval and are created already Approved, for any creator.
   const storeAutoApprove = !!settings.stores.find((s) => s.name === d.store)?.auto_approve;
+  // La cuenta manda sobre la tienda (D-NEXT): marcada, la orden nace pendiente pase lo que pase.
+  const cuentaPideAprobacion = cuentaRequiereAprobacion(settings.accounts, d.account);
   // Belt and braces. The PO is now a REQUIRED field for Intertienda (the "po"
   // docRef rule), so submitting without one is refused before this is reached
   // and it should never fire. Kept because the alternative — if validation is
@@ -2266,7 +2269,12 @@ export function OrderModal({
                       // any order sold from an auto-approve store is approved on
                       // creation regardless of who places it — EXCEPT an
                       // Intertienda without a PO #, which must go to Pending.
-                      const autoApprove = (ordersLikeOfficeManager(me.role) || storeAutoApprove) && !intertiendaNeedsPo;
+                      const autoApprove = naceAprobada({
+                        creaComoOficina: ordersLikeOfficeManager(me.role),
+                        tiendaAutoAprueba: storeAutoApprove,
+                        cuentaPideAprobacion,
+                        intertiendaSinPo: intertiendaNeedsPo,
+                      });
                       const payload = withDurations({
                         ...d,
                         stage: autoApprove ? "approved" : "pending",
@@ -2282,11 +2290,16 @@ export function OrderModal({
                           : t(`Order #${orderLabel(row)} submitted for approval`, `Orden #${orderLabel(row)} enviada a aprobación`));
                         await autoSendTracking(row); onClose();
                       }
-                    }}>{ordersLikeOfficeManager(me.role) && !intertiendaNeedsPo
-                      ? t("Create order (approved)", "Crear orden (aprobada)")
-                      : storeAutoApprove && !intertiendaNeedsPo
-                        ? t("Create (auto-approved)", "Crear (auto-aprobada)")
-                        : t("Submit for approval", "Enviar a aprobación")}</button>
+                    }}>{!naceAprobada({
+                      creaComoOficina: ordersLikeOfficeManager(me.role),
+                      tiendaAutoAprueba: storeAutoApprove,
+                      cuentaPideAprobacion,
+                      intertiendaSinPo: intertiendaNeedsPo,
+                    })
+                      ? t("Submit for approval", "Enviar a aprobación")
+                      : ordersLikeOfficeManager(me.role)
+                        ? t("Create order (approved)", "Crear orden (aprobada)")
+                        : t("Create (auto-approved)", "Crear (auto-aprobada)")}</button>
                   )}
                 </>
               ) : (

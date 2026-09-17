@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AddressInput } from "@/components/AddressInput";
 import { registroDeLugar } from "@/lib/named-location";
-import type { CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
+import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 
 // ============================================================
@@ -91,21 +91,32 @@ function AccountsEditor({
   save: (patch: Partial<Settings>, msg: string) => void;
   t: (en: string, es: string) => string;
 }) {
-  type Row = { name: string; contact: string; phone: string; intertienda: boolean };
+  // La fila lleva la cuenta ENTERA (`resto`) además de lo que se edita. Sin eso, guardar esta
+  // tabla reescribía cada cuenta con solo los campos del formulario y se llevaba por delante lo
+  // que no enseña —hoy `address`, que se guarda al elegir la cuenta en una orden—. Es la misma
+  // lección de D-261 con las tiendas.
+  type Row = { name: string; contact: string; phone: string; intertienda: boolean; requires_approval: boolean; resto: AccountRecord };
   const build = (): Row[] =>
-    (settings.accounts ?? []).map((a) => ({ name: a.name, contact: a.contact, phone: a.phone, intertienda: !!a.intertienda }));
+    (settings.accounts ?? []).map((a) => ({
+      name: a.name, contact: a.contact, phone: a.phone,
+      intertienda: !!a.intertienda, requires_approval: !!a.requires_approval, resto: a,
+    }));
   const [rows, setRows] = useState<Row[]>(build);
   const [dirty, setDirty] = useState(false);
 
   const update = (i: number, patch: Partial<Row>) => { setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r))); setDirty(true); };
-  const add = () => { setRows((rs) => [...rs, { name: "", contact: "", phone: "", intertienda: false }]); setDirty(true); };
+  const add = () => { setRows((rs) => [...rs, { name: "", contact: "", phone: "", intertienda: false, requires_approval: false, resto: { name: "", contact: "", phone: "" } }]); setDirty(true); };
   const remove = (i: number) => { setRows((rs) => rs.filter((_, idx) => idx !== i)); setDirty(true); };
   const reset = () => { setRows(build()); setDirty(false); };
 
   const commit = () => {
     const seen = new Set<string>();
     const accounts = rows
-      .map((r) => ({ name: r.name.trim(), contact: r.contact.trim(), phone: r.phone.trim(), intertienda: r.intertienda }))
+      .map((r) => ({
+        ...r.resto,
+        name: r.name.trim(), contact: r.contact.trim(), phone: r.phone.trim(),
+        intertienda: r.intertienda, requires_approval: r.requires_approval,
+      }))
       .filter((r) => { const k = r.name.toLowerCase(); if (!r.name || seen.has(k)) return false; seen.add(k); return true; });
     save({ accounts }, t("Accounts saved", "Cuentas guardadas"));
     setDirty(false);
@@ -116,8 +127,8 @@ function AccountsEditor({
       <h2>🏢 {t("Accounts", "Cuentas")} <span className="count-tag">{rows.length}</span></h2>
       <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
         {t(
-          "Picking an account on an order auto-fills its contact + phone. Flag a branch (internal) account as “Intertienda” and the order type defaults to Intertienda — otherwise Customer. Always changeable on the order.",
-          "Elegir una cuenta en una orden autocompleta su contacto + teléfono. Marque una cuenta de sucursal (interna) como “Intertienda” y el tipo de orden será Intertienda por defecto — de lo contrario Customer. Siempre editable en la orden.",
+          "Picking an account on an order auto-fills its contact + phone. Flag a branch (internal) account as “Intertienda” and the order type defaults to Intertienda — otherwise Customer. Flag “Office approval” and that account’s orders always start Pending, even from a store that approves on its own. Always changeable on the order.",
+          "Elegir una cuenta en una orden autocompleta su contacto + teléfono. Marque una cuenta de sucursal (interna) como “Intertienda” y el tipo de orden será Intertienda por defecto — de lo contrario Customer. Marque “Aprobación de oficina” y las órdenes de esa cuenta siempre nacen Pendientes, aunque la tienda apruebe sola. Siempre editable en la orden.",
         )}
       </p>
       <div className="tbl-scroll" style={{ border: "none" }}>
@@ -128,6 +139,7 @@ function AccountsEditor({
               <th>{t("Contact", "Contacto")}</th>
               <th>{t("Phone", "Teléfono")}</th>
               <th style={{ textAlign: "center" }}>{t("Intertienda", "Intertienda")}</th>
+              <th style={{ textAlign: "center" }}>{t("Office approval", "Aprobación de oficina")}</th>
               <th></th>
             </tr>
           </thead>
@@ -140,11 +152,15 @@ function AccountsEditor({
                 <td style={{ textAlign: "center" }}>
                   <input type="checkbox" checked={r.intertienda} onChange={(e) => update(i, { intertienda: e.target.checked })} aria-label={t("Intertienda branch account", "Cuenta de sucursal Intertienda")} />
                 </td>
+                <td style={{ textAlign: "center" }}>
+                  <input type="checkbox" checked={r.requires_approval} onChange={(e) => update(i, { requires_approval: e.target.checked })}
+                    aria-label={t("This account always needs office approval", "Esta cuenta siempre requiere aprobación de oficina")} />
+                </td>
                 <td><button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button></td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="hint" style={{ padding: 12 }}>{t("No saved accounts yet — add one, or save one from an order.", "Aún no hay cuentas — agregue una o guárdela desde una orden.")}</td></tr>
+              <tr><td colSpan={6} className="hint" style={{ padding: 12 }}>{t("No saved accounts yet — add one, or save one from an order.", "Aún no hay cuentas — agregue una o guárdela desde una orden.")}</td></tr>
             )}
           </tbody>
         </table>
