@@ -18,9 +18,10 @@ const sql109 = leer("supabase/migrations/109_employee_file_store.sql");
 const sql110 = leer("supabase/migrations/110_phone_book_con_contacto.sql");
 const sql111 = leer("supabase/migrations/111_phone_book_grupos.sql");
 const sql116 = leer("supabase/migrations/116_phone_book_with_phone.sql");
+const sql117 = leer("supabase/migrations/117_phone_book_store_ext.sql");
 
 // Cada migración redefine la función ENTERA, así que «lo que la función hace hoy» se mide
-// siempre en la última que la toca —hoy la 116—, y los bloques de las anteriores quedan como
+// siempre en la última que la toca —hoy la 117—, y los bloques de las anteriores quedan como
 // historia de lo que cada una hizo, que sigue siendo cierto de esos ficheros.
 
 /** El `.sql` sin sus comentarios: una prueba sobre el filtro mide el filtro, no lo que cuenta. */
@@ -47,7 +48,7 @@ function corta(texto: string, a: { desde?: RegExp; tras?: RegExp; hasta?: RegExp
 
 const persona = (extra: Partial<PersonaDirectorio> = {}): PersonaDirectorio => ({
   full_name: "Ana", title: null, store: "McAllen", store_rank: 1, department: "Ventas",
-  phone: null, ringcentral_ext: null, email: null, directory_group: null, ...extra,
+  phone: null, ringcentral_ext: null, email: null, directory_group: null, store_ext: null, ...extra,
 });
 
 describe("la cascada: tiendas en el orden de Ajustes", () => {
@@ -72,7 +73,7 @@ describe("la cascada: tiendas en el orden de Ajustes", () => {
   });
 
   it("quien no tiene tienda va al final, en su propio grupo", () => {
-    expect(tiendasDelDirectorio(filas).at(-1)).toEqual({ clave: CLAVE_SIN_TIENDA, tipo: "sin_tienda", tienda: null, personas: 1 });
+    expect(tiendasDelDirectorio(filas).at(-1)).toEqual({ clave: CLAVE_SIN_TIENDA, tipo: "sin_tienda", tienda: null, ext: null, personas: 1 });
   });
 
   it("cuenta a todo el mundo una sola vez", () => {
@@ -453,7 +454,7 @@ describe("111: los grupos Remote y Sin tienda en la cascada", () => {
 
   it("Remote llega sin tienda y va a Remote, no a «Sin tienda»", () => {
     const remote = tiendasDelDirectorio(filas).find((g) => g.clave === CLAVE_REMOTE);
-    expect(remote).toEqual({ clave: CLAVE_REMOTE, tipo: "remote", tienda: null, personas: 2 });
+    expect(remote).toEqual({ clave: CLAVE_REMOTE, tipo: "remote", tienda: null, ext: null, personas: 2 });
     expect(tiendasDelDirectorio(filas).find((g) => g.clave === CLAVE_SIN_TIENDA)?.personas).toBe(1);
   });
 
@@ -494,7 +495,7 @@ describe("111: los grupos Remote y Sin tienda en la cascada", () => {
   it("el grupo de una fila dice su sitio también fuera de la cascada (búsqueda y tarjeta)", () => {
     expect(grupoDe(filas[2]).tipo).toBe("remote");
     expect(grupoDe(filas[4]).tipo).toBe("sin_tienda");
-    expect(grupoDe(filas[0])).toEqual({ clave: claveTienda("AAA"), tipo: "tienda", tienda: "AAA" });
+    expect(grupoDe(filas[0])).toEqual({ clave: claveTienda("AAA"), tipo: "tienda", tienda: "AAA", ext: null });
   });
 });
 
@@ -688,7 +689,7 @@ describe("111: solo un admin de RR. HH. cambia la marca de grupo", () => {
   });
 });
 
-// La definición vigente de la función vive en la 116: la de la 111, con un filtro más.
+// La 116: la de la 111, con un filtro más. Fue la vigente hasta la 117, que la copia y le añade la extensión.
 describe("116: el directorio pide extensión Y teléfono", () => {
   // Mide el TEXTO del `.sql`. El ensayo por rol, de solo lectura y con ROLLBACK, está al final del fichero.
   const funcionDe = (texto: string, apertura: RegExp) =>
@@ -749,5 +750,122 @@ describe("116: el directorio pide extensión Y teléfono", () => {
     const [, despues] = sql116.split("-- @ledger-below");
     expect(despues).toContain("116_phone_book_with_phone.sql");
     expect(sql116).not.toContain("D-" + "NEXT");
+  });
+});
+
+// La extensión de cada tienda (117). Datos neutros: ni tiendas ni extensiones del dueño.
+describe("117: la extensión de la tienda en la cascada", () => {
+  it("un grupo de tienda lleva la extensión que manda la base, limpia", () => {
+    expect(grupoDe(persona({ store: "AAA", store_ext: " 900 " })).ext).toBe("900");
+    expect(grupoDe(persona({ store: "AAA", store_ext: null })).ext).toBeNull();
+    // Un espacio no es una extensión.
+    expect(grupoDe(persona({ store: "AAA", store_ext: "   " })).ext).toBeNull();
+  });
+
+  it("Remote y Sin tienda no llevan extensión de tienda, aunque la fila trajera una", () => {
+    expect(grupoDe(persona({ store: null, directory_group: "remote", store_ext: "900" })).ext).toBeNull();
+    expect(grupoDe(persona({ store: null, directory_group: "sin_tienda", store_ext: "900" })).ext).toBeNull();
+  });
+
+  it("el grupo de la lista toma la extensión de sus filas, y cada tienda la suya", () => {
+    const grupos = tiendasDelDirectorio([
+      persona({ full_name: "Uno", store: "AAA", store_rank: 1, store_ext: "900" }),
+      persona({ full_name: "Dos", store: "AAA", store_rank: 1, store_ext: "900" }),
+      persona({ full_name: "Tres", store: "BBB", store_rank: 2, store_ext: null }),
+    ]);
+    expect(grupos.map((g) => [g.tienda, g.ext])).toEqual([["AAA", "900"], ["BBB", null]]);
+  });
+});
+
+describe("117_phone_book_store_ext.sql: la extensión de cada tienda", () => {
+  const f116 = sinComentarios(corta(sql116, {
+    desde: /create or replace function public\.phone_book\(\)\nreturns table/,
+    hasta: /grant {2}execute on function public\.phone_book\(\) to authenticated;/,
+  }));
+  const f117 = sinComentarios(corta(sql117, {
+    desde: /create function public\.phone_book\(\)\nreturns table/,
+    hasta: /grant {2}execute on function public\.phone_book\(\) to authenticated;/,
+  }));
+  const normaliza117 = (s: string) => s.replace(/\s+/g, " ").trim();
+
+  it("la función está (control)", () => {
+    expect(f117).toContain("ext_por_codigo as (");
+    expect(f117.length).toBeGreaterThan(2000);
+  });
+
+  it("es la 116 con la extensión y nada más: filtro, grupos, códigos y rangos no cambian", () => {
+    // Se quita de la 117 exactamente lo añadido, y lo que queda tiene que ser la 116.
+    const sinExt = f117
+      .replace(/^create function/, "create or replace function")
+      .replace(/,\s*store_ext\s+text\s*\)/, "\n)")
+      .replace(/,\s*nullif\(btrim\(coalesce\(s\.value->>'directory_ext', ''\)\), ''\) as ext/, "")
+      .replace(/\s*ext_por_codigo as \([\s\S]*?group by t\.codigo\s*\),/, "")
+      .replace(/,\s*case when c\.grupo is null then e\.ext end::text\s+as store_ext/, "")
+      .replace(/\s*left join ext_por_codigo e on e\.codigo = o\.codigo/, "")
+      .replace(/'Directorio de la compania:[^']*'/, "'…'");
+    const la116 = f116.replace(/'Directorio de la compania:[^']*'/, "'…'");
+    expect(normaliza117(sinExt)).toBe(normaliza117(la116));
+  });
+
+  it("la firma son diez columnas: las nueve de siempre y store_ext al final", () => {
+    const bloque = corta(f117, { tras: /returns table \(/, hasta: /\)\nlanguage sql/ });
+    expect([...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1])).toEqual([
+      "full_name", "title", "store", "store_rank", "department", "phone", "ringcentral_ext", "email", "directory_group", "store_ext",
+    ]);
+  });
+
+  it("la extensión sale de directory_ext de Ajustes, y un espacio no cuenta", () => {
+    expect(normaliza117(f117)).toContain("nullif(btrim(coalesce(s.value->>'directory_ext', '')), '') as ext");
+  });
+
+  it("un grupo de varias tiendas la enseña solo si todas tienen la misma", () => {
+    const cte = normaliza117(corta(f117, { desde: /ext_por_codigo as \(/, hasta: /\n {2}\),\n {2}personas as \(/ }));
+    expect(cte).toContain("group by t.codigo");
+    const condiciones = corta(cte, { tras: /case when /, hasta: / then min\(t\.ext\) end as ext/ })
+      .split(/\s+and\s+/).map((c) => c.trim()).sort();
+    expect(condiciones).toEqual(["count(*) = count(t.ext)", "count(distinct t.ext) = 1"]);
+  });
+
+  it("se cruza por el código de la tienda de cada persona, y una fila de grupo no la lleva", () => {
+    expect(normaliza117(f117)).toContain("left join ext_por_codigo e on e.codigo = o.codigo");
+    expect(normaliza117(f117)).toContain("case when c.grupo is null then e.ext end::text as store_ext");
+  });
+
+  it("como la firma cambia, se borra antes de crear y los permisos se dan después", () => {
+    const ejecutable = sinComentarios(sql117);
+    const drop = ejecutable.indexOf("drop function if exists public.phone_book();");
+    const create = ejecutable.indexOf("create function public.phone_book()");
+    expect(drop).toBeGreaterThan(-1);
+    expect(drop).toBeLessThan(create);
+    expect(ejecutable.indexOf("revoke execute on function public.phone_book() from public, anon;")).toBeGreaterThan(create);
+    expect(ejecutable.indexOf("grant  execute on function public.phone_book() to authenticated;")).toBeGreaterThan(create);
+  });
+
+  it("no escribe nada, y no hay ningún dato del dueño en la función", () => {
+    expect(sinComentarios(sql117)).not.toMatch(/\bupdate\s+public\.|\bupdate\s+recruiting|alter\s+table|create\s+policy/i);
+    const literales = [...f117.matchAll(/'([^']*)'/g)].map((m) => m[1]);
+    const permitidos = new Set(["", "name", "directory_code", "directory_ext", "[]", "remote", "sin_tienda", "manager", "—"]);
+    // El comentario de la función es prosa, no un dato que decida nada.
+    expect(literales.filter((l) => !permitidos.has(l) && !l.startsWith("Directorio de la compania:"))).toEqual([]);
+  });
+
+  it("se auto-registra en el ledger y no lleva el marcador sin numerar", () => {
+    const [, despues] = sql117.split("-- @ledger-below");
+    expect(despues).toContain("117_phone_book_store_ext.sql");
+    expect(sql117).not.toContain("D-" + "NEXT");
+  });
+});
+
+describe("117: la página enseña la extensión, sin enlace", () => {
+  const pagina = leer("src/app/home/directory/page.tsx");
+
+  it("en la lista de tiendas y en la cabecera de la tienda", () => {
+    expect(pagina).toContain("{nombreGrupo(g)}{conExt(g)}");
+    expect((pagina.match(/\{nombreGrupo\(elegido\)\}\{conExt\(elegido\)\}/g) ?? []).length).toBe(3);
+  });
+
+  it("no es un enlace: la extensión de una persona tampoco lo es en la tarjeta", () => {
+    expect(pagina).not.toMatch(/href=\{[^}]*ext/);
+    expect(pagina).toContain("<span>{p.ringcentral_ext || sinDato}</span>");
   });
 });

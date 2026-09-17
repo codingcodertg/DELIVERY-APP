@@ -346,13 +346,24 @@ function LocationTable({
         />
       </div>
       {directoryCode && (
-        <div className="field" style={{ marginTop: 10, maxWidth: 260 }}>
-          <label>{t("Directory code", "Código directorio")}</label>
-          <input
-            value={draft.directory_code ?? ""}
-            placeholder={t("e.g. ABC — several stores can share it", "ej. ABC — varias tiendas pueden compartirlo")}
-            onChange={(e) => setDraft({ ...draft, directory_code: e.target.value })}
-          />
+        <div className="grid g2" style={{ marginTop: 10, maxWidth: 540 }}>
+          <div className="field">
+            <label>{t("Directory code", "Código directorio")}</label>
+            <input
+              value={draft.directory_code ?? ""}
+              placeholder={t("e.g. ABC — several stores can share it", "ej. ABC — varias tiendas pueden compartirlo")}
+              onChange={(e) => setDraft({ ...draft, directory_code: e.target.value })}
+            />
+          </div>
+          <div className="field">
+            <label>{t("Directory extension", "Extensión directorio")}</label>
+            <input
+              value={draft.directory_ext ?? ""}
+              inputMode="numeric"
+              placeholder={t("e.g. 100 — shown next to the store", "ej. 100 — se enseña junto a la tienda")}
+              onChange={(e) => setDraft({ ...draft, directory_ext: e.target.value })}
+            />
+          </div>
         </div>
       )}
       {autoApprove && (
@@ -397,6 +408,9 @@ function LocationTable({
                 <b>{it.name}</b>
                 {directoryCode && it.directory_code && (
                   <span className="hint" style={{ marginLeft: 6 }}>· {t("Directory", "Directorio")}: {it.directory_code}</span>
+                )}
+                {directoryCode && it.directory_ext && (
+                  <span className="hint" style={{ marginLeft: 6 }}>· ext {it.directory_ext}</span>
                 )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>

@@ -16,6 +16,7 @@ import type { NamedLocation } from "./types";
 export function registroDeLugar(
   prev: NamedLocation | undefined,
   draft: NamedLocation,
+  /** `directoryCode`: la lista enseña los campos del directorio (código y extensión). Solo tiendas. */
   opts: { autoApprove?: boolean; directoryCode?: boolean },
 ): NamedLocation {
   const rec: NamedLocation = { ...(prev ?? {}), name: draft.name.trim(), address: draft.address.trim() };
@@ -34,6 +35,11 @@ export function registroDeLugar(
     const code = (draft.directory_code ?? "").trim();
     if (code) rec.directory_code = code;
     else delete rec.directory_code;
+    // La extensión de la tienda para el directorio (D-NEXT): misma regla que el código. Vacía quita la
+    // clave, y el directorio no enseña extensión.
+    const ext = (draft.directory_ext ?? "").trim();
+    if (ext) rec.directory_ext = ext;
+    else delete rec.directory_ext;
   }
 
   return rec;
