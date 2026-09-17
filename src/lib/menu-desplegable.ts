@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Los menús desplegables de la tabla de Órdenes (D-NEXT): cuándo se cierran y dónde se pintan.
+ * Los menús desplegables de la tabla de Órdenes (D-275): cuándo se cierran y dónde se pintan.
  *
  * Son dos: el de cada cabecera (ordenar y filtrar esa columna) y «⚙ Columnas». Las reglas viven
  * aquí, como funciones puras, porque las pruebas corren sin navegador: lo que decide se prueba

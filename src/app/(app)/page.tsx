@@ -126,7 +126,7 @@ export default function OrdersPage() {
     try { localStorage.setItem(colsKey(me.role), JSON.stringify(next)); } catch { /* ignore */ }
   };
 
-  // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-NEXT); antes solo con su botón.
+  // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275); antes solo con su botón.
   // El contenedor envuelve botón y menú: pulsar el botón con el menú abierto lo cierra, y marcar
   // casillas no.
   const colsRef = useRef<HTMLDivElement>(null);

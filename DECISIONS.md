@@ -17446,7 +17446,7 @@ pruebas y no quita ninguna —19 en `entregas-barra.test.ts`, 11 en `map-legend.
 `inline-colors.test.ts`, una por cada componente nuevo—. `main` 237bbde, medido en un worktree aparte,
 está en 2253 | 3.
 
-## D-NEXT · Órdenes: ordenar y filtrar desde el mismo menú, y los menús se cierran al salir
+## D-275 · Órdenes: ordenar y filtrar desde el mismo menú, y los menús se cierran al salir
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, dos cosas de la tabla de Órdenes: *«el filtro en la pestaña de órdenes solo se habilita

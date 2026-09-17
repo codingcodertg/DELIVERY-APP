@@ -210,7 +210,7 @@ function filterKey(v: CellValue): string {
 
 /** One column header's menu: sort it, then an Excel-style checklist filter (search box,
  * select-all, one checkbox per distinct value present in the other-filters-applied rows).
- * Sorting sits in the same menu so both are one click away (D-NEXT). */
+ * Sorting sits in the same menu so both are one click away (D-275). */
 function ColumnFilterMenu({
   col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef,
 }: {
@@ -296,7 +296,7 @@ function ColumnFilterMenu({
 
 /** Compact, horizontally-scrollable table of orders. Click a row to open it.
  * Clicking a column header opens one menu with both sorting and an Excel-style value
- * checklist filter (D-NEXT); optionally supports row selection (bulk actions) and
+ * checklist filter (D-275); optionally supports row selection (bulk actions) and
  * custom columns. */
 export function OrdersTable({
   rows,
@@ -391,7 +391,7 @@ export function OrdersTable({
     };
   }, [openFilter]);
 
-  // A click outside or Escape closes it (D-NEXT). The menu is portaled out of the header, so
+  // A click outside or Escape closes it (D-275). The menu is portaled out of the header, so
   // "outside" is checked by hand: the menu itself and the open column's header cell are inside.
   useCierraAlSalir(!!openFilter, () => setOpenFilter(null), () => [
     menuRef.current,
@@ -478,7 +478,7 @@ export function OrdersTable({
               const hasFilter = activeCount != null && activeCount > 0;
               return (
                 <th key={c.key}>
-                  {/* The name and the ▾ open the same menu, with sorting and the filter (D-NEXT).
+                  {/* The name and the ▾ open the same menu, with sorting and the filter (D-275).
                       The name used to sort straight away, and the filter was only the small ▾ next to it. */}
                   <div
                     className="th-cell"

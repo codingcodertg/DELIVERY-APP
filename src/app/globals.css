@@ -511,7 +511,7 @@ input.invalid, select.invalid, textarea.invalid {
 .col-menu-search { width: 100%; margin: 2px 0 4px; padding: 6px 8px; font-size: 12.5px; box-sizing: border-box; }
 .col-menu-actions { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 .col-menu-actions .btn { flex: 1; }
-/* Ordenar, encima del filtro, en el menú de cada cabecera de Órdenes (D-NEXT). */
+/* Ordenar, encima del filtro, en el menú de cada cabecera de Órdenes (D-275). */
 .col-menu-orden { border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 4px; }
 .col-orden { width: 100%; background: none; border: none; text-align: left; font-family: inherit; }
 .col-orden.on { color: var(--accent); font-weight: 700; }
