@@ -152,13 +152,11 @@ describe("lo que no cambia", () => {
   it("la tarifa: mismo precio para la misma zona y millas", () => {
     const a = suggestDeliveryFee({ delivery_address: DIR, route_miles: 13 });
     const b = suggestDeliveryFee({ delivery_address: DIR, route_miles: 13, delivery_lat: DENTRO[0], delivery_lng: DENTRO[1] });
-    expect(b.list).toBe(a.list);
-    expect(b.discount).toBe(a.discount);
+    expect(b.fee).toBe(a.fee);
   });
   it("las fórmulas y el respaldo siguen intactos", () => {
     const src = leer("src/lib/pricing.ts");
-    expect(src).toMatch(/export function listFee\(miles: number, local = true\): number \{/);
-    expect(src).toMatch(/export function discountFee\(miles: number, local = true\): number \{/);
+    expect(src).toMatch(/export function deliveryFee\(miles: number, local = true\): number \{/);
     expect(src).toMatch(/const local = porPunto \?\? isLocalCity\(city, s\);/);
   });
 });

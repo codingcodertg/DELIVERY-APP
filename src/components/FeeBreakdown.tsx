@@ -4,15 +4,15 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { fmtMoney } from "@/lib/utils";
 import type { FeeBreakdown as Desglose, PasoTarifa } from "@/lib/pricing";
-import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
+import { textoDelMinimo, textoDelRango, textoDeLaRegla, textoDelRedondeo } from "@/lib/fee-formula-text";
 
 /**
  * «¿Cómo se calculó?» — la fórmula con los números de ESTE pedido (D-244).
  *
  * El dueño pidió ver la fórmula del recargo de entrega. Lo que se enseña no es la fórmula en
  * abstracto —eso está en Ajustes, para consultarla sin abrir nada— sino **el camino que llevó a
- * los dos importes de los botones**: el tramo que aplicó, su regla, el bruto, el redondeo a $10
- * y el recargo de mismo día, si lo hay.
+ * el importe del botón**: el tramo que aplicó, su regla, el bruto, el redondeo, el suelo si
+ * mordió, y el recargo de mismo día, si lo hay.
  *
  * Todo viene de `breakdown`, que sale del **mismo** cálculo que el precio. Este componente no
  * hace aritmética: si sumara por su cuenta, tarde o temprano diría una cosa y el botón otra, y
@@ -43,30 +43,31 @@ export function FeeBreakdownDetails({ desglose }: { desglose: Desglose }) {
             {" · "}
             {t(`${desglose.miles} driving miles`, `${desglose.miles} millas de recorrido`)}
           </div>
-          <Camino titulo={t("List", "Lista")} paso={desglose.list} />
-          <div style={{ height: 8 }} />
-          <Camino titulo={t("Discount", "Descuento")} paso={desglose.discount} />
+          {/* Un solo precio desde D-NEXT: antes había dos caminos, lista y descuento. */}
+          <Camino paso={desglose.paso} />
         </div>
       )}
     </div>
   );
 }
 
-/** Un precio, paso a paso. Una línea por paso, con su número al lado. */
-function Camino({ titulo, paso }: { titulo: string; paso: PasoTarifa }) {
+/** El precio, paso a paso. Una línea por paso, con su número al lado. */
+function Camino({ paso }: { paso: PasoTarifa }) {
   const { t } = usePrefs();
 
   // El rango y la regla se dicen en un solo sitio, compartido con la tabla de Ajustes: la misma
   // frase escrita dos veces acaba diciendo dos cosas.
   const rango = textoDelRango(t, paso.desde, paso.hasta);
-  const regla = textoDeLaRegla(t, paso.base, paso.factor);
+  const regla = textoDeLaRegla(t, paso.base, paso.factor, paso.minimo);
 
   return (
     <div>
-      <div className="small" style={{ fontWeight: 700 }}>{titulo}</div>
       <Linea texto={`${rango} — ${regla}`} />
       {paso.factor !== 0 && <Linea texto={t("Before rounding", "Antes de redondear")} valor={fmtMoney(paso.bruto)} />}
-      <Linea texto={t("Rounded to $10", "Redondeado a $10")} valor={fmtMoney(paso.redondeado)} />
+      <Linea texto={textoDelRedondeo(t, paso.redondeo)} valor={fmtMoney(paso.redondeado)} />
+      {paso.minimoAplicado && paso.minimo != null && (
+        <Linea texto={textoDelMinimo(t, paso.minimo)} valor={fmtMoney(paso.redondeado)} />
+      )}
       {paso.recargo > 0 && <Linea texto={t("Same-day surcharge", "Recargo de mismo día")} valor={`+ ${fmtMoney(paso.recargo)}`} />}
       <Linea texto={t("Total", "Total")} valor={fmtMoney(paso.total)} fuerte />
     </div>
