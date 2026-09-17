@@ -410,7 +410,7 @@ function LocationTable({
                   <span className="hint" style={{ marginLeft: 6 }}>· {t("Directory", "Directorio")}: {it.directory_code}</span>
                 )}
                 {directoryCode && it.directory_ext && (
-                  <span className="hint" style={{ marginLeft: 6 }}>· ext {it.directory_ext}</span>
+                  <span className="hint" style={{ marginLeft: 6 }}>· Ext {it.directory_ext}</span>
                 )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>
