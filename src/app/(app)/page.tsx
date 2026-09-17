@@ -7,6 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
@@ -124,6 +125,12 @@ export default function OrdersPage() {
     if (!me || me.role === "sales") return;
     try { localStorage.setItem(colsKey(me.role), JSON.stringify(next)); } catch { /* ignore */ }
   };
+
+  // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-NEXT); antes solo con su botón.
+  // El contenedor envuelve botón y menú: pulsar el botón con el menú abierto lo cierra, y marcar
+  // casillas no.
+  const colsRef = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(showCols, () => setShowCols(false), () => [colsRef.current]);
 
   // Keyboard shortcuts (#12): "n" new order, "/" focus search, "Esc" clear.
   useEffect(() => {
@@ -366,7 +373,7 @@ export default function OrdersPage() {
               an admin, and a driver has one job on a phone — the button was
               just taking room from the list. */}
           {view === "table" && !["sales", "driver"].includes(me.role) && (
-            <div style={{ position: "relative" }}>
+            <div ref={colsRef} style={{ position: "relative" }}>
               <button className="btn btn-ghost" onClick={() => setShowCols((s) => !s)}>⚙ {t("Columns", "Columnas")}</button>
               {showCols && (
                 <div className="col-menu">
