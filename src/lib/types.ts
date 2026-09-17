@@ -352,6 +352,9 @@ export interface Tutorial {
   url: string;
   /** Which app it explains. Missing or unknown = General. */
   app?: TutorialApp | null;
+  /** Who it is for: role keys of ROLE_INFO (Deliveries role). Empty or missing = everyone. A role that
+   *  no one has hides it from everyone but admins, so the admin view flags unknown roles (D-NEXT, 114). */
+  roles?: string[];
   added_by?: string | null;
   added_at?: string;
 }

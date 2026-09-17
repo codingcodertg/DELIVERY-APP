@@ -5,11 +5,13 @@ import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { tutorialEmbed } from "@/lib/tutorials";
+import { roleLabel } from "@/lib/constants";
 import {
-  agrupaTutoriales, APPS_DE_TUTORIAL, guardaTutoriales, nuevoTutorial,
+  agrupaTutoriales, alternaRolDeTutorial, APPS_DE_TUTORIAL, guardaTutoriales, nuevoTutorial, quitaRolesDesconocidos,
+  ROLES_DE_AUDIENCIA, rolesDesconocidos, soloLoVeElAdmin,
   type ClienteDeAjustes, type GrupoDeTutoriales,
 } from "@/lib/tutorials-hub";
-import type { Tutorial, TutorialApp } from "@/lib/types";
+import type { Tutorial, TutorialApp, UserRole } from "@/lib/types";
 
 /**
  * Los tutoriales del hub (D-268). Es la sección que vivía en la «Cuenta» de Entregas, movida: la
@@ -17,6 +19,10 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
  *
  * **Se lee de `public.tutorials()` (113), no de `settings`.** La 100 cierra `settings` a quien tiene
  * Entregas, y esta página es de todo el mundo. La función devuelve solo lo que se pinta.
+ *
+ * **Y desde la 114 decide también para quién es cada video** (D-NEXT): la audiencia son roles de
+ * Entregas, y a esta pantalla solo le llegan los videos que quien mira puede ver. La audiencia solo se
+ * enseña y se cambia si quien mira es admin.
  */
 export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeGestionar: boolean }) {
   const { t } = usePrefs();
@@ -103,7 +109,13 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
             <h2 style={{ marginTop: 0 }}>{nombreApp(g.app)}</h2>
             <div style={{ display: "grid", gap: 18 }}>
               {g.tutoriales.map((tut) => (
-                <VideoTutorial key={tut.id} tut={tut} onQuitar={puedeGestionar ? () => quitar(tut.id) : undefined} />
+                <VideoTutorial
+                  key={tut.id}
+                  tut={tut}
+                  onQuitar={puedeGestionar ? () => quitar(tut.id) : undefined}
+                  onAlternarRol={puedeGestionar ? (rol) => guardar((actual) => alternaRolDeTutorial(actual, tut.id, rol)) : undefined}
+                  onQuitarDesconocidos={puedeGestionar ? () => guardar((actual) => quitaRolesDesconocidos(actual, tut.id)) : undefined}
+                />
               ))}
             </div>
           </div>
@@ -114,22 +126,23 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
 }
 
 function AnadirTutorial({ yo, guardar }: { yo: string; guardar: (cambio: (actual: Tutorial[]) => Tutorial[]) => Promise<boolean> }) {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const [abierto, setAbierto] = useState(false);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [app, setApp] = useState<TutorialApp | "general">("general");
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [ocupado, setOcupado] = useState(false);
 
-  const reset = () => { setTitle(""); setUrl(""); setDesc(""); setApp("general"); setAbierto(false); };
+  const reset = () => { setTitle(""); setUrl(""); setDesc(""); setApp("general"); setRoles([]); setAbierto(false); };
   const nombreApp = (a: TutorialApp | "general") =>
     ({ deliveries: t("Deliveries", "Entregas"), recruiting: t("HR", "RR. HH."), timetracker: "Time Tracker",
        clockin: t("Clock-in", "Fichaje"), erp: "ERP", general: "General" })[a];
 
   const anadir = async () => {
     const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const item = nuevoTutorial({ title, url, description: desc, app }, { id: yo }, new Date(), id);
+    const item = nuevoTutorial({ title, url, description: desc, app, roles }, { id: yo }, new Date(), id);
     if (!item) return;
     setOcupado(true);
     const ok = await guardar((actual) => [...actual, item]);
@@ -162,6 +175,21 @@ function AnadirTutorial({ yo, guardar }: { yo: string; guardar: (cambio: (actual
         </select>
       </div>
       <div className="field">
+        <label>{t("Who is it for? (none = everyone)", "¿Para quién? (ninguno = todos)")}</label>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {ROLES_DE_AUDIENCIA.map((r) => (
+            <label key={r} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontWeight: 400 }}>
+              <input
+                type="checkbox"
+                checked={roles.includes(r)}
+                onChange={(e) => setRoles((prev) => (e.target.checked ? [...prev, r] : prev.filter((x) => x !== r)))}
+              />
+              {roleLabel(r, lang)}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="field">
         <label>{t("Description (optional)", "Descripción (opcional)")}</label>
         <textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} />
       </div>
@@ -176,9 +204,17 @@ function AnadirTutorial({ yo, guardar }: { yo: string; guardar: (cambio: (actual
 }
 
 /** Un video: su título, su descripción y el reproductor que toque según el enlace. */
-function VideoTutorial({ tut, onQuitar }: { tut: Tutorial; onQuitar?: () => void }) {
-  const { t } = usePrefs();
+function VideoTutorial({ tut, onQuitar, onAlternarRol, onQuitarDesconocidos }: {
+  tut: Tutorial;
+  onQuitar?: () => void;
+  /** Solo para el admin: cambiar la audiencia del video. */
+  onAlternarRol?: (rol: UserRole) => void;
+  onQuitarDesconocidos?: () => void;
+}) {
+  const { t, lang } = usePrefs();
   const em = tutorialEmbed(tut.url);
+  const audiencia = new Set(tut.roles ?? []);
+  const desconocidos = rolesDesconocidos(tut.roles);
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
@@ -188,6 +224,32 @@ function VideoTutorial({ tut, onQuitar }: { tut: Tutorial; onQuitar?: () => void
         )}
       </div>
       {tut.description && <div className="hint" style={{ marginTop: 2 }}>{tut.description}</div>}
+      {onAlternarRol && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
+          <span className="hint">{audiencia.size === 0 ? t("For everyone ·", "Para todos ·") : t("For:", "Para:")}</span>
+          {ROLES_DE_AUDIENCIA.map((r) => (
+            <button
+              key={r}
+              className={"chip " + (audiencia.has(r) ? "on" : "")}
+              onClick={() => onAlternarRol(r)}
+              title={audiencia.has(r) ? t("Remove this role", "Quitar este rol") : t("Add this role", "Poner este rol")}
+            >
+              {roleLabel(r, lang)}
+            </button>
+          ))}
+        </div>
+      )}
+      {onAlternarRol && desconocidos.length > 0 && (
+        <div className="hint" style={{ marginTop: 6, color: "var(--red)" }}>
+          ⚠ {soloLoVeElAdmin(tut.roles)
+            ? t("Nobody but admins can see this video: its roles don't exist", "Este video solo lo ven los admins: sus roles no existen")
+            : t("Some roles of this video don't exist", "Algunos roles de este video no existen")}
+          {": "}{desconocidos.join(", ")}.{" "}
+          {onQuitarDesconocidos && (
+            <button className="btn btn-ghost btn-sm" onClick={onQuitarDesconocidos}>{t("Remove them", "Quitarlos")}</button>
+          )}
+        </div>
+      )}
       <div style={{ marginTop: 8 }}>
         {em.kind === "iframe" ? (
           <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 10, overflow: "hidden", background: "#000" }}>

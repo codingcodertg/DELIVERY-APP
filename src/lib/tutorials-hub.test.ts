@@ -92,7 +92,8 @@ describe("quién gestiona y el tutorial nuevo", () => {
   it("se guarda limpio, con autor y fecha, y General sin app", () => {
     const cuando = new Date("2026-09-17T12:00:00.000Z");
     expect(nuevoTutorial({ title: " Fichar ", url: " https://youtu.be/x ", description: "  ", app: "clockin" }, { id: "admin-1" }, cuando, "n1"))
-      .toEqual({ id: "n1", title: "Fichar", description: null, url: "https://youtu.be/x", app: "clockin", added_by: "admin-1", added_at: "2026-09-17T12:00:00.000Z" });
+      // roles: [] desde D-NEXT: sin audiencia, el video es para todos.
+      .toEqual({ id: "n1", title: "Fichar", description: null, url: "https://youtu.be/x", app: "clockin", roles: [], added_by: "admin-1", added_at: "2026-09-17T12:00:00.000Z" });
     expect(nuevoTutorial({ title: "Hub", url: "https://youtu.be/y", app: "general" }, { id: "admin-1" }, cuando, "n2")?.app).toBeNull();
   });
 });
