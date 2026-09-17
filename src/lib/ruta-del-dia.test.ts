@@ -253,7 +253,12 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
     expect(vista).not.toMatch(/setStage|updateDelivery|reorderStops/);
   });
 
-  it("no promete lo que no puede: las posiciones en vivo no están aquí", () => {
-    expect(pagina).not.toContain("driverLocations");
+  it("y desde D-NEXT sí promete las posiciones en vivo, porque ya puede leerlas", () => {
+    // Esta prueba decía lo CONTRARIO hasta la migración 121: la vista no podía enseñar dónde va el
+    // camión porque la política de `driver_locations` no dejaba leer a almacén, y prometerlo habría
+    // sido pintar un mapa siempre vacío. Con la 121 aplicada, la promesa se puede cumplir, así que
+    // el canario cambia de lado en vez de borrarse.
+    expect(pagina).toContain("driverLocations");
+    expect(pagina).toContain("choferesEnVivo(driverLocations");
   });
 });

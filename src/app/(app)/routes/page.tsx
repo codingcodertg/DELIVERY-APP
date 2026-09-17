@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes, stageInfo, stageLabel } from "@/lib/constants";
@@ -314,19 +315,10 @@ export default function RoutesPage() {
   // the fleet against the routes they planned.
   const liveDrivers = useMemo(() => {
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-    return driverLocations.flatMap((loc) => {
-      const name = nameById.get(loc.driver_id);
-      if (!name) return [];
-      const ageMin = (Date.now() - new Date(loc.recorded_at).getTime()) / 60000;
-      if (ageMin > 60) return [];   // not live any more
-      return [{
-        driver: name, lat: loc.lat, lng: loc.lng,
-        color: settings.driver_colors?.[name] || fallbackDriverColor(name),
-        accuracy_m: loc.accuracy_m,
-        ageMin,
-        label: `🚚 ${name} · ${ageMin < 1 ? t("now", "ahora") : t(`${Math.round(ageMin)} min ago`, `hace ${Math.round(ageMin)} min`)}`,
-      }];
-    });
+    // Misma regla que el mapa de despacho y que la ruta del día de Almacén (D-NEXT). El color se
+    // pasa como estaba aquí: esta pantalla no usa `colorDeChofer`.
+    const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
+    return choferesEnVivo(driverLocations, nameById, color).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors]);
 

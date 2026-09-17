@@ -8,6 +8,9 @@ import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
 import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
+import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
+import { colorDeChofer } from "@/lib/map-legend";
+import { MapView, type MapPoint } from "@/components/MapView";
 import { fmtWindows, orderLabel, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -21,7 +24,7 @@ const TABS = [
 ] as const;
 
 export default function WarehousePage() {
-  const { me, deliveries, settings, ready, realRole } = useData();
+  const { me, users, deliveries, settings, driverLocations, ready, realRole } = useData();
   const { lang, t } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
@@ -85,6 +88,30 @@ export default function WarehousePage() {
   }, [deliveries, loadDate, effectiveStore, atStore]);
 
   const ruta = useMemo(() => rutaPorChofer(cargasDelDia), [cargasDelDia]);
+
+  // Las paradas del día en el mapa: las que tienen punto. Una dirección sin geocodificar no se
+  // inventa aquí — eso es de la ficha del pedido.
+  const puntos = useMemo<MapPoint[]>(() => cargasDelDia.flatMap((d) => (
+    d.delivery_lat == null || d.delivery_lng == null ? [] : [{
+      id: d.id,
+      lat: d.delivery_lat,
+      lng: d.delivery_lng,
+      color: colorDeChofer(settings.driver_colors, d.assigned_driver),
+      label: `#${orderLabel(d)} · ${d.account || d.delivery_name || ""}`,
+      badge: d.route_seq != null ? String(d.route_seq) : undefined,
+    }]
+  )), [cargasDelDia, settings.driver_colors]);
+
+  // Por dónde va cada camión (D-NEXT). Llega desde la 121: hasta ella, la política de
+  // `driver_locations` no dejaba leer a almacén y esta lista salía siempre vacía —sin error y sin
+  // aviso—, que es justo lo que el dueño no podía ver. Misma regla de «en vivo» que el mapa de
+  // despacho y el gestor de rutas.
+  const enVivo = useMemo(() => {
+    const nombrePorId = new Map(users.map((u) => [u.id, u.full_name]));
+    const color = (n: string) => colorDeChofer(settings.driver_colors, n);
+    return choferesEnVivo(driverLocations, nombrePorId, color).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driverLocations, users, settings.driver_colors]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -169,6 +196,19 @@ export default function WarehousePage() {
            desde aquí, que es el mismo modal de siempre y con los mismos permisos. */
         <div style={{ display: "grid", gap: 12 }}>
           {ruta.length === 0 && <div className="empty">{t("Nothing to load for this day.", "Nada que cargar para este día.")}</div>}
+          {puntos.length > 0 && (
+            <div>
+              {/* El mapa es para MIRAR: no se asigna ni se reordena desde aquí, que es del gestor
+                  de rutas. Se pinta cada parada con el color de su chofer y, encima, dónde está
+                  cada camión ahora. */}
+              <MapView points={puntos} liveDrivers={enVivo} height={320} />
+              <div className="hint" style={{ marginTop: 4 }}>
+                {enVivo.length > 0
+                  ? t(`${enVivo.length} truck(s) reporting now`, `${enVivo.length} camión(es) reportando ahora`)
+                  : t("No truck is reporting its position right now.", "Ningún camión está reportando su posición ahora mismo.")}
+              </div>
+            </div>
+          )}
           {ruta.map((g) => (
             <div key={g.chofer || "sin-chofer"} className="card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
