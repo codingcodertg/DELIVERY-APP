@@ -35978,7 +35978,7 @@ sigue con sus 7, reescritas tres para el mecanismo nuevo. `main` 2a157f1, medido
 rama anterior (el mismo commit), está en 2387 | 3.
 
 ## D-282 · En Intertienda, el contacto es la tienda que envía
-> **Revertida por D-NEXT** (2026-09-17, el mismo día): el dueño pidió «lets undo the change we made to intertienda». Vuelven el contacto de texto libre y la fila de «Vendido desde» + dirección, y se va el recálculo del contacto en cada escritura. D-267 y D-276 no se tocan. El texto de abajo se conserva tal cual.
+> **Revertida por D-288** (2026-09-17, el mismo día): el dueño pidió «lets undo the change we made to intertienda». Vuelven el contacto de texto libre y la fila de «Vendido desde» + dirección, y se va el recálculo del contacto en cada escritura. D-267 y D-276 no se tocan. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«en intertienda, la tienda vendido desde debe ser el nombre del contacto, y
@@ -36578,7 +36578,7 @@ como los otros cinco, que es la regla que esas pruebas exigen.
   pasa por el filtro— pero no está probado ahí. Si fallara, `imprimeDocumento` devuelve `false` y ese es el
   sitio donde engancharía un aviso.
 
-## D-NEXT · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
+## D-288 · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«lets undo the change we made to intertienda»*.

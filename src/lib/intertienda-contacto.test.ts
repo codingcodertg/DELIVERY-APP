@@ -5,7 +5,7 @@ import * as sitios from "./order-sites";
 import type { NamedLocation } from "./types";
 
 /**
- * D-282 revertida (D-NEXT). El dueño: «lets undo the change we made to intertienda».
+ * D-282 revertida (D-288). El dueño: «lets undo the change we made to intertienda».
  *
  * Este fichero fijaba lo contrario —el contacto era la tienda que envía, y la fila de «Vendido desde»
  * desaparecía en Intertienda—. Ahora fija la vuelta atrás, y sobre todo **que no queden restos**: media
