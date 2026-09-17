@@ -36650,3 +36650,85 @@ seguidas, es decir, que la fila se pinte **sin condición**.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **2486 pasados | 3 saltados**. La rama **quita** 9
 pruebas netas: `intertienda-contacto.test.ts` pasa de 17 a 8, las que fijaban D-282 por las que fijan la vuelta
 atrás y que no queden restos. `main` 3c9fa8d, medido en un worktree aparte, está en 2495 | 3.
+
+## D-NEXT · Almacén ve por dónde va cada camión
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
+`121_warehouse_lee_posiciones.sql`**, que aplica el orquestador tras el respaldo, el ensayo y el visto
+bueno; el plan en papel es `docs/PLAN-121-almacen-posiciones.md` · **Pedido por:** el dueño, dos de las
+siete quejas de Almacén: *«almacén: quiero ver el mapa de las rutas como los choferes»* y *«como
+supervisor de almacén quiero poder ver la ruta de los choferes»*.
+
+**Termina lo que D-287 dejó a medias.** Allí Almacén ganó la ruta del día —chofer, orden de paradas,
+ventanas— con lo que ya podía leer. Lo que faltaba era la posición en vivo, y eso sí necesitaba tocar la
+base.
+
+### Lo que se abre, dicho sin adornos
+
+La ubicación de los choferes pasa a verla **cualquiera con el rol almacén**, no solo el supervisor que lo
+pidió. Se le preguntó al dueño con esas palabras —«es todo el rol, no solo el supervisor»— y lo eligió
+igual. Queda escrito aquí porque dentro de seis meses nadie se acordará de que la pregunta se hizo.
+
+Lo que **no** se abre: escribir posiciones. Esa política sigue siendo del propio chofer, y el ensayo lo
+comprueba en los dos sentidos.
+
+### Qué había
+
+`public.driver_locations` con dos políticas: escribe el propio chofer, y leen el propio chofer más
+admin, logística y gerencia. Almacén no estaba, así que su lista de posiciones llegaba **vacía, sin
+error y sin aviso**.
+
+La vigente es la de la **080** —reescribió la de la 043 con el patrón `(select ...)` del initplan—. La
+**103** es posterior y toca esta tabla, pero solo el `EXECUTE` de `prune_driver_locations`; dice
+expresamente que no toca la RLS. Se comprobó antes de partir de la 080, que es de donde salen los sustos:
+copiar la definición equivocada deja una política que parece la de producción y no lo es.
+
+### Qué hay
+
+- **Migración 121:** `'warehouse'` entra en la lista de roles de `read fleet locations`, y nada más. Con
+  `alter policy`, no con `drop` + `create`: un `drop` deja un instante con RLS activa y sin política, o
+  sea un instante en el que nadie ve nada.
+- **En la pantalla de Almacén**, dentro de la vista «Ruta del día» que ya existía: un mapa con las
+  paradas del día —cada una del color de su chofer y con su número de secuencia— y encima los camiones
+  que están reportando. Debajo, una línea que dice cuántos reportan, o que no reporta ninguno: un mapa
+  mudo no distingue «no hay nadie en la calle» de «esto no funciona».
+- **De solo lectura**: no asigna choferes, no reordena paradas y no mueve pines. Eso sigue siendo del
+  gestor de rutas.
+- **Una parada sin punto no se inventa**: si la dirección no está geocodificada, no sale en el mapa.
+
+### La regla de «en vivo», que estaba escrita dos veces
+
+Qué cuenta como una posición actual —nombre resuelto, menos de una hora, color del chofer— vivía copiado
+en el mapa de despacho y en el gestor de rutas, con una diferencia entre las dos copias: cómo elegían el
+color. Ahora está en `src/lib/choferes-en-vivo.ts` y lo usan **las tres** pantallas, cada una pasando su
+función de color y escribiendo la etiqueta en el idioma de quien mira, que es de donde venía la
+diferencia. Una hora sigue siendo una hora, y `MINUTOS_EN_VIVO` la nombra.
+
+### Medido, rompiendo cada pieza
+
+18 cambios: **16 caen, cada uno por la prueba que lleva su nombre, y los 2 gemelos se quedan en verde.**
+
+- **La regla:** lo viejo sigue contando como en vivo; el límite deja fuera lo que está justo en la hora;
+  un fijo sin nombre se pinta igual; sin precisión se inventa un cero; todos los camiones del mismo
+  color; «ahora» se estira a cinco minutos.
+- **La 121:** almacén se queda fuera; se cuela ventas; se borra y se recrea la política; se toca también
+  la de escritura; el ensayo se salta a ventas; el ledger se nombra mal.
+- **Las pantallas:** Almacén se escribe su propia regla de la hora; desde el mapa se puede mover el pin;
+  una parada sin punto se inventa en el cero; el mapa de despacho vuelve a su copia.
+- **Los gemelos:** la regla con `filter` y `map` en vez de `flatMap`; los roles de la política en otro
+  orden.
+
+**Otra prueba mía que no medía lo que decía**, cazada por un mutante: la del límite de la hora construía
+sus datos con la propia constante, así que al cambiar el límite a diez horas el caso se movía con él y
+pasaba igual. Ahora el número va escrito —90 minutos no está en vivo, 30 sí— **y** el borde exacto se
+comprueba con la constante.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 121 no está aplicada. La matriz esperada sale de leer la política; la
+  medición es el ensayo con `ROLLBACK`, que corre el orquestador.
+- **Que `authenticated` pueda llamar a la función de `pg_temp` del ensayo.** El `.sql` trae la
+  alternativa.
+- **Nadie ha abierto la pantalla.** Ni el mapa, ni los camiones en vivo están vistos en un navegador.
+- **La cuota de mapas.** El mapa de Almacén usa el mismo componente que los demás, así que una pantalla
+  más que lo pinta es tráfico más de mapas; no se midió cuánto.

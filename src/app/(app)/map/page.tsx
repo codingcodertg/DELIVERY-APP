@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { driverNames, stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -92,23 +93,9 @@ export default function MapPage() {
   const liveDrivers = useMemo(() => {
     if (!canAssign) return [];
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-    return driverLocations.flatMap((loc) => {
-      const name = nameById.get(loc.driver_id);
-      if (!name) return [];
-      const ageMin = (Date.now() - new Date(loc.recorded_at).getTime()) / 60000;
-      // Older than an hour isn't "live" any more; drop it rather than imply
-      // the truck is still sitting there.
-      if (ageMin > 60) return [];
-      return [{
-        driver: name,
-        lat: loc.lat,
-        lng: loc.lng,
-        color: colorFor(name),
-        accuracy_m: loc.accuracy_m,
-        ageMin,
-        label: `🚚 ${name} · ${ageMin < 1 ? t("now", "ahora") : t(`${Math.round(ageMin)} min ago`, `hace ${Math.round(ageMin)} min`)}`,
-      }];
-    });
+    // La regla de qué cuenta como «en vivo» vive en `choferesEnVivo` (D-NEXT): estaba escrita aquí
+    // y otra vez en el gestor de rutas, y ahora la pide también la ruta del día de Almacén.
+    return choferesEnVivo(driverLocations, nameById, colorFor).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, canAssign, settings.driver_colors]);
 
