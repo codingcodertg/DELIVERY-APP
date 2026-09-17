@@ -12,16 +12,16 @@
  * nombre escribe y lo tiene, y quien no, baja por tiendas.
  *
  * **Quién ve cada grupo NO se decide aquí.** «Remote» solo para manager y admin, «Sin tienda»
- * solo para admin: eso lo filtra `public.phone_book()` en la base (111), y a esta pantalla
+ * solo para admin: eso lo filtra `public.phone_book()` en la base (111, vigente en la 116), y a esta pantalla
  * solo le llegan las filas que ya se pueden ver. Aquí se agrupan y se ordenan, nada más.
  */
 
 /**
  * Una fila tal como la devuelve `public.phone_book()`. La definición vigente es la de la
- * migración **111**: cada una redefine la función entera, así que la última que la toca es la
+ * migración **116**: cada una redefine la función entera, así que la última que la toca es la
  * que manda. La 108 la creó, la 109 le puso la tienda del expediente, la 110 dejó fuera a quien
- * no tiene ningún dato de contacto, y la 111 deja solo a quien tiene extensión, añade los grupos
- * y el código de tienda.
+ * no tiene ningún dato de contacto, la 111 dejó solo a quien tiene extensión y añadió los grupos
+ * y el código de tienda, y la 116 exige además teléfono.
  */
 export type PersonaDirectorio = {
   full_name: string;

@@ -17,7 +17,7 @@ import {
  * salta, para quien ya sabe el nombre.
  *
  * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, y solo de las personas
- * activas con extensión de RingCentral (111). Quién ve los grupos «Remote» y «Sin tienda» lo
+ * activas con extensión de RingCentral (111) y teléfono (116). Quién ve los grupos «Remote» y «Sin tienda» lo
  * decide esa función según el rol, no esta pantalla. Esta pantalla no puede enseñar de más
  * aunque se equivoque: lo que no vuelve de esa función no está aquí, y tampoco hay un segundo
  * filtro aquí que pueda decir otra cosa.
