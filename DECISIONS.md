@@ -36161,3 +36161,90 @@ redondear. Lo que decidió el dueño, pregunta por pregunta:
 - **Nada contra producción.** No se ha recalculado ni comparado ninguna orden real.
 - **Si el escalón de las 11 millas le parece bien al dueño.** Está dicho arriba y en el mensaje al
   orquestador; sale de sus cifras, y cambiarlo es otra decisión.
+
+## D-NEXT · Documentos y fotos en la solicitud de ayuda
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración:
+`119_help_files_bucket.sql`**, que aplica el orquestador.
+**Pedido por el dueño:** *«en la solicitud de ayuda, que se puedan añadir documentos o fotos»*.
+
+### Antes de construir: ¿sale el correo?
+
+Se preguntó primero, porque sin correo los adjuntos no llegan a nadie. **Sí sale**, medido por el
+orquestador el 2026-09-17: `NOTIFY_FROM_EMAIL` es `onboarding@resend.dev` —el remitente de pruebas de
+Resend, que solo entrega a la dirección dueña de la cuenta— y en los envíos de Resend los seis últimos
+«Help request from …» están **entregados**. El dominio `send.rdztilegroup.net` sigue sin verificar, pero
+no se usa, así que no estorba.
+
+El código lo acota igual: si Resend rechazara, `/api/help` devuelve 502 y el botón dice «No se pudo
+enviar». No hay éxito falso.
+
+### Enlaces firmados, no adjuntos
+
+Medido en la documentación de Resend: **40 MB por correo, después de codificar en Base64**, que infla
+alrededor de un tercio. Resend admite adjuntar por URL remota, pero cinco fotos de móvil rozan ese techo
+y un correo rechazado por tamaño **se pierde entero, con el mensaje dentro**. Así que el correo lleva
+**enlaces firmados** a un cubo privado: el mensaje llega siempre, el enlace caduca solo y el fichero se
+queda donde se puede volver a firmar.
+
+Validez del enlace: **30 días**. Quien atiende la solicitud no siempre la abre el mismo día, y pasado
+ese plazo el admin puede firmar otro desde el cubo.
+
+### El cubo, y de quién es cada fichero
+
+`help-files`, **privado**, 10 MB por fichero y solo fotos y documentos —la lista de tipos la fija el
+cubo, no la pantalla—. Un cubo nuevo y no uno de los que había: `hr-docs` es de expedientes de la
+plantilla (096), `resumes` de candidatos y `exception-photos` de fichaje. Una solicitud de ayuda la manda
+cualquiera con sesión y puede adjuntar una captura de cualquier módulo; meterla en esos tres ampliaría
+quién ve qué.
+
+**La primera carpeta de la ruta es el `id` de quien sube**, y de eso vive todo:
+
+- la política del cubo deja escribir, leer y borrar **solo dentro de la carpeta propia**; el admin de
+  Entregas lee todo el cubo, porque es quien atiende;
+- y **el servidor lo comprueba otra vez antes de firmar**. La ruta la manda el cliente, y la firma la
+  hace la llave de servicio, que se salta RLS: sin esa comprobación bastaría con escribir la carpeta de
+  otra persona para llevarse un enlace a su fichero. La ruta además nunca firma más de cinco.
+
+### La pantalla
+
+Se eligen hasta cinco ficheros, se ven con su tamaño y se pueden quitar. Lo que se acepta lo dice la
+misma función que mira la ruta (`help-attachments`), así que la pantalla avisa **antes** de subir en vez
+de que lo rechace la base. Al enviar: primero se suben; **si una subida falla no se manda nada** y se
+dice cuál, porque una solicitud que anuncia adjuntos que no están es peor que ninguna.
+
+El nombre del fichero se sanea antes de guardarlo —sin rutas, sin acentos sueltos, sin caracteres raros
+y cortado a 80— y la clave lleva la fecha, para que dos capturas «captura.png» no se pisen.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**Ninguna prueba manda un correo:** `fetch` es un doble, así que Resend no se llama nunca, y lo que se
+mira es el cuerpo que la ruta habría mandado. Diecisiete mutantes, cada uno cazado por la prueba pensada
+para él: quitar cada uno de los tres topes de la pantalla, dejar la ruta dentro del nombre, sacar la
+carpeta de la persona de la clave, aceptar la ruta ajena o el salto de carpeta, callar el adjunto que no
+se pudo firmar, que la ruta no compruebe de quién es la ruta ni acote cuántas, que un fallo al firmar
+tumbe la solicitud, que los enlaces no lleguen al correo, bajar la validez a una hora, hacer público el
+cubo, quitarle a una política la carpeta propia, que la pantalla no valide, y que mande la solicitud
+aunque la subida falle.
+
+Dos cosas que sacó la tanda, y por eso se cuenta:
+
+- un mutante **sobrevivió**: la prueba de las políticas miraba el fichero entero, así que quitarle la
+  carpeta propia a **una** política pasaba desapercibido. Ahora se mira política por política.
+- otro mutante era **inválido** —dejaba el fichero sin compilar—, y eso no es una prueba que caiga: se
+  reescribió para que fuera un cambio de verdad.
+
+### Lo no verificado
+
+- **Nadie ha subido un fichero de verdad**, ni ha abierto un enlace firmado: la migración no está
+  aplicada cuando se escribe esto, así que el cubo todavía no existe.
+- **El correo con adjuntos no se ha visto llegar.** Lo medido es que los de ayuda llegan, y que el
+  cuerpo que la ruta arma lleva los enlaces.
+- **Nadie ha abierto el diálogo en un teléfono**, que es donde más se va a usar el adjuntar una foto.
+- **Los ficheros no se borran solos.** Se quedan en el cubo; el enlace caduca, el fichero no. Si algún
+  día hay que limpiarlos, es otra decisión.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2423 pasados | 3 saltados**. La rama añade 24
+pruebas, todas en `help-attachments.test.ts`, fichero nuevo, y no quita ninguna. `main` 5725514, medido en un
+worktree aparte, está en 2399 | 3 (rebasada sobre ese `main` después de que entrara D-280). `migrate-status` no se puede correr desde la rama —el worktree no tiene las
+variables, a propósito—, así que el estado de la 119 lo mira el orquestador antes de aplicarla.

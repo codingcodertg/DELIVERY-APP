@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_HELP_EMAIL } from "@/lib/constants";
 import { resendFrom } from "@/lib/email";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, VALIDEZ_DEL_ENLACE, esMiRuta, lineasDeAdjuntos } from "@/lib/help-attachments";
 
 import { requireUser } from "@/lib/api-auth";
 
@@ -29,6 +31,8 @@ interface HelpBody {
   role?: string;
   appVersion?: string;
   lang?: string;
+  /** Lo ya subido al cubo privado: la ruta dentro de `help-files` y con qué nombre se eligió. */
+  archivos?: { path?: string; nombre?: string }[];
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -55,6 +59,29 @@ export async function POST(req: Request) {
   const who = body.senderName?.trim() || senderEmail || "A user";
   const roleLabel = body.role ? ` (${body.role})` : "";
 
+  // Los adjuntos (D-NEXT). Se firma SOLO lo que está en la carpeta de quien manda la solicitud: la
+  // ruta llega del cliente, y sin esta comprobación bastaría con escribir la carpeta de otra persona
+  // para llevarse un enlace firmado a su fichero. El cubo ya lo impide al leer con la sesión, pero
+  // aquí se firma con la llave de servicio, que se salta RLS.
+  const pedidos = (body.archivos ?? []).slice(0, LIMITES_DE_ADJUNTOS.maxFicheros);
+  const mios = pedidos.filter((a) => esMiRuta((a.path || "").trim(), auth.user.id));
+  const adjuntos: { nombre: string; url: string | null }[] = [];
+  if (mios.length) {
+    const almacen = createAdminClient().storage.from(CUBO_DE_ADJUNTOS);
+    for (const a of mios) {
+      const ruta = (a.path || "").trim();
+      const nombre = (a.nombre || "").trim() || ruta.split("/").pop() || "archivo";
+      try {
+        const { data } = await almacen.createSignedUrl(ruta, VALIDEZ_DEL_ENLACE);
+        adjuntos.push({ nombre, url: data?.signedUrl ?? null });
+      } catch {
+        // Un enlace que no se pudo firmar no tumba la solicitud: el mensaje vale por sí solo, y el
+        // correo dice qué adjunto se quedó sin enlace.
+        adjuntos.push({ nombre, url: null });
+      }
+    }
+  }
+
   const subject = `Help request from ${who}${roleLabel}`;
   const text = [
     message,
@@ -65,6 +92,7 @@ export async function POST(req: Request) {
     body.appVersion ? `App version: ${body.appVersion}` : null,
     body.lang ? `Language: ${body.lang}` : null,
     `Sent: ${new Date().toISOString()}`,
+    ...lineasDeAdjuntos(adjuntos),
   ]
     .filter(Boolean)
     .join("\n");
