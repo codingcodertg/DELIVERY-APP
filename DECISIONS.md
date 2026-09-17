@@ -17869,8 +17869,8 @@ recogía el error como `error`, sin la forma `error: nombre` que exige, y se ren
 ## D-NEXT · «Office»: `accounting` se llama Oficina, y crea y aprueba órdenes como el gerente
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:** ninguna en esta
-rama. La del guard la escribe, ensaya y aplica el orquestador en `guard-office-como-manager` (la anunció
-como la 118) · **Pedido por:** el dueño, en dos veces el mismo día:
+rama. La del guard es la **118** (`118_guard_office_como_manager.sql`, D-277): la escribió, ensayó y
+aplicó el orquestador el 2026-09-17, antes de esta rama · **Pedido por:** el dueño, en dos veces el mismo día:
 - *«cambia accounting a office; manager sigue siendo office manager; y office tiene la misma regla de solo
   ver ayer, hoy y mañana»*;
 - *«toda la gente de office debe poder crear órdenes»*.
@@ -17904,8 +17904,8 @@ sigue en pie.
   - La descripción pasa a «Crea, edita y aprueba órdenes», y los permisos por defecto ganan «Crear
     órdenes».
 - **Crea por rol:** `ROLE_CAPS.accounting = ["create", "approve"]`, lo mismo que el gerente menos el panel.
-- **En la app, lo que la base le dará con la opción (a)**, que trata a `accounting` en el guard igual que a
-  `manager`. `ordersLikeOfficeManager` (gerente y office) decide cinco cosas que antes comparaban con
+- **En la app, lo que la base ya le deja** desde la 118 (opción (a): en el guard, `accounting` sale en las
+  mismas seis listas que `manager`). `ordersLikeOfficeManager` (gerente y office) decide cinco cosas que antes comparaban con
   `"manager"` a mano:
   - `canEditFields`;
   - elegir vendedor al crear una orden de cliente;
@@ -17919,8 +17919,9 @@ sigue en pie.
 - **Textos visibles:** la ayuda de importar usuarios dice «ASST→Office / Oficina», y el usuario de la
   demo local se llama «Olivia Office». No se tocaron los «Accounting» de reclutamiento (un puesto) ni los
   del ERP (un módulo), porque son otra cosa, ni `docs/decisiones.html`, que es historia.
-- **ORDEN DE DESPLIEGUE.** Si esta rama sale sin la migración del guard aplicada, vuelve justo el
-  desajuste de D-044: un botón que la base revienta. Primero la migración, y después o a la vez esta rama.
+- **ORDEN DE DESPLIEGUE, ya resuelto.** Esta rama da `create` por rol; sin la 118 aplicada sería el
+  desajuste de D-044 otra vez, un botón que la base revienta. La 118 se aplicó primero (D-277), así que
+  esta rama puede salir.
 
 ### Descartado
 
@@ -17947,14 +17948,24 @@ sigue en pie.
   seguimiento (D-044 roto).
 - **Los gemelos:** office antes que manager en el predicado; las capacidades en otro orden.
 
-### Lo no verificado
+### Medido también: la 118 cubre lo que la app ofrece
 
-- **Que la migración del orquestador le deje a office exactamente lo que esta rama le ofrece:** editar,
-  enviar, aprobar, crear aprobada y re-entrega. No la he visto. Se comprueba al rebasar sobre el `main`
-  que la traiga.
-- **Los comentarios del código citan «118»**, el número que el orquestador anunció. Está sin comprobar
-  hasta ese mismo rebase.
-- **Nadie ha abierto la app como office.**
+Al rebasar sobre el `main` que la trae (3b549ca), se leyó `118_guard_office_como_manager.sql`. No es una
+copia del fichero de la 048: es la definición que devuelve `pg_get_functiondef` de producción —de ahí las
+mayúsculas de Postgres y `$function$`— con `accounting` añadido. Comparada con la 048 sin fijar formato
+(minúsculas, espacios colapsados, `search_path to 'public'` = `search_path = public`), y quitándole
+`accounting` de cada lista, sale **igual salvo dos cosas**: las seis listas y el texto del error de crear,
+que ahora dice «Only sales, office, managers or drivers can create orders». Ningún código de la app lee ese
+mensaje (`isOfflineError` mira otras cosas).
+
+Las seis ramas son las que la app necesita: crear en draft, pending o approved; editar en la misma etapa;
+enviar, volver a borrador y cancelar; aprobar, rechazar y desbloquear; re-entrega; carga partida. O sea que
+lo que office puede pulsar está dentro de lo que la base le permite.
+
+### Lo no verificado
+- **Nadie ha abierto la app como office.** Lo de la base sí está medido, pero por el orquestador: su
+  ensayo con `ROLLBACK` de D-277 dice que accounting pasa de ✗ a ✓ en crear draft, crear approved, editar
+  approved y aprobar pending, con los demás roles idénticos. Yo no lo corrí.
 - **Fuera de alcance:**
   - `logistics` tiene `approve` en la app y el guard tampoco le deja aprobar;
   - `driver` puede crear en la base pero no en la app.
