@@ -129,7 +129,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 
 describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
   const TECHO_ENTREGAS: Record<string, number> = {
-    // (account/page.tsx sale de la tabla en D-NEXT: es solo una redirección a «Mi perfil», con cero.
+    // (account/page.tsx sale de la tabla en D-274: es solo una redirección a «Mi perfil», con cero.
     // Sus dos blancos eran los de la insignia de la persona y la de la tienda, que no se mudan: Mi
     // perfil no pinta insignias.)
     "src/app/(app)/accounts/page.tsx": 4,
@@ -144,7 +144,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/summary/page.tsx": 1,
     "src/components/AppUpdateBanner.tsx": 2,
     "src/components/DispatchBoard.tsx": 1,
-    // 1 desde D-NEXT: la «P» blanca sobre el pin oscuro de la recogida, en la leyenda del mapa. Es
+    // 1 desde D-274: la «P» blanca sobre el pin oscuro de la recogida, en la leyenda del mapa. Es
     // el mismo blanco que la «P» del pin en el mapa, sobre el mismo color.
     "src/components/MapLegend.tsx": 1,
     "src/components/NotificationBell.tsx": 1,
@@ -160,7 +160,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // Baja de 6 a 5 (D-247): el fondo translúcido de los botones de la barra estaba escrito
     // dos veces y ahora es una constante. El techo baja con él — la tabla no admite holgura, y
     // eso es lo que hace que sea un techo y no una estimación.
-    // Baja de 5 a 2 (D-NEXT): se va el blanco de la burbuja del rol, que desaparece, y los dos
+    // Baja de 5 a 2 (D-274): se va el blanco de la burbuja del rol, que desaparece, y los dos
     // colores del botón «Salir» del aviso de enseñanza pasan a `BOTON_DEL_AVISO`, que comparte con
     // el botón nuevo «Reiniciar práctica». Esos dos no desaparecen: se escriben una vez.
     "src/components/TopBar.tsx": 2,
@@ -214,7 +214,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
   it("el total es 76, y de esos 62 son el blanco sobre color", () => {
     // El número entero, para que un cambio que reparta colores entre ficheros sin subir
     // ninguno por encima de su techo no pase desapercibido.
-    // Era 80 y 65 hasta D-NEXT: −2 blancos de la Cuenta, −2 blancos y −1 translúcido de la barra,
+    // Era 80 y 65 hasta D-274: −2 blancos de la Cuenta, −2 blancos y −1 translúcido de la barra,
     // +1 blanco de la leyenda del mapa. Recontado con esta misma prueba.
     let total = 0;
     let blancos = 0;

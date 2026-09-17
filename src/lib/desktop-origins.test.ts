@@ -113,7 +113,7 @@ describe("las navegaciones de página completa que hay HOY en la app", () => {
   it("los CINCO `signout` son POST de página completa, y todos fallaban por lo mismo", () => {
     // Medido en esta rama: no era solo el del hub. Cada app tiene el suyo y todas comparten el
     // fallo, porque el fallo no estaba en el formulario sino en qué consideraba suyo la ventana.
-    // Eran SEIS hasta D-NEXT: la barra de Entregas tenía dos (la burbuja del rol y el botón del
+    // Eran SEIS hasta D-274: la barra de Entregas tenía dos (la burbuja del rol y el botón del
     // admin) y ahora tiene uno, en el menú del nombre. El fallo de la ventana no cambia con eso.
     const formularios = [
       "src/components/TopBar.tsx",                    // Entregas: uno, en el menú del nombre

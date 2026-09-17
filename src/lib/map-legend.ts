@@ -2,7 +2,7 @@ import { TIENDA_CLASICA } from "./store-pins";
 import { fallbackDriverColor } from "./utils";
 
 /**
- * La leyenda del mapa de Entregas: qué significa cada cosa que se pinta (D-NEXT).
+ * La leyenda del mapa de Entregas: qué significa cada cosa que se pinta (D-274).
  *
  * El dueño: «add legend in the map of sales of what each point means». La leyenda tiene que decir lo
  * mismo que el mapa pinta, así que **sale de los mismos sitios que deciden cada color**, no de una copia:

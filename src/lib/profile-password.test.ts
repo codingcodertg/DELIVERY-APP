@@ -285,7 +285,7 @@ describe("los caminos hasta Mi perfil", () => {
   });
 
   it("cada app que tenía el formulario lleva ahora a Mi perfil", () => {
-    // Entregas, desde D-NEXT, no enlaza: su Cuenta entera redirige a Mi perfil. La prueba de abajo.
+    // Entregas, desde D-274, no enlaza: su Cuenta entera redirige a Mi perfil. La prueba de abajo.
     for (const f of [
       "src/app/recruiting/(recruiting)/settings/page.tsx",
       "src/app/timetracker/(timetracker)/account/page.tsx",

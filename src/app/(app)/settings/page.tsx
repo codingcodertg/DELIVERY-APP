@@ -18,7 +18,7 @@ export default function SettingsPage() {
   if (!me) return null;
 
   // Settings is admin-only now. Lo demás ya no vive en la pantalla de Cuenta, que redirige a «Mi
-  // perfil» (D-NEXT): idioma y tema están allí, y el modo enseñanza en el menú del nombre. La vuelta
+  // perfil» (D-274): idioma y tema están allí, y el modo enseñanza en el menú del nombre. La vuelta
   // lleva a la pantalla de cada rol, porque a Ajustes ya se llega desde cualquier pestaña.
   if (me.role !== "admin") {
     return (

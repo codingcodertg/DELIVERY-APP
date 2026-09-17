@@ -1973,7 +1973,7 @@ cambio; si algún día se ven igual de vacíos, es la misma causa.
 ---
 
 ## D-055 · Botón "volver al hub", junto al switcher
-> **Reemplazada en parte por D-NEXT** (2026-09-17): en Entregas la casa sale sola, junto al nombre de la app, y el salto directo `⇄` desaparece. En RR. HH. y Time Tracker esta entrada sigue en pie. El texto de abajo se conserva tal cual.
+> **Reemplazada en parte por D-274** (2026-09-17): en Entregas la casa sale sola, junto al nombre de la app, y el salto directo `⇄` desaparece. En RR. HH. y Time Tracker esta entrada sigue en pie. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-08-19 · **Versión:** v1.11.0 · **Pedido por:** Andrés
 
 **Cambio:** `ModuleSwitcher.tsx` gana un segundo control, `⌂` (enlace directo
@@ -3871,7 +3871,7 @@ podría lanzar ahí también, con el mismo efecto de nunca llegar a
 ---
 
 ## D-089 · Salir se muda dentro de la burbuja del rol (solo roles que no son admin)
-> **Reemplazada por D-NEXT** (2026-09-17): la barra de Entregas ya no tiene burbuja del rol; «Salir», «Ver como» y lo demás van en el menú del nombre, para todos. El texto de abajo se conserva tal cual.
+> **Reemplazada por D-274** (2026-09-17): la barra de Entregas ya no tiene burbuja del rol; «Salir», «Ver como» y lo demás van en el menú del nombre, para todos. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-08-22 · **Versión:** v1.21.4 (deliveries) · **Pedido por:** Andrés
 (*"the sign out we said will be a dropdown inside the office manager
 bubble"*)
@@ -17270,7 +17270,7 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 - **Nadie ha abierto el directorio ni Datos → Tiendas en un navegador** después del cambio.
 - **Si `rcapp://` puede marcar una extensión** (ver arriba).
 
-## D-NEXT · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
+## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y «Mi perfil») · Sin migración.
 **Pedido por el dueño**, cuatro cosas en la barra y el mapa de Entregas: la casa del hub a la derecha,

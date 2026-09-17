@@ -2,7 +2,7 @@ import { canReachHub } from "./constants";
 import type { UserRole } from "./types";
 
 /**
- * El desplegable del nombre en la barra de Entregas (D-NEXT).
+ * El desplegable del nombre en la barra de Entregas (D-274).
  *
  * El dueño: «when press the name put the dropdown for sign out and teaching mode, so no more preferences
  * in the delivery app». La pantalla de Cuenta deja de estar enlazada, y lo que vivía en ella tiene que

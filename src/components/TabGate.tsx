@@ -32,7 +32,7 @@ export function TabGate({ children }: { children: React.ReactNode }) {
   const { t } = usePrefs();
 
   const tab = tabForPath(pathname);
-  // Una ruta que no es pestaña no se toca: `/account` redirige a «Mi perfil» (D-NEXT),
+  // Una ruta que no es pestaña no se toca: `/account` redirige a «Mi perfil» (D-274),
   // `/settings` ya se guarda sola con admin, y `/users` es un redirect al hub (D-056).
   if (!tab) return <>{children}</>;
   // Y las que la decisión deja abiertas a propósito, por su id y con su motivo.

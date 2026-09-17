@@ -9,7 +9,7 @@ import { ProfileView } from "@/components/profile/ProfileView";
  * La sesión la garantiza `layout.tsx`. Aquí se lee lo que se enseña: el nombre de `profiles` y con
  * qué entra la persona, correo o usuario. El correo y el usuario son de solo lectura: los cambia un
  * admin en Usuarios, porque de ellos cuelga el inicio de sesión. El nombre se edita aquí desde que la
- * pantalla de Cuenta de Entregas redirige a esta (D-NEXT); por eso se pasa el id de la sesión, que
+ * pantalla de Cuenta de Entregas redirige a esta (D-274); por eso se pasa el id de la sesión, que
  * es la fila que la política deja escribir.
  */
 export default async function ProfilePage() {

@@ -182,7 +182,7 @@ describe("los caminos hasta los tutoriales", () => {
   });
 
   it("Entregas ya no tiene la sección, y lleva al hub", () => {
-    // Hasta D-NEXT el camino era la Cuenta de Entregas; ahora la Cuenta redirige a Mi perfil y el
+    // Hasta D-274 el camino era la Cuenta de Entregas; ahora la Cuenta redirige a Mi perfil y el
     // camino es el menú del nombre, que lo enseña a quien no ve la casa (el chofer, D-173).
     const barra = sinComentarios(leer("src/components/TopBar.tsx"));
     expect(barra).not.toContain("TutorialsSection");

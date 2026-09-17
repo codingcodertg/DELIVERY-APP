@@ -14,7 +14,7 @@ import { PasswordInput } from "@/components/PasswordInput";
  *
  * Solo lo que vale para TODAS las apps, medido y no supuesto:
  *   · la cuenta —nombre y con qué se entra—, que es una sola. El nombre se edita aquí desde que la
- *     pantalla de Cuenta de Entregas se fue (D-NEXT); el correo y el usuario no, porque de ellos
+ *     pantalla de Cuenta de Entregas se fue (D-274); el correo y el usuario no, porque de ellos
  *     cuelga el inicio de sesión y los cambia un admin en Usuarios;
  *   · la contraseña, que es una sola;
  *   · el idioma, que es uno para todas las apps y para los avisos, y sigue a la persona entre

@@ -183,7 +183,7 @@
 }
 .role-switch option { color: #000; }
 
-/* Prominent "← Back" button on the Settings page (the class name predates D-NEXT, when it went back to /account). */
+/* Prominent "← Back" button on the Settings page (the class name predates D-274, when it went back to /account). */
 .btn-back-account {
   font-size: 15px;
   font-weight: 700;

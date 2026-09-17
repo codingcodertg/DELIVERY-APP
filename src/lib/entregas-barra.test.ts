@@ -5,7 +5,7 @@ import { canReachHub } from "./constants";
 import { OPCIONES_DEL_MENU, opcionesDelMenuDeCuenta } from "./account-menu";
 
 /**
- * La barra de Entregas sin selector de módulos, sin etiqueta de rol y con el menú en el nombre (D-NEXT).
+ * La barra de Entregas sin selector de módulos, sin etiqueta de rol y con el menú en el nombre (D-274).
  *
  * Dos clases de prueba:
  *   1. Qué opciones tiene el menú, con la misma entrada que le da la barra (rol real, y rol y módulos

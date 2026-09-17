@@ -6,7 +6,7 @@ import { TIENDA_CLASICA } from "./store-pins";
 import { fallbackDriverColor } from "./utils";
 
 /**
- * La leyenda del mapa de Entregas (D-NEXT). Lo que importa es que diga lo mismo que el mapa pinta: por
+ * La leyenda del mapa de Entregas (D-274). Lo que importa es que diga lo mismo que el mapa pinta: por
  * eso la mitad de estas pruebas leen la página y los dos motores de mapa, y comprueban que pintan con lo
  * mismo que lee la leyenda.
  */

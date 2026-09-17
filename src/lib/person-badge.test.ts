@@ -56,7 +56,7 @@ describe("personBadge", () => {
 });
 
 describe("dónde se pinta la pastilla de una persona", () => {
-  // Eran tres hasta D-NEXT: la Cuenta de Entregas redirige a «Mi perfil», que no pinta insignia, y
+  // Eran tres hasta D-274: la Cuenta de Entregas redirige a «Mi perfil», que no pinta insignia, y
   // la barra de Entregas ya no lleva etiqueta de rol.
   const SITIOS = [
     "src/components/UserDialog.tsx",
@@ -75,7 +75,7 @@ describe("dónde se pinta la pastilla de una persona", () => {
   it("las dos pastillas que NO son de una persona se quedan con el rol", () => {
     // Hay cuatro sitios que pintan `sema` + `roleLabel`. Dos describen a alguien y ya
     // usan personBadge; los otros dos hablan de un ROL, no de una persona:
-    //   · TopBar: el conmutador «ver como», que debe decir el rol de verdad. Desde D-NEXT
+    //   · TopBar: el conmutador «ver como», que debe decir el rol de verdad. Desde D-274
     //     es una opción del menú del nombre y un aviso que solo se ve mientras está activo.
     //   · settings: la cabecera del bloque de permisos POR ROL, que se repite una vez
     //     por rol y no tiene ninguna persona detrás — un título ahí no significaría nada.

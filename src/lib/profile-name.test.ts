@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { guardaMiNombre, hayCambioDeNombre, nombreParaGuardar, type ClienteDePerfil } from "./profile-name";
 
 /**
- * El nombre se cambia en «Mi perfil» (D-NEXT). El cliente es falso y con la forma de lo que devuelve
+ * El nombre se cambia en «Mi perfil» (D-274). El cliente es falso y con la forma de lo que devuelve
  * PostgREST: un UPDATE que la política no deja pasar vuelve **sin error y con cero filas**, que es lo
  * que midió el orquestador contra la base con el nombre de otro vendedor.
  */

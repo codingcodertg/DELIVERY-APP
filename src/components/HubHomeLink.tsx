@@ -8,7 +8,7 @@ import { isDesktop } from "@/lib/timetracker/desktop";
 import type { UserRole } from "@/lib/types";
 
 /**
- * La casa que lleva al hub, junto al nombre de la app en la barra de Entregas (D-NEXT).
+ * La casa que lleva al hub, junto al nombre de la app en la barra de Entregas (D-274).
  *
  * El dueño pidió quitar el selector de módulos de Entregas y dejar la casa, pegada al nombre. Las dos
  * cosas vivían en `ModuleSwitcher`, que comparten las barras de RR. HH. y Time Tracker, así que no se

@@ -17,7 +17,7 @@ import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
 import type { Profile, UserRole } from "@/lib/types";
 
 /** El fondo translúcido de los botones de la barra, en un solo sitio (D-247). Lo usaba también el
- *  «Salir» suelto del admin, que se fue al desplegable del nombre (D-NEXT); se queda la constante
+ *  «Salir» suelto del admin, que se fue al desplegable del nombre (D-274); se queda la constante
  *  para «Switch usuario». */
 const FONDO_BOTON_BARRA = "rgba(255,255,255,.1)";
 
@@ -50,7 +50,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // `me` is the EFFECTIVE user — its role follows the admin "view as" preview.
   const me = ctxMe ?? propMe;
   const [generalOpen, setGeneralOpen] = useState(false);
-  // El desplegable del nombre (D-NEXT). Sustituye a la burbuja del rol de D-089, que llevaba
+  // El desplegable del nombre (D-274). Sustituye a la burbuja del rol de D-089, que llevaba
   // «Salir» dentro para quien no era admin, y a la píldora «ver como» del admin, que ahora es una
   // opción más del menú. Qué opciones salen lo decide `opcionesDelMenuDeCuenta`, no esta barra.
   const [menuCuentaAbierto, setMenuCuentaAbierto] = useState(false);
@@ -159,7 +159,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         fontSize: 12.5, fontWeight: 700, letterSpacing: ".03em" }}>
         🎓 {t("TEACHING MODE — practice data only. Real orders are hidden and untouched.",
              "MODO ENSEÑANZA — solo datos de práctica. Las órdenes reales están ocultas y no se tocan.")}
-        {/* Vivía en la pantalla de Cuenta, que ya no existe (D-NEXT). Aquí solo se ve con el modo
+        {/* Vivía en la pantalla de Cuenta, que ya no existe (D-274). Aquí solo se ve con el modo
             encendido, que es cuando tiene sentido. */}
         <button onClick={reiniciaPractica} style={BOTON_DEL_AVISO}
           title={t("Throws away your practice changes and starts fresh from the current real data. Nothing real is affected.",
@@ -172,7 +172,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
       </div>
     )}
     <div className="topbar">
-      {/* La casa va pegada al nombre de la app (D-NEXT), no con las pestañas. */}
+      {/* La casa va pegada al nombre de la app (D-274), no con las pestañas. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         <h1>{settings.app_name || "RTG·HUB"}</h1>
         <HubHomeLink deliveriesRole={me.role} moduleAccess={me.module_access} />
@@ -258,7 +258,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           )}
         </div>
         <NotificationBell />
-        {/* Tu nombre abre el menú de la cuenta (D-NEXT). Antes llevaba a la pantalla de Cuenta y
+        {/* Tu nombre abre el menú de la cuenta (D-274). Antes llevaba a la pantalla de Cuenta y
             al lado iba la etiqueta del rol; el dueño pidió quitar las dos cosas. */}
         <div style={{ position: "relative" }}>
           <button
@@ -352,7 +352,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </>
           )}
         </div>
-        {/* Mientras el admin ve la app como otro rol, la barra lo dice (D-NEXT). Es la píldora de
+        {/* Mientras el admin ve la app como otro rol, la barra lo dice (D-274). Es la píldora de
             siempre, con el mismo selector dentro, y solo existe mientras dura: fuera de eso la barra
             no lleva ninguna etiqueta de rol. Sin ella, quien olvidó que estaba previsualizando
             vería una app recortada sin nada que se lo explique. */}

@@ -5,7 +5,7 @@ import { TIENDA_CLASICA } from "@/lib/store-pins";
 import type { ElementoLeyenda } from "@/lib/map-legend";
 
 /**
- * Pinta la leyenda del mapa de Entregas (D-NEXT). Qué sale y de qué color lo decide `leyendaDelMapa`;
+ * Pinta la leyenda del mapa de Entregas (D-274). Qué sale y de qué color lo decide `leyendaDelMapa`;
  * aquí solo se dibuja cada muestra con la forma que tiene en el mapa: punto con borde, tienda más
  * grande, pin con su letra, línea continua o discontinua.
  *

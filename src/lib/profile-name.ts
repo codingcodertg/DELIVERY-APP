@@ -1,5 +1,5 @@
 /**
- * Cambiar el propio nombre desde «Mi perfil» (D-NEXT).
+ * Cambiar el propio nombre desde «Mi perfil» (D-274).
  *
  * Hasta hoy se cambiaba en la pantalla de Cuenta de Entregas, que deja de existir: redirige a «Mi
  * perfil», que es donde el hub centraliza la cuenta (D-265).

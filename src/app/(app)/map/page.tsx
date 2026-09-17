@@ -84,7 +84,7 @@ export default function MapPage() {
   // Every store as a big red landmark point, always shown on the map.
   const storeMarkers = useStoreMarkers(settings.stores);
 
-  // En `colorDeChofer` desde D-NEXT, para que la leyenda lea el mismo color que se pinta.
+  // En `colorDeChofer` desde D-274, para que la leyenda lea el mismo color que se pinta.
   const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
 
   // Drivers currently reporting from the road. Only office roles get these —
@@ -297,7 +297,7 @@ export default function MapPage() {
   const drivers = driverNames(users);
   const missingPoints = dayOrders.length - points.length;
 
-  // Qué significa cada cosa del mapa (D-NEXT), con el mismo `colorFor` que pinta los puntos.
+  // Qué significa cada cosa del mapa (D-274), con el mismo `colorFor` que pinta los puntos.
   const leyenda = leyendaDelMapa({
     choferes: conPunto.map((d) => d.assigned_driver),
     coloresDeChofer: settings.driver_colors,

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 /**
- * La pantalla de Cuenta de Entregas ya no existe (D-NEXT).
+ * La pantalla de Cuenta de Entregas ya no existe (D-274).
  *
  * El dueño: «no more preferences in the delivery app». Lo que tenía se repartió, y nada se quedó
  * sin sitio salvo una cosa:
