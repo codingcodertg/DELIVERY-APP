@@ -7,7 +7,8 @@ import {
 import { seesAllHistory } from "./utils";
 import type { UserRole } from "./types";
 
-// `accounting` se ve como «Office» y crea órdenes como el gerente (D-NEXT, 118). La clave no cambia.
+// `accounting` se ve como «Office» y crea órdenes como el gerente (D-NEXT). La clave no cambia.
+// La migración del guard que se lo permite en la base es de otra rama (`guard-office-como-manager`).
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
@@ -117,73 +118,5 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
     expect(modal).toContain('(me.role === "admin" || me.role === "manager" || existing.created_by === me.id)');
     expect(modal).toContain('me.role !== "sales" && me.role !== "warehouse" && me.role !== "accounting" && (');
     expect(modal).toContain('{me.role !== "accounting" && (');
-  });
-});
-
-describe("118_office_crea_ordenes.sql: el guard deja a office lo mismo que al gerente", () => {
-  const sql118 = leer("supabase/migrations/118_office_crea_ordenes.sql");
-  const funcion = (texto: string) => {
-    const i = texto.indexOf("create or replace function public.guard_delivery_stage()");
-    const j = texto.indexOf("end $$;", i);
-    if (i < 0 || j < 0) throw new Error("no encuentro la función");
-    return texto.slice(i, j + "end $$;".length);
-  };
-  const f048 = funcion(leer("supabase/migrations/048_driver_late_gps.sql"));
-  const f118 = funcion(sql118);
-  // Cada lista de roles de la función: `r = 'x'` o `r in ('x','y')`.
-  const listas = (f: string) =>
-    [...f.matchAll(/\br (?:= '(\w+)'|in \(([^)]*)\))/g)].map((m) => (m[1] ? [m[1]] : m[2].split(",").map((x) => x.trim().replace(/'/g, ""))));
-
-  it("la función está (control)", () => {
-    expect(f118.length).toBeGreaterThan(3000);
-    expect(listas(f048).length).toBeGreaterThan(10);
-  });
-
-  it("es la 048 con accounting junto a manager, y nada más", () => {
-    // Se quita 'accounting' de cada lista, esté donde esté: el orden dentro de la lista no importa.
-    const sinOffice = f118.replace(/\br in \(([^)]*)\)/g, (todo, dentro: string) => {
-      const roles = dentro.split(",");
-      const resto = roles.filter((x) => x.trim() !== "'accounting'");
-      if (resto.length === roles.length) return todo;
-      return resto.length === 1 ? `r = ${resto[0].trim()}` : `r in (${resto.join(",")})`;
-    });
-    expect(sinOffice).toBe(f048);
-  });
-
-  it("toda lista con manager lleva accounting, y ninguna otra lo lleva: seis", () => {
-    const conManager = listas(f118).filter((l) => l.includes("manager"));
-    const conOffice = listas(f118).filter((l) => l.includes("accounting"));
-    expect(conManager).toHaveLength(6);
-    expect(conOffice).toEqual(conManager);
-  });
-
-  it("la app y la base dicen lo mismo: quien crea por rol tiene rama de crear en el guard", () => {
-    // Las ramas de crear una orden normal: después de la re-entrega y antes del «no puedes crear».
-    const desde = f118.indexOf("raise exception 'Not allowed to log this re-delivery';");
-    const hasta = f118.indexOf("raise exception 'Only sales, managers or drivers can create orders';");
-    expect(desde).toBeGreaterThan(-1);
-    expect(hasta).toBeGreaterThan(desde);
-    const enLaBase = new Set(listas(f118.slice(desde, hasta)).flat());
-    const porRol = (Object.keys(ROLE_CAPS) as UserRole[]).filter((r) => r !== "admin" && ROLE_CAPS[r].includes("create"));
-    expect(porRol.sort()).toEqual(["accounting", "manager", "sales"]);
-    for (const r of porRol) expect([r, enLaBase.has(r)]).toEqual([r, true]);
-  });
-
-  it("create or replace, sin drop y sin tocar el trigger", () => {
-    const ejecutable = sql118.split("\n").map((l) => l.replace(/--.*$/, "")).join("\n");
-    expect(ejecutable).toContain("create or replace function public.guard_delivery_stage()");
-    expect(ejecutable).not.toMatch(/drop\s+(function|trigger)|create\s+trigger/i);
-  });
-
-  it("el ensayo recorre los siete roles con ROLLBACK, y cero filas no cuenta como permitido", () => {
-    for (const r of ["admin", "manager", "accounting", "sales", "warehouse", "driver", "logistics"]) expect(sql118).toContain(`<uuid-${r}>`);
-    expect(sql118).toContain("--   rollback;");
-    expect(sql118).toContain("when sqlerrm = 'FILAS:0' then 'SIN FILAS (no medido)'");
-  });
-
-  it("se auto-registra y no lleva el marcador sin numerar", () => {
-    const [, despues] = sql118.split("-- @ledger-below");
-    expect(despues).toContain("118_office_crea_ordenes.sql");
-    expect(sql118).not.toContain("D-" + "NEXT");
   });
 });
