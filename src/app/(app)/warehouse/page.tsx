@@ -7,7 +7,8 @@ import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
-import { seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
+import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
+import { fmtWindows, orderLabel, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 const TABS = [
@@ -31,6 +32,9 @@ export default function WarehousePage() {
   // (PU = pickup store). Falls back to "every store" only if unassigned.
   const [storeFilter, setStoreFilter] = useState<string>("");
   const [loadDate, setLoadDate] = useState<string>(todayISO());
+  // Dos vistas de lo mismo: la cola por etapa, que es como se trabaja, y la ruta del día por
+  // chofer (D-NEXT), que es lo que pidió almacén para saber a quién le carga y en qué orden va.
+  const [vista, setVista] = useState<"cola" | "ruta">("cola");
   // A real warehouse worker is locked to their own store. An ADMIN previewing
   // the warehouse role is NOT locked — they get the store picker (defaulting to
   // all stores) so they can try each store and see every order.
@@ -71,6 +75,17 @@ export default function WarehousePage() {
     });
   }, [deliveries, effectiveStore, atStore, q, realRole]);
 
+  // Lo que se carga ese día: las órdenes activas de la fecha elegida, en las tiendas que toquen.
+  // Lo comparten el botón de las hojas de carga y la vista de ruta, así que la hoja impresa y la
+  // pantalla no pueden decir cosas distintas.
+  const cargasDelDia = useMemo(() => {
+    const ACTIVAS = ["approved", "fulfilling", "ready", "picked_up"];
+    return deliveries.filter((d) =>
+      d.delivery_date === loadDate && ACTIVAS.includes(d.stage) && (!effectiveStore || atStore(d)));
+  }, [deliveries, loadDate, effectiveStore, atStore]);
+
+  const ruta = useMemo(() => rutaPorChofer(cargasDelDia), [cargasDelDia]);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const d of scoped) c[d.stage] = (c[d.stage] ?? 0) + 1;
@@ -106,15 +121,7 @@ export default function WarehousePage() {
           <button
             className="btn btn-ghost"
             title={t("Print one load sheet per driver for the chosen day", "Imprimir una hoja de carga por chofer para el día elegido")}
-            onClick={() => {
-              const ACTIVE = ["approved", "fulfilling", "ready", "picked_up"];
-              const loads = deliveries.filter((d) =>
-                d.delivery_date === loadDate &&
-                ACTIVE.includes(d.stage) &&
-                (!effectiveStore || atStore(d)),
-              );
-              printLoadSheets(loads, settings, lang, loadDate);
-            }}
+            onClick={() => printLoadSheets(cargasDelDia, settings, lang, loadDate)}
           >
             🖨 {t("Load sheets", "Hojas de carga")}
           </button>
@@ -127,24 +134,78 @@ export default function WarehousePage() {
         </div>
       )}
 
-      <div className="filters">
-        <input
-          style={{ maxWidth: 260 }}
-          placeholder={t("Search invoice #…", "Buscar factura #…")}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        {TABS.map((tb) => (
-          <button key={tb.key} className={"chip " + (tab === tb.key ? "on" : "")} onClick={() => setTab(tb.key)}>
-            {lang === "es" ? tb.label_es : tb.label} <span className="cnt">{tb.key === "all" ? scoped.length : (counts[tb.key] ?? 0)}</span>
-          </button>
-        ))}
+      <div className="filters filters-oneline">
+        <div className="viewtoggle">
+          <button className={"vt " + (vista === "cola" ? "on" : "")} onClick={() => setVista("cola")}>☰ {t("Queue", "Cola")}</button>
+          <button className={"vt " + (vista === "ruta" ? "on" : "")} onClick={() => setVista("ruta")}>🧭 {t("Day's route", "Ruta del día")}</button>
+        </div>
       </div>
 
-      {ready ? (
+      {vista === "cola" && (
+        <div className="filters">
+          <input
+            style={{ maxWidth: 260 }}
+            placeholder={t("Search invoice #…", "Buscar factura #…")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {TABS.map((tb) => (
+            <button key={tb.key} className={"chip " + (tab === tb.key ? "on" : "")} onClick={() => setTab(tb.key)}>
+              {lang === "es" ? tb.label_es : tb.label} <span className="cnt">{tb.key === "all" ? scoped.length : (counts[tb.key] ?? 0)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!ready ? (
+        <div className="empty">{t("Loading…", "Cargando…")}</div>
+      ) : vista === "cola" ? (
         <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
       ) : (
-        <div className="empty">{t("Loading…", "Cargando…")}</div>
+        /* La ruta del día, de SOLO LECTURA (D-NEXT). Sale de las órdenes que almacén ya puede
+           leer: chofer asignado, secuencia de ruta, ventana y dirección. Lo que NO está aquí es
+           dónde va el camión ahora mismo: esas posiciones (la tabla driver_locations) solo las
+           leen admin, logística y gerencia, y abrirlas es otra decisión. Se puede abrir una orden
+           desde aquí, que es el mismo modal de siempre y con los mismos permisos. */
+        <div style={{ display: "grid", gap: 12 }}>
+          {ruta.length === 0 && <div className="empty">{t("Nothing to load for this day.", "Nada que cargar para este día.")}</div>}
+          {ruta.map((g) => (
+            <div key={g.chofer || "sin-chofer"} className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+                <b>🚚 {g.chofer === SIN_CHOFER ? t("Unassigned", "Sin asignar") : g.chofer}</b>
+                <span className="hint" style={{ margin: 0 }}>
+                  {g.paradas.length} {t("stops", "paradas")} · {g.pallets} {t("pallets", "pallets")}
+                </span>
+              </div>
+              <div className="tbl-scroll tbl-fit" style={{ marginTop: 8 }}>
+                <table className="orders tbl-resize" style={{ minWidth: 520 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 34 }}>#</th>
+                      <th style={{ textAlign: "left" }}>{t("Order", "Orden")}</th>
+                      <th style={{ textAlign: "left" }}>{t("Account", "Cuenta")}</th>
+                      <th style={{ textAlign: "left" }}>{t("Address", "Dirección")}</th>
+                      <th style={{ textAlign: "left" }}>{t("Window", "Ventana")}</th>
+                      <th style={{ textAlign: "left" }}>{t("Pallets", "Pallets")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.paradas.map((d, i) => (
+                      <tr key={d.id} className="clickable" onClick={() => setOpen(d)}>
+                        <td>{i + 1}</td>
+                        <td><b>#{orderLabel(d)}</b></td>
+                        <td>{d.account || d.delivery_name || "—"}</td>
+                        <td>{d.delivery_address || "—"}</td>
+                        <td>{fmtWindows(d.delivery_windows)}</td>
+                        <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={() => setOpen(null)} />}

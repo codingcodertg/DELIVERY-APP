@@ -926,7 +926,10 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   rejected:   ["pending", "canceled"],
   approved:   ["fulfilling", "pending"],   // pending = manager "unlock"
   fulfilling: ["ready"],
-  ready:      ["picked_up"],               // driver collects the order
+  // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-NEXT). La base ya la
+  // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
+  // no la tenía, así que el camino de vuelta no existía en la app.
+  ready:      ["picked_up", "fulfilling"], // el chofer la recoge, o almacén la devuelve a preparar
   picked_up:  ["delivered", "ready"],      // driver delivers (or reverts if not taken)
   delivered:  [],
   canceled:   [],

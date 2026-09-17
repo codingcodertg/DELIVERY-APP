@@ -2,14 +2,56 @@ import type { Delivery, Profile, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { stageLabel } from "@/lib/constants";
 import { fmtDate, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, orderLabel } from "@/lib/utils";
+import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
 
 // ============================================================
-// Printable delivery slip / packing list for a single order (#20).
-// Opens a clean print window → the browser's "Save as PDF" or a physical
-// printer. Self-contained HTML, no dependencies. Bilingual.
+// Documentos imprimibles: el comprobante de una orden (#20) y las hojas de carga del día.
+// HTML propio, sin dependencias, bilingüe. El HTML se construye aparte del acto de imprimir, así
+// que se puede probar sin navegador.
 // ============================================================
 
-export function printDeliverySlip(d: Delivery, settings: Settings, users: Profile[], lang: Lang) {
+/** El iframe de imprimir se reutiliza: uno por página, escondido y sin borde. */
+const ID_MARCO = "rtg-marco-de-imprimir";
+
+/**
+ * Imprime un documento propio SIN abrir una ventana nueva (D-NEXT).
+ *
+ * Antes esto era `window.open("", "_blank")` + `document.write`. En el navegador funciona; en la
+ * app de escritorio, no: `desktop/main.js` tiene un `setWindowOpenHandler` que solo permite los
+ * orígenes propios, y `window.open("")` le llega como `about:blank`, que no lo es. Medido con su
+ * propio módulo: `esNuestro("about:blank")` es false. Se denegaba, `window.open` devolvía null, y
+ * el código hacía `if (!w) return`: el botón no hacía nada y no lo decía.
+ *
+ * Un iframe oculto del mismo documento no abre ventana, así que no pasa por ese filtro, e imprime
+ * igual en las dos plataformas. El HTML que se le mete llama a `window.print()` en su `onload`,
+ * que dentro de un iframe imprime el iframe.
+ *
+ * No se retira al acabar, y es a propósito: quitarlo mientras el diálogo de impresión está abierto
+ * se lleva el documento por delante. Se reutiliza el mismo marco en la siguiente impresión.
+ */
+export function imprimeDocumento(html: string, alFallar?: (motivo: string) => void): boolean {
+  if (typeof document === "undefined") { alFallar?.("no-document"); return false; }
+  const previo = document.getElementById(ID_MARCO);
+  const marco = (previo instanceof HTMLIFrameElement ? previo : null) ?? document.createElement("iframe");
+  marco.id = ID_MARCO;
+  marco.setAttribute("aria-hidden", "true");
+  marco.setAttribute("title", "");
+  marco.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;";
+  if (!marco.isConnected) document.body.appendChild(marco);
+  const doc = marco.contentWindow?.document;
+  if (!doc) { alFallar?.("no-iframe"); return false; }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  return true;
+}
+
+/** Imprime el comprobante de una orden. Devuelve false si el navegador no dejó preparar el marco. */
+export function printDeliverySlip(d: Delivery, settings: Settings, users: Profile[], lang: Lang): boolean {
+  return imprimeDocumento(htmlDelComprobante(d, settings, users, lang));
+}
+
+export function htmlDelComprobante(d: Delivery, settings: Settings, users: Profile[], lang: Lang): string {
   const T = (en: string, es: string) => (lang === "es" ? es : en);
   const esc = (s: unknown) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
   const nameOf = (id: string | null) => users.find((u) => u.id === id)?.full_name ?? "—";
@@ -138,10 +180,7 @@ export function printDeliverySlip(d: Delivery, settings: Settings, users: Profil
     </script>
     </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  return html;
 }
 
 // ============================================================
@@ -150,30 +189,20 @@ export function printDeliverySlip(d: Delivery, settings: Settings, users: Profil
 // truck. Opens a print window like the slip above.
 // ============================================================
 
-export function printLoadSheets(orders: Delivery[], settings: Settings, lang: Lang, dateISO: string) {
+/** Imprime las hojas de carga del día, una por chofer. */
+export function printLoadSheets(orders: Delivery[], settings: Settings, lang: Lang, dateISO: string): boolean {
+  return imprimeDocumento(htmlDeLasHojasDeCarga(orders, settings, lang, dateISO));
+}
+
+export function htmlDeLasHojasDeCarga(orders: Delivery[], settings: Settings, lang: Lang, dateISO: string): string {
   const T = (en: string, es: string) => (lang === "es" ? es : en);
   const esc = (s: unknown) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
 
-  // Group by driver; unassigned goes last. Within a driver, order by route
-  // sequence when set, then by delivery window.
-  const groups = new Map<string, Delivery[]>();
-  for (const o of orders) {
-    const key = (o.assigned_driver || "").trim() || " "; // sentinel sorts unassigned last
-    (groups.get(key) ?? groups.set(key, []).get(key)!).push(o);
-  }
-  const winStart = (o: Delivery) => {
-    const m = String(o.delivery_windows ?? "").match(/(\d{2})(\d{2})/);
-    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
-  };
-  const orderedKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b));
-
-  const pages = orderedKeys.map((key) => {
-    const list = groups.get(key)!.sort((a, b) => {
-      const ra = a.route_seq ?? 1e9, rb = b.route_seq ?? 1e9;
-      return ra !== rb ? ra - rb : winStart(a) - winStart(b);
-    });
-    const driver = key === " " ? T("Unassigned", "Sin asignar") : key;
-    const pallets = list.reduce((s, o) => s + Number(o.actual_pallets ?? o.est_pallets ?? 0), 0);
+  // Una hoja por chofer, con «Sin asignar» al final y las paradas en orden de ruta. El agrupado
+  // y el orden los decide `rutaPorChofer`, que es el MISMO que usa la vista de ruta del almacén:
+  // dos copias del mismo orden acaban ordenando distinto.
+  const pages = rutaPorChofer(orders).map(({ chofer, paradas: list, pallets }) => {
+    const driver = chofer === SIN_CHOFER ? T("Unassigned", "Sin asignar") : chofer;
     const rows = list.map((o, i) => `
       <tr>
         <td class="num">${i + 1}</td>
@@ -231,8 +260,5 @@ export function printLoadSheets(orders: Delivery[], settings: Settings, lang: La
     <script>window.onload=function(){setTimeout(function(){window.print();},200);};</script>
     </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  return html;
 }
