@@ -316,7 +316,7 @@ export interface NamedLocation {
   /** Stores only: the store's phone extension shown in the company directory (D-273, 117). Typed
    * in Datos → Tiendas, never derived from the staff extensions. Absent or empty = none shown. */
   directory_ext?: string | null;
-  /** Stores only: tiendas que **trabajan juntas** (D-NEXT). Las que comparten este valor comparten la
+  /** Stores only: tiendas que **trabajan juntas** (D-293). Las que comparten este valor comparten la
    * cola de almacén, se venden la una desde la otra y se prestan vendedores y choferes; siguen siendo
    * tiendas distintas en los datos, en el directorio y en los informes. Ausente o vacío = va sola, que
    * es lo que le pasa a cualquier tienda hasta que un admin la agrupe en Datos.

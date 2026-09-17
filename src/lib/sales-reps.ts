@@ -37,7 +37,7 @@ export function puedeSerVendedor(u: Candidato): boolean {
   return canCreate(u);
 }
 
-/** Los candidatos que pertenecen a esa tienda **o a las que trabajan con ella** (D-NEXT: el grupo de
+/** Los candidatos que pertenecen a esa tienda **o a las que trabajan con ella** (D-293: el grupo de
  *  `settings.stores[*].group`; sin grupo, solo la suya, que es como estaba). En el orden en que vengan —quien los enseñe los ordena;
  *  ordenarlos aquí era código que ningún mutante podía matar, porque `vendedoresParaLaOrden` vuelve a
  *  ordenar después—. **Puede quedar vacía** —una tienda sin nadie, o una orden que aún no tiene tienda—

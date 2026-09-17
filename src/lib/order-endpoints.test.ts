@@ -144,7 +144,7 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
   });
 
   it("los dos «Sold From» y el destino filtran la otra punta", () => {
-    // Desde D-NEXT la lista pasa por `origenesPermitidos`, que deja al vendedor de una tienda agrupada
+    // Desde D-293 la lista pasa por `origenesPermitidos`, que deja al vendedor de una tienda agrupada
     // vender desde las otras. Lo que fija esta prueba no cambia: la que decide qué tiendas se ofrecen
     // sigue siendo `opcionesDeOrigen`, con la orden y las tiendas, en los dos sitios.
     const origen = "origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))";

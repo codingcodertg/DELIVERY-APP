@@ -6,7 +6,7 @@ import { registroDeLugar } from "./named-location";
 import type { NamedLocation, Profile, UserRole } from "./types";
 
 /**
- * Dos tiendas que trabajan juntas (D-NEXT).
+ * Dos tiendas que trabajan juntas (D-293).
  *
  * El dueño: «no, no como una tienda; siempre 2 tiendas, pero ambos employees mirarán las órdenes de
  * ambas». Así que lo que se comparte es el trabajo, no la identidad: la orden conserva su tienda.
@@ -93,7 +93,7 @@ describe("el vendedor asignable se presta entre las dos, y solo entre esas dos",
   });
 
   it("sin la lista de tiendas se comporta como antes de esta decisión", () => {
-    // La firma la añade D-NEXT con un valor por defecto: quien no la pase sigue teniendo el de D-290.
+    // La firma la añade D-293 con un valor por defecto: quien no la pase sigue teniendo el de D-290.
     expect(nombres(vendedoresParaLaOrden(GENTE, "Tienda Norte"))).toEqual(["Ana Norte"]);
     expect(nombres(vendedoresDeLaTienda(GENTE, "Tienda Norte"))).toEqual(["Ana Norte"]);
   });

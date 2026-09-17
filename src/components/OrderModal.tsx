@@ -238,7 +238,7 @@ export function OrderModal({
   /** Los motivos de anulación vigentes: los que el admin dejó en Datos, o los sembrados (122). */
   const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
   /** Un vendedor con tienda vende desde la suya; si su tienda trabaja con otras, también desde esas
-   *  (D-NEXT). Para los demás roles la lista no se toca. Y la tienda que ya tiene la orden se
+   *  (D-293). Para los demás roles la lista no se toca. Y la tienda que ya tiene la orden se
    *  conserva siempre, como en D-267: un selector vacío con un valor guardado detrás no se corrige. */
   const origenesPermitidos = (todas: string[]): string[] =>
     me.role !== "sales" || !me.store
@@ -581,7 +581,7 @@ export function OrderModal({
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
-   *  no trabaja con ninguna otra (D-NEXT). Antes quedaba fijo siempre. */
+   *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
   const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.

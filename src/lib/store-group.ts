@@ -2,7 +2,7 @@ import { nombreNormalizado } from "./store-pins";
 import type { NamedLocation } from "./types";
 
 /**
- * Tiendas que trabajan juntas (D-NEXT).
+ * Tiendas que trabajan juntas (D-293).
  *
  * El dueño: *«no, no como una tienda; siempre 2 tiendas, pero ambos employees mirarán las órdenes de
  * ambas»*. O sea: **no** se funden. La orden conserva su tienda, el directorio las sigue separando y

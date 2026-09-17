@@ -1074,7 +1074,7 @@ export default function RoutesPage() {
       const load = (byDriver.get(name) ?? []).reduce((n, x) => n + Number(x.actual_pallets ?? x.est_pallets ?? 0), 0);
       return load + pallets <= capacityFor(name);
     };
-    // La tienda de la orden, y las que trabajan con ella (D-NEXT). Sigue siendo una sugerencia:
+    // La tienda de la orden, y las que trabajan con ella (D-293). Sigue siendo una sugerencia:
     // si el grupo no tiene a nadie con hueco, cae a cualquier chofer, como antes.
     const sameStore = drivers.filter((u) => mismaTiendaOGrupo(u.store, d.store, settings.stores)).map((u) => u.full_name);
     const pick = sameStore.find(hasRoom) ?? sameStore[0]

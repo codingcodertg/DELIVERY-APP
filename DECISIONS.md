@@ -37038,7 +37038,7 @@ quita la condición sin fijar los paréntesis.
 - **Nadie ha abierto la app**: ni la casilla nueva de Datos, ni el botón con una cuenta marcada.
 - **Que el array de cuentas siga vacío** cuando esto se aplique: lo midió el orquestador, no yo.
 
-## D-NEXT · Dos tiendas que trabajan juntas: comparten la cola, se venden la una desde la otra y se prestan gente
+## D-293 · Dos tiendas que trabajan juntas: comparten la cola, se venden la una desde la otra y se prestan gente
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño:** *«McAllen y Mission son las únicas tiendas que pueden ver las dos tiendas a la

@@ -50,7 +50,7 @@ export default function WarehousePage() {
   // their store even when the order was sold from another branch (e.g. an
   // Intertienda picked up from their warehouse).
   // Las tiendas cuya cola se prepara aquí. Quien está fijado a la suya ve también las que trabajan
-  // con ella (D-NEXT); el admin que elige una tienda a mano ve ESA y nada más, porque eligió una.
+  // con ella (D-293); el admin que elige una tienda a mano ve ESA y nada más, porque eligió una.
   const tiendasDeLaCola = useMemo(
     () => (lockedToOwnStore ? tiendasDelGrupo(me?.store, settings.stores) : effectiveStore ? [effectiveStore] : []),
     [lockedToOwnStore, me?.store, effectiveStore, settings.stores],
