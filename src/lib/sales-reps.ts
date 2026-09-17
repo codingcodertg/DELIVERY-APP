@@ -2,7 +2,7 @@ import { canCreate } from "./constants";
 import type { Profile } from "./types";
 
 /**
- * Quién puede figurar como «Vendedor» de una orden, y cuáles ofrece el desplegable (D-NEXT).
+ * Quién puede figurar como «Vendedor» de una orden, y cuáles ofrece el desplegable (D-290).
  *
  * El dueño: «en Weslaco, Jose Briseno es el gerente pero también vendedor, así que tiene que poder
  * elegirse a sí mismo, y el desplegable debería mostrar solo los vendedores de esa tienda». Eran dos

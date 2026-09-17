@@ -36733,7 +36733,7 @@ comprueba con la constante.
 - **La cuota de mapas.** El mapa de Almacén usa el mismo componente que los demás, así que una pantalla
   más que lo pinta es tráfico más de mapas; no se midió cuánto.
 
-## D-NEXT · El desplegable de «Vendedor» ofrece los de la tienda de la orden, y un gerente que vende sale en él
+## D-290 · El desplegable de «Vendedor» ofrece los de la tienda de la orden, y un gerente que vende sale en él
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** en Weslaco el gerente es también vendedor, *«tiene que poder elegirse a sí

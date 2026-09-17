@@ -235,7 +235,7 @@ export function OrderModal({
     && !isStoreToStore(d.order_type, settings.order_type_rules);
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
-  // vende elegirse a sí mismo (D-NEXT). La regla entera vive en lib/sales-reps.
+  // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
   const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep), [users, d.store, d.assigned_sales_rep]);
   // Solo para avisar cuando se está enseñando el respaldo: la tienda está puesta y no tiene a nadie, así
   // que la lista de arriba son todos. Hoy no le pasa a ninguna tienda (medido 2026-09-17).

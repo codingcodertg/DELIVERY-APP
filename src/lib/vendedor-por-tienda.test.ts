@@ -5,7 +5,7 @@ import { puedeSerVendedor, vendedoresDeLaTienda, vendedoresParaLaOrden } from ".
 import type { Profile, UserRole } from "./types";
 
 /**
- * El desplegable de «Vendedor» ofrece los de la tienda de la orden (D-NEXT).
+ * El desplegable de «Vendedor» ofrece los de la tienda de la orden (D-290).
  *
  * El caso que lo pidió: un gerente que además vende no podía elegirse a sí mismo, porque la lista era
  * `users.filter((u) => u.role === "sales")`. Aquí se fija lo contrario, y sobre todo que **la lista no
