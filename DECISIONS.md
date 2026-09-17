@@ -16726,3 +16726,106 @@ Y nadie lo ha abierto en un navegador.
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **2145 pasados | 3 saltados**. La rama añade 19
 pruebas, todas en `order-endpoints.test.ts`, fichero nuevo, y no cambia ningún otro fichero de prueba;
 así que `main` 61dd0d7 está en 2126 | 3.
+
+## D-NEXT · Los tutoriales pasan al hub, agrupados por app, y los ve todo el que tenga sesión
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia el hub y la
+«Cuenta» de Entregas · **Migración: `113_tutorials_for_everyone.sql`**, que aplica el orquestador
+**antes de fusionar**, porque la página lee de ella · **Pedido por:** el dueño: *«hagamos un tab así
+como Usuarios en el hub, pero que sea para los videos tutoriales»*.
+
+**Mueve** la sección de tutoriales de la «Cuenta» de Entregas. **No tiene decisión registrada:**
+entró con el commit `b5fb6dd` (v0.9.15, 2026-08-08), *«Account: Tutorials zone with embedded how-to
+videos»*, junto con la migración 037. Sigue la línea de D-265: lo que vale para todas las apps vive
+en el hub.
+
+### Qué había
+
+- Una sección `TutorialsSection` dentro de la «Cuenta» de Entregas.
+- **Todos veían los videos y el admin los añadía y quitaba.**
+- Se guardaban en `public.settings.tutorials` (jsonb, 037) y se convertían en reproductor con
+  `lib/tutorials.ts` (YouTube, Loom, Vimeo, Drive y archivos de video).
+- **En producción hay 0 tutoriales** (medido por el orquestador), así que moverlos no pierde nada.
+
+### Qué hay
+
+- **Una herramienta del hub, «🎬 Tutoriales»** (`/home/tutorials`), visible para todos los roles.
+- **Videos agrupados por app**, en orden fijo: Entregas, RR. HH., Time Tracker, Fichaje, ERP y
+  General. Dentro de cada grupo, en el orden en que los puso el admin.
+- **Un campo opcional `app` en cada tutorial.** Los que no lo tienen, o tienen uno que no existe, van
+  a General: nadie desaparece de la lista.
+- **Un buscador por título**, sin acentos ni mayúsculas: la misma `normaliza` del directorio.
+- **Solo el admin añade (con título, enlace, app y descripción) y quita.** Es la misma vista del video
+  y el mismo formulario de antes, **movidos, no copiados**: `TutorialsSection` ya no existe y solo un
+  componente usa `tutorialEmbed`.
+- **En la «Cuenta» de Entregas** queda un enlace «🎬 Tutoriales → hub».
+
+### Por qué hace falta la 113
+
+**La 100 cierra la lectura de `public.settings` a `has_deliveries_access()`**, que en la 083 es ser
+admin o tener `'deliveries'` en `module_access`. Quien solo tiene RR. HH., Time Tracker o el ERP
+abriría la página y **vería la lista vacía**, que se lee como «no hay tutoriales» y no como «no puedes
+leerlos».
+
+Es la misma pared que chocó `store_rank` en la 108 y `store_names()` en la 109, y se salta igual:
+**`public.tutorials()`**, `security definer`, que devuelve **lo que la página pinta**: id, título,
+descripción, enlace y app. `added_by`, `added_at` y el resto de `settings` se quedan dentro. Solo la
+ejecuta quien tiene sesión.
+
+**Se descartó** leer con la llave de servicio desde el servidor. Evitaba la migración, pero habría
+sido la primera página del hub que lee Ajustes saltándose la RLS, y el patrón de este repo para esta
+pared es el de la 109.
+
+### Quién gestiona, y dónde está la barrera
+
+- **La pantalla** enseña los botones solo si el perfil de la sesión es admin (`esAdmin`). Eso es
+  comodidad.
+- **La base** es la barrera: la 100 deja actualizar `settings` **solo a `is_admin()`** (medido en la
+  migración). Un no-admin que escriba por REST no cambia nada.
+- **Guardar relee la columna entera justo antes de escribir.** La lista de la pantalla sale de la
+  función, que no devuelve `added_by` ni `added_at`: reescribir desde ella los borraría.
+- **Guardar exige que el update toque una fila** (`.select("id")`). Si la política no deja, PostgREST
+  vuelve sin error y con cero filas, y eso no se cuenta como guardado: se enseña un error.
+
+### La puerta solo pide sesión
+
+`/home/tutorials` pregunta si hay sesión y nada más, como el directorio (D-256) y «Mi perfil»
+(D-265). **No usa `canReachHub`:** el chofer no entra al lobby (D-173), pero veía los tutoriales en su
+«Cuenta». Llega por el enlace que queda allí.
+
+### Los dos colores a pelo se mudan, no se añaden
+
+La tabla de colores escritos a mano de Entregas (D-226) solo deja subir el techo de un fichero cuando
+lo dice una decisión. La vista del video tiene **dos negros**: el fondo detrás del reproductor mientras
+carga. Se van con la sección, así que la «Cuenta» de Entregas **baja de 4 a 2** y
+`components/tutorials/TutorialsHub.tsx` **entra con 2**. El total no cambia. Un video se ve sobre negro
+en claro y en oscuro, que es la regla de esa tabla para los colores que no cambian con el tema.
+
+### Medido, rompiendo cada pieza
+
+Diecisiete cambios: **dieciséis caen y un gemelo se queda en verde.**
+
+- **Agrupar:** grupos en orden alfabético; alfabético dentro del grupo; una app desconocida que no va
+  a General; grupos vacíos que se enseñan; un buscador que no quita acentos.
+- **Gestionar:** el gerente también gestiona; la página deja gestionar a todos.
+- **Guardar:** escribir desde la lista de la pantalla sin releer; contar cero filas como guardado;
+  ignorar un error de lectura.
+- **Caminos:** la puerta exige el lobby; la herramienta solo para admin; la lista leída de `settings`
+  en vez de la función; la «Cuenta» sin el enlace.
+- **La 113:** que exponga `added_by`; que no le quite el permiso a `anon`.
+- **El gemelo:** la comprobación de filas escrita de otra forma. Queda en verde.
+
+Las fixtures tienen la forma con la que se guardan hoy (sin `app`, con `added_by` y `added_at`). El
+orden de la lista va al revés del de los grupos, para que agrupar en el orden de llegada no pase por
+casualidad.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 113 no está aplicada cuando se escribe esto. Su comentario trae la
+  comprobación: una cuenta sin Entregas lee la función y sigue sin poder leer `settings`.
+- **Nadie ha abierto `/home/tutorials` en un navegador**: ni el reproductor, ni el buscador, ni añadir
+  o quitar como admin.
+- **Dos admins guardando a la vez** pueden pisarse: se relee antes de escribir, pero leer y escribir
+  no son atómicos. Era igual con la sección vieja.
+- **Un admin que haya entrado como otra persona** ve la página con el rol de esa persona, así que no
+  ve los botones. Es lo esperado, pero no se ha probado.
