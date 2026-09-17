@@ -102,7 +102,7 @@ export default function WarehousePage() {
     }]
   )), [cargasDelDia, settings.driver_colors]);
 
-  // Por dónde va cada camión (D-NEXT). Llega desde la 121: hasta ella, la política de
+  // Por dónde va cada camión (D-289). Llega desde la 121: hasta ella, la política de
   // `driver_locations` no dejaba leer a almacén y esta lista salía siempre vacía —sin error y sin
   // aviso—, que es justo lo que el dueño no podía ver. Misma regla de «en vivo» que el mapa de
   // despacho y el gestor de rutas.

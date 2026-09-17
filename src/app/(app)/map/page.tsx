@@ -93,7 +93,7 @@ export default function MapPage() {
   const liveDrivers = useMemo(() => {
     if (!canAssign) return [];
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-    // La regla de qué cuenta como «en vivo» vive en `choferesEnVivo` (D-NEXT): estaba escrita aquí
+    // La regla de qué cuenta como «en vivo» vive en `choferesEnVivo` (D-289): estaba escrita aquí
     // y otra vez en el gestor de rutas, y ahora la pide también la ruta del día de Almacén.
     return choferesEnVivo(driverLocations, nameById, colorFor).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps

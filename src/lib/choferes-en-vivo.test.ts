@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { choferesEnVivo, etiquetaEnVivo, MINUTOS_EN_VIVO } from "./choferes-en-vivo";
 import type { DriverLocation } from "./types";
 
-// «Por dónde va el camión» para Almacén (D-NEXT, migración 121). Nombres inventados.
+// «Por dónde va el camión» para Almacén (D-289, migración 121). Nombres inventados.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");

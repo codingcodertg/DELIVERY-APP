@@ -315,7 +315,7 @@ export default function RoutesPage() {
   // the fleet against the routes they planned.
   const liveDrivers = useMemo(() => {
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-    // Misma regla que el mapa de despacho y que la ruta del día de Almacén (D-NEXT). El color se
+    // Misma regla que el mapa de despacho y que la ruta del día de Almacén (D-289). El color se
     // pasa como estaba aquí: esta pantalla no usa `colorDeChofer`.
     const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
     return choferesEnVivo(driverLocations, nameById, color).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));

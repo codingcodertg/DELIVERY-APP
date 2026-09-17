@@ -36651,7 +36651,7 @@ seguidas, es decir, que la fila se pinte **sin condición**.
 pruebas netas: `intertienda-contacto.test.ts` pasa de 17 a 8, las que fijaban D-282 por las que fijan la vuelta
 atrás y que no queden restos. `main` 3c9fa8d, medido en un worktree aparte, está en 2495 | 3.
 
-## D-NEXT · Almacén ve por dónde va cada camión
+## D-289 · Almacén ve por dónde va cada camión
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
 `121_warehouse_lee_posiciones.sql`**, que aplica el orquestador tras el respaldo, el ensayo y el visto
