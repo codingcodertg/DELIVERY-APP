@@ -95,7 +95,7 @@ export async function guardaTutoriales(
   return { ok: true, tutoriales: siguiente };
 }
 
-// ---- Para quién es cada video: roles de SU app (D-269, y por app desde D-NEXT) ------------------
+// ---- Para quién es cada video: roles de SU app (D-269, y por app desde D-270) ------------------
 //
 // La audiencia de un video son roles que ya existen **en la app del video**: los de Entregas para un
 // video de Entregas, los de RR. HH. para uno de RR. HH., y así. Vacío = para todos. General usa los de

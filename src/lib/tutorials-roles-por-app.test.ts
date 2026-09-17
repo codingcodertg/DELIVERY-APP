@@ -9,7 +9,7 @@ import {
 import type { Tutorial } from "./types";
 
 /**
- * La audiencia de un tutorial son los roles de SU app (D-NEXT, sobre D-269).
+ * La audiencia de un tutorial son los roles de SU app (D-270, sobre D-269).
  *
  * **Quién ve qué se decide en la base** (`public.tutorials()`, 115), así que esa regla se prueba sobre el
  * `.sql` y no con una copia en TypeScript. El ensayo de verdad, por rol y con ROLLBACK, está al final del

@@ -20,7 +20,7 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
  * y esta página es de todo el mundo. La función decide además **para quién es cada video** (114, y por
  * app desde la 115): a esta pantalla solo le llegan los que quien mira puede ver.
  *
- * Compacta desde D-NEXT: una fila por video, con el reproductor plegado; solo uno abierto a la vez.
+ * Compacta desde D-270: una fila por video, con el reproductor plegado; solo uno abierto a la vez.
  */
 
 type Entrada = { title: string; url: string; description: string; app: TutorialApp | "general"; roles: string[] };
@@ -159,7 +159,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
 
 /**
  * Añadir o editar: el mismo formulario. Las casillas son los roles DE LA APP elegida, y al cambiar de app
- * se quitan los que no son de la nueva y se dice cuáles (D-NEXT).
+ * se quitan los que no son de la nueva y se dice cuáles (D-270).
  */
 function FormularioTutorial({ inicial, onGuardar, onCancelar }: {
   inicial?: Tutorial;

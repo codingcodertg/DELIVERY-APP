@@ -16931,7 +16931,7 @@ matriz del `.sql`, por rol y con `ROLLBACK`:
   atómico. Igual que en D-268.
 - **Quien no es admin no sabe que hay videos que no ve.** Es a propósito.
 
-## D-NEXT · Tutoriales compactos, y la audiencia de cada video son los roles de su app
+## D-270 · Tutoriales compactos, y la audiencia de cada video son los roles de su app
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia la página de Tutoriales
 del hub · **Migración: `115_tutorial_roles_per_app.sql`**, que aplica el orquestador **antes de

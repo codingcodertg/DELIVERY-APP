@@ -5,7 +5,7 @@ import { join } from "node:path";
 /**
  * La 114 (D-269): la audiencia de un tutorial eran roles de Entregas, y el rol solo contaba con Entregas.
  *
- * Desde D-NEXT la función vigente es la de la 115 (roles de la app de cada video), y la lógica y la
+ * Desde D-270 la función vigente es la de la 115 (roles de la app de cada video), y la lógica y la
  * pantalla se prueban en `tutorials-roles-por-app.test.ts`. Aquí queda lo que la 114 hizo, que sigue
  * siendo cierto de ese fichero.
  */
