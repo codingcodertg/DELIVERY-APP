@@ -1,4 +1,4 @@
-import type { Delivery, OrderTypeRule } from "@/lib/types";
+import type { Delivery, NamedLocation, OrderTypeRule } from "@/lib/types";
 import { mismaDireccion, origenEsDestino } from "@/lib/order-endpoints";
 
 // ============================================================
@@ -139,15 +139,26 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
 const SUBMIT_BLOCKING_KEYS: ReadonlySet<string> = new Set(["est_pallets", "doc_ref", "po2", "invoice_num"]);
 
 /** The subset of missingFields() that must hard-block a draft → pending
- * submission (or a resubmit). Everything else stays a dismissible warning. */
-export function submitBlockers(d: Partial<Delivery>, rules?: OrderTypeRules): MissingField[] {
-  const out = missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key));
+ * submission (or a resubmit). Everything else stays a dismissible warning.
+ * `tiendas` (settings.stores) is required: the same-store rule compares the
+ * origin store's saved address too (D-NEXT). */
+export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tiendas: NamedLocation[]): MissingField[] {
+  return [...missingFields(d, rules).filter((m) => SUBMIT_BLOCKING_KEYS.has(m.key)), ...conflictosDeSitio(d, rules, tiendas)];
+}
 
-  // An order that goes nowhere (D-267): «a store can't sell to itself, nor pick up and deliver at
-  // itself». These also refuse, not warn — same mechanism as pallets and the document. Living here,
-  // and not only in the modal's save, is what makes them apply to BOTH submit paths: the old
-  // same-address check ran on save and the create-and-submit button skipped it.
-  if (origenEsDestino(d, isStoreToStore(d.order_type, rules))) {
+/**
+ * An order that goes nowhere (D-267): «a store can't sell to itself, nor pick up and deliver at
+ * itself». These also refuse, not warn — same mechanism as pallets and the document. Living here,
+ * and not only in the modal's save, is what makes them apply to BOTH submit paths: the old
+ * same-address check ran on save and the create-and-submit button skipped it.
+ *
+ * Its own function since D-NEXT, because approving and every write that puts an order into
+ * pending or approved check THIS and only this (`order-sites.ts`): extending D-049's missing-field
+ * gate to approval was not asked for.
+ */
+export function conflictosDeSitio(d: Partial<Delivery>, rules: OrderTypeRules, tiendas: NamedLocation[]): MissingField[] {
+  const out: MissingField[] = [];
+  if (origenEsDestino(d, isStoreToStore(d.order_type, rules), tiendas)) {
     out.push({
       key: "store", conflict: true,
       en: "The origin store and the destination store are the same",

@@ -175,7 +175,7 @@ describe("a type that requires the PO specifically", () => {
 // dismissible warning elsewhere and must NOT show up here.
 describe("submitBlockers", () => {
   it("is empty for a complete order — a draft with everything filled submits clean", () => {
-    expect(submitBlockers(complete, RULES)).toEqual([]);
+    expect(submitBlockers(complete, RULES, [])).toEqual([]);
   });
 
   it("blocks on missing pallets even though a draft can be saved without them", () => {
@@ -183,39 +183,39 @@ describe("submitBlockers", () => {
     // draft save skips validation entirely), and nothing stopped it from
     // then being submitted to approval with the same gap.
     const noPallets = { ...complete, est_pallets: null };
-    expect(submitBlockers(noPallets, RULES).map((m) => m.key)).toEqual(["est_pallets"]);
+    expect(submitBlockers(noPallets, RULES, []).map((m) => m.key)).toEqual(["est_pallets"]);
   });
 
   it("blocks on pallets = 0, not just null/undefined", () => {
-    expect(submitBlockers({ ...complete, est_pallets: 0 }, RULES).map((m) => m.key)).toContain("est_pallets");
+    expect(submitBlockers({ ...complete, est_pallets: 0 }, RULES, []).map((m) => m.key)).toContain("est_pallets");
   });
 
   it("blocks a Customer order with no invoice (the existing doc rule still fires here)", () => {
-    expect(submitBlockers({ ...complete, invoice_num: "" }, RULES).map((m) => m.key)).toEqual(["invoice_num"]);
+    expect(submitBlockers({ ...complete, invoice_num: "" }, RULES, []).map((m) => m.key)).toEqual(["invoice_num"]);
   });
 
   it("blocks an Intertienda order with none of PO/SO/Invoice", () => {
     const base = { ...complete, order_type: "Intertienda", invoice_num: "", so_num: "", po2: "" };
-    expect(submitBlockers(base, RULES).map((m) => m.key)).toEqual(["doc_ref"]);
+    expect(submitBlockers(base, RULES, []).map((m) => m.key)).toEqual(["doc_ref"]);
   });
 
   it("does not block on the delivery fee — that stays a soft warning, not part of D-049", () => {
     const noFee = { ...complete, delivery_fee: null };
-    expect(submitBlockers(noFee, RULES)).toEqual([]);
+    expect(submitBlockers(noFee, RULES, [])).toEqual([]);
     expect(missingFields(noFee, RULES).map((m) => m.key)).toContain("delivery_fee"); // still soft-warned elsewhere
   });
 
   it("does not block on contact/phone/addresses — those stay dismissible", () => {
     const messyButHasPalletsAndDoc = { ...complete, contact: "", delivery_phone: "", pickup_address: "" };
-    expect(submitBlockers(messyButHasPalletsAndDoc, RULES)).toEqual([]);
+    expect(submitBlockers(messyButHasPalletsAndDoc, RULES, [])).toEqual([]);
   });
 
   it("both missing at once are reported together, not one at a time", () => {
     const both = { ...complete, est_pallets: null, invoice_num: "" };
-    expect(submitBlockers(both, RULES).map((m) => m.key).sort()).toEqual(["est_pallets", "invoice_num"]);
+    expect(submitBlockers(both, RULES, []).map((m) => m.key).sort()).toEqual(["est_pallets", "invoice_num"]);
   });
 
   it("a Transfer order (docRef none) blocks only on pallets, never on paperwork", () => {
-    expect(submitBlockers({ ...complete, order_type: "Transfer", est_pallets: null, invoice_num: "" }, RULES).map((m) => m.key)).toEqual(["est_pallets"]);
+    expect(submitBlockers({ ...complete, order_type: "Transfer", est_pallets: null, invoice_num: "" }, RULES, []).map((m) => m.key)).toEqual(["est_pallets"]);
   });
 });

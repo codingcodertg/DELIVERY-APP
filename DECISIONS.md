@@ -16645,6 +16645,7 @@ era el componente borrado. Esa entrada se quitó de la lista: **una prueba menos
   columna nueva lo haría posible, pero este cambio no lo usa.
 
 ## D-267 · Una orden no puede ir de un sitio a ese mismo sitio
+> **Ampliada por D-NEXT** (2026-09-17): la regla mira también la dirección de la tienda de origen, los desplegables y los valores por defecto ya no dejan el choque, y los proveedores de datos lo rechazan al enviar, aprobar o crear. Los huecos de «Lo no verificado» de abajo que tocan a esta regla (re-entrega, aprobar desde la lista) quedan cerrados allí. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador · Sin migración.
 **Pedido por el dueño:** «no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí
@@ -17545,3 +17546,154 @@ Los dos menús, al cerrar:
 - **Que el ▾ reabriera su propio menú en el código viejo:** está leído, no medido.
 - **Tacto:** el cierre usa `mousedown`, como los demás menús de la app. En una pantalla táctil, ese evento
   llega después del toque; no está probado.
+
+## D-NEXT · Intertienda: el destino no puede ser «Vendido desde» por ningún camino
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** *«la regla de tienda a tienda (vender a la misma tienda) funcionó en el preview
+pero no en el formulario final; o sea, en Intertienda el destino no puede ser la misma que la tienda
+"vendido desde"»*. Cierra los huecos que D-267 dejó abiertos.
+
+### Lo que se midió antes de tocar nada
+
+- **En producción**, medido por el orquestador el 2026-09-17: en las últimas 24 h solo se tocó 1
+  Intertienda, y es correcta (de una tienda a otra). El dueño **no llegó a guardar una mala**: la vio
+  permitida en pantalla.
+- **«Preview» como el despliegue de preview del PR #87.** El código de D-267 **no cambió** entre ese
+  preview y producción. Medido con `git log` de `OrderModal.tsx`, `required.ts` y `order-endpoints.ts`:
+  después de 85e03dc solo está el release bebc00d, que cambia comentarios (`D-NEXT` → `D-267`). La
+  diferencia no está en el código, sino en el camino: quién abre la orden y en qué orden elige.
+- **«Preview» como el primer paso de una orden nueva** («Nueva orden», antes de «Siguiente»). Ese paso
+  enseña «Vendido desde» pero no el destino, y el aviso rojo de D-267 vive solo en el formulario
+  completo.
+- **Los caminos, recorridos con los manejadores del modal copiados tal cual**, en el orden en que los
+  pulsa una persona: fallaban **8 de 17** casos. Salieron cinco huecos:
+  1. **La orden nueva del gerente y de contabilidad salía de su tienda a su tienda.** Esos dos roles
+     empiezan en Intertienda. El tipo ponía su tienda de destino y vaciaba el origen, y justo después el
+     relleno «la tienda del usuario es el origen» lo volvía a poner. En el primer paso se ve «Vendido
+     desde» con su tienda y ningún aviso. Es el camino que mejor encaja con lo que vio el dueño.
+  2. **El destino tenía dos definiciones.** La regla y el filtro de «Vendido desde» miraban
+     `delivery_name`. El desplegable de destino enseña la tienda cuya dirección es `delivery_address`.
+     Con el nombre vacío o distinto —una entrega a cliente con la dirección de una tienda, pasada a
+     Intertienda—, «Vendido desde» ofrecía la tienda que el destino tenía delante.
+  3. **La regla no lo veía si se cambiaba la recogida.** Con origen X y entrega en la dirección de X, lo
+     paraba la regla de misma dirección, porque la recogida copia la dirección de X. Pero si la recogida
+     era otro punto, no lo paraba nada.
+  4. **Cambiar el tipo con las dos puntas puestas dejaba el choque.** Y como el desplegable conserva el
+     valor que ya tiene la orden (D-267, para las viejas), seguía ofreciéndolo.
+  5. **Enviar o aprobar por fuera del botón de crear no miraba la regla:** aprobar desde el modal,
+     enviar o aprobar en lote desde la lista, forzar la etapa como admin, y la re-entrega, que nace
+     aprobada.
+
+### Inventario de los caminos
+
+| Camino | ¿Filtra la otra punta? | Regla, antes | Ahora |
+|---|---|---|---|
+| Primer paso de la orden nueva: «Vendido desde» | Sí, solo por nombre | No envía | Filtra preguntando a la regla |
+| Formulario completo: «Vendido desde» | Sí, solo por nombre | Al enviar | Filtra preguntando a la regla |
+| Formulario completo: tienda de destino | Sí | Al enviar | Filtra preguntando a la regla, y quita también la tienda de la recogida |
+| Valores de una orden nueva | — | No | `borradorInicial` no deja el choque |
+| Cambiar el tipo (los dos selectores, y la cuenta que trae su tipo) | — | No | `aplicaTipo` vacía la punta que el tipo deja elegir |
+| Guardar borrador | — | Solo misma dirección (D-267) | Igual |
+| Crear y enviar, crear aprobada, guardar una orden que no es borrador | — | `submitBlockers` | Igual, con la regla ampliada, y además la guarda |
+| Enviar desde el modal | — | `submitBlockers` | Igual, y además la guarda |
+| Aprobar desde el modal | — | Nada | La guarda |
+| Enviar o aprobar en lote desde la lista; forzar etapa (admin) | — | Nada | La guarda |
+| Re-entrega | — | Nada | La guarda |
+| Duplicar, importar CSV | — | Nacen borrador | La guarda, al enviarlas |
+| Resto de una carga dividida | — | Nada | No se para, a propósito (abajo) |
+
+Ninguna otra pantalla escribe la tienda o el destino de una orden. Medido con un barrido de `src/app` y
+`src/components` fuera del modal: `delivery_name` solo aparece en Ajustes → Datos, que cuenta usos y no
+escribe.
+
+### El arreglo
+
+1. **Una sola definición de «la tienda de origen es el destino»** (`origenEsDestino`, solo en
+   tienda-a-tienda): coinciden por nombre, **o** la entrega va a la dirección guardada en Ajustes de la
+   tienda de origen. La segunda es la que enseña el desplegable de destino. La lista de tiendas pasa a
+   ser un parámetro obligatorio, también de `submitBlockers`: sin ella, la segunda comparación no existe,
+   y el hueco volvería sin que nada lo avisara.
+2. **Los desplegables preguntan a la regla con el mismo manejador que aplica la elección.** Una tienda
+   sale en «Vendido desde» solo si elegirla no deja el origen en el destino. Sale en el destino solo si
+   elegirla no deja la orden en su propio sitio, ni por tienda ni por la dirección de la recogida. Los
+   dos siguen conservando el valor actual, por las órdenes viejas de D-267.
+3. **Los valores por defecto y el cambio de tipo no dejan nunca el choque.** Si al aplicar un tipo
+   tienda-a-tienda las dos puntas coinciden, se vacía la que ese tipo deja elegir: el origen en un tipo
+   que recibe (Intertienda) y el destino en los demás (Transfer). Si la recogida venía de esa tienda, se
+   vacía con ella, para que no quede el aviso de misma dirección.
+4. **Una guarda de escritura en los dos proveedores de datos** (`addDelivery`, `updateDelivery` y
+   `setStage`), antes de cualquier escritura, modo enseñanza incluido. Pasa por ahí todo lo que el
+   cliente escribe, así que cubre el modal, la lista y la re-entrega, y cubrirá la próxima pantalla sin
+   acordarse de ella. Rechaza:
+   - crear una orden ya pendiente o ya aprobada que va a su propio sitio;
+   - pasar a pendiente o aprobada una orden así, desde cualquier etapa;
+   - editar los campos de sitio de una orden que no es borrador, **si la edición crea el choque**.
+
+   **También para el admin.** Forzar etapas es para saltar pasos del flujo, y esto no es un paso: es
+   una orden que no va a ningún sitio.
+5. **Los manejadores salen del modal** a `order-endpoints.ts` y `order-sites.ts`: el relleno inicial,
+   aplicar el tipo, elegir cada punta, la tienda que enseña el destino y la re-entrega. Así las pruebas
+   recorren el código que corre, no una copia.
+
+### Lo que la guarda no para, a propósito
+
+- **Un borrador**, que D-267 deja guardar y bloquea al enviar.
+- **Una orden vieja que ya lo tiene** y sigue su camino: el chofer la recoge, se le cambia la fecha, se
+  edita sin empeorarla. Se ve y se corrige, pero ya no vuelve a enviarse ni aprobarse así.
+- **El resto de una carga dividida.** El modal lo crea como `ready` a mitad de la recogida, copiando la
+  orden de origen. Pararlo dejaría al chofer con la carga a medias por un problema que no es suyo.
+  Apareció al revisar el inventario, antes de dar la guarda por buena.
+
+### Lo que no se toca, y hay que saberlo
+
+- **La compuerta de D-049 no se extiende a aprobar.** Aprobar comprueba solo los choques de sitio, no
+  pallets ni documento.
+- **Hueco de D-049 encontrado y sin arreglar.** Enviar en lote desde la lista (`bulkStage("pending")`)
+  **no pasa por `submitBlockers`**, así que manda a pendiente borradores sin pallets ni documento. Desde
+  aquí queda cubierto el choque de sitio, pero no lo de D-049. Se deja para una decisión aparte.
+- **Sigue sin haber guarda en la base**, como en D-267. Lo que escriba fuera del cliente —una consulta
+  a mano, un script— no pasa por aquí.
+- **Falsos positivos de la comparación por dirección.** Dos tiendas con la misma dirección en Ajustes
+  quedarían marcadas como la misma. En la práctica, la regla de misma dirección de D-267 ya las marcaba,
+  porque la recogida toma la dirección de la tienda de origen.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Las pruebas arman cada borrador con los manejadores del modal, para tres usuarios (admin sin tienda,
+gerente con tienda, vendedor con tienda) y los dos tipos tienda-a-tienda. Una de ellas recorre todos
+los caminos que se pueden tocar **solo con lo que ofrecen los desplegables**, en los dos órdenes, y exige
+que ninguno llegue a un choque. Diecinueve mutantes, cada uno cazado por la prueba pensada para él,
+leída por nombre:
+
+- **Regla.** Quitar la comparación por dirección de la tienda → las del cambio de tipo, la del destino
+  deducido, la de la recogida cambiada y la de la re-entrega. Quitar la de nombre → dos de `order-endpoints.test.ts`, la de otros tipos tienda-a-tienda y la del filtro normalizado.
+- **Filtros.** Filtrar «Vendido desde» solo por nombre → la del destino deducido. Que el destino no mire
+  la recogida → la de la recogida. Que no conserve el actual → la de la orden vieja.
+- **Tipo.** No resolver el choque → el recorrido del gerente en Transfer y las dos de cambio de tipo.
+  Vaciar la punta equivocada → las dos de cambio de tipo. No vaciar la recogida → la de Intertienda.
+- **Valores por defecto.** Rellenar el origen sin mirar → la del gerente.
+- **Guarda.**
+  - Crear sin mirar → la de crear y la de la re-entrega.
+  - Crear mirando cualquier etapa → la de la carga dividida.
+  - Enviar o aprobar sin mirar → la del borrador.
+  - Mirar toda edición aunque ya estuviera mal, o mirar cualquier cambio de etapa → la de la orden vieja
+    que sigue su camino.
+- **Cableado.** Quitar la guarda de `setStage`, o la de `addDelivery` del proveedor local → la del
+  proveedor. Un manejador escrito a mano en el primer paso → la del modal. `submitBlockers` sin choques →
+  las de D-267. La re-entrega naciendo borrador → la de la re-entrega.
+
+### Lo no verificado
+
+- **Qué camino tomó el dueño.** El hueco 1 es el que mejor encaja, pero exige abrir la orden con una
+  cuenta de gerente o de contabilidad que tenga tienda. No se ha medido con qué cuenta ni con qué rol lo
+  probó.
+- **Nadie lo ha abierto en un navegador**: el primer paso, los dos desplegables y el aviso de la guarda.
+- **La tienda que enseña el destino** se sigue buscando con la dirección exacta, como antes, mientras
+  que la regla compara la dirección normalizada. Una dirección escrita con otros espacios no sale en el
+  desplegable, pero la regla sí la para.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2343 pasados | 3 saltados**. La rama añade 25
+pruebas, todas en `order-sites.test.ts`, fichero nuevo, y no quita ninguna: `order-endpoints.test.ts` sigue
+en 19 y `required.test.ts` en 31, contadas en el diff. `main` e9505c2, medido en un worktree aparte, está
+en 2318 | 3.

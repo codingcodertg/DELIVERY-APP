@@ -23,7 +23,8 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
-import { mismaDireccion, opcionesSinLaOtraPunta, origenEsDestino } from "@/lib/order-endpoints";
+import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
+import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
@@ -348,17 +349,9 @@ export function OrderModal({
   useEffect(() => {
     if (!isNew || defaultedRef.current || settings.order_types.length === 0) return;
     defaultedRef.current = true;
-    const defaultType = (me.role === "manager" || me.role === "accounting") && settings.order_types.includes("Intertienda")
-      ? "Intertienda" : "Customer";
-    setD((p) => {
-      let next = p;
-      if (!p.order_type && settings.order_types.includes(defaultType)) next = withTypeDefaults(next, defaultType);
-      if (!next.store && me.store) {
-        const st = settings.stores.find((s) => s.name === me.store);
-        next = { ...next, store: me.store, pickup_name: me.store, pickup_address: st?.address ?? next.pickup_address };
-      }
-      return next;
-    });
+    // `borradorInicial` (D-NEXT): the rep's store as Sold From, except when that would make a store
+    // move go to its own store — which is exactly what office roles got, by default, until then.
+    setD((p) => borradorInicial(p, contextoDelUsuario));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, settings.order_types.length, me.role]);
 
@@ -367,7 +360,7 @@ export function OrderModal({
    * against without them. Every other required field stays a dismissible
    * warning below. Never called for a draft save. */
   const blockSubmit = (draft: Partial<Delivery>): boolean => {
-    const blockers = submitBlockers(draft, settings.order_type_rules);
+    const blockers = submitBlockers(draft, settings.order_type_rules, settings.stores);
     if (!blockers.length) return false;
     // What is MISSING and what CONTRADICTS itself read differently (D-267): «still missing: the
     // origin and destination are the same» would make no sense.
@@ -543,7 +536,7 @@ export function OrderModal({
   const isIntraStore = storeToStore;
   // A store move whose origin is its own destination (D-267). Refused at submit by `submitBlockers`;
   // flagged here so the rep sees it before pressing anything.
-  const origenIgualDestino = origenEsDestino(d, storeToStore);
+  const origenIgualDestino = origenEsDestino(d, storeToStore, settings.stores);
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
@@ -553,22 +546,14 @@ export function OrderModal({
 
   // Apply a newly-chosen order type's directional defaults. For a receiving
   // type the rep's store becomes the destination and Sold From is theirs to
-  // pick; otherwise Sold From defaults back to the rep's store.
-  const withTypeDefaults = (p: Draft, newType: string): Draft => {
-    const rule = orderTypeRule(newType, settings.order_type_rules);
-    const next: Draft = { ...p, order_type: newType };
-    if (rule.homeIsDestination && me.store) {
-      const home = settings.stores.find((s) => s.name === me.store);
-      next.delivery_name = me.store;
-      next.delivery_address = home?.address ?? p.delivery_address ?? "";
-      if (!p.store || p.store === me.store) next.store = ""; // rep chooses the origin
-    } else if (!p.store && me.store) {
-      next.store = me.store; // normal direction: Sold From is the rep's store
-    }
-    return next;
+  // pick; otherwise Sold From defaults back to the rep's store. Lives in
+  // `aplicaTipo` (D-NEXT), which also never leaves a store move going to its own store.
+  const contextoDelUsuario: ContextoDelUsuario = {
+    rol: me.role, miTienda: me.store, tipos: settings.order_types, tiendas: settings.stores, reglas: settings.order_type_rules,
   };
+  const withTypeDefaults = (p: Draft, newType: string): Draft => aplicaTipo(p, newType, contextoDelUsuario);
   // Which store the current delivery address belongs to (for the dropdown value).
-  const deliveryStore = settings.stores.find((s) => s.address && s.address === d.delivery_address)?.name || "";
+  const deliveryStore = tiendaDestinoMostrada(d, settings.stores);
 
   // Routing origin: an explicit pickup address wins; otherwise fall back to the
   // selected store's saved (map-searchable) address, then its bare name.
@@ -997,25 +982,8 @@ export function OrderModal({
     if (!existing || !redeliverReason.trim()) return;
     setBusy(true);
     const src = existing;
-    const payload: Draft = {
-      // sales/customer data carries over
-      order_type: src.order_type, store: src.store, account: src.account,
-      po2: src.po2, so_num: src.so_num, invoice_num: src.invoice_num,
-      est_pallets: src.est_pallets, delivery_date: src.delivery_date,
-      delivery_windows: src.delivery_windows, pickup_address: src.pickup_address,
-      pickup_duration: src.pickup_duration, delivery_duration: src.delivery_duration,
-      delivery_address: src.delivery_address, contact: src.contact,
-      delivery_phone: src.delivery_phone, delivery_notes: src.delivery_notes,
-      route_miles: src.route_miles, route_duration: src.route_duration,
-      route_provider: src.route_provider, route_traffic: src.route_traffic,
-      // warehouse redoes these
-      actual_pallets: null, assigned_driver: src.assigned_driver,
-      // The additional charge (if any) for redoing the delivery becomes the new
-      // order's delivery fee — blank/empty means a free re-delivery ($0).
-      delivery_fee: redeliverCharge.trim() === "" ? 0 : Number(redeliverCharge),
-      // re-delivery linkage
-      stage: "approved", redelivery_of: src.id, redelivery_reason: redeliverReason.trim(),
-    };
+    // Built by `borradorDeReentrega` (D-NEXT), so the write guard is tested against this exact copy.
+    const payload: Draft = borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason });
     const row = await addDelivery(payload);
     setBusy(false);
     if (row) {
@@ -1489,12 +1457,9 @@ export function OrderModal({
               <Sel
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
-                // In a store move, the destination is not offered as the origin (D-267).
-                opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)}
-                on={(v) => {
-                  const st = settings.stores.find((s) => s.name === v);
-                  setD((p) => ({ ...p, store: v, pickup_name: v || p.pickup_name, pickup_address: st?.address ? st.address : p.pickup_address }));
-                }}
+                // In a store move, the destination is not offered as the origin (D-267, D-NEXT).
+                opts={opcionesDeOrigen(d, settings.stores, storeToStore)}
+                on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
                 disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
@@ -1846,15 +1811,9 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)} on={(v) => {
+              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={opcionesDeOrigen(d, settings.stores, storeToStore)} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
-                const st = settings.stores.find((s) => s.name === v);
-                setD((p) => ({
-                  ...p,
-                  store: v,
-                  pickup_name: v || p.pickup_name,
-                  pickup_address: st?.address ? st.address : p.pickup_address,
-                }));
+                setD((p) => eligeOrigen(p, v, settings.stores));
               }} disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
               <div className="field">
                 <label>{t("Store address", "Dirección de tienda")}</label>
@@ -1890,13 +1849,10 @@ export function OrderModal({
                 <Sel
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
-                  // The origin store is not offered as the destination (D-267).
-                  opts={opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.store, deliveryStore)}
-                  on={(v) => {
-                    const st = settings.stores.find((s) => s.name === v);
-                    // The destination store IS the dropoff name for a transfer.
-                    setD((p) => ({ ...p, delivery_name: v, delivery_address: st?.address ?? "", contact: v || p.contact }));
-                  }}
+                  // Neither the origin store nor the pickup address is offered as the destination (D-267, D-NEXT).
+                  opts={opcionesDeDestino(d, settings.stores)}
+                  // The destination store IS the dropoff name for a transfer.
+                  on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}
                   disabled={!salesFields}
                   placeholder={t("Select destination store", "Seleccione tienda destino")}
                   invalid={missingSet.has("delivery_name") || missingSet.has("delivery_address")}
