@@ -26,7 +26,7 @@ import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
-import { aplicaTipo, borradorDeReentrega, borradorInicial, conContactoDeOrigen, contactoEsLaTiendaDeOrigen, type ContextoDelUsuario } from "@/lib/order-sites";
+import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
@@ -565,9 +565,6 @@ export function OrderModal({
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
-  // In Intertienda the contact IS the sending store (D-282): the contact field becomes the Sold From
-  // picker, and the separate Sold From + store address row goes away.
-  const contactoEsOrigen = contactoEsLaTiendaDeOrigen(d.order_type, settings.order_type_rules);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.
   const docRef = orderTypeRule(d.order_type, settings.order_type_rules).docRef ?? "invoice";
@@ -1536,11 +1533,11 @@ export function OrderModal({
                 invalid={missingSet.has("order_type")}
               />
               <Sel
-                label={contactoEsOrigen ? t("Contact name (sending store)", "Nombre de contacto (tienda que envía)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
+                label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
                 opts={opcionesDeOrigen(d, settings.stores, storeToStore)}
-                on={(v) => setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules))}
+                on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
                 disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
@@ -1788,21 +1785,7 @@ export function OrderModal({
                 placeholder={t("Select account…", "Seleccione cuenta…")}
                 t={t}
               />
-              {contactoEsOrigen ? (
-                // Intertienda (D-282): the contact is the sending store — the same pick, filter and rule
-                // as «Sold From» (D-267, D-276), which is why that row is gone below.
-                <Sel
-                  label={t("Contact name (sending store)", "Nombre de contacto (tienda que envía)")}
-                  val={d.store}
-                  opts={opcionesDeOrigen(d, settings.stores, storeToStore)}
-                  on={(v) => setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules))}
-                  disabled={!salesFields}
-                  placeholder={t("Select store", "Seleccione tienda")}
-                  invalid={missingSet.has("store")}
-                />
-              ) : (
-                <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
-              )}
+              <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
             {salesFields && !!d.account?.trim() && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
@@ -1896,19 +1879,17 @@ export function OrderModal({
               </>
             )}
 
-            {/* ---- Store (Sold From) + its address — not in Intertienda, where the contact is the store (D-282) ---- */}
-            {!contactoEsOrigen && (
+            {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
               <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={opcionesDeOrigen(d, settings.stores, storeToStore)} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
-                setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules));
+                setD((p) => eligeOrigen(p, v, settings.stores));
               }} disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
               <div className="field">
                 <label>{t("Store address", "Dirección de tienda")}</label>
                 <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
               </div>
             </div>
-            )}
 
             {/* ---- Pickup ---- */}
             <div className="grid g2">
@@ -1941,8 +1922,7 @@ export function OrderModal({
                   // Neither the origin store nor the pickup address is offered as the destination (D-267, D-276).
                   opts={opcionesDeDestino(d, settings.stores)}
                   // The destination store IS the dropoff name for a transfer.
-                  // In Intertienda the contact stays the sending store, not this one (D-282).
-                  on={(v) => setD((p) => conContactoDeOrigen(eligeDestino(p, v, settings.stores), settings.order_type_rules))}
+                  on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}
                   disabled={!salesFields}
                   placeholder={t("Select destination store", "Seleccione tienda destino")}
                   invalid={missingSet.has("delivery_name") || missingSet.has("delivery_address")}

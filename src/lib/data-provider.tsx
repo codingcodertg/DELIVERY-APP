@@ -26,7 +26,7 @@ import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } 
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { blankDelivery } from "@/lib/blank-delivery";
-import { avisoNoVaANingunSitio, escrituraConContactoDeOrigen, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
+import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 
@@ -890,9 +890,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
-    async (dEntrada) => {
-      // In Intertienda the contact IS the sending store (D-282): recomputed on every write.
-      const d = escrituraConContactoDeOrigen(undefined, dEntrada, settings.order_type_rules);
+    async (d) => {
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, settings.order_type_rules, settings.stores);
       if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return null; }
@@ -966,9 +964,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
-    async (id, patchEntrada, opts) => {
-      // In Intertienda the contact IS the sending store (D-282): recomputed when the write touches it.
-      const patchIn = escrituraConContactoDeOrigen(effectiveDeliveries.find((c) => c.id === id), patchEntrada, settings.order_type_rules);
+    async (id, patchIn, opts) => {
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlEditar = escrituraQueNoVaANingunSitio(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules, settings.stores);
       if (choqueAlEditar.length) { if (!opts?.quiet) notify(avisoNoVaANingunSitio(choqueAlEditar, lang)); return false; }
