@@ -714,7 +714,7 @@ export function OrderModal({
   // El almacén confirma la TARIFA al agarrar la orden (D-146). Es el primer momento en que
   // alguien que no es ventas mira la orden entera, y todavía queda margen para preguntar.
   /**
-   * Comenzar a preparar SIN tarifa (D-NEXT), que es lo que pidió almacén: *«quiero comenzar a
+   * Comenzar a preparar SIN tarifa (D-287), que es lo que pidió almacén: *«quiero comenzar a
    * preparar pero no cobraron delivery, así que no me permite avanzar»*.
    *
    * No inventa dinero: no escribe `delivery_fee`, así que la orden sigue saliendo marcada con el
@@ -758,7 +758,7 @@ export function OrderModal({
   };
 
   /**
-   * Volver de «listo» a «preparando» (D-NEXT), que es lo que pidió almacén: *«si por accidente
+   * Volver de «listo» a «preparando» (D-287), que es lo que pidió almacén: *«si por accidente
    * pongo listo, ¿cómo me regreso a no listo?»*.
    *
    * Se pregunta antes, porque deshace trabajo de otros: el chofer pudo ya estar en camino a
@@ -2484,7 +2484,7 @@ export function OrderModal({
           </div>
 
           {/* Dos salidas, y la de «sin tarifa» a la izquierda para que no se pulse por inercia
-              (D-NEXT). Almacén pedía no quedarse parado cuando ventas no cobró; lo que NO hace
+              (D-287). Almacén pedía no quedarse parado cuando ventas no cobró; lo que NO hace
               este botón es escribir una tarifa, así que la orden sigue marcada como sin cobrar y
               el que tenga que cobrarla la encuentra. */}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
@@ -2506,7 +2506,7 @@ export function OrderModal({
           <h3 style={{ marginTop: 0 }}>{t("Confirm pallets", "Confirmar pallets")}</h3>
           <ChoferYPallets pedido={existing} />
           <div className="field">
-            {/* De quién es cada número (D-NEXT), que es lo que pidió almacén: *«cuando yo pongo
+            {/* De quién es cada número (D-287), que es lo que pidió almacén: *«cuando yo pongo
                 cuántos pallets realmente era, quiero ver cuánto había puesto oficina o ventas»*.
                 Antes el estimado salía como «cantidad original de la orden», sin decir de quién
                 era, y el campo se rellenaba con él sin distinguirlos. Los dos números se guardan
@@ -2679,7 +2679,7 @@ function StageActions({
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
   onRequestStart: () => void;
-  /** Devuelve una orden lista a preparación, preguntando antes (D-NEXT). */
+  /** Devuelve una orden lista a preparación, preguntando antes (D-287). */
   onBackToPreparing: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
@@ -2738,7 +2738,7 @@ function StageActions({
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);
     }
-    // El camino de vuelta (D-NEXT): marcar listo por error tenía que poder deshacerse, y la base
+    // El camino de vuelta (D-287): marcar listo por error tenía que poder deshacerse, y la base
     // ya lo permitía. Va en almacén y no en el chofer: quien la marcó es quien la devuelve.
     if (stage === "ready") {
       btns.push(

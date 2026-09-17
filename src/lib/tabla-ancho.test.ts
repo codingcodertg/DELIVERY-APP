@@ -66,7 +66,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     let marcos = 0;
     for (const p of tsx) marcos += (readFileSync(p, "utf8").match(/tbl-scroll tbl-fit/g) ?? []).length;
     expect(tsx.length).toBeGreaterThanOrEqual(200); // control: el barrido ve la app entera
-    // Seis desde D-NEXT: la sexta es la vista «Ruta del día» de Almacén. El número se mueve con su
+    // Seis desde D-287: la sexta es la vista «Ruta del día» de Almacén. El número se mueve con su
     // motivo; aflojarlo a un «al menos» dejaría de avisar del caso que esta prueba existe para ver,
     // una tabla redimensionable sin su marco.
     expect(marcos).toBe(6);

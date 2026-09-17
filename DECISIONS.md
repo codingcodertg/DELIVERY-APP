@@ -36437,7 +36437,7 @@ pruebas, todas en `borrador-y-duplicar.test.ts`, fichero nuevo, y no quita ningu
 con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un worktree aparte, está en
 2483 | 3.
 
-## D-NEXT · Almacén: siete quejas, y dos de ellas no eran lo que parecían
+## D-287 · Almacén: siete quejas, y dos de ellas no eran lo que parecían
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, siete quejas de Almacén seguidas. Las de esta entrada son cinco; las dos que necesitan

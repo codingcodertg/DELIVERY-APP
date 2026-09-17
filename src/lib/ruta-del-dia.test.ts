@@ -6,7 +6,7 @@ import { htmlDeLasHojasDeCarga } from "./slip";
 import { canTransition } from "./constants";
 import type { Delivery, Settings } from "./types";
 
-// Las siete quejas de almacén (D-NEXT). Datos inventados: ni tiendas, ni choferes, ni cifras del
+// Las siete quejas de almacén (D-287). Datos inventados: ni tiendas, ni choferes, ni cifras del
 // dueño.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

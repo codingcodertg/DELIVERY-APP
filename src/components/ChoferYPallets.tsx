@@ -4,7 +4,7 @@ import { usePrefs } from "@/lib/prefs";
 import type { Delivery } from "@/lib/types";
 
 /**
- * A quién se le carga y qué dijo cada uno de los pallets (D-NEXT).
+ * A quién se le carga y qué dijo cada uno de los pallets (D-287).
  *
  * Dos quejas de almacén, la misma tira: *«quiero ver a qué chofer le voy a cargar»* y *«cuando yo
  * pongo cuántos pallets realmente era, quiero ver cuánto había puesto oficina o ventas»*.

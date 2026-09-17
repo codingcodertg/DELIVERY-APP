@@ -90,7 +90,7 @@ describe("no se toca el contenedor de las otras once tablas", () => {
 
 describe("quién lleva la clase", () => {
   it("los SEIS contenedores que envuelven una `tbl-resize`, y ninguno más", () => {
-    // Sube de cinco a seis con D-NEXT: la vista «Ruta del día» de Almacén trae otra tabla de
+    // Sube de cinco a seis con D-287: la vista «Ruta del día» de Almacén trae otra tabla de
     // columnas redimensionables. El número es un techo, no una estimación, así que se mueve con su
     // motivo y no se afloja.
     const { conResize, conFit, fitSinResize } = contenedores();

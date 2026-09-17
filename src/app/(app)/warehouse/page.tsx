@@ -33,7 +33,7 @@ export default function WarehousePage() {
   const [storeFilter, setStoreFilter] = useState<string>("");
   const [loadDate, setLoadDate] = useState<string>(todayISO());
   // Dos vistas de lo mismo: la cola por etapa, que es como se trabaja, y la ruta del día por
-  // chofer (D-NEXT), que es lo que pidió almacén para saber a quién le carga y en qué orden va.
+  // chofer (D-287), que es lo que pidió almacén para saber a quién le carga y en qué orden va.
   const [vista, setVista] = useState<"cola" | "ruta">("cola");
   // A real warehouse worker is locked to their own store. An ADMIN previewing
   // the warehouse role is NOT locked — they get the store picker (defaulting to
@@ -162,7 +162,7 @@ export default function WarehousePage() {
       ) : vista === "cola" ? (
         <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
       ) : (
-        /* La ruta del día, de SOLO LECTURA (D-NEXT). Sale de las órdenes que almacén ya puede
+        /* La ruta del día, de SOLO LECTURA (D-287). Sale de las órdenes que almacén ya puede
            leer: chofer asignado, secuencia de ruta, ventana y dirección. Lo que NO está aquí es
            dónde va el camión ahora mismo: esas posiciones (la tabla driver_locations) solo las
            leen admin, logística y gerencia, y abrirlas es otra decisión. Se puede abrir una orden

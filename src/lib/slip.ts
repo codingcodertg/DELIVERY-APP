@@ -14,7 +14,7 @@ import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
 const ID_MARCO = "rtg-marco-de-imprimir";
 
 /**
- * Imprime un documento propio SIN abrir una ventana nueva (D-NEXT).
+ * Imprime un documento propio SIN abrir una ventana nueva (D-287).
  *
  * Antes esto era `window.open("", "_blank")` + `document.write`. En el navegador funciona; en la
  * app de escritorio, no: `desktop/main.js` tiene un `setWindowOpenHandler` que solo permite los

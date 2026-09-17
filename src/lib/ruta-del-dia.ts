@@ -1,7 +1,7 @@
 import type { Delivery } from "@/lib/types";
 
 /**
- * La ruta del día, agrupada por chofer (D-NEXT).
+ * La ruta del día, agrupada por chofer (D-287).
  *
  * Lo pidió Almacén dos veces: *«quiero ver a qué chofer le voy a cargar»* y *«como supervisor de
  * almacén quiero poder ver la ruta de los choferes»*. Y ya existía media vez, dentro de las hojas
