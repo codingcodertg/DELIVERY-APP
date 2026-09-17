@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
+import { createClient } from "@/lib/supabase/client";
+import { guardaMiNombre, hayCambioDeNombre } from "@/lib/profile-name";
 import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
 import { PasswordInput } from "@/components/PasswordInput";
 
@@ -10,14 +13,16 @@ import { PasswordInput } from "@/components/PasswordInput";
  * Lo que se ve en «Mi perfil» (D-265).
  *
  * Solo lo que vale para TODAS las apps, medido y no supuesto:
- *   · la cuenta —nombre y con qué se entra—, que es una sola;
+ *   · la cuenta —nombre y con qué se entra—, que es una sola. El nombre se edita aquí desde que la
+ *     pantalla de Cuenta de Entregas se fue (D-NEXT); el correo y el usuario no, porque de ellos
+ *     cuelga el inicio de sesión y los cambia un admin en Usuarios;
  *   · la contraseña, que es una sola;
  *   · el idioma, que es uno para todas las apps y para los avisos, y sigue a la persona entre
  *     equipos (`public.profiles.language`, `lib/idioma.ts`). Al principio no estaba, porque Time
  *     Tracker tenía el suyo (D-206); el dueño pidió unificarlo;
  *   · el tema, que vive en `rtg_prefs` y lo aplican todas, Time Tracker incluido.
  */
-export function ProfileView({ nombre, correo, usuario }: { nombre: string | null; correo: string | null; usuario: string | null }) {
+export function ProfileView({ id, nombre, correo, usuario }: { id: string | null; nombre: string | null; correo: string | null; usuario: string | null }) {
   const { t, lang, setLang, theme, setTheme } = usePrefs();
   const sinDato = <span className="hint">—</span>;
 
@@ -38,7 +43,7 @@ export function ProfileView({ nombre, correo, usuario }: { nombre: string | null
         </p>
         <div className="dir-card-grid">
           <span className="hint">{t("Name", "Nombre")}</span>
-          <span>{nombre || sinDato}</span>
+          {id ? <CambiarNombre id={id} nombre={nombre} /> : <span>{nombre || sinDato}</span>}
           {usuario && (
             <>
               <span className="hint">{t("Username", "Usuario")}</span>
@@ -84,6 +89,57 @@ export function ProfileView({ nombre, correo, usuario }: { nombre: string | null
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * El nombre con el que te ven los demás, en todas las apps. `guardaMiNombre` exige la fila de vuelta:
+ * sin ella no se dice «guardado».
+ */
+function CambiarNombre({ id, nombre }: { id: string; nombre: string | null }) {
+  const { t } = usePrefs();
+  const router = useRouter();
+  const [valor, setValor] = useState(nombre ?? "");
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState<{ texto: string; ok: boolean } | null>(null);
+
+  const guardar = async () => {
+    if (!hayCambioDeNombre(nombre, valor)) return;
+    setAviso(null);
+    setOcupado(true);
+    try {
+      const r = await guardaMiNombre(createClient(), id, valor);
+      if (r.ok) {
+        setValor(r.nombre);
+        setAviso({ texto: t("Name updated.", "Nombre actualizado."), ok: true });
+        // La página es de servidor: se vuelve a pedir para que el nombre de arriba sea el guardado.
+        router.refresh();
+      } else {
+        setAviso({ texto: t("The name was not saved. Try again.", "El nombre no se guardó. Inténtalo de nuevo."), ok: false });
+      }
+    } catch {
+      setAviso({ texto: t("The name was not saved. Try again.", "El nombre no se guardó. Inténtalo de nuevo."), ok: false });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, maxWidth: 420 }}>
+        <input
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && guardar()}
+          aria-label={t("Name", "Nombre")}
+          autoComplete="name"
+        />
+        <button className="btn btn-primary" onClick={guardar} disabled={ocupado || !hayCambioDeNombre(nombre, valor)}>
+          {ocupado ? "…" : t("Save", "Guardar")}
+        </button>
+      </div>
+      {aviso && <div className="hint" style={{ marginTop: 6, color: aviso.ok ? "var(--green)" : "var(--red)" }}>{aviso.texto}</div>}
+    </div>
   );
 }
 

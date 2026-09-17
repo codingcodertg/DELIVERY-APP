@@ -6,13 +6,14 @@ import { usePrefs } from "@/lib/prefs";
 import { driverNames, stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { MapView, type MapPoint, type MapLine } from "@/components/MapView";
+import { MapLegend } from "@/components/MapLegend";
+import { COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA, COLOR_SIN_ASIGNAR, colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
 import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { assignmentWarnings, autoAssign, recommendDriver, type AssignWarning } from "@/lib/dispatch";
 import type { Delivery } from "@/lib/types";
 
-const UNASSIGNED_COLOR = "#6b7686";
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
 
@@ -83,10 +84,8 @@ export default function MapPage() {
   // Every store as a big red landmark point, always shown on the map.
   const storeMarkers = useStoreMarkers(settings.stores);
 
-  const colorFor = (driver: string | null) => {
-    if (!driver) return UNASSIGNED_COLOR;
-    return settings.driver_colors?.[driver] || fallbackDriverColor(driver);
-  };
+  // En `colorDeChofer` desde D-NEXT, para que la leyenda lea el mismo color que se pinta.
+  const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
 
   // Drivers currently reporting from the road. Only office roles get these —
   // a salesperson has no business tracking staff.
@@ -235,10 +234,12 @@ export default function MapPage() {
     notify(t(`Auto-assigned ${res.assignments.length} load(s)`, `Auto-asignadas ${res.assignments.length} carga(s)`));
   };
 
+  // Las órdenes que tienen punto: las que se pintan, y de las que sale la leyenda.
+  const conPunto = useMemo(() => dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null), [dayOrders]);
+
   const points: MapPoint[] = useMemo(
     () => {
-      const pts: MapPoint[] = dayOrders
-        .filter((d) => d.delivery_lat != null && d.delivery_lng != null)
+      const pts: MapPoint[] = conPunto
         .map((d) => ({
           id: d.id,
           lat: d.delivery_lat!,
@@ -254,12 +255,12 @@ export default function MapPage() {
         }));
       // A single selected order's pickup point, marked "P".
       if (selected && pickupPt) {
-        pts.push({ id: "__pickup", lat: pickupPt.lat, lng: pickupPt.lng, color: "#111827", label: `${t("Pickup", "Recolección")}: ${selected.store || ""}`, badge: "P" });
+        pts.push({ id: "__pickup", lat: pickupPt.lat, lng: pickupPt.lng, color: COLOR_RECOGIDA, label: `${t("Pickup", "Recolección")}: ${selected.store || ""}`, badge: "P" });
       }
       return pts;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dayOrders, settings.driver_colors, me, selectedIds, selected, pickupPt],
+    [conPunto, settings.driver_colors, me, selectedIds, selected, pickupPt],
   );
 
   // Selected orders' routes in blue; the unassigned pool in gray (dimmed while
@@ -271,12 +272,12 @@ export default function MapPage() {
       for (const d of unassignedOrders) {
         if (selectedIds.has(d.id)) continue;
         const pos = routeCache[d.id];
-        if (pos && pos.length) out.push({ id: `u:${d.id}`, color: UNASSIGNED_COLOR, positions: pos, dashed: true, dimmed: hasSel });
+        if (pos && pos.length) out.push({ id: `u:${d.id}`, color: COLOR_SIN_ASIGNAR, positions: pos, dashed: true, dimmed: hasSel });
       }
     }
     for (const d of selectedList) {
       const pos = routeCache[d.id];
-      if (pos && pos.length) out.push({ id: `s:${d.id}`, color: "#2456c9", positions: pos });
+      if (pos && pos.length) out.push({ id: `s:${d.id}`, color: COLOR_RUTA_ELEGIDA, positions: pos });
     }
     return out;
   }, [showRoutes, unassignedOrders, routeCache, selectedIds, selectedList]);
@@ -295,6 +296,14 @@ export default function MapPage() {
 
   const drivers = driverNames(users);
   const missingPoints = dayOrders.length - points.length;
+
+  // Qué significa cada cosa del mapa (D-NEXT), con el mismo `colorFor` que pinta los puntos.
+  const leyenda = leyendaDelMapa({
+    choferes: conPunto.map((d) => d.assigned_driver),
+    coloresDeChofer: settings.driver_colors,
+    rutasSinChofer: showRoutes && unassignedOrders.length > 0,
+    puedeAsignar: canAssign,
+  });
 
   // Smart-assist for the selected order: a recommended driver, plus warnings
   // (window conflict / over capacity) for whoever is currently assigned.
@@ -390,6 +399,7 @@ export default function MapPage() {
           // Sales: pins are visual only. Everyone else: toggle it in the selection.
           if (canAssign) toggleSelect(d.id); else openPoint(d);
         }} />
+        <MapLegend elementos={leyenda} />
       </div>
 
       {selected && canAssign && (
@@ -554,7 +564,7 @@ export default function MapPage() {
               </div>
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 16, height: 16, borderRadius: "50%", background: UNASSIGNED_COLOR, border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
+              <span style={{ width: 16, height: 16, borderRadius: "50%", background: COLOR_SIN_ASIGNAR, border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
               <span style={{ fontSize: 13, fontWeight: 600 }}>{t("Unassigned", "Sin asignar")}</span>
             </div>
           </div>

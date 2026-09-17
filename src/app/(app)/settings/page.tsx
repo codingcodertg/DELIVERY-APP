@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import Link from "next/link";
-import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleLabel } from "@/lib/constants";
+import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleHome, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
 import dynamic from "next/dynamic";
 import { LOCAL_CITIES_DEFAULT, filasDeLaFormula } from "@/lib/pricing";
@@ -17,16 +17,17 @@ export default function SettingsPage() {
   const { lang, t } = usePrefs();
   if (!me) return null;
 
-  // Settings is admin-only now — everyone else's options (language, theme,
-  // teaching mode) live in their account view.
+  // Settings is admin-only now. Lo demás ya no vive en la pantalla de Cuenta, que redirige a «Mi
+  // perfil» (D-NEXT): idioma y tema están allí, y el modo enseñanza en el menú del nombre. La vuelta
+  // lleva a la pantalla de cada rol, porque a Ajustes ya se llega desde cualquier pestaña.
   if (me.role !== "admin") {
     return (
       <>
         <div className="page-head">
           <h2>{t("Settings", "Ajustes")}</h2>
-          <Link href="/account" className="btn btn-primary btn-back-account">← {t("Back to account", "Volver a la cuenta")}</Link>
+          <Link href={roleHome(me.role)} className="btn btn-primary btn-back-account">← {t("Back to the app", "Volver a la app")}</Link>
         </div>
-        <div className="empty">{t("Everything you can change is in your account — language, theme, and teaching mode.", "Todo lo que puedes cambiar está en tu cuenta — idioma, tema y modo enseñanza.")}</div>
+        <div className="empty">{t("Language and theme are in My profile, in the hub. Teaching mode is in the menu under your name.", "El idioma y el tema están en Mi perfil, en el hub. El modo enseñanza está en el menú de tu nombre.")}</div>
       </>
     );
   }
@@ -38,7 +39,7 @@ export default function SettingsPage() {
     <>
       <div className="page-head">
         <h2>{t("Settings", "Ajustes")}</h2>
-        <Link href="/account" className="btn btn-primary btn-back-account">← {t("Back to account", "Volver a la cuenta")}</Link>
+        <Link href={roleHome(me.role)} className="btn btn-primary btn-back-account">← {t("Back to the app", "Volver a la app")}</Link>
       </div>
 
       <div className="card">

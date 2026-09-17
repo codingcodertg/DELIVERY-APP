@@ -110,11 +110,13 @@ describe("los enlaces que SÍ tienen que salir al sistema siguen saliendo", () =
 });
 
 describe("las navegaciones de página completa que hay HOY en la app", () => {
-  it("los SEIS `signout` son POST de página completa, y todos fallaban por lo mismo", () => {
+  it("los CINCO `signout` son POST de página completa, y todos fallaban por lo mismo", () => {
     // Medido en esta rama: no era solo el del hub. Cada app tiene el suyo y todas comparten el
     // fallo, porque el fallo no estaba en el formulario sino en qué consideraba suyo la ventana.
+    // Eran SEIS hasta D-NEXT: la barra de Entregas tenía dos (la burbuja del rol y el botón del
+    // admin) y ahora tiene uno, en el menú del nombre. El fallo de la ventana no cambia con eso.
     const formularios = [
-      "src/components/TopBar.tsx",                    // hub (dos: menú y barra)
+      "src/components/TopBar.tsx",                    // Entregas: uno, en el menú del nombre
       "src/components/HomeSelector.tsx",
       "src/components/erp/side-nav.tsx",
       "src/components/recruiting/TopBar.tsx",
@@ -122,13 +124,13 @@ describe("las navegaciones de página completa que hay HOY en la app", () => {
     ];
     let total = 0;
     for (const ruta of formularios) {
-      // El `[^>]*` no es descuido: uno de los seis lleva `className` (`HomeSelector`), así que
-      // exigir el cierre inmediato dejaría fuera un formulario que sí tiene el fallo.
+      // El `[^>]*` no es descuido: uno lleva `className` (`HomeSelector`) y el de Entregas `key`,
+      // así que exigir el cierre inmediato dejaría fuera formularios que sí tienen el fallo.
       const n = (leer(ruta).match(/<form action="\/auth\/signout" method="post"[^>]*>/g) ?? []).length;
       expect(n, ruta).toBeGreaterThanOrEqual(1);
       total += n;
     }
-    expect(total).toBe(6);
+    expect(total).toBe(5);
   });
   it("la sesión caducada también era una salida al navegador, y también queda cerrada", () => {
     // `SessionExpired` manda a `/login` con `window.location.href`, o sea otra navegación de

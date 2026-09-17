@@ -285,14 +285,19 @@ describe("los caminos hasta Mi perfil", () => {
   });
 
   it("cada app que tenía el formulario lleva ahora a Mi perfil", () => {
+    // Entregas, desde D-NEXT, no enlaza: su Cuenta entera redirige a Mi perfil. La prueba de abajo.
     for (const f of [
-      "src/app/(app)/account/page.tsx",
       "src/app/recruiting/(recruiting)/settings/page.tsx",
       "src/app/timetracker/(timetracker)/account/page.tsx",
     ]) {
       expect(codigo(f), f).toContain('href="/home/profile"');
       expect(codigo(f), f).not.toMatch(/type="password"/);
     }
+  });
+
+  it("en Entregas, la Cuenta redirige a Mi perfil, y el menú del nombre lleva allí a quien no ve la casa", () => {
+    expect(codigo("src/app/(app)/account/page.tsx")).toContain('redirect("/home/profile")');
+    expect(codigo("src/components/TopBar.tsx")).toContain('href="/home/profile"');
   });
 
   it("la puerta de Mi perfil solo pide sesión: el chofer, que no entra al lobby (D-173), llega", () => {

@@ -1973,6 +1973,7 @@ cambio; si algún día se ven igual de vacíos, es la misma causa.
 ---
 
 ## D-055 · Botón "volver al hub", junto al switcher
+> **Reemplazada en parte por D-NEXT** (2026-09-17): en Entregas la casa sale sola, junto al nombre de la app, y el salto directo `⇄` desaparece. En RR. HH. y Time Tracker esta entrada sigue en pie. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-08-19 · **Versión:** v1.11.0 · **Pedido por:** Andrés
 
 **Cambio:** `ModuleSwitcher.tsx` gana un segundo control, `⌂` (enlace directo
@@ -3870,6 +3871,7 @@ podría lanzar ahí también, con el mismo efecto de nunca llegar a
 ---
 
 ## D-089 · Salir se muda dentro de la burbuja del rol (solo roles que no son admin)
+> **Reemplazada por D-NEXT** (2026-09-17): la barra de Entregas ya no tiene burbuja del rol; «Salir», «Ver como» y lo demás van en el menú del nombre, para todos. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-08-22 · **Versión:** v1.21.4 (deliveries) · **Pedido por:** Andrés
 (*"the sign out we said will be a dropdown inside the office manager
 bubble"*)
@@ -17267,3 +17269,179 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
   extensión y 0 filas sin teléfono o sin extensión.
 - **Nadie ha abierto el directorio ni Datos → Tiendas en un navegador** después del cambio.
 - **Si `rcapp://` puede marcar una extensión** (ver arriba).
+
+## D-NEXT · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y «Mi perfil») · Sin migración.
+**Pedido por el dueño**, cuatro cosas en la barra y el mapa de Entregas: la casa del hub a la derecha,
+junto al nombre de la app; fuera el selector de módulos; fuera la etiqueta del rol y el enlace de
+preferencias, *«when press the name put the dropdown for sign out and teaching mode, so no more
+preferences in the delivery app»*; y *«add legend in the map of sales of what each point means»*. Las
+dos dudas que abrió la medición las decidió el orquestador (A y B, abajo).
+
+### 1. La casa, junto al nombre; sin selector de módulos
+
+La casa y el selector vivían juntos en `ModuleSwitcher`, **que comparten las barras de RR. HH. y Time
+Tracker**. Por eso ese componente no se toca: Entregas deja de montarlo y monta `HubHomeLink`, una casa
+sola, pegada al `<h1>`. Se esconde con **la misma línea** que la casa del selector —`canReachHub` más el
+cliente de escritorio de Time Tracker (D-076)—, y una prueba compara las dos líneas literalmente. D-173
+sigue en pie: el chofer no ve la casa.
+
+Lo que se pierde, solo en Entregas: el salto directo `⇄` a otro módulo de D-054/D-055. Desde Entregas se
+cambia de módulo pasando por el hub. RR. HH. y Time Tracker siguen con los dos botones.
+
+### 2. Tu nombre abre un menú; ninguna etiqueta de rol en la barra
+
+Tocar el nombre ya no lleva a la Cuenta: abre un desplegable. Qué opciones salen lo decide una función,
+`opcionesDelMenuDeCuenta`, que recibe lo mismo que la barra —el rol real, y el rol y los módulos
+efectivos— y pasa por `canReachHub`:
+
+| Quién | Opciones |
+|---|---|
+| Cualquiera | Modo enseñanza · Salir (siempre la última) |
+| Admin **real** | + Ver como |
+| Admin **efectivo** | + Ajustes |
+| Quien **no llega al hub** (hoy, el chofer) | + Mi perfil · Tutoriales |
+
+- **Sustituye a D-089.** Allí «Salir» iba dentro de la burbuja del rol para quien no era admin, y el admin
+  conservaba su botón «Salir» aparte, a propósito, porque su burbuja ya era el `<select>` de «ver como» y
+  meterle «Salir» habría juntado dos funciones en un mismo control. La burbuja ya no existe: ahora «ver
+  como» y «Salir» son dos opciones distintas del mismo menú, no un solo control. Hay un único formulario
+  de salida en la barra, donde antes había dos.
+- **«Ver como» (decisión B del orquestador)** pasa al menú. Se mira el rol **real**, para que quien
+  previsualiza como vendedor pueda volver. Para que siga siendo evidente, **mientras está activo** la
+  barra enseña la píldora de siempre (`role-switch`, con el selector dentro), y solo entonces. Es la única
+  etiqueta de rol que puede salir en la barra.
+- **Ajustes** mira el rol **efectivo**: un admin previsualizando como vendedor no lo ve, como no lo ve un
+  vendedor. `/settings` no es una pestaña; hasta hoy solo se llegaba desde la Cuenta. Su botón de vuelta
+  apuntaba a `/account` y ahora lleva a la pantalla de cada rol (`roleHome`), porque a Ajustes ya se llega
+  desde cualquier pestaña.
+- **Mi perfil y Tutoriales** salen para quien no ve la casa. Hoy es solo el chofer: el directorio es una
+  herramienta del hub visible para todos, así que cualquier otro rol llega. El chofer entraba a los dos
+  por la Cuenta y, sin esto, se quedaría sin puerta. Las dos rutas solo piden sesión.
+- **Reiniciar la práctica** (`clearTrainingData`, con su confirmación) pasa al aviso morado del modo
+  enseñanza, junto a «Salir». Solo se ve con el modo encendido, como en la Cuenta. Los dos botones
+  comparten un estilo escrito una vez, `BOTON_DEL_AVISO`, igual que `FONDO_BOTON_BARRA` en D-247.
+
+### 3. La Cuenta de Entregas redirige a «Mi perfil» (decisión A del orquestador)
+
+`/account` es ahora solo `redirect("/home/profile")`, igual que `/users` en D-056: hay marcadores. Adónde
+fue cada cosa:
+
+| En la Cuenta | Ahora |
+|---|---|
+| Nombre (editable) | **Mi perfil**, editable desde este cambio |
+| Idioma, tema, contraseña | Mi perfil, donde ya estaban (D-265) |
+| Modo enseñanza | Menú del nombre |
+| Reiniciar práctica | Aviso del modo enseñanza |
+| Tutoriales, Ajustes | Menú del nombre |
+| **«Lo que puedo hacer»** | **Se pierde, sin sustituto.** Decidido así. |
+
+Además de «Lo que puedo hacer», **tampoco tienen sitio nuevo**, y conviene saberlo:
+
+- la cabecera con la insignia de la persona (con su título, D-252) y la descripción del rol;
+- el chip y el campo de solo lectura de la tienda;
+- las capacidades extra que un admin le dio a esa persona (la ★ dentro de «Lo que puedo hacer»);
+- la línea «Espacio: … · Equipo: N personas».
+
+Mi perfil enseña nombre, usuario y correo.
+
+**Editar el propio nombre en Mi perfil. Antes se midió que la base lo deja**, dos veces:
+
+- En el texto de las migraciones: la política de UPDATE de la 099 deja escribir la propia fila, y
+  `guard_profile_privileged_columns` —su última definición es la de la 104— solo le impide a un no-admin
+  tocar permisos, tienda, usuario, rol del ERP y título. Los demás triggers `before update` de `profiles`
+  (055, 056, 058, 062, 087) miran otras columnas.
+- **Contra la base, por el orquestador el 2026-09-17**, con `ROLLBACK` y como un vendedor real con
+  `authenticated`: su propio `full_name` → 1 fila; el de otro vendedor → 0 filas.
+
+Ese cero es la razón de `guardaMiNombre`. Un UPDATE que la política no deja pasar vuelve **sin error y
+con cero filas**. La Cuenta vieja miraba el error pero no las filas, y decía «Nombre actualizado» igual.
+Ahora se pide la fila de vuelta (`.select("id")`) y, sin exactamente una, no se da por guardado. La página
+le pasa a la vista el id de la sesión (`auth.getUser()`), que es la fila que la política deja escribir. El
+nombre se guarda recortado y con los espacios de dentro unificados, y uno vacío o igual al actual no
+llama a la base.
+
+### 4. Leyenda en el mapa
+
+Bajo el mapa de `/map`, en la misma tarjeta, en una fila que se parte en varias en un teléfono:
+
+- la tienda;
+- un punto por chofer con entregas ese día, por nombre, y uno gris si alguna no tiene chofer;
+- la línea discontinua de la ruta sin chofer, si el mapa la está dibujando.
+
+Quien asigna ve además la ruta azul de lo elegido, el pin «P» de la recogida y el camión en vivo. Esos
+tres salen aunque aún no haya nada elegido, para que la leyenda no cambie de tamaño con cada toque. Ventas
+no los ve porque no puede elegir órdenes.
+
+**Sale de los mismos sitios que el dibujo**, no de una copia:
+
+- el color de cada chofer es `colorDeChofer`, al que ahora llama el `colorFor` de la página;
+- el gris, la recogida y el azul son constantes de `map-legend.ts`, que la página usa también. Antes eran
+  tres hex sueltos dentro de la página;
+- la tienda es `TIENDA_CLASICA`, con la que los dos motores de mapa pintan una tienda sin papel, y esta
+  página no le da papel a ninguna.
+
+**Ventas y los choferes.** La etiqueta de un punto que no es de ese vendedor no dice ni cuenta ni chofer,
+y la leyenda empareja cada color con un nombre. No añade nada que ventas no viera ya: la tarjeta «Colores
+de chofer», al pie de la misma página, enseña a todos cada chofer con su color. No se cambió.
+
+**Lo que no se tocó:** `routes/page.tsx` tiene su propia copia del mismo gris (`UNASSIGNED_COLOR`). No es
+el mapa de ventas y queda fuera de este encargo.
+
+### Colores a pelo (`inline-colors.test.ts`)
+
+- `TopBar.tsx` baja de 5 a 2: se va el blanco de la burbuja del rol, y los dos colores de «Salir» del
+  aviso pasan a la constante compartida.
+- `account/page.tsx` sale de la tabla: es una redirección.
+- `MapLegend.tsx` entra con 1, la «P» blanca sobre el pin oscuro, que es el mismo blanco que el pin del
+  mapa.
+- El total pasa de 80 a **76** y los blancos de 65 a **62**, recontados con la propia prueba.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Veintiún mutantes, cada uno cazado por la prueba pensada para él, **leída por nombre**:
+
+- **Menú.** «Ver como» por rol efectivo, o Ajustes por rol real → caen las dos del admin previsualizando.
+  Invertir `canReachHub` → caen las cinco de roles.
+- **Barra.** Volver a montar `ModuleSwitcher` → «no monta el selector». Aviso de «ver como» sin
+  `viewAs &&` → «solo existe mientras dura». Casa sin la condición de escritorio → «la misma condición».
+  Mi perfil a `/account` → «llevan a sus rutas», «sin enlace a la Cuenta», «nadie enlaza a `/account`» y la
+  de Mi perfil. «Reiniciar» sin conectar → «vive en el aviso». Modo enseñanza que no cambia el modo, o
+  «ver como» que no llama a `setViewAs` → «lo enciende y lo apaga».
+- **Leyenda.** Color que ignora los ajustes → la del color de un chofer y la de los puntos. Sin ordenar → la de nombres, con choferes
+  desordenados a propósito. La página pintando con otra función → «colorFor es colorDeChofer». Leyenda
+  con `puedeAsignar: true` → «los mismos choferes… y condiciones». Ruta discontinua siempre → «solo si el
+  mapa la está dibujando».
+- **Nombre.** Sin mirar filas → «cero filas y sin error: NO es guardado». Guardar sin limpiar, o sin
+  unificar espacios → las de limpieza. Página sin id → «le pasa el id de la sesión».
+- **Rutas.** Cuenta redirigiendo al hub → «solo la redirección» y la de Mi perfil. Ajustes volviendo a
+  `/account` → «vuelta de Ajustes» y el barrido.
+
+Pruebas ajustadas, cada una con su razón escrita en el fichero:
+
+- los formularios de salida pasan de seis a cinco (`desktop-origins`);
+- los sitios que pintan la insignia de una persona pasan de tres a dos (`person-badge`);
+- los caminos a Mi perfil y a Tutoriales se leen en la barra y en la redirección, no en la Cuenta
+  (`profile-password`, `tutorials-hub`).
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**, tampoco en un teléfono: el menú y su volteo en el borde, el
+  `<select>` de «ver como» dentro del menú, la píldora mientras se previsualiza, los dos botones del aviso
+  morado, la leyenda partida en varias filas y el dibujo del pin.
+- **El guardado del nombre no se corrió desde la rama.** La política la midió el orquestador contra la
+  base; la pantalla no la ha usado nadie.
+- **El nombre en la barra de Entregas** después de cambiarlo en Mi perfil: `router.refresh()` rehace Mi
+  perfil. La barra lee el perfil al cargar Entregas, así que debería salir nuevo al volver. No se ha visto.
+- **El cliente de escritorio de Time Tracker** esconde la casa, igual que antes. Si alguien que no es
+  chofer abre Entregas ahí, el menú no le ofrece Mi perfil, y antes la Cuenta sí lo enlazaba. No se sabe
+  si ese cliente llega a abrir Entregas.
+- **Un chofer sin color puesto puede salir en el mismo azul que la ruta elegida**: la paleta de reserva
+  empieza por `#2456c9`. Ya pasaba antes. La leyenda solo lo hace visible.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2294 pasados | 3 saltados**. La rama añade 41
+pruebas y no quita ninguna —19 en `entregas-barra.test.ts`, 11 en `map-legend.test.ts` y 8 en
+`profile-name.test.ts`, ficheros nuevos; 1 en `profile-password.test.ts`; y 2 que genera el barrido de
+`inline-colors.test.ts`, una por cada componente nuevo—. `main` 237bbde, medido en un worktree aparte,
+está en 2253 | 3.
