@@ -29,6 +29,9 @@ import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/li
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 
+/** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
+const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
+
 type Draft = Partial<Delivery>;
 
 // A new order starts with NO order type. It decides which paperwork is
@@ -400,7 +403,10 @@ export function OrderModal({
     )))) return false;
 
     // Scheduling capacity rules — warn, but let the rep request it anyway.
-    const warns = checkSchedule(
+    // Oculto por ahora a petición del dueño (2026-09-17, «hide the scheduling conflict message for now»):
+    // ni el aviso al enviar ni la tarjeta en vivo. La regla sigue calculándose; volver a enseñarlo es
+    // poner MOSTRAR_CONFLICTO_DE_PROGRAMACION a true.
+    const warns = !MOSTRAR_CONFLICTO_DE_PROGRAMACION ? [] : checkSchedule(
       { id: existing?.id, store: draft.store, delivery_date: draft.delivery_date, delivery_windows: draft.delivery_windows },
       deliveries,
     );
@@ -411,8 +417,8 @@ export function OrderModal({
     return true;
   };
 
-  // Live scheduling warnings shown while editing the date/window.
-  const scheduleWarnings = checkSchedule(
+  // Live scheduling warnings shown while editing the date/window (ocultas por ahora, ver arriba).
+  const scheduleWarnings = !MOSTRAR_CONFLICTO_DE_PROGRAMACION ? [] : checkSchedule(
     { id: existing?.id, store: d.store, delivery_date: d.delivery_date, delivery_windows: d.delivery_windows },
     deliveries,
   );
