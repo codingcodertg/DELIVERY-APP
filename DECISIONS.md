@@ -1290,6 +1290,7 @@ exótico ahí produce una cuenta que se ve bien y **no puede entrar**.
 ---
 
 ## D-044 · Contabilidad revisa y aprueba; no crea
+> **Reemplazada en parte por D-NEXT** (2026-09-17): crear y Duplicar. El dueño renombró el rol a «Office» y pidió que *«toda la gente de office debe poder crear órdenes»*, y la migración del guard de la rama `guard-office-como-manager` le abre en la base las ramas que esta entrada midió cerradas. Lo del enlace de seguimiento sigue en pie. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-08-16 · **Versión:** v1.8.0 · **Pedido por:** Andrés
 
@@ -17864,3 +17865,108 @@ pruebas y no quita ninguna: 13 en `order-document.test.ts` y 12 en `mobile-previ
 `entregas-barra.test.ts`; y 2 que generan los barridos, una de `inline-colors.test.ts` por `VistaMovil.tsx` y
 una del canario de `profile-read.test.ts` por la puerta nueva. Ese canario cayó la primera vez: la puerta
 recogía el error como `error`, sin la forma `error: nombre` que exige, y se renombró. `main` 34d37b8, medido en un worktree aparte, está en 2343 | 3.
+
+## D-NEXT · «Office»: `accounting` se llama Oficina, y crea y aprueba órdenes como el gerente
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:** ninguna en esta
+rama. La del guard es la **118** (`118_guard_office_como_manager.sql`, D-277): la escribió, ensayó y
+aplicó el orquestador el 2026-09-17, antes de esta rama · **Pedido por:** el dueño, en dos veces el mismo día:
+- *«cambia accounting a office; manager sigue siendo office manager; y office tiene la misma regla de solo
+  ver ayer, hoy y mañana»*;
+- *«toda la gente de office debe poder crear órdenes»*.
+
+**Reemplaza en parte a D-044:** lo de crear órdenes y Duplicar. Lo del enlace de seguimiento de D-044
+sigue en pie.
+
+### Qué había
+
+- **La etiqueta:** «Accounting / Contabilidad», con la descripción «Revisa y aprueba; no crea órdenes».
+- **La app:** `ROLE_CAPS.accounting = ["approve"]` (D-044).
+- **La base:** `public.guard_delivery_stage()` es la de la 048. El orquestador lo comprobó en producción
+  con `pg_get_functiondef` el 2026-09-17. **No tiene ninguna rama para `accounting`**: ni al crear
+  (*«Only sales, managers or drivers can create orders»*), ni al editar en la misma etapa, ni al cambiar
+  de etapa.
+  - O sea que la app le enseñaba Aprobar, Rechazar y Desbloquear, y la base se los rechazaba. Esto sale
+    de leer la función, no de un intento real de aprobar.
+  - El mismo día, el dueño mandó la captura de una cuenta de este rol con ese error al crear una orden.
+- **Los permisos sueltos:** el orquestador había cargado `create` en `profiles.permissions` a las cuentas
+  de este rol. Según su primer mensaje eran 6 y según el segundo 5; no lo conté yo. Como `hasCap` suma
+  esos permisos a los del rol, esas cuentas ya veían «+ Nueva orden», y la base lo rechazaba.
+- **La ventana de fechas:** este rol ya no estaba exento (D-239). Lo fija
+  `history-window.test.ts:35-36`, que lista `accounting` entre los roles que solo ven ayer, hoy y lo que
+  viene.
+
+### Qué hay
+
+- **Se ve como «Office / Oficina».** La clave `accounting` no cambia: ni en la base, ni en los tipos, ni
+  en las reglas, ni en la invitación, ni en el mapeo de la importación (`ASST` → `accounting`).
+  - `manager` sigue siendo «Office Manager / Gerente de Oficina».
+  - La descripción pasa a «Crea, edita y aprueba órdenes», y los permisos por defecto ganan «Crear
+    órdenes».
+- **Crea por rol:** `ROLE_CAPS.accounting = ["create", "approve"]`, lo mismo que el gerente menos el panel.
+- **En la app, lo que la base ya le deja** desde la 118 (opción (a): en el guard, `accounting` sale en las
+  mismas seis listas que `manager`). `ordersLikeOfficeManager` (gerente y office) decide cinco cosas que antes comparaban con
+  `"manager"` a mano:
+  - `canEditFields`;
+  - elegir vendedor al crear una orden de cliente;
+  - los campos de ventas;
+  - **crear la orden ya aprobada** (el orquestador dijo sí: es la paridad de la opción (a));
+  - el botón de re-entrega.
+  Enviar, reenviar, cancelar, aprobar, rechazar y desbloquear ya salían de `canCreate` y `canApprove`.
+- **Lo que se queda como estaba:** las notas privadas de órdenes ajenas (solo el gerente,
+  `OrderModal.tsx:1429`), el envío y la copia del enlace de seguimiento (D-044), y la barra de acciones
+  en bloque (`bulkCapable`, `page.tsx`).
+- **Textos visibles:** la ayuda de importar usuarios dice «ASST→Office / Oficina», y el usuario de la
+  demo local se llama «Olivia Office». No se tocaron los «Accounting» de reclutamiento (un puesto) ni los
+  del ERP (un módulo), porque son otra cosa, ni `docs/decisiones.html`, que es historia.
+- **ORDEN DE DESPLIEGUE, ya resuelto.** Esta rama da `create` por rol; sin la 118 aplicada sería el
+  desajuste de D-044 otra vez, un botón que la base revienta. La 118 se aplicó primero (D-277), así que
+  esta rama puede salir.
+
+### Descartado
+
+- **Cambiar la clave a `office`.** El orquestador lo pidió explícitamente así: la clave vive en filas de
+  `profiles`, en tipos y en reglas, y solo se quería cambiar lo que se lee.
+- **Cambiar solo la app, sin la base.** Es el desajuste que D-044 ya arregló una vez.
+- **Opción (b), tratarlo en la base como a ventas** (draft o pending, y aprobada solo en tienda
+  auto-aprobada). El orquestador eligió (a) por paridad: en la app, `create` + `approve` es el gerente
+  sin el panel.
+- **Una 118 escrita en esta rama.** Estuvo escrita, con plan en papel y matriz, y se quitó antes de
+  entregarla. Por la urgencia, el orquestador pidió escribir y aplicar él la del guard.
+
+### Medido, rompiendo cada pieza
+
+17 cambios: **15 caen, cada uno por la prueba que lleva su nombre, y los 2 gemelos se quedan en verde.**
+
+- **La etiqueta:** vuelve a «Accounting»; vuelve a «Contabilidad»; el gerente pierde su nombre; la ayuda
+  de importar vuelve a «Contabilidad»; el usuario de la demo vuelve a «Ana Accounting». El barrido de
+  textos lleva un control que tiene que cazar un texto así y no un comentario.
+- **Las capacidades:** office no crea por rol; office gana el panel; office no edita como el gerente;
+  admin entra en `ordersLikeOfficeManager`; office sale de ella; office queda exento de la ventana de
+  fechas.
+- **`OrderModal`:** office crea en pendiente; no registra re-entregas; no elige vendedor; ve el enlace de
+  seguimiento (D-044 roto).
+- **Los gemelos:** office antes que manager en el predicado; las capacidades en otro orden.
+
+### Medido también: la 118 cubre lo que la app ofrece
+
+Al rebasar sobre el `main` que la trae (3b549ca), se leyó `118_guard_office_como_manager.sql`. No es una
+copia del fichero de la 048: es la definición que devuelve `pg_get_functiondef` de producción —de ahí las
+mayúsculas de Postgres y `$function$`— con `accounting` añadido. Comparada con la 048 sin fijar formato
+(minúsculas, espacios colapsados, `search_path to 'public'` = `search_path = public`), y quitándole
+`accounting` de cada lista, sale **igual salvo dos cosas**: las seis listas y el texto del error de crear,
+que ahora dice «Only sales, office, managers or drivers can create orders». Ningún código de la app lee ese
+mensaje (`isOfflineError` mira otras cosas).
+
+Las seis ramas son las que la app necesita: crear en draft, pending o approved; editar en la misma etapa;
+enviar, volver a borrador y cancelar; aprobar, rechazar y desbloquear; re-entrega; carga partida. O sea que
+lo que office puede pulsar está dentro de lo que la base le permite.
+
+### Lo no verificado
+- **Nadie ha abierto la app como office.** Lo de la base sí está medido, pero por el orquestador: su
+  ensayo con `ROLLBACK` de D-277 dice que accounting pasa de ✗ a ✓ en crear draft, crear approved, editar
+  approved y aprobar pending, con los demás roles idénticos. Yo no lo corrí.
+- **Fuera de alcance:**
+  - `logistics` tiene `approve` en la app y el guard tampoco le deja aprobar;
+  - `driver` puede crear en la base pero no en la app.
+  Ninguna de las dos se toca aquí.
