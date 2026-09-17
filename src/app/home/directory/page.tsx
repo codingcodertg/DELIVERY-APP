@@ -64,10 +64,10 @@ export default function DirectoryPage() {
       : g.tipo === "sin_tienda" ? t("No store", "Sin tienda")
       : (g.tienda as string);
   const nombreDepto = (s: string | null) => s ?? t("No department", "Sin departamento");
-  // «<tienda> · ext <n>» (D-273). La extensión NO es un enlace, como la de cada persona en la tarjeta, que
+  // «<tienda> · Ext <n>» (D-273). La extensión NO es un enlace, como la de cada persona en la tarjeta, que
   // es texto plano. Recruiting abre llamadas con `rcapp://r/call?number=`, pero que eso marque una extensión
   // interna no está medido, y medirlo es hacer una llamada de verdad.
-  const conExt = (g: Pick<GrupoTienda, "ext"> | undefined) => (g?.ext ? ` · ext ${g.ext}` : "");
+  const conExt = (g: Pick<GrupoTienda, "ext"> | undefined) => (g?.ext ? ` · Ext ${g.ext}` : "");
 
   const eligeGrupo = (clave: string) => {
     setGrupo(clave);
