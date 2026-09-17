@@ -27,28 +27,37 @@ describe("el menú del nombre, con la entrada de la barra", () => {
   });
 
   it("un vendedor: modo enseñanza y salir, nada más", () => {
-    expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas } }))
+    expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas }, enMarco: false }))
       .toEqual(["ensenanza", "salir"]);
   });
 
   it("el chofer, que no ve la casa, tiene aquí Mi perfil y Tutoriales", () => {
-    expect(opcionesDelMenuDeCuenta({ realRole: "driver", me: { role: "driver", module_access: soloEntregas } }))
+    expect(opcionesDelMenuDeCuenta({ realRole: "driver", me: { role: "driver", module_access: soloEntregas }, enMarco: false }))
       .toEqual(["ensenanza", "perfil", "tutoriales", "salir"]);
   });
 
-  it("el admin: ver como y ajustes, y salir el último", () => {
-    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "admin", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "ajustes", "salir"]);
+  it("el admin: ver como, vista móvil y ajustes, y salir el último", () => {
+    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "admin", module_access: soloEntregas }, enMarco: false }))
+      .toEqual(["ensenanza", "vercomo", "vistamovil", "ajustes", "salir"]);
   });
 
   it("el admin viendo como vendedor: conserva «ver como» para volver, y pierde Ajustes como un vendedor", () => {
-    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "sales", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "salir"]);
+    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "sales", module_access: soloEntregas }, enMarco: false }))
+      .toEqual(["ensenanza", "vercomo", "vistamovil", "salir"]);
   });
 
   it("el admin viendo como chofer ve lo que ve el chofer, más «ver como»", () => {
-    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "driver", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "perfil", "tutoriales", "salir"]);
+    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "driver", module_access: soloEntregas }, enMarco: false }))
+      .toEqual(["ensenanza", "vercomo", "vistamovil", "perfil", "tutoriales", "salir"]);
+  });
+
+  it("la vista móvil es del admin real, y no se ofrece dentro de su propio marco (D-NEXT)", () => {
+    for (const rol of ["manager", "sales", "logistics", "accounting", "warehouse", "driver"] as const) {
+      expect(opcionesDelMenuDeCuenta({ realRole: rol, me: { role: rol, module_access: soloEntregas }, enMarco: false }), rol)
+        .not.toContain("vistamovil");
+    }
+    expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "admin", module_access: soloEntregas }, enMarco: true }))
+      .toEqual(["ensenanza", "vercomo", "ajustes", "salir"]);
   });
 });
 
@@ -81,7 +90,8 @@ describe("la barra de Entregas", () => {
   });
 
   it("el menú sale de `opcionesDelMenuDeCuenta` con lo que tiene la barra, y pinta cada opción", () => {
-    expect(barra).toContain("opcionesDelMenuDeCuenta({ realRole, me })");
+    expect(barra).toContain("opcionesDelMenuDeCuenta({ realRole, me, enMarco })");
+    expect(barra).toContain("useEffect(() => { setEnMarco(estaEnUnMarco(window)); }, []);");
     for (const o of OPCIONES_DEL_MENU) expect(barra, o).toContain(`case "${o}":`);
   });
 

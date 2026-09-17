@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, roleHome, roleLabel } from "@/lib/constants";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
+import { enlaceAVistaMovil, estaEnUnMarco } from "@/lib/mobile-preview";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
@@ -79,6 +80,10 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   }, [generalOpen]);
   // Navigating away closes the menu (covers back/forward too).
   useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
+  // Dentro del marco de la vista móvil (D-NEXT) no se ofrece otra vista móvil. Se mira tras montar:
+  // `window` no existe al pintar en el servidor.
+  const [enMarco, setEnMarco] = useState(false);
+  useEffect(() => { setEnMarco(estaEnUnMarco(window)); }, []);
 
   // Dispatch nudge (#29): how many orders due today/tomorrow still have no
   // driver — shown as a badge on the Map tab for the roles that assign drivers.
@@ -146,7 +151,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
 
   // Con el rol EFECTIVO, como la casa de `HubHomeLink`: quien no ve la casa encuentra en el menú
   // lo que antes le daba la pantalla de Cuenta.
-  const opcionesMenu = opcionesDelMenuDeCuenta({ realRole, me });
+  const opcionesMenu = opcionesDelMenuDeCuenta({ realRole, me, enMarco });
   const cierraMenu = () => setMenuCuentaAbierto(false);
 
   return (
@@ -319,6 +324,12 @@ export function TopBar({ me: propMe }: { me: Profile }) {
                             {opcionesDeRol}
                           </select>
                         </label>
+                      );
+                    case "vistamovil":
+                      return (
+                        <Link key={o} href={enlaceAVistaMovil(pathname)} role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
+                          📱 {t("Mobile view", "Vista móvil")}
+                        </Link>
                       );
                     case "ajustes":
                       return (

@@ -9,6 +9,7 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
+import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -343,6 +344,17 @@ export function OrderModal({
    * que no se cobró, y confirmarlo lo calla.
    */
   const sinCobrar = existing != null && (existing.delivery_fee == null || Number(existing.delivery_fee) === 0);
+  // The document this order's type asks for — invoice, PO or estimate — highlighted when viewing it
+  // (D-NEXT). Of the SAVED order: the view shows what is stored, not the draft being typed.
+  const documento = existing ? documentoPrincipal(existing, settings.order_type_rules) : null;
+  const copiaDocumento = async (numero: string) => {
+    try {
+      await navigator.clipboard.writeText(numero);
+      notify(t("Copied", "Copiado"));
+    } catch {
+      notify(t("Couldn't copy — select the number by hand.", "No se pudo copiar — seleccione el número a mano."));
+    }
+  };
 
   // A brand-new order defaults to Order Type "Customer" and the store the
   // salesperson is assigned to in Settings (runs once, after settings load).
@@ -1230,9 +1242,9 @@ export function OrderModal({
                           🚩 {existing?.delivery_fee == null ? t("NO FEE", "SIN TARIFA") : t("FEE $0", "TARIFA $0")}
                         </span>
                       )}
-                      {existing?.invoice_num && (
+                      {documento?.numero && (
                         <span className="hdr-chip hdr-chip-num">
-                          INV {existing.invoice_num}
+                          {documento.corto} {documento.numero}
                         </span>
                       )}
                     </>
@@ -1298,13 +1310,24 @@ export function OrderModal({
                   {t("Show all details ▾", "Ver todos los detalles ▾")}
                 </button>
                 <div className="card" style={{ padding: 14 }}>
+                  {documento && (
+                    <div className="doc-destacado">
+                      <span className="doc-destacado-etiqueta">{t(documento.en, documento.es)}</span>
+                      <span className="doc-destacado-numero">{documento.numero || "—"}</span>
+                      {documento.numero && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => copiaDocumento(documento.numero)}>
+                          📋 {t("Copy", "Copiar")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="detail-grid">
                     {([
                       [t("Account", "Cuenta"), existing.account || "—"],
                       [t("Delivery Fee", "Costo de Entrega"), existing.delivery_fee == null ? "—" : fmtMoney(existing.delivery_fee)],
                       [t("Delivery Date", "Fecha de Entrega"), existing.delivery_date || "—"],
                       [t("Delivery Windows", "Ventana de Entrega"), fmtWindows(existing.delivery_windows)],
-                      [t("Invoice / Estimate #", "Factura / Estimación #"), existing.invoice_num || existing.estimate_num || "—"],
+                      ...(filaFacturaOEstimacion(existing, documento) ? [[t("Invoice / Estimate #", "Factura / Estimación #"), filaFacturaOEstimacion(existing, documento)!]] : []),
                       [t("Actual Pallets", "Pallets Reales"), existing.actual_pallets == null ? "—" : String(existing.actual_pallets)],
                       [t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"],
                       [t("Delivery Address", "Dir. Entrega"), existing.delivery_address || "—"],

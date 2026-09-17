@@ -1142,6 +1142,32 @@ table.orders th { text-align: left; }
    instead of clipping, since a partial number is useless. */
 .hdr-chip-num { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
+/* The admin's mobile view (D-NEXT): the app inside a phone-sized iframe. The frame is
+   `content-box` on purpose — the global reset is border-box, and with it the 10px bezel would
+   eat into the width, so a "390" phone would render the app at 370. */
+.vista-movil-barra { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.vista-movil-barra input { flex: 1 1 220px; width: auto; }
+.vista-movil-tamanos { margin-top: 10px; }
+.vista-movil-escenario { display: flex; justify-content: center; padding: 8px 0 24px; overflow-x: auto; }
+.vista-movil-marco {
+  box-sizing: content-box; flex: 0 0 auto;
+  border: 10px solid var(--ink); border-radius: 28px; background: var(--card);
+}
+
+/* The document number an order's type asks for (invoice, PO or estimate), highlighted at the top
+   of the order view (D-NEXT). Tokens only, so it follows the theme; `user-select: all` so one click
+   selects the whole number when copying by hand. */
+.doc-destacado {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 12px; border-radius: 10px;
+  background: var(--accent-soft); border: 1px solid var(--line);
+}
+.doc-destacado-etiqueta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray); }
+.doc-destacado-numero {
+  font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 800; color: var(--text);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere; user-select: all;
+}
+
 /* ---- Driver permission gate -------------------------------------------- */
 /* The way into the app when the phone can't report. It has to be impossible
    to mistake for a dismissible warning — a driver who scrolls past this ends
