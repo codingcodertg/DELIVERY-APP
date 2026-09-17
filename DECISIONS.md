@@ -16930,3 +16930,125 @@ matriz del `.sql`, por rol y con `ROLLBACK`:
 - **Dos admins cambiando audiencias a la vez** se pueden pisar: se relee antes de escribir, pero no es
   atómico. Igual que en D-268.
 - **Quien no es admin no sabe que hay videos que no ve.** Es a propósito.
+
+## D-NEXT · Tutoriales compactos, y la audiencia de cada video son los roles de su app
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia la página de Tutoriales
+del hub · **Migración: `115_tutorial_roles_per_app.sql`**, que aplica el orquestador **antes de
+fusionar**: la página guarda roles de cada app y la función tiene que saber compararlos · **Pedido
+por:** el dueño, sobre D-269: *«OK good, pero muy grande; y dentro de cada app también que salgan los
+roles, que sean check boxes y que pueda editar eso»*.
+
+**Cambia en parte D-269:** la audiencia ya no son siempre roles de Entregas, sino los de la app del
+video, y los botones sueltos de rol de cada video se sustituyen por «Editar».
+
+### Más compacto
+
+- **Una fila por video:** título y para quién. El reproductor está **plegado** y se abre al tocar,
+  **uno a la vez**, con un ancho máximo de 560px en 16:9.
+- Grupos y buscador con menos relleno. El botón de añadir va junto al buscador.
+- **La app no se repite en cada fila,** porque la dice el grupo en el que está. **Decisión mía:** el
+  encargo pedía título, app y roles en la fila, pero dentro del grupo «Time Tracker» la etiqueta
+  «Time Tracker» en cada fila solo ocupa sitio.
+
+### Los roles son los de la app del video
+
+Medido en el repo, no supuesto, con la definición vigente de cada cosa:
+
+| app | rol de quien mira | valores | acceso |
+|---|---|---|---|
+| Entregas | `profiles.role` | `ROLE_INFO` (sin `check` en la base) | `has_deliveries_access()` (083) |
+| RR. HH. | `profiles.recruiting_role` | admin, manager, recruiter (055) | `has_recruiting_access()` (055) |
+| Time Tracker | `profiles.timetracker_role` | admin, manager, employee (089) | `has_timetracker_access()` (058) |
+| Fichaje | rol de la vista `clockin.profiles` (112) | owner, manager, employee | `has_clockin_access()` (087) |
+| ERP | `profiles.erp_role` | staff, manager, admin (101, **`not valid`**) | `has_erp_access()` (062) |
+| General | `profiles.role` | los de Entregas | `has_deliveries_access()` |
+
+- **Los vocabularios del código no son nuevos:** salen de `MODULE_ACCESS` y `CLOCKIN_ROLE_LABELS`, que
+  ya usa el diálogo de usuario. Una prueba los compara con el `check` vigente de cada columna, para que
+  no se separen.
+- **En Entregas y General no se ofrece `admin`**, porque es el admin del hub y ya lo ve todo. **En las
+  demás apps sí:** el admin de RR. HH. no es admin del hub, y un video solo para él tiene sentido.
+- **General sigue con los roles de Entregas,** como pedía el encargo. Un video de D-269 (sin app y con
+  roles de Entregas) se ve exactamente igual.
+
+### Quién ve qué, en la base
+
+`public.tutorials()` (115, que parte de la vigente de la 114) compara, para cada video, **el rol de quien
+mira en la app del video**, y solo si tiene acceso a esa app:
+- **el admin del hub** (`is_admin()`) ve todo;
+- **el resto** ve los videos sin audiencia, y los que incluyen su rol **en esa app**;
+- **sin acceso a la app, su rol en ella no cuenta**, y sigue viendo los de para todos.
+
+Es lo que D-269 hacía con Entregas, generalizado a cada app. Y resuelve el caso que D-269 dejó a medias:
+las 5 cuentas que solo tienen Time Tracker **pueden recibir videos de Time Tracker «solo para
+employee»**.
+
+**El rol de fichaje se lee de la vista `clockin.profiles`** en vez de copiar aquí su `case`: así no hay
+dos sitios que puedan decir cosas distintas. Quien no tiene fila en `clockin.employee_settings` no aparece
+en la vista, así que no tiene rol de fichaje y no coincide.
+
+**La firma no cambia**: las seis columnas de la 114. Por eso basta `create or replace`, y la función no
+deja de existir en ningún momento.
+
+### Editar con casillas
+
+- Cada video tiene **«Editar»** para el admin, con **el mismo formulario que al añadir**: título,
+  descripción, enlace, app y **casillas de los roles de la app elegida**.
+- Editar trabaja sobre lo que **hay en la base**: se relee antes de escribir y se conservan la id, el
+  autor y la fecha.
+
+**Cambiar la app de un video con roles (decisión, pedida explícitamente): los roles que no son de la app
+nueva se quitan, y el formulario dice cuáles** antes de guardar. Los que existen en las dos apps (por
+ejemplo `manager`, en Entregas y en Time Tracker) se quedan. Si se dejaran colgando, el video solo lo
+vería el admin y nada lo avisaría. Si un video ya trae roles que no son de su app, el formulario los
+avisa al abrirlo y se van al guardar. En la lista, el admin ve el aviso en rojo, como en D-269, ahora
+con «Edítalo y guarda para quitarlos».
+
+### Pruebas que se sustituyen
+
+Las de la lógica y la pantalla de D-269 (13) se quitan, porque probaban funciones y botones que ya no
+existen: la audiencia de solo Entregas, los botones sueltos de rol y «quitar desconocidos». Las
+sustituyen 27 nuevas. **El bloque sobre la 114 se queda** (9), porque describe lo que esa migración hizo.
+
+### No cambia
+
+- **Quien tiene Entregas puede leer `settings.tutorials` crudo por REST**, audiencias incluidas (100).
+  La audiencia decide qué es relevante para cada uno; no es un secreto.
+- **El `check` de `erp_role` es `not valid`** (101): filas anteriores podrían tener otro valor. Esa
+  persona no coincidiría con ninguna audiencia del ERP y vería los videos para todos.
+
+### Medido, rompiendo cada pieza
+
+Diecisiete cambios: **dieciséis caen y un gemelo se queda en verde.**
+
+- **Los cuatro pedidos:**
+  - que Time Tracker compare el rol de Entregas (roles por app);
+  - que coincida sin acceso a la app;
+  - que el admin no vea todo;
+  - que cambiar de app no limpie los roles.
+- **El resto:**
+  - en la función: el rol de fichaje leído de `timetracker_role` en vez de la vista; el ERP con el acceso
+    de Entregas; General sin Entregas; lo sin audiencia oculto; `coincide` sin `coalesce`; quitar la
+    rama del ERP;
+  - en los vocabularios: el de RR. HH. inventado; `admin` ofrecido en Entregas; General con otro
+    vocabulario;
+  - en la edición: editar perdiendo el autor;
+  - en la pantalla: cambiar de app sin `cambiaApp`; varios videos abiertos a la vez.
+- **El gemelo:** la rama de RR. HH. con las dos condiciones del `and` en el otro orden. **Es la tercera
+  vez en tres encargos que una prueba mía fijaba el orden de un `and`.** Esta vez, además, al hacerla
+  insensible al orden olvidé normalizar los espacios internos, y la prueba fallaba **también sin
+  mutante**. Salió al correr el gemelo, antes de que llegara a la tanda entera.
+
+Quién ve qué se prueba **sobre el `.sql`**, no con una copia en TypeScript. El ensayo está en la matriz
+del `.sql`, por rol y con `ROLLBACK`:
+- siete videos (para todos, y uno por app con audiencia);
+- el admin del hub, sales con Entregas, empleado de solo Time Tracker, manager de Entregas sin fichaje,
+  gerente de tienda de Time Tracker, reclutador y staff del ERP.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 115 no está aplicada cuando se escribe esto.
+- **Nadie ha abierto la página en un navegador**: ni la fila plegada, ni el ancho del reproductor en un
+  teléfono, ni el formulario de edición.
+- **Dos admins editando a la vez** se pueden pisar, como en D-268 y D-269.
