@@ -1,5 +1,6 @@
 import { canCreate } from "./constants";
-import type { Profile } from "./types";
+import { mismaTiendaOGrupo } from "./store-group";
+import type { NamedLocation, Profile } from "./types";
 
 /**
  * Quién puede figurar como «Vendedor» de una orden, y cuáles ofrece el desplegable (D-290).
@@ -36,12 +37,18 @@ export function puedeSerVendedor(u: Candidato): boolean {
   return canCreate(u);
 }
 
-/** Los candidatos que pertenecen a esa tienda, en el orden en que vengan —quien los enseñe los ordena;
+/** Los candidatos que pertenecen a esa tienda **o a las que trabajan con ella** (D-NEXT: el grupo de
+ *  `settings.stores[*].group`; sin grupo, solo la suya, que es como estaba). En el orden en que vengan —quien los enseñe los ordena;
  *  ordenarlos aquí era código que ningún mutante podía matar, porque `vendedoresParaLaOrden` vuelve a
  *  ordenar después—. **Puede quedar vacía** —una tienda sin nadie, o una orden que aún no tiene tienda—
  *  y por eso no es lo que se ofrece: eso lo decide `vendedoresParaLaOrden`. */
-export function vendedoresDeLaTienda<T extends Candidato>(users: readonly T[], tiendaDeLaOrden: string | null | undefined): T[] {
-  return users.filter((u) => puedeSerVendedor(u) && mismaTienda(u.store, tiendaDeLaOrden));
+export function vendedoresDeLaTienda<T extends Candidato>(
+  users: readonly T[],
+  tiendaDeLaOrden: string | null | undefined,
+  tiendas: readonly NamedLocation[] = [],
+): T[] {
+  return users.filter((u) => puedeSerVendedor(u)
+    && (mismaTienda(u.store, tiendaDeLaOrden) || mismaTiendaOGrupo(u.store, tiendaDeLaOrden, tiendas)));
 }
 
 /**
@@ -58,8 +65,9 @@ export function vendedoresParaLaOrden<T extends Candidato>(
   users: readonly T[],
   tiendaDeLaOrden: string | null | undefined,
   actual?: string | null,
+  tiendas: readonly NamedLocation[] = [],
 ): T[] {
-  const deLaTienda = vendedoresDeLaTienda(users, tiendaDeLaOrden);
+  const deLaTienda = vendedoresDeLaTienda(users, tiendaDeLaOrden, tiendas);
   const base = deLaTienda.length > 0 ? deLaTienda : users.filter(puedeSerVendedor);
   const suelto = actual && !base.some((u) => u.id === actual) ? users.filter((u) => u.id === actual) : [];
   return [...base, ...suelto].sort(porNombre);

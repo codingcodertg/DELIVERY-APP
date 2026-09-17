@@ -40,6 +40,11 @@ export function registroDeLugar(
     const ext = (draft.directory_ext ?? "").trim();
     if (ext) rec.directory_ext = ext;
     else delete rec.directory_ext;
+    // El grupo de trabajo (D-NEXT): misma regla que los dos de arriba. Es otra cosa que el código de
+    // directorio aunque se editen juntos — este decide quién ve y trabaja qué órdenes.
+    const grupo = (draft.group ?? "").trim();
+    if (grupo) rec.group = grupo;
+    else delete rec.group;
   }
 
   return rec;

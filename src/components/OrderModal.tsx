@@ -14,6 +14,7 @@ import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
+import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -233,12 +234,20 @@ export function OrderModal({
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
   // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
-  const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep), [users, d.store, d.assigned_sales_rep]);
+  const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep, settings.stores), [users, d.store, d.assigned_sales_rep, settings.stores]);
   /** Los motivos de anulación vigentes: los que el admin dejó en Datos, o los sembrados (122). */
   const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
+  /** Un vendedor con tienda vende desde la suya; si su tienda trabaja con otras, también desde esas
+   *  (D-NEXT). Para los demás roles la lista no se toca. Y la tienda que ya tiene la orden se
+   *  conserva siempre, como en D-267: un selector vacío con un valor guardado detrás no se corrige. */
+  const origenesPermitidos = (todas: string[]): string[] =>
+    me.role !== "sales" || !me.store
+      ? todas
+      : todas.filter((n) => mismaTiendaOGrupo(n, me.store, settings.stores) || n === d.store);
+  /** El selector queda fijo solo si no hay a dónde moverse: su tienda no trabaja con ninguna otra. */
   // Solo para avisar cuando se está enseñando el respaldo: la tienda está puesta y no tiene a nadie, así
   // que la lista de arriba son todos. Hoy no le pasa a ninguna tienda (medido 2026-09-17).
-  const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store).length === 0;
+  const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store, settings.stores).length === 0;
 
   // ---- Required fields (#31) — see lib/required.ts for the rules ----
   // Live list of what's still missing, used to highlight the empty fields.
@@ -571,6 +580,9 @@ export function OrderModal({
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
+  /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
+   *  no trabaja con ninguna otra (D-NEXT). Antes quedaba fijo siempre. */
+  const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.
   const docRef = orderTypeRule(d.order_type, settings.order_type_rules).docRef ?? "invoice";
@@ -1560,9 +1572,9 @@ export function OrderModal({
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
-                opts={opcionesDeOrigen(d, settings.stores, storeToStore)}
+                opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))}
                 on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
-                disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)}
+                disabled={!salesFields || origenFijo}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
               />
@@ -1908,10 +1920,10 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={opcionesDeOrigen(d, settings.stores, storeToStore)} on={(v) => {
+              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
-              }} disabled={!salesFields || (me.role === "sales" && !!me.store && !homeIsDestination)} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
+              }} disabled={!salesFields || origenFijo} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
               <div className="field">
                 <label>{t("Store address", "Dirección de tienda")}</label>
                 <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
