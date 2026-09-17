@@ -17118,7 +17118,7 @@ cada uno cazado por la prueba pensada para él:
 pruebas y no quita ninguna —14 en `password-input.test.ts`, fichero nuevo, y 3 en
 `profile-password.test.ts`, contadas en el diff—, así que `main` 0125a29 está en 2210 | 3.
 
-## D-NEXT · El directorio pide también teléfono
+## D-272 · El directorio pide también teléfono
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. El cambio vive en la base; en
 el código solo cambian comentarios y pruebas · **Migración: `116_phone_book_with_phone.sql`**, que
