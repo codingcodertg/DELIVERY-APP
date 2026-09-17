@@ -9,7 +9,7 @@ import {
 import type { Tutorial } from "./types";
 
 /**
- * Para quién es cada tutorial (D-NEXT): roles de Entregas, puestos en el video.
+ * Para quién es cada tutorial (D-269): roles de Entregas, puestos en el video.
  *
  * **Quién ve qué se decide en la base** (`public.tutorials()`, 114), así que esa regla se prueba sobre
  * el `.sql` y no con una copia en TypeScript, que pasaría aunque la función dijera otra cosa. El ensayo

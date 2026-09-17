@@ -16830,7 +16830,7 @@ casualidad.
 - **Un admin que haya entrado como otra persona** ve la página con el rol de esa persona, así que no
   ve los botones. Es lo esperado, pero no se ha probado.
 
-## D-NEXT · Cada tutorial dice para qué roles es, y el rol solo cuenta con Entregas
+## D-269 · Cada tutorial dice para qué roles es, y el rol solo cuenta con Entregas
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia la página de Tutoriales
 del hub · **Migración: `114_tutorial_roles.sql`**, que aplica el orquestador **antes de fusionar**: la

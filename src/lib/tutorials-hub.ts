@@ -94,7 +94,7 @@ export async function guardaTutoriales(
   return { ok: true, tutoriales: siguiente };
 }
 
-// ---- Para quién es cada video (D-NEXT) ---------------------------------------------------------
+// ---- Para quién es cada video (D-269) ---------------------------------------------------------
 //
 // La audiencia de un video son roles de Entregas que ya existen (`ROLE_INFO`). Vacío = para todos.
 // **Quién ve qué NO se decide aquí**: lo decide `public.tutorials()` en la base (114). Aquí solo se

@@ -20,7 +20,7 @@ import type { Tutorial, TutorialApp, UserRole } from "@/lib/types";
  * **Se lee de `public.tutorials()` (113), no de `settings`.** La 100 cierra `settings` a quien tiene
  * Entregas, y esta página es de todo el mundo. La función devuelve solo lo que se pinta.
  *
- * **Y desde la 114 decide también para quién es cada video** (D-NEXT): la audiencia son roles de
+ * **Y desde la 114 decide también para quién es cada video** (D-269): la audiencia son roles de
  * Entregas, y a esta pantalla solo le llegan los videos que quien mira puede ver. La audiencia solo se
  * enseña y se cambia si quien mira es admin.
  */
