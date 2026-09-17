@@ -123,7 +123,7 @@ describe("la lista nunca se queda sin opciones", () => {
 
 describe("el formulario usa esa regla, y la de la tienda de la orden", () => {
   it("el desplegable se alimenta de la función compartida, con `d.store`", () => {
-    expect(modal).toContain("const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep), [users, d.store, d.assigned_sales_rep]);");
+    expect(modal).toContain("const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep, settings.stores), [users, d.store, d.assigned_sales_rep, settings.stores]);");
     // La tienda que manda es la de la orden: `me.store` aquí sería la de quien mira, que puede estar
     // registrando una orden vendida desde otra tienda.
     expect(modal).not.toContain("vendedoresParaLaOrden(users, me.store");
@@ -134,7 +134,7 @@ describe("el formulario usa esa regla, y la de la tienda de la orden", () => {
   });
 
   it("y avisa cuando lo que enseña es el respaldo", () => {
-    expect(modal).toContain("const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store).length === 0;");
+    expect(modal).toContain("const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store, settings.stores).length === 0;");
     expect(modal).toContain("Esta tienda no tiene a nadie asignado");
   });
 

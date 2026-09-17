@@ -316,6 +316,16 @@ export interface NamedLocation {
   /** Stores only: the store's phone extension shown in the company directory (D-273, 117). Typed
    * in Datos → Tiendas, never derived from the staff extensions. Absent or empty = none shown. */
   directory_ext?: string | null;
+  /** Stores only: tiendas que **trabajan juntas** (D-NEXT). Las que comparten este valor comparten la
+   * cola de almacén, se venden la una desde la otra y se prestan vendedores y choferes; siguen siendo
+   * tiendas distintas en los datos, en el directorio y en los informes. Ausente o vacío = va sola, que
+   * es lo que le pasa a cualquier tienda hasta que un admin la agrupe en Datos.
+   *
+   * Deliberadamente **no** es `directory_code`: ese agrupa el directorio telefónico y lo lee la base
+   * (la vista `phone_book`, 111/116/117), así que reusarlo convertiría un ajuste cosmético en un
+   * permiso — un admin retocando cómo se agrupan los teléfonos cambiaría quién ve y trabaja qué
+   * órdenes sin enterarse. */
+  group?: string | null;
 }
 
 /** A saved customer/site account — picking it on an order auto-fills who to

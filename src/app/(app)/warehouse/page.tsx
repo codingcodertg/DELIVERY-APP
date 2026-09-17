@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { tiendasDelGrupo } from "@/lib/store-group";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
@@ -48,24 +49,32 @@ export default function WarehousePage() {
   // picked up there — so a warehouse worker also sees pickup orders staged at
   // their store even when the order was sold from another branch (e.g. an
   // Intertienda picked up from their warehouse).
-  const storeAddr = useMemo(
-    () => settings.stores.find((s) => s.name === effectiveStore)?.address?.trim() || "",
-    [settings.stores, effectiveStore],
+  // Las tiendas cuya cola se prepara aquí. Quien está fijado a la suya ve también las que trabajan
+  // con ella (D-NEXT); el admin que elige una tienda a mano ve ESA y nada más, porque eligió una.
+  const tiendasDeLaCola = useMemo(
+    () => (lockedToOwnStore ? tiendasDelGrupo(me?.store, settings.stores) : effectiveStore ? [effectiveStore] : []),
+    [lockedToOwnStore, me?.store, effectiveStore, settings.stores],
+  );
+  const direccionesDeLaCola = useMemo(
+    () => tiendasDeLaCola
+      .map((n) => settings.stores.find((s) => s.name === n)?.address?.trim() || "")
+      .filter(Boolean),
+    [tiendasDeLaCola, settings.stores],
   );
   const atStore = useMemo(
     () => (d: Delivery) => {
-      if (d.store === effectiveStore) return true;
-      if ((d.pickup_name || "").trim() === effectiveStore) return true;
-      if (storeAddr && (d.pickup_address || "").trim() === storeAddr) return true;
+      if (tiendasDeLaCola.includes(d.store ?? "")) return true;
+      if (tiendasDeLaCola.includes((d.pickup_name || "").trim())) return true;
+      if (direccionesDeLaCola.includes((d.pickup_address || "").trim())) return true;
       return false;
     },
-    [effectiveStore, storeAddr],
+    [tiendasDeLaCola, direccionesDeLaCola],
   );
 
   const scoped = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return deliveries.filter((d) => {
-      if (effectiveStore && !atStore(d)) return false;
+      if (tiendasDeLaCola.length > 0 && !atStore(d)) return false;
       // Searching matches by invoice # specifically and bypasses the date
       // window below — that's the one way to reach older history here.
       if (needle) return (d.invoice_num || "").toLowerCase().includes(needle);

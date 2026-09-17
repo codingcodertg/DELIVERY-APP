@@ -37037,3 +37037,100 @@ quita la condición sin fijar los paréntesis.
   gerente.
 - **Nadie ha abierto la app**: ni la casilla nueva de Datos, ni el botón con una cuenta marcada.
 - **Que el array de cuentas siga vacío** cuando esto se aplique: lo midió el orquestador, no yo.
+
+## D-NEXT · Dos tiendas que trabajan juntas: comparten la cola, se venden la una desde la otra y se prestan gente
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño:** *«McAllen y Mission son las únicas tiendas que pueden ver las dos tiendas a la
+vez»*, y al preguntarle si eran una sola: *«no, no como una tienda; siempre 2 tiendas, pero ambos
+employees mirarán las órdenes de ambas»*.
+
+### Lo primero que se midió cambió el encargo
+
+**La base no acota por tienda en ningún sitio.** La política de lectura vigente de `deliveries`
+(`083_deliveries_access.sql:55-67`) filtra por rol —chofer: las suyas o las asignadas; almacén: de
+`approved` en adelante; **el resto: todas**— y la palabra `store` no aparece. `driver_locations` (121)
+igual, por rol. El guard de etapas (la 123 es la última que lo redefinió) tampoco mira la tienda.
+
+Y en la app, la tienda solo decide en cinco sitios, de los cuales **uno solo es un candado**:
+
+| Dónde | Qué hacía |
+|---|---|
+| **Almacén** `warehouse/page.tsx:44-63` | el candado: el rol `warehouse` queda fijado a `me.store` |
+| **La ficha, para ventas** `OrderModal.tsx` | un `sales` con tienda no podía cambiar «Vendido desde» |
+| **Vendedor asignable** (D-290) | una orden de una tienda solo ofrecía gente de esa tienda |
+| **Rutas** `routes/page.tsx:1076` | sugiere primero choferes de la misma tienda (blando) |
+| **Chofer** `driver/page.tsx:49` | un filtro **elegible**, no un candado |
+
+Órdenes, mapa, Cuentas y Resumen **no cortan por tienda**: cualquiera ve ya las órdenes de todas. Por eso
+se le preguntó al dueño antes de construir si quería cerrar el resto, y dijo que no. **Nada se cierra.**
+
+### Dónde vive el grupo, y por qué no en `directory_code`
+
+Clave propia: **`group` en cada tienda de `settings.stores`**, editable en Datos → Tiendas. Las que
+comparten valor trabajan juntas. Vacío = va sola, que es como quedan todas al fusionar esto: **esta
+decisión no cambia nada hasta que un admin rellene ese campo**, y por eso en el repo no hay ni un nombre
+de tienda escrito (hay una prueba que lo barre, por palabras).
+
+Se consideró reusar `directory_code`, que esas dos tiendas ya comparten, y se descartó: **es el campo con
+el que se agrupa el directorio telefónico (D-261/D-273) y lo lee la base** —la vista `phone_book`, en las
+migraciones 111, 116 y 117—. Reusarlo convertiría un ajuste cosmético en un permiso: un admin que retoca
+el código para arreglar cómo salen los teléfonos cambiaría, sin enterarse, quién ve y trabaja qué
+órdenes. Que vivan juntos en la misma pantalla no los hace la misma cosa.
+
+La regla está en `lib/store-group.ts`, en una función —`tiendasDelGrupo`— que usan los cuatro sitios.
+
+### Qué comparten, exactamente
+
+1. **La cola de almacén.** Quien está fijado a su tienda ve y prepara también la de las que trabajan con
+   ella. Un admin que **elige** una tienda en el selector ve **esa** y nada más: eligió una.
+2. **Vender desde la otra.** El selector «Vendido desde» deja de estar fijo para un vendedor cuya tienda
+   trabaje con otras, y le ofrece las del grupo. Si su tienda va sola, queda fijo como siempre.
+3. **El vendedor asignable** (D-290): una orden de una de las dos ofrece a la gente de las dos.
+4. **La sugerencia de chofer** en Rutas, que sigue siendo sugerencia: si nadie del grupo tiene hueco,
+   cae a cualquiera, como antes.
+
+### Lo que NO cambia, a propósito
+
+- **La orden conserva su tienda.** No se funden: el directorio, los informes y los totales las siguen
+  separando. Es literalmente lo que pidió el dueño.
+- **No hay migración.** No había nada cerrado por tienda en la base que abrir.
+- **La lista de Órdenes, el mapa, Cuentas y Resumen** siguen sin cortar por tienda, y hay una prueba que
+  fija que nadie ha metido ahí un corte nuevo.
+- **El prellenado de una orden nueva** sigue siendo la tienda propia (`me.store`), no el grupo: se vende
+  desde la suya salvo que se elija la otra.
+- **La regla de D-276** (`miTienda`, el destino de los tipos con `homeIsDestination`) sigue mirando la
+  tienda propia. Con dos tiendas, «mi tienda» como destino no es ambiguo y no se tocó.
+- **El filtro por tienda de la vista de chofer** se queda como está: es elegible, no acota nada.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Catorce mutantes, cada uno cazado por la prueba pensada para él: que el grupo pase a ser el código de
+directorio, que las tiendas sin grupo se junten entre ellas, que «sin tienda» empareje con «sin tienda»,
+que todo el mundo trabaje con otros, que una tienda borrada deje de compararse consigo misma, que el
+vendedor asignable ignore el grupo o se abra a todas, que el almacén vuelva a ver solo su tienda o pase a
+verlas todas, que el selector quede fijo siempre o se abra del todo, que la sugerencia de chofer ignore
+el grupo, y que el grupo no se guarde o se guarde vacío. Ninguno sobrevivió.
+
+Las pruebas van **por tienda y no por rol**, que es donde estaba el riesgo de abrir de más: la tercera
+tienda de la plantilla comparte el código de directorio con las dos agrupadas y aun así no las ve, ni
+ellas a ella.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2608 pasados | 3 saltados**. La rama añade 16
+pruebas, todas en `tiendas-que-trabajan-juntas.test.ts`, fichero nuevo, y no quita ninguna: las tres de
+barrido que tocaba se actualizaron, no se borraron. `main` 8aeb18d, medido en esta misma copia con el
+árbol en `origin/main`, está en 2592 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**, y al fusionar **no se verá nada** hasta que se rellene el
+  campo `group` en las dos tiendas desde Datos.
+- **El valor del grupo no se ha puesto en producción** desde esta rama: lo hace el orquestador después
+  de fusionar. Una rama no toca datos de producción.
+- **No se midió cuánta gente hay hoy en esas dos tiendas**, ni cuántas órdenes cambiarían de cola.
+- **Tres pruebas de barrido de otras decisiones** (D-267 y D-290) fijaban las líneas exactas que esta
+  toca y se actualizaron: siguen exigiendo lo mismo —que la lista de orígenes la decida
+  `opcionesDeOrigen` y que el vendedor salga de `vendedoresParaLaOrden` con la tienda de la orden—, ahora
+  con el envoltorio del grupo.

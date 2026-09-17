@@ -499,6 +499,20 @@ function LocationTable({
               onChange={(e) => setDraft({ ...draft, directory_ext: e.target.value })}
             />
           </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>{t("Works together with", "Trabaja junto con")}</label>
+            <input
+              value={draft.group ?? ""}
+              placeholder={t("e.g. WEST - stores sharing this work as one team", "ej. OESTE - las tiendas con el mismo valor trabajan juntas")}
+              onChange={(e) => setDraft({ ...draft, group: e.target.value })}
+            />
+            <div className="hint">
+              {t(
+                "Stores sharing this value share the warehouse queue, can sell from each other, and lend each other sales reps and drivers. They stay separate stores everywhere else. Empty = on its own. This is NOT the directory code.",
+                "Las tiendas con el mismo valor comparten la cola de almacén, pueden venderse la una desde la otra y se prestan vendedores y choferes. Siguen siendo tiendas distintas en todo lo demás. Vacío = va sola. No es el código de directorio.",
+              )}
+            </div>
+          </div>
         </div>
       )}
       {autoApprove && (
@@ -546,6 +560,9 @@ function LocationTable({
                 )}
                 {directoryCode && it.directory_ext && (
                   <span className="hint" style={{ marginLeft: 6 }}>· Ext {it.directory_ext}</span>
+                )}
+                {directoryCode && it.group && (
+                  <span className="hint" style={{ marginLeft: 6 }}>· {t("Together", "Junto con")}: {it.group}</span>
                 )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>
