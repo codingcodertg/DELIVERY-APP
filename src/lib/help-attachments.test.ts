@@ -22,15 +22,34 @@ const falso = vi.hoisted(() => ({
   firmar: vi.fn(async (_ruta?: string, _seg?: number) => ({ data: { signedUrl: "https://firmado.example/x" }, error: null as unknown })),
   from: vi.fn((_cubo?: string) => ({ createSignedUrl: falso.firmar })),
   enviados: [] as { url: string; cuerpo: Record<string, unknown> }[],
+  // Desde D-NEXT la ruta guarda la solicitud antes de mandar el correo: aquí solo hace falta que la
+  // escritura conteste algo. Lo que se guarda se prueba en `help-requests.test.ts`.
+  guardado: null as Record<string, unknown> | null,
 }));
 
 vi.mock("@/lib/api-auth", () => ({
   requireUser: async () =>
     falso.sesion.ok
-      ? { ok: true, user: { id: falso.sesion.id, email: falso.sesion.email }, supabase: {} }
+      ? {
+          ok: true,
+          user: { id: falso.sesion.id, email: falso.sesion.email },
+          supabase: {
+            from: () => ({
+              insert: (valores: Record<string, unknown>) => {
+                falso.guardado = valores;
+                return { select: () => ({ maybeSingle: async () => ({ data: { id: "fila-1" }, error: null }) }) };
+              },
+            }),
+          },
+        }
       : { ok: false, response: NextResponse.json({ error: "Not signed in." }, { status: 401 }) },
 }));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ storage: { from: falso.from } }) }));
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({
+    storage: { from: falso.from },
+    from: () => ({ update: () => ({ eq: async () => ({ error: null }) }) }),
+  }),
+}));
 
 import { POST as pideAyuda } from "@/app/api/help/route";
 
@@ -40,6 +59,7 @@ const pide = (cuerpo: unknown) =>
 beforeEach(() => {
   falso.sesion = { ok: true, id: "usuario-1", email: "ana@empresa.test" };
   falso.enviados = [];
+  falso.guardado = null;
   falso.firmar.mockClear();
   falso.from.mockClear();
   process.env.RESEND_API_KEY = "llave-de-prueba";
