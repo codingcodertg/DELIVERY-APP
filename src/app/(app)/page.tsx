@@ -174,7 +174,12 @@ export default function OrdersPage() {
         // Sales only ever sees their own orders — a hard boundary, not
         // relaxed by search, unlike the date-window restriction below.
         // "Own" includes orders an office/admin/driver assigned to them.
-        if (me?.role === "sales" && orderOwner(d) !== me.id) return false;
+        //
+        // **Menos los borradores** (D-NEXT). El dueño: «para borrador, deja que cualquiera pueda
+        // volver y editarlo», y un borrador que no se ve no se puede editar. Es un cambio de
+        // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
+        // vuelve a ser el de siempre.
+        if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id) return false;
         // Sales never see canceled orders (a canceled order disappears for them).
         if (me?.role === "sales" && d.stage === "canceled") return false;
         // Warehouse only ever sees orders that have been approved — never
