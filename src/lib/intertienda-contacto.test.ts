@@ -8,7 +8,7 @@ import {
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * En Intertienda el contacto es la tienda que envía (D-NEXT).
+ * En Intertienda el contacto es la tienda que envía (D-282).
  *
  * Los borradores se arman con los manejadores del modal, compuestos como los compone él. Las reglas son
  * las de producción; los nombres de tienda, neutros.

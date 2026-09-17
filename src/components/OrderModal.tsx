@@ -558,7 +558,7 @@ export function OrderModal({
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
-  // In Intertienda the contact IS the sending store (D-NEXT): the contact field becomes the Sold From
+  // In Intertienda the contact IS the sending store (D-282): the contact field becomes the Sold From
   // picker, and the separate Sold From + store address row goes away.
   const contactoEsOrigen = contactoEsLaTiendaDeOrigen(d.order_type, settings.order_type_rules);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
@@ -1743,7 +1743,7 @@ export function OrderModal({
                 t={t}
               />
               {contactoEsOrigen ? (
-                // Intertienda (D-NEXT): the contact is the sending store — the same pick, filter and rule
+                // Intertienda (D-282): the contact is the sending store — the same pick, filter and rule
                 // as «Sold From» (D-267, D-276), which is why that row is gone below.
                 <Sel
                   label={t("Contact name (sending store)", "Nombre de contacto (tienda que envía)")}
@@ -1855,7 +1855,7 @@ export function OrderModal({
               </>
             )}
 
-            {/* ---- Store (Sold From) + its address — not in Intertienda, where the contact is the store (D-NEXT) ---- */}
+            {/* ---- Store (Sold From) + its address — not in Intertienda, where the contact is the store (D-282) ---- */}
             {!contactoEsOrigen && (
             <div className="grid g2">
               <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={opcionesDeOrigen(d, settings.stores, storeToStore)} on={(v) => {
@@ -1900,7 +1900,7 @@ export function OrderModal({
                   // Neither the origin store nor the pickup address is offered as the destination (D-267, D-276).
                   opts={opcionesDeDestino(d, settings.stores)}
                   // The destination store IS the dropoff name for a transfer.
-                  // In Intertienda the contact stays the sending store, not this one (D-NEXT).
+                  // In Intertienda the contact stays the sending store, not this one (D-282).
                   on={(v) => setD((p) => conContactoDeOrigen(eligeDestino(p, v, settings.stores), settings.order_type_rules))}
                   disabled={!salesFields}
                   placeholder={t("Select destination store", "Seleccione tienda destino")}

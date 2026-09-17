@@ -122,7 +122,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const addDelivery = useCallback<DataState["addDelivery"]>(async (dEntrada) => {
     const s = storeRef.current;
-    // Same contact rule as the real provider (D-NEXT).
+    // Same contact rule as the real provider (D-282).
     const d = escrituraConContactoDeOrigen(undefined, dEntrada, s.settings.order_type_rules);
     // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
@@ -153,7 +153,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patchEntrada) => {
     const s = storeRef.current;
-    // Same contact rule as the real provider (D-NEXT).
+    // Same contact rule as the real provider (D-282).
     const patch = escrituraConContactoDeOrigen(s.deliveries.find((c) => c.id === id), patchEntrada, s.settings.order_type_rules);
     // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);

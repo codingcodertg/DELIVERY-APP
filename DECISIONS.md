@@ -35976,7 +35976,7 @@ pruebas, todas en `tabla-ancho.test.ts`, fichero nuevo, y no quita ninguna: `tab
 sigue con sus 7, reescritas tres para el mecanismo nuevo. `main` 2a157f1, medido en un worktree aparte para la
 rama anterior (el mismo commit), está en 2387 | 3.
 
-## D-NEXT · En Intertienda, el contacto es la tienda que envía
+## D-282 · En Intertienda, el contacto es la tienda que envía
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«en intertienda, la tienda vendido desde debe ser el nombre del contacto, y

@@ -82,7 +82,7 @@ export function borradorInicial(p: Borrador, c: ContextoDelUsuario): Borrador {
   return next;
 }
 
-// ---- En Intertienda, el contacto es la tienda que envía (D-NEXT) ------------------------------------
+// ---- En Intertienda, el contacto es la tienda que envía (D-282) ------------------------------------
 //
 // El dueño: «en intertienda, la tienda vendido desde debe ser el nombre del contacto, y quita la fila de
 // tienda vendido desde y la dirección de la tienda, solo en órdenes intertienda». Medido por el
