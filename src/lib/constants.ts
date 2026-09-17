@@ -950,13 +950,26 @@ export function ordersLikeOfficeManager(r: string | null | undefined): boolean {
 /** Can this role edit the order's data fields while it sits in `stage`? */
 export function canEditFields(r: UserRole, stage: Stage): boolean {
   if (r === "admin") return true;
-  // Sales can only edit while an order is Pending Approval or Rejected —
-  // NOT Draft. A brand-new order is still editable (isNew bypasses this
-  // check entirely in OrderModal), but once a draft is saved, a sales rep
-  // must submit it for approval before touching it again.
+  // Un borrador lo edita cualquiera que lo pueda ver (D-NEXT).
+  // -------------------------------------------------------------------------
+  // El dueño: «cuando un sales o cualquiera tiene un borrador no lo puede volver a editar; para
+  // borrador, deja que cualquiera pueda volver y editarlo». Antes, a ventas se le devolvía `false`
+  // en `draft` a propósito —«una vez guardado, que lo envíe a aprobación antes de tocarlo»—, así que
+  // al reabrirlo no había ni botón de Editar ni campos: un borrador que no se puede terminar.
+  //
+  // Lo bloqueaba SOLO la app. Medido en la base: `guard_delivery_stage` (048, y la 118 no lo cambió)
+  // deja a ventas y al chofer editar en misma etapa cuando está en `draft`, `pending` o `rejected`, y
+  // a logística en `draft`; la RLS de lectura no esconde borradores a nadie salvo al chofer (los
+  // suyos) y a almacén.
+  //
+  // **Almacén queda fuera**, y no es un olvido: la RLS no le deja ver un borrador y el guard le
+  // rechazaría la escritura, así que ofrecerle el botón sería ofrecer un error.
+  if (stage === "draft") return r !== "warehouse";
+  // Fuera del borrador, ventas edita mientras está pendiente o rechazada.
   if (r === "sales") return stage === "pending" || stage === "rejected";
   if (r === "warehouse") return ["approved", "fulfilling", "ready", "picked_up", "delivered"].includes(stage);
-  if (r === "driver") return stage === "draft" || stage === "pending" || stage === "rejected";
+  // El borrador ya se decidió arriba, así que aquí solo quedan las otras dos del chofer.
+  if (r === "driver") return stage === "pending" || stage === "rejected";
   if (ordersLikeOfficeManager(r)) return true;
   return false;
 }

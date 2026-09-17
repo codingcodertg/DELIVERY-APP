@@ -76,8 +76,11 @@ describe("Office crea y aprueba, como el gerente sin el panel", () => {
     expect(STAGES.every((s) => canEditFields("accounting", s.key))).toBe(true);
   });
 
-  it("los demás roles no ganan nada: ventas sigue sin editar un borrador", () => {
-    expect(canEditFields("sales", "draft")).toBe(false);
+  it("los demás roles no ganan nada por esta decisión: logística sigue sin editar una aprobada", () => {
+    // Ventas y el borrador cambiaron de signo en D-NEXT, y no por esta decisión: el dueño pidió que
+    // un borrador lo pueda retomar cualquiera. Lo que D-277 dio a Office sigue sin tocar al resto.
+    expect(canEditFields("sales", "draft")).toBe(true);
+    expect(canEditFields("sales", "approved")).toBe(false);
     expect(canEditFields("logistics", "approved")).toBe(false);
   });
 

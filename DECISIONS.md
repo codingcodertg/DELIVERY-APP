@@ -36345,3 +36345,94 @@ cualquiera escribiendo en nombre de otro, y el historial reescribible.
 pruebas y no quita ninguna: 22 en `help-requests.test.ts`, fichero nuevo, y 1 que genera el barrido de colores
 por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con su doble de sesión ampliado
 —la ruta ahora guarda antes de mandar—. `main` 21e2b89, medido en un worktree aparte, está en 2460 | 3.
+
+## D-NEXT · Un borrador se puede retomar, y duplicar deja de perder cosas
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, dos cosas: *«cuando un sales o cualquiera tiene un borrador no lo puede volver
+a editar; para borrador, deja que cualquiera pueda volver y editarlo»* y *«duplicar no está funcionando
+tan bien»*, sin decir qué.
+
+### 1. El borrador lo cerraba la app, no la base
+
+Medido antes de tocar nada:
+
+- **La app**: `canEditFields` devolvía `false` para ventas en `draft`, y su comentario lo decía a
+  propósito: «una vez guardado, que lo envíe a aprobación antes de tocarlo». Como el modal calcula
+  `editable = isNew || (startEditing && canEditFields(...))`, al reabrir un borrador guardado no había
+  ni botón de «Editar» ni campos: un borrador que no se podía terminar.
+- **La base lo permitía desde antes.** En `guard_delivery_stage` (048, y la 118 no cambió esa rama), el
+  tramo de misma etapa deja a ventas y al chofer editar en `draft`, `pending` y `rejected`, y a
+  logística en `draft`. La RLS de lectura tampoco esconde borradores, salvo al chofer (los suyos) y a
+  almacén (de `approved` en adelante).
+- **Lo que sí acotaba era la lista**: a ventas solo se le enseñaba lo suyo.
+
+**El arreglo es de app, sin migración:** en `draft` puede editar cualquier rol **menos almacén**. Y no
+es un olvido: la RLS no le deja ver un borrador y el guard le rechazaría la escritura, así que el botón
+sería un botón que acaba en error. Una prueba compara `canEditFields` **rol por rol** con las ramas del
+guard leídas del `.sql`, para que la app y la base no se separen el día que alguien toque una de las dos.
+
+**Y un cambio de visibilidad, dicho aparte porque lo es:** un vendedor pasa a ver **los borradores de
+cualquiera**, no solo los suyos. Sin eso, «que cualquiera pueda volver y editarlo» no se sostiene: un
+borrador que no se ve no se edita. Solo en `draft`: en cuanto la orden sale de borrador, el corte de
+ventas vuelve a ser el de siempre, y las canceladas siguen sin salirle.
+
+**Una prueba de D-277 cambia de signo:** `rol-office.test.ts` fijaba `canEditFields("sales", "draft")
+=== false`. Ahora fija `true`, con el porqué escrito al lado: lo que D-277 le dio a Office sigue sin
+tocar a nadie más, y esto viene de otra petición.
+
+### 2. Duplicar perdía cuatro cosas y no se notaba
+
+El dueño no dijo qué fallaba. Medido de punta a punta, la copia **perdía**:
+
+| Se perdía | Qué significaba |
+|---|---|
+| `delivery_fee` | En una orden de cliente la tarifa es obligatoria: la copia nacía «sin cobrar» (D-147/D-148) y podía enviarse así |
+| `delivery_lat/lng` y su procedencia | Copiaba la dirección pero no el pin: el chofer acababa en el punto geocodificado, no donde alguien marcó (D-220/D-221) |
+| `delivery_name` | En una Intertienda es la tienda que recibe; solo se seguía viendo porque el desplegable la deduce de la dirección (D-276) |
+| `assigned_sales_rep` | La copia pasaba a ser de quien pulsaba; al vendedor le desaparecía de su lista, que solo enseña lo suyo |
+
+Las cuatro se copian ahora. Y tres cosas más:
+
+- **La copia se abre.** Antes se creaba, se cerraba la ficha y quedaba un aviso con el número: se
+  pulsaba, desaparecía todo y parecía que no había pasado nada. Ahora la ficha se queda abierta
+  **enseñando la copia**; la lista de fuera sigue en la orden de origen, así que al cerrar se vuelve a
+  ella.
+- **Se avisa si la copia choca.** El PO y el SO se copian a propósito —suele ser el mismo pedido—, así
+  que la copia puede quedar con la misma cuenta, la misma fecha y el mismo PO que otra. Antes ese aviso
+  no llegaba a correr nunca por este camino, porque duplicar no pasa por la comprobación de enviar.
+  Ahora se avisa **antes de crearla** y se deja seguir, como con la factura duplicada. **No se metió en
+  `passesChecks`**: ese camino es el de enviar, y esto es crear.
+- **Las notas se quedan fuera, las dos**: ni `delivery_notes` —el campo viejo que el formulario ya no
+  enseña— ni las notas de rol. Una copia empieza sin la historia de la otra. Antes copiaba justo la
+  vieja y no la que la gente escribe hoy.
+
+Lo que **no** cambia: la copia nace `draft`, así que ni `submitBlockers` ni la guarda de sitio de D-276
+tienen que intervenir; la factura sigue sin copiarse, porque es única por entrega; y tras D-282 la copia
+mantiene contacto y tienda coherentes en una Intertienda.
+
+Qué se copia y qué no vive en `lib/order-duplicate.ts`, no dentro del modal: es una lista de campos que
+se lee, se prueba y se compara con la orden de origen.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Dieciocho mutantes, cada uno cazado por la prueba pensada para él: cerrar otra vez el borrador, abrirlo
+también a almacén, abrirlo solo a ventas, dar a ventas las aprobadas, quitar o ampliar el corte de la
+lista, y en duplicar: perder la tarifa, el pin, el destino o el dueño, llevarse la factura, llevarse las
+notas, nacer enviada, conservar la fecha vieja, no avisar del choque, volver a cerrar la ficha, ignorar
+la copia y armar el borrador a mano otra vez.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni retomar un borrador, ni duplicar y quedarse en la copia.
+- **La prueba de app contra base lee el `.sql` de la 118**, no la base. Si alguien cambia el guard en
+  producción sin pasar por una migración, esta prueba seguirá en verde.
+- **El aviso de choque usa la misma regla que el de crear** (misma cuenta, fecha y PO). Una copia con la
+  fecha de hoy y el PO repetido avisa; dos copias del mismo pedido para días distintos, no.
+- **Que un vendedor vea los borradores de otros** es nuevo, y con eso también ve el nombre de la cuenta
+  y la dirección de esos borradores. Era lo pedido, pero conviene que el dueño lo sepa.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2495 pasados | 3 saltados**. La rama añade 12
+pruebas, todas en `borrador-y-duplicar.test.ts`, fichero nuevo, y no quita ninguna: `rol-office.test.ts` sigue
+con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un worktree aparte, está en
+2483 | 3.

@@ -26,6 +26,7 @@ import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, conContactoDeOrigen, contactoEsLaTiendaDeOrigen, type ContextoDelUsuario } from "@/lib/order-sites";
+import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
@@ -60,7 +61,7 @@ const CANCEL_REASONS: { en: string; es: string }[] = [
 /** Create / edit / view a delivery order with role-gated fields + workflow actions. */
 export function OrderModal({
   me,
-  existing,
+  existing: abiertaPorLaLista,
   startEditing,
   onClose,
 }: {
@@ -73,6 +74,11 @@ export function OrderModal({
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
+  // Al duplicar, la ficha se queda abierta ENSEÑANDO LA COPIA (D-NEXT). Antes se cerraba y dejaba un
+  // aviso con el número: se pulsaba, desaparecía todo y parecía que no había pasado nada. La lista de
+  // fuera sigue con la orden de origen; al cerrar, se vuelve a ella.
+  const [copia, setCopia] = useState<Delivery | null>(null);
+  const existing = copia ?? abiertaPorLaLista;
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
   const editable = isNew || (startEditing && canEditFields(me.role, stage));
@@ -1016,26 +1022,27 @@ export function OrderModal({
     }
   };
 
-  // Clone this order into a fresh draft (repeat customers, standing orders).
-  // Copies the customer/order data, resets all workflow + fulfillment fields.
+  // Clone this order into a fresh draft (repeat customers, standing orders). Qué se copia y qué no,
+  // en `lib/order-duplicate` (D-NEXT), que es donde se puede leer y probar.
   const duplicate = async () => {
     if (!existing) return;
+    const payload: Draft = borradorDuplicado(existing, todayISO());
+    // El PO y el SO se copian a propósito, así que la copia puede chocar con una orden que ya existe:
+    // misma cuenta, misma fecha y mismo PO. Se avisa ANTES de crearla y se deja seguir, como el aviso
+    // de factura duplicada. No se mete en `passesChecks`: ese camino es el de enviar, y esto es crear.
+    const choca = duplicateOf(payload);
+    if (choca && !(await confirmAction(t(
+      `Order #${orderLabel(choca)} already has the same account, delivery date and PO. Duplicate anyway?`,
+      `La orden #${orderLabel(choca)} ya tiene la misma cuenta, fecha y PO. ¿Duplicar de todos modos?`,
+    )))) return;
     setBusy(true);
-    const s = existing;
-    const payload: Draft = {
-      order_type: s.order_type, store: s.store, account: s.account,
-      po2: s.po2, so_num: s.so_num, invoice_num: null,
-      est_pallets: s.est_pallets, delivery_windows: s.delivery_windows,
-      pickup_name: s.pickup_name, pickup_address: s.pickup_address, pickup_duration: s.pickup_duration,
-      delivery_address: s.delivery_address, delivery_duration: s.delivery_duration,
-      contact: s.contact, delivery_phone: s.delivery_phone, delivery_notes: s.delivery_notes,
-      route_miles: s.route_miles, route_duration: s.route_duration,
-      route_provider: s.route_provider, route_traffic: s.route_traffic,
-      delivery_date: todayISO(), stage: "draft",
-    };
     const row = await addDelivery(payload);
     setBusy(false);
-    if (row) { notify(t(`Duplicated as #${orderLabel(row)} (draft)`, `Duplicada como #${orderLabel(row)} (borrador)`)); onClose(); }
+    if (row) {
+      notify(t(`Duplicated as #${orderLabel(row)} (draft)`, `Duplicada como #${orderLabel(row)} (borrador)`));
+      setCopia(row);
+      setEditing(false);
+    }
   };
 
   // ---- Saved pickup / dropoff points ----
