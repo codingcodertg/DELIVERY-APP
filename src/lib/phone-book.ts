@@ -12,16 +12,16 @@
  * nombre escribe y lo tiene, y quien no, baja por tiendas.
  *
  * **Quién ve cada grupo NO se decide aquí.** «Remote» solo para manager y admin, «Sin tienda»
- * solo para admin: eso lo filtra `public.phone_book()` en la base (111, vigente en la 116), y a esta pantalla
+ * solo para admin: eso lo filtra `public.phone_book()` en la base (111, vigente en la 117), y a esta pantalla
  * solo le llegan las filas que ya se pueden ver. Aquí se agrupan y se ordenan, nada más.
  */
 
 /**
  * Una fila tal como la devuelve `public.phone_book()`. La definición vigente es la de la
- * migración **116**: cada una redefine la función entera, así que la última que la toca es la
+ * migración **117**: cada una redefine la función entera, así que la última que la toca es la
  * que manda. La 108 la creó, la 109 le puso la tienda del expediente, la 110 dejó fuera a quien
  * no tiene ningún dato de contacto, la 111 dejó solo a quien tiene extensión y añadió los grupos
- * y el código de tienda, y la 116 exige además teléfono.
+ * y el código de tienda, la 116 exige además teléfono, y la 117 añade la extensión de la tienda.
  */
 export type PersonaDirectorio = {
   full_name: string;
@@ -36,6 +36,11 @@ export type PersonaDirectorio = {
   email: string | null;
   /** Null = va por su tienda. Si no, el grupo que no es una tienda (111). */
   directory_group: "remote" | "sin_tienda" | null;
+  /**
+   * La extensión de su tienda, de Ajustes (117). Null en una fila de grupo, en una tienda sin extensión,
+   * y en un grupo de varias tiendas cuyas extensiones no coinciden: eso lo decide la base.
+   */
+  store_ext: string | null;
 };
 
 export type TipoGrupo = "tienda" | "remote" | "sin_tienda";
@@ -45,7 +50,7 @@ export type TipoGrupo = "tienda" | "remote" | "sin_tienda";
  * a propósito: las claves de grupo llevan un prefijo, así que una tienda cuyo código fuera
  * justo «remote» no se mezcla con el grupo Remote.
  */
-export type GrupoTienda = { clave: string; tipo: TipoGrupo; tienda: string | null; personas: number };
+export type GrupoTienda = { clave: string; tipo: TipoGrupo; tienda: string | null; ext: string | null; personas: number };
 export type GrupoDepartamento = { departamento: string | null; personas: number };
 
 /** Sin acentos y en minúsculas: quien busca "nunez" tiene que encontrar a "Núñez". */
@@ -67,11 +72,13 @@ export const claveTienda = (tienda: string) => `tienda:${tienda}`;
  * pero si llega va ahí mismo y no desaparece.
  */
 export function grupoDe(f: PersonaDirectorio): Omit<GrupoTienda, "personas"> {
-  if (f.directory_group === "remote") return { clave: CLAVE_REMOTE, tipo: "remote", tienda: null };
+  if (f.directory_group === "remote") return { clave: CLAVE_REMOTE, tipo: "remote", tienda: null, ext: null };
   if (f.directory_group === "sin_tienda" || vacio(f.store)) {
-    return { clave: CLAVE_SIN_TIENDA, tipo: "sin_tienda", tienda: null };
+    return { clave: CLAVE_SIN_TIENDA, tipo: "sin_tienda", tienda: null, ext: null };
   }
-  return { clave: claveTienda(f.store as string), tipo: "tienda", tienda: f.store };
+  // La extensión viene de la base, ya decidida por tienda o por grupo de código (117). Un espacio no es
+  // una extensión.
+  return { clave: claveTienda(f.store as string), tipo: "tienda", tienda: f.store, ext: vacio(f.store_ext) ? null : (f.store_ext as string).trim() };
 }
 
 /**
@@ -91,7 +98,8 @@ export function tiendasDelDirectorio(filas: PersonaDirectorio[]): GrupoTienda[] 
   for (const f of filas) {
     const g = grupoDe(f);
     const previo = grupos.get(g.clave);
-    grupos.set(g.clave, { ...g, personas: (previo?.personas ?? 0) + 1 });
+    // La extensión de un grupo: la primera que llegue. Todas las filas de una tienda traen la misma.
+    grupos.set(g.clave, { ...g, ext: previo?.ext ?? g.ext, personas: (previo?.personas ?? 0) + 1 });
     if (g.tipo === "tienda" && f.store_rank != null) {
       const r = rango.get(g.clave);
       if (r == null || f.store_rank < r) rango.set(g.clave, f.store_rank);

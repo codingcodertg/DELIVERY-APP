@@ -17174,3 +17174,96 @@ Nueve cambios: **ocho caen y un gemelo se queda en verde.**
   con `ROLLBACK`, cuenta por rol las filas sin teléfono y sin extensión (0 y 0) y los grupos que ve
   cada rol.
 - **Nadie ha abierto el directorio en un navegador** después del cambio.
+
+## D-NEXT · El directorio enseña la extensión de cada tienda
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambian la base, Datos → Tiendas y
+el directorio · **Migración: `117_phone_book_store_ext.sql`**, que aplica el orquestador · **Pedido por:**
+el dueño: *«pon la extensión en el directorio: RHC BRO ext 100, y lo mismo con las demás tiendas; todas las
+extensiones de una tienda empiezan por el mismo número, así que es ese número con 00»*.
+
+**Amplía D-260 y D-261, no las reemplaza.** El directorio sigue agrupando por código de tienda (D-260), y
+el código se sigue escribiendo en Datos → Tiendas (D-261). Lo nuevo es un segundo dato de la tienda, al
+lado del código.
+
+### Qué había
+
+La tabla viene del encargo del orquestador, que la midió en producción el 2026-09-17 con `phone_book()`
+como admin y la 116 ya aplicada. **No la medí yo.**
+
+| grupo | extensiones de su gente | prefijo |
+|---|---|---|
+| RHC BRO | 111, 113, 121 / 903, 122, 123, 124, 131, 141 | 1 |
+| RFM WES | 221, 231 | 2 |
+| RFC PHR | 312…341, y una «321 / 904» | 3 |
+| RFT MCA | 412…441 | 4 |
+| RFT MIS | 510, 531 | 5 |
+| RTG EDG | antes 6xx; tras la 116 no sale nadie | — |
+
+Una «X / 90N» es una persona con dos extensiones. Ninguna tienda tenía extensión propia en ningún sitio:
+el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
+
+### Qué hay
+
+- **La extensión es un dato de Ajustes, no se deduce.** Es la clave opcional `directory_ext` de cada
+  objeto de `public.settings.stores`, igual que `directory_code`, y se escribe en Datos → Tiendas, en el
+  campo «Extensión directorio», junto a «Código directorio». **Se descartó deducirla** de las extensiones
+  de la gente («el primer dígito, con 00»), por dos casos de la tabla: una tienda sin nadie visible (RTG
+  EDG) se quedaría sin extensión, y una extensión doble («321 / 904») obliga a adivinar cuál vale.
+- **`registroDeLugar` la guarda con la regla del código:** recortada, y vacía quita la clave en vez de
+  guardar `""`. Solo en la lista que enseña los campos del directorio (tiendas); en las demás, la clave se
+  conserva tal cual, como cualquier clave que el formulario no enseña (D-261).
+- **Migración 117.** `phone_book()` devuelve una **décima columna, `store_ext`, al final**, para no mover
+  las nueve de antes. En las filas de grupo (Remote, Sin tienda) va null, igual que la tienda y el rango.
+  La firma cambia, y `create or replace` no puede cambiar las columnas de una función que devuelve tabla:
+  hace falta `drop` + `create` + `revoke`/`grant`. **Entre el `drop` y el `create` el directorio no
+  existe**, así que se aplica en una transacción. El fichero no lleva `begin`/`commit`, igual que la 111 y
+  la 114, que también borran una función. La función se copia por programa de la vigente (116). Una prueba
+  quita de la 117 exactamente lo añadido y compara el resultado con la 116, así que el filtro de extensión
+  y teléfono, los grupos y quién los ve, los códigos y los rangos no pueden cambiar sin que se note.
+- **Un grupo de varias tiendas** (las que comparten código) enseña extensión **solo si todas tienen una y
+  es la misma**: `count(*) = count(ext) and count(distinct ext) = 1`. Si difieren, o a alguna le falta, no
+  enseña ninguna. Una extensión que vale para media tienda es una llamada al sitio equivocado. Según la
+  tabla, RFT MCA y RFT MIS tienen hoy códigos distintos, así que hoy no pasa. La extensión se cruza por el
+  **código** de la tienda de cada persona, no por su nombre.
+- **En la página**, «*tienda* · ext *n*» sale en la lista de tiendas, en la cabecera de la tienda (las
+  dos variantes de la miga) y en el botón de volver. Sin extensión se ve solo el nombre, como antes.
+- **No es un enlace.** El encargo decía «pulsable si hay forma de llamar a una extensión». Lo medido en
+  el código: la tarjeta pinta la extensión de cada persona como texto plano
+  (`<span>{p.ringcentral_ext || sinDato}</span>`), y el `tel:` es solo para el teléfono. En Recruiting hay
+  enlaces `rcapp://r/call?number=` que abren una llamada en la app de RingCentral, pero siempre con
+  teléfonos. **Que uno de esos enlaces marque una extensión interna no está medido**, porque medirlo es
+  hacer una llamada de verdad. Si algún día se mide, la tarjeta y la tienda deberían cambiar juntas.
+- **Los valores los carga el orquestador** (100, 200, 300, 400, 500, 600) después de aplicar la 117.
+  Hasta entonces ninguna tienda tiene `directory_ext`, y el directorio se ve igual que hoy.
+- **Ni un dato del dueño en el repo fuera de esta entrada.** Las pruebas usan tiendas y extensiones
+  inventadas, y una de ellas falla si aparece un literal que no está en la lista de permitidos dentro de
+  la función. El `.sql` remite a esta entrada en vez de citar tiendas.
+
+### Medido, rompiendo cada pieza
+
+26 cambios: **23 caen, cada uno por la prueba que lleva su nombre, y los 3 gemelos se quedan en verde.**
+
+- **La base (117):** el grupo enseña extensión aunque a una tienda le falte; la enseña aunque difieran
+  (`>= 1`); una fila de grupo lleva extensión; un espacio cuenta como extensión; falta el `drop`; se
+  pierde el filtro del teléfono (cae solo la comparación con la 116, que no enumera piezas); `store_ext`
+  va antes que `directory_group`; se cruza por el nombre y no por el código; el ledger no se nombra; un
+  nombre de tienda dentro de la función.
+- **La cascada:** la extensión no se recorta; la tienda nunca lleva extensión; un espacio da `""` y no
+  null; Remote lleva la extensión de la fila; la lista de tiendas pierde la extensión.
+- **`registroDeLugar`:** no recorta; vacía guarda `""`; se trata también en las listas sin directorio;
+  editar el código pisa la extensión.
+- **Las páginas:** la lista de tiendas sin extensión; el botón de volver sin extensión; la extensión como
+  enlace `tel:`; Datos sin el campo.
+- **Los gemelos:** las dos condiciones del grupo en el otro orden (se comparan como conjunto); el `if` de
+  `registroDeLugar` al revés; `g && g.ext` en vez de `g?.ext`.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 117 no está aplicada cuando se escribe esto. Su matriz, de solo lectura y con
+  `ROLLBACK`, inventa extensiones dentro de la transacción («1-ensayo» en la primera tienda; la segunda y
+  la tercera forzadas al código `GRUPO-ENSAYO` con extensiones distintas) y comprueba con admin, manager y
+  vendedor que la tienda 1 sale con la suya, que el grupo sale sin ninguna, que hay 0 filas de grupo con
+  extensión y 0 filas sin teléfono o sin extensión.
+- **Nadie ha abierto el directorio ni Datos → Tiendas en un navegador** después del cambio.
+- **Si `rcapp://` puede marcar una extensión** (ver arriba).

@@ -64,6 +64,32 @@ describe("el código de directorio, en las tiendas", () => {
   });
 });
 
+describe("la extensión de directorio, en las tiendas (D-NEXT)", () => {
+  it("se guarda recortada", () => {
+    const prev = tienda();
+    const rec = registroDeLugar(prev, { ...prev, directory_ext: " 900 " }, { directoryCode: true });
+    expect(rec.directory_ext).toBe("900");
+  });
+
+  it("vaciarla quita la clave, no guarda una cadena vacía", () => {
+    const prev = tienda({ directory_ext: "900" });
+    const rec = registroDeLugar(prev, { ...prev, directory_ext: "   " }, { directoryCode: true });
+    expect("directory_ext" in rec).toBe(false);
+  });
+
+  it("en una lista que no enseña los campos del directorio, se conserva tal cual", () => {
+    const prev = tienda({ directory_ext: "900" });
+    const rec = registroDeLugar(prev, { ...prev, directory_ext: "" }, { directoryCode: false });
+    expect(rec.directory_ext).toBe("900");
+  });
+
+  it("editar el código no toca la extensión, ni al revés", () => {
+    const prev = tienda({ directory_code: "ABC", directory_ext: "900" });
+    const rec = registroDeLugar(prev, { ...prev, directory_code: "XYZ" }, { directoryCode: true });
+    expect([rec.directory_code, rec.directory_ext]).toEqual(["XYZ", "900"]);
+  });
+});
+
 describe("el editor de Datos usa esta función, y no una copia", () => {
   // Sin esto, la prueba de arriba protegería una función que la pantalla podría dejar de llamar.
   const leer = (r: string) => readFileSync(r, "utf8");
@@ -72,6 +98,11 @@ describe("el editor de Datos usa esta función, y no una copia", () => {
   it("importa `registroDeLugar` y la llama al confirmar", () => {
     expect(pagina).toContain('import { registroDeLugar } from "@/lib/named-location";');
     expect(pagina).toContain("const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });");
+  });
+
+  it("y el formulario de tiendas tiene el campo de la extensión", () => {
+    expect(pagina).toContain("value={draft.directory_ext ?? \"\"}");
+    expect(pagina).toContain("onChange={(e) => setDraft({ ...draft, directory_ext: e.target.value })}");
   });
 
   it("y ya no construye el registro de cero", () => {

@@ -17,7 +17,7 @@ import {
  * salta, para quien ya sabe el nombre.
  *
  * Todo lo que se ve sale de una sola llamada a `public.phone_book()`, y solo de las personas
- * activas con extensión de RingCentral (111) y teléfono (116). Quién ve los grupos «Remote» y «Sin tienda» lo
+ * activas con extensión de RingCentral (111) y teléfono (116), con la extensión de cada tienda (117). Quién ve los grupos «Remote» y «Sin tienda» lo
  * decide esa función según el rol, no esta pantalla. Esta pantalla no puede enseñar de más
  * aunque se equivoque: lo que no vuelve de esa función no está aquí, y tampoco hay un segundo
  * filtro aquí que pueda decir otra cosa.
@@ -64,6 +64,10 @@ export default function DirectoryPage() {
       : g.tipo === "sin_tienda" ? t("No store", "Sin tienda")
       : (g.tienda as string);
   const nombreDepto = (s: string | null) => s ?? t("No department", "Sin departamento");
+  // «<tienda> · ext <n>» (D-NEXT). La extensión NO es un enlace, como la de cada persona en la tarjeta, que
+  // es texto plano. Recruiting abre llamadas con `rcapp://r/call?number=`, pero que eso marque una extensión
+  // interna no está medido, y medirlo es hacer una llamada de verdad.
+  const conExt = (g: Pick<GrupoTienda, "ext"> | undefined) => (g?.ext ? ` · ext ${g.ext}` : "");
 
   const eligeGrupo = (clave: string) => {
     setGrupo(clave);
@@ -119,7 +123,7 @@ export default function DirectoryPage() {
           ) : (
             grupos.map((g) => (
               <button key={g.clave} className="dir-row" onClick={() => eligeGrupo(g.clave)}>
-                <span className="dir-row-name">{nombreGrupo(g)}</span>
+                <span className="dir-row-name">{nombreGrupo(g)}{conExt(g)}</span>
                 <span className="hint">{g.personas}</span>
               </button>
             ))
@@ -129,7 +133,7 @@ export default function DirectoryPage() {
         <div className="card">
           <div className="dir-crumbs">
             <button className="btn btn-ghost btn-sm" onClick={volverAGrupos}>← {t("Stores", "Tiendas")}</button>
-            <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}</span>
+            <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}{conExt(elegido)}</span>
           </div>
           {deptos.map((g) => (
             <button key={g.departamento ?? "__sin__"} className="dir-row" onClick={() => setDepto(g.departamento)}>
@@ -144,10 +148,10 @@ export default function DirectoryPage() {
             <button className="btn btn-ghost btn-sm" onClick={volverAGrupos}>← {t("Stores", "Tiendas")}</button>
             {sinNivelDepto ? (
               // Sin nivel de departamento no hay a dónde volver en medio: el grupo es el título.
-              <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}</span>
+              <span className="section-label" style={{ margin: 0 }}>{nombreGrupo(elegido)}{conExt(elegido)}</span>
             ) : (
               <>
-                <button className="btn btn-ghost btn-sm" onClick={volverADeptos}>← {nombreGrupo(elegido)}</button>
+                <button className="btn btn-ghost btn-sm" onClick={volverADeptos}>← {nombreGrupo(elegido)}{conExt(elegido)}</button>
                 <span className="section-label" style={{ margin: 0 }}>{nombreDepto(depto)}</span>
               </>
             )}
