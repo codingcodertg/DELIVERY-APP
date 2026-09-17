@@ -35978,6 +35978,7 @@ sigue con sus 7, reescritas tres para el mecanismo nuevo. `main` 2a157f1, medido
 rama anterior (el mismo commit), está en 2387 | 3.
 
 ## D-282 · En Intertienda, el contacto es la tienda que envía
+> **Revertida por D-NEXT** (2026-09-17, el mismo día): el dueño pidió «lets undo the change we made to intertienda». Vuelven el contacto de texto libre y la fila de «Vendido desde» + dirección, y se va el recálculo del contacto en cada escritura. D-267 y D-276 no se tocan. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«en intertienda, la tienda vendido desde debe ser el nombre del contacto, y
@@ -36576,3 +36577,76 @@ como los otros cinco, que es la regla que esas pruebas exigen.
 - **Que el iframe imprima igual en la app de escritorio.** Es lo que se espera —no abre ventana, así que no
   pasa por el filtro— pero no está probado ahí. Si fallara, `imprimeDocumento` devuelve `false` y ese es el
   sitio donde engancharía un aviso.
+
+## D-NEXT · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** *«lets undo the change we made to intertienda»*.
+
+### Qué vuelve
+
+D-282, de esta misma tarde, hizo tres cosas en Intertienda. Las tres se deshacen:
+
+- el campo «Nombre de contacto» vuelve a ser **texto libre**, en vez del desplegable de tiendas;
+- la fila **«Tienda (Vendido desde)» + «Dirección de tienda»** vuelve a salir, también en Intertienda;
+- elegir la tienda de destino **vuelve a escribir el contacto** con esa tienda, como hacía `eligeDestino`
+  desde D-267.
+
+Y se va lo que D-282 había puesto por debajo: las tres funciones del contacto (`contactoEsLaTiendaDeOrigen`,
+`conContactoDeOrigen` y `escrituraConContactoDeOrigen`) y **el recálculo de `contact` = `store` en cada
+escritura** de los dos proveedores de datos. `aplicaTipo` deja de tocar el contacto.
+
+### Qué NO se revierte
+
+- **D-267 y D-276 enteras:** una orden sigue sin poder ir de un sitio a ese mismo sitio, los
+  desplegables siguen sin ofrecer la otra punta, y la guarda de escritura de los dos proveedores sigue
+  rechazando crear, enviar o aprobar una orden así. Ni una línea de eso se ha tocado, y sus pruebas
+  siguen tal cual.
+- **D-286:** el borrador que se puede retomar y el duplicar que ya no pierde cosas.
+- **Los datos.** D-282 no tenía migración: lo único que escribió fueron contactos de Intertienda
+  puestos a la tienda de origen en las órdenes que alguien haya guardado hoy, desde que se publicó hasta
+  esta reversión. **Esas filas se quedan como están**, con el contacto que tengan; el formulario ya no
+  las va a tocar sola. No se ha medido cuántas son.
+
+### Cómo se hizo, y por qué a mano
+
+`git revert 564a9b1` choca: D-283, D-285 y D-286 tocaron después `OrderModal`, los dos proveedores,
+`order-sites.ts` y esas mismas pruebas. Se deshizo cambio por cambio, leyendo el diff de D-282 y
+aplicándolo al revés sobre el código de hoy. **Nada de lo que vino después se movió**: el historial de
+solicitudes de ayuda (D-285) y el borrador y el duplicar (D-286) siguen donde estaban, y `verify`
+lo confirma.
+
+### Las pruebas que fijaban lo revertido
+
+`intertienda-contacto.test.ts` fijaba el comportamiento de D-282. **Se da la vuelta**, no se borra: ahora
+fija que el contacto es texto libre, que la fila volvió y que el destino vuelve a escribir el contacto.
+Y, sobre todo, que **no quedan restos**: las tres funciones no existen ni se importan en el modal ni en
+los proveedores. Media reversión es peor que ninguna, porque deja dos sitios decidiendo lo mismo.
+
+También vuelven a su valor anterior dos afirmaciones de barrido: el selector de origen sale **dos** veces
+en el modal (no tres), y los manejadores del modal vuelven a ser `eligeOrigen` y `eligeDestino` sin
+envolver.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Siete mutantes, cada uno cazado por la prueba pensada para él: que el destino deje de poner el contacto,
+que el contacto vuelva a ser un desplegable, que la fila se esconda otra vez, que se caiga la dirección
+de tienda, que reaparezca una de las funciones del contacto, que `aplicaTipo` vuelva a tocarlo, y —para
+comprobar que lo que no se revierte sigue vivo— que un proveedor se quede sin la guarda de sitio.
+
+Uno **sobrevivió** y por eso se cuenta: esconder la fila tras un `{false && (` dejaba los textos en el
+fichero, así que la prueba seguía verde. Ahora se exige que el comentario y la fila sean líneas
+seguidas, es decir, que la fila se pinte **sin condición**.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador** después de revertir.
+- **No se sabe qué falló exactamente.** El dueño dijo «undo», no qué le molestaba. Si lo que quería
+  quitar era otra cosa de Intertienda —lo más parecido es D-276, que impide que una orden vaya de una
+  tienda a esa misma tienda—, esto no lo toca y habrá que preguntárselo.
+- **Las Intertienda guardadas mientras D-282 estuvo viva** conservan el contacto que se les escribió. No
+  se contaron ni se tocaron.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2486 pasados | 3 saltados**. La rama **quita** 9
+pruebas netas: `intertienda-contacto.test.ts` pasa de 17 a 8, las que fijaban D-282 por las que fijan la vuelta
+atrás y que no queden restos. `main` 3c9fa8d, medido en un worktree aparte, está en 2495 | 3.

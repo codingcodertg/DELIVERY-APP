@@ -7,7 +7,7 @@ import { type AppNotification, notificationsForStage } from "@/lib/notifications
 import { canTransition } from "@/lib/constants";
 import { orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
-import { avisoNoVaANingunSitio, escrituraConContactoDeOrigen, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
+import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
 
@@ -120,10 +120,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return [...fresh, ...s.notifications];
   };
 
-  const addDelivery = useCallback<DataState["addDelivery"]>(async (dEntrada) => {
+  const addDelivery = useCallback<DataState["addDelivery"]>(async (d) => {
     const s = storeRef.current;
-    // Same contact rule as the real provider (D-282).
-    const d = escrituraConContactoDeOrigen(undefined, dEntrada, s.settings.order_type_rules);
     // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, "en")); return null; }
@@ -151,10 +149,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return row;
   }, [me, persist, notify]);
 
-  const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patchEntrada) => {
+  const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patch) => {
     const s = storeRef.current;
-    // Same contact rule as the real provider (D-282).
-    const patch = escrituraConContactoDeOrigen(s.deliveries.find((c) => c.id === id), patchEntrada, s.settings.order_type_rules);
     // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlEditar.length) { notify(avisoNoVaANingunSitio(choqueAlEditar, "en")); return false; }

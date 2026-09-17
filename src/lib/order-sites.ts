@@ -60,9 +60,9 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
     next.store = c.miTienda; // normal direction: Sold From is the rep's store
   }
   if (rule.storeToStore === true && origenEsDestino(next, true, c.tiendas)) {
-    return conContactoDeOrigen(rule.homeIsDestination ? sinOrigen(next) : sinDestino(next), c.reglas);
+    return rule.homeIsDestination ? sinOrigen(next) : sinDestino(next);
   }
-  return conContactoDeOrigen(next, c.reglas);
+  return next;
 }
 
 /**
@@ -80,48 +80,6 @@ export function borradorInicial(p: Borrador, c: ContextoDelUsuario): Borrador {
     if (!origenEsDestino(conTienda, isStoreToStore(next.order_type, c.reglas), c.tiendas)) next = conTienda;
   }
   return next;
-}
-
-// ---- En Intertienda, el contacto es la tienda que envía (D-282) ------------------------------------
-//
-// El dueño: «en intertienda, la tienda vendido desde debe ser el nombre del contacto, y quita la fila de
-// tienda vendido desde y la dirección de la tienda, solo en órdenes intertienda». Medido por el
-// orquestador en producción el 2026-09-17: de 67 Intertienda, el contacto era la tienda de DESTINO en 64
-// —lo ponía `eligeDestino`—, «RDZ McAllen» (otra tienda) en 2 y vacío en 1; cuenta y teléfono, vacíos
-// en las 67. Nunca un nombre de persona, así que no se pierde nada.
-//
-// **Qué tipo es «Intertienda».** Por su regla, no por el nombre, como el resto del formulario: el que es
-// tienda-a-tienda **y** recibe (`homeIsDestination`). En producción solo Intertienda lo es; Transfer
-// sigue con su contacto de siempre.
-//
-// **Una sola verdad.** El contacto no es un segundo dato que pueda discrepar de `store`: se escribe
-// igual a `store` en el borrador y, otra vez, en cada escritura a la base (`escrituraConContactoDeOrigen`,
-// en los dos proveedores), que es lo que corrige una orden vieja al guardarla. Sin migración de datos.
-
-/** ¿En este tipo el contacto es la tienda de origen? Tienda-a-tienda y «que recibe». */
-export function contactoEsLaTiendaDeOrigen(tipo: string | null | undefined, reglas: OrderTypeRules): boolean {
-  const rule = orderTypeRule(tipo, reglas);
-  return rule.storeToStore === true && rule.homeIsDestination === true;
-}
-
-/** El borrador con el contacto igual a la tienda de origen, si su tipo lo pide; si no, tal cual. */
-export function conContactoDeOrigen<T extends Borrador>(d: T, reglas: OrderTypeRules): T {
-  return contactoEsLaTiendaDeOrigen(d.order_type, reglas) ? { ...d, contact: d.store ?? "" } : d;
-}
-
-/** Los campos que, tocados, obligan a recalcular el contacto. */
-const CAMPOS_DEL_CONTACTO = ["order_type", "store", "contact"] as const;
-
-/**
- * La escritura con el contacto recalculado, si toca el tipo, la tienda o el contacto —guardar desde el
- * modal manda los tres, y crear una orden de este tipo trae al menos el tipo—. Una escritura que no los
- * toca —la etapa, la fecha, las fotos— pasa sin cambios: no se reescribe nada que nadie estaba guardando.
- */
-export function escrituraConContactoDeOrigen<T extends Borrador>(antes: Delivery | undefined, cambio: T, reglas: OrderTypeRules): T {
-  const despues: Borrador = { ...(antes ?? {}), ...cambio };
-  if (!contactoEsLaTiendaDeOrigen(despues.order_type, reglas)) return cambio;
-  if (!CAMPOS_DEL_CONTACTO.some((k) => k in cambio)) return cambio;
-  return { ...cambio, contact: despues.store ?? "" };
 }
 
 /** La re-entrega (antes, dentro del modal): una copia ya aprobada de la orden de origen, enlazada a ella. */

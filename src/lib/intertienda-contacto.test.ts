@@ -1,161 +1,90 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { eligeDestino, eligeOrigen, opcionesDeOrigen } from "./order-endpoints";
-import {
-  aplicaTipo, borradorDeReentrega, borradorInicial, conContactoDeOrigen, contactoEsLaTiendaDeOrigen,
-  escrituraConContactoDeOrigen, type ContextoDelUsuario,
-} from "./order-sites";
-import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
+import { eligeDestino } from "./order-endpoints";
+import * as sitios from "./order-sites";
+import type { NamedLocation } from "./types";
 
 /**
- * En Intertienda el contacto es la tienda que envía (D-282).
+ * D-282 revertida (D-NEXT). El dueño: «lets undo the change we made to intertienda».
  *
- * Los borradores se arman con los manejadores del modal, compuestos como los compone él. Las reglas son
- * las de producción; los nombres de tienda, neutros.
+ * Este fichero fijaba lo contrario —el contacto era la tienda que envía, y la fila de «Vendido desde»
+ * desaparecía en Intertienda—. Ahora fija la vuelta atrás, y sobre todo **que no queden restos**: media
+ * reversión es peor que ninguna, porque deja dos sitios decidiendo lo mismo.
+ *
+ * Lo que NO se revierte tiene su prueba aquí también, en corto: D-267 y D-276 —que una orden no vaya de
+ * un sitio a ese mismo sitio, y la guarda de los proveedores— siguen enteras, y sus suites propias
+ * (`order-endpoints.test.ts`, `order-sites.test.ts`) no se tocaron.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
-
-const REGLAS: Record<string, OrderTypeRule> = {
-  Intertienda: { docRef: "po", storeToStore: true, homeIsDestination: true },
-  Transfer: { docRef: "estimate", storeToStore: true },
-  Customer: { docRef: "invoice", storeToStore: false },
-};
+const modal = leer("src/components/OrderModal.tsx");
 const TIENDAS: NamedLocation[] = [
   { name: "Tienda Norte", address: "100 Norte Ave, Ciudad TX" },
   { name: "Tienda Sur", address: "200 Sur Blvd, Ciudad TX" },
-  { name: "Tienda Este", address: "300 Este Rd, Ciudad TX" },
 ];
-const [NORTE, SUR, ESTE] = TIENDAS;
-const GERENTE: ContextoDelUsuario = { rol: "manager", miTienda: NORTE.name, tipos: ["Customer", "Intertienda", "Transfer"], tiendas: TIENDAS, reglas: REGLAS };
 
-/** Los dos manejadores, compuestos como los compone el modal. */
-const eligeContacto = (p: Partial<Delivery>, v: string) => conContactoDeOrigen(eligeOrigen(p, v, TIENDAS), REGLAS);
-const eligeDestinoEnModal = (p: Partial<Delivery>, v: string) => conContactoDeOrigen(eligeDestino(p, v, TIENDAS), REGLAS);
-
-describe("qué tipos tienen el contacto en la tienda de origen", () => {
-  it("el que es tienda-a-tienda y recibe: Intertienda sí, Transfer no, Customer no", () => {
-    expect(contactoEsLaTiendaDeOrigen("Intertienda", REGLAS)).toBe(true);
-    expect(contactoEsLaTiendaDeOrigen("Transfer", REGLAS)).toBe(false);
-    expect(contactoEsLaTiendaDeOrigen("Customer", REGLAS)).toBe(false);
-    expect(contactoEsLaTiendaDeOrigen(null, REGLAS)).toBe(false);
-  });
-});
-
-describe("el borrador, con los manejadores del modal", () => {
-  it("elegir el contacto elige la tienda de origen, con su recogida", () => {
-    const abierto = borradorInicial({}, GERENTE); // gerente: Intertienda, destino su tienda, origen por elegir
-    const d = eligeContacto(abierto, SUR.name);
-    expect(d.store).toBe(SUR.name);
-    expect(d.contact).toBe(SUR.name);
-    expect(d.pickup_name).toBe(SUR.name);
-    expect(d.pickup_address).toBe(SUR.address);
+describe("el contacto vuelve a ser lo que era", () => {
+  it("elegir la tienda de destino vuelve a escribir el contacto, como antes de D-282", () => {
+    const d = eligeDestino({ order_type: "Intertienda", store: "Tienda Norte" }, "Tienda Sur", TIENDAS);
+    expect(d.delivery_name).toBe("Tienda Sur");
+    expect(d.contact).toBe("Tienda Sur");
   });
 
-  it("elegir el destino ya no pisa el contacto: sigue siendo la tienda que envía", () => {
-    const d = eligeDestinoEnModal(eligeContacto(borradorInicial({}, GERENTE), SUR.name), ESTE.name);
-    expect(d.delivery_name).toBe(ESTE.name);
-    expect(d.contact).toBe(SUR.name);
+  it("y el formulario vuelve a tener el contacto como texto libre", () => {
+    expect(modal).toContain('<Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)}');
   });
 
-  it("en Transfer, el destino sigue poniendo el contacto, como siempre", () => {
-    const base = aplicaTipo({}, "Transfer", { ...GERENTE, miTienda: SUR.name });
-    const d = eligeDestinoEnModal(base, ESTE.name);
-    expect(d.contact).toBe(ESTE.name);
-  });
-
-  it("pasar una orden a Intertienda deja el contacto en su tienda de origen", () => {
-    const cliente = { order_type: "Customer", store: SUR.name, contact: "Quien recibe", delivery_name: "Obra", delivery_address: "9 Obra Ln" };
-    const d = aplicaTipo(cliente, "Intertienda", { ...GERENTE, miTienda: NORTE.name });
-    expect(d.store).toBe(SUR.name);
-    expect(d.contact).toBe(SUR.name);
-  });
-
-  it("el filtro del contacto es el de «Vendido desde»: no ofrece la tienda de destino (D-267, D-276)", () => {
-    const d = eligeDestinoEnModal(borradorInicial({}, GERENTE), ESTE.name);
-    expect(opcionesDeOrigen(d, TIENDAS, true)).not.toContain(ESTE.name);
-  });
-});
-
-describe("al escribir en la base", () => {
-  // Como están las 67 de producción, medidas por el orquestador: el contacto es la tienda de DESTINO.
-  const vieja = {
-    id: "a", order_type: "Intertienda", stage: "approved", store: SUR.name, pickup_name: SUR.name, pickup_address: SUR.address,
-    delivery_name: ESTE.name, delivery_address: ESTE.address, contact: ESTE.name,
-  } as Delivery;
-  const escribe = <T extends Partial<Delivery>>(antes: Delivery | undefined, cambio: T) => escrituraConContactoDeOrigen(antes, cambio, REGLAS);
-
-  it("guardar una orden vieja la corrige: el contacto pasa a ser la tienda de origen", () => {
-    // Lo que manda el modal al guardar: el borrador entero.
-    const guardada = escribe(vieja, { ...vieja, contact: ESTE.name });
-    expect(guardada.contact).toBe(SUR.name);
-  });
-
-  it("una escritura que no toca tipo, tienda ni contacto pasa sin cambios", () => {
-    expect(escribe(vieja, { stage: "picked_up" })).toEqual({ stage: "picked_up" });
-    expect(escribe(vieja, { delivery_date: "2026-09-20" })).toEqual({ delivery_date: "2026-09-20" });
-  });
-
-  it("crear una Intertienda escribe el contacto aunque el borrador traiga otro", () => {
-    expect(escribe(undefined, { order_type: "Intertienda", store: SUR.name, contact: ESTE.name }).contact).toBe(SUR.name);
-    // Sin tienda de origen, contacto vacío: no se inventa nada.
-    expect(escribe(undefined, { order_type: "Intertienda" } as Partial<Delivery>).contact).toBe("");
-  });
-
-  it("la re-entrega de una Intertienda vieja nace ya corregida", () => {
-    const copia = escribe(undefined, borradorDeReentrega(vieja, { cargo: "", motivo: "Rota" }));
-    expect(copia.contact).toBe(SUR.name);
-  });
-
-  it("Transfer y Customer no se tocan", () => {
-    const transfer = { order_type: "Transfer", store: SUR.name, contact: ESTE.name };
-    expect(escribe(undefined, transfer)).toEqual(transfer);
-    const cliente = { order_type: "Customer", store: SUR.name, contact: "Quien recibe" };
-    expect(escribe(undefined, cliente)).toEqual(cliente);
-  });
-});
-
-describe("el formulario y los proveedores", () => {
-  const modal = leer("src/components/OrderModal.tsx");
-
-  it("en Intertienda, el contacto es el desplegable de tiendas, con el filtro y el manejador de siempre", () => {
-    const contacto = modal.slice(modal.indexOf("{contactoEsOrigen ? ("), modal.indexOf('label={t("Phone number"'));
-    expect(contacto).toContain("val={d.store}");
-    expect(contacto).toContain("opts={opcionesDeOrigen(d, settings.stores, storeToStore)}");
-    expect(contacto).toContain("on={(v) => setD((p) => conContactoDeOrigen(eligeOrigen(p, v, settings.stores), settings.order_type_rules))}");
-    expect(contacto).toContain('invalid={missingSet.has("store")}');
-  });
-
-  it("la fila de «Vendido desde» y la dirección de tienda solo salen fuera de Intertienda", () => {
-    expect(modal).toContain("{!contactoEsOrigen && (\n            <div className=\"grid g2\">");
-    const fila = modal.slice(modal.indexOf("{!contactoEsOrigen && ("), modal.indexOf("{/* ---- Pickup ---- */}"));
+  it("la fila de «Vendido desde» y la dirección de tienda vuelven, sin condición", () => {
+    // «Sin condición» hay que exigirlo de verdad: esconder la fila tras un `{false && (` dejaba los
+    // textos en el fichero y la prueba en verde (lo cazó un mutante). Se exige que el comentario y la
+    // fila sean líneas seguidas, sin nada en medio.
+    const SALTO = String.fromCharCode(10);
+    expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            <div className="grid g2">');
+    const fila = modal.slice(modal.indexOf('{/* ---- Store (Sold From) + its address ---- */}'), modal.indexOf("{/* ---- Pickup ---- */}"));
+    expect(fila).toContain('label={t("Store (Sold From)", "Tienda (Vendido Desde)")}');
     expect(fila).toContain('<label>{t("Store address", "Dirección de tienda")}</label>');
+    expect(fila).not.toContain("contactoEsOrigen");
+  });
+});
+
+describe("no quedan restos de D-282", () => {
+  it("las tres funciones que creó ya no existen", () => {
+    for (const nombre of ["contactoEsLaTiendaDeOrigen", "conContactoDeOrigen", "escrituraConContactoDeOrigen"]) {
+      expect(Object.keys(sitios), nombre).not.toContain(nombre);
+    }
+    expect(leer("src/lib/order-sites.ts")).not.toContain("ContactoDeOrigen");
   });
 
-  it("elegir el destino no pisa el contacto", () => {
-    expect(modal).toContain("on={(v) => setD((p) => conContactoDeOrigen(eligeDestino(p, v, settings.stores), settings.order_type_rules))}");
+  it("ni en el formulario ni en los dos proveedores", () => {
+    for (const f of ["src/components/OrderModal.tsx", "src/lib/data-provider.tsx", "src/lib/local-data-provider.tsx"]) {
+      expect(leer(f), f).not.toContain("ContactoDeOrigen");
+      expect(leer(f), f).not.toContain("contactoEsOrigen");
+    }
+  });
+});
+
+describe("lo que NO se revierte sigue en pie", () => {
+  it("la regla de D-267 y D-276 y su guarda de escritura siguen exportadas", () => {
+    expect(typeof sitios.escrituraQueNoVaANingunSitio).toBe("function");
+    expect(typeof sitios.aplicaTipo).toBe("function");
+    expect(typeof sitios.borradorInicial).toBe("function");
   });
 
-  it("y en el primer paso, la misma elección con la etiqueta del contacto", () => {
-    expect(modal).toContain('label={contactoEsOrigen ? t("Contact name (sending store)", "Nombre de contacto (tienda que envía)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}');
+  it("los dos proveedores siguen llamando a la guarda antes de escribir", () => {
+    for (const f of ["src/lib/data-provider.tsx", "src/lib/local-data-provider.tsx"]) {
+      expect(leer(f), f).toContain("escrituraQueNoVaANingunSitio(");
+    }
   });
 
-  for (const f of ["src/lib/data-provider.tsx", "src/lib/local-data-provider.tsx"]) {
-    it(`${f.replace("src/lib/", "")}: crear y editar recalculan el contacto antes de escribir`, () => {
-      const src = leer(f);
-      const tramo = (nombre: string) => {
-        const ini = src.indexOf(`useCallback<DataState["${nombre}"]>`);
-        return src.slice(ini, src.indexOf("useCallback<DataState[", ini + 10));
-      };
-      for (const nombre of ["addDelivery", "updateDelivery"]) {
-        const cuerpo = tramo(nombre);
-        const en = cuerpo.indexOf("escrituraConContactoDeOrigen(");
-        expect(en, nombre).toBeGreaterThan(0);
-        for (const escritura of ["if (teaching)", "supabase.from(\"deliveries\")", "persist("]) {
-          const donde = cuerpo.indexOf(escritura);
-          if (donde >= 0) expect(en, `${nombre}: ${escritura}`).toBeLessThan(donde);
-        }
-      }
-    });
-  }
+  it("y `aplicaTipo` sigue vaciando la punta que choca, sin tocar el contacto", () => {
+    const REGLAS = {
+      Intertienda: { docRef: "po" as const, storeToStore: true, homeIsDestination: true },
+      Customer: { docRef: "invoice" as const, storeToStore: false },
+    };
+    const ctx = { rol: "manager", miTienda: "Tienda Norte", tipos: ["Customer", "Intertienda"], tiendas: TIENDAS, reglas: REGLAS };
+    const cliente = { order_type: "Customer", store: "Tienda Norte", contact: "Quien recibe", delivery_name: "Tienda Norte", delivery_address: TIENDAS[0].address };
+    const d = sitios.aplicaTipo(cliente, "Intertienda", ctx);
+    expect(d.store).toBe("");                 // la punta que el tipo deja elegir
+    expect(d.contact).toBe("Quien recibe");   // el contacto ya no lo toca nadie
+  });
 });

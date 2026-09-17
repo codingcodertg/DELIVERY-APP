@@ -145,9 +145,8 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
 
   it("los dos «Sold From» y el destino filtran la otra punta", () => {
     const origen = "opts={opcionesDeOrigen(d, settings.stores, storeToStore)}";
-    // Tres desde D-282: el primer paso, el formulario completo y el contacto de Intertienda, que es
-    // ese mismo selector con otra etiqueta.
-    expect(modal.split(origen).length - 1).toBe(3);
+    // Dos otra vez desde D-NEXT, que revirtió D-282: el primer paso y el formulario completo.
+    expect(modal.split(origen).length - 1).toBe(2);
     expect(modal).toContain("opts={opcionesDeDestino(d, settings.stores)}");
   });
 
