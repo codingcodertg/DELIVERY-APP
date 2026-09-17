@@ -26,6 +26,7 @@ import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } 
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { blankDelivery } from "@/lib/blank-delivery";
+import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 
@@ -890,6 +891,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
     async (d) => {
+      // No order goes into pending or approved going to its own place, from any screen (D-NEXT).
+      const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, settings.order_type_rules, settings.stores);
+      if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return null; }
       // Teaching mode: build the order entirely client-side and keep it in the
       // local overlay. It never touches the DB, so no order number/code is
       // consumed, no events are logged, and nobody else is notified.
@@ -956,11 +960,14 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       }
       return row;
     },
-    [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries, ubicarSiHaceFalta],
+    [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries, ubicarSiHaceFalta, settings.order_type_rules, settings.stores, lang],
   );
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
     async (id, patchIn, opts) => {
+      // No order goes into pending or approved going to its own place, from any screen (D-NEXT).
+      const choqueAlEditar = escrituraQueNoVaANingunSitio(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules, settings.stores);
+      if (choqueAlEditar.length) { if (!opts?.quiet) notify(avisoNoVaANingunSitio(choqueAlEditar, lang)); return false; }
       let patch = patchIn;
       // Teaching mode: record the edit in the local overlay only.
       if (teaching) {
@@ -1033,7 +1040,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, patch as Record<string, unknown>) || undefined) : undefined);
       return true;
     },
-    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta],
+    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang],
   );
   // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
   updateDeliveryRef.current = updateDelivery;
@@ -1205,6 +1212,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         notify("This order must be approved by a manager first.");
         return false;
       }
+      // No order goes into pending or approved going to its own place, from any screen (D-NEXT). Admins too: this is not a workflow step
+      // they may skip, it's an order with nowhere to go.
+      const choqueAlMover = escrituraQueNoVaANingunSitio(current, { stage, ...extra }, settings.order_type_rules, settings.stores);
+      if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return false; }
       const patch: Partial<Delivery> = { stage, ...extra };
       if (stage === "approved") {
         patch.approved_by = me?.id ?? null;
@@ -1258,7 +1269,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       void emitStageNotifs({ stage, order_no: order?.order_no ?? null, order_code: order?.order_code ?? null, delivery_id: id, creatorId: order ? orderOwner(order) : null, reason: note });
       return true;
     },
-    [supabase, me, notify, logEvent, deliveries, effectiveDeliveries, emitStageNotifs, teaching],
+    [supabase, me, notify, logEvent, deliveries, effectiveDeliveries, emitStageNotifs, teaching, settings.order_type_rules, settings.stores, lang],
   );
 
   const eventsFor = useCallback(

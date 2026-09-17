@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { submitBlockers } from "./required";
-import { mismaDireccion, normalizaLugar, opcionesSinLaOtraPunta, origenEsDestino } from "./order-endpoints";
+import { mismaDireccion, normalizaLugar, opcionesDeOrigen, origenEsDestino } from "./order-endpoints";
 import type { Delivery, OrderTypeRule, NamedLocation } from "./types";
 
 // Una orden no puede ir de un sitio a ese mismo sitio (D-267). Lo que decide —`submitBlockers`— se
@@ -37,17 +37,17 @@ function borradorIntertienda(casa: string, origen: string): Partial<Delivery> {
   return { ...resto, ...tras_tipo, store: origen, pickup_name: origen, pickup_address: elegida.address };
 }
 
-const claves = (d: Partial<Delivery>) => submitBlockers(d, RULES).map((m) => m.key).sort();
+const claves = (d: Partial<Delivery>) => submitBlockers(d, RULES, TIENDAS).map((m) => m.key).sort();
 
 describe("tienda-a-tienda: el origen no puede ser el destino", () => {
   it("de una tienda a otra, se envía", () => {
-    expect(submitBlockers(borradorIntertienda("Tienda Norte", "Tienda Sur"), RULES)).toEqual([]);
+    expect(submitBlockers(borradorIntertienda("Tienda Norte", "Tienda Sur"), RULES, TIENDAS)).toEqual([]);
   });
 
   it("de una tienda a sí misma, se bloquea — y como comparten dirección, las dos reglas lo dicen", () => {
     const d = borradorIntertienda("Tienda Norte", "Tienda Norte");
     expect(claves(d)).toEqual(["delivery_address", "store"]);
-    expect(submitBlockers(d, RULES).every((m) => m.conflict === true)).toBe(true);
+    expect(submitBlockers(d, RULES, TIENDAS).every((m) => m.conflict === true)).toBe(true);
   });
 
   it("el mismo nombre escrito distinto sigue siendo la misma tienda", () => {
@@ -71,7 +71,7 @@ describe("cualquier tipo: recogida y entrega en la misma dirección", () => {
   });
 
   it("una entrega a cliente normal se envía", () => {
-    expect(submitBlockers(cliente({}), RULES)).toEqual([]);
+    expect(submitBlockers(cliente({}), RULES, TIENDAS)).toEqual([]);
   });
 
   it("la misma dirección con otras mayúsculas y espacios se bloquea", () => {
@@ -79,7 +79,7 @@ describe("cualquier tipo: recogida y entrega en la misma dirección", () => {
   });
 
   it("en una entrega a cliente, el mismo NOMBRE con otra dirección no bloquea: dos locales de una cadena", () => {
-    expect(submitBlockers(cliente({ pickup_name: "Obra", delivery_name: "Obra" }), RULES)).toEqual([]);
+    expect(submitBlockers(cliente({ pickup_name: "Obra", delivery_name: "Obra" }), RULES, TIENDAS)).toEqual([]);
   });
 
   it("sin dirección de recogida no hay nada que comparar", () => {
@@ -90,7 +90,7 @@ describe("cualquier tipo: recogida y entrega en la misma dirección", () => {
 describe("lo que falta y lo que se contradice van juntos, pero marcados distinto", () => {
   it("una orden a sí misma sin pallets devuelve los dos, y solo el choque lleva `conflict`", () => {
     const d = { ...borradorIntertienda("Tienda Norte", "Tienda Norte"), est_pallets: null };
-    const bs = submitBlockers(d, RULES);
+    const bs = submitBlockers(d, RULES, TIENDAS);
     expect(bs.find((m) => m.key === "est_pallets")?.conflict).toBeUndefined();
     expect(bs.filter((m) => m.conflict).map((m) => m.key).sort()).toEqual(["delivery_address", "store"]);
   });
@@ -100,8 +100,7 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
   const vieja = { ...borradorIntertienda("Tienda Norte", "Tienda Norte"), stage: "approved" as const };
 
   it("su valor actual sigue en el desplegable, aunque sea la otra punta", () => {
-    const nombres = TIENDAS.map((s) => s.name);
-    expect(opcionesSinLaOtraPunta(nombres, vieja.delivery_name, vieja.store)).toEqual(["Tienda Norte", "Tienda Sur"]);
+    expect(opcionesDeOrigen(vieja, TIENDAS, true)).toEqual(["Tienda Norte", "Tienda Sur"]);
   });
 
   it("y al volver a enviarla, se bloquea", () => {
@@ -110,24 +109,28 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
 
   it("corregida, pasa", () => {
     const corregida = { ...vieja, store: "Tienda Sur", pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
-    expect(submitBlockers(corregida, RULES)).toEqual([]);
+    expect(submitBlockers(corregida, RULES, TIENDAS)).toEqual([]);
   });
 });
 
 describe("los desplegables no ofrecen la otra punta", () => {
-  const nombres = ["Tienda Norte", "Tienda Sur", "Tienda Este"];
+  // Desde D-NEXT el filtro pregunta a la regla con el mismo manejador que aplica la elección; los
+  // recorridos completos, en cualquier orden, están en order-sites.test.ts.
+  const tres: NamedLocation[] = [...TIENDAS, { name: "Tienda Este", address: "300 Este Rd, Ciudad TX" }];
+  const nombres = tres.map((s) => s.name);
 
   it("quita la otra punta, comparando normalizado", () => {
-    expect(opcionesSinLaOtraPunta(nombres, " tienda norte ", "")).toEqual(["Tienda Sur", "Tienda Este"]);
+    expect(opcionesDeOrigen({ order_type: "Intertienda", delivery_name: " tienda norte " }, tres, true)).toEqual(["Tienda Sur", "Tienda Este"]);
   });
 
-  it("sin otra punta elegida, ofrece todas", () => {
-    expect(opcionesSinLaOtraPunta(nombres, "", "")).toEqual(nombres);
-    expect(opcionesSinLaOtraPunta(nombres, null, null)).toEqual(nombres);
+  it("sin otra punta elegida, ofrece todas; fuera de tienda-a-tienda, también", () => {
+    expect(opcionesDeOrigen({}, tres, true)).toEqual(nombres);
+    expect(opcionesDeOrigen({ delivery_name: null, delivery_address: null }, tres, true)).toEqual(nombres);
+    expect(opcionesDeOrigen({ delivery_name: "Tienda Norte" }, tres, false)).toEqual(nombres);
   });
 
   it("fuera de tienda-a-tienda, el origen igual al destino no es un choque", () => {
-    expect(origenEsDestino({ store: "Tienda Norte", delivery_name: "Tienda Norte" }, false)).toBe(false);
+    expect(origenEsDestino({ store: "Tienda Norte", delivery_name: "Tienda Norte" }, false, TIENDAS)).toBe(false);
     expect(normalizaLugar("  A   B ")).toBe("a b");
   });
 });
@@ -141,14 +144,14 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
   });
 
   it("los dos «Sold From» y el destino filtran la otra punta", () => {
-    const origen = "opts={storeToStore ? opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.delivery_name, d.store) : settings.stores.map((s) => s.name)}";
+    const origen = "opts={opcionesDeOrigen(d, settings.stores, storeToStore)}";
     expect(modal.split(origen).length - 1).toBe(2);
-    expect(modal).toContain("opts={opcionesSinLaOtraPunta(settings.stores.map((s) => s.name), d.store, deliveryStore)}");
+    expect(modal).toContain("opts={opcionesDeDestino(d, settings.stores)}");
   });
 
   it("crear-y-enviar y guardar pasan los dos por `passesChecks`, que llama a `submitBlockers`", () => {
     expect(modal).toContain("if (blockSubmit(draft)) return false;");
-    expect(modal).toContain("const blockers = submitBlockers(draft, settings.order_type_rules);");
+    expect(modal).toContain("const blockers = submitBlockers(draft, settings.order_type_rules, settings.stores);");
     // Guardar una orden que no es borrador, y el botón de crear y enviar.
     expect(modal).toContain('if ((payload.stage ?? "draft") !== "draft" && !(await passesChecks(payload))) return;');
     expect(modal).toContain("if (!(await passesChecks(payload))) return;");
