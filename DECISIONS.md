@@ -36732,3 +36732,95 @@ comprueba con la constante.
 - **Nadie ha abierto la pantalla.** Ni el mapa, ni los camiones en vivo están vistos en un navegador.
 - **La cuota de mapas.** El mapa de Almacén usa el mismo componente que los demás, así que una pantalla
   más que lo pinta es tráfico más de mapas; no se midió cuánto.
+
+## D-NEXT · El desplegable de «Vendedor» ofrece los de la tienda de la orden, y un gerente que vende sale en él
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** en Weslaco el gerente es también vendedor, *«tiene que poder elegirse a sí
+mismo, y el desplegable debería mostrar solo los vendedores de esa tienda»*.
+
+### Qué fallaba
+
+La lista era una línea: `users.filter((u) => u.role === "sales")`. Dos cosas mal a la vez.
+
+- **Por rol:** solo el rol `sales`. Un gerente que además vende no aparecía, ni siquiera para sí mismo.
+  En RDZ Weslaco no hay ninguna cuenta de ventas —la única persona de esa tienda es su gerente—, así que
+  quien registraba la orden tenía que ponerle como vendedor a alguien de otra tienda o dejarlo vacío,
+  siendo un campo obligatorio.
+- **Por tienda:** salían los vendedores de **todas** las tiendas, mezclados y ordenados por nombre.
+
+### La regla, en un solo sitio
+
+`src/lib/sales-reps.ts`. Quién califica **no es una lista de roles nueva**: es `canCreate`, la misma
+capacidad con la que la app decide quién puede registrar una orden (`ROLE_CAPS`: admin, manager, sales y
+office; más quien la tenga concedida a mano en su perfil — hoy hay una cuenta de logística así). Un
+segundo criterio paralelo se habría separado del primero en cuanto alguien tocara uno de los dos.
+
+La tienda que manda es la **de la orden** (`d.store`), no la de quien mira: una oficinista puede
+registrar una orden vendida desde otra tienda, y quien la vendió es de esa otra.
+
+Y la lista **no se queda sin opciones nunca**, porque el campo es obligatorio:
+
+1. los candidatos de la tienda de la orden;
+2. si esa tienda no tiene a nadie —o la orden todavía no tiene tienda—, **todos** los candidatos, con un
+   aviso debajo del selector cuando la tienda sí está puesta. Es una **red, no el camino normal**: medido
+   el 2026-09-17, las seis tiendas tienen al menos a una persona que puede crear órdenes. El mismo
+   respaldo que usa el reparto de choferes en `routes/page.tsx` (los de su tienda y, si no, cualquiera);
+3. más el vendedor **ya asignado**, aunque no cumpla ninguna de las dos cosas (la regla de D-267): un
+   selector vacío con un valor guardado detrás es peor que uno con una opción de sobra.
+
+### Los números de producción que justifican esto (2026-09-17, medidos por el orquestador)
+
+Ventas / otros que pueden crear, por tienda: Brownsville 3/2 · **Weslaco 0/1** · Pharr 4/3 · McAllen 2/3 ·
+Mission 1/0 · Edinburg 1/1. Sin tienda asignada: 3 de ventas y 5 que pueden crear (4 admin y el de
+logística). El perfil del gerente de Weslaco tiene `store = "RDZ Weslaco"`, idéntico carácter a carácter
+al nombre en `settings.stores` — la comparación es por nombre, no por id.
+
+**Consecuencia que conviene tener escrita:** esas **3 cuentas de ventas sin tienda dejan de aparecer en
+el desplegable de cualquier tienda**. Es lo que pidió el dueño —solo los de esa tienda— y no un olvido;
+se arregla asignándoles tienda en Permisos, no tocando el código.
+
+### Qué NO cambia
+
+- **Quién está obligado a elegir vendedor.** Sigue siendo la orden nueva de manager, office, admin o
+  chofer, y nunca en los tipos tienda-a-tienda. Este cambio toca la lista, no la obligación.
+- **El desplegable sigue sin aparecer al editar una orden ya creada.** Medido: hoy **no existe ningún
+  caso vivo** en que se abra con un vendedor ya puesto —el duplicado (D-286) copia `assigned_sales_rep`
+  pero abre la orden como existente, el borrador retomado es existente, y la re-entrega no copia el
+  vendedor y se escribe sin pasar por el formulario—. La conservación del punto 3 queda escrita en la
+  función porque cuesta nada y es la regla de D-267, pero **hoy no se ve**. Si el dueño quiere corregir
+  el vendedor de una orden ya creada, es otro encargo.
+- **A los gerentes y a office se les sigue sin poder asignar tienda desde Permisos**
+  (`UserDialog.tsx`, `storeScoped`). No hacía falta tocarlo —el gerente de Weslaco ya tiene tienda— y no
+  es inocuo: `profiles.store` también agrupa el directorio de la empresa (117, D-261/D-273), bloquea al
+  almacén a su tienda, prellena la tienda de cada orden nueva y agrupa el expediente de empleados y la
+  nómina. Si algún día hace falta, es una decisión aparte, no un efecto colateral de esta.
+- Almacén, chofer y logística **no estaban** en la lista y siguen sin estar, salvo el que tenga «crear»
+  concedido a mano, que es lo mismo que le permite registrar la orden.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Nueve mutantes, cada uno cazado por la prueba pensada para él: que la lista vuelva a filtrar por rol, que
+mande la tienda de quien mira en vez de la de la orden, que desaparezca el aviso del respaldo, que
+«vendedor» vuelva a ser solo `sales`, que se caiga el filtro por tienda, que se caiga el respaldo, que
+deje de conservarse el vendedor puesto, que «sin tienda» empareje con «sin tienda», y que se pierda el
+orden alfabético.
+
+Uno **sobrevivió** y por eso se cuenta: quitar el `sort` de `vendedoresDeLaTienda` no rompía nada, porque
+`vendedoresParaLaOrden` volvía a ordenar después. Era código que ninguna prueba podía medir, así que se
+**borró** en vez de escribirle una prueba a medida.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2545 pasados | 3 saltados**. La rama añade 16
+pruebas, todas en `vendedor-por-tienda.test.ts`, fichero nuevo, y no quita ninguna. `main` f2511aa, medido
+en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Las pruebas son de la función y del fichero del formulario.
+- **El aviso de «esta tienda no tiene a nadie asignado» no se ha visto en pantalla**, porque hoy no hay
+  ninguna tienda en ese estado.
+- **No se comprobó si el dueño quiere que el gerente aparezca también en las tiendas que sí tienen
+  vendedores.** Con esta regla aparece: es «quien puede crear órdenes de esa tienda», no «quien es del
+  rol ventas y de esa tienda».
