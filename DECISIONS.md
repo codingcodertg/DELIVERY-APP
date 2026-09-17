@@ -17117,3 +17117,60 @@ cada uno cazado por la prueba pensada para él:
 `verify.mjs`: en verde sobre `.next` limpio, en solitario: **2227 pasados | 3 saltados**. La rama añade 17
 pruebas y no quita ninguna —14 en `password-input.test.ts`, fichero nuevo, y 3 en
 `profile-password.test.ts`, contadas en el diff—, así que `main` 0125a29 está en 2210 | 3.
+
+## D-NEXT · El directorio pide también teléfono
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. El cambio vive en la base; en
+el código solo cambian comentarios y pruebas · **Migración: `116_phone_book_with_phone.sql`**, que
+aplica el orquestador · **Pedido por:** el dueño: *«si no tienen número de teléfono, quítalos del
+directorio»*.
+
+**Amplía D-260, no la reemplaza.** La regla del 2026-09-16 («solo sale quien tiene extensión de
+RingCentral») sigue igual; ahora hace falta **la extensión y el teléfono**. Y D-259 sigue en pie: a nadie
+se le toca el expediente para esconderlo.
+
+### Qué había
+
+Medido en producción por el orquestador, 2026-09-17: de las **45** personas que devolvía
+`phone_book()` a un admin, **15 no tenían teléfono**, todas con extensión:
+- 2 de Remote;
+- 3 de Sin tienda;
+- 10 de tiendas.
+
+Ningún teléfono tenía formato raro.
+
+### Qué hay
+
+`public.phone_book()` (116) pide, además de seguir activo y tener extensión, **tener teléfono**. Un
+teléfono de solo espacios no cuenta: se compara con `nullif(btrim(...), '')`, igual que la extensión.
+
+- **La función se copia entera de la vigente (111)**, generada por programa, y cambia **solo el filtro y
+  su comentario**. Grupos Remote y Sin tienda, quién los ve, códigos de tienda, rangos, `security
+  definer`, `search_path` y permisos quedan igual. Una prueba compara la 116 con la 111, quitando el
+  filtro de las dos.
+- **La firma no cambia**, así que basta `create or replace`, sin `drop`: el directorio no deja de
+  existir mientras se aplica.
+- **Quien no tiene teléfono sigue entero en RR. HH.**, y vuelve al directorio solo el día que alguien se
+  lo ponga.
+
+Con los números de arriba, el directorio de un admin pasa de 45 a **30**. **Es una resta, no una
+medida.** La 116 trae las consultas para contarlo al aplicarla.
+
+### Medido, rompiendo cada pieza
+
+Nueve cambios: **ocho caen y un gemelo se queda en verde.**
+
+- **El filtro:** volver a aceptar sin teléfono; que un teléfono de solo espacios cuente; perder la
+  extensión (la regla de la 111); añadir una condición de más.
+- **Lo copiado de la 111:** que Remote lo vea cualquiera; que el grupo por código pierda el menor rango.
+  Los dos caen por la comparación con la 111, que no enumera piezas.
+- **El resto:** borrar la función antes de crearla; quitar el `revoke` a `anon`.
+- **El gemelo:** teléfono antes que extensión en el `where`. Se queda en verde, porque las condiciones se
+  comparan como conjunto normalizado, sin fijar el orden.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 116 no está aplicada cuando se escribe esto. Su matriz, de solo lectura y
+  con `ROLLBACK`, cuenta por rol las filas sin teléfono y sin extensión (0 y 0) y los grupos que ve
+  cada rol.
+- **Nadie ha abierto el directorio en un navegador** después del cambio.

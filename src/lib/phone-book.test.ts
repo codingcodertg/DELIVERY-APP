@@ -17,9 +17,10 @@ const sql = leer("supabase/migrations/108_phone_book.sql");
 const sql109 = leer("supabase/migrations/109_employee_file_store.sql");
 const sql110 = leer("supabase/migrations/110_phone_book_con_contacto.sql");
 const sql111 = leer("supabase/migrations/111_phone_book_grupos.sql");
+const sql116 = leer("supabase/migrations/116_phone_book_with_phone.sql");
 
 // Cada migración redefine la función ENTERA, así que «lo que la función hace hoy» se mide
-// siempre en la última que la toca —hoy la 111—, y los bloques de las anteriores quedan como
+// siempre en la última que la toca —hoy la 116—, y los bloques de las anteriores quedan como
 // historia de lo que cada una hizo, que sigue siendo cierto de esos ficheros.
 
 /** El `.sql` sin sus comentarios: una prueba sobre el filtro mide el filtro, no lo que cuenta. */
@@ -684,5 +685,69 @@ describe("111: solo un admin de RR. HH. cambia la marca de grupo", () => {
   it("la columna existe antes que el guard que la lee", () => {
     expect(sql111.indexOf("add column if not exists directory_group text;"))
       .toBeLessThan(sql111.indexOf("create or replace function recruiting.guard_employee_file_link()"));
+  });
+});
+
+// La definición vigente de la función vive en la 116: la de la 111, con un filtro más.
+describe("116: el directorio pide extensión Y teléfono", () => {
+  // Mide el TEXTO del `.sql`. El ensayo por rol, de solo lectura y con ROLLBACK, está al final del fichero.
+  const funcionDe = (texto: string, apertura: RegExp) =>
+    sinComentarios(corta(texto, { desde: apertura, hasta: /grant {2}execute on function public\.phone_book\(\) to authenticated;/ }));
+  const f116 = funcionDe(sql116, /create or replace function public\.phone_book\(\)/);
+  const f111 = funcionDe(sql111, /create function public\.phone_book\(\)/);
+  const filtro = corta(f116, { desde: /from recruiting\.employee_files f/, hasta: /\n {2}\),\n {2}clasificadas/ });
+  // Cada condición del `where`, con los espacios normalizados: el orden no se fija.
+  const condiciones = corta(filtro, { tras: /where\s+/ })
+    .split(/\n\s*and\s+/)
+    .map((c) => c.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .sort();
+
+  it("la función y su filtro están (control)", () => {
+    expect(f116).toContain("create or replace function public.phone_book()");
+    expect(condiciones.length).toBeGreaterThan(0);
+  });
+
+  it("hacen falta las tres cosas: seguir activo, extensión y teléfono, y ninguna más", () => {
+    expect(condiciones).toEqual([
+      "f.date_left is null",
+      "nullif(btrim(coalesce(f.phone, '')), '') is not null",
+      "nullif(btrim(coalesce(f.ringcentral_ext, '')), '') is not null",
+    ].sort());
+  });
+
+  it("es la 111 con ese filtro y nada más: grupos, códigos, rangos y permisos no se tocan", () => {
+    // Se quita el filtro de las dos y se compara el resto, con los espacios normalizados.
+    const sinFiltro = (f: string) =>
+      f.replace(/where\s+f\.date_left[\s\S]*?(?=\n {2}\),\n {2}clasificadas)/, "")
+        .replace(/^create (or replace )?function/, "create function")
+        .replace(/'Directorio de la compania:[^']*'/, "'…'")
+        .replace(/\s+/g, " ")
+        .trim();
+    expect(sinFiltro(f116).length).toBeGreaterThan(1000); // control: la comparación mira algo
+    expect(sinFiltro(f116)).toBe(sinFiltro(f111));
+  });
+
+  it("la firma no cambia, así que es create or replace y no hay drop", () => {
+    const bloque = corta(f116, { tras: /returns table \(/, hasta: /\)\nlanguage sql/ });
+    expect([...bloque.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1])).toEqual([
+      "full_name", "title", "store", "store_rank", "department", "phone", "ringcentral_ext", "email", "directory_group",
+    ]);
+    expect(sinComentarios(sql116)).not.toMatch(/drop\s+function/i);
+  });
+
+  it("los permisos se vuelven a dar igual", () => {
+    expect(sql116).toContain("revoke execute on function public.phone_book() from public, anon;");
+    expect(sql116).toContain("grant  execute on function public.phone_book() to authenticated;");
+  });
+
+  it("no escribe nada: el expediente de quien no tiene teléfono no se toca", () => {
+    expect(sinComentarios(sql116)).not.toMatch(/\bupdate\s+recruiting|\bdate_left\s*=|alter\s+table|create\s+policy/i);
+  });
+
+  it("se auto-registra en el ledger y no lleva el marcador sin numerar", () => {
+    const [, despues] = sql116.split("-- @ledger-below");
+    expect(despues).toContain("116_phone_book_with_phone.sql");
+    expect(sql116).not.toContain("D-" + "NEXT");
   });
 });
