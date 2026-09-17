@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
+import { ChoferYPallets } from "@/components/ChoferYPallets";
 import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
@@ -712,6 +713,25 @@ export function OrderModal({
 
   // El almacén confirma la TARIFA al agarrar la orden (D-146). Es el primer momento en que
   // alguien que no es ventas mira la orden entera, y todavía queda margen para preguntar.
+  /**
+   * Comenzar a preparar SIN tarifa (D-NEXT), que es lo que pidió almacén: *«quiero comenzar a
+   * preparar pero no cobraron delivery, así que no me permite avanzar»*.
+   *
+   * No inventa dinero: no escribe `delivery_fee`, así que la orden sigue saliendo marcada con el
+   * 🚩 SIN TARIFA de la tabla y con el aviso del modal. Lo único que hace es no dejar el camión
+   * parado por un dato que es de ventas, y dejar dicho en la etapa que se empezó así.
+   */
+  const startSinTarifa = async () => {
+    if (!existing) return;
+    setBusy(true);
+    const ok = await setStage(existing.id, "fulfilling", t("Started with no delivery fee charged", "Se empezó sin tarifa de entrega cobrada"));
+    setBusy(false);
+    if (ok) {
+      setShowStartConfirm(false);
+      notify(t("Preparing — no fee charged", "Preparando — sin tarifa cobrada"));
+    }
+  };
+
   const confirmStart = async () => {
     if (!existing) return;
     const fee = Number(startFee);
@@ -735,6 +755,27 @@ export function OrderModal({
       setShowStartConfirm(false);
       notify(cambio ? t(`Preparing — fee corrected to $${fee}`, `Preparando — tarifa corregida a $${fee}`) : t("Preparing", "Preparando"));
     }
+  };
+
+  /**
+   * Volver de «listo» a «preparando» (D-NEXT), que es lo que pidió almacén: *«si por accidente
+   * pongo listo, ¿cómo me regreso a no listo?»*.
+   *
+   * Se pregunta antes, porque deshace trabajo de otros: el chofer pudo ya estar en camino a
+   * recogerla. Y va por `setStage`, así que queda registrada como cualquier otro cambio de etapa,
+   * con su nota.
+   */
+  const volverAPreparar = async () => {
+    if (!existing) return;
+    const ok = await confirmAction(
+      t("Send this order back to Preparing? It will stop being ready to load.",
+        "¿Devolver esta orden a Preparando? Dejará de estar lista para cargar."),
+      { danger: true, confirmLabel: t("Back to preparing", "Volver a preparando") },
+    );
+    if (!ok) return;
+    setBusy(true);
+    await setStage(existing.id, "fulfilling", t("Back to preparing (marked ready by mistake)", "Vuelve a preparación (se marcó listo por error)"));
+    setBusy(false);
   };
 
   // Warehouse confirms the real pallet count as part of marking the order
@@ -1178,6 +1219,7 @@ export function OrderModal({
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
       onRequestStart={() => { setStartFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowStartConfirm(true); }}
+      onBackToPreparing={volverAPreparar}
       readyConfirmOpen={showReadyConfirm}
       onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
       onConfirmReady={confirmReady}
@@ -2078,13 +2120,16 @@ export function OrderModal({
 
         {/* ---------- PALLET CONFIRMATION (pickup) — "ready" is a popup, see below ---------- */}
         {showPickupConfirm && existing && (
-          <div className="field" style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 14 }}>
+          <ChoferYPallets pedido={existing} />
+          <div className="field">
             <label>{t("How many pallets did you load?", "¿Cuántas pallets cargó?")}</label>
             <input type="number" min={1} value={pickupPallets} onChange={(e) => setPickupPallets(e.target.value)} />
             <div className="hint">
               {t(`Total on this order: ${existing.actual_pallets ?? existing.est_pallets ?? "—"}. Loading fewer splits the order into #${orderLabel({ ...existing, order_suffix: existing.order_suffix ?? "a" })} (this trip) and a new staged trip with the rest.`,
                  `Total de la orden: ${existing.actual_pallets ?? existing.est_pallets ?? "—"}. Cargar menos divide la orden en #${orderLabel({ ...existing, order_suffix: existing.order_suffix ?? "a" })} (este viaje) y un nuevo viaje preparado con el resto.`)}
             </div>
+          </div>
           </div>
         )}
 
@@ -2367,6 +2412,8 @@ export function OrderModal({
                "Antes de comenzar a preparar esta orden, revise lo que se está cobrando por la entrega.")}
           </p>
 
+          <ChoferYPallets pedido={existing} />
+
           <div className="field">
             <label>{t("Delivery fee", "Tarifa de entrega")}</label>
             <input type="number" min={0} step="0.01" autoFocus value={startFee}
@@ -2436,8 +2483,17 @@ export function OrderModal({
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+          {/* Dos salidas, y la de «sin tarifa» a la izquierda para que no se pulse por inercia
+              (D-NEXT). Almacén pedía no quedarse parado cuando ventas no cobró; lo que NO hace
+              este botón es escribir una tarifa, así que la orden sigue marcada como sin cobrar y
+              el que tenga que cobrarla la encuentra. */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
             <button className="btn btn-ghost" onClick={() => setShowStartConfirm(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" onClick={startSinTarifa} disabled={busy}
+              title={t("Start preparing without writing a fee — the order stays flagged as not charged",
+                       "Comenzar a preparar sin escribir tarifa — la orden queda marcada como no cobrada")}
+            >{t("No fee — continue anyway", "Sin tarifa — continuar igual")}</button>
             <button className="btn btn-primary" onClick={confirmStart} disabled={busy}>{t("Confirm & start preparing", "Confirmar y comenzar preparación")}</button>
           </div>
         </div>
@@ -2448,11 +2504,16 @@ export function OrderModal({
       <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal" style={{ maxWidth: 420 }}>
           <h3 style={{ marginTop: 0 }}>{t("Confirm pallets", "Confirmar pallets")}</h3>
+          <ChoferYPallets pedido={existing} />
           <div className="field">
-            <label>{t("How many pallets are ready?", "¿Cuántas pallets están listas?")}</label>
+            {/* De quién es cada número (D-NEXT), que es lo que pidió almacén: *«cuando yo pongo
+                cuántos pallets realmente era, quiero ver cuánto había puesto oficina o ventas»*.
+                Antes el estimado salía como «cantidad original de la orden», sin decir de quién
+                era, y el campo se rellenaba con él sin distinguirlos. Los dos números se guardan
+                aparte —`est_pallets` y `actual_pallets`—, así que esto solo los nombra. */}
+            <label>{t("Real pallets (warehouse)", "Pallets reales (almacén)")}</label>
             <input type="number" min={1} autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
               placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
-            <div className="hint">{t("Original order amount:", "Cantidad original de la orden:")} {existing.est_pallets ?? "—"}</div>
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
@@ -2604,7 +2665,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelReason, onPrint, onRequestDeliver, podOpen,
-  onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
@@ -2618,6 +2679,8 @@ function StageActions({
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
   onRequestStart: () => void;
+  /** Devuelve una orden lista a preparación, preguntando antes (D-NEXT). */
+  onBackToPreparing: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
   /** Driver's one-tap pickup: takes the full load, no count prompt. */
@@ -2674,6 +2737,15 @@ function StageActions({
     if (stage === "fulfilling") {
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);
+    }
+    // El camino de vuelta (D-NEXT): marcar listo por error tenía que poder deshacerse, y la base
+    // ya lo permitía. Va en almacén y no en el chofer: quien la marcó es quien la devuelve.
+    if (stage === "ready") {
+      btns.push(
+        <button key="unready" className="btn btn-ghost" onClick={onBackToPreparing} disabled={busy}
+          title={t("Marked ready by mistake? Send it back to Preparing", "¿Se marcó listo por error? Devolverla a Preparando")}
+        >↩ {t("Back to preparing", "Volver a preparando")}</button>,
+      );
     }
   }
 

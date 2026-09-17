@@ -36436,3 +36436,143 @@ la copia y armar el borrador a mano otra vez.
 pruebas, todas en `borrador-y-duplicar.test.ts`, fichero nuevo, y no quita ninguna: `rol-office.test.ts` sigue
 con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un worktree aparte, está en
 2483 | 3.
+
+## D-NEXT · Almacén: siete quejas, y dos de ellas no eran lo que parecían
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
+por:** el dueño, siete quejas de Almacén seguidas. Las de esta entrada son cinco; las dos que necesitan
+tocar la base van aparte (abajo, «Lo que queda»).
+
+### 1. «Hojas de carga no funciona en vista de escritorio»
+
+**Medido, y era la app de escritorio, no la vista.** `printLoadSheets` abría el documento con
+`window.open("", "_blank")` y, si salía `null`, hacía `if (!w) return` **sin decir nada**. En la app de
+escritorio eso es siempre `null`: `desktop/main.js` tiene un `setWindowOpenHandler` que solo permite los
+orígenes propios, y `window.open("")` le llega como `about:blank`. Medido llamando a su propio módulo,
+`crearConfianza("https://hub.rtg.example")`:
+
+| url | ¿es nuestra? |
+|---|---|
+| `""` | no |
+| `about:blank` | no |
+| la propia del hub | sí |
+
+Así que la ventana se denegaba y el botón no hacía nada. En el navegador funcionaba porque el clic es del
+usuario.
+
+**Y el mismo fallo estaba en «🖨 Comprobante»** (`printDeliverySlip`), que el dueño no había reportado.
+Se arregla también: es el mismo patrón y callado igual.
+
+**Arreglado imprimiendo en un iframe oculto del mismo documento** (`imprimeDocumento`), que no abre
+ventana y por tanto no pasa por ese filtro. Un solo sitio para los dos botones y las dos plataformas.
+**Se descartó** cambiar `desktop/main.js` para permitir `about:blank`: habría que reconstruir y repartir
+la app de escritorio, y el fallo también se arregla del lado web.
+
+**De regalo, un segundo fallo medido:** la hoja de «Sin asignar» salía **de primera**. El centinela del
+grupo sin chofer era un `"\u0000"` con el comentario *«sentinel sorts unassigned last»*, y NUL es el
+código más bajo: medido, `["Ana", NUL, "Beto"].sort(localeCompare)` deja el NUL delante. El comentario
+decía una cosa y el código hacía otra. Ahora el «al final» lo decide un comparador a la vista, y de paso
+el fichero ya no lleva un byte de control que hacía que `grep` lo tomara por binario.
+
+### 2. «Si por accidente pongo listo, ¿cómo me regreso a no listo?»
+
+**La base ya lo permitía y era la app la que no.** El guard acepta `ready → fulfilling` para almacén; lo
+que no lo tenía era `LEGAL_TRANSITIONS.ready`, que era `["picked_up"]`, y no había botón. Ahora hay
+«↩ Volver a preparando» en la etapa listo, para quien prepara, **preguntando antes** —puede haber un
+chofer ya en camino a recogerla— y pasando por `setStage`, así que el cambio queda registrado con su nota
+como cualquier otro. Una prueba compara la app con la **última** migración que define el guard, así que si
+un día se cierra en la base, salta aquí.
+
+### 3. «Quiero ver a qué chofer le voy a cargar»
+
+**La tabla ya lo traía**: la columna del chofer está en las columnas por defecto de almacén. Lo que no lo
+traía era ninguno de los **tres diálogos** donde almacén trabaja: confirmar la tarifa al agarrar la orden,
+marcar listo y recoger. Ahí va ahora una tarjeta con el chofer asignado (o «Sin asignar»).
+
+### 4. «Quiero comenzar a preparar pero no cobraron delivery, así que no me permite avanzar»
+
+**No era un requisito de ventas: era el diálogo de D-146.** `confirmStart` exige una tarifa no vacía, y el
+campo se rellena con la de la orden; si ventas no cobró, llega vacío y almacén tenía que teclear un número
+que no conoce.
+
+Hay un segundo botón: **«Sin tarifa — continuar igual»**. Mueve la etapa y deja la nota «se empezó sin
+tarifa de entrega cobrada». Lo que **no** hace es escribir una tarifa: ni la sugerida ni un cero. La orden
+sigue saliendo marcada con el 🚩 SIN TARIFA de la tabla y con el aviso del modal, así que quien tenga que
+cobrarla la encuentra; y almacén no queda parado por un dato que es de ventas.
+
+**Decisión del dueño, para que no se reabra:** se le preguntó si además quería que **no se pueda aprobar**
+una orden sin tarifa —que era arreglar la raíz— y dijo **que no**. Aprobar sigue sin exigir tarifa.
+
+### 6. «Cuando pongo cuántos pallets realmente era, quiero ver cuánto había puesto oficina o ventas»
+
+**Medido: no se pierde nada.** Son dos columnas distintas, `est_pallets` (de quien creó la orden) y
+`actual_pallets` (de almacén), y marcar listo escribe **solo** la segunda. **No hacía falta migración.**
+
+Lo que faltaba era decir de quién es cada número: el estimado salía como «cantidad original de la orden»,
+sin dueño, y el campo se rellenaba con él. Ahora el campo se llama «Pallets reales (almacén)» y la tarjeta
+dice «Estimado de ventas u oficina» y «Real de almacén», cada uno con su cifra y un guion cuando no hay.
+La tarjeta no calcula: no suma ni elige uno por el otro.
+
+### 5 y 7, en lo que no toca la base: la ruta del día
+
+Almacén no tenía ninguna pestaña de mapa ni de rutas. Lo que **sí puede leer ya** son sus propias órdenes
+(la política de `deliveries` le deja las etapas aprobada…entregada), con chofer asignado, secuencia de
+ruta, ventana y dirección. Con eso, la pantalla de Almacén tiene ahora dos vistas: **«Cola»**, la de
+siempre por etapa, y **«🧭 Ruta del día»**, de solo lectura: una tarjeta por chofer —con «Sin asignar» al
+final—, sus paradas en orden de ruta, y el total de paradas y pallets. Se puede abrir una orden desde ahí,
+con el mismo modal y los mismos permisos de siempre; no se cambia nada desde la vista.
+
+El agrupado por chofer vive en `src/lib/ruta-del-dia.ts` y lo usan **las hojas de carga impresas y esta
+vista**, que antes era el mismo orden escrito dentro de la impresión. Y el filtro del día vive una vez, así
+que la hoja de papel y la pantalla no pueden decir cosas distintas.
+
+### Medido, rompiendo cada pieza
+
+26 cambios: **23 caen, cada uno por la prueba que lleva su nombre, y los 3 gemelos se quedan en verde.**
+
+- **El agrupado:** los sin chofer primero; el orden decidido solo por el alfabeto (que es el fallo viejo);
+  una parada sin secuencia al principio; la ventana deja de ordenar; sin ventana al principio del día; el
+  estimado pisando al real en el total; un chofer de solo espacios como grupo propio.
+- **La impresión:** las hojas vuelven a abrir ventana; el comprobante también; vuelve un byte de control
+  al fichero.
+- **La vuelta a preparando:** la app se queda sin ella; desde listo se puede volver a aprobada; la vuelta
+  no pregunta; el botón sale en cualquier etapa menos listo.
+- **Sin tarifa:** el botón escribe la tarifa sugerida; confirmar deja de exigir el número.
+- **Los pallets y el chofer:** marcar listo pisa el estimado; la tarjeta solo en un diálogo; los pallets
+  sin decir de quién son; la tarjeta eligiendo un número en vez de enseñar los dos.
+- **La ruta:** la pantalla y la hoja miran órdenes distintas; desde la ruta se cambia la etapa; la vista
+  desaparece del selector.
+- **Los gemelos:** el «al final» con una resta de banderas; la ventana con `\d\d`; la nota de la vuelta
+  escrita sin acentos.
+
+**Una prueba mía no medía lo que decía**, y lo cazó un mutante: comprobaba que el texto
+`await confirmAction(` estuviera, y un `true || await confirmAction(...)` lo cumple sin preguntar nada.
+Ahora se exige la forma `const ok = await confirmAction(` y que un «no» corte con `if (!ok) return`.
+
+### Dos techos que suben, con su motivo
+
+La tabla de la ruta es la **sexta** tabla de columnas redimensionables de la app, así que dos pruebas
+que fijan ese número pasan de cinco a seis: `table-fit.test.ts` (contenedores con `tbl-resize` y con
+`tbl-fit`) y `tabla-ancho.test.ts` (marcos `tbl-scroll tbl-fit`). Son techos, no estimaciones: se mueven
+diciendo cuál es la nueva, y no se aflojan a un «al menos», que es lo que las dejaría de avisar del caso
+que existen para ver —una tabla redimensionable sin su marco—. Y el contenedor nuevo lleva `tbl-fit`
+como los otros cinco, que es la regla que esas pruebas exigen.
+
+### Lo que queda (otra rama, con base)
+
+- **Las posiciones en vivo de los choferes para almacén.** La política `read fleet locations` es hoy
+  `driver_id = auth.uid() or current_user_role() in ('admin','logistics','manager')`, así que almacén **no**
+  lee `driver_locations` y «por dónde va» no se puede pintar sin migración. Se le preguntó al dueño
+  diciéndole que eso abre la ubicación a **todo el rol** y no solo al supervisor, y dijo que sí. Va con la
+  migración 121, su plan en papel, su matriz por rol con ROLLBACK y su reversión.
+
+### Lo no verificado
+
+- **Nadie ha abierto la app.** Ni la impresión en escritorio, ni la vuelta a preparando, ni la vista de
+  ruta están vistas funcionando: el worktree no tiene `.env.local`, y la app de escritorio no se ha
+  ejecutado. La causa de la queja 1 está medida **leyendo** el handler de Electron y llamando a su módulo
+  de orígenes, no imprimiendo desde la app.
+- **Nada contra producción.**
+- **Que el iframe imprima igual en la app de escritorio.** Es lo que se espera —no abre ventana, así que no
+  pasa por el filtro— pero no está probado ahí. Si fallara, `imprimeDocumento` devuelve `false` y ese es el
+  sitio donde engancharía un aviso.
