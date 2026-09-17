@@ -177,7 +177,9 @@ export const ROLE_INFO: Record<UserRole, { label: string; label_es: string; colo
   warehouse: { label: "Warehouse",      label_es: "Almacén",           color: "var(--teal)",   desc: "Prepares approved orders",                 desc_es: "Prepara las órdenes aprobadas" },
   driver:    { label: "Driver",         label_es: "Chofer",            color: "var(--amber)",  desc: "Delivers orders and can log new ones",     desc_es: "Entrega órdenes y puede registrar nuevas" },
   logistics: { label: "Logistics Manager", label_es: "Gerente de Logística", color: "var(--green)", desc: "Assigns and optimizes driver routes",  desc_es: "Asigna y optimiza las rutas de los choferes" },
-  accounting: { label: "Accounting",     label_es: "Contabilidad",      color: "var(--ink-soft)", desc: "Reviews and approves; doesn't create orders", desc_es: "Revisa y aprueba; no crea órdenes" },
+  // Se ve como «Office / Oficina» (D-NEXT): el dueño lo renombró. La CLAVE sigue siendo `accounting`
+  // en la base, los tipos y las reglas; solo cambia lo que se lee. `manager` sigue siendo «Office Manager».
+  accounting: { label: "Office",         label_es: "Oficina",           color: "var(--ink-soft)", desc: "Creates, edits and approves orders", desc_es: "Crea, edita y aprueba órdenes" },
 };
 
 export function roleLabel(role: UserRole, lang: Lang): string {
@@ -669,6 +671,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, { en: string; es: string }[]>
     { en: "View the dispatch map", es: "Ver el mapa de despacho" },
   ],
   accounting: [
+    { en: "Create orders", es: "Crear órdenes" },
     { en: "Approve orders", es: "Aprobar órdenes" },
     { en: "Reject with a reason", es: "Rechazar con motivo" },
     { en: "See every order", es: "Ver todas las órdenes" },
@@ -733,11 +736,10 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
   // dispatched by the logistics manager. A driver only delivers what's assigned.
   driver:    ["deliver"],
   logistics: ["route_plan", "approve"],
-  // Accounting: same as Office Manager but WITHOUT the dashboard (and no
-  // Accounts / Audit tabs — see TABS). Can create, approve and see every order.
-  // Accounting reviews and approves; it does not open orders. Creating one
-  // means committing the company to a delivery, which is a sales/office call.
-  accounting: ["approve"],
+  // Office (the `accounting` key, D-NEXT): creates and approves like the Office Manager, without the
+  // dashboard. It used to be approve-only (D-044, replaced in part), and the database refused even that:
+  // until 118 the guard had no branch for this role at all.
+  accounting: ["create", "approve"],
 };
 
 // ---- Module access descriptors (D-057) -------------------------------------
@@ -921,6 +923,17 @@ export function canTransition(from: Stage, to: Stage): boolean {
   return LEGAL_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+/**
+ * Roles whose orders the app handles like the Office Manager's (D-NEXT): editable in any stage, the sales
+ * fields open, a sales rep to credit on a customer order, created already approved, and a re-delivery can
+ * be logged. `accounting` («Office») joined `manager` here when 118 gave it the same branches in the
+ * database guard. The two have to move together: a role the app treats as office but the guard doesn't is
+ * a button the database refuses (D-044).
+ */
+export function ordersLikeOfficeManager(r: string | null | undefined): boolean {
+  return r === "manager" || r === "accounting";
+}
+
 /** Can this role edit the order's data fields while it sits in `stage`? */
 export function canEditFields(r: UserRole, stage: Stage): boolean {
   if (r === "admin") return true;
@@ -931,6 +944,6 @@ export function canEditFields(r: UserRole, stage: Stage): boolean {
   if (r === "sales") return stage === "pending" || stage === "rejected";
   if (r === "warehouse") return ["approved", "fulfilling", "ready", "picked_up", "delivered"].includes(stage);
   if (r === "driver") return stage === "draft" || stage === "pending" || stage === "rejected";
-  if (r === "manager") return true;
+  if (ordersLikeOfficeManager(r)) return true;
   return false;
 }

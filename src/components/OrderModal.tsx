@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
-import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW } from "@/lib/constants";
+import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
@@ -223,7 +223,7 @@ export function OrderModal({
   // Store-to-store moves (Intertienda / Transfer) have no external customer, so
   // no sales rep to credit. Only external-customer orders placed on someone's
   // behalf need one.
-  const needsSalesRep = isNew && (me.role === "manager" || me.role === "admin" || me.role === "driver")
+  const needsSalesRep = isNew && (ordersLikeOfficeManager(me.role) || me.role === "admin" || me.role === "driver")
     && !isStoreToStore(d.order_type, settings.order_type_rules);
   const salesReps = useMemo(() => users.filter((u) => u.role === "sales"), [users]);
 
@@ -1109,7 +1109,7 @@ export function OrderModal({
   };
 
   // Field editability: sales owns order data, warehouse owns fulfillment data.
-  const salesFields = editing && (isNew || me.role === "sales" || me.role === "admin" || me.role === "manager");
+  const salesFields = editing && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));
   // True when an existing order is being pushed to a LATER delivery date (a
   // reprogram) — the cue to offer the "deliver first thing in the morning" flag.
   const rescheduledForward = !!existing?.delivery_date && !!d.delivery_date && d.delivery_date > existing.delivery_date;
@@ -2121,14 +2121,15 @@ export function OrderModal({
         {/* ---------- RE-DELIVERY: record a repeat ----------
             Shown to exactly the roles the DATABASE allows to log one. The
             guard (see the deliveries_guard_stage trigger) accepts warehouse,
-            manager and driver, with admin bypassing it entirely.
+            manager, office (`accounting`, since 118) and driver, with admin
+            bypassing it entirely.
             It used to be gated on capabilities — canFulfill || canApprove ||
             canDeliver — which also let accounting and logistics in through
             "approve". Verified against the live database: both are refused
             with "Not allowed to log this re-delivery", so those two roles had
             a button that could only ever throw. */}
         {!editing && existing && existing.stage === "delivered"
-          && ["admin", "manager", "warehouse", "driver"].includes(me.role) && (
+          && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && (
           showRedeliver ? (
             <div className="field" style={{ marginTop: 14 }}>
               <label>{t("Why does this order need to be delivered again?", "¿Por qué debe entregarse esta orden de nuevo?")}</label>
@@ -2183,11 +2184,11 @@ export function OrderModal({
                   {canCreate(me) && <button className="btn btn-ghost" onClick={save} disabled={busy}>{t("Save draft", "Guardar borrador")}</button>}
                   {canCreate(me) && (
                     <button className="btn btn-primary" disabled={busy} onClick={async () => {
-                      // Office Managers approve their own orders on the spot, and
+                      // Office Managers and Office approve their own orders on the spot, and
                       // any order sold from an auto-approve store is approved on
                       // creation regardless of who places it — EXCEPT an
                       // Intertienda without a PO #, which must go to Pending.
-                      const autoApprove = (me.role === "manager" || storeAutoApprove) && !intertiendaNeedsPo;
+                      const autoApprove = (ordersLikeOfficeManager(me.role) || storeAutoApprove) && !intertiendaNeedsPo;
                       const payload = withDurations({
                         ...d,
                         stage: autoApprove ? "approved" : "pending",
@@ -2203,7 +2204,7 @@ export function OrderModal({
                           : t(`Order #${orderLabel(row)} submitted for approval`, `Orden #${orderLabel(row)} enviada a aprobación`));
                         await autoSendTracking(row); onClose();
                       }
-                    }}>{me.role === "manager" && !intertiendaNeedsPo
+                    }}>{ordersLikeOfficeManager(me.role) && !intertiendaNeedsPo
                       ? t("Create order (approved)", "Crear orden (aprobada)")
                       : storeAutoApprove && !intertiendaNeedsPo
                         ? t("Create (auto-approved)", "Crear (auto-aprobada)")

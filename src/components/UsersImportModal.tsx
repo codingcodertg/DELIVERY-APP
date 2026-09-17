@@ -122,8 +122,8 @@ export function UsersImportModal({ onClose }: { onClose: () => void }) {
           <>
             <p className="hint" style={{ marginTop: 0 }}>
               {t(
-                "Paste rows from your sheet in this column order: EMAIL, ROLE, STORE, NAME (extra columns are ignored). Role codes ASST→Accounting, KEY→Admin, OTHER→Logistics, MGR→Office Manager, SALES, WH→Warehouse. Store codes MCA/PHR/EDG/BRO/WES/MIS, GROUP = all.",
-                "Pega filas de tu hoja en este orden de columnas: EMAIL, ROL, TIENDA, NOMBRE (las columnas extra se ignoran). Códigos de rol ASST→Contabilidad, KEY→Admin, OTHER→Logística, MGR→Gerente, SALES→Ventas, WH→Almacén. Códigos de tienda MCA/PHR/EDG/BRO/WES/MIS, GROUP = todas.",
+                "Paste rows from your sheet in this column order: EMAIL, ROLE, STORE, NAME (extra columns are ignored). Role codes ASST→Office, KEY→Admin, OTHER→Logistics, MGR→Office Manager, SALES, WH→Warehouse. Store codes MCA/PHR/EDG/BRO/WES/MIS, GROUP = all.",
+                "Pega filas de tu hoja en este orden de columnas: EMAIL, ROL, TIENDA, NOMBRE (las columnas extra se ignoran). Códigos de rol ASST→Oficina, KEY→Admin, OTHER→Logística, MGR→Gerente, SALES→Ventas, WH→Almacén. Códigos de tienda MCA/PHR/EDG/BRO/WES/MIS, GROUP = todas.",
               )}
             </p>
 
