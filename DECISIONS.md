@@ -17445,3 +17445,103 @@ pruebas y no quita ninguna —19 en `entregas-barra.test.ts`, 11 en `map-legend.
 `profile-name.test.ts`, ficheros nuevos; 1 en `profile-password.test.ts`; y 2 que genera el barrido de
 `inline-colors.test.ts`, una por cada componente nuevo—. `main` 237bbde, medido en un worktree aparte,
 está en 2253 | 3.
+
+## D-NEXT · Órdenes: ordenar y filtrar desde el mismo menú, y los menús se cierran al salir
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
+por:** el dueño, dos cosas de la tabla de Órdenes: *«el filtro en la pestaña de órdenes solo se habilita
+después de ordenar; que ordenar y filtrar estén disponibles al primer clic»* y *«en la configuración de
+columnas, al hacer clic fuera debería esconderse, no quedarse abierta»*.
+
+### Qué había
+
+La cabecera de cada columna de `OrdersTable` tenía dos botones: el nombre, que ordenaba al instante
+(ascendente → descendente → sin orden), y al lado un ▾ gris que abría el filtro en un portal.
+
+**No encontré nada que haga depender el filtro del orden.** Medido en el código de `origin/main` 237bbde:
+- el ▾ se pinta en todas las columnas, sin condición (`OrdersTable.tsx:465-472`);
+- `openFilterMenu` (`:352`) no lee `sortKey`, y `toggleSort` (`:418`) no toca los filtros;
+- el CSS del ▾ son tres reglas (`globals.css:523-528`) y ninguna lo esconde.
+
+**Lo que sí encontré: cuando el menú de filtro se abría hacia arriba, se pintaba fuera de la pantalla.**
+Se abría hacia arriba cuando debajo de la cabecera quedaban menos de 400px y arriba había más. En ese
+caso escribía `bottom` y dejaba `top` en `undefined` (`OrdersTable.tsx:544`). Pero la clase `.col-menu`
+trae `top: calc(100% + 6px)`, pensada para «⚙ Columnas», que cuelga de su botón. Un `top` sin escribir
+no la pisa, y con `position: fixed` ese 100% es el alto de la ventana.
+
+Medido en Chrome headless con el `globals.css` real, el 2026-09-17, en una ventana de 1366×768 (673px
+de alto útil):
+
+| menú | `top` medido | resultado |
+|---|---|---|
+| hacia abajo (control) | 453 | visible |
+| hacia arriba, como estaba | 679 | fuera de la pantalla |
+| hacia arriba, con `top: auto` | 203 | visible |
+
+Es la misma clase de fallo que el addendum del 2026-08-19 de D-055 en el `ModuleSwitcher`: una posición
+en línea que no pisa la de `.col-menu`.
+
+**Si esto es lo que vio el dueño no está medido.** Depende de a qué altura queda la cabecera en su
+pantalla. Una hipótesis que tampoco medí: con la cabecera en la mitad baja de la ventana, el ▾ no enseña
+nada; basta desplazarse un poco para que suba, el menú vuelve a abrir hacia abajo, y eso se puede leer
+como «después de ordenar ya funciona».
+
+**Descartado como medición:** una réplica en HTML estático de la cabecera entera, para ver si el ▾
+quedaba recortado en columnas estrechas. Chrome no aplicó los anchos de columna (una de 190px medía 71,
+y la columna trampa de 40px medía 194), así que no reproducía la tabla. Su «100% visible» no prueba
+nada y no se usa.
+
+Los dos menús, al cerrar:
+- **«⚙ Columnas»** (`page.tsx:370`): `showCols` solo cambiaba con su botón. Ni clic fuera ni Escape.
+- **Filtro:** se cerraba con un clic fuera (`mousedown`), pero no con Escape. Además, por lectura y sin
+  medirlo en navegador: pulsar el ▾ de la columna abierta la cerraba en el `mousedown`, porque el botón
+  quedaba fuera del menú, y la volvía a abrir en el `click`.
+
+### Qué hay
+
+- **El nombre y el ▾ abren el mismo menú.** Arriba, «Orden ascendente», «Orden descendente» y «Quitar
+  orden» (este último solo si esa columna es la ordenada); debajo, el filtro de siempre. Elegir un orden
+  lo aplica y cierra el menú; el filtro sigue con «Aplicar». El ▲/▼ de la cabecera sigue igual.
+- **Cambia un hábito: ordenar pasa de un clic a dos** (abrir y elegir). Se eligió así porque el pedido
+  es tener las dos cosas en el primer clic, y es como lo hace Excel, que es el modelo que la tabla ya
+  citaba. **Se descartó** dejar el nombre ordenando y hacer más visible el ▾: el primer clic en el nombre
+  seguiría dando solo una de las dos cosas.
+- **Vale para las tres pantallas que usan `OrdersTable`:** Órdenes, Almacén y Chofer. En el teléfono la
+  cabecera no se muestra (la tabla pasa a tarjetas), así que ahí no cambia nada.
+- **`src/lib/menu-desplegable.ts`** reúne las reglas, como funciones puras que las pruebas importan:
+  - `cierraElMenu` decide el cierre: Escape siempre; un `mousedown`, solo si cae fuera de todo lo que
+    cuenta como dentro.
+  - `posicionDelMenu` escribe **siempre** `top` y `bottom`, uno con número y el otro con `"auto"`.
+  - `useCierraAlSalir` es el hook que usan los dos menús.
+- **Qué cuenta como dentro:** el menú y lo que lo abre. En el filtro, la celda de cabecera de la columna
+  abierta, con el nombre y el ▾. En «Columnas», el contenedor que envuelve botón y menú. Así, pulsar lo
+  que abrió el menú lo cierra en vez de cerrarlo y reabrirlo, y marcar casillas no lo cierra.
+- **No se tocaron** los otros `.col-menu` (`TopBar`, `ModuleSwitcher`): quedan fuera del pedido, y
+  `TopBar` lo está tocando otra rama.
+
+### Medido, rompiendo cada pieza
+
+24 cambios: **21 caen, cada uno por la prueba que lleva su nombre, y los 3 gemelos se quedan en verde.**
+
+- **La regla de cierre:** Escape no cierra; cualquier tecla cierra; cualquier evento decide como un
+  `mousedown`; solo el primer nodo cuenta como dentro (con el botón segundo en la lista); un nodo null
+  revienta; se cierra al clicar dentro y no fuera.
+- **La posición:** hacia arriba deja `top` sin escribir (el fallo medido); con justo 400px debajo abre
+  hacia arriba; abre hacia arriba aunque arriba haya menos sitio; se sale por la izquierda; `bottom` mal
+  calculado.
+- **`OrdersTable`:** el nombre vuelve a ordenar directamente; la cabecera abierta deja de contar como
+  dentro; la posición vuelve a ir en línea con `top` sin escribir; ordenar no cierra el menú; quitar el
+  orden deja la columna marcada; «Quitar orden» cierra el menú sin quitar el orden; el menú cree que su
+  columna es la ordenada aunque sea otra; vuelve un oyente propio de `mousedown`.
+- **«Columnas»:** sin el cierre; el contenedor pierde el `ref`.
+- **Los gemelos:** mirar el `mousedown` antes que la tecla; las dos condiciones de «hacia arriba» en el
+  otro orden; la llamada del cierre en una sola línea (las pruebas de cableado normalizan los espacios).
+
+### Lo no verificado
+
+- **Nadie ha abierto la tabla en un navegador con sesión.** El worktree no tiene `.env.local`, a
+  propósito. No están vistos en la app real ni el menú nuevo, ni el cierre, ni la posición.
+- **Si el menú fuera de pantalla es lo que vio el dueño.**
+- **Que el ▾ reabriera su propio menú en el código viejo:** está leído, no medido.
+- **Tacto:** el cierre usa `mousedown`, como los demás menús de la app. En una pantalla táctil, ese evento
+  llega después del toque; no está probado.

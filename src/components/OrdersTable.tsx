@@ -7,6 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { useColWidthMap } from "@/lib/use-col-widths";
+import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import type { Delivery } from "@/lib/types";
 
 type Ctx = {
@@ -207,14 +208,18 @@ function filterKey(v: CellValue): string {
   return v == null || v === "" ? NO_VALUE : String(v);
 }
 
-/** Excel-style checklist filter for one column header: search box, select-all,
- * one checkbox per distinct value present in the (other-filters-applied) rows. */
+/** One column header's menu: sort it, then an Excel-style checklist filter (search box,
+ * select-all, one checkbox per distinct value present in the other-filters-applied rows).
+ * Sorting sits in the same menu so both are one click away (D-NEXT). */
 function ColumnFilterMenu({
-  col, options, active, onApply, onClear, onClose, lang, t, style, menuRef,
+  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef,
 }: {
   col: OrderColumn;
   options: { key: string; label: string }[];
   active: Set<string> | undefined;
+  /** How THIS column is sorted right now; null when the table is sorted by another or not at all. */
+  orden: "asc" | "desc" | null;
+  onOrdenar: (dir: "asc" | "desc" | null) => void;
   onApply: (next: Set<string>) => void;
   onClear: () => void;
   onClose: () => void;
@@ -248,6 +253,19 @@ function ColumnFilterMenu({
         <b>{lang === "es" ? col.es : col.en}</b>
         <button className="notif-clear" onClick={onClose}>✕</button>
       </div>
+      <div className="col-menu-orden">
+        <button className={"col-opt col-orden" + (orden === "asc" ? " on" : "")} onClick={() => onOrdenar("asc")}>
+          ↑ {t("Sort ascending", "Orden ascendente")}
+        </button>
+        <button className={"col-opt col-orden" + (orden === "desc" ? " on" : "")} onClick={() => onOrdenar("desc")}>
+          ↓ {t("Sort descending", "Orden descendente")}
+        </button>
+        {orden && (
+          <button className="col-opt col-orden" onClick={() => onOrdenar(null)}>
+            ✕ {t("Remove sort", "Quitar orden")}
+          </button>
+        )}
+      </div>
       <input
         className="col-menu-search"
         placeholder={t("Search values…", "Buscar valores…")}
@@ -277,9 +295,9 @@ function ColumnFilterMenu({
 }
 
 /** Compact, horizontally-scrollable table of orders. Click a row to open it.
- * Every column supports click-to-sort and an Excel-style value checklist
- * filter; optionally supports row selection (bulk actions) and custom
- * columns. */
+ * Clicking a column header opens one menu with both sorting and an Excel-style value
+ * checklist filter (D-NEXT); optionally supports row selection (bulk actions) and
+ * custom columns. */
 export function OrdersTable({
   rows,
   onOpen,
@@ -335,9 +353,11 @@ export function OrdersTable({
   // The filter menu renders in a portal (see below) so a short table with
   // few rows can't clip it — .tbl-scroll's horizontal scrollbar makes it
   // clip vertical overflow too, which used to hide the menu almost
-  // entirely. Portaling needs the trigger button's on-screen position.
+  // entirely. Portaling needs the header cell's on-screen position.
   const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
-  const filterBtnRefs = useRef(new Map<string, HTMLButtonElement>());
+  // The whole header cell (name + ▾) of each column: the menu anchors to it, and it counts as
+  // "inside" the open menu, so clicking it again closes the menu instead of reopening it.
+  const celdaRefs = useRef(new Map<string, HTMLDivElement>());
   const menuRef = useRef<HTMLDivElement>(null);
 
   const cols = useMemo(() => {
@@ -351,32 +371,32 @@ export function OrdersTable({
 
   const openFilterMenu = (key: string) => {
     if (openFilter === key) { setOpenFilter(null); return; }
-    const btn = filterBtnRefs.current.get(key);
-    if (btn) setMenuAnchor(btn.getBoundingClientRect());
+    const celda = celdaRefs.current.get(key);
+    if (celda) setMenuAnchor(celda.getBoundingClientRect());
     setOpenFilter(key);
   };
 
-  // Keep the menu pinned to its trigger button while scrolling/resizing, and
-  // close it on an outside click (it's portaled out of the header cell now,
-  // so the header's own click-catching no longer covers it).
+  // Keep the menu pinned to its header cell while scrolling/resizing.
   useEffect(() => {
     if (!openFilter) return;
     const reposition = () => {
-      const btn = filterBtnRefs.current.get(openFilter);
-      if (btn) setMenuAnchor(btn.getBoundingClientRect());
-    };
-    const onOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenFilter(null);
+      const celda = celdaRefs.current.get(openFilter);
+      if (celda) setMenuAnchor(celda.getBoundingClientRect());
     };
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
-    document.addEventListener("mousedown", onOutside);
     return () => {
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
-      document.removeEventListener("mousedown", onOutside);
     };
   }, [openFilter]);
+
+  // A click outside or Escape closes it (D-NEXT). The menu is portaled out of the header, so
+  // "outside" is checked by hand: the menu itself and the open column's header cell are inside.
+  useCierraAlSalir(!!openFilter, () => setOpenFilter(null), () => [
+    menuRef.current,
+    openFilter ? celdaRefs.current.get(openFilter) : null,
+  ]);
 
   // Rows matching every active column filter, optionally ignoring one column's
   // own filter — used so that column's own checklist still offers every value
@@ -415,10 +435,11 @@ export function OrdersTable({
 
   if (!rows.length) return <div className="empty">{empty}</div>;
 
-  const toggleSort = (key: string) => {
-    if (sortKey !== key) { setSortKey(key); setSortDir("asc"); }
-    else if (sortDir === "asc") setSortDir("desc");
-    else { setSortKey(null); setSortDir(null); }
+  // Sorting is chosen in the header menu: ascending, descending, or none. Choosing closes it.
+  const ordenar = (key: string, dir: "asc" | "desc" | null) => {
+    setSortKey(dir ? key : null);
+    setSortDir(dir);
+    setOpenFilter(null);
   };
 
   const optionsFor = (col: OrderColumn) => {
@@ -457,16 +478,24 @@ export function OrdersTable({
               const hasFilter = activeCount != null && activeCount > 0;
               return (
                 <th key={c.key}>
-                  <div className="th-cell">
-                    <button className="th-sort" onClick={() => toggleSort(c.key)} title={t("Sort", "Ordenar")}>
+                  {/* The name and the ▾ open the same menu, with sorting and the filter (D-NEXT).
+                      The name used to sort straight away, and the filter was only the small ▾ next to it. */}
+                  <div
+                    className="th-cell"
+                    ref={(el) => { if (el) celdaRefs.current.set(c.key, el); else celdaRefs.current.delete(c.key); }}
+                  >
+                    <button
+                      className="th-sort"
+                      onClick={(e) => { e.stopPropagation(); openFilterMenu(c.key); }}
+                      title={t("Sort and filter", "Ordenar y filtrar")}
+                    >
                       {lang === "es" ? c.es : c.en}
                       {sortKey === c.key && (sortDir === "asc" ? " ▲" : " ▼")}
                     </button>
                     <button
-                      ref={(el) => { if (el) filterBtnRefs.current.set(c.key, el); else filterBtnRefs.current.delete(c.key); }}
                       className={"th-filter-btn " + (hasFilter ? "on" : "")}
                       onClick={(e) => { e.stopPropagation(); openFilterMenu(c.key); }}
-                      title={t("Filter", "Filtrar")}
+                      title={t("Sort and filter", "Ordenar y filtrar")}
                     >
                       ▾
                     </button>
@@ -523,10 +552,6 @@ export function OrdersTable({
     </div>
     {openFilter && menuAnchor && createPortal(
       (() => {
-        const MENU_WIDTH = 210;
-        const MENU_BUDGET = 400; // rough max height (search + list + actions)
-        const spaceBelow = window.innerHeight - menuAnchor.bottom;
-        const openUpward = spaceBelow < MENU_BUDGET && menuAnchor.top > spaceBelow;
         const col = cols.find((c) => c.key === openFilter);
         if (!col) return null;
         return (
@@ -535,15 +560,11 @@ export function OrdersTable({
             col={col}
             options={optionsFor(col)}
             active={filters[openFilter]}
+            orden={sortKey === openFilter ? sortDir : null}
+            onOrdenar={(dir) => ordenar(openFilter, dir)}
             lang={lang}
             t={t}
-            style={{
-              position: "fixed",
-              right: "auto",
-              left: Math.max(8, Math.min(menuAnchor.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
-              top: openUpward ? undefined : menuAnchor.bottom + 6,
-              bottom: openUpward ? window.innerHeight - menuAnchor.top + 6 : undefined,
-            }}
+            style={posicionDelMenu(menuAnchor, { ancho: window.innerWidth, alto: window.innerHeight })}
             onApply={(next) => {
               setFilters((f) => ({ ...f, [openFilter]: next }));
               setOpenFilter(null);
