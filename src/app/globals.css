@@ -1142,6 +1142,20 @@ table.orders th { text-align: left; }
    instead of clipping, since a partial number is useless. */
 .hdr-chip-num { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
+/* The document number an order's type asks for (invoice, PO or estimate), highlighted at the top
+   of the order view (D-NEXT). Tokens only, so it follows the theme; `user-select: all` so one click
+   selects the whole number when copying by hand. */
+.doc-destacado {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 12px; border-radius: 10px;
+  background: var(--accent-soft); border: 1px solid var(--line);
+}
+.doc-destacado-etiqueta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray); }
+.doc-destacado-numero {
+  font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 800; color: var(--text);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere; user-select: all;
+}
+
 /* ---- Driver permission gate -------------------------------------------- */
 /* The way into the app when the phone can't report. It has to be impossible
    to mistake for a dismissible warning — a driver who scrolls past this ends
