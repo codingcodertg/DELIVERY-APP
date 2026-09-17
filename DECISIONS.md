@@ -17970,3 +17970,67 @@ lo que office puede pulsar está dentro de lo que la base le permite.
   - `logistics` tiene `approve` en la app y el guard tampoco le deja aprobar;
   - `driver` puede crear en la base pero no en la app.
   Ninguna de las dos se toca aquí.
+
+## D-NEXT · Un botón de recargar dentro de las apps de escritorio
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y Time Tracker) · Sin migración.
+**Pedido por el dueño:** *«pon un botón de recargar en la app de escritorio»*.
+
+### Hay dos apps de escritorio, y una de verdad no puede recargar
+
+Medido el 2026-09-17, leyendo las dos cáscaras:
+
+- **Time Tracker** (repo `timetracker-clean`, la que usa el dueño, v0.0.45): su `main.js` hace
+  `Menu.setApplicationMenu(null)` y **no engancha ninguna tecla**. Sin menú no hay atajos por defecto,
+  así que **no tiene F5 ni Ctrl+R**: si una pantalla se queda a medias, no hay forma de recargar. De ahí
+  la petición. Carga `https://deliveries-app-seven.vercel.app/timetracker`, el dominio viejo, que
+  redirige (D-189).
+- **RTG Hub** (`desktop/` de este repo): sí tiene F5 y Ctrl+R (`main.js`). El botón tampoco le sobra —a
+  la vista, y con ratón—, pero ahí no era una vía sin salida.
+
+### Cómo se sabe que estamos dentro de una
+
+Dos señales distintas, porque las cáscaras son distintas:
+
+- **Time Tracker**: `window.ttDesktop.isDesktop`, que inyecta su `preload.js` y que la web ya leía en
+  `lib/timetracker/desktop.ts`. Se exige `=== true`: un puente a medias no cuenta.
+- **RTG Hub**: el token ` RTGHub/<versión>` que su `main.js` añade al agente de usuario. Se acepta
+  **también `RDZHub/`**, el nombre anterior: D-225 lo cambió y las instalaciones sin actualizar seguirán
+  mandando el viejo durante meses. Es justo lo que esa decisión pedía que se hiciera el día que la web
+  mirara la cadena, y este es ese día.
+- **La cáscara Android no cuenta** (`RDZDeliveries/`, `lib/app-update.ts`): es un teléfono, y ahí se
+  recarga tirando de la pantalla. La frontera `\b` del token es lo que la deja fuera.
+
+### El botón vive en la web, no en las cáscaras
+
+Es lo que hace que lo tengan **las dos hoy**: la web se despliega, y una cáscara habría que reinstalarla
+—la de Time Tracker se actualiza sola con `electron-updater`, pero el dueño tendría que esperar a esa
+versión—. Un `⟳` en la barra de Entregas y otro en la de Time Tracker, con el texto en los dos idiomas
+(en Time Tracker, con su diccionario: `shell.reload`). En un navegador **no se pinta**: ahí ya está la
+recarga del navegador, y un botón de más le quita sitio a las pestañas. La pregunta se hace tras montar,
+porque `window` no existe al pintar en el servidor.
+
+### Consecuencia conocida
+
+Dentro del marco de la vista móvil (D-278) el botón **también sale**, porque el agente de usuario del
+marco es el mismo de la ventana. Recarga el marco, que es lo razonable ahí dentro.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Once mutantes, cada uno cazado por la prueba pensada para él: quitar el puente de Time Tracker, aceptar
+un puente sin `isDesktop`, olvidar el nombre viejo `RDZHub/`, quitar la frontera del token —cae por la
+cáscara Android—, pintar el botón siempre, que no recargue, quitarle el `aria-label`, sacarlo de cada
+una de las dos barras, dejar la clave del diccionario solo en inglés, y quitar la regla de estilo de
+Time Tracker.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto dentro de ninguna de las dos cáscaras.** El token del agente de usuario se leyó
+  en `desktop/main.js`, no en una app corriendo, y el puente de Time Tracker se leyó en su `preload.js`.
+- **Si algún día la cáscara de Time Tracker recupera su menú**, el botón seguirá ahí, de más pero sin
+  molestar.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2399 pasados | 3 saltados**. La rama añade 12
+pruebas y no quita ninguna: 11 en `desktop-shell.test.ts`, fichero nuevo, y 1 que genera el barrido de colores
+de `inline-colors.test.ts` por `BotonRecargar.tsx`. `main` 2a157f1, medido en un worktree aparte, está en
+2387 | 3.

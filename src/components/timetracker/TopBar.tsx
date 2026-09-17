@@ -6,6 +6,7 @@ import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { BotonRecargar } from "@/components/BotonRecargar";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
 import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { TtCheckUpdateLink } from "@/components/timetracker/UpdateBanner";
@@ -77,6 +78,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
         <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}>
           {me.role === "admin" ? t("shell.manager") : t("shell.employee")}
         </span>
+        <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
         <NotificationBell />
         <button
           className="btn-ghost btn-sm"
