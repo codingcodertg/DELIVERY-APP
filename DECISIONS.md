@@ -16829,3 +16829,104 @@ casualidad.
   no son atómicos. Era igual con la sección vieja.
 - **Un admin que haya entrado como otra persona** ve la página con el rol de esa persona, así que no
   ve los botones. Es lo esperado, pero no se ha probado.
+
+## D-NEXT · Cada tutorial dice para qué roles es, y el rol solo cuenta con Entregas
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia la página de Tutoriales
+del hub · **Migración: `114_tutorial_roles.sql`**, que aplica el orquestador **antes de fusionar**: la
+página espera la firma nueva de la función · **Pedido por:** el dueño: *«quiero categorías, porque
+habrá videos solo para sales, solo para office y así»*, y corregido enseguida: *«al revés: a cada video
+le pongo la categoría […], es más fácil que ir usuario por usuario»*. Continúa D-268.
+
+### El diseño que se descartó
+
+El primer encargo era por persona: una lista de categorías, y a cada persona las suyas, con casillas en el
+diálogo de usuario, una columna nueva en `profiles` y otra entrada en el guard de columnas privilegiadas.
+**El dueño lo corrigió antes de que se fusionara nada:** marcar cada video es más fácil que ir usuario
+por usuario, y los roles ya dicen quién es de ventas y quién de oficina. Lo construido quedó en una rama
+local de respaldo, sin empujar, por si vuelve a hacer falta.
+
+### Qué hay
+
+- **Cada tutorial lleva `roles`**, con claves de `ROLE_INFO` de Entregas (`sales`, `manager` —«Office
+  Manager»—, `accounting`, `warehouse`, `driver`, `logistics`). **Vacío = para todos.** La agrupación por
+  app de D-268 no cambia.
+- **El admin elige la audiencia** con casillas al añadir un video, y la cambia en cada video con los
+  botones de rol. Las etiquetas salen de `ROLE_INFO` en el idioma de quien mira. `admin` no es una
+  audiencia elegible, porque ya lo ve todo.
+- **No hay nada nuevo en `profiles`, en el guard ni en el diálogo de usuario.**
+
+### Quién ve qué se decide en la base
+
+`public.tutorials()` (114, que parte de la vigente de la 113) devuelve solo lo que puede ver quien llama:
+- **el admin** (`is_admin()`) ve todo;
+- **el resto** ve los videos **sin audiencia** y los que **incluyen su rol**, pero **solo si tiene
+  Entregas** (`has_deliveries_access()`, vigente en la 083: admin o `'deliveries'` en `module_access`).
+
+Devuelve también la audiencia de cada video, para que el admin la vea. Como la firma cambia (una sexta
+columna), la función **se borra y se crea**, con sus permisos otra vez, y **tiene que aplicarse en una
+transacción**.
+
+### Por qué el rol solo cuenta con Entregas
+
+`profiles.role` es el rol **de Entregas**: `not null default 'sales'` (`roles.sql`), **sin `check`**, y
+`handle_new_user` (056) pone `'sales'` a quien no trae otro. **Medido en producción por el orquestador,
+2026-09-17:**
+- 35 perfiles, **0 con un rol fuera de `ROLE_INFO`**;
+- **5 sin Entregas, los 5 `'sales'` por defecto**, todos con solo Time Tracker (4 empleados y 1 admin de
+  Time Tracker);
+- el resto: accounting 6, manager 5, warehouse 4, admin 4, logistics 1, driver 1, sales 14 (9 con
+  Entregas).
+
+Sin la condición, esos 5 verían los videos «solo para sales». Con ella, quien no tiene Entregas ve **solo
+los videos para todos**. El admin de Time Tracker de esa lista no es admin de Entregas, así que tampoco ve
+los de audiencia. Lo decidió el orquestador con esos números, entre tres opciones (contar el rol igual,
+contarlo solo con Entregas, o arreglar los datos).
+
+### Un rol que no existe
+
+- **En un video:** no coincide con nadie. Si todos los roles de un video son desconocidos, **solo lo ve el
+  admin**. Para que no pase en silencio (por ejemplo, si un día se renombra un rol), **la vista del admin
+  lo marca en rojo**, dice si el video ya no lo ve nadie más, y ofrece quitar los roles desconocidos. Si no
+  le queda ninguno, vuelve a ser para todos. Cambiar otro rol **conserva** los desconocidos, para no tapar
+  el aviso.
+- **En una cuenta:** no coincide con ninguna audiencia, y esa persona ve **los videos para todos**. Hoy son
+  0.
+
+### No cambia
+
+- **Quien tiene Entregas puede leer `settings.tutorials` crudo por REST**, audiencias incluidas: la 100
+  abre la lectura de `settings` a `has_deliveries_access()`. La audiencia decide qué es relevante para cada
+  uno; no es un secreto.
+
+### Medido, rompiendo cada pieza
+
+Quince cambios: **catorce caen y un gemelo se queda en verde.**
+
+- **Los cuatro pedidos:** que lo sin audiencia no lo vean todos; que la coincidencia de rol no cuente; que
+  el admin no vea todo; que desaparezca el aviso de rol desconocido.
+- **La decisión de Entregas:** que el rol cuente aunque no se tenga Entregas; `has_deliveries_access()` sin
+  `coalesce`.
+- **El resto:**
+  - en la función: exigir **todos** los roles del video en vez de uno; quitar el `drop`; exponer
+    `added_by`;
+  - en la lógica: contar a `admin` como audiencia; que el admin sea elegible; guardar la audiencia sin
+    limpiarla; que cambiar un rol borre los desconocidos;
+  - en la pantalla: dejar cambiar la audiencia a cualquiera.
+- **El gemelo:** `q.rol = any(a.roles) and q.con_entregas`, que es lo mismo. **La primera versión de la
+  prueba lo tiraba** porque fijaba el orden del `and`; se corrigió antes de la tanda.
+
+Quién ve qué se prueba **sobre el `.sql`**, no con una copia en TypeScript. El ensayo de verdad está en la
+matriz del `.sql`, por rol y con `ROLLBACK`:
+- admin → los cuatro videos;
+- sales con Entregas → para todos y «solo sales»;
+- manager con Entregas → para todos y «solo office»;
+- sales **sin** Entregas → solo el de para todos.
+
+### Lo no verificado
+
+- **Nada contra la base.** La 114 no está aplicada cuando se escribe esto.
+- **Nadie ha abierto la página en un navegador**, ni con audiencias ni con un rol desconocido.
+- **Dos admins cambiando audiencias a la vez** se pueden pisar: se relee antes de escribir, pero no es
+  atómico. Igual que en D-268.
+- **Quien no es admin no sabe que hay videos que no ve.** Es a propósito.

@@ -1,6 +1,7 @@
 import { normaliza } from "@/lib/phone-book";
 import { esAdmin } from "@/lib/impersonation";
-import type { Tutorial, TutorialApp } from "@/lib/types";
+import { ROLE_INFO, ROLE_ORDER } from "@/lib/constants";
+import type { Tutorial, TutorialApp, UserRole } from "@/lib/types";
 
 /**
  * Los tutoriales del hub (D-268): agrupar, buscar, quién los gestiona, y guardarlos.
@@ -40,7 +41,7 @@ export function puedeGestionarTutoriales(rol: string | null | undefined): boolea
 
 /** El tutorial nuevo, o `null` si falta el título o el enlace. General se guarda sin `app`. */
 export function nuevoTutorial(
-  entrada: { title: string; url: string; description?: string; app: TutorialApp | "general" },
+  entrada: { title: string; url: string; description?: string; app: TutorialApp | "general"; roles?: readonly string[] },
   autor: { id: string },
   cuando: Date,
   id: string,
@@ -54,6 +55,7 @@ export function nuevoTutorial(
     description: entrada.description?.trim() || null,
     url,
     app: entrada.app === "general" ? null : entrada.app,
+    roles: limpiaRoles(entrada.roles),
     added_by: autor.id,
     added_at: cuando.toISOString(),
   };
@@ -90,4 +92,54 @@ export async function guardaTutoriales(
   if (errorAlGuardar) return { ok: false, motivo: "escritura" };
   if (!filas || filas.length !== 1) return { ok: false, motivo: "sin_permiso" };
   return { ok: true, tutoriales: siguiente };
+}
+
+// ---- Para quién es cada video (D-NEXT) ---------------------------------------------------------
+//
+// La audiencia de un video son roles de Entregas que ya existen (`ROLE_INFO`). Vacío = para todos.
+// **Quién ve qué NO se decide aquí**: lo decide `public.tutorials()` en la base (114). Aquí solo se
+// cambia la lista y se avisa al admin de lo que no va a encontrar nadie.
+
+/** Los roles que se pueden elegir como audiencia, en el orden de siempre. El admin no: ya lo ve todo. */
+export const ROLES_DE_AUDIENCIA: readonly UserRole[] = ROLE_ORDER.filter((r) => r !== "admin");
+
+const esRolConocido = (r: string): r is UserRole => Object.prototype.hasOwnProperty.call(ROLE_INFO, r);
+
+/** Solo roles elegibles, sin repetir, en el orden de `ROLE_ORDER`. */
+export function limpiaRoles(roles: readonly string[] | null | undefined): UserRole[] {
+  const set = new Set(roles ?? []);
+  return ROLES_DE_AUDIENCIA.filter((r) => set.has(r));
+}
+
+/**
+ * Los roles de un video que no existen en `ROLE_INFO`. Si algún día se renombra un rol, un video que
+ * lo tenga deja de encontrarlo cualquiera que no sea admin: por eso se enseña al admin, no se calla.
+ */
+export function rolesDesconocidos(roles: readonly string[] | null | undefined): string[] {
+  return [...new Set((roles ?? []).filter((r) => !esRolConocido(r)))];
+}
+
+/**
+ * ¿Solo lo ve el admin? Sí cuando tiene audiencia y ninguno de sus roles existe: ni es «para todos»
+ * ni coincide con el rol de nadie. `admin` como audiencia cuenta como conocido pero no añade a nadie.
+ */
+export function soloLoVeElAdmin(roles: readonly string[] | null | undefined): boolean {
+  const lista = roles ?? [];
+  return lista.length > 0 && limpiaRoles(lista).length === 0;
+}
+
+/** Poner o quitar un rol en la audiencia de un video. Los desconocidos que tuviera se conservan. */
+export function alternaRolDeTutorial(lista: Tutorial[], tutorialId: string, rol: UserRole): Tutorial[] {
+  if (!ROLES_DE_AUDIENCIA.includes(rol)) return lista;
+  return lista.map((t) => {
+    if (t.id !== tutorialId) return t;
+    const actuales = t.roles ?? [];
+    const roles = actuales.includes(rol) ? actuales.filter((r) => r !== rol) : [...actuales, rol];
+    return { ...t, roles };
+  });
+}
+
+/** Quitar de un video los roles que no existen. Si no le queda ninguno, vuelve a ser para todos. */
+export function quitaRolesDesconocidos(lista: Tutorial[], tutorialId: string): Tutorial[] {
+  return lista.map((t) => (t.id === tutorialId ? { ...t, roles: (t.roles ?? []).filter((r) => esRolConocido(r)) } : t));
 }
