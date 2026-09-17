@@ -129,9 +129,9 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 
 describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
   const TECHO_ENTREGAS: Record<string, number> = {
-    // Baja de 4 a 2 (D-268, tutoriales al hub): los dos negros del marco del video se fueron con
-    // la sección a components/tutorials/TutorialsHub.tsx. No desaparecen: se mudan.
-    "src/app/(app)/account/page.tsx": 2,
+    // (account/page.tsx sale de la tabla en D-NEXT: es solo una redirección a «Mi perfil», con cero.
+    // Sus dos blancos eran los de la insignia de la persona y la de la tienda, que no se mudan: Mi
+    // perfil no pinta insignias.)
     "src/app/(app)/accounts/page.tsx": 4,
     "src/app/(app)/audit/page.tsx": 1,
     "src/app/(app)/dashboard/page.tsx": 4,
@@ -144,6 +144,9 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/summary/page.tsx": 1,
     "src/components/AppUpdateBanner.tsx": 2,
     "src/components/DispatchBoard.tsx": 1,
+    // 1 desde D-NEXT: la «P» blanca sobre el pin oscuro de la recogida, en la leyenda del mapa. Es
+    // el mismo blanco que la «P» del pin en el mapa, sobre el mismo color.
+    "src/components/MapLegend.tsx": 1,
     "src/components/NotificationBell.tsx": 1,
     "src/components/OfflineBanner.tsx": 1,
     "src/components/OrderModal.tsx": 10,
@@ -157,7 +160,10 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // Baja de 6 a 5 (D-247): el fondo translúcido de los botones de la barra estaba escrito
     // dos veces y ahora es una constante. El techo baja con él — la tabla no admite holgura, y
     // eso es lo que hace que sea un techo y no una estimación.
-    "src/components/TopBar.tsx": 5,
+    // Baja de 5 a 2 (D-NEXT): se va el blanco de la burbuja del rol, que desaparece, y los dos
+    // colores del botón «Salir» del aviso de enseñanza pasan a `BOTON_DEL_AVISO`, que comparte con
+    // el botón nuevo «Reiniciar práctica». Esos dos no desaparecen: se escriben una vez.
+    "src/components/TopBar.tsx": 2,
     // 4 desde D-252: la muestra del color junto al selector del titulo es otra pastilla
     // con fondo de color fijo, y su texto es el mismo blanco que los demas. Sube el
     // techo, no se salta: la regla de la tabla es que un fichero solo sube cuando la
@@ -205,9 +211,11 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     }
   });
 
-  it("el total es 80, y de esos 65 son el blanco sobre color", () => {
+  it("el total es 76, y de esos 62 son el blanco sobre color", () => {
     // El número entero, para que un cambio que reparta colores entre ficheros sin subir
     // ninguno por encima de su techo no pase desapercibido.
+    // Era 80 y 65 hasta D-NEXT: −2 blancos de la Cuenta, −2 blancos y −1 translúcido de la barra,
+    // +1 blanco de la leyenda del mapa. Recontado con esta misma prueba.
     let total = 0;
     let blancos = 0;
     for (const ruta of ficherosEntregas) {
@@ -215,8 +223,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       total += h.length;
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
-    expect(total).toBe(80);
-    expect(blancos).toBe(65);
+    expect(total).toBe(76);
+    expect(blancos).toBe(62);
   });
 });
 

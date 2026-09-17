@@ -7,9 +7,10 @@ import { ProfileView } from "@/components/profile/ProfileView";
  * donde verla y cambiarla.
  *
  * La sesión la garantiza `layout.tsx`. Aquí se lee lo que se enseña: el nombre de `profiles` y con
- * qué entra la persona, correo o usuario. Todo de solo lectura, como se pidió: el correo y el
- * usuario los cambia un admin en Usuarios, porque de ellos cuelga el inicio de sesión, y el nombre
- * se sigue editando donde ya se editaba (la cuenta de cada app), que este cambio no toca.
+ * qué entra la persona, correo o usuario. El correo y el usuario son de solo lectura: los cambia un
+ * admin en Usuarios, porque de ellos cuelga el inicio de sesión. El nombre se edita aquí desde que la
+ * pantalla de Cuenta de Entregas redirige a esta (D-NEXT); por eso se pasa el id de la sesión, que
+ * es la fila que la política deja escribir.
  */
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -23,5 +24,5 @@ export default async function ProfilePage() {
 
   const { correo, usuario } = identidadVisible({ email: user?.email, username: perfil?.username });
 
-  return <ProfileView nombre={perfil?.full_name ?? null} correo={correo} usuario={usuario} />;
+  return <ProfileView id={user?.id ?? null} nombre={perfil?.full_name ?? null} correo={correo} usuario={usuario} />;
 }

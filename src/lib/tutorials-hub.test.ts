@@ -181,15 +181,18 @@ describe("los caminos hasta los tutoriales", () => {
     expect(hub).toMatch(/guardaTutoriales\(/);
   });
 
-  it("la Cuenta de Entregas ya no tiene la sección, y lleva al hub", () => {
-    const cuenta = sinComentarios(leer("src/app/(app)/account/page.tsx"));
-    expect(cuenta).not.toContain("TutorialsSection");
-    expect(cuenta).not.toContain("tutorialEmbed");
-    expect(cuenta).toContain('href="/home/tutorials"');
+  it("Entregas ya no tiene la sección, y lleva al hub", () => {
+    // Hasta D-NEXT el camino era la Cuenta de Entregas; ahora la Cuenta redirige a Mi perfil y el
+    // camino es el menú del nombre, que lo enseña a quien no ve la casa (el chofer, D-173).
+    const barra = sinComentarios(leer("src/components/TopBar.tsx"));
+    expect(barra).not.toContain("TutorialsSection");
+    expect(barra).not.toContain("tutorialEmbed");
+    expect(barra).toContain('href="/home/tutorials"');
+    expect(sinComentarios(leer("src/app/(app)/account/page.tsx"))).not.toContain("TutorialsSection");
   });
 
   it("la vista del video no está duplicada: un solo sitio usa tutorialEmbed", () => {
-    for (const f of ["src/app/(app)/account/page.tsx", "src/app/home/tutorials/page.tsx"]) {
+    for (const f of ["src/components/TopBar.tsx", "src/app/home/tutorials/page.tsx"]) {
       expect(sinComentarios(leer(f)), f).not.toContain("tutorialEmbed(");
     }
     expect(sinComentarios(leer("src/components/tutorials/TutorialsHub.tsx"))).toContain("tutorialEmbed(");
