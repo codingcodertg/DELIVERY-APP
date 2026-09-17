@@ -7,7 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { TAMANOS_MOVIL, enlaceAVistaMovil, rutaParaElMarco } from "@/lib/mobile-preview";
 
 /**
- * La app dentro de un marco con ancho de teléfono, para probar en el PC cómo se ve en móvil (D-NEXT).
+ * La app dentro de un marco con ancho de teléfono, para probar en el PC cómo se ve en móvil (D-278).
  *
  * Es la app de verdad, con su CSS móvil: el marco tiene viewport propio y ahí sí corren las media
  * queries. Por lo mismo es **una segunda app abierta**, y lo que eso arrastra está en la decisión: otra

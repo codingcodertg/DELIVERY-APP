@@ -2,7 +2,7 @@ import type { Delivery } from "./types";
 import { orderTypeRule, type OrderTypeRules } from "./required";
 
 /**
- * El número de documento que se resalta al ver una orden (D-NEXT).
+ * El número de documento que se resalta al ver una orden (D-278).
  *
  * El dueño: «en el formulario de orden, al verla, resalta el número de factura». Pero no todos los
  * tipos llevan factura: el documento que cuenta lo dice la regla del tipo (`docRef`, Ajustes → Datos),

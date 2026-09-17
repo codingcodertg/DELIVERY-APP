@@ -17738,7 +17738,7 @@ Respaldo de la función antes de aplicar en el scratchpad del orquestador; la re
 
 `logistics` tiene `approve` en la app pero el guard tampoco le deja pasar `pending` → `approved`. Fuera de alcance.
 
-## D-NEXT · Órdenes: el documento del tipo resaltado al verla, y la vista móvil del admin
+## D-278 · Órdenes: el documento del tipo resaltado al verla, y la vista móvil del admin
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«en el formulario de orden, al verla, resalta el número de

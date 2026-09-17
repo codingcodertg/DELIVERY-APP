@@ -80,7 +80,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   }, [generalOpen]);
   // Navigating away closes the menu (covers back/forward too).
   useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
-  // Dentro del marco de la vista móvil (D-NEXT) no se ofrece otra vista móvil. Se mira tras montar:
+  // Dentro del marco de la vista móvil (D-278) no se ofrece otra vista móvil. Se mira tras montar:
   // `window` no existe al pintar en el servidor.
   const [enMarco, setEnMarco] = useState(false);
   useEffect(() => { setEnMarco(estaEnUnMarco(window)); }, []);

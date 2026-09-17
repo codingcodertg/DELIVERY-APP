@@ -345,7 +345,7 @@ export function OrderModal({
    */
   const sinCobrar = existing != null && (existing.delivery_fee == null || Number(existing.delivery_fee) === 0);
   // The document this order's type asks for — invoice, PO or estimate — highlighted when viewing it
-  // (D-NEXT). Of the SAVED order: the view shows what is stored, not the draft being typed.
+  // (D-278). Of the SAVED order: the view shows what is stored, not the draft being typed.
   const documento = existing ? documentoPrincipal(existing, settings.order_type_rules) : null;
   const copiaDocumento = async (numero: string) => {
     try {

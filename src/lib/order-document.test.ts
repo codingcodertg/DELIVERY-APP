@@ -4,7 +4,7 @@ import { documentoPrincipal, filaFacturaOEstimacion } from "./order-document";
 import type { OrderTypeRule } from "./types";
 
 /**
- * El número de documento resaltado al ver una orden (D-NEXT). Las reglas son las de producción,
+ * El número de documento resaltado al ver una orden (D-278). Las reglas son las de producción,
  * medidas por el orquestador en `settings.order_type_rules`; los números, inventados.
  */
 

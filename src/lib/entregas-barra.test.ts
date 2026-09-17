@@ -51,7 +51,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
       .toEqual(["ensenanza", "vercomo", "vistamovil", "perfil", "tutoriales", "salir"]);
   });
 
-  it("la vista móvil es del admin real, y no se ofrece dentro de su propio marco (D-NEXT)", () => {
+  it("la vista móvil es del admin real, y no se ofrece dentro de su propio marco (D-278)", () => {
     for (const rol of ["manager", "sales", "logistics", "accounting", "warehouse", "driver"] as const) {
       expect(opcionesDelMenuDeCuenta({ realRole: rol, me: { role: rol, module_access: soloEntregas }, enMarco: false }), rol)
         .not.toContain("vistamovil");

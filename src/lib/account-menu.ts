@@ -21,7 +21,7 @@ import type { UserRole } from "./types";
  *   cualquier otro rol llega). Usaba la pantalla de Cuenta para llegar a los dos, y sin esto se quedaría
  *   sin puerta. Las dos rutas solo piden sesión.
  *
- * - **Vista móvil** (D-NEXT), para el admin **real**, y **no dentro del propio marco**: la vista
+ * - **Vista móvil** (D-278), para el admin **real**, y **no dentro del propio marco**: la vista
  *   móvil carga la app en un iframe, y ofrecerla ahí dentro metería un marco en otro.
  *
  * Salir va siempre el último, para que nadie lo toque por error al buscar otra cosa.

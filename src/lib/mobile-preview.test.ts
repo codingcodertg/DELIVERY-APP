@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { ANCHO_POR_DEFECTO, RUTA_VISTA_MOVIL, TAMANOS_MOVIL, anchoElegido, enlaceAVistaMovil, estaEnUnMarco, rutaParaElMarco } from "./mobile-preview";
 
-/** La vista móvil del admin (D-NEXT): qué se carga en el marco, quién entra y cómo se pinta. */
+/** La vista móvil del admin (D-278): qué se carga en el marco, quién entra y cómo se pinta. */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 

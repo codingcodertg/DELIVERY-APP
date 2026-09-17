@@ -5,7 +5,7 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 /**
- * La vista móvil es del admin (D-NEXT), y se decide en el servidor con el rol de la sesión, igual que
+ * La vista móvil es del admin (D-278), y se decide en el servidor con el rol de la sesión, igual que
  * Usuarios (D-056). «Ver como» es solo del cliente y no cambia la sesión, así que un admin
  * previsualizando otro rol sigue entrando; alguien suplantado por un admin (D-243) tiene la sesión de
  * esa persona, y no entra.

@@ -1,7 +1,7 @@
 import { safeNext } from "./auth-redirect";
 
 /**
- * La vista móvil del admin (D-NEXT): la app dentro de un marco con ancho de teléfono.
+ * La vista móvil del admin (D-278): la app dentro de un marco con ancho de teléfono.
  *
  * El dueño: «solo para admin, crea también la vista móvil para poder probarla». Medido antes de
  * construir: el diseño móvil de la app son **media queries de viewport** (`@media (max-width: …)` en
