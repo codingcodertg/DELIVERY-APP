@@ -137,6 +137,43 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
     expect(r.status).toBe(400);
     expect((await r.json()).codigo).toBe("no_guardada");
   });
+
+  // Un rechazo de Supabase dice por qué (D-NEXT). Los errores tienen los campos de las clases reales
+  // de la librería, que fija `password-input.test.ts` sin simular nada.
+  it("débil: contesta «debil» con los motivos de Supabase", async () => {
+    falso.updateUser.mockImplementation(async () => ({
+      error: { name: "AuthWeakPasswordError", message: "weak", status: 422, code: "weak_password", reasons: ["length"] },
+    } as never));
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ ok: false, codigo: "debil", motivos: ["length"] });
+  });
+
+  it("igual a la anterior: contesta «misma_contrasena», no «inténtalo otra vez»", async () => {
+    falso.updateUser.mockImplementation(async () => ({
+      error: { name: "AuthApiError", message: "same", status: 422, code: "same_password" },
+    } as never));
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    expect((await r.json()).codigo).toBe("misma_contrasena");
+  });
+
+  it("un fallo que no se reconoce queda en el log del servidor, y la contraseña nunca va en él", async () => {
+    const errorOriginal = console.error;
+    const registros: unknown[][] = [];
+    console.error = (...a: unknown[]) => { registros.push(a); };
+    try {
+      falso.updateUser.mockImplementation(async () => ({ error: { message: "boom", status: 500, code: "unexpected_failure" } } as never));
+      const r = await pide({ actual: "vieja-secreta-1", nueva: "nueva-secreta-2" });
+      expect((await r.json()).codigo).toBe("no_guardada");
+      expect(registros).toHaveLength(1);
+      const texto = JSON.stringify(registros);
+      expect(texto).toContain("unexpected_failure");
+      expect(texto).not.toContain("nueva-secreta-2");
+      expect(texto).not.toContain("vieja-secreta-1");
+    } finally {
+      console.error = errorOriginal;
+    }
+  });
 });
 
 describe("lo que se decide sin red", () => {

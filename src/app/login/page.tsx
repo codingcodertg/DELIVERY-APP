@@ -5,6 +5,7 @@ import { loginEmail } from "@/lib/username";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
+import { PasswordInput } from "@/components/PasswordInput";
 import { VersionFooter } from "@/components/VersionFooter";
 import { safeNext } from "@/lib/auth-redirect";
 import {
@@ -32,7 +33,6 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [msg, setMsg] = useState("");
   const [msgOk, setMsgOk] = useState(false);
@@ -261,29 +261,14 @@ export default function LoginPage() {
 
             <div style={{ marginBottom: 16 }}>
               <label>{t("Password", "Contraseña")}</label>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submit()}
-                  placeholder="••••••••"
-                  autoFocus={!!picked}
-                  style={{ paddingRight: 40 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  title={showPassword ? t("Hide password", "Ocultar contraseña") : t("Show password", "Mostrar contraseña")}
-                  style={{
-                    position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                    width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
-                    borderRadius: 6, color: "var(--gray)", fontSize: 15,
-                  }}
-                >
-                  {showPassword ? "🙈" : "👁"}
-                </button>
-              </div>
+              {/* El ojo es el componente compartido (D-NEXT): una sola implementación para los cinco
+                  campos de contraseña de la app. */}
+              <PasswordInput
+                value={password}
+                onChange={setPassword}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                autoFocus={!!picked}
+              />
             </div>
 
             {mode === "signin" && (

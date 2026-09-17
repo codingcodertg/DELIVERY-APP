@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
+import { PasswordInput } from "@/components/PasswordInput";
 import { leeFragmentoRecuperacion } from "@/lib/password-recovery";
 
 export default function ResetPasswordPage() {
@@ -76,12 +77,11 @@ export default function ResetPasswordPage() {
         <h1>{t("Set a new password", "Pon una contraseña nueva")}</h1>
         <div style={{ margin: "16px 0" }}>
           <label>{t("New password", "Contraseña nueva")}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             onKeyDown={(e) => e.key === "Enter" && listo && submit()}
-            placeholder="••••••••"
+            autoComplete="new-password"
           />
         </div>
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={submit} disabled={loading || !listo}>

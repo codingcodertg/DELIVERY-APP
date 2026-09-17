@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena } from "@/lib/profile-password";
+import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
+import { PasswordInput } from "@/components/PasswordInput";
 
 /**
  * Lo que se ve en «Mi perfil» (D-265).
@@ -112,14 +113,15 @@ function CambiarContrasena() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ actual, nueva }),
       });
-      const cuerpo = (await r.json().catch(() => null)) as { ok?: boolean; codigo?: CodigoContrasena } | null;
+      const cuerpo = (await r.json().catch(() => null)) as { ok?: boolean; codigo?: CodigoContrasena; motivos?: MotivoDebil[] } | null;
       if (r.ok && cuerpo?.ok) {
         setAviso({ texto: t("Password updated.", "Contraseña actualizada."), ok: true });
         setActual("");
         setNueva("");
         setConfirmacion("");
       } else {
-        setAviso({ texto: mensajeDeContrasena(cuerpo?.codigo ?? "no_guardada", t), ok: false });
+        // Con los motivos que dé Supabase, para que el aviso diga qué cambiar (D-NEXT).
+        setAviso({ texto: mensajeDeContrasena(cuerpo?.codigo ?? "no_guardada", t, cuerpo?.motivos ?? []), ok: false });
       }
     } catch {
       setAviso({ texto: mensajeDeContrasena("no_guardada", t), ok: false });
@@ -133,19 +135,19 @@ function CambiarContrasena() {
       <div className="grid g2" style={{ maxWidth: 520 }}>
         <div className="field">
           <label>{t("Current password", "Contraseña actual")}</label>
-          <input type="password" value={actual} onChange={(e) => setActual(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+          <PasswordInput value={actual} onChange={setActual} autoComplete="current-password" />
         </div>
         <div />
         <div className="field">
           <label>{t("New password", "Nueva contraseña")}</label>
-          <input type="password" value={nueva} onChange={(e) => setNueva(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+          <PasswordInput value={nueva} onChange={setNueva} autoComplete="new-password" />
         </div>
         <div className="field">
           <label>{t("Confirm new password", "Confirmar nueva contraseña")}</label>
-          <input
-            type="password" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)}
+          <PasswordInput
+            value={confirmacion} onChange={setConfirmacion}
             onKeyDown={(e) => e.key === "Enter" && enviar()}
-            placeholder="••••••••" autoComplete="new-password"
+            autoComplete="new-password"
           />
         </div>
       </div>
