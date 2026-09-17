@@ -6,8 +6,6 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { CAPABILITIES, ROLE_INFO, extraCaps, permissionsFor, personBadge } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
-import { tutorialEmbed } from "@/lib/tutorials";
-import type { Profile, Settings, Tutorial } from "@/lib/types";
 
 // ============================================================
 // "My Account" — every signed-in user gets this, whatever their role.
@@ -16,7 +14,7 @@ import type { Profile, Settings, Tutorial } from "@/lib/types";
 // ============================================================
 
 export default function AccountPage() {
-  const { me, settings, users, updateUserName, notify, teaching, setTeaching, clearTrainingData, saveSettings } = useData();
+  const { me, settings, users, updateUserName, notify, teaching, setTeaching, clearTrainingData } = useData();
   const { lang, theme, setLang, setTheme, t } = usePrefs();
   const [name, setName] = useState(me?.full_name ?? "");
   const [saving, setSaving] = useState(false);
@@ -64,15 +62,15 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* ---------- Tutorials (everyone watches; admin manages) ---------- */}
-      <TutorialsSection
-        tutorials={settings.tutorials ?? []}
-        canManage={me.role === "admin"}
-        me={me}
-        saveSettings={saveSettings}
-        notify={notify}
-        t={t}
-      />
+      {/* ---------- Tutorials ----------
+          Se mudaron al hub (D-NEXT): son de todas las apps, y los ve también quien no tiene
+          Entregas. Aquí queda el camino, que es el del chofer, porque no entra al lobby (D-173). */}
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>🎬 {t("Tutorials", "Tutoriales")}</h2>
+        <Link href="/home/tutorials" className="btn btn-primary">
+          {t("🎬 Tutorials → hub", "🎬 Tutoriales → hub")}
+        </Link>
+      </div>
 
       {/* ---------- Settings entry point (admin only — everyone else's options
            live right here in the account view). ---------- */}
@@ -195,112 +193,5 @@ export default function AccountPage() {
         </div>
       </div>
     </>
-  );
-}
-
-/** Account-view "Tutorials" zone: a list of how-to videos embedded from their
- * links. Everyone watches; an admin adds/removes them. */
-function TutorialsSection({ tutorials, canManage, me, saveSettings, notify, t }: {
-  tutorials: Tutorial[];
-  canManage: boolean;
-  me: Profile;
-  saveSettings: (patch: Partial<Settings>) => void;
-  notify: (m: string) => void;
-  t: (en: string, es: string) => string;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [desc, setDesc] = useState("");
-
-  const reset = () => { setTitle(""); setUrl(""); setDesc(""); setAdding(false); };
-  const add = () => {
-    if (!title.trim() || !url.trim()) return;
-    const item: Tutorial = {
-      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title: title.trim(), description: desc.trim() || null, url: url.trim(),
-      added_by: me.id, added_at: new Date().toISOString(),
-    };
-    saveSettings({ tutorials: [...tutorials, item] });
-    reset();
-    notify(t("Tutorial added", "Tutorial agregado"));
-  };
-  const remove = (id: string) => {
-    if (!confirm(t("Remove this tutorial?", "¿Eliminar este tutorial?"))) return;
-    saveSettings({ tutorials: tutorials.filter((x) => x.id !== id) });
-    notify(t("Tutorial removed", "Tutorial eliminado"));
-  };
-
-  return (
-    <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>🎬 {t("Tutorials", "Tutoriales")}</h2>
-        {canManage && !adding && (
-          <button className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>＋ {t("Add tutorial", "Agregar tutorial")}</button>
-        )}
-      </div>
-      <p className="hint" style={{ marginTop: 6, marginBottom: 12 }}>
-        {t("Short how-to videos for using the app.", "Videos cortos de cómo usar la app.")}
-      </p>
-
-      {canManage && adding && (
-        <div className="card" style={{ padding: 12, marginBottom: 16 }}>
-          <div className="field">
-            <label>{t("Title", "Título")}</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("e.g. How to create an order", "ej. Cómo crear una orden")} />
-          </div>
-          <div className="field">
-            <label>{t("Video link (YouTube, Loom, Vimeo, Drive)", "Enlace del video (YouTube, Loom, Vimeo, Drive)")}</label>
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
-          </div>
-          <div className="field">
-            <label>{t("Description (optional)", "Descripción (opcional)")}</label>
-            <textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} />
-          </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button className="btn btn-ghost btn-sm" onClick={reset}>{t("Cancel", "Cancelar")}</button>
-            <button className="btn btn-primary btn-sm" onClick={add} disabled={!title.trim() || !url.trim()}>{t("Add", "Agregar")}</button>
-          </div>
-        </div>
-      )}
-
-      {tutorials.length === 0 ? (
-        <div className="hint">{t("No tutorials yet.", "Aún no hay tutoriales.")}</div>
-      ) : (
-        <div style={{ display: "grid", gap: 18 }}>
-          {tutorials.map((tut) => {
-            const em = tutorialEmbed(tut.url);
-            return (
-              <div key={tut.id}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                  <b style={{ fontFamily: "Archivo, sans-serif", fontSize: 16 }}>{tut.title}</b>
-                  {canManage && (
-                    <button className="btn btn-ghost btn-sm" title={t("Remove", "Quitar")} onClick={() => remove(tut.id)}>✕</button>
-                  )}
-                </div>
-                {tut.description && <div className="hint" style={{ marginTop: 2 }}>{tut.description}</div>}
-                <div style={{ marginTop: 8 }}>
-                  {em.kind === "iframe" ? (
-                    <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 10, overflow: "hidden", background: "#000" }}>
-                      <iframe
-                        src={em.src}
-                        title={tut.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-                      />
-                    </div>
-                  ) : em.kind === "file" ? (
-                    <video src={em.src} controls style={{ width: "100%", borderRadius: 10, background: "#000" }} />
-                  ) : (
-                    <a className="btn btn-ghost btn-sm" href={em.src} target="_blank" rel="noopener noreferrer">▶ {t("Open video", "Abrir video")}</a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
   );
 }

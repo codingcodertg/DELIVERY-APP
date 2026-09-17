@@ -482,6 +482,19 @@ export const HUB_TOOLS: HubTool[] = [
     // se toca: su app es su ruta, y esa regla es incondicional a propósito.
     visible: () => true,
   },
+  {
+    key: "tutorials",
+    href: "/home/tutorials",
+    emoji: "🎬",
+    label_en: "Tutorials",
+    label_es: "Tutoriales",
+    desc_en: "How-to videos for every app",
+    desc_es: "Videos de cómo usar cada app",
+    // Para todos, como el directorio. Vivían en la «Cuenta» de Entregas y son de todas las apps, así
+    // que su sitio es el hub (D-NEXT). Gestionarlos es solo del admin, y eso lo decide la página y la
+    // base, no esta lista. El chofer, que no entra al lobby (D-173), llega desde su «Cuenta».
+    visible: () => true,
+  },
 ];
 
 // ---- Apps que se instalan --------------------------------------------------

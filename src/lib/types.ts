@@ -340,13 +340,18 @@ export interface OrderTypeRule {
   homeIsDestination?: boolean;
 }
 
-/** A how-to video shown in the account view's Tutorials section. Hosted
+/** La app de un tutorial, para agruparlo en el hub (D-NEXT). Sin app = General. */
+export type TutorialApp = "deliveries" | "recruiting" | "timetracker" | "clockin" | "erp";
+
+/** A how-to video shown in the hub's Tutorials tool (D-NEXT; it lived in the account view). Hosted
  * externally (YouTube / Loom / Vimeo / Drive) and embedded by its link. */
 export interface Tutorial {
   id: string;
   title: string;
   description?: string | null;
   url: string;
+  /** Which app it explains. Missing or unknown = General. */
+  app?: TutorialApp | null;
   added_by?: string | null;
   added_at?: string;
 }
@@ -452,7 +457,7 @@ export interface Settings {
   /** Flat overhead cost charged per delivery/stop, in $. */
   cost_per_delivery?: number | null;
 
-  /** How-to videos shown in the account view (admin-managed, everyone views). */
+  /** How-to videos shown in the hub (admin-managed, everyone views). Read through public.tutorials() (113). */
   tutorials?: Tutorial[];
 
   // ---- Local-zone delivery pricing ----
