@@ -923,7 +923,7 @@ export const canPlanRoutes = (u: CapUser) => hasCap(u, "route_plan");
 const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   draft:      ["pending", "canceled"],
   // Anular una orden viva es de gerente, office y admin — la etapa lo permite y `puedeAnular` dice
-  // quién (D-NEXT, 122). Antes solo se anulaba un borrador o una rechazada, así que el cliente que
+  // quién (D-291, 122). Antes solo se anulaba un borrador o una rechazada, así que el cliente que
   // llamaba para cancelar una orden ya aprobada no tenía camino.
   pending:    ["approved", "rejected", "canceled"],
   rejected:   ["pending", "canceled"],
@@ -945,7 +945,7 @@ export function canTransition(from: Stage, to: Stage): boolean {
 }
 
 /**
- * Desde qué etapas anula cada rol (D-NEXT, migración 122). `LEGAL_TRANSITIONS` dice qué saltos existen;
+ * Desde qué etapas anula cada rol (D-291, migración 122). `LEGAL_TRANSITIONS` dice qué saltos existen;
  * esta dice quién los da, que es lo que decide qué botón se pinta.
  *
  * **Es el espejo del guard de la 122**, y la prueba lo compara rama por rama contra el `.sql`: la app y

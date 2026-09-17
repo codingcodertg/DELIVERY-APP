@@ -36825,7 +36825,7 @@ en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
   vendedores.** Con esta regla aparece: es «quien puede crear órdenes de esa tienda», no «quien es del
   rol ventas y de esa tienda».
 
-## D-NEXT · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
+## D-291 · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración: 122** (la aplica
 el orquestador, después de fusionar).

@@ -8,7 +8,7 @@ import {
 import type { Stage, UserRole } from "./types";
 
 /**
- * Anular deja motivo, y una entregada no se anula (D-NEXT, migración 122).
+ * Anular deja motivo, y una entregada no se anula (D-291, migración 122).
  *
  * Quién puede anular y desde qué etapa lo dicen dos sitios —la app y el guard—, así que la primera
  * prueba no copia la tabla: **la lee del `.sql`** y compara rol por rol y etapa por etapa. Si un día se

@@ -1,7 +1,7 @@
 import type { CancelReason, Delivery, Settings } from "./types";
 
 /**
- * Los motivos por los que se anula una orden (D-NEXT, migración 122).
+ * Los motivos por los que se anula una orden (D-291, migración 122).
  *
  * El dueño: «agrega una opción para anular órdenes y deben dejar razón por qué la anularon, ya sea
  * duplicación, o cliente canceló, o cliente recogerá en tienda».

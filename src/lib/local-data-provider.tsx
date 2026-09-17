@@ -221,7 +221,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlMover = escrituraQueNoVaANingunSitio(cur, { stage, ...extra }, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, "en")); return false; }
-    // Mismo espejo del guard que el proveedor real (D-NEXT, 122).
+    // Mismo espejo del guard que el proveedor real (D-291, 122).
     const entrandoEnAnulada = stage === "canceled" && (!cur || cur.stage !== "canceled");
     if (entrandoEnAnulada) {
       const falta = faltaParaAnular(

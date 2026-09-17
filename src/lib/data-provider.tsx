@@ -1217,7 +1217,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // they may skip, it's an order with nowhere to go.
       const choqueAlMover = escrituraQueNoVaANingunSitio(current, { stage, ...extra }, settings.order_type_rules, settings.stores);
       if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return false; }
-      // Anular deja motivo, siempre y desde donde sea (D-NEXT, 122). Es el espejo del guard: la base
+      // Anular deja motivo, siempre y desde donde sea (D-291, 122). Es el espejo del guard: la base
       // rechazaría la escritura igual, pero un camino que la manda y falla deja al usuario mirando un
       // error de Postgres. El que llegaba aquí sin motivo era el botón de anular en bloque.
       if (stage === "canceled" && (!current || current.stage !== "canceled")) {
