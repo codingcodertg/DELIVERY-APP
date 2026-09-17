@@ -21,20 +21,26 @@ import type { UserRole } from "./types";
  *   cualquier otro rol llega). Usaba la pantalla de Cuenta para llegar a los dos, y sin esto se quedaría
  *   sin puerta. Las dos rutas solo piden sesión.
  *
+ * - **Vista móvil** (D-NEXT), para el admin **real**, y **no dentro del propio marco**: la vista
+ *   móvil carga la app en un iframe, y ofrecerla ahí dentro metería un marco en otro.
+ *
  * Salir va siempre el último, para que nadie lo toque por error al buscar otra cosa.
  *
  * Recibe lo mismo que tiene la barra —el rol real, y el rol y los módulos efectivos— y no tres
  * booleanos: así la prueba pasa por el mismo cableado que la barra, `canReachHub` incluida.
  */
-export const OPCIONES_DEL_MENU = ["ensenanza", "vercomo", "ajustes", "perfil", "tutoriales", "salir"] as const;
+export const OPCIONES_DEL_MENU = ["ensenanza", "vercomo", "vistamovil", "ajustes", "perfil", "tutoriales", "salir"] as const;
 export type OpcionDelMenu = (typeof OPCIONES_DEL_MENU)[number];
 
 export function opcionesDelMenuDeCuenta(a: {
   realRole: UserRole | null | undefined;
   me: { role: UserRole; module_access?: string[] | null };
+  /** ¿La barra se pinta dentro de un marco? `estaEnUnMarco(window)`. */
+  enMarco: boolean;
 }): OpcionDelMenu[] {
   const out: OpcionDelMenu[] = ["ensenanza"];
   if (a.realRole === "admin") out.push("vercomo");
+  if (a.realRole === "admin" && !a.enMarco) out.push("vistamovil");
   if (a.me.role === "admin") out.push("ajustes");
   if (!canReachHub(a.me)) out.push("perfil", "tutoriales");
   out.push("salir");

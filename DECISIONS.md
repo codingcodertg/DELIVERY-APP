@@ -17737,3 +17737,130 @@ Respaldo de la función antes de aplicar en el scratchpad del orquestador; la re
 ### No cambia, y queda dicho
 
 `logistics` tiene `approve` en la app pero el guard tampoco le deja pasar `pending` → `approved`. Fuera de alcance.
+
+## D-NEXT · Órdenes: el documento del tipo resaltado al verla, y la vista móvil del admin
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, dos cosas: *«en el formulario de orden, al verla, resalta el número de
+factura»* y *«solo para admin, crea también la vista móvil para poder probarla»*. La forma de la segunda
+la eligió el orquestador (opción A, abajo).
+
+### 1. El documento que exige el tipo, resaltado
+
+**Lo medido.** En modo ver, el número salía en dos sitios, ninguno destacado: un chip de cabecera
+«INV …», solo si había factura, y una fila «Factura / Estimación #» en mitad del resumen. El PO no salía
+en el resumen. Pero no todos los tipos llevan factura: el documento que cuenta lo dice la regla del tipo
+(`docRef`, Ajustes → Datos), la misma que decide qué falta al enviar (`missingFields`). En producción,
+medido por el orquestador: Customer pide factura, Intertienda pide PO y Transfer pide estimación.
+
+**Decisión (aprobada por el orquestador): se resalta el documento que exige el tipo**, no siempre la
+factura:
+
+| `docRef` | Se resalta |
+|---|---|
+| `invoice` (Customer) | Factura # |
+| `po` (Intertienda) | PO #, aunque la orden tenga factura |
+| `estimate` (Transfer) | Estimación # |
+| `any` | El primero que tenga, en el orden en que `missingFields` los pide: PO, factura, SO |
+| `none` | La factura si la hay; si no, nada |
+
+- Arriba del resumen, dentro de su tarjeta: etiqueta, número grande y botón de copiar. Si el navegador
+  niega el portapapeles, lo dice, y el número se selecciona entero con un clic (`user-select: all`).
+- **Sale aunque esté vacío**, con «—»: que falte el documento que el tipo exige también es algo que ver
+  de un vistazo.
+- El chip de cabecera enseña ese mismo documento («PO …» en una Intertienda, «EST …» en un Transfer).
+- La fila «Factura / Estimación #» solo sale si dice algo distinto de lo resaltado. En una Customer
+  sería el mismo número dos veces; la factura de una Intertienda sigue a la vista.
+- Sale de la orden **guardada**, no del borrador que se está escribiendo: es la vista de ver.
+- La pantalla del chofer no cambia: ya enseña «📄 INV» en su propia cabecera.
+
+### 2. La vista móvil del admin
+
+**Lo medido antes de construir.**
+
+- **El diseño móvil de la app son media queries de viewport.** En `globals.css` hay 9 `max-width`
+  (480/640/760/820 px) y 2 `min-width`; en `timetracker.css`, 4; en `recruiting.css`, 2. Nada en
+  TypeScript pregunta el ancho para decidir el diseño: `innerWidth` solo coloca menús.
+- **Un `div` de 390 px no dispara ninguna**, porque el viewport sigue siendo el de la ventana. Un
+  `iframe` sí, porque tiene viewport propio.
+- **El marco puede cargar la app:** `next.config.mjs` y el middleware no ponen `X-Frame-Options` ni
+  `frame-ancestors`, y al ser del mismo origen comparte la sesión.
+
+**Opción A, elegida por el orquestador.** Hubo otras dos. Pasar las media queries a container queries
+se descartó, porque toca todo el CSS de producción. El modo dispositivo de Chrome (F12, Ctrl+Shift+M) ya
+hace esto sin código, y se lo cuenta al dueño el orquestador.
+
+- **Ruta `/home/vista-movil`**, con la puerta en el servidor: solo el admin, por el rol de la sesión,
+  igual que Usuarios (D-056). «Ver como» es del cliente y no cambia la sesión, así que un admin que
+  previsualiza otro rol entra. Alguien suplantado por un admin (D-243) tiene la sesión de esa persona, y
+  no entra.
+- **Un `iframe` con la ruta que se pida** y tres tamaños: 360 × 780, 390 × 844 y 430 × 932. El campo de
+  ruta se actualiza al navegar dentro del marco.
+- **La ruta pasa por `safeNext` (D-193):** solo rutas internas, nada de `//evil.com` ni caracteres de
+  control, y nunca el login. Tampoco la propia vista móvil, que metería un marco dentro de otro.
+- **Ruta y tamaño viajan en la URL**, no en `localStorage`, como se pidió: recargar o guardar el enlace
+  los conserva.
+- **El marco es `content-box` a propósito.** El reset global es `border-box`, y con él el bisel de 10 px
+  se comería el ancho: un «390» pintaría la app a 370.
+- **La entrada es «📱 Vista móvil» en el menú del nombre** (D-274), para el admin **real**, justo
+  después de «Ver como». Lleva a la vista móvil con la pantalla en la que se está. **No sale dentro del
+  propio marco:** la barra mira `window.self !== window.top` al montar y, si el navegador no deja
+  mirarlo, lo cuenta como marco.
+
+**Las trampas, porque el marco es una segunda app entera:**
+
+- **Doble carga y doble realtime.** Mientras la vista móvil está abierta, la app del marco carga sus
+  datos y abre sus canales en vivo, además de los de cualquier otra pestaña. La propia página de la vista
+  móvil no monta `DataProvider`.
+- **«Ver como», idioma y tema compartidos.** «Ver como» y el tema se guardan por navegador
+  (`rtg_view_as` y `rtg_prefs`, en `localStorage`), y el idioma es de la persona, en
+  `profiles.language` (D-266). Cambiarlos dentro del marco los cambia fuera al recargar, y al revés. La
+  página lo avisa bajo los botones de tamaño.
+- **Avisos duplicados.** El aviso de versión nueva sale dos veces, fuera y dentro, y el registro de
+  notificaciones push corre también dentro del marco.
+- **Lo que no es CSS no cambia.** El marco no simula un teléfono: no hay táctil, ni teclado en pantalla,
+  ni el `User-Agent` del móvil, ni la cáscara Android (D-257). Lo que dependa de eso se prueba en un
+  teléfono.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Veinte mutantes, cada uno cazado por la prueba pensada para él, leída por nombre:
+
+- **Documento (9).**
+  - Intertienda mostrando la factura → la del PO, la del documento vacío y la de la fila que sigue a la
+    vista.
+  - Transfer mostrando la factura → la de la estimación.
+  - `any` en otro orden → la de «cualquiera».
+  - `none` siempre con factura → la de «ninguno».
+  - Sin recortar → la de Customer.
+  - La fila repitiendo el número → la que lo impide.
+  - El chip vuelto a «INV» → la del chip.
+  - El botón sin copiar → la del resumen.
+  - El documento sacado del borrador → la de la orden guardada.
+- **Vista móvil (11).**
+  - Permitir la propia vista en el marco → la del anidado.
+  - Sin `safeNext` → la de rutas malas y la del enlace.
+  - Cualquier ancho → la de tamaños y la del enlace.
+  - Un marco que no deja mirarlo, contado como no-marco → la de «¿dentro de un marco?».
+  - La opción por rol efectivo → las dos del admin previsualizando.
+  - El menú ignorando el marco → la que la esconde dentro.
+  - La puerta abierta → la de la puerta.
+  - El marco en `border-box` → la del tamaño.
+  - La página sin sanear la URL → la de la página.
+  - La barra sin mirar si está en un marco → la del cableado del menú.
+  - El campo sin sanear al abrir → la del marco.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el documento resaltado ni la vista móvil. En particular,
+  no se ha comprobado con los ojos que el marco dispare el CSS móvil. Es como funcionan los `iframe`,
+  pero no está visto.
+- **Cuánto pesa la segunda app** en la base y en realtime mientras la vista móvil está abierta.
+- **El portapapeles** exige contexto seguro (https o localhost, que son los de producción, preview y
+  desarrollo) y que el navegador no lo niegue. Si lo niega, sale el aviso.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2371 pasados | 3 saltados**. La rama añade 28
+pruebas y no quita ninguna: 13 en `order-document.test.ts` y 12 en `mobile-preview.test.ts`, ficheros nuevos; 1 en
+`entregas-barra.test.ts`; y 2 que generan los barridos, una de `inline-colors.test.ts` por `VistaMovil.tsx` y
+una del canario de `profile-read.test.ts` por la puerta nueva. Ese canario cayó la primera vez: la puerta
+recogía el error como `error`, sin la forma `error: nombre` que exige, y se renombró. `main` 34d37b8, medido en un worktree aparte, está en 2343 | 3.
