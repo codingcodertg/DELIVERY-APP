@@ -129,7 +129,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
 
 describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
   const TECHO_ENTREGAS: Record<string, number> = {
-    // Baja de 4 a 2 (D-NEXT, tutoriales al hub): los dos negros del marco del video se fueron con
+    // Baja de 4 a 2 (D-268, tutoriales al hub): los dos negros del marco del video se fueron con
     // la sección a components/tutorials/TutorialsHub.tsx. No desaparecen: se mudan.
     "src/app/(app)/account/page.tsx": 2,
     "src/app/(app)/accounts/page.tsx": 4,
@@ -164,7 +164,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // decision lo dice.
     "src/components/UserDialog.tsx": 4,
     "src/components/UsersImportModal.tsx": 3,
-    // 2 desde D-NEXT: los mismos dos negros que la Cuenta de Entregas tenía, el fondo detrás del video
+    // 2 desde D-268: los mismos dos negros que la Cuenta de Entregas tenía, el fondo detrás del video
     // mientras carga. Un video se ve sobre negro en claro y en oscuro, que es la regla de esta tabla
     // para los colores que no cambian con el tema.
     "src/components/tutorials/TutorialsHub.tsx": 2,

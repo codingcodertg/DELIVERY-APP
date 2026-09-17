@@ -340,10 +340,10 @@ export interface OrderTypeRule {
   homeIsDestination?: boolean;
 }
 
-/** La app de un tutorial, para agruparlo en el hub (D-NEXT). Sin app = General. */
+/** La app de un tutorial, para agruparlo en el hub (D-268). Sin app = General. */
 export type TutorialApp = "deliveries" | "recruiting" | "timetracker" | "clockin" | "erp";
 
-/** A how-to video shown in the hub's Tutorials tool (D-NEXT; it lived in the account view). Hosted
+/** A how-to video shown in the hub's Tutorials tool (D-268; it lived in the account view). Hosted
  * externally (YouTube / Loom / Vimeo / Drive) and embedded by its link. */
 export interface Tutorial {
   id: string;

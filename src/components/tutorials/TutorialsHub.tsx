@@ -12,7 +12,7 @@ import {
 import type { Tutorial, TutorialApp } from "@/lib/types";
 
 /**
- * Los tutoriales del hub (D-NEXT). Es la sección que vivía en la «Cuenta» de Entregas, movida: la
+ * Los tutoriales del hub (D-268). Es la sección que vivía en la «Cuenta» de Entregas, movida: la
  * misma vista del video y el mismo formulario, ahora agrupados por app y con buscador.
  *
  * **Se lee de `public.tutorials()` (113), no de `settings`.** La 100 cierra `settings` a quien tiene

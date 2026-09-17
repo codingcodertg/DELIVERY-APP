@@ -9,7 +9,7 @@ import {
 import type { Tutorial } from "./types";
 
 /**
- * Los tutoriales en el hub (D-NEXT).
+ * Los tutoriales en el hub (D-268).
  *
  * Tres clases de prueba:
  *   1. Lo que se decide con datos: agrupación, General, buscador, quién gestiona y el tutorial nuevo.

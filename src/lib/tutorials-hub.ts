@@ -3,7 +3,7 @@ import { esAdmin } from "@/lib/impersonation";
 import type { Tutorial, TutorialApp } from "@/lib/types";
 
 /**
- * Los tutoriales del hub (D-NEXT): agrupar, buscar, quién los gestiona, y guardarlos.
+ * Los tutoriales del hub (D-268): agrupar, buscar, quién los gestiona, y guardarlos.
  *
  * Vivían dentro de la «Cuenta» de Entregas (commit b5fb6dd, v0.9.15, sin decisión registrada).
  * Pasan al hub porque son de todas las apps, igual que «Mi perfil» (D-265). Aquí va lo que se decide

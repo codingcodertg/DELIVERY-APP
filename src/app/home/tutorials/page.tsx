@@ -3,7 +3,7 @@ import { puedeGestionarTutoriales } from "@/lib/tutorials-hub";
 import { TutorialsHub } from "@/components/tutorials/TutorialsHub";
 
 /**
- * Tutoriales (D-NEXT): los videos de cómo usar cada app, agrupados por app, para todo el que tenga
+ * Tutoriales (D-268): los videos de cómo usar cada app, agrupados por app, para todo el que tenga
  * sesión. La sesión la garantiza `layout.tsx`.
  *
  * Aquí solo se decide si esta persona gestiona. Esconder los botones a quien no es admin es comodidad:

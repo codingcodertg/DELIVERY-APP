@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Los tutoriales son de todo el mundo, así que la puerta solo pregunta si hay sesión (D-NEXT), igual
+ * Los tutoriales son de todo el mundo, así que la puerta solo pregunta si hay sesión (D-268), igual
  * que el directorio (D-256) y «Mi perfil» (D-265).
  *
  * **No usa `canReachHub`, y es a propósito.** El chofer no entra al lobby (D-173), pero veía los

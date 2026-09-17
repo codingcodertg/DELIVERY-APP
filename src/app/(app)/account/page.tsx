@@ -63,7 +63,7 @@ export default function AccountPage() {
       </div>
 
       {/* ---------- Tutorials ----------
-          Se mudaron al hub (D-NEXT): son de todas las apps, y los ve también quien no tiene
+          Se mudaron al hub (D-268): son de todas las apps, y los ve también quien no tiene
           Entregas. Aquí queda el camino, que es el del chofer, porque no entra al lobby (D-173). */}
       <div className="card">
         <h2 style={{ marginTop: 0 }}>🎬 {t("Tutorials", "Tutoriales")}</h2>

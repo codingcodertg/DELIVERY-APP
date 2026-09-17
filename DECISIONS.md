@@ -16727,7 +16727,7 @@ Y nadie lo ha abierto en un navegador.
 pruebas, todas en `order-endpoints.test.ts`, fichero nuevo, y no cambia ningún otro fichero de prueba;
 así que `main` 61dd0d7 está en 2126 | 3.
 
-## D-NEXT · Los tutoriales pasan al hub, agrupados por app, y los ve todo el que tenga sesión
+## D-268 · Los tutoriales pasan al hub, agrupados por app, y los ve todo el que tenga sesión
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambia el hub y la
 «Cuenta» de Entregas · **Migración: `113_tutorials_for_everyone.sql`**, que aplica el orquestador
