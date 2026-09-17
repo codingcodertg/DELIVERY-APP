@@ -35,7 +35,7 @@ export function registroDeLugar(
     const code = (draft.directory_code ?? "").trim();
     if (code) rec.directory_code = code;
     else delete rec.directory_code;
-    // La extensión de la tienda para el directorio (D-NEXT): misma regla que el código. Vacía quita la
+    // La extensión de la tienda para el directorio (D-273): misma regla que el código. Vacía quita la
     // clave, y el directorio no enseña extensión.
     const ext = (draft.directory_ext ?? "").trim();
     if (ext) rec.directory_ext = ext;

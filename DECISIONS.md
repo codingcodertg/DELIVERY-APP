@@ -17175,7 +17175,7 @@ Nueve cambios: **ocho caen y un gemelo se queda en verde.**
   cada rol.
 - **Nadie ha abierto el directorio en un navegador** después del cambio.
 
-## D-NEXT · El directorio enseña la extensión de cada tienda
+## D-273 · El directorio enseña la extensión de cada tienda
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar. Cambian la base, Datos → Tiendas y
 el directorio · **Migración: `117_phone_book_store_ext.sql`**, que aplica el orquestador · **Pedido por:**

@@ -303,7 +303,7 @@ export interface NamedLocation {
   /** Stores only: the short code the company directory groups by (D-261). Several stores
    * can share one. Absent or empty = no code. */
   directory_code?: string | null;
-  /** Stores only: the store's phone extension shown in the company directory (D-NEXT, 117). Typed
+  /** Stores only: the store's phone extension shown in the company directory (D-273, 117). Typed
    * in Datos → Tiendas, never derived from the staff extensions. Absent or empty = none shown. */
   directory_ext?: string | null;
 }

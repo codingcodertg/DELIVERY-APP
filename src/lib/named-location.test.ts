@@ -64,7 +64,7 @@ describe("el código de directorio, en las tiendas", () => {
   });
 });
 
-describe("la extensión de directorio, en las tiendas (D-NEXT)", () => {
+describe("la extensión de directorio, en las tiendas (D-273)", () => {
   it("se guarda recortada", () => {
     const prev = tienda();
     const rec = registroDeLugar(prev, { ...prev, directory_ext: " 900 " }, { directoryCode: true });
