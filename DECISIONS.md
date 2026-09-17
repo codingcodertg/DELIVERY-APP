@@ -17052,3 +17052,68 @@ del `.sql`, por rol y con `ROLLBACK`:
 - **Nadie ha abierto la página en un navegador**: ni la fila plegada, ni el ancho del reproductor en un
   teléfono, ni el formulario de edición.
 - **Dos admins editando a la vez** se pueden pisar, como en D-268 y D-269.
+
+## D-NEXT · El ojo en todas las contraseñas, y un rechazo de Supabase que dice por qué
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador · Sin migración.
+**Pedido por el dueño:** «al cambiar la contraseña, pon el ojo para ver el texto, porque no me deja».
+
+### El ojo, en un solo sitio
+
+El login ya tenía el ojo; «Mi perfil» (D-265) y la pantalla de restablecer, no. Se barrió la app con un
+detector que ve el `type` aunque esté partido en varias líneas, y había **cinco** campos de contraseña:
+el del login, el de restablecer y los tres de «Mi perfil». Ahora los cinco son un mismo componente,
+`PasswordInput`, así que el ojo tiene **una sola implementación** y una prueba que cae si aparece un
+campo de contraseña fuera de él.
+
+**Un ojo por campo**, no uno para los tres de «Mi perfil». En un teléfono el botón queda junto al dedo
+que escribe, y un único interruptor enseñaría la contraseña actual mientras se teclea la nueva, a la
+vista de quien esté al lado. El botón dice lo que hace en los dos idiomas como título y como
+`aria-label`, que el del login no tenía, y marca su estado con `aria-pressed`: un lector de pantalla no
+ve el emoji.
+
+### «No me deja»: había algo más que no ver lo escrito
+
+Al medir el camino de «Mi perfil» apareció un mensaje **mudo**. La ruta que cambia la contraseña
+convertía **cualquier** rechazo de Supabase al guardar en `no_guardada`, cuyo texto es «No se pudo
+guardar la contraseña. Inténtalo otra vez». Y eso es falso justo en los casos que más pasan:
+
+- **La nueva es igual a la actual.** Supabase lo rechaza con `same_password`.
+- **La nueva es débil para el proyecto.** Supabase lo rechaza con `weak_password` y sus motivos:
+  longitud, variedad de caracteres, o que aparece en filtraciones. El proyecto de Supabase **puede exigir
+  más** de los 6 caracteres que pide la app; eso no se puede medir desde una rama.
+
+En los dos casos, volver a intentarlo con la misma contraseña da el mismo rechazo, así que la persona
+solo puede leer «no me deja». Medido en la librería instalada, `auth-js` 2.112.4: la contraseña débil
+llega como error de clase propia con `code: "weak_password"` y su lista de razones, y la misma
+contraseña como error de API con `code: "same_password"`.
+
+Ahora la ruta contesta `misma_contrasena` o `debil` con sus motivos, y la pantalla dice qué cambiar en
+cada caso. Lo que no se reconoce sigue siendo «no se guardó», pero **queda en el log del servidor** con
+código, estado y mensaje, y **nunca con la contraseña**: descartar el error dejaría otro «no me deja» sin
+respuesta.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Las pruebas del rechazo usan las **clases de error reales** de la librería, en un fichero que no simula
+Supabase, y fijan que esas clases traen los campos que simulan las pruebas de la ruta. Siete mutantes,
+cada uno cazado por la prueba pensada para él:
+
+- tratar la débil como fallo genérico tira la del código y la de la ruta;
+- que la ruta vuelva a contestar siempre «no se guardó» tira las dos de la ruta;
+- que el mensaje de débil ignore los motivos tira la que los nombra;
+- quitar el `aria-label` del botón tira la de accesibilidad;
+- devolver un campo de «Mi perfil» a un campo suelto tira el barrido;
+- meter la contraseña en el log tira la que lo prohíbe;
+- y aceptar motivos que la app no conoce tira la que los filtra.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**, ni en un teléfono, que es donde se decidió un ojo por campo.
+- **No se sabe qué mínimo exige el proyecto de Supabase.** Si pide más de 6 caracteres, la app sigue
+  dejando escribir una de 6 y el rechazo llega del servidor; ahora con el motivo, pero después de pulsar.
+  Igualar el mínimo de la app al del proyecto pide medirlo en la configuración de Supabase.
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2227 pasados | 3 saltados**. La rama añade 17
+pruebas y no quita ninguna —14 en `password-input.test.ts`, fichero nuevo, y 3 en
+`profile-password.test.ts`, contadas en el diff—, así que `main` 0125a29 está en 2210 | 3.

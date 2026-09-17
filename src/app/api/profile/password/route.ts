@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/api-auth";
-import { validaCambioDeContrasena, type CodigoContrasena } from "@/lib/profile-password";
+import { validaCambioDeContrasena, codigoDeFalloAlGuardar, type CodigoContrasena } from "@/lib/profile-password";
 
 /**
  * Cambiar la propia contraseña, desde «Mi perfil» (D-265). Es el único sitio que lo hace.
@@ -52,7 +52,18 @@ export async function POST(request: Request) {
   await comprobacion.auth.signOut({ scope: "local" }).catch(() => {});
 
   const { error: errorAlGuardar } = await supabase.auth.updateUser({ password: nueva });
-  if (errorAlGuardar) return responde("no_guardada", 400);
+  if (errorAlGuardar) {
+    // El motivo de Supabase se DICE (D-NEXT): igual a la anterior, o débil y por qué. Antes todo era
+    // «no_guardada», cuyo texto invita a reintentar algo que va a fallar igual.
+    const fallo = codigoDeFalloAlGuardar(errorAlGuardar);
+    // Lo que no se reconoce queda en el log del servidor, con código, estado y mensaje, y nunca la
+    // contraseña: descartar el error dejaría sin respuesta un «no me deja».
+    if (fallo.codigo === "no_guardada") {
+      const e = errorAlGuardar as { code?: unknown; status?: unknown; message?: unknown };
+      console.error("[profile/password] Supabase no guardó la contraseña", { code: e.code, status: e.status, message: e.message });
+    }
+    return NextResponse.json({ ok: false, codigo: fallo.codigo, ...(fallo.motivos ? { motivos: fallo.motivos } : {}) }, { status: 400 });
+  }
 
   return NextResponse.json({ ok: true });
 }
