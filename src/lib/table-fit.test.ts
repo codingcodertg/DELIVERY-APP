@@ -7,7 +7,7 @@ import { join } from "node:path";
 // —la suma de sus columnas—. Cuando las columnas no llegan al 100%, lo que se ve a la derecha es el
 // contenedor, vacío.
 //
-// D-NEXT le da la vuelta al arreglo: en vez de encoger el marco hasta las columnas, **la tabla se
+// D-281 le da la vuelta al arreglo: en vez de encoger el marco hasta las columnas, **la tabla se
 // estira hasta el marco** (`min-width: 100%`), porque el dueño volvió con la queja contraria —«only
 // sales people gets the table cropped»—. El objetivo de aquí no cambia: que no quede un rectángulo
 // vacío con borde. Lo que cambia es de qué lado se cierra el hueco, y estas pruebas con él. La regla
@@ -47,7 +47,7 @@ function contenedores() {
 }
 
 describe("el marco ya no encoge, y por eso no hay franja vacía", () => {
-  it("la clase se queda, sin `max-content` y con tope del 100% (D-NEXT)", () => {
+  it("la clase se queda, sin `max-content` y con tope del 100% (D-281)", () => {
     // Sin `max-content` el marco vuelve a ocupar el hueco, que es contra lo que la tabla resuelve
     // su `min-width: 100%`. El tope conserva el desplazamiento cuando la tabla es más ancha.
     expect(css).toContain(".tbl-scroll.tbl-fit { width: auto; max-width: 100%; }");
@@ -83,7 +83,7 @@ describe("no se toca el contenedor de las otras once tablas", () => {
   });
   it("la tabla sigue siendo `width: auto` con `table-layout: fixed`, y ahora con mínimo del 100%", () => {
     // El comentario que hay encima explica por qué no puede ser `max-content`: ignoraría los
-    // anchos por columna y bloquearía encoger. El mínimo lo puso D-NEXT; lo demás es de D-232.
+    // anchos por columna y bloquearía encoger. El mínimo lo puso D-281; lo demás es de D-232.
     expect(css).toContain("table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }");
   });
 });

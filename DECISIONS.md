@@ -12406,7 +12406,7 @@ hoy a «NOMBRE DE CONTACTO», que mide lo mismo.
 ya trae D-230; antes del rebase eran 1494 sobre el main 6f5a3ee, que tenía 1488.
 
 ## D-232 · El marco de la tabla mide lo que miden sus columnas
-> **Reemplazada por D-NEXT** (2026-09-17): el objetivo se conserva —nada de rectángulo vacío con borde—, pero el mecanismo cambia: en vez de encoger el marco hasta las columnas, la tabla se estira hasta el marco. El dueño pidió lo contrario que aquí, con la misma franja delante: «only sales people gets the table cropped». El texto de abajo se conserva tal cual.
+> **Reemplazada por D-281** (2026-09-17): el objetivo se conserva —nada de rectángulo vacío con borde—, pero el mecanismo cambia: en vez de encoger el marco hasta las columnas, la tabla se estira hasta el marco. El dueño pidió lo contrario que aquí, con la misma franja delante: «only sales people gets the table cropped». El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-09-10 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño: a la derecha de la tabla de pedidos hay **«un espacio en blanco que
@@ -18036,7 +18036,7 @@ pruebas y no quita ninguna: 11 en `desktop-shell.test.ts`, fichero nuevo, y 1 qu
 de `inline-colors.test.ts` por `BotonRecargar.tsx`. `main` 2a157f1, medido en un worktree aparte, está en
 2387 | 3.
 
-## D-NEXT · La tabla ocupa el ancho con cualquier número de columnas
+## D-281 · La tabla ocupa el ancho con cualquier número de columnas
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, con captura: *«only sales people gets the table cropped»* — la tabla de Órdenes

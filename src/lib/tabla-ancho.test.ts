@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ROLE_DEFAULT_COLUMNS } from "./constants";
 
 /**
- * La tabla ocupa el ancho con cualquier número de columnas (D-NEXT).
+ * La tabla ocupa el ancho con cualquier número de columnas (D-281).
  *
  * El dueño: «only sales people gets the table cropped». Con `table-layout: fixed` y `width: auto`, el
  * ancho de la tabla es la SUMA de sus columnas; un vendedor ve seis y acababa a media pantalla. Lo que

@@ -273,17 +273,17 @@ table.orders { width: 100%; border-collapse: collapse; font-size: 13px; min-widt
    which ignored the set widths and blocked shrinking below the longest value.
    With fixed layout + auto, the table width is the sum of the column widths.
 
-   `min-width: 100%` (era 0) desde D-NEXT: cuando esa suma NO llega al hueco —un vendedor ve seis
+   `min-width: 100%` (era 0) desde D-281: cuando esa suma NO llega al hueco —un vendedor ve seis
    columnas y almacén diez—, la tabla acababa a media pantalla. Con el mínimo al 100% se estira hasta
    el marco y el reparto del sobrante lo hace el navegador, respetando la proporción de cada columna.
    Cuando la suma SÍ pasa del hueco, manda `width: auto` y el desplazamiento horizontal sigue igual. */
 table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }
 
-/* El marco de una tabla redimensionable (D-232, cambiada por D-NEXT).
+/* El marco de una tabla redimensionable (D-232, cambiada por D-281).
    ---------------------------------------------------------------------------
    D-232 encogía el marco hasta las columnas (`width: max-content`) para que no
    quedara a la derecha una franja del contenedor, con su borde y su fondo, que
-   se leía como «parte de la tabla vacía». D-NEXT resuelve lo mismo por el otro
+   se leía como «parte de la tabla vacía». D-281 resuelve lo mismo por el otro
    lado: la tabla se estira hasta el marco (`min-width: 100%`, arriba), así que
    no queda franja que tapar — y, de paso, la tabla ya no acaba a media pantalla
    cuando se ven pocas columnas, que es lo que pedía el dueño.
@@ -966,7 +966,7 @@ table.orders th { text-align: left; }
 /* ---- Orders table → stacked cards on phones (no horizontal scroll) ---- */
 @media (max-width: 640px) {
   .orders-scroll { overflow-x: visible; border: none; background: none; }
-  /* En el teléfono la tabla se convierte en tarjetas al 100% de ancho. Desde D-NEXT el marco ya
+  /* En el teléfono la tabla se convierte en tarjetas al 100% de ancho. Desde D-281 el marco ya
      no se encoge en ningún tamaño, así que aquí no hay nada que devolver; se deja dicho para que
      nadie lo reponga. */
   table.orders-responsive { width: 100% !important; min-width: 0 !important; table-layout: auto; }
