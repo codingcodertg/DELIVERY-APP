@@ -5,13 +5,14 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
-import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
+import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
+import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -51,15 +52,6 @@ const EMPTY: Draft = {
 
 // Standard cancellation reasons (#10) — a fixed pick-list keeps the data clean
 // for the end-of-week review, mirroring how rejections capture a reason.
-const CANCEL_REASONS: { en: string; es: string }[] = [
-  { en: "Customer canceled", es: "Cliente canceló" },
-  { en: "Duplicate order", es: "Orden duplicada" },
-  { en: "Out of stock", es: "Sin existencias" },
-  { en: "Rescheduled", es: "Reprogramada" },
-  { en: "Wrong information", es: "Información incorrecta" },
-  { en: "Other", es: "Otro" },
-];
-
 /** Create / edit / view a delivery order with role-gated fields + workflow actions. */
 export function OrderModal({
   me,
@@ -107,6 +99,8 @@ export function OrderModal({
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  /** El texto libre que acompaña al motivo; obligatorio cuando el motivo lo pide (122). */
+  const [cancelNote, setCancelNote] = useState("");
   const [showCancel, setShowCancel] = useState(false);
   const [redeliverReason, setRedeliverReason] = useState("");
   const [redeliverCharge, setRedeliverCharge] = useState("");
@@ -237,6 +231,8 @@ export function OrderModal({
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
   // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
   const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep), [users, d.store, d.assigned_sales_rep]);
+  /** Los motivos de anulación vigentes: los que el admin dejó en Datos, o los sembrados (122). */
+  const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
   // Solo para avisar cuando se está enseñando el respaldo: la tienda está puesta y no tiene a nadie, así
   // que la lista de arriba son todos. Hoy no le pasa a ninguna tienda (medido 2026-09-17).
   const tiendaSinVendedores = !!d.store && vendedoresDeLaTienda(users, d.store).length === 0;
@@ -685,6 +681,12 @@ export function OrderModal({
       // No fix yet? Save now and attach the coordinates when they land, rather
       // than holding the driver at a spinner while the GPS chip wakes up.
       if (!gps) latePickupFix = eventual;
+    }
+    // Anular escribe el motivo en sus columnas (122). La nota del evento lleva la etiqueta legible,
+    // que es lo que se lee en el historial; lo que se cuenta en un reporte es la clave de la columna.
+    if (to === "canceled") {
+      extra = { ...extra, canceled_reason: cancelReason, canceled_reason_note: cancelNote.trim() || null };
+      note = motivoDeAnulacion({ canceled_reason: cancelReason, canceled_reason_note: cancelNote.trim() || null }, motivos, lang);
     }
     const ok = await setStage(existing.id, to, note, extra);
     if (ok && latePickupFix) void attachLateFix(existing.id, latePickupFix, "pickup");
@@ -1218,7 +1220,7 @@ export function OrderModal({
       rejectReason={rejectReason}
       showCancel={showCancel}
       setShowCancel={setShowCancel}
-      cancelReason={cancelReason}
+      cancelListo={!faltaParaAnular(cancelReason, cancelNote, motivos, lang)}
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
@@ -1500,6 +1502,18 @@ export function OrderModal({
             </div>
             {/* Assignment has no timestamp, so it isn't a step in the story —
                 it stays a plain fact above it. */}
+            {/* Una orden anulada dice por qué, quién y cuándo, arriba del todo de su historia: es lo
+                primero que alguien pregunta al abrirla (122). */}
+            {existing.stage === "canceled" && (
+              <div className="detail-row">
+                <span className="dk">{t("Canceled", "Anulada")}</span>
+                <span className="dv">
+                  {motivoDeAnulacion(existing, motivos, lang) || t("no reason recorded", "sin motivo registrado")}
+                  {existing.canceled_by && <> — {userName(existing.canceled_by)}{roleTag(existing.canceled_by)}</>}
+                  {existing.canceled_at && <> · {fmtDateTime(existing.canceled_at)}</>}
+                </span>
+              </div>
+            )}
             {existing.assigned_sales_rep && (
               <div className="detail-row"><span className="dk">{t("Assigned to", "Asignado a")}</span><span className="dv">{userName(existing.assigned_sales_rep)}{roleTag(existing.assigned_sales_rep)}</span></div>
             )}
@@ -2165,10 +2179,20 @@ export function OrderModal({
         {showCancel && (
           <div className="field" style={{ marginTop: 14 }}>
             <label>{t("Cancellation reason (recorded for reporting)", "Motivo de cancelación (registrado para reportes)")}</label>
-            <select value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}>
+            {/* Se guarda la CLAVE, no la etiqueta: antes viajaba el texto traducido y el mismo motivo
+                quedaba escrito en dos idiomas según quien anulara (122). */}
+            <select value={cancelReason} onChange={(e) => { setCancelReason(e.target.value); setCancelNote(""); }}>
               <option value="">{t("Select a reason…", "Seleccione un motivo…")}</option>
-              {CANCEL_REASONS.map((r) => <option key={r.en} value={t(r.en, r.es)}>{t(r.en, r.es)}</option>)}
+              {motivos.map((r) => <option key={r.key} value={r.key}>{t(r.en, r.es)}</option>)}
             </select>
+            {pideTextoLibre(cancelReason, motivos) && (
+              <input
+                style={{ marginTop: 8 }}
+                value={cancelNote}
+                onChange={(e) => setCancelNote(e.target.value)}
+                placeholder={t("Say why (required)", "Escriba por qué (obligatorio)")}
+              />
+            )}
           </div>
         )}
 
@@ -2654,7 +2678,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 /** The workflow buttons shown in view mode, gated by role + current stage. */
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, showReject, setShowReject, rejectReason,
-  showCancel, setShowCancel, cancelReason, onPrint, onRequestDeliver, podOpen,
+  showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
   onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
@@ -2665,7 +2689,9 @@ function StageActions({
   onEdit: () => void;
   onMove: (to: Stage, note?: string) => void;
   showReject: boolean; setShowReject: (v: boolean) => void; rejectReason: string;
-  showCancel: boolean; setShowCancel: (v: boolean) => void; cancelReason: string;
+  showCancel: boolean; setShowCancel: (v: boolean) => void;
+  /** Si el motivo elegido (y su texto libre, cuando lo pide) ya permite confirmar la anulación. */
+  cancelListo: boolean;
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
   onRequestStart: () => void;
@@ -2691,17 +2717,21 @@ function StageActions({
     btns.push(<button key="edit" className="btn btn-ghost" onClick={onEdit} disabled={busy}>{t("Edit", "Editar")}</button>);
   }
 
-  // Anyone who can create orders also shepherds their own drafts through submit/resubmit/cancel.
+  // Anyone who can create orders also shepherds their own drafts through submit/resubmit.
   if (canCreate(me)) {
     if (stage === "draft") btns.push(<button key="submit" className="btn btn-primary" onClick={() => onMove("pending")} disabled={busy}>{t("Submit for approval", "Enviar a aprobación")}</button>);
     if (stage === "rejected") btns.push(<button key="resub" className="btn btn-primary" onClick={() => onMove("pending")} disabled={busy}>{t("Resubmit", "Reenviar")}</button>);
-    if (stage === "draft" || stage === "rejected") {
-      if (!showCancel) {
-        btns.push(<button key="cancel" className="btn btn-danger" onClick={() => setShowCancel(true)} disabled={busy}>{t("Cancel order", "Cancelar orden")}</button>);
-      } else {
-        btns.push(<button key="cancelback" className="btn btn-ghost" onClick={() => setShowCancel(false)} disabled={busy}>{t("Back", "Atrás")}</button>);
-        btns.push(<button key="docancel" className="btn btn-danger" disabled={busy || !cancelReason} onClick={() => onMove("canceled", cancelReason)}>{t("Confirm cancel", "Confirmar cancelación")}</button>);
-      }
+  }
+
+  // Anular ya no es «lo que hace el que creó el borrador»: quién anula y desde qué etapa es una regla
+  // compartida con el guard de la base (`puedeAnular`, 122). Logística veía el botón de anular en la lista
+  // y la base le rechazaba la escritura; ahora las dos dicen lo mismo.
+  if (puedeAnular(me.role, stage)) {
+    if (!showCancel) {
+      btns.push(<button key="cancel" className="btn btn-danger" onClick={() => setShowCancel(true)} disabled={busy}>{t("Cancel order", "Cancelar orden")}</button>);
+    } else {
+      btns.push(<button key="cancelback" className="btn btn-ghost" onClick={() => setShowCancel(false)} disabled={busy}>{t("Back", "Atrás")}</button>);
+      btns.push(<button key="docancel" className="btn btn-danger" disabled={busy || !cancelListo} onClick={() => onMove("canceled")}>{t("Confirm cancel", "Confirmar cancelación")}</button>);
     }
   }
 

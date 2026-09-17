@@ -94,6 +94,16 @@ export interface Delivery {
 
   stage: Stage;
   rejected_reason: string | null;
+  /** Por qué se anuló, como **clave estable** de `settings.cancel_reasons` — nunca la etiqueta
+   * traducida, que es lo que se guardaba antes de la 122 (y por eso en los eventos viejos hay motivos
+   * en dos idiomas). La pantalla traduce la clave; una clave que el admin haya borrado de la lista se
+   * enseña tal cual. */
+  canceled_reason: string | null;
+  /** El texto libre que acompaña al motivo, obligatorio cuando la clave es `other`. */
+  canceled_reason_note: string | null;
+  /** Quién anuló y cuándo. **Los estampa la base** (guard de la 122), no el cliente. */
+  canceled_by: string | null;
+  canceled_at: string | null;
   /** True for orders created in Teaching (training) mode — kept in the same
    * table but shown only while teaching mode is on. */
   is_training: boolean;
@@ -362,11 +372,27 @@ export interface Tutorial {
   added_at?: string;
 }
 
+/** Un motivo de anulación de la lista que edita el admin en Datos (122).
+ *
+ * La `key` es lo que se guarda en la orden y **no cambia nunca**: renombrar la etiqueta no reescribe
+ * la historia de lo ya anulado. Las etiquetas son las dos, porque la app es bilingüe y antes se
+ * guardaba la traducida —el mismo motivo quedaba escrito en dos idiomas según quién anulara—. */
+export interface CancelReason {
+  key: string;
+  en: string;
+  es: string;
+  /** Exige un texto libre además de elegirlo. Hoy solo el motivo «otro». */
+  free_text?: boolean;
+}
+
 export interface Settings {
   id: number;
   app_name: string;
   stores: NamedLocation[];
   order_types: string[];
+  /** Motivos de anulación, editables por el admin en Datos. Ausente = los sembrados
+   * (`MOTIVOS_SEMBRADOS` en lib/cancel-reasons). */
+  cancel_reasons?: CancelReason[];
   /** Per-type field rules, keyed by the order-type name. Types without an
    * entry fall back to name-keyword defaults (see required.ts). */
   order_type_rules?: Record<string, OrderTypeRule>;

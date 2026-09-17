@@ -27,6 +27,7 @@ import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveS
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
+import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 
@@ -1216,6 +1217,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // they may skip, it's an order with nowhere to go.
       const choqueAlMover = escrituraQueNoVaANingunSitio(current, { stage, ...extra }, settings.order_type_rules, settings.stores);
       if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return false; }
+      // Anular deja motivo, siempre y desde donde sea (D-NEXT, 122). Es el espejo del guard: la base
+      // rechazaría la escritura igual, pero un camino que la manda y falla deja al usuario mirando un
+      // error de Postgres. El que llegaba aquí sin motivo era el botón de anular en bloque.
+      if (stage === "canceled" && (!current || current.stage !== "canceled")) {
+        const falta = faltaParaAnular(
+          (extra?.canceled_reason as string | null | undefined) ?? null,
+          (extra?.canceled_reason_note as string | null | undefined) ?? null,
+          motivosDeAnulacion(settings), lang,
+        );
+        if (falta) { notify(falta); return false; }
+      }
       const patch: Partial<Delivery> = { stage, ...extra };
       if (stage === "approved") {
         patch.approved_by = me?.id ?? null;

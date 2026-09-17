@@ -131,6 +131,7 @@ export function demoDeliveries(settings: Settings): Delivery[] {
     order_suffix: null,
     stage: "draft",
     rejected_reason: null,
+    canceled_reason: null, canceled_reason_note: null, canceled_by: null, canceled_at: null,
     is_training: false,
     redelivery_of: null,
     redelivery_reason: null,
