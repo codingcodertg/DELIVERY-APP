@@ -17697,3 +17697,43 @@ leída por nombre:
 pruebas, todas en `order-sites.test.ts`, fichero nuevo, y no quita ninguna: `order-endpoints.test.ts` sigue
 en 19 y `required.test.ts` en 31, contadas en el diff. `main` e9505c2, medido en un worktree aparte, está
 en 2318 | 3.
+
+## D-277 · Office (rol `accounting`) crea, edita y aprueba órdenes en la base igual que el gerente
+
+**Fecha:** 2026-09-17 · **Versión:** solo base (`package.json`) · **Migración:** 118, aplicada antes del merge.
+**Pedido por:** el dueño: *«all office people need to have the option to create new orders»*, y con captura
+de Carlos Fuentes: *«he can't create order because says sales admin can create order, fix this»*.
+
+### Lo que fallaba
+
+El orquestador dio a las 6 cuentas `accounting` el permiso `create` en `profiles.permissions` y dijo al dueño
+que ya podían crear. **No lo midió contra la base**, y la base no lo permitía: `guard_delivery_stage()`
+(vigente = la 048, leída de producción con `pg_get_functiondef`) no tenía a `accounting` en ninguna rama de
+INSERT, de edición en la misma etapa ni de cambio de etapa. La app enseñaba «+ Nueva orden» y la base
+contestaba *«Only sales, managers or drivers can create orders»*. Lo detectó worker2 leyendo el guard.
+
+### El cambio (opción (a), decidida por el orquestador)
+
+`accounting` se añade en **cada rama donde está `manager`**, y en ninguna otra: resto de carga dividida,
+re-entrega, alta en draft/pending/approved, editar en cualquier etapa, y los cambios de etapa de gerente
+(enviar, volver a borrador, cancelar, aprobar, rechazar, desaprobar). El texto del error nombra a office.
+La razón: en la app `accounting` pasa a `create` + `approve`, que es `manager` menos el tablero; así la base y
+`ROLE_CAPS` dicen lo mismo. La parte de app (ROLE_CAPS, etiqueta «Office», botones por rol) va en la rama de
+worker2 `rol-accounting-es-office`, que reemplaza en parte D-044.
+
+### Medido antes de aplicar (producción, con ROLLBACK)
+
+Copiando una Intertienda real sin `order_code`, como cada rol real (Carlos Fuentes para `accounting`):
+
+| rol | crear draft | crear approved | editar approved | aprobar pending |
+|---|---|---|---|---|
+| accounting, antes | ✗ | ✗ | ✗ | ✗ |
+| **accounting, con la 118** | ✓ | ✓ | ✓ | ✓ |
+| manager / sales / warehouse / logistics | igual antes y después | | | |
+
+(`sales` crea aprobada y aprueba en esa prueba porque la tienda de la orden es de aprobación automática: comportamiento previo.)
+Respaldo de la función antes de aplicar en el scratchpad del orquestador; la reversión es la 048.
+
+### No cambia, y queda dicho
+
+`logistics` tiene `approve` en la app pero el guard tampoco le deja pasar `pending` → `approved`. Fuera de alcance.
