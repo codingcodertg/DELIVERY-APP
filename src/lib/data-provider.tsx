@@ -1026,7 +1026,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           // fail (no phone registered, Firebase down) without the assignment
           // itself looking like it failed.
           //
-          // SIN `.select("id")` (D-NEXT). Este aviso no llegó nunca: `INSERT … RETURNING` aplica la
+          // SIN `.select("id")` (D-308). Este aviso no llegó nunca: `INSERT … RETURNING` aplica la
           // política de lectura a la fila devuelta, y `notif read own` solo deja leer al destinatario
           // — quien asigna no es el chofer, así que Postgres rechazaba la sentencia entera y aquí se
           // descartaba el error. Medido en producción con ROLLBACK (2026-09-17): con `returning id`,

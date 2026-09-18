@@ -174,7 +174,7 @@ export default function MapPage() {
   }, [showRoutes, unassignedOrders, selectedList]);
 
   // Assign (or unassign) a list of orders to one driver — logs an audit note per
-  // order. The driver's in-app notice comes from `updateDelivery` itself (D-NEXT): this screen
+  // order. The driver's in-app notice comes from `updateDelivery` itself (D-308): this screen
   // used to push its own «assigned» seeds on top, which would have meant two bells per order
   // once the provider's notice worked — and it never had (see the decision). Clears the
   // selection when done.

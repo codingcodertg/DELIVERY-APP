@@ -38194,7 +38194,7 @@ copia con el árbol en `origin/main`, está en 2762 | 3.
 - **`candidates` lee toda la plantilla con la llave de servicio** en cada apertura del panel. No se
   midió cuánta gente hay; con la plantilla actual es una lectura pequeña.
 
-## D-NEXT · La notificación de «orden asignada» al chofer no había llegado nunca
+## D-308 · La notificación de «orden asignada» al chofer no había llegado nunca
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Origen:** medido por el orquestador en producción: **0 filas con `kind='assigned'`** en

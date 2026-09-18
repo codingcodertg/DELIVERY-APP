@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ASSIGNED_KIND, assignmentNotification } from "./notifications";
 
 /**
- * La notificación de «orden asignada» al chofer no había funcionado nunca (D-NEXT).
+ * La notificación de «orden asignada» al chofer no había funcionado nunca (D-308).
  *
  * Medido: 0 filas con `kind='assigned'` en `public.notifications` en toda la historia. La causa: el
  * insert de `updateDelivery` llevaba `.select("id")` para dar el id a `/api/push`, y `INSERT …
