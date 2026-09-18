@@ -8,7 +8,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
 /**
- * Las dos listas de Órdenes (D-NEXT).
+ * Las dos listas de Órdenes (D-313).
  *
  * El dueño: *«invoice pending must be visible for office too»*. No era permiso: la pestaña cuenta
  * sobre lo que la persona ve, y lo que office ve lo corta la ventana de D-239. Las pendientes están

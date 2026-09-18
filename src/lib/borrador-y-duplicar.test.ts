@@ -73,7 +73,7 @@ describe("quién puede retomar un borrador", () => {
     for (const stage of ["pending", "approved", "ready", "delivered"] as const) {
       expect(ventasVeLaOrden({ ...comun, orden: { ...deOtro, stage } }), stage).toBe(false);
     }
-    // Y quien la llama sigue siendo quien arma la lista, que desde D-NEXT es `ordenesVisibles`: el
+    // Y quien la llama sigue siendo quien arma la lista, que desde D-313 es `ordenesVisibles`: el
     // bloque se mudó entero de la pantalla a `src/lib`, con sus dos cortes de ventas.
     const lib = leer("src/lib/ordenes-visibles.ts");
     expect(lib).toContain('if (me?.role === "sales") {');

@@ -4,7 +4,7 @@ import { pastillasDeOrdenes, PASTILLA_TODAS } from "./pastillas-de-ordenes";
 import { PESTANA_DOCUMENTO_PENDIENTE } from "./documento-pendiente";
 
 /**
- * La pastilla «Todas» de Órdenes (D-NEXT).
+ * La pastilla «Todas» de Órdenes (D-313).
  *
  * El dueño: *«el filtro de invoices también falta el filtro de all en órdenes para que lo agregues»*.
  * Antes, volver a ver todas era **volver a pulsar la pastilla encendida**, y eso no se descubre.

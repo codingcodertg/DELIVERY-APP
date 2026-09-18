@@ -6,7 +6,7 @@ import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 
 /**
  * Qué órdenes salen en la pantalla de Órdenes, y cuáles además en la pestaña de factura pendiente
- * (D-NEXT).
+ * (D-313).
  *
  * El dueño: *«invoice pending must be visible for office too»*. No salía, y la causa no era el
  * permiso: la pestaña cuenta sobre lo que la persona ve, y lo que office ve está cortado por la
@@ -64,7 +64,7 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
  * adelante), y **buscando** no hay retención ninguna —buscar es cómo se llega al historial— salvo el
  * tope de 30 días de ventas.
  *
- * `pendientesEntran` es la exención de D-NEXT: con ella, una orden con documento pendiente pasa los
+ * `pendientesEntran` es la exención de D-313: con ella, una orden con documento pendiente pasa los
  * dos cortes. Es lo que hace que la pestaña enseñe una entregada de hace un mes a la que le falta la
  * factura, **y** que a ventas no le tape su propio tope al buscar dentro de ella.
  */

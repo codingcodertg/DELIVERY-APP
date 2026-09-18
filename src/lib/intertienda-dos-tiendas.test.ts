@@ -150,7 +150,7 @@ describe("qué órdenes le tocan a un vendedor", () => {
   });
 
   it("la lista del tablero llama a esa función y no a la pieza suelta", () => {
-    // Desde D-NEXT el tablero no arma la lista: se la pide a `ordenesVisibles`, que es quien llama a
+    // Desde D-313 el tablero no arma la lista: se la pide a `ordenesVisibles`, que es quien llama a
     // `ventasVeLaOrden`. La pieza suelta sigue sin usarse desde ninguna de las dos.
     const lista = leer("src/lib/ordenes-visibles.ts");
     expect(lista).toContain("if (!ventasVeLaOrden({");

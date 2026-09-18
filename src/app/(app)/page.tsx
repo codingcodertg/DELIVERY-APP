@@ -180,7 +180,7 @@ export default function OrdersPage() {
   // A salesperson can only search 30 days back.
   const salesSearchFloor = shiftDateISO(todayISO(), -30);
   /**
-   * Las dos listas de la pantalla (D-NEXT). La decisión —quién ve qué, y qué corta la ventana de
+   * Las dos listas de la pantalla (D-313). La decisión —quién ve qué, y qué corta la ventana de
    * fechas— vive en `ordenesVisibles`, no aquí: la pestaña de factura pendiente necesita una lista
    * distinta de la normal, y dos listas parecidas escritas en dos sitios acaban discrepando.
    *
@@ -205,7 +205,7 @@ export default function OrdersPage() {
     for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;
     // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
     // esta persona ve.
-    // La de la pestaña cuenta sobre `conPendientes` (D-NEXT): las suyas son trabajo vivo aunque la
+    // La de la pestaña cuenta sobre `conPendientes` (D-313): las suyas son trabajo vivo aunque la
     // orden sea vieja, y sobre `visible` daban 0 para office — que es por lo que la pestaña no le
     // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
     c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
@@ -215,7 +215,7 @@ export default function OrdersPage() {
   const rows = useMemo(() => {
     // The board shows every stage as its own column, so ignore the stage chip there.
     const activeFilter = view === "board" ? "all" : filter;
-    // Dentro de la pestaña se listan las mismas que cuenta (D-NEXT); fuera, la lista normal.
+    // Dentro de la pestaña se listan las mismas que cuenta (D-313); fuera, la lista normal.
     const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;
     return desde.filter((d) => {
       // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
@@ -433,7 +433,7 @@ export default function OrdersPage() {
         {view === "table" && (
           <>
             {/* Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes`
-                (D-NEXT): «Todas» la primera —antes no existía y volver a verlas todas era volver a
+                (D-313): «Todas» la primera —antes no existía y volver a verlas todas era volver a
                 pulsar la encendida, que nadie descubre—, las etapas del rol, y la de «Factura
                 pendiente» (D-310) al final, solo si hay algo o si se está en ella. */}
             {pastillasDeOrdenes({

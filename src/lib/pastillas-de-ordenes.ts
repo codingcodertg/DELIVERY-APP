@@ -1,7 +1,7 @@
 import { PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
 
 /**
- * La fila de pastillas de Órdenes: cuáles salen, en qué orden y cuál está encendida (D-NEXT).
+ * La fila de pastillas de Órdenes: cuáles salen, en qué orden y cuál está encendida (D-313).
  *
  * El dueño: *«el filtro de invoices también falta el filtro de all en órdenes para que lo agregues»*.
  * Hasta ahora, para volver a verlas todas había que **volver a pulsar la pastilla encendida** —la

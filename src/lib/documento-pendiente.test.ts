@@ -178,7 +178,7 @@ describe("la pantalla usa la regla, no una copia", () => {
   });
 
   it("la cuenta y el filtro de la pestaña salen de documentoPendiente, sobre lo que la persona ve", () => {
-    // Desde D-NEXT cuenta sobre `conPendientes`, no sobre `visible`: sobre la lista normal daba 0
+    // Desde D-313 cuenta sobre `conPendientes`, no sobre `visible`: sobre la lista normal daba 0
     // para office —sus pendientes están todas entregadas, fuera de la ventana de D-239— y por eso la
     // pestaña no le aparecía. Lo que D-310 fija sigue igual: la cuenta sale de `documentoPendiente`.
     expect(plano(pagina)).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;");

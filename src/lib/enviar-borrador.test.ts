@@ -7,7 +7,7 @@ import type { QuienCrea } from "./cuenta-aprobacion";
 import type { Stage, UserRole } from "./types";
 
 /**
- * Enviar un borrador decide la etapa con la misma regla que crearlo (D-NEXT).
+ * Enviar un borrador decide la etapa con la misma regla que crearlo (D-313).
  *
  * El dueño: *«auto approve all orders for now until further change»*. Con las tiendas aprobando
  * solas, crear dejaba la orden aprobada y **enviar un borrador** la mandaba igual a `pending`.

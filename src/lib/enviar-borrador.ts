@@ -2,7 +2,7 @@ import { naceAprobada, type QuienCrea } from "@/lib/cuenta-aprobacion";
 import type { Stage, UserRole } from "@/lib/types";
 
 /**
- * Enviar un borrador (o reenviar una rechazada): en qué etapa aterriza (D-NEXT).
+ * Enviar un borrador (o reenviar una rechazada): en qué etapa aterriza (D-313).
  *
  * El dueño: *«auto approve all orders for now until further change»*. Con todas las tiendas
  * marcadas para aprobar solas, **crear** una orden ya la dejaba aprobada — pero **enviar un
@@ -17,7 +17,7 @@ import type { Stage, UserRole } from "@/lib/types";
 /**
  * ¿Es este salto el gesto de *enviar*?
  *
- * Lo define de dónde sale, no a dónde va: desde D-NEXT el mismo botón puede aterrizar en `pending`
+ * Lo define de dónde sale, no a dónde va: desde D-313 el mismo botón puede aterrizar en `pending`
  * o en `approved`, y el corte duro de D-049 —bultos y documento— tiene que aplicarse a los dos.
  * Un admin «desbloqueando» una aprobada de vuelta a `pending` **no** es un envío: viene de
  * `approved`.

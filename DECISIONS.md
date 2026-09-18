@@ -13121,7 +13121,7 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La ventana sigue siendo exactamente esta
+> **⚠ Reemplazada en parte el 2026-09-18, por D-313.** La ventana sigue siendo exactamente esta
 > —ayer, hoy y el futuro, para todos menos admin y logística— **salvo dentro de la pestaña «Factura
 > pendiente»**, donde una orden a la que le falta su documento entra aunque sea vieja. El dueño:
 > *«invoice pending must be visible for office too»*; a office la cuenta le salía 0 porque sus
@@ -31086,7 +31086,7 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La ventana sigue siendo exactamente esta
+> **⚠ Reemplazada en parte el 2026-09-18, por D-313.** La ventana sigue siendo exactamente esta
 > —ayer, hoy y el futuro, para todos menos admin y logística— **salvo dentro de la pestaña «Factura
 > pendiente»**, donde una orden a la que le falta su documento entra aunque sea vieja. El dueño:
 > *«invoice pending must be visible for office too»*; a office la cuenta le salía 0 porque sus
@@ -38523,7 +38523,7 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La pestaña y su cuenta ya no salen de la
+> **⚠ Reemplazada en parte el 2026-09-18, por D-313.** La pestaña y su cuenta ya no salen de la
 > lista normal sino de `conPendientes`, que es esa misma lista **más** las órdenes con documento
 > pendiente que solo se caían por la ventana de D-239. Con la lista normal, a office le salía 0 —sus
 > pendientes están todas entregadas— y la pestaña ni se pintaba: el dueño lo reportó como *«invoice
@@ -38998,7 +38998,7 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 - **Las órdenes de antes de D-302** —con `store` en la tienda que vendía— ya tenían la forma que este
   cambio da por buena, así que no se tocan y no hacía falta contarlas.
 
-## D-NEXT · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
+## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
 `127_borrador_enviado_nace_aprobado.sql` (solo el punto 3); la escribió y la aplicó el orquestador

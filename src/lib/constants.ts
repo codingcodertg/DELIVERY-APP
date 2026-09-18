@@ -980,7 +980,7 @@ export const canPlanRoutes = (u: CapUser) => hasCap(u, "route_plan");
 // never reach the warehouse (fulfilling/ready/delivered) without first being
 // approved by a manager — no matter how setStage is called.
 const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
-  // `approved` desde `draft` —y desde `rejected`— es D-NEXT: enviar un borrador decide la etapa con
+  // `approved` desde `draft` —y desde `rejected`— es D-313: enviar un borrador decide la etapa con
   // la MISMA regla que crearlo (`etapaAlEnviar`), así que el salto tiene que existir aquí o los dos
   // proveedores lo rechazan antes de salir del navegador. Esta lista dice qué saltos hay; quién los
   // da lo siguen diciendo `etapaAlEnviar` y, detrás, el guard de la 127.

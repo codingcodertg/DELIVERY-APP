@@ -88,7 +88,7 @@ describe("las cinco pantallas preguntan lo mismo", () => {
   it("las tres listas filtran por la ventana con el rol REAL, no con el de «ver como»", () => {
     // Un admin previsualizando a un vendedor sigue viendo todo: era lo que ya hacía
     // almacén y ahora lo hacen las tres igual.
-    // El tablero dejó de filtrar a mano (D-NEXT): le pasa `veTodoElHistorial` a `ordenesVisibles`,
+    // El tablero dejó de filtrar a mano (D-313): le pasa `veTodoElHistorial` a `ordenesVisibles`,
     // que es quien mira `withinRetention`. Lo que fija D-239 no cambia —la ventana se decide con el
     // rol REAL— solo que ahora se comprueba donde se decide.
     for (const f of [CHOFER, ALMACEN]) {
