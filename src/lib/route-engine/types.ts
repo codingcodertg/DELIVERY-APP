@@ -19,6 +19,16 @@ export type Tramo = { minutos: number; millas: number };
 /** `matriz[a][b]` = ir de `a` a `b`. De un punto a sí mismo no hace falta: es cero. */
 export type Matriz = Record<Punto, Record<Punto, Tramo>>;
 
+/** Cada cuántos minutos cambia el bloque horario del tráfico. Media hora: el grano de la caché. */
+export const MINUTOS_POR_BLOQUE = 30;
+
+/**
+ * Tiempos CON tráfico, que dependen de la hora a la que se sale: `porHora[a][b][bloque]`, donde el bloque
+ * es la media hora de salida (16 = 08:00–08:29). Es un DATO, no una función: así un plan calculado con
+ * tráfico se guarda entero y se recalcula igual. Donde falte un tramo o un bloque, vale la `matriz` base.
+ */
+export type TiemposPorHora = Record<Punto, Record<Punto, Record<number, Tramo>>>;
+
 export interface OrdenEntrada {
   id: string;
   /** El código humano de la orden; segundo criterio de desempate. */
@@ -88,6 +98,8 @@ export interface Entrada {
   ordenes: OrdenEntrada[];
   choferes: ChoferEntrada[];
   matriz: Matriz;
+  /** Opcional: tiempos con tráfico por hora de salida, encima de la matriz base. */
+  porHora?: TiemposPorHora;
   /** Paradas que el despachador fijó: se quedan con ese chofer y en ese orden entre sí. El motor coloca
    *  lo demás alrededor. */
   secuenciaFijada?: Record<string, ParadaRef[]>;

@@ -87,7 +87,7 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
     for (const p of fija) { fijadas.add(claveDeParada(p)); ordenesFijadas.add(p.orden); }
     estado.secuencias.set(c.id, [...fija]);
   }
-  const ctx: Contexto = { ordenes: porId, matriz: entrada.matriz, parametros, fijadas };
+  const ctx: Contexto = { ordenes: porId, matriz: entrada.matriz, porHora: entrada.porHora, parametros, fijadas };
   for (const c of choferes) estado.rutas.set(c.id, evaluaRuta(c, estado.secuencias.get(c.id)!, ctx));
 
   const coste = (rutas: ReadonlyMap<string, RutaEvaluada>): Desglose => costeDeRutas(choferes.map((c) => rutas.get(c.id)!), parametros.pesos);

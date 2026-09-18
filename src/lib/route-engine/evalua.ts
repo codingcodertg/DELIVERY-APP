@@ -1,6 +1,7 @@
-import type {
-  ChoferEntrada, Desglose, Matriz, OrdenEntrada, ParadaEvaluada, ParadaRef, Parametros, Pesos, PlanEvaluado,
-  RutaEvaluada, Violacion,
+import {
+  MINUTOS_POR_BLOQUE,
+  type ChoferEntrada, type Desglose, type Matriz, type OrdenEntrada, type ParadaEvaluada, type ParadaRef, type Parametros,
+  type Pesos, type PlanEvaluado, type RutaEvaluada, type TiemposPorHora, type Violacion,
 } from "./types";
 
 /**
@@ -56,20 +57,25 @@ export function restaDesglose(a: Desglose, b: Desglose): Desglose {
   };
 }
 
-type Contexto = { ordenes: ReadonlyMap<string, OrdenEntrada>; matriz: Matriz; parametros: Parametros; fijadas?: ReadonlySet<string> };
+type Contexto = { ordenes: ReadonlyMap<string, OrdenEntrada>; matriz: Matriz; porHora?: TiemposPorHora; parametros: Parametros; fijadas?: ReadonlySet<string> };
+
+/** La media hora en la que cae un minuto del día: 480 (08:00) → 16. */
+export const bloqueDe = (minuto: number): number => Math.floor(minuto / MINUTOS_POR_BLOQUE);
 
 const claveDeParada = (p: ParadaRef) => `${p.tipo}:${p.orden}`;
 
-/** Ir de `a` a `b`. De un sitio a sí mismo, cero; un tramo que la matriz no trae es `null`, no cero. */
-function tramo(matriz: Matriz, a: string, b: string): { min: number; centiMi: number } | null {
+/** Ir de `a` a `b` saliendo en el minuto `salida`. De un sitio a sí mismo, cero. Si hay un tiempo con
+ *  tráfico para esa media hora, manda; si no, el de la matriz base. Un tramo que no trae ninguna de las
+ *  dos es `null`, no cero. */
+function tramo(ctx: Pick<Contexto, "matriz" | "porHora">, a: string, b: string, salida: number): { min: number; centiMi: number } | null {
   if (a === b) return { min: 0, centiMi: 0 };
-  const t = matriz[a]?.[b];
+  const t = ctx.porHora?.[a]?.[b]?.[bloqueDe(salida)] ?? ctx.matriz[a]?.[b];
   if (!t || !Number.isFinite(t.minutos) || !Number.isFinite(t.millas)) return null;
   return { min: Math.round(t.minutos), centiMi: aCentesimas(t.millas) };
 }
 
 export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[], ctx: Contexto): RutaEvaluada {
-  const { ordenes, matriz, parametros } = ctx;
+  const { ordenes, parametros } = ctx;
   const violaciones: Violacion[] = [];
   const viola = (tipo: Violacion["tipo"], orden?: string, detalle?: string) => violaciones.push({ tipo, chofer: chofer.id, orden, detalle });
 
@@ -100,7 +106,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
     if (!punto) { viola("sin_tiempo_de_viaje", o.id, "sin punto"); continue; }
     if (o.choferFijado && o.choferFijado !== chofer.id) viola("chofer_distinto_del_fijado", o.id);
 
-    const t = tramo(matriz, sitio, punto);
+    const t = tramo(ctx, sitio, punto, reloj);
     if (!t) viola("sin_tiempo_de_viaje", o.id, `${sitio} → ${punto}`);
     const tramoMin = t?.min ?? 0;
     manejo += tramoMin;
@@ -164,7 +170,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 
   let fin = reloj;
   if (evaluadas.length > 0 && chofer.vuelveABase) {
-    const t = tramo(matriz, sitio, chofer.base);
+    const t = tramo(ctx, sitio, chofer.base, reloj);
     if (!t) viola("sin_tiempo_de_viaje", undefined, `${sitio} → ${chofer.base}`);
     manejo += t?.min ?? 0;
     centiMi += t?.centiMi ?? 0;
@@ -200,11 +206,12 @@ export function evaluaPlan(args: {
   ordenes: readonly OrdenEntrada[];
   choferes: readonly ChoferEntrada[];
   matriz: Matriz;
+  porHora?: TiemposPorHora;
   parametros?: Parametros;
   fijadas?: ReadonlySet<string>;
 }): PlanEvaluado {
   const parametros = args.parametros ?? PARAMETROS_POR_DEFECTO;
-  const ctx: Contexto = { ordenes: new Map(args.ordenes.map((o) => [o.id, o])), matriz: args.matriz, parametros, fijadas: args.fijadas };
+  const ctx: Contexto = { ordenes: new Map(args.ordenes.map((o) => [o.id, o])), matriz: args.matriz, porHora: args.porHora, parametros, fijadas: args.fijadas };
   const rutas = args.choferes.map((c) => evaluaRuta(c, args.secuencias[c.id] ?? [], ctx));
   return { rutas, coste: costeDeRutas(rutas, parametros.pesos), violaciones: rutas.flatMap((r) => r.violaciones) };
 }
