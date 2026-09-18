@@ -22432,3 +22432,50 @@ una.
   guardadas; que no parpadee el tema al abrir el panel está sin mirar.
 - El salto en sí (`/api/impersonate/switch`) sigue con el canje simulado de D-307: el dueño aún no ha
   llegado a ejecutarlo, porque la pantalla reventaba antes.
+
+## D-322 · Motor de rutas, incremento 5: la ruta de cada chofer, parada a parada — y el plan ya no se pierde al recargar
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Diseño:** `docs/route-algorithm-design.md`, §7. Sigue a D-320. **El Gestor de Rutas de hoy no cambia.**
+
+### Qué hay ahora
+
+- **Debajo del resumen del plan, una tabla por chofer** (`src/components/RutaDelPlan.tsx`): cada parada con su
+  etiqueta (P1, D1…), qué orden recoge o entrega, a qué hora llega y sale, su ventana (🔒 si es dura), el tramo
+  (minutos y millas) y los **pallets a bordo al llegar → al salir**. La cabecera de cada chofer lleva los totales:
+  de qué hora a qué hora, entregas, paradas, viajes, millas, manejo, carga máxima, espera y minutos tarde. Una raya
+  ámbar separa un viaje del siguiente. Las órdenes de **builder** llevan su marca; una orden repartida dice
+  «carga 2 de 3» en cada parada, además de la nota general de D-320.
+- **Todo eso sale de una función pura**, `vistaDelPlan` (`src/lib/route-plan/vista.ts`), sobre las filas guardadas en
+  `route_plan_stops`. **No recalcula ninguna hora:** son las que guardó el motor. Solo agrupa, ordena y suma.
+- **`GET /api/route-plan?date=`** devuelve el plan vigente de la fecha —el último borrador o publicado— con la misma
+  forma que devuelve planificar. El panel lo pide al abrir y al cambiar de fecha: **antes, recargar la página perdía
+  el borrador de la vista** (seguía en la base, pero no había cómo volver a verlo). Lee con la sesión de quien mira;
+  qué ve cada rol lo decide la RLS de la 133. No baja la foto entera del plan (lleva la matriz): solo la lista de
+  órdenes, con `ordenes:input->entrada->ordenes`.
+- **Un plan publicado se enseña pero no ofrece «Publicar».** Antes el panel lo habría ofrecido (la base lo habría
+  rechazado con `NOT_DRAFT`).
+- **Un plan viejo dice qué orden y por qué**, con la traducción que pidió el ensayo de la 133: `no_esta` es «no ve
+  esta orden, o ya no existe» — que es también lo que le sale a quien publica con tiendas marcadas, porque la
+  comprobación de plan viejo lo ve antes que `UNSEEN`.
+- Si el tráfico dejó algo sin resolver (`traficoSinResolver`, D-320), el panel lo dice.
+
+### Dos pruebas que vienen de fallos medidos por otros
+
+- **`updated_at` se guarda tal cual lo da la base.** Al ensayar la 133 el orquestador construyó la foto con
+  `toISOString()` (milisegundos) contra una base que guarda microsegundos, y todas las órdenes salían «cambio». El
+  código ya lo hacía bien; ahora hay una prueba que cae si alguien lo «normaliza» (mutante corrido: cae).
+- **Dónde se montan estos componentes y qué proveedores hay encima** (`montaje.test.ts`), por D-321: `PlanDelDia`
+  usa `usePrefs`, `useConfirm` y `useData`, y solo se monta en `/routes`, bajo los tres. Si alguien lo monta en otro
+  sitio, la prueba cae y obliga a mirar.
+
+### Lo que NO está
+
+- **El chofer no lee sus paradas publicadas.** La 133 no le deja leer `route_plan_stops`, y abrirlo es tocar RLS:
+  lleva plan en papel y ensayo. «Mi ruta» sigue saliendo de `assigned_driver` / `route_seq` / `load_no`, que es lo
+  que publicar escribe. Queda para cuando se decida qué gana el chofer viendo horas que hoy nadie contrasta.
+- **El regreso a la base no es una parada**, así que los totales por chofer van de la primera llegada a la última
+  salida; el total del plan (arriba) sí lo incluye. Se dice en el código; en pantalla no.
+- **No verificado:** nada de esto se ha abierto en un navegador. El `GET` con alias de JSON
+  (`ordenes:input->entrada->ordenes`) es sintaxis de PostgREST leída, no ejecutada: si fallara, la ruta contesta 500
+  con el detalle y el panel se queda como si no hubiera plan.

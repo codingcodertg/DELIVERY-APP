@@ -66,6 +66,16 @@ export async function planificaElDia(datos: DatosDelDia, fechaISO: string, zona:
   };
 }
 
+/** Lo que la pantalla necesita saber de un plan, recién hecho o leído de la base: es la MISMA forma. */
+export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "total_minutes" | "total_miles" | "late_minutes" | "provider" | "traffic" | "converged">, paradas: number) {
+  return {
+    paradas, ordenes: plan.writes.length, sinAsignar: plan.result.sinAsignar, fuera: plan.result.fuera, choferesFuera: plan.result.choferesFuera,
+    partes: plan.result.partes, minutos: plan.total_minutes, millas: Number(plan.total_miles), tarde: plan.late_minutes,
+    proveedor: plan.provider, trafico: plan.traffic, convergio: plan.converged, tiempos: plan.result.tiempos,
+    traficoSinResolver: !!plan.result.traficoSinResolver,
+  };
+}
+
 /** Las paradas guardadas de un plan, como las rutas que entiende `avisosAlPublicar`. */
 export function rutasDeParadas(paradas: readonly Pick<FilaDeParada, "driver_id" | "seq" | "kind" | "order_ref" | "eta">[]): { rutas: { chofer: string; paradas: { tipo: "P" | "D"; orden: string; llegada: number }[] }[] } {
   const porChofer = new Map<string, typeof paradas[number][]>();

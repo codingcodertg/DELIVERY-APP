@@ -76,6 +76,15 @@ describe("las órdenes que entran al motor", () => {
     expect([o.builder, o.estrecha, o.ventana]).toEqual([false, false, [510, 1050]]);
   });
 
+  it("la foto guarda `updated_at` TAL CUAL lo da la base, con sus microsegundos", () => {
+    // Medido al ensayar la 133: la base compara contra microsegundos. Una foto pasada por `new Date()` los pierde
+    // (toISOString da milisegundos) y publicar diría STALE de TODAS las órdenes, siempre.
+    const deLaBase = "2026-03-03T15:00:00.123456+00:00";
+    const e = entradaDelDia(datos([orden("a", { updated_at: deLaBase })]));
+    expect(e.fotos).toEqual([{ id: "a", updated_at: deLaBase }]);
+    expect(new Date(deLaBase).toISOString()).not.toBe(deLaBase);      // por qué no vale «normalizarla»
+  });
+
   it("solo las de etapas ruteables, y nunca las de práctica", () => {
     const e = entradaDelDia(datos([orden("viva"), orden("recogida", { stage: "picked_up" }), orden("borrador", { stage: "draft" }), orden("practica", { is_training: true })]));
     expect(e.entrada.ordenes.map((o) => o.id)).toEqual(["viva"]);
