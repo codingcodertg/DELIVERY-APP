@@ -2,7 +2,7 @@ import { isStoreToStore, type OrderTypeRules } from "./required";
 import type { AccountRecord, CustomerType, Delivery } from "./types";
 
 /**
- * Builder o venta al mostrador, por orden (D-NEXT).
+ * Builder o venta al mostrador, por orden (D-316).
  *
  * El dueño: «se marca en cada orden», con la cuenta como valor por defecto. El motor de rutas da
  * prioridad a los builders: van antes en la ruta y son los últimos en quedarse fuera.

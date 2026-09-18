@@ -12,7 +12,7 @@ import {
 import type { DriverSettings, RouteWeights, Settings } from "@/lib/types";
 
 /**
- * Los ajustes del motor de rutas, solo para el admin (D-NEXT): los pesos, qué ventanas son duras, el tope de
+ * Los ajustes del motor de rutas, solo para el admin (D-316): los pesos, qué ventanas son duras, el tope de
  * retraso, y de cada chofer su base, su camión y su turno.
  *
  * **Todavía no cambia nada del Gestor de Rutas.** Esto guarda los datos que el motor va a necesitar; el

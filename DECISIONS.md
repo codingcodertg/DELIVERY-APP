@@ -39655,7 +39655,7 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
   en la mano, escribirla a ciegas. La UI no ofrece ningún camino para eso. Cerrarlo es añadir la misma
   cláusula al `using` de `deliveries update`, y **otra** migración con su propia matriz.
 
-## D-NEXT · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
+## D-316 · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** `128_driver_settings`,
 `129_customer_type`, `130_route_settings` — escritas y **no aplicadas**.

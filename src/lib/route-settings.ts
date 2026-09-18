@@ -3,7 +3,7 @@ import { PARAMETROS_POR_DEFECTO, PESOS_POR_DEFECTO } from "./route-engine";
 import type { DriverSettings, NamedLocation, RouteWeights, Settings } from "./types";
 
 /**
- * Los ajustes del motor de rutas: pesos, ventanas duras, tope de retraso, y lo de cada chofer (D-NEXT).
+ * Los ajustes del motor de rutas: pesos, ventanas duras, tope de retraso, y lo de cada chofer (D-316).
  *
  * Todo lo que decidió el orquestador por delegación del dueño el 2026-09-18 vive aquí como VALOR POR
  * DEFECTO y en Ajustes como valor editable: nada de esto es una regla en el código.

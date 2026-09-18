@@ -529,7 +529,7 @@ export function OrderModal({
   const save = async () => {
     const payload = {
       ...withDurations(d),
-      // Builder o mostrador (D-NEXT). Solo si la base ya tiene la columna: las migraciones se aplican
+      // Builder o mostrador (D-316). Solo si la base ya tiene la columna: las migraciones se aplican
       // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
       ...parcheDeTipoDeCliente(d, settings.order_type_rules, settings.accounts, deliveries),
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
@@ -1913,7 +1913,7 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
-            {/* Builder o mostrador (D-NEXT). El dueño: «se marca en cada orden», con la cuenta como valor por
+            {/* Builder o mostrador (D-316). El dueño: «se marca en cada orden», con la cuenta como valor por
                 defecto. Nunca nace vacío: Builder si la cuenta guardada lo es; Mostrador si no, también sin
                 cuenta. El motor de rutas da prioridad a los builders. */}
             {esTipoDeCliente(d.order_type, settings.order_type_rules) && (

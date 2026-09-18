@@ -15,7 +15,7 @@ import type { OrderTypeRules } from "./required";
 import type { AccountRecord, DriverSettings, NamedLocation } from "./types";
 
 /**
- * Motor de rutas, incremento 1: el modelo (D-NEXT). Chofer, tipo de cliente y ajustes.
+ * Motor de rutas, incremento 1: el modelo (D-316). Chofer, tipo de cliente y ajustes.
  * Tipos de orden, cuentas, tiendas y choferes inventados: los de verdad son datos del dueño.
  */
 

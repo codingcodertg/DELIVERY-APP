@@ -129,7 +129,7 @@ function AccountsEditor({
         ...r.resto,
         name: r.name.trim(), contact: r.contact.trim(), phone: r.phone.trim(),
         intertienda: r.intertienda, requires_approval: r.requires_approval,
-        // Builder o mostrador (D-NEXT). Una cuenta de sucursal no es ni lo uno ni lo otro.
+        // Builder o mostrador (D-316). Una cuenta de sucursal no es ni lo uno ni lo otro.
         customer_type: r.intertienda ? undefined : (r.builder ? "builder" as const : "counter_sale" as const),
       }))
       .filter((r) => { const k = r.name.toLowerCase(); if (!r.name || seen.has(k)) return false; seen.add(k); return true; });
