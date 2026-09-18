@@ -22630,3 +22630,69 @@ movimiento es volver a correr medio motor por pulsación; no se hace.
 - El remedio es un texto, no un botón: no abre la orden ni la lleva a Ajustes.
 - **No verificado:** nada abierto en un navegador. Los textos de los remedios son míos: conviene que quien despacha los
   lea y diga si son lo que haría.
+
+## D-NEXT · Motor de rutas, incremento 8: importar la hoja del despachador y compararla, término a término, con el plan del motor
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la 133 ya admitía
+`source = 'manual_import'`). **Diseño:** `docs/route-algorithm-design.md`, §8.1. Solo admin y logística.
+**Importar NUNCA asigna una orden ni avisa a nadie.** El dueño aparcó darnos una hoja real: todo está probado con hojas
+inventadas, y en el repo no entra ninguna de verdad.
+
+### Qué hay ahora
+
+- En el panel del plan, **«Comparar con la hoja del despachador»**: se sube un CSV/XLSX o se pegan las filas desde Excel.
+  **El fichero se lee en el navegador y no sale de él**; al servidor viajan, por fila, siete campos: renglón, PO, SO,
+  factura, chofer, número de carga y fecha de entrega. Ni direcciones, ni cuentas, ni ventanas. No se guarda el fichero.
+- **Las 15 columnas del dueño se reconocen por su cabecera**, sin mirar mayúsculas, espacios ni signos («Invoice #» =
+  «invoice»). Para las seis que importan al comparar hay un selector por si la hoja trae otra cabecera, y la elección se
+  recuerda en el navegador (solo el texto de la cabecera).
+- **«Pickup Address» es el número de carga**, no una dirección: el orden de las recogidas del chofer, desde 0. Un mismo
+  número es UNA parada física. En pantalla la carga 0 es «P1», con el número de la hoja al lado.
+- **Casar no adivina.** Una fila casa con una orden del día por factura, PO o SO. Si no tiene identificador, no está en
+  la app, casa con más de una, sus números apuntan a órdenes distintas, es de otra fecha, o la orden ya salió en un
+  renglón anterior: queda **sin casar, con su motivo y su renglón**. Igual con un chofer que no está en el plan, sin
+  chofer o sin carga: no se le asigna a nadie por parecido.
+- **El plan del despachador se completa de la única forma honesta** (`hoja-plan.ts`): se respetan sus choferes y el orden
+  de sus cargas, y cada ENTREGA se pone en la mejor posición que ese orden permite (inserción + mejora local,
+  determinista, cortada por cuenta y no por reloj). Entre dos recogidas de la misma carga no cabe una entrega: sería otro
+  orden de cargas que el de la hoja. **La pantalla dice que las entregas de ese lado las puso el motor.**
+- **Los dos planes llevan las MISMAS órdenes.** Lo que la hoja no asigna —no lo trae, o lo trae sin chofer— lo coloca el
+  motor *alrededor* de lo del despachador (`secuenciaFijada`), sin moverlo, y se dice cuántas fueron. Sin esto los totales
+  no serían comparables.
+- **Mismo modelo para los dos:** `evaluaPlan` con la matriz, el tráfico, los parámetros y los pesos que guardó el plan
+  del motor de esa fecha. Por eso hace falta que exista (si no, «Planifique el día primero»), y por eso importar **no
+  llama a ningún proveedor de tiempos**. La ruta manual también enseña sus violaciones: 12 pallets en un camión de 10, se ve.
+- **Lado a lado:** plan entero término a término (builder, manejo, millas, tarde, balance) con la resta hoja − motor y una
+  frase que dice quién puntúa mejor con los pesos del dueño —si gana el despachador, lo dice así: sabe algo que el modelo
+  no, o hay un peso mal puesto—; por chofer; y orden por orden en qué difieren. Para cada orden que el motor puso con otro
+  chofer, **cuánto le costaría al plan del motor ponerla como en la hoja**, o por qué no puede: sale de las alternativas
+  que el motor ya calculaba (D-325), no de un cálculo nuevo.
+
+### Que una hoja importada no se publica — las tres defensas, y el hueco
+
+El plan se guarda (`source = 'manual_import'`, hijo del plan del motor) como banco de pruebas para afinar pesos. Para que
+no sea nunca un plan de verdad:
+
+1. **`writes` va vacío siempre**: aunque alguien lo publicara, no escribiría ninguna orden. Con prueba.
+2. **Se deja `discarded` en cuanto está entero** (plan → paradas → descartar; las paradas solo se pueden escribir mientras
+   es borrador, 133). Si las paradas fallan se descarta igual.
+3. **`publish` lo rechaza** (`IMPORTED_PLAN`, 409, sin llamar a la función ni leer paradas); leer el plan vigente,
+   ajustar y «planificar de nuevo» lo ignoran por su `source`. Cada una con su prueba y su mutante.
+
+**El hueco, dicho:** las tres son de código. La base no lo impide: entre guardar y descartar hay un instante en que es un
+borrador, y quien llamara a `publish_route_plan` directamente con ese id lo publicaría (sin escribir órdenes, pero
+sustituyendo al publicado). Cerrarlo es una línea en la función de la 133 —rechazar `manual_import`— y es una migración:
+va con plan en papel si se quiere.
+
+### Lo que NO está verificado
+
+- **Ninguna hoja real ha pasado por aquí.** Las cabeceras son las literales del dueño; el formato de sus fechas, de sus
+  nombres de chofer (se casan con `profiles.full_name`, sin mirar mayúsculas) y de sus números de factura, no lo he visto.
+  La primera hoja real hay que mirarla con alguien delante: lo que no case saldrá listado con su motivo, no escondido.
+- **XLSX:** `textoDeCelda` está probada con los tipos de valor que documenta `exceljs`; leer un fichero de verdad en el
+  navegador, no. CSV y pegado desde Excel (tabuladores) sí están probados de punta a punta en la librería.
+- **Tiempo:** 20 órdenes (40 paradas) con 2 choferes se completan y puntúan en menos de 5 s en la prueba —es el techo que
+  exige la prueba, no una medición fina—. Con más choferes crece: cada tanteo evalúa el plan entero.
+- Nada abierto en un navegador. La ruta tiene 60 s.
+- El sesgo de tráfico de D-320 aplica aquí también: un tramo que el motor no probó no tiene tráfico guardado, y el plan de
+  la hoja usa muchos de esos. Con un plan hecho con tráfico, la hoja sale algo favorecida en minutos. No se corrige; se dice.
