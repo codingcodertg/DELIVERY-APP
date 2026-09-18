@@ -68,6 +68,7 @@ export function blankDelivery(over: Partial<Delivery> = {}): Delivery {
     approved_at: null,
     csat_rating: null,
     csat_comment: null,
+    customer_type: null,
     created_at: now,
     updated_at: now,
     ...over,
