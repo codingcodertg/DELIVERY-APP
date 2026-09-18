@@ -37976,3 +37976,99 @@ La rama está rebasada sobre ese main.
   `max-height` y el scroll del `.col-menu`. No se midió cuántas cuentas hay hoy.
 - **El `aria-controls` apunta a un `id` fijo** (`cuentas-sugeridas`); hay un solo campo de cuenta por
   formulario, y si algún día hubiera dos, chocarían.
+
+## D-NEXT · «Vista móvil» y «Cambiar de usuario» pasan de la barra de Entregas al hub, solo para el admin real
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** *«la vista móvil y el switch usuario, pásalos al hub, porque eso es general
+del hub»*, y aclara: *«no solo delivery app»*.
+
+### Lo que había, medido
+
+- **«Vista móvil»** (D-278) era una opción del menú del nombre de la barra de Entregas
+  (`account-menu.ts`, para el rol real admin y no dentro de su propio iframe), aunque la pantalla ya
+  vivía en el hub (`/home/vista-movil`).
+- **«Switch usuario»** (D-247) era un botón de esa misma barra que colgaba `SwitchUserPanel`, el cual
+  leía la plantilla y las tiendas de `useData()` — el proveedor de datos de Entregas.
+- **Ninguna otra app las tenía**: en RR. HH., Time Tracker y el ERP no había copia. Nada que unificar.
+
+### La parte que cambió el encargo: quién es «el admin real»
+
+El encargo pedía que las viera **solo el admin real, no el suplantado**. Medido: **nada del cliente lo
+sabe**. `realRole` (`data-provider.tsx`) es el rol de la sesión, y «real» ahí significa «no
+previsualizando con ver como», no «no suplantado»: dentro de una impersonación (D-243) la sesión **es**
+la de la otra persona, así que su rol es el que se lee. Lo único que sabe que hay una impersonación es
+la cookie de retorno (`rtg_impersonation_return`, `httpOnly`), que hoy leen cuatro rutas y el
+middleware — y **ningún `layout` ni `page` del servidor**.
+
+Por eso `HubTool.visible` recibe ahora un campo opcional, **`suplantando`**, y el lobby (`home/page.tsx`,
+un Server Component) lo calcula **una sola vez** leyendo esa cookie con el mismo lector que usan las
+rutas de impersonación, y se lo pasa al selector. Cero peticiones nuevas: no hay una llamada por
+herramienta, ni ninguna a `/api/impersonate/state` desde el lobby. Las cuatro herramientas que ya
+existían **ignoran el campo** —hay una prueba que lo fija rol por rol— y las dos nuevas exigen
+`role === "admin" && !suplantando` (`soloAdminReal`, en un sitio).
+
+### Qué se mueve, y cómo
+
+- **Vista móvil**: entrada en `HUB_TOOLS` hacia `/home/vista-movil`. La puerta de esa pantalla no cambia
+  (rol de sesión admin, en el servidor). La opción `vistamovil` desaparece del menú del nombre, y con
+  ella **`enMarco`**: solo existía para no ofrecer la vista móvil dentro de su propio iframe, y el lobby
+  no vive dentro de ninguno.
+- **Cambiar de usuario**: página nueva `/home/switch-user`, con un `layout.tsx` calcado del de Usuarios
+  (D-056): admin por el rol de la sesión, leído de la base, **y además fuera si se está suplantando**
+  —se comprueba la cookie aparte, para que no dependa de que el rol del suplantado no sea admin—. El
+  `DataProvider` se monta ahí, como en Usuarios, no en el lobby. La página pregunta a
+  `/api/impersonate/state?ask=switch` si la función está encendida antes de pintar la lista, como hacía
+  la barra: pintar una lista que choque con el 404 de `/api/impersonate` es peor que no pintarla.
+- **`SwitchUserPanel` deja de leer `useData`**: recibe `users` y `tiendas` por props, y un `enPagina` que
+  lo pinta ocupando su sitio en vez de colgando de un botón. El camino al servidor no cambia: el mismo
+  `POST /api/impersonate` con el id, con las mismas cuatro condiciones, el rastro y la cookie de D-243.
+  Desacoplarlo es también lo que permitirá montarlo donde no hay proveedor (el aviso naranja de
+  suplantación, en el encargo siguiente).
+- **La barra de Entregas** pierde las dos: el botón, el panel, la petición de `puedeSwitch`, la opción
+  del menú, `enMarco` y el fondo `FONDO_BOTON_BARRA` que solo usaba ese botón.
+
+### Qué NO cambia
+
+- **El aviso naranja de suplantación y «Volver a mi cuenta»** siguen en el layout raíz, para las cinco
+  apps: eso no es una herramienta, es un estado.
+- **Quién llega al lobby.** `canReachHub` no se toca: un admin ya llegaba por Usuarios. Desde Entregas,
+  la casa de la barra sigue llevando al lobby en un clic con la misma regla de siempre.
+- **La ruta `/api/impersonate` y su seguridad.** Ni una línea.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Doce mutantes, cada uno cazado por su prueba: que el admin suplantando vea las nuevas, que cualquier
+rol las vea, que una herramienta vieja empiece a mirar `suplantando`, que el lobby deje de leer la
+cookie, que el selector no lo pase, que vuelva la vista móvil al menú del nombre, que vuelva el botón a
+la barra, que la puerta deje pasar a quien suplanta o a un no-admin, que la página pinte la lista sin
+preguntar si está encendida, que el panel vuelva a `useData`, y que cambie el camino al servidor.
+
+Uno **sobrevivió** y por eso se cuenta: devolver a la barra un botón «Switch usuario» **pelado** —sin
+panel, sin petición— dejaba la prueba en verde, porque solo miraba el panel y la petición, no el botón.
+Era prueba floja, no código de sobra: lo que importa al dueño es que el botón no esté. Ahora se mira el
+texto y el símbolo, sin comentarios.
+
+### Las pruebas de D-247, D-274 y D-278 que se actualizan
+
+Las listas del menú del nombre (`entregas-barra.test.ts`), el «solo el botón pide el dato caro»
+(`switch-user.test.ts`) y el «el menú lleva a la vista móvil» (`mobile-preview.test.ts`) fijaban lo que
+se mueve. **Se reescriben en positivo**, no se aflojan: la barra no lleva a la vista móvil, la pregunta
+cara la hace ahora la página del hub y solo ella, y el banner sigue sin hacerla.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2762 pasados | 3 saltados**. La rama añade 17
+pruebas netas: las del fichero nuevo `hub-herramientas-de-admin.test.ts`, más tres suites reescritas
+(D-247, D-274, D-278) que no cambian de tamaño. `main` 9693784, medido en esta misma copia con el árbol
+en `origin/main`, está en 2745 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni las dos tarjetas en el lobby, ni la página nueva, ni que
+  el panel se vea bien estático (`en-pagina`) en vez de colgando.
+- **La cookie se lee en el servidor con `cookies()` de Next**; que llegue en la petición del lobby igual
+  que llega a las rutas `/api/` no se ha probado en vivo, solo por lectura del código (mismo dominio,
+  `path: "/"`).
+- **El chofer sigue sin entrar al lobby (D-173)** y no le afecta nada de esto; no se ha medido si algún
+  admin usaba la vista móvil desde dentro del iframe, que era el caso que `enMarco` cubría.

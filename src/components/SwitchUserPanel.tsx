@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { roleLabel } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
 import { agruparPorTienda, totalFilas } from "@/lib/switch-user";
-import type { UserRole } from "@/lib/types";
+import type { NamedLocation, Profile, UserRole } from "@/lib/types";
 
 /**
  * «Switch usuario»: la lista por tienda desde la barra del hub (D-247).
@@ -22,8 +21,17 @@ import type { UserRole } from "@/lib/types";
  * puede saltárselas aunque quisiera. Lo que pinta o deja de pintar es comodidad; la barrera
  * sigue estando en la ruta.
  */
-export function SwitchUserPanel({ onClose }: { onClose: () => void }) {
-  const { users, settings, notify } = useData();
+/**
+ * Recibe lo que pinta en vez de leerlo de `useData` (D-NEXT): así el mismo panel sirve en la
+ * página del hub —que se lo pasa desde su proveedor— y donde no hay proveedor. `enPagina` lo
+ * pinta estático, no como desplegable colgando de un botón.
+ */
+export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false }: {
+  users: Profile[];
+  tiendas: NamedLocation[];
+  onClose: () => void;
+  enPagina?: boolean;
+}) {
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [filtro, setFiltro] = useState("");
@@ -31,8 +39,8 @@ export function SwitchUserPanel({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const grupos = useMemo(
-    () => agruparPorTienda(users, settings.stores ?? [], filtro),
-    [users, settings.stores, filtro],
+    () => agruparPorTienda(users, tiendas, filtro),
+    [users, tiendas, filtro],
   );
 
   async function entrar(id: string, nombre: string) {
@@ -69,7 +77,7 @@ export function SwitchUserPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="switch-panel">
+    <div className={"switch-panel" + (enPagina ? " en-pagina" : "")}>
       <div className="switch-panel-head">
         <input
           className="inp"
