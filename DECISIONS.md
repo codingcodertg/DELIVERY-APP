@@ -13121,6 +13121,15 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La ventana sigue siendo exactamente esta
+> —ayer, hoy y el futuro, para todos menos admin y logística— **salvo dentro de la pestaña «Factura
+> pendiente»**, donde una orden a la que le falta su documento entra aunque sea vieja. El dueño:
+> *«invoice pending must be visible for office too»*; a office la cuenta le salía 0 porque sus
+> pendientes están todas entregadas. Un documento pendiente es trabajo vivo, no historial. **Fuera de
+> esa pestaña no cambia nada**: la lista normal sigue cortada igual, que es lo que esta entrada vino
+> a conseguir. Y el corte se comprueba ahora en `src/lib/ordenes-visibles.ts`, que es donde el
+> tablero lo decide desde entonces; las pruebas de esta entrada se mudaron ahí sin aflojarse.
+
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, literal: *«in deliveries app the same rule that you can only see
 yesterday today and future applies to everyone except admin and logistic manager»*.
@@ -31077,6 +31086,15 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La ventana sigue siendo exactamente esta
+> —ayer, hoy y el futuro, para todos menos admin y logística— **salvo dentro de la pestaña «Factura
+> pendiente»**, donde una orden a la que le falta su documento entra aunque sea vieja. El dueño:
+> *«invoice pending must be visible for office too»*; a office la cuenta le salía 0 porque sus
+> pendientes están todas entregadas. Un documento pendiente es trabajo vivo, no historial. **Fuera de
+> esa pestaña no cambia nada**: la lista normal sigue cortada igual, que es lo que esta entrada vino
+> a conseguir. Y el corte se comprueba ahora en `src/lib/ordenes-visibles.ts`, que es donde el
+> tablero lo decide desde entonces; las pruebas de esta entrada se mudaron ahí sin aflojarse.
+
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, literal: *«in deliveries app the same rule that you can only see
 yesterday today and future applies to everyone except admin and logistic manager»*.
@@ -38505,6 +38523,15 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** La pestaña y su cuenta ya no salen de la
+> lista normal sino de `conPendientes`, que es esa misma lista **más** las órdenes con documento
+> pendiente que solo se caían por la ventana de D-239. Con la lista normal, a office le salía 0 —sus
+> pendientes están todas entregadas— y la pestaña ni se pintaba: el dueño lo reportó como *«invoice
+> pending must be visible for office too»*. Lo que esta entrada fija sigue igual —qué cuenta como
+> pendiente lo decide `documentoPendiente` con la regla del tipo, y quién puede escribirlo desde la
+> fila no cambia—; lo único que cambia es **sobre qué lista** se cuenta. La pastilla de la fila y las
+> cuentas por etapa siguen sobre lo que la tabla enseña.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
 `125_ventas_pone_la_factura.sql`, escrita y **no aplicada**; va **antes** que el código.
 **Plan:** `docs/PLAN-125-factura-en-la-fila.md`.
@@ -38970,3 +38997,191 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
   base. El «0 restantes» es su medición, del 2026-09-18.
 - **Las órdenes de antes de D-302** —con `store` en la tienda que vendía— ya tenían la forma que este
   cambio da por buena, así que no se tocan y no hacía falta contarlas.
+
+## D-NEXT · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
+`127_borrador_enviado_nace_aprobado.sql` (solo el punto 3); la escribió y la aplicó el orquestador
+**antes** que este código, que es el orden que pide un guard que se abre.
+
+Tres peticiones del dueño el mismo día, sobre la misma pantalla, y por eso una sola entrada:
+
+1. *«el filtro de invoices también falta el filtro de all en órdenes para que lo agregues»*
+2. *«invoice pending must be visible for office too»*
+3. *«auto approve all orders for now until further change»*
+
+---
+
+### 1. La pastilla «Todas»
+
+**Qué fallaba.** La fila de pastillas de Órdenes iba directa a la primera etapa: Borrador ·
+Rechazada · Programada · … · Factura pendiente (D-310). Para volver a verlas **todas** había que
+**volver a pulsar la pastilla encendida** —la segunda pulsación la apaga— y eso no se descubre
+mirando: nada en la pantalla dice que se pueda. Quien no lo sabía se quedaba dentro de una etapa sin
+saber cómo salir.
+
+**Qué hay ahora.** Una pastilla **«Todas (N)» la primera**, encendida cuando no hay ninguna etapa ni
+«Factura pendiente» elegida, y que al pulsarla limpia ese filtro. **N es lo mismo que cuentan las
+demás**: lo que esta persona ve con sus otros filtros ya aplicados —incluida la búsqueda—, no el
+total de la empresa.
+
+**Medido antes de tocar nada:**
+
+- **En el Tablero esa fila no se pinta**: las pastillas solo salen en la vista de tabla, porque el
+  tablero ya enseña cada etapa en su columna. No había nada que añadir ahí.
+- **Almacén y Chofer ya tenían su «Todas»** desde siempre, dentro de su propia lista de pestañas.
+  Órdenes era la única sin ella. Allí va **la última y sin cuenta**; aquí va la primera y con cuenta,
+  que es donde la buscó el dueño: antes de elegir nada, no después.
+- **«Limpiar filtros» (D-297) no toca esta fila**, y sigue sin tocarla: ese botón es el de los
+  filtros **por columna** de la tabla, vive en otro componente y con su propio estado. Tiene prueba.
+
+**Por qué hay función.** `pastillasDeOrdenes` contesta tres preguntas que estaban repartidas por el
+JSX y que se responden juntas: qué pastillas hay, en qué orden, y cuál está encendida. Con ellas
+dentro, la pantalla solo las pinta, y las reglas que ya existían quedan dichas en un sitio: si todas
+las tiendas aprueban solas la de «pendiente» no sale; la de «Factura pendiente» sale si hay algo
+pendiente **o** si se está dentro de ella —sin lo segundo desaparecería bajo el dedo al vaciarse, y
+la lista se quedaría en un filtro invisible—; y nunca hay dos encendidas.
+
+---
+
+### 2. La factura pendiente que office no veía
+
+**No era un permiso.** La pestaña de D-310 cuenta sobre **lo que la persona ve**, y lo que office ve
+lo corta la ventana de retención de D-239: de ayer en adelante, y lo viejo solo buscando. Las órdenes
+con documento pendiente estaban **todas entregadas** —o sea, fuera de esa ventana—, así que para
+office la cuenta era 0 y la pestaña ni se pintaba. El admin la veía porque está exento de la ventana.
+Que la pestaña «no funcionara» y que «no hubiera permiso» se parecen desde fuera y no son lo mismo:
+el arreglo de lo segundo —abrirle la lectura— habría sido el arreglo equivocado.
+
+**La decisión: un documento pendiente es trabajo vivo, no historial**, así que se exime de la
+ventana — pero **solo dentro de su pestaña**. La vista normal sigue con la retención de siempre. Si
+la exención valiera para toda la tabla, a office se le llenaría la lista de entregadas de agosto, que
+es justo lo que D-239 vino a quitar. Por eso son **dos listas**, no una relajada.
+
+**Lo que NO se relaja, y es deliberado.** Los cortes por **rol** siguen enteros: ventas ve lo suyo
+(`ventasVeLaOrden`, D-286/D-309/D-312) y nunca una anulada; almacén sigue sin ver lo anterior a la
+aprobación. Una factura pendiente no es una llave para ver órdenes de otro. Lo que sí se levanta
+dentro de la pestaña es el **suelo de 30 días** de la búsqueda de ventas: el suelo es del historial, y
+el trabajo vivo no caduca a los 30 días.
+
+**Dónde vive.** `src/lib/ordenes-visibles.ts` devuelve las **dos** listas de una vez —`visibles` y
+`conPendientes`— y la pantalla ya no arma ninguna. Se devuelven juntas a propósito: dos listas
+parecidas escritas en dos sitios acaban discrepando, y entonces la pestaña dice un número y enseña
+otro. Las cuentas por etapa y «Todas» siguen saliendo de `visibles`, que es lo que la tabla enseña al
+pulsarlas; solo la de la pestaña cuenta sobre `conPendientes`.
+
+**Cuatro decisiones de D-239, D-286, D-309 y D-310 se comprobaban en la pantalla** porque ahí vivía
+el filtro. Sus pruebas se mudaron a donde ahora se decide, **sin aflojar lo que fijan**, y cada una
+dice en un comentario por qué se movió. Lo que esas cuatro decidieron sigue igual.
+
+---
+
+### 3. Enviar un borrador aprueba igual que crear
+
+**Qué fallaba.** Las siete tiendas ya tenían `auto_approve = true` y aun así seguían cayendo órdenes
+en Pendiente. La razón: la pantalla consultaba la regla **solo al crear**. Una orden guardada como
+borrador y enviada después iba **siempre** a `pending`, sin mirar nada. La misma orden acababa en un
+sitio o en otro según por qué botón hubiera salido.
+
+**La regla es una sola y es la de crear**: `naceAprobada` (D-279, D-292). La aplica ahora
+`etapaAlEnviar` (`src/lib/enviar-borrador.ts`), y la aplican los dos botones que sacan una orden de
+Borrador y de Rechazada. Y **el botón lo dice**: «Enviar (aprobada)» / «Reenviar (aprobada)» cuando
+va a aprobar. Un botón que aprueba y sigue diciendo «Enviar a aprobación» miente sobre lo que hace:
+detrás ya no queda nadie por revisarla.
+
+**Lo que se midió al implementarlo, y cambió el plan:** la base se lo prohibía justo a quien lo
+reportó. `manager` y `accounting` (Office) podían **crear** una orden ya aprobada —eso es un INSERT y
+el guard no lo mira— y aprobar una pendiente, pero **no** mover `draft → approved`; y nadie podía
+reenviar una rechazada ya aprobada. Eso es la migración **127**, que abre exactamente esas dos ramas
+y ninguna más: `sales`/`driver` a `approved` desde `draft`, `pending` o **`rejected`** solo con la
+tienda aprobando sola (`auto`, de la 123), y `manager`/`accounting` desde `draft` y `rejected` sin
+depender de la tienda, porque son quienes aprueban. Es colapsar en uno dos pasos que ya podían dar.
+
+**Y la app también lo prohibía**, en un sitio que no estaba en el plan: `LEGAL_TRANSITIONS`
+(`constants.ts`) no tenía `draft → approved` ni `rejected → approved`, y esa lista la miran **los dos
+proveedores de datos**, así que la escritura ni habría salido del navegador. Se añadieron esos dos
+saltos. Lo que D-049 impide sigue impedido: de `draft` no se salta a `fulfilling`, `ready` ni
+`delivered` — aprobar no es saltarse al almacén.
+
+**Un rol al que la base diría que no se queda en `pending` en vez de estrellarse.** El permiso
+`create` se puede conceder a mano a cualquiera (`permissions`), y almacén o logística verían el botón
+de enviar. La 127 no les acepta el salto, así que `etapaAlEnviar` no lo intenta. Es la lección de
+D-291: logística veía «Cancelar» en la lista y la base le rechazaba la escritura.
+
+**Dos cosas que decidí NO hacer, y por qué:**
+
+- **El envío no vuelve a mandar el SMS de seguimiento.** Se manda al **crear**, y un borrador ya pasó
+  por ahí: `save()` llama a `autoSendTracking` cuando la orden es nueva. Añadirlo al envío sería un
+  **segundo SMS al mismo cliente por la misma orden**. Hay prueba de que no está.
+- **El envío sigue con el corte duro de D-049, no con el `passesChecks` entero del botón de crear.**
+  D-049 decidió que enviar bloquea por bultos y documento y que el resto son avisos descartables;
+  cambiarlo habría metido diálogos nuevos en un camino que no los tenía, y el dueño no pidió eso. Lo
+  que sí se arregló es que ese corte **se mira por de dónde sale la orden, no por a dónde va**: con
+  la comprobación vieja (`to === "pending"`), enviar desde una tienda que aprueba sola se habría
+  saltado la puerta entera.
+- **Los sellos `approved_by` / `approved_at` no se escriben en el botón**: `setStage` ya los pone
+  cuando la etapa que llega es `approved`, en los dos proveedores. Dos sitios escribiendo lo mismo
+  acaban discrepando.
+
+**La pausa de las cuentas de D-292 es un cambio de DATOS, no de código, y es temporal.** El *«for
+now until further change»* del dueño se atiende quitando la marca `requires_approval` a las cuentas
+que la tenían; eso se hace en Ajustes → Datos, lo hizo el orquestador, y se deshace igual. **D-292 no
+se revierte**: la regla sigue en el código y en el guard, y el día que vuelva a marcarse una cuenta
+vuelve a mandar sobre la tienda y sobre la oficina. Esta entrada no cambia esa jerarquía: una cuenta
+marcada sigue ganando también al enviar.
+
+---
+
+### Medido, rompiendo cada pieza
+
+Tres tandas de mutantes, leídas **por el nombre de la prueba que cae**, no por el código de salida:
+
+- **Punto 1 — 8 cambios: 7 caen**, cada uno por su prueba, y el gemelo se queda en verde. («Todas»
+  deja de ir la primera; siempre encendida; la cuenta en cero; la de factura pendiente siempre; la de
+  «pendiente» no se cae cuando todas aprueban solas; pulsar la encendida no vuelve a todas; todas se
+  pintan como la de factura pendiente. Gemelo: la condición de «activa» escrita al revés.)
+- **Punto 2 — 12 cambios: 12 caen.** La exención aplicada a toda la lista; la exención quitada; la
+  exención sin mirar el documento; ventas viendo lo de otro; ventas viendo anuladas; almacén viendo
+  lo anterior a la aprobación; la pestaña ignorando la búsqueda; el suelo de ventas quitado; el suelo
+  tapando la pestaña; la cuenta y las filas de la pestaña sobre la lista normal; «Todas» contando
+  sobre la otra. **Gemelo** (los dos cortes de entrada en el otro orden): verde.
+- **Punto 3 — 12 cambios: 12 caen.** La base sin opinar; la decisión al revés; ventas sin mirar la
+  tienda; oficina fuera de la lista; desbloquear contando como enviar; enviar solo si aterriza en
+  pendiente; el botón volviendo a `pending` fijo; el corte de D-049 mirando solo el destino; el botón
+  sin decir que aprueba; el salto fuera de `LEGAL_TRANSITIONS`; el SMS repetido; el sello de
+  aprobación caído del proveedor. **Gemelo** (las dos ramas de roles al revés): verde.
+
+**Un mutante del punto 2 sigue vivo y se deja a propósito:** quitar el `normal ||` de
+`conPendientes.push`. Es equivalente por construcción —lo que pasa la ventana normal también pasa la
+exenta— y se conserva porque hace cierta **por construcción** la invariante «la pestaña nunca enseña
+menos que la lista», que tiene su propia prueba.
+
+**Y una prueba se corrigió por lo que midió la tanda:** la de «una anulada suya no vuelve por la
+pestaña» usaba una orden **vieja**, así que la ventana ya la tiraba y el mutante que quitaba el corte
+de anuladas no la hacía caer. Se rehízo con una orden **dentro** de la ventana, donde lo único que la
+quita es el corte por rol.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** En particular, que la fila con una pastilla más siga
+  entrando en una línea en un teléfono: la fila ya era larga y esto le suma una.
+- **La 127 la ensayó y la aplicó el orquestador**, no esta rama: una rama no toca la base. El
+  respaldo del guard, el `migrate-status` 125/125 de antes, la autocomprobación y el ledger con
+  `68c73f37b632…` son **su** medición, del 2026-09-18. Lo único que hice yo con el fichero fue
+  comprobar que el que llevo es byte a byte el suyo —mismo checksum, sin `begin`/`commit`, con las
+  dos ramas nuevas y con lo de la 125, la 123 y la 122 todavía dentro—.
+- **Cuántas órdenes había atascadas en Pendiente y cuántas se destraban** no lo he contado: haría
+  falta leer producción.
+
+### Al margen: `DECISIONS.md` está duplicado
+
+Medido hoy: de 312 encabezados `## D-…`, **277 aparecen dos veces** (D-001 … D-278, en dos bloques
+consecutivos), y de esos, **275 tienen el cuerpo idéntico y 2 no** — D-244 y D-278. Es decir, ya ha
+pasado que una corrección se escriba en una copia y no en la otra, que es exactamente lo que rompe un
+documento append-only: quien lea la primera copia se lleva la versión vieja sin enterarse. **No lo
+arreglo en esta rama** —deduplicar el registro de decisiones es decisión del dueño, no de un cambio
+de pantalla—, pero las notas de esta entrada sí se escribieron en **las dos** copias de D-239.

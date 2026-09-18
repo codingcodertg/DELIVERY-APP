@@ -73,10 +73,13 @@ describe("quién puede retomar un borrador", () => {
     for (const stage of ["pending", "approved", "ready", "delivered"] as const) {
       expect(ventasVeLaOrden({ ...comun, orden: { ...deOtro, stage } }), stage).toBe(false);
     }
-    // Y la pantalla sigue llamándola, con el resto de sus cortes donde estaban.
-    const lista = leer("src/app/(app)/page.tsx");
-    expect(lista).toContain('if (me?.role === "sales" && !ventasVeLaOrden({');
-    expect(lista).toContain('if (me?.role === "sales" && d.stage === "canceled") return false;');
+    // Y quien la llama sigue siendo quien arma la lista, que desde D-NEXT es `ordenesVisibles`: el
+    // bloque se mudó entero de la pantalla a `src/lib`, con sus dos cortes de ventas.
+    const lib = leer("src/lib/ordenes-visibles.ts");
+    expect(lib).toContain('if (me?.role === "sales") {');
+    expect(lib).toContain("if (!ventasVeLaOrden({");
+    expect(lib).toContain('if (d.stage === "canceled") return false;');
+    expect(leer("src/app/(app)/page.tsx")).toContain("ordenesVisibles(deliveries, {");
   });
 });
 

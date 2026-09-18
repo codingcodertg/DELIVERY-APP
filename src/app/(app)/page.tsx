@@ -9,6 +9,8 @@ import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, pued
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { documentoPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
+import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
+import { ordenesVisibles } from "@/lib/ordenes-visibles";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -177,76 +179,45 @@ export default function OrdersPage() {
   // always match what actually shows up in the table below them.
   // A salesperson can only search 30 days back.
   const salesSearchFloor = shiftDateISO(todayISO(), -30);
-  const visible = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return deliveries.filter((d) => {
-      // Teaching mode is a fully open sandbox — every user sees every practice
-      // order, so none of the role-scoped restrictions below apply.
-      if (!teaching && !veTodoElHistorial) {
-        // Sales only ever sees their own orders — a hard boundary, not
-        // relaxed by search, unlike the date-window restriction below.
-        // "Own" includes orders an office/admin/driver assigned to them.
-        //
-        // **Menos los borradores** (D-286). El dueño: «para borrador, deja que cualquiera pueda
-        // volver y editarlo», y un borrador que no se ve no se puede editar. Es un cambio de
-        // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
-        // vuelve a ser el de siempre.
-        //
-        // **Y menos las de tienda a tienda de SU tienda** (D-309). El dueño: «in intertienda orders
-        // people from both pickup and delivery store can see the order because les importa a ambos»,
-        // y confirmado después para ventas: las ve aunque no las haya creado él. Solo en tipos
-        // tienda-a-tienda; en una orden de cliente sigue viendo solo las suyas. `orderOwner` no se
-        // toca, así que los avisos y el crédito del panel siguen siendo de quien la escribió.
-        //
-        // Los tres caminos viven en `ventasVeLaOrden` y no aquí: repartidos, el «solo tienda a tienda»
-        // se quedó en este comentario y no en el código, y un vendedor pasó a ver las órdenes de
-        // cliente de sus compañeros de tienda.
-        if (me?.role === "sales" && !ventasVeLaOrden({
-          miId: me.id,
-          miTienda: me.store,
-          orden: d,
-          regla: orderTypeRule(d.order_type, settings.order_type_rules),
-          tiendas: settings.stores,
-        })) return false;
-        // Sales never see canceled orders (a canceled order disappears for them).
-        if (me?.role === "sales" && d.stage === "canceled") return false;
-        // Warehouse only ever sees orders that have been approved — never
-        // draft / pending / rejected / canceled (pre-approval or dead orders).
-        if (me?.role === "warehouse" && !["approved", "fulfilling", "ready", "picked_up", "delivered"].includes(d.stage)) return false;
-      }
-      if (!needle) {
-        // The working roles see yesterday onward. Older history is still
-        // there, reached by searching (an invoice #) rather than scrolled to,
-        // so the list stays on active work.
-        //
-        // Aquí había una lista de tres roles (`nearTerm`: sales, driver, warehouse) y
-        // por eso `manager` y `accounting` veían el historial entero: no estaban en
-        // ella. La ventana ya no pregunta quién trabaja «el corto plazo», sino quién
-        // NO está exento — que es una sola pregunta y se contesta en un sitio (D-239).
-        if (!teaching && !veTodoElHistorial && !withinRetention(d)) return false;
-        return true;
-      }
-      // Sales can only search 30 days back; older orders stay out of reach.
-      if (!teaching && !veTodoElHistorial && me?.role === "sales" && d.delivery_date && d.delivery_date < salesSearchFloor) return false;
-      const hay = [d.order_code, d.order_no, d.account, d.so_num, d.po2, d.invoice_num, d.store, d.delivery_address, d.contact, d.assigned_driver, d.delivery_phone]
-        .map((x) => String(x ?? "").toLowerCase()).join(" ");
-      return hay.includes(needle);
-    });
-  }, [deliveries, q, me?.id, me?.role, teaching, veTodoElHistorial, salesSearchFloor]);
+  /**
+   * Las dos listas de la pantalla (D-NEXT). La decisión —quién ve qué, y qué corta la ventana de
+   * fechas— vive en `ordenesVisibles`, no aquí: la pestaña de factura pendiente necesita una lista
+   * distinta de la normal, y dos listas parecidas escritas en dos sitios acaban discrepando.
+   *
+   * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa; `conPendientes` es
+   * esa más las que solo se caían por la ventana y tienen documento pendiente.
+   */
+  const { visibles: visible, conPendientes } = useMemo(
+    () => ordenesVisibles(deliveries, {
+      me,
+      teaching,
+      veTodoElHistorial,
+      busqueda: q,
+      sueloDeVentas: salesSearchFloor,
+      reglas: settings.order_type_rules ?? {},
+      tiendas: settings.stores,
+    }),
+    [deliveries, q, me, teaching, veTodoElHistorial, salesSearchFloor, settings.order_type_rules, settings.stores],
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: visible.length };
     for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;
     // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
     // esta persona ve.
-    c[PESTANA_DOCUMENTO_PENDIENTE] = visible.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
+    // La de la pestaña cuenta sobre `conPendientes` (D-NEXT): las suyas son trabajo vivo aunque la
+    // orden sea vieja, y sobre `visible` daban 0 para office — que es por lo que la pestaña no le
+    // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
+    c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
     return c;
-  }, [visible, settings.order_type_rules]);
+  }, [visible, conPendientes, settings.order_type_rules]);
 
   const rows = useMemo(() => {
     // The board shows every stage as its own column, so ignore the stage chip there.
     const activeFilter = view === "board" ? "all" : filter;
-    return visible.filter((d) => {
+    // Dentro de la pestaña se listan las mismas que cuenta (D-NEXT); fuera, la lista normal.
+    const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;
+    return desde.filter((d) => {
       // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
       if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!documentoPendiente(d, settings.order_type_rules ?? {})) return false; }
       else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
@@ -461,24 +432,28 @@ export default function OrdersPage() {
       <div className="filters filters-oneline">
         {view === "table" && (
           <>
-            {(me ? filterStagesFor(me.role) : STAGES.map((s) => s.key))
-              .filter((key) => !(autoApproveAll && key === "pending"))
-              .map((key) => (
-              <button key={key} className={"chip " + (filter === key ? "on" : "")} onClick={() => setFilter(filter === key ? "all" : key)}>
-                {stageLabel(key, lang)} <span className="cnt">{counts[key] ?? 0}</span>
+            {/* Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes`
+                (D-NEXT): «Todas» la primera —antes no existía y volver a verlas todas era volver a
+                pulsar la encendida, que nadie descubre—, las etapas del rol, y la de «Factura
+                pendiente» (D-310) al final, solo si hay algo o si se está en ella. */}
+            {pastillasDeOrdenes({
+              etapas: me ? filterStagesFor(me.role) : STAGES.map((s) => s.key),
+              todasAprueban: autoApproveAll,
+              cuentas: counts,
+              filtro: filter,
+            }).map((p) => (
+              <button
+                key={p.key}
+                className={"chip " + (p.clase ? p.clase + " " : "") + (p.activa ? "on" : "")}
+                onClick={() => setFilter(p.activa ? PASTILLA_TODAS : p.key)}
+              >
+                {p.key === PASTILLA_TODAS
+                  ? t("All", "Todas")
+                  : p.key === PESTANA_DOCUMENTO_PENDIENTE
+                    ? t("Invoice pending", "Factura pendiente")
+                    : stageLabel(p.key, lang)} <span className="cnt">{p.cuenta}</span>
               </button>
             ))}
-            {/* «Invoice pending» (D-310): una pestaña más de la fila, no un botón aparte junto al
-                buscador: es el mismo estado, y dos mandos para un estado se contradicen. Solo sale
-                si hay algo pendiente o si se está en ella. Entra ordenada por tienda. */}
-            {((counts[PESTANA_DOCUMENTO_PENDIENTE] ?? 0) > 0 || filter === PESTANA_DOCUMENTO_PENDIENTE) && (
-              <button
-                className={"chip chip-pend " + (filter === PESTANA_DOCUMENTO_PENDIENTE ? "on" : "")}
-                onClick={() => setFilter(filter === PESTANA_DOCUMENTO_PENDIENTE ? "all" : PESTANA_DOCUMENTO_PENDIENTE)}
-              >
-                {t("Invoice pending", "Factura pendiente")} <span className="cnt">{counts[PESTANA_DOCUMENTO_PENDIENTE] ?? 0}</span>
-              </button>
-            )}
           </>
         )}
       </div>
