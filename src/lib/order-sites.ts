@@ -32,7 +32,7 @@ export type ContextoDelUsuario = {
 /**
  * Sin tienda de origen. Si la recogida era esa tienda —se rellena al elegirla—, también sin recogida.
  *
- * Desde D-NEXT esto vale **también** para un tipo que recibe: ahí «Vendido desde» y la recogida las
+ * Desde D-312 esto vale **también** para un tipo que recibe: ahí «Vendido desde» y la recogida las
  * escribe una sola elección, así que vaciar el origen se las lleva las dos, y no hay que vaciar una
  * punta que la persona no eligió.
  */
@@ -49,7 +49,7 @@ function sinDestino(d: Borrador): Borrador {
  * Aplicar un tipo de orden (antes `withTypeDefaults`, dentro del modal).
  *
  * **Un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) vuelve a cambiar de forma en
- * D-NEXT.** D-302 lo había dejado así: la tienda del usuario vendía y recibía, y lo que se elegía era
+ * D-312.** D-302 lo había dejado así: la tienda del usuario vendía y recibía, y lo que se elegía era
  * la recogida. Damaris, de office: *«INV 170059 dice sold from Edinburg y debe de ser Pharr; app tiene
  * que automáticamente poder sold from de la tienda de la cual estoy solicitando el material»*. Tenía
  * razón: «Vendido desde» decía la tienda que **pedía** el material.
@@ -63,7 +63,7 @@ function sinDestino(d: Borrador): Borrador {
  *
  * **Desde D-276, un tipo tienda-a-tienda nunca queda con el origen en el destino.** Si con las dos
  * puntas puestas chocan, se vacía la que el tipo deja elegir: **el origen** en un tipo que recibe
- * (D-NEXT; hasta D-302 era la recogida, que es donde vivía entonces), el destino en los demás.
+ * (D-312; hasta D-302 era la recogida, que es donde vivía entonces), el destino en los demás.
  */
 export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Borrador {
   const rule = orderTypeRule(tipo, c.reglas);
@@ -72,7 +72,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   // «remove account contact name and phone number from intertienda»). Se **limpian al cambiar de tipo**
   // y no solo se esconden: escondidos seguirían viajando a la base.
   //
-  // **La cuenta vuelve, y es la tienda que recibe** (D-NEXT). Damaris, de office: «Account se debe de
+  // **La cuenta vuelve, y es la tienda que recibe** (D-312). Damaris, de office: «Account se debe de
   // llenar automáticamente con el nombre de mi tienda cuando es intertienda». Se pone abajo, cuando ya
   // se sabe cuál es el destino; aquí solo se vacía, para que un tipo de cliente no se deje la cuenta
   // del cliente anterior dentro de una Intertienda.
@@ -84,7 +84,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
     next.delivery_phone = "";
   }
   // Y al SALIR de un tipo tienda-a-tienda se suelta la cuenta, porque la escribió la máquina con el
-  // nombre de una tienda (D-NEXT): dejarla dentro de una orden de cliente diría que una tienda es el
+  // nombre de una tienda (D-312): dejarla dentro de una orden de cliente diría que una tienda es el
   // cliente. Se mira de dónde viene, no lo que hay escrito: una cuenta tecleada a mano —que solo puede
   // venir de otro tipo de cliente— no se toca.
   if (rule.storeToStore !== true && orderTypeRule(p.order_type, c.reglas).storeToStore === true) {
@@ -92,7 +92,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   }
   if (rule.homeIsDestination && c.miTienda) {
     const home = c.tiendas.find((s) => s.name === c.miTienda);
-    // Su tienda RECIBE, y lo que se elige es **a qué tienda se le pide el material** (D-NEXT). Esa
+    // Su tienda RECIBE, y lo que se elige es **a qué tienda se le pide el material** (D-312). Esa
     // elección escribe «Vendido desde» y la recogida a la vez, así que las dos se vacían aquí para que
     // no quede la de nadie: D-302 ponía su tienda en `store` y por eso la orden decía que se vendía
     // desde la tienda que la estaba pidiendo.
@@ -104,11 +104,11 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   } else if (!p.store && c.miTienda) {
     next.store = c.miTienda; // normal direction: Sold From is the rep's store
   }
-  // La cuenta, con el destino ya decidido (D-NEXT). Va después del bloque de arriba a propósito: en un
+  // La cuenta, con el destino ya decidido (D-312). Va después del bloque de arriba a propósito: en un
   // tipo que recibe el destino se acaba de poner, y en los demás tienda-a-tienda puede estar vacío
   // todavía — entonces la cuenta también, y la escribirá `eligeDestino` cuando se elija.
   if (rule.storeToStore === true) next.account = next.delivery_name ?? "";
-  // **Desde D-NEXT la punta que el tipo deja elegir es el ORIGEN**, también en un tipo que recibe: si
+  // **Desde D-312 la punta que el tipo deja elegir es el ORIGEN**, también en un tipo que recibe: si
   // con las dos puestas chocan, se vacía «Vendido desde» y su recogida, que es lo que la persona puede
   // cambiar. Hasta D-302 se vaciaba la recogida, porque allí el origen vivía ahí.
   if (rule.storeToStore === true && origenEsDestino(next, rule, c.tiendas)) {

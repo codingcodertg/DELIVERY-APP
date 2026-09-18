@@ -45,7 +45,7 @@ const BUENA = { ...MALA, delivery_name: SUR.name, delivery_address: SUR.address,
 
 describe("la orden nueva, tal como la abre cada rol", () => {
   it("el gerente abre una Intertienda con su tienda SOLO recibiendo, y la que vende por elegir", () => {
-    // Cambió dos veces: D-302 puso su tienda vendiendo y recibiendo, y D-NEXT la deja solo recibiendo,
+    // Cambió dos veces: D-302 puso su tienda vendiendo y recibiendo, y D-312 la deja solo recibiendo,
     // porque «Vendido desde» decía la tienda que pedía el material y no la que lo mandaba.
     const d = borradorInicial({}, GERENTE);
     expect(d.order_type).toBe("Intertienda");
@@ -75,7 +75,7 @@ describe("elegir en cualquier orden: el desplegable nunca ofrece la otra punta",
     for (const tipo of ["Intertienda", "Transfer"]) {
       it(`${nombre}, ${tipo}: origen y luego destino, y destino y luego origen`, () => {
         const regla = REGLAS[tipo];
-        // **Un solo desplegable de origen para los dos tipos** (D-NEXT). Con D-302 había que recorrer
+        // **Un solo desplegable de origen para los dos tipos** (D-312). Con D-302 había que recorrer
         // uno distinto en un tipo que recibe —allí el origen se elegía en la recogida—; ahora los dos
         // eligen «Vendido desde», y esa elección escribe también la recogida.
         const opcionesOrigen = (x: Partial<Delivery>) => opcionesDeOrigen(x, TIENDAS, regla);
@@ -114,7 +114,7 @@ describe("cambiar el tipo con las dos puntas ya puestas", () => {
     const conDestino = { ...cliente, delivery_name: "Obra", delivery_address: SUR.address };
     const d = aplicaTipo(conDestino, "Intertienda", ADMIN);
     expect(choques(d)).toEqual([]);
-    // Desde D-NEXT el origen es «Vendido desde» también en un tipo que recibe, así que lo que se vacía
+    // Desde D-312 el origen es «Vendido desde» también en un tipo que recibe, así que lo que se vacía
     // es ESE —con su recogida, que la escribió la misma elección— y el destino se queda. Este es además
     // el caso del admin sin tienda, que no congela nada.
     expect(d.store || "").toBe("");
@@ -147,7 +147,7 @@ describe("el destino que se ve es el que cuenta", () => {
     expect(choques(d)).toEqual(["store"]);
   });
 
-  it("y en Intertienda esa misma orden vuelve a chocar, porque el origen es «Vendido desde» (D-NEXT)", () => {
+  it("y en Intertienda esa misma orden vuelve a chocar, porque el origen es «Vendido desde» (D-312)", () => {
     // **Este canario fijaba lo contrario.** D-302 leía el origen en la recogida, así que «vendida desde
     // Sur y entregada en Sur» pasaba. Ya no: si vende Sur y entrega en Sur, la orden no va a ningún
     // sitio, diga lo que diga la recogida. Es la misma regla que en Transfer, que es lo que se quería.
@@ -163,7 +163,7 @@ describe("el destino que se ve es el que cuenta", () => {
     expect(opcionesDeDestino(d, TIENDAS, REGLAS.Transfer)).toEqual(["Tienda Este"]);
   });
 
-  it("y en Intertienda tampoco, porque la que vende es la que manda (D-NEXT)", () => {
+  it("y en Intertienda tampoco, porque la que vende es la que manda (D-312)", () => {
     // **Este canario fijaba lo contrario**: con D-302 la tienda que vendía era la que recibía, así que
     // el destino tenía que ofrecerla. Ahora vende la que manda el material, y ofrecerla como destino
     // sería ofrecer una orden que no va a ningún sitio.

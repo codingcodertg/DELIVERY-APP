@@ -31,7 +31,7 @@ const resto = {
  * Una Intertienda armada con los mismos pasos que el modal. `casa` es la tienda del usuario y `origen`
  * la que manda el material.
  *
- * **Cambió con D-302 y vuelve a cambiar con D-NEXT**: la tienda del usuario **solo recibe** —el destino
+ * **Cambió con D-302 y vuelve a cambiar con D-312**: la tienda del usuario **solo recibe** —el destino
  * queda congelado en ella— y lo que se elige es a qué tienda se le pide el material, que escribe
  * «Vendido desde» y la recogida a la vez. Con D-302 su tienda vendía y recibía, y se elegía la
  * recogida; por eso una orden decía que se vendía desde la tienda que la estaba pidiendo.
@@ -54,7 +54,7 @@ describe("tienda-a-tienda: el origen no puede ser el destino", () => {
 
   it("de una tienda a sí misma, se bloquea — y como comparten dirección, las dos reglas lo dicen", () => {
     const d = borradorIntertienda("Tienda Norte", "Tienda Norte");
-    // La clave vuelve a ser `store` en D-NEXT: «Vendido desde» dejó de estar congelado —es lo que se
+    // La clave vuelve a ser `store` en D-312: «Vendido desde» dejó de estar congelado —es lo que se
     // elige— y es el campo que la persona puede corregir. Con D-302 se señalaba la recogida.
     expect(claves(d)).toEqual(["delivery_address", "store"]);
     expect(submitBlockers(d, RULES, TIENDAS).every((m) => m.conflict === true)).toBe(true);
@@ -118,7 +118,7 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
   });
 
   it("corregida, pasa", () => {
-    // Se corrige eligiendo OTRA tienda que venda y mande: desde D-NEXT eso escribe las dos puntas de
+    // Se corrige eligiendo OTRA tienda que venda y mande: desde D-312 eso escribe las dos puntas de
     // una vez, así que la corrección es la misma que hace `eligeOrigen` en la pantalla.
     const corregida = { ...vieja, store: "Tienda Sur", pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
     expect(submitBlockers(corregida, RULES, TIENDAS)).toEqual([]);

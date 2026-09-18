@@ -167,7 +167,7 @@ export function conflictosDeSitio(d: Partial<Delivery>, rules: OrderTypeRules, t
   const out: MissingField[] = [];
   const regla = orderTypeRule(d.order_type, rules);
   if (origenEsDestino(d, regla, tiendas)) {
-    // El campo que se marca es el que la persona puede cambiar, y desde D-NEXT es **`store` en todos
+    // El campo que se marca es el que la persona puede cambiar, y desde D-312 es **`store` en todos
     // los tipos**: en uno que recibe, «Vendido desde» dejó de estar congelado —es justo lo que se
     // elige— y el congelado pasó a ser el destino. Con D-302 se marcaba `pickup_name` por lo contrario.
     out.push({

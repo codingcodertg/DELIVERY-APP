@@ -46,7 +46,7 @@ describe("el contacto vuelve a ser lo que era", () => {
     const SALTO = String.fromCharCode(10);
     expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            <div className="grid g2">');
     const fila = modal.slice(modal.indexOf('{/* ---- Store (Sold From) + its address ---- */}'), modal.indexOf("{/* ---- Pickup ---- */}"));
-    // La etiqueta es condicional desde D-NEXT —en un tipo que recibe dice «¿A qué tienda se lo
+    // La etiqueta es condicional desde D-312 —en un tipo que recibe dice «¿A qué tienda se lo
     // pides?»— y lo que esta prueba vigila sigue siendo que la FILA esté sin condición.
     expect(fila).toContain('t("Store (Sold From)", "Tienda (Vendido Desde)")');
     expect(fila).toContain('t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)")');
@@ -84,7 +84,7 @@ describe("lo que NO se revierte sigue en pie", () => {
     }
   });
 
-  it("y `aplicaTipo` vacía el origen y el contacto, y rellena la cuenta (D-NEXT)", () => {
+  it("y `aplicaTipo` vacía el origen y el contacto, y rellena la cuenta (D-312)", () => {
     const REGLAS = {
       Intertienda: { docRef: "po" as const, storeToStore: true, homeIsDestination: true },
       Customer: { docRef: "invoice" as const, storeToStore: false },
@@ -97,13 +97,13 @@ describe("lo que NO se revierte sigue en pie", () => {
     const d = sitios.aplicaTipo(cliente, "Intertienda", ctx);
     // Desde D-302 la punta que el tipo deja elegir es la RECOGIDA: su tienda vende y recibe.
     expect(d.pickup_name || "").toBe("");
-    // Desde D-NEXT «Vendido desde» también se vacía: es lo que hay que elegir, y dejarlo en su tienda
+    // Desde D-312 «Vendido desde» también se vacía: es lo que hay que elegir, y dejarlo en su tienda
     // era justo lo que hacía que la orden dijera que se vendía desde quien pedía el material.
     expect(d.store || "").toBe("");
     // Contacto y teléfono siguen fuera desde D-309: un movimiento entre tiendas no tiene cliente.
     expect(d.contact ?? "").toBe("");
     expect(d.delivery_phone ?? "").toBe("");
-    // **Pero la cuenta vuelve, y es la tienda que recibe** (D-NEXT). D-309 la vaciaba con los otros
+    // **Pero la cuenta vuelve, y es la tienda que recibe** (D-312). D-309 la vaciaba con los otros
     // dos, y esta prueba lo fijaba; Damaris, de office, pidió lo contrario: «Account se debe de llenar
     // automáticamente con el nombre de mi tienda cuando es intertienda».
     expect(d.account).toBe("Tienda Norte");

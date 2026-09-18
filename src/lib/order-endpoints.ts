@@ -47,7 +47,7 @@ function direccionDeTienda(nombre: string | null | undefined, tiendas: NamedLoca
 }
 
 /**
- * De dónde sale la mercancía: **siempre «Vendido desde»** (D-NEXT).
+ * De dónde sale la mercancía: **siempre «Vendido desde»** (D-312).
  *
  * D-302 había puesto el origen en la **recogida** para los tipos «que reciben», porque allí la tienda
  * del usuario vendía y recibía a la vez y `store` era el destino. Damaris, de office: *«INV 170059 dice
@@ -72,7 +72,7 @@ export function origenDeLaOrden(
  * que es lo que enseña el desplegable de destino. `tiendas` es obligatorio a propósito: sin la lista,
  * la segunda comparación no existe y el hueco de D-276 vuelve en silencio.
  *
- * El origen lo decide `origenDeLaOrden`, que desde D-NEXT es «Vendido desde» en todos los tipos.
+ * El origen lo decide `origenDeLaOrden`, que desde D-312 es «Vendido desde» en todos los tipos.
  */
 export function origenEsDestino(
   d: Pick<Partial<Delivery>, "store" | "pickup_name" | "pickup_address" | "delivery_name" | "delivery_address">,
@@ -97,7 +97,7 @@ export function origenEsDestino(
  * because les importa a ambos»*.
  *
  * En un movimiento tienda-a-tienda son hasta tres columnas y no una: `store` («Vendido desde»),
- * `pickup_name` (la que **envía** el material) y `delivery_name` (la que **recibe**). Desde D-NEXT una
+ * `pickup_name` (la que **envía** el material) y `delivery_name` (la que **recibe**). Desde D-312 una
  * Intertienda bien formada tiene `store` y `pickup_name` en la tienda que manda, y `delivery_name` en
  * la que recibe, así que lo normal es que devuelva dos. Se miran las tres igualmente porque las órdenes
  * de D-302 —con `store` en la tienda que recibe— siguen vivas, y las de antes de D-302 también.
@@ -151,7 +151,7 @@ export function eligeOrigen(p: Partial<Delivery>, v: string, tiendas: NamedLocat
 }
 
 /**
- * Elegir la tienda de destino: su nombre, su dirección y **la cuenta** (D-NEXT).
+ * Elegir la tienda de destino: su nombre, su dirección y **la cuenta** (D-312).
  *
  * La cuenta de un movimiento entre tiendas es la tienda que **recibe**. Damaris, de office: *«Account se
  * debe de llenar automáticamente con el nombre de mi tienda cuando es intertienda»*. Se escribe aquí y

@@ -6,7 +6,7 @@ import { aplicaTipo, type ContextoDelUsuario } from "./order-sites";
 import type { Delivery, NamedLocation, OrderTypeRule, Settings } from "./types";
 
 /**
- * Lo que arregla que «Vendido desde» diga la tienda que MANDA (D-NEXT).
+ * Lo que arregla que «Vendido desde» diga la tienda que MANDA (D-312).
  *
  * Damaris, de office: *«INV 170059 dice sold from Edinburg y debe de ser Pharr»*. No era solo la
  * pantalla: el comprobante toma la dirección de origen de `store`, así que con el modelo de D-302

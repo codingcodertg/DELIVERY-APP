@@ -6,7 +6,7 @@ import { aplicaTipo, borradorInicial, escrituraQueNoVaANingunSitio, type Context
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * Intertienda: **vende la tienda que manda el material**, y la del usuario solo recibe (D-NEXT).
+ * Intertienda: **vende la tienda que manda el material**, y la del usuario solo recibe (D-312).
  *
  * **Este fichero fijaba lo contrario.** Era la suite de D-302, donde la tienda del usuario vendía y
  * recibía y lo que se elegía era la recogida. Damaris, de office: *«INV 170059 dice sold from Edinburg

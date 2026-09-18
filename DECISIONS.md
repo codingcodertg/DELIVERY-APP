@@ -37665,7 +37665,7 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
 
 ## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
-> **⚠ Reemplazada otra vez el 2026-09-18, por D-NEXT — y esta vez en lo principal.** Damaris, de
+> **⚠ Reemplazada otra vez el 2026-09-18, por D-312 — y esta vez en lo principal.** Damaris, de
 > office: *«INV 170059 dice sold from Edinburg y debe de ser Pharr»*. Tenía razón: con la tienda del
 > usuario vendiendo **y** recibiendo, «Vendido desde» acababa diciendo la tienda que **pedía** el
 > material. Ahora se elige a qué tienda se le pide, esa elección escribe «Vendido desde» y la recogida
@@ -38305,7 +38305,7 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
 
 ## D-309 · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** De los tres campos que esta entrada quitó,
+> **⚠ Reemplazada en parte el 2026-09-18, por D-312.** De los tres campos que esta entrada quitó,
 > **la cuenta vuelve**: se rellena sola con la tienda que recibe, de solo lectura. Damaris, de office:
 > *«Account se debe de llenar automáticamente con el nombre de mi tienda cuando es intertienda»*.
 > Contacto y teléfono siguen fuera, y todo lo demás de esta entrada —la visibilidad de las dos tiendas,
@@ -38847,7 +38847,7 @@ genera una prueba por componente.
   funciones puras; la única ruta que manda correo (`/api/help`) se prueba, como antes, con `fetch`
   simulado.
 
-## D-NEXT · Intertienda: vende la tienda que manda el material
+## D-312 · Intertienda: vende la tienda que manda el material
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reportado por Damaris Hernandez** (office, Edinburg), literal: *«INV 170059 dice sold from Edinburg y
