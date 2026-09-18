@@ -38275,3 +38275,153 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
   son historia y ya no sirven.
 - **El tiempo real de Supabase** (`postgres_changes` sobre `notifications`) sigue igual; no se ha
   medido cuánto tarda la campana en actualizarse tras el insert.
+
+## D-NEXT · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
+`125_ventas_pone_la_factura.sql`, escrita y **no aplicada**; va **antes** que el código.
+**Plan:** `docs/PLAN-125-factura-en-la-fila.md`.
+
+### El pedido
+
+El dueño, en dos días: *«en el table de órdenes las órdenes que no tengan invoice number tengan un
+distintivo… los de sales no pueden editar, pero si les falta el invoice solo eso pueden ingresar,
+directo en la orden sin abrirla, ahí en el table… un nuevo filtro al lado del search bar que diga
+invoice pending»*, y después *«add a tab of pending invoice entry pending and sorted by store»*.
+
+### Qué cuenta como «pendiente», y el número que NO había que contar
+
+No es «sin `invoice_num`». Contado así salían **35** órdenes (orquestador, producción, solo lectura,
+2026-09-18), y 31 eran Intertiendas, cuyo documento es el PO: marcarlas «Invoice pending» habría sido
+pedirle a la gente un papel que ese tipo no lleva. El documento que cuenta lo dice la regla del tipo
+(`docRef`, Ajustes → Datos), la misma de `documentoPrincipal` (D-278) y de lo que falta al enviar.
+
+Con esa regla, el recuento del orquestador (2026-09-18, sin entrenamiento, etapa ∉ {draft, rejected,
+canceled}): **Customer sin `invoice_num`: 4 · Intertienda sin `po2`: 14 · Transfer sin
+`estimate_num`: 0. Total 18, todas en `delivered`.**
+
+`documentoPendiente(orden, reglas)` (`src/lib/documento-pendiente.ts`) se apoya en `documentoPrincipal`
+—una sola fuente—: pendiente si el documento del tipo está vacío y la etapa no es borrador, rechazada
+ni anulada. `any` solo si no tiene ninguno; `none` nunca. La pastilla dice cuál: «Invoice pending»,
+«PO pending», «Estimate pending».
+
+**Transfer entra en el distintivo** aunque hoy su estimación no se exija al enviar (`missingFields` no
+tiene rama para `estimate`): que falte se ve, y exigirla es otra decisión que el orquestador le plantea
+al dueño aparte.
+
+### Una pestaña, no una pestaña y un botón
+
+El dueño pidió un filtro junto al buscador y, otro día, una pestaña. Son el mismo estado —«enséñame
+solo lo pendiente»—, y dos mandos para un estado acaban contradiciéndose (uno encendido y el otro no).
+Se hizo **uno**: una pestaña ámbar «Invoice pending (N)» al final de la fila de etapas, que es donde
+la tabla ya tiene ese gesto —una sola elegida, con su cuenta, y otra pulsación la quita—. El botón
+junto al buscador se descartó; si el dueño lo echa de menos, es el mismo `filter` y se añade en una línea.
+
+- **N cuenta sobre lo que la persona ve** (`visible`), como las demás pestañas: un vendedor ve las suyas.
+- **No es una etapa:** enseña lo pendiente de todas. Tenía que serlo: hoy las 18 están entregadas.
+- **Solo sale si hay algo pendiente** (o si se está en ella): una pestaña con un cero fijo estorba.
+- Se combina con Hoy/Todas y con los filtros de columna. «Limpiar filtros» (D-297) no la toca, igual
+  que no toca las pestañas de etapa: limpia filtros de columna, y eso no cambió.
+
+**Ordenada por tienda, con encabezados.** Al entrar, la tabla agrupa por tienda —encabezado con su
+cuenta— y dentro por fecha de entrega; sin tienda, al final. Los filtros de columna se aplican antes,
+así que cada cuenta es la de lo que se ve. **En cuanto la persona ordena por una columna, manda su
+orden y los encabezados se van**: un encabezado de tienda sobre filas ordenadas por fecha mentiría.
+Quitar el orden los devuelve.
+
+### La pastilla y la captura en la fila
+
+En la celda `#`, donde salía el «—», en la misma línea que la factura: no añade una fila a la tarjeta
+de tres de D-298 (si en un teléfono estrecho esa línea salta, no está visto — abajo). Va aparte de la factura, porque a una Intertienda le puede faltar el PO teniendo factura.
+
+Quién puede escribir ahí lo decide `campoCapturableEnFila`, no el componente:
+
+| Quién | Qué escribe desde la fila |
+|---|---|
+| admin, gerente, office | el documento que falte, en cualquier orden (ya editan en toda etapa) |
+| ventas, en `pending` | el documento que falte (ahí ya edita la orden entera) |
+| ventas, de `approved` en adelante | **solo `invoice_num`, y solo en SU orden** — lo que abre la 125 |
+| ventas, con PO o estimación pendiente | ve la pastilla, **no** el input |
+| chofer, almacén, logística | ven la pastilla, nada más |
+
+Almacén edita campos en sus etapas (`canEditFields`), pero el papeleo no es suyo: se le excluye a
+propósito. Logística fuera de borrador no edita en la app hoy, y sigue igual.
+
+El gesto: pulsar la pastilla abre un input pequeño; **Enter guarda, Escape cancela**, y nada de eso
+abre la orden. Vacío o solo espacios no se guarda. **Factura repetida se avisa, no se bloquea**, con la
+misma comparación que la ficha: una factura repartida en varias entregas existe.
+
+**El guardado es un camino propio** (`ponerDocumento`), no `updateDelivery`, por dos razones. El parche
+lleva **un** campo y nada más: la 125 solo deja pasar a ventas si la factura es lo único que cambia, y
+un sello de más convertiría el guardado en un rechazo. Y pide `.select("id")`: un UPDATE que la RLS
+deja en cero filas vuelve de PostgREST sin error y parecería guardado. Quien escribe puede leer la fila
+—la tiene delante—, así que el `RETURNING` no choca con la política de lectura como en D-308.
+
+### La base: migración 125
+
+La pantalla sola no bastaba, y está medido (orquestador, producción, `ROLLBACK`, 2026-09-18): un
+vendedor actualizando **solo** `invoice_num` en **su** orden queda bloqueado en `approved`, `ready` y
+`delivered` — *«You cannot edit an order in the … stage»*.
+
+La 125 copia `guard_delivery_stage` de la **123** —la vigente— y añade **una** excepción en la rama de
+«misma etapa», antes del rechazo: rol `sales`, la orden es suya (`created_by` o `assigned_sales_rep`
+= `auth.uid()`), etapa ∉ {draft, rejected, canceled}, la factura **estaba vacía y deja de estarlo**, y
+es **lo único que cambia** — el patrón `probe` de la rama del chofer: una copia de `NEW` con la factura
+y el `updated_at` viejos tiene que ser idéntica a `OLD`. No sobrescribe una factura puesta, no la vacía,
+no toca una anulada.
+
+**Solo `invoice_num`, no «el documento de su tipo».** Qué documento pide cada tipo está en
+`settings.order_type_rules` con valores por defecto que hoy viven solo en TypeScript. Abrir también
+`po2` y `estimate_num` obligaba a duplicar esa regla en SQL: dos sitios decidiendo lo mismo. El
+orquestador lo prefirió limitado; PO y estimación los captura quien ya edita.
+
+**Una diferencia entre base y pantalla, a sabiendas:** la base dice «creador **o** asignado»; la
+pantalla, `orderOwner` = asignado, y si no hay, creador. Una orden que creó un vendedor y se asignó a
+otro: la base se lo dejaría al primero, la pantalla no — ni la ve en su tabla. La pantalla es más
+estrecha que la base, que es el lado seguro.
+
+Sin `begin`/`commit` propios (la 124 se aplicó sola en un ensayo por llevarlos), con autocomprobación
+que lee `pg_get_functiondef` tras aplicar, ensayo por rol comentado, reversión y ledger. **Es aditiva:
+migración primero, código después** — al revés, el vendedor vería un input que la base rechaza.
+
+### Un canario movido, no aflojado
+
+`cuenta-aprobacion.test.ts` afirmaba «la 123 es la **última** que define el guard». Dejó de serlo con
+la 125. Se reescribió a lo que de verdad protegía —saber de cuál se copió—: ahora afirma que la
+anterior a la 123 en la lista es la 122, y la 125 lleva su propia prueba de que parte de la 123.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**41 mutantes, leídos por nombre; ninguno sobrevivió.** Diecinueve en la regla (mira solo la factura;
+una anulada cuenta; ventas escribe la de cualquiera, o cualquier documento; almacén o chofer capturan;
+cero filas pasa por guardado; la repetida cuenta anuladas, se encuentra a sí misma o distingue
+mayúsculas; el orden pierde la fecha, pone «sin tienda» primero, ordena «10» antes que «9», o parte una
+tienda en dos grupos por la caja…). Diez en el `.sql` (cualquier rol; orden ajena; sobrescribir; vaciar;
+anulada; la copia devuelve también la tarifa; sin comparar; se pierde lo de la 123; lleva su `commit`;
+la autocomprobación no mira lo nuevo). Doce en proveedor, página, tabla y pastilla.
+
+Las cinco condiciones del `.sql` se comparan **como conjunto**, no como texto en orden; y las etapas
+que la base excluye se comparan con las que la regla de la pantalla no marca, recorriendo `STAGES` —
+si alguien añade una etapa a un lado y no al otro, cae. Las pruebas usan tipos de orden inventados: qué
+documento pide cada tipo es dato del dueño y no se afirma en el repo.
+
+### Verificado
+
+`rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
+**171 ficheros | 1 omitido, 2830 pruebas | 3 omitidas.** En `origin/main` (3d2966f), misma copia:
+170 | 1 y 2796 | 3. La diferencia, fichero a fichero con el reporter JSON: **+33** de
+`documento-pendiente.test.ts` y **+1** de `inline-colors.test.ts`, que genera una prueba por
+componente y recogió `DocumentoPendiente.tsx`.
+
+### Lo no verificado
+
+- **La 125 no se ha corrido contra ninguna base.** Una rama no toca producción. La matriz por rol está
+  en el `.sql` y la ensaya el orquestador; hasta entonces, que el `probe` se comporte como se espera con
+  las columnas reales es una lectura, no una medición.
+- **Nadie ha visto la pastilla ni el input en un navegador.** En el worktree no hay `.env.local`. En
+  concreto no está visto: que el input quepa en la columna `#` a su ancho por defecto; que la pastilla junto a una factura
+  larga no haga saltar la primera línea de la tarjeta del teléfono; el encabezado de
+  tienda en la tarjeta del teléfono; el ámbar en modo oscuro.
+- **El tablero no lleva pastilla.** La tarjeta del tablero no se tocó: el pedido habla de la tabla.
+- Si `authenticated` puede llamar a una función de `pg_temp` creada por `postgres` en la misma sesión
+  (la misma duda que dejó escrita la 123).

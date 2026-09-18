@@ -28,6 +28,8 @@ import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-re
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
+import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
+import type { CampoDeDocumento } from "@/lib/order-document";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 
@@ -101,6 +103,8 @@ export interface DataState {
    * never asked for and can do nothing about — a failure there must not look
    * like a failure of whatever they just did. */
   updateDelivery: (id: string, patch: Partial<Delivery>, opts?: { quiet?: boolean }) => Promise<boolean>;
+  /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-NEXT). */
+  ponerDocumento: (id: string, campo: CampoDeDocumento, valor: string) => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every
    * write lands, so a realtime refetch can't interleave and snap stops back to
@@ -1057,6 +1061,28 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
   updateDeliveryRef.current = updateDelivery;
 
+  // El documento que falta, desde la fila (D-NEXT). Camino propio y no `updateDelivery` por dos cosas:
+  // el parche lleva UN campo y nada mas -- la migracion 125 le deja a ventas escribir `invoice_num` en
+  // su orden solo si es lo unico que cambia, y un sello de mas convierte el guardado en un rechazo --,
+  // y pide `.select("id")`: un UPDATE que la RLS deja en cero filas vuelve sin error y pareceria
+  // guardado. Quien escribe puede leer la fila (la tiene delante), asi que el RETURNING no choca con
+  // la politica de lectura como le pasaba al aviso del chofer (D-308).
+  const ponerDocumento = useCallback<DataState["ponerDocumento"]>(
+    async (id, campo, escrito) => {
+      const valor = valorDeDocumento(escrito);
+      if (!valor) return false;
+      if (teaching) return updateDelivery(id, { [campo]: valor });
+      const before = deliveries.find((c) => c.id === id);
+      const { data, error } = await supabase.from("deliveries").update({ [campo]: valor }).eq("id", id).select("id");
+      const fallo = falloAlGuardarDocumento(error, data);
+      if (fallo) { notify("Error: " + fallo); return false; }
+      setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, [campo]: valor } : c)));
+      await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, { [campo]: valor }) || undefined) : undefined);
+      return true;
+    },
+    [supabase, notify, logEvent, teaching, deliveries, updateDelivery],
+  );
+
   // Renumber a route's stops in one shot. The local order is applied FIRST and
   // a write-guard blocks realtime refetches until every row has landed, so the
   // reorder can't be undone mid-flight by a refetch reading a partially
@@ -1730,7 +1756,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
+    addDelivery, updateDelivery, ponerDocumento, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,
