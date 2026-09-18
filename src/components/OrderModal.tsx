@@ -2617,7 +2617,7 @@ export function OrderModal({
                   {" → "}
                   {/* Los dos precios, y el descuento solo cuando de verdad es otro número: repetir
                       la misma cifra dos veces se lee como un error (D-303).
-                      Desde D-NEXT el descuento tiene fila propia y es más barato en los cuatro
+                      Desde D-317 el descuento tiene fila propia y es más barato en los cuatro
                       tramos, así que esta condición ya no esconde nada — se queda porque lo que
                       defiende es la tabla del día de mañana, no la de hoy, y hay prueba de que
                       con la tabla de hoy se enseña siempre. */}

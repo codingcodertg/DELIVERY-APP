@@ -145,9 +145,9 @@ describe("filasDeLaFormula", () => {
     expect(filas[3].lista).toEqual({ base: TARIFA.list.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
   });
 
-  it("y las del descuento, las suyas: la columna sale de su propia fila (D-NEXT)", () => {
+  it("y las del descuento, las suyas: la columna sale de su propia fila (D-317)", () => {
     // Antes esta prueba decía «el descuento solo se separa en el tramo largo» y comprobaba que en
-    // los otros tres las dos columnas eran la MISMA cifra. Desde D-NEXT el descuento tiene fila
+    // los otros tres las dos columnas eran la MISMA cifra. Desde D-317 el descuento tiene fila
     // propia, así que lo que se fija es lo contrario: que cada columna lleve sus constantes.
     const local = filas.filter((f) => f.zona === "local");
     expect(local[0].descuento).toEqual({ base: TARIFA.discount.planoCorto, factor: 0, minimo: null });

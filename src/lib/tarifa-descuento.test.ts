@@ -6,7 +6,7 @@ import {
 } from "./pricing";
 
 /**
- * El precio con descuento, con su propia fila de cifras (D-303, y D-NEXT).
+ * El precio con descuento, con su propia fila de cifras (D-303, y D-317).
  *
  * D-283 lo quitó porque el dueño pidió un solo precio esa mañana; esa misma tarde pidió el descuento
  * de vuelta: «discounted fee was removed, bring it back», con una cifra suya para el tramo largo:
@@ -14,7 +14,7 @@ import {
  *
  * Eso dejó el descuento como **un solo tramo que se cobraba distinto**: en los otros tres cobraba
  * exactamente lo mismo que la lista. El dueño lo leyó como que no existía — *«the original
- * calculation of the discount is not appearing fix it and work on that»*—, y D-NEXT le devuelve su
+ * calculation of the discount is not appearing fix it and work on that»*—, y D-317 le devuelve su
  * fila entera: más barato en los **cuatro** tramos.
  *
  * Lo que se mide aquí es la tabla de millas entera y las dos reglas que no pueden romperse: que el
@@ -50,7 +50,7 @@ describe("la tabla de millas, lista y descuento", () => {
 
 describe("el descuento, estrictamente por debajo de la lista", () => {
   it("en cada milla de 0 a 200, de media en media, y en los CUATRO tramos", () => {
-    // Antes era «≤», porque coincidían en tres de los cuatro tramos. Desde D-NEXT es «<» de verdad:
+    // Antes era «≤», porque coincidían en tres de los cuatro tramos. Desde D-317 es «<» de verdad:
     // el descuento tiene su propia fila de bases, así que nunca vuelve a repetir el precio de lista.
     // Se recogen los tramos vistos para que la prueba no pueda pasar recorriendo solo uno.
     const tramosVistos = new Set<string>();

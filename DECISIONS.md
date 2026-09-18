@@ -37806,7 +37806,7 @@ main, que se movió mientras se escribía (D-300).
 
 ## D-303 · El precio con descuento vuelve, con la fórmula nueva
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** El descuento deja de ser **un tramo que se
+> **⚠ Reemplazada en parte el 2026-09-18, por D-317.** El descuento deja de ser **un tramo que se
 > cobra distinto** y vuelve a tener su **fila entera de cifras**, como antes de D-283: ahora es más
 > barato en los **cuatro** tramos, no solo por encima de 50 millas locales. El dueño: *«the original
 > calculation of the discount is not appearing fix it and work on that»* — y lo que veía era cierto:
@@ -39780,7 +39780,7 @@ Los roles de cada política se comparan **como conjunto y por cláusula**: en el
 - Que el `upsert` de la tarjeta pase por PostgREST con las cuatro políticas.
 - **La red de la ventana se probó como función, no contra una base sin la columna.**
 
-## D-NEXT · El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer
+## D-317 · El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, literal: *«the original calculation of the discount is not appearing fix it

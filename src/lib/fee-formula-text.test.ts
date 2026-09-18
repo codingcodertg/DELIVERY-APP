@@ -93,7 +93,7 @@ describe("Ajustes enseña la fórmula una sola vez", () => {
 
   it("la tabla se genera, y no quedan constantes de la fórmula escritas a mano", () => {
     expect(src).toContain("filasDeLaFormula()");
-    // Las dos filas: desde D-NEXT el descuento tiene sus propias bases, y tampoco pueden estar
+    // Las dos filas: desde D-317 el descuento tiene sus propias bases, y tampoco pueden estar
     // escritas a mano en la pantalla.
     for (const n of [...Object.values(TARIFA.list), ...Object.values(TARIFA.discount)].filter((x): x is number => x != null)) {
       expect(src, `la constante ${n} no puede estar escrita en la pantalla`).not.toContain(`${n} + mi`);

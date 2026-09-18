@@ -5,7 +5,7 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formula).
 //
-// DOS precios (D-303): lista y descuento. Y desde D-NEXT el descuento **sí es una segunda fila de
+// DOS precios (D-303): lista y descuento. Y desde D-317 el descuento **sí es una segunda fila de
 // cifras**, que es lo que era antes de D-283. El dueño: «the original calculation of the discount is
 // not appearing fix it and work on that». Todo redondea al múltiplo de $5 más cercano.
 //
@@ -16,7 +16,7 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 //   NOT LOCAL (también pide aprobación del gerente)
 //     cualquier distancia            round5(500 + mi·0.8)      round5(400 + mi·0.8)
 //
-// **El descuento es más barato en los CUATRO tramos**, y eso es el cambio. Hasta D-NEXT solo se
+// **El descuento es más barato en los CUATRO tramos**, y eso es el cambio. Hasta D-317 solo se
 // separaba por encima de 50 millas locales, así que en los otros tres la ficha enseñaba «Lista $100 ·
 // Descuento $100» — dos botones con el mismo número, que es lo que el dueño leyó como «no aparece».
 // ============================================================
@@ -107,7 +107,7 @@ export type TablaTarifa = {
 };
 
 /**
- * **Una fila de bases por precio** (D-NEXT).
+ * **Una fila de bases por precio** (D-317).
  *
  * Hasta aquí había una sola fila y el descuento era «un tramo que se cobra distinto»: por encima de
  * 50 millas locales se le aplicaba la fórmula del tramo del medio, y en los otros tres tramos
@@ -174,7 +174,7 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0, precio: P
     const redondeado = conSuelo(alRedondear, p.minimo);
     return { ...p, redondeo: REDONDEO, redondeado, minimoAplicado: redondeado !== alRedondear, total: redondeado + p.recargo };
   };
-  // El precio elige la FILA, y ya no hay ningún tramo que se calcule de otra manera (D-NEXT). Antes
+  // El precio elige la FILA, y ya no hay ningún tramo que se calcule de otra manera (D-317). Antes
   // había una rama —«si es descuento y es largo, usa la base del medio»— y era esa rama la que hacía
   // que los otros tres tramos cobraran lo mismo que la lista.
   const T = TARIFA[precio];
@@ -211,7 +211,7 @@ export type FilaFormula = {
   /**
    * La parte fija, el multiplicador y el suelo de cada precio. El texto lo pone quien pinta.
    *
-   * **Desde D-NEXT las cuatro filas dicen dos cosas distintas**, una por columna. Antes tres de las
+   * **Desde D-317 las cuatro filas dicen dos cosas distintas**, una por columna. Antes tres de las
    * cuatro repetían el mismo número en las dos, y eso es lo que el dueño leyó como que el descuento
    * no aparecía.
    */
@@ -281,7 +281,7 @@ export interface FeeSuggestion {
   /**
    * El descuento que un vendedor puede ofrecer, con el recargo dentro (D-303).
    *
-   * **Nunca por encima de la lista**, y desde D-NEXT **estrictamente por debajo en los cuatro
+   * **Nunca por encima de la lista**, y desde D-317 **estrictamente por debajo en los cuatro
    * tramos**: tiene su propia fila de bases. Antes coincidía con la lista en tres de los cuatro.
    */
   discount: number | null;
