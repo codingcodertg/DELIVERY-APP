@@ -22827,3 +22827,59 @@ Lo preguntado vale solo para el plan por el que se preguntó: tras ajustar o rep
 - No se reusó el código de `../actuals` para preguntar: son cuatro líneas repetidas en dos rutas, a cambio de no tocar una
   ruta ya entregada. Si aparece una tercera, se saca a una función.
 - Nada abierto en un navegador ni corrido contra la base.
+
+## D-NEXT · Las columnas de la tabla de Órdenes son de la persona, no del navegador — y «Factura #» deja de salir dos veces
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `136_user_prefs.sql`, escrita y
+**no aplicada**. **Plan:** `docs/PLAN-136-user-prefs.md`. Incremento 10 del diseño (§8.3). Pedido por el dueño: «la
+selección debe guardarse por usuario», hablando del selector de columnas.
+
+### Qué fallaba
+
+La elección de columnas vivía en `localStorage` con la clave `rtg_order_columns_<rol>`: **por navegador y por rol, no por
+persona.** Quien cambiaba de equipo —o borraba el navegador— la perdía; dos personas con el mismo rol en el mismo equipo
+compartían una. Y «Factura #» salía dos veces en la fila de ventas, chofer y almacén: la columna fija `#` ya enseña el
+número de factura para TODOS los roles (`OrdersTable`, `byInvoice = true`), y esos tres defectos la añadían otra vez.
+
+### Qué hay ahora
+
+- **`user_prefs`** (136): una fila por `(persona, preferencia)`, con `value jsonb`. Hoy una sola clave, `order_columns`,
+  con la forma `{ "<rol>": [columnas] }` — por rol, porque quien cambia de papel no quiere las columnas de almacén cuando
+  mira como gerente. **No es un cajón:** la lista de claves es CERRADA (añadir una es una migración de una línea, a
+  propósito) y cada valor tiene tope de 8 KB. Cada uno lee y escribe SOLO su fila; **tampoco un admin lee las de los
+  demás**; tres políticas por comando, ninguna `ALL`, `user_id = auth.uid()` en el `using` y en el `with check`; sin
+  `DELETE`; un disparador congela dueño y clave, también para la llave de servicio.
+- **Orden de lectura: la base → el navegador → el defecto del rol.** La pantalla pinta YA lo del navegador y, cuando la base
+  contesta, manda la base. **Nadie pierde su elección:** el `localStorage` no se borra nunca —sigue siendo la red—, y si la
+  base no contesta o la 136 aún no está aplicada, todo sigue como antes, sin un error a la vista.
+- **La siembra:** si se pudo leer la base y no hay fila, se guarda UNA vez lo que tenga ese navegador (todas sus claves de
+  rol). Una vez sembrado, manda la base. Al cambiar columnas se escribe el navegador siempre, y la base solo si antes se
+  pudo leer — no se escribe a ciegas encima de lo que haya — midiendo que el `upsert` escribió una fila.
+- **«Factura #» sale de los tres defectos** (`ROLE_DEFAULT_COLUMNS`). Sigue en el selector para quien la quiera, y **quien
+  ya eligió conserva lo suyo**: lo guardado manda sobre el defecto.
+
+### Dos decisiones que alguien notará
+
+- **Ventas NO elige, y eso no cambia.** Decisión del orquestador por delegación: el dueño pidió guardar la selección «por
+  usuario» hablando del selector del Logistics Manager; que todos los vendedores vean la misma lista —la que pone un admin
+  en Ajustes, `settings.sales_columns`— es una decisión suya anterior que nadie ha cuestionado. A ventas ni se le enseña el
+  selector, y `user_prefs` ni lee ni guarda nada para ese rol. Si el admin puso `sales_columns` CON `invoice`, ahí sigue:
+  es suyo quitarla; esto no toca Ajustes.
+- **Durante una suplantación no se siembra.** La sesión ES la del suplantado, así que un admin dentro de otro usuario lee y
+  escribe la fila de ESE usuario — correcto: ve lo que ve esa persona. Pero el navegador es el del admin: sembrar metería
+  las columnas del admin en la fila de otro. La página pregunta a `/api/impersonate/state` antes de sembrar, y **si no se
+  sabe si hay suplantación, tampoco siembra**.
+
+### Lo que la siembra no puede arreglar
+
+Como hasta hoy era por navegador-y-rol, dos personas que comparten equipo y rol heredan a sus dos filas la misma elección —
+que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos cambie algo.
+
+### Lo que NO está verificado
+
+- **La 136 no ha corrido.** Matriz de 16 casos al pie del `.sql`; los que importan: A lee MENOS filas que el total; un admin
+  lee 0 de las de A; nadie regala su fila ni con la llave de servicio; una `key` fuera de la lista y un valor de 20 KB se
+  rechazan. `pg_column_size` sobre un `jsonb` como tope está leído en la documentación, no ejecutado.
+- Que `upsert` con `onConflict: "user_id,key"` pase por las políticas de INSERT y UPDATE de quien llama: leído, no medido.
+- Dos pestañas cambiando las columnas a la vez: gana la última.
+- Nada abierto en un navegador.
