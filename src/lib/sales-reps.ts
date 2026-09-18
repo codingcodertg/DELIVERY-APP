@@ -1,4 +1,4 @@
-import { canCreate } from "./constants";
+import { tieneAccesoAEntregas } from "./constants";
 import { mismaTiendaOGrupo } from "./store-group";
 import type { NamedLocation, Profile } from "./types";
 
@@ -28,13 +28,26 @@ const mismaTienda = (a: string | null | undefined, b: string | null | undefined)
 };
 
 /** Lo mínimo que hace falta saber de una persona para colocarla en la lista. */
-type Candidato = Pick<Profile, "id" | "full_name" | "role" | "store"> & { permissions?: string[] | null };
+type Candidato = Pick<Profile, "id" | "full_name" | "role" | "store">
+  & { permissions?: string[] | null; module_access?: string[] | null };
 
 const porNombre = <T extends Candidato>(a: T, b: T) => a.full_name.localeCompare(b.full_name);
 
-/** Quien puede ser el vendedor de una orden: quien puede crearlas. */
+/**
+ * Quien puede ser el vendedor de una orden: **rol `sales` o `manager`, y con acceso a Entregas**.
+ *
+ * **Esto revisa D-290**, que usó `canCreate` —la capacidad de registrar órdenes— a propósito, para no
+ * tener dos listas de roles que se separen. El dueño lo corrigió al verlo: *«me están saliendo todos los
+ * usuarios y solo deberían ser sales people o managers en el sales rep del form»*. `canCreate` incluía
+ * también a office y a los admin, que registran órdenes pero no las venden. Lo que D-290 resolvió sigue
+ * resuelto: un gerente que además vende —el caso de Weslaco— entra por ser `manager`.
+ *
+ * Y quien no puede abrir Entregas no es asignable: una orden no se le acredita a alguien que no puede
+ * verla. El acceso se mira como lo mira la base (`has_deliveries_access()` de la 083).
+ */
 export function puedeSerVendedor(u: Candidato): boolean {
-  return canCreate(u);
+  if (u.role !== "sales" && u.role !== "manager") return false;
+  return tieneAccesoAEntregas(u);
 }
 
 /** Los candidatos que pertenecen a esa tienda **o a las que trabajan con ella** (D-293: el grupo de
