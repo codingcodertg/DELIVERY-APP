@@ -86,6 +86,14 @@ export function notificationsForStage(args: {
 export const ASSIGNED_KIND = "assigned";
 
 /**
+ * El aviso de que una solicitud de ayuda ya está atendida (D-NEXT).
+ *
+ * Vive aquí, con el otro `kind`, porque el vocabulario de la campana es de la campana: quien pinta el
+ * punto (`NotificationBell`) necesita la clave sin tener que saber nada de solicitudes de ayuda.
+ */
+export const AYUDA_ATENDIDA_KIND = "ayuda_atendida";
+
+/**
  * Tell a driver a stop is theirs.
  *
  * Returns null when there's nobody to tell — an unassignment, a driver name

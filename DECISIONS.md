@@ -37523,3 +37523,121 @@ piden las etiquetas enteras, con su traducción.
 
 - **Nadie lo ha abierto en un navegador**: ni el plegado, ni el panel de credenciales tras cerrarse el
   formulario.
+
+## D-NEXT · Atender una solicitud de ayuda se le avisa a quien la escribió, y las atendidas se archivan
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño:** que al marcar una solicitud como atendida se avise a quien la mandó, y que las
+atendidas dejen de estorbar en la lista.
+
+### Qué fallaba
+
+Desde D-285 el admin podía marcar una solicitud como **atendida**, y ese cambio no salía de su pantalla:
+quien pidió ayuda no se enteraba nunca. La única señal posible era que el problema dejara de pasar. Y la
+lista mezclaba pendientes con atendidas: para trabajar había que marcar cada vez una casilla de «solo
+pendientes».
+
+### Qué hay ahora
+
+- **Al atenderla, le llega un aviso a la campana** de quien la escribió, con el principio de su mensaje
+  para que reconozca cuál de las suyas es (60 caracteres, los saltos de línea comidos).
+- **En el idioma que tenía al escribir**, que la 120 ya guardaba en `lang`: el aviso lo lee esa persona,
+  no quien lo manda. Sin idioma guardado, inglés, como el resto de los avisos de la campana.
+- **Las atendidas salen de la lista principal** y se van a un archivo cerrado de salida, con su número a
+  la vista («📦 Atendidas (7)») para que no parezca que se perdieron. La casilla «solo pendientes»
+  desaparece: era la única forma de quitarlas de en medio, y ahora ya no estorban.
+- **Devolverla a pendiente NO avisa.** No es una noticia para quien la escribió.
+
+### Lo que se midió antes de escribir nada
+
+El encargo decía «mide qué sistemas de aviso existen». Hay tres, y cada uno llega a sitios distintos:
+
+| sistema | dónde se ve | por qué sí o no |
+|---|---|---|
+| `public.notifications` (campana) | barra de Entregas (`TopBar`) | **el elegido** |
+| push (FCM, `/api/push`) | teléfono | queda fuera, ver abajo |
+| correo (Resend, `lib/email.ts`) | bandeja | pediría una ruta de servidor nueva |
+
+**La campana solo existe dentro de Entregas** (`NotificationBell` se pinta en un único sitio,
+`TopBar.tsx`; el hub no tiene campana). Eso bastaría para descartarla… si no fuera porque **el botón de
+ayuda tampoco existe fuera de Entregas**: se pinta en `src/app/(app)/layout.tsx` y en `LocalApp.tsx`.
+O sea que quien manda una solicitud es siempre alguien de Entregas, y la campana le llega. **Si algún
+día el botón de ayuda se pone en el hub, en fichaje o en reclutamiento, esta decisión deja de valer** y
+hay que darle al aviso un sitio que esas personas vean.
+
+Nada de esto necesitó tocar la base: `notifications.delivery_id` y `order_no` **admiten null** desde la
+001, `kind` es texto libre, la política de inserción es `with check (true)`, y la tabla ya está en la
+publicación de realtime, así que la campana del remitente se enciende sola. `help_requests.status`,
+`attended_by` y `attended_at` ya existían de la 120.
+
+### La fila NO se pide de vuelta, y por eso no hay push
+
+Lo natural habría sido copiar lo que hace el aviso de asignación: insertar, pedir el `id` de vuelta y
+llamar a `/api/push` con él. **No se copió**, porque `notif read own` (001) deja leer solo las
+notificaciones propias, y encadenar `.select()` a un `insert` obliga a Postgres a **leer la fila recién
+escrita —que es de otra persona— para devolverla**. Aquí se inserta sin `.select()`, como hacen los
+avisos de etapa (`emitStageNotifs`). El aviso es de campana; mandarlo también al teléfono pide una ruta
+de servidor que inserte y empuje con la llave de servicio, y eso no es esta rama.
+
+**De camino apareció una sospecha que esta rama no puede resolver**, y queda escrita para que alguien la
+mida contra producción: `data-provider.tsx` hace exactamente ese `insert([seed]).select("id")` para
+avisar a un **chofer** de una parada asignada, y además **descarta el error**. Si Postgres rechaza ese
+`returning` por la política, el chofer no recibe nada y nadie se entera. No está medido: es una lectura
+de la política y de la documentación, no una prueba. Ver *Lo no verificado*.
+
+### Los dos casos en los que no hay a quién avisar
+
+Se cuentan distintos en pantalla, porque son cosas distintas:
+
+- **La cuenta se borró** — `user_id` quedó en null por el `on delete set null` de la 120, que es
+  deliberado (el historial no se va con la cuenta). La solicitud se atiende igual y se dice «esa cuenta
+  ya no existe — no se avisó a nadie», tanto al marcarla como dentro de la ficha.
+- **La escribió quien la atiende** — nadie se avisa a sí mismo, igual que `notificationsForStage` nunca
+  avisa a quien hizo la acción.
+
+Y si el aviso falla por cualquier otra razón, **la solicitud sigue atendida** y la pantalla lo dice:
+guardar el estado va primero y el aviso encima, como la 120 hace con el correo.
+
+### Un arreglo que salió de camino
+
+El color del punto de la campana salía de `stageInfo(n.kind)`, y `stageInfo` **cae a la primera etapa**
+cuando la clave no es una etapa (`constants.ts`). O sea que un `kind` que no fuera de etapa se pintaba
+con un color prestado y nada chirriaba. Los que no son etapas llevan ahora el suyo, explícito.
+
+### Medido, rompiendo cada pieza
+
+12 cambios: **11 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- Avisa también al devolverla a pendiente; avisa **antes** de guardar el estado; pide la fila de la
+  campana de vuelta; el aviso va en el idioma de quien atiende; avisa a una cuenta que ya no existe; se
+  avisa a sí mismo; el mensaje entero viaja en el aviso; el archivo empieza abierto; las atendidas
+  siguen en la lista de trabajo; un estado desconocido se va al archivo; la campana vuelve al color
+  prestado.
+- **El gemelo:** `separaPorEstado` con la negación escrita de otra forma.
+
+**Pendiente es todo lo que no está atendido**, no solo lo que dice `'pendiente'`: si algún día hay un
+tercer estado, aparecerá en la lista de trabajo —donde se ve— en vez de desaparecer dentro del archivo,
+que es donde nadie mira. Tiene su mutante.
+
+### La prueba de otra decisión que se actualiza
+
+La de D-285 fijaba el texto literal del `parcheDeEstado` de la pantalla, y ese texto cambió porque ahora
+el sentido se decide una vez (`const atiende = s.status !== "atendida";`) para que el aviso sepa si toca
+mandarlo. **El canario se movió con el código en vez de borrarse**: ahora fija las dos líneas.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2674
+pasados | 3 saltados** (los saltados son los tres de `pdf.test.ts`, cuyas fixtures viven fuera del
+repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas corriéndolo solo;
+`help-requests.test.ts` no cambia de número, solo de contenido en dos líneas.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el archivo, ni el aviso llegando a la campana de otra
+  persona.
+- **La sospecha del aviso de asignación** (`insert(...).select("id")` sobre una notificación ajena) es
+  una lectura de la política, **no una medición**. Se comprueba en producción mirando si existen filas
+  de `notifications` con `kind = 'assigned'` recientes; si no las hay, hay un aviso roto desde antes de
+  esta rama.
+- **No se probó el push**, ni debía: mandar uno de verdad es un efecto en un teléfono ajeno.

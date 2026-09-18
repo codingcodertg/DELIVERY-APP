@@ -52,7 +52,9 @@ describe("quién escribió y con qué se filtra", () => {
     expect(diaLocal("no es fecha")).toBe("");
   });
 
-  it("filtra por persona, por días (los dos extremos entran) y por pendientes", () => {
+  // El filtro ya NO separa por estado: las atendidas se van al archivo, y de eso se encarga
+  // `separaPorEstado` (D-NEXT, probada en `ayuda-atendida.test.ts`). Aquí queda lo que el filtro sí hace.
+  it("filtra por persona y por días (los dos extremos entran), y no mira el estado", () => {
     const dia = diaLocal("2026-09-17T15:00:00.000Z");
     const otroDia = diaLocal("2026-09-10T15:00:00.000Z");
     const filas = [
@@ -62,7 +64,8 @@ describe("quién escribió y con qué se filtra", () => {
     ];
     expect(filtraSolicitudes(filas, {}).map((s) => s.id)).toEqual(["a", "b", "c"]);
     expect(filtraSolicitudes(filas, { persona: "Ana" }).map((s) => s.id)).toEqual(["a", "c"]);
-    expect(filtraSolicitudes(filas, { soloPendientes: true }).map((s) => s.id)).toEqual(["a", "b"]);
+    // La atendida («c») sigue saliendo del filtro: quitarla de la vista es cosa del archivo, no de aquí.
+    expect(filtraSolicitudes(filas, { persona: "Ana" }).some((s) => s.status === "atendida")).toBe(true);
     expect(filtraSolicitudes(filas, { desde: dia }).map((s) => s.id)).toEqual(["a", "c"]);
     expect(filtraSolicitudes(filas, { hasta: otroDia }).map((s) => s.id)).toEqual(["b"]);
     // El mismo día en los dos extremos incluye lo de ese día.
@@ -226,7 +229,10 @@ describe("la herramienta del hub", () => {
   it("la pantalla filtra y atiende con las funciones de arriba, y firma los adjuntos al abrirlos", () => {
     const pagina = leer("src/app/home/solicitudes-de-ayuda/page.tsx");
     expect(pagina).toContain("filtraSolicitudes(filas ?? []");
-    expect(pagina).toContain("parcheDeEstado(s.status === \"atendida\" ? \"pendiente\" : \"atendida\", sesion.user.id, new Date())");
+    // El canario se movió con el código: ahora el sentido se decide una vez, en `atiende`, porque el
+    // aviso al remitente necesita saberlo (D-NEXT).
+    expect(pagina).toContain('const atiende = s.status !== "atendida";');
+    expect(pagina).toContain('parcheDeEstado(atiende ? "atendida" : "pendiente", sesion.user.id, new Date())');
     expect(pagina).toContain("createSignedUrl(path, VALIDEZ_AL_ABRIR)");
     expect(pagina).toContain("const VALIDEZ_AL_ABRIR = 300;");
     // Un UPDATE de cero filas no es haber guardado.
