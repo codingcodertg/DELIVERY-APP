@@ -7,6 +7,7 @@ import { choferesDelPlan, planificaElDia, resumenDelPlan, type FilaDePlan } from
 import { vistaDelPlan, type ParadaGuardada } from "@/lib/route-plan/vista";
 import { aplicaMovimiento, estadoDeParadas, movimientoValido, revalida, type PlanGuardado } from "@/lib/route-plan/ajuste";
 import type { NamedLocation } from "@/lib/types";
+import { porQueDelPlan } from "@/lib/route-plan/porque";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
     resumen: resumenDelPlan(borrador.plan, borrador.paradas.length),
     rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes),
     choferes: choferesDelPlan(borrador.plan.input.entrada.choferes),
+    porque: porQueDelPlan(borrador.plan.result, borrador.plan.input.entrada.choferes, borrador.paradas),
   });
 }
 
@@ -148,6 +150,7 @@ export async function GET(req: Request) {
       resumen: resumenDelPlan(plan, filas.length),
       rutas: vistaDelPlan(filas, plan.ordenes ?? [], plan.result?.partes ?? {}),
       choferes: choferesDelPlan(plan.choferes),
+      porque: porQueDelPlan(plan.result, plan.choferes, filas),
     },
   });
 }
@@ -214,5 +217,6 @@ export async function PATCH(req: Request) {
     resumen: resumenDelPlan(ajustado.plan, ajustado.paradas.length),
     rutas: vistaDelPlan(ajustado.paradas, ajustado.plan.input.entrada.ordenes, ajustado.plan.result.partes),
     choferes: choferesDelPlan(ajustado.plan.input.entrada.choferes),
+    porque: porQueDelPlan(ajustado.plan.result, ajustado.plan.input.entrada.choferes, ajustado.paradas),
   });
 }

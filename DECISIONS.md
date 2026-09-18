@@ -22594,3 +22594,39 @@ escrita y **no aplicada**. **Plan:** `docs/PLAN-134-chofer-lee-sus-paradas.md`. 
   cualquier respuesta no-OK como «sin plan»).
 - Nada abierto en un navegador. El componente usa solo `usePrefs` y se monta solo en `/my-route`, bajo el layout de
   `(app)`; `montaje.test.ts` lo fija.
+
+## D-NEXT · Motor de rutas, incremento 7: lo que quedó fuera, con su porqué y su siguiente paso — y «¿por qué aquí?» en cada entrega
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Diseño:** `docs/route-algorithm-design.md`, §7. Sigue a D-323. Solo admin y logística lo ven (es el panel del plan).
+
+### Qué hay ahora
+
+- **«Fuera de este plan (N)»** deja de ser una línea corrida: una fila por ORDEN con su motivo y, al lado, **qué se puede
+  hacer** — «Abra la orden y póngale el pin en el mapa», «No cabe en ningún camión: suba la capacidad de uno o parta la
+  orden», «Su chofer asignado no puede llevarla: quítele el chofer y planifique de nuevo»… Junta las dos clases de
+  «fuera» que el plan ya distinguía por dentro: lo que el motor no pudo asignar, y lo que ni le llegó (carril manual,
+  chofer puesto a mano que hoy no rutea). Una orden repartida en cargas sale una sola vez.
+- **«¿Por qué aquí?»** en cada entrega de la tabla de ruta. Al pulsarlo dice lo que esa orden le suma al día de su chofer
+  (minutos de manejo, millas, minutos tarde) y, para **cada uno de los otros choferes**, cuánto cambiaría el plan ENTERO
+  si la llevara él — del que menos empeora al que más, ordenados por la suma ponderada del motor, que es la que lleva los
+  pesos del dueño — o por qué con ese no se puede (no cabe, no llega a una ventana dura, fuera de turno…).
+- **Nada de esto se calcula aquí.** El motor ya lo producía desde D-314 (`Plan.explicaciones`, `Plan.sinAsignar`) y se
+  guardaba en `result` desde D-320; faltaba enseñarlo. `src/lib/route-plan/porque.ts` elige qué decir y en qué orden; las
+  frases las pone la pantalla, en los dos idiomas.
+
+### La decisión que alguien notará
+
+**Una orden que una persona fijó o movió a mano dice «la puso aquí una persona», y NO enseña cuentas.** Las cuentas del
+motor describen el plan que él hizo: tras un ajuste (D-323) ya no describen dónde está esa orden, y enseñarlas sería
+afirmar algo falso con números. Se reconoce por dos caminos —está en `result.fijadas`, o va con un chofer distinto del
+que decía la explicación—. Las órdenes que nadie tocó conservan las suyas, **aunque el ajuste de otra les haya cambiado
+un poco el coste**: son las del plan original, y se dice aquí porque la pantalla no lo dice. Recalcularlas tras cada
+movimiento es volver a correr medio motor por pulsación; no se hace.
+
+### Lo que NO está
+
+- «¿Por qué aquí?» explica con qué CHOFER va, no en qué POSICIÓN de su ruta: el motor no guarda alternativas de posición.
+- El remedio es un texto, no un botón: no abre la orden ni la lleva a Ajustes.
+- **No verificado:** nada abierto en un navegador. Los textos de los remedios son míos: conviene que quien despacha los
+  lea y diga si son lo que haría.

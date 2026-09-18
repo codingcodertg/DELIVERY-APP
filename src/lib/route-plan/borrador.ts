@@ -3,6 +3,7 @@ import { matrizBase, planificaConTrafico, type Dependencias, type InformeDeTiemp
 import type { NamedLocation } from "@/lib/types";
 import { entradaDelDia, filasDeParadas, type DatosDelDia, type EntradaDelDia, type FilaDeParada } from "./entrada";
 import { escriturasAlPublicar, type EscrituraDeOrden } from "./publicar";
+import { fueraConPorque } from "./porque";
 
 /**
  * Planificar el día y dejarlo en BORRADOR (D-320): de las filas de la base a lo que se guarda en
@@ -77,7 +78,8 @@ export const choferesDelPlan = (choferes: readonly { id: string; nombre: string 
 /** Lo que la pantalla necesita saber de un plan, recién hecho o leído de la base: es la MISMA forma. */
 export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "total_minutes" | "total_miles" | "late_minutes" | "provider" | "traffic" | "converged">, paradas: number) {
   return {
-    paradas, ordenes: plan.writes.length, sinAsignar: plan.result.sinAsignar, fuera: plan.result.fuera, choferesFuera: plan.result.choferesFuera,
+    paradas, ordenes: plan.writes.length, sinAsignar: plan.result.sinAsignar, fuera: plan.result.fuera,
+    fueraConPorque: fueraConPorque(plan.result.sinAsignar, plan.result.fuera), choferesFuera: plan.result.choferesFuera,
     partes: plan.result.partes, minutos: plan.total_minutes, millas: Number(plan.total_miles), tarde: plan.late_minutes,
     proveedor: plan.provider, trafico: plan.traffic, convergio: plan.converged, tiempos: plan.result.tiempos,
     traficoSinResolver: !!plan.result.traficoSinResolver,
