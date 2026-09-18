@@ -22536,3 +22536,61 @@ una.
   permite, y es lo mismo que ya hace planificar cuando fallan las paradas).
 - Que el motor, con `secuenciaFijada`, deje las paradas fijadas donde estaban está probado en el núcleo (D-314) con
   secuencias escritas a mano; con las que salen de un borrador real de producción, no.
+
+## D-NEXT · Motor de rutas: el chofer lee SUS paradas del plan publicado — por una función, sin abrirle ninguna tabla
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `134_my_published_stops.sql`,
+escrita y **no aplicada**. **Plan:** `docs/PLAN-134-chofer-lee-sus-paradas.md`. Sigue a D-320/D-322/D-323.
+
+### Qué hay ahora
+
+- En **«Mi ruta»**, si hay un plan publicado de hoy, una tarjeta plegada **«Orden planeado del día»**: recogidas (P) y
+  entregas (D) en secuencia, con su etiqueta, su ventana (🔒 si es dura), los pallets a bordo después de cada parada, y
+  una raya entre viajes. **Solo lectura**, como todo «Mi ruta» (D-021). Lo que el chofer HACE sigue saliendo de sus
+  órdenes asignadas, debajo; si no hay plan publicado —o la base aún no tiene la función— la tarjeta no aparece y nada
+  más cambia.
+- **Las horas van como estimación:** «≈ 10:15» y la palabra «estimado»; **sin minutos de retraso y sin nada en rojo.**
+  La función de la base ni siquiera devuelve `late_min` ni `wait_min`. Decisión del orquestador por delegación: son horas
+  del plan que nadie ha contrastado con la realidad; cuando el reporte de precisión (incremento 9) diga cuánto se
+  equivocan, se revisa.
+- **La 134 es una función y nada más:** `my_published_stops(p_date)`, `security definer` con `search_path` fijo, que
+  devuelve las paradas con `driver_id = auth.uid()` del plan `published` de esa fecha. Su único parámetro es la fecha:
+  no hay forma de pedir las de otro. Catorce columnas elegidas a mano; ni `input`, ni `writes`, ni `result`, ni
+  `driver_id`, ni coordenadas. `revoke` de public y anon. **Cero políticas nuevas, ninguna tabla tocada.**
+- `GET /api/route-plan/mine?date=` la llama por `rpc` con la sesión. No lee tablas ni usa la llave de servicio. Si la
+  función no existe todavía (PostgREST `PGRST202`) contesta «sin plan»; **cualquier otro error es un 500 y se dice** —
+  no se traga.
+
+### Lo que se descartó, y por qué — es lo importante de esta entrada
+
+- **Dejarle leer `route_plans` al chofer** (el esbozo inicial): la fila del plan lleva `input` —todas las órdenes del
+  día con las coordenadas de todos los clientes—, `writes` y `result`. Leer el plan es leer el día entero de la empresa,
+  justo lo que D-315 cerró. Y por la política de paradas de la 133 («se ven las paradas de los planes que se ven»), quien
+  ve el plan ve las paradas de **todos** los choferes.
+- **Una política más en `route_plan_stops`** para `driver` (mi primer papel, §3): necesitaba además una función
+  `security definer` para saber si el plan está publicado, porque el chofer no puede preguntárselo a `route_plans`. Y
+  una política permisiva se suma por OR a las que hay. Con la función sola hay una única puerta y nada que se sume a
+  nada. El papel conserva el camino descartado, con una nota arriba que dice qué se decidió.
+- **Copiar `plan_date` a las paradas** para poder filtrar por fecha: duplica un dato para ahorrarse una función.
+
+### Lo que hay que saber
+
+- **Dos identidades distintas.** Las paradas se filtran por `driver_id` (uuid); las órdenes del chofer, por NOMBRE
+  (`assigned_driver` contra `profiles.full_name`, 131). Un chofer renombrado entre publicar y leer seguiría viendo su
+  orden planeado aunque dejara de ver sus órdenes hasta re-publicar.
+- Una orden repartida en cargas sale con su referencia de parte (`…#b`) pero la tarjeta no dice «carga 2 de 3»: ese dato
+  vive en `result.partes` del plan, que al chofer no se le da.
+- Al pasar un plan a `superseded` el chofer deja de verlo en el acto y ve el nuevo: la función mira el estado vivo.
+
+### Lo que NO está verificado
+
+- **La 134 no ha corrido.** La matriz de ensayo (12 casos, con `ROLLBACK`) está al pie del `.sql`; el caso que importa
+  es el 1: el chofer A ve MENOS filas que el total contado antes como postgres, y ninguna de B.
+- La autocomprobación usa `pg_get_function_result` y `pg_get_functiondef` con expresiones regulares sobre el texto que
+  devuelve Postgres: escrita leyendo la documentación, no ejecutada. Si el formato difiere, falla al aplicar (ruidoso,
+  no silencioso) y se ajusta.
+- Que `PGRST202` sea el código con que PostgREST contesta una función que no existe: leído, no medido contra esta base.
+  Si fuera otro, antes de aplicar la 134 la ruta daría 500 y la tarjeta simplemente no saldría (el componente trata
+  cualquier respuesta no-OK como «sin plan»).
+- Nada abierto en un navegador. El componente usa solo `usePrefs` y se monta solo en `/my-route`, bajo el layout de
+  `(app)`; `montaje.test.ts` lo fija.

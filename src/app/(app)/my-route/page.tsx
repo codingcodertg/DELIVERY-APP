@@ -7,6 +7,7 @@ import { canDeliver } from "@/lib/constants";
 import { captureLocationSplit } from "@/lib/geo";
 import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
+import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -268,6 +269,10 @@ export default function MyRoutePage() {
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(todayISO())}</span>
       </div>
+
+      {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-NEXT). Solo informa: lo que se
+          hace sigue saliendo de las órdenes asignadas, abajo. */}
+      <MiPlanPublicado date={todayISO()} nombreDeOrden={(id, ref) => { const d = deliveries.find((x) => x.id === id); return d ? `#${orderLabel(d)}` : ref.slice(0, 8); }} />
 
       {stops.length === 0 ? (
         <div className="empty">
