@@ -4,7 +4,7 @@ import { asomoDelMensaje, avisoDeAtendida, separaPorEstado, type SolicitudDeAyud
 import { AYUDA_ATENDIDA_KIND } from "./notifications";
 
 /**
- * Atender una solicitud se le avisa a quien la escribió, y las atendidas se van al archivo (D-NEXT).
+ * Atender una solicitud se le avisa a quien la escribió, y las atendidas se van al archivo (D-301).
  *
  * Antes, atender era un cambio que solo veía el admin: quien pidió ayuda no se enteraba nunca.
  *

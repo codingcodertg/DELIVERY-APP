@@ -53,7 +53,7 @@ describe("quién escribió y con qué se filtra", () => {
   });
 
   // El filtro ya NO separa por estado: las atendidas se van al archivo, y de eso se encarga
-  // `separaPorEstado` (D-NEXT, probada en `ayuda-atendida.test.ts`). Aquí queda lo que el filtro sí hace.
+  // `separaPorEstado` (D-301, probada en `ayuda-atendida.test.ts`). Aquí queda lo que el filtro sí hace.
   it("filtra por persona y por días (los dos extremos entran), y no mira el estado", () => {
     const dia = diaLocal("2026-09-17T15:00:00.000Z");
     const otroDia = diaLocal("2026-09-10T15:00:00.000Z");
@@ -230,7 +230,7 @@ describe("la herramienta del hub", () => {
     const pagina = leer("src/app/home/solicitudes-de-ayuda/page.tsx");
     expect(pagina).toContain("filtraSolicitudes(filas ?? []");
     // El canario se movió con el código: ahora el sentido se decide una vez, en `atiende`, porque el
-    // aviso al remitente necesita saberlo (D-NEXT).
+    // aviso al remitente necesita saberlo (D-301).
     expect(pagina).toContain('const atiende = s.status !== "atendida";');
     expect(pagina).toContain('parcheDeEstado(atiende ? "atendida" : "pendiente", sesion.user.id, new Date())');
     expect(pagina).toContain("createSignedUrl(path, VALIDEZ_AL_ABRIR)");

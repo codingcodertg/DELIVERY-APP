@@ -37524,7 +37524,7 @@ piden las etiquetas enteras, con su traducción.
 - **Nadie lo ha abierto en un navegador**: ni el plegado, ni el panel de credenciales tras cerrarse el
   formulario.
 
-## D-NEXT · Atender una solicitud de ayuda se le avisa a quien la escribió, y las atendidas se archivan
+## D-301 · Atender una solicitud de ayuda se le avisa a quien la escribió, y las atendidas se archivan
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño:** que al marcar una solicitud como atendida se avise a quien la mandó, y que las

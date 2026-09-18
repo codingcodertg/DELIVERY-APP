@@ -86,7 +86,7 @@ export function notificationsForStage(args: {
 export const ASSIGNED_KIND = "assigned";
 
 /**
- * El aviso de que una solicitud de ayuda ya está atendida (D-NEXT).
+ * El aviso de que una solicitud de ayuda ya está atendida (D-301).
  *
  * Vive aquí, con el otro `kind`, porque el vocabulario de la campana es de la campana: quien pinta el
  * punto (`NotificationBell`) necesita la clave sin tener que saber nada de solicitudes de ayuda.

@@ -94,7 +94,7 @@ export function adjuntosDe(s: Pick<SolicitudDeAyuda, "files">): FicheroAdjunto[]
   return Array.isArray(s.files) ? s.files.filter((a) => !!a && typeof a.path === "string") : [];
 }
 
-// ---- Atenderla se le avisa a quien la escribió (D-NEXT) -----------------------------------------
+// ---- Atenderla se le avisa a quien la escribió (D-301) -----------------------------------------
 //
 // Hasta ahora atender una solicitud era un cambio que solo veía el admin: la persona que pidió ayuda
 // no se enteraba de nada, y la única señal posible era que el problema dejara de pasar. El dueño:
