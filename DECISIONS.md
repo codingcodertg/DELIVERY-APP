@@ -22393,3 +22393,42 @@ pasaba porque su caso tenía una sola secuencia posible. Consecuencias:
 - **Dos personas publicando a la vez:** el `for update` las pone en cola y gana la última. Leído, no ensayado.
 - La pantalla solo enseña el resumen. La ruta P/D con horas, y que el chofer lea sus paradas publicadas, es el
   incremento 5.
+
+## D-321 · «Switch to another user» en el banner reventaba: el panel no tenía sus proveedores
+
+**Fecha:** 2026-09-18 · **Versión:** deliveries 1.147.0 · repo 1.210.0 · **Sin migración.**
+**Visto por el dueño** en producción, con captura: al pulsar «Cambiar a otro usuario / Switch to another
+user» en el banner de impersonación, pantalla de error: «Something went wrong · Reload app».
+
+### Qué fallaba
+
+D-307 montó `SwitchUserPanel` dentro de `ImpersonationBanner`. El banner vive en el layout raíz
+(`src/app/layout.tsx`), **fuera** de `PrefsProvider` —a propósito: habla en dos idiomas y no depende de
+nadie— y sin ningún `ConfirmProvider` encima. El panel llama a `usePrefs()` y a `useConfirm()`, y los dos
+hooks **lanzan** si no tienen su proveedor. En las otras dos pantallas donde vive el panel (la barra de
+antes, `/home/switch-user`) los proveedores los pone el layout, y por eso ahí funciona. En el banner
+reventaba al montarse, o sea al primer clic, y el límite de errores global pintaba su pantalla.
+
+**Por qué nadie lo vio:** compila; vitest corre en `node`, sin render, así que las pruebas de D-307 miraban
+texto y funciones puras; y ni el worker ni el orquestador lo abrieron en un navegador — estaba escrito en
+«lo no verificado» de D-307, y lo no verificado era justo esto.
+
+### Qué se hizo
+
+El banner envuelve **solo el panel** con `<PrefsProvider><ConfirmProvider>…` (en ese orden:
+`ConfirmProvider` usa `usePrefs`). El banner sigue fuera de los proveedores y sigue sin usar ninguno de
+esos hooks. Una prueba fija la estructura: lista los hooks-con-proveedor que usa el panel y exige que el
+banner le ponga alrededor el proveedor de cada uno, sin cerrarlo antes; cae sin `ConfirmProvider` y cae
+con el banner tal como estaba en D-307 (los dos mutantes, corridos).
+
+**Descartado:** meter el banner dentro de `PrefsProvider` en el layout raíz. El comentario de ese layout
+explica por qué está fuera, y moverlo cambiaría el orden de montaje de todas las páginas para arreglar
+una.
+
+### Lo no verificado
+
+- **Sigue sin verse en un navegador por nadie más que el dueño.** La prueba es de estructura, no de
+  render: no hay jsdom en el repo. Un segundo `PrefsProvider` anidado lee las mismas preferencias
+  guardadas; que no parpadee el tema al abrir el panel está sin mirar.
+- El salto en sí (`/api/impersonate/switch`) sigue con el canje simulado de D-307: el dueño aún no ha
+  llegado a ejecutarlo, porque la pantalla reventaba antes.
