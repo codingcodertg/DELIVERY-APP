@@ -38072,3 +38072,124 @@ en `origin/main`, está en 2745 | 3.
   `path: "/"`).
 - **El chofer sigue sin entrar al lobby (D-173)** y no le afecta nada de esto; no se ha medido si algún
   admin usaba la vista móvil desde dentro del iframe, que era el caso que `enMarco` cubría.
+
+## D-NEXT · Saltar de un usuario a otro sin volver antes a la propia cuenta
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** *«si estoy en otro usuario ya con el switch, que siga la opción para seguir
+switcheando»*.
+
+### Por qué no era una opción más del panel
+
+Mientras se suplanta a alguien, la sesión del navegador **es** la de esa persona (D-243). Si el panel
+llamara a `/api/impersonate` desde ahí, el paso 6 de esa ruta —que toma el refresh token de **la sesión
+actual** para la cookie de retorno— guardaría el del vendedor, y «Volver a mi cuenta» llevaría al
+vendedor anterior, no al admin. Hoy eso no pasa porque `puedeEntrarComo` rechaza la llamada (el rol
+que se lee es el del vendedor): **cerrado por accidente, no por diseño**. Esta decisión lo cierra por
+diseño.
+
+### Cómo funciona el salto (`POST /api/impersonate/switch`)
+
+En este orden, y el orden es la mitad del diseño:
+
+1. La bandera `IMPERSONATION_ENABLED`, como al entrar.
+2. La cookie de retorno. Sin ella no es un salto: 409.
+3. El token de la sesión ajena, **antes** de restaurar (después ya no está; D-245).
+4. **Se restaura al admin** con el refresh de la cookie. Si no vale, la salida es la de `return`:
+   cookie fuera, sesión local cerrada, al login. **Todo lo que sigue se decide con la sesión
+   restaurada.**
+5. **Quién es el admin se lee de la sesión restaurada, no de la cookie.** La cookie no decide quién es
+   admin; hay una prueba en la que la cookie miente y manda la sesión.
+6. Los dos roles de la base con la llave de servicio y `puedeEntrarComo` con ese id — la misma regla
+   de D-243: a un admin no, a uno mismo no.
+7. Se cierra la sesión del anterior, **solo esa** (`revocarSesionImpersonada`, D-245), y se apunta su
+   fin diciendo que fue un salto.
+8. **A partir de aquí, cualquier fallo deja «admin restaurado, banner fuera»**, y la respuesta lo dice
+   (`salida: "admin"`) para que la pantalla **recargue** en vez de quedarse con el banner pintado sobre
+   una sesión que ya no es la que dice. Lo pidió el orquestador al revisar el plan.
+9. El rastro del nuevo —sin fila no hay sesión, como al entrar—, el enlace y su canje.
+10. La cookie, **solo al final**, y con tres cosas decididas a propósito:
+    - el refresh **rotado** que devolvió la restauración, no el viejo de la cookie ni el del vendedor
+      (Supabase rota los refresh tokens al usarlos);
+    - el admin de la sesión restaurada;
+    - **el `inicio` original**. El tope de 60 minutos es un límite de seguridad (D-245), no comodidad:
+      saltar de usuario **no lo estira**. Decisión del dueño vía orquestador.
+
+### El rastro
+
+Sin clase nueva en `security_events`: un salto son **dos filas**, el `impersonation_end` del anterior
+con `motivo: switch · N min` y el `impersonation_start` del nuevo con `desde: <nombre anterior>`. La
+duración de cada tramo se lee de su start/end, como siempre, y el tipo `SecurityKind` sigue cerrado.
+Un fallo tras restaurar deja el `end` con `motivo: switch-fallido`.
+
+### Dónde se ve
+
+Dentro del **aviso naranja**, junto a «Volver a mi cuenta», un botón «Cambiar a otro usuario» — en las
+cinco apps, porque el aviso vive en el layout raíz. El aviso no tiene proveedor de datos, así que el
+panel (`SwitchUserPanel`, el mismo de D-247/D-306) recibe la lista por props, de una ruta nueva:
+
+`GET /api/impersonate/switch/candidates` devuelve **solo lo que el panel pinta** (id, nombre, rol,
+tienda) y **ya filtrado con la misma regla que la ruta de saltar** (`candidatosParaSaltar`, sobre
+`puedeEntrarComo`): sin admins y sin el propio admin, para que la lista no enseñe a nadie a quien la
+ruta vaya a decir que no. Solo contesta si hay cookie de retorno **y** la sesión que pregunta es la que
+la cookie dice que está suplantada; y se lee con la llave de servicio, porque lo que se enseña es lo
+que el admin de la cookie puede hacer, no lo que ve el vendedor. Los candidatos se piden **al pulsar**,
+no al montar: una carga normal sigue costando la petición de siempre.
+
+El panel gana un `modo`: «entrar» (la ruta de siempre) o «saltar» (la nueva); y si la respuesta trae
+`salida`, recarga.
+
+### Lo que no puede pasar, y su prueba
+
+- **Encadenar y no poder volver**: la cookie siempre lleva al admin de la sesión restaurada, con su
+  refresh rotado (tres mutantes, uno por cada forma de escribirla mal).
+- **Alguien que no es admin real**: sin cookie no hay restauración; con ella, el rol se lee de la base
+  para la sesión restaurada, y la cookie que miente no manda.
+- **La sesión anterior viva**: se revoca antes del enlace, solo esa, y la prueba fija el orden.
+
+Nada de esto toca Auth de verdad: Supabase, cookies, rastro y revocación son falsos, con los mocks de
+`cierre-sesion-local.test.ts`. Lo que se afirma es el orden de las llamadas y con qué se escribe la
+cookie.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Diecinueve mutantes, cada uno cazado por su prueba: el refresh viejo o el del vendedor en la cookie, el
+admin de la cookie en vez de la sesión, el inicio reiniciado, sin cookie no decir que no, saltarse la
+restauración, no cerrar la anterior, un fin que no dice salto, un principio que no dice desde quién,
+seguir sin rastro, un rechazo que no avisa que el admin quedó restaurado, la cookie antes del canje,
+candidatos con admins o con columnas de más, una cookie pegada a otra sesión, el panel por la ruta de
+entrar o dejando el banner pintado, y el aviso pidiendo candidatos al montar o montando el panel en modo
+entrar.
+
+Tres cosas de la tanda que se cuentan:
+
+- **Dos pruebas flojas, apretadas.** El admin de la cookie y el de la sesión eran el mismo id en la
+  plantilla, así que leerlo de la cookie pasaba: ahora la cookie miente y la sesión manda. Y las
+  columnas de los candidatos se miraban solo en el primero, que ya traía las cuatro: ahora en todos,
+  incluido el que trae un correo de más.
+- **Un mutante equivalente**, reescrito: añadir código muerto tras el 409 no cambiaba nada.
+- **La tanda se cayó a medias** por un «→» en la consola cp1252 de Windows; el `finally` devolvió el
+  fichero y `git status` lo confirmó antes de seguir. El script escribe ahora en UTF-8.
+
+### Las pruebas de otras decisiones que se actualizan
+
+`cierre-sesion-local.test.ts` (D-264) lista **cada** `signOut` de `src/` con su alcance: la ruta nueva
+añade uno, local, y se declara. Dos pins de D-306 sobre la firma del panel y su `fetch` se reescriben
+con el `modo`.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2787 pasados | 3 saltados**. La rama añade 25
+pruebas: 12 en `impersonation-switch.test.ts`, 7 en `impersonation-candidates.test.ts` y 6 en
+`impersonation-switch-ui.test.ts`, los tres nuevos; no quita ninguna. `main` 35a1786, medido en esta misma
+copia con el árbol en `origin/main`, está en 2762 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el botón en el aviso, ni el salto de verdad. Las rutas
+  están probadas con Supabase falso; el canje del magiclink real y la rotación del refresh token son
+  comportamientos de Supabase que aquí están **simulados** tal como los documenta.
+- **Que el proyecto no dispare su SMTP al generar el enlace** sigue sin poder comprobarse desde la
+  rama, como en D-243.
+- **`candidates` lee toda la plantilla con la llave de servicio** en cada apertura del panel. No se
+  midió cuánta gente hay; con la plantilla actual es una lectura pequeña.

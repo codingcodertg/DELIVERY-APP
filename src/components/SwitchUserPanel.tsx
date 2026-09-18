@@ -26,11 +26,14 @@ import type { NamedLocation, Profile, UserRole } from "@/lib/types";
  * página del hub —que se lo pasa desde su proveedor— y donde no hay proveedor. `enPagina` lo
  * pinta estático, no como desplegable colgando de un botón.
  */
-export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false }: {
+export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar" }: {
   users: Profile[];
   tiendas: NamedLocation[];
   onClose: () => void;
   enPagina?: boolean;
+  /** «entrar»: desde la propia cuenta (`POST /api/impersonate`). «saltar»: desde dentro de otra
+   *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-NEXT). */
+  modo?: "entrar" | "saltar";
 }) {
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -44,23 +47,34 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false }: {
   );
 
   async function entrar(id: string, nombre: string) {
-    if (!await confirmAction(
-      t(
+    const pregunta = modo === "saltar"
+      ? t(
+        `Switch to ${nombre}? The current session is closed, and the 60-minute clock keeps running.`,
+        `¿Cambiar a ${nombre}? Se cierra la sesión actual, y el reloj de 60 minutos sigue corriendo.`,
+      )
+      : t(
         `Sign in as ${nombre}? Everything you do will be recorded as done by them, and it is logged.`,
         `¿Entrar como ${nombre}? Todo lo que hagas quedará registrado como hecho por esa persona, y queda en el registro de seguridad.`,
-      ),
-      { confirmLabel: t("Sign in as", "Entrar como") },
-    )) return;
+      );
+    if (!await confirmAction(pregunta, { confirmLabel: modo === "saltar" ? t("Switch", "Cambiar") : t("Sign in as", "Entrar como") })) return;
 
     setEntrando(id);
     setError(null);
     try {
-      const r = await fetch("/api/impersonate", {
+      // Saltando no vale la ruta de entrar: tomaría el refresh de la sesión ACTUAL, que es la del
+      // suplantado, y la vuelta llevaría a él. La de saltar restaura al admin antes de nada.
+      const ruta = modo === "saltar" ? "/api/impersonate/switch" : "/api/impersonate";
+      const r = await fetch(ruta, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ targetId: id }),
       });
       if (!r.ok) {
+        // Saltando, un fallo DESPUÉS de restaurar al admin deja «admin restaurado, banner fuera»:
+        // la ruta lo dice con `salida`, y entonces hay que recargar, no quedarse con el banner
+        // pintado sobre una sesión que ya no es la que dice.
+        const cuerpo = (await r.json().catch(() => null)) as { salida?: string } | null;
+        if (cuerpo?.salida === "admin" || cuerpo?.salida === "login") { window.location.href = "/"; return; }
         // Se enseña AQUÍ y no se cierra en silencio: el panel es donde la persona está mirando,
         // y un panel que se cierra sin decir nada se lee como «ya está», que es lo contrario.
         setEntrando(null);

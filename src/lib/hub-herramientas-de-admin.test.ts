@@ -143,13 +143,16 @@ describe("la página de cambiar de usuario", () => {
 
   it("el panel recibe lo que pinta y ya no lee `useData`", () => {
     expect(panel).not.toContain("useData");
-    expect(panel).toContain("export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false }");
+    // Con `modo` desde el encargo siguiente (saltar de usuario): las props de D-306 siguen ahí.
+    expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar" }');
     expect(panel).toContain("agruparPorTienda(users, tiendas, filtro)");
     expect(pagina).toContain("<SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina");
   });
 
   it("y el camino al servidor no cambia: el mismo POST a /api/impersonate con el id", () => {
-    expect(panel).toContain('fetch("/api/impersonate", {');
+    // La ruta la elige `modo`; en el modo de siempre sigue siendo /api/impersonate con el id.
+    expect(panel).toContain('const ruta = modo === "saltar" ? "/api/impersonate/switch" : "/api/impersonate";');
+    expect(panel).toContain("const r = await fetch(ruta, {");
     expect(panel).toContain("body: JSON.stringify({ targetId: id }),");
   });
 });
