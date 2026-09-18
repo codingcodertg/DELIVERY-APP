@@ -30,6 +30,12 @@ export default function UsersPage() {
   // The person being configured, if any.
   const [editing, setEditing] = useState<Profile | null>(null);
   const [bulk, setBulk] = useState(false);
+  /**
+   * El formulario de crear, plegado (D-NEXT). Lo pidió el dueño: ocupaba toda la parte de arriba
+   * de la pantalla SIEMPRE, y lo que se viene a hacer aquí casi siempre es mirar la lista o abrir a
+   * alguien. Empieza cerrado, y lo abre quien va a crear.
+   */
+  const [creando, setCreando] = useState(false);
   const [groupByStore, setGroupByStore] = useState(true);
 
   // Team grouped by assigned store, in the settings store order, with a final
@@ -70,7 +76,12 @@ export default function UsersPage() {
           canReset: res.can_reset_own_password !== false,
         });
       }
-      setEmail(""); setName(""); setRole("sales"); setPassword("");
+      setEmail(""); setUsername(""); setName(""); setRole("sales"); setPassword("");
+      // Se pliega al crear, y el panel de credenciales se queda fuera del plegado: el resultado
+      // sigue a la vista y la lista vuelve a estar arriba, que es lo que pidió el dueño.
+      // El usuario también se limpia: sin eso se quedaba escrito el de la persona anterior y el
+      // siguiente alta salía con un usuario que ya existe.
+      setCreando(false);
     }
   };
 
@@ -132,8 +143,25 @@ export default function UsersPage() {
       </div>
 
       <div className="card">
-        <h2>{t("Create a user", "Crear un usuario")}</h2>
-        <div className="grid g4">
+        {/* El botón ES el título cuando está cerrado: una línea en vez de media pantalla. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className={"btn " + (creando ? "btn-ghost" : "btn-primary")}
+            onClick={() => setCreando((v) => !v)}
+            aria-expanded={creando}
+          >
+            {creando ? "▾" : "＋"} {t("Create a user", "Crear un usuario")}
+          </button>
+          {!creando && (
+            <span className="hint" style={{ margin: 0 }}>
+              {t("The list is below — open this only when you are adding someone.",
+                 "La lista está abajo — abre esto solo cuando vayas a dar de alta a alguien.")}
+            </span>
+          )}
+        </div>
+
+        {creando && (<>
+        <div className="grid g4" style={{ marginTop: 12 }}>
           <div className="field"><label>{t("Full name", "Nombre completo")}</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" /></div>
           <div className="field">
             <label>{t("Email", "Correo")} {t("(or username below)", "(o usuario abajo)")}</label>
@@ -171,7 +199,11 @@ export default function UsersPage() {
             ? t("In local demo mode users are created instantly in this browser. Switch to any of them from the yellow “View as” bar at the top.", "En modo demo local los usuarios se crean al instante en este navegador. Cámbialos desde la barra amarilla “Ver como” arriba.")
             : t("The account is created active — no email confirmation needed. Give the person their email + password below and they can sign in right away.", "La cuenta se crea activa — sin confirmación por correo. Entrega a la persona su correo + contraseña de abajo y podrá iniciar sesión de inmediato.")}
         </div>
+        </>)}
 
+        {/* Fuera del plegado A PROPÓSITO: al crear, el formulario se cierra y esto se queda, que es
+            el resultado. Si estuviera dentro, cerrar el formulario se llevaría las credenciales que
+            todavía hay que copiar. */}
         {created && (
           <div className="card" style={{ marginTop: 14, marginBottom: 0, background: "var(--accent-soft)", borderColor: "var(--accent)" }}>
             <b>{t("Account ready — share these credentials", "Cuenta lista — comparte estas credenciales")}</b>
