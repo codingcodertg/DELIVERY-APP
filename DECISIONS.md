@@ -22734,3 +22734,64 @@ esa: compara contra un fichero, no contra producción.
   publican como antes.
 - Que el texto del fichero de la 133 sea lo que hay en producción: la 133 se aplicó desde ese fichero y `migrate-status` la
   da por buena, pero yo no puedo leer `pg_get_functiondef` desde la rama. Quien la ensaye puede compararlo.
+
+## D-NEXT · Motor de rutas, incremento 9: «¿se cumplió el plan?» — la hora real de cada parada, y por qué hoy casi no hay con qué medirla
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **Diseño:**
+`docs/route-algorithm-design.md`, §8.2. Solo admin y logística. **No cambia nada de lo que ve o pulsa el chofer** (D-021).
+
+### Lo que se midió antes de escribir una línea, y que es lo más útil de este incremento
+
+Medido por el orquestador en producción, solo lectura, el **2026-09-18**; la causa, por mí en el código:
+
+- `driver_locations` tenía **92 posiciones en total, de UN solo chofer, del 2026-08-14 al 2026-09-02**. Nada en 16 días.
+- **Para que un teléfono mande una posición hacen falta tres cosas a la vez** (`LocationTracker.tsx`): un turno abierto
+  (`driver_shifts`), que sea el mismo dispositivo que lo abrió, y estar en **la app instalada (el APK)**. Un navegador nunca
+  manda posición, a propósito. «Mi ruta» funciona igual en navegador, así que un chofer trabaja todo el día sin mandar un
+  punto y nada se lo dice.
+- **Por qué paró el 2-sep:** el 4-sep producción pasó a `rtg-hub.vercel.app` y el APK publicado entonces (el 4) apuntaba al
+  dominio viejo, cuyo 307 la cáscara trata como origen ajeno (D-257): dejó de cargar la app. El APK 5 salió el 14-sep, pero
+  un teléfono cuya cáscara no carga no llega al aviso de actualización: hay que instalarlo a mano. Confirmado con datos: ese
+  chofer tiene 14 turnos antes del 3-sep y **4 después** (hay turnos y no hay posiciones), con 3 `device_id` nuevos; y
+  **ninguna sesión, de nadie, lleva `RDZDeliveries/` en el user-agent**: nadie está en ningún APK.
+- **Lo mayor: los otros TRES choferes no han iniciado sesión nunca** (`auth.users.last_sign_in_at` nulo). Las 92 posiciones,
+  los 18 turnos y todos los eventos de chofer son de una sola persona; las entregas de los otros las mueve otra gente.
+
+**Consecuencias para lo ya publicado, dichas tal cual:** «Publicar ruta» (D-320) avisa hoy de verdad a UN chofer; a los
+otros tres les llega un aviso que nadie abre. El orden planeado en «Mi ruta» (D-324) lo puede ver uno. **Esto no lo arregla
+el código:** lo arregla instalar el APK 5 teléfono por teléfono y que esos tres choferes entren por primera vez.
+
+### Qué hay ahora
+
+- En el panel de un plan **publicado**, **«¿Se cumplió el plan?»**. El orden de la pantalla es el de la honestidad:
+  1. **Cuánto dato hay, y de quién:** choferes con ruta · cuántos han entrado alguna vez a la app · cuántos abrieron turno ese
+     día · cuántos mandaron alguna posición — y chofer por chofer. Con los datos de hoy, **esto ES el reporte**, y le dice al
+     dueño que el hueco es de captura y no del motor.
+  2. **De N paradas:** cuántas con llegada por GPS, cuántas solo con el toque del chofer, cuántas sin dato — y **por qué**, con
+     su cuenta. Las tres cifras suman N (con prueba).
+  3. **El error, por fuente y nunca mezclado:** llegada real (GPS) − llegada estimada; y toque del chofer − SALIDA estimada,
+     que es otra medida (incluye el servicio y lo que tardó en tocar). Mediana, «9 de cada 10 dentro de», media con signo y
+     cuántas dentro de 15 min. **Con menos de 8 paradas no da ninguna cifra:** dice que son muy pocas.
+- **La hora real es la mejor disponible por parada, y se dice cuál** (`src/lib/route-plan/llegadas.ts`, puro):
+  - **GPS:** por chofer y en el orden de su ruta, la primera posición a menos de 150 m es la llegada y la última seguida, la
+    salida. Una posición que dice ser peor que 100 m se ignora. Volver a la tienda a recargar es otra visita; dos recogidas
+    seguidas en el mismo sitio comparten hora. **Nada se interpola:** pasar de largo a 400 m no es llegar.
+  - **El toque del chofer** (`pickup_gps_at` / `pod_delivered_at`) si no hay GPS — y **solo si lo pulsó el chofer de esa
+    parada** (`order_events.created_by`). Una hora marcada por otra persona desde un escritorio no mide dónde estuvo el camión:
+    cuenta como «sin dato: la marcó otra persona». Con toque, la llegada queda vacía: no se inventa restando el servicio.
+- **Se guarda** en `route_plan_stops.actual_arrival_at` / `actual_departure_at` — lo único que la 133 deja tocar en un plan
+  publicado—, porque las posiciones se podan a los 90 días. La llegada SOLO la escribe el GPS, así que la fuente se lee de
+  vuelta sin una columna más. Idempotente. Un UPDATE que no alcanza ninguna fila no cuenta como guardado, y se dice.
+- **La llave de servicio, para una sola cosa:** saber si cada chofer del plan ha iniciado sesión alguna vez, que ninguna
+  sesión puede leer. Decidido por el orquestador, con tres condiciones y las tres con prueba: el rol se comprueba ANTES de
+  crear ese cliente; los ids salen del plan publicado, nunca de la petición; y sale un booleano — ni fecha, ni correo. Si la
+  consulta de uno falla es «no se sabe», no «nunca».
+
+### Lo que NO está verificado, y lo que queda fuera
+
+- **150 m, 100 m de precisión y 20 min de hueco son un punto de partida SIN medir:** no hay datos con qué. Son parámetros.
+- Nada abierto en un navegador ni corrido contra la base. La ruta tiene 60 s y pregunta por cada chofer de uno en uno
+  (cuatro choferes; si fueran cuarenta habría que paginar).
+- **Fuera, como incremento corto aparte (pedido por el orquestador):** avisar en el panel, ANTES de publicar, de cuántos
+  choferes del plan no han entrado nunca a la app. Misma fuente, mismo booleano; aviso, no bloqueo.
+- `arrived_at` de `deliveries` sigue sin sellarse: se decidió deducir la llegada del GPS en vez de pedirle un toque más al chofer.
