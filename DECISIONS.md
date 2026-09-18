@@ -37476,3 +37476,50 @@ en `origin/main`, está en 2621 | 3.
   quien no tenga Entregas concedido). Las órdenes ya asignadas no cambian.
 - **El umbral de nueve cuentas para enseñar el filtro** es un número elegido a ojo, no medido: se puso
   para que el campo no aparezca en una instalación con cuatro cuentas.
+
+## D-NEXT · El formulario de crear usuario, detrás de un botón
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** ·
+**Pedido por:** el dueño, con captura de Hub → Usuarios: *«make it a buttom and a form desplegable»*.
+
+### Qué había
+
+El formulario «Crear un usuario» ocupaba la parte de arriba de la pantalla **siempre**: cinco campos,
+su botón y dos líneas de explicación, antes de la lista. Y a Usuarios se entra casi siempre a mirar la
+lista o a abrir a alguien, no a dar de alta.
+
+### Qué hay
+
+- **Cerrado de salida.** En su sitio, una línea: el botón **«＋ Crear un usuario»** y, al lado, una
+  pista de que la lista está debajo. Abierto, el botón se vuelve «▾ Crear un usuario» y cierra.
+- **`aria-expanded`** en el botón: es lo que dice si está abierto a quien no ve la pantalla.
+- **Al crear bien, se pliega solo**, y la lista vuelve a quedar arriba.
+- **Las credenciales quedan FUERA del plegado**, a propósito: al crear una cuenta el panel con el
+  usuario y la contraseña sigue a la vista aunque el formulario se cierre. Si estuviera dentro, cerrar
+  se llevaría por delante lo único que hay que copiar, y esa contraseña se enseña una sola vez.
+- **Solo se pliega si la creación salió bien.** Tras un fallo el formulario se queda abierto con lo
+  escrito; esconderlo obligaría a teclearlo todo otra vez.
+
+### Un arreglo que salió de camino
+
+Al crear, se limpiaban el correo, el nombre, el rol y la contraseña, **pero no el usuario**: se quedaba
+escrito el de la persona anterior, así que el alta siguiente salía con un usuario que ya existe. Ahora
+se limpia también.
+
+### Medido, rompiendo cada pieza
+
+8 cambios: **7 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El formulario vuelve a estar abierto siempre; el botón no dice si está abierto; el botón solo abre y
+  nunca cierra; al crear no se pliega; el usuario se queda escrito del alta anterior; las credenciales
+  se meten dentro del plegado; un campo se cae fuera del plegado.
+- **El gemelo:** el alternar escrito de otra forma.
+
+**Una prueba mía medía el nombre de una variable y no el campo**, y lo enseñó el mutante del campo
+suelto: buscaba «Username» dentro del bloque, y ese texto también aparece en `setUsername`. Ahora se
+piden las etiquetas enteras, con su traducción.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el plegado, ni el panel de credenciales tras cerrarse el
+  formulario.
