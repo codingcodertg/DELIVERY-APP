@@ -5,7 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
-import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, SATURDAY_WINDOW, stageInfo, stageLabel, WEEKDAY_ALL_DAY_WINDOW, ordersLikeOfficeManager } from "@/lib/constants";
+import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
@@ -15,6 +15,7 @@ import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document
 import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
+import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -89,9 +90,11 @@ export function OrderModal({
   // other day's default, so a manually-chosen custom window is never fought.
   useEffect(() => {
     if (!editing || !d.delivery_date) return;
-    const isSat = new Date(d.delivery_date + "T12:00:00").getDay() === 6;
-    const want = isSat ? SATURDAY_WINDOW : WEEKDAY_ALL_DAY_WINDOW;
-    const other = isSat ? WEEKDAY_ALL_DAY_WINDOW : SATURDAY_WINDOW;
+    // El día lo decide `esSabado` (D-NEXT), que lee las partes de la fecha en vez de convertirla a un
+    // instante: `new Date(iso).getDay()` devuelve el día ANTERIOR en los husos negativos, que son los
+    // nuestros, y acierta en UTC — o sea que el fallo no se vería en CI.
+    const want = ventanaDeTodoElDia(d.delivery_date);
+    const other = ventanaDelOtroTipoDeDia(d.delivery_date);
     if (!d.delivery_windows || d.delivery_windows === other) {
       setD((p) => (p.delivery_windows === want ? p : { ...p, delivery_windows: want }));
     }
@@ -1739,7 +1742,7 @@ export function OrderModal({
             {/* ---- Schedule ---- */}
             <div className="grid g2">
               <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} />
-              <WindowSel val={d.delivery_windows} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
+              <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
             </div>
             {/* Reprogramming a missed order: offer to send it out first thing the
                 next morning. Shows when an existing order is pushed to a LATER
@@ -3320,17 +3323,20 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
  * Afternoon / All Day) instead of free text. Falls back to showing the raw
  * value as a "Custom" option so existing orders with a non-preset window
  * (e.g. from before this changed) still display correctly. */
-function WindowSel({ val, on, disabled, invalid, t }: {
-  val: unknown; on: (v: string) => void; disabled?: boolean; invalid?: boolean; t: (en: string, es: string) => string;
+function WindowSel({ val, fecha, on, disabled, invalid, t }: {
+  val: unknown; fecha?: string | null; on: (v: string) => void; disabled?: boolean; invalid?: boolean; t: (en: string, es: string) => string;
 }) {
   const current = (val as string) ?? "";
   const isCustom = current && !DELIVERY_WINDOW_PRESETS.some((p) => p.value === current);
+  // La de sábado solo en sábado, y la de entre semana solo el resto de días (D-NEXT). La que la orden
+  // ya tiene sigue en la lista aunque no toque ese día, como en los desplegables de tienda (D-267).
+  const disponibles = ventanasParaLaFecha(fecha, current);
   return (
     <div className="field">
       <label>{t("Delivery Time Window", "Ventana de Entrega")}{invalid && <span className="req-star"> *</span>}</label>
       <select className={invalid ? "invalid" : ""} value={current} disabled={disabled} onChange={(e) => on(e.target.value)}>
         <option value="">{t("Select a window…", "Seleccione una ventana…")}</option>
-        {DELIVERY_WINDOW_PRESETS.map((p) => <option key={p.key} value={p.value}>{t(p.en, p.es)}</option>)}
+        {disponibles.map((p) => <option key={p.key} value={p.value}>{t(p.en, p.es)}</option>)}
         {isCustom && <option value={current}>{t("Custom", "Personalizada")}: {current}</option>}
       </select>
     </div>
