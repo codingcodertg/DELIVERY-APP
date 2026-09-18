@@ -9,6 +9,7 @@ import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
+import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
@@ -234,6 +235,19 @@ export function OrderModal({
   // invoice", so an Intertienda with only an invoice passed, then landed in
   // Pending with no explanation. Seven orders on 2026-08-17 alone.
   const intertiendaNeedsPo = d.order_type === "Intertienda" && !(d.po2 || "").trim();
+
+  /**
+   * En qué etapa aterriza este borrador al enviarlo (D-313). Lo decide `etapaAlEnviar`, que aplica
+   * la misma regla que la orden nueva: la misma orden no puede acabar en un sitio o en otro según
+   * por qué botón haya salido. Se calcula aquí, con el resto de los datos de los que depende, y se
+   * le pasa a los botones ya decidida — ellos solo la pintan.
+   */
+  const etapaDeEnvio = etapaAlEnviar(me.role, {
+    creaComoOficina: ordersLikeOfficeManager(me.role),
+    tiendaAutoAprueba: storeAutoApprove,
+    cuentaPideAprobacion,
+    intertiendaSinPo: intertiendaNeedsPo,
+  });
 
   // Store-to-store moves (Intertienda / Transfer) have no external customer, so
   // no sales rep to credit. Only external-customer orders placed on someone's
@@ -703,7 +717,11 @@ export function OrderModal({
     // Submitting (or resubmitting) into Pending goes through the same hard
     // gate as creating an order there — this is the button a draft actually
     // leaves through, and it used to skip validation entirely (D-049).
-    if (to === "pending" && blockSubmit(existing)) return;
+    // Desde D-313 el mismo gesto puede aterrizar en `approved`, así que el corte se mira por de
+    // dónde SALE la orden y no por a dónde va: si no, enviar un borrador de una tienda que aprueba
+    // sola se saltaría entera la puerta de D-049. `to === "pending"` se queda porque el
+    // «desbloquear» del gerente —de `approved` a `pending`— también pasaba por aquí.
+    if ((to === "pending" || esEnvioDeBorrador(existing.stage, to)) && blockSubmit(existing)) return;
     setBusy(true);
     // Stamp the driver's location when they collect the load (never blocks).
     let extra: Partial<Delivery> | undefined;
@@ -1253,6 +1271,7 @@ export function OrderModal({
     <StageActions me={me} stage={stage} busy={busy} pedido={existing}
       onEdit={() => setEditing(true)}
       onMove={move}
+      etapaDeEnvio={etapaDeEnvio}
       showReject={showReject}
       setShowReject={setShowReject}
       rejectReason={rejectReason}
@@ -2814,7 +2833,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 
 /** The workflow buttons shown in view mode, gated by role + current stage. */
 function StageActions({
-  me, stage, busy, pedido, onEdit, onMove, showReject, setShowReject, rejectReason,
+  me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
   onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
@@ -2825,6 +2844,8 @@ function StageActions({
   pedido: Delivery;
   onEdit: () => void;
   onMove: (to: Stage, note?: string) => void;
+  /** Dónde aterriza esta orden si se envía: `approved` o `pending` (D-313, `etapaAlEnviar`). */
+  etapaDeEnvio: Stage;
   showReject: boolean; setShowReject: (v: boolean) => void; rejectReason: string;
   showCancel: boolean; setShowCancel: (v: boolean) => void;
   /** Si el motivo elegido (y su texto libre, cuando lo pide) ya permite confirmar la anulación. */
@@ -2856,8 +2877,11 @@ function StageActions({
 
   // Anyone who can create orders also shepherds their own drafts through submit/resubmit.
   if (canCreate(me)) {
-    if (stage === "draft") btns.push(<button key="submit" className="btn btn-primary" onClick={() => onMove("pending")} disabled={busy}>{t("Submit for approval", "Enviar a aprobación")}</button>);
-    if (stage === "rejected") btns.push(<button key="resub" className="btn btn-primary" onClick={() => onMove("pending")} disabled={busy}>{t("Resubmit", "Reenviar")}</button>);
+    // Aterriza donde diga `etapaDeEnvio` (D-313), no siempre en `pending`. Y el botón lo DICE: quien
+    // lo pulsa tiene que saber que detrás no queda nadie por revisarla.
+    const aprueba = etapaDeEnvio === "approved";
+    if (stage === "draft") btns.push(<button key="submit" className="btn btn-primary" onClick={() => onMove(etapaDeEnvio)} disabled={busy}>{aprueba ? t("Submit (approved)", "Enviar (aprobada)") : t("Submit for approval", "Enviar a aprobación")}</button>);
+    if (stage === "rejected") btns.push(<button key="resub" className="btn btn-primary" onClick={() => onMove(etapaDeEnvio)} disabled={busy}>{aprueba ? t("Resubmit (approved)", "Reenviar (aprobada)") : t("Resubmit", "Reenviar")}</button>);
   }
 
   // Anular ya no es «lo que hace el que creó el borrador»: quién anula y desde qué etapa es una regla

@@ -88,12 +88,20 @@ describe("las cinco pantallas preguntan lo mismo", () => {
   it("las tres listas filtran por la ventana con el rol REAL, no con el de «ver como»", () => {
     // Un admin previsualizando a un vendedor sigue viendo todo: era lo que ya hacía
     // almacén y ahora lo hacen las tres igual.
-    for (const f of [TABLERO, CHOFER, ALMACEN]) {
+    // El tablero dejó de filtrar a mano (D-313): le pasa `veTodoElHistorial` a `ordenesVisibles`,
+    // que es quien mira `withinRetention`. Lo que fija D-239 no cambia —la ventana se decide con el
+    // rol REAL— solo que ahora se comprueba donde se decide.
+    for (const f of [CHOFER, ALMACEN]) {
       const src = sinComentarios(leer(f));
       expect(src, f).toMatch(/seesAllHistory\(realRole\)|veTodoElHistorial/);
       expect(src, f).toContain("withinRetention(d)");
       expect(src, f).not.toMatch(/seesAllHistory\(me\?\.role\)/);
     }
+    const tablero = sinComentarios(leer(TABLERO));
+    expect(tablero).toContain("const veTodoElHistorial = seesAllHistory(realRole);");
+    expect(tablero).toContain("veTodoElHistorial,");
+    expect(tablero).not.toMatch(/seesAllHistory\(me\?\.role\)/);
+    expect(sinComentarios(leer("src/lib/ordenes-visibles.ts"))).toContain("withinRetention(d)");
   });
 
   it("el tablero ya no tiene una lista de roles «cercanos»", () => {

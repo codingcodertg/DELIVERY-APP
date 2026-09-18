@@ -2,7 +2,7 @@
 
 **Estado:** PLAN EN PAPEL. Nada aplicado. La migración está escrita
 (`supabase/migrations/121_warehouse_lee_posiciones.sql`) y espera respaldo, ensayo y visto bueno.
-**Fecha:** 2026-09-17 · **Rama:** `almacen-mapa-en-vivo` · **Decisión:** la entrada `D-NEXT` de esa rama.
+**Fecha:** 2026-09-17 · **Rama:** `almacen-mapa-en-vivo` · **Decisión:** la entrada `D-313` de esa rama.
 **Prerrequisito de aplicación:** la definición actual de la política guardada (§5), que es lo único que
 cambia. No hace falta `pg_dump` de datos: esta migración no escribe ninguna fila.
 

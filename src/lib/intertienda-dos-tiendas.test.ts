@@ -149,8 +149,13 @@ describe("qué órdenes le tocan a un vendedor", () => {
     expect(ventasVeLaOrden({ ...YO, orden: asignada, regla: A_CLIENTE })).toBe(true);
   });
 
-  it("el tablero llama a esa función y no a la pieza suelta", () => {
-    expect(tablero).toContain('if (me?.role === "sales" && !ventasVeLaOrden({');
+  it("la lista del tablero llama a esa función y no a la pieza suelta", () => {
+    // Desde D-313 el tablero no arma la lista: se la pide a `ordenesVisibles`, que es quien llama a
+    // `ventasVeLaOrden`. La pieza suelta sigue sin usarse desde ninguna de las dos.
+    const lista = leer("src/lib/ordenes-visibles.ts");
+    expect(lista).toContain("if (!ventasVeLaOrden({");
+    expect(lista).not.toContain("tiendaDeLaOrdenEsMia(d,");
+    expect(tablero).toContain("ordenesVisibles(deliveries, {");
     expect(tablero).not.toContain("tiendaDeLaOrdenEsMia(d,");
   });
 

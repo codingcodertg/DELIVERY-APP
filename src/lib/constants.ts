@@ -980,12 +980,16 @@ export const canPlanRoutes = (u: CapUser) => hasCap(u, "route_plan");
 // never reach the warehouse (fulfilling/ready/delivered) without first being
 // approved by a manager — no matter how setStage is called.
 const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
-  draft:      ["pending", "canceled"],
+  // `approved` desde `draft` —y desde `rejected`— es D-313: enviar un borrador decide la etapa con
+  // la MISMA regla que crearlo (`etapaAlEnviar`), así que el salto tiene que existir aquí o los dos
+  // proveedores lo rechazan antes de salir del navegador. Esta lista dice qué saltos hay; quién los
+  // da lo siguen diciendo `etapaAlEnviar` y, detrás, el guard de la 127.
+  draft:      ["pending", "approved", "canceled"],
   // Anular una orden viva es de gerente, office y admin — la etapa lo permite y `puedeAnular` dice
   // quién (D-291, 122). Antes solo se anulaba un borrador o una rechazada, así que el cliente que
   // llamaba para cancelar una orden ya aprobada no tenía camino.
   pending:    ["approved", "rejected", "canceled"],
-  rejected:   ["pending", "canceled"],
+  rejected:   ["pending", "approved", "canceled"],
   approved:   ["fulfilling", "pending", "canceled"],   // pending = manager "unlock"
   fulfilling: ["ready", "canceled"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
