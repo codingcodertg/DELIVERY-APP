@@ -9,6 +9,7 @@ import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { useColWidthMap } from "@/lib/use-col-widths";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
+import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import type { CancelReason, Delivery } from "@/lib/types";
 
 type Ctx = {
@@ -469,8 +470,31 @@ export function OrdersTable({
 
   const allChecked = !!selected && rows.length > 0 && rows.every((r) => selected.has(r.id));
 
+  // Qué filtros hay puestos, en el orden de las columnas (D-NEXT). Se queda vacío casi siempre, y
+  // entonces la barra no se pinta: una barra que sale siempre deja de leerse.
+  const filtradas = columnasFiltradas(filters, cols.map((c) => c.key));
+  const nombresFiltrados = filtradas.map((k) => {
+    const col = cols.find((c) => c.key === k);
+    return col ? (lang === "es" ? col.es : col.en) : k;
+  });
+
   return (
     <>
+    {/* Que se vea que hay un filtro puesto, y quitarlo de una (D-NEXT). Lo pidió almacén: el filtro
+        funcionaba, pero lo único que lo delataba era el ▾ de su cabecera en color, y en una tabla
+        que se desplaza a lo ancho esa columna puede ni estar en pantalla. Se nombran las columnas
+        filtradas, no solo cuántas, para saber dónde ir si se quiere ajustar en vez de limpiar. */}
+    {filtradas.length > 0 && (
+      <div className="filtros-puestos">
+        <span>
+          🔎 <b>{t("Filtered by", "Filtrado por")}:</b>{" "}
+          {textoDeColumnas(nombresFiltrados, t("and", "y"), (n) => t(`${n} more`, `${n} más`))}
+        </span>
+        <button className="btn btn-ghost btn-sm" onClick={() => setFilters({})}
+          title={t("Remove every column filter on this table", "Quitar todos los filtros de columna de esta tabla")}
+        >✕ {t("Clear filters", "Limpiar filtros")}</button>
+      </div>
+    )}
     <div className="tbl-scroll tbl-fit orders-scroll">
       <table className="orders tbl-resize orders-responsive">
         <colgroup>

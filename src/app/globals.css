@@ -520,6 +520,16 @@ input.invalid, select.invalid, textarea.invalid {
 .col-orden { width: 100%; background: none; border: none; text-align: left; font-family: inherit; }
 .col-orden.on { color: var(--accent); font-weight: 700; }
 
+/* La barra de «hay filtros puestos» encima de la tabla (D-NEXT). Solo sale cuando los hay, así
+   que puede permitirse el color de aviso sin volverse ruido. */
+.filtros-puestos {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 8px; padding: 6px 10px; border-radius: 10px;
+  background: var(--amber-soft); border: 1px solid var(--amber);
+  font-size: 12.5px; color: var(--text);
+}
+.filtros-puestos .btn { margin-left: auto; }
+
 /* ---------- Table header: click-to-sort + Excel-style value filter ---------- */
 table.orders th { text-align: left; }
 .th-cell { display: flex; align-items: center; gap: 2px; }

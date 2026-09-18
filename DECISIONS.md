@@ -37259,3 +37259,69 @@ en esta misma copia con el árbol en `origin/main`, está en 2608 | 3.
 - **El cierre del sábado (3:30) se toma de `SATURDAY_WINDOW`**, que es donde estaba escrito. Si el
   horario real fuera otro, esta decisión lo propagaría sin enterarse: el sitio donde mirar es esa
   constante.
+
+## D-NEXT · Se ve que hay un filtro puesto, y se quita de una
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
+por:** Baudelio, de Almacén: *«cuando pongo un filtro funciona, pero luego se me olvida que tengo un
+filtro; hace falta un botón de limpiar filtro visible»*.
+
+### Qué había
+
+Los filtros por columna (D-275) funcionaban, y lo único que delataba uno puesto era **el ▾ de su
+cabecera en color**. Eso obliga a recorrer las cabeceras una por una, y la tabla de órdenes se
+desplaza a lo ancho: la columna filtrada puede no estar ni en pantalla. Quitarlos era abrir el menú de
+cada columna y darle a «Limpiar», una por una.
+
+### Qué hay
+
+Encima de la tabla, **solo cuando hay filtros puestos**, una barra que dice cuáles y un botón que los
+quita todos:
+
+> 🔎 **Filtrado por:** Etapa y Tienda — ✕ Limpiar filtros
+
+- **Se nombran las columnas, no solo cuántas.** «2 columnas filtradas» obliga a buscarlas; con los
+  nombres, quien quiera ajustar en vez de limpiar sabe a qué cabecera ir.
+- **A partir de la cuarta se corta**: «Etapa, Tipo, Tienda y 2 más». La barra no puede crecer sin fin, y
+  el botón las quita todas igual.
+- **En el orden de las columnas**, no en el orden en que se fueron poniendo: la barra se lee junto a la
+  tabla, y ahí las columnas tienen un orden a la vista.
+- **Una columna que ya no se enseña no se nombra.** Se pueden quitar columnas desde «⚙ Columnas»; su
+  filtro deja de aplicar, así que anunciarlo mandaría a buscar algo que no está.
+- **Un filtro vacío no cuenta.** Vaciar un filtro desde su menú puede dejar la columna con un conjunto
+  sin elementos, que no filtra nada; decir «1 columna filtrada» ahí sería mandar a alguien a buscar un
+  filtro que no existe.
+- **Vale para las tres pantallas que usan la tabla**: Órdenes, Almacén y Chofer, porque vive en el
+  componente y no en una de ellas.
+
+El estilo sale de los tokens de la paleta (`--amber-soft`, `--amber`), así que respeta el modo oscuro y
+no añade ningún color escrito a mano.
+
+### Lo que NO entra
+
+El **buscador** de la pantalla de Órdenes y el de Almacén no son de la tabla: son de cada página, y lo
+que se escribe en ellos se queda a la vista en su propio campo, así que no se «olvida» igual que un
+filtro. Si el dueño quiere que ese botón también lo vacíe, es un cambio en las dos páginas y se dice
+antes de hacerlo.
+
+### Medido, rompiendo cada pieza
+
+15 cambios: **14 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- **La cuenta:** un conjunto vacío cuenta como filtro; el orden pasa a ser el de los filtros; `hayFiltros`
+  dice que sí con cualquier clave.
+- **El texto:** se corta en dos en vez de en tres; el resto no se cuenta; con una sola columna se mete la
+  conjunción igual; sin columnas devuelve algo.
+- **La barra:** sale siempre; no limpia nada; se va debajo de la tabla; dice cuántas y no cuáles; las
+  columnas se nombran en un solo idioma.
+- **El estilo:** los colores escritos a mano en vez de los tokens.
+- **El gemelo:** la comprobación del conjunto escrita con `!!filtros[k] && …` en vez de `?.size ?? 0`.
+
+**Una prueba mía no medía lo que decía**, cazada por el mutante del idioma: buscaba `lang === "es" ? …`
+en todo el fichero, y ese texto ya salía en las cabeceras, así que pasaba aunque la barra dejara de
+traducir. Ahora se mira dentro del bloque que calcula los nombres.
+
+### Lo no verificado
+
+- **Nadie la ha visto en un navegador**: ni la barra, ni cómo queda en el teléfono, donde la tabla se
+  vuelve tarjetas y la barra queda encima de la primera.
