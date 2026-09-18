@@ -38,8 +38,12 @@ con entrada y salida guardadas, y se puede cambiar por otro sin tocar lo demás.
 **Lo que cambia de lo que hay hoy** está en §4, en una lista explícita. El dueño dijo «sustituye al actual»
 y también «no cambies comportamiento existente sin avisarme»: **§4 es ese aviso**.
 
+**Los objetivos suaves son una suma ponderada con los pesos en Ajustes**, en el orden que dio el dueño
+—builders, ruta corta, ventanas anchas, balance—, y se afinan comparando contra días reales (§2.3). Las
+ventanas estrechas y el chofer que ya puso el despachador son restricciones duras, no pesos.
+
 **Lo que falta para empezar** son datos que solo tiene el dueño: base, capacidad y turno de cada chofer, y
-qué es exactamente una ventana «estrecha». §9.
+cómo quiere decir qué ventana es «estrecha». §9.
 
 ---
 
@@ -113,7 +117,9 @@ publicar, comparar, explicar— no se entera.
 ### 2.3 El algoritmo
 
 **Modelo.** Cada orden es un **par**: una parada P (en su tienda de origen) y una D (en su destino), con la
-misma cantidad de pallets, que sube en P y baja en D. Restricciones **duras**:
+misma cantidad de pallets, que sube en P y baja en D.
+
+**Restricciones duras** — no se negocian con ningún peso:
 
 - **Precedencia y mismo chofer:** P antes que D, en la misma ruta.
 - **Capacidad:** la carga a bordo, que sube y baja a lo largo de la ruta, nunca pasa de la del camión. Se
@@ -122,31 +128,64 @@ misma cantidad de pallets, que sube en P y baja en D. Restricciones **duras**:
   viaje 2»: un viaje es el tramo entre dos momentos en que el camión va vacío.)
 - **Turno:** la ruta empieza en la base del chofer a su hora de entrada y tiene que estar de vuelta antes de
   su hora de salida.
-- **Ventana estrecha** (§4.6): no se llega tarde. Si no se puede, la orden queda **sin asignar, con motivo**.
+- **Ventana estrecha** (§4.6): no se llega tarde. El dueño: *«esas mandan sobre todo lo demás»*. Si no se
+  puede, la orden queda **sin asignar, con motivo**.
+- **Chofer ya puesto por el despachador:** se respeta (§2.6). El dueño: *«si el despachador ya asignó, el
+  algoritmo respeta; si está vacío, asigna»*. Fija el **chofer**, no la posición.
 - **Disponibilidad:** un chofer de vacaciones o baja ese día no entra (`driver_availability`, que ya existe).
 - **Paradas fijadas o ya ejecutadas** (§2.6) no se mueven.
 
-**Blandas**, con coste: llegar tarde a una ventana ancha (minutos × penalización, más alta si es builder),
-esperar (llegar antes de que abra), minutos totales de conducción y servicio, y un término pequeño de
-equilibrio entre choferes para deshacer empates.
+**Primero, y estricto: dejar fuera las menos órdenes posibles, y los builders los últimos.** Esto no es un
+peso: ningún ahorro de minutos justifica dejar una orden sin ruta. Cuando no cabe todo, se queda fuera antes
+una venta al mostrador que un builder — el dueño: un builder *«cuando haya que dejar una orden fuera, es la
+última candidata a quedarse»*.
 
-**Objetivo, en orden estricto** (lexicográfico, no una suma donde todo se compensa con todo):
-1. menos órdenes sin asignar, **los builders primero**;
-2. menos minutos de retraso ponderados;
-3. menos minutos totales de ruta;
-4. reparto más parejo.
+**Debajo, los objetivos suaves: una suma ponderada, con los pesos en Ajustes.** El dueño los pidió
+*«ponderados y configurables, no fijos en el código… para poder afinarlos después comparando contra días
+reales»*, y dio **el orden con el que trabaja hoy el despachador**:
 
-Que sea en orden estricto es lo que hace que la explicación sea honesta: «esta orden va con Máximo porque
-con Julio llegaba 25 minutos tarde» es literalmente la comparación que hizo el algoritmo.
+| # | Objetivo del dueño | Término del coste | Unidad |
+|---|---|---|---|
+| 1 | **Prioridad a builders** — «es lo que más pesa… un builder queda más temprano en la ruta» | minutos desde que el chofer empieza su turno hasta que **llega a la entrega de cada builder**, sumados | min |
+| 2 | **Ruta más corta** — «minimizar tiempo total de manejo y kilometraje» | minutos de manejo + millas | min, mi |
+| 3 | **Ventanas amplias** — «llegar dentro de la ventana solicitada cuando no es estrecha» | minutos de retraso sobre ventanas anchas | min |
+| 4 | **Balance de carga** entre conductores | diferencia de minutos de ruta entre el chofer más y el menos cargado | min |
+
+`coste = w_builder·(1) + w_manejo·minutos + w_millas·millas + w_tarde·(3) + w_balance·(4)`
+
+- **Dónde viven los pesos:** en Ajustes (`settings.route_weights`), editables por el admin, con su pantalla.
+  **Cada plan guarda una copia de los pesos con los que se hizo** (`route_plans.params`), así que cambiar un
+  peso mañana no cambia lo que dice un plan de ayer.
+- **Valores por defecto: los que reproducen SU orden**, decrecientes en ese mismo orden. Los números
+  concretos de arranque se fijan en el incremento 2 con casos de prueba que lo demuestren («con dos órdenes
+  iguales, la del builder se entrega antes»; «un desvío de 10 minutos para adelantar a un builder se acepta,
+  uno de 90 no»), y **se afinan después con días reales**; no salen de este documento porque hoy no hay
+  ningún día real con qué calibrarlos.
+- **Un aviso que conviene leer antes de aprobar.** Con el retraso en ventana ancha en **tercer** lugar, por
+  debajo de la ruta corta, el motor aceptará llegar algo tarde a una ventana ancha si eso acorta la ruta. Es
+  lo que el dueño pidió y es como trabaja el despachador; pero para que «algo tarde» no sea cualquier cosa,
+  propongo un **tope duro de retraso en ventana ancha** (un parámetro más, p. ej. 60 minutos): por encima, la
+  orden se trata como si no cupiera. Es la pregunta 6 de §9.
+- **La que entró primero va primero.** A igualdad de todo lo demás decide `input_date` + `input_time`
+  (§2.4): es el criterio de desempate que dio el dueño, y también lo que ordena dos órdenes equivalentes
+  dentro de una misma parada.
+
+**Alternativa considerada: orden estricto (lexicográfico) en vez de suma.** Era mi primera propuesta:
+comparar primero builders, solo si empatan mirar la ruta, y así sucesivamente. Tiene una virtud —la
+explicación es una sola frase— y un defecto que aquí pesa más: **no se puede afinar**. En un orden estricto
+un minuto de builder vale más que cualquier cantidad de millas, siempre; con pesos, el dueño decide cuánto
+desvío vale adelantar a un builder, y puede corregirlo mirando días reales. Lo que pidió es lo segundo. Queda
+anotada por si la suma resultara difícil de gobernar: pasar de una a otra es cambiar la función que compara
+dos planes, nada más.
 
 **Construcción — inserción más barata de pares, con arrepentimiento (regret-2).** Para cada orden sin colocar
-se calcula su mejor posición (P e i, D en j ≥ i) en cada ruta y cuánto peor es su segunda mejor opción. Se
+se calcula su mejor posición (P en i, D en j ≥ i) en cada ruta y cuánto peor es su segunda mejor opción. Se
 inserta primero la que **más perdería si espera**: builders y ventanas estrechas suben solas al principio, y
-las órdenes fáciles llenan los huecos. Cada inserción guarda **qué alternativas había y cuánto costaban**:
-eso es el «por qué» que se enseña después.
+las órdenes fáciles llenan los huecos. Cada inserción guarda **qué alternativas había y cuánto costaban,
+término a término**: eso es el «por qué» que se enseña después.
 
 **Mejora — búsqueda local, siempre moviendo el par entero:**
-- *recolocar par* (a otra posición o a otro chofer),
+- *recolocar par* (a otra posición o a otro chofer, salvo que el chofer esté fijado),
 - *intercambiar pares* entre dos choferes,
 - *or-opt* y *2-opt* dentro de una ruta, descartando los movimientos que rompen precedencia o capacidad.
 
@@ -156,25 +195,38 @@ esqueleto; hoy no hace falta.
 
 **Evaluación — una sola función, `evaluaPlan`.** Dada una secuencia, propaga el reloj (salida de la base →
 viaje → espera si llega antes → servicio → siguiente), lleva la carga a bordo, y devuelve ETA, salida, espera,
-retraso y carga **por parada**, más las violaciones. **Es la misma función** que usa el motor para decidir,
-la pantalla cuando el despachador mueve una parada a mano, y la comparación cuando se puntúa la hoja manual.
-Una sola fuente: si dos números no coinciden, es un bug y no una diferencia de criterio.
+retraso y carga **por parada**, el coste **desglosado por término**, y las violaciones. **Es la misma
+función** que usa el motor para decidir, la pantalla cuando el despachador mueve una parada a mano, y la
+comparación cuando se puntúa la hoja manual. Una sola fuente: si dos números no coinciden, es un bug y no una
+diferencia de criterio.
+
+**Afinar los pesos con días reales.** La comparación contra la hoja (§8.1) **es el banco de pruebas**. Cada
+hoja importada deja guardados, para ese día, el plan del despachador y el del motor puntuados con la misma
+función, término a término. Con unas semanas de hojas se puede contestar con números: ¿en cuántas órdenes
+coinciden chofer y orden de carga?, ¿cuándo «gana» el despachador, y en qué término? Como el motor es
+determinista y cada plan guarda su entrada, **se puede volver a planificar cualquier día pasado con otros
+pesos** y ver si se acerca o se aleja de lo que hizo el despachador — sin llamar a ninguna API, porque la
+matriz de ese día también está guardada. Los pesos **nunca se ajustan solos**: se proponen, el dueño los
+cambia en Ajustes, y queda registrado desde qué plan rigen.
 
 **Tiempos de servicio: los de hoy** (respuesta 7 del dueño; D-024, `DECISIONS.md:18526`). En la entrega, los
 minutos de `delivery_duration` (pallets × `settings.delivery_min_per_pallet`), **15 por defecto**
 (`trip-timing.ts:11`). En la recogida, los de `pickup_duration` (pallets × `settings.pickup_min_per_pallet`),
 que hoy **se calculan y no entran en ningún plan**. Queda una pregunta abierta sobre los 20 minutos de
-recarga (§9, pregunta 7).
+recarga (§9, pregunta 8).
 
 ### 2.4 Determinismo
 
 - **Sin azar:** ni `Math.random`, ni orden de iteración de un `Map` sin fijar.
-- **Empates resueltos por una clave estable:** `order_code`, y luego `id`. Choferes, por nombre.
+- **Empates resueltos por una clave estable, y la primera es la del dueño:** `input_date` + `input_time`
+  («la que entró primero va primero»; columnas `014:25-26`), después `order_code`, y al final `id`. Una orden
+  sin fecha de entrada va detrás de las que la tienen. Choferes, por nombre.
 - **Se corta por número de iteraciones, nunca por tiempo de reloj:** un límite de tiempo hace que la
   respuesta dependa de lo rápida que sea la máquina.
 - **La matriz de tiempos es parte de la entrada, y se guarda con el plan.** Si Google contesta otra cosa
   mañana, el plan de hoy sigue siendo reproducible byte a byte.
-- **El plan guarda la versión del algoritmo y sus parámetros.** Cambiar una penalización es una versión nueva.
+- **El plan guarda la versión del algoritmo, sus parámetros y sus pesos.** Cambiar un peso es otra entrada, y
+  por tanto otro plan; nunca el mismo plan con otro resultado.
 - Prueba: la misma entrada dos veces, y barajando el orden de las órdenes de entrada → el mismo plan.
 
 ### 2.5 Límite de cómputo
@@ -188,13 +240,22 @@ convergió»**: nunca un error, y nunca en silencio.
 
 ### 2.6 Reoptimizar con paradas fijas o ya ejecutadas
 
-Tres clases de parada, y el motor solo toca la tercera:
+Cuatro clases, y el motor solo decide del todo sobre la última:
 
 | Clase | Qué es | Qué hace el motor |
 |---|---|---|
 | **Ejecutada** | la orden ya está `picked_up` (su P ocurrió) o `delivered` (las dos) | Intocable. Una orden recogida **se queda con ese chofer**: la carga va en su camión (y es lo que ya dice D-017). Su D pendiente se puede reordenar dentro de esa ruta, no cambiar de chofer |
-| **Fijada** | el despachador le puso el candado, o la movió a mano | Conserva chofer y posición relativa. El motor coloca lo demás alrededor |
+| **Fijada** | el despachador le puso el candado, o la movió a mano en el borrador | Conserva chofer **y** posición relativa. El motor coloca lo demás alrededor |
+| **Con chofer puesto a mano** | la orden ya trae `assigned_driver` porque **una persona** la asignó | Conserva el **chofer**; la **posición** la decide el motor. Es la regla literal del dueño |
 | **Libre** | el resto | Se planifica |
+
+**Cómo se distingue «la asignó una persona» de «la asignó el motor ayer».** Importa: al re-planificar un día
+ya publicado, casi todas las órdenes traen `assigned_driver` — porque lo escribió la publicación anterior. Si
+todas contaran como puestas a mano, el segundo plan no podría mover nada. La regla: una orden está **puesta a
+mano** si su chofer actual **no coincide** con el que le dio el último plan publicado de esa fecha (o no hay
+plan publicado). Si coincide, lo puso el motor y es **libre**. No hace falta columna nueva: sale de comparar
+`deliveries.assigned_driver` con `route_plan_stops` del plan publicado. Una orden en un «route bucket» queda
+fuera del motor (§4.5).
 
 - **Desde dónde se reoptimiza a mitad del día:** desde la última parada ejecutada de cada chofer y su hora
   real. **No desde el GPS en vivo**: el rastreo solo corre en turno, solo desde el APK y con huecos declarados
@@ -206,15 +267,21 @@ Tres clases de parada, y el motor solo toca la tercera:
 
 ### 2.7 Explicabilidad
 
-Cada parada del plan guarda su motivo, en datos y no en prosa (la pantalla lo traduce a los dos idiomas):
+Una suma ponderada se explica peor que un orden estricto **si solo se enseña el total**. Por eso nunca se
+enseña solo el total: `evaluaPlan` devuelve el coste **desglosado por término**, y cada alternativa se cuenta
+como una diferencia término a término. Cada parada del plan guarda su motivo, en datos y no en prosa (la
+pantalla lo traduce a los dos idiomas):
 
-- **Por qué este chofer:** el coste con él, y el de la mejor alternativa con otro — «con Julio, +25 min de
-  ruta y 10 min tarde».
-- **Por qué en esta posición:** qué restricción la ata (ventana, precedencia, capacidad).
-- **Cuánto costaría moverla:** el despachador arrastra y ve el delta antes de soltar.
+- **Por qué este chofer:** la mejor alternativa con otro, desglosada — «con el otro chofer: +18 min de
+  manejo, +6 millas, el builder llega 40 min más tarde, +25 min tarde en una ventana ancha». Se ve **qué
+  término decidió**, y el dueño puede discrepar del peso, no solo del resultado.
+- **Por qué en esta posición:** qué restricción dura la ata (ventana estrecha, precedencia, capacidad), o qué
+  término la empuja (es un builder; entró antes).
+- **Cuánto costaría moverla:** el despachador arrastra y ve el delta, desglosado, antes de soltar.
 - **Por qué quedó sin asignar**, con un vocabulario cerrado, tomado de los códigos de Google:
   `sin_punto` (la orden no tiene pin) · `supera_capacidad` (más pallets que el camión mayor) ·
-  `ventana_imposible` · `fuera_de_turno` · `sin_chofer_disponible` · `sin_tienda_de_origen`.
+  `ventana_imposible` · `retraso_sobre_el_tope` · `fuera_de_turno` · `sin_chofer_disponible` ·
+  `chofer_fijado_sin_hueco` · `sin_tienda_de_origen`.
 
 ---
 
@@ -328,24 +395,38 @@ el despachador meta en un bucket queda **fuera del plan del motor ese día**, y 
 
 ### 4.6 Las ventanas: los cinco slots no se tocan (D-296 `:37194`)
 
-D-296 fija cinco ventanas, obligatorias, y una elegida a mano no se pisa. **El motor no las cambia, no crea
-otras y no «ajusta» una ventana para que le cuadre la ruta.** Lo que el dueño llama «ventana estrecha» se
-resuelve con una **regla sobre las que ya existen**:
+D-296 fija cinco ventanas, obligatorias, y una elegida a mano no se pisa: `0830-1000`, `0830-1200`,
+`1200-1730`, `0830-1730` y, en sábado, `0830-1530` (`constants.ts:666-677`). **El motor no las cambia, no crea
+otras y no «ajusta» una ventana para que le cuadre la ruta.**
 
-> **Estrecha = dura dos horas o menos.**
+**Qué es «estrecha», según el dueño.** Su encargo: *«algunas son estrechas (08:30–09:30, 08:30–12:00) y en la
+hoja se resaltan a mano. Esas mandan sobre todo lo demás»*. Dos cosas que ese texto dice y que cambian mi
+primera propuesta:
 
-Con los cinco slots de hoy, solo `0830-1000` (1 h 30) es estrecha. Medido en 90 días: 20 de 160 órdenes.
-Las otras cuatro duran 3 h 30 o más.
+1. **08:30–12:00 es estrecha para él, y dura 3 h 30.** Una regla «dura 2 horas o menos» no la captura.
+2. **08:30–09:30 no existe en la app.** No es ninguno de los cinco slots: en la hoja hay ventanas que el
+   formulario de la orden no ofrece. Es una diferencia entre la hoja y la app que hay que resolver antes de
+   importar hojas (§9, pregunta 5).
 
-| | Estrecha (≤ 2 h) | Ancha |
+**Tres formas de decir cuál es estrecha, para que elija el dueño** (pregunta 5):
+
+| | Regla | A favor | En contra |
+|---|---|---|---|
+| **A** | **Lista explícita en Ajustes** de los slots que son duros — hoy serían `0830-1000` y `0830-1200` | Sin ambigüedad; se cambia sin tocar código; sin migración de la orden | Una ventana ancha que un día concreto importa no se puede marcar |
+| **B** | **Por duración:** estrecha = dura 3 h 30 o menos | Una línea | Es un umbral que casa hoy por casualidad con los slots; si mañana hay un slot de 4 h, habrá que discutirlo otra vez |
+| **C** | **Una marca en la orden**, «ventana dura» — lo que el despachador hace hoy resaltándola a mano | Lo más fiel a como trabaja | Un campo más en el formulario y una columna más; alguien tiene que acordarse de marcarla |
+
+**Recomiendo A, y C más adelante si se echa de menos.** Medido en 90 días: `0830-1000` = 20 órdenes y
+`0830-1200` = 10, o sea **30 de 160** con ventana dura.
+
+| | Estrecha | Ancha |
 |---|---|---|
-| Llegar tarde | **No se permite.** Si no cabe, sin asignar con `ventana_imposible` | Se permite, con coste alto y aviso en rojo |
+| Llegar tarde | **No se permite.** Si no cabe, sin asignar con `ventana_imposible` | Se permite, con su peso (el tercero, §2.3), aviso en rojo y un tope |
 | En el reparto | Se colocan primero | Rellenan |
 
-La regla no necesita migración ni formulario nuevo: la ventana ya es un texto `"HHMM-HHMM"`
-(`dispatch.ts:25`). El umbral es un parámetro del plan. **Es una propuesta: el número lo pone el dueño** (§9,
-pregunta 5). Un detalle que el motor hereda y conviene saber: `parseWindow` solo lee el **primer** rango
-aunque `fmtWindows` admita varios separados por coma (`dispatch.ts:27`, `utils.ts:203`).
+Ninguna de las tres opciones toca el formato: la ventana ya es un texto `"HHMM-HHMM"` (`dispatch.ts:25`). Un
+detalle que el motor hereda y conviene saber: `parseWindow` solo lee el **primer** rango aunque `fmtWindows`
+admita varios separados por coma (`dispatch.ts:27`, `utils.ts:203`).
 
 ---
 
@@ -411,7 +492,7 @@ Una fila por chofer, **por `profiles.id`**:
   chofer, como hoy. La RLS del chofer, su color y los buckets siguen funcionando **sin tocarlos**.
 - **El motor trabaja por `id`** (estable); el nombre es solo lo que escribe al final. Las tablas de plan
   guardan **los dos**: `driver_id` y `driver_name`, este último como foto del momento.
-- **La capacidad de hoy** (`settings.driver_capacity`, nombre → pallets; medido: `{"Maximo Garza": 10}`) se
+- **La capacidad de hoy** (`settings.driver_capacity`, nombre → pallets; medido: una sola entrada, de 10 pallets) se
   **copia** a `driver_settings` al crearla, casando por nombre. Mientras existan las dos, el Gestor lee
   primero `driver_settings` y, si falta, la de Ajustes. La de Ajustes se retira en un incremento posterior,
   cuando nada la lea.
@@ -424,16 +505,24 @@ RLS: leen admin, gerente, office, logística y almacén; escriben admin y logís
 
 ### 6.2 `deliveries.customer_type` — builder o mostrador, por orden
 
-- Columna `customer_type text`, `check in ('builder','counter_sale')`, **admite null**.
-- El dueño: «se marca en cada orden», con la cuenta como valor por defecto. El valor por defecto vive en
-  `AccountRecord.customer_type`, dentro del JSON de `settings.accounts` — **sin migración SQL**, como
-  `intertienda` y `requires_approval`.
-- En el formulario, un selector Builder / Mostrador, solo en los tipos que van a un cliente. Una Intertienda
-  no es ni lo uno ni lo otro.
-- **El hueco, medido:** 48 de 82 órdenes Customer de los últimos 90 días **no tienen cuenta**, y solo hay 4
-  cuentas guardadas. El valor por defecto no va a cubrir casi nada: esas órdenes nacen con `null`. Qué hace
-  el motor con un `null` es la pregunta 6 de §9. **Propuesta: tratarlo como mostrador** —prioridad normal—,
-  porque subirle la prioridad a quien nadie marcó como builder es justo lo contrario de priorizar.
+- Columna `customer_type text`, `check in ('builder','counter_sale')`, **admite null** (una Intertienda o un
+  Transfer no son ni lo uno ni lo otro).
+- El dueño: «se marca en cada orden», con la cuenta como valor por defecto. El valor por defecto de cada
+  cuenta vive en `AccountRecord.customer_type`, dentro del JSON de `settings.accounts` — **sin migración
+  SQL**, como `intertienda` y `requires_approval`.
+- **En el formulario, solo en los tipos que van a un cliente**, un selector Builder / Mostrador que **nunca
+  nace vacío**:
+  - la cuenta elegida está guardada como builder → **Builder**;
+  - **no hay cuenta**, o la cuenta no dice nada → **Mostrador**.
+
+  Así nadie tiene que acordarse de marcarlo para que una orden sin cuenta sea de mostrador, y quien vende a
+  un builder sin cuenta guardada lo cambia con un toque. Casa con lo medido: **48 de las 82** órdenes a
+  cliente de 90 días no tienen cuenta y solo hay 4 cuentas guardadas — y «VENTA AL MOSTRADOR», que en la hoja
+  es el valor de la columna Account, **no existe como cuenta en la app**. Lo más probable es que esas 48
+  *sean* las ventas al mostrador; es una inferencia, no una medición, y por eso es una pregunta (§9, 7).
+- Las órdenes **anteriores** a este campo quedan en `null`. El motor trata `null` en un tipo de cliente como
+  mostrador —prioridad normal—: subirle la prioridad a quien nadie marcó como builder es justo lo contrario
+  de priorizar.
 
 ### 6.3 Las tablas de plan — el hueco que condiciona todo lo demás
 
@@ -446,7 +535,7 @@ RLS: leen admin, gerente, office, logística y almacén; escriben admin y logís
 | `version int` | 1, 2, 3… dentro de la fecha |
 | `source` | `engine` · `manual_edit` (un borrador tocado a mano) · `manual_import` (la hoja del despachador) |
 | `algorithm_version text` | |
-| `params jsonb` | penalizaciones, umbral de ventana estrecha, topes |
+| `params jsonb` | **los pesos con los que se hizo** (copia de `settings.route_weights`), la regla de ventana estrecha, el tope de retraso, los topes de cómputo |
 | `input jsonb` | **la foto de la entrada**: órdenes (id, puntos, pallets, ventana, tipo, `updated_at`), choferes (base, capacidad, turno) y la matriz usada. Es lo que lo hace reproducible |
 | `provider text`, `traffic boolean`, `converged boolean` | con qué tiempos se hizo, y si terminó |
 | `total_minutes`, `total_miles`, `late_minutes`, `late_count`, `unassigned_count` | lo que se compara lado a lado |
@@ -487,6 +576,9 @@ leen los roles de oficina. No guarda nada de nadie: dos coordenadas y una duraci
 
 - **Índice** `(delivery_date, assigned_driver)` en `deliveries`: hoy no hay ninguno sobre el chofer.
 - **Preferencias por usuario** (§8, incremento 10): tabla `user_prefs (user_id, prefs jsonb)`.
+- **`settings.route_weights jsonb`**: los pesos de §2.3 y la lista de ventanas duras de §4.6, editables por el
+  admin. Con su columna declarada en una migración: hoy hay seis campos de `settings` que la app usa y que
+  ninguna migración del repo crea (lo encontró el inventario), y no conviene sumar un séptimo.
 
 ---
 
@@ -535,8 +627,8 @@ Cada uno con sus pruebas, su entrada en `DECISIONS.md`, y nada visible para el c
 
 | # | Incremento | Migración | Qué se ve |
 |---|---|---|---|
-| **1** | **Datos del chofer y tipo de cliente.** `driver_settings`, su pantalla en Ajustes; `customer_type` en la orden y en la cuenta | sí (2) | Ajustes y el formulario de orden. El Gestor, igual |
-| **2** | **El núcleo puro.** `planifica` y `evaluaPlan` en `src/lib/routing/`, sin red, sin base, sin pantalla. Pruebas: precedencia; capacidad excedida; pallets decimales; ventana imposible; sin chofer disponible; bases distintas; día sin órdenes; una sola orden; builder antes que mostrador; paradas fijadas y ejecutadas; **determinismo** (misma entrada dos veces, y entrada barajada); **estrés** (60 órdenes, 10 choferes, bajo el tope); y **mutantes leídos por nombre** | no | Nada |
+| **1** | **Datos del chofer y tipo de cliente.** `driver_settings`, su pantalla en Ajustes; `customer_type` en la orden y en la cuenta; `settings.route_weights` con su pantalla (pesos y ventanas duras) | sí (3) | Ajustes y el formulario de orden. El Gestor, igual |
+| **2** | **El núcleo puro.** `planifica` y `evaluaPlan` en `src/lib/routing/`, sin red, sin base, sin pantalla. Pruebas: precedencia; capacidad excedida; pallets decimales; ventana imposible; sin chofer disponible; bases distintas; día sin órdenes; una sola orden; builder antes que mostrador, y el último en quedarse fuera; **el orden de los pesos por defecto** (un desvío corto para adelantar a un builder se acepta, uno largo no); ventana estrecha dura y ancha con tope; chofer puesto a mano respetado, posición libre; empate por fecha y hora de entrada; paradas fijadas y ejecutadas; **determinismo** (misma entrada dos veces, y entrada barajada); **estrés** (60 órdenes, 10 choferes, bajo el tope); y **mutantes leídos por nombre** | no | Nada |
 | **3** | **Tiempos.** `travel_time_cache`, matriz base, cascada con `departureTime` futuro, respaldo OSRM, tope de llamadas. Pruebas con el proveedor **simulado**: ni una llamada real | sí (1) | Nada |
 | **4** | **Tablas de plan, borrador y publicar.** «Planificar el día» junto a lo de hoy, que **sigue ahí**. Un aviso por chofer | sí (3) + plan en papel | El despachador puede planificar y publicar |
 | **5** | **La ruta P/D.** Secuencia P1/D1 con ETA, espera, carga a bordo y retrasos en rojo; línea de tiempo por chofer. «Mi ruta» enseña la secuencia publicada | RLS del chofer sobre sus paradas | Gestor y «Mi ruta» |
@@ -553,34 +645,75 @@ se queda sin herramienta.
 
 ### 8.1 Importar la hoja del despachador y comparar lado a lado
 
-- **Entrada:** el CSV o XLSX de la hoja, **subido o pegado** en la pantalla. Se lee **en el navegador**
-  (`exceljs` ya está en el repo, `package.json:24`). **No se guarda el fichero, ni en el repo ni en Storage**;
-  de la hoja solo queda el plan resultante, que referencia órdenes que ya están en la base. Ningún dato del
-  dueño entra en el repo ni en las pruebas, que usan hojas inventadas.
-- **Lo que sé del formato**, por lo que transmitió el orquestador: la columna rotulada **«Pickup Address» es
-  en realidad el número de carga**: empieza en 0, **se reinicia por chofer**, y **números repetidos son la
-  misma parada física**. **No he visto la hoja ni la lista completa de columnas**, así que el mapa de columnas
-  no se diseña aquí a ciegas: el importador enseñará las cabeceras que encuentra y dejará elegir cuál es el
-  chofer, cuál la carga, cuál identifica la orden; y se recordará la elección. Hace falta una hoja de ejemplo
-  (§9, pregunta 9).
-- **Casar filas con órdenes:** por factura, PO, SO o código de orden, los que traiga la fila. Lo que no casa
-  se enseña **sin casar**; no se adivina. La hoja puede llevar órdenes que no están en la app (el orquestador
-  ya avisó de que puede traer más): esas se listan aparte y **no se puntúan**, porque no tienen puntos ni
-  pallets.
-- **La secuencia manual:** por chofer, por número de carga ascendente y, dentro, por orden de fila. Filas con
-  el mismo número = una sola parada física con varias órdenes.
-- **Puntuar con el MISMO modelo:** esa secuencia pasa por `evaluaPlan` —sin optimizar nada— con la misma
-  matriz, los mismos tiempos de servicio, las mismas ventanas y capacidades. Se guarda como un `route_plans`
-  con `source = manual_import`. Así los dos planes son comparables número a número, y la ruta manual también
-  enseña **sus** violaciones: si el despachador carga 11 pallets en un camión de 10, se ve.
-- **Lado a lado:** por chofer y en total — minutos, millas, minutos tarde, paradas tarde, órdenes fuera. Y
-  por orden: **mismo chofer o no, misma posición o no.**
-- **Explicar cada diferencia:** para cada orden que el motor puso distinto, **cuánto cuesta ponerla como en
-  la hoja** (el mismo «cuánto costaría moverla» de §2.7). Tres respuestas posibles, y las tres son útiles:
-  - *«como en la hoja, +18 min»* — el motor gana, y dice cuánto;
-  - *«como en la hoja, −6 min»* — **el despachador gana**: es un fallo del motor, o algo que el despachador
-    sabe y el modelo no (una calle, un cliente que nunca está por la mañana). Es la señal de §2.2;
-  - *«como en la hoja rompe una ventana»* — la diferencia es una restricción, no un gusto.
+**Las columnas, tal como las dio el dueño**, y a qué corresponden en la app:
+
+| Columna de la hoja | En la app | Nota |
+|---|---|---|
+| Order Type (Cliente / Intertienda / Transfer) | `order_type` | «Cliente» es `Customer` en la app (`028`) |
+| Store (Sold From) | `store` | |
+| PO # · SO # · Invoice # | `po2` · `so_num` · `invoice_num` | **con estas tres se casa la fila con su orden** |
+| Input Date · Input Military Time | `input_date` · `input_time` | el desempate: la que entró primero va primero |
+| Delivery Date | `delivery_date` | |
+| Pickup Name (MCA, MIS, EDG, PHR, BRO) | tienda de origen | los códigos son los de `STORE_TAGS` (`utils.ts:37-45`), leídos al revés: código → tienda |
+| **Pickup Address** | **no es una dirección: es el número de carga** | ver abajo |
+| Est. Pallets | `est_pallets` | decimal en los dos sitios |
+| Assigned Driver (optional) | `assigned_driver` | vacío = el despachador no asignó |
+| Delivery Address | `delivery_address` | |
+| Delivery Military Time Windows | `delivery_windows` | militar en los dos sitios; las estrechas, **resaltadas a mano** — un resaltado no viaja en un CSV, y por eso «estrecha» tiene que ser una regla (§4.6) |
+| Account | `account` | «VENTA AL MOSTRADOR» = mostrador; cualquier otra = builder o empresa |
+
+**La columna «Pickup Address».** El dueño: *«no contiene una dirección: contiene el número de orden de las
+cargas. Es la secuencia en que el conductor hace sus recogidas, únicamente. Empieza en 0 y se reinicia con
+cada conductor. Hoy las entregas no se numeran… Un mismo número se repite en varias filas del mismo conductor
+cuando esas órdenes se agrupan en una sola parada física»*. De ahí:
+
+- La hoja da **el chofer de cada orden** y **el orden de sus RECOGIDAS**. **No da el orden de las entregas.**
+- **Números repetidos = una sola parada física** con varias órdenes. El motor ya lo modela así: varias P en la
+  misma tienda, seguidas, son una visita con un solo tiempo fijo.
+- **En la app las etiquetas empiezan en 1** (P1, P2…), como pidió el dueño; la hoja empieza en 0. La carga
+  `0` de la hoja es **P1** en pantalla. La comparación lo enseña así, con el número de la hoja al lado, para
+  que nadie tenga que sumar uno de cabeza.
+
+**Cómo entra.** El CSV o XLSX de la hoja, **subido o pegado**, leído **en el navegador** (`exceljs` ya está en
+el repo, `package.json:24`). Las columnas se reconocen **por su cabecera**, con el mapa de arriba por
+defecto; si una hoja trae otra cabecera, el importador enseña las que encontró y deja elegir, y recuerda la
+elección. **No se guarda el fichero, ni en el repo ni en Storage**: de la hoja solo queda el plan resultante,
+que referencia órdenes que ya están en la base. Ningún dato del dueño entra en el repo ni en las pruebas, que
+usan hojas inventadas.
+
+**Casar filas con órdenes:** por Invoice #, PO # o SO #, dentro de la fecha de entrega de la hoja. Lo que no
+casa se enseña **sin casar**; no se adivina. La hoja puede llevar órdenes que no están en la app (el
+orquestador ya avisó): se listan aparte y **no se puntúan**, porque no tienen punto ni pallets en la base.
+
+**Qué se puede comparar, y qué no.** Como la hoja solo ordena recogidas, **el orden de entregas no tiene
+contraparte manual**, y conviene decirlo en la propia pantalla en vez de inventar una. Se compara:
+
+1. **A qué chofer va cada orden** — coincide o no, orden por orden.
+2. **El orden de las cargas** de cada chofer — coincide o no.
+3. **El coste total de la ruta manual**, completada de la única forma honesta: **respetando sus choferes y su
+   orden de cargas**, y dejando que el motor ponga las entregas en **la mejor secuencia que ese orden de
+   cargas permite**. Es la mejor versión posible del plan del despachador: si aun así el motor sale mejor, la
+   diferencia es suya de verdad; si sale peor, el despachador sabe algo que el modelo no.
+
+Ese plan se guarda como `route_plans` con `source = manual_import`, y se marca qué parte es de la hoja
+(choferes, cargas) y qué parte completó el motor (entregas), para que nadie lea las entregas como si fueran
+del despachador. Se puntúa con `evaluaPlan`: misma matriz, mismos tiempos de servicio, mismas ventanas y
+capacidades, **mismos pesos**. La ruta manual también enseña **sus** violaciones: si carga 11 pallets en un
+camión de 10, se ve.
+
+Las filas con **Assigned Driver vacío** no tienen chofer manual que comparar: entran en el total, asignadas
+por el motor, y se cuentan aparte.
+
+**Lado a lado:** por chofer y en total, **término a término** (builders, manejo y millas, retraso, balance),
+más paradas tarde y órdenes fuera.
+
+**Explicar cada diferencia.** Para cada orden que el motor puso con otro chofer o en otro orden de carga,
+**cuánto cuesta ponerla como en la hoja**, desglosado (§2.7). Tres respuestas posibles, y las tres sirven:
+- *«como en la hoja: +18 min de manejo»* — el motor gana, y dice en qué;
+- *«como en la hoja: −6 min»* — **el despachador gana**: es un fallo del motor, un peso mal puesto, o algo
+  que él sabe y el modelo no (una calle, un cliente que nunca está por la mañana). Es la señal de §2.2 y la
+  materia prima para afinar los pesos (§2.3);
+- *«como en la hoja rompe una ventana estrecha»* — la diferencia es una restricción, no un gusto.
 
 ### 8.2 Calibración: ETA estimada contra real
 
@@ -626,34 +759,43 @@ conmutable** (`OrdersTable.tsx:62`) y **además** la columna `#`, siempre visibl
 - **La factura dos veces:** lo menos invasivo es **no tocar `#`** —D-298 definió esa celda como cabecera de
   la tarjeta del teléfono, y desde D-310 lleva la pastilla de documento pendiente— y **sacar `invoice` de las
   columnas por defecto** de ventas, chofer y almacén (`constants.ts:684-690`), dejándola conmutable. Cambia lo
-  que tres roles ven al entrar, así que va a §9 (pregunta 10).
+  que tres roles ven al entrar, así que va a §9 (pregunta 11).
 
 ---
 
 ## 9. Preguntas abiertas para el dueño
 
-1. **Base de cada chofer.** ¿De qué tienda sale y a cuál vuelve Ernesto Castillo, Julio Jijon, Maximo Garza y
-   Steven? (Medido: Maximo figura hoy en RDZ Brownsville.) ¿Vuelven siempre a su base al terminar?
-2. **Capacidad de cada camión**, en pallets. (Hoy solo consta Maximo Garza = 10; el resto, 12 por defecto.)
-3. **¿Steven rutea?** En 90 días no tiene ninguna orden asignada. ¿El motor puede darle trabajo o queda fuera?
+> Los nombres de choferes y de cuentas no se escriben en este documento, que vive en el repo: se los pasa el
+> orquestador con la pregunta.
+
+1. **Base de cada chofer.** Para cada uno de los cuatro con rol de chofer: ¿de qué tienda sale y a cuál vuelve?
+   (Medido: hoy solo uno tiene tienda puesta en su perfil.) ¿Vuelven siempre a su base al terminar?
+2. **Capacidad de cada camión**, en pallets. (Medido: en Ajustes solo consta la de uno, 10; los demás usan 12
+   por defecto.)
+3. **¿Rutean los cuatro?** Uno de ellos no tiene ninguna orden asignada en 90 días. ¿El motor puede darle
+   trabajo o queda fuera?
 4. **Turno de cada chofer:** hora de entrada y de salida. ¿Hay comida o descanso que el plan deba respetar?
-5. **Ventana «estrecha».** Propuesta: **la que dura 2 horas o menos** — hoy, solo 08:30-10:00. A esas no se
-   llega tarde nunca; a las demás se puede, con aviso en rojo. ¿Es eso, o piensa en otra cosa (una hora exacta
-   prometida al cliente)?
-6. **Órdenes sin cuenta.** 48 de las 82 órdenes a cliente de 90 días no tienen cuenta, así que nacerán sin
-   marcar como builder ni mostrador. Propuesta: tratarlas como **mostrador** (prioridad normal). ¿De acuerdo,
-   o prefiere que el formulario **obligue** a marcarlo?
-7. **Los 20 minutos de recarga** (D-024). Con recogidas como paradas, propuesta: en cada visita a una tienda,
+5. **Ventana «estrecha».** Usted puso de ejemplo 08:30–09:30 y 08:30–12:00. (a) ¿Cómo prefiere decir cuáles
+   son duras: **una lista en Ajustes** (hoy: 08:30–10:00 y 08:30–12:00 — es lo que recomiendo), **por
+   duración** (3 h 30 o menos), o **una marca en cada orden**, como el resaltado que hace hoy a mano?
+   (b) **08:30–09:30 no es una ventana que la app ofrezca** (son cinco fijas). ¿La añadimos, o en la app esa
+   orden lleva 08:30–10:00?
+6. **Tope de retraso en ventana ancha.** Con la ruta corta por delante de las ventanas anchas, el motor
+   aceptará llegar algo tarde a una ancha si eso acorta la ruta. ¿Cuánto es «algo»? Propuesta: nunca más de 60
+   minutos; por encima, la orden se trata como si no cupiera.
+7. **Builder o mostrador.** Propuesta: el formulario lo pide solo en órdenes a cliente, con **Mostrador**
+   cuando no hay cuenta y **Builder** cuando la cuenta guardada lo es. 48 de las 82 órdenes a cliente de 90
+   días no tienen cuenta: ¿son, como parece, las ventas al mostrador?
+8. **Los 20 minutos de recarga** (D-024). Con recogidas como paradas, propuesta: en cada visita a una tienda,
    **lo mayor** entre 20 minutos y la suma de los minutos de carga de lo que se recoge ahí. ¿O 20 fijos más
    los minutos por pallet?
-8. **Una orden más grande que el camión.** Usted dijo que se parte en viajes. ¿La parte **el motor** (dos
+9. **Una orden más grande que el camión.** Usted dijo que se parte en viajes. ¿La parte **el motor** (dos
    cargas a/b del mismo chofer, como las cargas partidas que ya existen) o **almacén antes**, a mano?
-9. **Una hoja de ejemplo** del despachador, de un día real, para fijar el mapa de columnas del importador. No
-   se guarda en el repo.
-10. **La factura dos veces en la tabla** (§8.3): ¿quitamos la columna «Factura #» de las que ventas, chofer y
+10. **Una hoja de un día real**, para probar el importador contra ella. No se guarda en el repo.
+11. **La factura dos veces en la tabla** (§8.3): ¿quitamos la columna «Factura #» de las que ventas, chofer y
     almacén ven por defecto, ya que `#` la enseña siempre?
-11. **¿Almacén ve los borradores, o solo la ruta publicada?** Propuesta: solo la publicada.
-12. **Publicar, ¿quién?** Propuesta: admin y logística. ¿También gerente y office?
+12. **¿Almacén ve los borradores, o solo la ruta publicada?** Propuesta: solo la publicada.
+13. **Publicar, ¿quién?** Propuesta: admin y logística. ¿También gerente y office?
 
 ---
 
@@ -666,7 +808,10 @@ conmutable** (`OrdersTable.tsx:62`) y **además** la columna `#`, siempre visibl
 - **El uso de Google que ya hace la app**, que comparte franja gratuita con el motor.
 - **Si el tráfico en cascada mejora las ETAs** lo bastante como para justificarse: no hay tiempos reales con
   qué compararlo (§8.2). Por eso el incremento 3 lo deja como una capa que se puede apagar.
-- **El formato de la hoja del despachador:** solo conozco lo que dijo el orquestador de una columna.
+- **La hoja del despachador:** las columnas son las que dio el dueño por escrito; **no he visto una hoja
+  real**, así que cabeceras exactas, celdas combinadas o filas de totales están sin ver. Por eso el importador
+  reconoce por cabecera y deja corregir, y por eso la pregunta 10.
+- **Los valores por defecto de los pesos:** el documento fija su orden, no sus números (§2.3).
 - **El plan de Vercel** y, con él, el tiempo máximo de una función. No condiciona el diseño —el cómputo son
   milisegundos y la cascada se puede trocear—, pero está sin mirar.
 - **Por qué `pickup_gps_at` y `pod_delivered_at` están en 36 y 22 de 109.**
