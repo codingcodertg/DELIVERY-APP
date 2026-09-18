@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { pasoFormulario } from "./order-form-step";
 
-// D-NEXT: una orden nueva que nace Intertienda enseñaba un modal vacío, porque el paso corto se
+// D-304: una orden nueva que nace Intertienda enseñaba un modal vacío, porque el paso corto se
 // saltaba (D-302) y el completo esperaba «Siguiente». Aquí se fija que la decisión nunca queda vacía.
 describe("pasoFormulario", () => {
   it("una orden nueva tienda-a-tienda va DIRECTA al formulario completo, sin pulsar Siguiente", () => {

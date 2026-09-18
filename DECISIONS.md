@@ -37754,6 +37754,11 @@ main, que se movió mientras se escribía (D-300).
   (medido en `settings.order_type_rules`). Si mañana alguien le pone esa bandera a otro tipo, se lleva
   este comportamiento entero sin que nadie lo decida otra vez.
 
+> **Nota (2026-09-17, orquestador):** antes de fusionar se contó en producción: de **72** órdenes
+> Intertienda, **0** tienen una dirección de entrega que no sea la de alguna tienda de Ajustes, y **2**
+> tienen el nombre del destino distinto del de la tienda. O sea que pasar entrega y recogida a
+> desplegables de tienda no deja fuera ningún dato real; los 2 nombres distintos quedan como están.
+
 ## D-303 · El precio con descuento vuelve, con la fórmula nueva
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
@@ -37868,7 +37873,7 @@ corriéndolo solo; el resto de los cambios son reescrituras de pruebas que ya ex
   tarde— cuando alguien las abra: verán el aviso de almacén solo si lo cobrado no coincide ni con la
   lista ni con el descuento de hoy.
 
-## D-NEXT · Una orden nueva que nace Intertienda enseñaba un modal vacío
+## D-304 · Una orden nueva que nace Intertienda enseñaba un modal vacío
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Visto por el dueño** en producción (1.132.0), con captura: «New delivery order · Unsaved» y debajo

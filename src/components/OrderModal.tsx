@@ -576,7 +576,7 @@ export function OrderModal({
   // account/contact/phone don't apply and are locked. Driven by the order
   // type's configured rule (Data → Order types), not the name.
   const storeToStore = isStoreToStore(d.order_type, settings.order_type_rules);
-  // Qué paso enseña el formulario (D-NEXT): UNA decisión para las cuatro condiciones de abajo. Antes
+  // Qué paso enseña el formulario (D-304): UNA decisión para las cuatro condiciones de abajo. Antes
   // eran dos escritas a mano y una Intertienda recién nacida no caía en ninguna: modal vacío.
   const paso = pasoFormulario(isNew, showFullForm, storeToStore);
   // Store-to-store still routes the DESTINATION to another store (dropdown

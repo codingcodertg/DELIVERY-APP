@@ -1,5 +1,5 @@
 // ============================================================
-// Qué pantalla enseña el formulario de una orden en modo edición (D-NEXT).
+// Qué pantalla enseña el formulario de una orden en modo edición (D-304).
 //
 // Una orden nueva tiene dos pasos: uno corto (tipo y dirección, para tarifar) y el formulario
 // completo. Los tipos tienda-a-tienda saltan el corto. D-302 empezó a saltarlo también cuando la
