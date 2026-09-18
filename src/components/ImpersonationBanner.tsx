@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
+import { PrefsProvider } from "@/lib/prefs";
+import { ConfirmProvider } from "@/lib/confirm";
 import type { NamedLocation, Profile } from "@/lib/types";
 
 /**
@@ -148,8 +150,16 @@ export function ImpersonationBanner() {
         >
           ⇄ Cambiar a otro usuario / Switch to another user
         </button>
+        {/* El banner vive en el layout raíz, FUERA de `PrefsProvider` y sin `ConfirmProvider` (a propósito:
+            habla en dos idiomas y no depende de nadie). El panel sí usa `usePrefs` y `useConfirm`, y sin
+            ellos encima revienta al montarse: es el «Something went wrong» que vio el dueño al pulsar
+            «Switch to another user» (D-321). Se le ponen aquí, solo alrededor del panel. */}
         {saltando && candidatos && (
-          <SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} />
+          <PrefsProvider>
+            <ConfirmProvider>
+              <SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} />
+            </ConfirmProvider>
+          </PrefsProvider>
         )}
       </div>
     </div>
