@@ -31,17 +31,18 @@ const resto = {
  * Una Intertienda armada con los mismos pasos que el modal. `casa` es la tienda del usuario y `origen`
  * la que manda el material.
  *
- * **Cambió con D-302**: la tienda del usuario vende Y recibe —«Vendido desde» y el destino son su
- * tienda, congelados— y lo único que se elige es la **recogida**. Antes el origen se elegía en «Vendido
- * desde» y el destino era la tienda del usuario.
+ * **Cambió con D-302 y vuelve a cambiar con D-312**: la tienda del usuario **solo recibe** —el destino
+ * queda congelado en ella— y lo que se elige es a qué tienda se le pide el material, que escribe
+ * «Vendido desde» y la recogida a la vez. Con D-302 su tienda vendía y recibía, y se elegía la
+ * recogida; por eso una orden decía que se vendía desde la tienda que la estaba pidiendo.
  */
 function borradorIntertienda(casa: string, origen: string): Partial<Delivery> {
   const home = TIENDAS.find((s) => s.name === casa)!;
   const elegida = TIENDAS.find((s) => s.name === origen)!;
-  // withTypeDefaults: su tienda vende y recibe.
-  const tras_tipo: Partial<Delivery> = { order_type: "Intertienda", store: casa, delivery_name: casa, delivery_address: home.address };
-  // onChange del desplegable de recogida: la tienda que envía, con su dirección.
-  return { ...resto, ...tras_tipo, pickup_name: origen, pickup_address: elegida.address };
+  // aplicaTipo: su tienda recibe, y el origen queda por elegir.
+  const tras_tipo: Partial<Delivery> = { order_type: "Intertienda", delivery_name: casa, delivery_address: home.address };
+  // onChange del desplegable de origen (`eligeOrigen`): la tienda que vende Y manda, con su dirección.
+  return { ...resto, ...tras_tipo, store: origen, pickup_name: origen, pickup_address: elegida.address };
 }
 
 const claves = (d: Partial<Delivery>) => submitBlockers(d, RULES, TIENDAS).map((m) => m.key).sort();
@@ -53,15 +54,15 @@ describe("tienda-a-tienda: el origen no puede ser el destino", () => {
 
   it("de una tienda a sí misma, se bloquea — y como comparten dirección, las dos reglas lo dicen", () => {
     const d = borradorIntertienda("Tienda Norte", "Tienda Norte");
-    // La clave es `pickup_name` y no `store` desde D-302: en Intertienda el origen es la recogida, y
-    // es el campo que la persona puede corregir.
-    expect(claves(d)).toEqual(["delivery_address", "pickup_name"]);
+    // La clave vuelve a ser `store` en D-312: «Vendido desde» dejó de estar congelado —es lo que se
+    // elige— y es el campo que la persona puede corregir. Con D-302 se señalaba la recogida.
+    expect(claves(d)).toEqual(["delivery_address", "store"]);
     expect(submitBlockers(d, RULES, TIENDAS).every((m) => m.conflict === true)).toBe(true);
   });
 
   it("el mismo nombre escrito distinto sigue siendo la misma tienda", () => {
-    const d = { ...borradorIntertienda("Tienda Norte", "Tienda Sur"), pickup_name: "  tienda  NORTE " };
-    expect(claves(d)).toContain("pickup_name");
+    const d = { ...borradorIntertienda("Tienda Norte", "Tienda Sur"), store: "  tienda  NORTE " };
+    expect(claves(d)).toContain("store");
   });
 
   it("vale para cualquier tipo tienda-a-tienda, no solo Intertienda", () => {
@@ -101,7 +102,7 @@ describe("lo que falta y lo que se contradice van juntos, pero marcados distinto
     const d = { ...borradorIntertienda("Tienda Norte", "Tienda Norte"), est_pallets: null };
     const bs = submitBlockers(d, RULES, TIENDAS);
     expect(bs.find((m) => m.key === "est_pallets")?.conflict).toBeUndefined();
-    expect(bs.filter((m) => m.conflict).map((m) => m.key).sort()).toEqual(["delivery_address", "pickup_name"]);
+    expect(bs.filter((m) => m.conflict).map((m) => m.key).sort()).toEqual(["delivery_address", "store"]);
   });
 });
 
@@ -113,12 +114,13 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
   });
 
   it("y al volver a enviarla, se bloquea", () => {
-    expect(claves(vieja)).toEqual(["delivery_address", "pickup_name"]);
+    expect(claves(vieja)).toEqual(["delivery_address", "store"]);
   });
 
   it("corregida, pasa", () => {
-    // Se corrige eligiendo OTRA tienda que envíe: en Intertienda eso es la recogida (D-302).
-    const corregida = { ...vieja, pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
+    // Se corrige eligiendo OTRA tienda que venda y mande: desde D-312 eso escribe las dos puntas de
+    // una vez, así que la corrección es la misma que hace `eligeOrigen` en la pantalla.
+    const corregida = { ...vieja, store: "Tienda Sur", pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
     expect(submitBlockers(corregida, RULES, TIENDAS)).toEqual([]);
   });
 });

@@ -142,8 +142,11 @@ describe("dónde se comparte el trabajo", () => {
     expect(modal).toContain("me.role !== \"sales\" || !me.store");
     expect(modal).toContain("todas.filter((n) => mismaTiendaOGrupo(n, me.store, settings.stores) || n === d.store)");
     expect(modal).toContain('const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);');
-    // Y desde D-302 se congela también en un tipo que recibe, donde su tienda vende y recibe.
-    expect(modal).toContain("disabled={!salesFields || origenFijo || tiendaCongelada}");
+    // **Y desde D-312 ya NO se congela en un tipo que recibe**: ahí es justo lo que se elige. Lo
+    // congelado pasó a ser el destino. Lo que D-293 vigila —que el selector solo quede fijo si la
+    // tienda no trabaja con ninguna otra— sigue entero en `origenFijo`.
+    expect(modal).toContain("disabled={!salesFields || origenFijo}");
+    expect(modal).not.toContain("tiendaCongelada");
   });
 
   it("rutas: la sugerencia de chofer mira el grupo, y sigue siendo sugerencia", () => {
