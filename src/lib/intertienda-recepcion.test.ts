@@ -197,6 +197,10 @@ describe("el formulario", () => {
   it("y el primer paso ya no enseña su buscador de direcciones en un tipo tienda-a-tienda", () => {
     // Era la causa de lo que vio el dueño: el paso se saltaba solo si alguien CAMBIABA el tipo ahí,
     // y una Intertienda que nace de ese tipo —gerente y office— no pasaba por ese cambio.
-    expect(modal).toContain("{editing && isNew && !showFullForm && !storeToStore && (");
+    // Desde D-NEXT la condición no está escrita a mano aquí: la decide `pasoFormulario`, que con
+    // tienda-a-tienda devuelve "completo" (su propia prueba lo fija), y el modal solo la lee.
+    expect(modal).toContain("const paso = pasoFormulario(isNew, showFullForm, storeToStore);");
+    expect(modal).toContain('{editing && paso === "inicial" && (');
+    expect(modal).not.toContain("!showFullForm && !storeToStore");
   });
 });
