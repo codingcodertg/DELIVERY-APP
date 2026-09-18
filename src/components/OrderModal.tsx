@@ -90,7 +90,7 @@ export function OrderModal({
   // other day's default, so a manually-chosen custom window is never fought.
   useEffect(() => {
     if (!editing || !d.delivery_date) return;
-    // El día lo decide `esSabado` (D-NEXT), que lee las partes de la fecha en vez de convertirla a un
+    // El día lo decide `esSabado` (D-296), que lee las partes de la fecha en vez de convertirla a un
     // instante: `new Date(iso).getDay()` devuelve el día ANTERIOR en los husos negativos, que son los
     // nuestros, y acierta en UTC — o sea que el fallo no se vería en CI.
     const want = ventanaDeTodoElDia(d.delivery_date);
@@ -3328,7 +3328,7 @@ function WindowSel({ val, fecha, on, disabled, invalid, t }: {
 }) {
   const current = (val as string) ?? "";
   const isCustom = current && !DELIVERY_WINDOW_PRESETS.some((p) => p.value === current);
-  // La de sábado solo en sábado, y la de entre semana solo el resto de días (D-NEXT). La que la orden
+  // La de sábado solo en sábado, y la de entre semana solo el resto de días (D-296). La que la orden
   // ya tiene sigue en la lista aunque no toque ese día, como en los desplegables de tienda (D-267).
   const disponibles = ventanasParaLaFecha(fecha, current);
   return (

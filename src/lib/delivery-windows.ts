@@ -2,7 +2,7 @@ import { DELIVERY_WINDOW_PRESETS, SATURDAY_WINDOW, WEEKDAY_ALL_DAY_WINDOW, type 
 import { parseWindow } from "./dispatch";
 
 /**
- * Qué ventanas de entrega se ofrecen según el día (D-NEXT).
+ * Qué ventanas de entrega se ofrecen según el día (D-296).
  *
  * El dueño: *«delivery window: la ventana de sábado solo debe estar disponible cuando se elige un
  * sábado»*. El selector las enseñaba las cinco siempre, así que se podía pedir «sábado 8:30-3:30» para

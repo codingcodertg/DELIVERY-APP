@@ -5,7 +5,7 @@ import { cierraA, esSabado, ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventana
 import { parseWindow } from "./dispatch";
 
 /**
- * La ventana de sábado solo en sábado (D-NEXT).
+ * La ventana de sábado solo en sábado (D-296).
  *
  * El dueño: «delivery window: la ventana de sábado solo debe estar disponible cuando se elige un
  * sábado». Y, preguntado por el otro sentido: en sábado tampoco se ofrece «Tarde (12-5:30)», porque

@@ -37170,7 +37170,7 @@ texto («⌂ Todas las apps»), no el icono de la barra, y no se toca.
 **No cambia:** quién la ve (`canReachHub` y el escondite en la app de escritorio, D-274), su destino
 (`/home`), ni su etiqueta accesible.
 
-## D-NEXT · La ventana de sábado solo en sábado, y ninguna que termine después del cierre
+## D-296 · La ventana de sábado solo en sábado, y ninguna que termine después del cierre
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«delivery window: la ventana de sábado solo debe estar disponible cuando se
