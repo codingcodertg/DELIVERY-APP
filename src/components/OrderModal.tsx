@@ -16,7 +16,8 @@ import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
 import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
-import { cuentasQueCoinciden } from "@/lib/account-search";
+import { decisionAlConfirmar, hayQueAvisar, siguienteIndice, sugerenciasPara } from "@/lib/account-combobox";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -3349,63 +3350,89 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid }: 
   );
 }
 
-const NEW_ACCOUNT = "__new__";
-
-/** Account — same "pick a saved one, or type a new one" pattern as the
- * Dropoff field. Options are every account name already seen; the parent's
- * `on` callback looks up a saved contact/phone for the picked name and
- * fills those fields too, the same way a saved pickup/dropoff fills its
- * address. */
+/**
+ * Account — UN solo control: se escribe y sugiere (D-NEXT). El dueño: «a search bar that
+ * autopopulates automatically when you start typing, so it will be a search and dropdown in the same
+ * field». D-299 tenía dos —filtro arriba, `select` abajo— y se veían los dos a la vez.
+ *
+ * `on(v)` dispara el autorrellenado de contacto, teléfono y tipo (ver el sitio de llamada), así que
+ * se llama SOLO al confirmar —clic en una sugerencia, Enter o salir del campo—, nunca por tecla. Qué
+ * se confirma lo decide `decisionAlConfirmar`, que es lo que se prueba importado.
+ */
 function AccountCombo({ val, on, options, disabled, placeholder, t }: {
   val: unknown; on: (v: string) => void;
   options: string[]; disabled?: boolean; placeholder?: string;
   t: (en: string, es: string) => string;
 }) {
   const current = (val as string) ?? "";
-  const known = options.includes(current);
-  const [manual, setManual] = useState(!!current && !known);
-  // La lista de cuentas ya no cabe de un vistazo, y un `select` nativo no se busca (D-299). El filtro
-  // va ENCIMA y solo acota lo que se pinta: convertir el selector en un campo de texto haría que el
-  // autorrellenado de contacto, teléfono y tipo de orden corriera con cada tecla.
-  const [filtro, setFiltro] = useState("");
-  const visibles = cuentasQueCoinciden(options, filtro, current);
+  // Lo escrito vive aquí hasta confirmar; `current` es lo que la orden tiene de verdad.
+  const [texto, setTexto] = useState(current);
+  const [abierto, setAbierto] = useState(false);
+  const [activo, setActivo] = useState(-1);
+  const caja = useRef<HTMLDivElement>(null);
+  // Si la orden cambia de cuenta por fuera (elegir un cliente guardado, duplicar), el campo la sigue.
+  useEffect(() => { setTexto(current); }, [current]);
+  useCierraAlSalir(abierto, () => { setAbierto(false); setActivo(-1); }, () => [caja.current]);
+
+  const sugerencias = sugerenciasPara(options, texto, current);
+
+  const confirmar = () => {
+    const d = decisionAlConfirmar({ texto, sugerencias, activo });
+    setAbierto(false);
+    setActivo(-1);
+    setTexto(d.valor);
+    if (hayQueAvisar(current, d.valor)) on(d.valor);
+  };
+  const elegir = (v: string) => {
+    setAbierto(false);
+    setActivo(-1);
+    setTexto(v);
+    if (hayQueAvisar(current, v)) on(v);
+  };
 
   return (
-    <div className="field">
+    <div className="field" ref={caja} style={{ position: "relative" }}>
       <label>{t("Account", "Cuenta")}</label>
-      {manual ? (
-        <div style={{ display: "flex", gap: 8 }}>
-          <input value={current} disabled={disabled} placeholder={placeholder} onChange={(e) => on(e.target.value)} />
-          {options.length > 0 && (
-            <button className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => { setManual(false); on(""); }}>
-              {t("Pick saved", "Elegir guardado")}
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-        {options.length > 8 && (
-          <input
-            style={{ marginBottom: 6 }}
-            value={filtro}
-            disabled={disabled}
-            placeholder={t("Type to filter…", "Escriba para filtrar…")}
-            onChange={(e) => setFiltro(e.target.value)}
-          />
-        )}
-        <select
-          value={known ? current : ""}
-          disabled={disabled}
-          onChange={(e) => {
-            if (e.target.value === NEW_ACCOUNT) { setManual(true); on(""); return; }
-            on(e.target.value);
-          }}
+      <input
+        role="combobox"
+        aria-expanded={abierto}
+        aria-autocomplete="list"
+        aria-controls="cuentas-sugeridas"
+        value={texto}
+        disabled={disabled}
+        placeholder={placeholder ?? t("Type to search or add…", "Escriba para buscar o agregar…")}
+        onFocus={() => setAbierto(true)}
+        onChange={(e) => { setTexto(e.target.value); setAbierto(true); setActivo(-1); }}
+        onBlur={() => { if (abierto) confirmar(); }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); setAbierto(true); setActivo((i) => siguienteIndice(i, sugerencias.length, 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setActivo((i) => siguienteIndice(i, sugerencias.length, -1)); }
+          else if (e.key === "Enter") { e.preventDefault(); confirmar(); }
+          else if (e.key === "Escape") { setAbierto(false); setActivo(-1); }
+        }}
+      />
+      {abierto && !disabled && sugerencias.length > 0 && (
+        <ul
+          id="cuentas-sugeridas"
+          role="listbox"
+          className="col-menu"
+          style={{ left: 0, right: "auto", width: "100%", listStyle: "none", margin: 0 }}
         >
-          <option value="">{placeholder ?? t("Select…", "Seleccione…")}</option>
-          {visibles.map((o) => <option key={o} value={o}>{o}</option>)}
-          <option value={NEW_ACCOUNT}>➕ {t("Type a new one…", "Escribir uno nuevo…")}</option>
-        </select>
-        </>
+          {sugerencias.map((o, i) => (
+            <li
+              key={o}
+              role="option"
+              aria-selected={i === activo}
+              className="col-opt"
+              style={i === activo ? { background: "var(--card-hover)" } : undefined}
+              // `mousedown` y no `click`: el clic llega después del `blur` del input, que ya habría
+              // confirmado lo escrito a medias.
+              onMouseDown={(e) => { e.preventDefault(); elegir(o); }}
+            >
+              {o}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

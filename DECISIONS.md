@@ -37902,3 +37902,77 @@ combinaciones y fija que una nueva tienda-a-tienda va directa al completo; el mu
 
 **Descartado:** poner `showFullForm` a `true` en un efecto cuando el tipo es tienda-a-tienda. Habría
 funcionado, pero deja las cuatro condiciones escritas a mano, que es lo que produjo el agujero.
+
+## D-NEXT · El campo de cuenta es un solo control: se escribe y sugiere
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, con captura: *«I wanted this field be a search bar that autopopulates
+automatically when you start typing, so it will be a search and dropdown in the same field»*.
+
+### Qué estaba pasando
+
+D-299, de esta misma tarde, resolvió «la lista de cuentas ya no se busca» con **dos controles**: un
+filtro encima y el `select` de siempre debajo. Funcionaba, pero el dueño veía «elite» escrito arriba y
+«Select account…» abajo, y lo que quería era **uno**. D-299 eligió los dos controles a propósito —para
+no convertir el selector en campo de texto— por una razón que sigue en pie: elegir una cuenta dispara
+el autorrellenado de contacto, teléfono y tipo de orden, y con un campo de texto eso correría con cada
+tecla y reescribiría el tipo con nombres a medio escribir.
+
+### Lo que hay ahora, y cómo conserva esa razón
+
+Un `input` con `role="combobox"` y, debajo, una lista con `role="listbox"` que sugiere mientras se
+escribe. La razón de D-299 se conserva separando **escribir** de **elegir**:
+
+- **Escribir** solo cambia lo que se ve y las sugerencias. `on(v)` —el autorrellenado— **no cuelga del
+  `onChange`**; hay una prueba que cae si alguien lo cuelga ahí.
+- **Elegir** es confirmar: clic en una sugerencia, Enter, o salir del campo. Qué se confirma lo decide
+  `decisionAlConfirmar`, una función aparte que se prueba importada: la sugerencia resaltada con las
+  flechas manda; si no hay resaltada y lo escrito es **exactamente** una sugerencia (sin mayúsculas ni
+  espacios de sobra), esa; si no, lo escrito es una **cuenta manual** con ese nombre — sin el botón
+  «Escribir uno nuevo» ni el valor centinela `NEW_ACCOUNT` de antes. Un prefijo que coincide con varias
+  no se elige solo: sería adivinar cuál.
+- **Solo se avisa al formulario si el valor cambió**: confirmar la cuenta que ya estaba no reescribe
+  contacto ni tipo.
+- El filtro sigue siendo `cuentasQueCoinciden` (D-299); la cuenta ya puesta nunca desaparece de las
+  sugerencias (criterio de D-267); con el campo vacío salen todas.
+- Se cierra al hacer clic fuera con el **mismo hook** que el menú de columnas (`useCierraAlSalir`), y
+  elegir con el ratón va en `mousedown` y no en `click`: el clic llega **después** del `blur` del
+  input, que ya habría confirmado lo escrito a medias.
+- Si la orden cambia de cuenta por fuera (elegir un cliente guardado, duplicar), el campo la sigue.
+
+### Qué NO cambia
+
+- **El autorrellenado en sí** —de dónde saca contacto, teléfono y tipo— no se toca: sigue en el sitio
+  de llamada, y sigue disparándose una vez por elección.
+- **Escribir una cuenta que no existe** sigue siendo posible, como en D-299 y antes; solo desaparece el
+  botón aparte para hacerlo.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Catorce mutantes, cada uno cazado por su prueba: que el resaltado deje de mandar, que teclear el
+nombre completo deje de contar como elegirlo, que un prefijo con varias coincidencias se elija solo,
+que vacío se trate como manual, que un índice fuera de rango elija algo, que las flechas no den la
+vuelta o resalten sin sugerencias, que se avise sin cambio, que las sugerencias dejen de ser el filtro
+de D-299, que el input dispare `on` por tecla, que confirmar no avise, que el ratón elija en `click`,
+que el campo no siga a la orden, y que vuelva el `select` al lado. Ninguno sobrevivió.
+
+### La prueba de D-299 que se actualiza
+
+`ficha-retoques.test.ts` afirmaba el texto de los dos controles. **Se reescribe, no se borra**: sigue
+fijando lo que D-299 quería de verdad —que el filtro es `cuentasQueCoinciden` y que `on` no cuelga del
+`onChange`—, ahora sobre el control único.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2745 pasados | 3 saltados**. La rama añade 15
+pruebas, todas en `cuenta-combobox.test.ts`, fichero nuevo, y no quita ninguna: la de D-299 se reescribe.
+`main` d262f44 (con D-304), medido en esta misma copia con el árbol en `origin/main`, está en 2730 | 3.
+La rama está rebasada sobre ese main.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el teclado, ni el clic fuera, ni el foco en móvil.
+- **La lista no está limitada en largo**: con muchas cuentas y el campo vacío se pintan todas, con el
+  `max-height` y el scroll del `.col-menu`. No se midió cuántas cuentas hay hoy.
+- **El `aria-controls` apunta a un `id` fijo** (`cuentas-sugeridas`); hay un solo campo de cuenta por
+  formulario, y si algún día hubiera dos, chocarían.

@@ -91,13 +91,14 @@ describe("el desplegable de cuentas se puede filtrar", () => {
     expect(cuentasQueCoinciden(CUENTAS, "zzz")).toEqual([]);
   });
 
-  it("el formulario lo usa encima del selector, sin convertirlo en campo de texto", () => {
-    expect(modal).toContain("const visibles = cuentasQueCoinciden(options, filtro, current);");
-    expect(modal).toContain("{visibles.map((o) => <option key={o} value={o}>{o}</option>)}");
-    expect(modal).toContain('placeholder={t("Type to filter…", "Escriba para filtrar…")}');
-    // El autorrellenado sigue colgando del `onChange` del `select`, no de cada tecla.
-    const combo = modal.slice(modal.indexOf("function AccountCombo"), modal.indexOf("function AccountCombo") + 2600);
-    expect(combo).toContain("onChange={(e) => setFiltro(e.target.value)}");
-    expect(combo).toContain("if (e.target.value === NEW_ACCOUNT) { setManual(true); on(\"\"); return; }");
+  it("el formulario lo usa como filtro de UN solo control, sin disparar el autorrellenado por tecla", () => {
+    // D-299 lo puso como filtro ENCIMA de un `select`; el dueño vio los dos controles a la vez y la
+    // decisión siguiente los fundió en un combobox (`cuenta-combobox.test.ts`). Lo que esta prueba
+    // sigue fijando: el filtro es `cuentasQueCoinciden`, y `on` no cuelga del `onChange` del input.
+    const combo = modal.slice(modal.indexOf("function AccountCombo"), modal.indexOf("/** Delivery Time Windows"));
+    expect(combo).toContain("const sugerencias = sugerenciasPara(options, texto, current);");
+    expect(leer("src/lib/account-combobox.ts")).toContain("return cuentasQueCoinciden(opciones, texto, actual);");
+    const onChange = combo.slice(combo.indexOf("onChange={(e) =>"), combo.indexOf("onBlur="));
+    expect(onChange).not.toContain("on(");
   });
 });
