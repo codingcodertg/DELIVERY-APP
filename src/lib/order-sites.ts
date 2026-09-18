@@ -35,32 +35,48 @@ function sinOrigen(d: Borrador): Borrador {
   return { ...d, store: "", ...(recogidaDeLaTienda ? { pickup_name: "", pickup_address: "" } : {}) };
 }
 
+/** Sin sitio de recogida: en un tipo que recibe, es el origen lo que se vacía (D-NEXT). */
+function sinRecogida(d: Borrador): Borrador {
+  return { ...d, pickup_name: "", pickup_address: "" };
+}
+
 function sinDestino(d: Borrador): Borrador {
   return { ...d, delivery_name: "", delivery_address: "" };
 }
 
 /**
- * Aplicar un tipo de orden (antes `withTypeDefaults`, dentro del modal). Para un tipo «que recibe»
- * (`homeIsDestination`) la tienda del usuario pasa a ser el destino y el origen lo elige él; si no, el
- * origen por defecto es su tienda.
+ * Aplicar un tipo de orden (antes `withTypeDefaults`, dentro del modal).
+ *
+ * **Un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) cambia de forma en D-NEXT.** El
+ * dueño: *«el store sold from debería quedar freeze… el store destination es el mismo store sold from,
+ * y el pickup es el dropdown que se elige qué tienda es»*. O sea: la tienda del usuario **vende y
+ * recibe** —las dos puntas quedan puestas en su tienda— y lo único que se elige es **de qué tienda
+ * viene el material**, que es la recogida. Antes era al revés: se vaciaba «Vendido desde» para que
+ * eligiera ahí el origen, y por eso una Intertienda acababa con el destino en la tienda de al lado.
+ *
+ * En los demás tipos, el origen por defecto sigue siendo su tienda.
  *
  * **Desde D-276, un tipo tienda-a-tienda nunca queda con el origen en el destino.** Si con las dos
- * puntas puestas chocan, se vacía la que el tipo deja elegir: el origen en un tipo que recibe, el
- * destino en los demás.
+ * puntas puestas chocan, se vacía la que el tipo deja elegir: la **recogida** en un tipo que recibe
+ * (que es donde vive el origen desde D-NEXT), el destino en los demás.
  */
 export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Borrador {
   const rule = orderTypeRule(tipo, c.reglas);
   const next: Borrador = { ...p, order_type: tipo };
   if (rule.homeIsDestination && c.miTienda) {
     const home = c.tiendas.find((s) => s.name === c.miTienda);
+    // Su tienda vende y recibe; lo que se elige es la recogida (D-NEXT).
+    next.store = c.miTienda;
     next.delivery_name = c.miTienda;
     next.delivery_address = home?.address ?? p.delivery_address ?? "";
-    if (!p.store || p.store === c.miTienda) next.store = ""; // rep chooses the origin
+    // La recogida no puede ser ella misma, y NO se vacía aquí: el colapso de D-276 de abajo ya lo
+    // hace, porque con el origen en la recogida esa orden es exactamente «va a su propio sitio».
+    // Vaciarla también aquí era código que ningún mutante podía matar.
   } else if (!p.store && c.miTienda) {
     next.store = c.miTienda; // normal direction: Sold From is the rep's store
   }
-  if (rule.storeToStore === true && origenEsDestino(next, true, c.tiendas)) {
-    return rule.homeIsDestination ? sinOrigen(next) : sinDestino(next);
+  if (rule.storeToStore === true && origenEsDestino(next, rule, c.tiendas)) {
+    return rule.homeIsDestination ? sinRecogida(next) : sinDestino(next);
   }
   return next;
 }
@@ -77,7 +93,7 @@ export function borradorInicial(p: Borrador, c: ContextoDelUsuario): Borrador {
   if (!next.store && c.miTienda) {
     const st = c.tiendas.find((s) => s.name === c.miTienda);
     const conTienda: Borrador = { ...next, store: c.miTienda, pickup_name: c.miTienda, pickup_address: st?.address ?? next.pickup_address };
-    if (!origenEsDestino(conTienda, isStoreToStore(next.order_type, c.reglas), c.tiendas)) next = conTienda;
+    if (!origenEsDestino(conTienda, orderTypeRule(next.order_type, c.reglas), c.tiendas)) next = conTienda;
   }
   return next;
 }

@@ -27,14 +27,21 @@ const resto = {
   invoice_num: "INV-1", delivery_fee: 50, contact: "Recibe", delivery_phone: "5550001111",
 };
 
-/** Una Intertienda armada con los mismos pasos que el modal. `casa` es la tienda del usuario. */
+/**
+ * Una Intertienda armada con los mismos pasos que el modal. `casa` es la tienda del usuario y `origen`
+ * la que manda el material.
+ *
+ * **Cambió con D-NEXT**: la tienda del usuario vende Y recibe —«Vendido desde» y el destino son su
+ * tienda, congelados— y lo único que se elige es la **recogida**. Antes el origen se elegía en «Vendido
+ * desde» y el destino era la tienda del usuario.
+ */
 function borradorIntertienda(casa: string, origen: string): Partial<Delivery> {
   const home = TIENDAS.find((s) => s.name === casa)!;
   const elegida = TIENDAS.find((s) => s.name === origen)!;
-  // withTypeDefaults: destino = la tienda del usuario; el origen lo elige él.
-  const tras_tipo: Partial<Delivery> = { order_type: "Intertienda", delivery_name: casa, delivery_address: home.address, store: "" };
-  // onChange de «Sold From»: tienda, y su nombre y dirección como recogida.
-  return { ...resto, ...tras_tipo, store: origen, pickup_name: origen, pickup_address: elegida.address };
+  // withTypeDefaults: su tienda vende y recibe.
+  const tras_tipo: Partial<Delivery> = { order_type: "Intertienda", store: casa, delivery_name: casa, delivery_address: home.address };
+  // onChange del desplegable de recogida: la tienda que envía, con su dirección.
+  return { ...resto, ...tras_tipo, pickup_name: origen, pickup_address: elegida.address };
 }
 
 const claves = (d: Partial<Delivery>) => submitBlockers(d, RULES, TIENDAS).map((m) => m.key).sort();
@@ -46,13 +53,15 @@ describe("tienda-a-tienda: el origen no puede ser el destino", () => {
 
   it("de una tienda a sí misma, se bloquea — y como comparten dirección, las dos reglas lo dicen", () => {
     const d = borradorIntertienda("Tienda Norte", "Tienda Norte");
-    expect(claves(d)).toEqual(["delivery_address", "store"]);
+    // La clave es `pickup_name` y no `store` desde D-NEXT: en Intertienda el origen es la recogida, y
+    // es el campo que la persona puede corregir.
+    expect(claves(d)).toEqual(["delivery_address", "pickup_name"]);
     expect(submitBlockers(d, RULES, TIENDAS).every((m) => m.conflict === true)).toBe(true);
   });
 
   it("el mismo nombre escrito distinto sigue siendo la misma tienda", () => {
-    const d = { ...borradorIntertienda("Tienda Norte", "Tienda Sur"), store: "  tienda  NORTE " };
-    expect(claves(d)).toContain("store");
+    const d = { ...borradorIntertienda("Tienda Norte", "Tienda Sur"), pickup_name: "  tienda  NORTE " };
+    expect(claves(d)).toContain("pickup_name");
   });
 
   it("vale para cualquier tipo tienda-a-tienda, no solo Intertienda", () => {
@@ -92,7 +101,7 @@ describe("lo que falta y lo que se contradice van juntos, pero marcados distinto
     const d = { ...borradorIntertienda("Tienda Norte", "Tienda Norte"), est_pallets: null };
     const bs = submitBlockers(d, RULES, TIENDAS);
     expect(bs.find((m) => m.key === "est_pallets")?.conflict).toBeUndefined();
-    expect(bs.filter((m) => m.conflict).map((m) => m.key).sort()).toEqual(["delivery_address", "store"]);
+    expect(bs.filter((m) => m.conflict).map((m) => m.key).sort()).toEqual(["delivery_address", "pickup_name"]);
   });
 });
 
@@ -100,15 +109,16 @@ describe("la orden vieja que ya lo tiene: se ve y se corrige, pero no vuelve a e
   const vieja = { ...borradorIntertienda("Tienda Norte", "Tienda Norte"), stage: "approved" as const };
 
   it("su valor actual sigue en el desplegable, aunque sea la otra punta", () => {
-    expect(opcionesDeOrigen(vieja, TIENDAS, true)).toEqual(["Tienda Norte", "Tienda Sur"]);
+    expect(opcionesDeOrigen(vieja, TIENDAS, RULES.Transfer)).toEqual(["Tienda Norte", "Tienda Sur"]);
   });
 
   it("y al volver a enviarla, se bloquea", () => {
-    expect(claves(vieja)).toEqual(["delivery_address", "store"]);
+    expect(claves(vieja)).toEqual(["delivery_address", "pickup_name"]);
   });
 
   it("corregida, pasa", () => {
-    const corregida = { ...vieja, store: "Tienda Sur", pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
+    // Se corrige eligiendo OTRA tienda que envíe: en Intertienda eso es la recogida (D-NEXT).
+    const corregida = { ...vieja, pickup_name: "Tienda Sur", pickup_address: TIENDAS[1].address };
     expect(submitBlockers(corregida, RULES, TIENDAS)).toEqual([]);
   });
 });
@@ -120,17 +130,18 @@ describe("los desplegables no ofrecen la otra punta", () => {
   const nombres = tres.map((s) => s.name);
 
   it("quita la otra punta, comparando normalizado", () => {
-    expect(opcionesDeOrigen({ order_type: "Intertienda", delivery_name: " tienda norte " }, tres, true)).toEqual(["Tienda Sur", "Tienda Este"]);
+    // Con la regla de Transfer, que es donde «Vendido desde» sigue siendo el origen que se elige.
+    expect(opcionesDeOrigen({ order_type: "Transfer", delivery_name: " tienda norte " }, tres, RULES.Transfer)).toEqual(["Tienda Sur", "Tienda Este"]);
   });
 
   it("sin otra punta elegida, ofrece todas; fuera de tienda-a-tienda, también", () => {
-    expect(opcionesDeOrigen({}, tres, true)).toEqual(nombres);
-    expect(opcionesDeOrigen({ delivery_name: null, delivery_address: null }, tres, true)).toEqual(nombres);
-    expect(opcionesDeOrigen({ delivery_name: "Tienda Norte" }, tres, false)).toEqual(nombres);
+    expect(opcionesDeOrigen({}, tres, RULES.Transfer)).toEqual(nombres);
+    expect(opcionesDeOrigen({ delivery_name: null, delivery_address: null }, tres, RULES.Transfer)).toEqual(nombres);
+    expect(opcionesDeOrigen({ delivery_name: "Tienda Norte" }, tres, RULES.Customer)).toEqual(nombres);
   });
 
   it("fuera de tienda-a-tienda, el origen igual al destino no es un choque", () => {
-    expect(origenEsDestino({ store: "Tienda Norte", delivery_name: "Tienda Norte" }, false, TIENDAS)).toBe(false);
+    expect(origenEsDestino({ store: "Tienda Norte", delivery_name: "Tienda Norte" }, RULES.Customer, TIENDAS)).toBe(false);
     expect(normalizaLugar("  A   B ")).toBe("a b");
   });
 });
@@ -147,10 +158,10 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
     // Desde D-293 la lista pasa por `origenesPermitidos`, que deja al vendedor de una tienda agrupada
     // vender desde las otras. Lo que fija esta prueba no cambia: la que decide qué tiendas se ofrecen
     // sigue siendo `opcionesDeOrigen`, con la orden y las tiendas, en los dos sitios.
-    const origen = "origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))";
+    const origen = "origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))";
     // Dos otra vez desde D-288, que revirtió D-282: el primer paso y el formulario completo.
     expect(modal.split(origen).length - 1).toBe(2);
-    expect(modal).toContain("opts={opcionesDeDestino(d, settings.stores)}");
+    expect(modal).toContain("opts={opcionesDeDestino(d, settings.stores, reglaDelTipo)}");
   });
 
   it("crear-y-enviar y guardar pasan los dos por `passesChecks`, que llama a `submitBlockers`", () => {

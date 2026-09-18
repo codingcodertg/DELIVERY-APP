@@ -84,7 +84,9 @@ describe("lo que NO se revierte sigue en pie", () => {
     const ctx = { rol: "manager", miTienda: "Tienda Norte", tipos: ["Customer", "Intertienda"], tiendas: TIENDAS, reglas: REGLAS };
     const cliente = { order_type: "Customer", store: "Tienda Norte", contact: "Quien recibe", delivery_name: "Tienda Norte", delivery_address: TIENDAS[0].address };
     const d = sitios.aplicaTipo(cliente, "Intertienda", ctx);
-    expect(d.store).toBe("");                 // la punta que el tipo deja elegir
+    // Desde D-NEXT la punta que el tipo deja elegir es la RECOGIDA: su tienda vende y recibe.
+    expect(d.pickup_name || "").toBe("");
+    expect(d.store).toBe("Tienda Norte");
     expect(d.contact).toBe("Quien recibe");   // el contacto ya no lo toca nadie
   });
 });
