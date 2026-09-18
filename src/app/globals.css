@@ -1006,6 +1006,22 @@ table.orders th { text-align: left; }
   /* Checkbox cell (has no data-label): no label, pinned right, no divider. */
   table.orders-responsive td:not([data-label]) { justify-content: flex-end; border-top: none; }
   table.orders-responsive td:not([data-label])::before { content: ""; }
+
+  /* La casilla no se lleva una fila para ella sola (D-NEXT).
+     ---------------------------------------------------------------------------
+     El dueño pidió la tarjeta en tres filas «sin destruir la estética». Medido en Chrome con este
+     mismo CSS: la tarjeta eran CUATRO filas de 104px —la casilla arriba, y debajo las tres líneas
+     emparejadas de la cabecera—, y la cuarta era la casilla, no información.
+     Se ancla donde ya estaba a la vista, arriba a la derecha, pero encima de la primera línea, así
+     que no aparta nada y la tarjeta baja una fila. Solo en las tablas que llevan casilla. */
+  table.orders-responsive tr.con-casilla { position: relative; }
+  table.orders-responsive tr.con-casilla td.sel-cell {
+    position: absolute; top: 6px; right: 10px; z-index: 1;
+    padding: 0; border-top: none; width: auto !important;
+  }
+  /* Y la primera línea de la derecha —la factura— deja ese hueco libre, para no pasar por debajo
+     de la casilla. Solo donde hay casilla. */
+  table.orders-responsive tr.con-casilla .drv-head .drv-inv { padding-right: 26px; }
   table.orders-responsive td.ordno { font-size: 16px; }
   table.orders-responsive td.empty { justify-content: center; }
   table.orders-responsive td.empty::before { content: ""; }
