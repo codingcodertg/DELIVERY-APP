@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   if (fallo || !ajustes.data) return NextResponse.json({ error: "Could not read the day.", detail: fallo?.message ?? "no settings" }, { status: 500 });
 
   // Lo que alguien fijó a mano en el borrador vigente de esa fecha: planificar de nuevo lo respeta.
-  const { data: borradorVigente } = await supabase.from("route_plans").select("id").eq("plan_date", fecha).eq("status", "draft").order("version", { ascending: false }).limit(1).maybeSingle();
+  const { data: borradorVigente } = await supabase.from("route_plans").select("id").eq("plan_date", fecha).eq("status", "draft").neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle();
   const { data: paradasFijadas } = borradorVigente
     ? await supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", borradorVigente.id).eq("pinned", true)
     : { data: null };
@@ -132,7 +132,7 @@ export async function GET(req: Request) {
 
   const { data: fila, error } = await supabase.from("route_plans")
     .select("id, version, status, published_at, writes, result, ordenes:input->entrada->ordenes, choferes:input->entrada->choferes, total_minutes, total_miles, late_minutes, provider, traffic, converged")
-    .eq("plan_date", fecha).in("status", ["draft", "published"]).order("version", { ascending: false }).limit(1).maybeSingle();
+    .eq("plan_date", fecha).in("status", ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle();
   if (error) return NextResponse.json({ error: "Could not read the plan.", detail: error.message }, { status: 500 });
   if (!fila) return NextResponse.json({ ok: true, plan: null });
 
@@ -181,10 +181,10 @@ export async function PATCH(req: Request) {
   if (!yo || !["admin", "logistics"].includes(String(yo.role))) return NextResponse.json({ error: "Only admin or logistics can adjust routes." }, { status: 403 });
 
   const { data: fila, error } = await supabase.from("route_plans")
-    .select("id, status, plan_date, algorithm_version, params, input, result, provider, traffic, converged").eq("id", planId).maybeSingle();
+    .select("id, status, source, plan_date, algorithm_version, params, input, result, provider, traffic, converged").eq("id", planId).maybeSingle();
   if (error) return NextResponse.json({ error: "Could not read the plan.", detail: error.message }, { status: 500 });
   if (!fila) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
-  if (fila.status !== "draft") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });
+  if (fila.status !== "draft" || fila.source === "manual_import") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });
 
   const [paradas, ajustes] = await Promise.all([
     supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", planId),
