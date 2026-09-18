@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// La tarjeta de una orden en el teléfono: tres filas en vez de cuatro (D-NEXT).
+// La tarjeta de una orden en el teléfono: tres filas en vez de cuatro (D-298).
 //
 // Lo que se puede medir aquí es el marcado y las reglas; el alto se midió en Chrome con este mismo
 // CSS, y los números están en la entrada de DECISIONS.md: 4 filas y 104px antes, 3 y 89px después.

@@ -37326,7 +37326,7 @@ traducir. Ahora se mira dentro del bloque que calcula los nombres.
 - **Nadie la ha visto en un navegador**: ni la barra, ni cómo queda en el teléfono, donde la tabla se
   vuelve tarjetas y la barra queda encima de la primera.
 
-## D-NEXT · La tarjeta de una orden baja de cuatro filas a tres
+## D-298 · La tarjeta de una orden baja de cuatro filas a tres
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** ·
 **Pedido por:** el dueño: la tarjeta de una orden ocupa cuatro filas y quiere tres, *«sin destruir la

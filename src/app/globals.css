@@ -1007,7 +1007,7 @@ table.orders th { text-align: left; }
   table.orders-responsive td:not([data-label]) { justify-content: flex-end; border-top: none; }
   table.orders-responsive td:not([data-label])::before { content: ""; }
 
-  /* La casilla no se lleva una fila para ella sola (D-NEXT).
+  /* La casilla no se lleva una fila para ella sola (D-298).
      ---------------------------------------------------------------------------
      El dueño pidió la tarjeta en tres filas «sin destruir la estética». Medido en Chrome con este
      mismo CSS: la tarjeta eran CUATRO filas de 104px —la casilla arriba, y debajo las tres líneas

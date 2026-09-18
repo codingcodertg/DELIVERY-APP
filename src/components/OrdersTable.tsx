@@ -551,7 +551,7 @@ export function OrdersTable({
               className={"clickable"
                 + (isUrgent?.(d) ? " row-urgent" : "")
                 // `con-casilla` = esta fila lleva casilla de selección. Lo usa la tarjeta del
-                // teléfono para anclarla en la primera línea (D-NEXT) y reservarle ese hueco solo
+                // teléfono para anclarla en la primera línea (D-298) y reservarle ese hueco solo
                 // donde la hay: la vista del chofer no tiene casillas y no debe perder ancho.
                 + (selectable ? " con-casilla" : "")
                 + (collapsible && !expanded.has(d.id) ? " row-collapsed" : "")}
