@@ -625,8 +625,9 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
                 <tr key={f.tramo}>
                   <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
                   <td>{textoDelRango(t, f.desde, f.hasta)}</td>
-                  {/* En tres de las cuatro filas las dos columnas dicen lo mismo, y se enseñan
-                      igual: un hueco se leería como «aquí no hay precio» (D-303). */}
+                  {/* Las dos columnas salen de las dos filas de bases (D-NEXT): las cuatro filas
+                      dicen dos números distintos. Hasta aquí, tres de las cuatro repetían el mismo
+                      en las dos, y eso es lo que el dueño leyó como que el descuento no aparecía. */}
                   <td>{textoDeLaRegla(t, f.lista.base, f.lista.factor, f.lista.minimo)}</td>
                   <td>{textoDeLaRegla(t, f.descuento.base, f.descuento.factor, f.descuento.minimo)}</td>
                 </tr>

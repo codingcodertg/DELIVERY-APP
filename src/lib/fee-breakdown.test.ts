@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  conSuelo, deliveryFee, filasDeLaFormula, FACTOR_MILLA, MINIMO_MEDIO, pasoTarifa, redondear,
+  conSuelo, deliveryFee, filasDeLaFormula, FACTOR_MILLA, pasoTarifa, redondear,
   suggestDeliveryFee, TARIFA, UMBRAL_CORTO, UMBRAL_LARGO,
 } from "./pricing";
 import { todayISO } from "./utils";
@@ -64,8 +64,8 @@ describe("los bordes de los tramos son los del código, no los que uno diría", 
   it("y una tabla que dijera «hasta 10 / 11 a 49 / 50 o más» estaría mintiendo", () => {
     // Control explícito del error que se quiere evitar: en 50 el precio es el del medio, y no
     // el del tramo largo. Si alguien cambiara el comparador, esta cae.
-    expect(deliveryFee(UMBRAL_LARGO, true)).toBe(redondear(TARIFA.baseMedio + UMBRAL_LARGO * FACTOR_MILLA));
-    expect(deliveryFee(UMBRAL_LARGO, true)).not.toBe(redondear(TARIFA.baseLargo + UMBRAL_LARGO * FACTOR_MILLA));
+    expect(deliveryFee(UMBRAL_LARGO, true)).toBe(redondear(TARIFA.list.baseMedio + UMBRAL_LARGO * FACTOR_MILLA));
+    expect(deliveryFee(UMBRAL_LARGO, true)).not.toBe(redondear(TARIFA.list.baseLargo + UMBRAL_LARGO * FACTOR_MILLA));
   });
 
   it("fuera de la zona local no hay tramos: una sola regla", () => {
@@ -139,22 +139,36 @@ describe("filasDeLaFormula", () => {
 
   it("y las reglas de la lista llevan las constantes de verdad, no números escritos aparte", () => {
     const local = filas.filter((f) => f.zona === "local");
-    expect(local[0].lista).toEqual({ base: TARIFA.planoCorto, factor: 0, minimo: null });
-    expect(local[1].lista).toEqual({ base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO });
-    expect(local[2].lista).toEqual({ base: TARIFA.baseLargo, factor: FACTOR_MILLA, minimo: null });
-    expect(filas[3].lista).toEqual({ base: TARIFA.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
+    expect(local[0].lista).toEqual({ base: TARIFA.list.planoCorto, factor: 0, minimo: null });
+    expect(local[1].lista).toEqual({ base: TARIFA.list.baseMedio, factor: FACTOR_MILLA, minimo: TARIFA.list.minimoMedio });
+    expect(local[2].lista).toEqual({ base: TARIFA.list.baseLargo, factor: FACTOR_MILLA, minimo: TARIFA.list.minimoLargo });
+    expect(filas[3].lista).toEqual({ base: TARIFA.list.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
   });
 
-  it("la columna del descuento solo se separa de la lista en el tramo largo", () => {
-    // Y donde coincide, coincide de verdad: mismas cifras, no una copia parecida.
-    const distintas = filas.filter((f) => JSON.stringify(f.lista) !== JSON.stringify(f.descuento));
-    expect(distintas.map((f) => f.tramo)).toEqual(["local-largo"]);
-    // El descuento del tramo largo ES la regla del tramo del medio: «cóbrale como si fuera corta».
-    expect(distintas[0].descuento).toEqual({ base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO });
+  it("y las del descuento, las suyas: la columna sale de su propia fila (D-NEXT)", () => {
+    // Antes esta prueba decía «el descuento solo se separa en el tramo largo» y comprobaba que en
+    // los otros tres las dos columnas eran la MISMA cifra. Desde D-NEXT el descuento tiene fila
+    // propia, así que lo que se fija es lo contrario: que cada columna lleve sus constantes.
+    const local = filas.filter((f) => f.zona === "local");
+    expect(local[0].descuento).toEqual({ base: TARIFA.discount.planoCorto, factor: 0, minimo: null });
+    expect(local[1].descuento).toEqual({ base: TARIFA.discount.baseMedio, factor: FACTOR_MILLA, minimo: TARIFA.discount.minimoMedio });
+    expect(local[2].descuento).toEqual({ base: TARIFA.discount.baseLargo, factor: FACTOR_MILLA, minimo: TARIFA.discount.minimoLargo });
+    expect(filas[3].descuento).toEqual({ base: TARIFA.discount.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
+  });
+
+  it("las CUATRO filas enseñan dos precios distintos, que es lo que el dueño no veía", () => {
+    const iguales = filas.filter((f) => JSON.stringify(f.lista) === JSON.stringify(f.descuento));
+    expect(iguales.map((f) => f.tramo)).toEqual([]);
+    // Y más barato, no solo distinto: una columna «distinta» y más cara no sería un descuento.
+    for (const f of filas) expect(f.descuento.base, f.tramo).toBeLessThan(f.lista.base);
   });
 
   it("el suelo de la lista es del tramo del medio y de ningún otro", () => {
     expect(filas.filter((f) => f.lista.minimo != null).map((f) => f.tramo)).toEqual(["local-medio"]);
+  });
+
+  it("y el del descuento, del medio y del largo: su tramo largo sí lleva suelo", () => {
+    expect(filas.filter((f) => f.descuento.minimo != null).map((f) => f.tramo)).toEqual(["local-medio", "local-largo"]);
   });
 
   it("cada fila nombra el tramo que de verdad aplica a esas millas", () => {
