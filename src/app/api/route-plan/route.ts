@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BUSINESS_TZ } from "@/lib/utils";
 import { unavailableDriverNames } from "@/lib/dispatch";
-import { planificaElDia } from "@/lib/route-plan/borrador";
+import { planificaElDia, resumenDelPlan, type FilaDePlan } from "@/lib/route-plan/borrador";
+import { vistaDelPlan, type ParadaGuardada } from "@/lib/route-plan/vista";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
@@ -95,11 +96,47 @@ export async function POST(req: Request) {
     ok: true, plan_id: fila.id, version: fila.version,
     // A quien publica no se le marcan tiendas (131): no vería órdenes que tendría que escribir.
     warnTiendasMarcadas: Array.isArray(yo.visible_stores) && yo.visible_stores.length > 0,
-    resumen: {
-      paradas: borrador.paradas.length, ordenes: borrador.plan.writes.length, sinAsignar: borrador.plan.result.sinAsignar,
-      fuera: borrador.plan.result.fuera, choferesFuera: borrador.plan.result.choferesFuera, partes: borrador.plan.result.partes,
-      minutos: borrador.plan.total_minutes, millas: borrador.plan.total_miles, tarde: borrador.plan.late_minutes,
-      proveedor: borrador.plan.provider, trafico: borrador.plan.traffic, convergio: borrador.plan.converged, tiempos: borrador.plan.result.tiempos,
+    status: "draft",
+    resumen: resumenDelPlan(borrador.plan, borrador.paradas.length),
+    rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes),
+  });
+}
+
+// ------------------------------------------------------------
+// GET ?date=YYYY-MM-DD — el plan vigente de esa fecha, para enseñarlo: el último borrador o publicado.
+// Solo LEE, con la sesión de quien mira: qué planes ve cada rol lo decide la RLS de la 133 (almacén, solo
+// lo publicado; chofer y ventas, nada). Quien no ve ninguno recibe `plan: null`, no un error.
+// ------------------------------------------------------------
+const COLUMNAS_DE_PARADA =
+  "driver_id, driver_name, seq, kind, delivery_id, order_ref, label, place, window_start, window_end, is_hard, eta, etd, wait_min, service_min, late_min, load_after, leg_minutes, leg_miles, pinned";
+
+export async function GET(req: Request) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
+
+  const fecha = new URL(req.url).searchParams.get("date") ?? "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ error: "A date (YYYY-MM-DD) is required." }, { status: 400 });
+
+  const { data: fila, error } = await supabase.from("route_plans")
+    .select("id, version, status, published_at, writes, result, ordenes:input->entrada->ordenes, total_minutes, total_miles, late_minutes, provider, traffic, converged")
+    .eq("plan_date", fecha).in("status", ["draft", "published"]).order("version", { ascending: false }).limit(1).maybeSingle();
+  if (error) return NextResponse.json({ error: "Could not read the plan.", detail: error.message }, { status: 500 });
+  if (!fila) return NextResponse.json({ ok: true, plan: null });
+
+  const { data: paradas, error: alLeerParadas } = await supabase.from("route_plan_stops").select(COLUMNAS_DE_PARADA).eq("plan_id", fila.id);
+  if (alLeerParadas) return NextResponse.json({ error: "Could not read the stops.", detail: alLeerParadas.message }, { status: 500 });
+
+  const { data: yo } = await supabase.from("profiles").select("visible_stores").eq("id", user.id).maybeSingle();
+  const plan = fila as unknown as FilaDePlan & { ordenes: { id: string; builder?: boolean }[] | null; id: string; version: number; status: string; published_at: string | null };
+  const filas = (paradas ?? []) as unknown as ParadaGuardada[];
+  return NextResponse.json({
+    ok: true,
+    plan: {
+      plan_id: plan.id, version: plan.version, status: plan.status, published_at: plan.published_at,
+      warnTiendasMarcadas: Array.isArray(yo?.visible_stores) && yo.visible_stores.length > 0,
+      resumen: resumenDelPlan(plan, filas.length),
+      rutas: vistaDelPlan(filas, plan.ordenes ?? [], plan.result?.partes ?? {}),
     },
   });
 }
