@@ -4,7 +4,7 @@ import { errorDePublicar, rutasDeParadas } from "@/lib/route-plan/borrador";
 import { avisosAlPublicar, textoDelAviso } from "@/lib/route-plan/publicar";
 
 // ============================================================
-// «Publicar ruta» (D-NEXT): escribe el borrador en las órdenes y avisa a cada chofer UNA vez.
+// «Publicar ruta» (D-320): escribe el borrador en las órdenes y avisa a cada chofer UNA vez.
 //
 // Todo lo que escribe lo hace `publish_route_plan` (migración 133), por `rpc` y **con la sesión de quien
 // publica**: una transacción —o entra todo o no entra nada— en la que valen su RLS y el guard de las

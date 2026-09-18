@@ -5,7 +5,7 @@ import { entradaDelDia, filasDeParadas, type DatosDelDia, type EntradaDelDia, ty
 import { escriturasAlPublicar, type EscrituraDeOrden } from "./publicar";
 
 /**
- * Planificar el día y dejarlo en BORRADOR (D-NEXT): de las filas de la base a lo que se guarda en
+ * Planificar el día y dejarlo en BORRADOR (D-320): de las filas de la base a lo que se guarda en
  * `route_plans` y `route_plan_stops`. No toca ninguna orden ni avisa a nadie.
  *
  * Aquí no hay base ni red: los datos del día llegan leídos, y la caché y los proveedores de tiempos llegan

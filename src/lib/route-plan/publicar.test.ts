@@ -4,7 +4,7 @@ import {
   ETAPAS_RUTEABLES, ROUTE_PUBLISHED_KIND, avisosAlPublicar, escriturasAlPublicar, firmaDeRuta, ordenDeLaParte, textoDelAviso,
 } from "./publicar";
 
-/** Publicar una ruta: lo que se decide, sin red ni base (D-NEXT). Planes de verdad, salidos del motor, sobre una
+/** Publicar una ruta: lo que se decide, sin red ni base (D-320). Planes de verdad, salidos del motor, sobre una
  *  calle inventada donde un minuto es una manzana. */
 
 const punto = (x: number) => `${x},0`;

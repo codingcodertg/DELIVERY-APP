@@ -10,7 +10,7 @@ import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type P
 import type { DatosDelDia } from "@/lib/route-plan/entrada";
 
 // ============================================================
-// «Planificar el día» (D-NEXT): calcula un plan de ruta y lo deja en BORRADOR.
+// «Planificar el día» (D-320): calcula un plan de ruta y lo deja en BORRADOR.
 //
 // No toca ninguna orden ni avisa a nadie: eso es publicar (`./publish`). Plan en
 // `docs/PLAN-133-route-plans.md`.

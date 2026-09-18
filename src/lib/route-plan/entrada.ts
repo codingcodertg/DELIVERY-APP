@@ -11,7 +11,7 @@ import type { Delivery, DriverSettings, NamedLocation, Profile, Settings } from 
 import { ETAPAS_RUTEABLES, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
 
 /**
- * De lo que hay en la base a lo que entiende el motor, y de vuelta (D-NEXT). Puro: recibe filas y devuelve
+ * De lo que hay en la base a lo que entiende el motor, y de vuelta (D-320). Puro: recibe filas y devuelve
  * datos. Plan en `docs/PLAN-133-route-plans.md`.
  *
  * Lo que se decide aquí, y conviene saber:

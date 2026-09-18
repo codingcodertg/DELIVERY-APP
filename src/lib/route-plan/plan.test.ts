@@ -10,7 +10,7 @@ import { ETAPAS_RUTEABLES, ROUTE_PUBLISHED_KIND } from "./publicar";
 import type { DatosDelDia } from "./entrada";
 
 /**
- * El borrador, publicar y la 133 (D-NEXT). **Ni una llamada real:** los tiempos los da un proveedor de mentira,
+ * El borrador, publicar y la 133 (D-320). **Ni una llamada real:** los tiempos los da un proveedor de mentira,
  * la caché vive en memoria, y las rutas de servidor hablan con un cliente de Supabase falso que apunta lo que
  * se le pide. Tiendas, choferes y órdenes inventados.
  */

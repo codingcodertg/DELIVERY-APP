@@ -1,7 +1,7 @@
 import type { ChoferEntrada, Plan } from "@/lib/route-engine";
 
 /**
- * Publicar una ruta: lo que se DECIDE al publicar, sin red ni base (D-NEXT). Plan en
+ * Publicar una ruta: lo que se DECIDE al publicar, sin red ni base (D-320). Plan en
  * `docs/PLAN-133-route-plans.md`; diseño en `docs/route-algorithm-design.md`, §7.
  *
  * Aquí vive qué se escribe en cada orden, cuándo un plan ya no vale porque las órdenes cambiaron, y a qué

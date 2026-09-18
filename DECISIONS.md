@@ -22318,7 +22318,7 @@ dicho aquí para que nadie crea que la prueba permanente cubre eso.
 > renglón «desaparecido», que es la media frase de D-279 ya reunida. Desde hoy `DECISIONS.md` no se resuelve con
 > `git merge`: se toma un lado y se insertan a mano las entradas del otro, y se pasa el comprobador.
 
-## D-NEXT · Motor de rutas, incremento 4: «Planificar el día» deja un borrador, y «Publicar ruta» lo escribe de una vez y avisa una sola vez
+## D-320 · Motor de rutas, incremento 4: «Planificar el día» deja un borrador, y «Publicar ruta» lo escribe de una vez y avisa una sola vez
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `133_route_plans.sql`, escrita y
 **no aplicada**. **Plan:** `docs/PLAN-133-route-plans.md` · **Diseño:** `docs/route-algorithm-design.md`, §7 y §8.

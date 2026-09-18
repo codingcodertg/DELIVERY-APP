@@ -4,7 +4,7 @@ import { entradaDelDia, filasDeParadas, puntoDeOrden, puntoDeTienda, type DatosD
 import { escriturasAlPublicar } from "./publicar";
 import type { DriverSettings, NamedLocation } from "@/lib/types";
 
-/** De la base al motor y de vuelta (D-NEXT). Tiendas, choferes, cuentas y tipos de orden inventados. */
+/** De la base al motor y de vuelta (D-320). Tiendas, choferes, cuentas y tipos de orden inventados. */
 
 const tiendas: NamedLocation[] = [
   { name: "Tienda Norte", address: "1 Calle", lat: 26.3, lng: -98.2 },

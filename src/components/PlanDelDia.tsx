@@ -7,7 +7,7 @@ import { useData } from "@/lib/data-provider";
 import { orderLabel } from "@/lib/utils";
 
 /**
- * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-NEXT). Solo admin y logística.
+ * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
  *
  * **Convive con el Gestor de Rutas de hoy, que sigue entero debajo.** Planificar deja un BORRADOR: no toca
  * ninguna orden ni avisa a nadie. Publicar lo escribe en las órdenes —las mismas cuatro columnas que escribe el

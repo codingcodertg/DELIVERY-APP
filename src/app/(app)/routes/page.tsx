@@ -1454,7 +1454,7 @@ export default function RoutesPage() {
         </div>
       </div>
 
-      {/* El motor nuevo (D-NEXT): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
+      {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
       {!allDates && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}
