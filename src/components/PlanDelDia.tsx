@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { orderLabel } from "@/lib/utils";
+import { RutaDelPlan } from "@/components/RutaDelPlan";
+import type { RutaVista } from "@/lib/route-plan/vista";
 
 /**
  * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
@@ -14,16 +16,26 @@ import { orderLabel } from "@/lib/utils";
  * Gestor— y avisa a cada chofer una sola vez.
  *
  * Aquí no se decide nada: qué entra al plan, qué se escribe y a quién se avisa vive en `src/lib/route-plan/`
- * y en la base (133). Esto llama a las dos rutas y enseña lo que contestan. La ruta P/D con sus horas llega en
- * el incremento siguiente; aquí va el resumen, que es lo que hace falta para decidir si se publica.
+ * y en la base (133). Esto llama a las dos rutas y enseña lo que contestan: el resumen, y debajo la ruta de
+ * cada chofer parada a parada (`RutaDelPlan`).
+ *
+ * Al abrir, y al cambiar de fecha, se lee el plan vigente de esa fecha —el último borrador o publicado—, así
+ * que un plan no se pierde por recargar la página.
  */
 
 type Resumen = {
   paradas: number; ordenes: number; minutos: number; millas: number; tarde: number; proveedor: string; trafico: boolean; convergio: boolean;
   sinAsignar: { orden: string; motivo: string }[]; fuera: { id: string; motivo: string }[]; choferesFuera: { id: string; nombre: string; motivo: string }[];
-  partes: Record<string, string[]>; tiempos: { presupuestoAgotado: boolean };
+  partes: Record<string, string[]>; tiempos: { presupuestoAgotado: boolean }; traficoSinResolver?: boolean;
 };
-type Borrador = { plan_id: string; version: number; warnTiendasMarcadas: boolean; resumen: Resumen };
+type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[] };
+
+/** Por qué la base dijo que el plan está viejo, orden a orden. */
+const VIEJO: Record<string, [string, string]> = {
+  cambio: ["was edited after planning", "se editó después de planificar"],
+  fuera_de_etapa: ["is no longer in a routable stage", "ya no está en una etapa que se rutea"],
+  no_esta: ["you can't see this order, or it no longer exists", "no ve esta orden, o ya no existe"],
+};
 
 const MOTIVOS: Record<string, [string, string]> = {
   sin_punto: ["no map point", "sin punto en el mapa"], sin_chofer_disponible: ["no driver available", "sin chofer disponible"],
@@ -43,6 +55,15 @@ export function PlanDelDia({ date }: { date: string }) {
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
+
+  const lee = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/route-plan?date=${encodeURIComponent(date)}`);
+      const b = await res.json().catch(() => ({}));
+      setBorrador(res.ok && b.ok && b.plan ? (b.plan as Borrador) : null);
+    } catch { /* sin red: se queda como estaba; planificar lo dirá */ }
+  }, [date]);
+  useEffect(() => { setBorrador(null); setError(null); setPublicado(null); void lee(); }, [lee]);
 
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   const nombreDeOrden = (id: string) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); return d ? `#${orderLabel(d)}` : id.slice(0, 8); };
@@ -71,7 +92,9 @@ export function PlanDelDia({ date }: { date: string }) {
       const res = await fetch("/api/route-plan/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: borrador.plan_id }) });
       const b = await res.json().catch(() => ({}));
       if (!res.ok || !b.ok) {
-        setError(b.error === "STALE" ? t("Orders changed since this plan was made. Plan the day again.", "Las órdenes cambiaron desde que se hizo este plan. Planifique el día de nuevo.")
+        const viejas = b.error === "STALE" && Array.isArray(b.detail) ? (b.detail as { id: string; motivo: string }[]) : [];
+        const cuales = viejas.map((v) => `${nombreDeOrden(v.id)}: ${VIEJO[v.motivo] ? VIEJO[v.motivo][lang === "es" ? 1 : 0] : v.motivo}`).join(" · ");
+        setError(b.error === "STALE" ? `${t("This plan is out of date, so it wasn't published. Plan the day again.", "Este plan quedó viejo, así que no se publicó. Planifique el día de nuevo.")}${cuales ? ` (${cuales})` : ""}`
           : b.error === "UNSEEN" ? t("You can't see some of this plan's orders, so it wasn't published.", "No ve algunas órdenes de este plan, así que no se publicó.")
           : String(b.error ?? res.status));
       } else {
@@ -79,7 +102,7 @@ export function PlanDelDia({ date }: { date: string }) {
         // El push es un extra sobre la campana: si falla, la ruta está publicada igual.
         for (const a of avisos) void fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notification_id: a.notification_id }) }).catch(() => undefined);
         setPublicado({ escritas: Number(b.written ?? 0), avisos: avisos.length });
-        setBorrador(null);
+        void lee();
         notify(t("Route published", "Ruta publicada"));
       }
     } catch { setError(t("Network error.", "Error de red.")); }
@@ -94,9 +117,9 @@ export function PlanDelDia({ date }: { date: string }) {
         <span className="hint" style={{ margin: 0 }}>{t("Makes a draft. Nothing is assigned until you publish.", "Hace un borrador. Nada se asigna hasta publicar.")}</span>
         <span style={{ flex: 1 }} />
         <button className="btn btn-ghost btn-sm" disabled={!!ocupado} onClick={() => void planifica()}>
-          {ocupado === "planificando" ? t("Planning…", "Planificando…") : borrador ? t("Plan again", "Planificar de nuevo") : t("Plan the day", "Planificar el día")}
+          {ocupado === "planificando" ? t("Planning…", "Planificando…") : borrador?.status === "draft" ? t("Plan again", "Planificar de nuevo") : t("Plan the day", "Planificar el día")}
         </button>
-        {borrador && (
+        {borrador?.status === "draft" && (
           <button className="btn btn-primary btn-sm" disabled={!!ocupado || r!.ordenes === 0} onClick={() => void publica()}>
             {ocupado === "publicando" ? t("Publishing…", "Publicando…") : t("Publish route", "Publicar ruta")}
           </button>
@@ -109,7 +132,7 @@ export function PlanDelDia({ date }: { date: string }) {
       {r && (
         <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
           <div>
-            {t(`Draft v${borrador!.version}`, `Borrador v${borrador!.version}`)} · {r.ordenes} {t("orders", "órdenes")} · {r.paradas} {t("stops", "paradas")} · {Math.floor(r.minutos / 60)} h {r.minutos % 60} min · {r.millas} mi
+            <b>{borrador!.status === "published" ? t(`Published v${borrador!.version}`, `Publicado v${borrador!.version}`) : t(`Draft v${borrador!.version}`, `Borrador v${borrador!.version}`)}</b> · {r.ordenes} {t("orders", "órdenes")} · {r.paradas} {t("stops", "paradas")} · {Math.floor(r.minutos / 60)} h {r.minutos % 60} min · {r.millas} mi
             {r.tarde > 0 && <span className="sema" style={{ border: "1px solid var(--red)", color: "var(--red)", marginLeft: 8 }}>{r.tarde} {t("min late", "min tarde")}</span>}
           </div>
           <div className="hint" style={{ margin: 0 }}>
@@ -117,6 +140,7 @@ export function PlanDelDia({ date }: { date: string }) {
               : r.proveedor === "osrm" ? t("⚠ Travel times without traffic (backup service).", "⚠ Tiempos sin tráfico (servicio de respaldo).")
               : r.trafico ? t("Travel times with traffic.", "Tiempos con tráfico.") : t("Travel times without traffic.", "Tiempos sin tráfico.")}
             {r.tiempos.presupuestoAgotado && ` ${t("The daily map-call limit was reached.", "Se llegó al tope diario de llamadas al mapa.")}`}
+            {r.traficoSinResolver && ` ${t("With traffic, something still doesn't fit: look at the late stops below.", "Con tráfico, algo sigue sin caber: mire las paradas tarde abajo.")}`}
             {!r.convergio && ` ${t("The plan was cut short before it stopped improving.", "El plan se cortó antes de dejar de mejorar.")}`}
           </div>
           {borrador!.warnTiendasMarcadas && (
@@ -136,6 +160,7 @@ export function PlanDelDia({ date }: { date: string }) {
           {r.choferesFuera.length > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t("Not routed today", "Hoy no rutean")}: {r.choferesFuera.map((c) => `${c.nombre} (${motivo(c.motivo)})`).join(" · ")}</div>
           )}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} />
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { evaluaPlan, parteOrdenesGrandes, planifica } from "@/lib/route-engine";
 import { cacheEnMemoria } from "@/lib/route-times/tiempos";
 import type { ProveedorDeTiempos } from "@/lib/route-times/proveedores";
-import { errorDePublicar, planificaElDia, rutasDeParadas } from "./borrador";
+import { errorDePublicar, planificaElDia, resumenDelPlan, rutasDeParadas } from "./borrador";
 import { ETAPAS_RUTEABLES, ROUTE_PUBLISHED_KIND } from "./publicar";
 import type { DatosDelDia } from "./entrada";
 
@@ -74,6 +74,13 @@ describe("planificar el día deja un borrador completo, y reproducible", () => {
     const b = await planificaElDia(datos(), "2026-03-04", "America/Chicago", { cache: cacheEnMemoria(), proveedores: [proveedor("google", true)], ahoraISO: AHORA });
     const otraVez = planifica(b.plan.input.entrada, b.plan.params as never);
     expect(otraVez.rutas.flatMap((r) => r.paradas).map((p) => p.etiqueta)).not.toEqual(b.paradas.map((p) => p.label));
+  });
+
+  it("el resumen de un plan recién hecho: lo que la pantalla enseña, con lo que dejó sin resolver el tráfico", async () => {
+    const b = await planificaElDia(datos(), "2026-03-04", "America/Chicago", { cache: cacheEnMemoria(), proveedores: [proveedor("osrm", false)], ahoraISO: AHORA });
+    const r = resumenDelPlan(b.plan, b.paradas.length);
+    expect([r.paradas, r.ordenes, r.proveedor, r.trafico, r.traficoSinResolver, r.minutos, r.millas, r.tarde]).toEqual([4, 2, "osrm", false, false, b.plan.total_minutes, b.plan.total_miles, b.plan.late_minutes]);
+    expect(resumenDelPlan({ ...b.plan, total_miles: "12.50" as unknown as number, result: { ...b.plan.result, traficoSinResolver: true } }, 4)).toMatchObject({ millas: 12.5, traficoSinResolver: true });
   });
 
   it("dice el PEOR proveedor de los dos pasos: matriz estimada + tráfico de Google = plan estimado", async () => {
@@ -230,6 +237,23 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(ruta).not.toMatch(/admin\s*\.from\("(deliveries|route_plans|route_plan_stops|notifications|profiles)"\)/);
   });
 
+  it("leer el plan vigente (GET) es solo leer, con la sesión: el último borrador o publicado de ESA fecha", () => {
+    const get = ruta.slice(ruta.indexOf("export async function GET("));
+    expect(get.length).toBeGreaterThan(100);
+    expect(get).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(/);
+    expect(get).not.toMatch(/admin|createAdminClient|fetch\(/);
+    expect(plano(get)).toContain('.eq("plan_date", fecha).in("status", ["draft", "published"]).order("version", { ascending: false }).limit(1).maybeSingle()');
+    expect(plano(get)).toContain('if (!fila) return NextResponse.json({ ok: true, plan: null });');
+    // No se baja la foto entera (lleva la matriz): solo la lista de órdenes, para saber cuál es de builder.
+    expect(get).toContain("ordenes:input->entrada->ordenes");
+    expect(get).not.toMatch(/[\s,"]input[\s,"]/);
+  });
+
+  it("planificar y leer contestan con la MISMA forma: el resumen y las rutas salen de las mismas dos funciones", () => {
+    expect(ruta.split("resumenDelPlan(").length - 1).toBe(2);
+    expect(ruta.split("vistaDelPlan(").length - 1).toBe(2);
+  });
+
   it("planificar NO toca ninguna orden ni avisa a nadie", () => {
     expect(ruta).not.toMatch(/from\("deliveries"\)\s*\.(update|insert|delete|upsert)/);
     expect(ruta).not.toContain('from("notifications")');
@@ -261,6 +285,10 @@ describe("la ruta de planificar y la pantalla", () => {
   it("dice con qué tiempos se hizo el plan, y que una orden partida en cargas es una sola en Órdenes", () => {
     expect(panel).toContain('r.proveedor === "estimado"');
     expect(panel).toContain("borrador!.warnTiendasMarcadas");
+    // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
+    expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
+    expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
+    expect(plano(panel)).toContain("<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} />");
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });
