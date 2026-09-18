@@ -37325,3 +37325,75 @@ traducir. Ahora se mira dentro del bloque que calcula los nombres.
 
 - **Nadie la ha visto en un navegador**: ni la barra, ni cómo queda en el teléfono, donde la tabla se
   vuelve tarjetas y la barra queda encima de la primera.
+
+## D-NEXT · La tarjeta de una orden baja de cuatro filas a tres
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** ·
+**Pedido por:** el dueño: la tarjeta de una orden ocupa cuatro filas y quiere tres, *«sin destruir la
+estética»*.
+
+### Qué había, medido
+
+La tarjeta es la tabla de órdenes en el teléfono: por debajo de 640px las filas se vuelven tarjetas, y
+en una tarjeta plegada solo se pintan dos celdas, la casilla de selección y la del identificador
+(`globals.css`, `tr.row-collapsed td:not(.ordno):not(.sel-cell) { display: none }`).
+
+La celda del identificador ya traía **tres líneas emparejadas** (D-«la cabecera del chofer»): etapa con
+factura, tipo con fecha, tienda con id. **La cuarta fila era la casilla**, que se llevaba una fila
+entera para ella sola.
+
+Medido en Chrome headless con este mismo CSS y el marcado real de la tarjeta, a cinco anchos:
+
+| | antes | ahora |
+|---|---|---|
+| tarjeta normal | 4 filas · 104px | **3 filas · 89px** |
+| 320px con tres facturas | 5 filas · 123px | 4 filas · 108px |
+| sin casilla (vista del chofer) | 3 filas · 89px | 3 filas · 89px |
+
+### Qué hay
+
+La casilla se ancla **arriba a la derecha de la primera línea**, que es donde ya se veía, en vez de
+ocupar su propia fila. Nada desaparece: etapa, tipo, tienda, factura, fecha, id y la casilla siguen
+estando, y el reparto de las tres líneas no se toca.
+
+- **La factura le deja el hueco** (26px) para no quedar por debajo. El número salió de medir: con 20px
+  la casilla pisaba el texto; con 26 no, ni siquiera con tres facturas.
+- **Solo donde hay casilla.** La fila se marca con `con-casilla` cuando la tabla es seleccionable, y las
+  tres reglas van acotadas a ella. La vista del chofer no tiene casillas y no pierde ni un píxel de
+  ancho de factura: medido, sigue en 3 filas y 89px.
+- **La marca va en la FILA y no en la tabla**, y eso tiene motivo: la prueba del marco (D-281) cuenta
+  contenedores buscando `<table className="…">` escrito literal. Al poner ahí una expresión, contaba
+  cinco en vez de seis y fallaba sin que nada dijera por qué. Las filas ya llevaban clases
+  condicionales, así que la marca cabe ahí sin tocar nada más. Una prueba fija que la clase de la tabla
+  sigue siendo literal.
+
+### Lo que queda igual, y es a propósito
+
+A **320–360px con tres facturas** la tarjeta sigue siendo de cuatro líneas, pero la cuarta es la factura
+envolviendo, o sea **dato**, no un control: eso ya se decidió cuando se eligió que las facturas se
+envuelvan en vez de cortarse, porque el chofer las compara contra el papel. Antes, ese mismo caso eran
+cinco.
+
+### Medido, rompiendo cada pieza
+
+13 cambios: **11 caen, cada uno por la prueba que lleva su nombre, y los 2 gemelos se quedan en verde.**
+
+- **El marcado:** la marca sale siempre; la fila se queda sin marca; la clase de la tabla vuelve a ser
+  una expresión (cae también la prueba de D-281, que es justo el aviso que faltaba); la tarjeta pierde
+  la línea de la tienda; la tarjeta pierde el id.
+- **El CSS:** la casilla vuelve a su fila; la fila deja de ser el marco de referencia; la factura pierde
+  el hueco; el hueco se le cobra también al chofer; el anclaje sin acotar; un color escrito a mano.
+- **Los gemelos:** las mismas reglas en otro orden, y el hueco a 24px, que también mide sin solape.
+
+**Una prueba mía cayó por el motivo equivocado**, y lo enseñó el gemelo del hueco a 24px: recortaba el
+bloque de CSS anclándose en «26px», así que cambiar ese número dejaba un recorte absurdo y la prueba de
+los colores fallaba por eso. Ahora el recorte se ancla en cosas que no cambian con el valor, y exige que
+las dos anclas existan.
+
+### Lo no verificado
+
+- **Nadie lo ha visto en un teléfono de verdad.** Está medido en Chrome headless con el CSS del repo y
+  el marcado copiado de la tabla; no es la app corriendo.
+- **La vista desplegada** (una tarjeta que se abre con el chevron) no se midió: ahí se pintan todas las
+  celdas y la casilla también deja de ocupar fila, pero el alto depende de cuántas columnas tenga
+  elegidas cada quien.
