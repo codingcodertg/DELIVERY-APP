@@ -22479,3 +22479,60 @@ una.
 - **No verificado:** nada de esto se ha abierto en un navegador. El `GET` con alias de JSON
   (`ordenes:input->entrada->ordenes`) es sintaxis de PostgREST leída, no ejecutada: si fallara, la ruta contesta 500
   con el detalle y el panel se queda como si no hubiera plan.
+
+## D-NEXT · Motor de rutas, incremento 6: ajustar el borrador a mano — reordenar, pasar de chofer, fijar — y que avise sin bloquear
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la 133 ya traía
+`source = 'manual_edit'`, `parent_plan_id` y `pinned`). **Diseño:** `docs/route-algorithm-design.md`, §7.
+**El Gestor de Rutas de hoy no cambia.** Solo admin y logística, solo sobre un plan en borrador.
+
+### Qué hay ahora
+
+- En la tabla de cada chofer (D-322), cada parada de un **borrador** lleva: **↑ ↓** (cambiarla con su vecina), **📍/📌**
+  (fijar o soltar la orden) y, en la recogida, **«Pasar a…»** otro chofer del plan — también a uno que no tenía paradas.
+- **El cliente manda el movimiento, no la ruta.** `PATCH /api/route-plan {plan_id, movimiento}`: el servidor parte de las
+  paradas GUARDADAS y les aplica el movimiento (`src/lib/route-plan/ajuste.ts`). Nadie puede colar una ruta con órdenes
+  de más o de menos.
+- **Se revalida, no se replanifica.** Las secuencias, tal como las dejó la persona, pasan por `evaluaPlan` con la
+  matriz y el tráfico que el plan ya guardó. Salen horas, carga, totales y lo que publicar escribirá. **No se llama a
+  ningún proveedor de tiempos ni al motor de planificar**: un ajuste no cuesta cuota y tarda lo que tarda una suma.
+- **Avisa, no bloquea.** Si el ajuste no llega a una ventana dura, pasa la capacidad, se sale del turno o supera el
+  retraso permitido, el panel lo dice en rojo, orden por orden, y **se guarda y se puede publicar igual**; al confirmar
+  se recuerda cuántos avisos lleva. Quien despacha sabe cosas que el motor no. Lo ÚNICO que se rechaza es lo que no es
+  una ruta: entregar una orden antes de recogerla.
+- **El historial no se pisa.** Cada ajuste guarda un plan NUEVO (`manual_edit`, hijo del anterior) con sus paradas, y
+  solo cuando está entero descarta el anterior. Si guardar falla a medias, el anterior sigue siendo el vigente. Nunca se
+  edita ni se borra una parada de un plan ya guardado.
+- **Mover algo a mano lo fija**, y «Planificar de nuevo» respeta lo fijado del borrador vigente: el motor arranca con
+  esas paradas puestas, en ese orden y con ese chofer, y reparte el resto alrededor (`Entrada.secuenciaFijada`, que el
+  núcleo trae desde D-314). Lo fijado con un chofer que hoy no rutea, o de una orden que ya no está, se ignora.
+
+### Lo que se descartó
+
+- **Arrastrar y soltar.** Botones: funcionan en el teléfono y con teclado, y cada pulsación es un movimiento que el
+  servidor valida. Si el uso lo pide, se pone encima sin tocar nada de abajo.
+- **Editar el plan en sitio** (`update` + borrar e insertar paradas): no es atómico por PostgREST, y un fallo a medias
+  dejaba un plan sin paradas. Un plan nuevo por ajuste cuesta filas; a cambio nunca hay un estado roto y queda la historia
+  de qué se movió.
+- **Bloquear los ajustes que violan algo.** El encargo lo dice y el diseño también: advertir.
+
+### Lo que hay que saber
+
+- **Las horas de un tramo cambiado a mano pueden ir sin tráfico.** El plan solo guardó tráfico de los tramos que el
+  motor probó (la corrección a D-318 que está en D-320). El panel dice cuántos tramos del plan ajustado no tienen dato:
+  «N tramo(s) cambiados a mano no tienen dato de tráfico». Pedirlo costaría cuota en cada pulsación; no se hace.
+- **Cada ajuste es un plan más en `route_plans`** (con su foto, que lleva la matriz). Veinte ajustes son veinte filas
+  descartadas. Hoy no molesta; si la tabla crece, lo que sobra son los descartados viejos, y se decide entonces.
+- **Si descartar el anterior fallara**, quedan dos borradores y manda el de versión más alta —el nuevo—, que es el que
+  `GET` enseña y el que se publica desde el panel.
+- **Dos personas ajustando a la vez:** cada una parte del plan que tiene en pantalla; la segunda recibe 409 (`NOT_DRAFT`,
+  su plan ya está descartado) y el panel recarga el vigente. Pierde su movimiento, no rompe nada.
+
+### Lo que NO está verificado
+
+- **Nada de esto se ha abierto en un navegador ni ha corrido contra la base.** En concreto, leído y no ejecutado: que la
+  política de INSERT de la 133 acepte `parent_plan_id` y `source = 'manual_edit'` de un `authenticated` (la restricción
+  `route_plans_source_allowed` sí lo lista), y que `guard_route_plan` deje pasar de `draft` a `discarded` (133: lo
+  permite, y es lo mismo que ya hace planificar cuando fallan las paradas).
+- Que el motor, con `secuenciaFijada`, deje las paradas fijadas donde estaban está probado en el núcleo (D-314) con
+  secuencias escritas a mano; con las que salen de un borrador real de producción, no.

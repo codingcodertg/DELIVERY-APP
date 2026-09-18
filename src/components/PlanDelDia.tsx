@@ -7,6 +7,7 @@ import { useData } from "@/lib/data-provider";
 import { orderLabel } from "@/lib/utils";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
 import type { RutaVista } from "@/lib/route-plan/vista";
+import type { Movimiento } from "@/lib/route-plan/ajuste";
 
 /**
  * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
@@ -27,8 +28,20 @@ type Resumen = {
   paradas: number; ordenes: number; minutos: number; millas: number; tarde: number; proveedor: string; trafico: boolean; convergio: boolean;
   sinAsignar: { orden: string; motivo: string }[]; fuera: { id: string; motivo: string }[]; choferesFuera: { id: string; nombre: string; motivo: string }[];
   partes: Record<string, string[]>; tiempos: { presupuestoAgotado: boolean }; traficoSinResolver?: boolean;
+  violaciones?: { tipo: string; chofer: string; orden?: string }[]; tramosSinTrafico?: number;
 };
-type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[] };
+type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[] };
+
+/** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
+const INCUMPLE: Record<string, [string, string]> = {
+  precedencia: ["delivered before picked up", "se entrega antes de recogerse"], capacidad: ["over the truck's capacity", "pasa la capacidad del camión"],
+  ventana_estrecha: ["misses its hard window", "no llega a su ventana dura"], retraso_sobre_el_tope: ["later than the allowed delay", "más tarde que el retraso permitido"],
+  fuera_de_turno: ["outside the driver's shift", "fuera del turno del chofer"], sin_tiempo_de_viaje: ["no travel time for a leg", "falta el tiempo de viaje de un tramo"],
+};
+const NO_SE_PUEDE: Record<string, [string, string]> = {
+  entrega_antes_de_recoger: ["An order can't be delivered before it's picked up.", "Una orden no se puede entregar antes de recogerla."],
+  en_el_borde: ["That stop is already at the end.", "Esa parada ya está en el extremo."], ya_esta_ahi: ["It's already on that driver.", "Ya está con ese chofer."],
+};
 
 /** Por qué la base dijo que el plan está viejo, orden a orden. */
 const VIEJO: Record<string, [string, string]> = {
@@ -51,7 +64,7 @@ export function PlanDelDia({ date }: { date: string }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
-  const [ocupado, setOcupado] = useState<"planificando" | "publicando" | null>(null);
+  const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
@@ -78,13 +91,29 @@ export function PlanDelDia({ date }: { date: string }) {
     setOcupado(null);
   };
 
+  const ajusta = async (movimiento: Movimiento) => {
+    if (!borrador || borrador.status !== "draft" || ocupado) return;
+    setOcupado("ajustando"); setError(null);
+    try {
+      const res = await fetch("/api/route-plan", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: borrador.plan_id, movimiento }) });
+      const b = await res.json().catch(() => ({}));
+      if (!res.ok || !b.ok) {
+        const porQue = NO_SE_PUEDE[String(b.detail)];
+        setError(porQue ? porQue[lang === "es" ? 1 : 0] : String(b.error ?? res.status));
+        if (res.status === 404 || res.status === 409) void lee();      // otro lo cambió: enseñar lo que hay
+      } else setBorrador(b as Borrador);
+    } catch { setError(t("Network error.", "Error de red.")); }
+    setOcupado(null);
+  };
+
   const publica = async () => {
     if (!borrador) return;
     const r = borrador.resumen;
     const fuera = r.sinAsignar.length + r.fuera.length;
+    const avisos = r.violaciones?.length ?? 0;
     const ok = await confirmAction(t(
-      `Publish this route? ${r.ordenes} order(s) will be assigned and each driver gets one notice.${fuera ? ` ${fuera} order(s) stay out of this plan and are not touched.` : ""}`,
-      `¿Publicar esta ruta? Se asignarán ${r.ordenes} orden(es) y cada chofer recibirá un aviso.${fuera ? ` ${fuera} orden(es) quedan fuera de este plan y no se tocan.` : ""}`,
+      `Publish this route? ${r.ordenes} order(s) will be assigned and each driver gets one notice.${fuera ? ` ${fuera} order(s) stay out of this plan and are not touched.` : ""}${avisos ? ` This plan has ${avisos} warning(s).` : ""}`,
+      `¿Publicar esta ruta? Se asignarán ${r.ordenes} orden(es) y cada chofer recibirá un aviso.${fuera ? ` ${fuera} orden(es) quedan fuera de este plan y no se tocan.` : ""}${avisos ? ` Este plan tiene ${avisos} aviso(s).` : ""}`,
     ), { danger: false, confirmLabel: t("Publish route", "Publicar ruta") });
     if (!ok) return;
     setOcupado("publicando"); setError(null);
@@ -160,7 +189,17 @@ export function PlanDelDia({ date }: { date: string }) {
           {r.choferesFuera.length > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t("Not routed today", "Hoy no rutean")}: {r.choferesFuera.map((c) => `${c.nombre} (${motivo(c.motivo)})`).join(" · ")}</div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} />
+          {(r.violaciones?.length ?? 0) > 0 && (
+            <div className="hint" style={{ margin: 0, color: "var(--red)" }}>
+              <b>{t("Warnings (you can still publish)", "Avisos (se puede publicar igual)")}:</b>{" "}
+              {r.violaciones!.map((v) => `${v.orden ? `${nombreDeOrden(v.orden)} ` : ""}${INCUMPLE[v.tipo] ? INCUMPLE[v.tipo][lang === "es" ? 1 : 0] : v.tipo}`).join(" · ")}
+            </div>
+          )}
+          {(r.tramosSinTrafico ?? 0) > 0 && (
+            <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
+          )}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}
+            ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
         </div>
       )}
     </div>

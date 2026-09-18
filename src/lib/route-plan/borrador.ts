@@ -1,4 +1,4 @@
-import { VERSION_DEL_MOTOR, type Plan } from "@/lib/route-engine";
+import { VERSION_DEL_MOTOR, type Plan, type Violacion } from "@/lib/route-engine";
 import { matrizBase, planificaConTrafico, type Dependencias, type InformeDeTiempos } from "@/lib/route-times/tiempos";
 import type { NamedLocation } from "@/lib/types";
 import { entradaDelDia, filasDeParadas, type DatosDelDia, type EntradaDelDia, type FilaDeParada } from "./entrada";
@@ -14,13 +14,17 @@ import { escriturasAlPublicar, type EscrituraDeOrden } from "./publicar";
 
 export interface FilaDePlan {
   plan_date: string;
-  source: "engine";
+  /** `manual_edit`: alguien ajustó a mano el plan `parent_plan_id` (ver `./ajuste`). */
+  source: "engine" | "manual_edit";
+  parent_plan_id?: string;
   algorithm_version: string;
   params: Record<string, unknown>;
   /** La foto: con esto y las paradas guardadas, EVALUAR el plan da otra vez las mismas horas. `ordenes` es
    *  contra lo que se compara al publicar. */
   input: { ordenes: EntradaDelDia["fotos"]; entrada: EntradaDelDia["entrada"]; puntos: EntradaDelDia["puntos"] };
-  result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean };
+  result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean;
+    /** Solo tras un ajuste a mano: lo que incumple, cuántos tramos van sin tráfico guardado, y qué órdenes quedaron fijadas. */
+    violaciones?: Violacion[]; tramosSinTrafico?: number; fijadas?: string[] };
   writes: EscrituraDeOrden[];
   provider: string;
   traffic: boolean;
@@ -66,6 +70,10 @@ export async function planificaElDia(datos: DatosDelDia, fechaISO: string, zona:
   };
 }
 
+/** A quién se le puede pasar una orden al ajustar: los choferes que entraron al plan, tengan paradas o no. */
+export const choferesDelPlan = (choferes: readonly { id: string; nombre: string }[] | null | undefined): { id: string; nombre: string }[] =>
+  (choferes ?? []).map((c) => ({ id: c.id, nombre: c.nombre })).sort((a, b) => (a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0));
+
 /** Lo que la pantalla necesita saber de un plan, recién hecho o leído de la base: es la MISMA forma. */
 export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "total_minutes" | "total_miles" | "late_minutes" | "provider" | "traffic" | "converged">, paradas: number) {
   return {
@@ -73,6 +81,7 @@ export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "tot
     partes: plan.result.partes, minutos: plan.total_minutes, millas: Number(plan.total_miles), tarde: plan.late_minutes,
     proveedor: plan.provider, trafico: plan.traffic, convergio: plan.converged, tiempos: plan.result.tiempos,
     traficoSinResolver: !!plan.result.traficoSinResolver,
+    violaciones: plan.result.violaciones ?? [], tramosSinTrafico: plan.result.tramosSinTrafico ?? 0,
   };
 }
 

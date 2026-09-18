@@ -131,6 +131,15 @@ describe("las órdenes que entran al motor", () => {
     expect(e.fuera).toEqual([{ id: "a", motivo: "chofer_no_rutea" }, { id: "b", motivo: "chofer_no_rutea" }]);
   });
 
+  it("lo fijado a mano llega al motor — solo si el chofer rutea hoy y la orden sigue en el plan", () => {
+    const P = (o: string) => ({ orden: o, tipo: "P" as const }), D = (o: string) => ({ orden: o, tipo: "D" as const });
+    const fijadas = { "c-norte": [P("a"), P("ya-no"), D("a"), D("ya-no"), P("g#b"), D("g#b")], "c-apagado": [P("b"), D("b")] };
+    const e = entradaDelDia(datos([orden("a"), orden("b"), orden("g", { est_pallets: 25 })], { fijadas }));
+    expect(e.entrada.secuenciaFijada).toEqual({ "c-norte": [P("a"), D("a"), P("g#b"), D("g#b")] });
+    expect("secuenciaFijada" in entradaDelDia(datos([orden("a")])).entrada).toBe(false);
+    expect("secuenciaFijada" in entradaDelDia(datos([orden("a")], { fijadas: { "c-apagado": [P("a"), D("a")] } })).entrada).toBe(false);
+  });
+
   it("los pesos y el tope salen de Ajustes", () => {
     const e = entradaDelDia(datos([], { settings: { ...settings, route_weights: { builder: 5 }, route_late_cap_min: 30, route_hard_windows: [] } }));
     expect(e.parametros.pesos.builder).toBe(5);
