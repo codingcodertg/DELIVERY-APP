@@ -1672,7 +1672,7 @@ export function OrderModal({
               <span className="hint" style={{ margin: 0 }}>{t("Delivery Fee", "Costo de Entrega")}: <b>{d.delivery_fee == null ? "—" : fmtMoney(d.delivery_fee)}</b></span>
             </div>
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
-            {/* Los dos botones otra vez, Lista y Descuento (D-NEXT): D-283 los dejó en uno y el
+            {/* Los dos botones otra vez, Lista y Descuento (D-303): D-283 los dejó en uno y el
                 dueño pidió el descuento de vuelta el mismo día. */}
             {(feeSuggestion.list != null || feeSuggestion.discount != null) && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
@@ -1928,7 +1928,7 @@ export function OrderModal({
                     ⚡ {t(`Same-day delivery — includes ${fmtMoney(feeSuggestion.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(feeSuggestion.sameDaySurcharge)}.`)}
                   </div>
                 )}
-                {/* Cobrar por debajo del DESCUENTO pide aprobación, como antes de D-283 (D-NEXT):
+                {/* Cobrar por debajo del DESCUENTO pide aprobación, como antes de D-283 (D-303):
                     el descuento es el suelo de lo que un vendedor puede ofrecer solo. Con el
                     descuento de vuelta, D-283 había dejado el suelo en la lista, que es más
                     estricto y avisaba de cualquier rebaja. */}
@@ -2541,7 +2541,7 @@ export function OrderModal({
                   {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}
                   {" → "}
                   {/* Los dos precios, y el descuento solo cuando de verdad es otro número
-                      (D-NEXT): con esta fórmula solo se separa por encima de 50 millas, y
+                      (D-303): con esta fórmula solo se separa por encima de 50 millas, y
                       repetir la misma cifra dos veces se lee como un error. */}
                   <strong>${feeSuggestion.list}</strong> {t("list", "lista")}
                   {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
@@ -2578,7 +2578,7 @@ export function OrderModal({
             )}
             {/* El aviso solo cuando de verdad NO cuadra. Un aviso que sale siempre deja de
                 leerse, y entonces el que importa pasa desapercibido. */}
-            {/* Cobrar el descuento NO es no cuadrar (D-NEXT): el aviso tolera los dos precios,
+            {/* Cobrar el descuento NO es no cuadrar (D-303): el aviso tolera los dos precios,
                 como antes de D-283. Con un solo precio, cobrar el descuento salía marcado. */}
             {!sinCobrar && feeSuggestion.list != null && existing.delivery_fee != null
               && existing.delivery_fee !== feeSuggestion.list

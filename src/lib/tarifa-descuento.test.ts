@@ -6,7 +6,7 @@ import {
 } from "./pricing";
 
 /**
- * El precio con descuento, de vuelta (D-NEXT).
+ * El precio con descuento, de vuelta (D-303).
  *
  * D-283 lo quitó porque el dueño pidió un solo precio esa mañana; esa misma tarde pidió el descuento
  * de vuelta: «discounted fee was removed, bring it back». La cifra es suya, literal: «discounted

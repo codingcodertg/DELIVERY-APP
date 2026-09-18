@@ -157,7 +157,7 @@ describe("lo que no cambia", () => {
   });
   it("las fórmulas y el respaldo siguen intactos", () => {
     const src = leer("src/lib/pricing.ts");
-    // La firma creció con el precio que se pide (D-NEXT): el canario se mueve con el código, no
+    // La firma creció con el precio que se pide (D-303): el canario se mueve con el código, no
     // se borra. `Precio` por defecto es la lista, así que quien llamaba con dos argumentos sigue
     // pidiendo lo mismo que antes.
     expect(src).toMatch(/export function deliveryFee\(miles: number, local = true, precio: Precio = "list"\): number \{/);

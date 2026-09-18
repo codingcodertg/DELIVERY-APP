@@ -46,7 +46,7 @@ describe("las reglas se dicen según el factor", () => {
       textoDeLaRegla(en, f.lista.base, f.lista.factor, f.lista.minimo),
       textoDeLaRegla(en, f.descuento.base, f.descuento.factor, f.descuento.minimo),
     ]);
-    expect(celdas).toHaveLength(12); // control: 4 filas × 3 celdas (rango, lista, descuento) desde D-NEXT
+    expect(celdas).toHaveLength(12); // control: 4 filas × 3 celdas (rango, lista, descuento) desde D-303
     for (const c of celdas) {
       expect(c, c).not.toMatch(/fijo|cualquier|menos de|más de|mín\./);
     }
@@ -94,7 +94,7 @@ describe("Ajustes enseña la fórmula una sola vez", () => {
       expect(src, `la constante ${n} no puede estar escrita en la pantalla`).not.toContain(`${n} + mi`);
     }
     expect(src).not.toContain("Fee formula (by driving miles)");
-    // Y el suelo llega a la tabla, **en las dos columnas** (D-NEXT): una regla con mínimo que se
+    // Y el suelo llega a la tabla, **en las dos columnas** (D-303): una regla con mínimo que se
     // pintara sin él mentiría, y el descuento del tramo largo tiene suelo igual que la lista del
     // tramo del medio.
     expect(src).toContain("f.lista.minimo");

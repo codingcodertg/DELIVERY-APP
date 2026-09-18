@@ -36058,13 +36058,13 @@ tres veces en el modal. `main` 3b549ca, medido en un worktree aparte, está en 2
 
 ## D-283 · La tarifa local, de nuevo: un solo precio, 0,80 por milla y redondeo a 5
 
-> **⚠ Reemplazada en parte el mismo día, por D-NEXT.** El dueño pidió el descuento de vuelta unas
+> **⚠ Reemplazada en parte el mismo día, por D-303.** El dueño pidió el descuento de vuelta unas
 > horas después de pedir el precio único: *«discounted fee was removed, bring it back»*. **Lo que sigue
 > vigente de esta entrada:** la fórmula de la LISTA (100 plano bajo 11 millas, 105 + 0,80 × millas
 > hasta 50, 300 + 0,80 × millas por encima, 500 + 0,80 × millas fuera de zona), el redondeo a 5, el
 > suelo de 105 y todo lo que dice sobre generar la tabla desde el mismo sitio que el precio. **Lo que
 > ya no vale:** que haya un solo precio, y que el suelo del aviso de aprobación sea ese precio. La
-> cifra del descuento —y por qué coincide con la lista en tres de los cuatro tramos— está en D-NEXT.
+> cifra del descuento —y por qué coincide con la lista en tres de los cuatro tramos— está en D-303.
 > No se borra nada de aquí: esto pasó, y el porqué de que pasara sigue siendo útil.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
@@ -37754,7 +37754,7 @@ main, que se movió mientras se escribía (D-300).
   (medido en `settings.order_type_rules`). Si mañana alguien le pone esa bandera a otro tipo, se lleva
   este comportamiento entero sin que nadie lo decida otra vez.
 
-## D-NEXT · El precio con descuento vuelve, con la fórmula nueva
+## D-303 · El precio con descuento vuelve, con la fórmula nueva
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, literal: *«discounted fee was removed, bring it back»*, unas horas después de

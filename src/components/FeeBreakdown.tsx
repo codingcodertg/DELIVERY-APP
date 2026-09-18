@@ -12,7 +12,7 @@ import { textoDelMinimo, textoDelRango, textoDeLaRegla, textoDelRedondeo } from 
  * El dueño pidió ver la fórmula del recargo de entrega. Lo que se enseña no es la fórmula en
  * abstracto —eso está en Ajustes, para consultarla sin abrir nada— sino **el camino que llevó a
  * los importes de los botones**: el tramo que aplicó, su regla, el bruto, el redondeo, el suelo si
- * mordió, y el recargo de mismo día, si lo hay. Desde D-NEXT vuelven a ser dos, lista y descuento.
+ * mordió, y el recargo de mismo día, si lo hay. Desde D-303 vuelven a ser dos, lista y descuento.
  *
  * Todo viene de `breakdown`, que sale del **mismo** cálculo que el precio. Este componente no
  * hace aritmética: si sumara por su cuenta, tarde o temprano diría una cosa y el botón otra, y
@@ -43,7 +43,7 @@ export function FeeBreakdownDetails({ desglose }: { desglose: Desglose }) {
             {" · "}
             {t(`${desglose.miles} driving miles`, `${desglose.miles} millas de recorrido`)}
           </div>
-          {/* Los dos caminos otra vez (D-NEXT): D-283 había dejado uno. Van seguidos y con título,
+          {/* Los dos caminos otra vez (D-303): D-283 había dejado uno. Van seguidos y con título,
               porque en tres de los cuatro tramos dan el mismo número y sin título parecería que
               algo se repitió por error. */}
           <Camino titulo={t("List", "Lista")} paso={desglose.list} />

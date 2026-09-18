@@ -5,7 +5,7 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formula).
 //
-// DOS precios otra vez (D-NEXT): lista y descuento. D-283 había dejado uno solo porque el dueño lo
+// DOS precios otra vez (D-303): lista y descuento. D-283 había dejado uno solo porque el dueño lo
 // pidió esa mañana, y esa misma tarde pidió el descuento de vuelta: «discounted fee was removed,
 // bring it back». Todo redondea al múltiplo de $5 más cercano.
 //
@@ -91,7 +91,7 @@ export const FACTOR_MILLA = 0.8;
 export const MINIMO_MEDIO = 105;
 
 /**
- * Cuál de los dos precios se está calculando (D-NEXT).
+ * Cuál de los dos precios se está calculando (D-303).
  *
  * No hay una tabla por precio: hay **una** tabla y un tramo que se cobra distinto. Con dos tablas,
  * cambiar el 105 de la lista dejaría el descuento en el 105 viejo, y nadie lo notaría hasta que dos
@@ -99,7 +99,7 @@ export const MINIMO_MEDIO = 105;
  */
 export type Precio = "list" | "discount";
 
-/** Las cuatro cifras de la fórmula. UNA tabla, de la que salen los dos precios (D-NEXT). */
+/** Las cuatro cifras de la fórmula. UNA tabla, de la que salen los dos precios (D-303). */
 export type TablaTarifa = {
   /** Tramo corto: precio plano, sin millas. */
   planoCorto: number;
@@ -163,7 +163,7 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0, precio: P
     return cerrar({ tramo: "local-corto", desde: null, hasta: UMBRAL_CORTO, base: TARIFA.planoCorto, factor: 0, minimo: null, bruto: TARIFA.planoCorto, recargo });
   }
   if (miles > UMBRAL_LARGO) {
-    // **El único tramo donde los dos precios se separan** (D-NEXT). El descuento de una entrega larga
+    // **El único tramo donde los dos precios se separan** (D-303). El descuento de una entrega larga
     // es la fórmula del tramo del medio: «cóbrale como si fuera corta». Del dueño, literal:
     // «discounted price for local deliveries over 50 mi will be = 105+(0.80 x miles)».
     //
@@ -184,7 +184,7 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0, precio: P
  * cambia un comparador, el rango que se lee cambia también.
  *
  * Son **cuatro** filas —tres tramos locales y la de fuera de zona— con **dos columnas** cada una,
- * lista y descuento (D-NEXT). Los rangos salen de los comparadores de `pasoTarifa`, así que dicen
+ * lista y descuento (D-303). Los rangos salen de los comparadores de `pasoTarifa`, así que dicen
  * `< 11`, `11–50` y `> 50` — con **11 y 50 dentro del tramo del medio**, que es donde los pone el
  * código y no donde los pondría la intuición.
  */
@@ -242,7 +242,7 @@ export function filasDeLaFormula(): FilaFormula[] {
 /**
  * La tarifa de entrega de esas millas, sin el recargo de mismo día.
  *
- * Por defecto la de **lista**; con `"discount"`, la de descuento (D-NEXT). Las dos salen de
+ * Por defecto la de **lista**; con `"discount"`, la de descuento (D-303). Las dos salen de
  * `pasoTarifa`, que es de donde sale el precio del botón.
  */
 export function deliveryFee(miles: number, local = true, precio: Precio = "list"): number {
@@ -265,7 +265,7 @@ export interface FeeSuggestion {
   /** The suggested LIST price (incl. same-day surcharge), or null until miles are known. */
   list: number | null;
   /**
-   * El descuento que un vendedor puede ofrecer, con el recargo dentro (D-NEXT).
+   * El descuento que un vendedor puede ofrecer, con el recargo dentro (D-303).
    *
    * **Nunca por encima de la lista**, y en tres de los cuatro tramos es exactamente igual a ella.
    * Que coincida no es un fallo: el descuento solo se separa por encima de 50 millas.

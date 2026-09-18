@@ -215,7 +215,7 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
 // Este bloque fijaba «donde había dos precios ahora hay uno» (D-283). El dueño pidió el descuento
 // de vuelta el mismo día —«discounted fee was removed, bring it back»— así que **se reescribe al
 // revés en vez de borrarse**: sigue siendo el canario de que las tres pantallas enseñan lo mismo
-// que calcula `pricing.ts`, solo que ahora lo que tienen que enseñar son dos precios (D-NEXT).
+// que calcula `pricing.ts`, solo que ahora lo que tienen que enseñar son dos precios (D-303).
 describe("los dos precios llegan a las tres pantallas", () => {
   const modal = readFileSync("src/components/OrderModal.tsx", "utf8");
   const desglose = readFileSync("src/components/FeeBreakdown.tsx", "utf8");
