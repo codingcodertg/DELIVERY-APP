@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
+import type { PorQue } from "@/lib/route-plan/porque";
 
 /**
  * La ruta de cada chofer, parada a parada (D-322): recogidas (P) y entregas (D) con su etiqueta, a qué hora
@@ -16,25 +17,55 @@ import type { Movimiento } from "@/lib/route-plan/ajuste";
  * chofer, fijarla. Aquí tampoco se decide nada: se manda el movimiento y se pinta lo que el servidor contesta.
  */
 
+/** Por qué con ese chofer no se puede. */
+const NO_PUEDE: Record<string, [string, string]> = {
+  capacidad: ["it wouldn't fit in the truck", "no cabría en el camión"], ventana_estrecha: ["would miss a hard window", "no llegaría a una ventana dura"],
+  retraso_sobre_el_tope: ["would be later than allowed", "llegaría más tarde de lo permitido"], fuera_de_turno: ["doesn't fit in the shift", "no cabe en su turno"],
+  sin_tiempo_de_viaje: ["a travel time is missing", "falta un tiempo de viaje"], precedencia: ["the order of stops wouldn't work", "el orden de paradas no saldría"],
+  chofer_distinto_del_fijado: ["the order is assigned to someone else", "la orden está asignada a otro"], no_permitido: ["the order is tied to its driver", "la orden está atada a su chofer"],
+};
+
 export interface AjusteDeRuta { choferes: { id: string; nombre: string }[]; ocupado: boolean; mueve: (m: Movimiento) => void }
 
-export function RutaDelPlan({ rutas, nombreDeOrden, ajuste }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; ajuste?: AjusteDeRuta }) {
-  const { t } = usePrefs();
+export function RutaDelPlan({ rutas, nombreDeOrden, ajuste, porque }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; ajuste?: AjusteDeRuta; porque?: Record<string, PorQue> }) {
+  const { t, lang } = usePrefs();
+  const [preguntada, setPreguntada] = useState<string | null>(null);
   const [cerradas, setCerradas] = useState<Record<string, boolean>>({});
   if (!rutas.length) return null;
 
   const duracion = (min: number) => `${Math.floor(min / 60)} h ${min % 60} min`;
 
+  // Las cuentas son del motor; aquí solo se dicen. Positivo = el plan entero saldría peor con ese chofer.
+  const explica = (q: PorQue, chofer: string) => {
+    if (q.quien === "persona") return t("A person put this order here (pinned or moved by hand); the engine's numbers no longer describe it.", "Esta orden la puso aquí una persona (fijada o movida a mano); las cuentas del motor ya no la describen.");
+    const mas = (n: number, unidad: string) => `${n > 0 ? "+" : ""}${n} ${unidad}`;
+    const otras = q.otras.map((o) => (o.noPuede
+      ? `${o.chofer}: ${t("no", "no")} — ${NO_PUEDE[o.noPuede] ? NO_PUEDE[o.noPuede][lang === "es" ? 1 : 0] : o.noPuede}`
+      : `${o.chofer}: ${mas(o.masManejoMin, t("min driving", "min de manejo"))}, ${mas(o.masMillas, "mi")}${o.masTardeMin ? `, ${mas(o.masTardeMin, t("min late", "min tarde"))}` : ""}${o.masBuilderMin ? `, ${mas(o.masBuilderMin, t("builder-min", "min-builder"))}` : ""}`));
+    return (
+      <>
+        {t(`With ${chofer} it adds ${q.aporta!.manejoMin} min of driving and ${q.aporta!.millas} mi to the day${q.aporta!.tardeMin ? `, and ${q.aporta!.tardeMin} min late` : ""}.`,
+           `Con ${chofer} le suma al día ${q.aporta!.manejoMin} min de manejo y ${q.aporta!.millas} mi${q.aporta!.tardeMin ? `, y ${q.aporta!.tardeMin} min tarde` : ""}.`)}
+        {otras.length > 0 && <> {t("With the others, the whole plan would change by", "Con los demás, el plan entero cambiaría en")}: {otras.join(" · ")}.</>}
+      </>
+    );
+  };
+
   const fila = (p: ParadaVista, k: number, ruta: RutaVista) => {
     const otroViaje = k > 0 && ruta.paradas[k - 1].viaje !== p.viaje;
     return (
-      <tr key={`${p.seq}`} style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
+      <Fragment key={`${p.seq}`}>
+      <tr style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
         <td><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}</td>
         <td>
           {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")} {nombreDeOrden(p.order_ref)}
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
           {p.builder && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", marginLeft: 6 }}>{t("Builder", "Builder")}</span>}
           {p.place && <span className="hint" style={{ margin: 0 }}> · {p.place}</span>}
+          {p.kind === "D" && porque?.[p.order_ref] && (
+            <button type="button" className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }} aria-expanded={preguntada === p.order_ref}
+              onClick={() => setPreguntada((q) => (q === p.order_ref ? null : p.order_ref))}>{t("Why here?", "¿Por qué aquí?")}</button>
+          )}
         </td>
         <td>
           {horaDeReloj(p.eta)}–{horaDeReloj(p.etd)}
@@ -63,6 +94,13 @@ export function RutaDelPlan({ rutas, nombreDeOrden, ajuste }: { rutas: RutaVista
           </td>
         )}
       </tr>
+      {preguntada === p.order_ref && p.kind === "D" && porque?.[p.order_ref] && (
+        <tr>
+          <td />
+          <td colSpan={ajuste ? 6 : 5} className="hint" style={{ margin: 0 }}>{explica(porque[p.order_ref], ruta.chofer)}</td>
+        </tr>
+      )}
+      </Fragment>
     );
   };
 
