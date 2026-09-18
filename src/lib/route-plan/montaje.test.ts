@@ -34,11 +34,13 @@ describe("los componentes del plan de ruta se montan bajo sus proveedores", () =
   it("`PlanDelDia` solo en /routes, y `RutaDelPlan` solo dentro de `PlanDelDia`", () => {
     expect(dondeSeMonta("PlanDelDia")).toEqual(["src/app/(app)/routes/page.tsx"]);
     expect(dondeSeMonta("RutaDelPlan")).toEqual(["src/components/PlanDelDia.tsx"]);
+    expect(dondeSeMonta("MiPlanPublicado")).toEqual(["src/app/(app)/my-route/page.tsx"]);      // también bajo el layout de (app)
   });
 
   it("los hooks con proveedor que usan: los tres, y ninguno más que no esté cubierto abajo", () => {
     expect(hooksDe("src/components/PlanDelDia.tsx")).toEqual(["useConfirm", "useData", "usePrefs"]);
     expect(hooksDe("src/components/RutaDelPlan.tsx")).toEqual(["usePrefs"]);
+    expect(hooksDe("src/components/MiPlanPublicado.tsx")).toEqual(["usePrefs"]);
   });
 
   it("encima de /routes están los tres: Prefs en el layout raíz, Confirm y Data en el de (app)", () => {
