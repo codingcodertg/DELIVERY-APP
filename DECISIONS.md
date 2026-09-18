@@ -22795,3 +22795,35 @@ el código:** lo arregla instalar el APK 5 teléfono por teléfono y que esos tr
 - **Fuera, como incremento corto aparte (pedido por el orquestador):** avisar en el panel, ANTES de publicar, de cuántos
   choferes del plan no han entrado nunca a la app. Misma fuente, mismo booleano; aviso, no bloqueo.
 - `arrived_at` de `deliveries` sigue sin sellarse: se decidió deducir la llegada del GPS en vez de pedirle un toque más al chofer.
+
+## D-329 · Antes de publicar una ruta, el panel avisa de los choferes que nunca han entrado a la app
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. Sale de lo medido en
+D-328: el 2026-09-18, tres de los cuatro choferes no habían iniciado sesión nunca.
+
+### Qué fallaba
+
+«Publicar ruta» (D-320) deja un aviso por chofer y su ruta en «Mi ruta» (D-324). A quien nunca ha entrado a la app no le
+llega ni lo uno ni lo otro, **y nada se lo decía a quien publica**: la pantalla contestaba «3 choferes avisados» y era
+verdad en la base y falso en la calle.
+
+### Qué hay ahora
+
+Con un **borrador** en pantalla, el panel pregunta por los choferes de ESE plan y, si alguno nunca ha entrado, lo dice en
+rojo —«2 de 4 choferes de este plan no han entrado nunca a la app: no verán el aviso ni su ruta (nombres)»— y lo repite en
+la confirmación de publicar. **Es un aviso, no un bloqueo:** la ruta se publica igual, porque las órdenes se asignan de
+todos modos y el Gestor, el mapa y almacén las ven.
+
+`POST /api/route-plan/drivers-seen {plan_id}`, solo lectura. La llave de servicio, para una sola cosa y con las mismas tres
+condiciones que en D-328, cada una con su prueba y su mutante: el rol (admin o logística) se comprueba ANTES de crear ese
+cliente; los ids salen SOLO de las paradas del plan indicado, y ese plan se lee con la SESIÓN de quien pregunta — si su RLS
+no se lo deja ver, 404 y no se pregunta por nadie; y de cada chofer sale un booleano, ni fecha ni correo. Si la consulta de
+uno falla es «no se sabe», y **«no se sabe» no cuenta como «nunca»**: no se avisa de lo que no se sabe.
+
+Lo preguntado vale solo para el plan por el que se preguntó: tras ajustar o replanificar el id cambia y se vuelve a preguntar.
+
+### Lo que NO está
+
+- No se reusó el código de `../actuals` para preguntar: son cuatro líneas repetidas en dos rutas, a cambio de no tocar una
+  ruta ya entregada. Si aparece una tercera, se saca a una función.
+- Nada abierto en un navegador ni corrido contra la base.

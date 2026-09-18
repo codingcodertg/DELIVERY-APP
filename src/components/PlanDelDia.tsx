@@ -82,6 +82,8 @@ export function PlanDelDia({ date }: { date: string }) {
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
+  // Choferes de ESTE borrador que nunca han entrado a la app: no verán el aviso ni su ruta. Aviso, no bloqueo.
+  const [sesiones, setSesiones] = useState<{ plan_id: string; choferes: { driver_id: string; nombre: string; ha_entrado: boolean | null }[] } | null>(null);
 
   const lee = useCallback(async () => {
     try {
@@ -91,6 +93,20 @@ export function PlanDelDia({ date }: { date: string }) {
     } catch { /* sin red: se queda como estaba; planificar lo dirá */ }
   }, [date]);
   useEffect(() => { setBorrador(null); setError(null); setPublicado(null); void lee(); }, [lee]);
+
+  const idDelBorrador = borrador?.status === "draft" ? borrador.plan_id : null;
+  useEffect(() => {
+    if (!idDelBorrador) return;
+    let vivo = true;
+    fetch("/api/route-plan/drivers-seen", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: idDelBorrador }) })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((b) => { if (vivo && b?.ok) setSesiones({ plan_id: b.plan_id, choferes: b.choferes }); })
+      .catch(() => undefined);      // si no se puede saber, no se avisa de nada que no se sabe
+    return () => { vivo = false; };
+  }, [idDelBorrador]);
+  // Solo vale lo que se preguntó por ESTE plan: tras ajustar o replanificar, el id cambia.
+  const delPlan = sesiones && sesiones.plan_id === idDelBorrador ? sesiones.choferes : [];
+  const nuncaEntraron = delPlan.filter((c) => c.ha_entrado === false);
 
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   const nombreDeOrden = (id: string) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); return d ? `#${orderLabel(d)}` : id.slice(0, 8); };
@@ -126,8 +142,8 @@ export function PlanDelDia({ date }: { date: string }) {
     const fuera = r.sinAsignar.length + r.fuera.length;
     const avisos = r.violaciones?.length ?? 0;
     const ok = await confirmAction(t(
-      `Publish this route? ${r.ordenes} order(s) will be assigned and each driver gets one notice.${fuera ? ` ${fuera} order(s) stay out of this plan and are not touched.` : ""}${avisos ? ` This plan has ${avisos} warning(s).` : ""}`,
-      `¿Publicar esta ruta? Se asignarán ${r.ordenes} orden(es) y cada chofer recibirá un aviso.${fuera ? ` ${fuera} orden(es) quedan fuera de este plan y no se tocan.` : ""}${avisos ? ` Este plan tiene ${avisos} aviso(s).` : ""}`,
+      `Publish this route? ${r.ordenes} order(s) will be assigned and each driver gets one notice.${fuera ? ` ${fuera} order(s) stay out of this plan and are not touched.` : ""}${avisos ? ` This plan has ${avisos} warning(s).` : ""}${nuncaEntraron.length ? ` ${nuncaEntraron.length} of ${delPlan.length} driver(s) have never signed in to the app: they won't see the notice or their route.` : ""}`,
+      `¿Publicar esta ruta? Se asignarán ${r.ordenes} orden(es) y cada chofer recibirá un aviso.${fuera ? ` ${fuera} orden(es) quedan fuera de este plan y no se tocan.` : ""}${avisos ? ` Este plan tiene ${avisos} aviso(s).` : ""}${nuncaEntraron.length ? ` ${nuncaEntraron.length} de ${delPlan.length} chofer(es) no han entrado nunca a la app: no verán el aviso ni su ruta.` : ""}`,
     ), { danger: false, confirmLabel: t("Publish route", "Publicar ruta") });
     if (!ok) return;
     setOcupado("publicando"); setError(null);
@@ -209,6 +225,12 @@ export function PlanDelDia({ date }: { date: string }) {
           )}
           {r.choferesFuera.length > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t("Not routed today", "Hoy no rutean")}: {r.choferesFuera.map((c) => `${c.nombre} (${motivo(c.motivo)})`).join(" · ")}</div>
+          )}
+          {nuncaEntraron.length > 0 && (
+            <div className="hint" style={{ margin: 0, color: "var(--red)" }}>
+              {t(`${nuncaEntraron.length} of ${delPlan.length} driver(s) in this plan have never signed in to the app: they won't see the notice or their route`, `${nuncaEntraron.length} de ${delPlan.length} chofer(es) de este plan no han entrado nunca a la app: no verán el aviso ni su ruta`)}
+              {" "}({nuncaEntraron.map((c) => c.nombre).join(", ")}). {t("You can still publish.", "Se puede publicar igual.")}
+            </div>
           )}
           {(r.violaciones?.length ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0, color: "var(--red)" }}>
