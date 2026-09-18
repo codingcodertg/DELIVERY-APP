@@ -8,6 +8,7 @@ import { orderLabel } from "@/lib/utils";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
 import type { RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
+import type { FueraConPorque, PorQue } from "@/lib/route-plan/porque";
 
 /**
  * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
@@ -28,9 +29,20 @@ type Resumen = {
   paradas: number; ordenes: number; minutos: number; millas: number; tarde: number; proveedor: string; trafico: boolean; convergio: boolean;
   sinAsignar: { orden: string; motivo: string }[]; fuera: { id: string; motivo: string }[]; choferesFuera: { id: string; nombre: string; motivo: string }[];
   partes: Record<string, string[]>; tiempos: { presupuestoAgotado: boolean }; traficoSinResolver?: boolean;
-  violaciones?: { tipo: string; chofer: string; orden?: string }[]; tramosSinTrafico?: number;
+  violaciones?: { tipo: string; chofer: string; orden?: string }[]; tramosSinTrafico?: number; fueraConPorque?: FueraConPorque[];
 };
-type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[] };
+
+/** Qué se puede hacer con una orden que quedó fuera: el siguiente paso, no el motivo. */
+const REMEDIO: Record<string, [string, string]> = {
+  poner_pin: ["Open the order and set its map pin.", "Abra la orden y póngale el pin en el mapa."],
+  revisar_choferes: ["Check who routes today (Settings → drivers) and who is off.", "Revise quién rutea hoy (Ajustes → choferes) y quién no está."],
+  partir_o_camion_mayor: ["It doesn't fit any truck: raise a truck's capacity or split the order.", "No cabe en ningún camión: suba la capacidad de uno o parta la orden."],
+  cambiar_ventana: ["Its window can't be met today: agree another window with the customer.", "Hoy no se llega a su ventana: acuerde otra con el cliente."],
+  otro_dia_o_mas_choferes: ["The day is full: move it to another day or add a driver.", "El día está lleno: pásela a otro día o sume un chofer."],
+  cambiar_chofer_fijado: ["Its assigned driver can't take it: clear the driver on the order and plan again.", "Su chofer asignado no puede llevarla: quítele el chofer a la orden y planifique de nuevo."],
+  quitar_del_carril: ["It's in a manual lane on purpose. Clear its lane to let the engine route it.", "Está en un carril manual a propósito. Quítela del carril para que el motor la rutee."],
+};
+type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue> };
 
 /** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
 const INCUMPLE: Record<string, [string, string]> = {
@@ -175,10 +187,17 @@ export function PlanDelDia({ date }: { date: string }) {
           {borrador!.warnTiendasMarcadas && (
             <div className="hint" style={{ margin: 0, color: "var(--red)" }}>{t("Your account only sees some stores, so you may not be able to publish every order.", "Su cuenta solo ve algunas tiendas, así que puede que no logre publicar todas las órdenes.")}</div>
           )}
-          {[...r.sinAsignar.map((s) => ({ id: s.orden, m: s.motivo })), ...r.fuera.map((f) => ({ id: f.id, m: f.motivo }))].length > 0 && (
+          {(r.fueraConPorque?.length ?? 0) > 0 && (
             <div>
-              <b>{t("Left out of this plan", "Fuera de este plan")}:</b>{" "}
-              {[...r.sinAsignar.map((s) => ({ id: s.orden, m: s.motivo })), ...r.fuera.map((f) => ({ id: f.id, m: f.motivo }))].map((x) => `${nombreDeOrden(x.id)} (${motivo(x.m)})`).join(" · ")}
+              <b>{t("Left out of this plan", "Fuera de este plan")} ({r.fueraConPorque!.length}):</b>
+              <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+                {r.fueraConPorque!.map((x) => (
+                  <li key={x.id}>
+                    <b>{nombreDeOrden(x.id)}</b> — {motivo(x.motivo)}.
+                    {REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
           {Object.keys(r.partes).length > 0 && (
@@ -198,7 +217,7 @@ export function PlanDelDia({ date }: { date: string }) {
           {(r.tramosSinTrafico ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} porque={borrador!.porque}
             ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
         </div>
       )}

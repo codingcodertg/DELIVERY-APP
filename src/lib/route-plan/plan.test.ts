@@ -254,6 +254,7 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(ruta.split("resumenDelPlan(").length - 1).toBe(3);
     expect(ruta.split("vistaDelPlan(").length - 1).toBe(3);
     expect(ruta.split("choferes: choferesDelPlan(").length - 1).toBe(3);
+    expect(ruta.split("porque: porQueDelPlan(").length - 1).toBe(3);
   });
 
   it("ajustar (PATCH): solo admin y logística, solo un BORRADOR, y el cliente manda el movimiento, no la ruta", () => {
@@ -311,6 +312,23 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(plano(ruta)).toContain("const movimiento = movimientoValido(cuerpo.movimiento);");
   });
 
+  it("lo que quedó fuera sale orden por orden con su motivo y su siguiente paso; y cada entrega puede preguntar «¿por qué aquí?»", () => {
+    expect(plano(panel)).toContain("{r.fueraConPorque!.map((x) => (");
+    expect(plano(panel)).toContain('<b>{nombreDeOrden(x.id)}</b> — {motivo(x.motivo)}.');
+    expect(plano(panel)).toContain('{REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}');
+    // Cada remedio que la librería puede devolver tiene su frase en el panel (menos «ninguno», que calla).
+    const lib = leer("src/lib/route-plan/porque.ts");
+    const tabla = lib.slice(lib.indexOf("const REMEDIOS"), lib.indexOf("};", lib.indexOf("const REMEDIOS")));
+    const remedios = [...tabla.matchAll(/: "([a-z_]+)"/g)].map((m) => m[1]);
+    expect(new Set(remedios).size).toBe(7);
+    for (const x of new Set(remedios)) expect(panel).toContain(`  ${x}: [`);
+    const vista = plano(sinComentarios(leer("src/components/RutaDelPlan.tsx")));
+    expect(vista).toContain('{p.kind === "D" && porque?.[p.order_ref] && ( <button');
+    expect(vista).toContain('if (q.quien === "persona") return t(');
+    // Cada motivo por el que el motor dice «con ese no» tiene su frase.
+    for (const x of ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje", "precedencia", "chofer_distinto_del_fijado", "no_permitido"]) expect(vista).toContain(`${x}: [`);
+  });
+
   it("planificar NO toca ninguna orden ni avisa a nadie", () => {
     expect(ruta).not.toMatch(/from\("deliveries"\)\s*\.(update|insert|delete|upsert)/);
     expect(ruta).not.toContain('from("notifications")');
@@ -345,7 +363,7 @@ describe("la ruta de planificar y la pantalla", () => {
     // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
-    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} ajuste={borrador!.status === "draft" ? {');
+    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} porque={borrador!.porque} ajuste={borrador!.status === "draft" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });
