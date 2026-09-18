@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// El formulario de crear usuario, plegado (D-NEXT). Lo pidió el dueño: ocupaba toda la parte de
+// El formulario de crear usuario, plegado (D-300). Lo pidió el dueño: ocupaba toda la parte de
 // arriba de Usuarios aunque casi siempre se venga a mirar la lista.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

@@ -31,7 +31,7 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<Profile | null>(null);
   const [bulk, setBulk] = useState(false);
   /**
-   * El formulario de crear, plegado (D-NEXT). Lo pidió el dueño: ocupaba toda la parte de arriba
+   * El formulario de crear, plegado (D-300). Lo pidió el dueño: ocupaba toda la parte de arriba
    * de la pantalla SIEMPRE, y lo que se viene a hacer aquí casi siempre es mirar la lista o abrir a
    * alguien. Empieza cerrado, y lo abre quien va a crear.
    */

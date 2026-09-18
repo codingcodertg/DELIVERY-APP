@@ -37477,7 +37477,7 @@ en `origin/main`, está en 2621 | 3.
 - **El umbral de nueve cuentas para enseñar el filtro** es un número elegido a ojo, no medido: se puso
   para que el campo no aparezca en una instalación con cuatro cuentas.
 
-## D-NEXT · El formulario de crear usuario, detrás de un botón
+## D-300 · El formulario de crear usuario, detrás de un botón
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** ·
 **Pedido por:** el dueño, con captura de Hub → Usuarios: *«make it a buttom and a form desplegable»*.
