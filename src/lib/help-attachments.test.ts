@@ -194,18 +194,33 @@ describe("la pantalla sube al mismo sitio y con las mismas reglas", () => {
     expect(boton).toContain("notify(mensajeDeAdjunto(fallo, t));");
   });
 
+  // Subir y mandar salieron del botón a `help-send` cuando «Mis solicitudes» del hub empezó a abrir
+  // solicitudes también (ayuda-chat). Estas tres afirman lo mismo que antes, donde vive ahora, y una
+  // más: que el botón de verdad pasa por ahí y no conserva una copia suya.
+  const envio = leer("src/lib/help-send.ts");
+
   it("sube al cubo privado, con la ruta que empieza por el id de quien sube", () => {
-    expect(boton).toContain(`createClient().storage.from(CUBO_DE_ADJUNTOS)`);
-    expect(boton).toContain("const path = rutaDeAdjunto(me.id, f.name, new Date());");
+    expect(envio).toContain(`createClient().storage.from(CUBO_DE_ADJUNTOS)`);
+    expect(envio).toContain("const path = rutaDeAdjunto(userId, f.name, new Date());");
+    expect(boton).toContain("userId: me.id,");
   });
 
   it("si una subida falla, no se manda la solicitud", () => {
-    expect(boton).toContain("const archivos = await subeFicheros();");
-    expect(boton).toContain("if (!archivos) { setBusy(false); return; }");
+    expect(envio).toContain("if (error) return { fallo: f.name };");
+    const falla = envio.indexOf('if ("fallo" in subida) return { tipo: "subida", fichero: subida.fallo };');
+    expect(falla).toBeGreaterThan(0);
+    expect(falla).toBeLessThan(envio.indexOf('fetch("/api/help"'));
   });
 
   it("y las rutas viajan a la ruta de ayuda", () => {
-    expect(boton).toContain("archivos,");
+    expect(envio).toContain("archivos: subida.subidos,");
+  });
+
+  it("el botón manda por ahí, sin subir ni llamar a la ruta por su cuenta", () => {
+    expect(boton).toContain("await enviaSolicitudDeAyuda({");
+    expect(boton).not.toContain(".upload(");
+    // `fetch(` y no la ruta como texto: el comentario de cabecera del botón la nombra.
+    expect(boton).not.toContain("fetch(");
   });
 });
 

@@ -233,8 +233,14 @@ describe("la herramienta del hub", () => {
     // aviso al remitente necesita saberlo (D-301).
     expect(pagina).toContain('const atiende = s.status !== "atendida";');
     expect(pagina).toContain('parcheDeEstado(atiende ? "atendida" : "pendiente", sesion.user.id, new Date())');
-    expect(pagina).toContain("createSignedUrl(path, VALIDEZ_AL_ABRIR)");
-    expect(pagina).toContain("const VALIDEZ_AL_ABRIR = 300;");
+    // Firmar al abrir se mudó con los adjuntos al hilo (ayuda-chat): la solicitud original se pinta
+    // como su primer mensaje, y es el hilo quien abre sus ficheros. Misma regla, otro fichero; y la
+    // página tiene que pintar ese hilo, o los adjuntos habrían desaparecido de la vista del admin.
+    const hilo = leer("src/components/HiloDeAyuda.tsx");
+    expect(hilo).toContain("createSignedUrl(path, VALIDEZ_AL_ABRIR)");
+    expect(hilo).toContain("const VALIDEZ_AL_ABRIR = 300;");
+    expect(pagina).toContain("<HiloDeAyuda solicitud={s}");
+    expect(leer("src/lib/help-thread.ts")).toContain("files: adjuntosDe(s)");
     // Un UPDATE de cero filas no es haber guardado.
     expect(pagina).toContain('.select("id")');
     expect(pagina).toContain("data.length !== 1");

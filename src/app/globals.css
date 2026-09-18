@@ -708,6 +708,20 @@ table.orders th { text-align: left; }
 .hub-tool-row:hover { background: var(--paper); border-color: var(--accent); }
 .hub-tool-emoji { font-size: 18px; }
 .hub-tool-label { font-weight: 700; font-size: 13px; }
+.hub-tool-badge {
+  display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 999px;
+  background: var(--red); color: #fff; font-size: 11px; font-weight: 800; line-height: 1.6;
+}
+/* El hilo de una solicitud de ayuda (D-NEXT): lo mío a la derecha, lo del otro a la izquierda. */
+.hilo-ayuda { margin-top: 10px; display: grid; gap: 8px; }
+.hilo-mensajes { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; padding: 2px; }
+.hilo-msg { max-width: 85%; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); justify-self: start; }
+.hilo-msg.mio { justify-self: end; background: var(--amber-soft); border-color: var(--amber); }
+.hilo-meta { display: flex; gap: 8px; align-items: baseline; font-size: 11.5px; color: var(--gray); margin-bottom: 2px; }
+.hilo-cuerpo { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; }
+.hilo-adjuntos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.hilo-caja textarea { width: 100%; resize: vertical; }
+.hilo-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .hub-tool-desc { font-size: 11px; color: var(--ink-soft); }
 
 /* Las apps que se instalan (D-167). Misma fila que una herramienta, pero con sitio para lo
