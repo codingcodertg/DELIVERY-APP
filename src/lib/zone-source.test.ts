@@ -152,11 +152,15 @@ describe("lo que no cambia", () => {
   it("la tarifa: mismo precio para la misma zona y millas", () => {
     const a = suggestDeliveryFee({ delivery_address: DIR, route_miles: 13 });
     const b = suggestDeliveryFee({ delivery_address: DIR, route_miles: 13, delivery_lat: DENTRO[0], delivery_lng: DENTRO[1] });
-    expect(b.fee).toBe(a.fee);
+    expect(b.list).toBe(a.list);
+    expect(b.discount).toBe(a.discount);
   });
   it("las fórmulas y el respaldo siguen intactos", () => {
     const src = leer("src/lib/pricing.ts");
-    expect(src).toMatch(/export function deliveryFee\(miles: number, local = true\): number \{/);
+    // La firma creció con el precio que se pide (D-NEXT): el canario se mueve con el código, no
+    // se borra. `Precio` por defecto es la lista, así que quien llamaba con dos argumentos sigue
+    // pidiendo lo mismo que antes.
+    expect(src).toMatch(/export function deliveryFee\(miles: number, local = true, precio: Precio = "list"\): number \{/);
     expect(src).toMatch(/const local = porPunto \?\? isLocalCity\(city, s\);/);
   });
 });

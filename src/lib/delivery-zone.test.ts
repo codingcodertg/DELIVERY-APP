@@ -213,7 +213,8 @@ describe("la tarifa usa el punto, y cae a la ciudad solo cuando no lo hay", () =
   });
   it("la tarifa en sí no cambia: mismo precio para la misma zona y millas", () => {
     const conPunto = suggestDeliveryFee({ ...local, delivery_lat: 26.2034, delivery_lng: -98.23 });
-    expect(conPunto.fee).toBe(suggestDeliveryFee(local).fee);
+    expect(conPunto.list).toBe(suggestDeliveryFee(local).list);
+    expect(conPunto.discount).toBe(suggestDeliveryFee(local).discount);
   });
   it("mutación: si el punto no se mirara, una entrega en México saldría LOCAL", () => {
     const sinMirarPunto = suggestDeliveryFee({ delivery_address: "x, Brownsville, TX", route_miles: 10 });

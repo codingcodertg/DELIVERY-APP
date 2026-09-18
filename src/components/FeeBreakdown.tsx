@@ -11,8 +11,8 @@ import { textoDelMinimo, textoDelRango, textoDeLaRegla, textoDelRedondeo } from 
  *
  * El dueño pidió ver la fórmula del recargo de entrega. Lo que se enseña no es la fórmula en
  * abstracto —eso está en Ajustes, para consultarla sin abrir nada— sino **el camino que llevó a
- * el importe del botón**: el tramo que aplicó, su regla, el bruto, el redondeo, el suelo si
- * mordió, y el recargo de mismo día, si lo hay.
+ * los importes de los botones**: el tramo que aplicó, su regla, el bruto, el redondeo, el suelo si
+ * mordió, y el recargo de mismo día, si lo hay. Desde D-NEXT vuelven a ser dos, lista y descuento.
  *
  * Todo viene de `breakdown`, que sale del **mismo** cálculo que el precio. Este componente no
  * hace aritmética: si sumara por su cuenta, tarde o temprano diría una cosa y el botón otra, y
@@ -43,16 +43,20 @@ export function FeeBreakdownDetails({ desglose }: { desglose: Desglose }) {
             {" · "}
             {t(`${desglose.miles} driving miles`, `${desglose.miles} millas de recorrido`)}
           </div>
-          {/* Un solo precio desde D-283: antes había dos caminos, lista y descuento. */}
-          <Camino paso={desglose.paso} />
+          {/* Los dos caminos otra vez (D-NEXT): D-283 había dejado uno. Van seguidos y con título,
+              porque en tres de los cuatro tramos dan el mismo número y sin título parecería que
+              algo se repitió por error. */}
+          <Camino titulo={t("List", "Lista")} paso={desglose.list} />
+          <div style={{ height: 8 }} />
+          <Camino titulo={t("Discount", "Descuento")} paso={desglose.discount} />
         </div>
       )}
     </div>
   );
 }
 
-/** El precio, paso a paso. Una línea por paso, con su número al lado. */
-function Camino({ paso }: { paso: PasoTarifa }) {
+/** Un precio, paso a paso. Una línea por paso, con su número al lado. */
+function Camino({ titulo, paso }: { titulo: string; paso: PasoTarifa }) {
   const { t } = usePrefs();
 
   // El rango y la regla se dicen en un solo sitio, compartido con la tabla de Ajustes: la misma
@@ -62,6 +66,7 @@ function Camino({ paso }: { paso: PasoTarifa }) {
 
   return (
     <div>
+      <div className="small" style={{ fontWeight: 700 }}>{titulo}</div>
       <Linea texto={`${rango} — ${regla}`} />
       {paso.factor !== 0 && <Linea texto={t("Before rounding", "Antes de redondear")} valor={fmtMoney(paso.bruto)} />}
       <Linea texto={textoDelRedondeo(t, paso.redondeo)} valor={fmtMoney(paso.redondeado)} />
