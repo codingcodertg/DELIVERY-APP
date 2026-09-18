@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { CUBO_DE_ADJUNTOS } from "@/lib/help-attachments";
 import {
   adjuntosDe, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
   resumenDelEnvio, separaPorEstado, type SolicitudDeAyuda,
 } from "@/lib/help-requests";
+import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
+import { HiloDeAyuda } from "@/components/HiloDeAyuda";
 
 /**
  * Las solicitudes de ayuda, en el hub y solo para el admin (D-285).
@@ -24,9 +25,6 @@ import {
 const COLUMNAS =
   "id, created_at, user_id, sender_name, sender_email, role_label, page, app_version, lang, message, files, email_to, email_ok, email_error, status, attended_by, attended_at";
 
-/** Cinco minutos: lo que tarda en abrirse una foto, no más. */
-const VALIDEZ_AL_ABRIR = 300;
-
 export default function SolicitudesDeAyudaPage() {
   const { lang, t } = usePrefs();
   const [filas, setFilas] = useState<SolicitudDeAyuda[] | null>(null);
@@ -40,6 +38,9 @@ export default function SolicitudesDeAyudaPage() {
   const [verAtendidas, setVerAtendidas] = useState(false);
   /** Qué pasó con el aviso al remitente en la última que se atendió. */
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Quién mira, para el hilo (D-311). Esta pantalla ya es solo del admin: lo decide su `layout`. */
+  const [yoId, setYoId] = useState<string | null>(null);
+  const [sinLeer, setSinLeer] = useState<Map<string, number>>(new Map());
 
   const cargar = useCallback(async () => {
     const { data, error: e } = await createClient()
@@ -47,6 +48,17 @@ export default function SolicitudesDeAyudaPage() {
     if (e) { setError(e.message); return; }
     setError(null);
     setFilas((data ?? []) as SolicitudDeAyuda[]);
+    // Los no leídos de cada hilo (D-311). Si fallan, la lista se enseña igual.
+    const supabase = createClient();
+    const { data: sesion } = await supabase.auth.getUser();
+    const uid = sesion.user?.id;
+    if (!uid) return;
+    setYoId(uid);
+    const [{ data: ms }, { data: ls }] = await Promise.all([
+      supabase.from("help_messages").select("request_id, author_id, created_at").order("created_at", { ascending: false }).limit(2000),
+      supabase.from("help_reads").select("request_id, read_at").eq("user_id", uid),
+    ]);
+    setSinLeer(noLeidosPorSolicitud((ms ?? []) as Pick<MensajeDeAyuda, "request_id" | "author_id" | "created_at">[], (ls ?? []) as { request_id: string; read_at: string }[], uid));
   }, []);
 
   useEffect(() => { void cargar(); }, [cargar]);
@@ -111,12 +123,6 @@ export default function SolicitudesDeAyudaPage() {
     setOcupada(null);
   };
 
-  const abreAdjunto = async (path: string) => {
-    const { data, error: e } = await createClient().storage.from(CUBO_DE_ADJUNTOS).createSignedUrl(path, VALIDEZ_AL_ABRIR);
-    if (e || !data?.signedUrl) { setError(e?.message ?? t("Couldn't open the file.", "No se pudo abrir el archivo.")); return; }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  };
-
   const fecha = (iso: string) => new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US");
 
   /** Una solicitud, igual en la lista de trabajo y en el archivo: la misma tarjeta, no dos parecidas. */
@@ -133,8 +139,11 @@ export default function SolicitudesDeAyudaPage() {
             {s.status === "atendida" ? t("Handled", "Atendida") : t("Pending", "Pendiente")}
           </span>
           {adjuntos.length > 0 && <span className="hint" style={{ margin: 0 }}>📎 {adjuntos.length}</span>}
+          {(sinLeer.get(s.id) ?? 0) > 0 && !abiertaEsta && (
+            <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>💬 {sinLeer.get(s.id)}</span>
+          )}
           <span style={{ flex: 1 }} />
-          <button className="btn btn-ghost btn-sm" onClick={() => setAbierta(abiertaEsta ? null : s.id)}>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
             {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
           </button>
           <button className="btn btn-primary btn-sm" disabled={ocupada === s.id} onClick={() => marca(s)}>
@@ -144,7 +153,11 @@ export default function SolicitudesDeAyudaPage() {
 
         {abiertaEsta && (
           <>
-            <p style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{s.message}</p>
+            {/* La conversación (D-311): la solicitud original es su primer mensaje, con sus adjuntos,
+                y debajo la caja para contestar. Que conteste el admin no la reabre ni la atiende:
+                atenderla sigue siendo el botón de arriba. Si la persona contesta a una atendida, la
+                base la devuelve a pendiente y aquí aparece otra vez en la lista de trabajo al recargar. */}
+            {yoId && <HiloDeAyuda solicitud={s} yo={{ id: yoId, esAdmin: true }} />}
             <div className="detail-row"><span className="dk">{t("Page", "Página")}</span><span className="dv">{s.page || "—"}</span></div>
             <div className="detail-row"><span className="dk">{t("Version", "Versión")}</span><span className="dv">{s.app_version || "—"}</span></div>
             <div className="detail-row"><span className="dk">{t("Email", "Correo")}</span><span className="dv">{resumenDelEnvio(s, t)}</span></div>
@@ -157,15 +170,6 @@ export default function SolicitudesDeAyudaPage() {
               <div className="detail-row">
                 <span className="dk">{t("Notice", "Aviso")}</span>
                 <span className="dv">{t("That account no longer exists — nobody was notified.", "Esa cuenta ya no existe — no se avisó a nadie.")}</span>
-              </div>
-            )}
-            {adjuntos.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                {adjuntos.map((a) => (
-                  <button key={a.path} className="btn btn-ghost btn-sm" onClick={() => abreAdjunto(a.path)}>
-                    📎 {a.nombre || a.path.split("/").pop()}
-                  </button>
-                ))}
               </div>
             )}
           </>

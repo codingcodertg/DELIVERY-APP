@@ -38615,6 +38615,149 @@ que la base excluye se comparan con las que la regla de la pantalla no marca, re
 si alguien añade una etapa a un lado y no al otro, cae. Las pruebas usan tipos de orden inventados: qué
 documento pide cada tipo es dato del dueño y no se afirma en el repo.
 
+## D-311 · Una solicitud de ayuda es una conversación: el dueño contesta y la persona responde
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas; el hub se versiona con ella,
+D-087) · **Migración:** `126_ayuda_chat.sql`, escrita y **no aplicada**; va **antes** que el código.
+**Plan:** `docs/PLAN-126-ayuda-chat.md`.
+
+### El pedido
+
+El dueño: *«work on a help chat feature so i can chat with the people and be back and forth»*.
+
+Hasta aquí la ayuda era de un solo sentido: la persona escribía por el botón (D-284, D-285), el admin
+la marcaba atendida y se le avisaba (D-301), fin. Para preguntar «¿en qué pantalla te pasa?» había que
+salir de la app.
+
+### Lo que se midió antes, y lo que cambió el diseño
+
+- **El botón de ayuda solo existe en Entregas**, no en las cinco apps (`grep HelpButton`: el `layout`
+  de `(app)` y `LocalApp`). Medido por el orquestador (2026-09-18): 1 de 37 perfiles no tiene acceso a
+  Entregas, así que el hueco es real pero hoy es de una persona. Llevar el botón a las demás apps **no
+  entra** en esta rama.
+- **Nadie podía ver sus solicitudes pasadas.** La RLS de la 120 lo permitía; ninguna pantalla lo hacía.
+- **El hub no tiene campana.** `notifications` la lee solo el `DataProvider` de Entregas. Y un aviso de
+  ayuda, pulsado, **no llevaba a ningún sitio** — tampoco el de «atendida» de D-301: la campana solo
+  sabía ir a una orden.
+- **Hay 4 admins**, los 4 con Entregas (orquestador, 2026-09-18). Avisar a «los admins» de cada mensaje
+  serían cuatro campanas por mensaje.
+- **Un fichero que suba un admin queda en su carpeta del cubo**, y la 119 no deja a la persona abrirlo.
+
+### Qué se hizo
+
+**El hilo.** Tabla nueva `help_messages`. La solicitud original **no se migra**: se queda en
+`help_requests` y la pantalla la pinta como primer mensaje, con sus adjuntos (`hiloCompleto`). Un solo
+componente, `HiloDeAyuda`, en los dos sitios, con quién es quién por props — no depende del
+`DataProvider` de Entregas, que el hub no monta.
+
+**Dónde lo ve la persona: «Mis solicitudes», en el hub** (`/home/ayuda`), no un panel por app: la
+cuenta es una y lo que es de la persona vive en el hub. Lista sus solicitudes —solo las suyas, también
+si es admin—, abre el hilo, contesta, y tiene **«Nueva solicitud»**, que reutiliza el envío de siempre
+(`/api/help`, con su correo **solo** en ese primer mensaje). Su puerta pide sesión y nada más, como
+los tutoriales: el chofer no entra al lobby (D-173) pero la campana le trae aquí. Se llega desde una
+herramienta nueva del lobby, desde un enlace en el panel del botón de ayuda, y desde la campana.
+
+**Dónde contesta el dueño:** en su vista de solicitudes, dentro de cada tarjeta abierta. Contestar no
+la atiende ni la reabre: atenderla sigue siendo su botón.
+
+Subir adjuntos y mandar la solicitud salieron de `HelpButton` a `src/lib/help-send.ts`, porque ahora
+lo usan dos pantallas. El botón se comporta igual.
+
+### Las reglas, en un sitio y espejadas en la base
+
+En `src/lib/help-thread.ts`, y las mismas en el disparador de la 126; una prueba las compara.
+
+- **Quién:** lee y escribe quien abrió la solicitud y cualquier admin. Nadie más. Una solicitud cuya
+  cuenta se borró queda solo para el admin.
+- **El lado lo decide quién abrió, no el rol.** Un admin que pide ayuda es, en su hilo, «la persona».
+- **Reabrir:** contestar a una atendida la devuelve a pendiente, **solo si contesta quien la abrió**. La
+  persona no puede hacer UPDATE en `help_requests` (la 120 se lo da solo al admin), así que lo hace el
+  disparador. Que el admin escriba en una atendida no la reabre: la cerró él.
+- **A quién se avisa** (`aQuienSeAvisa`), siempre por la campana, **sin SMS ni correo**:
+  - escribe un admin → a quien la abrió, en el idioma en que escribió;
+  - escribe la persona → **al último admin que escribió en ese hilo**; si ninguno, a **quien la
+    atendió**; solo si no hay ninguno, a los cuatro. Admins *de ahora*: quien dejó de serlo ya no puede
+    leer el hilo. Nunca a quien escribe.
+- **Nadie edita ni borra un mensaje**, tampoco la llave de servicio: ni política, ni permiso, y un
+  disparador. Dos excepciones que no son nadie editando sino la base limpiando: el `set null` del autor
+  cuando se borra su cuenta (sin ella, borrar a alguien que escribió en un hilo fallaría) y la cascada
+  cuando se borra la solicitud.
+- **Nombre y hora los pone la base**, no el navegador; también la hora de lectura.
+
+**Los avisos los escribe la base, no el cliente.** Se descartó hacerlo desde la pantalla: se podría
+omitir o falsear, y obligaba a insertar desde el navegador filas de `notifications` que son de otra
+persona. Así, además, el barrido de D-308 sigue en verde: ninguna pantalla de ayuda toca esa tabla (y
+hay una prueba que lo dice). **El push**, que necesita el id del aviso: cuando escribe un admin, el
+disparador usa como id del aviso **el id del mensaje**, que generó el cliente — lo conoce sin que
+nadie le devuelva una fila ajena (la lección de D-308). Hacia los admins el id lo pone la base, porque
+pueden ser varias filas; ahí solo hay campana.
+
+**No leídos: `help_reads`, no `notifications`.** «Marcar todas leídas» en la campana no es haber leído
+el hilo, no distingue un hilo de otro, y en el hub no hay campana. Una fila por persona y solicitud con
+hasta cuándo leyó; no leídos = mensajes de otro posteriores a eso. Vale para cuatro admins sin que se
+pisen. Se descartaron dos columnas `*_read_at` en `help_requests`: la persona no puede actualizarla, y
+con varios admins se pisarían. El número sale en cada tarjeta de las dos listas y **en el lobby**,
+repartido: lo de mis solicitudes en «Mis solicitudes», lo ajeno en la vista del admin, sin contar nada
+dos veces.
+
+**La campana ya lleva a algún sitio**, por `kind` y no por rol (`destinoDelAvisoDeAyuda`): la respuesta
+y la «atendida» de D-301 a «Mis solicitudes»; el mensaje de la persona, a la vista del admin. Al llegar,
+«Mis solicitudes» abre la primera que tenga algo sin leer.
+
+**Tiempo real: un canal por hilo ABIERTO**, filtrado por su `request_id`, que se cierra con él. Nada
+global. Y una red de seguridad, porque desde la rama no se puede probar: se recarga al abrir, al enviar
+y al volver a la pestaña.
+
+### La migración 126
+
+Dos tablas, una función `can_see_help_request` (`security definer`, la única pregunta «¿participa?»),
+**cinco políticas, una por comando y ninguna `FOR ALL`** (una `ALL` también lee y las permisivas se
+suman: la lección de la 124), tres disparadores sobre los mensajes y uno sobre las lecturas, y
+`help_messages` en la publicación de tiempo real. **`revoke all` antes del `grant`**: en Supabase los
+privilegios por defecto dan todo a `anon` y `authenticated` sobre cada tabla nueva, y un `grant` a
+secas no quita nada — sin eso, «sin UPDATE ni DELETE» sería solo una intención. Sin `begin`/`commit`
+propios; autocomprobación (RLS, número exacto de políticas, ninguna `ALL`, sin permisos de más,
+disparadores, publicación, y que la 120 sigue con sus tres); matriz por rol con `ROLLBACK`; reversión;
+ledger. **No toca** `help_requests`, `notifications` ni `storage.objects`.
+
+**Migración primero, código después:** con la 126 y el código viejo no cambia nada; al revés, abrir un
+hilo daría error. El contador del lobby está hecho para quedarse en cero si las tablas no existen.
+
+### Límites conocidos
+
+- **El admin no adjunta; solo quien abrió la solicitud.** Haría falta una política en
+  `storage.objects`: leer un objeto de `help-files` citado en un mensaje de un hilo en el que participo.
+- **Push solo de admin a persona.** Al revés, campana. Y en el hub, donde no hay campana, el contador.
+- **El botón de ayuda sigue solo en Entregas.** «Nueva solicitud» en el hub cubre a quien no entra allí.
+- El aviso a los admins va en inglés: la base no sabe el idioma de quien lo lee.
+
+### Canarios movidos, no aflojados
+
+- `help-attachments.test.ts`: tres pruebas miraban dentro de `HelpButton` cómo se sube y se manda. Ese
+  código se mudó a `help-send.ts`; afirman lo mismo allí, y una cuarta nueva afirma que el botón pasa
+  por ahí y no conserva una copia (ni `.upload(` ni `fetch(`).
+- `help-requests.test.ts`: «firma los adjuntos al abrirlos» miraba la página del admin. Los adjuntos
+  van ahora dentro del hilo; la prueba mira el hilo, **y además** que la página lo pinta y que el
+  original conserva sus ficheros — si no, los adjuntos habrían desaparecido de la vista del admin.
+- `hub-herramientas-de-admin.test.ts` (D-306) afirma la lista entera de herramientas: gana `my-help`.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**69 mutantes, leídos por nombre; ninguno vivo al final.** Dos sobrevivieron a la primera pasada, y
+los dos eran **pruebas flojas, no código de sobra**: «al último admin que escribió» pasaba sin ordenar
+porque en mis datos el último era también el primero de la lista (datos que no contradicen), y «se
+adjunta desde una carpeta ajena» porque la prueba afirmaba la consulta pero no que su resultado
+rechazara. Apretadas las dos, caen.
+
+Veinticinco en las reglas (quién participa, quién reabre, a quién se avisa en cada escalón, no leídos
+comparados como instante y no como texto, el hilo que mezcla otra solicitud…), veintiséis en el `.sql`
+(leer o escribir de más, escribir en nombre de otro, una `FOR ALL`, dar UPDATE, no quitar los permisos
+por defecto, reabrir cuando no toca, el primer admin en vez del último, editar, borrar, su propio
+`commit`…), y dieciocho en las pantallas (pedir el mensaje de vuelta, empujar cuando escribe la
+persona, el canal sin filtro o sin cerrar, el hilo escribiendo el aviso él mismo, «Mis solicitudes»
+enseñándole todas a un admin, la puerta echando al chofer…). Las condiciones de las políticas se
+comparan **como conjunto**, no como texto en orden.
+
 ### Verificado
 
 `rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
@@ -38646,6 +38789,20 @@ Medido por el orquestador en producción con `ROLLBACK`, 2026-09-18; comprobado 
 
 **Aplicada en producción el 2026-09-18 ~15:05Z** con el OK del dueño («aplícalo»): respaldo del guard vigente antes, `migrate-status` 123/123 antes, autocomprobación pasada, y los casos 1, 1b (permitidos) y 2-7 (bloqueados) repetidos en vivo con `ROLLBACK` después de aplicar.
 
+### El ensayo de la 126, medido
+
+Medido por el orquestador en producción con `ROLLBACK`, 2026-09-18; comprobado después que no quedó nada (tabla inexistente, ledger sin la fila, 0 avisos).
+
+- **Permisos tras aplicar:** `authenticated` en `help_messages` = SELECT, INSERT; en `help_reads` = SELECT, INSERT, UPDATE; `anon` = ninguno en las dos. El `revoke all` previo hace lo que se quería. 5 políticas, ninguna `ALL`; la tabla, en `supabase_realtime`.
+- **Quién lee y escribe** (sobre la solicitud atendida de un vendedor): otro usuario escribe → RLS; lee → 0 filas (la persona 3, el admin 3); la persona con `author_id` de un admin → RLS.
+- **Adjuntos:** admin adjunta → «Only the person who opened the request can attach files»; la persona desde una carpeta ajena → «An attachment must live in its author's own folder»; desde la suya → permitido.
+- **Reabrir y avisar:** la persona contesta una atendida → `pendiente`, `attended_by` null, y **un** aviso `ayuda_mensaje` a quien la había atendido (1, no 4). El admin contesta → **no** reabre, y el aviso a la persona lleva id = id del mensaje (1). La persona vuelve a escribir → aviso solo al admin que contestó.
+- **Nadie edita ni borra:** como la persona → «permission denied»; como postgres → «A help message is history: it cannot be edited».
+- **`help_reads`:** upsert de la propia lectura, permitido; a nombre de otro, bloqueado; de un hilo que no se ve, bloqueado.
+- **Cascada (D3):** borrar la solicitud arrastra sus 3 mensajes sin que el guardia lo impida.
+
+**Aplicada en producción el 2026-09-18 ~16:50Z** con el OK del dueño («ok», «hazlo»): `migrate-status` 124/124 antes; después, las dos tablas con RLS, 5 políticas y ninguna `ALL`, `authenticated` con SELECT e INSERT en `help_messages`, la tabla en `supabase_realtime` y la fila del ledger con su checksum.
+
 ### Lo no verificado
 
 - **El caso 1c de la 125** (vendedor sobre una orden anulada): sin datos en producción para ensayarlo.
@@ -38656,3 +38813,19 @@ Medido por el orquestador en producción con `ROLLBACK`, 2026-09-18; comprobado 
 - **El tablero no lleva pastilla.** La tarjeta del tablero no se tocó: el pedido habla de la tabla.
 - Si `authenticated` puede llamar a una función de `pg_temp` creada por `postgres` en la misma sesión
   (la misma duda que dejó escrita la 123).
+
+**171 ficheros | 1 omitido · 2840 pruebas | 3 omitidas.** En `origin/main` (3d2966f), misma copia:
+170 | 1 y 2796 | 3. La diferencia, fichero a fichero con el reporter JSON: **+42** de
+`help-thread.test.ts`, **+1** de `help-attachments.test.ts` y **+1** de `inline-colors.test.ts`, que
+genera una prueba por componente.
+
+### Lo no verificado
+
+- **D4 de la 126:** que borrar un perfil deje `author_id` a null sin que el guardia lo rechace. No se ensaya con una cuenta real; queda leído en el `.sql` y fijado por su prueba, no medido.
+- **El tiempo real**, con filtro y con RLS: lo comprueba el orquestador tras aplicar. Hay red de
+  seguridad precisamente por esto.
+- **Nadie ha visto las pantallas en un navegador** (no hay `.env.local` en el worktree): el hilo en un
+  teléfono, los colores en modo oscuro, el salto desde la campana.
+- **No se ha mandado ningún mensaje, aviso ni push de verdad.** Las pruebas leen ficheros y llaman a
+  funciones puras; la única ruta que manda correo (`/api/help`) se prueba, como antes, con `fetch`
+  simulado.

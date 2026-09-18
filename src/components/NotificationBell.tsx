@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { stageInfo } from "@/lib/constants";
 import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";
+import { AYUDA_MENSAJE_KIND, AYUDA_RESPUESTA_KIND, destinoDelAvisoDeAyuda } from "@/lib/help-thread";
 
 // Compact "3m", "2h", "4d" relative time for the notification list.
 function ago(iso: string): string {
@@ -29,10 +30,14 @@ export function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Mark read and jump to the order the notification is about.
-  const onPick = (id: string, read: boolean, deliveryId: string | null) => {
+  const onPick = (id: string, read: boolean, deliveryId: string | null, kind: string) => {
     if (!read) markNotifRead(id);
     setOpen(false);
-    if (deliveryId) router.push(`/?order=${deliveryId}`);
+    // Los avisos de ayuda no son de una orden y no llevaban a ningún sitio, tampoco el de «atendida»
+    // de D-301. Ahora llevan a la conversación: a «Mis solicitudes», o a la vista del admin (D-311).
+    const ayuda = destinoDelAvisoDeAyuda(kind);
+    if (ayuda) router.push(ayuda);
+    else if (deliveryId) router.push(`/?order=${deliveryId}`);
   };
 
   const unread = notifications.filter((n) => !n.read).length;
@@ -130,12 +135,13 @@ export function NotificationBell() {
                 const dotColor =
                   n.kind === ASSIGNED_KIND ? "var(--accent)"
                   : n.kind === AYUDA_ATENDIDA_KIND ? "var(--green)"
+                  : n.kind === AYUDA_RESPUESTA_KIND || n.kind === AYUDA_MENSAJE_KIND ? "var(--amber)"
                   : stageInfo(n.kind).color;
                 return (
                   <button
                     key={n.id}
                     className={"notif-item" + (n.read ? "" : " unread")}
-                    onClick={() => onPick(n.id, n.read, n.delivery_id)}
+                    onClick={() => onPick(n.id, n.read, n.delivery_id, n.kind)}
                   >
                     <span className="notif-dot" style={{ background: dotColor }} />
                     <span className="notif-body">
