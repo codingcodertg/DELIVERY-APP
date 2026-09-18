@@ -3,7 +3,7 @@ import { COOKIE_RETORNO, empaquetar, desempaquetar } from "./impersonation-cooki
 import { EVENTO_ENTRAR, EVENTO_VOLVER } from "./impersonation";
 
 /**
- * Saltar de un usuario a otro sin volver antes a la propia cuenta (D-NEXT).
+ * Saltar de un usuario a otro sin volver antes a la propia cuenta (D-307).
  *
  * El dueño: «si estoy en otro usuario ya con el switch, que siga la opción para seguir switcheando».
  *

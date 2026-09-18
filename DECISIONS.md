@@ -38073,7 +38073,7 @@ en `origin/main`, está en 2745 | 3.
 - **El chofer sigue sin entrar al lobby (D-173)** y no le afecta nada de esto; no se ha medido si algún
   admin usaba la vista móvil desde dentro del iframe, que era el caso que `enMarco` cubría.
 
-## D-NEXT · Saltar de un usuario a otro sin volver antes a la propia cuenta
+## D-307 · Saltar de un usuario a otro sin volver antes a la propia cuenta
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«si estoy en otro usuario ya con el switch, que siga la opción para seguir

@@ -32,7 +32,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
   onClose: () => void;
   enPagina?: boolean;
   /** «entrar»: desde la propia cuenta (`POST /api/impersonate`). «saltar»: desde dentro de otra
-   *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-NEXT). */
+   *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-307). */
   modo?: "entrar" | "saltar";
 }) {
   const { lang, t } = usePrefs();

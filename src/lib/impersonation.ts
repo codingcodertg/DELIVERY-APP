@@ -95,7 +95,7 @@ export function detalleDelRastro(args: { comoNombre: string; desdeIp?: string | 
 export type Candidato = { id: string; full_name: string | null; role: string | null; store: string | null };
 
 /**
- * A quién se puede saltar (D-NEXT): la misma regla que decide si se puede entrar —`puedeEntrarComo`—,
+ * A quién se puede saltar (D-307): la misma regla que decide si se puede entrar —`puedeEntrarComo`—,
  * aplicada a toda la plantilla, para que la lista no enseñe a nadie a quien la ruta vaya a rechazar.
  * Si quien pregunta no es admin, la lista es vacía: no hay nada que prometer.
  */

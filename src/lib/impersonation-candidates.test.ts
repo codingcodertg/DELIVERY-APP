@@ -3,7 +3,7 @@ import { empaquetar } from "./impersonation-cookie";
 import { candidatosParaSaltar } from "./impersonation";
 
 /**
- * La lista de a quién se puede saltar (D-NEXT): solo lo que el panel pinta, y ya filtrada con la
+ * La lista de a quién se puede saltar (D-307): solo lo que el panel pinta, y ya filtrada con la
  * misma regla que la ruta de saltar. Con Supabase falso: no se toca Auth ni la base.
  */
 

@@ -177,7 +177,7 @@ describe("cada signOut de src/ dice su alcance", () => {
       "src/app/api/impersonate/auto-return/route.ts",
       "src/app/api/impersonate/return/route.ts",
       "src/app/api/impersonate/return/route.ts",
-      // Saltar de usuario (D-NEXT): si el refresh del admin ya no vale, sale como `return` — local.
+      // Saltar de usuario (D-307): si el refresh del admin ya no vale, sale como `return` — local.
       "src/app/api/impersonate/switch/route.ts",
       // «Mi perfil» (D-265): cierra la sesión de COMPROBACIÓN de la contraseña actual, local.
       "src/app/api/profile/password/route.ts",

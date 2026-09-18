@@ -30,7 +30,7 @@ export function ImpersonationBanner() {
   const [estado, setEstado] = useState<Estado>(null);
   const [volviendo, setVolviendo] = useState(false);
   const [quedan, setQuedan] = useState<number | null>(null);
-  // «Cambiar a otro usuario» (D-NEXT): el dueño, «si estoy en otro usuario ya con el switch, que siga
+  // «Cambiar a otro usuario» (D-307): el dueño, «si estoy en otro usuario ya con el switch, que siga
   // la opción para seguir switcheando». Los candidatos se piden SOLO al pulsar: una carga normal sigue
   // costando la petición de siempre. Aquí no hay `DataProvider` —el banner va en el layout raíz— y
   // por eso el panel recibe la lista por props, ya filtrada por el servidor con la misma regla que la

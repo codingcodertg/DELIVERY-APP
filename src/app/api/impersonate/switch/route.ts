@@ -10,7 +10,7 @@ import { impersonacionActiva } from "@/lib/impersonation-flag";
 import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
 /**
- * Saltar de un usuario a otro sin volver antes a la propia cuenta (D-NEXT).
+ * Saltar de un usuario a otro sin volver antes a la propia cuenta (D-307).
  *
  * El dueño: «si estoy en otro usuario ya con el switch, que siga la opción para seguir switcheando».
  *

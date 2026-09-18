@@ -8,7 +8,7 @@ import { impersonacionActiva } from "@/lib/impersonation-flag";
 import { candidatosParaSaltar } from "@/lib/impersonation";
 
 /**
- * A quién se puede saltar desde dentro de una impersonación (D-NEXT).
+ * A quién se puede saltar desde dentro de una impersonación (D-307).
  *
  * El aviso naranja vive en el layout raíz, sin `DataProvider`, así que el panel no puede leer la
  * plantilla de ahí. Y con la sesión del suplantado tampoco debería listarla para esto: lo que se

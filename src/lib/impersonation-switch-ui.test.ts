@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
 /**
- * Dónde se ve «Cambiar a otro usuario» (D-NEXT): dentro del aviso naranja, junto a «Volver a mi
+ * Dónde se ve «Cambiar a otro usuario» (D-307): dentro del aviso naranja, junto a «Volver a mi
  * cuenta», en todas las apps, y montando el MISMO panel de D-247/D-306 por props.
  *
  * Lo que decide algo —a quién se puede saltar, qué hace la ruta— se prueba importado en
