@@ -249,6 +249,26 @@
 .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
 .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .chip .cnt { margin-left: 6px; opacity: .7; }
+/* «Invoice pending» (D-NEXT): la pestaña en ámbar, y la pastilla de la fila. La pastilla ocupa el
+   sitio del «—» de la celda # y no pasa de una línea: la fila no crece. El formulario en fila, igual. */
+.chip.chip-pend { border-color: var(--amber); color: var(--amber-text); background: var(--amber-soft); }
+.chip.chip-pend.on { background: var(--amber); border-color: var(--amber); color: #fff; }
+.doc-pend {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+  font: 800 10.5px/1.5 inherit; letter-spacing: .02em;
+  background: var(--amber-soft); color: var(--amber-text); border: 1px solid var(--amber);
+}
+.inv-all + .inv-short + .doc-pend, .inv-short + .doc-pend { margin-left: 6px; }
+.doc-pend-btn { cursor: pointer; }
+.doc-pend-btn:hover { background: var(--amber); color: #fff; }
+.doc-pend-form { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.doc-pend-form input { width: 96px; padding: 2px 6px; font-size: 12px; font-weight: 600; }
+.doc-pend-form .btn { padding: 2px 8px; }
+tr.grupo-tienda td {
+  background: var(--amber-soft); color: var(--amber-text); font-weight: 800; font-size: 12px;
+  padding: 5px 10px; cursor: default;
+}
+tr.grupo-tienda .cnt { margin-left: 6px; opacity: .7; }
 
 /* ---- Orders table ---- */
 /* Horizontal scroll shadows: a soft edge appears on whichever side still has
