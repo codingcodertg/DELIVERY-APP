@@ -817,3 +817,47 @@ conmutable** (`OrdersTable.tsx:62`) y **además** la columna `#`, siempre visibl
 - **Por qué `pickup_gps_at` y `pod_delivered_at` están en 36 y 22 de 109.**
 - **Las líneas de `DECISIONS.md`** son las de 662611f y se moverán cuando se arregle el duplicado. Los números
   de decisión, no.
+
+---
+
+## 11. Aprobación y decisiones delegadas
+
+**Aprobado el 2026-09-18.** El dueño recibió este diseño (commit 5a66e7c) y sus 13 preguntas, y contestó,
+literal: **«tu toma la decisiones y termina todo»**. Las decisiones que siguen las tomó el orquestador por esa
+delegación, con lo medido en producción ese mismo día (solo lectura). **Todas son valores por defecto
+editables en Ajustes, no reglas en el código:** el dueño las cambia cuando quiera sin tocar el repo.
+
+Respuestas a §9, por su número:
+
+1. **Base de cada chofer:** la tienda donde más recoge, medido sobre sus órdenes asignadas de 120 días; para
+   el que tiene tienda en su perfil, coincide con ella. Vuelven a su base al terminar. **Los nombres no van
+   al repo:** esos datos los siembra el orquestador en producción, a mano; no una migración.
+2. **Capacidad:** 10 pallets para quien ya la tiene puesta; **12** para los demás, que es el defecto de hoy.
+   Medido: hay días con 25,5 / 14 / 6,55 pallets por chofer, así que **hoy ya se hacen varios viajes**.
+3. **¿Rutean los cuatro?** El que no tiene órdenes en 90 días queda con **`rutea = false`** hasta que alguien
+   le ponga base en Ajustes. No se borra ni se esconde: no recibe trabajo automático.
+4. **Turno:** **08:00–17:30** para todos, sin descanso modelado.
+5. **Ventana estrecha:** opción **A, lista en Ajustes**, sembrada con `0830-1000` y `0830-1200`. **No se añade
+   08:30–09:30:** los cinco slots de D-296 no se tocan; en la app esa orden lleva 08:30–10:00.
+6. **Tope de retraso en ventana ancha:** **60 minutos**, como parámetro.
+7. **Builder o mostrador:** como propone §6.2. Una orden a cliente sin cuenta es **mostrador**.
+8. **Recarga:** en cada visita a una tienda, **lo mayor** entre 20 minutos y la suma de los minutos de carga
+   de lo que se recoge ahí.
+9. **Orden mayor que el camión:** la parte **el motor**, en cargas a/b del mismo chofer, como las cargas
+   partidas que ya existen.
+10. **Hoja de un día real:** sigue pendiente del dueño. El importador reconoce cabeceras y deja corregir; se
+    prueba con una hoja **sintética** con las 15 columnas que él describió.
+11. **La factura dos veces:** «Factura #» sale de las columnas **por defecto** de ventas, chofer y almacén, y
+    sigue siendo conmutable.
+12. **Almacén** ve solo la ruta publicada.
+13. **Publican** admin y logística.
+
+**Pesos.** El orden es el del dueño: builder temprano > ruta corta > ventana ancha > balance. Los valores de
+arranque se fijan en el incremento 2, con casos de prueba que los demuestren (§2.3); no salen de este documento.
+
+**Convivencia.** «Sustituye al actual», pero lo viejo no se retira hasta el incremento 11. Hasta entonces
+conviven los dos.
+
+**Qué significa «aprobado», para que nadie lo lea de más:** se aprueba **construir** según este diseño, por
+incrementos, cada uno con su PR. **No** aprueba aplicar ninguna migración: cada una se ensaya con `ROLLBACK` y
+se aplica aparte, con su respaldo, como dice `CLAUDE.md`.
