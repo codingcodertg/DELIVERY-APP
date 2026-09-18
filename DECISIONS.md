@@ -39912,3 +39912,123 @@ movería también el descuento de las entregas largas, sin que nadie lo pidiera.
 - **La cifra de fuera de zona (`400 + 0,80 × mi`) es la estructura del descuento original**, y el dueño
   no la ha vuelto a dictar desde entonces. Deja de estar marcada como provisional porque ya no es un
   hueco, pero conviene que la confirme.
+
+## D-NEXT · Motor de rutas, incremento 3: los tiempos de viaje — matriz cacheada, tráfico tramo a tramo y un tope de gasto
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador · **Migración:** `132_travel_time_cache.sql`, escrita y
+**no aplicada**. **Plan:** `docs/PLAN-132-travel-time-cache.md` · **Diseño:** `docs/route-algorithm-design.md`, §3 y §5.
+**Nada visible cambia:** es una librería (`src/lib/route-times/`) que todavía no llama nadie, y una extensión
+pequeña del motor.
+
+### El problema
+
+El motor (D-314) planifica con una matriz de tiempos que alguien le da. Conseguirla cuesta dinero: Google cobra
+la matriz **por elemento** y las rutas **por petición**, y la regla del proyecto es gastar lo mínimo y nunca en
+bucle. La investigación estimó una matriz completa con tráfico en unos **$395 al mes**; D-025 ya había
+descartado pagar una matriz de Google por lo mismo.
+
+### La idea: nunca una matriz con tráfico
+
+Dos capas.
+
+1. **Matriz base, SIN tráfico, cacheada.** Es lo que el motor usa para decidir. Se pide **solo lo que falta**, y
+   origen a origen, para pagar exactamente los elementos que no están y ninguno más: con un punto nuevo se
+   pagan sus pares, no la matriz entera otra vez. Casi todo se repite —las tiendas entre sí, los clientes
+   habituales—, así que casi todo sale de la caché.
+2. **Tráfico en cascada, solo sobre las rutas que salieron.** Decidido el plan, se pide cada tramo con
+   `departureTime` = **la hora a la que ese camión sale del punto anterior**, no las 08:00 para todos como hoy
+   (`google-routes.ts:73`). Con esos tiempos se re-evalúa **la misma secuencia**: si aguanta —sin romper nada
+   ni llegar más tarde—, se queda, con sus horas corregidas. Si no, se vuelve a planificar con esos tiempos.
+   **Dos vueltas como mucho:** más es pagar por perseguir un punto fijo.
+
+**La caché** (`travel_time_cache`, migración 132): origen, destino, día de la semana, **media hora** de salida,
+y si es con tráfico. Un miércoles a las 08:10 y otro a las 08:25 comparten respuesta. Sin tráfico el tiempo no
+depende del día ni de la hora: una sola fila por par, 90 días. Con tráfico, 28: cuatro semanas del mismo día y la
+misma media hora. El tráfico se pide a **la mitad** de la media hora, porque el valor guardado representa al
+bloque entero y no a su primer minuto. Una hora que ya pasó no se pide (Google rechaza el pasado) y ese tramo se
+queda con el tiempo base.
+
+### El motor aprendió a mirar la hora — como dato, no como función
+
+`Entrada.porHora[a][b][bloque]`: tiempos con tráfico que dependen de la media hora de **salida**, encima de la
+matriz base. Es un **dato**, a propósito: un plan calculado con tráfico se guarda entero —matriz y `porHora`— y
+se recalcula igual dentro de un año sin preguntarle nada a nadie. Una función no se puede guardar. Donde falta
+un tramo o un bloque, vale la base; sin `porHora`, el motor hace exactamente lo de antes (sus 51 pruebas, intactas).
+
+### El tope de gasto, en el código y no solo en el papel
+
+Por corrida y por día: 400 elementos y 80 tramos por corrida; 1 500 y 400 por día. Los de por defecto dejan
+pasar el día más grande medido (14 órdenes ≈ 17 puntos, tres corridas), y un solo día, por raro que sea, no
+puede comerse la franja gratuita del mes. **Lo que de verdad protege el mes no es el tope sino la caché.**
+
+- El gasto de hoy **se cuenta en la propia caché**: filas de pago (`provider = 'google'`) guardadas desde la
+  medianoche. No las de ayer, no las gratuitas.
+- Al llegar al tope, el proveedor de pago **no se toca**, contesta el siguiente, y **se dice**
+  (`presupuestoAgotado`). El tope no frena a los gratuitos.
+
+### Tres escalones, como hoy (D-008)
+
+Google → **OSRM público** (gratis, **sin tráfico** —en hora punta sale optimista— y sin garantía) → una
+**estimación en línea recta** (× 1,3 de rodeo, a 30 mph) que no llama a nadie. El informe dice **el peor
+proveedor que hubo que usar**, para que el plan lo enseñe: nadie publica un plan «estimado» sin verlo escrito.
+**Solo se guarda lo que contestó el proveedor preferido:** cachear 90 días la respuesta de un respaldo sería no
+volver a preguntarle al bueno en tres meses, sin que nadie lo decidiera.
+
+Un fallo —de la caché, de un proveedor, del tráfico— **nunca tumba el plan**: una caché que falla es una caché
+vacía; un tramo sin tráfico se queda con el tiempo base.
+
+### La 132: RLS activada y ninguna política
+
+**Ningún navegador** lee ni escribe la tabla, tampoco el admin: solo el servidor con la llave de servicio. No
+por privacidad —guarda dos coordenadas redondeadas y una duración, nada de nadie—, sino porque quien pudiera
+**escribirla** podría falsear los tiempos con los que se planifica, y quien pudiera **llenarla**, hacer gastar.
+`revoke all` a `anon` y `authenticated`, y `grant` **explícito** a `service_role`: si le faltara, la caché
+fallaría **en silencio** —justo porque el código trata una caché que falla como una vacía— y se pagaría todo
+cada vez. La autocomprobación lo mira. La forma de la clave la hace cumplir la base: sin tráfico, día y bloque a
+−1; con tráfico, los dos puestos.
+
+### Ninguna llamada real
+
+`fetch`, la caché, los proveedores y **la hora** llegan inyectados. Una prueba barre la librería y prohíbe
+`Date.now`, `fetch(` suelto, `process.env` y la llave de servicio. Los proveedores de verdad se prueban con un
+`fetch` de mentira que apunta lo que se le pide: que la matriz va **sin** tráfico y el tramo **con** él y su hora,
+que la llave viaja en cabecera y **no en la URL**, que se trocea por debajo de 625 elementos, que OSRM recibe
+`lng,lat`.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**63 mutantes, leídos por nombre; ninguno vivo al final.** Uno sobrevivió a la primera pasada y otro cayó con la
+prueba equivocada, y los dos eran pruebas mías flojas:
+
+- **Un espejo.** La prueba de la estimación calculaba lo esperado con **la misma constante** que el código
+  (`FACTOR_DE_RODEO`), así que poner el rodeo a 1 no la tumbaba. Ahora afirma números y una propiedad: el camino
+  estimado es más largo que la línea recta, y a 30 mph una milla son dos minutos.
+- **Datos que no contradicen.** «El motor usa el tráfico de la media hora en que SALE»: en mi caso el camión
+  salía a las 08:20, **la misma media hora** en que entra a trabajar, así que mirar la hora de entrada daba lo
+  mismo. Ahora carga 45 minutos y sale a las 08:45.
+
+Y un comentario que mentía: la 132 decía «tampoco hay `grant`» después de que le añadiera el del servidor.
+
+### Una nota sobre lo sembrado en el incremento 1
+
+El orquestador sembró la capacidad de los choferes que no tenían una con **12 explícito**, no con `null`. La
+tarjeta de Ajustes trata `null` como «la de flota»: con 12 escrito, esos choferes **dejan de seguir** a la
+capacidad de flota si el dueño la cambia. Es la decisión delegada («12 el resto») y es válida; queda anotado
+para que nadie se sorprenda.
+
+### Verificado
+
+`rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
+**181 ficheros | 1 omitido · 3165 pruebas | 3 omitidas.** En `origin/main` (404ea02), misma copia: 180 | 1 y
+3131 | 3. La diferencia, fichero a fichero: **+34**, todas de `route-times.test.ts`.
+
+### Lo no verificado
+
+- **Ninguna respuesta real de Google ni de OSRM ha pasado por aquí**, ni debe pasar en pruebas. Los formatos
+  (`duration: "600s"`, `condition: "ROUTE_EXISTS"`, las matrices de OSRM) están escritos según su documentación
+  y la investigación de la Fase 1. **La primera corrida real hay que mirarla.**
+- **La 132 no se ha corrido.** En particular, que `set local role service_role` sirva para ensayarla.
+- **Si el tráfico en cascada mejora las ETAs** lo bastante para justificarse: no hay tiempos reales con qué
+  compararlo (`arrived_at` nunca se llena). Por eso es una capa que se puede no usar: sin un proveedor que sepa
+  de tráfico, el plan es el de la matriz base y no se pide nada.
+- El uso de Google que **ya** hace la app comparte franja gratuita con esto, y sigue sin medir.
