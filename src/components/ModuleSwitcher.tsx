@@ -91,11 +91,11 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
           nothing to switch to but does have Users waiting at /home. */}
       <Link
         href="/home"
-        className="tab tab-icon"
+        className="tab tab-icon tab-casa"
         aria-label={t("Back to module picker", "Volver al selector de módulos")}
         title={t("Back to module picker", "Volver al selector de módulos")}
       >
-        ⌂
+        🏠
       </Link>
 
       {canSwitch && (
