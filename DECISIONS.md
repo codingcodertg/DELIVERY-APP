@@ -37134,3 +37134,20 @@ barrido que tocaba se actualizaron, no se borraron. `main` 8aeb18d, medido en es
   toca y se actualizaron: siguen exigiendo lo mismo —que la lista de orígenes la decida
   `opcionesDeOrigen` y que el vendedor salga de `vendedoresParaLaOrden` con la tienda de la orden—, ahora
   con el envoltorio del grupo.
+
+## D-294 · El número de documento se resalta, pero no se agranda
+
+**Fecha:** 2026-09-17 · **Versión:** solo `deliveries` · Sin migración.
+**Pedido por:** el dueño, con captura de una orden abierta: *«too big, make it just the right size; i
+didnt ask it to be bigger, i just wanted it to be highlighted»*.
+
+D-278 puso el documento que exige el tipo (factura, PO o estimación) en una tarjeta arriba del
+resumen, con el número a 22 px y 800 de peso. En pantalla eso ocupa más que el propio encabezado de
+la orden: el número se leía antes que el nombre del cliente. La caja se queda —es lo que lo resalta—
+y lo que baja es el volumen: número a 14 px con peso 700 (el mismo cuerpo que el resto de los datos,
+solo que en negrita), y la caja con menos relleno (5/9 px en vez de 10/12) y menos margen abajo.
+
+**Lo que no cambia:** el fondo `--accent-soft`, el borde, el botón de copiar, `user-select: all` para
+seleccionar el número de un clic, y qué documento se enseña según el tipo. `order-document.test.ts`
+sigue fijando que la caja existe y va antes de la rejilla de datos; el tamaño no lo fija nadie, a
+propósito: es cosmética, y clavarlo en una prueba obligaría a cambiarla en cada retoque.
