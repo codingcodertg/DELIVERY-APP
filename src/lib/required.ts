@@ -158,9 +158,13 @@ export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tien
  */
 export function conflictosDeSitio(d: Partial<Delivery>, rules: OrderTypeRules, tiendas: NamedLocation[]): MissingField[] {
   const out: MissingField[] = [];
-  if (origenEsDestino(d, isStoreToStore(d.order_type, rules), tiendas)) {
+  const regla = orderTypeRule(d.order_type, rules);
+  if (origenEsDestino(d, regla, tiendas)) {
+    // El campo que se marca es el que la persona puede cambiar: en un tipo que recibe, «Vendido desde»
+    // está congelado y lo que se elige es la recogida, así que señalar `store` la dejaría mirando un
+    // campo deshabilitado (D-NEXT).
     out.push({
-      key: "store", conflict: true,
+      key: regla.homeIsDestination === true ? "pickup_name" : "store", conflict: true,
       en: "The origin store and the destination store are the same",
       es: "La tienda de origen y la de destino son la misma",
     });

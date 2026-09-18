@@ -37641,3 +37641,106 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
   de `notifications` con `kind = 'assigned'` recientes; si no las hay, hay un aviso roto desde antes de
   esta rama.
 - **No se probó el push**, ni debía: mandar uno de verdad es un efecto en un teléfono ajeno.
+
+## D-NEXT · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, con capturas: *«el store sold from debería quedar freeze, y solo en ese caso
+quitar el store address, no se necesita; el store destination es el mismo store sold from, y el pickup
+es el dropdown que se elige qué tienda es»*; después, *«como es intertienda, la dirección de entrega
+debe ser una de las tiendas»*, y *«like a dropdown menu»*.
+
+### Qué estaba pasando
+
+En su captura, con «Vendido desde» = una tienda, el destino salió **otra** y la recogida también, y
+saltó *«Pickup and delivery address are the same»*. La causa, medida:
+
+- `aplicaTipo` trataba Intertienda como «tipo que recibe» (`homeIsDestination`) así: el destino es la
+  tienda del usuario y **se vacía «Vendido desde»** para que elija ahí el origen. Elegir ahí escribe
+  también la recogida (`eligeOrigen`), así que las dos puntas acababan donde no debían.
+- Y el paso inicial de una orden nueva —el que pide tipo y dirección de entrega para calcular la
+  tarifa— **debía saltarse en tienda-a-tienda**, pero solo se saltaba si alguien **cambiaba** el tipo
+  ahí. Un gerente u office empiezan en Intertienda por defecto (`borradorInicial`), así que nunca
+  pasaban por ese cambio y veían el buscador de direcciones. Eso es lo que vio el dueño en el «preview».
+
+### El modelo nuevo, y la pieza que lo hace posible
+
+En un tipo que recibe (hoy **solo Intertienda**; `Transfer` no tiene esa bandera y **no cambia**):
+
+- **«Vendido desde» = la tienda del usuario, congelada**, y su fila de «Dirección de tienda» no se
+  enseña — solo en este tipo. *(Esto no es D-282, que escondía la fila entera y se revirtió en D-288:
+  «Vendido desde» sigue visible.)*
+- **La entrega es un desplegable de tiendas**, por defecto la suya, y su dirección se rellena sola y no
+  se teclea. Consecuencia de que sea un desplegable: **la tienda que recibe se puede cambiar**; ya no es
+  forzosamente la del usuario, y eso es lo que el dueño pidió al decir «like a dropdown menu».
+- **La recogida es el otro desplegable de tiendas**: la que manda el material, y no se ofrece la que
+  recibe.
+- **Quien no tiene tienda** —un admin, u office sin tienda— se queda como antes, con las dos puntas
+  elegibles: no hay nada que congelar.
+
+Lo que lo hacía imposible era D-276: con «Vendido desde» y el destino en la misma tienda, la regla
+declaraba que la orden **no va a ningún sitio** y la bloqueaba. Por eso el cambio de fondo es que
+**el origen de una orden ya no es siempre `store`**: en un tipo que recibe es la **recogida**
+(`origenDeLaOrden`). D-276 sigue protegiendo exactamente lo mismo —que una orden no vaya de un sitio a
+ese mismo sitio— mirando el campo que ahora lleva el origen. No se ha desactivado para ningún tipo.
+
+La regla se pasa ahora **entera** (el objeto del tipo) en vez de un booleano `storeToStore`, a propósito:
+así el compilador obligó a los siete llamadores a decir de qué tipo hablan, en vez de heredar un `true`
+que ya no significa lo mismo.
+
+Dos consecuencias que se ven:
+
+- **El choque señala el campo que se puede corregir.** En Intertienda marca la **recogida**, no
+  «Vendido desde», que está congelado: marcar un campo deshabilitado deja a la persona sin salida.
+- **Un origen sin nombre pero con dirección también cuenta.** Antes, sin nombre no había choque; una
+  re-entrega copia la dirección de recogida pero no su nombre, así que por ahí se colaba.
+
+### Qué NO cambia
+
+- **Transfer**, el otro tipo tienda-a-tienda: su origen sigue siendo «Vendido desde». Cada prueba de la
+  regla lo comprueba en los dos tipos, y la suite de D-276 recorre los dos por separado.
+- **Las Intertienda ya guardadas.** Una con una dirección de entrega que no es de ninguna tienda se
+  abre, se ve y se guarda igual: el desplegable de destino ofrece tiendas y **no borra** lo que la orden
+  trae (criterio de D-267). No se han contado cuántas hay así.
+- **El contacto** sigue siendo texto libre (D-288) y la fila de «Vendido desde» sigue existiendo.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Quince mutantes, cada uno cazado por su prueba: que el origen vuelva a ser siempre «Vendido desde» o
+pase a ser la recogida también en Transfer, que una recogida sin nombre deje de contar, que la tienda no
+se congele (en la regla y en la ficha), que al chocar se vacíe la punta equivocada, que el choque señale
+siempre la tienda congelada, que la recogida ofrezca la tienda que recibe o esconda la que ya tiene, que
+elegir la recogida vuelva a escribir «Vendido desde», que la fila de dirección de tienda vuelva a salir,
+que la dirección de entrega se pueda teclear, que la recogida vuelva a ser el combo de sitios, y que el
+primer paso vuelva a salir en tienda-a-tienda.
+
+Uno **sobrevivió** y por eso se cuenta: `aplicaTipo` vaciaba la recogida que apuntara a la tienda que
+recibe, y quitar ese bloque no rompía nada — porque el colapso de D-276, dos líneas más abajo, ya lo
+hacía. Se **borró** el bloque; ahora el mutante del colapso tira dos pruebas en vez de una.
+
+### Las pruebas de D-267, D-276 y D-288 que se actualizan
+
+Trece pruebas de esas suites fijaban el modelo viejo de Intertienda. **Se reescriben al nuevo, no se
+aflojan**, y donde el cambio invierte el resultado se deja escrito en positivo: la orden «vendida desde
+Sur, recogida en un patio, entregada en Sur» era un choque y ahora no lo es —el material se mueve de
+verdad—, y la misma orden en **Transfer** sigue siendo un choque. El recorrido exhaustivo de D-276
+—todos los caminos que se pueden andar tocando solo lo que ofrecen los desplegables— ahora recorre, en
+cada tipo, **los desplegables que ese tipo tiene de verdad**.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2683 pasados | 3 saltados**. La rama añade 21
+pruebas nuevas en `intertienda-recepcion.test.ts` y dos más en las suites que reescribe (D-267 y D-276
+ganan una cada una al partirse en «Intertienda» y «Transfer»); no quita ninguna. `main` 1d9c7b3, medido
+en esta misma copia con el árbol en `origin/main`, está en 2660 | 3. La rama está **rebasada** sobre ese
+main, que se movió mientras se escribía (D-300).
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.**
+- **No se sabe cuántas Intertienda hay en producción** con una dirección de entrega que no es de
+  ninguna tienda. Se abren y se guardan igual, pero el número no se ha medido: una rama no consulta la
+  base.
+- **El tipo de orden que cambia es el que tenga `homeIsDestination`**, y hoy es solo Intertienda
+  (medido en `settings.order_type_rules`). Si mañana alguien le pone esa bandera a otro tipo, se lleva
+  este comportamiento entero sin que nadie lo decida otra vez.

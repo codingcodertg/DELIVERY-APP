@@ -31,7 +31,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
-import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
+import { eligeDestino, eligeOrigen, eligeRecogidaDeTienda, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, opcionesDeRecogida, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
@@ -580,10 +580,16 @@ export function OrderModal({
   const isIntraStore = storeToStore;
   // A store move whose origin is its own destination (D-267). Refused at submit by `submitBlockers`;
   // flagged here so the rep sees it before pressing anything.
-  const origenIgualDestino = origenEsDestino(d, storeToStore, settings.stores);
+  /** La regla del tipo de orden, que desde D-NEXT es lo que se le pasa a las reglas de sitio: un
+   *  booleano ya no basta, porque en un tipo «que recibe» el origen es la recogida y no «Vendido desde». */
+  const reglaDelTipo = orderTypeRule(d.order_type, settings.order_type_rules);
+  const origenIgualDestino = origenEsDestino(d, reglaDelTipo, settings.stores);
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
-  const homeIsDestination = orderTypeRule(d.order_type, settings.order_type_rules).homeIsDestination === true;
+  const homeIsDestination = reglaDelTipo.homeIsDestination === true;
+  /** En un tipo que recibe, la tienda del usuario vende y recibe, y no se toca (D-NEXT). Quien no tiene
+   *  tienda —un admin, u office sin tienda— se queda como antes, con las dos puntas elegibles. */
+  const tiendaCongelada = homeIsDestination && !!me.store;
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
    *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
   const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);
@@ -1569,7 +1575,11 @@ export function OrderModal({
         {/* A short first screen for a NEW order: pick the type and delivery
             address to price the fee, then Next to the whole form. Store-to-store
             types (Intertienda / Transfer) skip it — no customer fee to calc. */}
-        {editing && isNew && !showFullForm && (
+        {/* Se salta en tienda-a-tienda, como dice el comentario de arriba — y ahora también cuando la
+            orden YA nace de ese tipo (gerente y office empiezan en Intertienda, `borradorInicial`). Antes
+            solo se saltaba si alguien cambiaba el tipo a mano aquí, así que una Intertienda recién
+            abierta enseñaba este paso con su buscador de direcciones: es lo que vio el dueño. */}
+        {editing && isNew && !showFullForm && !storeToStore && (
           <>
             <div className="section-label" style={{ marginTop: 0 }}>{t("New order", "Nueva orden")}</div>
             <div className="grid g2">
@@ -1586,9 +1596,9 @@ export function OrderModal({
                 label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
-                opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))}
+                opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))}
                 on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
-                disabled={!salesFields || origenFijo}
+                disabled={!salesFields || origenFijo || tiendaCongelada}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
               />
@@ -1934,17 +1944,42 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, storeToStore))} on={(v) => {
+              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
-              }} disabled={!salesFields || origenFijo} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
-              <div className="field">
-                <label>{t("Store address", "Dirección de tienda")}</label>
-                <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
-              </div>
+              }} disabled={!salesFields || origenFijo || tiendaCongelada} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
+              {/* La dirección de la tienda no se enseña en un tipo que recibe (D-NEXT): ahí la tienda
+                  está congelada y el dato no aporta nada — lo pidió el dueño, «solo en ese caso». Esto
+                  NO es D-282, que escondía la fila entera y se revirtió en D-288: «Vendido desde» sigue
+                  ahí, visible. */}
+              {!homeIsDestination && (
+                <div className="field">
+                  <label>{t("Store address", "Dirección de tienda")}</label>
+                  <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
+                </div>
+              )}
             </div>
 
             {/* ---- Pickup ---- */}
+            {homeIsDestination ? (
+              // La tienda que manda el material (D-NEXT). Es lo único que se elige en este tipo, y no
+              // se ofrece la que recibe: una orden no va de un sitio a ese mismo sitio (D-267/D-276).
+              <div className="grid g2">
+                <Sel
+                  label={t("Shipping store (pickup)", "Tienda que envía (recolección)")}
+                  val={d.pickup_name}
+                  opts={opcionesDeRecogida(d, settings.stores, reglaDelTipo)}
+                  on={(v) => setD((p) => eligeRecogidaDeTienda(p, v, settings.stores))}
+                  disabled={!salesFields}
+                  placeholder={t("Select the store that ships", "Seleccione la tienda que envía")}
+                  invalid={missingSet.has("pickup_name") || missingSet.has("pickup_address")}
+                />
+                <div className="field">
+                  <label>{t("Pickup Address", "Dirección de Recolección")}</label>
+                  <input value={d.pickup_address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
+                </div>
+              </div>
+            ) : (
             <div className="grid g2">
               <LocationCombo
                 nameLabel={t("Pickup Name", "Nombre de Recolección")}
@@ -1963,6 +1998,7 @@ export function OrderModal({
                 t={t}
               />
             </div>
+            )}
 
             {/* ---- Delivery ---- */}
             {isIntraStore ? (
@@ -1973,14 +2009,17 @@ export function OrderModal({
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
                   // Neither the origin store nor the pickup address is offered as the destination (D-267, D-276).
-                  opts={opcionesDeDestino(d, settings.stores)}
+                  opts={opcionesDeDestino(d, settings.stores, reglaDelTipo)}
                   // The destination store IS the dropoff name for a transfer.
                   on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}
                   disabled={!salesFields}
                   placeholder={t("Select destination store", "Seleccione tienda destino")}
                   invalid={missingSet.has("delivery_name") || missingSet.has("delivery_address")}
                 />
-                <Txt label={t("Delivery Address", "Dirección de Entrega")} val={d.delivery_address} on={(v) => set("delivery_address", v)} disabled={!salesFields} placeholder={t("filled from the destination store", "se completa desde la tienda destino")} />
+                {/* En un tipo que recibe, la dirección de entrega **sale de la tienda** del desplegable de
+                    al lado y no se teclea (D-NEXT): «como es intertienda, la dirección de entrega debe
+                    ser una de las tiendas». En los demás tipo-a-tienda se sigue pudiendo corregir. */}
+                <Txt label={t("Delivery Address", "Dirección de Entrega")} val={d.delivery_address} on={(v) => set("delivery_address", v)} disabled={!salesFields || homeIsDestination} placeholder={t("filled from the destination store", "se completa desde la tienda destino")} />
               </div>
             ) : (
               <div className="grid g2">
