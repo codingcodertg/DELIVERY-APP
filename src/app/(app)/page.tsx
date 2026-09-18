@@ -14,7 +14,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
-import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
+import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { orderTypeRule } from "@/lib/required";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
@@ -196,8 +196,17 @@ export default function OrdersPage() {
         // y confirmado después para ventas: las ve aunque no las haya creado él. Solo en tipos
         // tienda-a-tienda; en una orden de cliente sigue viendo solo las suyas. `orderOwner` no se
         // toca, así que los avisos y el crédito del panel siguen siendo de quien la escribió.
-        if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id
-            && !tiendaDeLaOrdenEsMia(d, orderTypeRule(d.order_type, settings.order_type_rules), me.store, settings.stores)) return false;
+        //
+        // Los tres caminos viven en `ventasVeLaOrden` y no aquí: repartidos, el «solo tienda a tienda»
+        // se quedó en este comentario y no en el código, y un vendedor pasó a ver las órdenes de
+        // cliente de sus compañeros de tienda.
+        if (me?.role === "sales" && !ventasVeLaOrden({
+          miId: me.id,
+          miTienda: me.store,
+          orden: d,
+          regla: orderTypeRule(d.order_type, settings.order_type_rules),
+          tiendas: settings.stores,
+        })) return false;
         // Sales never see canceled orders (a canceled order disappears for them).
         if (me?.role === "sales" && d.stage === "canceled") return false;
         // Warehouse only ever sees orders that have been approved — never

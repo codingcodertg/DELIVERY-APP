@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { tiendaDeLaOrdenEsMia, tiendasDeLaOrden } from "./order-endpoints";
 import { almacenDeLaTienda, codigoDeTienda, esDeAlmacen } from "./almacen-de-tienda";
+import { ventasVeLaOrden } from "./visibilidad-ventas";
 import { missingFields } from "./required";
 import type { NamedLocation } from "./types";
 import type { PersonaDirectorio } from "./phone-book";
@@ -25,6 +26,12 @@ const TIENDAS: NamedLocation[] = [
   { name: "Tienda Sur", address: "200 Sur Blvd", directory_code: "SUR" },
   { name: "Tienda Este", address: "300 Este Rd", directory_code: "SUR" },   // comparte código con Sur
   { name: "Tienda Oeste", address: "400 Oeste Ln" },                        // sin código
+];
+// Tiendas con grupo, para el caso de D-293: McAllen y Mission trabajan juntas.
+const TIENDAS_RGV: NamedLocation[] = [
+  { name: "Pharr", address: "1 Pharr Rd" },
+  { name: "McAllen", address: "2 McAllen Ave", group: "OESTE" },
+  { name: "Mission", address: "3 Mission Blvd", group: "OESTE" },
 ];
 const A_TIENDA = { storeToStore: true } as const;
 const A_CLIENTE = { storeToStore: false } as const;
@@ -88,18 +95,63 @@ describe("¿es mía alguna de las tiendas de la orden?", () => {
     expect(tiendaDeLaOrdenEsMia(intertienda, A_TIENDA, "Tienda Este", juntas)).toBe(true);
   });
 
-  it("en una orden de cliente solo cuenta la que vende", () => {
+  it("en una orden de cliente solo cuenta la que vende — y eso NO basta para que ventas la vea", () => {
     const cliente = { store: "Tienda Norte", pickup_name: "Tienda Sur", delivery_name: "Casa" };
     expect(tiendaDeLaOrdenEsMia(cliente, A_CLIENTE, "Tienda Sur", TIENDAS)).toBe(false);
+    // **Ojo con leer esto como la decisión de ventas.** Es `true`, y aun así un vendedor NO ve la
+    // orden de cliente de su compañero de tienda: quien decide eso es `ventasVeLaOrden`, que exige
+    // además que el tipo sea tienda-a-tienda. Probar esta pieza y dar por hecha la decisión fue
+    // exactamente el defecto que se coló en la primera versión de esta rama.
     expect(tiendaDeLaOrdenEsMia(cliente, A_CLIENTE, "Tienda Norte", TIENDAS)).toBe(true);
   });
 });
 
-describe("dónde se usa esa decisión", () => {
-  it("el tablero: un vendedor ve las de tienda a tienda de su tienda, sin tocar `orderOwner`", () => {
-    expect(tablero).toContain("&& !tiendaDeLaOrdenEsMia(d, orderTypeRule(d.order_type, settings.order_type_rules), me.store, settings.stores)) return false;");
-    // El corte de borradores de D-286 sigue en la misma línea.
-    expect(tablero).toContain('d.stage !== "draft" && orderOwner(d) !== me.id');
+describe("qué órdenes le tocan a un vendedor", () => {
+  // La decisión ENTERA, con datos. La primera versión de esta rama probaba la pieza
+  // (`tiendaDeLaOrdenEsMia`) y daba por hecho el resto, y por ahí se coló que un vendedor viera las
+  // órdenes de CLIENTE de sus compañeros de tienda: la pieza devuelve `[store]` en un tipo de
+  // cliente, que es lo correcto para la cola de almacén y lo contrario de lo que quiere ventas.
+  const YO = { miId: "vendedor-1", miTienda: "Pharr", tiendas: TIENDAS_RGV };
+  const deOtro = { created_by: "vendedor-2", assigned_sales_rep: null, stage: "approved" as const };
+
+  it("una orden de CLIENTE de su tienda, escrita por otro: NO la ve", () => {
+    const orden = { ...deOtro, store: "Pharr", pickup_name: "Pharr", delivery_name: "Casa de un cliente" };
+    expect(ventasVeLaOrden({ ...YO, orden, regla: A_CLIENTE })).toBe(false);
+  });
+
+  it("la misma orden, pero de tienda a tienda: sí la ve", () => {
+    const orden = { ...deOtro, store: "Pharr", pickup_name: "McAllen", delivery_name: "Pharr" };
+    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(true);
+  });
+
+  it("una Intertienda donde su tienda solo ENVÍA: también la ve", () => {
+    const orden = { ...deOtro, store: "McAllen", pickup_name: "Pharr", delivery_name: "McAllen" };
+    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(true);
+  });
+
+  it("una Intertienda entre dos tiendas ajenas: no la ve", () => {
+    const orden = { ...deOtro, store: "McAllen", pickup_name: "Mission", delivery_name: "McAllen" };
+    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(false);
+  });
+
+  it("y el grupo cuenta: quien está en Mission ve una Intertienda de McAllen (D-293)", () => {
+    const orden = { ...deOtro, store: "McAllen", pickup_name: "Pharr", delivery_name: "McAllen" };
+    expect(ventasVeLaOrden({ ...YO, miTienda: "Mission", orden, regla: A_TIENDA })).toBe(true);
+  });
+
+  it("la suya la ve siempre, sea del tipo que sea", () => {
+    const suya = { created_by: "vendedor-1", assigned_sales_rep: null, stage: "approved" as const, store: "McAllen", pickup_name: "McAllen", delivery_name: "Casa" };
+    expect(ventasVeLaOrden({ ...YO, orden: suya, regla: A_CLIENTE })).toBe(true);
+  });
+
+  it("y la que le asignó oficina también, porque `orderOwner` manda sobre quién la escribió", () => {
+    const asignada = { created_by: "oficina-1", assigned_sales_rep: "vendedor-1", stage: "approved" as const, store: "McAllen", pickup_name: "McAllen", delivery_name: "Casa" };
+    expect(ventasVeLaOrden({ ...YO, orden: asignada, regla: A_CLIENTE })).toBe(true);
+  });
+
+  it("el tablero llama a esa función y no a la pieza suelta", () => {
+    expect(tablero).toContain('if (me?.role === "sales" && !ventasVeLaOrden({');
+    expect(tablero).not.toContain("tiendaDeLaOrdenEsMia(d,");
   });
 
   it("la cola de almacén pregunta lo mismo, con la misma función", () => {

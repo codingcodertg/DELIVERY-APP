@@ -38423,9 +38423,31 @@ exacta, **0**.
 **bloqueados**». No lo estaban: no se exigían, pero seguían visibles y editables. Describía una
 intención, no el código.
 
+### Un defecto que se coló, y por qué lo dejó pasar mi propia prueba
+
+**La primera versión de esta rama dejaba ver de más.** El tablero llamaba a `tiendaDeLaOrdenEsMia` y
+el «solo en tipos tienda-a-tienda» se quedó **en el comentario de al lado, no en el código**. Como
+`tiendasDeLaOrden` devuelve `[store]` en una orden de cliente —que es justo lo que quiere la cola de
+almacén— un vendedor pasaba a ver **las órdenes de cliente de sus compañeros de tienda**, que es lo
+contrario de lo que contestó el dueño.
+
+Lo encontró la revisión leyendo el llamante. Medido después aquí: con una orden de cliente de mi
+tienda escrita por otro, la comprobación daba `true`.
+
+**Y mis pruebas lo daban por bueno**, porque probaban la **pieza** y no la decisión: había una que
+decía «en una orden de cliente solo cuenta la que vende» y afirmaba ese mismo `true`. Era cierta sobre
+`tiendaDeLaOrdenEsMia` y no decía nada sobre lo que ve un vendedor. El comentario decía la verdad y el
+código no, y ninguna prueba miraba el sitio donde se decide.
+
+El arreglo no es añadir la condición que faltaba en la pantalla: es que **la decisión entera viva en
+una función** (`ventasVeLaOrden`) con sus tres caminos —borrador, suya por `orderOwner`, o de tienda a
+tienda y una de sus tiendas es la suya— y que la pantalla la llame. Las pruebas se alimentan ahora de
+esa función con datos, no del texto de la pantalla. La pieza sigue existiendo y sigue siendo correcta;
+lo que no se puede es probarla y dar por hecho el resto.
+
 ### Medido, rompiendo cada pieza
 
-20 cambios: **19 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+23 cambios: **22 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
 
 - No mirar la tienda que envía; no mirar la que recibe; mirar las tres también en una orden de cliente;
   ver todo sin tener tienda; comparar sin el grupo; que el tablero deje de preguntarlo; que la cola de
@@ -38434,7 +38456,8 @@ intención, no el código.
   escribir el contacto; que el destino deje de ser obligatorio; que lo sea también para un cliente; que
   `esDeAlmacen` deje de normalizar; que el código de tienda se ignore; no filtrar por departamento; no
   filtrar por teléfono; devolver lista vacía donde va `null`; y pedirle el directorio otra vez en cada
-  toque.
+  toque. Y los tres del defecto de arriba: que ventas deje de exigir tienda-a-tienda —el que lo
+  reproduce—, que se caiga la excepción del borrador, y que deje de mirar de quién es la orden.
 - **El gemelo:** el bucle de `tiendasDeLaOrden` escrito con `forEach`.
 
 ### Cuatro canarios de otras decisiones, reescritos al revés
@@ -38451,7 +38474,7 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ### Verificado
 
-`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2828 pasados | 3 saltados**; el fichero nuevo aporta 31 pruebas, medidas corriendolo solo.
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2835 pasados | 3 saltados**; el fichero nuevo aporta 38 pruebas, medidas corriendolo solo.
 
 ### Lo no verificado
 
