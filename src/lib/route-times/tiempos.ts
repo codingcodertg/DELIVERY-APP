@@ -223,11 +223,26 @@ const mezcla = (a: TiemposPorHora, b: TiemposPorHora): TiemposPorHora => {
  *  más tarde, volver a planificar con esos tiempos. Más vueltas es pagar por perseguir un punto fijo. */
 export const MAX_VUELTAS_DE_TRAFICO = 2;
 
-export interface PlanConTiempos { plan: Plan; porHora: TiemposPorHora; vueltas: number; informe: InformeDeTiempos }
+export interface PlanConTiempos {
+  plan: Plan; porHora: TiemposPorHora; vueltas: number; informe: InformeDeTiempos;
+  /** Se agotaron las vueltas y, con tráfico, el plan todavía incumple algo. Sus horas son las de verdad y sus
+   *  violaciones van en `plan.violaciones`: no se esconde, se enseña. */
+  sinResolver: boolean;
+}
 
 /**
- * Planifica con la matriz base y corrige con tráfico en cascada. El `porHora` que devuelve es el que hay
- * que GUARDAR con el plan: con él y la matriz, el plan se recalcula igual sin preguntarle nada a nadie.
+ * Planifica con la matriz base y corrige con tráfico en cascada.
+ *
+ * **Qué es reproducible y qué no** (corregido en el incremento 4; la primera versión decía de más). El
+ * `porHora` solo trae tráfico para los tramos de las secuencias que se llegaron a probar. Por eso:
+ *   · EVALUAR la secuencia guardada con la matriz y ese `porHora` da exactamente las mismas horas, siempre.
+ *     Eso es lo que hay que guardar con el plan, y lo que lo hace auditable.
+ *   · Volver a PLANIFICAR con ese `porHora` NO tiene por qué dar el mismo plan: cualquier otra secuencia
+ *     usa tramos sin tráfico pedido, que parecen más baratos de lo que son. Planificar es reproducible con
+ *     la misma entrada Y la misma caché, no con la tabla parcial.
+ *
+ * De ahí la regla de abajo: **el plan que se devuelve está SIEMPRE evaluado con el tráfico de sus propios
+ * tramos.** Nunca sale un plan cuya última re-planificación dejó tramos con la hora optimista de la base.
  */
 export async function planificaConTrafico(
   entrada: Entrada, parametros: Parametros, fechaISO: string, puntos: Readonly<Record<Punto, LatLng>>, zona: string, deps: Dependencias,
@@ -236,12 +251,14 @@ export async function planificaConTrafico(
   let plan = planifica({ ...entrada, porHora }, parametros);
   const informe: InformeDeTiempos = { deCache: 0, pedidos: 0, proveedor: "cache", presupuestoAgotado: false };
   let vueltas = 0;
-  for (; vueltas < MAX_VUELTAS_DE_TRAFICO; vueltas++) {
+  let sinResolver = false;
+  for (;;) {
     const t = await traficoDeTramos(tramosDelPlan(plan, entrada), fechaISO, puntos, zona, deps);
     informe.deCache += t.informe.deCache; informe.pedidos += t.informe.pedidos;
     informe.proveedor = elPeor(informe.proveedor, t.informe.proveedor);
     informe.presupuestoAgotado ||= t.informe.presupuestoAgotado;
-    if (!Object.keys(t.porHora).length) break;
+    // Sin nadie que sepa de tráfico (o sin nada nuevo que añadir en la primera vuelta), el plan es el base.
+    if (!Object.keys(t.porHora).length && vueltas === 0) break;
     porHora = mezcla(porHora, t.porHora);
 
     // La MISMA secuencia, ahora con tráfico. (Las órdenes, partidas igual que las partió el motor: una
@@ -249,12 +266,13 @@ export async function planificaConTrafico(
     //  Si aguanta sin romperse ni llegar más tarde, no hay que replanificar.
     const secuencias: Record<string, ParadaRef[]> = Object.fromEntries(plan.rutas.map((r) => [r.chofer, r.paradas.map((p) => ({ orden: p.orden, tipo: p.tipo }))]));
     const conTrafico = evaluaPlan({ secuencias, ordenes: parteOrdenesGrandes(entrada.ordenes, entrada.choferes).ordenes, choferes: entrada.choferes, matriz: entrada.matriz, porHora, parametros });
-    if (!conTrafico.violaciones.length && conTrafico.coste.tardeMin <= plan.coste.tardeMin) {
-      plan = { ...plan, rutas: conTrafico.rutas, coste: conTrafico.coste, violaciones: conTrafico.violaciones };
-      vueltas++;
-      break;
-    }
+    const aguanta = !conTrafico.violaciones.length && conTrafico.coste.tardeMin <= plan.coste.tardeMin;
+    // Las horas de verdad, SIEMPRE: aguante o no, el plan se queda con su secuencia evaluada con su tráfico.
+    plan = { ...plan, rutas: conTrafico.rutas, coste: conTrafico.coste, violaciones: conTrafico.violaciones };
+    vueltas++;
+    if (aguanta) break;
+    if (vueltas >= MAX_VUELTAS_DE_TRAFICO) { sinResolver = conTrafico.violaciones.length > 0; break; }
     plan = planifica({ ...entrada, porHora }, parametros);
   }
-  return { plan, porHora, vueltas, informe };
+  return { plan, porHora, vueltas, informe, sinResolver };
 }

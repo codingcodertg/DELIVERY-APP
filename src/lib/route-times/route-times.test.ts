@@ -253,7 +253,9 @@ describe("planificar con tráfico en cascada", () => {
     expect(r.plan.rutas[0].paradas.map((p) => p.tramoMin)).toEqual([0, 17]);
     expect(r.plan.rutas[0].manejoMin).toBe(34);
     expect(g.pedidos.tramos).toHaveLength(2);
-    // Con la matriz y ese `porHora`, el plan se recalcula igual sin preguntarle nada a nadie.
+    // Con UNA sola secuencia posible, planificar de nuevo con ese `porHora` da lo mismo. No es la garantía
+    // general (el `porHora` solo cubre los tramos probados): la garantía es EVALUAR la secuencia guardada,
+    // y está en `route-plan/plan.test.ts`.
     expect(planifica({ ...e, porHora: r.porHora }, parametros).rutas).toEqual(r.plan.rutas);
   });
 
@@ -271,6 +273,26 @@ describe("planificar con tráfico en cascada", () => {
     expect(r.plan.sinAsignar).toEqual([]);
     expect(r.vueltas).toBe(2);
     expect(MAX_VUELTAS_DE_TRAFICO).toBe(2);
+  });
+
+  it("si tras las dos vueltas sigue sin caber, lo DICE — y el plan lleva las horas con tráfico, no las optimistas", async () => {
+    const matriz = { tienda: { a: { minutos: 10, millas: 6 }, b: { minutos: 10, millas: 6 } }, a: { tienda: { minutos: 10, millas: 6 }, b: { minutos: 5, millas: 3 } }, b: { tienda: { minutos: 10, millas: 6 }, a: { minutos: 5, millas: 3 } } };
+    const estrecha = { ventana: [480, 530] as [number, number], estrecha: true };
+    const e: Entrada = { ordenes: [orden("oa", "a", { ...estrecha, entrada: "2026-03-03 0700" }), orden("ob", "b", estrecha)], choferes: [chofer], matriz };
+    expect(planifica(e, parametros).violaciones).toEqual([]);
+    // Entre «a» y «b» se tarda 40 en los DOS sentidos: no hay orden que llegue. Cada vuelta descubre un sentido.
+    const entreClientes = (o: LatLng, d: LatLng) => [claveDePunto(P.a), claveDePunto(P.b)].includes(claveDePunto(o)) && [claveDePunto(P.a), claveDePunto(P.b)].includes(claveDePunto(d));
+    const g = doble("google", { conTrafico: true, minutos: (o, d) => (entreClientes(o, d) ? 40 : 10) });
+    const r = await planificaConTrafico(e, parametros, "2026-03-04", P, ZONA, { cache: cacheEnMemoria(), proveedores: [g.p], ahoraISO: AHORA });
+    expect([r.vueltas, r.sinResolver]).toEqual([2, true]);
+    expect(r.plan.violaciones.length).toBeGreaterThan(0);
+    expect(r.plan.rutas[0].paradas.filter((p) => p.tipo === "D").map((p) => p.tramoMin)).toEqual([10, 40]);
+  });
+
+  it("cuando el tráfico aguanta, no hay nada sin resolver", async () => {
+    const e: Entrada = { ordenes: [orden("o", "a")], choferes: [chofer], matriz: { tienda: { a: { minutos: 10, millas: 6 } }, a: { tienda: { minutos: 10, millas: 6 } } } };
+    const r = await planificaConTrafico(e, parametros, "2026-03-04", P, ZONA, { cache: cacheEnMemoria(), proveedores: [doble("google", { conTrafico: true, minutos: () => 17 }).p], ahoraISO: AHORA });
+    expect(r.sinResolver).toBe(false);
   });
 
   it("sin nadie que sepa de tráfico, el plan es el de la matriz base y no se pide nada", async () => {

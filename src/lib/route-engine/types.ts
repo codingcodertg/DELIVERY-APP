@@ -25,7 +25,9 @@ export const MINUTOS_POR_BLOQUE = 30;
 /**
  * Tiempos CON tráfico, que dependen de la hora a la que se sale: `porHora[a][b][bloque]`, donde el bloque
  * es la media hora de salida (16 = 08:00–08:29). Es un DATO, no una función: así un plan calculado con
- * tráfico se guarda entero y se recalcula igual. Donde falte un tramo o un bloque, vale la `matriz` base.
+ * tráfico se guarda entero, y EVALUAR su secuencia vuelve a dar las mismas horas. (Volver a PLANIFICAR con
+ * él no tiene por qué dar el mismo plan: solo trae tráfico para los tramos que se probaron.) Donde falte un
+ * tramo o un bloque, vale la `matriz` base.
  */
 export type TiemposPorHora = Record<Punto, Record<Punto, Record<number, Tramo>>>;
 

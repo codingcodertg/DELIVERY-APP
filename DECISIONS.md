@@ -22317,3 +22317,79 @@ dicho aquí para que nadie crea que la prueba permanente cubre eso.
 > comprobado con `--contra` el `main` de ese momento: 22 311 líneas, 316 entradas, ninguna repetida, y un solo
 > renglón «desaparecido», que es la media frase de D-279 ya reunida. Desde hoy `DECISIONS.md` no se resuelve con
 > `git merge`: se toma un lado y se insertan a mano las entradas del otro, y se pasa el comprobador.
+
+## D-NEXT · Motor de rutas, incremento 4: «Planificar el día» deja un borrador, y «Publicar ruta» lo escribe de una vez y avisa una sola vez
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `133_route_plans.sql`, escrita y
+**no aplicada**. **Plan:** `docs/PLAN-133-route-plans.md` · **Diseño:** `docs/route-algorithm-design.md`, §7 y §8.
+**El Gestor de Rutas de hoy sigue entero.** Esto se añade al lado, en Rutas, solo para admin y logística.
+
+### Qué hay ahora
+
+- **«Planificar el día»** (`POST /api/route-plan`, `src/components/PlanDelDia.tsx`). Lee las órdenes de la fecha
+  en las cuatro etapas ruteables (pending, approved, fulfilling, ready) **con la sesión de quien planifica** —ve lo
+  que su RLS le deja ver—, arma la entrada del motor (`src/lib/route-plan/entrada.ts`), pide tiempos de viaje
+  (D-318) y guarda un plan en **borrador** en `route_plans` + `route_plan_stops`. **No toca ninguna orden ni avisa
+  a nadie.** La llave de servicio se usa solo para la caché de tiempos (132), que ningún navegador lee.
+- **«Publicar ruta»** (`POST /api/route-plan/publish`). La ruta decide a quién se avisa y llama a la función de
+  base `publish_route_plan`, que es **`SECURITY INVOKER`**: corre con los permisos de quien publica —valen su RLS
+  y `guard_delivery_stage`— y es una sola transacción. Comprueba rol, bloquea el plan, valida los avisos, comprueba
+  que ninguna orden cambió desde la foto, escribe `assigned_driver` (el nombre), `route_seq`, `load_no` y
+  `load_auto` —las mismas cuatro columnas del Gestor—, cuenta las filas, marca el plan `published` y el anterior
+  `superseded`, e inserta **una notificación por chofer** (`kind = 'route_published'`). Si algo falla, no queda nada.
+- **Un aviso por chofer, no uno por orden.** El aviso por asignación vive en el cliente (`updateDelivery`, D-032) y
+  publicar no pasa por ahí. Al **re-publicar** solo se avisa a quien le cambió la lista o el orden de paradas, o se
+  quedó sin ninguna; un cambio solo de horas no es noticia.
+
+### Lo que se descartó, y por qué
+
+- **Publicar con varias llamadas y deshacer a mano si falla** (mi primer plan): dejaba un estado a medias si el
+  servidor moría en medio. **Una función `security definer`**: atómica, pero se salta la RLS y el guard de quien
+  publica. La `SECURITY INVOKER` fue idea del orquestador y da las dos cosas.
+- **Una copia en TypeScript de «¿está viejo el plan?»**: se escribió, y al pasar la comprobación a la función nadie
+  la llamaba. Se quitó, con sus pruebas. La comprobación vive en un solo sitio: la 133.
+- **Geocodificar al planificar:** una orden sin punto sale «sin asignar: sin punto en el mapa». No se gasta cuota.
+
+### Decisiones que alguien notará
+
+- **Una orden repartida en varias cargas se publica como UNA fila**, con el chofer y la posición de su primera
+  entrega. Partirla en filas reales (a/b/c, precedente 012) es un incremento propio, al final. La pantalla lo dice:
+  «se reparte en N cargas; en Órdenes figura una sola».
+- **Las órdenes que el plan deja sin asignar no se tocan:** conservan el chofer que tuvieran. Se dice al confirmar.
+- **Un chofer puesto a mano se respeta** (la orden queda fijada a él). Uno que puso el motor en la publicación
+  anterior no: se reconoce comparando con `writes` del plan publicado. Si el chofer puesto a mano hoy no rutea, la
+  orden queda fuera del plan, con su motivo, y no se le quita.
+- **Los carriles manuales («route buckets») quedan fuera del plan**, con su motivo.
+- **A quien publica no conviene marcarle tiendas** (`profiles.visible_stores`, D-315): un UPDATE solo alcanza lo que
+  se puede leer. Si pasa, la función lo detecta (`ROUTE_PLAN_UNSEEN`) y no publica nada; planificar ya lo avisa.
+
+### Una corrección a D-318, dentro de este cambio
+
+D-318 decía que con la matriz y el `porHora` guardados «el plan se recalcula igual». **Es cierto para EVALUAR la
+secuencia guardada, y falso para volver a PLANIFICAR.** Medido al escribir las pruebas de este incremento: con dos
+órdenes, el plan guardado era `P1 P2 D1 D2` con tramos de 14 min (con tráfico), y `planifica()` sobre esa misma
+entrada devolvió `P1 P2 D2 D1` con tramos de 10. La causa: `porHora` solo trae tráfico para los tramos de las
+secuencias que se probaron; cualquier otra usa tramos sin tráfico, que parecen más baratos. La prueba de D-318
+pasaba porque su caso tenía una sola secuencia posible. Consecuencias:
+
+- La garantía que se da, y se prueba, es **re-evaluar**: paradas guardadas + matriz + `porHora` = las mismas horas.
+- `planificaConTrafico` tenía el mismo sesgo en su salida: si la última vuelta re-planificaba, devolvía un plan
+  con tramos a la hora optimista de la base. Ahora **el plan que devuelve está siempre evaluado con el tráfico de
+  sus propios tramos**; si tras las dos vueltas aún incumple algo, lo dice (`sinResolver`, guardado en
+  `result.traficoSinResolver`) con las violaciones a la vista.
+- **Lo que sigue sin resolver:** dentro de una re-planificación, el motor compara secuencias con tráfico (las
+  probadas) contra secuencias sin él. El sesgo está acotado —el resultado final lleva horas de verdad— pero la
+  elección entre alternativas no es justa. Arreglarlo de verdad es pedir tráfico por adelantado para más tramos,
+  que cuesta cuota; se deja dicho y sin hacer.
+
+### Lo que NO está verificado
+
+- **Nada de la 133 ha corrido contra una base.** La rama no tiene cómo. En concreto, sostenido solo por lectura:
+  que un `authenticated` pueda hacer `set_config('app.route_publishing', …, true)` dentro de la función y el
+  disparador lo lea; que el `for update` pase por la política de SELECT; y que el guard de la 127 deje a logística
+  escribir esas cuatro columnas en las cuatro etapas. La matriz de ensayo con `ROLLBACK` está al pie de la 133.
+- **La primera corrida con Google u OSRM de verdad hay que mirarla.** Las pruebas usan proveedores falsos; ninguna
+  llamó a nadie. Mirar: cuántos elementos pide, cuánto tarda (la ruta tiene 60 s), y si las horas son creíbles.
+- **Dos personas publicando a la vez:** el `for update` las pone en cola y gana la última. Leído, no ensayado.
+- La pantalla solo enseña el resumen. La ruta P/D con horas, y que el chofer lea sus paradas publicadas, es el
+  incremento 5.
