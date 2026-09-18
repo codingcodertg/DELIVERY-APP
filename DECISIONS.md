@@ -37169,3 +37169,93 @@ texto («⌂ Todas las apps»), no el icono de la barra, y no se toca.
 
 **No cambia:** quién la ve (`canReachHub` y el escondite en la app de escritorio, D-274), su destino
 (`/home`), ni su etiqueta accesible.
+
+## D-NEXT · La ventana de sábado solo en sábado, y ninguna que termine después del cierre
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño:** *«delivery window: la ventana de sábado solo debe estar disponible cuando se
+elige un sábado»*. Preguntado por el otro sentido, eligió además que **en sábado no se ofrezca «Tarde
+(12-5:30)»**, porque termina después del cierre de ese día.
+
+### Lo que había
+
+El selector (`WindowSel`) pintaba **las cinco ventanas siempre**, así que se podía pedir «Sábado todo el
+día (8:30-3:30)» para un martes, y «Todo el día (8:30-5:30)» para un sábado — horarios que ese día no
+existen. La ventana es obligatoria para enviar (`required.ts`), así que no es un adorno.
+
+Lo que **sí** existía ya, y conviene tenerlo escrito porque no estaba en ningún sitio: un efecto del
+formulario pone la ventana «todo el día» que toca al elegir la fecha, **solo si el campo está vacío o
+tiene la del otro tipo de día**. O sea que mover una entrega de sábado a un martes ya convertía su
+«sábado todo el día» en «todo el día», y una ventana parcial elegida a mano no se tocaba nunca. Eso
+responde a «¿qué pasa si cambio la fecha después?»: **no cambia nada nuevo**, y ahora hay una prueba que
+lo fija.
+
+### La regla, en dos partes
+
+1. **Las dos «todo el día» son una pareja**, una por tipo de día: en sábado no se ofrece la de entre
+   semana y el resto de días no se ofrece la de sábado.
+2. **Ninguna ventana que termine después del cierre de ese día.** En sábado eso deja fuera «Tarde
+   (12-5:30)». Quedan madrugada (8:30-10), mañana (8:30-12) y la de sábado.
+
+**El cierre no es una constante nueva**: es el final de la ventana «todo el día» de ese día — 3:30 el
+sábado (`SATURDAY_WINDOW`), 5:30 el resto (`WEEKDAY_ALL_DAY_WINDOW`). Si mañana cambia el horario del
+almacén, se cambia ahí y la lista se ajusta sola; hay una prueba que falla si alguien escribe la hora a
+mano en el módulo. **Que el sábado se cierre a las 3:30 es decisión del dueño**, tomada al preguntarle:
+por eso está escrito aquí y no se dedujo en silencio.
+
+Y **la ventana que la orden ya tiene se ofrece siempre**, aunque no toque ese día (criterio de D-267):
+abrir una orden vieja no le borra la ventana ni enseña el selector vacío.
+
+### La zona horaria, que no era lo que parecía
+
+Se pidió calcular «es sábado» con la zona del negocio. Medido el 2026-09-17, para `2026-09-19` (sábado):
+
+| forma | UTC | America/Chicago | America/Guatemala | Kiritimati (+14) | Niue (−11) |
+|---|---|---|---|---|---|
+| `new Date(iso).getDay()` | sáb | **vie** | **vie** | sáb | **vie** |
+| `new Date(iso + "T12:00:00").getDay()` (lo que había) | sáb | sáb | sáb | sáb | sáb |
+| partes + `Date.UTC(...).getUTCDay()` (lo que hay ahora) | sáb | sáb | sáb | sáb | sáb |
+
+Dos conclusiones. La primera: **lo que había ya era correcto**, y el error clásico —`new Date(iso)`—
+**solo aparece en husos negativos**, que son los nuestros; una prueba corrida en CI, que es UTC, lo
+dejaría pasar. La segunda: la respuesta no es `BUSINESS_TZ` sino **no convertir la fecha a un instante**.
+`delivery_date` es una fecha sin hora, y una fecha sin hora no tiene zona: su día de la semana es el
+mismo en todo el mundo. Añadirle `Intl` y una zona sería darle una dependencia que el dato no tiene.
+
+Por eso la prueba no se fía del huso de quien la corra: **cambia `process.env.TZ`** entre esas cinco
+zonas y exige el mismo resultado (Node la relee en caliente, medido). Sin esa vuelta, la prueba pasaría
+en CI con la implementación rota.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Catorce mutantes, cada uno cazado por su prueba: que el día se arme desde la medianoche local, que se lea
+en local en vez de UTC, que se intercambien sábado y el resto, que no se esconda la del otro tipo de día,
+que desaparezca el corte por hora de cierre o que deje pasar la que acaba justo al cierre, que el cierre
+se clave a mano, que la ventana guardada deje de conservarse, que sin fecha se esconda algo, que una
+fecha imposible cuente como válida, que el selector vuelva a pintar las cinco o no reciba la fecha, que
+el efecto vuelva a calcular el día a mano, y que pise una ventana elegida a mano.
+
+Dos cosas que salieron de ahí y se cuentan:
+
+- **Una prueba floja.** La fecha imposible que usaba (`2026-02-31`) se desborda a un **martes**, así que
+  pasaba igual sin la comprobación. Se cambió por `2026-04-32`, que se desborda a **sábado**: ahora la
+  comprobación se mide de verdad.
+- **Un mutante equivalente.** El primer intento —construir la fecha con `new Date(iso)` y seguir leyendo
+  `getUTCDay()`— no cambia el resultado en ninguna zona, porque una fecha ISO sin hora se parsea como
+  medianoche **UTC**. No sobrevivió por falta de prueba: es que no era un fallo. El mutante bueno es la
+  medianoche **local**, y ese solo cae por el huso de +14 de la lista, que así se gana el sitio.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2621 pasados | 3 saltados**. La rama añade 13
+pruebas, todas en `ventana-de-sabado.test.ts`, fichero nuevo, y no quita ninguna. `main` 53a7789, medido
+en esta misma copia con el árbol en `origin/main`, está en 2608 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.**
+- **No se contaron las órdenes ya guardadas** con una ventana que su día ya no ofrece (una de sábado en
+  martes, o una «tarde» en sábado). Se conservan y se pueden guardar; no se migran ni se avisa de ellas.
+- **El cierre del sábado (3:30) se toma de `SATURDAY_WINDOW`**, que es donde estaba escrito. Si el
+  horario real fuera otro, esta decisión lo propagaría sin enterarse: el sitio donde mirar es esa
+  constante.
