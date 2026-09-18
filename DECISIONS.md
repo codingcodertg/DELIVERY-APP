@@ -37867,3 +37867,33 @@ corriéndolo solo; el resto de los cambios son reescrituras de pruebas que ya ex
 - **No se ha mirado qué hacen las órdenes ya cobradas con el precio de D-283** —las de esta misma
   tarde— cuando alguien las abra: verán el aviso de almacén solo si lo cobrado no coincide ni con la
   lista ni con el descuento de hoy.
+
+## D-NEXT · Una orden nueva que nace Intertienda enseñaba un modal vacío
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Visto por el dueño** en producción (1.132.0), con captura: «New delivery order · Unsaved» y debajo
+nada — ni campos ni botones. Su lectura: *«i can’t create the order, because of this message, and if
+theres a draft pending it should not block me»*. **No era el borrador pendiente**: los borradores no
+bloquean nada, ni antes ni ahora. Era un agujero entre dos condiciones.
+
+### Qué fallaba
+
+Una orden nueva tiene dos pantallas: el paso corto (tipo y dirección, para tarifar) y el formulario
+completo, detrás de «Siguiente» (`showFullForm`, que nace en `false` para una orden nueva). Los tipos
+tienda-a-tienda saltan el paso corto. D-302 amplió ese salto a la orden que **ya nace** de ese tipo
+—gerente y office abren en Intertienda por `borradorInicial` (D-276)—, pero el formulario completo y
+los botones de acción seguían exigiendo `showFullForm`. Resultado: el paso corto no se pintaba por ser
+Intertienda, el completo no se pintaba por no haber pulsado un «Siguiente» que ya no existía. Cabecera
+sola. Afecta a quien abre una orden nueva con Intertienda por defecto (gerente, office, y el admin
+que prueba como ellos); un vendedor, que nace en «Customer», no lo veía.
+
+### Qué se hizo
+
+Las cuatro condiciones (paso corto, formulario completo, aviso de «Faltan», botones) leen de **una**
+decisión, `pasoFormulario(esNueva, pasóSiguiente, tiendaATienda)` en `src/lib/order-form-step.ts`,
+que devuelve `"inicial"` o `"completo"` y no puede devolver «ninguno». La prueba recorre las 8
+combinaciones y fija que una nueva tienda-a-tienda va directa al completo; el mutante que quita
+`tiendaATienda` de la condición la tumba.
+
+**Descartado:** poner `showFullForm` a `true` en un efecto cuando el tipo es tienda-a-tienda. Habría
+funcionado, pero deja las cuatro condiciones escritas a mano, que es lo que produjo el agujero.

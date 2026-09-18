@@ -33,6 +33,7 @@ import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, eligeRecogidaDeTienda, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, opcionesDeRecogida, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
+import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
@@ -575,6 +576,9 @@ export function OrderModal({
   // account/contact/phone don't apply and are locked. Driven by the order
   // type's configured rule (Data → Order types), not the name.
   const storeToStore = isStoreToStore(d.order_type, settings.order_type_rules);
+  // Qué paso enseña el formulario (D-NEXT): UNA decisión para las cuatro condiciones de abajo. Antes
+  // eran dos escritas a mano y una Intertienda recién nacida no caía en ninguna: modal vacío.
+  const paso = pasoFormulario(isNew, showFullForm, storeToStore);
   // Store-to-store still routes the DESTINATION to another store (dropdown
   // instead of a free address); the customer/contact fields stay visible.
   const isIntraStore = storeToStore;
@@ -1579,7 +1583,7 @@ export function OrderModal({
             orden YA nace de ese tipo (gerente y office empiezan en Intertienda, `borradorInicial`). Antes
             solo se saltaba si alguien cambiaba el tipo a mano aquí, así que una Intertienda recién
             abierta enseñaba este paso con su buscador de direcciones: es lo que vio el dueño. */}
-        {editing && isNew && !showFullForm && !storeToStore && (
+        {editing && paso === "inicial" && (
           <>
             <div className="section-label" style={{ marginTop: 0 }}>{t("New order", "Nueva orden")}</div>
             <div className="grid g2">
@@ -1711,7 +1715,7 @@ export function OrderModal({
         )}
 
         {/* ---------- EDIT MODE (full form) ---------- */}
-        {editing && (!isNew || showFullForm) && (
+        {editing && paso === "completo" && (
           <>
             <div className="section-label">{t("Order", "Orden")}</div>
             {/* Sales Rep with the "same invoice as a past order" toggle beside it
@@ -2311,7 +2315,7 @@ export function OrderModal({
         )}
 
         {/* ---------- STILL MISSING (moved to the bottom, right above the buttons) ---------- */}
-        {editing && showFullForm && missing.length > 0 && (
+        {editing && paso === "completo" && missing.length > 0 && (
           <div className="card" style={{ marginTop: 14, marginBottom: 0, background: "var(--red-tint)", borderColor: "var(--red)" }}>
             <b style={{ color: "var(--red)" }}>{t("Still missing", "Faltan")} ({missing.length})</b>
             <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.5 }}>
@@ -2323,7 +2327,7 @@ export function OrderModal({
 
         {/* ---------- ACTIONS ---------- */}
         {/* Hidden during the initial new-order step (which has its own Next). */}
-        {showFullForm && (
+        {paso === "completo" && (
         <div className="modal-actions">
           {existing && me.role === "admin" && (
             <button className="btn btn-danger" onClick={remove} disabled={busy}>{t("Delete", "Eliminar")}</button>
