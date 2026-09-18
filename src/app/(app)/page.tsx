@@ -6,6 +6,8 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
+import { claveDelNavegador, columnasDe, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { documentoPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
@@ -27,7 +29,9 @@ type Preset = "all" | "today" | "overdue" | "unassigned" | "mine";
 // Column choices are remembered per role — so switching "View as" in local
 // demo mode (or just different people on different roles) doesn't clobber
 // each other's picks, and each role starts from its own sensible default.
-const colsKey = (role: UserRole) => `rtg_order_columns_${role}`;
+// La clave del navegador es la de siempre (`rtg_order_columns_<rol>`): sigue siendo la red si la base no contesta.
+const colsKey = claveDelNavegador;
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 const defaultColsFor = (role: UserRole) => ROLE_DEFAULT_COLUMNS[role] ?? DEFAULT_COLUMNS;
 
 export default function OrdersPage() {
@@ -86,6 +90,8 @@ export default function OrdersPage() {
   // Bulk selection (#1) + user-chosen columns (#13, persisted per browser).
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [cols, setCols] = useState<string[]>(DEFAULT_COLUMNS);
+  // Lo que la base tiene guardado para esta persona, por rol. `null` = no se pudo leer (o aún no): no se escribe.
+  const prefsDeLaBase = useRef<ColumnasPorRol | null>(null);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   /** Anular en bloque pide el motivo UNA vez y lo escribe en cada orden. Antes este camino no
@@ -125,19 +131,41 @@ export default function OrdersPage() {
       setCols(settings.sales_columns ?? defaultColsFor("sales"));
       return;
     }
-    try {
-      const raw = localStorage.getItem(colsKey(me.role));
-      setCols(raw ? JSON.parse(raw) : defaultColsFor(me.role));
-    } catch {
-      setCols(defaultColsFor(me.role));
-    }
+    // Lo del navegador, YA: la pantalla no espera a la base para pintar las columnas de siempre.
+    let delNavegador: ColumnasPorRol = {};
+    try { delNavegador = semillaDelNavegador((k) => localStorage.getItem(k)); } catch { /* sin localStorage, sin semilla */ }
+    setCols(columnasDe(me.role, null, delNavegador, defaultColsFor(me.role)).columnas);
+    prefsDeLaBase.current = null;
+    if (SIN_BASE) return;
+    // Y después la base, que es la que manda (D-330): la elección es de la persona, no del navegador.
+    let vivo = true;
+    const rol = me.role, yo = me.id;
+    void (async () => {
+      const supabase = createClient() as unknown as ClienteDePrefs;
+      const leido = await leeColumnas(supabase, yo);
+      if (!vivo || !leido.leida) return;
+      prefsDeLaBase.current = leido.columnas;
+      if (leido.hayFila) { setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
+      // Sin fila: se siembra UNA vez desde este navegador — nunca durante una suplantación (el navegador es del
+      // admin y la sesión, de otra persona), y si no se sabe si la hay, tampoco.
+      let suplantando: boolean | null = null;
+      try { const e = await (await fetch("/api/impersonate/state")).json() as { como?: string }; suplantando = !!e?.como; } catch { /* no se sabe */ }
+      if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, delNavegador)) return;
+      if (await guardaColumnas(supabase, yo, delNavegador)) prefsDeLaBase.current = delNavegador;
+    })();
+    return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me?.role, settings.sales_columns]);
+  }, [me?.role, me?.id, settings.sales_columns]);
 
   const saveCols = (next: string[]) => {
     setCols(next);
     if (!me || me.role === "sales") return;
+    // El navegador SIEMPRE: es la red. Y la base, si se pudo leer — si no, no se escribe a ciegas encima de lo que haya.
     try { localStorage.setItem(colsKey(me.role), JSON.stringify(next)); } catch { /* ignore */ }
+    if (SIN_BASE || prefsDeLaBase.current === null) return;
+    const todas: ColumnasPorRol = { ...prefsDeLaBase.current, [me.role]: next };
+    prefsDeLaBase.current = todas;
+    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas);
   };
 
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275); antes solo con su botón.
