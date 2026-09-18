@@ -9,10 +9,11 @@ import { veAppsParaInstalar } from "@/lib/hub-apps";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
-export function HomeSelector({ me }: { me: Profile }) {
+export function HomeSelector({ me, suplantando = false }: { me: Profile; suplantando?: boolean }) {
   const { lang, t } = usePrefs();
   const available = accessibleModules(me.module_access);
-  const tools = HUB_TOOLS.filter((tool) => tool.visible(me));
+  // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
+  const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
   // The deliveries card's own href is a placeholder ("/") — it's the same
   // ModuleInfo entry used by the app switcher and everywhere else, but where
   // deliveries actually lands depends on the person's role (warehouse -> its

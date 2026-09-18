@@ -143,9 +143,13 @@ describe("el coste de /api/impersonate/state", () => {
     expect(codigo.indexOf("impersonacionActiva()")).toBeLessThan(codigo.indexOf("auth.getUser()"));
   });
 
-  it("solo el botón pide el dato caro, y el banner no", () => {
+  it("solo la página del hub pide el dato caro; ni la barra de Entregas ni el banner", () => {
+    // Desde D-NEXT el panel es una herramienta del hub: la pregunta viaja con él. La barra ya no
+    // la hace —no tiene botón—, y el banner sigue sin hacerla, que era lo que fijaba D-247.
+    const pagina = readFileSync("src/app/home/switch-user/page.tsx", "utf8");
+    expect(pagina).toContain("/api/impersonate/state?ask=switch");
     const barra = readFileSync("src/components/TopBar.tsx", "utf8");
-    expect(barra).toContain("/api/impersonate/state?ask=switch");
+    expect(barra).not.toContain("impersonate/state");
     const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
     expect(banner).toContain('fetch("/api/impersonate/state")');
     expect(banner).not.toContain("ask=switch");
@@ -197,7 +201,8 @@ describe("el panel de «Switch usuario» no hereda el color de la barra", () => 
   });
 
   it("y el componente usa esas clases en vez de estilos sueltos", () => {
-    expect(panel).toContain('className="switch-panel"');
+    // Con el modificador de página desde D-NEXT: el mismo panel cuelga de un botón o ocupa su sitio.
+    expect(panel).toContain('className={"switch-panel" + (enPagina ? " en-pagina" : "")}');
     expect(panel).toContain('className="switch-row"');
     expect(panel).toContain('className="switch-row-name"');
     // La caja que heredaba: `.box` no existe en `globals.css`, y por eso no pintaba nada.

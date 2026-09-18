@@ -469,8 +469,18 @@ export function knownModules(moduleAccess: string[] | null | undefined): string[
 export interface HubTool {
   key: string; href: string; emoji: string;
   label_en: string; label_es: string; desc_en: string; desc_es: string;
-  visible: (me: { role: UserRole }) => boolean;
+  /**
+   * `suplantando` (D-NEXT): si quien mira está dentro de la sesión de otra persona (D-243). Lo lee
+   * el lobby de la cookie de retorno, en el servidor y una sola vez; `role` solo no basta, porque
+   * dentro de una impersonación la sesión ES la del suplantado y su rol es el que se lee. Las
+   * herramientas que no lo miran no cambian: es opcional a propósito.
+   */
+  visible: (me: { role: UserRole; suplantando?: boolean }) => boolean;
 }
+
+/** Lo que solo hace el admin de verdad: rol admin en la sesión, y no dentro de otra identidad. */
+export const soloAdminReal = (me: { role: UserRole; suplantando?: boolean }): boolean =>
+  me.role === "admin" && me.suplantando !== true;
 
 export const HUB_TOOLS: HubTool[] = [
   {
@@ -523,6 +533,30 @@ export const HUB_TOOLS: HubTool[] = [
     // servidor y la RLS de la 120, que además deja a cada persona ver las suyas por la API aunque
     // esta herramienta no le salga aquí.
     visible: (me) => me.role === "admin",
+  },
+  // Las dos siguientes vivían en la barra de Entregas y son del hub (D-NEXT). El dueño: «la vista
+  // móvil y el switch usuario, pásalos al hub, porque eso es general del hub… no solo delivery
+  // app». Solo para el admin REAL: un admin suplantando a alguien no las ve, porque tiene la sesión
+  // de esa persona y lo que hace cuenta como hecho por ella.
+  {
+    key: "vista-movil",
+    href: "/home/vista-movil",
+    emoji: "📱",
+    label_en: "Mobile view",
+    label_es: "Vista móvil",
+    desc_en: "See any app as it looks on a phone",
+    desc_es: "Ver cualquier app como se ve en un teléfono",
+    visible: soloAdminReal,
+  },
+  {
+    key: "switch-user",
+    href: "/home/switch-user",
+    emoji: "⇄",
+    label_en: "Switch user",
+    label_es: "Cambiar de usuario",
+    desc_en: "Sign in as someone on the team to see what they see",
+    desc_es: "Entrar como alguien del equipo para ver lo que ve",
+    visible: soloAdminReal,
   },
 ];
 

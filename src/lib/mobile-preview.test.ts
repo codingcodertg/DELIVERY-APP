@@ -87,9 +87,11 @@ describe("la pantalla", () => {
     expect(css).toContain("* { box-sizing: border-box;"); // control: el reset que obliga a esto
   });
 
-  it("el menú del nombre lleva a la vista móvil con la pantalla en la que está", () => {
+  it("la barra de Entregas ya no lleva a la vista móvil: es una herramienta del hub (D-NEXT)", () => {
     const barra = leer("src/components/TopBar.tsx");
-    const tramo = barra.slice(barra.indexOf('case "vistamovil":'), barra.indexOf('case "ajustes":'));
-    expect(tramo).toContain("href={enlaceAVistaMovil(pathname)}");
+    expect(barra).not.toContain('case "vistamovil":');
+    expect(barra).not.toContain("enlaceAVistaMovil(");
+    // El enlace sigue existiendo para quien lo necesite (la propia vista móvil lo guarda en la URL).
+    expect(enlaceAVistaMovil("/map")).toBe(`${RUTA_VISTA_MOVIL}?ruta=%2Fmap&ancho=${ANCHO_POR_DEFECTO}`);
   });
 });

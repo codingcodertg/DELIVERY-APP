@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, roleHome, roleLabel } from "@/lib/constants";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
-import { enlaceAVistaMovil, estaEnUnMarco } from "@/lib/mobile-preview";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
@@ -13,41 +12,19 @@ import { HubHomeLink } from "@/components/HubHomeLink";
 import { BotonRecargar } from "@/components/BotonRecargar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
 import type { Profile, UserRole } from "@/lib/types";
 
-/** El fondo translúcido de los botones de la barra, en un solo sitio (D-247). Lo usaba también el
- *  «Salir» suelto del admin, que se fue al desplegable del nombre (D-274); se queda la constante
- *  para «Switch usuario». */
-const FONDO_BOTON_BARRA = "rgba(255,255,255,.1)";
-
 /** Los botones del aviso de modo enseñanza, «Salir» y «Reiniciar práctica», con un mismo estilo
- *  escrito una vez. Mismo motivo que `FONDO_BOTON_BARRA`: dos botones iguales no son dos decisiones
- *  de color (`inline-colors.test.ts`). */
+ *  escrito una vez: dos botones iguales no son dos decisiones de color (`inline-colors.test.ts`).
+ *  (`FONDO_BOTON_BARRA`, el fondo del botón «Switch usuario», se fue con él al hub en D-NEXT.) */
 const BOTON_DEL_AVISO = { marginLeft: 12, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 10px", borderRadius: 6, fontWeight: 700 } as const;
 
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, deliveries, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
-  // Si la función está encendida lo dice el servidor, no el cliente: la bandera vive en el
-  // entorno y aquí no se puede leer. `/api/impersonate/state` contesta `habilitado` solo a un
-  // admin, y `false` mientras se está dentro de una impersonación.
-  const [puedeSwitch, setPuedeSwitch] = useState(false);
-  const [switchAbierto, setSwitchAbierto] = useState(false);
-  useEffect(() => {
-    if (realRole !== "admin") return;
-    let vivo = true;
-    // Con `?ask=switch`: sin él la ruta no toca la base, y así el banner —que la llama en cada
-    // carga de las cinco apps, para todo el mundo— sigue costando lo que costaba.
-    fetch("/api/impersonate/state?ask=switch")
-      .then((r) => r.json())
-      .then((d: { habilitado?: boolean }) => { if (vivo) setPuedeSwitch(!!d.habilitado); })
-      .catch(() => { /* sin respuesta, el botón no aparece: la dirección segura */ });
-    return () => { vivo = false; };
-  }, [realRole]);
   const { lang, t } = usePrefs();
   // `me` is the EFFECTIVE user — its role follows the admin "view as" preview.
   const me = ctxMe ?? propMe;
@@ -81,11 +58,6 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   }, [generalOpen]);
   // Navigating away closes the menu (covers back/forward too).
   useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
-  // Dentro del marco de la vista móvil (D-278) no se ofrece otra vista móvil. Se mira tras montar:
-  // `window` no existe al pintar en el servidor.
-  const [enMarco, setEnMarco] = useState(false);
-  useEffect(() => { setEnMarco(estaEnUnMarco(window)); }, []);
-
   // Dispatch nudge (#29): how many orders due today/tomorrow still have no
   // driver — shown as a badge on the Map tab for the roles that assign drivers.
   const dispatchRole = me.role === "admin" || me.role === "manager" || me.role === "logistics";
@@ -152,7 +124,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
 
   // Con el rol EFECTIVO, como la casa de `HubHomeLink`: quien no ve la casa encuentra en el menú
   // lo que antes le daba la pantalla de Cuenta.
-  const opcionesMenu = opcionesDelMenuDeCuenta({ realRole, me, enMarco });
+  const opcionesMenu = opcionesDelMenuDeCuenta({ realRole, me });
   const cierraMenu = () => setMenuCuentaAbierto(false);
 
   return (
@@ -327,12 +299,6 @@ export function TopBar({ me: propMe }: { me: Profile }) {
                           </select>
                         </label>
                       );
-                    case "vistamovil":
-                      return (
-                        <Link key={o} href={enlaceAVistaMovil(pathname)} role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
-                          📱 {t("Mobile view", "Vista móvil")}
-                        </Link>
-                      );
                     case "ajustes":
                       return (
                         <Link key={o} href="/settings" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
@@ -386,24 +352,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </select>
           </label>
         )}
-        {/* «Switch usuario» (D-247): la puerta cómoda a lo que D-243 ya permitía desde la
-            ficha de cada usuario. Solo para el rol REAL admin —un admin previsualizando como
-            vendedor tiene que ver lo que ve el vendedor— y solo si la función está encendida:
-            un botón que abre una lista para luego chocar con el 404 de `/api/impersonate` es
-            peor que no estar. Dentro de una impersonación tampoco: ahí manda el banner. */}
-        {realRole === "admin" && puedeSwitch && (
-          <div style={{ position: "relative" }}>
-            <button
-              className="tab"
-              onClick={() => setSwitchAbierto((v) => !v)}
-              aria-expanded={switchAbierto}
-              style={{ background: FONDO_BOTON_BARRA }}
-            >
-              ⇄ {t("Switch user", "Switch usuario")}
-            </button>
-            {switchAbierto && <SwitchUserPanel onClose={() => setSwitchAbierto(false)} />}
-          </div>
-        )}
+        {/* «Switch usuario» vivió aquí de D-247 a D-NEXT; ahora es una herramienta del hub
+            (/home/switch-user), como la vista móvil. */}
       </div>
     </div>
     </>

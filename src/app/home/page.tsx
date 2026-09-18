@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute } from "@/lib/constants";
 import { HomeSelector } from "@/components/HomeSelector";
 import type { Profile } from "@/lib/types";
@@ -61,5 +63,10 @@ export default async function HomePage({
   // aquí en línea y sin él, y `ModuleSwitcher` tenía la suya. Una sola, con prueba.
   if (!canReachHub(me)) redirect(landingRoute(me));
 
-  return <HomeSelector me={me} />;
+  // ¿Está dentro de la sesión de otra persona? (D-NEXT). Se lee de la cookie de retorno, aquí y
+  // una sola vez, con el mismo lector que usan las rutas de impersonación: ninguna herramienta
+  // tiene que preguntarlo por su cuenta. Sin cookie no hay impersonación, que es casi siempre.
+  const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;
+
+  return <HomeSelector me={me} suplantando={suplantando} />;
 }
