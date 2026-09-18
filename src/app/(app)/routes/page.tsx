@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { PlanDelDia } from "@/components/PlanDelDia";
 import { mismaTiendaOGrupo } from "@/lib/store-group";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
@@ -1452,6 +1453,11 @@ export default function RoutesPage() {
           )}
         </div>
       </div>
+
+      {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
+          igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
+          (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
+      {!allDates && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}
 
       {/* ---------- Drivers who stopped reporting ----------
            No amount of Android hardening is bulletproof: a battery manager, a
