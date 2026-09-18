@@ -43,6 +43,9 @@ export interface DatosDelDia {
   publicadoAntes?: readonly Pick<EscrituraDeOrden, "id" | "assigned_driver">[];
   /** Choferes que ese día no están (vacaciones, baja): por NOMBRE, como lo da `unavailableDriverNames`. */
   noDisponibles?: readonly string[];
+  /** Lo que una persona fijó en el borrador anterior de esa fecha (ver `./ajuste`): por chofer, sus paradas en
+   *  orden. «Planificar de nuevo» lo respeta: el motor arranca con eso puesto y reparte el resto alrededor. */
+  fijadas?: Readonly<Record<string, readonly { orden: string; tipo: "P" | "D" }[]>>;
 }
 
 export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" };
@@ -125,8 +128,15 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     fotos.push({ id: d.id, updated_at: d.updated_at });
   }
 
+  // Lo fijado solo vale si sigue teniendo sentido HOY: el chofer rutea, y la orden sigue en el plan.
+  const enElPlan = new Set(ordenes.map((o) => o.id));
+  const secuenciaFijada: NonNullable<Entrada["secuenciaFijada"]> = {};
+  for (const [chofer, paradas] of Object.entries(datos.fijadas ?? {})) {
+    const validas = ruteables.has(chofer) ? paradas.filter((p) => enElPlan.has(ordenDeLaParte(p.orden))) : [];
+    if (validas.length) secuenciaFijada[chofer] = validas.map((p) => ({ orden: p.orden, tipo: p.tipo }));
+  }
   const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings) };
-  return { entrada: { ordenes, choferes, matriz: {} }, parametros, puntos, fotos, fuera, choferesFuera };
+  return { entrada: { ordenes, choferes, matriz: {}, ...(Object.keys(secuenciaFijada).length ? { secuenciaFijada } : {}) }, parametros, puntos, fotos, fuera, choferesFuera };
 }
 
 export interface FilaDeParada {

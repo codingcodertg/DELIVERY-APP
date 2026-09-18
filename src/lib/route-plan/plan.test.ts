@@ -238,7 +238,7 @@ describe("la ruta de planificar y la pantalla", () => {
   });
 
   it("leer el plan vigente (GET) es solo leer, con la sesión: el último borrador o publicado de ESA fecha", () => {
-    const get = ruta.slice(ruta.indexOf("export async function GET("));
+    const get = ruta.slice(ruta.indexOf("export async function GET("), ruta.indexOf("export async function PATCH("));
     expect(get.length).toBeGreaterThan(100);
     expect(get).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(/);
     expect(get).not.toMatch(/admin|createAdminClient|fetch\(/);
@@ -250,8 +250,65 @@ describe("la ruta de planificar y la pantalla", () => {
   });
 
   it("planificar y leer contestan con la MISMA forma: el resumen y las rutas salen de las mismas dos funciones", () => {
-    expect(ruta.split("resumenDelPlan(").length - 1).toBe(2);
-    expect(ruta.split("vistaDelPlan(").length - 1).toBe(2);
+    // Tres contestan: planificar (POST), leer (GET) y ajustar (PATCH).
+    expect(ruta.split("resumenDelPlan(").length - 1).toBe(3);
+    expect(ruta.split("vistaDelPlan(").length - 1).toBe(3);
+    expect(ruta.split("choferes: choferesDelPlan(").length - 1).toBe(3);
+  });
+
+  it("ajustar (PATCH): solo admin y logística, solo un BORRADOR, y el cliente manda el movimiento, no la ruta", () => {
+    const patch = ruta.slice(ruta.indexOf("export async function PATCH("));
+    expect(patch.length).toBeGreaterThan(100);
+    expect(plano(patch)).toContain('if (!yo || !["admin", "logistics"].includes(String(yo.role)))');
+    expect(plano(patch)).toContain('if (fila.status !== "draft") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });');
+    // Parte de las paradas GUARDADAS y les aplica el movimiento; del cuerpo no se lee ninguna secuencia.
+    expect(plano(patch)).toContain("aplicaMovimiento(estadoDeParadas((paradas.data ?? [])");
+    expect(patch).not.toMatch(/cuerpo\.(secuencias|paradas|rutas|writes)/);
+    expect(plano(patch)).toContain('if ("error" in estado) return NextResponse.json({ error: "BAD_MOVE", detail: estado.error }, { status: 400 });');
+  });
+
+  it("ajustar no llama a nadie ni toca órdenes: revalida con lo guardado, con la sesión, y sin la llave de servicio", () => {
+    const patch = ruta.slice(ruta.indexOf("export async function PATCH("));
+    expect(patch).not.toMatch(/admin\s*\.|createAdminClient|fetch\(|planificaElDia|proveedor/);
+    expect(patch).not.toMatch(/from\("(deliveries|notifications)"\)/);
+    expect(patch).not.toContain(".rpc(");
+  });
+
+  it("ajustar no pisa el plan: guarda uno NUEVO y descarta el anterior solo cuando el nuevo está entero", () => {
+    const patch = plano(ruta.slice(ruta.indexOf("export async function PATCH(")));
+    const guardaPlan = patch.indexOf('supabase.from("route_plans").insert(ajustado.plan)');
+    const guardaParadas = patch.indexOf('supabase.from("route_plan_stops").insert(ajustado.paradas');
+    const descartaElNuevo = patch.indexOf('.update({ status: "discarded" }).eq("id", nueva.id)');
+    const descartaElViejo = patch.indexOf('.update({ status: "discarded" }).eq("id", planId)');
+    expect([guardaPlan, guardaParadas, descartaElNuevo, descartaElViejo].every((i) => i > 0)).toBe(true);
+    expect(guardaPlan < guardaParadas && guardaParadas < descartaElNuevo && descartaElNuevo < descartaElViejo).toBe(true);
+    // Nunca se borra ni se edita una parada del plan anterior.
+    expect(patch).not.toMatch(/from\("route_plan_stops"\)\.(update|delete)/);
+  });
+
+  it("planificar de nuevo lee lo FIJADO del borrador vigente de esa fecha y se lo pasa al motor", () => {
+    const post = plano(ruta.slice(ruta.indexOf("export async function POST("), ruta.indexOf("export async function GET(")));
+    expect(post).toContain('.eq("plan_date", fecha).eq("status", "draft").order("version", { ascending: false }).limit(1).maybeSingle()');
+    expect(post).toContain('.eq("plan_id", borradorVigente.id).eq("pinned", true)');
+    expect(post).toContain("fijadas: estadoDeParadas((paradasFijadas ?? [])");
+  });
+
+  it("los controles de ajuste solo salen en un borrador, y mandan el movimiento tal cual", () => {
+    const vista = plano(sinComentarios(leer("src/components/RutaDelPlan.tsx")));
+    expect(vista).toContain('ajuste.mueve({ tipo: "sube", chofer: ruta.choferId, indice: k })');
+    expect(vista).toContain('ajuste.mueve({ tipo: "baja", chofer: ruta.choferId, indice: k })');
+    expect(vista).toContain('ajuste.mueve({ tipo: p.pinned ? "suelta" : "fija", orden: p.order_ref })');
+    expect(vista).toContain('ajuste.mueve({ tipo: "a_chofer", orden: p.order_ref, chofer: e.target.value })');
+    expect(vista).not.toMatch(/fetch\(|supabase|aplicaMovimiento|revalida/);
+    expect(plano(panel)).toContain('if (!borrador || borrador.status !== "draft" || ocupado) return;');
+    expect(plano(panel)).toContain('method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: borrador.plan_id, movimiento })');
+    // Los avisos se enseñan y se cuentan al confirmar; no deshabilitan «Publicar».
+    expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");
+    expect(panel).toContain("Este plan tiene ${avisos} aviso(s).");
+    expect(plano(panel)).toContain('{(r.violaciones?.length ?? 0) > 0 && ( <div className="hint" style={{ margin: 0, color: "var(--red)" }}>');
+    expect(plano(panel)).toContain("{(r.tramosSinTrafico ?? 0) > 0 && (");
+    // Y el movimiento se comprueba en el servidor con la función probada, antes de tocar nada.
+    expect(plano(ruta)).toContain("const movimiento = movimientoValido(cuerpo.movimiento);");
   });
 
   it("planificar NO toca ninguna orden ni avisa a nadie", () => {
@@ -288,7 +345,7 @@ describe("la ruta de planificar y la pantalla", () => {
     // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
-    expect(plano(panel)).toContain("<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} />");
+    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} ajuste={borrador!.status === "draft" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });
