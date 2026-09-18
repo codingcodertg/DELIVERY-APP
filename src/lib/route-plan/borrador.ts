@@ -16,7 +16,8 @@ import { fueraConPorque } from "./porque";
 export interface FilaDePlan {
   plan_date: string;
   /** `manual_edit`: alguien ajustó a mano el plan `parent_plan_id` (ver `./ajuste`). */
-  source: "engine" | "manual_edit";
+  /** `manual_import`: la hoja del despachador puntuada con el mismo modelo (ver `./importa`). Nunca se publica. */
+  source: "engine" | "manual_edit" | "manual_import";
   parent_plan_id?: string;
   algorithm_version: string;
   params: Record<string, unknown>;
@@ -25,7 +26,9 @@ export interface FilaDePlan {
   input: { ordenes: EntradaDelDia["fotos"]; entrada: EntradaDelDia["entrada"]; puntos: EntradaDelDia["puntos"] };
   result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean;
     /** Solo tras un ajuste a mano: lo que incumple, cuántos tramos van sin tráfico guardado, y qué órdenes quedaron fijadas. */
-    violaciones?: Violacion[]; tramosSinTrafico?: number; fijadas?: string[] };
+    violaciones?: Violacion[]; tramosSinTrafico?: number; fijadas?: string[];
+    /** Solo en un plan `manual_import`: cómo casó la hoja y la comparación con el plan del motor. Sin el contenido de la hoja. */
+    hoja?: Record<string, unknown> };
   writes: EscrituraDeOrden[];
   provider: string;
   traffic: boolean;

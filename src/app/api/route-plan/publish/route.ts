@@ -31,9 +31,11 @@ export async function POST(req: Request) {
   try { planId = String(((await req.json()) as { plan_id?: unknown }).plan_id ?? ""); } catch { /* cae en la validación */ }
   if (!/^[0-9a-f-]{36}$/i.test(planId)) return NextResponse.json({ error: "A plan_id is required." }, { status: 400 });
 
-  const { data: plan, error: alLeer } = await supabase.from("route_plans").select("id, plan_date, status").eq("id", planId).maybeSingle();
+  const { data: plan, error: alLeer } = await supabase.from("route_plans").select("id, plan_date, status, source").eq("id", planId).maybeSingle();
   if (alLeer) return NextResponse.json({ error: "Could not read the plan.", detail: alLeer.message }, { status: 500 });
   if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
+  // La hoja importada del despachador es para COMPARAR. No se publica: ni escribe órdenes ni avisa a nadie.
+  if (plan.source === "manual_import") return NextResponse.json({ error: "IMPORTED_PLAN" }, { status: 409 });
 
   // A quién se avisa: se compara parada a parada con el plan publicado que este va a sustituir.
   const { data: vigente } = await supabase.from("route_plans").select("id").eq("plan_date", plan.plan_date).eq("status", "published").maybeSingle();

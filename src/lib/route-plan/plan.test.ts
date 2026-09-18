@@ -216,6 +216,14 @@ describe("/api/route-plan/publish", () => {
     expect((await pide({ plan_id: PLAN })).status).toBe(403);
   });
 
+  it("una hoja importada NO se publica: 409 sin llamar a la función, sin leer paradas y sin avisar a nadie", async () => {
+    falso.plan = { id: PLAN, plan_date: "2026-03-04", status: "draft", source: "manual_import" };
+    const res = await pide({ plan_id: PLAN });
+    expect([res.status, (await res.json()).error]).toEqual([409, "IMPORTED_PLAN"]);
+    expect(falso.rpc).toEqual([]);
+    expect(falso.tablasEscritas).toEqual([]);
+  });
+
   it("un plan que no existe (o que quien llama no ve), 404 sin llamar a la función", async () => {
     falso.plan = null;
     expect((await pide({ plan_id: PLAN })).status).toBe(404);
@@ -242,7 +250,7 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(get.length).toBeGreaterThan(100);
     expect(get).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(/);
     expect(get).not.toMatch(/admin|createAdminClient|fetch\(/);
-    expect(plano(get)).toContain('.eq("plan_date", fecha).in("status", ["draft", "published"]).order("version", { ascending: false }).limit(1).maybeSingle()');
+    expect(plano(get)).toContain('.eq("plan_date", fecha).in("status", ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle()');
     expect(plano(get)).toContain('if (!fila) return NextResponse.json({ ok: true, plan: null });');
     // No se baja la foto entera (lleva la matriz): solo la lista de órdenes, para saber cuál es de builder.
     expect(get).toContain("ordenes:input->entrada->ordenes");
@@ -261,7 +269,7 @@ describe("la ruta de planificar y la pantalla", () => {
     const patch = ruta.slice(ruta.indexOf("export async function PATCH("));
     expect(patch.length).toBeGreaterThan(100);
     expect(plano(patch)).toContain('if (!yo || !["admin", "logistics"].includes(String(yo.role)))');
-    expect(plano(patch)).toContain('if (fila.status !== "draft") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });');
+    expect(plano(patch)).toContain('if (fila.status !== "draft" || fila.source === "manual_import") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });');
     // Parte de las paradas GUARDADAS y les aplica el movimiento; del cuerpo no se lee ninguna secuencia.
     expect(plano(patch)).toContain("aplicaMovimiento(estadoDeParadas((paradas.data ?? [])");
     expect(patch).not.toMatch(/cuerpo\.(secuencias|paradas|rutas|writes)/);
@@ -289,7 +297,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("planificar de nuevo lee lo FIJADO del borrador vigente de esa fecha y se lo pasa al motor", () => {
     const post = plano(ruta.slice(ruta.indexOf("export async function POST("), ruta.indexOf("export async function GET(")));
-    expect(post).toContain('.eq("plan_date", fecha).eq("status", "draft").order("version", { ascending: false }).limit(1).maybeSingle()');
+    expect(post).toContain('.eq("plan_date", fecha).eq("status", "draft").neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle()');
     expect(post).toContain('.eq("plan_id", borradorVigente.id).eq("pinned", true)');
     expect(post).toContain("fijadas: estadoDeParadas((paradasFijadas ?? [])");
   });

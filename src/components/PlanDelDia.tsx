@@ -6,6 +6,7 @@ import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { orderLabel } from "@/lib/utils";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
+import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
 import type { RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
 import type { FueraConPorque, PorQue } from "@/lib/route-plan/porque";
@@ -219,6 +220,7 @@ export function PlanDelDia({ date }: { date: string }) {
           )}
           <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} porque={borrador!.porque}
             ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
+          <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />
         </div>
       )}
     </div>
