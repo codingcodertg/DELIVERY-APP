@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { conflictosDeSitio } from "./required";
-import { eligeDestino, eligeOrigen, eligeRecogidaDeTienda, opcionesDeDestino, opcionesDeOrigen, opcionesDeRecogida, tiendaDestinoMostrada } from "./order-endpoints";
+import { eligeDestino, eligeOrigen, opcionesDeDestino, opcionesDeOrigen, tiendaDestinoMostrada } from "./order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, escrituraQueNoVaANingunSitio, type ContextoDelUsuario } from "./order-sites";
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
@@ -44,12 +44,13 @@ const MALA = {
 const BUENA = { ...MALA, delivery_name: SUR.name, delivery_address: SUR.address, contact: SUR.name } as Delivery;
 
 describe("la orden nueva, tal como la abre cada rol", () => {
-  it("el gerente abre una Intertienda con su tienda vendiendo y recibiendo, y la recogida por elegir", () => {
-    // Cambió con D-302: antes su tienda era solo el destino y el origen se elegía en «Vendido desde».
+  it("el gerente abre una Intertienda con su tienda SOLO recibiendo, y la que vende por elegir", () => {
+    // Cambió dos veces: D-302 puso su tienda vendiendo y recibiendo, y D-NEXT la deja solo recibiendo,
+    // porque «Vendido desde» decía la tienda que pedía el material y no la que lo mandaba.
     const d = borradorInicial({}, GERENTE);
     expect(d.order_type).toBe("Intertienda");
-    expect(d.store).toBe(NORTE.name);
     expect(d.delivery_name).toBe(NORTE.name);
+    expect(d.store || "").toBe("");
     expect(d.pickup_name || "").toBe("");
     expect(choques(d)).toEqual([]);
   });
@@ -74,14 +75,11 @@ describe("elegir en cualquier orden: el desplegable nunca ofrece la otra punta",
     for (const tipo of ["Intertienda", "Transfer"]) {
       it(`${nombre}, ${tipo}: origen y luego destino, y destino y luego origen`, () => {
         const regla = REGLAS[tipo];
-        // El desplegable del ORIGEN no es el mismo en los dos tipos (D-302): en uno que recibe, el
-        // origen es la tienda que envía y se elige en la recogida; en Transfer sigue siendo «Vendido
-        // desde». Se recorre el que cada tipo ofrece de verdad.
-        const recibe = regla.homeIsDestination === true;
-        const opcionesOrigen = (x: Partial<Delivery>) =>
-          recibe ? opcionesDeRecogida(x, TIENDAS, regla) : opcionesDeOrigen(x, TIENDAS, regla);
-        const eligeElOrigen = (x: Partial<Delivery>, v: string) =>
-          recibe ? eligeRecogidaDeTienda(x, v, TIENDAS) : eligeOrigen(x, v, TIENDAS);
+        // **Un solo desplegable de origen para los dos tipos** (D-NEXT). Con D-302 había que recorrer
+        // uno distinto en un tipo que recibe —allí el origen se elegía en la recogida—; ahora los dos
+        // eligen «Vendido desde», y esa elección escribe también la recogida.
+        const opcionesOrigen = (x: Partial<Delivery>) => opcionesDeOrigen(x, TIENDAS, regla);
+        const eligeElOrigen = (x: Partial<Delivery>, v: string) => eligeOrigen(x, v, TIENDAS);
         const inicio = aplicaTipo(borradorInicial({}, c), tipo, c);
         const recorridos: string[] = [];
         let pasos = 0;
@@ -111,15 +109,16 @@ describe("elegir en cualquier orden: el desplegable nunca ofrece la otra punta",
 });
 
 describe("cambiar el tipo con las dos puntas ya puestas", () => {
-  it("una entrega a cliente con la dirección de su propia tienda, pasada a Intertienda, se queda sin recogida", () => {
+  it("una entrega a cliente con la dirección de su propia tienda, pasada a Intertienda, se queda sin origen", () => {
     const cliente = eligeOrigen(aplicaTipo({}, "Customer", ADMIN), SUR.name, TIENDAS);
     const conDestino = { ...cliente, delivery_name: "Obra", delivery_address: SUR.address };
     const d = aplicaTipo(conDestino, "Intertienda", ADMIN);
     expect(choques(d)).toEqual([]);
-    // En un tipo que recibe, el origen es la RECOGIDA: se vacía esa, y el destino se queda. Este es
-    // además el caso del admin sin tienda, que no congela nada (D-302).
+    // Desde D-NEXT el origen es «Vendido desde» también en un tipo que recibe, así que lo que se vacía
+    // es ESE —con su recogida, que la escribió la misma elección— y el destino se queda. Este es además
+    // el caso del admin sin tienda, que no congela nada.
+    expect(d.store || "").toBe("");
     expect(d.pickup_name || "").toBe("");
-    expect(d.store).toBe(SUR.name);
     expect(tiendaDestinoMostrada(d, TIENDAS)).toBe(SUR.name);
   });
 
@@ -148,15 +147,15 @@ describe("el destino que se ve es el que cuenta", () => {
     expect(choques(d)).toEqual(["store"]);
   });
 
-  it("y en Intertienda esa misma orden YA no choca, porque el origen es la recogida (D-302)", () => {
-    // Vendida desde Sur, recogida en un patio y entregada en Sur: el material se mueve de verdad. Con
-    // el modelo viejo —origen = «Vendido desde»— esto se bloqueaba, y era justo lo que impedía la
-    // Intertienda que pidió el dueño.
+  it("y en Intertienda esa misma orden vuelve a chocar, porque el origen es «Vendido desde» (D-NEXT)", () => {
+    // **Este canario fijaba lo contrario.** D-302 leía el origen en la recogida, así que «vendida desde
+    // Sur y entregada en Sur» pasaba. Ya no: si vende Sur y entrega en Sur, la orden no va a ningún
+    // sitio, diga lo que diga la recogida. Es la misma regla que en Transfer, que es lo que se quería.
     const d: Partial<Delivery> = {
       order_type: "Intertienda", store: SUR.name, pickup_name: "Patio", pickup_address: "9 Patio Ln, Ciudad TX",
       delivery_name: "", delivery_address: SUR.address,
     };
-    expect(choques(d)).toEqual([]);
+    expect(choques(d)).toEqual(["store"]);
   });
 
   it("el destino no ofrece la tienda que está en la dirección de recogida", () => {
@@ -164,9 +163,12 @@ describe("el destino que se ve es el que cuenta", () => {
     expect(opcionesDeDestino(d, TIENDAS, REGLAS.Transfer)).toEqual(["Tienda Este"]);
   });
 
-  it("y en Intertienda sí ofrece la tienda que vende, porque es la que recibe (D-302)", () => {
-    const d: Partial<Delivery> = { order_type: "Intertienda", store: NORTE.name, pickup_name: SUR.name, pickup_address: SUR.address };
-    expect(opcionesDeDestino(d, TIENDAS, REGLAS.Intertienda)).toEqual(["Tienda Norte", "Tienda Este"]);
+  it("y en Intertienda tampoco, porque la que vende es la que manda (D-NEXT)", () => {
+    // **Este canario fijaba lo contrario**: con D-302 la tienda que vendía era la que recibía, así que
+    // el destino tenía que ofrecerla. Ahora vende la que manda el material, y ofrecerla como destino
+    // sería ofrecer una orden que no va a ningún sitio.
+    const d: Partial<Delivery> = { order_type: "Intertienda", store: NORTE.name, pickup_name: NORTE.name, pickup_address: NORTE.address };
+    expect(opcionesDeDestino(d, TIENDAS, REGLAS.Intertienda)).toEqual(["Tienda Sur", "Tienda Este"]);
   });
 
   it("en una orden vieja que ya lo tiene, el destino conserva la tienda que enseña", () => {
@@ -176,13 +178,13 @@ describe("el destino que se ve es el que cuenta", () => {
 
 describe("la escritura: ninguna orden entra en envío o aprobación yendo a su propio sitio", () => {
   it("un borrador que va a su propio sitio no se envía ni se aprueba desde ninguna pantalla", () => {
-    expect(guarda({ ...MALA, stage: "draft" }, { stage: "pending" })).toEqual(["delivery_address", "pickup_name"]);
-    expect(guarda({ ...MALA, stage: "pending" }, { stage: "approved" })).toEqual(["delivery_address", "pickup_name"]);
+    expect(guarda({ ...MALA, stage: "draft" }, { stage: "pending" })).toEqual(["delivery_address", "store"]);
+    expect(guarda({ ...MALA, stage: "pending" }, { stage: "approved" })).toEqual(["delivery_address", "store"]);
   });
 
   it("crearla ya enviada o ya aprobada, tampoco; como borrador, sí", () => {
-    expect(guarda(undefined, { ...MALA, stage: "pending" })).toEqual(["delivery_address", "pickup_name"]);
-    expect(guarda(undefined, { ...MALA, stage: "approved" })).toEqual(["delivery_address", "pickup_name"]);
+    expect(guarda(undefined, { ...MALA, stage: "pending" })).toEqual(["delivery_address", "store"]);
+    expect(guarda(undefined, { ...MALA, stage: "approved" })).toEqual(["delivery_address", "store"]);
     expect(guarda(undefined, { ...MALA, stage: "draft" })).toEqual([]);
   });
 
@@ -192,7 +194,7 @@ describe("la escritura: ninguna orden entra en envío o aprobación yendo a su p
   });
 
   it("editar una orden viva para dejarla en su propio sitio, no", () => {
-    expect(guarda({ ...BUENA, stage: "approved" }, { delivery_name: NORTE.name, delivery_address: NORTE.address })).toEqual(["delivery_address", "pickup_name"]);
+    expect(guarda({ ...BUENA, stage: "approved" }, { delivery_name: NORTE.name, delivery_address: NORTE.address })).toEqual(["delivery_address", "store"]);
   });
 
   it("una orden vieja que ya lo tiene sigue su camino: el chofer la recoge, y se edita sin que la edición lo empeore", () => {
@@ -213,7 +215,7 @@ describe("la escritura: ninguna orden entra en envío o aprobación yendo a su p
     expect(copia.delivery_name).toBeUndefined();
     // La copia no lleva nombre de recogida, pero sí su dirección: el origen sin nombre y con dirección
     // también cuenta, o una re-entrega de una orden mala entraría por el hueco (D-302).
-    expect(guarda(undefined, copia)).toEqual(["delivery_address", "pickup_name"]);
+    expect(guarda(undefined, copia)).toEqual(["delivery_address", "store"]);
     expect(guarda(undefined, borradorDeReentrega({ ...BUENA, stage: "delivered" }, { cargo: "25", motivo: "Rota" }))).toEqual([]);
   });
 });

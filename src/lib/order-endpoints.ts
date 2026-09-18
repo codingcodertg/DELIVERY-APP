@@ -47,27 +47,21 @@ function direccionDeTienda(nombre: string | null | undefined, tiendas: NamedLoca
 }
 
 /**
- * De dónde sale la mercancía, **que no siempre es «Vendido desde»** (D-302).
+ * De dónde sale la mercancía: **siempre «Vendido desde»** (D-NEXT).
  *
- * En un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) la tienda del usuario vende Y
- * recibe, y la que manda el material es la **recogida**. Si el origen siguiera siendo `store`, la regla
- * de D-276 vería toda Intertienda como una orden que va de un sitio a ese mismo sitio y la bloquearía.
- * En los demás tipos el origen es `store`, como siempre.
+ * D-302 había puesto el origen en la **recogida** para los tipos «que reciben», porque allí la tienda
+ * del usuario vendía y recibía a la vez y `store` era el destino. Damaris, de office: *«INV 170059 dice
+ * sold from Edinburg y debe de ser Pharr»* — y tenía razón, porque en ese modelo «Vendido desde» decía
+ * la tienda que **pedía** el material, no la que lo mandaba.
  *
- * Se pasa la **regla entera** y no un booleano a propósito: así el compilador obliga a cada llamador a
- * decir de qué tipo habla, en vez de heredar un `true` que ya no significa lo mismo.
+ * Ahora en una Intertienda se elige **a qué tienda se le pide**, y esa elección escribe «Vendido desde»
+ * y la recogida a la vez (`eligeOrigen`), así que el origen vuelve a ser `store` en todos los tipos y
+ * este caso especial desaparece. La regla ya no hace falta para saberlo.
  */
 export function origenDeLaOrden(
-  d: Pick<Partial<Delivery>, "store" | "pickup_name" | "pickup_address">,
-  regla: Pick<OrderTypeRule, "homeIsDestination">,
+  d: Pick<Partial<Delivery>, "store">,
   tiendas: NamedLocation[],
 ): { nombre: string; direccion: string } {
-  if (regla.homeIsDestination === true) {
-    return {
-      nombre: d.pickup_name ?? "",
-      direccion: (d.pickup_address ?? "") || direccionDeTienda(d.pickup_name, tiendas),
-    };
-  }
   return { nombre: d.store ?? "", direccion: direccionDeTienda(d.store, tiendas) };
 }
 
@@ -78,7 +72,7 @@ export function origenDeLaOrden(
  * que es lo que enseña el desplegable de destino. `tiendas` es obligatorio a propósito: sin la lista,
  * la segunda comparación no existe y el hueco de D-276 vuelve en silencio.
  *
- * Desde D-302 el origen lo decide `origenDeLaOrden`, que en un tipo que recibe es la recogida.
+ * El origen lo decide `origenDeLaOrden`, que desde D-NEXT es «Vendido desde» en todos los tipos.
  */
 export function origenEsDestino(
   d: Pick<Partial<Delivery>, "store" | "pickup_name" | "pickup_address" | "delivery_name" | "delivery_address">,
@@ -86,7 +80,7 @@ export function origenEsDestino(
   tiendas: NamedLocation[],
 ): boolean {
   if (regla.storeToStore !== true) return false;
-  const origen = origenDeLaOrden(d, regla, tiendas);
+  const origen = origenDeLaOrden(d, tiendas);
   const nombre = normalizaLugar(origen.nombre);
   const dirOrigen = normalizaLugar(origen.direccion);
   // Sin nombre NI dirección no hay origen que comparar. Con uno de los dos, basta ese: una recogida
@@ -103,10 +97,10 @@ export function origenEsDestino(
  * because les importa a ambos»*.
  *
  * En un movimiento tienda-a-tienda son hasta tres columnas y no una: `store` («Vendido desde»),
- * `pickup_name` (la que **envía** el material) y `delivery_name` (la que **recibe**). Desde D-302 una
- * Intertienda bien formada tiene `store` y `delivery_name` en la misma tienda —la del usuario, que
- * vende y recibe— así que lo normal es que devuelva dos; se miran las tres igualmente porque las
- * órdenes de antes de D-302 tienen la otra forma y siguen vivas.
+ * `pickup_name` (la que **envía** el material) y `delivery_name` (la que **recibe**). Desde D-NEXT una
+ * Intertienda bien formada tiene `store` y `pickup_name` en la tienda que manda, y `delivery_name` en
+ * la que recibe, así que lo normal es que devuelva dos. Se miran las tres igualmente porque las órdenes
+ * de D-302 —con `store` en la tienda que recibe— siguen vivas, y las de antes de D-302 también.
  *
  * En los demás tipos la tienda de una orden es `store`, como siempre.
  *
@@ -157,31 +151,22 @@ export function eligeOrigen(p: Partial<Delivery>, v: string, tiendas: NamedLocat
 }
 
 /**
- * Elegir la tienda de destino: es el nombre del destino y su dirección. Lo que hace el modal.
+ * Elegir la tienda de destino: su nombre, su dirección y **la cuenta** (D-NEXT).
  *
- * **Ya no escribe el contacto** (D-309). Lo escribía desde D-288 —ahí el contacto de una Intertienda
- * era el nombre de la tienda que recibe— y eso dejó de tener sentido cuando el dueño quitó cuenta,
- * contacto y teléfono de los movimientos tienda-a-tienda: seguiría rellenando un campo que ya no se
- * enseña, **y volvería a ponerlo justo después de que el cambio de tipo lo vaciara**. Un dato invisible
- * que viaja a la base es peor que uno vacío.
+ * La cuenta de un movimiento entre tiendas es la tienda que **recibe**. Damaris, de office: *«Account se
+ * debe de llenar automáticamente con el nombre de mi tienda cuando es intertienda»*. Se escribe aquí y
+ * no en la pantalla para que cambiar el destino la arrastre: una cuenta que se queda con la tienda de
+ * antes es peor que ninguna.
+ *
+ * **El contacto sigue sin escribirse** (D-309): lo hacía hasta entonces y rellenaba un campo que ya no
+ * se enseña. Esto devuelve la cuenta, no el contacto ni el teléfono.
  *
  * Esta función solo se usa en el destino de un tipo tienda-a-tienda, así que no hay otro camino que
- * pierda nada con el cambio.
+ * gane una cuenta que no le toca.
  */
 export function eligeDestino(p: Partial<Delivery>, v: string, tiendas: NamedLocation[]): Partial<Delivery> {
   const st = tiendas.find((s) => s.name === v);
-  return { ...p, delivery_name: v, delivery_address: st?.address ?? "" };
-}
-
-/**
- * Elegir la tienda que **manda** el material en un tipo que recibe (D-302): solo la recogida.
- *
- * `eligeOrigen` no vale aquí porque escribe también `store`, y en Intertienda «Vendido desde» es la
- * tienda del usuario y no se mueve.
- */
-export function eligeRecogidaDeTienda(p: Partial<Delivery>, v: string, tiendas: NamedLocation[]): Partial<Delivery> {
-  const st = tiendas.find((s) => s.name === v);
-  return { ...p, pickup_name: v, pickup_address: st?.address ?? "" };
+  return { ...p, delivery_name: v, delivery_address: st?.address ?? "", account: v };
 }
 
 /** La tienda que enseña el desplegable de destino: la de la dirección de entrega. */
@@ -203,17 +188,6 @@ export function opcionesDeOrigen(d: Partial<Delivery>, tiendas: NamedLocation[],
   const nombres = tiendas.map((s) => s.name);
   if (regla.storeToStore !== true) return nombres;
   return nombres.filter((n) => mismoNombre(n, d.store) || !origenEsDestino(eligeOrigen(d, n, tiendas), regla, tiendas));
-}
-
-/**
- * Las tiendas que ofrece la **recogida** en un tipo que recibe: las que, elegidas, no dejarían la orden
- * yendo a su propio sitio — o sea, todas menos la que recibe. Conserva la que tenga puesta (D-267).
- */
-export function opcionesDeRecogida(d: Partial<Delivery>, tiendas: NamedLocation[], regla: Pick<OrderTypeRule, "storeToStore" | "homeIsDestination">): string[] {
-  const nombres = tiendas.map((s) => s.name);
-  if (regla.homeIsDestination !== true) return nombres;
-  return nombres.filter((n) => mismoNombre(n, d.pickup_name)
-    || !origenEsDestino(eligeRecogidaDeTienda(d, n, tiendas), regla, tiendas));
 }
 
 /**

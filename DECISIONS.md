@@ -37665,6 +37665,15 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
 
 ## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
+> **⚠ Reemplazada otra vez el 2026-09-18, por D-NEXT — y esta vez en lo principal.** Damaris, de
+> office: *«INV 170059 dice sold from Edinburg y debe de ser Pharr»*. Tenía razón: con la tienda del
+> usuario vendiendo **y** recibiendo, «Vendido desde» acababa diciendo la tienda que **pedía** el
+> material. Ahora se elige a qué tienda se le pide, esa elección escribe «Vendido desde» y la recogida
+> a la vez, y lo congelado es el **destino**. Lo que sigue vigente de esta entrada: que la tienda del
+> usuario es el destino, que la dirección de entrega sale de una tienda y no se teclea, y que quien no
+> tiene tienda elige las dos puntas. Las cinco órdenes que quedaban con la forma de aquí se corrigieron
+> en la base antes de publicar el cambio.
+
 > **⚠ Reemplazada en parte al día siguiente, por D-309.** La **dirección de «Vendido desde» vuelve**
 > también en un tipo que recibe: aquí se había quitado porque el dueño dijo que no se necesitaba, y el
 > 2026-09-18 la pidió de vuelta — *«store sold from should have the address»*. Lo demás sigue vigente:
@@ -38296,6 +38305,14 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
 
 ## D-309 · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** De los tres campos que esta entrada quitó,
+> **la cuenta vuelve**: se rellena sola con la tienda que recibe, de solo lectura. Damaris, de office:
+> *«Account se debe de llenar automáticamente con el nombre de mi tienda cuando es intertienda»*.
+> Contacto y teléfono siguen fuera, y todo lo demás de esta entrada —la visibilidad de las dos tiendas,
+> el destino obligatorio, el teléfono del almacén— sigue entero. Consecuencia avisada al dueño: con la
+> cuenta de vuelta, la regla de D-292 puede volver a aplicar si el nombre de una tienda coincide con el
+> de una cuenta marcada.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, cinco cosas de una vez: *«in intertienda orders people from both pickup and
 delivery store can see the order because les importa a ambos · remove account contact name and phone
@@ -38829,3 +38846,127 @@ genera una prueba por componente.
 - **No se ha mandado ningún mensaje, aviso ni push de verdad.** Las pruebas leen ficheros y llaman a
   funciones puras; la única ruta que manda correo (`/api/help`) se prueba, como antes, con `fetch`
   simulado.
+
+## D-NEXT · Intertienda: vende la tienda que manda el material
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Reportado por Damaris Hernandez** (office, Edinburg), literal: *«INV 170059 dice sold from Edinburg y
+debe de ser Pharr; app tiene que automáticamente poder sold from de la tienda de la cual estoy
+solicitando el material y no debe permitir que la tienda se venda a sí mismo. Account se debe de llenar
+automáticamente con el nombre de mi tienda cuando es intertienda»*.
+
+**Reemplaza en parte a D-302** (quién es «Vendido desde») **y a D-309** (la cuenta vuelve). Cada una
+lleva su nota dentro.
+
+### Lo primero: la orden que reportó no estaba mal escrita
+
+La #252 estaba **exactamente** como mandaba D-302: `store` = Edinburg congelada, recogida = Pharr,
+destino = Edinburg, cuenta vacía. O sea que no era un error de quien la escribió ni un fallo del
+código: era el modelo. D-302 había puesto la tienda del usuario vendiendo **y** recibiendo, y en ese
+reparto «Vendido desde» acaba diciendo la tienda que **pide** el material.
+
+Se le dijo al dueño que esto contradecía D-302 y D-309, citándolas, y decidió por pregunta cerrada:
+**«la tienda que manda (Damaris)»** y **«se llena sola con la tienda que recibe»**.
+
+### Y no era solo la pantalla: ya salía en papel
+
+Medido al inventariar: `slip.ts` toma la dirección de origen del comprobante de `d.store`, y
+`manifest.ts` imprime literalmente «de <d.store>». Con `store` en la tienda que recibía, **la hoja que
+lleva el chofer decía que el material salía de la tienda que lo estaba recibiendo**. Nadie lo había
+reportado. Con este cambio se arregla sin tocar ninguno de los dos, y hay una prueba que lo fija.
+
+### El modelo nuevo, y la bandera de Ajustes que NO se toca
+
+Ahora se elige **a qué tienda se le pide el material**, y esa elección escribe «Vendido desde» **y** la
+recogida a la vez; el destino queda congelado en la tienda del usuario. Quien no tiene tienda —admin,
+office sin tienda— sigue eligiendo las dos puntas, como quedó en D-302.
+
+**`homeIsDestination` se queda como está en Ajustes**, y conviene entender por qué: significa «la
+tienda del usuario es el **destino**», y eso **sigue siendo verdad** — la de Damaris recibe. Lo que
+cambió es **dónde vive el origen**, que vuelve a ser `store` en todos los tipos. Ponerla en `false`
+haría lo contrario de lo que pidió: congelar el origen en su tienda y dejarle elegir el destino. Así
+que esto es un cambio de código y **no toca `settings.order_type_rules`**. Tiene su prueba.
+
+**La pieza que hace el trabajo ya existía:** `eligeOrigen` escribía `store` + `pickup_name` +
+`pickup_address` de una vez desde antes. El «un solo desplegable» no hubo que inventarlo — es el de
+«Vendido desde» descongelado, y lo que se congela ahora es el destino.
+
+Con eso, `origenDeLaOrden` pierde su caso especial, `conflictosDeSitio` vuelve a señalar `store` —el
+campo que la persona puede corregir— y `opcionesDeRecogida` y `eligeRecogidaDeTienda` se quedan sin
+uso y se borran con sus pruebas.
+
+### La cuenta
+
+Se rellena sola con la tienda que **recibe**, de solo lectura, y la escribe `eligeDestino` para que
+cambiar el destino se la lleve consigo: una cuenta que se queda con la tienda de antes es peor que
+ninguna. Al salir a un tipo de cliente se suelta —una tienda no es un cliente—, y se mira **de dónde
+viene** el cambio de tipo, no lo que hay escrito, para no tocar una cuenta tecleada a mano.
+
+**Consecuencia avisada al dueño:** con la cuenta de vuelta, la regla de «esta cuenta siempre pasa por
+oficina» (D-292 / migración 123) **vuelve a aplicar** si el nombre de una tienda coincide con el de una
+cuenta marcada. Medido: hoy `'RDZ Edinburg'` da false, así que no cambia nada todavía.
+
+**En Cuentas no se toca nada.** La exclusión de D-309 —las de tienda a tienda **sin** cuenta— deja de
+dispararse sola, porque ahora tienen. Lo que aparece está acotado: **como mucho una fila por tienda**,
+no una por orden, que es muy distinto del cajón «(sin cuenta)» que D-309 vino a evitar.
+
+### Las cinco órdenes vivas, corregidas en la base antes de publicar esto
+
+Con el modelo nuevo, una orden con `store` = destino **queda bloqueada**: al editarla o aprobarla salta
+«la tienda de origen y la de destino son la misma». Se contaron con la condición exacta y salieron
+**cinco**: #81 (Brownsville←McAllen, entregada), #244 (Edinburg←McAllen, recogida), #246 y #247
+(Pharr←Edinburg, aprobadas) y #251 (McAllen←Edinburg, aprobada). La #252 ya se había corregido al
+diagnosticarla.
+
+**Las corrigió el orquestador en producción el 2026-09-18**, con el OK del dueño («sí, corrígelas»), en
+una transacción con respaldo y nota en `order_events` por orden, sin tocar etapa ni tarifa: `store` ←
+`pickup_name`, y la cuenta = tienda que recibe donde estaba vacía (#244 y #251 ya traían «RDZ MCALLEN»
+y no se pisó). Después, con la misma condición: **0**.
+
+Se corrigieron **porque el dato era falso**, no por comodidad: decían que el material se había vendido
+desde la tienda que lo recibió.
+
+### Medido, rompiendo cada pieza
+
+11 cambios: **10 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El origen vuelve a leerse en la recogida; `aplicaTipo` deja el origen que traía el borrador; el
+  colapso de D-276 deja de aplicarse; el choque vuelve a señalar la recogida; elegir destino no escribe
+  la cuenta; el tipo no la rellena; no se suelta al volver a un tipo de cliente; el modal vuelve a
+  congelar «Vendido desde»; la cuenta se puede teclear; la recogida se puede teclear.
+- **El gemelo:** `origenDeLaOrden` con una variable de por medio.
+
+**Dos de los mutantes que escribí primero no servían, y eso también se mide:**
+
+1. Uno cambiaba `next.store = ""` por `next.store = c.miTienda` y **no caía ninguna prueba**. No era un
+   hueco: es **equivalente**, porque con la tienda propia puesta en las dos puntas el colapso de D-276
+   la vacía igual. Lo que sí tiene efecto es **quitar** esas líneas —un borrador que traía OTRA tienda
+   se quedaría con «Vendido desde» de una y la recogida de otra, dos puntas que nadie eligió juntas—,
+   así que el mutante pasó a ser ese, y con él nació la prueba que lo caza.
+2. Otro cambiaba el orden de las palabras de una etiqueta. Tampoco caía nada, y **está bien que no
+   caiga**: no cambia lo que hace la pantalla. Se sustituyó por uno que sí mide: que la recogida se
+   pueda teclear.
+
+### Los canarios que se reescriben al revés
+
+La suite de D-302 (`intertienda-recepcion.test.ts`) existía para fijar el modelo que esto invierte, así
+que se reescribe entera, caso por caso, en vez de borrarse: el origen es «Vendido desde» en todos los
+tipos, la forma de D-302 **ahora choca**, el desplegable es uno solo, el destino ofrece las demás y no
+la que vende, lo congelado es el destino. Y con ella, los de D-276 y D-267 en `order-sites.test.ts` y
+`order-endpoints.test.ts` (la clave del choque pasa de `pickup_name` a `store`, y el recorrido de los
+desplegables usa uno solo), el de D-288 sobre la etiqueta de «Vendido desde», el de D-293 sobre el
+selector congelado, y el de D-309 sobre la cuenta vacía.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2930
+pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 reescrita, 29.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el desplegable único, ni el destino congelado, ni la
+  cuenta rellenándose sola.
+- **Las cinco órdenes corregidas las midió y las arregló el orquestador**, no yo: una rama no toca la
+  base. El «0 restantes» es su medición, del 2026-09-18.
+- **Las órdenes de antes de D-302** —con `store` en la tienda que vendía— ya tenían la forma que este
+  cambio da por buena, así que no se tocan y no hacía falta contarlas.

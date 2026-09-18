@@ -1,27 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { conflictosDeSitio, orderTypeRule } from "./required";
-import {
-  eligeDestino, eligeRecogidaDeTienda, opcionesDeDestino, opcionesDeRecogida, origenDeLaOrden, origenEsDestino,
-} from "./order-endpoints";
+import { eligeDestino, eligeOrigen, opcionesDeDestino, opcionesDeOrigen, origenDeLaOrden, origenEsDestino } from "./order-endpoints";
 import { aplicaTipo, borradorInicial, escrituraQueNoVaANingunSitio, type ContextoDelUsuario } from "./order-sites";
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * Intertienda: la tienda del usuario vende y recibe, y lo que se elige es quién manda (D-302).
+ * Intertienda: **vende la tienda que manda el material**, y la del usuario solo recibe (D-NEXT).
  *
- * El dueño, con captura: «el store sold from debería quedar freeze, y solo en ese caso quitar el store
- * address, no se necesita; el store destination es el mismo store sold from, y el pickup es el dropdown
- * que se elige qué tienda es». Y después: «como es intertienda, la dirección de entrega debe ser una de
- * las tiendas… like a dropdown menu».
+ * **Este fichero fijaba lo contrario.** Era la suite de D-302, donde la tienda del usuario vendía y
+ * recibía y lo que se elegía era la recogida. Damaris, de office: *«INV 170059 dice sold from Edinburg
+ * y debe de ser Pharr; app tiene que automáticamente poder sold from de la tienda de la cual estoy
+ * solicitando el material y no debe permitir que la tienda se venda a sí mismo»*. Tenía razón: en aquel
+ * modelo «Vendido desde» decía la tienda que **pedía** el material.
  *
- * Lo que rompía: `aplicaTipo` vaciaba «Vendido desde» para que se eligiera **ahí** el origen, así que
- * una Intertienda acababa con el destino en la tienda de al lado y saltaba «pickup and delivery address
- * are the same». Y si se pusieran las dos puntas en la misma tienda —que es lo que el dueño quiere—, la
- * regla de D-276 la habría declarado una orden que no va a ningún sitio.
+ * Así que ahora se elige **a qué tienda se le pide**, y esa elección escribe «Vendido desde» y la
+ * recogida a la vez; el destino queda congelado en la tienda del usuario. Cada caso de abajo que
+ * cambió se reescribe **al revés**, no se afloja: lo que cambió es la decisión, no el código que la
+ * vigila.
  *
- * **Transfer no cambia**: es el otro tipo tienda-a-tienda y su origen sigue siendo «Vendido desde». Cada
- * prueba de aquí abajo que toca la regla lo comprueba en los dos tipos.
+ * **Transfer no cambia**: es el otro tipo tienda-a-tienda y su origen siempre fue «Vendido desde».
+ * Ahora Intertienda se comporta igual en eso, y varias pruebas lo comprueban en los dos.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -44,96 +43,135 @@ const GERENTE = quien("manager", NORTE.name);
 const ADMIN_SIN_TIENDA = quien("admin", null);
 const choques = (d: Partial<Delivery>) => conflictosDeSitio(d, REGLAS, TIENDAS).map((m) => m.key).sort();
 
-describe("el origen de una orden no siempre es «Vendido desde»", () => {
+describe("el origen de una orden es siempre «Vendido desde»", () => {
+  // La forma NUEVA: vende y manda Sur, recibe Norte.
   const d: Partial<Delivery> = {
-    store: NORTE.name, pickup_name: SUR.name, pickup_address: SUR.address,
+    store: SUR.name, pickup_name: SUR.name, pickup_address: SUR.address,
     delivery_name: NORTE.name, delivery_address: NORTE.address,
   };
 
-  it("en un tipo que recibe es la recogida; en los demás, la tienda que vende", () => {
-    expect(origenDeLaOrden(d, REGLAS.Intertienda, TIENDAS)).toEqual({ nombre: SUR.name, direccion: SUR.address });
-    expect(origenDeLaOrden(d, REGLAS.Transfer, TIENDAS)).toEqual({ nombre: NORTE.name, direccion: NORTE.address });
-    expect(origenDeLaOrden(d, REGLAS.Customer, TIENDAS)).toEqual({ nombre: NORTE.name, direccion: NORTE.address });
+  it("en todos los tipos, sin caso especial", () => {
+    // D-302 leía el origen en la recogida cuando el tipo «recibía». Ya no: una sola lectura para todos.
+    for (const regla of ["Intertienda", "Transfer", "Customer"] as const) {
+      expect(origenDeLaOrden(d, TIENDAS), regla).toEqual({ nombre: SUR.name, direccion: SUR.address });
+    }
   });
 
-  it("y por eso esta orden es legal en Intertienda e ilegal en Transfer", () => {
-    // La misma fila de la base, leída con dos reglas: vende Norte, recibe Norte, la manda Sur.
+  it("y esta orden es legal en los dos tipos tienda-a-tienda", () => {
     expect(origenEsDestino(d, REGLAS.Intertienda, TIENDAS)).toBe(false);
-    expect(origenEsDestino(d, REGLAS.Transfer, TIENDAS)).toBe(true);
+    expect(origenEsDestino(d, REGLAS.Transfer, TIENDAS)).toBe(false);
   });
 
-  it("una recogida sin nombre pero con la dirección del destino también choca", () => {
-    const sinNombre = { ...d, pickup_name: "", pickup_address: NORTE.address };
-    expect(origenEsDestino(sinNombre, REGLAS.Intertienda, TIENDAS)).toBe(true);
+  it("**la forma de D-302 ahora choca**, que es justo lo que se quería arreglar", () => {
+    // Vende Norte, recibe Norte, manda Sur: es lo que decía la #252 y lo que Damaris reportó.
+    const comoD302: Partial<Delivery> = {
+      store: NORTE.name, pickup_name: SUR.name, pickup_address: SUR.address,
+      delivery_name: NORTE.name, delivery_address: NORTE.address,
+    };
+    expect(origenEsDestino(comoD302, REGLAS.Intertienda, TIENDAS)).toBe(true);
   });
 
-  it("sin recogida ninguna no hay nada que comparar", () => {
-    const vacia = { ...d, pickup_name: "", pickup_address: "" };
+  it("la dirección guardada de la tienda que vende, igual a la de entrega, también choca", () => {
+    // Sin nombre de destino, pero entregando en la dirección de la tienda que vende.
+    const porDireccion = { ...d, delivery_name: "", delivery_address: SUR.address };
+    expect(origenEsDestino(porDireccion, REGLAS.Intertienda, TIENDAS)).toBe(true);
+  });
+
+  it("sin tienda que venda no hay nada que comparar", () => {
+    const vacia = { ...d, store: "" };
     expect(origenEsDestino(vacia, REGLAS.Intertienda, TIENDAS)).toBe(false);
   });
 
-  it("el choque señala el campo que se puede corregir: la recogida, no la tienda congelada", () => {
+  it("el choque señala el campo que se puede corregir, y ahora es `store` en los dos tipos", () => {
+    // Hasta D-302 en un tipo que recibe se señalaba la recogida, porque «Vendido desde» estaba
+    // congelado. Ya no lo está: es lo único que se elige.
     const mala: Partial<Delivery> = {
       order_type: "Intertienda", store: NORTE.name, pickup_name: NORTE.name, pickup_address: NORTE.address,
       delivery_name: NORTE.name, delivery_address: NORTE.address,
     };
-    expect(choques(mala)).toEqual(["delivery_address", "pickup_name"]);
+    expect(choques(mala)).toEqual(["delivery_address", "store"]);
     expect(choques({ ...mala, order_type: "Transfer" })).toEqual(["delivery_address", "store"]);
   });
 });
 
 describe("lo que abre una Intertienda nueva", () => {
-  it("la tienda del gerente vende y recibe, y la recogida está por elegir", () => {
+  it("la tienda del gerente RECIBE, y la que vende está por elegir", () => {
     const d = borradorInicial({}, GERENTE);
     expect(d.order_type).toBe("Intertienda");
-    expect([d.store, d.delivery_name]).toEqual([NORTE.name, NORTE.name]);
-    expect(d.delivery_address).toBe(NORTE.address);
+    expect([d.delivery_name, d.delivery_address]).toEqual([NORTE.name, NORTE.address]);
+    // Lo que cambió: su tienda ya NO queda como «Vendido desde».
+    expect(d.store || "").toBe("");
     expect(d.pickup_name || "").toBe("");
     expect(choques(d)).toEqual([]);
   });
 
+  it("y la cuenta se rellena sola con la tienda que recibe", () => {
+    expect(borradorInicial({}, GERENTE).account).toBe(NORTE.name);
+  });
+
   it("quien no tiene tienda se queda como antes: nada congelado", () => {
-    // Acordado con el dueño: un admin, u office sin tienda, elige las dos puntas.
+    // Acordado con el dueño en D-302 y sin cambio: un admin, u office sin tienda, elige las dos puntas.
     const d = aplicaTipo({}, "Intertienda", ADMIN_SIN_TIENDA);
     expect(d.store || "").toBe("");
     expect(d.delivery_name || "").toBe("");
+    expect(d.account || "").toBe("");
   });
 
-  it("si la recogida traía puesta la tienda que recibe, se vacía", () => {
+  it("si «Vendido desde» traía puesta su propia tienda, se vacía: nadie se vende a sí mismo", () => {
     const traida = { store: NORTE.name, pickup_name: NORTE.name, pickup_address: NORTE.address };
     const d = aplicaTipo(traida, "Intertienda", GERENTE);
+    expect(d.store || "").toBe("");
+    expect(d.delivery_name).toBe(NORTE.name);
+  });
+
+  it("y si traía OTRA tienda, también: la elección escribe las dos puntas y no se heredan a medias", () => {
+    // Este caso lo tapa todo lo demás. Con su propia tienda puesta, el colapso de D-276 la vaciaría
+    // igual; con otra distinta no hay choque, así que si `aplicaTipo` no la limpiara se quedaría
+    // «Vendido desde: Sur» con la recogida de antes — dos puntas que nadie eligió juntas, que es la
+    // forma de la que salió el error de la #252.
+    const traida = { store: SUR.name, pickup_name: "Un patio", pickup_address: "9 Patio Ln" };
+    const d = aplicaTipo(traida, "Intertienda", GERENTE);
+    expect(d.store || "").toBe("");
     expect(d.pickup_name || "").toBe("");
-    expect(d.store).toBe(NORTE.name);
+    expect(d.pickup_address || "").toBe("");
+  });
+
+  it("y al pasar a un tipo de cliente la cuenta se suelta, para no dejar dentro el nombre de una tienda", () => {
+    const intertienda = aplicaTipo({}, "Intertienda", GERENTE);
+    expect(intertienda.account).toBe(NORTE.name);
+    expect(aplicaTipo(intertienda, "Customer", GERENTE).account || "").toBe("");
   });
 });
 
-describe("los dos desplegables de una Intertienda", () => {
+describe("el desplegable de una Intertienda, que ahora es uno solo", () => {
   const abierta = borradorInicial({}, GERENTE);
 
-  it("la recogida ofrece las demás tiendas, nunca la que recibe", () => {
-    expect(opcionesDeRecogida(abierta, TIENDAS, REGLAS.Intertienda)).toEqual([SUR.name, ESTE.name]);
+  it("ofrece las demás tiendas, nunca la que recibe", () => {
+    expect(opcionesDeOrigen(abierta, TIENDAS, REGLAS.Intertienda)).toEqual([SUR.name, ESTE.name]);
   });
 
-  it("y conserva la que tenga puesta, aunque sea la que recibe (D-267)", () => {
-    const rara = { ...abierta, pickup_name: NORTE.name, pickup_address: NORTE.address };
-    expect(opcionesDeRecogida(rara, TIENDAS, REGLAS.Intertienda)).toContain(NORTE.name);
+  it("y conserva la que tenga puesta, aunque choque (D-267)", () => {
+    const rara = { ...abierta, store: NORTE.name };
+    expect(opcionesDeOrigen(rara, TIENDAS, REGLAS.Intertienda)).toContain(NORTE.name);
   });
 
-  it("el destino ofrece la tienda que vende —es la que recibe— y no la que manda", () => {
-    const conRecogida = eligeRecogidaDeTienda(abierta, SUR.name, TIENDAS);
-    expect(opcionesDeDestino(conRecogida, TIENDAS, REGLAS.Intertienda)).toEqual([NORTE.name, ESTE.name]);
+  it("elegirla escribe «Vendido desde» y la recogida a la vez", () => {
+    // Es la pieza que hace que «sold from» diga la tienda que manda: una sola elección, dos campos.
+    const tras = eligeOrigen(abierta, SUR.name, TIENDAS);
+    expect([tras.store, tras.pickup_name, tras.pickup_address]).toEqual([SUR.name, SUR.name, SUR.address]);
+    expect(tras.delivery_name).toBe(NORTE.name);
+    expect(choques({ ...tras, order_type: "Intertienda" })).toEqual([]);
   });
 
-  it("elegir la recogida no toca «Vendido desde»", () => {
-    const tras = eligeRecogidaDeTienda(abierta, SUR.name, TIENDAS);
-    expect(tras.store).toBe(NORTE.name);
-    expect([tras.pickup_name, tras.pickup_address]).toEqual([SUR.name, SUR.address]);
+  it("el destino ofrece las demás, nunca la que vende", () => {
+    const conOrigen = eligeOrigen(abierta, SUR.name, TIENDAS);
+    expect(opcionesDeDestino(conOrigen, TIENDAS, REGLAS.Intertienda)).toEqual([NORTE.name, ESTE.name]);
   });
 
-  it("y cambiar la tienda que recibe sigue siendo posible, con su dirección detrás", () => {
-    // Consecuencia del desplegable de entrega que pidió el dueño: la que recibe puede no ser la suya.
-    const tras = eligeDestino(eligeRecogidaDeTienda(abierta, SUR.name, TIENDAS), ESTE.name, TIENDAS);
+  it("y quien puede cambiar el destino se lleva la cuenta con él", () => {
+    const tras = eligeDestino(eligeOrigen(abierta, SUR.name, TIENDAS), ESTE.name, TIENDAS);
     expect([tras.delivery_name, tras.delivery_address]).toEqual([ESTE.name, ESTE.address]);
+    expect(tras.account).toBe(ESTE.name);
     expect(choques({ ...tras, order_type: "Intertienda" })).toEqual([]);
   });
 });
@@ -147,12 +185,12 @@ describe("ninguna Intertienda que no va a ningún sitio entra en la base", () =>
   } as Delivery;
 
   it("ni creándola enviada ni aprobándola", () => {
-    expect(guarda(undefined, { ...mala, stage: "pending" })).toEqual(["delivery_address", "pickup_name"]);
-    expect(guarda({ ...mala, stage: "pending" }, { stage: "approved" })).toEqual(["delivery_address", "pickup_name"]);
+    expect(guarda(undefined, { ...mala, stage: "pending" })).toEqual(["delivery_address", "store"]);
+    expect(guarda({ ...mala, stage: "pending" }, { stage: "approved" })).toEqual(["delivery_address", "store"]);
   });
 
-  it("y la buena pasa", () => {
-    const buena = { ...mala, pickup_name: SUR.name, pickup_address: SUR.address };
+  it("y la buena pasa: vende y manda la otra tienda", () => {
+    const buena = { ...mala, store: SUR.name, pickup_name: SUR.name, pickup_address: SUR.address };
     expect(guarda(undefined, { ...buena, stage: "pending" })).toEqual([]);
   });
 });
@@ -161,39 +199,56 @@ describe("una Intertienda vieja se abre y se guarda tal como está", () => {
   it("con una dirección de entrega que no es de ninguna tienda, el destino la conserva", () => {
     // Criterio de D-267: el desplegable no puede esconder lo que la orden ya tiene.
     const vieja: Partial<Delivery> = {
-      order_type: "Intertienda", store: NORTE.name, pickup_name: SUR.name, pickup_address: SUR.address,
+      order_type: "Intertienda", store: SUR.name, pickup_name: SUR.name, pickup_address: SUR.address,
       delivery_name: "Bodega vieja", delivery_address: "9 Bodega Ln, Ciudad TX",
     };
     expect(choques(vieja)).toEqual([]);
-    // El desplegable de destino ofrece tiendas; la suya no está, y eso no la borra ni la bloquea.
     expect(opcionesDeDestino(vieja, TIENDAS, REGLAS.Intertienda)).toEqual([NORTE.name, ESTE.name]);
     expect(vieja.delivery_address).toBe("9 Bodega Ln, Ciudad TX");
+  });
+
+  it("pero una con la forma de D-302 sí se queja, y ese es el aviso que hay que ver", () => {
+    // Las cinco que quedaban vivas las corrigió el orquestador en la base ANTES de publicar esto
+    // (`store` ← `pickup_name`, con nota en `order_events`). Si apareciera otra, esto es lo que haría:
+    // marcar «Vendido desde», que es el campo que ahora se puede corregir.
+    const comoD302: Partial<Delivery> = {
+      order_type: "Intertienda", store: NORTE.name, pickup_name: SUR.name, pickup_address: SUR.address,
+      delivery_name: NORTE.name, delivery_address: NORTE.address,
+    };
+    expect(choques(comoD302)).toEqual(["store"]);
   });
 });
 
 describe("el formulario", () => {
-  it("«Vendido desde» queda congelado en un tipo que recibe, y solo si el usuario tiene tienda", () => {
-    expect(modal).toContain("const tiendaCongelada = homeIsDestination && !!me.store;");
-    expect(modal).toContain("disabled={!salesFields || origenFijo || tiendaCongelada}");
+  it("lo congelado ahora es el DESTINO, y solo si el usuario tiene tienda", () => {
+    // Al revés que en D-302, donde se congelaba «Vendido desde».
+    expect(modal).toContain("const destinoCongelado = homeIsDestination && !!me.store;");
+    expect(modal).not.toContain("tiendaCongelada");
+    expect(modal).toContain("{destinoCongelado ? (");
   });
 
-  it("la fila de «Dirección de tienda» vuelve, también en un tipo que recibe (D-309)", () => {
-    // **Esta prueba fijaba lo contrario.** D-302 escondía la dirección en un tipo que recibe porque el
-    // dueño dijo que ahí no se necesitaba; el 2026-09-18 la pidió de vuelta: «store sold from should
-    // have the address». Se reescribe al revés en vez de borrarse, que es lo que le toca a un canario
-    // cuando cambia la decisión que vigilaba.
+  it("«Vendido desde» se puede elegir, y su etiqueta dice lo que se está eligiendo", () => {
+    expect(modal).toContain('t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)")');
+    expect(modal).toContain("disabled={!salesFields || origenFijo}");
+  });
+
+  it("la fila de «Dirección de tienda» sigue ahí, de solo lectura (D-309)", () => {
     expect(modal).not.toContain("{!homeIsDestination && (");
     const tramo = modal.slice(modal.indexOf("{/* ---- Store (Sold From) + its address ---- */}"), modal.indexOf("{/* ---- Pickup ---- */}"));
     expect(tramo).toContain('{t("Store address", "Dirección de tienda")}');
-    // Y sigue siendo de solo lectura y sacada de Ajustes: lo que vuelve es el dato, no un campo nuevo.
     expect(tramo).toContain('<input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled');
   });
 
-  it("la recogida es un desplegable de tiendas, y su dirección no se teclea", () => {
-    expect(modal).toContain("opts={opcionesDeRecogida(d, settings.stores, reglaDelTipo)}");
-    expect(modal).toContain("on={(v) => setD((p) => eligeRecogidaDeTienda(p, v, settings.stores))}");
+  it("la recogida ya no se elige: la enseña, porque la escribe el desplegable de arriba", () => {
+    expect(modal).not.toContain("opcionesDeRecogida");
+    expect(modal).not.toContain("eligeRecogidaDeTienda");
     const tramo = modal.slice(modal.indexOf("{homeIsDestination ? ("), modal.indexOf("{/* ---- Delivery ---- */}"));
+    expect(tramo).toContain('<input value={d.pickup_name ?? ""} disabled');
     expect(tramo).toContain('<input value={d.pickup_address ?? ""} disabled');
+  });
+
+  it("la cuenta se enseña y no se teclea en un movimiento entre tiendas", () => {
+    expect(modal).toContain('<input value={d.account ?? ""} disabled placeholder={t("the destination store", "la tienda destino")} />');
   });
 
   it("la dirección de entrega sale de la tienda elegida y no se escribe", () => {
@@ -201,10 +256,6 @@ describe("el formulario", () => {
   });
 
   it("y el primer paso ya no enseña su buscador de direcciones en un tipo tienda-a-tienda", () => {
-    // Era la causa de lo que vio el dueño: el paso se saltaba solo si alguien CAMBIABA el tipo ahí,
-    // y una Intertienda que nace de ese tipo —gerente y office— no pasaba por ese cambio.
-    // Desde D-304 la condición no está escrita a mano aquí: la decide `pasoFormulario`, que con
-    // tienda-a-tienda devuelve "completo" (su propia prueba lo fija), y el modal solo la lee.
     expect(modal).toContain("const paso = pasoFormulario(isNew, showFullForm, storeToStore);");
     expect(modal).toContain('{editing && paso === "inicial" && (');
     expect(modal).not.toContain("!showFullForm && !storeToStore");

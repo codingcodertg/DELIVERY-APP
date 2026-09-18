@@ -32,7 +32,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
-import { eligeDestino, eligeOrigen, eligeRecogidaDeTienda, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, opcionesDeRecogida, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
+import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
@@ -599,9 +599,10 @@ export function OrderModal({
   // "Receiving" types (Intertienda): the rep's own store is the DESTINATION, so
   // the delivery defaults to it and the rep picks the "Sold From" (origin).
   const homeIsDestination = reglaDelTipo.homeIsDestination === true;
-  /** En un tipo que recibe, la tienda del usuario vende y recibe, y no se toca (D-302). Quien no tiene
-   *  tienda —un admin, u office sin tienda— se queda como antes, con las dos puntas elegibles. */
-  const tiendaCongelada = homeIsDestination && !!me.store;
+  /** En un tipo que recibe, la tienda del usuario **recibe**, y ese extremo no se toca (D-NEXT). Lo que
+   *  se elige es a qué tienda se le pide el material. Quien no tiene tienda —un admin, u office sin
+   *  tienda— se queda con las dos puntas elegibles, como en D-302. */
+  const destinoCongelado = homeIsDestination && !!me.store;
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
    *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
   const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);
@@ -1605,12 +1606,12 @@ export function OrderModal({
                 invalid={missingSet.has("order_type")}
               />
               <Sel
-                label={t("Store (Sold From)", "Tienda (Vendido Desde)")}
+                label={homeIsDestination ? t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
                 opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))}
                 on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
-                disabled={!salesFields || origenFijo || tiendaCongelada}
+                disabled={!salesFields || origenFijo}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
               />
@@ -1807,6 +1808,19 @@ export function OrderModal({
               </div>
             )}
 
+            {/* La cuenta de un movimiento entre tiendas es la tienda que recibe, y se rellena sola
+                (D-NEXT). Damaris, de office: «Account se debe de llenar automáticamente con el nombre
+                de mi tienda cuando es intertienda». De solo lectura: quien la escribiera a mano estaría
+                diciendo que el material va a otro sitio del que dice el destino. */}
+            {storeToStore && (
+              <div className="grid g3">
+                <div className="field">
+                  <label>{t("Account", "Cuenta")}</label>
+                  <input value={d.account ?? ""} disabled placeholder={t("the destination store", "la tienda destino")} />
+                </div>
+              </div>
+            )}
+
             {/* ---- Customer / contact ---- */}
             {/* En un movimiento tienda-a-tienda no hay cliente, así que no hay cuenta, contacto ni
                 teléfono (D-309). El dueño: «remove account contact name and phone number from
@@ -1980,14 +1994,13 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
+              <Sel label={homeIsDestination ? t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
-              }} disabled={!salesFields || origenFijo || tiendaCongelada} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
-              {/* La dirección vuelve también en un tipo que recibe (D-309). D-302 la había quitado
-                  ahí —«no se necesita», dijo el dueño— y ahora la pide de vuelta: «store sold from
-                  should have the address». Sigue siendo de solo lectura y sale de Ajustes; «Vendido
-                  desde» sigue congelado. */}
+              }} disabled={!salesFields || origenFijo} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
+              {/* La dirección de la tienda que vende, de solo lectura y sacada de Ajustes (D-309:
+                  «store sold from should have the address»). Desde D-NEXT «Vendido desde» ya no está
+                  congelado en un tipo que recibe: es justo lo que se elige. */}
               <div className="field">
                 <label>{t("Store address", "Dirección de tienda")}</label>
                 <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
@@ -1996,18 +2009,14 @@ export function OrderModal({
 
             {/* ---- Pickup ---- */}
             {homeIsDestination ? (
-              // La tienda que manda el material (D-302). Es lo único que se elige en este tipo, y no
-              // se ofrece la que recibe: una orden no va de un sitio a ese mismo sitio (D-267/D-276).
+              // En un tipo que recibe ya no hay una recogida que elegir (D-NEXT): la escribe el mismo
+              // desplegable de arriba, porque se recoge en la tienda a la que se le pide el material.
+              // Se enseña para que se vea de dónde sale, y no se teclea.
               <div className="grid g2">
-                <Sel
-                  label={t("Shipping store (pickup)", "Tienda que envía (recolección)")}
-                  val={d.pickup_name}
-                  opts={opcionesDeRecogida(d, settings.stores, reglaDelTipo)}
-                  on={(v) => setD((p) => eligeRecogidaDeTienda(p, v, settings.stores))}
-                  disabled={!salesFields}
-                  placeholder={t("Select the store that ships", "Seleccione la tienda que envía")}
-                  invalid={missingSet.has("pickup_name") || missingSet.has("pickup_address")}
-                />
+                <div className="field">
+                  <label>{t("Pickup (shipping store)", "Recolección (tienda que envía)")}</label>
+                  <input value={d.pickup_name ?? ""} disabled placeholder={t("the store you ask it from", "la tienda a la que se lo pides")} />
+                </div>
                 <div className="field">
                   <label>{t("Pickup Address", "Dirección de Recolección")}</label>
                   <input value={d.pickup_address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
@@ -2039,6 +2048,13 @@ export function OrderModal({
               // Intra-store transfer: the destination is another known store, picked
               // from the dropdown — but the dropoff address is always shown too.
               <div className="grid g2">
+                {destinoCongelado ? (
+                  // Su tienda recibe, y eso no se elige (D-NEXT). Se enseña, para que se vea a dónde va.
+                  <div className="field">
+                    <label>{t("Store destination", "Tienda destino")}</label>
+                    <input value={d.delivery_name ?? ""} disabled />
+                  </div>
+                ) : (
                 <Sel
                   label={t("Store destination", "Tienda destino")}
                   val={deliveryStore}
@@ -2050,6 +2066,7 @@ export function OrderModal({
                   placeholder={t("Select destination store", "Seleccione tienda destino")}
                   invalid={missingSet.has("delivery_name") || missingSet.has("delivery_address")}
                 />
+                )}
                 {/* En un tipo que recibe, la dirección de entrega **sale de la tienda** del desplegable de
                     al lado y no se teclea (D-302): «como es intertienda, la dirección de entrega debe
                     ser una de las tiendas». En los demás tipo-a-tienda se sigue pudiendo corregir. */}
