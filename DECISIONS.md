@@ -39913,7 +39913,7 @@ movería también el descuento de las entregas largas, sin que nadie lo pidiera.
   no la ha vuelto a dictar desde entonces. Deja de estar marcada como provisional porque ya no es un
   hueco, pero conviene que la confirme.
 
-## D-NEXT · Motor de rutas, incremento 3: los tiempos de viaje — matriz cacheada, tráfico tramo a tramo y un tope de gasto
+## D-318 · Motor de rutas, incremento 3: los tiempos de viaje — matriz cacheada, tráfico tramo a tramo y un tope de gasto
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador · **Migración:** `132_travel_time_cache.sql`, escrita y
 **no aplicada**. **Plan:** `docs/PLAN-132-travel-time-cache.md` · **Diseño:** `docs/route-algorithm-design.md`, §3 y §5.

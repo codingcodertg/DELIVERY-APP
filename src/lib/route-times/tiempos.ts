@@ -8,7 +8,7 @@ import {
 import type { NombreDeProveedor, ProveedorDeTiempos } from "./proveedores";
 
 /**
- * Los tiempos de viaje del motor de rutas: matriz base cacheada y tráfico en cascada (D-NEXT).
+ * Los tiempos de viaje del motor de rutas: matriz base cacheada y tráfico en cascada (D-318).
  * Diseño en `docs/route-algorithm-design.md`, §3 y §5.
  *
  * La idea, en una frase: **nunca se pide una matriz completa con tráfico.** Se pide una matriz base SIN

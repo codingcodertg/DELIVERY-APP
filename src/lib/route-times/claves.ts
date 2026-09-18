@@ -1,7 +1,7 @@
 import { MINUTOS_POR_BLOQUE } from "@/lib/route-engine";
 
 /**
- * Las claves de la caché de tiempos de viaje (D-NEXT): origen, destino, día de la semana, bloque horario,
+ * Las claves de la caché de tiempos de viaje (D-318): origen, destino, día de la semana, bloque horario,
  * y si es con tráfico. Diseño en `docs/route-algorithm-design.md`, §3.2.
  */
 

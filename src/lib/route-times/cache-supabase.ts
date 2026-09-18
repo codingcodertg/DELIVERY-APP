@@ -3,7 +3,7 @@ import type { CacheDeTiempos, FilaDeCache } from "./tiempos";
 import type { NombreDeProveedor } from "./proveedores";
 
 /**
- * La caché de tiempos de viaje sobre `public.travel_time_cache` (D-NEXT, migración 132).
+ * La caché de tiempos de viaje sobre `public.travel_time_cache` (D-318, migración 132).
  *
  * **Solo para el servidor, con la llave de servicio.** La tabla no tiene ninguna política: ningún navegador
  * la lee ni la escribe. No guarda nada de nadie —dos coordenadas redondeadas y una duración—, pero quien

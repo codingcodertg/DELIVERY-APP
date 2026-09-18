@@ -2,7 +2,7 @@ import type { Tramo } from "@/lib/route-engine";
 import type { LatLng } from "./claves";
 
 /**
- * Quién contesta cuánto se tarda de un sitio a otro (D-NEXT). Tres escalones, como hoy (D-008): Google, y si
+ * Quién contesta cuánto se tarda de un sitio a otro (D-318). Tres escalones, como hoy (D-008): Google, y si
  * falla o no hay llave, OSRM público; y si fallan los dos, una estimación en línea recta que se declara como
  * tal. **`fetch` llega inyectado**: en las pruebas es un doble, y ninguna llama a un servicio de verdad.
  *

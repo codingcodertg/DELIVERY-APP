@@ -14,7 +14,7 @@ import {
 import { cacheEnSupabase } from "./cache-supabase";
 
 /**
- * Tiempos de viaje del motor de rutas (D-NEXT). **Ninguna prueba llama a un servicio de verdad:** `fetch` es
+ * Tiempos de viaje del motor de rutas (D-318). **Ninguna prueba llama a un servicio de verdad:** `fetch` es
  * un doble que apunta lo que se le pide, y los proveedores de las pruebas de la matriz ni siquiera usan
  * `fetch`. Coordenadas inventadas.
  */
