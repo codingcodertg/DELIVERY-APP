@@ -37806,6 +37806,21 @@ main, que se movió mientras se escribía (D-300).
 
 ## D-303 · El precio con descuento vuelve, con la fórmula nueva
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-317.** El descuento deja de ser **un tramo que se
+> cobra distinto** y vuelve a tener su **fila entera de cifras**, como antes de D-283: ahora es más
+> barato en los **cuatro** tramos, no solo por encima de 50 millas locales. El dueño: *«the original
+> calculation of the discount is not appearing fix it and work on that»* — y lo que veía era cierto:
+> en tres de los cuatro tramos la ficha enseñaba «Lista $100 · Descuento $100».
+>
+> **Lo que esta entrada decidió y sigue en pie:** que haya dos precios; que el descuento salga del
+> mismo sitio que la lista y no de una copia; que **nunca** supere a la lista; que cobrar el descuento
+> **no** sea «no cuadrar»; y **la cifra del tramo largo**, que es suya y literal —`105 + 0,80 × mi`—
+> y no se ha tocado.
+>
+> **Lo que cambia:** la frase *«coincide con la lista en los otros tres tramos, y eso es correcto, no
+> un fallo»*. Era correcta cuando se escribió, y el dueño decidió lo contrario. Y la nota de que el
+> descuento de fuera de zona era **provisional** queda cerrada: ya tiene su cifra, `400 + 0,80 × mi`.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, literal: *«discounted fee was removed, bring it back»*, unas horas después de
 pedir el precio único de D-283. Y la cifra, también suya y literal: *«discounted price for local
@@ -39764,3 +39779,136 @@ Los roles de cada política se comparan **como conjunto y por cláusula**: en el
   tabla de choferes en un teléfono.
 - Que el `upsert` de la tarjeta pase por PostgREST con las cuatro políticas.
 - **La red de la ventana se probó como función, no contra una base sin la columna.**
+
+## D-317 · El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño**, literal: *«the original calculation of the discount is not appearing fix it
+and work on that»*.
+
+### Qué veía, y por qué tenía razón
+
+D-303 devolvió el precio con descuento, pero lo montó como **un solo tramo que se cobra distinto**:
+por encima de 50 millas locales se le aplicaba la fórmula del tramo del medio —«cóbrale como si fuera
+corta»— y **en los otros tres tramos cobraba exactamente lo mismo que la lista**. Aquella entrada lo
+decía a propósito: *«que coincida no es un fallo»*.
+
+Desde fuera, eso no se lee así. En una entrega local de 13 millas la ficha enseñaba dos botones,
+**«Lista $115» y «Descuento $115»**, y la tabla de Ajustes cuatro filas de las que tres repetían el
+mismo número en las dos columnas. Un precio que nunca es distinto no es un precio: es un botón que no
+hace nada. «No aparece» describe exactamente eso.
+
+### Qué hay ahora
+
+El descuento recupera **su propia fila de bases**, que es la forma que tenía antes de D-283. Leído por
+mí en `git show 4245a6a^:src/lib/pricing.ts`, el descuento original era una tabla entera y no un caso
+especial de la lista:
+
+```
+  LOCAL     list:      < 11 mi → $100 · > 50 mi → round10(350 + mi) · else round10(120 + mi·0.8)
+            discount:  < 11 mi →  $80 · > 50 mi → round10(200 + mi) · else round10(100 + mi·0.8)
+  NOT LOCAL list: round10(500 + mi)   ·   discount: round10(400 + mi)
+```
+
+Se restaura **la estructura, no las cifras viejas**: aquéllas iban con otro multiplicador —`+ mi` a
+secas en los tramos largos— y con redondeo a $10, y D-283 cambió los dos (0,80 por milla en todos los
+tramos que cuentan millas, redondeo al múltiplo de $5). Así que de la tabla vieja vuelven **las bases
+que siguen teniendo sentido**: el `80` del tramo corto, el `100` del medio y el `400` de fuera de
+zona. El tramo largo **no** vuelve a su `200`: ahí manda **lo último que dictó el dueño**, su frase de
+D-303, intacta.
+
+| Tramo | Lista (no cambia) | Descuento |
+|---|---|---|
+| Local, menos de 11 mi | $100 fijo | **$80 fijo** |
+| Local, 11–50 mi | 105 + 0,80 × mi (mín. $105) | **100 + 0,80 × mi (mín. $100)** |
+| Local, más de 50 mi | 300 + 0,80 × mi | **105 + 0,80 × mi (mín. $105)** — su frase de D-303 |
+| Fuera de zona | 500 + 0,80 × mi | **400 + 0,80 × mi** |
+
+Lo que sale de ahí, medido corriendo la función (2026-09-18):
+
+| mi | Lista | Descuento | Se ahorra |
+|---|---|---|---|
+| 5 local | 100 | 80 | 20 |
+| 27 local | 125 | 120 | 5 |
+| 60 local | 350 | 155 | 195 |
+| 180 local | 445 | 250 | 195 |
+| 60 fuera de zona | 550 | 450 | 100 |
+
+### Una tabla, dos filas — y lo que NO se duplica
+
+`FACTOR_MILLA` (0,80), `REDONDEO` ($5) y los dos umbrales (11 y 50) **siguen siendo uno solo para los
+dos precios**. Lo único que cambia entre filas son las bases y los suelos, que es exactamente lo que
+distingue a un precio del otro. Si mañana el dueño cambia el multiplicador, cambia para los dos a la
+vez, o no cambia para ninguno.
+
+Y de esa tabla salen **los tres sitios**: el desglose de la ficha, la tabla de Ajustes y los botones de
+tarifa. Ninguno tiene cifras propias; la tabla de Ajustes se sigue **generando evaluando** la misma
+función con una milla de muestra de cada tramo, que es lo que impide que la explicación diga una cosa
+y el botón cobre otra (D-244).
+
+**El cálculo se simplificó al hacerlo.** Antes `pasoTarifa` tenía una rama —«si es descuento y es
+largo, usa la base del medio»— y era **esa rama** la que hacía que los otros tres tramos cobrasen lo
+de la lista. Ahora el precio solo elige la fila (`TARIFA[precio]`) y no queda ningún tramo que se
+calcule de otra manera.
+
+### El salto de $5 al cruzar las 50 millas: se dice, no se arregla
+
+A **50 millas** el descuento cae en el tramo del medio y son **$140**; a **50,1** cae en el largo y
+son **$145**. Cruzar el umbral **sube** el descuento $5.
+
+No se suaviza por cuenta propia, y esto es deliberado: las dos cifras son del dueño —la del medio es
+la estructura original, la del largo es su frase de D-303— y cambiar cualquiera de las dos para que el
+escalón desaparezca es cambiarle el precio a alguien sin que lo haya pedido. Queda escrito aquí y con
+prueba, que es lo que hace que sea una decisión y no un descuido. La **lista** salta en el mismo sitio
+y mucho más (145 → 340), y eso ya era así desde D-283.
+
+También salta en el borde de las 11 millas —el descuento pasa de $80 a $110—, por la misma razón: el
+tramo corto es plano y el del medio empieza en su base.
+
+### Lo que sigue igual, y hace falta decirlo
+
+- **Cobrar el descuento no es «no cuadrar».** El aviso del diálogo de almacén sigue tolerando los dos
+  precios, como desde D-303.
+- **Cobrar por debajo del descuento sigue pidiendo aprobación**, con su aviso en la ficha.
+- **Una orden ya guardada no se recalcula sola.** La tarifa solo cambia si alguien pulsa un botón; hay
+  prueba de que ninguna pantalla la escribe desde un efecto. O sea que **este cambio no toca ni un
+  precio ya cobrado**: solo cambia lo que se sugiere a partir de ahora.
+
+### Medido, rompiendo cada pieza
+
+12 cambios: **12 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El descuento vuelve a ser la lista; cada uno de los cuatro tramos pierde su cifra por separado; el
+  descuento sale más caro que la lista; el suelo del tramo largo se cae; el precio deja de elegir la
+  fila; el redondeo del descuento se separa del de la lista; el diálogo del almacén deja de enseñarlo;
+  y uno de los dos botones del descuento escribe la lista.
+- **El gemelo:** las dos filas de `TARIFA` escritas en el otro orden.
+
+**Dos mutantes sobrevivieron a la primera vuelta, y los dos eran pruebas flojas mías:**
+
+1. **«Uno de los dos botones del descuento escribe la lista»** pasaba porque mi prueba preguntaba *¿la
+   cita aparece al menos una vez?* — y la pareja de botones está en **dos** sitios de la ficha, así que
+   con uno intacto seguía apareciendo. Ahora se **cuentan**: dos y dos.
+2. **«El diálogo del almacén deja de enseñar el descuento»** pasaba igual: esa condición aparece **tres
+   veces** en la ficha. Ahora se cita **pegada a la línea que enseña la lista**, que es única.
+
+**Y un tercero que no es una prueba floja sino un hallazgo:** calcular el tramo largo del descuento con
+`TARIFA.list.baseMedio` en vez de con `TARIFA.discount.baseLargo` **da exactamente el mismo precio**,
+porque hoy las dos valen 105 — una es la estructura original y la otra la frase del dueño, y coinciden
+por casualidad. Ninguna prueba de números puede distinguirlo. Se fija **de dónde se lee**, con una
+prueba que mira esa línea: si no, el día que alguien baje el 105 del tramo del medio de la lista se
+movería también el descuento de las entregas largas, sin que nadie lo pidiera.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Los dos botones y la tabla de Ajustes se comprueban leyendo
+  el código y los datos, no mirando la pantalla.
+- **No se ha contado cuántas órdenes se habrían cobrado distinto** si esta tabla hubiera estado puesta:
+  haría falta leer producción. Lo que sí está medido es que **ninguna orden guardada cambia**.
+- **La cifra de fuera de zona (`400 + 0,80 × mi`) es la estructura del descuento original**, y el dueño
+  no la ha vuelto a dictar desde entonces. Deja de estar marcada como provisional porque ya no es un
+  hueco, pero conviene que la confirme.

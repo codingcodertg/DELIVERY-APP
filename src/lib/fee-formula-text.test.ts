@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { textoDelMinimo, textoDelRango, textoDeLaRegla, textoDelRedondeo, type Traducir } from "./fee-formula-text";
-import { filasDeLaFormula, MINIMO_MEDIO, REDONDEO, UMBRAL_CORTO, UMBRAL_LARGO, FACTOR_MILLA, TARIFA } from "./pricing";
+import { filasDeLaFormula, REDONDEO, UMBRAL_CORTO, UMBRAL_LARGO, FACTOR_MILLA, TARIFA } from "./pricing";
+
+/** El suelo del tramo del medio de la LISTA, que es el que estas pruebas usan de muestra. */
+const MINIMO_MEDIO = TARIFA.list.minimoMedio;
 import { fmtMoney } from "./utils";
 
 const en: Traducir = (a) => a;
@@ -90,7 +93,9 @@ describe("Ajustes enseña la fórmula una sola vez", () => {
 
   it("la tabla se genera, y no quedan constantes de la fórmula escritas a mano", () => {
     expect(src).toContain("filasDeLaFormula()");
-    for (const n of [TARIFA.baseMedio, TARIFA.baseLargo, TARIFA.baseNoLocal]) {
+    // Las dos filas: desde D-317 el descuento tiene sus propias bases, y tampoco pueden estar
+    // escritas a mano en la pantalla.
+    for (const n of [...Object.values(TARIFA.list), ...Object.values(TARIFA.discount)].filter((x): x is number => x != null)) {
       expect(src, `la constante ${n} no puede estar escrita en la pantalla`).not.toContain(`${n} + mi`);
     }
     expect(src).not.toContain("Fee formula (by driving miles)");

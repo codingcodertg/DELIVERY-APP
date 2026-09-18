@@ -5,20 +5,20 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formula).
 //
-// DOS precios otra vez (D-303): lista y descuento. D-283 había dejado uno solo porque el dueño lo
-// pidió esa mañana, y esa misma tarde pidió el descuento de vuelta: «discounted fee was removed,
-// bring it back». Todo redondea al múltiplo de $5 más cercano.
+// DOS precios (D-303): lista y descuento. Y desde D-317 el descuento **sí es una segunda fila de
+// cifras**, que es lo que era antes de D-283. El dueño: «the original calculation of the discount is
+// not appearing fix it and work on that». Todo redondea al múltiplo de $5 más cercano.
 //
-//   LOCAL
-//     < 11 mi → $100 flat (los dos precios)
-//     11–50 mi → round5(105 + mi·0.8), min $105 (los dos precios)
-//     > 50 mi → lista round5(300 + mi·0.8) · descuento round5(105 + mi·0.8), min $105
-//   NOT LOCAL (also flagged for manager approval)
-//     round5(500 + mi·0.8) (los dos precios, el descuento provisional)
+//   LOCAL                            lista                     descuento
+//     < 11 mi                        $100 fijo                 $80 fijo
+//     11–50 mi                       round5(105 + mi·0.8)      round5(100 + mi·0.8)
+//     > 50 mi                        round5(300 + mi·0.8)      round5(105 + mi·0.8)
+//   NOT LOCAL (también pide aprobación del gerente)
+//     cualquier distancia            round5(500 + mi·0.8)      round5(400 + mi·0.8)
 //
-// El descuento **no es una segunda tabla de cifras**: es la lista del tramo del medio aplicada a una
-// entrega larga. O sea, «cóbrale como si fuera corta». Por eso coincide con la lista en los otros
-// tres tramos, y eso es correcto, no un fallo.
+// **El descuento es más barato en los CUATRO tramos**, y eso es el cambio. Hasta D-317 solo se
+// separaba por encima de 50 millas locales, así que en los otros tres la ficha enseñaba «Lista $100 ·
+// Descuento $100» — dos botones con el mismo número, que es lo que el dueño leyó como «no aparece».
 // ============================================================
 
 /** Cities inside the LOCAL delivery zone (the red outline on the RGV map). */
@@ -78,40 +78,58 @@ export const UMBRAL_LARGO = 50;
  * `FACTOR_MEDIO`.
  */
 export const FACTOR_MILLA = 0.8;
-/**
- * El suelo del tramo del medio: «min 105», del pedido del dueño.
- *
- * **Hoy no puede morder**, y está a propósito: con `105 + 0,80 × millas` el resultado ya empieza
- * en 105 a 0 millas y solo sube. Se escribe igual para que el día que alguien baje la base el
- * suelo siga ahí, y una prueba fija que sigue siendo el suelo.
- *
- * Solo del tramo del medio, **no** de todo lo local: el tramo corto es plano de 100, por debajo
- * de este suelo, y así lo pidió el dueño. Un suelo global lo subiría a 105 en silencio.
- */
-export const MINIMO_MEDIO = 105;
-
-/**
- * Cuál de los dos precios se está calculando (D-303).
- *
- * No hay una tabla por precio: hay **una** tabla y un tramo que se cobra distinto. Con dos tablas,
- * cambiar el 105 de la lista dejaría el descuento en el 105 viejo, y nadie lo notaría hasta que dos
- * pantallas dijeran dos números.
- */
+/** Cuál de los dos precios se está calculando (D-303). */
 export type Precio = "list" | "discount";
 
-/** Las cuatro cifras de la fórmula. UNA tabla, de la que salen los dos precios (D-303). */
+/** Las cifras de UN precio: una base por tramo, y el suelo de los tramos que lo llevan. */
 export type TablaTarifa = {
-  /** Tramo corto: precio plano, sin millas. */
+  /** Tramo corto: precio plano, sin millas. No lleva suelo — el plano ya es el precio. */
   planoCorto: number;
-  /** Tramo del medio: `base + millas × FACTOR_MILLA`, con `MINIMO_MEDIO` de suelo. */
+  /** Tramo del medio: `base + millas × FACTOR_MILLA`. */
   baseMedio: number;
+  /**
+   * El suelo del tramo del medio: «min 105», del pedido del dueño.
+   *
+   * **Hoy no puede morder**, y está a propósito: con `base + 0,80 × millas` el resultado ya empieza
+   * en la base a 0 millas y solo sube. Se escribe igual —y por eso no se deriva de `baseMedio`—
+   * para que el día que alguien baje la base el suelo siga ahí.
+   *
+   * Solo del tramo del medio, **no** de todo lo local: el tramo corto es plano y va por debajo de
+   * este suelo, y así lo pidió el dueño. Un suelo global lo subiría en silencio.
+   */
+  minimoMedio: number;
   /** Tramo largo: `base + millas × FACTOR_MILLA`. */
   baseLargo: number;
+  /** El suelo del tramo largo, o `null` si ese precio no lleva suelo ahí. */
+  minimoLargo: number | null;
   /** Fuera de la zona local: `base + millas × FACTOR_MILLA`, sin tramos. */
   baseNoLocal: number;
 };
 
-export const TARIFA: TablaTarifa = { planoCorto: 100, baseMedio: 105, baseLargo: 300, baseNoLocal: 500 };
+/**
+ * **Una fila de bases por precio** (D-317).
+ *
+ * Hasta aquí había una sola fila y el descuento era «un tramo que se cobra distinto»: por encima de
+ * 50 millas locales se le aplicaba la fórmula del tramo del medio, y en los otros tres tramos
+ * **cobraba exactamente lo mismo que la lista**. El dueño lo leyó como que el descuento no existía —
+ * *«the original calculation of the discount is not appearing»*— y tenía razón en lo que veía: dos
+ * botones con el mismo número no son dos precios.
+ *
+ * El descuento original —el que había antes de D-283— sí era una tabla propia. Se restaura **su
+ * estructura** sobre la fórmula vigente de D-283 (0,80 por milla en todos los tramos que cuentan
+ * millas, redondeo a $5), no sus cifras viejas, que iban con otro multiplicador y otro redondeo.
+ * Y el tramo largo conserva **lo último que dictó el dueño**, literal: «discounted price for local
+ * deliveries over 50 mi will be = 105+(0.80 x miles)».
+ *
+ * Lo que **no** se duplica: `FACTOR_MILLA`, `REDONDEO`, `UMBRAL_CORTO` y `UMBRAL_LARGO` siguen
+ * siendo uno solo para los dos precios. Lo único que cambia entre filas son las bases y los suelos,
+ * que es exactamente lo que distingue a un precio del otro. De aquí salen el desglose de la ficha,
+ * la tabla de Ajustes y los botones — los tres, de lo mismo.
+ */
+export const TARIFA: Record<Precio, TablaTarifa> = {
+  list:     { planoCorto: 100, baseMedio: 105, minimoMedio: 105, baseLargo: 300, minimoLargo: null, baseNoLocal: 500 },
+  discount: { planoCorto:  80, baseMedio: 100, minimoMedio: 100, baseLargo: 105, minimoLargo: 105, baseNoLocal: 400 },
+};
 
 export type TramoId = "local-corto" | "local-medio" | "local-largo" | "nolocal";
 
@@ -156,24 +174,20 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0, precio: P
     const redondeado = conSuelo(alRedondear, p.minimo);
     return { ...p, redondeo: REDONDEO, redondeado, minimoAplicado: redondeado !== alRedondear, total: redondeado + p.recargo };
   };
+  // El precio elige la FILA, y ya no hay ningún tramo que se calcule de otra manera (D-317). Antes
+  // había una rama —«si es descuento y es largo, usa la base del medio»— y era esa rama la que hacía
+  // que los otros tres tramos cobraran lo mismo que la lista.
+  const T = TARIFA[precio];
   if (!local) {
-    return cerrar({ tramo: "nolocal", desde: null, hasta: null, base: TARIFA.baseNoLocal, factor: FACTOR_MILLA, minimo: null, bruto: TARIFA.baseNoLocal + miles * FACTOR_MILLA, recargo });
+    return cerrar({ tramo: "nolocal", desde: null, hasta: null, base: T.baseNoLocal, factor: FACTOR_MILLA, minimo: null, bruto: T.baseNoLocal + miles * FACTOR_MILLA, recargo });
   }
   if (miles < UMBRAL_CORTO) {
-    return cerrar({ tramo: "local-corto", desde: null, hasta: UMBRAL_CORTO, base: TARIFA.planoCorto, factor: 0, minimo: null, bruto: TARIFA.planoCorto, recargo });
+    return cerrar({ tramo: "local-corto", desde: null, hasta: UMBRAL_CORTO, base: T.planoCorto, factor: 0, minimo: null, bruto: T.planoCorto, recargo });
   }
   if (miles > UMBRAL_LARGO) {
-    // **El único tramo donde los dos precios se separan** (D-303). El descuento de una entrega larga
-    // es la fórmula del tramo del medio: «cóbrale como si fuera corta». Del dueño, literal:
-    // «discounted price for local deliveries over 50 mi will be = 105+(0.80 x miles)».
-    //
-    // Sale de `TARIFA.baseMedio` y de `MINIMO_MEDIO`, los mismos que usa el tramo del medio unas
-    // líneas más abajo, y no de una cifra propia: si el 105 cambia, cambian los dos a la vez.
-    const conDescuento = precio === "discount";
-    const base = conDescuento ? TARIFA.baseMedio : TARIFA.baseLargo;
-    return cerrar({ tramo: "local-largo", desde: UMBRAL_LARGO, hasta: null, base, factor: FACTOR_MILLA, minimo: conDescuento ? MINIMO_MEDIO : null, bruto: base + miles * FACTOR_MILLA, recargo });
+    return cerrar({ tramo: "local-largo", desde: UMBRAL_LARGO, hasta: null, base: T.baseLargo, factor: FACTOR_MILLA, minimo: T.minimoLargo, bruto: T.baseLargo + miles * FACTOR_MILLA, recargo });
   }
-  return cerrar({ tramo: "local-medio", desde: UMBRAL_CORTO, hasta: UMBRAL_LARGO, base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO, bruto: TARIFA.baseMedio + miles * FACTOR_MILLA, recargo });
+  return cerrar({ tramo: "local-medio", desde: UMBRAL_CORTO, hasta: UMBRAL_LARGO, base: T.baseMedio, factor: FACTOR_MILLA, minimo: T.minimoMedio, bruto: T.baseMedio + miles * FACTOR_MILLA, recargo });
 }
 
 /**
@@ -197,9 +211,9 @@ export type FilaFormula = {
   /**
    * La parte fija, el multiplicador y el suelo de cada precio. El texto lo pone quien pinta.
    *
-   * **En tres de las cuatro filas las dos columnas dicen lo mismo**, y así debe ser: el descuento
-   * solo se separa de la lista por encima de 50 millas. La tabla lo enseña igual en vez de dejar
-   * huecos, porque un hueco se lee como «aquí no hay precio».
+   * **Desde D-317 las cuatro filas dicen dos cosas distintas**, una por columna. Antes tres de las
+   * cuatro repetían el mismo número en las dos, y eso es lo que el dueño leyó como que el descuento
+   * no aparecía.
    */
   lista: { base: number; factor: number; minimo: number | null };
   descuento: { base: number; factor: number; minimo: number | null };
@@ -267,8 +281,8 @@ export interface FeeSuggestion {
   /**
    * El descuento que un vendedor puede ofrecer, con el recargo dentro (D-303).
    *
-   * **Nunca por encima de la lista**, y en tres de los cuatro tramos es exactamente igual a ella.
-   * Que coincida no es un fallo: el descuento solo se separa por encima de 50 millas.
+   * **Nunca por encima de la lista**, y desde D-317 **estrictamente por debajo en los cuatro
+   * tramos**: tiene su propia fila de bases. Antes coincidía con la lista en tres de los cuatro.
    */
   discount: number | null;
   /** NOT-LOCAL deliveries need manager approval before the price is committed. */

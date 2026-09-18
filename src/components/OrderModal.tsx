@@ -2615,9 +2615,12 @@ export function OrderModal({
                   {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
                   {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}
                   {" → "}
-                  {/* Los dos precios, y el descuento solo cuando de verdad es otro número
-                      (D-303): con esta fórmula solo se separa por encima de 50 millas, y
-                      repetir la misma cifra dos veces se lee como un error. */}
+                  {/* Los dos precios, y el descuento solo cuando de verdad es otro número: repetir
+                      la misma cifra dos veces se lee como un error (D-303).
+                      Desde D-317 el descuento tiene fila propia y es más barato en los cuatro
+                      tramos, así que esta condición ya no esconde nada — se queda porque lo que
+                      defiende es la tabla del día de mañana, no la de hoy, y hay prueba de que
+                      con la tabla de hoy se enseña siempre. */}
                   <strong>${feeSuggestion.list}</strong> {t("list", "lista")}
                   {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
                     && <> · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}

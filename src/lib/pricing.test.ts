@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
-  conSuelo, deliveryFee, isLocalCity, MINIMO_MEDIO, pasoTarifa, redondear, REDONDEO, suggestDeliveryFee,
+  conSuelo, deliveryFee, isLocalCity, pasoTarifa, redondear, REDONDEO, suggestDeliveryFee, TARIFA,
   UMBRAL_CORTO, UMBRAL_LARGO,
 } from "@/lib/pricing";
+
+/**
+ * El suelo del tramo del medio de la LISTA. Estas pruebas miran `deliveryFee` sin pedir precio, que
+ * es la lista; desde D-317 el descuento tiene el suyo (`TARIFA.discount.minimoMedio`) y no es este.
+ */
+const MINIMO_MEDIO = TARIFA.list.minimoMedio;
 import { todayISO } from "@/lib/utils";
 
 describe("isLocalCity", () => {
@@ -111,15 +117,15 @@ describe("suggestDeliveryFee", () => {
   it("prices by miles and marks a local city as no-approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "123 Main St, McAllen, TX 78501", route_miles: 13 });
     expect(s.zone).toBe("local");
-    expect(s.list).toBe(115);
-    expect(s.discount).toBe(115);  // hasta 50 millas el descuento ES la lista
+    expect(s.list).toBe(115);      // 105 + 10,4 = 115,4 → 115
+    expect(s.discount).toBe(110);  // 100 + 10,4 = 110,4 → 110 (D-317: fila propia del descuento)
     expect(s.needsApproval).toBe(false);
   });
   it("uses the not-local formula (500 + mi·0.8) and flags for approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "500 Ranch Rd, Falfurrias, TX", route_miles: 60 });
     expect(s.zone).toBe("nonlocal");
     expect(s.list).toBe(550);       // 500 + 48 = 548 → 550
-    expect(s.discount).toBe(550);   // fuera de zona, igual que la lista (provisional)
+    expect(s.discount).toBe(450);   // 400 + 48 = 448 → 450 (D-317: deja de ser igual a la lista)
     expect(s.needsApproval).toBe(true);
   });
   it("leaves the fee null until the route miles are known", () => {
