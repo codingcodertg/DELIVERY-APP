@@ -678,16 +678,19 @@ export const WEEKDAY_ALL_DAY_WINDOW = "0830-1730";
 
 // ---- Per-role default Orders-table columns ---------------------------------
 // Falls back to OrdersTable's own DEFAULT_COLUMNS for any role not listed
-// here. Sales sees invoice # instead of the internal SO #, and no driver
-// column on the main view (still available via the Columns picker).
+// here. Sales gets no driver column on the main view.
+//
+// NINGUNO lleva «Factura #» (`invoice`): la columna fija `#` ya enseña el número de factura —y, si falta, el de la
+// orden— para todos los roles (`OrdersTable`, `byInvoice`), así que salía dos veces en la misma fila. Sigue en el
+// selector para quien la quiera, y quien ya la eligió la conserva: esto son solo los DEFECTOS.
 export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
-  sales: ["type", "store", "invoice", "date", "windows", "account"],
-  // Drivers work off the customer invoice, never the internal SO #.
-  driver: ["stage", "type", "store", "account", "invoice", "date", "windows", "pallets"],
+  sales: ["type", "store", "date", "windows", "account"],
+  // Drivers work off the customer invoice, never the internal SO # — and `#` already shows it.
+  driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
   // Warehouse works off the customer invoice too (Invoice # instead of SO #).
   // Y ve el costo (D-148): es quien tiene que darse cuenta de que una orden va a salir
   // sin cobrarse, y no lo puede ver en una columna que no está.
-  warehouse: ["stage", "type", "store", "account", "invoice", "date", "windows", "pallets", "fee", "driver"],
+  warehouse: ["stage", "type", "store", "account", "date", "windows", "pallets", "fee", "driver"],
 };
 
 /** Drivers come from the Users list — anyone with the "driver" role. They're
