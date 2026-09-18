@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AddressInput } from "@/components/AddressInput";
 import { registroDeLugar } from "@/lib/named-location";
+import { nombresEnLinea, normalizaTienda, quienPierdeLaTienda } from "@/lib/visibilidad-tienda";
 import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 
@@ -19,7 +20,7 @@ import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from
 // ============================================================
 
 export default function DataPage() {
-  const { me, settings, deliveries, saveSettings, notify , ensureDeliveriesSince } = useData();
+  const { me, settings, deliveries, users, saveSettings, notify , ensureDeliveriesSince } = useData();
   // G-16: this screen reads every order ever (per-account history / reference counts), so it
   // asks the provider for the whole history once; the provider keeps a window by default.
   useEffect(() => { void ensureDeliveriesSince(null); }, [ensureDeliveriesSince]);
@@ -68,6 +69,18 @@ export default function DataPage() {
         autoApprove
         onChange={(v) => save({ stores: v }, t("Stores saved", "Tiendas guardadas"))}
         directoryCode
+        /* Renombrar una tienda NO reescribe las casillas de «Tiendas que ve» (D-NEXT): quedarían
+           apuntando a un nombre que ya no existe y esas personas dejarían de ver esas órdenes sin
+           enterarse. Antes de renombrar se dice a quién le pasaría, por su nombre. */
+        avisoAlRenombrar={(antes, despues) => {
+          const afectados = quienPierdeLaTienda(users, antes);
+          if (!afectados.length) return null;
+          const lista = nombresEnLinea(afectados, t("and", "y"), (n) => t(`${n} more`, `${n} más`));
+          return t(
+            `${afectados.length} person(s) can only see "${antes}" orders: ${lista}. Renaming it to "${despues}" does NOT update that setting, so they will stop seeing these orders until you check the new name for each of them. Rename anyway?`,
+            `${afectados.length} persona(s) tienen su visibilidad limitada a "${antes}": ${lista}. Renombrarla a "${despues}" NO actualiza ese ajuste, así que dejarán de ver estas órdenes hasta que se les marque el nombre nuevo. ¿Renombrar de todas formas?`,
+          );
+        }}
         t={t}
       />
 
@@ -403,7 +416,7 @@ function OrderTypesRulesEditor({
 
 /** Editable table of named locations, with in-place edit + usage-aware delete. */
 function LocationTable({
-  title, blurb, items, usageField, deliveries, onChange, autoApprove, directoryCode, t,
+  title, blurb, items, usageField, deliveries, onChange, autoApprove, directoryCode, avisoAlRenombrar, t,
 }: {
   title: string;
   blurb: string;
@@ -414,6 +427,13 @@ function LocationTable({
   autoApprove?: boolean;
   /** Stores only: expose the company-directory code (D-261). */
   directoryCode?: boolean;
+  /**
+   * Tiendas: qué avisar antes de renombrar una, o `null` si no hay nada que avisar (D-NEXT).
+   *
+   * Lo compone quien llama y no esta tabla, que es genérica y también pinta puntos de recolección y
+   * de entrega, donde esto no aplica.
+   */
+  avisoAlRenombrar?: (antes: string, despues: string) => string | null;
   onChange: (v: NamedLocation[]) => void;
   t: (en: string, es: string) => string;
 }) {
@@ -445,6 +465,12 @@ function LocationTable({
     // Parte del registro anterior (D-261): hasta ahora se construía uno nuevo con nombre y
     // dirección, y editar una tienda borraba cualquier clave que este formulario no enseñara.
     const prev = editing != null ? items[editing] : undefined;
+    // Renombrar deja apuntando al nombre viejo lo que se guardó con él. Se pregunta ANTES, con quién
+    // se queda sin ver esas órdenes (D-NEXT); si no hay nadie, no se pregunta nada.
+    if (prev && avisoAlRenombrar && normalizaTienda(prev.name) !== normalizaTienda(name)) {
+      const aviso = avisoAlRenombrar(prev.name, name);
+      if (aviso && !(await confirmAction(aviso, { danger: true, confirmLabel: t("Rename", "Renombrar") }))) return;
+    }
     const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });
     if (adding) next.push(rec);
     else if (editing != null) next[editing] = rec;

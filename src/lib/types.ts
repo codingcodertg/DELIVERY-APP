@@ -15,6 +15,15 @@ export interface Profile {
   // Store a warehouse worker / driver belongs to. Scopes what they see
   // (they only handle orders picked up from their store). null for others.
   store?: string | null;
+  /**
+   * Las tiendas cuyas órdenes ve esta persona (D-NEXT, migración 131). Vacío o null = todas, que es
+   * como queda todo el mundo al aplicarla.
+   *
+   * **No es lo mismo que `store`**, y a propósito: `store` es *su* tienda (la que amarra al almacén y
+   * ancla al chofer); esto es qué puede ver. Quien decide de verdad es la política RLS de
+   * `deliveries`, no el navegador: aquí llega para poder pintarlo en el diálogo de usuario.
+   */
+  visible_stores?: string[] | null;
   avatar_url?: string | null;
   /** Role INSIDE the recruiting module (admin|manager|recruiter). Independent
    * of `role` above — a deliveries `sales` user can also be a recruiting
