@@ -90,3 +90,18 @@ export function detalleDelRastro(args: { comoNombre: string; desdeIp?: string | 
   const ip = (args.desdeIp ?? "").trim();
   return ip ? `como ${args.comoNombre} · desde ${ip}` : `como ${args.comoNombre}`;
 }
+
+/** Lo mínimo que el panel pinta de cada candidato: nada de correos, permisos ni módulos. */
+export type Candidato = { id: string; full_name: string | null; role: string | null; store: string | null };
+
+/**
+ * A quién se puede saltar (D-NEXT): la misma regla que decide si se puede entrar —`puedeEntrarComo`—,
+ * aplicada a toda la plantilla, para que la lista no enseñe a nadie a quien la ruta vaya a rechazar.
+ * Si quien pregunta no es admin, la lista es vacía: no hay nada que prometer.
+ */
+export function candidatosParaSaltar(quien: QuienEntra, plantilla: readonly Candidato[]): Candidato[] {
+  if (!esAdmin(quien.rol)) return [];
+  return plantilla
+    .filter((p) => puedeEntrarComo(quien, { id: p.id, rol: p.role }).permitido)
+    .map(({ id, full_name, role, store }) => ({ id, full_name, role, store }));
+}

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
+import { SwitchUserPanel } from "@/components/SwitchUserPanel";
+import type { NamedLocation, Profile } from "@/lib/types";
 
 /**
  * «Estás como Patricia Hernández — volver a mi cuenta» (D-243).
@@ -28,6 +30,22 @@ export function ImpersonationBanner() {
   const [estado, setEstado] = useState<Estado>(null);
   const [volviendo, setVolviendo] = useState(false);
   const [quedan, setQuedan] = useState<number | null>(null);
+  // «Cambiar a otro usuario» (D-NEXT): el dueño, «si estoy en otro usuario ya con el switch, que siga
+  // la opción para seguir switcheando». Los candidatos se piden SOLO al pulsar: una carga normal sigue
+  // costando la petición de siempre. Aquí no hay `DataProvider` —el banner va en el layout raíz— y
+  // por eso el panel recibe la lista por props, ya filtrada por el servidor con la misma regla que la
+  // ruta de saltar.
+  const [saltando, setSaltando] = useState(false);
+  const [candidatos, setCandidatos] = useState<{ users: Profile[]; stores: NamedLocation[] } | null>(null);
+  const abrirSalto = useCallback(async () => {
+    setSaltando(true);
+    if (candidatos) return;
+    try {
+      const r = await fetch("/api/impersonate/switch/candidates");
+      if (!r.ok) { setSaltando(false); return; }   // apagada, o una cookie que no cuadra: sin lista
+      setCandidatos((await r.json()) as { users: Profile[]; stores: NamedLocation[] });
+    } catch { setSaltando(false); }
+  }, [candidatos]);
 
   const caja = useRef<HTMLDivElement | null>(null);
 
@@ -120,6 +138,20 @@ export function ImpersonationBanner() {
       >
         {volviendo ? "Volviendo…" : "Volver a mi cuenta / Back to my account"}
       </button>
+      <div style={{ position: "relative" }}>
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={volviendo}
+          aria-expanded={saltando}
+          onClick={() => { if (saltando) setSaltando(false); else void abrirSalto(); }}
+        >
+          ⇄ Cambiar a otro usuario / Switch to another user
+        </button>
+        {saltando && candidatos && (
+          <SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} />
+        )}
+      </div>
     </div>
   );
 }
