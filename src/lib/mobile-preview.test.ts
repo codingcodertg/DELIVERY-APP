@@ -87,7 +87,7 @@ describe("la pantalla", () => {
     expect(css).toContain("* { box-sizing: border-box;"); // control: el reset que obliga a esto
   });
 
-  it("la barra de Entregas ya no lleva a la vista móvil: es una herramienta del hub (D-NEXT)", () => {
+  it("la barra de Entregas ya no lleva a la vista móvil: es una herramienta del hub (D-306)", () => {
     const barra = leer("src/components/TopBar.tsx");
     expect(barra).not.toContain('case "vistamovil":');
     expect(barra).not.toContain("enlaceAVistaMovil(");

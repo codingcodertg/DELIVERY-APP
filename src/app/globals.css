@@ -472,7 +472,7 @@ input.invalid, select.invalid, textarea.invalid {
    los tokens de la paleta para que valgan en claro y en oscuro.
 
    Y opaco de verdad, con su sombra: antes se leía el «+ Nueva orden» de la página por detrás. */
-/* En la página del hub (D-NEXT) el panel no cuelga de un botón: ocupa su sitio. */
+/* En la página del hub (D-306) el panel no cuelga de un botón: ocupa su sitio. */
 .switch-panel.en-pagina { position: static; width: 100%; max-width: 640px; max-height: none; }
 .switch-panel {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 9990;

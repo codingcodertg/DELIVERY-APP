@@ -37,7 +37,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
   });
 
   it("el admin: ver como, vista móvil y ajustes, y salir el último", () => {
-    // Sin «vistamovil» desde D-NEXT: se fue al hub con «Cambiar de usuario».
+    // Sin «vistamovil» desde D-306: se fue al hub con «Cambiar de usuario».
     expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "admin", module_access: soloEntregas } }))
       .toEqual(["ensenanza", "vercomo", "ajustes", "salir"]);
   });
@@ -52,7 +52,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
       .toEqual(["ensenanza", "vercomo", "perfil", "tutoriales", "salir"]);
   });
 
-  it("la vista móvil ya no está en este menú para nadie: es una herramienta del hub (D-NEXT)", () => {
+  it("la vista móvil ya no está en este menú para nadie: es una herramienta del hub (D-306)", () => {
     for (const rol of ["admin", "manager", "sales", "logistics", "accounting", "warehouse", "driver"] as const) {
       const opciones: string[] = opcionesDelMenuDeCuenta({ realRole: rol, me: { role: rol, module_access: soloEntregas } });
       expect(opciones, rol).not.toContain("vistamovil");
@@ -91,7 +91,7 @@ describe("la barra de Entregas", () => {
 
   it("el menú sale de `opcionesDelMenuDeCuenta` con lo que tiene la barra, y pinta cada opción", () => {
     expect(barra).toContain("opcionesDelMenuDeCuenta({ realRole, me })");
-    // `enMarco` se fue con la vista móvil (D-NEXT): la barra ya no mira si está en un iframe.
+    // `enMarco` se fue con la vista móvil (D-306): la barra ya no mira si está en un iframe.
     expect(barra).not.toContain("estaEnUnMarco(");
     for (const o of OPCIONES_DEL_MENU) expect(barra, o).toContain(`case "${o}":`);
   });

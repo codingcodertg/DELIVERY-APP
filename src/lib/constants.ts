@@ -470,7 +470,7 @@ export interface HubTool {
   key: string; href: string; emoji: string;
   label_en: string; label_es: string; desc_en: string; desc_es: string;
   /**
-   * `suplantando` (D-NEXT): si quien mira está dentro de la sesión de otra persona (D-243). Lo lee
+   * `suplantando` (D-306): si quien mira está dentro de la sesión de otra persona (D-243). Lo lee
    * el lobby de la cookie de retorno, en el servidor y una sola vez; `role` solo no basta, porque
    * dentro de una impersonación la sesión ES la del suplantado y su rol es el que se lee. Las
    * herramientas que no lo miran no cambian: es opcional a propósito.
@@ -534,7 +534,7 @@ export const HUB_TOOLS: HubTool[] = [
     // esta herramienta no le salga aquí.
     visible: (me) => me.role === "admin",
   },
-  // Las dos siguientes vivían en la barra de Entregas y son del hub (D-NEXT). El dueño: «la vista
+  // Las dos siguientes vivían en la barra de Entregas y son del hub (D-306). El dueño: «la vista
   // móvil y el switch usuario, pásalos al hub, porque eso es general del hub… no solo delivery
   // app». Solo para el admin REAL: un admin suplantando a alguien no las ve, porque tiene la sesión
   // de esa persona y lo que hace cuenta como hecho por ella.

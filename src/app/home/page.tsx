@@ -63,7 +63,7 @@ export default async function HomePage({
   // aquí en línea y sin él, y `ModuleSwitcher` tenía la suya. Una sola, con prueba.
   if (!canReachHub(me)) redirect(landingRoute(me));
 
-  // ¿Está dentro de la sesión de otra persona? (D-NEXT). Se lee de la cookie de retorno, aquí y
+  // ¿Está dentro de la sesión de otra persona? (D-306). Se lee de la cookie de retorno, aquí y
   // una sola vez, con el mismo lector que usan las rutas de impersonación: ninguna herramienta
   // tiene que preguntarlo por su cuenta. Sin cookie no hay impersonación, que es casi siempre.
   const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;

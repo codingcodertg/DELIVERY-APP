@@ -5,7 +5,7 @@ import { OPCIONES_DEL_MENU } from "./account-menu";
 import type { UserRole } from "./types";
 
 /**
- * «Vista móvil» y «Cambiar de usuario» son herramientas del hub, solo para el admin real (D-NEXT).
+ * «Vista móvil» y «Cambiar de usuario» son herramientas del hub, solo para el admin real (D-306).
  *
  * El dueño: «la vista móvil y el switch usuario, pásalos al hub, porque eso es general del hub… no
  * solo delivery app». Vivían en la barra de Entregas (D-278 y D-247).

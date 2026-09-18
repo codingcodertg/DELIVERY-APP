@@ -7,7 +7,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * «Cambiar de usuario» (D-NEXT): el panel de D-247, montado como página del hub en vez de colgar del
+ * «Cambiar de usuario» (D-306): el panel de D-247, montado como página del hub en vez de colgar del
  * botón de la barra de Entregas. La puerta —admin, y no suplantando— está en `layout.tsx`.
  *
  * Si la función está encendida lo dice el servidor, no el cliente: la bandera vive en el entorno y

@@ -21,7 +21,7 @@ import type { UserRole } from "./types";
  *   cualquier otro rol llega). Usaba la pantalla de Cuenta para llegar a los dos, y sin esto se quedaría
  *   sin puerta. Las dos rutas solo piden sesión.
  *
- * - **Vista móvil** vivió aquí de D-278 a D-NEXT, para el admin real y fuera de su propio marco. Se
+ * - **Vista móvil** vivió aquí de D-278 a D-306, para el admin real y fuera de su propio marco. Se
  *   fue al hub con «Cambiar de usuario»: son del hub, no de Entregas. Con ella se fue `enMarco`, que
  *   solo existía para no ofrecerla dentro de su iframe.
  *

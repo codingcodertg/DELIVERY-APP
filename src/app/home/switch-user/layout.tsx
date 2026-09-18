@@ -10,7 +10,7 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 /**
- * «Cambiar de usuario» como herramienta del hub (D-NEXT). Calcada de la puerta de Usuarios (D-056):
+ * «Cambiar de usuario» como herramienta del hub (D-306). Calcada de la puerta de Usuarios (D-056):
  * la sesión tiene que ser de un admin, decidido en el servidor con el rol leído de la base.
  *
  * Y una condición más que Usuarios no tiene: **si se está dentro de la sesión de otra persona, esta

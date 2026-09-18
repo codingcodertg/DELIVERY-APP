@@ -18,7 +18,7 @@ import type { Profile, UserRole } from "@/lib/types";
 
 /** Los botones del aviso de modo enseñanza, «Salir» y «Reiniciar práctica», con un mismo estilo
  *  escrito una vez: dos botones iguales no son dos decisiones de color (`inline-colors.test.ts`).
- *  (`FONDO_BOTON_BARRA`, el fondo del botón «Switch usuario», se fue con él al hub en D-NEXT.) */
+ *  (`FONDO_BOTON_BARRA`, el fondo del botón «Switch usuario», se fue con él al hub en D-306.) */
 const BOTON_DEL_AVISO = { marginLeft: 12, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 10px", borderRadius: 6, fontWeight: 700 } as const;
 
 export function TopBar({ me: propMe }: { me: Profile }) {
@@ -352,7 +352,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </select>
           </label>
         )}
-        {/* «Switch usuario» vivió aquí de D-247 a D-NEXT; ahora es una herramienta del hub
+        {/* «Switch usuario» vivió aquí de D-247 a D-306; ahora es una herramienta del hub
             (/home/switch-user), como la vista móvil. */}
       </div>
     </div>

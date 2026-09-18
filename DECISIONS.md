@@ -37977,7 +37977,7 @@ La rama está rebasada sobre ese main.
 - **El `aria-controls` apunta a un `id` fijo** (`cuentas-sugeridas`); hay un solo campo de cuenta por
   formulario, y si algún día hubiera dos, chocarían.
 
-## D-NEXT · «Vista móvil» y «Cambiar de usuario» pasan de la barra de Entregas al hub, solo para el admin real
+## D-306 · «Vista móvil» y «Cambiar de usuario» pasan de la barra de Entregas al hub, solo para el admin real
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«la vista móvil y el switch usuario, pásalos al hub, porque eso es general

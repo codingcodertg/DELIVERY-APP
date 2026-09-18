@@ -22,7 +22,7 @@ import type { NamedLocation, Profile, UserRole } from "@/lib/types";
  * sigue estando en la ruta.
  */
 /**
- * Recibe lo que pinta en vez de leerlo de `useData` (D-NEXT): así el mismo panel sirve en la
+ * Recibe lo que pinta en vez de leerlo de `useData` (D-306): así el mismo panel sirve en la
  * página del hub —que se lo pasa desde su proveedor— y donde no hay proveedor. `enPagina` lo
  * pinta estático, no como desplegable colgando de un botón.
  */
