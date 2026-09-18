@@ -37397,3 +37397,82 @@ las dos anclas existan.
 - **La vista desplegada** (una tarjeta que se abre con el chevron) no se midió: ahí se pintan todas las
   celdas y la casilla también deja de ocupar fila, pero el alto depende de cuántas columnas tenga
   elegidas cada quien.
+
+## D-NEXT · Tres retoques del formulario: quién es vendedor, retomar un borrador y buscar una cuenta
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Pedido por el dueño**, tres cosas seguidas sobre el mismo formulario. La cuarta que pidió ese día
+—Intertienda— va aparte, porque toca las reglas de sitio.
+
+### 1. El vendedor es `sales` o `manager`, y con acceso a Entregas — **esto revisa D-290**
+
+El dueño: *«me están saliendo todos los usuarios y solo deberían ser sales people o managers en el sales
+rep del form»*.
+
+**D-290, de esta misma tarde, eligió `canCreate` a propósito**: la capacidad de registrar órdenes, para
+no tener dos listas de roles que se separaran. Era defendible y es lo que se revisa: `canCreate` incluye
+**office y admin**, que registran órdenes pero no las venden, y por eso la lista salía llena. Lo que
+D-290 resolvió **sigue resuelto**: el gerente de Weslaco, que además vende, entra por ser `manager`.
+
+Se añade una segunda condición que el dueño no pidió pero que el caso destapó: **quien no puede abrir
+Entregas no es asignable**. Acreditarle una orden a alguien que no puede verla la deja sin nadie que la
+atienda. Ya había ocurrido: el acceso de una persona se retiró y sus seis órdenes viejas se quedaron
+con su nombre — **esas no se tocan**, porque el vendedor ya asignado se conserva siempre (D-267).
+
+La pregunta «¿puede abrir Entregas?» pasa a vivir en **un solo sitio**, `tieneAccesoAEntregas`, que es
+el espejo de `has_deliveries_access()` de la 083: admin siempre, el resto con `deliveries` concedido en
+`module_access`.
+
+**Y se corrige un comentario que mentía.** `constants.ts` decía que Entregas *«es implícita para todo el
+mundo y nunca está en `module_access`»*. Dejó de ser verdad con la 083 —lo dice la función de al lado,
+`accessibleModules`, y la base—, y estuvo a punto de sostener esta decisión sobre una premisa falsa. Se
+corrige **con una nota dentro del propio comentario**, no borrándolo: quien lo lea tiene que ver que
+cambió.
+
+### 2. «Continuar la orden» en la cabecera de un borrador
+
+El dueño: *«si es un draft, arriba debería haber un botón que diga continue, o algo así, continue
+filling order»*. Es el mismo gesto que «Editar», que vive abajo entre otros seis botones. Se pinta solo
+cuando la orden está en borrador y **solo a quien puede editar un borrador**, que ya lo decidía D-286
+(todos menos almacén): no hay regla nueva, y si esa cambia, el botón la sigue.
+
+### 3. Buscar en el desplegable de cuentas
+
+Con una captura: la lista ya es larga y un `select` nativo no se busca. **No se convierte en campo de
+texto**, aunque sea lo más corto: elegir una cuenta dispara el autorrellenado de contacto, teléfono y
+tipo de orden, y con un campo de texto eso correría con cada tecla y reescribiría el tipo con nombres a
+medio escribir. En su lugar, **una cajita de filtro encima del selector** —solo desde nueve cuentas en
+adelante, para no estorbar cuando no hace falta— que acota lo que se pinta. Compara sin acentos ni
+mayúsculas y por cualquier parte del nombre, **no reordena** (reordenar por parecido movería la misma
+cuenta de sitio según lo tecleado) y **conserva siempre la cuenta que la orden ya tiene**, como los
+desplegables de D-267.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Catorce mutantes, cada uno cazado por su prueba: que vuelva la regla de D-290, que el gerente se quede
+fuera, que el acceso a Entregas deje de mirarse o se dé por bueno, que el admin pierda el acceso
+implícito, que vuelva el comentario mentiroso, que el botón de continuar salga en cualquier etapa o lo
+vea almacén o no haga nada, que el filtro no filtre, que se coma los acentos al revés, que solo busque
+por el principio, que esconda la cuenta ya elegida, y que reordene la lista.
+
+### Las pruebas de otras decisiones que se actualizan
+
+Las de D-290 y D-293 fijaban la regla vieja, y se **reescriben en vez de aflojarse**: la de «quién puede
+ser vendedor» ahora compara rol por rol contra `sales`/`manager` **y afirma explícitamente que office y
+admin, pudiendo crear órdenes, ya no son asignables**, que es lo que cambió. Las plantillas de las dos
+suites dan acceso a Entregas, porque sin él nadie es asignable.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2632 pasados | 3 saltados**. La rama añade 11
+pruebas netas: 10 nuevas en `ficha-retoques.test.ts` y una más en `vendedor-por-tienda.test.ts`, que pasa
+de 16 a 17 al reescribirse la parte que revisa. `main` 1bfdc41, medido en esta misma copia con el árbol
+en `origin/main`, está en 2621 | 3.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.**
+- **No se contó cuánta gente pierde la condición de asignable** con la regla nueva (office, admin, y
+  quien no tenga Entregas concedido). Las órdenes ya asignadas no cambian.
+- **El umbral de nueve cuentas para enseñar el filtro** es un número elegido a ojo, no medido: se puso
+  para que el campo no aparezca en una instalación con cuatro cuentas.

@@ -16,6 +16,7 @@ import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
 import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
+import { cuentasQueCoinciden } from "@/lib/account-search";
 import { AddressInput } from "@/components/AddressInput";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
@@ -1346,6 +1347,16 @@ export function OrderModal({
               )}
             </div>
           </div>
+          {/* Un borrador se retoma desde arriba (D-NEXT). El dueño: «si es un draft, arriba debería haber
+              un botón que diga continue». Hace lo mismo que «Editar», que está abajo entre otros seis
+              botones, y lo ve quien puede editar un borrador — la misma regla de D-286, no una nueva. */}
+          {!editing && existing && stage === "draft" && canEditFields(me.role, "draft") && (
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ flex: "0 0 auto" }}
+              onClick={() => setEditing(true)}
+            >✎ {t("Continue filling order", "Continuar la orden")}</button>
+          )}
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>
         </div>
 
@@ -3288,6 +3299,11 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
   const current = (val as string) ?? "";
   const known = options.includes(current);
   const [manual, setManual] = useState(!!current && !known);
+  // La lista de cuentas ya no cabe de un vistazo, y un `select` nativo no se busca (D-NEXT). El filtro
+  // va ENCIMA y solo acota lo que se pinta: convertir el selector en un campo de texto haría que el
+  // autorrellenado de contacto, teléfono y tipo de orden corriera con cada tecla.
+  const [filtro, setFiltro] = useState("");
+  const visibles = cuentasQueCoinciden(options, filtro, current);
 
   return (
     <div className="field">
@@ -3302,6 +3318,16 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
           )}
         </div>
       ) : (
+        <>
+        {options.length > 8 && (
+          <input
+            style={{ marginBottom: 6 }}
+            value={filtro}
+            disabled={disabled}
+            placeholder={t("Type to filter…", "Escriba para filtrar…")}
+            onChange={(e) => setFiltro(e.target.value)}
+          />
+        )}
         <select
           value={known ? current : ""}
           disabled={disabled}
@@ -3311,9 +3337,10 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
           }}
         >
           <option value="">{placeholder ?? t("Select…", "Seleccione…")}</option>
-          {options.map((o) => <option key={o} value={o}>{o}</option>)}
+          {visibles.map((o) => <option key={o} value={o}>{o}</option>)}
           <option value={NEW_ACCOUNT}>➕ {t("Type a new one…", "Escribir uno nuevo…")}</option>
         </select>
+        </>
       )}
     </div>
   );

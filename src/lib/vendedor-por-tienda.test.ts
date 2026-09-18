@@ -19,8 +19,11 @@ import type { Profile, UserRole } from "./types";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const modal = leer("src/components/OrderModal.tsx");
 
-const persona = (id: string, full_name: string, role: UserRole, store: string | null, permissions: string[] | null = null): Profile =>
-  ({ id, full_name, role, store, permissions }) as Profile;
+/** Con acceso a Entregas salvo que se diga lo contrario: sin él nadie es asignable (D-NEXT). */
+const persona = (
+  id: string, full_name: string, role: UserRole, store: string | null,
+  permissions: string[] | null = null, module_access: string[] | null = ["deliveries"],
+): Profile => ({ id, full_name, role, store, permissions, module_access }) as Profile;
 
 /** Una plantilla parecida a la real: dos tiendas, una de ellas sin nadie de ventas. */
 const GENTE: Profile[] = [
@@ -38,25 +41,46 @@ const GENTE: Profile[] = [
 const nombres = (l: Profile[]) => l.map((u) => u.full_name);
 
 describe("quién puede ser vendedor", () => {
-  it("es exactamente quien puede crear órdenes, rol por rol", () => {
+  /**
+   * **Esta parte la revisa D-NEXT.** D-290 usó `canCreate` —quien puede registrar órdenes— y el dueño
+   * lo corrigió al verlo: «me están saliendo todos los usuarios y solo deberían ser sales people o
+   * managers». Lo que D-290 resolvió sigue resuelto: el gerente que vende entra, por ser `manager`.
+   */
+  it("es sales o manager, rol por rol, y ya no todo el que puede crear órdenes", () => {
     for (const rol of ROLE_ORDER) {
       const u = persona("x", "X", rol, "Tienda Norte");
-      expect([rol, puedeSerVendedor(u)]).toEqual([rol, ROLE_CAPS[rol].includes("create")]);
-      expect([rol, puedeSerVendedor(u)]).toEqual([rol, canCreate(u)]);
+      expect([rol, puedeSerVendedor(u)]).toEqual([rol, rol === "sales" || rol === "manager"]);
+    }
+    // Y la regla vieja ya no vale: office y admin pueden crear y NO son asignables.
+    for (const rol of ["accounting", "admin"] as UserRole[]) {
+      const u = persona("x", "X", rol, "Tienda Norte");
+      expect([rol, canCreate(u), puedeSerVendedor(u)]).toEqual([rol, true, false]);
+      expect([rol, ROLE_CAPS[rol].includes("create")]).toEqual([rol, true]);
     }
   });
 
-  it("en concreto: el gerente que vende entra, y el almacén y el chofer no", () => {
+  it("en concreto: el gerente que vende entra; office, almacén, chofer y logística no", () => {
     expect(puedeSerVendedor(persona("g", "G", "manager", "Tienda Norte"))).toBe(true);
-    expect(puedeSerVendedor(persona("o", "O", "accounting", "Tienda Norte"))).toBe(true);
+    expect(puedeSerVendedor(persona("v", "V", "sales", "Tienda Norte"))).toBe(true);
+    expect(puedeSerVendedor(persona("o", "O", "accounting", "Tienda Norte"))).toBe(false);
     expect(puedeSerVendedor(persona("a", "A", "warehouse", "Tienda Norte"))).toBe(false);
     expect(puedeSerVendedor(persona("c", "C", "driver", "Tienda Norte"))).toBe(false);
     expect(puedeSerVendedor(persona("l", "L", "logistics", "Tienda Norte"))).toBe(false);
   });
 
-  it("y quien tiene «crear» concedido a mano también, aunque su rol no lo dé", () => {
-    // Medido en producción el 2026-09-17: una cuenta de logística tiene el permiso suelto.
-    expect(puedeSerVendedor(persona("l", "L", "logistics", "Tienda Norte", ["create"]))).toBe(true);
+  it("y el permiso suelto de «crear» ya no basta: es el rol lo que se mira", () => {
+    // Medido en producción el 2026-09-17: una cuenta de logística tiene ese permiso suelto. Con la
+    // regla de D-290 era asignable; con esta, no.
+    expect(puedeSerVendedor(persona("l", "L", "logistics", "Tienda Norte", ["create"]))).toBe(false);
+  });
+
+  it("quien no puede abrir Entregas no es asignable, aunque venda", () => {
+    // Es la misma pregunta que hace la base (`has_deliveries_access()`, 083): acreditarle una orden a
+    // quien no puede verla deja la orden sin dueño que la atienda.
+    expect(puedeSerVendedor(persona("v", "V", "sales", "Tienda Norte", null, []))).toBe(false);
+    expect(puedeSerVendedor(persona("v", "V", "sales", "Tienda Norte", null, null))).toBe(false);
+    expect(puedeSerVendedor(persona("v", "V", "sales", "Tienda Norte", null, ["recruiting"]))).toBe(false);
+    expect(puedeSerVendedor(persona("g", "G", "manager", "Tienda Norte", null, ["deliveries", "recruiting"]))).toBe(true);
   });
 });
 
@@ -91,9 +115,10 @@ describe("la lista que se ofrece", () => {
 });
 
 describe("la lista nunca se queda sin opciones", () => {
-  const TODOS = ["Admin", "Ana Vendedora", "Bea Vendedora", "Gerente Norte", "Gerente Oeste", "Sara Vendedora", "Zoe Sin Tienda"];
+  // Sin Admin desde D-NEXT: puede crear órdenes, pero no es vendedor.
+  const TODOS = ["Ana Vendedora", "Bea Vendedora", "Gerente Norte", "Gerente Oeste", "Sara Vendedora", "Zoe Sin Tienda"];
 
-  it("si la orden aún no tiene tienda, se ofrecen todos los que pueden crear", () => {
+  it("si la orden aún no tiene tienda, se ofrecen todos los asignables", () => {
     expect(nombres(vendedoresParaLaOrden(GENTE, null))).toEqual(TODOS);
     expect(nombres(vendedoresParaLaOrden(GENTE, ""))).toEqual(TODOS);
   });
