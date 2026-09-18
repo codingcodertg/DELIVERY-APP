@@ -7,10 +7,10 @@ import { usePrefs } from "@/lib/prefs";
 import { DEFAULT_HELP_EMAIL, roleLabel } from "@/lib/constants";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { telClean } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import {
-  CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, rutaDeAdjunto, validaAdjuntos,
-} from "@/lib/help-attachments";
+import Link from "next/link";
+import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
+import { enviaSolicitudDeAyuda } from "@/lib/help-send";
+import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
 import type { Profile } from "@/lib/types";
 
 /** Floating "Help" button, mounted app-wide. Any user can tap it to email a
@@ -43,67 +43,35 @@ export function HelpButton({ me }: { me: Profile }) {
     setFicheros(juntos);
   };
 
-  /** Sube lo elegido y devuelve sus rutas, o null si alguna subida falla: mejor no mandar la
-   *  solicitud que mandarla diciendo que lleva unos adjuntos que no están. */
-  const subeFicheros = async (): Promise<{ path: string; nombre: string }[] | null> => {
-    if (!ficheros.length) return [];
-    const almacen = createClient().storage.from(CUBO_DE_ADJUNTOS);
-    const subidos: { path: string; nombre: string }[] = [];
-    for (const f of ficheros) {
-      const path = rutaDeAdjunto(me.id, f.name, new Date());
-      const { error } = await almacen.upload(path, f, { contentType: f.type || undefined, upsert: false });
-      if (error) {
-        notify(t(`Couldn't upload “${f.name}”. Nothing was sent.`, `No se pudo subir «${f.name}». No se envió nada.`));
-        return null;
-      }
-      subidos.push({ path, nombre: f.name });
-    }
-    return subidos;
-  };
-
   const send = async () => {
     const message = msg.trim();
     if (!message) return;
     setBusy(true);
-    try {
-      const archivos = await subeFicheros();
-      if (!archivos) { setBusy(false); return; }
-      const res = await fetch("/api/help", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          to,
-          page: pathname,
-          senderName: me.full_name,
-          role: roleLabel(me.role, lang),
-          // HelpButton only ever mounts inside deliveries' own layout/LocalApp.
-          appVersion: APP_VERSIONS.deliveries,
-          lang,
-          archivos,
-        }),
-      });
-      const b = await res.json().catch(() => ({}));
-      if (b.ok) {
-        notify(t("Help request sent — we'll get back to you.", "Solicitud de ayuda enviada — le responderemos."));
-        setOpen(false);
-        setMsg("");
-        setFicheros([]);
-      } else if (b.dryRun) {
-        // Email provider not live yet: don't pretend it was delivered.
-        notify(t(
-          "Email isn't set up yet, so your request wasn't delivered. Ask an admin to finish email setup.",
-          "El correo aún no está configurado, así que su solicitud no se envió. Pida a un administrador que termine la configuración.",
-        ));
-        setOpen(false);
-        setMsg("");
-      } else {
-        notify(t("Couldn't send — please try again.", "No se pudo enviar — intente de nuevo."));
-      }
-    } catch {
+    // Subir y mandar viven en `help-send`, que también usa «Mis solicitudes» del hub (D-311).
+    const r = await enviaSolicitudDeAyuda({
+      userId: me.id, message, ficheros, to, page: pathname, senderName: me.full_name,
+      role: roleLabel(me.role, lang),
+      // HelpButton only ever mounts inside deliveries' own layout/LocalApp.
+      appVersion: APP_VERSIONS.deliveries,
+      lang,
+    });
+    setBusy(false);
+    if (r.tipo === "enviada") {
+      notify(t("Help request sent — we'll get back to you.", "Solicitud de ayuda enviada — le responderemos."));
+      setOpen(false); setMsg(""); setFicheros([]);
+    } else if (r.tipo === "sin-correo") {
+      // Email provider not live yet: don't pretend it was delivered.
+      notify(t(
+        "Email isn't set up yet, so your request wasn't delivered. Ask an admin to finish email setup.",
+        "El correo aún no está configurado, así que su solicitud no se envió. Pida a un administrador que termine la configuración.",
+      ));
+      setOpen(false); setMsg("");
+    } else if (r.tipo === "subida") {
+      notify(t(`Couldn't upload “${r.fichero}”. Nothing was sent.`, `No se pudo subir «${r.fichero}». No se envió nada.`));
+    } else if (r.tipo === "red") {
       notify(t("Network error — please try again.", "Error de red — intente de nuevo."));
-    } finally {
-      setBusy(false);
+    } else {
+      notify(t("Couldn't send — please try again.", "No se pudo enviar — intente de nuevo."));
     }
   };
 
@@ -182,6 +150,10 @@ export function HelpButton({ me }: { me: Profile }) {
                 </ul>
               )}
             </div>
+            {/* Las respuestas llegan a «Mis solicitudes», en el hub: la conversación vive allí (D-311). */}
+            <Link href={RUTA_MIS_SOLICITUDES} className="hint" style={{ display: "inline-block", marginTop: 10 }}>
+              💬 {t("My requests and replies", "Mis solicitudes y respuestas")}
+            </Link>
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={close} disabled={busy}>{t("Cancel", "Cancelar")}</button>
               <button className="btn btn-primary" onClick={send} disabled={busy || !msg.trim()}>

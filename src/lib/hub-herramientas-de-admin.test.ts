@@ -19,7 +19,9 @@ import type { UserRole } from "./types";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 const NUEVAS = ["vista-movil", "switch-user"] as const;
-const VIEJAS = ["users", "directory", "tutorials", "help-requests"] as const;
+// «my-help» llegó después (ayuda-chat): «Mis solicitudes», para todos. No es de esta decisión, pero la
+// lista se afirma entera para que ninguna herramienta aparezca o desaparezca sin que una prueba lo diga.
+const VIEJAS = ["users", "directory", "tutorials", "my-help", "help-requests"] as const;
 
 describe("las dos herramientas nuevas del hub", () => {
   it("existen, con su ruta, y son las únicas nuevas", () => {

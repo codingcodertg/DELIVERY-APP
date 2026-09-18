@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { noLeidosPorSolicitud, repartoDeNoLeidos } from "@/lib/help-thread";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
 import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
@@ -19,6 +22,27 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
   // deliveries actually lands depends on the person's role (warehouse -> its
   // own queue, logistics -> routes, not the Orders board everyone else gets).
   const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(me.role) : fallback);
+
+  // Mensajes de ayuda sin leer, en la tarjeta que toca (D-311). El hub no tiene campana, así que
+  // este número es la única señal que hay aquí. La RLS ya acota lo que se lee: una persona solo
+  // recibe los mensajes de sus hilos. Si algo falla —o la 126 aún no está— se queda en cero y el
+  // lobby se pinta igual: un contador no decide si se entra.
+  const [sinLeer, setSinLeer] = useState({ mias: 0, ajenas: 0 });
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      const supabase = createClient();
+      const [ms, ls, rs] = await Promise.all([
+        supabase.from("help_messages").select("request_id, author_id, created_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("help_reads").select("request_id, read_at").eq("user_id", me.id),
+        supabase.from("help_requests").select("id").eq("user_id", me.id),
+      ]);
+      if (!vivo || ms.error || ls.error || rs.error) return;
+      setSinLeer(repartoDeNoLeidos(noLeidosPorSolicitud(ms.data ?? [], ls.data ?? [], me.id), (rs.data ?? []).map((r) => r.id as string)));
+    })();
+    return () => { vivo = false; };
+  }, [me.id]);
+  const sinLeerDe = (key: string) => (key === "my-help" ? sinLeer.mias : key === "help-requests" ? sinLeer.ajenas : 0);
 
   return (
     <div className="auth-wrap">
@@ -54,7 +78,10 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
               <Link key={tool.key} href={tool.href} className="hub-tool-row">
                 <span className="hub-tool-emoji">{tool.emoji}</span>
                 <span>
-                  <span className="hub-tool-label">{lang === "es" ? tool.label_es : tool.label_en}</span>
+                  <span className="hub-tool-label">
+                    {lang === "es" ? tool.label_es : tool.label_en}
+                    {sinLeerDe(tool.key) > 0 && <span className="hub-tool-badge">{sinLeerDe(tool.key)}</span>}
+                  </span>
                   <span className="hub-tool-desc" style={{ display: "block" }}>{lang === "es" ? tool.desc_es : tool.desc_en}</span>
                 </span>
               </Link>

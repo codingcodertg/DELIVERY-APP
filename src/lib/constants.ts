@@ -522,6 +522,17 @@ export const HUB_TOOLS: HubTool[] = [
     visible: () => true,
   },
   {
+    key: "my-help",
+    href: "/home/ayuda",
+    emoji: "💬",
+    label_en: "My help requests",
+    label_es: "Mis solicitudes de ayuda",
+    desc_en: "What you asked for help with, and the replies",
+    desc_es: "Lo que has pedido por el botón de ayuda, y las respuestas",
+    // Para todos: cada quien ve las suyas, y eso lo decide la RLS (120 y 126), no esta lista (D-311).
+    visible: () => true,
+  },
+  {
     key: "help-requests",
     href: "/home/solicitudes-de-ayuda",
     emoji: "🆘",
