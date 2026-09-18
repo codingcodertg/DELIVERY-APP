@@ -1,4 +1,5 @@
 import type { FicheroAdjunto } from "./help-attachments";
+import { AYUDA_ATENDIDA_KIND, type NotifSeed } from "./notifications";
 
 /**
  * El historial de solicitudes de ayuda (D-285).
@@ -37,7 +38,6 @@ export type FiltroDeSolicitudes = {
   persona?: string;
   desde?: string;
   hasta?: string;
-  soloPendientes?: boolean;
 };
 
 /** El nombre con el que se agrupa y se filtra: el guardado, y si falta, el correo o «—». */
@@ -64,7 +64,6 @@ export function diaLocal(iso: string): string {
 export function filtraSolicitudes(filas: SolicitudDeAyuda[], f: FiltroDeSolicitudes): SolicitudDeAyuda[] {
   return filas.filter((s) => {
     if (f.persona && quienEscribe(s) !== f.persona) return false;
-    if (f.soloPendientes && s.status !== "pendiente") return false;
     const dia = diaLocal(s.created_at);
     if (f.desde && (!dia || dia < f.desde)) return false;
     if (f.hasta && (!dia || dia > f.hasta)) return false;
@@ -93,4 +92,65 @@ export function parcheDeEstado(nuevo: EstadoDeSolicitud, adminId: string, ahora:
 /** Los adjuntos guardados de una fila, siempre una lista. */
 export function adjuntosDe(s: Pick<SolicitudDeAyuda, "files">): FicheroAdjunto[] {
   return Array.isArray(s.files) ? s.files.filter((a) => !!a && typeof a.path === "string") : [];
+}
+
+// ---- Atenderla se le avisa a quien la escribió (D-NEXT) -----------------------------------------
+//
+// Hasta ahora atender una solicitud era un cambio que solo veía el admin: la persona que pidió ayuda
+// no se enteraba de nada, y la única señal posible era que el problema dejara de pasar. El dueño:
+// que se le avise.
+
+/** Cuánto del mensaje viaja en el aviso: lo justo para reconocer cuál de las suyas es. */
+export const ASOMO_DEL_MENSAJE = 60;
+
+/** El principio del mensaje, en una línea. Los saltos y los espacios de más se comen. */
+export function asomoDelMensaje(mensaje: string, limite = ASOMO_DEL_MENSAJE): string {
+  const limpio = mensaje.replace(/\s+/g, " ").trim();
+  return limpio.length <= limite ? limpio : `${limpio.slice(0, limite - 1).trimEnd()}…`;
+}
+
+/**
+ * El aviso para el remitente de que su solicitud ya está atendida.
+ *
+ * Devuelve `null` cuando no hay a quién avisar, y son dos casos distintos que la pantalla cuenta
+ * distinto:
+ *   · **la cuenta se borró** — `user_id` quedó en null por el `on delete set null` de la 120, así que
+ *     no existe destinatario: la solicitud se atiende igual y se dice que no había a quién avisar;
+ *   · **quien atiende es quien escribió** — nadie se avisa a sí mismo, igual que `notificationsForStage`
+ *     nunca avisa a quien hizo la acción.
+ *
+ * El texto va **en el idioma que tenía la persona al escribir**, que la 120 guarda en `lang`: este aviso
+ * lo lee ella, no quien lo manda. `lang` es texto libre en la base, así que se mira el principio
+ * («es», «es-MX») y sin idioma se queda en inglés, como el resto de los avisos de la campana.
+ *
+ * No lleva `delivery_id` ni `order_no` a propósito: no es una orden, y la campana ya sabe no navegar
+ * cuando no hay orden (`NotificationBell`, `onPick`).
+ */
+export function avisoDeAtendida(s: SolicitudDeAyuda, adminId: string): NotifSeed | null {
+  if (!s.user_id || s.user_id === adminId) return null;
+  const asomo = asomoDelMensaje(s.message);
+  const enEspanol = (s.lang ?? "").trim().toLowerCase().startsWith("es");
+  return {
+    user_id: s.user_id,
+    delivery_id: null,
+    order_no: null,
+    kind: AYUDA_ATENDIDA_KIND,
+    message: enEspanol
+      ? `Tu solicitud de ayuda ya está atendida: «${asomo}»`
+      : `Your help request has been handled: “${asomo}”`,
+  };
+}
+
+/**
+ * Las pendientes por un lado y las atendidas por otro: el archivo deja de estorbar la lista de trabajo.
+ *
+ * Pendiente es **todo lo que no está atendido**, no solo lo que dice `'pendiente'`. Si algún día hay un
+ * tercer estado, aparecerá en la lista de trabajo —donde se ve— en vez de desaparecer dentro del
+ * archivo, que es donde nadie mira.
+ */
+export function separaPorEstado(filas: SolicitudDeAyuda[]): { pendientes: SolicitudDeAyuda[]; atendidas: SolicitudDeAyuda[] } {
+  return {
+    pendientes: filas.filter((s) => s.status !== "atendida"),
+    atendidas: filas.filter((s) => s.status === "atendida"),
+  };
 }

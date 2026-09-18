@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { stageInfo } from "@/lib/constants";
+import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";
 
 // Compact "3m", "2h", "4d" relative time for the notification list.
 function ago(iso: string): string {
@@ -123,7 +124,13 @@ export function NotificationBell() {
           ) : (
             <div className="notif-list">
               {notifications.map((n) => {
-                const dotColor = n.kind === "assigned" ? "var(--accent)" : stageInfo(n.kind).color;
+                // `stageInfo` cae a la PRIMERA etapa cuando la clave no es una etapa, así que un
+                // `kind` que no lo sea se pinta con un color prestado sin que nada chirríe. Los que
+                // no son etapas llevan el suyo, explícito.
+                const dotColor =
+                  n.kind === ASSIGNED_KIND ? "var(--accent)"
+                  : n.kind === AYUDA_ATENDIDA_KIND ? "var(--green)"
+                  : stageInfo(n.kind).color;
                 return (
                   <button
                     key={n.id}
