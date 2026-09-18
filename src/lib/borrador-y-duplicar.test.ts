@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { canEditFields, ROLE_ORDER, STAGES } from "./constants";
 import { borradorDuplicado } from "./order-duplicate";
+import { ventasVeLaOrden } from "./visibilidad-ventas";
 import type { Delivery, UserRole } from "./types";
 
 /**
@@ -62,9 +63,19 @@ describe("quién puede retomar un borrador", () => {
   });
 
   it("y un vendedor ve los borradores de cualquiera, solo los borradores", () => {
+    // El corte de ventas se mudó entero a `ventasVeLaOrden` (D-309), así que **lo de D-286 se
+    // comprueba donde ahora se decide**: en la función, con datos, no en el texto de la pantalla.
+    // Un canario que siguiera mirando la línea vieja se habría quedado vigilando un sitio donde ya no
+    // pasa nada.
+    const comun = { miId: "vendedor-1", miTienda: "Tienda Norte", regla: { storeToStore: false }, tiendas: [] };
+    const deOtro = { created_by: "vendedor-2", assigned_sales_rep: null, store: "Tienda Norte" };
+    expect(ventasVeLaOrden({ ...comun, orden: { ...deOtro, stage: "draft" } })).toBe(true);
+    for (const stage of ["pending", "approved", "ready", "delivered"] as const) {
+      expect(ventasVeLaOrden({ ...comun, orden: { ...deOtro, stage } }), stage).toBe(false);
+    }
+    // Y la pantalla sigue llamándola, con el resto de sus cortes donde estaban.
     const lista = leer("src/app/(app)/page.tsx");
-    expect(lista).toContain('if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id) return false;');
-    // El resto de cortes de ventas siguen donde estaban.
+    expect(lista).toContain('if (me?.role === "sales" && !ventasVeLaOrden({');
     expect(lista).toContain('if (me?.role === "sales" && d.stage === "canceled") return false;');
   });
 });

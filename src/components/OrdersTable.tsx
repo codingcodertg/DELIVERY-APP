@@ -10,6 +10,8 @@ import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, or
 import { useColWidthMap } from "@/lib/use-col-widths";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
+import { gruposPorTienda } from "@/lib/documento-pendiente";
+import { DocumentoPendiente } from "@/components/DocumentoPendiente";
 import type { CancelReason, Delivery } from "@/lib/types";
 
 type Ctx = {
@@ -165,7 +167,11 @@ const ID_COLUMN: OrderColumn = {
                     {invRest > 0 && <span className="inv-more">+{invRest}</span>}
                   </span>
                 </>
-              ) : "—"}
+              ) : null}
+              {/* El documento que el tipo exige y falta (D-310): pastilla, y para quien puede, el
+                  número escrito aquí mismo. Ocupa el sitio del «—»: la fila no crece. Va aparte de la
+                  factura porque a una Intertienda le puede faltar el PO teniendo factura. */}
+              <DocumentoPendiente d={d} vacio={invoice ? null : "—"} />
             </span>
 
             <span className="drv-l"><span className="row-type">{d.order_type || "—"}</span></span>
@@ -322,6 +328,7 @@ export function OrdersTable({
   isUrgent,
   resizeKey = "orders",
   collapsible = false,
+  porTienda = false,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
@@ -341,6 +348,11 @@ export function OrdersTable({
    * view, where a whole day of stops otherwise means endless scrolling.
    * Desktop is unaffected — the table there shows every column as usual. */
   collapsible?: boolean;
+  /** Agrupa las filas por tienda, con un encabezado y su cuenta por grupo (D-310). Es el orden de
+   * ENTRADA: en cuanto la persona ordena por una columna, manda su orden y los encabezados se van,
+   * porque un encabezado de tienda sobre filas ordenadas por fecha mentiría. Los filtros de columna
+   * se aplican antes, así que cada cuenta es la de lo que se ve. */
+  porTienda?: boolean;
 }) {
   const { lang, t } = usePrefs();
   const { me, settings } = useData();
@@ -445,6 +457,13 @@ export function OrdersTable({
     return copy;
   }, [filteredRows, sortKey, sortDir, cols, lang]);
 
+  // Un solo grupo sin nombre cuando no se agrupa: el cuerpo de la tabla se pinta igual en los dos casos.
+  const agrupada = porTienda && !sortKey;
+  const grupos = useMemo(
+    () => (agrupada ? gruposPorTienda(sortedRows) : [{ tienda: "", filas: sortedRows }]),
+    [agrupada, sortedRows],
+  );
+
   if (!rows.length) return <div className="empty">{empty}</div>;
 
   // Sorting is chosen in the header menu: ascending, descending, or none. Choosing closes it.
@@ -545,7 +564,13 @@ export function OrdersTable({
         <tbody>
           {sortedRows.length === 0 ? (
             <tr><td colSpan={cols.length + (selectable ? 1 : 0)} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
-          ) : sortedRows.map((d) => (
+          ) : grupos.flatMap((g) => [
+            agrupada && (
+              <tr key={"tienda:" + g.tienda} className="grupo-tienda">
+                <td colSpan={cols.length + (selectable ? 1 : 0)}>{g.tienda || t("No store", "Sin tienda")} <span className="cnt">{g.filas.length}</span></td>
+              </tr>
+            ),
+            ...g.filas.map((d) => (
             <tr
               key={d.id}
               className={"clickable"
@@ -585,7 +610,8 @@ export function OrdersTable({
                 </td>
               ))}
             </tr>
-          ))}
+            )),
+          ])}
         </tbody>
       </table>
     </div>

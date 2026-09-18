@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { tiendasDelGrupo } from "@/lib/store-group";
+import { normalizaLugar, tiendasDeLaOrden } from "@/lib/order-endpoints";
+import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
@@ -55,6 +57,7 @@ export default function WarehousePage() {
     () => (lockedToOwnStore ? tiendasDelGrupo(me?.store, settings.stores) : effectiveStore ? [effectiveStore] : []),
     [lockedToOwnStore, me?.store, effectiveStore, settings.stores],
   );
+  const colaNormalizada = useMemo(() => tiendasDeLaCola.map(normalizaLugar), [tiendasDeLaCola]);
   const direccionesDeLaCola = useMemo(
     () => tiendasDeLaCola
       .map((n) => settings.stores.find((s) => s.name === n)?.address?.trim() || "")
@@ -63,12 +66,16 @@ export default function WarehousePage() {
   );
   const atStore = useMemo(
     () => (d: Delivery) => {
-      if (tiendasDeLaCola.includes(d.store ?? "")) return true;
-      if (tiendasDeLaCola.includes((d.pickup_name || "").trim())) return true;
+      // Las tiendas de la orden salen de una función compartida (D-309): en un movimiento
+      // tienda-a-tienda son la que vende, la que envía y la que recibe, y esta cola y el tablero de
+      // Órdenes tienen que contestar lo mismo. Antes estaban escritas aquí a mano y se dejaban fuera
+      // el destino.
+      const suyas = tiendasDeLaOrden(d, orderTypeRule(d.order_type, settings.order_type_rules)).map(normalizaLugar);
+      if (colaNormalizada.some((c) => suyas.includes(c))) return true;
       if (direccionesDeLaCola.includes((d.pickup_address || "").trim())) return true;
       return false;
     },
-    [tiendasDeLaCola, direccionesDeLaCola],
+    [colaNormalizada, direccionesDeLaCola, settings.order_type_rules],
   );
 
   const scoped = useMemo(() => {

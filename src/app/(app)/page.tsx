@@ -8,12 +8,15 @@ import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
+import { documentoPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
+import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
+import { orderTypeRule } from "@/lib/required";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
@@ -188,7 +191,23 @@ export default function OrdersPage() {
         // volver y editarlo», y un borrador que no se ve no se puede editar. Es un cambio de
         // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
         // vuelve a ser el de siempre.
-        if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id) return false;
+        //
+        // **Y menos las de tienda a tienda de SU tienda** (D-309). El dueño: «in intertienda orders
+        // people from both pickup and delivery store can see the order because les importa a ambos»,
+        // y confirmado después para ventas: las ve aunque no las haya creado él. Solo en tipos
+        // tienda-a-tienda; en una orden de cliente sigue viendo solo las suyas. `orderOwner` no se
+        // toca, así que los avisos y el crédito del panel siguen siendo de quien la escribió.
+        //
+        // Los tres caminos viven en `ventasVeLaOrden` y no aquí: repartidos, el «solo tienda a tienda»
+        // se quedó en este comentario y no en el código, y un vendedor pasó a ver las órdenes de
+        // cliente de sus compañeros de tienda.
+        if (me?.role === "sales" && !ventasVeLaOrden({
+          miId: me.id,
+          miTienda: me.store,
+          orden: d,
+          regla: orderTypeRule(d.order_type, settings.order_type_rules),
+          tiendas: settings.stores,
+        })) return false;
         // Sales never see canceled orders (a canceled order disappears for them).
         if (me?.role === "sales" && d.stage === "canceled") return false;
         // Warehouse only ever sees orders that have been approved — never
@@ -218,14 +237,19 @@ export default function OrdersPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: visible.length };
     for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;
+    // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
+    // esta persona ve.
+    c[PESTANA_DOCUMENTO_PENDIENTE] = visible.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
     return c;
-  }, [visible]);
+  }, [visible, settings.order_type_rules]);
 
   const rows = useMemo(() => {
     // The board shows every stage as its own column, so ignore the stage chip there.
     const activeFilter = view === "board" ? "all" : filter;
     return visible.filter((d) => {
-      if (activeFilter !== "all" && d.stage !== activeFilter) return false;
+      // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
+      if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!documentoPendiente(d, settings.order_type_rules ?? {})) return false; }
+      else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
       if (preset === "today" && !isToday(d.delivery_date)) return false;
       if (preset === "overdue" && !isOverdue(d)) return false;
       // A draft has no driver either, but it isn't waiting for one — nobody
@@ -234,7 +258,7 @@ export default function OrdersPage() {
       if (preset === "mine" && orderOwner(d) !== me?.id) return false;
       return true;
     });
-  }, [visible, filter, preset, view, me?.id]);
+  }, [visible, filter, preset, view, me?.id, settings.order_type_rules]);
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },
@@ -444,6 +468,17 @@ export default function OrdersPage() {
                 {stageLabel(key, lang)} <span className="cnt">{counts[key] ?? 0}</span>
               </button>
             ))}
+            {/* «Invoice pending» (D-310): una pestaña más de la fila, no un botón aparte junto al
+                buscador: es el mismo estado, y dos mandos para un estado se contradicen. Solo sale
+                si hay algo pendiente o si se está en ella. Entra ordenada por tienda. */}
+            {((counts[PESTANA_DOCUMENTO_PENDIENTE] ?? 0) > 0 || filter === PESTANA_DOCUMENTO_PENDIENTE) && (
+              <button
+                className={"chip chip-pend " + (filter === PESTANA_DOCUMENTO_PENDIENTE ? "on" : "")}
+                onClick={() => setFilter(filter === PESTANA_DOCUMENTO_PENDIENTE ? "all" : PESTANA_DOCUMENTO_PENDIENTE)}
+              >
+                {t("Invoice pending", "Factura pendiente")} <span className="cnt">{counts[PESTANA_DOCUMENTO_PENDIENTE] ?? 0}</span>
+              </button>
+            )}
           </>
         )}
       </div>
@@ -532,6 +567,7 @@ export default function OrdersPage() {
             selectable={bulkCapable}
             // Phones: one collapsed card per order, opened with the chevron.
             collapsible
+            porTienda={filter === PESTANA_DOCUMENTO_PENDIENTE}
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}

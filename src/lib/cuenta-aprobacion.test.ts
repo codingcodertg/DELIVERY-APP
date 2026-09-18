@@ -85,15 +85,20 @@ describe("123: la base también lo hace cumplir", () => {
     .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
     .sort();
 
-  it("la 123 es la última que define el guard, y se sabe cuál es la anterior (control)", () => {
-    expect(conGuard.at(-1)).toBe("123_cuentas_con_aprobacion.sql");
-    expect(conGuard.length).toBeGreaterThanOrEqual(2);
+  /** Decía «la 123 es la última»; dejó de serlo cuando la 125 volvió a redefinir el guard, y esa
+   *  lleva su propia prueba de que parte de esta. Lo que aquí importa no es ser la última, sino saber
+   *  de cuál se copió: la inmediatamente anterior EN LA LISTA. */
+  const yo = conGuard.indexOf("123_cuentas_con_aprobacion.sql");
+
+  it("la 123 define el guard, y se sabe cuál es la anterior (control)", () => {
+    expect(yo).toBeGreaterThanOrEqual(1);
+    expect(conGuard[yo - 1]).toBe("122_anular_con_motivo.sql");
   });
 
   it("es la ANTERIOR con un solo cambio: el `auto` mira también la cuenta", () => {
     // Los dos crudos, con sus comentarios: la copia los trae y quitárselos a uno solo compararía
     // cosas distintas.
-    const anterior = guard(leer(`${dir}/${conGuard.at(-2)!}`));
+    const anterior = guard(leer(`${dir}/${conGuard[yo - 1]}`));
     const f123 = guard(sql);
     // Primero, que el cambio ESTÉ. Sin esto, un guard idéntico a la 118 —o sea, sin la cuenta—
     // pasaría la comparación de abajo sin más: medido con un mutante.

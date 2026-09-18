@@ -36589,6 +36589,12 @@ como los otros cinco, que es la regla que esas pruebas exigen.
 
 ## D-288 · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-309.** El dueño quitó cuenta, contacto y teléfono de
+> los movimientos tienda-a-tienda («los tres»), así que **`eligeDestino` ya no escribe el contacto**:
+> rellenaría un campo que ya no se enseña, y lo volvería a poner justo después de que el cambio de tipo
+> lo vaciara. Lo que sigue vigente de esta entrada: el contacto es texto libre en una orden de
+> **cliente**, y todo lo que dice sobre no dejar restos de media reversión.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«lets undo the change we made to intertienda»*.
 
@@ -36951,6 +36957,12 @@ en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
   quitar.
 
 ## D-292 · Cuentas que siempre pasan por oficina
+
+> **⚠ Reemplazada en parte el 2026-09-18, por D-309.** Desde que una Intertienda no lleva cuenta, esta
+> regla **deja de aplicarle**: `account_requires_approval(null)` devuelve false —no hay fila que case—
+> así que una orden entre tiendas ya no nace pendiente por la cuenta. Es decisión del dueño, a quien se
+> le preguntó expresamente. Para las órdenes de cliente, y para las Intertienda viejas que sí llevan
+> cuenta guardada, esta entrada sigue entera: el guard de la 123 no cambia.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
 `123_cuentas_con_aprobacion.sql`**, que aplica el orquestador tras su respaldo y su ensayo ·
@@ -37653,6 +37665,12 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
 
 ## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
+> **⚠ Reemplazada en parte al día siguiente, por D-309.** La **dirección de «Vendido desde» vuelve**
+> también en un tipo que recibe: aquí se había quitado porque el dueño dijo que no se necesitaba, y el
+> 2026-09-18 la pidió de vuelta — *«store sold from should have the address»*. Lo demás sigue vigente:
+> la tienda que abre la orden vende y recibe, «Vendido desde» sigue congelado, y lo que se elige es la
+> tienda que envía.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, con capturas: *«el store sold from debería quedar freeze, y solo en ese caso
 quitar el store address, no se necesita; el store destination es el mismo store sold from, y el pickup
@@ -38275,3 +38293,366 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
   son historia y ya no sirven.
 - **El tiempo real de Supabase** (`postgres_changes` sobre `notifications`) sigue igual; no se ha
   medido cuánto tarda la campana en actualizarse tras el insert.
+
+## D-309 · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño**, cinco cosas de una vez: *«in intertienda orders people from both pickup and
+delivery store can see the order because les importa a ambos · remove account contact name and phone
+number from intertienda · store sold from should have the address · so driver could click on any pu or
+del store and see the warehouse phone number so he can call him · in intertienda the store destination
+should be in red as well»*. Las cuatro dudas que dejaba se le preguntaron cerradas y las contestó él;
+van abajo, cada una en su sitio.
+
+**Reemplaza en parte a D-288, D-292 y D-302**, y cada una lleva su nota dentro.
+
+### La forma de una Intertienda, que es lo que hay que saber antes de leer nada
+
+Desde D-302, `store` («Vendido desde») **es la misma tienda que** `delivery_name` —la del usuario, que
+vende y recibe— y `pickup_name` es **la que manda el material**. Así que «las dos tiendas» de la frase
+del dueño son esas dos, y no las que uno diría leyendo los nombres de las columnas.
+
+### 1. Las dos tiendas la ven — el hueco estaba solo en ventas
+
+Medido antes de tocar nada:
+
+| Pantalla | Filtraba por | ¿Veía la tienda que envía? |
+|---|---|---|
+| Cola de almacén | `store`, `pickup_name` y `pickup_address` | **Sí, ya** (D-293) |
+| Tablero, ventas | `orderOwner` — **por persona, no por tienda** | **No** |
+| Tablero, gerente/office/logística | nada | Sí, ven todo |
+
+O sea que la frase solo cambia **ventas**. Y eso contradice una regla viva —un vendedor nunca ve una
+orden que no es suya— así que se preguntó antes de implementarlo. El dueño: **«sí, vendedores
+también»**.
+
+Lo que se hizo es lo mínimo que cumple la frase: en un tipo **tienda-a-tienda**, un vendedor ve además
+las órdenes cuya tienda que envía o que recibe sea la suya, o del grupo con el que trabaja (D-293). En
+una orden de cliente sigue viendo solo las suyas. **`orderOwner` no se toca**, así que los avisos y el
+crédito del panel siguen siendo de quien la escribió.
+
+La decisión vive en **una función** (`tiendaDeLaOrdenEsMia`, sobre `tiendasDeLaOrden`) y no en cada
+pantalla: el tablero y la cola de almacén tienen que contestar lo mismo, y dos copias acaban
+contestando distinto. La cola de almacén pasa a usarla también — antes tenía las tres comprobaciones
+escritas a mano y se dejaba fuera el destino.
+
+`tiendasDeLaOrden` mira las **tres** columnas en un tipo tienda-a-tienda aunque hoy dos coincidan: las
+órdenes de antes de D-302 tienen la otra forma y siguen vivas.
+
+**Para la 124, que está en pausa:** su cláusula compara `lower(btrim(store))`. Tal cual, un vendedor de
+la tienda que **envía** con `visible_stores` marcado seguiría sin ver la orden. Para que cuente igual,
+esa cláusula tiene que comparar contra las tres columnas (`store`, `pickup_name`, `delivery_name`). No
+se toca desde aquí: esa rama tiene su propio ensayo.
+
+### 2. Sin cliente: fuera cuenta, contacto y teléfono
+
+Se preguntó si eran dos cosas o tres —«account contact name and phone number» se puede leer como «el
+contacto y el teléfono **de la cuenta**»— y el dueño contestó: **«los tres: cuenta también»**.
+
+**No se esconden: se vacían al cambiar de tipo.** Escondidos seguirían viajando a la base, y la cuenta
+decide cosas. Una Intertienda con una cuenta invisible podría nacer pendiente sin que nadie viera por
+qué. Una orden ya guardada no se toca al abrirla; esto ocurre solo al elegir el tipo.
+
+Dos efectos que nadie había listado y que salieron de mirar el código:
+
+- **`eligeDestino` escribía el contacto** (D-288: en una Intertienda el contacto era la tienda que
+  recibe). Habría vuelto a rellenarlo **justo después** de vaciarlo, invisible. Ya no lo escribe.
+- **La regla de «esta cuenta siempre pasa por oficina» (D-292 / migración 123) deja de aplicar** a
+  Intertienda: sin cuenta, `account_requires_approval(null)` no encuentra fila y devuelve false. Se le
+  avisó al dueño al preguntarle y aun así dijo que los tres. Queda escrito, no descubierto luego.
+- **Cuentas deja fuera las de tienda a tienda sin cuenta.** Si no, todas caerían en una sola fila
+  «(sin cuenta)» que crece sin parar y no se puede abrir para nada útil. Las que **sí** llevan cuenta
+  —las de antes de este cambio— siguen contando donde contaban. Resumen se queda como está: ahí la
+  línea «(sin cuenta)» es una fila entre muchas y se lee bien.
+
+**`required.ts` nunca exigió la cuenta**, en ningún tipo: no había nada que quitar ahí. Contacto y
+teléfono ya estaban exentos en tienda-a-tienda desde antes.
+
+### 3. «Vendido desde» recupera su dirección
+
+D-302 la había quitado en un tipo que recibe porque el dueño dijo que no se necesitaba; ahora la pide
+de vuelta. Es una condición menos: la fila vuelve, de solo lectura y sacada de Ajustes. «Vendido desde»
+sigue congelado.
+
+### 4. A quién llama el chofer: del directorio, no de un campo nuevo
+
+Aquí hubo **una propuesta y un descarte**, y conviene que conste. El teléfono de una tienda **no existía
+como dato**: las tiendas de Datos solo tienen `directory_ext`, que es una extensión y no se puede marcar
+sin un número principal al que sumarla — y ese número no está en ningún sitio. Se ofrecieron dos
+caminos: un campo `phone` por tienda, o la gente del directorio. Se llegó a escribir el primero; el
+dueño eligió **el directorio**, y el campo se revirtió entero antes de commitear.
+
+Medido en producción antes de escribirlo (por el orquestador, 2026-09-18):
+
+- un **chofer** puede ejecutar `phone_book()` con su sesión: recibe filas, **sin migración**;
+- de los cuatro de almacén con cuenta, **tres** tienen extensión y teléfono, así que la lista no sale
+  vacía;
+- **el departamento identifica mejor que el rol**: hay **8 personas de «Almacén» sin cuenta en la app**
+  que el rol no vería y el departamento sí. Por eso se filtra por `department`, normalizado sin acentos
+  («Almacén», «almacen », «ALMACEN» son el mismo).
+
+En la pantalla del chofer, en **las dos paradas** —donde recoge y donde entrega—, un botón con el
+código de la tienda. **Se pregunta al tocar, no al abrir la parada**: se abre en cada parada del día y
+casi ninguna necesita llamar a un almacén; una vez preguntado, no se vuelve a pedir. Cada persona sale
+con su nombre, su título, su teléfono como enlace `tel:` y su extensión al lado.
+
+Tres estados, y los tres a propósito: si el sitio **no es una tienda nuestra** no aparece nada; si lo es
+pero no hay nadie, lo dice; y si la consulta falla, se enseña el error — una lista vacía y muda se lee
+como «no hay nadie», que es otra respuesta.
+
+**Lo que no puede hacer:** el directorio agrupa por código, así que **varias tiendas que comparten
+código salen juntas** y la fila no dice de cuál es cada persona — la RPC colapsa la tienda en el código
+y no devuelve la de cada uno. Se enseña el grupo tal cual. Arreglarlo pediría una columna nueva en la
+RPC, o sea una migración, y nadie la ha pedido.
+
+### 5. La tienda destino, obligatoria y en rojo
+
+El «también» del dueño no se encontró en el código —no hay ninguna tienda pintada en rojo hoy— así que
+se le preguntó, y contestó: **«rojo si falta (obligatorio)»**. Era la lectura que se había propuesto, y
+tenía un hueco real detrás: `delivery_name` estaba declarado **opcional** (*«Dropoff Name is
+optional»*), y en un movimiento entre tiendas el destino no es opcional en absoluto. Ahora se exige en
+tipos tienda-a-tienda, sale en «Faltan» con su nombre y el desplegable se marca solo. En una orden de
+cliente sigue siendo opcional: una obra puede no tener nombre.
+
+**No estalla en órdenes vivas:** tienda-a-tienda sin destino, medido en producción con la condición
+exacta, **0**.
+
+### Un comentario que mentía, corregido de paso
+
+`OrderModal.tsx` decía que en tienda-a-tienda «cuenta/contacto/teléfono no aplican y están
+**bloqueados**». No lo estaban: no se exigían, pero seguían visibles y editables. Describía una
+intención, no el código.
+
+### Un defecto que se coló, y por qué lo dejó pasar mi propia prueba
+
+**La primera versión de esta rama dejaba ver de más.** El tablero llamaba a `tiendaDeLaOrdenEsMia` y
+el «solo en tipos tienda-a-tienda» se quedó **en el comentario de al lado, no en el código**. Como
+`tiendasDeLaOrden` devuelve `[store]` en una orden de cliente —que es justo lo que quiere la cola de
+almacén— un vendedor pasaba a ver **las órdenes de cliente de sus compañeros de tienda**, que es lo
+contrario de lo que contestó el dueño.
+
+Lo encontró la revisión leyendo el llamante. Medido después aquí: con una orden de cliente de mi
+tienda escrita por otro, la comprobación daba `true`.
+
+**Y mis pruebas lo daban por bueno**, porque probaban la **pieza** y no la decisión: había una que
+decía «en una orden de cliente solo cuenta la que vende» y afirmaba ese mismo `true`. Era cierta sobre
+`tiendaDeLaOrdenEsMia` y no decía nada sobre lo que ve un vendedor. El comentario decía la verdad y el
+código no, y ninguna prueba miraba el sitio donde se decide.
+
+El arreglo no es añadir la condición que faltaba en la pantalla: es que **la decisión entera viva en
+una función** (`ventasVeLaOrden`) con sus tres caminos —borrador, suya por `orderOwner`, o de tienda a
+tienda y una de sus tiendas es la suya— y que la pantalla la llame. Las pruebas se alimentan ahora de
+esa función con datos, no del texto de la pantalla. La pieza sigue existiendo y sigue siendo correcta;
+lo que no se puede es probarla y dar por hecho el resto.
+
+### Medido, rompiendo cada pieza
+
+23 cambios: **22 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- No mirar la tienda que envía; no mirar la que recibe; mirar las tres también en una orden de cliente;
+  ver todo sin tener tienda; comparar sin el grupo; que el tablero deje de preguntarlo; que la cola de
+  almacén vuelva a mirar solo `store`; que Cuentas excluya todas las de tienda a tienda; que el
+  formulario vuelva a enseñar los tres campos; que el tipo no los limpie; que elegir destino vuelva a
+  escribir el contacto; que el destino deje de ser obligatorio; que lo sea también para un cliente; que
+  `esDeAlmacen` deje de normalizar; que el código de tienda se ignore; no filtrar por departamento; no
+  filtrar por teléfono; devolver lista vacía donde va `null`; y pedirle el directorio otra vez en cada
+  toque. Y los tres del defecto de arriba: que ventas deje de exigir tienda-a-tienda —el que lo
+  reproduce—, que se caiga la excepción del borrador, y que deje de mirar de quién es la orden.
+- **El gemelo:** el bucle de `tiendasDeLaOrden` escrito con `forEach`.
+
+### Cuatro canarios de otras decisiones, reescritos al revés
+
+Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
+
+- **D-302** fijaba que la dirección de tienda *desaparece* en un tipo que recibe; ahora fija que vuelve,
+  y que sigue siendo de solo lectura desde Ajustes.
+- **D-288** fijaba que elegir destino *escribe* el contacto; ahora fija que no lo escribe.
+- **D-288** fijaba que `aplicaTipo` no toca el contacto; ahora fija que vacía los tres, **y se añade la
+  vuelta**: cambiar a un tipo de cliente no los borra.
+- **D-286** y **D-293** fijaban el texto literal de dos líneas que crecieron. Se comprueban en la misma
+  línea que decide, no en una parecida.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2835 pasados | 3 saltados**; el fichero nuevo aporta 38 pruebas, medidas corriendolo solo.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el botón del almacén en la parada, ni el formulario sin
+  los tres campos.
+- **Que un chofer de verdad vea a alguien** depende de datos que no están en el repo: quién tiene
+  extensión y teléfono en su expediente, y qué departamento le pusieron. Los tres números de arriba son
+  del orquestador, medidos en producción el 2026-09-18, y envejecen.
+- **Las órdenes viejas no se tocan**: una Intertienda que ya tenga cuenta, contacto o teléfono los
+  conserva, y sigue contando en Cuentas. Solo cambia lo que se escribe a partir de ahora.
+
+## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
+`125_ventas_pone_la_factura.sql`, escrita y **no aplicada**; va **antes** que el código.
+**Plan:** `docs/PLAN-125-factura-en-la-fila.md`.
+
+### El pedido
+
+El dueño, en dos días: *«en el table de órdenes las órdenes que no tengan invoice number tengan un
+distintivo… los de sales no pueden editar, pero si les falta el invoice solo eso pueden ingresar,
+directo en la orden sin abrirla, ahí en el table… un nuevo filtro al lado del search bar que diga
+invoice pending»*, y después *«add a tab of pending invoice entry pending and sorted by store»*.
+
+### Qué cuenta como «pendiente», y el número que NO había que contar
+
+No es «sin `invoice_num`». Contado así salían **35** órdenes (orquestador, producción, solo lectura,
+2026-09-18), y 31 eran Intertiendas, cuyo documento es el PO: marcarlas «Invoice pending» habría sido
+pedirle a la gente un papel que ese tipo no lleva. El documento que cuenta lo dice la regla del tipo
+(`docRef`, Ajustes → Datos), la misma de `documentoPrincipal` (D-278) y de lo que falta al enviar.
+
+Con esa regla, el recuento del orquestador (2026-09-18, sin entrenamiento, etapa ∉ {draft, rejected,
+canceled}): **Customer sin `invoice_num`: 4 · Intertienda sin `po2`: 14 · Transfer sin
+`estimate_num`: 0. Total 18, todas en `delivered`.**
+
+`documentoPendiente(orden, reglas)` (`src/lib/documento-pendiente.ts`) se apoya en `documentoPrincipal`
+—una sola fuente—: pendiente si el documento del tipo está vacío y la etapa no es borrador, rechazada
+ni anulada. `any` solo si no tiene ninguno; `none` nunca. La pastilla dice cuál: «Invoice pending»,
+«PO pending», «Estimate pending».
+
+**Transfer entra en el distintivo** aunque hoy su estimación no se exija al enviar (`missingFields` no
+tiene rama para `estimate`): que falte se ve, y exigirla es otra decisión que el orquestador le plantea
+al dueño aparte.
+
+### Una pestaña, no una pestaña y un botón
+
+El dueño pidió un filtro junto al buscador y, otro día, una pestaña. Son el mismo estado —«enséñame
+solo lo pendiente»—, y dos mandos para un estado acaban contradiciéndose (uno encendido y el otro no).
+Se hizo **uno**: una pestaña ámbar «Invoice pending (N)» al final de la fila de etapas, que es donde
+la tabla ya tiene ese gesto —una sola elegida, con su cuenta, y otra pulsación la quita—. El botón
+junto al buscador se descartó; si el dueño lo echa de menos, es el mismo `filter` y se añade en una línea.
+
+- **N cuenta sobre lo que la persona ve** (`visible`), como las demás pestañas: un vendedor ve las suyas.
+- **No es una etapa:** enseña lo pendiente de todas. Tenía que serlo: hoy las 18 están entregadas.
+- **Solo sale si hay algo pendiente** (o si se está en ella): una pestaña con un cero fijo estorba.
+- Se combina con Hoy/Todas y con los filtros de columna. «Limpiar filtros» (D-297) no la toca, igual
+  que no toca las pestañas de etapa: limpia filtros de columna, y eso no cambió.
+
+**Ordenada por tienda, con encabezados.** Al entrar, la tabla agrupa por tienda —encabezado con su
+cuenta— y dentro por fecha de entrega; sin tienda, al final. Los filtros de columna se aplican antes,
+así que cada cuenta es la de lo que se ve. **En cuanto la persona ordena por una columna, manda su
+orden y los encabezados se van**: un encabezado de tienda sobre filas ordenadas por fecha mentiría.
+Quitar el orden los devuelve.
+
+### La pastilla y la captura en la fila
+
+En la celda `#`, donde salía el «—», en la misma línea que la factura: no añade una fila a la tarjeta
+de tres de D-298 (si en un teléfono estrecho esa línea salta, no está visto — abajo). Va aparte de la factura, porque a una Intertienda le puede faltar el PO teniendo factura.
+
+Quién puede escribir ahí lo decide `campoCapturableEnFila`, no el componente:
+
+| Quién | Qué escribe desde la fila |
+|---|---|
+| admin, gerente, office | el documento que falte, en cualquier orden (ya editan en toda etapa) |
+| ventas, en `pending` | el documento que falte (ahí ya edita la orden entera) |
+| ventas, de `approved` en adelante | **solo `invoice_num`, y solo en SU orden** — lo que abre la 125 |
+| ventas, con PO o estimación pendiente | ve la pastilla, **no** el input |
+| chofer, almacén, logística | ven la pastilla, nada más |
+
+Almacén edita campos en sus etapas (`canEditFields`), pero el papeleo no es suyo: se le excluye a
+propósito. Logística fuera de borrador no edita en la app hoy, y sigue igual.
+
+El gesto: pulsar la pastilla abre un input pequeño; **Enter guarda, Escape cancela**, y nada de eso
+abre la orden. Vacío o solo espacios no se guarda. **Factura repetida se avisa, no se bloquea**, con la
+misma comparación que la ficha: una factura repartida en varias entregas existe.
+
+**El guardado es un camino propio** (`ponerDocumento`), no `updateDelivery`, por dos razones. El parche
+lleva **un** campo y nada más: la 125 solo deja pasar a ventas si la factura es lo único que cambia, y
+un sello de más convertiría el guardado en un rechazo. Y pide `.select("id")`: un UPDATE que la RLS
+deja en cero filas vuelve de PostgREST sin error y parecería guardado. Quien escribe puede leer la fila
+—la tiene delante—, así que el `RETURNING` no choca con la política de lectura como en D-308.
+
+### La base: migración 125
+
+La pantalla sola no bastaba, y está medido (orquestador, producción, `ROLLBACK`, 2026-09-18): un
+vendedor actualizando **solo** `invoice_num` en **su** orden queda bloqueado en `approved`, `ready` y
+`delivered` — *«You cannot edit an order in the … stage»*.
+
+La 125 copia `guard_delivery_stage` de la **123** —la vigente— y añade **una** excepción en la rama de
+«misma etapa», antes del rechazo: rol `sales`, la orden es suya (`created_by` o `assigned_sales_rep`
+= `auth.uid()`), etapa ∉ {draft, rejected, canceled}, la factura **estaba vacía y deja de estarlo**, y
+es **lo único que cambia** — el patrón `probe` de la rama del chofer: una copia de `NEW` con la factura
+y el `updated_at` viejos tiene que ser idéntica a `OLD`. No sobrescribe una factura puesta, no la vacía,
+no toca una anulada.
+
+**Solo `invoice_num`, no «el documento de su tipo».** Qué documento pide cada tipo está en
+`settings.order_type_rules` con valores por defecto que hoy viven solo en TypeScript. Abrir también
+`po2` y `estimate_num` obligaba a duplicar esa regla en SQL: dos sitios decidiendo lo mismo. El
+orquestador lo prefirió limitado; PO y estimación los captura quien ya edita.
+
+**Una diferencia entre base y pantalla, a sabiendas:** la base dice «creador **o** asignado»; la
+pantalla, `orderOwner` = asignado, y si no hay, creador. Una orden que creó un vendedor y se asignó a
+otro: la base se lo dejaría al primero, la pantalla no — ni la ve en su tabla. La pantalla es más
+estrecha que la base, que es el lado seguro.
+
+Sin `begin`/`commit` propios (la 124 se aplicó sola en un ensayo por llevarlos), con autocomprobación
+que lee `pg_get_functiondef` tras aplicar, ensayo por rol comentado, reversión y ledger. **Es aditiva:
+migración primero, código después** — al revés, el vendedor vería un input que la base rechaza.
+
+### Un canario movido, no aflojado
+
+`cuenta-aprobacion.test.ts` afirmaba «la 123 es la **última** que define el guard». Dejó de serlo con
+la 125. Se reescribió a lo que de verdad protegía —saber de cuál se copió—: ahora afirma que la
+anterior a la 123 en la lista es la 122, y la 125 lleva su propia prueba de que parte de la 123.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**41 mutantes, leídos por nombre; ninguno sobrevivió.** Diecinueve en la regla (mira solo la factura;
+una anulada cuenta; ventas escribe la de cualquiera, o cualquier documento; almacén o chofer capturan;
+cero filas pasa por guardado; la repetida cuenta anuladas, se encuentra a sí misma o distingue
+mayúsculas; el orden pierde la fecha, pone «sin tienda» primero, ordena «10» antes que «9», o parte una
+tienda en dos grupos por la caja…). Diez en el `.sql` (cualquier rol; orden ajena; sobrescribir; vaciar;
+anulada; la copia devuelve también la tarifa; sin comparar; se pierde lo de la 123; lleva su `commit`;
+la autocomprobación no mira lo nuevo). Doce en proveedor, página, tabla y pastilla.
+
+Las cinco condiciones del `.sql` se comparan **como conjunto**, no como texto en orden; y las etapas
+que la base excluye se comparan con las que la regla de la pantalla no marca, recorriendo `STAGES` —
+si alguien añade una etapa a un lado y no al otro, cae. Las pruebas usan tipos de orden inventados: qué
+documento pide cada tipo es dato del dueño y no se afirma en el repo.
+
+### Verificado
+
+`rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
+**171 ficheros | 1 omitido, 2830 pruebas | 3 omitidas.** En `origin/main` (3d2966f), misma copia:
+170 | 1 y 2796 | 3. La diferencia, fichero a fichero con el reporter JSON: **+33** de
+`documento-pendiente.test.ts` y **+1** de `inline-colors.test.ts`, que genera una prueba por
+componente y recogió `DocumentoPendiente.tsx`.
+
+### El ensayo de la 125, medido
+
+Medido por el orquestador en producción con `ROLLBACK`, 2026-09-18; comprobado después que no quedó nada (ledger sin la fila, guard sin la excepción). Los números de caso son los del ensayo, no los del comentario del `.sql`.
+
+**Antes de aplicar:** todos los casos del vendedor BLOQUEADOS; gerente permitido.
+**Con la 125 aplicada dentro de la transacción:**
+
+| # | Quién y qué | Resultado |
+|---|---|---|
+| 1 | vendedor, SU orden en `approved`, factura vacía → la pone | **PERMITIDO** |
+| 1b | lo mismo en `delivered` | **PERMITIDO** |
+| 2 | factura + `est_pallets` | bloqueado |
+| 3 | factura en blanco | bloqueado |
+| 4 | otro vendedor, orden ajena | bloqueado |
+| 5 | chofer | bloqueado |
+| 6 | gerente | permitido, como hoy |
+| 7 | factura + cambio de etapa | bloqueado («sales cannot move…») |
+| 8 | sobrescribir una factura ya puesta | bloqueado |
+
+**1c (orden `canceled`) no se pudo correr:** no hay en producción ninguna orden anulada de un vendedor. Esa exclusión queda leída en el `.sql` y fijada por la prueba de las condiciones, no medida en la base.
+
+**Aplicada en producción el 2026-09-18 ~15:05Z** con el OK del dueño («aplícalo»): respaldo del guard vigente antes, `migrate-status` 123/123 antes, autocomprobación pasada, y los casos 1, 1b (permitidos) y 2-7 (bloqueados) repetidos en vivo con `ROLLBACK` después de aplicar.
+
+### Lo no verificado
+
+- **El caso 1c de la 125** (vendedor sobre una orden anulada): sin datos en producción para ensayarlo.
+- **Nadie ha visto la pastilla ni el input en un navegador.** En el worktree no hay `.env.local`. En
+  concreto no está visto: que el input quepa en la columna `#` a su ancho por defecto; que la pastilla junto a una factura
+  larga no haga saltar la primera línea de la tarjeta del teléfono; el encabezado de
+  tienda en la tarjeta del teléfono; el ámbar en modo oscuro.
+- **El tablero no lleva pastilla.** La tarjeta del tablero no se tocó: el pedido habla de la tabla.
+- Si `authenticated` puede llamar a una función de `pg_temp` creada por `postgres` en la misma sesión
+  (la misma duda que dejó escrita la 123).

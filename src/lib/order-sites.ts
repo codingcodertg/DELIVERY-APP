@@ -63,6 +63,20 @@ function sinDestino(d: Borrador): Borrador {
 export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Borrador {
   const rule = orderTypeRule(tipo, c.reglas);
   const next: Borrador = { ...p, order_type: tipo };
+  // Un movimiento tienda-a-tienda no tiene cliente, así que no tiene cuenta, contacto ni teléfono
+  // (D-309). El dueño: «remove account contact name and phone number from intertienda», y al
+  // preguntarle si la cuenta también: «los tres».
+  //
+  // Se **limpian al cambiar de tipo** y no solo se esconden: escondidos seguirían viajando a la base,
+  // y la cuenta decide cosas —la regla de «esta cuenta siempre pasa por oficina» (D-292 / 123)— así
+  // que una Intertienda con una cuenta invisible podría nacer pendiente sin que nadie viera por qué.
+  //
+  // Solo al cambiar de tipo: una orden ya guardada no se toca al abrirla.
+  if (rule.storeToStore === true) {
+    next.account = "";
+    next.contact = "";
+    next.delivery_phone = "";
+  }
   if (rule.homeIsDestination && c.miTienda) {
     const home = c.tiendas.find((s) => s.name === c.miTienda);
     // Su tienda vende y recibe; lo que se elige es la recogida (D-302).

@@ -400,7 +400,10 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     ready, me, realRole: me.role, viewAs: null, setViewAs: () => {}, teaching: false, setTeaching: () => {}, clearTrainingData: async () => {}, settings: store.settings, users: store.users, deliveries: store.deliveries, ensureDeliveriesSince: async () => {}, events: store.events,
     notifications: store.notifications.filter((n) => n.user_id === me.id),
     toast, notify, markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
+    addDelivery, updateDelivery,
+    // El demo local no tiene base que rechace nada: el documento en fila es una edición más.
+    ponerDocumento: (id, campo, valor) => updateDelivery(id, { [campo]: valor.trim() }),
+    reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
