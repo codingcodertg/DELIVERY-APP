@@ -37260,7 +37260,7 @@ en esta misma copia con el árbol en `origin/main`, está en 2608 | 3.
   horario real fuera otro, esta decisión lo propagaría sin enterarse: el sitio donde mirar es esa
   constante.
 
-## D-NEXT · Se ve que hay un filtro puesto, y se quita de una
+## D-297 · Se ve que hay un filtro puesto, y se quita de una
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** Baudelio, de Almacén: *«cuando pongo un filtro funciona, pero luego se me olvida que tengo un

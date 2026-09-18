@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { columnasFiltradas, hayFiltros, textoDeColumnas } from "./filtros-activos";
 
-// «Se me olvida que tengo un filtro» (D-NEXT). Columnas inventadas.
+// «Se me olvida que tengo un filtro» (D-297). Columnas inventadas.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");

@@ -1,5 +1,5 @@
 /**
- * Qué filtros hay puestos en la tabla, para poder decirlo y quitarlos (D-NEXT).
+ * Qué filtros hay puestos en la tabla, para poder decirlo y quitarlos (D-297).
  *
  * Baudelio, de Almacén: *«cuando pongo un filtro funciona, pero luego se me olvida que tengo un
  * filtro; hace falta un botón de limpiar filtro visible»*. Hasta ahora lo único que lo delataba

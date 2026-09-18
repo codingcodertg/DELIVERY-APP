@@ -470,7 +470,7 @@ export function OrdersTable({
 
   const allChecked = !!selected && rows.length > 0 && rows.every((r) => selected.has(r.id));
 
-  // Qué filtros hay puestos, en el orden de las columnas (D-NEXT). Se queda vacío casi siempre, y
+  // Qué filtros hay puestos, en el orden de las columnas (D-297). Se queda vacío casi siempre, y
   // entonces la barra no se pinta: una barra que sale siempre deja de leerse.
   const filtradas = columnasFiltradas(filters, cols.map((c) => c.key));
   const nombresFiltrados = filtradas.map((k) => {
@@ -480,7 +480,7 @@ export function OrdersTable({
 
   return (
     <>
-    {/* Que se vea que hay un filtro puesto, y quitarlo de una (D-NEXT). Lo pidió almacén: el filtro
+    {/* Que se vea que hay un filtro puesto, y quitarlo de una (D-297). Lo pidió almacén: el filtro
         funcionaba, pero lo único que lo delataba era el ▾ de su cabecera en color, y en una tabla
         que se desplaza a lo ancho esa columna puede ni estar en pantalla. Se nombran las columnas
         filtradas, no solo cuántas, para saber dónde ir si se quiere ajustar en vez de limpiar. */}
