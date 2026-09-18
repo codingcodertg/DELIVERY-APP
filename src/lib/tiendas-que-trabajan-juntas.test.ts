@@ -129,7 +129,12 @@ describe("el grupo se guarda en Ajustes, no en el código", () => {
 describe("dónde se comparte el trabajo", () => {
   it("almacén: la cola es la del grupo para quien está fijado, y la elegida para quien elige", () => {
     expect(almacen).toContain("(lockedToOwnStore ? tiendasDelGrupo(me?.store, settings.stores) : effectiveStore ? [effectiveStore] : [])");
-    expect(almacen).toContain('if (tiendasDeLaCola.includes(d.store ?? "")) return true;');
+    // La cola compara contra **las tiendas de la orden** desde D-NEXT —que en un movimiento
+    // tienda-a-tienda son la que vende, la que envía y la que recibe— en vez de contra `d.store` a
+    // mano. Lo que fija D-293 no cambia: la cola sigue siendo la del grupo, y sigue decidiendo
+    // `atStore`.
+    expect(almacen).toContain("const suyas = tiendasDeLaOrden(d, orderTypeRule(d.order_type, settings.order_type_rules)).map(normalizaLugar);");
+    expect(almacen).toContain("if (colaNormalizada.some((c) => suyas.includes(c))) return true;");
     expect(almacen).toContain("if (tiendasDeLaCola.length > 0 && !atStore(d)) return false;");
   });
 

@@ -177,10 +177,16 @@ describe("el formulario", () => {
     expect(modal).toContain("disabled={!salesFields || origenFijo || tiendaCongelada}");
   });
 
-  it("la fila de «Dirección de tienda» desaparece solo en ese tipo", () => {
-    expect(modal).toContain("{!homeIsDestination && (");
-    const tramo = modal.slice(modal.indexOf("{!homeIsDestination && ("), modal.indexOf("{/* ---- Pickup ---- */}"));
+  it("la fila de «Dirección de tienda» vuelve, también en un tipo que recibe (D-NEXT)", () => {
+    // **Esta prueba fijaba lo contrario.** D-302 escondía la dirección en un tipo que recibe porque el
+    // dueño dijo que ahí no se necesitaba; el 2026-09-18 la pidió de vuelta: «store sold from should
+    // have the address». Se reescribe al revés en vez de borrarse, que es lo que le toca a un canario
+    // cuando cambia la decisión que vigilaba.
+    expect(modal).not.toContain("{!homeIsDestination && (");
+    const tramo = modal.slice(modal.indexOf("{/* ---- Store (Sold From) + its address ---- */}"), modal.indexOf("{/* ---- Pickup ---- */}"));
     expect(tramo).toContain('{t("Store address", "Dirección de tienda")}');
+    // Y sigue siendo de solo lectura y sacada de Ajustes: lo que vuelve es el dato, no un campo nuevo.
+    expect(tramo).toContain('<input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled');
   });
 
   it("la recogida es un desplegable de tiendas, y su dirección no se teclea", () => {

@@ -24,10 +24,15 @@ const TIENDAS: NamedLocation[] = [
 ];
 
 describe("el contacto vuelve a ser lo que era", () => {
-  it("elegir la tienda de destino vuelve a escribir el contacto, como antes de D-282", () => {
+  it("elegir la tienda de destino ya NO escribe el contacto (D-NEXT)", () => {
+    // D-288 la devolvió a escribirlo —el contacto de una Intertienda era la tienda que recibe— y el
+    // 2026-09-18 el dueño quitó cuenta, contacto y teléfono de los movimientos tienda-a-tienda
+    // («los tres»). Escribirlo ahora rellenaría un campo que ya no se enseña, y encima lo volvería a
+    // poner justo después de que el cambio de tipo lo vaciara.
     const d = eligeDestino({ order_type: "Intertienda", store: "Tienda Norte" }, "Tienda Sur", TIENDAS);
     expect(d.delivery_name).toBe("Tienda Sur");
-    expect(d.contact).toBe("Tienda Sur");
+    expect(d.delivery_address).toBe("200 Sur Blvd, Ciudad TX");
+    expect(d.contact ?? "").toBe("");
   });
 
   it("y el formulario vuelve a tener el contacto como texto libre", () => {
@@ -76,17 +81,38 @@ describe("lo que NO se revierte sigue en pie", () => {
     }
   });
 
-  it("y `aplicaTipo` sigue vaciando la punta que choca, sin tocar el contacto", () => {
+  it("y `aplicaTipo` vacía la punta que choca Y los tres del cliente (D-NEXT)", () => {
     const REGLAS = {
       Intertienda: { docRef: "po" as const, storeToStore: true, homeIsDestination: true },
       Customer: { docRef: "invoice" as const, storeToStore: false },
     };
     const ctx = { rol: "manager", miTienda: "Tienda Norte", tipos: ["Customer", "Intertienda"], tiendas: TIENDAS, reglas: REGLAS };
-    const cliente = { order_type: "Customer", store: "Tienda Norte", contact: "Quien recibe", delivery_name: "Tienda Norte", delivery_address: TIENDAS[0].address };
+    const cliente = {
+      order_type: "Customer", store: "Tienda Norte", account: "Un cliente", contact: "Quien recibe",
+      delivery_phone: "5550001111", delivery_name: "Tienda Norte", delivery_address: TIENDAS[0].address,
+    };
     const d = sitios.aplicaTipo(cliente, "Intertienda", ctx);
     // Desde D-302 la punta que el tipo deja elegir es la RECOGIDA: su tienda vende y recibe.
     expect(d.pickup_name || "").toBe("");
     expect(d.store).toBe("Tienda Norte");
-    expect(d.contact).toBe("Quien recibe");   // el contacto ya no lo toca nadie
+    // Y desde D-NEXT se van los tres del cliente: un movimiento entre tiendas no tiene ninguno. Esta
+    // prueba exigía justo lo contrario —«el contacto ya no lo toca nadie»— y se reescribe, porque lo
+    // que cambió es la decisión, no el código que la vigila.
+    expect(d.account ?? "").toBe("");
+    expect(d.contact ?? "").toBe("");
+    expect(d.delivery_phone ?? "").toBe("");
+  });
+
+  it("pero volver a un tipo de cliente no los vacía: solo se limpian al entrar en tienda-a-tienda", () => {
+    const REGLAS = {
+      Intertienda: { docRef: "po" as const, storeToStore: true, homeIsDestination: true },
+      Customer: { docRef: "invoice" as const, storeToStore: false },
+    };
+    const ctx = { rol: "manager", miTienda: "Tienda Norte", tipos: ["Customer", "Intertienda"], tiendas: TIENDAS, reglas: REGLAS };
+    const conCliente = { order_type: "Customer", store: "Tienda Norte", account: "Un cliente", contact: "Quien recibe", delivery_phone: "5550001111" };
+    const d = sitios.aplicaTipo(conCliente, "Customer", ctx);
+    expect(d.account).toBe("Un cliente");
+    expect(d.contact).toBe("Quien recibe");
+    expect(d.delivery_phone).toBe("5550001111");
   });
 });

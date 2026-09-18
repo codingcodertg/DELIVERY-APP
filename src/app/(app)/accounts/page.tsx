@@ -9,6 +9,7 @@ import { deliveryColumns, downloadCSV, fmtDate, fmtMoney, isOverdue, orderLabel,
 import { useColWidths } from "@/lib/use-col-widths";
 import { useConfirm } from "@/lib/confirm";
 import type { AccountRecord, Delivery, Settings } from "@/lib/types";
+import { isStoreToStore } from "@/lib/required";
 
 // ============================================================
 // Customer accounts — every order grouped by the customer it belongs to.
@@ -53,6 +54,11 @@ export default function AccountsPage() {
   const accounts = useMemo<AccountRow[]>(() => {
     const map = new Map<string, Delivery[]>();
     for (const d of deliveries) {
+      // Una orden de tienda a tienda SIN cuenta no es un cliente (D-NEXT): desde que Intertienda dejó
+      // de llevar cuenta, meterlas aquí llenaría una sola fila «(sin cuenta)» que crece sin parar y no
+      // se puede abrir para nada útil. Las de tienda a tienda que SÍ llevan cuenta —las de antes de
+      // este cambio— siguen contando donde contaban.
+      if (!(d.account || "").trim() && isStoreToStore(d.order_type, settings.order_type_rules)) continue;
       const key = (d.account || "").trim() || t("(no account)", "(sin cuenta)");
       (map.get(key) ?? map.set(key, []).get(key)!).push(d);
     }

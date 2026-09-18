@@ -1,4 +1,5 @@
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
+import { mismaTiendaOGrupo } from "./store-group";
 
 /**
  * Una orden no puede ir de un sitio a ese mismo sitio (D-267).
@@ -95,16 +96,81 @@ export function origenEsDestino(
   return !!dirOrigen && dirOrigen === normalizaLugar(d.delivery_address);
 }
 
+/**
+ * **Las tiendas a las que les importa esta orden** (D-NEXT).
+ *
+ * El dueño: *«in intertienda orders people from both pickup and delivery store can see the order
+ * because les importa a ambos»*.
+ *
+ * En un movimiento tienda-a-tienda son hasta tres columnas y no una: `store` («Vendido desde»),
+ * `pickup_name` (la que **envía** el material) y `delivery_name` (la que **recibe**). Desde D-302 una
+ * Intertienda bien formada tiene `store` y `delivery_name` en la misma tienda —la del usuario, que
+ * vende y recibe— así que lo normal es que devuelva dos; se miran las tres igualmente porque las
+ * órdenes de antes de D-302 tienen la otra forma y siguen vivas.
+ *
+ * En los demás tipos la tienda de una orden es `store`, como siempre.
+ *
+ * Devuelve los nombres **como están guardados**, sin repetir: quien compare que normalice, y quien
+ * pinte tiene el nombre de verdad.
+ */
+export function tiendasDeLaOrden(
+  d: Pick<Partial<Delivery>, "store" | "pickup_name" | "delivery_name">,
+  regla: Pick<OrderTypeRule, "storeToStore">,
+): string[] {
+  const candidatas = regla.storeToStore === true
+    ? [d.store, d.pickup_name, d.delivery_name]
+    : [d.store];
+  const vistas = new Set<string>();
+  const salida: string[] = [];
+  for (const n of candidatas) {
+    const clave = normalizaLugar(n);
+    if (!clave || vistas.has(clave)) continue;
+    vistas.add(clave);
+    salida.push((n as string).trim());
+  }
+  return salida;
+}
+
+/**
+ * ¿Alguna de las tiendas de esta orden es la mía (o del grupo con el que trabaja, D-293)?
+ *
+ * Es **la** decisión de «las dos tiendas ven la orden», y vive aquí en vez de en la pantalla a
+ * propósito: la pantalla de Órdenes y la cola de almacén tienen que contestar lo mismo, y dos copias
+ * acaban contestando distinto.
+ *
+ * Sin tienda propia devuelve false: quien no tiene tienda no gana visibilidad por esta vía.
+ */
+export function tiendaDeLaOrdenEsMia(
+  d: Pick<Partial<Delivery>, "store" | "pickup_name" | "delivery_name">,
+  regla: Pick<OrderTypeRule, "storeToStore">,
+  miTienda: string | null | undefined,
+  tiendas: NamedLocation[],
+): boolean {
+  if (!normalizaLugar(miTienda)) return false;
+  return tiendasDeLaOrden(d, regla).some((n) => mismaTiendaOGrupo(n, miTienda, tiendas));
+}
+
 /** Elegir «Vendido desde»: la tienda, y su nombre y su dirección como recogida. Lo que hace el modal. */
 export function eligeOrigen(p: Partial<Delivery>, v: string, tiendas: NamedLocation[]): Partial<Delivery> {
   const st = tiendas.find((s) => s.name === v);
   return { ...p, store: v, pickup_name: v || p.pickup_name, pickup_address: st?.address ? st.address : p.pickup_address };
 }
 
-/** Elegir la tienda de destino: es el nombre del destino, su dirección y el contacto. Lo que hace el modal. */
+/**
+ * Elegir la tienda de destino: es el nombre del destino y su dirección. Lo que hace el modal.
+ *
+ * **Ya no escribe el contacto** (D-NEXT). Lo escribía desde D-288 —ahí el contacto de una Intertienda
+ * era el nombre de la tienda que recibe— y eso dejó de tener sentido cuando el dueño quitó cuenta,
+ * contacto y teléfono de los movimientos tienda-a-tienda: seguiría rellenando un campo que ya no se
+ * enseña, **y volvería a ponerlo justo después de que el cambio de tipo lo vaciara**. Un dato invisible
+ * que viaja a la base es peor que uno vacío.
+ *
+ * Esta función solo se usa en el destino de un tipo tienda-a-tienda, así que no hay otro camino que
+ * pierda nada con el cambio.
+ */
 export function eligeDestino(p: Partial<Delivery>, v: string, tiendas: NamedLocation[]): Partial<Delivery> {
   const st = tiendas.find((s) => s.name === v);
-  return { ...p, delivery_name: v, delivery_address: st?.address ?? "", contact: v || p.contact };
+  return { ...p, delivery_name: v, delivery_address: st?.address ?? "" };
 }
 
 /**

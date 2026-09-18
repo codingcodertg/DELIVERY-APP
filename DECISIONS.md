@@ -36589,6 +36589,12 @@ como los otros cinco, que es la regla que esas pruebas exigen.
 
 ## D-288 · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
 
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** El dueño quitó cuenta, contacto y teléfono de
+> los movimientos tienda-a-tienda («los tres»), así que **`eligeDestino` ya no escribe el contacto**:
+> rellenaría un campo que ya no se enseña, y lo volvería a poner justo después de que el cambio de tipo
+> lo vaciara. Lo que sigue vigente de esta entrada: el contacto es texto libre en una orden de
+> **cliente**, y todo lo que dice sobre no dejar restos de media reversión.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«lets undo the change we made to intertienda»*.
 
@@ -36951,6 +36957,12 @@ en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
   quitar.
 
 ## D-292 · Cuentas que siempre pasan por oficina
+
+> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** Desde que una Intertienda no lleva cuenta, esta
+> regla **deja de aplicarle**: `account_requires_approval(null)` devuelve false —no hay fila que case—
+> así que una orden entre tiendas ya no nace pendiente por la cuenta. Es decisión del dueño, a quien se
+> le preguntó expresamente. Para las órdenes de cliente, y para las Intertienda viejas que sí llevan
+> cuenta guardada, esta entrada sigue entera: el guard de la 123 no cambia.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Migración:
 `123_cuentas_con_aprobacion.sql`**, que aplica el orquestador tras su respaldo y su ensayo ·
@@ -37653,6 +37665,12 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
 
 ## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
+> **⚠ Reemplazada en parte al día siguiente, por D-NEXT.** La **dirección de «Vendido desde» vuelve**
+> también en un tipo que recibe: aquí se había quitado porque el dueño dijo que no se necesitaba, y el
+> 2026-09-18 la pidió de vuelta — *«store sold from should have the address»*. Lo demás sigue vigente:
+> la tienda que abre la orden vende y recibe, «Vendido desde» sigue congelado, y lo que se elige es la
+> tienda que envía.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, con capturas: *«el store sold from debería quedar freeze, y solo en ese caso
 quitar el store address, no se necesita; el store destination es el mismo store sold from, y el pickup
@@ -38275,3 +38293,172 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
   son historia y ya no sirven.
 - **El tiempo real de Supabase** (`postgres_changes` sobre `notifications`) sigue igual; no se ha
   medido cuánto tarda la campana en actualizarse tras el insert.
+
+## D-NEXT · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño**, cinco cosas de una vez: *«in intertienda orders people from both pickup and
+delivery store can see the order because les importa a ambos · remove account contact name and phone
+number from intertienda · store sold from should have the address · so driver could click on any pu or
+del store and see the warehouse phone number so he can call him · in intertienda the store destination
+should be in red as well»*. Las cuatro dudas que dejaba se le preguntaron cerradas y las contestó él;
+van abajo, cada una en su sitio.
+
+**Reemplaza en parte a D-288, D-292 y D-302**, y cada una lleva su nota dentro.
+
+### La forma de una Intertienda, que es lo que hay que saber antes de leer nada
+
+Desde D-302, `store` («Vendido desde») **es la misma tienda que** `delivery_name` —la del usuario, que
+vende y recibe— y `pickup_name` es **la que manda el material**. Así que «las dos tiendas» de la frase
+del dueño son esas dos, y no las que uno diría leyendo los nombres de las columnas.
+
+### 1. Las dos tiendas la ven — el hueco estaba solo en ventas
+
+Medido antes de tocar nada:
+
+| Pantalla | Filtraba por | ¿Veía la tienda que envía? |
+|---|---|---|
+| Cola de almacén | `store`, `pickup_name` y `pickup_address` | **Sí, ya** (D-293) |
+| Tablero, ventas | `orderOwner` — **por persona, no por tienda** | **No** |
+| Tablero, gerente/office/logística | nada | Sí, ven todo |
+
+O sea que la frase solo cambia **ventas**. Y eso contradice una regla viva —un vendedor nunca ve una
+orden que no es suya— así que se preguntó antes de implementarlo. El dueño: **«sí, vendedores
+también»**.
+
+Lo que se hizo es lo mínimo que cumple la frase: en un tipo **tienda-a-tienda**, un vendedor ve además
+las órdenes cuya tienda que envía o que recibe sea la suya, o del grupo con el que trabaja (D-293). En
+una orden de cliente sigue viendo solo las suyas. **`orderOwner` no se toca**, así que los avisos y el
+crédito del panel siguen siendo de quien la escribió.
+
+La decisión vive en **una función** (`tiendaDeLaOrdenEsMia`, sobre `tiendasDeLaOrden`) y no en cada
+pantalla: el tablero y la cola de almacén tienen que contestar lo mismo, y dos copias acaban
+contestando distinto. La cola de almacén pasa a usarla también — antes tenía las tres comprobaciones
+escritas a mano y se dejaba fuera el destino.
+
+`tiendasDeLaOrden` mira las **tres** columnas en un tipo tienda-a-tienda aunque hoy dos coincidan: las
+órdenes de antes de D-302 tienen la otra forma y siguen vivas.
+
+**Para la 124, que está en pausa:** su cláusula compara `lower(btrim(store))`. Tal cual, un vendedor de
+la tienda que **envía** con `visible_stores` marcado seguiría sin ver la orden. Para que cuente igual,
+esa cláusula tiene que comparar contra las tres columnas (`store`, `pickup_name`, `delivery_name`). No
+se toca desde aquí: esa rama tiene su propio ensayo.
+
+### 2. Sin cliente: fuera cuenta, contacto y teléfono
+
+Se preguntó si eran dos cosas o tres —«account contact name and phone number» se puede leer como «el
+contacto y el teléfono **de la cuenta**»— y el dueño contestó: **«los tres: cuenta también»**.
+
+**No se esconden: se vacían al cambiar de tipo.** Escondidos seguirían viajando a la base, y la cuenta
+decide cosas. Una Intertienda con una cuenta invisible podría nacer pendiente sin que nadie viera por
+qué. Una orden ya guardada no se toca al abrirla; esto ocurre solo al elegir el tipo.
+
+Dos efectos que nadie había listado y que salieron de mirar el código:
+
+- **`eligeDestino` escribía el contacto** (D-288: en una Intertienda el contacto era la tienda que
+  recibe). Habría vuelto a rellenarlo **justo después** de vaciarlo, invisible. Ya no lo escribe.
+- **La regla de «esta cuenta siempre pasa por oficina» (D-292 / migración 123) deja de aplicar** a
+  Intertienda: sin cuenta, `account_requires_approval(null)` no encuentra fila y devuelve false. Se le
+  avisó al dueño al preguntarle y aun así dijo que los tres. Queda escrito, no descubierto luego.
+- **Cuentas deja fuera las de tienda a tienda sin cuenta.** Si no, todas caerían en una sola fila
+  «(sin cuenta)» que crece sin parar y no se puede abrir para nada útil. Las que **sí** llevan cuenta
+  —las de antes de este cambio— siguen contando donde contaban. Resumen se queda como está: ahí la
+  línea «(sin cuenta)» es una fila entre muchas y se lee bien.
+
+**`required.ts` nunca exigió la cuenta**, en ningún tipo: no había nada que quitar ahí. Contacto y
+teléfono ya estaban exentos en tienda-a-tienda desde antes.
+
+### 3. «Vendido desde» recupera su dirección
+
+D-302 la había quitado en un tipo que recibe porque el dueño dijo que no se necesitaba; ahora la pide
+de vuelta. Es una condición menos: la fila vuelve, de solo lectura y sacada de Ajustes. «Vendido desde»
+sigue congelado.
+
+### 4. A quién llama el chofer: del directorio, no de un campo nuevo
+
+Aquí hubo **una propuesta y un descarte**, y conviene que conste. El teléfono de una tienda **no existía
+como dato**: las tiendas de Datos solo tienen `directory_ext`, que es una extensión y no se puede marcar
+sin un número principal al que sumarla — y ese número no está en ningún sitio. Se ofrecieron dos
+caminos: un campo `phone` por tienda, o la gente del directorio. Se llegó a escribir el primero; el
+dueño eligió **el directorio**, y el campo se revirtió entero antes de commitear.
+
+Medido en producción antes de escribirlo (por el orquestador, 2026-09-18):
+
+- un **chofer** puede ejecutar `phone_book()` con su sesión: recibe filas, **sin migración**;
+- de los cuatro de almacén con cuenta, **tres** tienen extensión y teléfono, así que la lista no sale
+  vacía;
+- **el departamento identifica mejor que el rol**: hay **8 personas de «Almacén» sin cuenta en la app**
+  que el rol no vería y el departamento sí. Por eso se filtra por `department`, normalizado sin acentos
+  («Almacén», «almacen », «ALMACEN» son el mismo).
+
+En la pantalla del chofer, en **las dos paradas** —donde recoge y donde entrega—, un botón con el
+código de la tienda. **Se pregunta al tocar, no al abrir la parada**: se abre en cada parada del día y
+casi ninguna necesita llamar a un almacén; una vez preguntado, no se vuelve a pedir. Cada persona sale
+con su nombre, su título, su teléfono como enlace `tel:` y su extensión al lado.
+
+Tres estados, y los tres a propósito: si el sitio **no es una tienda nuestra** no aparece nada; si lo es
+pero no hay nadie, lo dice; y si la consulta falla, se enseña el error — una lista vacía y muda se lee
+como «no hay nadie», que es otra respuesta.
+
+**Lo que no puede hacer:** el directorio agrupa por código, así que **varias tiendas que comparten
+código salen juntas** y la fila no dice de cuál es cada persona — la RPC colapsa la tienda en el código
+y no devuelve la de cada uno. Se enseña el grupo tal cual. Arreglarlo pediría una columna nueva en la
+RPC, o sea una migración, y nadie la ha pedido.
+
+### 5. La tienda destino, obligatoria y en rojo
+
+El «también» del dueño no se encontró en el código —no hay ninguna tienda pintada en rojo hoy— así que
+se le preguntó, y contestó: **«rojo si falta (obligatorio)»**. Era la lectura que se había propuesto, y
+tenía un hueco real detrás: `delivery_name` estaba declarado **opcional** (*«Dropoff Name is
+optional»*), y en un movimiento entre tiendas el destino no es opcional en absoluto. Ahora se exige en
+tipos tienda-a-tienda, sale en «Faltan» con su nombre y el desplegable se marca solo. En una orden de
+cliente sigue siendo opcional: una obra puede no tener nombre.
+
+**No estalla en órdenes vivas:** tienda-a-tienda sin destino, medido en producción con la condición
+exacta, **0**.
+
+### Un comentario que mentía, corregido de paso
+
+`OrderModal.tsx` decía que en tienda-a-tienda «cuenta/contacto/teléfono no aplican y están
+**bloqueados**». No lo estaban: no se exigían, pero seguían visibles y editables. Describía una
+intención, no el código.
+
+### Medido, rompiendo cada pieza
+
+20 cambios: **19 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- No mirar la tienda que envía; no mirar la que recibe; mirar las tres también en una orden de cliente;
+  ver todo sin tener tienda; comparar sin el grupo; que el tablero deje de preguntarlo; que la cola de
+  almacén vuelva a mirar solo `store`; que Cuentas excluya todas las de tienda a tienda; que el
+  formulario vuelva a enseñar los tres campos; que el tipo no los limpie; que elegir destino vuelva a
+  escribir el contacto; que el destino deje de ser obligatorio; que lo sea también para un cliente; que
+  `esDeAlmacen` deje de normalizar; que el código de tienda se ignore; no filtrar por departamento; no
+  filtrar por teléfono; devolver lista vacía donde va `null`; y pedirle el directorio otra vez en cada
+  toque.
+- **El gemelo:** el bucle de `tiendasDeLaOrden` escrito con `forEach`.
+
+### Cuatro canarios de otras decisiones, reescritos al revés
+
+Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
+
+- **D-302** fijaba que la dirección de tienda *desaparece* en un tipo que recibe; ahora fija que vuelve,
+  y que sigue siendo de solo lectura desde Ajustes.
+- **D-288** fijaba que elegir destino *escribe* el contacto; ahora fija que no lo escribe.
+- **D-288** fijaba que `aplicaTipo` no toca el contacto; ahora fija que vacía los tres, **y se añade la
+  vuelta**: cambiar a un tipo de cliente no los borra.
+- **D-286** y **D-293** fijaban el texto literal de dos líneas que crecieron. Se comprueban en la misma
+  línea que decide, no en una parecida.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. **2828 pasados | 3 saltados**; el fichero nuevo aporta 31 pruebas, medidas corriendolo solo.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador**: ni el botón del almacén en la parada, ni el formulario sin
+  los tres campos.
+- **Que un chofer de verdad vea a alguien** depende de datos que no están en el repo: quién tiene
+  extensión y teléfono en su expediente, y qué departamento le pusieron. Los tres números de arriba son
+  del orquestador, medidos en producción el 2026-09-18, y envejecen.
+- **Las órdenes viejas no se tocan**: una Intertienda que ya tenga cuenta, contacto o teléfono los
+  conserva, y sigue contando en Cuentas. Solo cambia lo que se escribe a partir de ahora.

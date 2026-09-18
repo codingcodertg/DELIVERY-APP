@@ -39,6 +39,9 @@ import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
+import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
@@ -572,10 +575,14 @@ export function OrderModal({
     }
   };
 
-  // Store-to-store move (Intertienda / Transfer): the destination is another
-  // known store chosen from the dropdown, and there's no external customer, so
-  // account/contact/phone don't apply and are locked. Driven by the order
-  // type's configured rule (Data → Order types), not the name.
+  // Store-to-store move (Intertienda / Transfer): the destination is another known store chosen from
+  // the dropdown, and there's no external customer. Driven by the order type's configured rule
+  // (Data → Order types), not the name.
+  //
+  // **Decía que cuenta/contacto/teléfono quedaban «bloqueados», y no era verdad** (D-NEXT): no se
+  // exigen desde hace tiempo (`required.ts`), pero siguen visibles y editables unas líneas más abajo.
+  // El comentario describía una intención, no el código; corregirlo es parte del encargo que quita
+  // esos campos de Intertienda.
   const storeToStore = isStoreToStore(d.order_type, settings.order_type_rules);
   // Qué paso enseña el formulario (D-304): UNA decisión para las cuatro condiciones de abajo. Antes
   // eran dos escritas a mano y una Intertienda recién nacida no caía en ninguna: modal vacío.
@@ -1801,6 +1808,14 @@ export function OrderModal({
             )}
 
             {/* ---- Customer / contact ---- */}
+            {/* En un movimiento tienda-a-tienda no hay cliente, así que no hay cuenta, contacto ni
+                teléfono (D-NEXT). El dueño: «remove account contact name and phone number from
+                intertienda», y al preguntarle si la cuenta también: «los tres».
+                No es solo esconderlos: `aplicaTipo` los vacía al cambiar a un tipo tienda-a-tienda,
+                para que no viajen a la base invisibles — la cuenta decide si la orden nace pendiente
+                (D-292 / 123) y una cuenta que no se ve no se puede explicar. */}
+            {!storeToStore && (
+            <>
             <div className="grid g3">
               <AccountCombo
                 val={d.account}
@@ -1879,6 +1894,8 @@ export function OrderModal({
                 >
                   💾 {t("Save this contact + address for the account", "Guardar contacto + dirección de la cuenta")}
                 </button>
+            )}
+            </>
             )}
 
             {/* ---- Order type · fee · pallets ---- */}
@@ -1967,16 +1984,14 @@ export function OrderModal({
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
               }} disabled={!salesFields || origenFijo || tiendaCongelada} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
-              {/* La dirección de la tienda no se enseña en un tipo que recibe (D-302): ahí la tienda
-                  está congelada y el dato no aporta nada — lo pidió el dueño, «solo en ese caso». Esto
-                  NO es D-282, que escondía la fila entera y se revirtió en D-288: «Vendido desde» sigue
-                  ahí, visible. */}
-              {!homeIsDestination && (
-                <div className="field">
-                  <label>{t("Store address", "Dirección de tienda")}</label>
-                  <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
-                </div>
-              )}
+              {/* La dirección vuelve también en un tipo que recibe (D-NEXT). D-302 la había quitado
+                  ahí —«no se necesita», dijo el dueño— y ahora la pide de vuelta: «store sold from
+                  should have the address». Sigue siendo de solo lectura y sale de Ajustes; «Vendido
+                  desde» sigue congelado. */}
+              <div className="field">
+                <label>{t("Store address", "Dirección de tienda")}</label>
+                <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
+              </div>
             </div>
 
             {/* ---- Pickup ---- */}
@@ -3026,6 +3041,86 @@ function CallClientButton({
   );
 }
 
+/**
+ * A quién llamar en una tienda de la parada (D-NEXT).
+ *
+ * El dueño: *«so driver could click on any pu or del store and see the warehouse phone number so he
+ * can call him»*, y eligió que salga **de la gente del directorio**, no de un número escrito por
+ * tienda. Medido antes de escribirlo (producción, 2026-09-18): un chofer puede ejecutar `phone_book()`
+ * con su sesión, y el departamento «Almacén» identifica mejor que el rol —hay ocho almacenistas sin
+ * cuenta en la app que el rol no vería—.
+ *
+ * **Se pregunta al tocar, no al montar**: la pantalla del chofer se abre en cada parada del día y casi
+ * ninguna necesita llamar a un almacén. Una vez preguntado, se guarda: tocar otra vez no vuelve a
+ * pedirlo.
+ *
+ * Si el sitio no es una tienda nuestra —la casa de un cliente— esto no pinta nada.
+ */
+function AlmacenDeLaParada({
+  nombre, tiendas, t,
+}: {
+  nombre: string | null | undefined;
+  tiendas: NamedLocation[];
+  t: (en: string, es: string) => string;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [filas, setFilas] = useState<PersonaDirectorio[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+
+  const codigo = codigoDeTienda(nombre, tiendas);
+  if (!codigo) return null;
+
+  const abrir = () => {
+    setAbierto((v) => !v);
+    if (filas || cargando) return;
+    setCargando(true);
+    void createClient().rpc("phone_book").then(({ data, error: e }) => {
+      setCargando(false);
+      // El error se ENSEÑA, como en el directorio: una lista vacía y muda se lee como «no hay nadie»,
+      // que es una respuesta distinta de «no se pudo preguntar».
+      if (e) { setError(e.message); setFilas([]); return; }
+      setFilas((data ?? []) as PersonaDirectorio[]);
+    });
+  };
+
+  const gente = filas ? almacenDeLaTienda(filas, nombre, tiendas) : null;
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button className="btn btn-ghost btn-sm" onClick={abrir} aria-expanded={abierto}>
+        📞 {t("Warehouse", "Almacén")} · {codigo}
+      </button>
+      {abierto && (
+        <div className="box" style={{ marginTop: 6, padding: 10 }}>
+          {cargando && <div className="hint" style={{ margin: 0 }}>{t("Loading…", "Cargando…")}</div>}
+          {error && <div className="hint" style={{ margin: 0, color: "var(--red)" }}>{error}</div>}
+          {gente && gente.length === 0 && !error && (
+            <div className="hint" style={{ margin: 0 }}>
+              {t("Nobody from the warehouse with a phone at this store.", "Nadie de almacén con teléfono en esta tienda.")}
+            </div>
+          )}
+          {gente?.map((p) => {
+            const href = telHref(p.phone);
+            return (
+              <div key={`${p.full_name}:${p.phone}`} className="detail-row">
+                <span className="dk">
+                  {p.full_name}
+                  {p.title && <span className="hint" style={{ marginLeft: 6 }}>{p.title}</span>}
+                </span>
+                <span className="dv">
+                  {href ? <a href={href}>{p.phone}</a> : p.phone}
+                  {p.ringcentral_ext && <span className="hint" style={{ marginLeft: 6 }}>ext. {p.ringcentral_ext}</span>}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Driver-optimized delivery screen: large, glanceable delivery info + client
 // contact with one-tap Call / Text / Navigate. "Call client" opens the phone's
 // native dialer via a tel: link so the driver rings the customer instantly.
@@ -3075,6 +3170,8 @@ function DriverDeliveryScreen({
               : t("Pick up", "Recoger")}
           </div>
           {origin && <div className="drv-banner-sub">{origin}</div>}
+          {/* A quién llamar en la tienda donde recoge (D-NEXT). */}
+          <AlmacenDeLaParada nombre={pickupPlace} tiendas={settings.stores} t={t} />
         </div>
         {origin && (
           <button
@@ -3106,6 +3203,9 @@ function DriverDeliveryScreen({
           {order.invoice_num && (
             <div className="drv-banner-sub drv-inv">📄 INV {order.invoice_num}</div>
           )}
+          {/* Y en la de destino, si el destino es otra tienda nuestra — una Intertienda (D-NEXT).
+              En una entrega a cliente no pinta nada. */}
+          <AlmacenDeLaParada nombre={order.delivery_name} tiendas={settings.stores} t={t} />
           {order.delivery_pin_source === "manual" && (
             <div className="drv-banner-sub" style={{ color: "var(--accent)", fontWeight: 700 }}>
               📍 {t("No formal address — an exact pin was dropped for this site. Navigate uses the pin.", "Sin dirección formal — se marcó un pin exacto para este sitio. Navegar usa el pin.")}

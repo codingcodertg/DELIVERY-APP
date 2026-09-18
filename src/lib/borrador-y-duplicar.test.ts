@@ -63,7 +63,12 @@ describe("quién puede retomar un borrador", () => {
 
   it("y un vendedor ve los borradores de cualquiera, solo los borradores", () => {
     const lista = leer("src/app/(app)/page.tsx");
-    expect(lista).toContain('if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id) return false;');
+    // El corte creció con las tiendas de una Intertienda (D-NEXT) y el canario crece con él: lo que
+    // fija esta prueba sigue siendo lo de D-286 —que la excepción es **solo** `draft`— y se comprueba
+    // en la misma línea que decide, no en una parecida.
+    const corte = lista.slice(lista.indexOf('if (me?.role === "sales" && d.stage !== "draft"'));
+    expect(corte.slice(0, 400)).toContain('d.stage !== "draft" && orderOwner(d) !== me.id');
+    expect(corte.slice(0, 400)).toContain("return false;");
     // El resto de cortes de ventas siguen donde estaban.
     expect(lista).toContain('if (me?.role === "sales" && d.stage === "canceled") return false;');
   });

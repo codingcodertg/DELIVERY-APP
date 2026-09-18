@@ -14,6 +14,8 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
+import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
+import { orderTypeRule } from "@/lib/required";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
@@ -188,7 +190,14 @@ export default function OrdersPage() {
         // volver y editarlo», y un borrador que no se ve no se puede editar. Es un cambio de
         // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
         // vuelve a ser el de siempre.
-        if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id) return false;
+        //
+        // **Y menos las de tienda a tienda de SU tienda** (D-NEXT). El dueño: «in intertienda orders
+        // people from both pickup and delivery store can see the order because les importa a ambos»,
+        // y confirmado después para ventas: las ve aunque no las haya creado él. Solo en tipos
+        // tienda-a-tienda; en una orden de cliente sigue viendo solo las suyas. `orderOwner` no se
+        // toca, así que los avisos y el crédito del panel siguen siendo de quien la escribió.
+        if (me?.role === "sales" && d.stage !== "draft" && orderOwner(d) !== me.id
+            && !tiendaDeLaOrdenEsMia(d, orderTypeRule(d.order_type, settings.order_type_rules), me.store, settings.stores)) return false;
         // Sales never see canceled orders (a canceled order disappears for them).
         if (me?.role === "sales" && d.stage === "canceled") return false;
         // Warehouse only ever sees orders that have been approved — never

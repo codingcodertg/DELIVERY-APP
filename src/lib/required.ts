@@ -68,8 +68,15 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
   if (!filled(d.store)) out.push({ key: "store", en: "Store (Sold From)", es: "Tienda (Vendido Desde)" });
   if (!filled(d.pickup_name)) out.push({ key: "pickup_name", en: "Pickup Name", es: "Nombre de Recolección" });
   if (!filled(d.pickup_address)) out.push({ key: "pickup_address", en: "Pickup Address", es: "Dirección de Recolección" });
-  // Dropoff Name is optional — the address is what matters for the delivery.
+  // Dropoff Name is optional **en una entrega a cliente** — ahí lo que importa es la dirección, y el
+  // nombre del sitio puede no existir (una obra).
   if (!filled(d.delivery_address)) out.push({ key: "delivery_address", en: "Delivery Address (dropoff)", es: "Dirección de Entrega (destino)" });
+  // En un movimiento tienda-a-tienda NO es opcional: es la tienda destino, se elige de una lista y sin
+  // ella la orden no dice a dónde va (D-NEXT). El dueño: «in intertienda the store destination should
+  // be in red as well» — o sea, que se marque como los demás campos que faltan.
+  if (isStoreToStore(d.order_type, rules) && !filled(d.delivery_name)) {
+    out.push({ key: "delivery_name", en: "Store destination", es: "Tienda destino" });
+  }
   // Store-to-store moves have no external customer, so no contact/phone to collect.
   if (!isStoreToStore(d.order_type, rules)) {
     if (!filled(d.contact)) out.push({ key: "contact", en: "Contact name", es: "Nombre de Contacto" });
