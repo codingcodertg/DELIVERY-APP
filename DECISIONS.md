@@ -38193,3 +38193,85 @@ copia con el árbol en `origin/main`, está en 2762 | 3.
   rama, como en D-243.
 - **`candidates` lee toda la plantilla con la llave de servicio** en cada apertura del panel. No se
   midió cuánta gente hay; con la plantilla actual es una lectura pequeña.
+
+## D-NEXT · La notificación de «orden asignada» al chofer no había llegado nunca
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
+**Origen:** medido por el orquestador en producción: **0 filas con `kind='assigned'`** en
+`public.notifications` en toda la historia, mientras los demás avisos sí existen (`approved` 500,
+`delivered` 168, `pending` 108, `ready` 79…). Diagnóstico previo de otro worker, confirmado aquí.
+
+### Qué fallaba, y por qué nadie lo vio
+
+El aviso al chofer se escribía en `updateDelivery` cuando cambia `assigned_driver`
+(`data-provider.tsx`), con `insert([seed]).select("id")`. El `.select("id")` estaba para dar el id a
+`/api/push`, que lo necesita: esa ruta lee la fila **con service role por id** y decide destinatario y
+mensaje desde la base, a propósito, para que quien llama no pueda elegir a quién zumba ni qué dice.
+
+Pero `INSERT … RETURNING` aplica la **política de lectura** a la fila devuelta, y `notif read own`
+(`001_notifications.sql`, reescrita solo en forma initplan en la 080) deja leer únicamente al
+destinatario (`user_id = auth.uid()`). Quien asigna —gerente, office, logística— no es el chofer, así
+que Postgres rechazaba **la sentencia entera**: la fila no se insertaba. Y el código leía
+`const { data: made }` y **descartaba el `error`**: sin fila no había push, y nadie se enteraba.
+
+**Medido en producción con `ROLLBACK`** (orquestador, 2026-09-17, gerente → chofer, columnas reales):
+`insert … returning id` → *«new row violates row-level security policy for table "notifications"»*;
+el mismo insert **sin `returning`** → permitido; con `id` generado por el cliente y sin `returning` →
+permitido. Diagnóstico confirmado, no supuesto.
+
+**Todas las asignaciones reales pasan por ahí** —mapa, tablero, Rutas (la del día a día) y la ficha
+llaman a `updateDelivery` con `assigned_driver`—, por eso cero filas.
+
+### Un matiz que se cerró midiendo
+
+El mapa, además de `updateDelivery`, empujaba **sus propias** semillas `assigned` por `pushNotifs`, que
+inserta sin `.select()` y por tanto sí funcionaba. Eso debería haber dejado filas. Medido: en
+`order_events` hay 102 notas «Assigned» y **0** con «(from» o «Auto-assigned», que son las que deja el
+mapa — **nadie ha asignado nunca en bloque desde el mapa**. El matiz no contradecía el diagnóstico; se
+comprobó en vez de suponerlo.
+
+### El arreglo, sin migración
+
+1. **El id se genera en el cliente** (`crypto.randomUUID()`, patrón que el repo ya usa) y se inserta
+   `{ id, ...seed }` **sin `.select()`**. El push se lanza con ese id; la ruta lo sigue leyendo con
+   service role, así que **su seguridad no cambia**: sigue sin poder elegir destinatario ni mensaje.
+2. **El `error` se registra**, como hacen los otros dos inserts de notificaciones, y **no se empuja si
+   el insert falló**.
+3. **Sin `randomUUID`** (un navegador viejo): se inserta sin id y **no** se empuja. Un id que no sea
+   uuid reventaría la columna; la campana llega igual por tiempo real, que recarga la tabla entera.
+4. **El mapa deja de empujar sus semillas a mano.** Con el sitio arreglado, ese camino habría dado
+   **dos** avisos por orden al mismo chofer. `updateDelivery` ya avisa, y con la regla de
+   `assignmentNotification`, que además no avisa al chofer de su propia acción ni a un nombre que no
+   es un chofer — las semillas manuales sí lo hacían.
+
+Se descartó una función `security definer` que devuelva el id: exige migración para devolver algo que
+el cliente puede generar él mismo, y no hay precedente de RPC que devuelva `uuid` en el repo (medido).
+
+### Los demás `kind`
+
+**Ninguno afectado.** Los otros dos inserts (`emitStageNotifs` y `pushNotifs`) van sin `.select()`:
+`pending`, `approved`, `rejected`, `ready`, `delivered` y los dos `pending_deadline_*` no tenían el
+problema. Y para que el patrón no vuelva por otro `kind`, hay una prueba que **barre `src/`** y cae si
+cualquier insert en `notifications` lleva `.select(`.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+Ocho mutantes, cada uno cazado por su prueba: que vuelva el `.select("id")`, que el error se descarte,
+que se empuje aunque el insert falle, que el push lleve otro id, que sin `randomUUID` se invente un id
+que no es uuid, que se inserte con `id` indefinido, que **otro** insert gane un `.select(` (el barrido),
+y que el mapa vuelva a empujar semillas a mano. Ninguno sobrevivió.
+
+### Verificado
+
+`verify.mjs`: en verde sobre `.next` limpio, en solitario: **2796 pasados | 3 saltados**. La rama añade 9
+pruebas, todas en `aviso-chofer-asignado.test.ts`, fichero nuevo, y no quita ninguna. `main` 3a9c379,
+medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
+
+### Lo no verificado
+
+- **Nadie ha visto el aviso llegar a un teléfono.** Lo que se probó con `ROLLBACK` es que la fila
+  entra; el push depende de Firebase y de que el chofer tenga el dispositivo registrado, como siempre.
+- **Los choferes no recibieron los avisos de las 102 asignaciones pasadas**, y no se van a reescribir:
+  son historia y ya no sirven.
+- **El tiempo real de Supabase** (`postgres_changes` sobre `notifications`) sigue igual; no se ha
+  medido cuánto tarda la campana en actualizarse tras el insert.
