@@ -36058,6 +36058,15 @@ tres veces en el modal. `main` 3b549ca, medido en un worktree aparte, está en 2
 
 ## D-283 · La tarifa local, de nuevo: un solo precio, 0,80 por milla y redondeo a 5
 
+> **⚠ Reemplazada en parte el mismo día, por D-NEXT.** El dueño pidió el descuento de vuelta unas
+> horas después de pedir el precio único: *«discounted fee was removed, bring it back»*. **Lo que sigue
+> vigente de esta entrada:** la fórmula de la LISTA (100 plano bajo 11 millas, 105 + 0,80 × millas
+> hasta 50, 300 + 0,80 × millas por encima, 500 + 0,80 × millas fuera de zona), el redondeo a 5, el
+> suelo de 105 y todo lo que dice sobre generar la tabla desde el mismo sitio que el precio. **Lo que
+> ya no vale:** que haya un solo precio, y que el suelo del aviso de aprobación sea ese precio. La
+> cifra del descuento —y por qué coincide con la lista en tres de los cuatro tramos— está en D-NEXT.
+> No se borra nada de aquí: esto pasó, y el porqué de que pasara sigue siendo útil.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, literal: *«new local delivery fee formula: more than 50 miles 300+(0.80$ x mile), when
 below 50 miles min 105+(0.80 per mile) and round to the nearest 5»*. Las cuatro dudas que dejaba se le
@@ -37744,3 +37753,117 @@ main, que se movió mientras se escribía (D-300).
 - **El tipo de orden que cambia es el que tenga `homeIsDestination`**, y hoy es solo Intertienda
   (medido en `settings.order_type_rules`). Si mañana alguien le pone esa bandera a otro tipo, se lleva
   este comportamiento entero sin que nadie lo decida otra vez.
+
+## D-NEXT · El precio con descuento vuelve, con la fórmula nueva
+
+**Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño**, literal: *«discounted fee was removed, bring it back»*, unas horas después de
+pedir el precio único de D-283. Y la cifra, también suya y literal: *«discounted price for local
+deliveries over 50 mi will be = 105+(0.80 x miles)»*.
+
+**Reemplaza en parte a D-283**, que queda marcada como tal en su propia entrada. De D-283 sigue en pie
+la fórmula de la lista, el redondeo a 5 y el suelo; lo que se revierte es que hubiera un solo precio.
+
+### La tabla, de una vez
+
+| tramo | lista | descuento |
+|---|---|---|
+| local, menos de 11 mi | 100 plano | **100** — igual que la lista |
+| local, 11–50 mi | 105 + 0,80 × mi (mín. 105) | **igual que la lista** |
+| local, más de 50 mi | 300 + 0,80 × mi | **105 + 0,80 × mi (mín. 105)** |
+| fuera de zona | 500 + 0,80 × mi | **igual que la lista** — provisional |
+
+Todo al múltiplo de $5 más cercano, y el recargo de mismo día se suma **después** de redondear, en los
+dos precios.
+
+**Por qué coinciden en tres de los cuatro tramos.** Porque el descuento que pidió el dueño para las
+entregas largas *es* la fórmula del tramo del medio. Dicho de otra forma: **el descuento de una entrega
+larga es «cóbrale como si fuera corta»**. Hasta 50 millas la lista ya es esa misma fórmula, así que no
+hay nada que descontar. Que dos celdas de la tabla digan lo mismo no es un fallo ni un hueco sin
+rellenar.
+
+En millas de verdad: a 60 millas la lista son $350 y el descuento $155; a 180, $445 y $250.
+
+### Un solo sitio, no dos tablas
+
+`TARIFA` sigue siendo **una** tabla de cuatro cifras. El descuento no es una segunda columna de números
+sueltos: es `pasoTarifa` pidiéndole a la misma función el otro precio, y el único punto del código donde
+los dos se separan es el tramo largo, donde el descuento usa `TARIFA.baseMedio` y `MINIMO_MEDIO` — los
+mismos que usa el tramo del medio ocho líneas más abajo. Si alguien cambia ese 105, cambian los dos a la
+vez, o no cambia ninguno.
+
+Con dos tablas —que es como estaba antes de D-283— tocar el 105 de una dejaba la otra con el 105 viejo,
+y nadie lo habría notado hasta ver dos números distintos en dos pantallas.
+
+### Lo que vuelve a la pantalla
+
+- **Dos botones** en la ficha, «Lista $X» y «Descuento $Y», en los dos sitios donde salen (el bloque
+  compacto y el de zona). **Con su etiqueta**: por debajo de 50 millas los dos dicen el mismo importe, y
+  dos botones iguales sin etiqueta se leen como un error de la pantalla.
+- **Dos caminos en «¿Cómo se calculó?»**, cada uno con su título.
+- **Dos columnas en la tabla de Ajustes**, Lista y Descuento, generadas evaluando la fórmula, no
+  describiéndola.
+- **El aviso de «igualar precio» vuelve a mirar el descuento**, como antes de D-283: el descuento es el
+  suelo de lo que un vendedor puede ofrecer por su cuenta. Con el precio único, D-283 avisaba de
+  cualquier rebaja; ahora avisa de lo que de verdad necesita aprobación.
+- **El aviso de almacén tolera los dos precios otra vez**: cobrar el descuento dejaba de cuadrar y
+  salía marcado en rojo.
+
+### Lo que NO cambia
+
+- **Las órdenes guardadas no se recalculan.** Esto solo cambia lo que se *sugiere*: `delivery_fee` de
+  una orden ya escrita se queda como está, y el importe solo cambia si alguien pulsa un botón. Tiene
+  prueba, y no de las que miran el número: recorre **todas** las apariciones de `set("delivery_fee", …)`
+  en la ficha y exige que cada una esté dentro de un `onClick`.
+- La zona (pin o ciudad), el recargo de mismo día, los umbrales de 11 y 50 millas y el redondeo a 5.
+
+### Medido, rompiendo cada pieza
+
+11 cambios: **10 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El descuento largo se inventa su propia cifra; el descuento no se separa nunca de la lista; el
+  descuento largo pierde el suelo; lista y descuento cambiados; el aviso vuelve a mirar la lista; los
+  botones pierden su etiqueta; Ajustes pierde la columna del descuento; el desglose enseña dos veces la
+  lista; el recargo de mismo día solo cae en la lista; la tabla de Ajustes genera el descuento pidiendo
+  la lista.
+- **El gemelo:** la condición del descuento escrita al revés (`precio !== "list"`).
+
+**Dos pruebas mías eran de adorno y las cazó la tanda:**
+
+1. La de las etiquetas buscaba el texto **una vez**, y los botones están escritos **dos** veces en la
+   ficha. Un mutante que quitaba la etiqueta de uno la dejaba pasar, porque el otro seguía teniéndola.
+   Ahora recorre todas las apariciones de `fmtMoney(feeSuggestion.discount)` y exige la etiqueta delante
+   de cada una.
+2. Y una prueba **de otra decisión** (D-244, `fee-formula-text.test.ts`) llevaba un rato en rojo sin que
+   yo lo viera: fijaba `f.regla.minimo`, que este cambio renombra a `f.lista.minimo` y
+   `f.descuento.minimo`. Corrí las dos suites que había tocado y no la de al lado. Se actualiza a las
+   dos columnas, que es lo que ahora tiene que llegar a la tabla.
+
+### Las pruebas de otras decisiones que se actualizan
+
+Se **reescriben al revés en vez de aflojarse**, porque lo que fijaban dejó de ser verdad:
+
+- El bloque de D-283 «donde había dos precios ahora hay uno» pasa a ser «los dos precios llegan a las
+  tres pantallas», y sigue siendo el canario de que la ficha, el desglose y Ajustes enseñan lo que
+  `pricing.ts` calcula.
+- `zone-source.test.ts` fijaba la firma literal de `deliveryFee`; la firma creció con el precio que se
+  pide, y la prueba crece con ella. El valor por defecto es la lista, así que quien llamaba con dos
+  argumentos sigue pidiendo lo mismo.
+- `fee-formula-text.test.ts` contaba 8 celdas (4 filas × 2) y ahora cuenta 12 (4 × 3: rango, lista y
+  descuento).
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio, ya rebasada sobre `main` con D-300 y D-301 dentro:
+**las tres pasan** — tipos, pruebas y build. **2702 pasados | 3 saltados** (los saltados son los tres
+de `pdf.test.ts`, cuyas fixtures viven fuera del repo). El fichero nuevo aporta **18 pruebas**, medidas
+corriéndolo solo; el resto de los cambios son reescrituras de pruebas que ya existían.
+
+### Lo no verificado / pendiente de decir
+
+- **El descuento de fuera de zona es provisional.** El dueño no lo mencionó, así que se deja igual que
+  la lista (500 + 0,80 × millas). Está preguntado.
+- **Nadie lo ha abierto en un navegador**: ni los dos botones, ni las dos columnas de Ajustes.
+- **No se ha mirado qué hacen las órdenes ya cobradas con el precio de D-283** —las de esta misma
+  tarde— cuando alguien las abra: verán el aviso de almacén solo si lo cobrado no coincide ni con la
+  lista ni con el descuento de hoy.

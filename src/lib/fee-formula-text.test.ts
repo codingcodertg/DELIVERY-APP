@@ -38,14 +38,15 @@ describe("las reglas se dicen según el factor", () => {
     expect(textoDeLaRegla(en, 300, FACTOR_MILLA)).toBe(`300 + ${FACTOR_MILLA} × mi`);
   });
 
-  it("y las ocho celdas de la tabla se pueden decir en inglés sin que quede nada suelto", () => {
+  it("y las doce celdas de la tabla se pueden decir en inglés sin que quede nada suelto", () => {
     // El control del fallo original: si alguna celda volviera a llevar español clavado, esta
     // recorrería la tabla entera y lo encontraría.
     const celdas = filasDeLaFormula().flatMap((f) => [
       textoDelRango(en, f.desde, f.hasta),
-      textoDeLaRegla(en, f.regla.base, f.regla.factor, f.regla.minimo),
+      textoDeLaRegla(en, f.lista.base, f.lista.factor, f.lista.minimo),
+      textoDeLaRegla(en, f.descuento.base, f.descuento.factor, f.descuento.minimo),
     ]);
-    expect(celdas).toHaveLength(8); // control: 4 filas × 2 celdas, desde D-283
+    expect(celdas).toHaveLength(12); // control: 4 filas × 3 celdas (rango, lista, descuento) desde D-NEXT
     for (const c of celdas) {
       expect(c, c).not.toMatch(/fijo|cualquier|menos de|más de|mín\./);
     }
@@ -93,7 +94,10 @@ describe("Ajustes enseña la fórmula una sola vez", () => {
       expect(src, `la constante ${n} no puede estar escrita en la pantalla`).not.toContain(`${n} + mi`);
     }
     expect(src).not.toContain("Fee formula (by driving miles)");
-    // Y el suelo llega a la tabla: una regla con mínimo que se pintara sin él mentiría.
-    expect(src).toContain("f.regla.minimo");
+    // Y el suelo llega a la tabla, **en las dos columnas** (D-NEXT): una regla con mínimo que se
+    // pintara sin él mentiría, y el descuento del tramo largo tiene suelo igual que la lista del
+    // tramo del medio.
+    expect(src).toContain("f.lista.minimo");
+    expect(src).toContain("f.descuento.minimo");
   });
 });

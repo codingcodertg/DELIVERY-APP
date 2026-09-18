@@ -1672,12 +1672,17 @@ export function OrderModal({
               <span className="hint" style={{ margin: 0 }}>{t("Delivery Fee", "Costo de Entrega")}: <b>{d.delivery_fee == null ? "—" : fmtMoney(d.delivery_fee)}</b></span>
             </div>
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
-            {/* Un solo precio (D-283): antes eran dos botones, Lista y Descuento. Quien quiera
-                cobrar menos escribe el importe, y el aviso de abajo dice que eso pide aprobación. */}
-            {feeSuggestion.fee != null && (
+            {/* Los dos botones otra vez, Lista y Descuento (D-NEXT): D-283 los dejó en uno y el
+                dueño pidió el descuento de vuelta el mismo día. */}
+            {(feeSuggestion.list != null || feeSuggestion.discount != null) && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
                 <span className="hint" style={{ margin: 0 }}>{t("Suggested fee:", "Tarifa sugerida:")}</span>
-                <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.fee ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.fee ? null : feeSuggestion.fee)}>{d.delivery_fee === feeSuggestion.fee ? "✓ " : ""}{fmtMoney(feeSuggestion.fee)}</button>
+                {feeSuggestion.list != null && (
+                  <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.list ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.list ? null : feeSuggestion.list)}>{d.delivery_fee === feeSuggestion.list ? "✓ " : ""}{t("List", "Lista")} {fmtMoney(feeSuggestion.list)}</button>
+                )}
+                {feeSuggestion.discount != null && (
+                  <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.discount ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.discount ? null : feeSuggestion.discount)}>{d.delivery_fee === feeSuggestion.discount ? "✓ " : ""}{t("Discount", "Descuento")} {fmtMoney(feeSuggestion.discount)}</button>
+                )}
               </div>
             )}
             {/* Y aquí también (D-249). D-244 puso el desglose solo en el bloque de zona local,
@@ -1889,12 +1894,19 @@ export function OrderModal({
                   {zoneWhy && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>· {zoneWhy}</span>}
                   {d.route_miles != null && <span className="hint" style={{ margin: 0 }}>· {d.route_miles} mi</span>}
                 </div>
-                {feeSuggestion.fee != null ? (
+                {(feeSuggestion.list != null || feeSuggestion.discount != null) ? (
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
                     <span className="hint" style={{ margin: 0 }}>{t("Suggested fee:", "Tarifa sugerida:")}</span>
-                    <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.fee ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.fee ? null : feeSuggestion.fee)}>
-                      {d.delivery_fee === feeSuggestion.fee ? "✓ " : ""}{fmtMoney(feeSuggestion.fee)}
-                    </button>
+                    {feeSuggestion.list != null && (
+                      <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.list ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.list ? null : feeSuggestion.list)}>
+                        {d.delivery_fee === feeSuggestion.list ? "✓ " : ""}{t("List", "Lista")} {fmtMoney(feeSuggestion.list)}
+                      </button>
+                    )}
+                    {feeSuggestion.discount != null && (
+                      <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.discount ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.discount ? null : feeSuggestion.discount)}>
+                        {d.delivery_fee === feeSuggestion.discount ? "✓ " : ""}{t("Discount", "Descuento")} {fmtMoney(feeSuggestion.discount)}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route below to price this delivery by miles.", "Calcule la ruta abajo para cotizar esta entrega por millas.")}</div>
@@ -1916,11 +1928,13 @@ export function OrderModal({
                     ⚡ {t(`Same-day delivery — includes ${fmtMoney(feeSuggestion.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(feeSuggestion.sameDaySurcharge)}.`)}
                   </div>
                 )}
-                {/* Cobrar por debajo del precio pide aprobación. Hasta D-283 el suelo era el
-                    descuento; al quedar un solo precio, el suelo es ese. */}
-                {feeSuggestion.fee != null && d.delivery_fee != null && d.delivery_fee < feeSuggestion.fee && (
+                {/* Cobrar por debajo del DESCUENTO pide aprobación, como antes de D-283 (D-NEXT):
+                    el descuento es el suelo de lo que un vendedor puede ofrecer solo. Con el
+                    descuento de vuelta, D-283 había dejado el suelo en la lista, que es más
+                    estricto y avisaba de cualquier rebaja. */}
+                {feeSuggestion.discount != null && d.delivery_fee != null && d.delivery_fee < feeSuggestion.discount && (
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
-                    ⚠ {t("Price match (below the fee) — requires approval.", "Igualar precio (menor a la tarifa) — requiere aprobación.")}
+                    ⚠ {t("Price match (below discount) — requires approval.", "Igualar precio (menor al descuento) — requiere aprobación.")}
                   </div>
                 )}
               </div>
@@ -2515,7 +2529,7 @@ export function OrderModal({
               {/* Vacío se enseña como $0 y no como "nada": es la misma cifra que se va a
                   facturar, y decirlo con palabras obligaba a traducirlo mentalmente. */}
               <strong>${existing.delivery_fee ?? 0}</strong>
-              {feeSuggestion.fee != null ? (
+              {feeSuggestion.list != null ? (
                 <>
                   {" · "}
                   {/* Se dice de DÓNDE sale el número —ciudad, zona y millas— y no solo cuál es.
@@ -2526,7 +2540,12 @@ export function OrderModal({
                   {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
                   {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}
                   {" → "}
-                  <strong>${feeSuggestion.fee}</strong>
+                  {/* Los dos precios, y el descuento solo cuando de verdad es otro número
+                      (D-NEXT): con esta fórmula solo se separa por encima de 50 millas, y
+                      repetir la misma cifra dos veces se lee como un error. */}
+                  <strong>${feeSuggestion.list}</strong> {t("list", "lista")}
+                  {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
+                    && <> · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}
                 </>
               ) : (
                 // Sin millas de ruta no hay tarifa que calcular. Se dice, en vez de callar: un
@@ -2549,27 +2568,30 @@ export function OrderModal({
                 {" "}
                 {t("If that is right, confirm it and it stops being flagged.",
                    "Si es correcto, confírmelo y deja de marcarse.")}
-                {feeSuggestion.fee != null && (
+                {feeSuggestion.list != null && (
                   <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
-                    onClick={() => setStartFee(String(feeSuggestion.fee))}>
-                    {t("Charge", "Cobrar")} ${feeSuggestion.fee}
+                    onClick={() => setStartFee(String(feeSuggestion.list))}>
+                    {t("Charge", "Cobrar")} ${feeSuggestion.list}
                   </button>
                 )}
               </div>
             )}
             {/* El aviso solo cuando de verdad NO cuadra. Un aviso que sale siempre deja de
                 leerse, y entonces el que importa pasa desapercibido. */}
-            {!sinCobrar && feeSuggestion.fee != null && existing.delivery_fee != null
-              && existing.delivery_fee !== feeSuggestion.fee && (
+            {/* Cobrar el descuento NO es no cuadrar (D-NEXT): el aviso tolera los dos precios,
+                como antes de D-283. Con un solo precio, cobrar el descuento salía marcado. */}
+            {!sinCobrar && feeSuggestion.list != null && existing.delivery_fee != null
+              && existing.delivery_fee !== feeSuggestion.list
+              && existing.delivery_fee !== feeSuggestion.discount && (
               <div className="banner warn" style={{ marginTop: 8 }}>
                 ⚠️ {t(
-                  `Charged $${existing.delivery_fee}. For ${feeSuggestion.zone === "local" ? "a local" : "an out-of-area"} delivery of ${existing.route_miles ?? "?"} miles the price is $${feeSuggestion.fee}.`,
-                  `Se cobró $${existing.delivery_fee}. Para una entrega ${feeSuggestion.zone === "local" ? "local" : "fuera de zona"} de ${existing.route_miles ?? "?"} millas el precio es $${feeSuggestion.fee}.`,
+                  `Charged $${existing.delivery_fee}. For ${feeSuggestion.zone === "local" ? "a local" : "an out-of-area"} delivery of ${existing.route_miles ?? "?"} miles the price is $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, or $${feeSuggestion.discount} discounted` : ""}.`,
+                  `Se cobró $${existing.delivery_fee}. Para una entrega ${feeSuggestion.zone === "local" ? "local" : "fuera de zona"} de ${existing.route_miles ?? "?"} millas el precio es $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, o $${feeSuggestion.discount} con descuento` : ""}.`,
                 )}
                 {" "}
                 <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
-                  onClick={() => setStartFee(String(feeSuggestion.fee))}>
-                  {t("Use", "Usar")} ${feeSuggestion.fee}
+                  onClick={() => setStartFee(String(feeSuggestion.list))}>
+                  {t("Use", "Usar")} ${feeSuggestion.list}
                 </button>
               </div>
             )}

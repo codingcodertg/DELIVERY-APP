@@ -111,18 +111,21 @@ describe("suggestDeliveryFee", () => {
   it("prices by miles and marks a local city as no-approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "123 Main St, McAllen, TX 78501", route_miles: 13 });
     expect(s.zone).toBe("local");
-    expect(s.fee).toBe(115);
+    expect(s.list).toBe(115);
+    expect(s.discount).toBe(115);  // hasta 50 millas el descuento ES la lista
     expect(s.needsApproval).toBe(false);
   });
   it("uses the not-local formula (500 + mi·0.8) and flags for approval", () => {
     const s = suggestDeliveryFee({ delivery_address: "500 Ranch Rd, Falfurrias, TX", route_miles: 60 });
     expect(s.zone).toBe("nonlocal");
-    expect(s.fee).toBe(550);       // 500 + 48 = 548 → 550
+    expect(s.list).toBe(550);       // 500 + 48 = 548 → 550
+    expect(s.discount).toBe(550);   // fuera de zona, igual que la lista (provisional)
     expect(s.needsApproval).toBe(true);
   });
   it("leaves the fee null until the route miles are known", () => {
     const s = suggestDeliveryFee({ delivery_address: "1 Palm Ave, McAllen, TX", route_miles: null });
-    expect(s.fee).toBeNull();
+    expect(s.list).toBeNull();
+    expect(s.discount).toBeNull();
     expect(s.breakdown).toBeNull();
   });
   it("stays 'unknown' with no delivery address", () => {
@@ -140,17 +143,17 @@ describe("suggestDeliveryFee", () => {
     const same = suggestDeliveryFee({ ...base, delivery_date: iso }, { same_day_surcharge: 50 });
     expect(same.sameDay).toBe(true);
     expect(same.sameDaySurcharge).toBe(50);
-    expect(same.fee).toBe(165);  // 115 + 50: el recargo se suma DESPUÉS de redondear
+    expect(same.list).toBe(165);  // 115 + 50: el recargo se suma DESPUÉS de redondear
 
     const other = suggestDeliveryFee({ ...base, delivery_date: "2020-01-01" }, { same_day_surcharge: 50 });
     expect(other.sameDay).toBe(false);
-    expect(other.fee).toBe(115);
+    expect(other.list).toBe(115);
   });
 
   it("does not surcharge when the amount is 0 (feature off)", () => {
     const s = suggestDeliveryFee({ delivery_address: "1 Palm Ave, McAllen, TX", route_miles: 13, delivery_date: todayISO() }, { same_day_surcharge: 0 });
     expect(s.sameDay).toBe(false);
-    expect(s.fee).toBe(115);
+    expect(s.list).toBe(115);
   });
 
   it("es una SUGERENCIA: no toca la orden que recibe", () => {
@@ -160,6 +163,6 @@ describe("suggestDeliveryFee", () => {
     expect(orden).toEqual(copia);
     // Y la tarifa guardada sigue siendo la que estaba, no la sugerida.
     expect(orden.delivery_fee).toBe(999);
-    expect(s.fee).toBe(115);
+    expect(s.list).toBe(115);
   });
 });

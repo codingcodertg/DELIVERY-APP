@@ -4,14 +4,21 @@ import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 
 // ============================================================
 // Delivery fee = a function of driving miles (the office's real formula).
-// ONE price per order since D-283: the "discount" column is gone — the owner
-// asked for a single fee. Everything rounds to the nearest $5. It depends on whether
-// the delivery city is LOCAL:
+//
+// DOS precios otra vez (D-NEXT): lista y descuento. D-283 había dejado uno solo porque el dueño lo
+// pidió esa mañana, y esa misma tarde pidió el descuento de vuelta: «discounted fee was removed,
+// bring it back». Todo redondea al múltiplo de $5 más cercano.
 //
 //   LOCAL
-//     < 11 mi → $100 flat · 11–50 mi → round5(105 + mi·0.8), min $105 · > 50 mi → round5(300 + mi·0.8)
+//     < 11 mi → $100 flat (los dos precios)
+//     11–50 mi → round5(105 + mi·0.8), min $105 (los dos precios)
+//     > 50 mi → lista round5(300 + mi·0.8) · descuento round5(105 + mi·0.8), min $105
 //   NOT LOCAL (also flagged for manager approval)
-//     round5(500 + mi·0.8)
+//     round5(500 + mi·0.8) (los dos precios, el descuento provisional)
+//
+// El descuento **no es una segunda tabla de cifras**: es la lista del tramo del medio aplicada a una
+// entrega larga. O sea, «cóbrale como si fuera corta». Por eso coincide con la lista en los otros
+// tres tramos, y eso es correcto, no un fallo.
 // ============================================================
 
 /** Cities inside the LOCAL delivery zone (the red outline on the RGV map). */
@@ -83,7 +90,16 @@ export const FACTOR_MILLA = 0.8;
  */
 export const MINIMO_MEDIO = 105;
 
-/** Las cuatro cifras de la fórmula. Una sola columna de precios desde D-283. */
+/**
+ * Cuál de los dos precios se está calculando (D-NEXT).
+ *
+ * No hay una tabla por precio: hay **una** tabla y un tramo que se cobra distinto. Con dos tablas,
+ * cambiar el 105 de la lista dejaría el descuento en el 105 viejo, y nadie lo notaría hasta que dos
+ * pantallas dijeran dos números.
+ */
+export type Precio = "list" | "discount";
+
+/** Las cuatro cifras de la fórmula. UNA tabla, de la que salen los dos precios (D-NEXT). */
 export type TablaTarifa = {
   /** Tramo corto: precio plano, sin millas. */
   planoCorto: number;
@@ -134,7 +150,7 @@ export type PasoTarifa = {
  * Los bordes son los del código y no los que uno diría: `< 11` y `> 50`, así que **11 y 50 caen
  * los dos en el tramo del medio**.
  */
-export function pasoTarifa(miles: number, local: boolean, recargo = 0): PasoTarifa {
+export function pasoTarifa(miles: number, local: boolean, recargo = 0, precio: Precio = "list"): PasoTarifa {
   const cerrar = (p: Omit<PasoTarifa, "redondeado" | "redondeo" | "minimoAplicado" | "total">): PasoTarifa => {
     const alRedondear = redondear(p.bruto);
     const redondeado = conSuelo(alRedondear, p.minimo);
@@ -147,7 +163,15 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0): PasoTari
     return cerrar({ tramo: "local-corto", desde: null, hasta: UMBRAL_CORTO, base: TARIFA.planoCorto, factor: 0, minimo: null, bruto: TARIFA.planoCorto, recargo });
   }
   if (miles > UMBRAL_LARGO) {
-    return cerrar({ tramo: "local-largo", desde: UMBRAL_LARGO, hasta: null, base: TARIFA.baseLargo, factor: FACTOR_MILLA, minimo: null, bruto: TARIFA.baseLargo + miles * FACTOR_MILLA, recargo });
+    // **El único tramo donde los dos precios se separan** (D-NEXT). El descuento de una entrega larga
+    // es la fórmula del tramo del medio: «cóbrale como si fuera corta». Del dueño, literal:
+    // «discounted price for local deliveries over 50 mi will be = 105+(0.80 x miles)».
+    //
+    // Sale de `TARIFA.baseMedio` y de `MINIMO_MEDIO`, los mismos que usa el tramo del medio unas
+    // líneas más abajo, y no de una cifra propia: si el 105 cambia, cambian los dos a la vez.
+    const conDescuento = precio === "discount";
+    const base = conDescuento ? TARIFA.baseMedio : TARIFA.baseLargo;
+    return cerrar({ tramo: "local-largo", desde: UMBRAL_LARGO, hasta: null, base, factor: FACTOR_MILLA, minimo: conDescuento ? MINIMO_MEDIO : null, bruto: base + miles * FACTOR_MILLA, recargo });
   }
   return cerrar({ tramo: "local-medio", desde: UMBRAL_CORTO, hasta: UMBRAL_LARGO, base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO, bruto: TARIFA.baseMedio + miles * FACTOR_MILLA, recargo });
 }
@@ -159,9 +183,9 @@ export function pasoTarifa(miles: number, local: boolean, recargo = 0): PasoTari
  * escrita a mano: si alguien cambia un 105 en `TARIFA`, esta tabla cambia con él, y si
  * cambia un comparador, el rango que se lee cambia también.
  *
- * Son **cuatro** reglas desde D-283 —tres tramos locales y la de fuera de zona—, y no ocho: ya
- * no hay columna de descuento. Los rangos salen de los comparadores de `pasoTarifa`, así que dicen `< 11`,
- * `11–50` y `> 50` — con **11 y 50 dentro del tramo del medio**, que es donde los pone el
+ * Son **cuatro** filas —tres tramos locales y la de fuera de zona— con **dos columnas** cada una,
+ * lista y descuento (D-NEXT). Los rangos salen de los comparadores de `pasoTarifa`, así que dicen
+ * `< 11`, `11–50` y `> 50` — con **11 y 50 dentro del tramo del medio**, que es donde los pone el
  * código y no donde los pondría la intuición.
  */
 export type FilaFormula = {
@@ -170,12 +194,19 @@ export type FilaFormula = {
   /** Los bordes del tramo, tal como los decide `pasoTarifa`. `null` = sin límite por ese lado. */
   desde: number | null;
   hasta: number | null;
-  /** La parte fija, el multiplicador y el suelo. El texto lo pone quien pinta. */
-  regla: { base: number; factor: number; minimo: number | null };
+  /**
+   * La parte fija, el multiplicador y el suelo de cada precio. El texto lo pone quien pinta.
+   *
+   * **En tres de las cuatro filas las dos columnas dicen lo mismo**, y así debe ser: el descuento
+   * solo se separa de la lista por encima de 50 millas. La tabla lo enseña igual en vez de dejar
+   * huecos, porque un hueco se lee como «aquí no hay precio».
+   */
+  lista: { base: number; factor: number; minimo: number | null };
+  descuento: { base: number; factor: number; minimo: number | null };
 };
 
 /**
- * Las ocho reglas, **como datos y no como frases**.
+ * Las reglas, **como datos y no como frases**.
  *
  * Devolver texto ya formado fue mi primera versión y estaba mal en un sitio concreto: salía solo
  * en español, y acababa bajo cabeceras traducidas — «Zone · Distance» arriba y «cualquier
@@ -193,25 +224,29 @@ export function filasDeLaFormula(): FilaFormula[] {
     { local: false, mi: 0 },
   ];
   return muestras.map(({ local, mi }) => {
-    const p = pasoTarifa(mi, local);
+    // Las dos columnas, **evaluadas**, no descritas: la del descuento sale de pedirle a la misma
+    // función el otro precio. Así la tabla no puede decir una cosa y el botón cobrar otra.
+    const l = pasoTarifa(mi, local, 0, "list");
+    const d = pasoTarifa(mi, local, 0, "discount");
     return {
-      tramo: p.tramo,
+      tramo: l.tramo,
       zona: local ? "local" : "nolocal",
-      desde: p.desde,
-      hasta: p.hasta,
-      regla: { base: p.base, factor: p.factor, minimo: p.minimo },
+      desde: l.desde,
+      hasta: l.hasta,
+      lista: { base: l.base, factor: l.factor, minimo: l.minimo },
+      descuento: { base: d.base, factor: d.factor, minimo: d.minimo },
     };
   });
 }
 
 /**
- * La tarifa de entrega de esas millas, sin el recargo de mismo día (D-283).
+ * La tarifa de entrega de esas millas, sin el recargo de mismo día.
  *
- * Es UNA, no dos: donde había «lista» y «descuento» ahora hay un precio. Quien quiera cobrar
- * menos escribe el importe a mano, y la pantalla avisa de que eso necesita aprobación.
+ * Por defecto la de **lista**; con `"discount"`, la de descuento (D-NEXT). Las dos salen de
+ * `pasoTarifa`, que es de donde sale el precio del botón.
  */
-export function deliveryFee(miles: number, local = true): number {
-  return pasoTarifa(miles, local).redondeado;
+export function deliveryFee(miles: number, local = true, precio: Precio = "list"): number {
+  return pasoTarifa(miles, local, 0, precio).redondeado;
 }
 
 export type DeliveryZone = "local" | "nonlocal" | "unknown";
@@ -227,8 +262,15 @@ export interface FeeSuggestion {
   zone: DeliveryZone;
   /** Detected delivery city (best effort), for display. */
   city: string;
-/** The suggested price (incl. same-day surcharge), or null until miles are known. */
-  fee: number | null;
+  /** The suggested LIST price (incl. same-day surcharge), or null until miles are known. */
+  list: number | null;
+  /**
+   * El descuento que un vendedor puede ofrecer, con el recargo dentro (D-NEXT).
+   *
+   * **Nunca por encima de la lista**, y en tres de los cuatro tramos es exactamente igual a ella.
+   * Que coincida no es un fallo: el descuento solo se separa por encima de 50 millas.
+   */
+  discount: number | null;
   /** NOT-LOCAL deliveries need manager approval before the price is committed. */
   needsApproval: boolean;
   /** The order is for same-day delivery and a surcharge applies. */
@@ -247,11 +289,12 @@ export interface FeeSuggestion {
   breakdown: FeeBreakdown | null;
 }
 
-/** El camino del precio, con sus millas. */
+/** El camino de los dos precios, con sus millas. */
 export type FeeBreakdown = {
   miles: number;
   local: boolean;
-  paso: PasoTarifa;
+  list: PasoTarifa;
+  discount: PasoTarifa;
 };
 
 /** Suggest the delivery fee for an order from its driving miles (the formulas
@@ -271,7 +314,7 @@ export function suggestDeliveryFee(
   const surcharge = Math.max(0, Number(s?.same_day_surcharge ?? 0));
   const sameDay = !!d.delivery_date && d.delivery_date === todayISO() && surcharge > 0;
   const add = sameDay ? surcharge : 0;
-  if (!hasAddr) return { zone: "unknown", city: "", fee: null, needsApproval: false, sameDay, sameDaySurcharge: add, zoneSource: "none", breakdown: null };
+  if (!hasAddr) return { zone: "unknown", city: "", list: null, discount: null, needsApproval: false, sameDay, sameDaySurcharge: add, zoneSource: "none", breakdown: null };
 
   // La zona sale del PUNTO cuando lo hay (D-219): el nombre de la ciudad se saca de texto
   // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
@@ -282,13 +325,14 @@ export function suggestDeliveryFee(
   // así que `fee` sale de aquí en vez de sumarlo otra vez por su cuenta — que es donde se
   // habrían podido separar.
   const desglose: FeeBreakdown | null = miles != null
-    ? { miles, local, paso: pasoTarifa(miles, local, add) }
+    ? { miles, local, list: pasoTarifa(miles, local, add, "list"), discount: pasoTarifa(miles, local, add, "discount") }
     : null;
   return {
     zone: local ? "local" : "nonlocal",
     zoneSource: porPunto != null ? "pin" : "city",
     city,
-    fee: desglose ? desglose.paso.total : null,
+    list: desglose ? desglose.list.total : null,
+    discount: desglose ? desglose.discount.total : null,
     needsApproval: !local,
     sameDay,
     sameDaySurcharge: add,

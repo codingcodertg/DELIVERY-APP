@@ -613,7 +613,8 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
               <tr>
                 <th style={{ textAlign: "left" }}>{t("Zone", "Zona")}</th>
                 <th style={{ textAlign: "left" }}>{t("Distance", "Distancia")}</th>
-                <th style={{ textAlign: "left" }}>{t("Price", "Precio")}</th>
+                <th style={{ textAlign: "left" }}>{t("List", "Lista")}</th>
+                <th style={{ textAlign: "left" }}>{t("Discount", "Descuento")}</th>
               </tr>
             </thead>
             <tbody>
@@ -621,7 +622,10 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
                 <tr key={f.tramo}>
                   <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
                   <td>{textoDelRango(t, f.desde, f.hasta)}</td>
-                  <td>{textoDeLaRegla(t, f.regla.base, f.regla.factor, f.regla.minimo)}</td>
+                  {/* En tres de las cuatro filas las dos columnas dicen lo mismo, y se enseñan
+                      igual: un hueco se leería como «aquí no hay precio» (D-NEXT). */}
+                  <td>{textoDeLaRegla(t, f.lista.base, f.lista.factor, f.lista.minimo)}</td>
+                  <td>{textoDeLaRegla(t, f.descuento.base, f.descuento.factor, f.descuento.minimo)}</td>
                 </tr>
               ))}
             </tbody>

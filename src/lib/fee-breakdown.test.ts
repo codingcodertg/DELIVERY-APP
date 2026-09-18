@@ -78,26 +78,33 @@ describe("suggestDeliveryFee: el desglose y el importe son el mismo número", ()
     delivery_address: "100 Main St, McAllen, TX", route_miles: 32, ...extra,
   });
 
-  it("el importe sale del desglose", () => {
+  it("los dos importes salen del desglose", () => {
     const f = suggestDeliveryFee(pedido());
     expect(f.breakdown).not.toBeNull();
-    expect(f.fee).toBe(f.breakdown!.paso.total);
+    expect(f.list).toBe(f.breakdown!.list.total);
+    expect(f.discount).toBe(f.breakdown!.discount.total);
   });
 
   it("con recargo de mismo día, el desglose lo lleva dentro y sigue cuadrando", () => {
     const f = suggestDeliveryFee(pedido({ delivery_date: todayISO() }), { same_day_surcharge: 35 });
     expect(f.sameDay).toBe(true);
-    expect(f.breakdown!.paso.recargo).toBe(35);
-    expect(f.fee).toBe(f.breakdown!.paso.redondeado + 35);
+    expect(f.breakdown!.list.recargo).toBe(35);
+    expect(f.list).toBe(f.breakdown!.list.redondeado + 35);
+    // El recargo va en los DOS precios: si solo cayera en la lista, el descuento saldría barato
+    // en la misma pantalla.
+    expect(f.breakdown!.discount.recargo).toBe(35);
+    expect(f.discount).toBe(f.breakdown!.discount.redondeado + 35);
     // Y el control: sin recargo, el mismo pedido da el mismo redondeado y otro total.
     const sin = suggestDeliveryFee(pedido());
-    expect(sin.breakdown!.paso.redondeado).toBe(f.breakdown!.paso.redondeado);
-    expect(sin.fee).toBe(f.fee! - 35);
+    expect(sin.breakdown!.list.redondeado).toBe(f.breakdown!.list.redondeado);
+    expect(sin.list).toBe(f.list! - 35);
+    expect(sin.discount).toBe(f.discount! - 35);
   });
 
   it("sin millas no hay desglose, porque no hay nada que explicar", () => {
     const f = suggestDeliveryFee(pedido({ route_miles: null }));
-    expect(f.fee).toBeNull();
+    expect(f.list).toBeNull();
+    expect(f.discount).toBeNull();
     expect(f.breakdown).toBeNull();
   });
 
@@ -113,10 +120,9 @@ describe("suggestDeliveryFee: el desglose y el importe son el mismo número", ()
 describe("filasDeLaFormula", () => {
   const filas = filasDeLaFormula();
 
-  it("son cuatro reglas, una por tramo: ya no hay columna de descuento", () => {
+  it("son cuatro filas, una por tramo, y cada una con sus dos columnas", () => {
     expect(filas).toHaveLength(4);
-    expect(filas.map((f) => f.regla)).toHaveLength(4);
-    expect(filas.every((f) => "regla" in f)).toBe(true);
+    expect(filas.every((f) => "lista" in f && "descuento" in f)).toBe(true);
   });
 
   // Se comparan los DATOS y no las frases: el texto es de quien pinta, y en su idioma. Una
@@ -131,16 +137,24 @@ describe("filasDeLaFormula", () => {
     ]);
   });
 
-  it("y las reglas llevan las constantes de verdad, no números escritos aparte", () => {
+  it("y las reglas de la lista llevan las constantes de verdad, no números escritos aparte", () => {
     const local = filas.filter((f) => f.zona === "local");
-    expect(local[0].regla).toEqual({ base: TARIFA.planoCorto, factor: 0, minimo: null });
-    expect(local[1].regla).toEqual({ base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO });
-    expect(local[2].regla).toEqual({ base: TARIFA.baseLargo, factor: FACTOR_MILLA, minimo: null });
-    expect(filas[3].regla).toEqual({ base: TARIFA.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
+    expect(local[0].lista).toEqual({ base: TARIFA.planoCorto, factor: 0, minimo: null });
+    expect(local[1].lista).toEqual({ base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO });
+    expect(local[2].lista).toEqual({ base: TARIFA.baseLargo, factor: FACTOR_MILLA, minimo: null });
+    expect(filas[3].lista).toEqual({ base: TARIFA.baseNoLocal, factor: FACTOR_MILLA, minimo: null });
   });
 
-  it("el suelo es del tramo del medio y de ningún otro", () => {
-    expect(filas.filter((f) => f.regla.minimo != null).map((f) => f.tramo)).toEqual(["local-medio"]);
+  it("la columna del descuento solo se separa de la lista en el tramo largo", () => {
+    // Y donde coincide, coincide de verdad: mismas cifras, no una copia parecida.
+    const distintas = filas.filter((f) => JSON.stringify(f.lista) !== JSON.stringify(f.descuento));
+    expect(distintas.map((f) => f.tramo)).toEqual(["local-largo"]);
+    // El descuento del tramo largo ES la regla del tramo del medio: «cóbrale como si fuera corta».
+    expect(distintas[0].descuento).toEqual({ base: TARIFA.baseMedio, factor: FACTOR_MILLA, minimo: MINIMO_MEDIO });
+  });
+
+  it("el suelo de la lista es del tramo del medio y de ningún otro", () => {
+    expect(filas.filter((f) => f.lista.minimo != null).map((f) => f.tramo)).toEqual(["local-medio"]);
   });
 
   it("cada fila nombra el tramo que de verdad aplica a esas millas", () => {
@@ -198,21 +212,54 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
 });
 
 // ---- Un solo precio, en las tres pantallas (D-283) ----------------------------------------
-describe("donde había dos precios ahora hay uno", () => {
+// Este bloque fijaba «donde había dos precios ahora hay uno» (D-283). El dueño pidió el descuento
+// de vuelta el mismo día —«discounted fee was removed, bring it back»— así que **se reescribe al
+// revés en vez de borrarse**: sigue siendo el canario de que las tres pantallas enseñan lo mismo
+// que calcula `pricing.ts`, solo que ahora lo que tienen que enseñar son dos precios (D-NEXT).
+describe("los dos precios llegan a las tres pantallas", () => {
   const modal = readFileSync("src/components/OrderModal.tsx", "utf8");
   const desglose = readFileSync("src/components/FeeBreakdown.tsx", "utf8");
   const ajustes = readFileSync("src/app/(app)/settings/page.tsx", "utf8");
 
-  it("el modal ya no nombra el descuento, y el botón es el precio único", () => {
-    expect(modal).not.toMatch(/feeSuggestion\.(list|discount)/);
-    expect(modal).toContain("feeSuggestion.fee");
+  it("el modal vuelve a nombrar los dos, y ya no queda el precio único", () => {
+    expect(modal).toContain("feeSuggestion.list");
+    expect(modal).toContain("feeSuggestion.discount");
+    // El campo viejo tiene que haber desaparecido: si quedara uno suelto, esa pantalla seguiría
+    // leyendo algo que ya no existe. Con la palabra pegada al punto, para no cazar `.fee` de otra
+    // cosa.
+    expect(modal).not.toMatch(/feeSuggestion\.fee\b/);
   });
 
-  it("y cobrar por debajo de ESE precio sigue pidiendo aprobación", () => {
-    // Hasta D-283 el suelo del aviso era el descuento. Al quedar un solo precio, el suelo es
-    // ese; si el aviso desapareciera, nadie se enteraría de que hace falta aprobación.
-    expect(modal).toContain("d.delivery_fee < feeSuggestion.fee");
+  it("y TODOS los botones dicen cuál es cuál, en los dos sitios donde salen", () => {
+    // Sin etiqueta, dos botones con el MISMO importe —que es lo que pasa por debajo de 50 millas—
+    // se leen como un error de la pantalla.
+    //
+    // Se recorren TODAS las apariciones y no se busca el texto una vez: los botones están escritos
+    // dos veces en el modal (el bloque compacto y el de zona), así que un `toContain` se quedaba
+    // contento con que UNO llevara etiqueta mientras el otro la perdía. Lo enseñó un mutante.
+    for (const [campo, etiqueta] of [
+      ["feeSuggestion.list", '{t("List", "Lista")}'],
+      ["feeSuggestion.discount", '{t("Discount", "Descuento")}'],
+    ] as const) {
+      const apariciones = [...modal.matchAll(new RegExp(`fmtMoney\\(${campo.replace(".", "\\.")}\\)`, "g"))];
+      expect(apariciones.length, campo).toBeGreaterThanOrEqual(2);
+      for (const m of apariciones) {
+        expect(modal.slice(Math.max(0, m.index - 80), m.index), `${campo} sin etiqueta`).toContain(etiqueta);
+      }
+    }
+  });
+
+  it("cobrar por debajo del DESCUENTO pide aprobación, como antes de D-283", () => {
+    expect(modal).toContain("d.delivery_fee < feeSuggestion.discount");
     expect(modal).toMatch(/requires approval/);
+    // Y el suelo NO es la lista: con la lista de suelo, cobrar el descuento pediría aprobación.
+    expect(modal).not.toContain("d.delivery_fee < feeSuggestion.list");
+  });
+
+  it("el desglose enseña los dos caminos, cada uno con su título", () => {
+    expect(desglose).toContain("desglose.list");
+    expect(desglose).toContain("desglose.discount");
+    expect(desglose).toContain('titulo={t("Discount", "Descuento")}');
   });
 
   it("el desglose enseña el mínimo solo cuando mordió, y con su texto compartido", () => {
@@ -221,8 +268,9 @@ describe("donde había dos precios ahora hay uno", () => {
     expect(desglose).toContain("textoDelRedondeo(t, paso.redondeo)");
   });
 
-  it("la tabla de Ajustes pasa el mínimo, o diría una regla sin su suelo", () => {
-    expect(ajustes).toContain("f.regla.minimo");
-    expect(ajustes).not.toContain("f.descuento");
+  it("la tabla de Ajustes pinta las dos columnas, cada una con su suelo", () => {
+    expect(ajustes).toContain("f.lista.minimo");
+    expect(ajustes).toContain("f.descuento.minimo");
+    expect(ajustes).toContain('{t("Discount", "Descuento")}');
   });
 });
