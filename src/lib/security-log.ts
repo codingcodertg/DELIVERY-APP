@@ -14,6 +14,9 @@ export type SecurityKind =
   | "user_removed"
   | "role_changed"
   | "store_changed"
+  // Qué tiendas ve esa persona (D-315). Se registra como los demás cambios de privilegio: es
+  // justo el ajuste que decide qué datos llegan a alguien.
+  | "visible_stores_changed"
   | "permissions_changed"
   | "username_changed"
   | "title_changed"
@@ -45,6 +48,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     user_removed: "User removed",
     role_changed: "Role changed",
     store_changed: "Store changed",
+    visible_stores_changed: "Visible stores changed",
     permissions_changed: "Permissions changed",
     username_changed: "Username changed",
     title_changed: "Badge title changed",
@@ -64,6 +68,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     user_removed: "Usuario eliminado",
     role_changed: "Rol cambiado",
     store_changed: "Tienda cambiada",
+    visible_stores_changed: "Tiendas que ve cambiadas",
     permissions_changed: "Permisos cambiados",
     username_changed: "Usuario cambiado",
     title_changed: "Título de la pastilla cambiado",

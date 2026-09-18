@@ -170,6 +170,23 @@ alter table public.settings     enable row level security;
 alter table public.deliveries   enable row level security;
 alter table public.order_events enable row level security;
 
+-- ⚠ ESTE BUCLE ES UNA LINEA BASE, Y VOLVER A CORRERLO CONTRA UNA BASE VIVA LA ABRE ENTERA.
+-- El `drop policy` + `create ... using (true)` de abajo deshace, de golpe y en silencio, todo lo que
+-- las migraciones numeradas fueron estrechando encima: la rama por rol de la 011/015, el acceso por
+-- modulo de la 083 y, desde la 131, el filtro por tienda. Y la de escritura nace `for all`, que
+-- INCLUYE SELECT: las politicas permisivas se suman con OR, asi que con ella puesta la de lectura no
+-- decide nada (D-100, confirmado ensayando la 131 contra produccion).
+--
+-- Se deja como esta A PROPOSITO, y no es descuido:
+--   * `083_deliveries_access.sql:69` hace `alter policy "auth write deliveries"` a secas. Si el bucle
+--     dejara de crearla, una reconstruccion desde cero fallaria ahi, y una migracion ya aplicada no
+--     se edita.
+--   * Partir solo esa politica en tres arreglaria una de las dos vias y dejaria la otra: la de
+--     LECTURA volveria igual a `using (true)`. Un arreglo a medias aqui invita a creer que el fichero
+--     se puede volver a correr, y no se puede.
+-- La proteccion de verdad es la autocomprobacion de la 131, que se niega a dejar NINGUNA otra
+-- politica permisiva otorgando SELECT sobre `deliveries`. Si alguna vez se reconstruye el esquema,
+-- hay que volver a aplicar las migraciones numeradas, en orden.
 do $$
 declare t text;
 begin

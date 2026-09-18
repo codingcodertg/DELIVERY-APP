@@ -39317,3 +39317,340 @@ se escribió; el diseño pedía menos de 2 s. El tope de la prueba es de 8 s a p
 - **Rutas largas.** El estrés reparte 60 órdenes entre 10 choferes (12 paradas por ruta). Una sola ruta de 40
   paradas cuesta mucho más —la inserción prueba todas las parejas de posiciones— y no está medida.
 - **Tiempo en CI**, que es otra máquina.
+
+## D-315 · Qué tiendas ve cada persona
+
+**Fecha:** 2026-09-17, descongelada y revisada el **2026-09-18** · **Versión:** la pone el orquestador
+(Entregas) · **Migración 131, escrita y NO aplicada**
+(`supabase/migrations/131_visibilidad_por_tienda.sql`) ·
+**Plan en papel:** `docs/PLAN-131-visibilidad-por-tienda.md`.
+**Pedido por el dueño:** poder limitar por persona qué tiendas ve.
+
+> **Esta rama estuvo congelada.** Se escribió el 2026-09-17 como la **124**, se aplicó sola a
+> producción durante un ensayo (por una línea mía: abajo), el dueño mandó revertirla, y se dejó parada.
+> El 2026-09-18 la descongela con tres cambios y un cambio de número. Lo de antes no se reescribe —
+> donde se cuenta lo que pasó, se la sigue llamando 124, porque así se llamaba.
+>
+> | Qué | Por qué |
+> |---|---|
+> | La cláusula mira **`store`, `pickup_name` y `delivery_name`**, no solo `store` | D-309/D-312: en una Intertienda la orden le importa a las **dos** tiendas, y con `store` a secas se le escondía justo a la que la recibe |
+> | **124 → 131** | Mientras estuvo parada, `main` se llevó la 125, la 126 y la 127, y 128-130 están reservadas para el motor de rutas |
+> | **Caso 11** en la matriz de ensayo | Es el caso que obligó a mirar las tres columnas; sin él, el cambio sería una afirmación sin medir |
+> | `supabase/schema.sql`: **aviso**, no arreglo | §*«`schema.sql` reabre la lectura»*, abajo |
+
+### La pregunta que decidió el diseño
+
+Antes de escribir nada se le preguntó si esto era **comodidad** (menos ruido en la lista) o
+**seguridad**, porque la respuesta cambia dónde vive el filtro. Contestó lo segundo: **«que no puedan
+verlo»**. Por eso está en Postgres y no en el navegador: un filtro de pantalla esconde filas que la API
+sigue entregando a quien sepa pedirlas.
+
+Existía ya el precedente contrario y conviene no confundirlos: «Visibilidad de clientes»
+(`settings.customer_scope`) se aplica **solo en el cliente**. Sirve para ordenar una pantalla, no para
+impedir nada.
+
+### Lo que se midió antes
+
+- **Una sola consulta alimenta 14 pantallas.** `data-provider.tsx` trae las órdenes una vez y de ahí
+  beben Órdenes, mapa, Cuentas, Resumen, Panel, Rutas y las demás. O sea que **no existe** «esta
+  pantalla completa y esta recortada» para la misma persona: lo que recorte la base, lo recorta todo.
+- **Quién alcanza qué pantalla** (`constants.ts`): Cuentas es de admin y gerente, Resumen solo de
+  admin, el Panel de gerente y admin. Así que **filtrar a ventas y office cambia hoy solo la lista de
+  Órdenes y el mapa**; las otras tres cambian cuando se le marcan tiendas a un gerente. Se le dijo al
+  dueño y su respuesta fue que el gerente va igual: «igual que office, se elige en el dropdown».
+- **El mapa de ventas se recorta.** Preguntado expresamente: un mapa que enseña el pin de una orden que
+  la lista esconde no es una función, es el agujero.
+
+### Cómo queda
+
+- **`profiles.visible_stores text[]`**: las tiendas cuyas órdenes ve esa persona.
+- **Vacío = ve todas.** Es lo que tendrán todas las filas el día que se aplique, así que aplicar la
+  migración **no deja a nadie a oscuras**: el cambio empieza a notarse cuando alguien marca casillas.
+- **Se filtra por el dato, no por el rol.** Un gerente con tiendas marcadas ve solo esas, y sus totales
+  pasan a ser de esas tiendas.
+- **El admin nunca se filtra**, tenga lo que tenga marcado. **Chofer y almacén tampoco**: ya tienen su
+  propia rama (las suyas / ciertas etapas) y sumarles la tienda encima podría dejar a un chofer sin ver
+  su propia entrega porque la orden es de otra tienda.
+- **Una orden sin tienda la ve todo el mundo.** Hoy no hay ninguna (152 órdenes, 0 sin tienda, medido
+  en producción el 2026-09-17), pero esconderlas dejaría órdenes que nadie ve, que es peor.
+- **La tienda de una orden son TRES columnas, no una** (añadido el 2026-09-18, ver abajo).
+
+### La tienda de una orden son tres columnas, o la Intertienda se le esconde a quien la recibe
+
+La primera versión comparaba solo **`store`** («Vendido desde»). Eso estaba bien el 2026-09-17 y dejó
+de estarlo al día siguiente, con **D-309** y **D-312** ya fusionadas: en un movimiento entre tiendas la
+orden le importa a las **dos** —el dueño, literal: *«in intertienda orders people from both pickup and
+delivery store can see the order because les importa a ambos»*— y desde D-312 `store` y `pickup_name`
+son la tienda que **manda** el material y `delivery_name` la que lo **recibe**.
+
+Con `store` a secas, a quien se le marcara la tienda que **recibe** dejaría de ver justo las
+Intertiendas que va a recibir. Y —esto es lo que lo hace peligroso— **no fallaría nada**: no saldrían
+en la lista, sin error, sin aviso y sin número que cuadrara mal. La app ya dice lo contrario en
+`tiendasDeLaOrden` (`src/lib/order-endpoints.ts:110`, D-309), así que la base habría contradicho a la
+app en silencio.
+
+Ahora la cláusula compara las tres, con la misma normalización (`lower(btrim(...))`). **Tres cosas
+dichas a propósito, no descubiertas después:**
+
+1. **Es más ancho que lo que hace la app**, y se acepta. `tiendasDeLaOrden` solo mira las tres columnas
+   en los tipos **tienda-a-tienda**; la política las mira siempre, porque el tipo vive en
+   `settings.order_type_rules` —un `jsonb`— y leerlo **por fila** en la tabla más leída de la app es
+   exactamente lo que la **080** vino a quitar. Y de los dos errores posibles este filtro solo puede
+   permitirse uno: es un **techo por persona** que se **suma** a los cortes por rol de la app, no los
+   sustituye. Un techo más estrecho que la app **esconde trabajo**; uno más ancho deja que el corte de
+   la app siga decidiendo, que es lo que pasa hoy. Lo único nuevo que deja pasar es una orden de
+   cliente cuyo `pickup_name` o `delivery_name` sea, literalmente, el nombre de una de **tus propias**
+   tiendas.
+2. **La escapatoria de «orden sin tienda» se queda en `store`.** Podría haberse cambiado a «ninguna de
+   las tres», pero eso *estrecharía*: una orden con `store` vacío y un `delivery_name` ajeno dejaría de
+   verla quien antes sí la veía. Este cambio solo puede **añadir** visibilidad, nunca quitarla.
+3. **Se repite la forma conocida en vez de usar `&&`.** `(select tiendas_visibles())::text[] &&
+   array[…]` sería una llamada en vez de tres, pero es SQL **no medido**, y el `::text[]` de la línea
+   de al lado existe justo porque una forma no medida reventó al aplicarse. Las tres `(select …)` son
+   *InitPlans*: una evaluación por consulta cada una, no por fila.
+
+La migración **se niega a quedarse mirando solo `store`**: su autocomprobación exige que la política
+aplicada mencione `pickup_name` y `delivery_name`. Y el ensayo lo mide (caso 11): la ve el vendedor de
+la tienda que manda **y** el de la que recibe, y **no** la ve el de una tercera — sin ese tercero, los
+dos primeros los pasaría un filtro que no filtrara nada.
+
+### `schema.sql` reabre la lectura, y se deja el aviso en vez del arreglo
+
+`supabase/schema.sql` tiene un bucle de línea base que, para `profiles`, `settings`, `deliveries` y
+`order_events`, borra las políticas y las vuelve a crear abiertas: la de lectura `using (true)` y la de
+escritura **`for all`** —que incluye `SELECT`—. O sea que **correrlo contra una base viva deshace de
+golpe** la rama por rol de 011/015, el acceso por módulo de 083 y el filtro por tienda de esta. Sin
+error y sin aviso: simplemente deja de filtrar.
+
+**Se propuso arreglar el bucle y la respuesta, medida, es que no.** Dos razones:
+
+1. **`083_deliveries_access.sql:69` hace `alter policy "auth write deliveries"` a secas.** Si la línea
+   base dejara de crear esa política, una reconstrucción desde cero **fallaría ahí** — y una migración
+   ya aplicada no se edita.
+2. **Partir solo esa política arreglaría una de las dos vías y dejaría la otra**: la de **lectura**
+   volvería igual a `using (true)`. Un arreglo a medias invita a creer que el fichero se puede volver a
+   correr, y no se puede.
+
+**Lo que sí se hace es lo que faltaba: el aviso está escrito encima del bucle**, con las dos razones y
+con la regla —*si alguna vez se reconstruye el esquema, hay que volver a aplicar las migraciones
+numeradas, en orden*—. Tiene prueba: cae si el aviso desaparece o si 083 deja de ser un `alter policy`
+a secas.
+
+Y la protección real ya estaba: **la autocomprobación de esta migración se niega a convivir con
+ninguna otra política permisiva que otorgue `SELECT` sobre `deliveries`**. Es lo único que cazaría una
+reconstrucción *a posteriori*, porque `public.schema_migrations` **no se entera** de que el esquema se
+volvió a correr —sus filas sobreviven y `migrate-status` seguiría diciendo que está todo aplicado—.
+
+### Lo que hace que esto sea seguridad y no decoración
+
+`profiles update self or admin` (099) deja que **cualquiera actualice su propia fila**. Lo único que
+limita qué columnas puede tocar un no-admin es el disparador `profiles_guard_privileged`. Sin meter
+`visible_stores` en ese guardia, **la persona a la que se le limita la visibilidad se la quita sola**
+escribiendo `visible_stores = '{}'` desde el navegador, y no quedaría ni rastro raro.
+
+Por eso la columna entra en el guardia **en la misma migración que la crea**, no en la siguiente.
+
+Y hay una trampa encima, que la propia 104 deja avisada: **la última definición del guardia no es la de
+099 ni la de 101, es la de 104**. Un `create or replace` reemplaza la función entera, así que partir de
+un cuerpo viejo habría borrado en silencio la vigilancia de `title`, `title_color` o `erp_role` sin
+tocar esas migraciones y sin que nada fallara. La 124 copia el cuerpo de la 104 y le suma la séptima
+columna.
+
+### Lo segundo que lo hacía decoración: la política de lectura no decidía nada
+
+**El filtro no filtraba.** Se vio ensayando la migración contra producción: con una tienda marcada, el
+vendedor seguía viendo las 153 de 153. La causa no era el filtro.
+
+`auth write deliveries` es de tipo **`ALL`**, y `ALL` incluye `SELECT`. Las políticas permisivas se
+suman con `OR`, así que su `using ((select has_deliveries_access()))` deja leer **todas** las filas a
+cualquiera con el módulo, y `auth read deliveries` no decide nada. La cláusula de tienda nacía muerta.
+
+**No es un hallazgo nuevo: lo dejó escrito D-100**, en su sección *«Encontrado de paso, NO cambiado»*,
+con los números medidos entonces —*el chofer pasaba de ver 89 entregas a 30; los cuatro de almacén, de
+89 a 83*— y con una razón para no tocarlo: *«cambia lo que ve gente que trabaja hoy y eso no se suelta
+un jueves por la tarde sin avisar»*. Lo que llevaba muerto desde siempre no era solo esta cláusula: la
+rama del chofer («solo las suyas») y la del almacén («solo ciertas etapas») de la 083 tampoco decidían
+nada. No se notaba porque **la pantalla del chofer filtra igual en el cliente**.
+
+**Esta entrada desaparca esa decisión**, y por eso hay que decirlo fuerte: cambia lo que ve gente que
+trabaja hoy. Medido en el código, no supuesto:
+
+- **El chofer no debería notar nada**: `driver/page.tsx` ya filtra con la misma condición que la
+  política. Lo que cambia es que deja de poder pedirle a la API las de otros.
+- **El almacén sí**: su pestaña «Todas» deja de enseñar borradores, pendientes, rechazadas y anuladas.
+  Sus cinco pestañas por etapa son exactamente las cinco que la política deja pasar, así que el resto
+  de la pantalla no cambia.
+
+Postgres no tiene «ALL menos SELECT», así que la de escritura se parte en tres —`insert`, `update`,
+`delete`— con el **mismo** `has_deliveries_access()`: nadie gana ni pierde capacidad de escribir. Va en
+una transacción, para que no haya un instante sin poder escribir, y la migración se comprueba a sí
+misma: si queda **cualquier** otra política permisiva que otorgue `SELECT`, aborta. Esa comprobación es
+la que habría cazado esto el primer día.
+
+**Las dos mitades van en la misma migración**, y no es pereza: aplicar solo el filtro es aplicar una
+mentira —parece seguridad y no lo es— y aplicar solo la partición es cambiarle la pantalla al almacén
+sin motivo visible.
+
+### La migración se aplicó sola durante un ensayo, y fue por una línea mía
+
+**Pasó, así que se cuenta.** El bloque 1 llevaba `begin;` … `commit;` propios, que puse «para que no
+hubiera un instante sin política de escritura entre el `drop` y los `create`». El orquestador ensayó la
+migración como se ensaya aquí —dentro de una transacción que acaba en `ROLLBACK`— y **se aplicó a
+producción**: columna, guardia, función, políticas partidas, filtro y fila del registro, todo
+confirmado.
+
+Un `begin` anidado en Postgres es solo un *WARNING*, pero el `commit` de dentro **cierra la transacción
+de fuera**. A partir de ese `commit`, el ensayo ya no era un ensayo.
+
+Lo peor no es el mecanismo, es que **la convención ya existía y no la comprobé**: ninguna de las 123
+migraciones anteriores lleva transacción propia. Un `grep` de dos segundos lo decía. La atomicidad la
+pone quien aplica, envolviendo el fichero entero, y eso ya garantizaba lo que yo quería garantizar.
+
+Ya no los lleva, y la prueba que sale de esto **no mira solo la 124**: recorre todas las migraciones del
+repo y exige que ninguna tenga `begin`, `commit` ni `rollback` fuera de comentarios. La siguiente vez el
+error sería en otro fichero.
+
+**Cómo acabó (2026-09-18): el dueño decidió revertirla, y está revertido.** Lo hizo la sesión que
+aplica, en una transacción con comprobación previa al commit y con un respaldo del estado aplicado
+guardado antes de tocar nada. Lo que informa esa sesión —**medido por ella, no por mí**—: las políticas
+volvieron a `ALL: auth write deliveries` + `SELECT: auth read deliveries` sin la cláusula de tienda, el
+guardia al cuerpo de la 104, `tiendas_visibles()` y la columna fuera, y la fila del registro borrada.
+Comprobado después en solo lectura: almacén, chofer y ventas vuelven a ver 153 de 153.
+
+**No se perdió ningún dato**, y por una razón concreta: había **0 perfiles con tiendas marcadas**, así
+que la columna se fue vacía. Si alguien hubiera marcado casillas entre la aplicación accidental y la
+reversión, `drop column` se las habría llevado — el respaldo estaba por eso.
+
+Así que la consecuencia del registro se resolvió por el camino «revertir»: fila borrada y
+`migrate-status` vuelve a darla como **pendiente**, que es lo correcto. El plan conserva los dos
+caminos escritos por si vuelve a hacer falta.
+
+### Un fallo que ninguna prueba de texto podía ver
+
+La primera versión de la cláusula era `lower(btrim(store)) = any ((select public.tiendas_visibles()))`,
+y **la migración ni siquiera se aplicaba**: `operator does not exist: text = text[]`. Postgres parsea
+`x = any ((select f()))` como la forma **subconsulta** de `ANY` —compara `x` contra cada *fila*
+devuelta— y la única fila es un `text[]`. Los paréntesis dobles no la vuelven expresión de array; el
+`::text[]` sí, y conserva el `(select …)` que hace que se evalúe una vez por consulta.
+
+Lo encontró el ensayo contra la base, no la lectura. Mis pruebas miran **texto**, y el texto estaba
+bien escrito. Se le añadió una prueba que exige el `::text[]` con el porqué al lado, que es lo único que
+una prueba de texto puede hacer aquí: recordar la conclusión de una medición que ella no puede repetir.
+
+### Por qué la función devuelve un array y no un sí-o-no
+
+`tiendas_visibles()` devuelve **las tiendas de quien pregunta** (normalizadas) o `null` si lo ve todo, y
+la política compara por fila en SQL plano. Contestar «¿puede ver esta tienda?» por fila habría sido más
+bonito de leer y se habría ejecutado **una vez por fila** en la tabla más leída de la app — que es
+exactamente el problema que la 080 vino a arreglar. Envuelta en `(select ...)`, se evalúa una vez por
+consulta. Tiene su mutante: quitar el envoltorio hace caer una prueba.
+
+### En la pantalla
+
+- **Casillas de «Tiendas que ve»** en el diálogo de usuario, solo para los roles a los que la política
+  se lo aplica. Al admin, al chofer y al almacén no se les ofrece: sería un ajuste que no hace nada.
+- **Dice lo que implica**, al lado de las casillas: sin nada marcado ve todas; con tiendas marcadas
+  «la lista de órdenes, el mapa, Cuentas, Resumen y los totales del panel pasan a ser de ellas». Quien
+  marca tiene que saber que está cambiando números, no solo acortando una lista.
+- **Aviso aparte para logística**: es quien planifica, y con tiendas marcadas su Gestor de Rutas solo
+  enseña las paradas de esas tiendas.
+- **Renombrar una tienda en Datos avisa antes**, con cuántas personas y quiénes se quedarían sin ver
+  esas órdenes, y **no renombra si se dice que no**. Las casillas guardan el nombre, y renombrar no las
+  reescribe: sin este aviso, alguien dejaría de ver su trabajo en silencio.
+- El cambio queda en el **registro de seguridad** (`visible_stores_changed`), como los demás
+  privilegios.
+
+**No hay ninguna copia en TypeScript de la decisión de la política**, y es a propósito: una copia en el
+navegador se separa de la de la base el día que alguien toque una y no la otra. Lo que vive en
+`visibilidad-tienda.ts` es lo que la base no puede saber —a quién se le ofrece el ajuste, a quién hay
+que avisar— y una prueba compara la lista de roles de TypeScript con la del `.sql`, como conjuntos.
+
+### Medido, rompiendo cada pieza
+
+14 cambios: **13 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El guardia se queda sin `visible_stores`; el guardia se copia de una versión vieja y pierde
+  `erp_role`; la política deja de mirar la tienda; la llamada sin envolver (una vez por fila); el admin
+  también se filtra; vacío deja de ser ver todas; la comparación deja de normalizar; las órdenes sin
+  tienda dejan de verse; el diálogo ofrece las casillas a todo el mundo; Datos avisa pero renombra
+  igual; el proveedor no baja la columna; `veTodasLasTiendas` ignora el rol; `quienPierdeLaTienda` no
+  normaliza.
+- **El gemelo:** `seFiltraPorTienda` escrito con `indexOf(...) === -1`.
+
+**Y al descongelarla, 12 cambios más: 12 caen, y el gemelo se queda en verde.**
+
+- Se cae `pickup_name`; se cae `delivery_name`; una de las tres pierde su `::text[]`; una de las tres
+  deja de ir envuelta en `(select …)`; la autocomprobación deja de exigir las tres columnas; el ensayo
+  pierde el caso 11b (el que mide lo que cambia); pierde el 11c (el control de que el filtro filtra);
+  la fila del registro se queda con el nombre viejo; la función deja de normalizar; `schema.sql` se
+  queda sin el aviso; y el aviso pierde la cita de `083:69`, que es la razón que lo sostiene.
+- **El gemelo:** las tres comparaciones escritas en el otro orden. Queda en verde porque el orden de
+  tres `or` no decide nada — y porque las pruebas nuevas piden **cada columna**, no una línea literal.
+
+**Tres canarios de esta misma rama se movieron, y ninguno se aflojó.** Los que fijaban «una sola
+comparación», «dos llamadas a `tiendas_visibles()`» y «el `::text[]` en esa línea» ahora piden **tres**
+comparaciones, **cuatro** llamadas —todas envueltas— y el cast **en las tres**. Un mutante que quite
+una columna cae por los tres.
+
+**Dos pruebas mías medían un comentario.** La cabecera de la 124 lleva escrita la **reversión**, y la
+reversión es una copia literal de la política vieja. Mis anclas (`indexOf("alter policy …")`) encontraban
+esa copia y comparaban el comentario en vez del SQL que se ejecuta. Ahora las pruebas del `.sql` miran
+solo las líneas que no empiezan por `--`, que es el mismo truco que ya usaba la prueba del guardia.
+
+### El canario de otra decisión que saltó, e hizo su trabajo
+
+`person-badge.test.ts` fija **cuál es el fichero con la última definición del guardia**, y decía
+`104_profile_title.sql`. Esta rama lo rompió, que es exactamente para lo que estaba: obliga a venir,
+leer el comentario sobre `create or replace` y comprobar que la definición nueva es un superconjunto de
+todas las anteriores. Se actualiza a `131` y se le añade que `visible_stores` tiene que estar.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio, ya rebasada sobre `main` con **D-313** dentro: **las
+tres pasan** — tipos, pruebas y build. Los tres saltados son los de `pdf.test.ts`, cuyas fixtures viven
+fuera del repo. `src/lib/visibilidad-tienda.test.ts` aporta **43 pruebas**, medidas corriéndolo solo
+(36 el 2026-09-17, +7 al descongelar).
+
+El checksum del `.sql` se recalculó después de cada cambio y coincide con el que lleva escrito:
+**`09ebcd5b…`**, ya con el nombre nuevo. El anterior (`5769661e…`) era el del fichero con el nombre
+viejo y una sola columna; el que llegó a correr en producción por accidente fue **otro**
+(`23ab16d2…`, con los `begin`/`commit`), y su fila **ya no existe** — la reversión la borró, así que
+el renumerado no deja ninguna huérfana. Se comprueba con `migrate-status` antes de aplicar: la 131
+tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124_…`.
+
+### Lo no verificado
+
+- **La migración no está aplicada.** Lo estuvo por accidente unas horas el 2026-09-17 y se revirtió;
+  hoy la base está como antes de esta rama. La matriz —**diez casos más el 11, en tres partes**— está
+  al final del `.sql`, lista para correr, e incluye el caso 0 (cuántas ve antes) para que «ve solo las
+  de su tienda» no pueda estar pasando porque no ve ninguna, los casos 8-10 para lo que cambia por rol,
+  y el 11 para la Intertienda por las dos tiendas.
+- **El caso 11 necesita una Intertienda real en producción.** El `.sql` trae la consulta que la busca
+  en vez de inventarse los nombres de las tiendas —son datos del dueño, no del repo—. Si no hay
+  ninguna, **el caso no se puede medir y se dice**; no se da por bueno.
+- **La respuesta a la pregunta que D-100 dejó abierta la dio el orquestador por delegación del dueño**
+  (*«tú toma las decisiones y termina todo»*, 2026-09-18), no el dueño en persona y no yo: **se
+  aplica**. Lo que pierde el almacén está acotado por escrito: en la pantalla de **Órdenes** ya no ve
+  nada anterior a `approved` desde D-313 (`src/lib/ordenes-visibles.ts:56`, las mismas cinco etapas que
+  la política), y su cola tiene justo esas cinco pestañas (`warehouse/page.tsx:20-26`). O sea que lo
+  único que cambia de verdad es su pestaña **«Todas»** y lo que podría pedirle a la **API** por su
+  cuenta. **Ese acotamiento es lectura de código, no una medición contra la base**: el número real lo
+  da el caso 9.
+- **Los ensayos contra producción los corrió el orquestador, no yo**, y de ahí salieron los dos fallos
+  de arriba. Una rama no toca la base: lo que yo puedo medir es el fichero, y el fichero decía cosas
+  ciertas mientras la base hacía otra. Queda anotado porque es la lección de esta entrada.
+- **El ensayo del `.sql` corregido está pendiente de repetirse** con la partición de la política y con
+  las tres columnas dentro. Hasta entonces, «el filtro filtra» y «la Intertienda la ven las dos» siguen
+  siendo expectativas, no mediciones.
+- **La comparación por `pickup_name` y `delivery_name` no se ha ejecutado nunca contra Postgres.** Es
+  la misma forma que ya se midió para `store` —`= any ((select …)::text[])`, repetida—, y por eso se
+  eligió repetirla en vez de escribir un `&&` más corto y no medido; pero repetir una forma medida no
+  es haberla medido en su sitio nuevo. Lo dirá el caso 11.
+- **Cuánta visibilidad AÑADE mirar las tres columnas no está contado**: haría falta contar en
+  producción cuántas órdenes que no son tienda-a-tienda llevan en `pickup_name` o `delivery_name` el
+  nombre literal de una tienda. Se espera que cero o casi, y no está medido.
+- **Nadie lo ha abierto en un navegador**: ni las casillas, ni el aviso al renombrar.
+- **La escritura sigue sin mirar la tienda.** Esta migración **parte** la política de escritura, pero no
+  cambia a quién deja escribir: alguien que no puede *ver* una orden de otra tienda podría, con su `id`
+  en la mano, escribirla a ciegas. La UI no ofrece ningún camino para eso. Cerrarlo es añadir la misma
+  cláusula al `using` de `deliveries update`, y **otra** migración con su propia matriz.

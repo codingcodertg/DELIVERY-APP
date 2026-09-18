@@ -327,6 +327,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, store: storeName } : u)) });
   }, [persist]);
 
+  // En local no hay RLS que recorte nada: esto solo guarda lo marcado para que el diálogo lo enseñe
+  // igual que en la app de verdad. Quien decide qué se ve es la política 131, que aquí no existe.
+  const updateUserVisibleStores = useCallback<DataState["updateUserVisibleStores"]>(async (userId, stores) => {
+    const s = storeRef.current;
+    persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, visible_stores: stores } : u)) });
+  }, [persist]);
+
   const updateUserPermissions = useCallback<DataState["updateUserPermissions"]>(async (userId, permissions) => {
     const s = storeRef.current;
     persist({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, permissions } : u)) });
@@ -404,7 +411,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // El demo local no tiene base que rechace nada: el documento en fila es una edición más.
     ponerDocumento: (id, campo, valor) => updateDelivery(id, { [campo]: valor.trim() }),
     reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,
@@ -412,7 +419,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>

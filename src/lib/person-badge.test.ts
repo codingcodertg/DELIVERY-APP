@@ -166,9 +166,12 @@ describe("104_profile_title.sql", () => {
       .map((f) => [f, cols(readFileSync(join(dir, f), "utf8"))] as const)
       .filter((d): d is readonly [string, Set<string>] => d[1] !== null);
 
-    expect(defs.length, "esperaba 099, 101 y 104").toBeGreaterThanOrEqual(3);
+    expect(defs.length, "esperaba 099, 101, 104 y 131").toBeGreaterThanOrEqual(4);
     const ultima = defs[defs.length - 1];
-    expect(ultima[0]).toBe("104_profile_title.sql");
+    // **Este nombre se mueve con cada redefinición, a mano y a propósito.** Es la parte del canario
+    // que obliga a venir aquí y leer el comentario de arriba antes de reescribir el guard. Saltó al
+    // escribir la 131 (D-315) y por eso dice 131: la 104 dejó de ser la última.
+    expect(ultima[0]).toBe("131_visibilidad_por_tienda.sql");
     for (const [fichero, previas] of defs.slice(0, -1)) {
       const perdidas = [...previas].filter((c) => !ultima[1].has(c));
       expect(perdidas, `${ultima[0]} deja de vigilar lo que vigilaba ${fichero}`).toEqual([]);
@@ -176,6 +179,8 @@ describe("104_profile_title.sql", () => {
     // Y que de verdad añade las suyas, no que pase por ser idéntica a la anterior.
     expect(ultima[1].has("title")).toBe(true);
     expect(ultima[1].has("title_color")).toBe(true);
+    // La de la 131: sin ella, la persona a la que se le limita la visibilidad se la quita sola.
+    expect(ultima[1].has("visible_stores")).toBe(true);
   });
 
   it("el guard cubre las columnas nuevas además de las que ya venían", () => {

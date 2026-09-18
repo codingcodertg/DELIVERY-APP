@@ -10,6 +10,7 @@ import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
 import type { Profile, UserRole } from "@/lib/types";
 import { esAdmin } from "@/lib/impersonation";
+import { normalizaTienda, seFiltraPorTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -28,7 +29,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -392,6 +393,52 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                           <option value="">{t("All stores", "Todas las tiendas")}</option>
                           {settings.stores.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
                         </select>
+                      </div>
+                    )}
+                    {/* Qué tiendas ve (D-315, migración 131). Solo para los roles a los que la
+                        política se lo aplica: el admin nunca se filtra, y chofer y almacén tienen su
+                        propia rama. Enseñárselo a ellos sería un ajuste que no hace nada. */}
+                    {m.key === "deliveries" && seFiltraPorTienda(u.role) && (
+                      <div className="field" style={{ gridColumn: "1 / -1" }}>
+                        <label>{t("Stores this person sees", "Tiendas que ve")}</label>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 4 }}>
+                          {settings.stores.map((s) => {
+                            const marcadas = tiendasMarcadas(u);
+                            const puesta = marcadas.some((n) => normalizaTienda(n) === normalizaTienda(s.name));
+                            return (
+                              <label key={s.name} className="check" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                                <input
+                                  type="checkbox"
+                                  style={{ width: "auto" }}
+                                  checked={puesta}
+                                  onChange={(e) => updateUserVisibleStores(
+                                    u.id,
+                                    e.target.checked
+                                      ? [...marcadas, s.name]
+                                      : marcadas.filter((n) => normalizaTienda(n) !== normalizaTienda(s.name)),
+                                  )}
+                                />
+                                <span>{s.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="hint" style={{ marginTop: 6 }}>
+                          {tiendasMarcadas(u).length === 0
+                            ? t("Nothing checked: sees every store, as before.",
+                                "Sin nada marcado: ve todas las tiendas, como hasta ahora.")
+                            /* Marcar casillas no solo acorta una lista: le cambia los números. Que lo
+                               sepa quien las marca, aquí y no cuando alguien pregunte por qué su total
+                               no cuadra con el de al lado. */
+                            : t("Only these stores — the orders list, the map, Accounts, Summary and the dashboard totals all shrink to them.",
+                                "Solo estas tiendas — la lista de órdenes, el mapa, Cuentas, Resumen y los totales del panel pasan a ser de ellas.")}
+                        </div>
+                        {tiendasMarcadas(u).length > 0 && u.role === "logistics" && (
+                          <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 4 }}>
+                            ⚠ {t("Logistics plans routes: with stores checked, the Routes Manager only shows those stores' stops.",
+                                 "Logística planifica rutas: con tiendas marcadas, el Gestor de Rutas solo enseña las paradas de esas tiendas.")}
+                          </div>
+                        )}
                       </div>
                     )}
                     {m.key === "deliveries" && scoped && (

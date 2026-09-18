@@ -154,6 +154,8 @@ export interface DataState {
   updateUserTitle: (userId: string, patch: { title: string | null; title_color: string | null }) => Promise<void>;
   /** Assign the store a warehouse worker / driver is scoped to (null = none). */
   updateUserStore: (userId: string, store: string | null) => Promise<void>;
+  /** Qué tiendas ve esa persona (D-315). Lista vacía = todas, como antes de la 131. */
+  updateUserVisibleStores: (userId: string, stores: string[]) => Promise<void>;
   /** Grant a specific person extra capabilities on top of their role. */
   updateUserPermissions: (userId: string, permissions: string[]) => Promise<void>;
   /** Grant or revoke access to another module (today: recruiting) and its
@@ -537,7 +539,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      const r = await supabase.from("profiles").select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color").order("full_name");
+      const r = await supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color").order("full_name");
       if (r.data) setUsers(r.data as Profile[]);
       return r;
     },
@@ -1502,6 +1504,22 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, reloadAll, users, logSecurityClient],
   );
 
+  /**
+   * Qué tiendas ve esa persona (D-315). Lo escribe **solo un admin**, y eso no lo decide esta
+   * función: lo hace cumplir el guardia de `profiles` (131). Si un no-admin llegara aquí, la base
+   * responde un error y `reloadAll` deshace lo pintado, como en las demás.
+   */
+  const updateUserVisibleStores = useCallback<DataState["updateUserVisibleStores"]>(
+    async (userId, stores) => {
+      const before = users.find((u) => u.id === userId)?.visible_stores ?? [];
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, visible_stores: stores } : u)));
+      const { error } = await supabase.from("profiles").update({ visible_stores: stores }).eq("id", userId);
+      if (error) { notify(error.message); reloadAll(); return; }
+      void logSecurityClient(userId, "visible_stores_changed", change(before, stores));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient],
+  );
+
   const updateUserPermissions = useCallback<DataState["updateUserPermissions"]>(
     async (userId, permissions) => {
       const before = users.find((u) => u.id === userId)?.permissions ?? [];
@@ -1757,7 +1775,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,
     incidents, addIncident, removeIncident,
