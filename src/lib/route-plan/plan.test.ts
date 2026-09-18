@@ -368,6 +368,50 @@ describe("la ruta de planificar y la pantalla", () => {
   });
 });
 
+describe("135: una hoja importada no se publica, tampoco llamando a la función a mano", () => {
+  const cuerpo = (f: string) => { const t = leer(f); const i = t.indexOf("create or replace function public.publish_route_plan("); const fin = "grant execute on function public.publish_route_plan(uuid, jsonb) to authenticated;\n"; return t.slice(i, t.indexOf(fin, i) + fin.length); };
+  const de133 = cuerpo("supabase/migrations/133_route_plans.sql");
+  const de135 = cuerpo("supabase/migrations/135_no_publicar_hoja_importada.sql");
+  const sql = leer("supabase/migrations/135_no_publicar_hoja_importada.sql");
+
+  it("`create or replace` reemplaza ENTERA: el cuerpo es el de la 133 letra por letra, y la ÚNICA diferencia es el bloque nuevo", () => {
+    expect(de133.length).toBeGreaterThan(3000);
+    const lineas133 = de133.split("\n"), lineas135 = de135.split("\n");
+    const nuevas = lineas135.filter((l) => !lineas133.includes(l));
+    expect(nuevas.map((l) => l.trim())).toEqual([
+      "-- La hoja importada del despachador se guarda para COMPARAR. No se publica nunca, este en el estado que este:",
+      "-- ni escribe ordenes, ni sustituye al plan publicado, ni avisa a nadie.",
+      "if plan.source = 'manual_import' then",
+      "raise exception 'ROUTE_PLAN_IMPORTED: an imported sheet is kept for comparing and is never published';",
+    ]);
+    // Quitando lo nuevo (y su `end if;`), queda exactamente la 133.
+    const i = lineas135.findIndex((l) => l.includes("La hoja importada del despachador"));
+    expect([...lineas135.slice(0, i), ...lineas135.slice(i + 5)].join("\n")).toBe(de133);
+  });
+
+  it("el rechazo va tras leer el plan y ANTES de mirar su estado, de validar avisos y de escribir nada", () => {
+    const p = (s: string) => { const k = de135.indexOf(s); if (k < 0) throw new Error(s); return k; };
+    const orden = ["where p.id = p_plan for update;", "ROUTE_PLAN_NOT_FOUND", "ROUTE_PLAN_IMPORTED", "ROUTE_PLAN_NOT_DRAFT", "ROUTE_PLAN_BAD_NOTICE", "ROUTE_PLAN_STALE", "update public.deliveries d", "insert into public.notifications"].map(p);
+    expect(orden).toEqual([...orden].sort((a, b) => a - b));
+  });
+
+  it("sigue corriendo como quien llama; nada más cambia; sin transacción propia, sin el marcador, con ensayo y ledger", () => {
+    const e = plano(sql.split("\n").map((l) => l.replace(/--.*$/, "")).join("\n"));
+    expect(e.slice(e.indexOf("create or replace function public.publish_route_plan("), e.indexOf("declare"))).not.toContain("security definer");
+    expect(e).not.toMatch(/create policy|drop policy|alter table|create table|create trigger|grant (select|insert|update|delete|all)/i);
+    expect([...e.matchAll(/create or replace function public\.(\w+)/g)].map((m) => m[1])).toEqual(["publish_route_plan"]);
+    expect(e).not.toMatch(/(^|[\s;])(begin|commit)\s*;/i);
+    expect(sql).not.toContain("D-" + "NEXT");
+    expect(sql).toContain("NO debe ser security definer");
+    expect(sql).toContain("NADA escrito");
+    expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\)\n {2}values \('135_no_publicar_hoja_importada\.sql', '[0-9a-f]{64}'\)/);
+  });
+
+  it("y el código lo cuenta con su código: IMPORTED es un 409", () => {
+    expect(errorDePublicar("ROUTE_PLAN_IMPORTED: an imported sheet is kept for comparing and is never published")).toMatchObject({ codigo: "IMPORTED", status: 409 });
+  });
+});
+
 describe("133: la base dice lo mismo", () => {
   const sql = leer("supabase/migrations/133_route_plans.sql");
   const e = plano(sql.split("\n").map((l) => l.replace(/--.*$/, "")).join("\n"));

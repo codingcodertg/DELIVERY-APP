@@ -104,6 +104,6 @@ export function errorDePublicar(mensaje: string): { codigo: string; status: numb
   if (!m) return { codigo: "ERROR", status: 500, detalle: mensaje };
   let detalle: unknown = m[2] ?? null;
   if (m[1] === "STALE" && typeof detalle === "string") { try { detalle = JSON.parse(detalle); } catch { /* se deja como texto */ } }
-  const status = ({ FORBIDDEN: 403, NOT_FOUND: 404, NOT_DRAFT: 409, STALE: 409, UNSEEN: 409, BAD_NOTICE: 400 } as Record<string, number>)[m[1]] ?? 500;
+  const status = ({ FORBIDDEN: 403, NOT_FOUND: 404, NOT_DRAFT: 409, STALE: 409, UNSEEN: 409, BAD_NOTICE: 400, IMPORTED: 409 } as Record<string, number>)[m[1]] ?? 500;
   return { codigo: m[1], status, detalle };
 }

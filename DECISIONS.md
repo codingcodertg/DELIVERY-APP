@@ -22630,3 +22630,41 @@ movimiento es volver a correr medio motor por pulsación; no se hace.
 - El remedio es un texto, no un botón: no abre la orden ni la lleva a Ajustes.
 - **No verificado:** nada abierto en un navegador. Los textos de los remedios son míos: conviene que quien despacha los
   lea y diga si son lo que haría.
+
+## D-NEXT · Una hoja importada no se publica, tampoco llamando a la función a mano — el hueco de D-326, cerrado en la base
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (cambio solo de base: `package.json`, no `APP_VERSIONS`, salvo
+por la línea de código de abajo — criterio suyo) · **Migración:** `135_no_publicar_hoja_importada.sql`, escrita y **no
+aplicada**. Sigue a D-326, que dejó dicho el hueco.
+
+### Qué fallaba
+
+La hoja del despachador se importa como un plan `source = 'manual_import'` para compararla con el del motor. D-326 le puso
+tres defensas para que nunca fuera un plan de verdad —`writes` vacío, descartarla al momento, y que la ruta de publicar la
+rechace—, **las tres de código**. La base no lo impedía: entre guardarla y descartarla es un borrador, y quien llamara a
+`publish_route_plan` directamente con su id la publicaría. No escribiría órdenes (no lleva `writes`), pero **sustituiría al
+plan publicado de ese día**, y con él lo que lee el chofer por `my_published_stops` (D-324).
+
+### Qué hay ahora
+
+`publish_route_plan` rechaza un plan `manual_import` con `ROUTE_PLAN_IMPORTED`, **tras leerlo y antes de mirar nada más**:
+antes de su estado (una hoja ya descartada contesta lo mismo), de validar avisos y de escribir. El código lo cuenta como un
+409 (`errorDePublicar`). Nada más cambia: ni una tabla, ni una política, ni un grant, ni un disparador. Sigue siendo
+`SECURITY INVOKER`.
+
+### Cómo se hizo, que es lo que importa para la próxima vez
+
+`create or replace` reemplaza la función ENTERA, así que la 135 parte de la definición vigente —la de la 133, la última
+migración que toca el objeto— **generada copiando el texto del fichero, no reescribiéndolo**. Y una prueba compara los dos
+ficheros: exige que las únicas líneas de la 135 que no están en la 133 sean las del bloque nuevo, y que quitándolo quede la
+133 letra por letra. Mutantes corridos: perder `get diagnostics`, perder un `for update`, cambiar una etapa ruteable, volverla
+`security definer` — todos caen con esa prueba. Si algún día otra migración toca esta función, la prueba hay que apuntarla a
+esa: compara contra un fichero, no contra producción.
+
+### Lo que NO está verificado
+
+- **La 135 no ha corrido.** Matriz de 7 casos al pie del `.sql`; los que importan: un borrador `manual_import` → excepción y
+  NADA escrito (ni órdenes, ni estado, ni avisos, y el publicado vigente sigue publicado); un `engine` y un `manual_edit`
+  publican como antes.
+- Que el texto del fichero de la 133 sea lo que hay en producción: la 133 se aplicó desde ese fichero y `migrate-status` la
+  da por buena, pero yo no puedo leer `pg_get_functiondef` desde la rama. Quien la ensaye puede compararlo.
