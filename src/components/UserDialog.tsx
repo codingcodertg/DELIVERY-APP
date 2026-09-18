@@ -395,7 +395,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                         </select>
                       </div>
                     )}
-                    {/* Qué tiendas ve (D-NEXT, migración 131). Solo para los roles a los que la
+                    {/* Qué tiendas ve (D-315, migración 131). Solo para los roles a los que la
                         política se lo aplica: el admin nunca se filtra, y chofer y almacén tienen su
                         propia rama. Enseñárselo a ellos sería un ajuste que no hace nada. */}
                     {m.key === "deliveries" && seFiltraPorTienda(u.role) && (

@@ -1,7 +1,7 @@
 import type { Profile, UserRole } from "@/lib/types";
 
 /**
- * Qué tiendas ve cada persona (D-NEXT, migración 131).
+ * Qué tiendas ve cada persona (D-315, migración 131).
  *
  * El dueño lo pidió como **seguridad**, no como comodidad: «que no puedan verlo». Así que **quien
  * decide qué llega es la política RLS de `deliveries`**, no este fichero. Aquí no hay ninguna copia de

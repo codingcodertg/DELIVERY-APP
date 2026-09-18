@@ -16,7 +16,7 @@ export interface Profile {
   // (they only handle orders picked up from their store). null for others.
   store?: string | null;
   /**
-   * Las tiendas cuyas órdenes ve esta persona (D-NEXT, migración 131). Vacío o null = todas, que es
+   * Las tiendas cuyas órdenes ve esta persona (D-315, migración 131). Vacío o null = todas, que es
    * como queda todo el mundo al aplicarla.
    *
    * **No es lo mismo que `store`**, y a propósito: `store` es *su* tienda (la que amarra al almacén y

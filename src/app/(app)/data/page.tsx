@@ -69,7 +69,7 @@ export default function DataPage() {
         autoApprove
         onChange={(v) => save({ stores: v }, t("Stores saved", "Tiendas guardadas"))}
         directoryCode
-        /* Renombrar una tienda NO reescribe las casillas de «Tiendas que ve» (D-NEXT): quedarían
+        /* Renombrar una tienda NO reescribe las casillas de «Tiendas que ve» (D-315): quedarían
            apuntando a un nombre que ya no existe y esas personas dejarían de ver esas órdenes sin
            enterarse. Antes de renombrar se dice a quién le pasaría, por su nombre. */
         avisoAlRenombrar={(antes, despues) => {
@@ -428,7 +428,7 @@ function LocationTable({
   /** Stores only: expose the company-directory code (D-261). */
   directoryCode?: boolean;
   /**
-   * Tiendas: qué avisar antes de renombrar una, o `null` si no hay nada que avisar (D-NEXT).
+   * Tiendas: qué avisar antes de renombrar una, o `null` si no hay nada que avisar (D-315).
    *
    * Lo compone quien llama y no esta tabla, que es genérica y también pinta puntos de recolección y
    * de entrega, donde esto no aplica.
@@ -466,7 +466,7 @@ function LocationTable({
     // dirección, y editar una tienda borraba cualquier clave que este formulario no enseñara.
     const prev = editing != null ? items[editing] : undefined;
     // Renombrar deja apuntando al nombre viejo lo que se guardó con él. Se pregunta ANTES, con quién
-    // se queda sin ver esas órdenes (D-NEXT); si no hay nadie, no se pregunta nada.
+    // se queda sin ver esas órdenes (D-315); si no hay nadie, no se pregunta nada.
     if (prev && avisoAlRenombrar && normalizaTienda(prev.name) !== normalizaTienda(name)) {
       const aviso = avisoAlRenombrar(prev.name, name);
       if (aviso && !(await confirmAction(aviso, { danger: true, confirmLabel: t("Rename", "Renombrar") }))) return;

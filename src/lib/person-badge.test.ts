@@ -170,7 +170,7 @@ describe("104_profile_title.sql", () => {
     const ultima = defs[defs.length - 1];
     // **Este nombre se mueve con cada redefinición, a mano y a propósito.** Es la parte del canario
     // que obliga a venir aquí y leer el comentario de arriba antes de reescribir el guard. Saltó al
-    // escribir la 131 (D-NEXT) y por eso dice 131: la 104 dejó de ser la última.
+    // escribir la 131 (D-315) y por eso dice 131: la 104 dejó de ser la última.
     expect(ultima[0]).toBe("131_visibilidad_por_tienda.sql");
     for (const [fichero, previas] of defs.slice(0, -1)) {
       const perdidas = [...previas].filter((c) => !ultima[1].has(c));

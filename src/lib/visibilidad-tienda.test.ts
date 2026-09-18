@@ -8,7 +8,7 @@ import {
 import type { Profile, UserRole } from "./types";
 
 /**
- * Qué tiendas ve cada persona (D-NEXT, migración 131).
+ * Qué tiendas ve cada persona (D-315, migración 131).
  *
  * **Quien decide es la política RLS**, así que aquí no hay ninguna copia en TypeScript de esa
  * decisión: lo que se prueba del `.sql` es el `.sql`, leyéndolo. Lo que se prueba de TypeScript es

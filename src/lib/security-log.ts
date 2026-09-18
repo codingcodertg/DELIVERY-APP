@@ -14,7 +14,7 @@ export type SecurityKind =
   | "user_removed"
   | "role_changed"
   | "store_changed"
-  // Qué tiendas ve esa persona (D-NEXT). Se registra como los demás cambios de privilegio: es
+  // Qué tiendas ve esa persona (D-315). Se registra como los demás cambios de privilegio: es
   // justo el ajuste que decide qué datos llegan a alguien.
   | "visible_stores_changed"
   | "permissions_changed"

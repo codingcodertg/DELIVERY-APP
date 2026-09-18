@@ -154,7 +154,7 @@ export interface DataState {
   updateUserTitle: (userId: string, patch: { title: string | null; title_color: string | null }) => Promise<void>;
   /** Assign the store a warehouse worker / driver is scoped to (null = none). */
   updateUserStore: (userId: string, store: string | null) => Promise<void>;
-  /** Qué tiendas ve esa persona (D-NEXT). Lista vacía = todas, como antes de la 131. */
+  /** Qué tiendas ve esa persona (D-315). Lista vacía = todas, como antes de la 131. */
   updateUserVisibleStores: (userId: string, stores: string[]) => Promise<void>;
   /** Grant a specific person extra capabilities on top of their role. */
   updateUserPermissions: (userId: string, permissions: string[]) => Promise<void>;
@@ -1505,7 +1505,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   /**
-   * Qué tiendas ve esa persona (D-NEXT). Lo escribe **solo un admin**, y eso no lo decide esta
+   * Qué tiendas ve esa persona (D-315). Lo escribe **solo un admin**, y eso no lo decide esta
    * función: lo hace cumplir el guardia de `profiles` (131). Si un no-admin llegara aquí, la base
    * responde un error y `reloadAll` deshace lo pintado, como en las demás.
    */

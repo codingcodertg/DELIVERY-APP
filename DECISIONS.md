@@ -39318,7 +39318,7 @@ se escribió; el diseño pedía menos de 2 s. El tope de la prueba es de 8 s a p
   paradas cuesta mucho más —la inserción prueba todas las parejas de posiciones— y no está medida.
 - **Tiempo en CI**, que es otra máquina.
 
-## D-NEXT · Qué tiendas ve cada persona
+## D-315 · Qué tiendas ve cada persona
 
 **Fecha:** 2026-09-17, descongelada y revisada el **2026-09-18** · **Versión:** la pone el orquestador
 (Entregas) · **Migración 131, escrita y NO aplicada**
