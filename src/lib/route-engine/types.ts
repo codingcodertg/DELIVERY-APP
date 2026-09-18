@@ -1,5 +1,5 @@
 /**
- * El motor de rutas: tipos (D-NEXT). Diseño en `docs/route-algorithm-design.md`.
+ * El motor de rutas: tipos (D-314). Diseño en `docs/route-algorithm-design.md`.
  *
  * Todo lo que entra y sale de aquí es dato plano: nada de red, de base ni de reloj. La matriz de tiempos
  * es una ENTRADA. Por eso el motor es determinista, se prueba sin simular nada, y un plan guardado con su

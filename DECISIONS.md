@@ -39186,7 +39186,7 @@ documento append-only: quien lea la primera copia se lleva la versión vieja sin
 arreglo en esta rama** —deduplicar el registro de decisiones es decisión del dueño, no de un cambio
 de pantalla—, pero las notas de esta entrada sí se escribieron en **las dos** copias de D-239.
 
-## D-NEXT · Motor de rutas, incremento 2: el núcleo puro (planificar y evaluar), sin pantalla ni red
+## D-314 · Motor de rutas, incremento 2: el núcleo puro (planificar y evaluar), sin pantalla ni red
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador · **Sin migración. Nada cambia en la app:**
 es una librería nueva, `src/lib/route-engine/`, que todavía no llama nadie.

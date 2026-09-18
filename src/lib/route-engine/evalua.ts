@@ -4,7 +4,7 @@ import type {
 } from "./types";
 
 /**
- * Evaluar un plan: la ÚNICA función que pone horas, cargas y coste a una secuencia de paradas (D-NEXT).
+ * Evaluar un plan: la ÚNICA función que pone horas, cargas y coste a una secuencia de paradas (D-314).
  *
  * La usan tres cosas que tienen que dar el mismo número: el motor para decidir, la pantalla cuando el
  * despachador mueve una parada a mano, y la comparación cuando se puntúa la hoja manual. Si dos de ellas

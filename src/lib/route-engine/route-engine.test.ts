@@ -7,7 +7,7 @@ import {
 } from "./index";
 
 /**
- * El núcleo del motor de rutas (D-NEXT). Sin red, sin base, sin reloj: todo son datos inventados.
+ * El núcleo del motor de rutas (D-314). Sin red, sin base, sin reloj: todo son datos inventados.
  *
  * El mapa de las pruebas es una cuadrícula: un punto es «x,y» y de uno a otro se tarda su distancia en
  * manzanas (|dx|+|dy|) en minutos, a 0,6 millas por minuto. Así cada número de abajo se puede comprobar

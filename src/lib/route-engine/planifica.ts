@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 /**
- * Planificar el día: repartir las órdenes entre los choferes y ordenar sus paradas (D-NEXT).
+ * Planificar el día: repartir las órdenes entre los choferes y ordenar sus paradas (D-314).
  *
  * Inserción más barata de PARES con arrepentimiento, y después búsqueda local moviendo siempre el par
  * entero. Determinista: sin azar, con los empates resueltos por una clave estable (la que entró primero,
