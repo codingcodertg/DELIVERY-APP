@@ -39185,3 +39185,135 @@ pasado que una corrección se escriba en una copia y no en la otra, que es exact
 documento append-only: quien lea la primera copia se lleva la versión vieja sin enterarse. **No lo
 arreglo en esta rama** —deduplicar el registro de decisiones es decisión del dueño, no de un cambio
 de pantalla—, pero las notas de esta entrada sí se escribieron en **las dos** copias de D-239.
+
+## D-NEXT · Motor de rutas, incremento 2: el núcleo puro (planificar y evaluar), sin pantalla ni red
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador · **Sin migración. Nada cambia en la app:**
+es una librería nueva, `src/lib/route-engine/`, que todavía no llama nadie.
+**Diseño:** `docs/route-algorithm-design.md` (aprobado por el dueño ese día, §11). Esto es su incremento 2.
+
+### Qué es
+
+El dueño pidió un motor que reparta las órdenes del día entre los choferes y ordene sus paradas, con
+recogida y entrega emparejadas. Este incremento es **solo el cálculo**: dos funciones puras.
+
+- **`planifica(entrada, parámetros) → plan`**: órdenes, choferes y una matriz de tiempos entran; salen las
+  rutas, lo que quedó fuera **con su motivo**, y la explicación de cada decisión.
+- **`evaluaPlan(...)`**: pone horas, carga a bordo y coste a una secuencia de paradas **sin optimizar nada**.
+  Es la misma función que usa el motor para decidir, la que usará la pantalla cuando el despachador mueva
+  una parada, y la que puntuará la hoja manual. **Nunca rechaza una secuencia: la mide y dice qué
+  incumple** — la ruta del despachador puede cargar 11 pallets en un camión de 10, y lo que se quiere es
+  verlo.
+
+**Sin red, sin base, sin reloj.** La matriz de tiempos es una *entrada*. Por eso se prueba sin simular nada,
+y un plan guardado con su entrada se podrá recalcular dentro de un año y saldrá igual.
+
+### El modelo
+
+Cada orden es un **par**: P en su tienda, D en su destino. **Duro:** P antes que D y con el mismo chofer; la
+carga a bordo —que sube y baja— nunca pasa de la del camión; el chofer sale de su base a su hora y vuelve
+antes de acabar el turno; a una ventana **estrecha** no se llega tarde; a una **ancha** sí, hasta un tope
+(60 min); el chofer que ya puso el despachador se respeta (el chofer, no la posición); lo fijado y lo ya
+recogido no se mueve.
+
+Con recogidas como paradas, **«viaje» deja de ser una decisión aparte**: volver a la tienda a cargar es otra
+parada P. Cargar en una tienda dura **lo mayor entre 20 minutos y la suma** de lo que se recoge ahí, una vez
+por visita (decisión 8 de §11).
+
+**Una orden mayor que el camión se parte** en cargas a/b/c **del mismo chofer**, a la medida del camión de
+quien puede llevarla, con los minutos de servicio repartidos en proporción. Lo ya recogido no se parte.
+
+### Qué compara dos planes
+
+1. **Menos órdenes fuera.** No es un peso: ningún ahorro de minutos justifica dejar una orden sin ruta.
+2. **Menor coste**, una suma ponderada con los pesos como parámetro (vendrán de Ajustes), en el orden del
+   dueño: minutos hasta la entrega de cada **builder** > minutos de **manejo** y **millas** > minutos
+   **tarde** en ventana ancha > **desequilibrio** entre choferes.
+3. A igual coste, **el día que acaba antes** (cargar dos órdenes en la misma visita no cambia el manejo, pero
+   sí el día).
+
+**Los builders son los últimos en quedarse fuera** porque la construcción los coloca antes que a nadie.
+
+**Pesos de arranque: builder 2 · manejo 1 · milla 0,5 · tarde 0,75 · balance 0,1.** No salen de la nada: son
+los que hacen pasar los casos que dio el orquestador, escritos como pruebas — *un desvío de 10 minutos para
+adelantar a un builder SÍ se hace; uno de 90, NO*; *se aceptan 8 minutos tarde en una ancha antes que 20 más
+de manejo*; *el balance reparte cuando el manejo empata, y solo entonces*. Cada uno tiene su gemelo que
+demuestra que **lo decide el peso y no el código**: con el peso a cero, o subido, la respuesta cambia. Son
+un punto de partida para afinar con días reales, no una verdad.
+
+### El algoritmo
+
+**Construcción:** inserción más barata de **pares** con arrepentimiento — se coloca primero la orden que más
+perdería si espera (la diferencia entre su mejor chofer y el segundo), builders por delante.
+**Mejora:** *recolocar* un par (en su ruta o en otra) e *intercambiar* dos pares entre dos choferes, hasta
+que nada mejora; y lo que quedó fuera **se reintenta** cuando la mejora abre un hueco.
+
+**Desviación del diseño, dicha:** el documento hablaba también de *or-opt* y *2-opt* dentro de una ruta. No
+están: recolocar un par dentro de su propia ruta ya prueba todas las posiciones de sus dos paradas, y un
+2-opt (invertir un tramo) casi siempre rompe la precedencia P→D. A este tamaño no se echan de menos; si
+crecen las rutas, es el primer sitio donde mirar.
+
+**Cada mecanismo se comprobó que decide algo**, no se supuso: recorriendo 400 instancias pequeñas de un
+generador fijo, quitar la búsqueda local empeoraba 99; quitar el intercambio, 33 (y mejoraba 2: es una
+heurística, no un óptimo); quitar el arrepentimiento empeoraba 50 y mejoraba 34 — **ayuda más que estorba,
+pero no por mucho**, y es el candidato a revisar con días reales; quitar el reintento cambiaba 1 — pero esa
+una es una orden que se quedaba sin ruta. Cuatro de esas instancias quedan como pruebas.
+
+### Determinismo
+
+Sin `Math.random`, sin reloj (una prueba barre el directorio y lo prohíbe). **Empates: la que entró primero
+va primero** (`input_date` + `input_time`), luego el código, luego el id, comparados **campo a campo**; sin
+fecha, detrás. Se corta por **número de movimientos**, nunca por tiempo, y un plan cortado lo dice
+(`convergio: false`) **solo si de verdad quedaba algo por mejorar**. La misma entrada da el mismo plan, y
+también **barajando** órdenes y choferes.
+
+**Por dentro todo son enteros:** pallets en centésimas, millas en centésimas, pesos en milésimas. El coste
+total es un entero y dos planes no empatan ni desempatan por un decimal.
+
+### Explicar
+
+De cada orden colocada: **qué aporta al coste, término a término**, y **cuánto costaría llevarla con cada
+otro chofer**, también desglosado — o por qué con ese no se puede (`capacidad`, `no_permitido`…). En un plan
+que convergió ninguna alternativa es mejor que lo elegido, y hay una prueba que lo afirma. De cada orden
+fuera, un motivo de un vocabulario cerrado: `sin_punto`, `sin_chofer_disponible`, `supera_capacidad`,
+`ventana_imposible`, `retraso_sobre_el_tope`, `fuera_de_turno`, `chofer_fijado_sin_hueco`,
+`no_cabe_con_el_resto` — este último distingue «ella sola cabría» de «es imposible».
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**60 mutantes leídos por nombre; 59 cazados y 1 equivalente** (dejar que el bucle pruebe la entrega antes que
+la recogida: la evaluación ya lo rechaza, así que solo ahorra trabajo). La primera pasada dejó **16 vivos**,
+y leerlos enseñó tres cosas distintas:
+
+- **Un defecto real.** La clave de desempate era un texto pegado (`entrada|código|id`), y «sin fecha va
+  detrás» funcionaba **por accidente del separador**: `|` ordena después de los dígitos. Ahora se compara
+  campo a campo.
+- **Código de sobra, borrado.** Un criterio «menos builders fuera» al comparar planes: ningún movimiento de
+  la mejora cambia un builder por un mostrador, así que nunca decidía nada. Y un descarte previo por «sin
+  punto», que la evaluación ya cubría.
+- **Pruebas flojas, apretadas.** La peor: **ninguna prueba ejercía la búsqueda local ni el arrepentimiento**
+  — se podían borrar enteros y todo seguía verde. De ahí la búsqueda de instancias de arriba. Y dos de
+  «datos que no contradicen»: la prueba de pallets decimales usaba 0,15 + 0,25 + 0,6, que multiplicados por
+  100 **dan enteros exactos**, así que sumar en coma flotante también la pasaba (ahora usa 0,07 + 0,14 +
+  0,28, que da 49,00000000000001); y la del desempate por código tenía el id igual al código.
+
+El validador de las pruebas (`esValido`) **no se fía de las violaciones que declara el propio motor**: vuelve
+a contar precedencia, carga, reloj, turno y chofer fijado por su cuenta.
+
+### Verificado
+
+`rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
+**178 ficheros | 1 omitido · 3045 pruebas | 3 omitidas.** En `origin/main` (fba7e0b), misma copia: 177 | 1
+y 2994 | 3. La diferencia, fichero a fichero: **+51**, todas de `route-engine.test.ts`.
+**Estrés:** 60 órdenes y 10 choferes en **~1,2 s** (tres medidas: 1212, 1246 y 1223 ms) en la máquina donde
+se escribió; el diseño pedía menos de 2 s. El tope de la prueba es de 8 s a propósito: CI es más lento.
+
+### Lo no verificado
+
+- **Ningún dato real ha pasado por aquí.** Todo son cuadrículas inventadas donde un minuto es una manzana.
+  Que los pesos de arranque den rutas que el despachador reconozca como suyas **no se sabe**: es para lo que
+  está la comparación con su hoja (incremento 8).
+- **La calidad frente al óptimo.** Se midió que cada mecanismo mejora, no cuánto falta para lo mejor posible.
+- **Rutas largas.** El estrés reparte 60 órdenes entre 10 choferes (12 paradas por ruta). Una sola ruta de 40
+  paradas cuesta mucho más —la inserción prueba todas las parejas de posiciones— y no está medida.
+- **Tiempo en CI**, que es otra máquina.
