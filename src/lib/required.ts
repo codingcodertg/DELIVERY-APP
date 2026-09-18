@@ -72,7 +72,7 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
   // nombre del sitio puede no existir (una obra).
   if (!filled(d.delivery_address)) out.push({ key: "delivery_address", en: "Delivery Address (dropoff)", es: "Dirección de Entrega (destino)" });
   // En un movimiento tienda-a-tienda NO es opcional: es la tienda destino, se elige de una lista y sin
-  // ella la orden no dice a dónde va (D-NEXT). El dueño: «in intertienda the store destination should
+  // ella la orden no dice a dónde va (D-309). El dueño: «in intertienda the store destination should
   // be in red as well» — o sea, que se marque como los demás campos que faltan.
   if (isStoreToStore(d.order_type, rules) && !filled(d.delivery_name)) {
     out.push({ key: "delivery_name", en: "Store destination", es: "Tienda destino" });

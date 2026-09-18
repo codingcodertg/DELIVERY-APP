@@ -63,7 +63,7 @@ describe("quién puede retomar un borrador", () => {
   });
 
   it("y un vendedor ve los borradores de cualquiera, solo los borradores", () => {
-    // El corte de ventas se mudó entero a `ventasVeLaOrden` (D-NEXT), así que **lo de D-286 se
+    // El corte de ventas se mudó entero a `ventasVeLaOrden` (D-309), así que **lo de D-286 se
     // comprueba donde ahora se decide**: en la función, con datos, no en el texto de la pantalla.
     // Un canario que siguiera mirando la línea vieja se habría quedado vigilando un sitio donde ya no
     // pasa nada.

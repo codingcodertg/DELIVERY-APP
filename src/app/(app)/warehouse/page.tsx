@@ -66,7 +66,7 @@ export default function WarehousePage() {
   );
   const atStore = useMemo(
     () => (d: Delivery) => {
-      // Las tiendas de la orden salen de una función compartida (D-NEXT): en un movimiento
+      // Las tiendas de la orden salen de una función compartida (D-309): en un movimiento
       // tienda-a-tienda son la que vende, la que envía y la que recibe, y esta cola y el tablero de
       // Órdenes tienen que contestar lo mismo. Antes estaban escritas aquí a mano y se dejaban fuera
       // el destino.

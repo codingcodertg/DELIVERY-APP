@@ -36589,7 +36589,7 @@ como los otros cinco, que es la regla que esas pruebas exigen.
 
 ## D-288 · Se revierte D-282: el contacto de una Intertienda vuelve a ser texto
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** El dueño quitó cuenta, contacto y teléfono de
+> **⚠ Reemplazada en parte el 2026-09-18, por D-309.** El dueño quitó cuenta, contacto y teléfono de
 > los movimientos tienda-a-tienda («los tres»), así que **`eligeDestino` ya no escribe el contacto**:
 > rellenaría un campo que ya no se enseña, y lo volvería a poner justo después de que el cambio de tipo
 > lo vaciara. Lo que sigue vigente de esta entrada: el contacto es texto libre en una orden de
@@ -36958,7 +36958,7 @@ en esta misma copia con el árbol en `origin/main`, está en 2545 | 3.
 
 ## D-292 · Cuentas que siempre pasan por oficina
 
-> **⚠ Reemplazada en parte el 2026-09-18, por D-NEXT.** Desde que una Intertienda no lleva cuenta, esta
+> **⚠ Reemplazada en parte el 2026-09-18, por D-309.** Desde que una Intertienda no lleva cuenta, esta
 > regla **deja de aplicarle**: `account_requires_approval(null)` devuelve false —no hay fila que case—
 > así que una orden entre tiendas ya no nace pendiente por la cuenta. Es decisión del dueño, a quien se
 > le preguntó expresamente. Para las órdenes de cliente, y para las Intertienda viejas que sí llevan
@@ -37665,7 +37665,7 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
 
 ## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
-> **⚠ Reemplazada en parte al día siguiente, por D-NEXT.** La **dirección de «Vendido desde» vuelve**
+> **⚠ Reemplazada en parte al día siguiente, por D-309.** La **dirección de «Vendido desde» vuelve**
 > también en un tipo que recibe: aquí se había quitado porque el dueño dijo que no se necesitaba, y el
 > 2026-09-18 la pidió de vuelta — *«store sold from should have the address»*. Lo demás sigue vigente:
 > la tienda que abre la orden vende y recibe, «Vendido desde» sigue congelado, y lo que se elige es la
@@ -38294,7 +38294,7 @@ medido en esta misma copia con el árbol en `origin/main`, está en 2787 | 3.
 - **El tiempo real de Supabase** (`postgres_changes` sobre `notifications`) sigue igual; no se ha
   medido cuánto tarda la campana en actualizarse tras el insert.
 
-## D-NEXT · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
+## D-309 · Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, cinco cosas de una vez: *«in intertienda orders people from both pickup and
@@ -38486,7 +38486,7 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 - **Las órdenes viejas no se tocan**: una Intertienda que ya tenga cuenta, contacto o teléfono los
   conserva, y sigue contando en Cuentas. Solo cambia lo que se escribe a partir de ahora.
 
-## D-NEXT · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
+## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
 `125_ventas_pone_la_factura.sql`, escrita y **no aplicada**; va **antes** que el código.
@@ -38623,11 +38623,32 @@ documento pide cada tipo es dato del dueño y no se afirma en el repo.
 `documento-pendiente.test.ts` y **+1** de `inline-colors.test.ts`, que genera una prueba por
 componente y recogió `DocumentoPendiente.tsx`.
 
+### El ensayo de la 125, medido
+
+Medido por el orquestador en producción con `ROLLBACK`, 2026-09-18; comprobado después que no quedó nada (ledger sin la fila, guard sin la excepción). Los números de caso son los del ensayo, no los del comentario del `.sql`.
+
+**Antes de aplicar:** todos los casos del vendedor BLOQUEADOS; gerente permitido.
+**Con la 125 aplicada dentro de la transacción:**
+
+| # | Quién y qué | Resultado |
+|---|---|---|
+| 1 | vendedor, SU orden en `approved`, factura vacía → la pone | **PERMITIDO** |
+| 1b | lo mismo en `delivered` | **PERMITIDO** |
+| 2 | factura + `est_pallets` | bloqueado |
+| 3 | factura en blanco | bloqueado |
+| 4 | otro vendedor, orden ajena | bloqueado |
+| 5 | chofer | bloqueado |
+| 6 | gerente | permitido, como hoy |
+| 7 | factura + cambio de etapa | bloqueado («sales cannot move…») |
+| 8 | sobrescribir una factura ya puesta | bloqueado |
+
+**1c (orden `canceled`) no se pudo correr:** no hay en producción ninguna orden anulada de un vendedor. Esa exclusión queda leída en el `.sql` y fijada por la prueba de las condiciones, no medida en la base.
+
+**Aplicada en producción el 2026-09-18 ~15:05Z** con el OK del dueño («aplícalo»): respaldo del guard vigente antes, `migrate-status` 123/123 antes, autocomprobación pasada, y los casos 1, 1b (permitidos) y 2-7 (bloqueados) repetidos en vivo con `ROLLBACK` después de aplicar.
+
 ### Lo no verificado
 
-- **La 125 no se ha corrido contra ninguna base.** Una rama no toca producción. La matriz por rol está
-  en el `.sql` y la ensaya el orquestador; hasta entonces, que el `probe` se comporte como se espera con
-  las columnas reales es una lectura, no una medición.
+- **El caso 1c de la 125** (vendedor sobre una orden anulada): sin datos en producción para ensayarlo.
 - **Nadie ha visto la pastilla ni el input en un navegador.** En el worktree no hay `.env.local`. En
   concreto no está visto: que el input quepa en la columna `#` a su ancho por defecto; que la pastilla junto a una factura
   larga no haga saltar la primera línea de la tarjeta del teléfono; el encabezado de

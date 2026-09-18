@@ -103,7 +103,7 @@ export interface DataState {
    * never asked for and can do nothing about — a failure there must not look
    * like a failure of whatever they just did. */
   updateDelivery: (id: string, patch: Partial<Delivery>, opts?: { quiet?: boolean }) => Promise<boolean>;
-  /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-NEXT). */
+  /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-310). */
   ponerDocumento: (id: string, campo: CampoDeDocumento, valor: string) => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every
@@ -1061,7 +1061,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
   updateDeliveryRef.current = updateDelivery;
 
-  // El documento que falta, desde la fila (D-NEXT). Camino propio y no `updateDelivery` por dos cosas:
+  // El documento que falta, desde la fila (D-310). Camino propio y no `updateDelivery` por dos cosas:
   // el parche lleva UN campo y nada mas -- la migracion 125 le deja a ventas escribir `invoice_num` en
   // su orden solo si es lo unico que cambia, y un sello de mas convierte el guardado en un rechazo --,
   // y pide `.select("id")`: un UPDATE que la RLS deja en cero filas vuelve sin error y pareceria

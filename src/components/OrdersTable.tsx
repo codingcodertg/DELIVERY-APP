@@ -168,7 +168,7 @@ const ID_COLUMN: OrderColumn = {
                   </span>
                 </>
               ) : null}
-              {/* El documento que el tipo exige y falta (D-NEXT): pastilla, y para quien puede, el
+              {/* El documento que el tipo exige y falta (D-310): pastilla, y para quien puede, el
                   número escrito aquí mismo. Ocupa el sitio del «—»: la fila no crece. Va aparte de la
                   factura porque a una Intertienda le puede faltar el PO teniendo factura. */}
               <DocumentoPendiente d={d} vacio={invoice ? null : "—"} />
@@ -348,7 +348,7 @@ export function OrdersTable({
    * view, where a whole day of stops otherwise means endless scrolling.
    * Desktop is unaffected — the table there shows every column as usual. */
   collapsible?: boolean;
-  /** Agrupa las filas por tienda, con un encabezado y su cuenta por grupo (D-NEXT). Es el orden de
+  /** Agrupa las filas por tienda, con un encabezado y su cuenta por grupo (D-310). Es el orden de
    * ENTRADA: en cuanto la persona ordena por una columna, manda su orden y los encabezados se van,
    * porque un encabezado de tienda sobre filas ordenadas por fecha mentiría. Los filtros de columna
    * se aplican antes, así que cada cuenta es la de lo que se ve. */

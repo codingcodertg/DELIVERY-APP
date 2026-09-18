@@ -9,7 +9,7 @@ import type { PersonaDirectorio } from "./phone-book";
 
 /**
  * Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar
- * (D-NEXT). Cuatro cosas que pidió el dueño el 2026-09-18, medidas aquí por separado.
+ * (D-309). Cuatro cosas que pidió el dueño el 2026-09-18, medidas aquí por separado.
  *
  * Nada de esto toca la base ni llama a nadie: `phone_book` se dobla con filas de mentira y los
  * teléfonos son inventados.

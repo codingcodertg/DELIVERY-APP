@@ -97,7 +97,7 @@ export function origenEsDestino(
 }
 
 /**
- * **Las tiendas a las que les importa esta orden** (D-NEXT).
+ * **Las tiendas a las que les importa esta orden** (D-309).
  *
  * El dueño: *«in intertienda orders people from both pickup and delivery store can see the order
  * because les importa a ambos»*.
@@ -159,7 +159,7 @@ export function eligeOrigen(p: Partial<Delivery>, v: string, tiendas: NamedLocat
 /**
  * Elegir la tienda de destino: es el nombre del destino y su dirección. Lo que hace el modal.
  *
- * **Ya no escribe el contacto** (D-NEXT). Lo escribía desde D-288 —ahí el contacto de una Intertienda
+ * **Ya no escribe el contacto** (D-309). Lo escribía desde D-288 —ahí el contacto de una Intertienda
  * era el nombre de la tienda que recibe— y eso dejó de tener sentido cuando el dueño quitó cuenta,
  * contacto y teléfono de los movimientos tienda-a-tienda: seguiría rellenando un campo que ya no se
  * enseña, **y volvería a ponerlo justo después de que el cambio de tipo lo vaciara**. Un dato invisible

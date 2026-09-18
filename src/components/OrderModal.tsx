@@ -579,7 +579,7 @@ export function OrderModal({
   // the dropdown, and there's no external customer. Driven by the order type's configured rule
   // (Data → Order types), not the name.
   //
-  // **Decía que cuenta/contacto/teléfono quedaban «bloqueados», y no era verdad** (D-NEXT): no se
+  // **Decía que cuenta/contacto/teléfono quedaban «bloqueados», y no era verdad** (D-309): no se
   // exigen desde hace tiempo (`required.ts`), pero siguen visibles y editables unas líneas más abajo.
   // El comentario describía una intención, no el código; corregirlo es parte del encargo que quita
   // esos campos de Intertienda.
@@ -1809,7 +1809,7 @@ export function OrderModal({
 
             {/* ---- Customer / contact ---- */}
             {/* En un movimiento tienda-a-tienda no hay cliente, así que no hay cuenta, contacto ni
-                teléfono (D-NEXT). El dueño: «remove account contact name and phone number from
+                teléfono (D-309). El dueño: «remove account contact name and phone number from
                 intertienda», y al preguntarle si la cuenta también: «los tres».
                 No es solo esconderlos: `aplicaTipo` los vacía al cambiar a un tipo tienda-a-tienda,
                 para que no viajen a la base invisibles — la cuenta decide si la orden nace pendiente
@@ -1984,7 +1984,7 @@ export function OrderModal({
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
               }} disabled={!salesFields || origenFijo || tiendaCongelada} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
-              {/* La dirección vuelve también en un tipo que recibe (D-NEXT). D-302 la había quitado
+              {/* La dirección vuelve también en un tipo que recibe (D-309). D-302 la había quitado
                   ahí —«no se necesita», dijo el dueño— y ahora la pide de vuelta: «store sold from
                   should have the address». Sigue siendo de solo lectura y sale de Ajustes; «Vendido
                   desde» sigue congelado. */}
@@ -3042,7 +3042,7 @@ function CallClientButton({
 }
 
 /**
- * A quién llamar en una tienda de la parada (D-NEXT).
+ * A quién llamar en una tienda de la parada (D-309).
  *
  * El dueño: *«so driver could click on any pu or del store and see the warehouse phone number so he
  * can call him»*, y eligió que salga **de la gente del directorio**, no de un número escrito por
@@ -3170,7 +3170,7 @@ function DriverDeliveryScreen({
               : t("Pick up", "Recoger")}
           </div>
           {origin && <div className="drv-banner-sub">{origin}</div>}
-          {/* A quién llamar en la tienda donde recoge (D-NEXT). */}
+          {/* A quién llamar en la tienda donde recoge (D-309). */}
           <AlmacenDeLaParada nombre={pickupPlace} tiendas={settings.stores} t={t} />
         </div>
         {origin && (
@@ -3203,7 +3203,7 @@ function DriverDeliveryScreen({
           {order.invoice_num && (
             <div className="drv-banner-sub drv-inv">📄 INV {order.invoice_num}</div>
           )}
-          {/* Y en la de destino, si el destino es otra tienda nuestra — una Intertienda (D-NEXT).
+          {/* Y en la de destino, si el destino es otra tienda nuestra — una Intertienda (D-309).
               En una entrega a cliente no pinta nada. */}
           <AlmacenDeLaParada nombre={order.delivery_name} tiendas={settings.stores} t={t} />
           {order.delivery_pin_source === "manual" && (

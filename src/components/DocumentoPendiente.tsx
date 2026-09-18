@@ -10,7 +10,7 @@ import type { Delivery } from "@/lib/types";
 
 /**
  * La pastilla «Invoice pending / PO pending / Estimate pending» de una orden, y —para quien puede— el
- * número escrito ahí mismo, sin abrir la orden (D-NEXT). Quién puede y qué campo lo decide
+ * número escrito ahí mismo, sin abrir la orden (D-310). Quién puede y qué campo lo decide
  * `campoCapturableEnFila`; aquí solo se pinta.
  *
  * Vive dentro de una fila que abre la orden al pulsarla, así que todo lo que se pulsa aquí para el

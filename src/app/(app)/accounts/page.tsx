@@ -54,7 +54,7 @@ export default function AccountsPage() {
   const accounts = useMemo<AccountRow[]>(() => {
     const map = new Map<string, Delivery[]>();
     for (const d of deliveries) {
-      // Una orden de tienda a tienda SIN cuenta no es un cliente (D-NEXT): desde que Intertienda dejó
+      // Una orden de tienda a tienda SIN cuenta no es un cliente (D-309): desde que Intertienda dejó
       // de llevar cuenta, meterlas aquí llenaría una sola fila «(sin cuenta)» que crece sin parar y no
       // se puede abrir para nada útil. Las de tienda a tienda que SÍ llevan cuenta —las de antes de
       // este cambio— siguen contando donde contaban.

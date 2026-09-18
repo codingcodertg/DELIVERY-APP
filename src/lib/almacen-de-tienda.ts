@@ -3,7 +3,7 @@ import type { PersonaDirectorio } from "@/lib/phone-book";
 import { normaliza } from "@/lib/phone-book";
 
 /**
- * A quién llama el chofer cuando toca una tienda de la parada (D-NEXT).
+ * A quién llama el chofer cuando toca una tienda de la parada (D-309).
  *
  * El dueño: *«so driver could click on any pu or del store and see the warehouse phone number so he
  * can call him»*, y de las dos formas posibles eligió **la gente del directorio**, no un teléfono

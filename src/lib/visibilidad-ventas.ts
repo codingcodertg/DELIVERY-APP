@@ -3,7 +3,7 @@ import { orderOwner } from "@/lib/utils";
 import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
 
 /**
- * Qué órdenes le tocan a un vendedor (D-NEXT).
+ * Qué órdenes le tocan a un vendedor (D-309).
  *
  * **Es la decisión entera, en una función, y eso no es estilo: es lo que hacía falta.** La primera
  * versión dejaba la decisión repartida —el tablero llamaba a `tiendaDeLaOrdenEsMia` y el `storeToStore`

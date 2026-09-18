@@ -192,7 +192,7 @@ export default function OrdersPage() {
         // VISIBILIDAD, y solo en `draft`: en cuanto la orden sale de borrador, el corte de ventas
         // vuelve a ser el de siempre.
         //
-        // **Y menos las de tienda a tienda de SU tienda** (D-NEXT). El dueño: «in intertienda orders
+        // **Y menos las de tienda a tienda de SU tienda** (D-309). El dueño: «in intertienda orders
         // people from both pickup and delivery store can see the order because les importa a ambos»,
         // y confirmado después para ventas: las ve aunque no las haya creado él. Solo en tipos
         // tienda-a-tienda; en una orden de cliente sigue viendo solo las suyas. `orderOwner` no se
@@ -237,7 +237,7 @@ export default function OrdersPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: visible.length };
     for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;
-    // La pestaña del documento pendiente (D-NEXT) cuenta sobre lo mismo que las de etapa: lo que
+    // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
     // esta persona ve.
     c[PESTANA_DOCUMENTO_PENDIENTE] = visible.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
     return c;
@@ -468,7 +468,7 @@ export default function OrdersPage() {
                 {stageLabel(key, lang)} <span className="cnt">{counts[key] ?? 0}</span>
               </button>
             ))}
-            {/* «Invoice pending» (D-NEXT): una pestaña más de la fila, no un botón aparte junto al
+            {/* «Invoice pending» (D-310): una pestaña más de la fila, no un botón aparte junto al
                 buscador: es el mismo estado, y dos mandos para un estado se contradicen. Solo sale
                 si hay algo pendiente o si se está en ella. Entra ordenada por tienda. */}
             {((counts[PESTANA_DOCUMENTO_PENDIENTE] ?? 0) > 0 || filter === PESTANA_DOCUMENTO_PENDIENTE) && (

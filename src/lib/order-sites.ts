@@ -64,7 +64,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   const rule = orderTypeRule(tipo, c.reglas);
   const next: Borrador = { ...p, order_type: tipo };
   // Un movimiento tienda-a-tienda no tiene cliente, así que no tiene cuenta, contacto ni teléfono
-  // (D-NEXT). El dueño: «remove account contact name and phone number from intertienda», y al
+  // (D-309). El dueño: «remove account contact name and phone number from intertienda», y al
   // preguntarle si la cuenta también: «los tres».
   //
   // Se **limpian al cambiar de tipo** y no solo se esconden: escondidos seguirían viajando a la base,

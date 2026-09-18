@@ -24,7 +24,7 @@ const TIENDAS: NamedLocation[] = [
 ];
 
 describe("el contacto vuelve a ser lo que era", () => {
-  it("elegir la tienda de destino ya NO escribe el contacto (D-NEXT)", () => {
+  it("elegir la tienda de destino ya NO escribe el contacto (D-309)", () => {
     // D-288 la devolvió a escribirlo —el contacto de una Intertienda era la tienda que recibe— y el
     // 2026-09-18 el dueño quitó cuenta, contacto y teléfono de los movimientos tienda-a-tienda
     // («los tres»). Escribirlo ahora rellenaría un campo que ya no se enseña, y encima lo volvería a
@@ -81,7 +81,7 @@ describe("lo que NO se revierte sigue en pie", () => {
     }
   });
 
-  it("y `aplicaTipo` vacía la punta que choca Y los tres del cliente (D-NEXT)", () => {
+  it("y `aplicaTipo` vacía la punta que choca Y los tres del cliente (D-309)", () => {
     const REGLAS = {
       Intertienda: { docRef: "po" as const, storeToStore: true, homeIsDestination: true },
       Customer: { docRef: "invoice" as const, storeToStore: false },
@@ -95,7 +95,7 @@ describe("lo que NO se revierte sigue en pie", () => {
     // Desde D-302 la punta que el tipo deja elegir es la RECOGIDA: su tienda vende y recibe.
     expect(d.pickup_name || "").toBe("");
     expect(d.store).toBe("Tienda Norte");
-    // Y desde D-NEXT se van los tres del cliente: un movimiento entre tiendas no tiene ninguno. Esta
+    // Y desde D-309 se van los tres del cliente: un movimiento entre tiendas no tiene ninguno. Esta
     // prueba exigía justo lo contrario —«el contacto ya no lo toca nadie»— y se reescribe, porque lo
     // que cambió es la decisión, no el código que la vigila.
     expect(d.account ?? "").toBe("");

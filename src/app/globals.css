@@ -249,7 +249,7 @@
 .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
 .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .chip .cnt { margin-left: 6px; opacity: .7; }
-/* «Invoice pending» (D-NEXT): la pestaña en ámbar, y la pastilla de la fila. La pastilla ocupa el
+/* «Invoice pending» (D-310): la pestaña en ámbar, y la pastilla de la fila. La pastilla ocupa el
    sitio del «—» de la celda # y no pasa de una línea: la fila no crece. El formulario en fila, igual. */
 .chip.chip-pend { border-color: var(--amber); color: var(--amber-text); background: var(--amber-soft); }
 .chip.chip-pend.on { background: var(--amber); border-color: var(--amber); color: #fff; }

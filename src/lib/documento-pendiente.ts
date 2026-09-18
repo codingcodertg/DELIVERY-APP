@@ -5,7 +5,7 @@ import type { Delivery, Stage, UserRole } from "./types";
 import { orderOwner } from "./utils";
 
 /**
- * El documento que a una orden le FALTA, y quién puede ponerlo desde la fila (D-NEXT).
+ * El documento que a una orden le FALTA, y quién puede ponerlo desde la fila (D-310).
  *
  * El dueño: «las órdenes que no tengan invoice number tengan un distintivo… los de sales no pueden
  * editar, pero si les falta el invoice solo eso pueden ingresar, directo en la orden sin abrirla».

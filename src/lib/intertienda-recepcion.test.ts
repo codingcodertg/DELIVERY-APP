@@ -177,7 +177,7 @@ describe("el formulario", () => {
     expect(modal).toContain("disabled={!salesFields || origenFijo || tiendaCongelada}");
   });
 
-  it("la fila de «Dirección de tienda» vuelve, también en un tipo que recibe (D-NEXT)", () => {
+  it("la fila de «Dirección de tienda» vuelve, también en un tipo que recibe (D-309)", () => {
     // **Esta prueba fijaba lo contrario.** D-302 escondía la dirección en un tipo que recibe porque el
     // dueño dijo que ahí no se necesitaba; el 2026-09-18 la pidió de vuelta: «store sold from should
     // have the address». Se reescribe al revés en vez de borrarse, que es lo que le toca a un canario
