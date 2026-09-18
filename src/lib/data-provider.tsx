@@ -1025,11 +1025,22 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           // The bell row is the record. The push is best-effort on top: it can
           // fail (no phone registered, Firebase down) without the assignment
           // itself looking like it failed.
-          const { data: made } = await supabase.from("notifications").insert([seed]).select("id").maybeSingle();
-          if (made?.id) {
+          //
+          // SIN `.select("id")` (D-NEXT). Este aviso no llegó nunca: `INSERT … RETURNING` aplica la
+          // política de lectura a la fila devuelta, y `notif read own` solo deja leer al destinatario
+          // — quien asigna no es el chofer, así que Postgres rechazaba la sentencia entera y aquí se
+          // descartaba el error. Medido en producción con ROLLBACK (2026-09-17): con `returning id`,
+          // «new row violates row-level security policy»; sin él, permitido. El id que necesita el
+          // push se genera aquí; la ruta lo sigue leyendo con service role, así que su seguridad no
+          // cambia. Sin `randomUUID` (navegador viejo) se inserta sin id y no se empuja: un id que no
+          // sea uuid reventaría la columna, y la campana llega igual por tiempo real.
+          const id = globalThis.crypto?.randomUUID?.();
+          const { error } = await supabase.from("notifications").insert([id ? { id, ...seed } : seed]);
+          if (error) console.error("notification insert failed:", error.message);
+          if (id && !error) {
             void fetch("/api/push", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ notification_id: made.id }),
+              body: JSON.stringify({ notification_id: id }),
             }).catch(() => undefined);
           }
         }

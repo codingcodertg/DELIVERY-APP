@@ -19,7 +19,7 @@ import type { Delivery } from "@/lib/types";
 const DEFAULT_CAPACITY = 12;
 
 export default function MapPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, pushNotifs, ready, driverLocations, realRole } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole } = useData();
   const { lang, t } = usePrefs();
   const [date, setDate] = useState(todayISO());
   const [open, setOpen] = useState<Delivery | null>(null);
@@ -174,12 +174,13 @@ export default function MapPage() {
   }, [showRoutes, unassignedOrders, selectedList]);
 
   // Assign (or unassign) a list of orders to one driver — logs an audit note per
-  // order and notifies the driver in-app. Clears the selection when done.
+  // order. The driver's in-app notice comes from `updateDelivery` itself (D-NEXT): this screen
+  // used to push its own «assigned» seeds on top, which would have meant two bells per order
+  // once the provider's notice worked — and it never had (see the decision). Clears the
+  // selection when done.
   const assignOrders = async (orders: Delivery[], driver: string | null) => {
     if (!orders.length) return;
     setAssignBusy(true);
-    const du = driver ? users.find((u) => u.role === "driver" && u.full_name === driver) : null;
-    const notifs: { user_id: string; delivery_id: string; order_no: number; kind: string; message: string }[] = [];
     for (const d of orders) {
       const prev = d.assigned_driver;
       const ok = await updateDelivery(d.id, { assigned_driver: driver });
@@ -187,9 +188,7 @@ export default function MapPage() {
       addNote(d.id, driver
         ? `Assigned to ${driver}${prev && prev !== driver ? ` (from ${prev})` : ""}`
         : `Unassigned${prev ? ` (was ${prev})` : ""}`);
-      if (du) notifs.push({ user_id: du.id, delivery_id: d.id, order_no: d.order_no, kind: "assigned", message: `Order #${orderLabel(d)} was assigned to you${d.delivery_windows ? ` (${fmtWindows(d.delivery_windows)})` : ""}` });
     }
-    if (notifs.length) await pushNotifs(notifs);
     setAssignBusy(false);
     clearSelection();
     notify(driver
@@ -205,17 +204,11 @@ export default function MapPage() {
     const res = autoAssign(pool, drivers, capacityOf, { maxTripsPerDay: 2 });
     if (!res.assignments.length) { notify(t("Couldn't place the selected loads.", "No se pudieron colocar las cargas.")); return; }
     setAssignBusy(true);
-    const byName = new Map(users.filter((u) => u.role === "driver").map((u) => [u.full_name, u]));
-    const notifs: { user_id: string; delivery_id: string; order_no: number; kind: string; message: string }[] = [];
     for (const a of res.assignments) {
-      const d = pool.find((x) => x.id === a.orderId)!;
       const ok = await updateDelivery(a.orderId, { assigned_driver: a.driver });
       if (!ok) continue;
       addNote(a.orderId, `Assigned to ${a.driver}`);
-      const u = byName.get(a.driver);
-      if (u) notifs.push({ user_id: u.id, delivery_id: a.orderId, order_no: d.order_no, kind: "assigned", message: `Order #${orderLabel(d)} was assigned to you${d.delivery_windows ? ` (${fmtWindows(d.delivery_windows)})` : ""}` });
     }
-    if (notifs.length) await pushNotifs(notifs);
     setAssignBusy(false);
     clearSelection();
     notify(t(`Auto-assigned ${res.assignments.length} load(s)`, `Auto-asignadas ${res.assignments.length} carga(s)`));
