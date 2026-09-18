@@ -5,7 +5,7 @@ import { cuentasQueCoinciden } from "./account-search";
 import type { UserRole } from "./types";
 
 /**
- * Tres retoques del formulario que pidió el dueño el 2026-09-17 (D-NEXT).
+ * Tres retoques del formulario que pidió el dueño el 2026-09-17 (D-299).
  *
  * El del vendedor —`sales` o `manager`, y con acceso a Entregas— vive en `vendedor-por-tienda.test.ts`,
  * junto a lo de D-290 que revisa. Aquí quedan los otros dos, más la pregunta de acceso que los une.
@@ -31,7 +31,7 @@ describe("«¿puede abrir Entregas?» se pregunta en un solo sitio", () => {
     // Decía que Entregas «es implícita para todo el mundo y nunca está en module_access». Dejó de ser
     // verdad con la 083 y sostuvo una premisa equivocada en una revisión: se corrige con una nota
     // dentro, para que quien lo lea vea que cambió.
-    expect(constantes).toContain("CORRECCIÓN (D-NEXT)");
+    expect(constantes).toContain("CORRECCIÓN (D-299)");
     expect(constantes).toContain("**Ya no es verdad desde la 083**");
     expect(constantes).not.toContain('// "Deliveries" itself is implicit for everyone');
   });

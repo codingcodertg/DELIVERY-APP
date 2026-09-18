@@ -28,7 +28,7 @@ const TIENDAS: NamedLocation[] = [
   { name: "Tienda Sur", address: "200 Sur Blvd", group: "G1", directory_code: "RFT" },
   { name: "Tienda Oeste", address: "300 Oeste Rd", directory_code: "RFT" },
 ];
-/** Con acceso a Entregas: sin él no es asignable como vendedor (D-NEXT). */
+/** Con acceso a Entregas: sin él no es asignable como vendedor (D-299). */
 const persona = (id: string, full_name: string, role: UserRole, store: string | null): Profile =>
   ({ id, full_name, role, store, permissions: null, module_access: ["deliveries"] }) as Profile;
 

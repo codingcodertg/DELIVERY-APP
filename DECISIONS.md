@@ -37398,7 +37398,7 @@ las dos anclas existan.
   celdas y la casilla también deja de ocupar fila, pero el alto depende de cuántas columnas tenga
   elegidas cada quien.
 
-## D-NEXT · Tres retoques del formulario: quién es vendedor, retomar un borrador y buscar una cuenta
+## D-299 · Tres retoques del formulario: quién es vendedor, retomar un borrador y buscar una cuenta
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, tres cosas seguidas sobre el mismo formulario. La cuarta que pidió ese día

@@ -1347,7 +1347,7 @@ export function OrderModal({
               )}
             </div>
           </div>
-          {/* Un borrador se retoma desde arriba (D-NEXT). El dueño: «si es un draft, arriba debería haber
+          {/* Un borrador se retoma desde arriba (D-299). El dueño: «si es un draft, arriba debería haber
               un botón que diga continue». Hace lo mismo que «Editar», que está abajo entre otros seis
               botones, y lo ve quien puede editar un borrador — la misma regla de D-286, no una nueva. */}
           {!editing && existing && stage === "draft" && canEditFields(me.role, "draft") && (
@@ -3299,7 +3299,7 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
   const current = (val as string) ?? "";
   const known = options.includes(current);
   const [manual, setManual] = useState(!!current && !known);
-  // La lista de cuentas ya no cabe de un vistazo, y un `select` nativo no se busca (D-NEXT). El filtro
+  // La lista de cuentas ya no cabe de un vistazo, y un `select` nativo no se busca (D-299). El filtro
   // va ENCIMA y solo acota lo que se pinta: convertir el selector en un campo de texto haría que el
   // autorrellenado de contacto, teléfono y tipo de orden corriera con cada tecla.
   const [filtro, setFiltro] = useState("");

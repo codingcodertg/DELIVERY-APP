@@ -381,7 +381,7 @@ export const MODULES: ModuleInfo[] = [
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
 // always-first card/entry, so it's exported here rather than redeclared in each (D-054).
 //
-// CORRECCIÓN (D-NEXT): este comentario decía que Entregas «es implícita para todo el mundo y nunca está
+// CORRECCIÓN (D-299): este comentario decía que Entregas «es implícita para todo el mundo y nunca está
 // en `module_access`». **Ya no es verdad desde la 083**, que la concede como cualquier otro módulo — lo
 // dice `accessibleModules` justo debajo, y la base igual (`has_deliveries_access()`: admin, o
 // 'deliveries' en `module_access`). Se corrige aquí en vez de borrarlo porque sostuvo una premisa
@@ -400,7 +400,7 @@ export const DELIVERIES_CARD: ModuleInfo = {
  * ¿Esta persona puede entrar en Entregas? **El espejo de `has_deliveries_access()` (083)**: admin
  * siempre, y el resto solo con 'deliveries' concedido en `module_access`. Preguntarlo en un sitio evita
  * que la app ofrezca lo que la base va a devolver vacío — por ejemplo, acreditarle una orden a alguien
- * que no puede abrirla (D-NEXT).
+ * que no puede abrirla (D-299).
  */
 export function tieneAccesoAEntregas(u: { role: UserRole; module_access?: string[] | null }): boolean {
   return u.role === "admin" || normalizeModules(u.module_access).includes(DELIVERIES_CARD.key);

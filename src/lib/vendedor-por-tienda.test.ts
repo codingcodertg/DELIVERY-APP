@@ -19,7 +19,7 @@ import type { Profile, UserRole } from "./types";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const modal = leer("src/components/OrderModal.tsx");
 
-/** Con acceso a Entregas salvo que se diga lo contrario: sin él nadie es asignable (D-NEXT). */
+/** Con acceso a Entregas salvo que se diga lo contrario: sin él nadie es asignable (D-299). */
 const persona = (
   id: string, full_name: string, role: UserRole, store: string | null,
   permissions: string[] | null = null, module_access: string[] | null = ["deliveries"],
@@ -42,7 +42,7 @@ const nombres = (l: Profile[]) => l.map((u) => u.full_name);
 
 describe("quién puede ser vendedor", () => {
   /**
-   * **Esta parte la revisa D-NEXT.** D-290 usó `canCreate` —quien puede registrar órdenes— y el dueño
+   * **Esta parte la revisa D-299.** D-290 usó `canCreate` —quien puede registrar órdenes— y el dueño
    * lo corrigió al verlo: «me están saliendo todos los usuarios y solo deberían ser sales people o
    * managers». Lo que D-290 resolvió sigue resuelto: el gerente que vende entra, por ser `manager`.
    */
@@ -115,7 +115,7 @@ describe("la lista que se ofrece", () => {
 });
 
 describe("la lista nunca se queda sin opciones", () => {
-  // Sin Admin desde D-NEXT: puede crear órdenes, pero no es vendedor.
+  // Sin Admin desde D-299: puede crear órdenes, pero no es vendedor.
   const TODOS = ["Ana Vendedora", "Bea Vendedora", "Gerente Norte", "Gerente Oeste", "Sara Vendedora", "Zoe Sin Tienda"];
 
   it("si la orden aún no tiene tienda, se ofrecen todos los asignables", () => {

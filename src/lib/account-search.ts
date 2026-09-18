@@ -1,5 +1,5 @@
 /**
- * Buscar dentro del desplegable de cuentas (D-NEXT).
+ * Buscar dentro del desplegable de cuentas (D-299).
  *
  * El dueño mandó una captura: la lista de cuentas ya es larga y un `select` nativo no se busca, así que
  * hay que bajar con la rueda hasta encontrarla. El filtro va **encima** del selector y solo acota lo que
