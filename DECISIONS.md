@@ -39654,3 +39654,113 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
   cambia a quién deja escribir: alguien que no puede *ver* una orden de otra tienda podría, con su `id`
   en la mano, escribirla a ciegas. La UI no ofrece ningún camino para eso. Cerrarlo es añadir la misma
   cláusula al `using` de `deliveries update`, y **otra** migración con su propia matriz.
+
+## D-NEXT · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
+
+**Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** `128_driver_settings`,
+`129_customer_type`, `130_route_settings` — escritas y **no aplicadas**.
+**Plan:** `docs/PLAN-128-130-motor-rutas-modelo.md` · **Diseño:** `docs/route-algorithm-design.md` (§6 y §11).
+**El Gestor de Rutas no cambia todavía:** esto guarda los datos que el motor va a necesitar.
+
+### Qué faltaba
+
+El motor (D-314) reparte las órdenes del día entre los choferes, pero tres cosas que necesita no estaban
+guardadas en ningún sitio: **de dónde sale cada chofer, cuánto le cabe y a qué hora trabaja** (la base se
+deducía en caliente, la capacidad colgaba del *nombre* del chofer en Ajustes, y el turno eran dos constantes
+que ni siquiera coincidían: 08:00 y 08:30); **quién es builder** (no existía: 0 resultados al buscarlo); y
+**los pesos**, que el dueño pidió «configurables, no fijos en el código».
+
+### Qué se hizo
+
+**1. `driver_settings` (128), por `profile_id`.** Base (el *nombre* de una tienda de Ajustes — el dueño dijo
+«cada chofer su tienda», y las tiendas ya tienen su punto), capacidad con decimales, entrada y salida, si
+vuelve a la base, y **«rutea»**. Leen admin, logística, gerente, office y almacén; escriben admin y logística.
+Una política por comando, ninguna `FOR ALL`, y `revoke all` antes del `grant` (en esta base una tabla nueva
+nace con todo concedido: lo midió el orquestador al ensayar la 126).
+
+**`assigned_driver` sigue siendo el nombre, y no se toca.** De ese nombre cuelgan lo que el chofer ve (la
+política de lectura, vigente la de la 131), su color y su capacidad de hoy. El motor trabajará por id y
+escribirá el nombre al publicar. La capacidad tiene una **cadena de respaldo** para que el día que se aplique
+no cambie nada: su fila → la que ya tenía por nombre → la de flota → 12. Es la cadena de hoy con un eslabón
+delante. **Sin base, o con una base que no es una tienda con punto, el chofer no rutea** aunque esté marcado, y
+la pantalla dice cuál de las dos cosas le falta — el motor no le inventa una base.
+
+**La migración no siembra datos.** Ningún nombre de persona entra en el repo: el plan trae el `insert … select`
+genérico (toma de cada chofer lo que ya consta: su capacidad por nombre y la tienda de su perfil) y los dos
+`update` por id que corre el orquestador en producción.
+
+**2. `deliveries.customer_type` (129): builder o mostrador, en cada orden.** Solo en las órdenes que van a un
+cliente; un movimiento entre tiendas es `null`. El selector **nunca nace vacío**: Builder si la cuenta guardada
+lo es, **Mostrador en cualquier otro caso, también sin cuenta** — medido: 48 de las 82 órdenes a cliente de 90
+días no tenían cuenta; si el valor dependiera de tenerla, casi ninguna lo tendría. Lo que alguien elige en la
+orden manda sobre la cuenta. La marca de la cuenta es una casilla nueva en Datos y vive en su JSON, sin
+migración. **No se rellena nada hacia atrás:** decidir hoy que una orden de hace un mes era de un builder sería
+inventarlo; el motor trata ese `null` como mostrador.
+
+**3. Tres columnas en `settings` (130):** los cinco pesos, la **lista** de ventanas duras (`0830-1000` y
+`0830-1200` — lista y no duración porque el dueño puso de ejemplo 08:30–12:00, que dura tres horas y media) y
+el tope de retraso (60). Declaradas en una migración a propósito: ya hay seis campos de `settings` que la app
+usa y ninguna migración crea. **Los pesos por defecto tienen una sola fuente, el motor**; la 130 siembra los
+mismos números y una prueba compara los dos. Una lista de duras **vacía** guardada es «ninguna es dura», no
+«las de por defecto». Todo en una tarjeta nueva de Ajustes, «Motor de rutas», solo para el admin.
+
+### La ventana entre fusionar y aplicar
+
+En este proyecto las migraciones se aplican **después** de fusionar, así que durante un rato el código nuevo
+corre contra la base vieja. Aquí eso importaba de verdad: el formulario manda `customer_type` dentro del
+guardado de la orden, y contra una base sin la columna **no fallaría ese campo: fallaría guardar cualquier orden
+a cliente.**
+
+La red: las órdenes y `settings` se leen con `select("*")`, así que **si la clave viene, la columna existe**.
+`parcheDeTipoDeCliente` no manda el campo si ninguna orden cargada lo trae; la tarjeta de Ajustes enseña los
+pesos deshabilitados y dice que falta la actualización; la tabla de choferes dice que no está disponible en vez
+de romper la pantalla. Sin ninguna orden cargada no se puede saber y el campo no se manda: se pierde una marca,
+no una orden. Vale igual para una reversión.
+
+### Dos cosas que cambiaron al rebasar
+
+`main` avanzó dos veces mientras se escribía esto. Trajo el núcleo del motor (por eso los pesos por defecto
+pasaron de ser una copia a importarse de él) y la **131**, que redefine la política de lectura de `deliveries`:
+el plan y la 128 citaban la 083 como vigente y se corrigieron. Sigue comparando por nombre, así que nada de lo
+decidido cambia — pero la cita ya no era verdad, y una cita falsa en un plan de RLS es de lo que se hereda.
+
+### Lo que hay que mirar al ensayar
+
+- **129 y el guard.** `guard_delivery_stage` compara filas enteras con una variable `deliveries%rowtype` (el GPS
+  tardío del chofer, 048; la factura de ventas, 125). Una columna nueva cambia ese tipo. Postgres recompila la
+  función, pero se comprueba y no se supone: el ensayo repite esos dos casos **con la columna ya puesta**.
+- **130, autocomprobación.** Mira los valores por defecto de las *columnas*, no los de la fila, para que volver a
+  aplicarla con los pesos ya afinados pase. Para eso evalúa con `execute` el texto que devuelve `pg_get_expr`.
+  **No lo he podido correr**; si revienta siendo correctos los valores, es ahí.
+
+Las dos primeras versiones de esas autocomprobaciones contaban filas (órdenes ya marcadas; pesos exactos en la
+fila) y habrían fallado al **re-aplicar** el fichero. Se cambiaron antes de entregar.
+
+### Medido, rompiendo y mirando qué prueba cae
+
+**63 mutantes, leídos por nombre; ninguno vivo**, y cada uno cae con la prueba que lleva su nombre. Doce en el
+tipo de cliente (mandar el campo a una base que no lo tiene; dar la columna por existente sin órdenes
+cargadas; mandar la clave a `null` en vez de no mandarla; que la cuenta pise lo elegido en la orden…),
+veintitrés en los ajustes (el orden de la cadena de capacidad, rutear sin base, una tienda sin punto como base,
+la lista vacía cayendo a las de por defecto, un peso a cero cayendo al de por defecto…), dieciocho en los tres
+`.sql` (no quitar los permisos por defecto, una `FOR ALL`, que el chofer lea, que el gerente escriba, el
+`with check` del UPDATE más ancho que su `using`, sembrar filas, rellenar hacia atrás, valores sembrados que no
+son los del código, su propio `commit`…) y diez en las pantallas.
+
+Los roles de cada política se comparan **como conjunto y por cláusula**: en el UPDATE se miran las dos, `using` y
+`with check`, porque ensanchar solo una es justo el fallo que pasa desapercibido.
+
+### Verificado
+
+`rm -rf .next && node scripts/verify.mjs` sobre el árbol final: tipos, pruebas y build en verde.
+**180 ficheros | 1 omitido · 3123 pruebas | 3 omitidas.** En `origin/main` (b7ebf79), misma copia: 179 | 1 y
+3088 | 3. La diferencia, fichero a fichero: **+34** de `motor-rutas-modelo.test.ts` y **+1** de
+`inline-colors.test.ts`, que genera una prueba por componente.
+
+### Lo no verificado
+
+- **Ninguna de las tres migraciones se ha corrido.** Las ensaya el orquestador.
+- **Nadie ha visto las pantallas en un navegador:** el selector en el formulario, la tarjeta de Ajustes con su
+  tabla de choferes en un teléfono.
+- Que el `upsert` de la tarjeta pase por PostgREST con las cuatro políticas.
+- **La red de la ventana se probó como función, no contra una base sin la columna.**

@@ -11,6 +11,7 @@ import { LOCAL_CITIES_DEFAULT, filasDeLaFormula, REDONDEO } from "@/lib/pricing"
 import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
+import { RouteEngineSettings } from "@/components/RouteEngineSettings";
 
 export default function SettingsPage() {
   const { me, users, settings, saveSettings, notify } = useData();
@@ -160,6 +161,8 @@ export default function SettingsPage() {
           />
         </div>
       </div>
+
+      <RouteEngineSettings />
 
       <div className="card">
         <h2>⛽ {t("Delivery cost model", "Modelo de costos de entrega")}</h2>

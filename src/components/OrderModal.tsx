@@ -39,7 +39,8 @@ import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
-import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
+import type { AccountRecord, CustomerType, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
+import { TIPOS_DE_CLIENTE, esTipoDeCliente, parcheDeTipoDeCliente, tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
@@ -528,6 +529,9 @@ export function OrderModal({
   const save = async () => {
     const payload = {
       ...withDurations(d),
+      // Builder o mostrador (D-NEXT). Solo si la base ya tiene la columna: las migraciones se aplican
+      // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
+      ...parcheDeTipoDeCliente(d, settings.order_type_rules, settings.accounts, deliveries),
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
       // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
       ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
@@ -1909,6 +1913,21 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
+            {/* Builder o mostrador (D-NEXT). El dueño: «se marca en cada orden», con la cuenta como valor por
+                defecto. Nunca nace vacío: Builder si la cuenta guardada lo es; Mostrador si no, también sin
+                cuenta. El motor de rutas da prioridad a los builders. */}
+            {esTipoDeCliente(d.order_type, settings.order_type_rules) && (
+              <div className="field" style={{ maxWidth: 260, marginBottom: 10 }}>
+                <label>{t("Customer type", "Tipo de cliente")}</label>
+                <select
+                  value={tipoDeClienteDeLaOrden(d, settings.order_type_rules, settings.accounts) ?? "counter_sale"}
+                  disabled={!salesFields}
+                  onChange={(e) => set("customer_type", e.target.value as CustomerType)}
+                >
+                  {TIPOS_DE_CLIENTE.map((o) => <option key={o.key} value={o.key}>{t(o.en, o.es)}</option>)}
+                </select>
+              </div>
+            )}
             {salesFields && !!d.account?.trim() && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
               !savedAccounts.some((a) => a.name.toLowerCase() === d.account!.trim().toLowerCase() && a.contact === d.contact && a.phone === d.delivery_phone
                 && (a.address ?? "") === (storeToStore ? (a.address ?? "") : (d.delivery_address ?? ""))) && (

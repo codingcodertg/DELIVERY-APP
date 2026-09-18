@@ -232,6 +232,9 @@ export interface Delivery {
    * Recorded from the order form. Feeds the CSAT KPI. */
   csat_rating?: number | null;
   csat_comment?: string | null;
+  /** Builder o mostrador (D-NEXT, migración 129). `null` en lo que no va a un cliente, y en lo anterior
+   *  a este campo. Opcional en el tipo porque una base sin la 129 no lo trae. */
+  customer_type?: CustomerType | null;
   created_at: string;
   updated_at: string;
 }
@@ -356,6 +359,44 @@ export interface AccountRecord {
    * no solo la pantalla.
    */
   requires_approval?: boolean;
+  /**
+   * Builder o venta al mostrador (D-NEXT). Es el valor POR DEFECTO de sus órdenes; cada orden lleva el
+   * suyo (`deliveries.customer_type`) y puede cambiarlo. Una cuenta sin marcar es de mostrador. Vive en
+   * este JSON, como `intertienda`: no necesita migración.
+   */
+  customer_type?: CustomerType;
+}
+
+/** Builder o venta al mostrador. El motor de rutas da prioridad a los builders. */
+export type CustomerType = "builder" | "counter_sale";
+
+/** Los pesos de los objetivos suaves del motor de rutas, en el orden que dio el dueño (D-NEXT). */
+export interface RouteWeights {
+  builder: number;
+  manejo: number;
+  millas: number;
+  tarde: number;
+  balance: number;
+}
+
+/**
+ * Lo que el motor de rutas necesita saber de un chofer y no estaba en ningún sitio: su base, su camión y
+ * su turno (D-NEXT, tabla `driver_settings`, migración 128). Por `profile_id`, no por nombre: el nombre
+ * sigue siendo lo que se escribe en `deliveries.assigned_driver`, y esto no lo toca.
+ */
+export interface DriverSettings {
+  profile_id: string;
+  /** El NOMBRE de una tienda de `settings.stores`: de ahí sale y ahí vuelve. */
+  base_store: string | null;
+  capacity_pallets: number | null;
+  /** "HH:MM" o "HH:MM:SS", hora local del negocio. */
+  shift_start: string;
+  shift_end: string;
+  returns_to_base: boolean;
+  /** `false` = el motor no le da trabajo. No lo borra ni lo esconde de ningún otro sitio. */
+  routable: boolean;
+  updated_at?: string;
+  updated_by?: string | null;
 }
 
 /** Explicit field-requirement rules for one order type. Replaces guessing the
@@ -476,6 +517,13 @@ export interface Settings {
    * park under its name (assigned_driver) until the whole route is handed off to
    * an actual driver. Just the bucket names; the orders live on the deliveries. */
   route_buckets?: string[];
+
+  /** Motor de rutas (D-NEXT, migración 130). Ausentes = los valores por defecto de `route-settings.ts`. */
+  route_weights?: Partial<RouteWeights> | null;
+  /** Las ventanas que son DURAS («estrechas»): a esas no se llega tarde nunca. Valores `"HHMM-HHMM"`. */
+  route_hard_windows?: string[] | null;
+  /** Cuántos minutos de retraso admite, como mucho, una ventana que no es dura. */
+  route_late_cap_min?: number | null;
 
   /** Fixed Orders-table columns for the Sales role, set by an admin in Settings.
    * Sales reps get no "Columns" picker of their own — this is the one list
