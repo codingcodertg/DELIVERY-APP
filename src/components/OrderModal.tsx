@@ -3351,7 +3351,7 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid }: 
 }
 
 /**
- * Account — UN solo control: se escribe y sugiere (D-NEXT). El dueño: «a search bar that
+ * Account — UN solo control: se escribe y sugiere (D-305). El dueño: «a search bar that
  * autopopulates automatically when you start typing, so it will be a search and dropdown in the same
  * field». D-299 tenía dos —filtro arriba, `select` abajo— y se veían los dos a la vez.
  *

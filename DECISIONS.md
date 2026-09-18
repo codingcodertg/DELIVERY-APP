@@ -37903,7 +37903,7 @@ combinaciones y fija que una nueva tienda-a-tienda va directa al completo; el mu
 **Descartado:** poner `showFullForm` a `true` en un efecto cuando el tipo es tienda-a-tienda. Habría
 funcionado, pero deja las cuatro condiciones escritas a mano, que es lo que produjo el agujero.
 
-## D-NEXT · El campo de cuenta es un solo control: se escribe y sugiere
+## D-305 · El campo de cuenta es un solo control: se escribe y sugiere
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, con captura: *«I wanted this field be a search bar that autopopulates

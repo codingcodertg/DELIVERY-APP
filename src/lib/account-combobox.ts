@@ -1,7 +1,7 @@
 import { cuentasQueCoinciden } from "./account-search";
 
 /**
- * El campo de cuenta como UN solo control: se escribe y sugiere (D-NEXT).
+ * El campo de cuenta como UN solo control: se escribe y sugiere (D-305).
  *
  * El dueño, con captura: *«I wanted this field be a search bar that autopopulates automatically when
  * you start typing, so it will be a search and dropdown in the same field»*. D-299 había puesto DOS

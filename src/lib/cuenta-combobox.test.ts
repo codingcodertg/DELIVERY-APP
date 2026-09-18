@@ -4,7 +4,7 @@ import { decisionAlConfirmar, hayQueAvisar, siguienteIndice, sugerenciasPara } f
 import { cuentasQueCoinciden } from "./account-search";
 
 /**
- * El campo de cuenta es UN solo control que busca y sugiere (D-NEXT).
+ * El campo de cuenta es UN solo control que busca y sugiere (D-305).
  *
  * El dueño, con captura: «a search bar that autopopulates automatically when you start typing, so it
  * will be a search and dropdown in the same field». D-299 tenía dos controles y se veían los dos.
