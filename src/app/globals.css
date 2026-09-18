@@ -135,6 +135,9 @@
    padding so the row does not grow. Deliberately NOT a change to .tab itself:
    the lettered tabs beside them are the right size already. */
 .tab-icon { font-size: 20px; line-height: 1; padding: 6px 10px; }
+/* La casa del hub (D-274), más grande y sólida a petición del dueño (D-295): el contorno fino
+   se perdía contra la barra oscura. */
+.tab-casa { font-size: 26px; padding: 4px 12px; }
 
 /* Hub sign-out. Deliberately quiet — it sits under the module tiles and must not
    compete with them for attention; leaving is not the primary action here. */

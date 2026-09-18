@@ -37151,3 +37151,21 @@ solo que en negrita), y la caja con menos relleno (5/9 px en vez de 10/12) y men
 seleccionar el número de un clic, y qué documento se enseña según el tipo. `order-document.test.ts`
 sigue fijando que la caja existe y va antes de la rejilla de datos; el tamaño no lo fija nadie, a
 propósito: es cosmética, y clavarlo en una prueba obligaría a cambiarla en cada retoque.
+
+## D-295 · La casa del hub, más grande y sólida
+
+**Fecha:** 2026-09-17 · **Versión:** `deliveries` y Time Tracker (la barra compartida) · Sin migración.
+**Pedido por:** el dueño, con captura de la barra: *«haz esa casita bigger and solid»*.
+
+D-274 puso la casa junto al nombre de la app con el carácter `⌂`, un contorno fino de una sola línea
+que sobre la barra oscura casi no se ve, y que además cambia de grosor según la tipografía de cada
+sistema. Se sustituye por 🏠 —un glifo sólido, igual en todas las plataformas— y se le da su propia
+clase `.tab-casa` (26 px en vez de 20, y algo menos de relleno vertical para que no crezca la barra).
+
+**En las dos barras, no solo en Entregas.** El mismo carácter lo usaba `ModuleSwitcher`, que es el de
+RR. HH. y Time Tracker (D-293 y anteriores): si solo se cambiaba el de Entregas, la misma acción
+tendría dos iconos distintos según la app. El `⌂` que queda en `erp/side-nav.tsx` es un enlace de
+texto («⌂ Todas las apps»), no el icono de la barra, y no se toca.
+
+**No cambia:** quién la ve (`canReachHub` y el escondite en la app de escritorio, D-274), su destino
+(`/home`), ni su etiqueta accesible.

@@ -28,11 +28,11 @@ export function HubHomeLink({ deliveriesRole, moduleAccess }: { deliveriesRole: 
   return (
     <Link
       href="/home"
-      className="tab tab-icon"
+      className="tab tab-icon tab-casa"
       aria-label={t("Back to the hub", "Volver al hub")}
       title={t("Back to the hub", "Volver al hub")}
     >
-      ⌂
+      🏠
     </Link>
   );
 }
