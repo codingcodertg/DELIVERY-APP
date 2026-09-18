@@ -162,7 +162,7 @@ export function conflictosDeSitio(d: Partial<Delivery>, rules: OrderTypeRules, t
   if (origenEsDestino(d, regla, tiendas)) {
     // El campo que se marca es el que la persona puede cambiar: en un tipo que recibe, «Vendido desde»
     // está congelado y lo que se elige es la recogida, así que señalar `store` la dejaría mirando un
-    // campo deshabilitado (D-NEXT).
+    // campo deshabilitado (D-302).
     out.push({
       key: regla.homeIsDestination === true ? "pickup_name" : "store", conflict: true,
       en: "The origin store and the destination store are the same",

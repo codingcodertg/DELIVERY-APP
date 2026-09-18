@@ -137,7 +137,7 @@ describe("dónde se comparte el trabajo", () => {
     expect(modal).toContain("me.role !== \"sales\" || !me.store");
     expect(modal).toContain("todas.filter((n) => mismaTiendaOGrupo(n, me.store, settings.stores) || n === d.store)");
     expect(modal).toContain('const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);');
-    // Y desde D-NEXT se congela también en un tipo que recibe, donde su tienda vende y recibe.
+    // Y desde D-302 se congela también en un tipo que recibe, donde su tienda vende y recibe.
     expect(modal).toContain("disabled={!salesFields || origenFijo || tiendaCongelada}");
   });
 

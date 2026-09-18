@@ -46,7 +46,7 @@ function direccionDeTienda(nombre: string | null | undefined, tiendas: NamedLoca
 }
 
 /**
- * De dónde sale la mercancía, **que no siempre es «Vendido desde»** (D-NEXT).
+ * De dónde sale la mercancía, **que no siempre es «Vendido desde»** (D-302).
  *
  * En un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) la tienda del usuario vende Y
  * recibe, y la que manda el material es la **recogida**. Si el origen siguiera siendo `store`, la regla
@@ -77,7 +77,7 @@ export function origenDeLaOrden(
  * que es lo que enseña el desplegable de destino. `tiendas` es obligatorio a propósito: sin la lista,
  * la segunda comparación no existe y el hueco de D-276 vuelve en silencio.
  *
- * Desde D-NEXT el origen lo decide `origenDeLaOrden`, que en un tipo que recibe es la recogida.
+ * Desde D-302 el origen lo decide `origenDeLaOrden`, que en un tipo que recibe es la recogida.
  */
 export function origenEsDestino(
   d: Pick<Partial<Delivery>, "store" | "pickup_name" | "pickup_address" | "delivery_name" | "delivery_address">,
@@ -108,7 +108,7 @@ export function eligeDestino(p: Partial<Delivery>, v: string, tiendas: NamedLoca
 }
 
 /**
- * Elegir la tienda que **manda** el material en un tipo que recibe (D-NEXT): solo la recogida.
+ * Elegir la tienda que **manda** el material en un tipo que recibe (D-302): solo la recogida.
  *
  * `eligeOrigen` no vale aquí porque escribe también `store`, y en Intertienda «Vendido desde» es la
  * tienda del usuario y no se mueve.

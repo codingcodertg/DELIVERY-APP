@@ -35,7 +35,7 @@ function sinOrigen(d: Borrador): Borrador {
   return { ...d, store: "", ...(recogidaDeLaTienda ? { pickup_name: "", pickup_address: "" } : {}) };
 }
 
-/** Sin sitio de recogida: en un tipo que recibe, es el origen lo que se vacía (D-NEXT). */
+/** Sin sitio de recogida: en un tipo que recibe, es el origen lo que se vacía (D-302). */
 function sinRecogida(d: Borrador): Borrador {
   return { ...d, pickup_name: "", pickup_address: "" };
 }
@@ -47,7 +47,7 @@ function sinDestino(d: Borrador): Borrador {
 /**
  * Aplicar un tipo de orden (antes `withTypeDefaults`, dentro del modal).
  *
- * **Un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) cambia de forma en D-NEXT.** El
+ * **Un tipo «que recibe» (`homeIsDestination`, hoy solo Intertienda) cambia de forma en D-302.** El
  * dueño: *«el store sold from debería quedar freeze… el store destination es el mismo store sold from,
  * y el pickup es el dropdown que se elige qué tienda es»*. O sea: la tienda del usuario **vende y
  * recibe** —las dos puntas quedan puestas en su tienda— y lo único que se elige es **de qué tienda
@@ -58,14 +58,14 @@ function sinDestino(d: Borrador): Borrador {
  *
  * **Desde D-276, un tipo tienda-a-tienda nunca queda con el origen en el destino.** Si con las dos
  * puntas puestas chocan, se vacía la que el tipo deja elegir: la **recogida** en un tipo que recibe
- * (que es donde vive el origen desde D-NEXT), el destino en los demás.
+ * (que es donde vive el origen desde D-302), el destino en los demás.
  */
 export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Borrador {
   const rule = orderTypeRule(tipo, c.reglas);
   const next: Borrador = { ...p, order_type: tipo };
   if (rule.homeIsDestination && c.miTienda) {
     const home = c.tiendas.find((s) => s.name === c.miTienda);
-    // Su tienda vende y recibe; lo que se elige es la recogida (D-NEXT).
+    // Su tienda vende y recibe; lo que se elige es la recogida (D-302).
     next.store = c.miTienda;
     next.delivery_name = c.miTienda;
     next.delivery_address = home?.address ?? p.delivery_address ?? "";

@@ -37642,7 +37642,7 @@ repo). La rama añade **21 pruebas**, todas en `ayuda-atendida.test.ts`, medidas
   esta rama.
 - **No se probó el push**, ni debía: mandar uno de verdad es un efecto en un teléfono ajeno.
 
-## D-NEXT · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
+## D-302 · Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, con capturas: *«el store sold from debería quedar freeze, y solo en ese caso

@@ -8,7 +8,7 @@ import { aplicaTipo, borradorInicial, escrituraQueNoVaANingunSitio, type Context
 import type { Delivery, NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * Intertienda: la tienda del usuario vende y recibe, y lo que se elige es quién manda (D-NEXT).
+ * Intertienda: la tienda del usuario vende y recibe, y lo que se elige es quién manda (D-302).
  *
  * El dueño, con captura: «el store sold from debería quedar freeze, y solo en ese caso quitar el store
  * address, no se necesita; el store destination es el mismo store sold from, y el pickup es el dropdown
