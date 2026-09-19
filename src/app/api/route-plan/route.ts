@@ -32,7 +32,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const COLUMNAS_DE_ORDEN =
-  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at";
+  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
 export async function POST(req: Request) {
   const auth = await requireUser();

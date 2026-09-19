@@ -9,11 +9,13 @@ import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-sto
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
+import { paradasDelChofer } from "@/lib/ordenes-del-dia";
+import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { fallbackDriverColor, fmtDate, fmtWindows, isOverdue, orderLabel, storeTag, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
@@ -33,7 +35,7 @@ const DEFAULT_CAPACITY = 12;
 
 export default function MyRoutePage() {
   const { me, deliveries, settings, driverLocations, ready, setStage, updateDelivery, notify } = useData();
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
@@ -41,19 +43,14 @@ export default function MyRoutePage() {
 
   const driverName = me?.full_name ?? "";
 
-  // Today's work: everything assigned to this driver for today, plus anything
-  // overdue that never went out — a slipped stop is still theirs to finish.
+  // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy. Lo suyo atrasado sigue siendo suyo y sigue a un toque,
+  // pero se ve APARTE (`verAtrasadas`), no mezclado en la secuencia del día. Qué entra lo decide `paradasDelChofer`.
+  const [verAtrasadas, setVerAtrasadas] = useState(false);
+  const atrasadas = useMemo(() => (me ? paradasDelChofer(deliveries, driverName, todayISO(), "atrasadas") : []), [deliveries, me, driverName]);
   const stops = useMemo(() => {
     if (!me) return [];
-    const today = todayISO();
-    const mine = deliveries.filter((d) => {
-      if (d.assigned_driver !== driverName) return false;
-      if (d.stage === "canceled" || d.stage === "rejected") return false;
-      if (d.delivery_date === today) return true;
-      return isOverdue(d);
-    });
-    return routeOrder(mine);
-  }, [deliveries, me, driverName]);
+    return routeOrder(paradasDelChofer(deliveries, driverName, todayISO(), verAtrasadas ? "atrasadas" : "dia"));
+  }, [deliveries, me, driverName, verAtrasadas]);
 
   // Same truckload grouping the dispatcher sees, so the driver's "Trip 2" is
   // the dispatcher's "Trip 2" — by explicit load numbers when they were set,
@@ -272,7 +269,19 @@ export default function MyRoutePage() {
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
           hace sigue saliendo de las órdenes asignadas, abajo. */}
-      <MiPlanPublicado date={todayISO()} nombreDeOrden={(id, ref) => { const d = deliveries.find((x) => x.id === id); return d ? `#${orderLabel(d)}` : ref.slice(0, 8); }} />
+      {verAtrasadas ? (
+        <div className="hint" style={{ marginBottom: 8 }}>
+          <b>{t("Viewing your overdue stops only", "Viendo solo tus paradas atrasadas")}</b>{" "}
+          <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(false)}>{t("Back to today", "Volver a hoy")}</button>
+        </div>
+      ) : atrasadas.length > 0 && (
+        <div className="hint" style={{ marginBottom: 8 }}>
+          {t(`${atrasadas.length} overdue stop(s) from earlier days — not part of today.`, `${atrasadas.length} parada(s) atrasadas de días anteriores — no son de hoy.`)}{" "}
+          <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(true)}>{t("View them", "Verlas")}</button>
+        </div>
+      )}
+
+      {!verAtrasadas && <MiPlanPublicado date={todayISO()} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
 
       {stops.length === 0 ? (
         <div className="empty">

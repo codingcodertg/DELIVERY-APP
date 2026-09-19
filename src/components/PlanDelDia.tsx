@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
-import { orderLabel } from "@/lib/utils";
+import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
 import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
@@ -109,7 +109,8 @@ export function PlanDelDia({ date }: { date: string }) {
   const nuncaEntraron = delPlan.filter((c) => c.ha_entrado === false);
 
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
-  const nombreDeOrden = (id: string) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); return d ? `#${orderLabel(d)}` : id.slice(0, 8); };
+  // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan», «¿Por qué aquí?» y la hoja.
+  const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
 
   const planifica = async () => {
     setOcupado("planificando"); setError(null); setPublicado(null);
