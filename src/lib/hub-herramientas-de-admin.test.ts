@@ -86,20 +86,47 @@ describe("el lobby sabe si se está suplantando, una vez y en el servidor", () =
   });
 });
 
-describe("la barra de Entregas se queda sin las dos", () => {
+// D-306 sacó las DOS de la barra de Entregas. D-333 devuelve UNA, a petición del dueño: «add the switch user also in
+// the deliveries app as a duplicate». Estas pruebas decían «la barra se queda sin las dos»; se reescriben en positivo,
+// no se borran: ahora fijan para quién está el switch, para quién no, y que la vista móvil sigue fuera.
+describe("la barra de Entregas: el switch vuelve como duplicado, la vista móvil sigue fuera", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
+  const plana = barra.replace(/\s+/g, " ");
 
-  it("ni vista móvil en el menú del nombre, ni botón de switch, ni la pregunta al servidor", () => {
+  it("la vista móvil NO vuelve: ni en el menú del nombre ni en la barra", () => {
     expect(OPCIONES_DEL_MENU as readonly string[]).not.toContain("vistamovil");
     expect(barra).not.toContain('case "vistamovil":');
-    expect(barra).not.toContain("SwitchUserPanel");
-    expect(barra).not.toContain("puedeSwitch");
-    expect(barra).not.toContain("impersonate/state");
     expect(barra).not.toContain("enlaceAVistaMovil");
-    // Y el botón en sí, no solo el panel que abría: devolver un botón pelado con el texto de antes
-    // dejaba esta prueba en verde (lo cazó un mutante). Se mira el texto y el símbolo, sin comentarios.
-    expect(barra).not.toContain('"Switch user"');
-    expect(barra).not.toContain("⇄");
+    expect(barra).not.toMatch(/vista-movil|MobilePreview/);
+  });
+
+  it("el botón «⇄ Switch user» está, y SOLO para el admin real con la función encendida", () => {
+    expect(plana).toContain('{realRole === "admin" && puedeSwitch && ( <div style={{ position: "relative" }}> <button className="tab"');
+    expect(plana).toContain('⇄ {t("Switch user", "Cambiar usuario")}');
+    expect(plana).toContain("{switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} />}");
+    // Un solo botón y un solo panel: no hay una segunda entrada escondida en otra rama de la barra.
+    expect(barra.split("⇄").length - 1).toBe(1);
+    expect(barra.split("<SwitchUserPanel").length - 1).toBe(1);
+  });
+
+  it("se lo pregunta al servidor UNA vez y solo si el rol es admin; para los demás roles ni pregunta ni botón", () => {
+    expect(plana).toContain('useEffect(() => { if (realRole !== "admin") return; let vivo = true; fetch("/api/impersonate/state?ask=switch")');
+    expect(plana).toContain("}, [realRole]);");
+    expect(barra.split("impersonate/state").length - 1).toBe(1);
+    // Por defecto NO: sin respuesta, o con error, el botón no aparece.
+    expect(plana).toContain("const [puedeSwitch, setPuedeSwitch] = useState(false);");
+    expect(plana).toContain("setPuedeSwitch(d.habilitado === true)");
+  });
+
+  it("SUPLANTANDO no sale —ahí manda el botón del banner—: con cookie de retorno el servidor contesta `habilitado: false`", () => {
+    const estado = sinComentarios(leer("src/app/api/impersonate/state/route.ts")).replace(/\s+/g, " ");
+    // `habilitado` solo se devuelve en la rama SIN cookie de retorno, y solo a un admin leído de la base.
+    expect(estado).toContain("if (!guardado) { return NextResponse.json({ habilitado: activa && esAdmin(perfil?.role) }); }");
+    // Y en la rama CON cookie —dentro de una suplantación— lo dice en negativo, a las claras.
+    expect(estado.slice(estado.indexOf("if (!guardado) {") + 20)).toContain("habilitado: false,");
+    expect(estado.split("habilitado").length - 1).toBe(2);
+    // La barra exige `true` exacto, y nunca lo da por hecho.
+    expect(plana).not.toContain("setPuedeSwitch(true)");
   });
 
   it("y ninguna otra app las tenía: no hay copia que unificar", () => {

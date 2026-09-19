@@ -143,13 +143,16 @@ describe("el coste de /api/impersonate/state", () => {
     expect(codigo.indexOf("impersonacionActiva()")).toBeLessThan(codigo.indexOf("auth.getUser()"));
   });
 
-  it("solo la página del hub pide el dato caro; ni la barra de Entregas ni el banner", () => {
-    // Desde D-306 el panel es una herramienta del hub: la pregunta viaja con él. La barra ya no
-    // la hace —no tiene botón—, y el banner sigue sin hacerla, que era lo que fijaba D-247.
+  it("piden el dato caro las DOS entradas al panel —la página del hub y la barra de Entregas—, y el banner no", () => {
+    // D-306 llevó el panel al hub y la barra dejó de preguntar. D-333 devuelve el botón a la barra como duplicado,
+    // así que vuelve a preguntar — una vez, y solo si el rol es admin. El banner sigue sin hacerlo, que es lo que
+    // fijaba D-247: él se llama en cada carga de las cinco apps, para todo el mundo.
     const pagina = readFileSync("src/app/home/switch-user/page.tsx", "utf8");
     expect(pagina).toContain("/api/impersonate/state?ask=switch");
     const barra = readFileSync("src/components/TopBar.tsx", "utf8");
-    expect(barra).not.toContain("impersonate/state");
+    expect(barra.split("/api/impersonate/state?ask=switch").length - 1).toBe(1);
+    expect(barra.indexOf('if (realRole !== "admin") return;')).toBeGreaterThanOrEqual(0);
+    expect(barra.indexOf('if (realRole !== "admin") return;')).toBeLessThan(barra.indexOf("/api/impersonate/state?ask=switch"));
     const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
     expect(banner).toContain('fetch("/api/impersonate/state")');
     expect(banner).not.toContain("ask=switch");

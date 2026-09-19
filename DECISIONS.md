@@ -20177,6 +20177,11 @@ La rama está rebasada sobre ese main.
 **Pedido por el dueño:** *«la vista móvil y el switch usuario, pásalos al hub, porque eso es general
 del hub»*, y aclara: *«no solo delivery app»*.
 
+> **Reemplazada en parte por D-333 (2026-09-19).** El dueño pidió, literal: *«ADD THE SWITCH USER ALSO IN THE DELIVERIES
+> APP AS A DUPLICATE»*. «Cambiar de usuario» vuelve a la barra de Entregas **además** de seguir en el hub: dos entradas al
+> mismo panel. Lo demás de esta decisión sigue en pie: la herramienta del hub no se mueve, y la **vista móvil sigue siendo
+> solo del hub**. Esta nota se añade; el texto de abajo no se reescribe.
+
 ### Lo que había, medido
 
 - **«Vista móvil»** (D-278) era una opción del menú del nombre de la barra de Entregas
@@ -23006,3 +23011,50 @@ Así que **el orden se guarda aparte de la visibilidad**, dentro del mismo `valu
   entera. Dura lo que tarde esa pestaña en recargarse (el aviso de versión nueva lo pide). Se pierde un orden, no datos.
 - Dos pestañas cambiando a la vez: gana la última, como en D-330.
 - **No verificado:** nada abierto en un navegador; ni las flechas, ni el selector con muchas columnas en un teléfono.
+
+## D-333 · «Cambiar usuario» vuelve a la barra de Entregas, duplicado a sabiendas del que hay en el hub
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** Andrés, literal: «ADD THE SWITCH USER ALSO IN THE DELIVERIES APP AS A DUPLICATE».
+**Reemplaza en parte a D-306**, que lleva su nota dentro.
+
+### Qué cambia, y qué no
+
+D-306 sacó «Vista móvil» y «Cambiar de usuario» de la barra de Entregas y las hizo herramientas del hub, a petición del dueño
+(«pásalos al hub, porque eso es general del hub»). Ahora quiere el cambio de usuario **en los dos sitios**, y lo dice él mismo:
+«as a duplicate». No es un olvido de D-306: es una decisión nueva encima de ella.
+
+- En la barra de Entregas vuelve el botón **«⇄ Switch user / Cambiar usuario»**, que abre el mismo `SwitchUserPanel`.
+- **La herramienta del hub (`/home/switch-user`) se queda tal cual.** Son dos entradas al mismo panel; no se movió nada.
+- **La vista móvil NO vuelve** a la barra: el dueño pidió solo el switch. Sigue siendo solo del hub.
+- **RR. HH., Time Tracker y ERP no lo llevan:** no lo tenían y no se pidió.
+
+### Para quién sale
+
+Solo para el **admin real**, y solo si la función está encendida en el servidor. La barra se lo pregunta al servidor —la bandera
+vive en el entorno y el navegador no la lee— por `/api/impersonate/state?ask=switch`, que es lo que ya usa la página del hub y lo
+que usaba la barra antes de D-306. Se midió si convenía otra cosa: no. Esa ruta ya contesta `habilitado` solo a un admin leído
+de la base, y **`habilitado: false` dentro de una suplantación** (cuando hay cookie de retorno). Es una lectura barata y ya probada.
+
+- **Se pregunta una vez**, al montar la barra, **y solo si el rol es admin**: los demás roles ni preguntan ni ven el botón.
+- **Por defecto no sale:** sin respuesta, con error o con cualquier respuesta que no sea `habilitado === true`, no hay botón.
+- **Dentro de una suplantación no sale.** Ahí manda el botón del banner (D-307/D-321), que restaura al admin antes de saltar a
+  otra identidad. Nunca hay dos botones de cambio a la vez.
+
+### La lección de D-321, aplicada al sitio nuevo
+
+`SwitchUserPanel` usa `usePrefs()` y `useConfirm()`, que lanzan sin proveedor: así reventó el banner en D-321. La barra de
+Entregas se monta en el layout de `(app)`, que tiene `ConfirmProvider` y `DataProvider` alrededor, dentro del `PrefsProvider` del
+layout raíz. `banner-panel-providers.test.ts` lo fija ahora también para este sitio, y fija que el panel se monta en **tres**
+ficheros y ninguno más: la página del hub, la barra de Entregas y el banner.
+
+### Las pruebas de D-306 no se borraron: se reescribieron en positivo
+
+Decían «la barra ya no tiene Switch usuario». Ahora dicen que **está** para el admin real, que **no está** para los demás ni
+suplantando, que hay **un** solo botón y **un** solo panel en la barra, y que la vista móvil sigue fuera. El botón vuelve **sin
+fondo propio**: el `FONDO_BOTON_BARRA` de antes era un color a pelo, y el techo de colores en línea de la barra no se toca.
+
+### Lo que NO está verificado
+
+Nada abierto en un navegador: ni el botón en la barra, ni el panel desplegado desde ella (D-247 tuvo que darle sus propios
+colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y tiene su prueba, pero no lo he visto).
