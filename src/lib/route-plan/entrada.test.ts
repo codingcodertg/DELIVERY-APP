@@ -67,7 +67,7 @@ describe("las órdenes que entran al motor", () => {
       ventana: [510, 720], estrecha: true, builder: true, servicioRecogidaMin: 10, servicioEntregaMin: 13, choferFijado: null,
     }]);
     expect(e.puntos[puntoDeOrden("a")]).toEqual({ lat: 26.35, lng: -98.25 });
-    expect(e.fotos).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.123456+00:00" }]);
+    expect(e.fotos).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.123456+00:00", factura: null }]);
     expect(e.parametros).toEqual(PARAMETROS_POR_DEFECTO);
   });
 
@@ -81,7 +81,9 @@ describe("las órdenes que entran al motor", () => {
     // (toISOString da milisegundos) y publicar diría STALE de TODAS las órdenes, siempre.
     const deLaBase = "2026-03-03T15:00:00.123456+00:00";
     const e = entradaDelDia(datos([orden("a", { updated_at: deLaBase })]));
-    expect(e.fotos).toEqual([{ id: "a", updated_at: deLaBase }]);
+    expect(e.fotos).toEqual([{ id: "a", updated_at: deLaBase, factura: null }]);
+    // Y la factura que tenía la orden AL PLANIFICAR, para la historia (en pantalla se lee en vivo).
+    expect(entradaDelDia(datos([orden("a", { invoice_num: "F-100" } as never)])).fotos[0].factura).toBe("F-100");
     expect(new Date(deLaBase).toISOString()).not.toBe(deLaBase);      // por qué no vale «normalizarla»
   });
 

@@ -42,7 +42,7 @@ const datos = (extra: Partial<DatosDelDia> = {}): DatosDelDia => ({
 describe("planificar el día deja un borrador completo, y reproducible", () => {
   it("la fila del plan: la foto de las órdenes, qué se escribirá, los totales y con qué tiempos se hizo", async () => {
     const b = await planificaElDia(datos(), "2026-03-04", "America/Chicago", { cache: cacheEnMemoria(), proveedores: [proveedor("google", true)], ahoraISO: AHORA });
-    expect(b.plan.input.ordenes).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.000000+00:00" }, { id: "b", updated_at: "2026-03-03T15:00:01.000000+00:00" }]);
+    expect(b.plan.input.ordenes).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.000000+00:00", factura: null }, { id: "b", updated_at: "2026-03-03T15:00:01.000000+00:00", factura: null }]);
     expect(b.plan.writes).toEqual([
       { id: "a", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 0, load_auto: true },
       { id: "b", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 1, load_auto: true },
@@ -337,6 +337,14 @@ describe("la ruta de planificar y la pantalla", () => {
     for (const x of ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje", "precedencia", "chofer_distinto_del_fijado", "no_permitido"]) expect(vista).toContain(`${x}: [`);
   });
 
+  it("cada orden se nombra por su código Y su factura, leída en vivo; y la foto de los planes nuevos la lleva", () => {
+    expect(plano(panel)).toContain('const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");');
+    expect(plano(ruta)).toContain("is_training, updated_at, invoice_num\";");
+    // La función de publicar solo mira `id` y `updated_at` de cada foto: un campo más no la cambia.
+    const publicar = leer("supabase/migrations/135_no_publicar_hoja_importada.sql");
+    expect([...publicar.matchAll(/f->>'(\w+)'/g)].map((m) => m[1]).filter((x, i, a) => a.indexOf(x) === i).sort()).toEqual(["id", "updated_at"]);
+  });
+
   it("planificar NO toca ninguna orden ni avisa a nadie", () => {
     expect(ruta).not.toMatch(/from\("deliveries"\)\s*\.(update|insert|delete|upsert)/);
     expect(ruta).not.toContain('from("notifications")');
@@ -357,7 +365,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("el panel sale solo para admin y logística y con una fecha; no decide nada; y el push va con el id que devuelve publicar", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
-    expect(gestor).toContain('{!allDates && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}');
+    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}');
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);
     expect(plano(panel)).toContain('body: JSON.stringify({ notification_id: a.notification_id })');
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");

@@ -18,10 +18,16 @@ import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLab
 import { serviceMin, tripTiming, dayMinutes, RELOAD_MIN } from "@/lib/trip-timing";
 import { buildGeoLoads, fillByCapacity, planCostMi } from "@/lib/route-batching";
 import { driverOf, groupIntoLoads, hasManualLoads, loadNoOf, nextLoadFor as nextLoadForPure, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
-import { useColWidths } from "@/lib/use-col-widths";
+import { useColWidthMap, useColWidths } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
+import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla } from "@/lib/routes-columns";
+import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { createClient } from "@/lib/supabase/client";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 
 // ============================================================
@@ -180,6 +186,8 @@ export default function RoutesPage() {
   // built on them) shows regardless of delivery date — handy when a route was
   // built for another day and seems to have vanished.
   const [allDates, setAllDates] = useState(false);
+  // Ver APARTE lo atrasado y lo sin fecha: sustituye la vista del día, no se suma a ella.
+  const [soloPendientes, setSoloPendientes] = useState(false);
   // Layout: full-width route cards (see all info) and a collapsible map/driver
   // panel so the route detail can use the whole screen.
   const [wideRoutes, setWideRoutes] = useState(true);
@@ -192,8 +200,39 @@ export default function RoutesPage() {
   // bumped keys, so they replace older wide ones) so the route + truckload
   // tables fit the screen without horizontal scrolling. Columns are still
   // draggable from here.
-  const schedCols = useColWidths("rtg_routes_sched3", [72, 140, 140, 52, 52, 100, 60, 44]);
-  const poolCols = useColWidths("rtg_routes_pool3", [28, 70, 128, 92, 60, 100, 92, 88, 116]);
+  // Anchos por CLAVE de columna, no por posición: las columnas de estas dos tablas ahora se eligen (D-331).
+  const schedCols = useColWidthMap("rtg_routes_sched4", 100);
+  const poolCols = useColWidthMap("rtg_routes_pool4", 100);
+  // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
+  // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
+  const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
+  const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
+  const [verColumnas, setVerColumnas] = useState(false);
+  const cajaDeColumnas = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(verColumnas, () => setVerColumnas(false), () => [cajaDeColumnas.current]);
+  useEffect(() => {
+    if (!me || SIN_BASE) return;
+    let vivo = true;
+    const rol = me.role;
+    void leeColumnas(createClient() as unknown as ClienteDePrefs, me.id, CLAVE_DE_COLUMNAS_DEL_GESTOR).then((leido) => {
+      if (!vivo || !leido.leida) return;
+      prefsDelGestor.current = leido.columnas;
+      const suyas = leido.columnas[rol];
+      if (suyas) setColsGestor(suyas);
+    });
+    return () => { vivo = false; };
+  }, [me?.id, me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  const alternaColumnaDelGestor = (key: string) => {
+    const next = alternaColumna(colsGestor, key);
+    setColsGestor(next);
+    // La base solo si se pudo leer: no se escribe a ciegas encima de lo que haya.
+    if (!me || SIN_BASE || prefsDelGestor.current === null) return;
+    const todas: ColumnasPorRol = { ...prefsDelGestor.current, [me.role]: next };
+    prefsDelGestor.current = todas;
+    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS_DEL_GESTOR);
+  };
+  const colsProgramadas = columnasDeLaTabla("programadas", colsGestor);
+  const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
   // [#, ID, Account, Address(expanded), ETA, Windows, actions]. Address is
   // forced to 92px when collapsed; everything else is sized to show its value
   // in full so Windows and the ↑↓ action arrows never get clipped.
@@ -259,23 +298,15 @@ export default function RoutesPage() {
       return next;
     });
 
-  // Viewing today also carries forward anything overdue that never went out AND
-  // anything not yet dated — an order that has no delivery date can't belong to
-  // any specific day, so it would otherwise be invisible until someone dated it.
-  // Logistics needs to see both to actually dispatch/plan them, not just what's
-  // newly due today. Browsing another date (planning ahead) shows only that date.
-  const viewingToday = date === todayISO();
-  const dayOrders = useMemo(
-    () =>
-      deliveries.filter((d) => {
-        if (!ROUTE_STAGES.includes(d.stage)) return false;
-        if (allDates) return true;               // ignore the date filter entirely
-        if (d.delivery_date === date) return true;
-        return viewingToday && (isOverdue(d) || !d.delivery_date);
-      }),
-    [deliveries, date, viewingToday, allDates],
-  );
+  // CADA DÍA ES APARTE (D-331). Viendo hoy, esta lista arrastraba también lo atrasado y lo que no tenía fecha,
+  // mezclado con lo del día en la tabla, los totales, las rutas y el mapa. El dueño lo rechazó. Ahora el día es
+  // SOLO su fecha; lo atrasado y lo sin fecha se cuenta aparte y se ve aparte (`soloPendientes`), nunca dentro de
+  // un día que no es el suyo. Qué entra lo decide `ordenesDelDia`, que tiene sus pruebas.
+  const modo: ModoDelGestor = soloPendientes ? "pendientes" : allDates ? "todas" : "dia";
+  const dayOrders = useMemo(() => ordenesDelDia(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
+  const pendientes = useMemo(() => pendientesDeOtrosDias(deliveries, ROUTE_STAGES), [deliveries]);
 
+  // Lo único que logística cambia en una orden atrasada o sin fecha: ponerle su día. Entonces pasa a ESE día.
   // The one thing logistics can change on a carried-forward order: push its
   // delivery date up to today, or leave it — either way it's on this list.
   const reschedule = (id: string, delivery_date: string) => updateDelivery(id, { delivery_date });
@@ -1415,7 +1446,7 @@ export default function RoutesPage() {
           )}
           <button
             className={"btn btn-sm " + (allDates ? "btn-primary" : "btn-ghost")}
-            onClick={() => setAllDates((v) => !v)}
+            onClick={() => { setSoloPendientes(false); setAllDates((v) => !v); }}
             title={t("Show routable orders from every date, not just the selected day", "Mostrar órdenes de todas las fechas, no solo el día elegido")}
           >
             🗓 {allDates ? t("All dates ✓", "Todas ✓") : t("All dates", "Todas")}
@@ -1457,7 +1488,7 @@ export default function RoutesPage() {
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
-      {!allDates && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}
+      {!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}
 
       {/* ---------- Drivers who stopped reporting ----------
            No amount of Android hardening is bulletproof: a battery manager, a
@@ -1521,12 +1552,16 @@ export default function RoutesPage() {
         ))}
       </div>
 
-      {viewingToday && (
+      {soloPendientes ? (
         <div className="hint" style={{ marginBottom: 8 }}>
-          {t(
-            "Today's list also carries forward any earlier order that's still not delivered — reschedule it (or leave its date as-is) and dispatch it today.",
-            "La lista de hoy también arrastra cualquier orden anterior que aún no se ha entregado — reprograme su fecha (o déjela igual) y despáchela hoy.",
-          )}
+          <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes atrasadas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
+          <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
+        </div>
+      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && (
+        <div className="hint" style={{ marginBottom: 8 }}>
+          {t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
+          {" — "}{t("not part of this day.", "no son de este día.")}{" "}
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
         </div>
       )}
 
@@ -1702,23 +1737,34 @@ export default function RoutesPage() {
         <div className="card" style={{ margin: 0 }}>
           <div className="page-head" style={{ marginBottom: 8 }}>
             <h2 style={{ margin: 0 }}>✅ {t("Scheduled orders", "Órdenes programadas")} <span className="count-tag">{scheduled.length}</span></h2>
-            <button className="btn btn-ghost btn-sm" onClick={schedCols.reset} title={t("Reset column widths", "Restablecer anchos")}>↔ {t("Reset columns", "Restablecer columnas")}</button>
+            <div ref={cajaDeColumnas} style={{ position: "relative", display: "inline-block" }}>
+              <button className="btn btn-ghost btn-sm" aria-expanded={verColumnas} onClick={() => setVerColumnas((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
+              {verColumnas && (
+                <div className="card" style={{ position: "absolute", right: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4 }}>
+                  {COLUMNAS_DEL_GESTOR.map((c) => (
+                    <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
+                      <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {lang === "es" ? c.es : c.en}
+                    </label>
+                  ))}
+                  <span className="hint" style={{ margin: 0 }}>{t("Applies to both tables. Saved for you.", "Vale para las dos tablas. Se guarda para usted.")}</span>
+                </div>
+              )}
+            </div>
           </div>
           {scheduled.length === 0 ? (
             <div className="empty">{t("No orders are assigned to a driver or route yet for this date.", "Aún no hay órdenes asignadas a un chofer o ruta en esta fecha.")}</div>
           ) : (
             <div className="tbl-scroll tbl-fit">
               <table className="orders tbl-resize">
-                <colgroup>{schedCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+                <colgroup>
+                  <col style={{ width: schedCols.widthOf("__id") }} />
+                  {colsProgramadas.map((c) => <col key={c.key} style={{ width: schedCols.widthOf(`g_${c.key}`) }} />)}
+                  <col style={{ width: 44 }} />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={schedCols.startResize(0)} /></th>
-                    <th>{t("Account", "Cuenta")}<span className="col-resizer" onMouseDown={schedCols.startResize(1)} /></th>
-                    <th>{t("Driver / Route", "Chofer / Ruta")}<span className="col-resizer" onMouseDown={schedCols.startResize(2)} /></th>
-                    <th>{t("Load", "Carga")}<span className="col-resizer" onMouseDown={schedCols.startResize(3)} /></th>
-                    <th>{t("Stop", "Parada")}<span className="col-resizer" onMouseDown={schedCols.startResize(4)} /></th>
-                    <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={schedCols.startResize(5)} /></th>
-                    <th>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={schedCols.startResize(6)} /></th>
+                    <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={schedCols.startResize("__id")} /></th>
+                    {colsProgramadas.map((c) => <th key={c.key}>{lang === "es" ? c.es : c.en}<span className="col-resizer" onMouseDown={schedCols.startResize(`g_${c.key}`)} /></th>)}
                     <th></th>
                   </tr>
                 </thead>
@@ -1731,15 +1777,17 @@ export default function RoutesPage() {
                     return (
                       <tr key={d.id}>
                         <td className="ordno">#{orderLabel(d)}</td>
-                        <td>{d.account || "—"}</td>
-                        <td>
-                          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(d.assigned_driver), marginRight: 6, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />
-                          {d.assigned_driver}{bucket ? ` 🧭` : ""}
-                        </td>
-                        <td>{!bucket && loadNoOf(d) > 1 ? loadNoOf(d) : (bucket ? "—" : 1)}</td>
-                        <td>{d.route_seq != null ? idx + 1 : "—"}</td>
-                        <td>{fmtWindows(d.delivery_windows)}</td>
-                        <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
+                        {colsProgramadas.map((c) => (
+                          <td key={c.key}>
+                            {c.key === "invoice" ? (d.invoice_num || "—")
+                              : c.key === "account" ? (d.account || "—")
+                              : c.key === "driver" ? (<><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(d.assigned_driver), marginRight: 6, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />{d.assigned_driver}{bucket ? ` 🧭` : ""}</>)
+                              : c.key === "load" ? (!bucket && loadNoOf(d) > 1 ? loadNoOf(d) : (bucket ? "—" : 1))
+                              : c.key === "stop" ? (d.route_seq != null ? idx + 1 : "—")
+                              : c.key === "windows" ? fmtWindows(d.delivery_windows)
+                              : (d.actual_pallets ?? d.est_pallets ?? "—")}
+                          </td>
+                        ))}
                         <td style={{ textAlign: "right" }}>
                           <button className="btn btn-ghost btn-sm" title={t("Unassign", "Quitar asignación")} onClick={() => manualUnassign(d.id)}>✕</button>
                         </td>
@@ -1843,7 +1891,12 @@ export default function RoutesPage() {
         ) : (
           <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
             <table className="orders tbl-resize">
-              <colgroup>{poolCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+              <colgroup>
+                <col style={{ width: 28 }} />
+                <col style={{ width: poolCols.widthOf("__id") }} />
+                {colsSinAsignar.map((c) => <col key={c.key} style={{ width: poolCols.widthOf(`g_${c.key}`) }} />)}
+                <col style={{ width: 116 }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>
@@ -1859,13 +1912,8 @@ export default function RoutesPage() {
                       })}
                     />
                   </th>
-                  <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={poolCols.startResize(1)} /></th>
-                  <th>{t("Account", "Cuenta")}<span className="col-resizer" onMouseDown={poolCols.startResize(2)} /></th>
-                  <th>{t("Store", "Tienda")}<span className="col-resizer" onMouseDown={poolCols.startResize(3)} /></th>
-                  <th>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={poolCols.startResize(4)} /></th>
-                  <th>{t("Delivery Date", "Fecha de Entrega")}<span className="col-resizer" onMouseDown={poolCols.startResize(5)} /></th>
-                  <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={poolCols.startResize(6)} /></th>
-                  <th>{t("Status", "Estado")}<span className="col-resizer" onMouseDown={poolCols.startResize(7)} /></th>
+                  <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
+                  {colsSinAsignar.map((c) => <th key={c.key}>{lang === "es" ? c.es : c.en}<span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`)} /></th>)}
                   <th>{singleSel ? t("Add to", "Agregar a") : t("Assign to", "Asignar a")}</th>
                 </tr>
               </thead>
@@ -1879,12 +1927,17 @@ export default function RoutesPage() {
                         {selectedOrders.has(d.id) && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
                       </td>
                       <td className="ordno">#{orderLabel(d)}</td>
-                      <td>{d.account || "—"}</td>
-                      <td>{d.store || "—"}</td>
-                      <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
-                      <td onClick={(e) => e.stopPropagation()}><DateCell d={d} date={date} onChange={reschedule} t={t} /></td>
-                      <td>{fmtWindows(d.delivery_windows)}</td>
-                      <td><span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span></td>
+                      {colsSinAsignar.map((c) => (
+                        <td key={c.key} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
+                          {c.key === "invoice" ? (d.invoice_num || "—")
+                            : c.key === "account" ? (d.account || "—")
+                            : c.key === "store" ? (d.store || "—")
+                            : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
+                            : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
+                            : c.key === "windows" ? fmtWindows(d.delivery_windows)
+                            : <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>}
+                        </td>
+                      ))}
                       <td onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                           {/* Assign is ALWAYS available; Simulate is an extra when one lane is focused. */}
@@ -2262,7 +2315,11 @@ export default function RoutesPage() {
                                   onClick={(e) => { e.stopPropagation(); setOpenOrder(d); }}
                                   style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}
                                   title={t("Open this order", "Abrir esta orden")}
-                                >#{orderLabel(d)}</td>
+                                >#{orderLabel(d)}
+                                  {/* La factura, debajo del código: esta tabla tiene los anchos por posición y no admite una
+                                      columna que aparece y desaparece. Sale si la columna «Factura #» está elegida. */}
+                                  {colsGestor.includes("invoice") && d.invoice_num && <div className="hint" style={{ margin: 0, textDecoration: "none" }}>{t("Inv.", "Fact.")} {d.invoice_num}</div>}
+                                </td>
                                 <td title={d.order_type || undefined}>{d.order_type || "—"}</td>
                                 {/* Where the truckload's pallet total comes
                                     from. An estimate is marked so nobody plans
