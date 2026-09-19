@@ -15,6 +15,12 @@ import type { UserRole } from "@/lib/types";
  */
 
 export const CLAVE_DE_COLUMNAS = "order_columns";
+/** Las columnas de las tablas del Gestor de Rutas (137). Misma forma: `{ "<rol>": [columnas] }`. Aquí no hay nada
+ *  en el navegador que sembrar: nace con el defecto. */
+export const CLAVE_DE_COLUMNAS_DEL_GESTOR = "routes_columns";
+/** La lista CERRADA de la base (`user_prefs_key_permitida`). Una prueba la compara con la última migración que la toca. */
+export const CLAVES_DE_PREFERENCIA = [CLAVE_DE_COLUMNAS, CLAVE_DE_COLUMNAS_DEL_GESTOR] as const;
+export type ClaveDePreferencia = typeof CLAVES_DE_PREFERENCIA[number];
 export const claveDelNavegador = (rol: UserRole): string => `rtg_order_columns_${rol}`;
 export const ROLES_QUE_ELIGEN: readonly UserRole[] = ["admin", "manager", "warehouse", "driver", "logistics", "accounting"];
 
@@ -75,18 +81,18 @@ export interface ClienteDePrefs {
 }
 
 /** `leida: false` = no se pudo leer (sin red, o la tabla aún no existe): se sigue con el navegador y NO se siembra. */
-export async function leeColumnas(supabase: ClienteDePrefs, userId: string): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol }> {
+export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol }> {
   try {
-    const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", CLAVE_DE_COLUMNAS).maybeSingle();
+    const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", clave).maybeSingle();
     if (error) return { leida: false, hayFila: false, columnas: {} };
     return { leida: true, hayFila: !!data, columnas: columnasValidas(data?.value) };
   } catch { return { leida: false, hayFila: false, columnas: {} }; }
 }
 
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
-export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol): Promise<boolean> {
+export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: CLAVE_DE_COLUMNAS, value: columnasValidas(columnas) }, { onConflict: "user_id,key" }).select("user_id");
+    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: columnasValidas(columnas) }, { onConflict: "user_id,key" }).select("user_id");
     return !error && !!data && data.length === 1;
   } catch { return false; }
 }

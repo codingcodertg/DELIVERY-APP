@@ -22883,3 +22883,70 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 - Que `upsert` con `onConflict: "user_id,key"` pase por las políticas de INSERT y UPDATE de quien llama: leído, no medido.
 - Dos pestañas cambiando las columnas a la vez: gana la última.
 - Nada abierto en un navegador.
+
+## D-NEXT · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `137_user_prefs_routes_columns.sql`,
+escrita y **no aplicada**. **Pedido por:** Andrés, literal: «pero te pedí que viera invoice y no aparece y estoy en el 19 y
+aún veo órdenes schedule del día anterior, recuerda que cada día es aparte». Habla del Logistics Manager (`/routes`).
+
+### A. La factura no aparecía — y por qué
+
+El encargo original pedía «columnas configurables en la tabla de órdenes [del Logistics Manager]: agregar Invoice Number» y
+que cada parada mostrara «número de orden, número de factura». Se dio por hecho porque `invoice_num` ya era una columna
+elegible en `OrdersTable` — que es OTRA tabla, la de la página de Órdenes (D-330). Las tablas de `/routes` tenían las columnas
+fijas y ninguna era la factura; y el plan de ruta nombraba cada orden solo por su código. Ahora:
+
+- **Columna «Factura #» en las tablas del Gestor** —programadas y sin asignar—, la primera tras el código y **visible por
+  defecto**. En la tabla de paradas por ruta sale bajo el código (esa tabla tiene los anchos por posición y no admite una
+  columna que aparece y desaparece).
+- **Selector «⚙ Columnas» propio del Gestor**, que se cierra al hacer clic fuera. Por defecto se ve TODO lo que ya se veía,
+  en el mismo orden, más la factura: quitar columnas es una elección, no el punto de partida. El catálogo y el orden de cada
+  tabla viven en `src/lib/routes-columns.ts`; los anchos pasan a ir por clave de columna, no por posición.
+- **Se guarda por persona** en `user_prefs`, clave nueva `routes_columns`, con la misma forma que `order_columns`
+  (`{ "<rol>": [columnas] }`). La 136 cerró la lista de claves a propósito, así que añadirla es la **137**: cambia UNA
+  restricción y nada más. Una prueba exige que la última migración que toca esa restricción lleve exactamente las claves que
+  usa el código. Aquí no hay nada en el navegador que sembrar: nace con el defecto. Se guarda solo si antes se pudo leer la
+  base; si no, la elección vale para esa sesión y se dice aquí — no hay red de `localStorage` como en Órdenes.
+- **Cada orden se nombra por su código Y su factura** en todo lo del plan: las paradas de cada chofer, «Fuera de este plan»,
+  la comparación con la hoja, y la tarjeta del chofer en «Mi ruta» (D-153 ya decía que la factura va en la parada). Una sola
+  función, `nombraLaOrden`. **La factura se lee en vivo de la orden, no de la foto del plan:** los planes ya guardados no la
+  llevan y no se tocan; quien ve el plan ve esas órdenes. La foto de los planes NUEVOS sí la lleva (`input.ordenes[].factura`),
+  para la historia; `publish_route_plan` solo mira `id` y `updated_at` de cada foto, así que no le cambia nada (con prueba).
+
+### B. Cada día es aparte
+
+Viendo HOY, el Gestor añadía a la lista lo atrasado y lo que no tenía fecha — mezclado con lo del día en la tabla, los
+totales, las rutas y el mapa. Era a propósito, y el código lo explicaba («Logistics needs to see both»). **El dueño lo
+rechazó.** Ese arrastre entró el 2026-07-22 (commit 36e376b, v0.2.27), **antes de que existiera `DECISIONS.md`** (D-001 es
+del 2026-08-11): no hay decisión anterior que marcar como reemplazada, y se dice aquí para que nadie la busque.
+
+- **El día es SOLO su fecha** (`ordenesDelDia`, `src/lib/ordenes-del-dia.ts`): la orden de ayer sin entregar NO sale viendo
+  hoy; la que no tiene fecha, tampoco. Viendo ayer sale la de ayer. «Todas» sigue siendo todo.
+- **Lo atrasado y lo sin fecha no se pierde de vista, pero no se mezcla.** Encima de la tabla: «N órdenes atrasadas · M sin
+  fecha — no son de este día. [Verlas]». El botón **sustituye** la vista del día por la de pendientes —no se suma—, y ahí el
+  selector de fecha que ya existía deja ponerles su día: al fecharla, la orden pasa a ese día. En esa vista no sale
+  «Planificar el día». Se descartó «saltar a Todas con el filtro Atrasadas» por dos cosas medidas: ese filtro solo toca el
+  pool de sin asignar, y `isOverdue` es falso para una orden sin fecha, así que las sin fecha no saldrían.
+- **El motor nunca planificó lo atrasado:** `/api/route-plan` siempre leyó `eq("delivery_date", fecha)`. Hasta hoy el Gestor
+  enseñaba dentro de «hoy» órdenes que «Planificar el día» no tocaba.
+- **«Mi ruta» del chofer, mismo criterio** (decisión del orquestador por delegación). El código decía «a slipped stop is
+  still theirs to finish» y sigue siendo verdad: la parada atrasada sigue siendo suya y sigue a un toque — «N paradas
+  atrasadas de días anteriores — no son de hoy. [Verlas]» —, pero **se separa en vez de esconderse o mezclarse**: si quien
+  despacha ya no la ve dentro de hoy, al chofer no puede salirle dentro de su día; y una parada de ayer metida en la
+  secuencia de hoy no es la ruta que se le planificó. En la vista de atrasadas no sale la tarjeta del plan publicado. Sigue
+  siendo solo lectura (D-021).
+
+### Lo que NO se tocó, medido
+
+- **Cola de almacén y lista del chofer** (`withinRetention`, D-239): no es «hoy + atrasadas» sino una ventana de trabajo de
+  cuatro días («two days back through tomorrow»). Otro mecanismo; nadie se ha quejado. Se le cuenta al dueño y decide él.
+- Órdenes («Atrasadas» es un filtro que se elige), el resumen (rango elegido) y el rastreo (cada día aparte): no arrastran.
+
+### Lo que NO está verificado
+
+- **La 137 no ha corrido.** Su autocomprobación cuenta las claves de la lista buscando `'::text` en lo que devuelve
+  `pg_get_constraintdef`: leído en la documentación, no ejecutado. Si el formato difiere, falla ruidosamente al aplicar.
+- Hasta que la 137 se aplique, guardar las columnas del Gestor falla en silencio contra el `check` de la 136 (`guardaColumnas`
+  devuelve `false`) y la elección dura lo que dure la pantalla. No rompe nada.
+- Nada abierto en un navegador: ni el selector, ni las tablas con columnas quitadas, ni la vista de pendientes.

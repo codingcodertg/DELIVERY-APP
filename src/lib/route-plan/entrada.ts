@@ -31,7 +31,7 @@ export const puntoDeOrden = (id: string): Punto => `orden:${id}`;
 type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
-  "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at">;
+  "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null };
 
 export interface DatosDelDia {
   ordenes: readonly OrdenDeLaBase[];
@@ -55,7 +55,8 @@ export interface EntradaDelDia {
   parametros: Parametros;
   puntos: Record<Punto, LatLng>;
   /** Para guardar con el plan: cada orden con su `updated_at`, que es contra lo que se compara al publicar. */
-  fotos: { id: string; updated_at: string }[];
+  /** `factura`: la que tenía la orden AL PLANIFICAR, para la historia. En pantalla la factura se lee en vivo. */
+  fotos: { id: string; updated_at: string; factura: string | null }[];
   /** Órdenes que ni entran al motor, con su porqué. */
   fuera: FueraDelPlan[];
   /** Choferes que no rutean, y qué les falta: para que la pantalla lo diga en vez de callarlo. */
@@ -125,7 +126,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
       choferFijado,
     });
-    fotos.push({ id: d.id, updated_at: d.updated_at });
+    fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }
 
   // Lo fijado solo vale si sigue teniendo sentido HOY: el chofer rutea, y la orden sigue en el plan.
