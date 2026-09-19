@@ -10,7 +10,8 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
-import { etiquetaDeEntrega, ordenesDeRuta, secuenciaPD } from "@/lib/secuencia-pd";
+import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -61,8 +62,11 @@ export default function MyRoutePage() {
     return hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
   }, [stops, settings.driver_capacity, settings.default_truck_capacity, driverName]);
   // La misma ruta, leída como P1, P2… D1, D2… — igual que la ve quien despacha en el Gestor (D-334). Solo lectura.
-  const pd = useMemo(() => secuenciaPD(trips.map(ordenesDeRuta)), [trips]);
-  const dDe = useMemo(() => etiquetaDeEntrega(pd), [pd]);
+  // Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las etiquetas del plan — las mismas que enseña la
+  // tarjeta de arriba—; si alguien la tocó después, las derivadas, y se dice (D-NEXT). Una sola lectura, compartida.
+  const planPublicado = usePlanPublicadoDelChofer(todayISO());
+  const lectura = useMemo(() => lecturaDeLaRuta(trips, verAtrasadas ? null : planPublicado?.paradas ?? null), [trips, planPublicado, verAtrasadas]);
+  const dDe = lectura.etiquetaDe;
 
   /**
    * El botón de «Siguiente parada» hace lo que dice (D-218).
@@ -285,7 +289,7 @@ export default function MyRoutePage() {
         </div>
       )}
 
-      {!verAtrasadas && <MiPlanPublicado date={todayISO()} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
+      {!verAtrasadas && <MiPlanPublicado plan={planPublicado} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
 
       {stops.length === 0 ? (
         <div className="empty">
@@ -415,11 +419,11 @@ export default function MyRoutePage() {
                 )}
                 <div className="bar-list">
                   {/* Primero se carga: una fila por tienda, con las órdenes que se recogen ahí. Informa; no se pulsa. */}
-                  {pd.filter((p) => p.tipo === "P" && p.viaje === ti + 1).map((p) => (
-                    <div key={`p-${p.ordenes[0]}`} className="acct-row" style={{ alignItems: "flex-start" }}>
+                  {batch.flatMap((d) => lectura.previas.get(d.id) ?? []).concat(ti === trips.length - 1 ? lectura.alFinal : []).map((p) => (
+                    <div key={`${p.tipo}-${p.etiquetas[0]}`} className="acct-row" style={{ alignItems: "flex-start" }}>
                       <b style={{ flex: "0 0 auto", minWidth: 26 }}>{p.etiquetas.join("·")}</b>
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ fontWeight: 700, display: "block" }}>{t("Pick up at", "Recoger en")} {p.tienda ?? t("(no store on the order)", "(la orden no dice la tienda)")}</span>
+                        <span style={{ fontWeight: 700, display: "block" }}>{p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" ? (p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
                         <span className="hint" style={{ display: "block" }}>{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</span>
                         <span className="hint" style={{ display: "block" }}>{p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
                       </span>
