@@ -38,6 +38,27 @@ export function columnasValidas(v: unknown): ColumnasPorRol {
   return r;
 }
 
+/**
+ * El ORDEN de las columnas vive en el mismo `value`, bajo la clave `_orden`, con la misma forma por rol:
+ *   { "logistics": [visibles], "_orden": { "logistics": [todas, en el orden de la persona] } }
+ * `_orden` NO es un rol: `columnasValidas` solo recorre `ROLES_QUE_ELIGEN`, así que nunca se cuela como uno. Y las dos
+ * mitades se leen y se escriben SIEMPRE juntas (`valorDeColumnas`): guardar la visibilidad no pisa el orden, ni al revés.
+ */
+export const CLAVE_DEL_ORDEN = "_orden";
+export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol }
+
+/** Del `value` de la base a sus dos mitades, saneadas. */
+export function prefsDeValor(v: unknown): PrefsDeColumnas {
+  const orden = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>)[CLAVE_DEL_ORDEN] : null;
+  return { visibles: columnasValidas(v), orden: columnasValidas(orden) };
+}
+
+/** De las dos mitades al `value` que se guarda. Sin orden elegido no se escribe `_orden`: el canónico no se guarda. */
+export function valorDeColumnas(p: PrefsDeColumnas): Record<string, unknown> {
+  const orden = columnasValidas(p.orden);
+  return { ...columnasValidas(p.visibles), ...(Object.keys(orden).length ? { [CLAVE_DEL_ORDEN]: orden } : {}) };
+}
+
 /** Lo que hay en ESTE navegador, para todos los roles que eligen. Un JSON roto no es una elección. */
 export function semillaDelNavegador(leer: (clave: string) => string | null): ColumnasPorRol {
   const crudo: Record<string, unknown> = {};
@@ -76,23 +97,26 @@ type Respuesta<T> = PromiseLike<{ data: T | null; error: { message: string } | n
 export interface ClienteDePrefs {
   from(tabla: "user_prefs"): {
     select(cols: string): { eq(c: string, v: string): { eq(c: string, v: string): { maybeSingle(): Respuesta<{ value: unknown }> } } };
-    upsert(fila: { user_id: string; key: string; value: ColumnasPorRol }, opciones: { onConflict: string }): { select(cols: string): Respuesta<{ user_id: string }[]> };
+    upsert(fila: { user_id: string; key: string; value: Record<string, unknown> }, opciones: { onConflict: string }): { select(cols: string): Respuesta<{ user_id: string }[]> };
   };
 }
 
 /** `leida: false` = no se pudo leer (sin red, o la tabla aún no existe): se sigue con el navegador y NO se siembra. */
-export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol }> {
+export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol }> {
   try {
     const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", clave).maybeSingle();
-    if (error) return { leida: false, hayFila: false, columnas: {} };
-    return { leida: true, hayFila: !!data, columnas: columnasValidas(data?.value) };
-  } catch { return { leida: false, hayFila: false, columnas: {} }; }
+    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {} };
+    const p = prefsDeValor(data?.value);
+    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden };
+  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {} }; }
 }
 
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
-export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<boolean> {
+/** `orden`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que quien no lo
+ *  pase lo borra — por eso la página de Órdenes lo pasa en cada guardado, también al marcar una casilla. */
+export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: columnasValidas(columnas) }, { onConflict: "user_id,key" }).select("user_id");
+    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden }) }, { onConflict: "user_id,key" }).select("user_id");
     return !error && !!data && data.length === 1;
   } catch { return false; }
 }

@@ -8,6 +8,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { useColWidthMap } from "@/lib/use-col-widths";
+import { columnasEnOrden, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
@@ -321,6 +322,7 @@ export function OrdersTable({
   onOpen,
   empty = "No orders here.",
   visible = DEFAULT_COLUMNS,
+  orden,
   selectable = false,
   selected,
   onToggle,
@@ -334,6 +336,8 @@ export function OrdersTable({
   onOpen: (d: Delivery) => void;
   empty?: string;
   visible?: string[];
+  /** El orden de columnas que eligió la persona (todas las claves, visibles o no). Sin él, el canónico. */
+  orden?: readonly string[] | null;
   selectable?: boolean;
   selected?: Set<string>;
   onToggle?: (id: string) => void;
@@ -390,8 +394,11 @@ export function OrdersTable({
     // Just "#" — the value itself already says whether it's an invoice or an
     // SO, and the word was eating the width the number needs.
     const idCol = byInvoice ? { ...ID_COLUMN, en: "#", es: "#" } : ID_COLUMN;
-    return [idCol, ...ORDER_COLUMNS.filter((c) => visible.includes(c.key))];
-  }, [visible, byInvoice]);
+    // La `#` va SIEMPRE primera y no se mueve. Las demás, las visibles, en el orden de la persona (D-332); sin orden
+    // elegido, el canónico — el de `ORDER_COLUMNS` —, como siempre.
+    const enOrden = columnasEnOrden(visible, ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden));
+    return [idCol, ...enOrden.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!)];
+  }, [visible, orden, byInvoice]);
 
   const openFilterMenu = (key: string) => {
     if (openFilter === key) { setOpenFilter(null); return; }
