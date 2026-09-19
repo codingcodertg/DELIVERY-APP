@@ -129,10 +129,13 @@ export async function GET(req: Request) {
 
   const fecha = new URL(req.url).searchParams.get("date") ?? "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ error: "A date (YYYY-MM-DD) is required." }, { status: 400 });
+  // `?status=published`: el plan PUBLICADO aunque haya un borrador más nuevo encima. Lo pide el Gestor para saber qué
+  // etiquetas P/D llevan las rutas que ese plan escribió (`route-plan/lectura-de-ruta`). Sin él, el último que haya.
+  const soloPublicado = new URL(req.url).searchParams.get("status") === "published";
 
   const { data: fila, error } = await supabase.from("route_plans")
     .select("id, version, status, published_at, writes, result, ordenes:input->entrada->ordenes, choferes:input->entrada->choferes, total_minutes, total_miles, late_minutes, provider, traffic, converged")
-    .eq("plan_date", fecha).in("status", ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle();
+    .eq("plan_date", fecha).in("status", soloPublicado ? ["published"] : ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle();
   if (error) return NextResponse.json({ error: "Could not read the plan.", detail: error.message }, { status: 500 });
   if (!fila) return NextResponse.json({ ok: true, plan: null });
 

@@ -27,6 +27,29 @@ export interface EscrituraDeOrden {
 }
 
 /**
+ * El viaje y el puesto de cada orden en UNA ruta, de sus paradas en orden. Es el corazón de lo que publicar escribe, sacado
+ * aparte para que también lo use quien tiene que saber si una ruta SIGUE siendo la que se publicó (`./lectura-de-ruta`):
+ * acepta lo mínimo de una parada, que es lo que devuelven tanto el motor como `route_plan_stops` y `my_published_stops`.
+ *
+ * Una orden repartida en cargas se queda con el viaje y el puesto de su PRIMERA entrega; las demás cargas ocupan puesto
+ * (el camión pasa por ahí) pero no escriben nada.
+ */
+export function posicionesDeLaRuta(paradas: readonly { tipo: "P" | "D"; orden: string; cargaAlSalir: number }[]): { id: string; load_no: number; route_seq: number }[] {
+  const r: { id: string; load_no: number; route_seq: number }[] = [];
+  const vistas = new Set<string>();
+  let viaje = 1, posicion = 0;
+  for (const p of paradas) {
+    if (p.tipo !== "D") continue;
+    const id = ordenDeLaParte(p.orden);
+    if (!vistas.has(id)) { vistas.add(id); r.push({ id, load_no: viaje, route_seq: posicion }); }
+    posicion++;
+    // Vacío: lo que venga después es otro viaje. (Si no viene nada, el número no lo lleva ninguna orden.)
+    if (p.cargaAlSalir === 0) { viaje++; posicion = 0; }
+  }
+  return r;
+}
+
+/**
  * Lo que publicar escribe en cada orden: exactamente las cuatro columnas que ya escribe el Gestor de Rutas,
  * con el mismo significado, para que «Mi ruta», el mapa, almacén y el manifiesto no se enteren del cambio.
  *
@@ -39,17 +62,7 @@ export function escriturasAlPublicar(plan: Pick<Plan, "rutas">, choferes: readon
   for (const r of plan.rutas) {
     const nombre = nombreDe.get(r.chofer);
     if (!nombre) continue;
-    let viaje = 1, posicion = 0;
-    r.paradas.forEach((p) => {
-      if (p.tipo === "D") {
-        const id = ordenDeLaParte(p.orden);
-        if (!escrituras.has(id)) escrituras.set(id, { id, assigned_driver: nombre, load_no: viaje, route_seq: posicion, load_auto: true });
-        posicion++;
-        // El camión se quedó vacío y todavía hay algo que recoger: lo siguiente es otro viaje.
-        // Vacío: lo que venga después es otro viaje. (Si no viene nada, el número no lo lleva ninguna orden.)
-        if (p.cargaAlSalir === 0) { viaje++; posicion = 0; }
-      }
-    });
+    for (const x of posicionesDeLaRuta(r.paradas)) if (!escrituras.has(x.id)) escrituras.set(x.id, { id: x.id, assigned_driver: nombre, load_no: x.load_no, route_seq: x.route_seq, load_auto: true });
   }
   return [...escrituras.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj } from "@/lib/route-plan/vista";
 import type { MiPlan } from "@/lib/route-plan/mis-paradas";
@@ -14,22 +14,14 @@ import type { MiPlan } from "@/lib/route-plan/mis-paradas";
  * equivocan, se decide si se enseñan de otra forma.
  *
  * Si no hay plan publicado —o la base aún no tiene la función— no pinta nada: «Mi ruta» sigue igual.
+ *
+ * El plan lo lee la PÁGINA (`usePlanPublicadoDelChofer`) y lo comparte con la lista de abajo, que lo necesita para que las
+ * etiquetas de las dos cosas sean las mismas (D-335). Aquí no se pide nada.
  */
 
-export function MiPlanPublicado({ date, nombreDeOrden }: { date: string; nombreDeOrden: (deliveryId: string | null, ref: string) => string }) {
+export function MiPlanPublicado({ plan, nombreDeOrden }: { plan: MiPlan | null; nombreDeOrden: (deliveryId: string | null, ref: string) => string }) {
   const { t } = usePrefs();
-  const [plan, setPlan] = useState<MiPlan | null>(null);
   const [abierto, setAbierto] = useState(false);
-
-  useEffect(() => {
-    let vivo = true;
-    setPlan(null);
-    fetch(`/api/route-plan/mine?date=${encodeURIComponent(date)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((b) => { if (vivo) setPlan(b?.ok && b.plan ? (b.plan as MiPlan) : null); })
-      .catch(() => undefined);
-    return () => { vivo = false; };
-  }, [date]);
 
   if (!plan) return null;
   return (
