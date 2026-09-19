@@ -14,17 +14,33 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
+import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import type { Profile, UserRole } from "@/lib/types";
 
 /** Los botones del aviso de modo enseñanza, «Salir» y «Reiniciar práctica», con un mismo estilo
  *  escrito una vez: dos botones iguales no son dos decisiones de color (`inline-colors.test.ts`).
- *  (`FONDO_BOTON_BARRA`, el fondo del botón «Switch usuario», se fue con él al hub en D-306.) */
+ *  (`FONDO_BOTON_BARRA`, el fondo del botón «Switch usuario», se fue en D-306; el botón volvió en D-NEXT sin fondo propio.) */
 const BOTON_DEL_AVISO = { marginLeft: 12, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 10px", borderRadius: 6, fontWeight: 700 } as const;
 
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { settings, deliveries, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
+  const { settings, deliveries, users, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
+  // «Switch user» TAMBIÉN aquí (D-NEXT), duplicado a sabiendas del de la herramienta del hub (D-306, que sigue igual).
+  // Si se puede lo dice el servidor —la bandera vive en el entorno—: `habilitado` solo se le contesta a un ADMIN REAL,
+  // y nunca dentro de una suplantación (ahí la ruta contesta otra cosa, sin `habilitado`): dentro manda el botón del
+  // banner, y así nunca hay dos botones de cambio a la vez. Se pregunta UNA vez, y solo si el rol es admin.
+  const [puedeSwitch, setPuedeSwitch] = useState(false);
+  const [switchAbierto, setSwitchAbierto] = useState(false);
+  useEffect(() => {
+    if (realRole !== "admin") return;
+    let vivo = true;
+    fetch("/api/impersonate/state?ask=switch")
+      .then((r) => r.json())
+      .then((d: { habilitado?: boolean }) => { if (vivo) setPuedeSwitch(d.habilitado === true); })
+      .catch(() => { /* sin respuesta, el botón no aparece: la dirección segura */ });
+    return () => { vivo = false; };
+  }, [realRole]);
   const { lang, t } = usePrefs();
   // `me` is the EFFECTIVE user — its role follows the admin "view as" preview.
   const me = ctxMe ?? propMe;
@@ -352,8 +368,17 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </select>
           </label>
         )}
-        {/* «Switch usuario» vivió aquí de D-247 a D-306; ahora es una herramienta del hub
-            (/home/switch-user), como la vista móvil. */}
+        {/* «Switch usuario» vivió aquí de D-247 a D-306, que lo pasó al hub. El dueño lo quiere en los DOS sitios
+            («add the switch user also in the deliveries app as a duplicate»): vuelve aquí, y la herramienta del hub
+            (/home/switch-user) se queda tal cual. La vista móvil NO vuelve: sigue siendo solo del hub. */}
+        {realRole === "admin" && puedeSwitch && (
+          <div style={{ position: "relative" }}>
+            <button className="tab" onClick={() => setSwitchAbierto((v) => !v)} aria-expanded={switchAbierto}>
+              ⇄ {t("Switch user", "Cambiar usuario")}
+            </button>
+            {switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} />}
+          </div>
+        )}
       </div>
     </div>
     </>
