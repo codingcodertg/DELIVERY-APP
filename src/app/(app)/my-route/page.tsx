@@ -10,7 +10,7 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
-import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
@@ -418,8 +418,9 @@ export default function MyRoutePage() {
                   </div>
                 )}
                 <div className="bar-list">
-                  {/* Primero se carga: una fila por tienda, con las órdenes que se recogen ahí. Informa; no se pulsa. */}
-                  {batch.flatMap((d) => lectura.previas.get(d.id) ?? []).concat(ti === trips.length - 1 ? lectura.alFinal : []).map((p) => (
+                  {/* Cada recogida va justo ANTES de la entrega a la que precede, donde el plan la puso (`filasDelViaje`). Informa; no se pulsa. */}
+                  {filasDelViaje(lectura, batch, ti === trips.length - 1).map((f) => {
+                    if (f.clase === "informa") { const p = f.fila; return (
                     <div key={`${p.tipo}-${p.etiquetas[0]}`} className="acct-row" style={{ alignItems: "flex-start" }}>
                       <b style={{ flex: "0 0 auto", minWidth: 26 }}>{p.etiquetas.join("·")}</b>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -428,8 +429,8 @@ export default function MyRoutePage() {
                         <span className="hint" style={{ display: "block" }}>{p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
                       </span>
                     </div>
-                  ))}
-                  {batch.map((d, bi) => {
+                  ); }
+                    const d = f.orden, bi = f.indice;
                     const n = dDe.get(d.id) ?? String(startIdx + bi + 1);
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;

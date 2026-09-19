@@ -61,7 +61,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha");
     expect(pagina).toContain("onClick={() => { setAllDates(false); setSoloPendientes(true); }}");
     expect(pagina).toContain("onClick={() => setSoloPendientes(false)}");
-    expect(pagina).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}');
+    expect(pagina).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}');
   });
   it("«Planificar el día» tampoco arrastra: el motor lee SOLO las órdenes de esa fecha", () => {
     expect(leer("src/app/api/route-plan/route.ts").replace(/\s+/g, " ")).toContain('.eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])');

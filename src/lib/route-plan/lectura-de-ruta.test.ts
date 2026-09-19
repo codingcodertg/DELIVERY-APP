@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PARAMETROS_POR_DEFECTO, evaluaPlan, parteOrdenesGrandes, planifica, type ChoferEntrada, type Matriz, type OrdenEntrada, type Plan } from "@/lib/route-engine";
 import { etiquetaDeEntrega, secuenciaPD } from "@/lib/secuencia-pd";
 import { escriturasAlPublicar, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
-import { lecturaDeLaRuta, sigueElPlan, type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
+import { filasDelViaje, lecturaDeLaRuta, sigueElPlan, type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
 
 /** Las etiquetas P/D cuando hay un plan publicado (D-NEXT). Planes de verdad, evaluados por el motor, en una calle inventada. */
 
@@ -85,6 +85,27 @@ describe("si la ruta sigue siendo la que el plan publicó, manda el plan", () =>
     expect(l.etiquetaDe.get("g")).toBe(partes.map((p) => p.etiqueta).join("·"));
     const informativas = [...l.previas.values(), l.alFinal].flat().filter((f) => f.tipo === "D");
     expect(informativas.map((f) => f.ordenes[0])).toEqual(partes.slice(1).map(() => "g"));
+  });
+});
+
+describe("el orden en que se PINTAN las filas de un viaje", () => {
+  const pinta = (l: ReturnType<typeof lecturaDeLaRuta>, viajes: OrdenAsignada[][]) =>
+    viajes.map((v, ti) => filasDelViaje(l, v, ti === viajes.length - 1).map((f) => f.clase === "informa" ? f.fila.etiquetas.join("·") : `${l.etiquetaDe.get(f.orden.id)}#${f.indice}`));
+
+  it("un plan que recoge A MEDIA RUTA, en un solo viaje, se pinta así: la recogida justo antes de su entrega — no en cabeza", () => {
+    // x sigue a bordo todo el rato: el camión no se vacía, así que es UN viaje. y se recoge después de entregar z.
+    const P = (o: string) => ({ orden: o, tipo: "P" as const }), D = (o: string) => ({ orden: o, tipo: "D" as const });
+    const plan = evaluaPlan({ secuencias: { c1: [P("x"), P("z"), D("z"), P("y"), D("y"), D("x")] }, ordenes: [orden("x", 0, 30), orden("z", 0, 5), orden("y", 10, 12)], choferes: [chofer], matriz: matrizDe([0, 5, 10, 12, 30]) });
+    expect(plan.violaciones).toEqual([]);
+    const viajes = trasPublicar(plan, { x: "Tienda A", z: "Tienda A", y: "Tienda B" });
+    expect(viajes.length).toBe(1);
+    expect(pinta(lecturaDeLaRuta(viajes, guardadas(plan)), viajes)).toEqual([["P1·P2", "D2#0", "P3", "D3#1", "D1#2"]]);
+  });
+  it("lo del final va tras la última entrega, y solo en el ÚLTIMO viaje; sin lectura, solo las órdenes", () => {
+    const l = { ...lecturaDeLaRuta([], null), alFinal: [{ tipo: "D" as const, etiquetas: ["D9"], ordenes: ["g"], lugar: null, aBordo: 0, sinConteo: false }] };
+    const clases = (ultimo: boolean) => filasDelViaje(l, [{ id: "a" }], ultimo).map((f) => f.clase);
+    expect([clases(true), clases(false)]).toEqual([["orden", "informa"], ["orden"]]);
+    expect(filasDelViaje(null, [{ id: "a" }, { id: "b" }], true).map((f) => f.clase === "orden" && f.indice)).toEqual([0, 1]);
   });
 });
 

@@ -11,9 +11,11 @@ import type { RutaVista } from "./vista";
  * Dos lecturas, las dos ya existentes y cada una con lo que su rol puede leer:
  *   · quien despacha: `GET /api/route-plan?date=&status=published` (RLS de la 133);
  *   · el chofer: `GET /api/route-plan/mine?date=` (la función de la 134: solo SUS paradas).
+ * El Gestor relee también cuando «Plan del día» publica en la misma página (`publicaciones`): es justo cuando más se mira
+ * la tabla. El chofer se entera al volver a entrar en «Mi ruta».
  * Si no contesta, o no hay plan, es `null`: las pantallas leen la ruta como en D-334 y nada más cambia.
  */
-export function usePlanPublicadoDelGestor(date: string | null): RutaVista[] | null {
+export function usePlanPublicadoDelGestor(date: string | null, publicaciones: number): RutaVista[] | null {
   const [rutas, setRutas] = useState<RutaVista[] | null>(null);
   useEffect(() => {
     setRutas(null);
@@ -24,7 +26,7 @@ export function usePlanPublicadoDelGestor(date: string | null): RutaVista[] | nu
       .then((b) => { if (vivo) setRutas(b?.ok && b.plan ? (b.plan.rutas as RutaVista[]) : null); })
       .catch(() => undefined);
     return () => { vivo = false; };
-  }, [date]);
+  }, [date, publicaciones]);
   return rutas;
 }
 

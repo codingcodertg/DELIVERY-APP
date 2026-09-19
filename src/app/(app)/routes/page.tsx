@@ -23,7 +23,7 @@ import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/ordenes-del-dia";
-import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla } from "@/lib/routes-columns";
@@ -307,7 +307,9 @@ export default function RoutesPage() {
   // un día que no es el suyo. Qué entra lo decide `ordenesDelDia`, que tiene sus pruebas.
   // El plan PUBLICADO de la fecha que se mira, leído una vez por fecha: para las etiquetas P/D de las rutas que escribió.
   // Viendo «todas» o las pendientes no hay UNA fecha, así que no hay plan con el que comparar.
-  const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date);
+  // `publicaciones` sube cada vez que «Plan del día» publica: sin eso, recién publicado, aquí seguiría el plan de la carga.
+  const [publicaciones, setPublicaciones] = useState(0);
+  const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date, publicaciones);
   const paradasPublicadasDe = (chofer: string | null | undefined) => rutasPublicadas?.find((r) => r.chofer === chofer)?.paradas ?? null;
   const modo: ModoDelGestor = soloPendientes ? "pendientes" : allDates ? "todas" : "dia";
   const dayOrders = useMemo(() => ordenesDelDia(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
@@ -1513,7 +1515,7 @@ export default function RoutesPage() {
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
-      {!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}
+      {!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}
 
       {/* ---------- Drivers who stopped reporting ----------
            No amount of Android hardening is bulletproof: a battery manager, a
@@ -2309,12 +2311,14 @@ export default function RoutesPage() {
                               )}
                             </td>
                           </tr>
-                          {/* Las RECOGIDAS del viaje, como filas propias: una por tienda, con las órdenes que se cargan ahí.
+                          {/* Las filas que INFORMAN (recogidas, u otra carga de una orden repartida) van justo ANTES de la entrega
+                              a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
                               No llevan flechas: en una ruta manual solo se decide el orden de las entregas. */}
                           {sequenced && ti === 0 && lectura.cambioTrasPublicar && (
                             <tr><td colSpan={8} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                           )}
-                          {sequenced && batch.flatMap((d) => lectura.previas.get(d.id) ?? []).concat(ti === trips.length - 1 ? lectura.alFinal : []).map((p) => (
+                          {filasDelViaje(sequenced ? lectura : null, batch, ti === trips.length - 1).map((f) => {
+                            if (f.clase === "informa") { const p = f.fila; return (
                             <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`}>
                               <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
                               <td colSpan={7}>
@@ -2323,8 +2327,8 @@ export default function RoutesPage() {
                                 <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
                               </td>
                             </tr>
-                          ))}
-                          {batch.map((d, bi) => {
+                          ); }
+                            const d = f.orden, bi = f.indice;
                             const i = startIdx + bi;
                             // Flag a stop whose optimized ETA lands after its window closes.
                             const eta = routeEtas[u.key]?.[d.id];

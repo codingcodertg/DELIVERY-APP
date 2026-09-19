@@ -367,7 +367,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("el panel sale solo para admin y logística y con una fecha; no decide nada; y el push va con el id que devuelve publicar", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
-    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}');
+    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}');
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);
     expect(plano(panel)).toContain('body: JSON.stringify({ notification_id: a.notification_id })');
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");

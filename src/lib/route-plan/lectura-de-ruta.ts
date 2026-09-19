@@ -82,3 +82,15 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly Or
   }
   return { fuente: "plan", cambioTrasPublicar: false, etiquetaDe: new Map([...etiquetas].map(([id, e]) => [id, e.join("·")])), previas, alFinal: pendientes };
 }
+
+export type FilaDelViaje<T> = { clase: "informa"; fila: FilaInformativa } | { clase: "orden"; orden: T; indice: number };
+
+/** Las filas de UN viaje en el orden en que se pintan: lo que informa va justo ANTES de la entrega a la que precede —donde el
+ *  plan lo puso—, y `alFinal` tras la última entrega del último viaje. Las dos pantallas pintan esto, tal cual. */
+export function filasDelViaje<T extends { id: string }>(lectura: LecturaDeRuta | null, viaje: readonly T[], esElUltimoViaje: boolean): FilaDelViaje<T>[] {
+  const informa = (fila: FilaInformativa): FilaDelViaje<T> => ({ clase: "informa", fila });
+  return [
+    ...viaje.flatMap((orden, indice): FilaDelViaje<T>[] => [...(lectura?.previas.get(orden.id) ?? []).map(informa), { clase: "orden", orden, indice }]),
+    ...(esElUltimoViaje ? (lectura?.alFinal ?? []).map(informa) : []),
+  ];
+}
