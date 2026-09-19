@@ -23058,3 +23058,67 @@ fondo propio**: el `FONDO_BOTON_BARRA` de antes era un color a pelo, y el techo 
 
 Nada abierto en un navegador: ni el botón en la barra, ni el panel desplegado desde ella (D-247 tuvo que darle sus propios
 colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y tiene su prueba, pero no lo he visto).
+
+## D-NEXT · El Gestor de Rutas lee las rutas asignadas a mano como P1, P2… D1, D2… — y «Plan del día» dice lo que hace
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
+asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
+**Pedido por:** Andrés, literal: «I DONT SEE P1 PICKUP 1 PICKUP 2 AS P2 AND D1 AND D2 … AND SO ON».
+
+### Qué pasaba, medido
+
+Las etiquetas P/D existían desde D-322, pero solo dentro de «Plan del día» y DESPUÉS de planificar con el motor. El 2026-09-19
+había **0 filas en `route_plans` y 0 en `travel_time_cache`**: nadie había pulsado «Planificar» nunca. El dueño miraba el Gestor
+de Rutas de siempre —sus rutas asignadas a mano, la tabla de paradas por ruta, el mapa—, y ahí las paradas se numeraban 1, 2, 3 y
+de las recogidas solo había una frase («carga en recolección ↺»). Él pidió la ruta como secuencia P/D y eligió «sustituye al
+actual»: para él el Gestor ES donde tiene que verse. Fue un hueco de un diseño hecho por incrementos, no un fallo de un incremento.
+
+### Qué hay ahora
+
+`secuenciaPD` (`src/lib/secuencia-pd.ts`, pura) lee lo que ya hay —chofer, viajes (`load_no`), orden de entrega (`route_seq`),
+«Vendido desde»— y devuelve la secuencia. Se ve en tres sitios:
+
+- **Tabla de paradas por ruta del Gestor:** cada viaje empieza con sus **recogidas como filas propias** —una por tienda:
+  «P1·P2 — Recoger en Tienda — órdenes (con su factura, D-331) · N pallets a bordo»— y sigue con las entregas, que pasan de
+  «1, 2, 3» a «D1, D3, D2». Las recogidas **no llevan flechas**: en una ruta manual solo se decide el orden de las entregas,
+  y las flechas ↑ ↓ (D-007/D-016) siguen moviendo entregas como siempre.
+- **Mapa:** las entregas asignadas llevan «D1, D2…», y cada tienda donde la ruta recoge lleva su «P1·P2» **del color del chofer**,
+  que es lo que distingue una ruta de otra con varias a la vista. Dos choferes que recogen en la misma tienda dan dos marcas
+  en el mismo punto, una de cada color.
+- **«Mi ruta» del chofer:** lo mismo, solo lectura (D-021): recogidas por tienda que informan y no se pulsan, y cada entrega con su D.
+
+### Las reglas, y de dónde sale cada una
+
+- **`Dk` es siempre la entrega de la orden recogida en `Pk`.** El número es de la orden.
+- **El número sigue el orden de RECOGIDA, igual que en un plan del motor:** los P se leen 1, 2, 3 y son los D los que saltan. Es
+  la definición del dueño («P1, P2, P3… = Pickup 1, 2, 3») y su ejemplo (`Base → P1 → P2 → D2 → P3 → D1 → D3`). **Se descartó**
+  numerar por orden de entrega —mi primera versión—: con entregas intercaladas las recogidas salían «P1, P3, P2», que se lee
+  como un error. Así el Gestor y «Plan del día» usan la MISMA convención.
+- **Una tienda es UNA parada de recogida por viaje**, con todas sus órdenes dentro. **Se descartó** agrupar solo las «seguidas»:
+  con entregas intercaladas daba `Pharr → McAllen → Pharr`, dos visitas a la misma tienda en un viaje, un rodeo que nadie
+  decidió. Las tiendas se recorren en el orden de su primera entrega — que sale de `route_seq`, lo único que una persona decidió.
+- **La numeración no se reinicia por viaje.** Volver a la misma tienda en OTRO viaje sí es otra parada.
+- **La tienda de recogida es «Vendido desde»**, en todos los tipos desde D-312: también en una Intertienda, donde es la tienda que
+  manda el material. Una orden que no la dice se recoge en «(la orden no dice la tienda)» y no se junta con otra sin tienda.
+- **Sin horas:** donde no planificó el motor no hay hora estimada, y no se inventa.
+- **Pallets a bordo tras cada parada:** sube en P, baja en D, en centésimas como el motor. Una orden sin pallets contados cuenta
+  0 y se avisa con «~».
+- **No comparte componente con `RutaDelPlan`:** ese pintor son columnas de hora (llega–sale, tramo) que aquí no existen. Comparten
+  etiquetas y reglas.
+
+### «Plan del día», para que no se pueda no ver
+
+Estaba arriba y sin plegar; el problema era de texto y de peso: «Planificar el día (motor nuevo)» —jerga nuestra— y un botón del
+estilo más discreto. Ahora: **«Armar las rutas del día automáticamente»** / «Build today's routes automatically»; una frase que
+dice lo que DA, con «P1, P2… D1, D2…» dentro, que es lo que el dueño buscaba; el botón es **el primario cuando no hay plan** (y
+discreto cuando lo hay, donde lo primario es «Publicar ruta»); y sin plan dice **cuántas órdenes de esa fecha hay sin plan**,
+contadas con la misma función y las mismas etapas que leería planificar. No se movió nada de sitio.
+
+### Lo que NO está
+
+- **No hay hoja de carga ni manifiesto en el repo** (se buscó): nada que numerar ahí.
+- La tabla «programadas» de la pestaña de asignación sigue con su columna «Parada» numérica: es una lista por orden, no una ruta.
+- **No verificado:** nada abierto en un navegador. En particular la marca «P1·P2·P3» en el mapa puede quedar ancha para el
+  círculo del marcador, y dos choferes recogiendo en la misma tienda se pisan en el mismo punto. Es lo primero que miraría.
+- Un mutante queda vivo y se declara equivalente: arrastrar los pallets a bordo de un viaje al siguiente no cambia nada, porque
+  cada viaje descarga exactamente lo que cargó y acaba en cero (en centésimas enteras).

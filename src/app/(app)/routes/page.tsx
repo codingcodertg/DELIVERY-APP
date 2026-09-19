@@ -23,6 +23,8 @@ import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { etiquetaDeEntrega, ordenesDeRuta, secuenciaPD } from "@/lib/secuencia-pd";
+import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla } from "@/lib/routes-columns";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -1259,6 +1261,24 @@ export default function RoutesPage() {
       });
     }
     const selActive = selectedOrders.size > 0;
+    // Las etiquetas P/D de cada ruta (D-NEXT): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada tienda donde la ruta
+    // recoge lleva su «P1·P2», del color del chofer — que es lo que distingue una ruta de otra cuando hay varias a la vista.
+    const dDeTodas = new Map<string, string>();
+    for (const [laneKey, list] of byDriver) {
+      if (!list.some((d) => d.route_seq != null)) continue;
+      const pd = secuenciaPD(buildTrips(list, capacityFor(driverOf(laneKey))).map(ordenesDeRuta));
+      for (const [id, etiqueta] of etiquetaDeEntrega(pd)) dDeTodas.set(id, etiqueta);
+      for (const p of pd) {
+        if (p.tipo !== "P" || !p.tienda) continue;
+        const tienda = (settings.stores ?? []).find((s) => s.name.trim().toLowerCase() === p.tienda!.trim().toLowerCase());
+        if (tienda?.lat == null || tienda.lng == null) continue;
+        pts.push({
+          id: `__pd__${laneKey}__${p.viaje}__${p.ordenes[0]}`, lat: tienda.lat, lng: tienda.lng, color: colorFor(list[0].assigned_driver),
+          badge: p.etiquetas.join("·"), label: `${list[0].assigned_driver} — ${t("Pick up", "Recoger")} ${p.etiquetas.join("·")} · ${p.tienda}`,
+          dimmed: isDim(laneKey) || selActive,
+        });
+      }
+    }
     for (const d of dayOrders) {
       if (d.delivery_lat == null || d.delivery_lng == null) continue;
       if (!d.assigned_driver) {
@@ -1278,7 +1298,7 @@ export default function RoutesPage() {
       const laneKey = orderLaneKey(d)!;
       const list = byDriver.get(laneKey) ?? [];
       const idx = list.findIndex((x) => x.id === d.id);
-      const badge = d.route_seq != null ? String(idx + 1) : undefined;
+      const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;
       const loadTag = !isBucket(d.assigned_driver) && loadNoOf(d) > 1 ? ` · ${t("Load", "Carga")} ${loadNoOf(d)}` : "";
       pts.push({
         id: d.id,
@@ -2007,6 +2027,9 @@ export default function RoutesPage() {
         const info = routeInfo[u.key];
         const capacity = capacityFor(u.driver);
         const trips = buildTrips(stops, capacity);
+        // La misma ruta, leída como P1, P2… D1, D2… (D-NEXT). No cambia nada de lo asignado: es solo cómo se LEE.
+        const pd = secuenciaPD(trips.map(ordenesDeRuta));
+        const dDe = etiquetaDeEntrega(pd);
         // A load a person pinned; the optimizer won't regroup those.
         const pinnedLoads = stops.some((d) => (d.load_no ?? 1) > 1 && !d.load_auto);
         const isC = isCollapsed(u.key);
@@ -2279,6 +2302,18 @@ export default function RoutesPage() {
                               )}
                             </td>
                           </tr>
+                          {/* Las RECOGIDAS del viaje, como filas propias: una por tienda, con las órdenes que se cargan ahí.
+                              No llevan flechas: en una ruta manual solo se decide el orden de las entregas. */}
+                          {sequenced && pd.filter((p) => p.tipo === "P" && p.viaje === ti + 1).map((p) => (
+                            <tr key={`p-${ti}-${p.ordenes[0]}`}>
+                              <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
+                              <td colSpan={7}>
+                                {t("Pick up at", "Recoger en")} <b>{p.tienda ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
+                                {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
+                                <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
+                              </td>
+                            </tr>
+                          ))}
                           {batch.map((d, bi) => {
                             const i = startIdx + bi;
                             // Flag a stop whose optimized ETA lands after its window closes.
@@ -2309,7 +2344,9 @@ export default function RoutesPage() {
                                 onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
                                 title={t("Show this stop on the map", "Ver esta parada en el mapa")}
                               >
-                                <td style={{ borderLeft: `4px solid ${tColor}` }}>{d.route_seq != null ? i + 1 : "—"}</td>
+                                <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}
+                                  title={(() => { const x = pd.find((p) => p.tipo === "D" && p.ordenes[0] === d.id); return x ? t(`After this stop: ${x.aBordo} pallets on board`, `Tras esta parada: ${x.aBordo} pallets a bordo`) : undefined; })()}
+                                >{d.route_seq != null ? (dDe.get(d.id) ?? i + 1) : "—"}</td>
                                 <td
                                   className="ordno"
                                   onClick={(e) => { e.stopPropagation(); setOpenOrder(d); }}
