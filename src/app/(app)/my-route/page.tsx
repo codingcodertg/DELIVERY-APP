@@ -10,6 +10,7 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
+import { etiquetaDeEntrega, ordenesDeRuta, secuenciaPD } from "@/lib/secuencia-pd";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -59,6 +60,9 @@ export default function MyRoutePage() {
     const capacity = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
     return hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
   }, [stops, settings.driver_capacity, settings.default_truck_capacity, driverName]);
+  // La misma ruta, leída como P1, P2… D1, D2… — igual que la ve quien despacha en el Gestor (D-334). Solo lectura.
+  const pd = useMemo(() => secuenciaPD(trips.map(ordenesDeRuta)), [trips]);
+  const dDe = useMemo(() => etiquetaDeEntrega(pd), [pd]);
 
   /**
    * El botón de «Siguiente parada» hace lo que dice (D-218).
@@ -209,13 +213,13 @@ export default function MyRoutePage() {
         lat: d.delivery_lat,
         lng: d.delivery_lng,
         color: isDone ? "#1f9d61" : isNext ? "#d1782e" : "#6b7686",
-        badge: String(i + 1),
-        label: `${i + 1}. ${d.invoice_num || `#${orderLabel(d)}`}${d.delivery_address ? ` — ${d.delivery_address}` : ""}`,
+        badge: dDe.get(d.id) ?? String(i + 1),
+        label: `${dDe.get(d.id) ?? i + 1}. ${d.invoice_num || `#${orderLabel(d)}`}${d.delivery_address ? ` — ${d.delivery_address}` : ""}`,
         dimmed: isDone,
       });
     });
     return out;
-  }, [stops, next]);
+  }, [stops, next, dDe]);
 
   // Their own truck, so they can see where they are against the plan.
   const liveDrivers = useMemo(() => {
@@ -410,8 +414,19 @@ export default function MyRoutePage() {
                   </div>
                 )}
                 <div className="bar-list">
+                  {/* Primero se carga: una fila por tienda, con las órdenes que se recogen ahí. Informa; no se pulsa. */}
+                  {pd.filter((p) => p.tipo === "P" && p.viaje === ti + 1).map((p) => (
+                    <div key={`p-${p.ordenes[0]}`} className="acct-row" style={{ alignItems: "flex-start" }}>
+                      <b style={{ flex: "0 0 auto", minWidth: 26 }}>{p.etiquetas.join("·")}</b>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 700, display: "block" }}>{t("Pick up at", "Recoger en")} {p.tienda ?? t("(no store on the order)", "(la orden no dice la tienda)")}</span>
+                        <span className="hint" style={{ display: "block" }}>{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</span>
+                        <span className="hint" style={{ display: "block" }}>{p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
+                      </span>
+                    </div>
+                  ))}
                   {batch.map((d, bi) => {
-                    const n = startIdx + bi + 1;
+                    const n = dDe.get(d.id) ?? String(startIdx + bi + 1);
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;
                     return (

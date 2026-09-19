@@ -5,6 +5,8 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
+import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
+import { ordenesDelDia } from "@/lib/ordenes-del-dia";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
 import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
@@ -108,6 +110,9 @@ export function PlanDelDia({ date }: { date: string }) {
   const delPlan = sesiones && sesiones.plan_id === idDelBorrador ? sesiones.choferes : [];
   const nuncaEntraron = delPlan.filter((c) => c.ha_entrado === false);
 
+  // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
+  const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
+
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan», «¿Por qué aquí?» y la hoja.
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
@@ -173,10 +178,16 @@ export function PlanDelDia({ date }: { date: string }) {
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <b>🧭 {t("Plan the day (new engine)", "Planificar el día (motor nuevo)")}</b>
-        <span className="hint" style={{ margin: 0 }}>{t("Makes a draft. Nothing is assigned until you publish.", "Hace un borrador. Nada se asigna hasta publicar.")}</span>
+        {/* Que no se pueda no ver (D-334): el dueño buscaba P1, P2… D1, D2… y no había pulsado esto nunca. El título dice
+            lo que HACE, la frase lo que DA, y sin plan el botón es el primario de la pantalla. «Motor nuevo» era jerga nuestra. */}
+        <b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b>
+        {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
+        <span className="hint" style={{ margin: 0, flexBasis: "100%" }}>
+          {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",
+             "Reparte las órdenes de esta fecha entre los choferes y ordena recogidas (P1, P2…) y entregas (D1, D2…) con horas estimadas. Es un borrador: nada se asigna hasta publicar.")}
+        </span>
         <span style={{ flex: 1 }} />
-        <button className="btn btn-ghost btn-sm" disabled={!!ocupado} onClick={() => void planifica()}>
+        <button className={borrador ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"} disabled={!!ocupado} onClick={() => void planifica()}>
           {ocupado === "planificando" ? t("Planning…", "Planificando…") : borrador?.status === "draft" ? t("Plan again", "Planificar de nuevo") : t("Plan the day", "Planificar el día")}
         </button>
         {borrador?.status === "draft" && (
