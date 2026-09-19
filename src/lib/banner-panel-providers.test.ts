@@ -50,3 +50,41 @@ describe("el panel que se monta dentro del banner tiene encima lo que necesita",
     for (const hook of Object.keys(HOOKS)) expect(new RegExp(`\\b${hook}\\(`).test(banner), hook).toBe(false);
   });
 });
+
+// D-333: el panel vuelve a montarse TAMBIÉN en la barra de Entregas. Mismo examen para ese sitio: la barra vive en el
+// layout de `(app)`, que tiene los tres proveedores encima — y aquí se fija, para que mover la barra lo haga saltar.
+describe("el panel montado en la barra de Entregas también tiene encima lo que necesita", () => {
+  const barra = sinComentarios(leer("src/components/TopBar.tsx"));
+  const app = sinComentarios(leer("src/app/(app)/layout.tsx"));
+
+  it("la barra monta el panel, y solo se monta en el layout de (app)", () => {
+    expect(barra.indexOf("<SwitchUserPanel")).toBeGreaterThan(-1);
+    expect(app.indexOf("<TopBar")).toBeGreaterThan(-1);
+    expect(raiz).not.toContain("<TopBar");
+  });
+
+  it("cada proveedor que piden los hooks del panel —y los de la propia barra— envuelve a la barra", () => {
+    const usados = Object.keys(HOOKS).filter((h) => new RegExp(`\\b${h}\\(`).test(panel) || new RegExp(`\\b${h}\\(`).test(barra));
+    expect(usados.sort()).toEqual(["useConfirm", "useData", "usePrefs"]);
+    // Prefs está en el layout raíz alrededor de los hijos; Confirm y Data, en el de (app) alrededor de la barra.
+    expect(raiz.indexOf("<PrefsProvider")).toBeGreaterThan(-1);
+    expect(raiz.indexOf("<PrefsProvider")).toBeLessThan(raiz.indexOf("{children}"));
+    expect(raiz.indexOf("{children}")).toBeLessThan(raiz.indexOf("</PrefsProvider>"));
+    const i = app.lastIndexOf("<TopBar");
+    for (const prov of ["ConfirmProvider", "DataProvider"]) {
+      const abre = app.lastIndexOf(`<${prov}`, i), cierra = app.indexOf(`</${prov}>`, i);
+      expect(abre, `${prov} abre antes de la barra`).toBeGreaterThan(-1);
+      expect(cierra, `${prov} cierra después de la barra`).toBeGreaterThan(i);
+      expect(app.slice(abre, i)).not.toContain(`</${prov}>`);
+    }
+  });
+
+  it("dos entradas al MISMO panel, y nada más: el hub, la barra de Entregas y el banner (que es la de dentro)", () => {
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const tsx: string[] = [];
+    const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = `${d}/${f}`; if (statSync(r).isDirectory()) recorre(r); else if (f.endsWith(".tsx")) tsx.push(r); } };
+    recorre("src");
+    expect(tsx.filter((f) => sinComentarios(leer(f)).includes("<SwitchUserPanel")).sort()).toEqual(
+      ["src/app/home/switch-user/page.tsx", "src/components/ImpersonationBanner.tsx", "src/components/TopBar.tsx"]);
+  });
+});
