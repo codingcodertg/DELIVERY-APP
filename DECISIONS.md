@@ -22950,3 +22950,59 @@ del 2026-08-11): no hay decisión anterior que marcar como reemplazada, y se dic
 - Hasta que la 137 se aplique, guardar las columnas del Gestor falla en silencio contra el `check` de la 136 (`guardaColumnas`
   devuelve `false`) y la elección dura lo que dure la pantalla. No rompe nada.
 - Nada abierto en un navegador: ni el selector, ni las tablas con columnas quitadas, ni la vista de pendientes.
+
+## D-NEXT · Las columnas de la tabla de Órdenes se pueden reordenar, con flechas, y el orden es de cada persona
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** Andrés, literal: «in order let me rearrange the columns». Sigue a D-330 (columnas por persona).
+
+### Qué hay ahora
+
+En «⚙ Columnas», cada columna lleva su casilla y dos flechas **↑ ↓**; la lista sale en el orden de la persona, y hay un
+«Restablecer orden». Sin arrastrar: el dueño ya lo dijo para las paradas del Gestor —D-007, «Las paradas se reordenan solo con
+las flechas ↑/↓»—, y la cabecera de esta tabla ya tiene tres gestos (clic para ordenar, el filtro, y el borde para el ancho):
+un cuarto por arrastre chocaría con el clic de ordenar y en un teléfono no existe. La columna `#` —con la factura y la pastilla
+de documento pendiente (D-310)— va **siempre la primera y no se mueve**: ni sale en el selector. No hay columna de acciones.
+
+Una flecha mueve la columna **un puesto entre las que se ven**: si entre dos columnas visibles hay una oculta, la pulsación
+salta por encima de ella en vez de no hacer nada aparente. La flecha se apaga cuando pulsarla no movería nada.
+
+### La decisión que cambió el encargo, y por qué
+
+El encargo decía: «el array guardado manda también en el orden». **No se hizo así.** Medido: los arrays de columnas visibles que
+ya hay guardados están en el ORDEN EN QUE SE MARCARON LAS CASILLAS (`[...cols, clave]`, en el selector y en Ajustes para
+`sales_columns`), no en un orden que nadie eligiera; hasta hoy no importaba porque la tabla pintaba siempre en el orden canónico
+(`ORDER_COLUMNS.filter(...)`). Si el array mandara en el orden, a las tres personas que ya tenían `order_columns` en producción,
+a quien tuviera algo en su navegador, y a TODO ventas, se les habrían recolocado las columnas solas al desplegar.
+
+Así que **el orden se guarda aparte de la visibilidad**, dentro del mismo `value` de `user_prefs` y sin migración:
+`{ "<rol>": [visibles], "_orden": { "<rol>": [todas las claves, en el orden de la persona] } }`.
+
+- **Sin `_orden` para ese rol → el orden canónico, exactamente como hasta hoy.** Nadie nota nada hasta que pulsa una flecha.
+- Una columna nueva que el orden guardado no conoce **entra al final**; una que ya no existe **se cae**.
+- **Ocultar una columna y volver a mostrarla no le hace perder su sitio.**
+- «Restablecer orden» **borra** `_orden[rol]` —no lo iguala al canónico—, para que una columna futura entre donde diga el canónico.
+- **`_orden` no es un rol.** Lo que lee el `value` solo recorre la lista cerrada de roles que eligen, así que no se cuela como
+  uno. Y las dos mitades se leen y se escriben **siempre juntas**: marcar una casilla manda también el orden, y reordenar manda
+  también la visibilidad — con pruebas con nombre para las dos direcciones, y para «no pisa lo de otro rol».
+- **Tamaño, medido:** el peor caso —los 6 roles que eligen, las 14 columnas, en los dos mapas— son **1 544 bytes** de JSON,
+  contra el tope de 8 192 de la 136. Una prueba lo fija y cuenta las 14.
+
+### Lo que sigue igual, medido
+
+- **Los anchos ya iban por clave** (`useColWidthMap`): reordenar no los mezcla y nadie pierde los suyos.
+- Ordenar, los filtros por columna (D-297) y el menú de filtro buscan la columna **por clave**; la vista agrupada por tienda de
+  «Invoice pending» (D-310) agrupa filas, no columnas. Nada de eso depende de la posición.
+- **En el teléfono el orden también aplica**, y es lo correcto: la tarjeta (D-298) es la misma tabla, que apila las celdas en el
+  orden del documento; no hay reglas por posición.
+- **Ventas no reordena**, como no elige: su lista la pone un admin (`settings.sales_columns`) y se sigue pintando en el orden
+  canónico. Reordenar esa lista desde Ajustes queda **fuera**: Ajustes solo marca y desmarca.
+- **El Gestor de Rutas queda fuera:** su selector (D-331) no comparte componente con este, y el orden de sus dos tablas lo fija
+  el código por tabla.
+
+### Lo que hay que saber
+
+- Una pestaña abierta con el código ANTERIOR que marque una casilla guarda la fila sin `_orden` y lo borra: la fila se escribe
+  entera. Dura lo que tarde esa pestaña en recargarse (el aviso de versión nueva lo pide). Se pierde un orden, no datos.
+- Dos pestañas cambiando a la vez: gana la última, como en D-330.
+- **No verificado:** nada abierto en un navegador; ni las flechas, ni el selector con muchas columnas en un teléfono.

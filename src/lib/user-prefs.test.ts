@@ -79,13 +79,13 @@ function clienteFalso(opciones: { fila?: { value: unknown } | null; errorAlLeer?
 describe("la base", () => {
   it("lee SOLO la fila propia de `order_columns`, y la sanea", async () => {
     const { cliente, llamadas } = clienteFalso({ fila: { value: { logistics: ["stage"], sales: ["x"] } } });
-    expect(await leeColumnas(cliente, "yo")).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["stage"] } });
+    expect(await leeColumnas(cliente, "yo")).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["stage"] }, orden: {} });
     expect(llamadas).toEqual([{ op: "select", args: ["user_prefs", "value", "user_id", "yo", "key", CLAVE_DE_COLUMNAS] }]);
   });
   it("sin fila: leída y sin fila. Con error —la tabla aún no existe— o sin red: NO leída, y no revienta", async () => {
-    expect(await leeColumnas(clienteFalso({ fila: null }).cliente, "yo")).toEqual({ leida: true, hayFila: false, columnas: {} });
-    expect(await leeColumnas(clienteFalso({ errorAlLeer: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {} });
-    expect(await leeColumnas(clienteFalso({ lanza: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {} });
+    expect(await leeColumnas(clienteFalso({ fila: null }).cliente, "yo")).toEqual({ leida: true, hayFila: false, columnas: {}, orden: {} });
+    expect(await leeColumnas(clienteFalso({ errorAlLeer: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {} });
+    expect(await leeColumnas(clienteFalso({ lanza: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {} });
   });
   it("guarda la fila PROPIA, saneada, y mide que se escribió: cero filas no es «guardado»", async () => {
     const { cliente, llamadas } = clienteFalso({});

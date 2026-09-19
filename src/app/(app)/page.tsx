@@ -7,7 +7,8 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { claveDelNavegador, columnasDe, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { CLAVE_DE_COLUMNAS, claveDelNavegador, columnasDe, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { documentoPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
@@ -92,6 +93,10 @@ export default function OrdersPage() {
   const [cols, setCols] = useState<string[]>(DEFAULT_COLUMNS);
   // Lo que la base tiene guardado para esta persona, por rol. `null` = no se pudo leer (o aún no): no se escribe.
   const prefsDeLaBase = useRef<ColumnasPorRol | null>(null);
+  // El ORDEN de las columnas, aparte de cuáles se ven (D-NEXT). `null` = la persona no ha reordenado: el canónico.
+  // Solo vive en la base: en el navegador nunca hubo un orden que sembrar.
+  const [orden, setOrden] = useState<string[] | null>(null);
+  const ordenDeLaBase = useRef<ColumnasPorRol>({});
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   /** Anular en bloque pide el motivo UNA vez y lo escribe en cada orden. Antes este camino no
@@ -136,6 +141,8 @@ export default function OrdersPage() {
     try { delNavegador = semillaDelNavegador((k) => localStorage.getItem(k)); } catch { /* sin localStorage, sin semilla */ }
     setCols(columnasDe(me.role, null, delNavegador, defaultColsFor(me.role)).columnas);
     prefsDeLaBase.current = null;
+    ordenDeLaBase.current = {};
+    setOrden(null);
     if (SIN_BASE) return;
     // Y después la base, que es la que manda (D-330): la elección es de la persona, no del navegador.
     let vivo = true;
@@ -145,6 +152,8 @@ export default function OrdersPage() {
       const leido = await leeColumnas(supabase, yo);
       if (!vivo || !leido.leida) return;
       prefsDeLaBase.current = leido.columnas;
+      ordenDeLaBase.current = leido.orden;
+      setOrden(leido.orden[rol] ?? null);
       if (leido.hayFila) { setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
       // Sin fila: se siembra UNA vez desde este navegador — nunca durante una suplantación (el navegador es del
       // admin y la sesión, de otra persona), y si no se sabe si la hay, tampoco.
@@ -165,8 +174,24 @@ export default function OrdersPage() {
     if (SIN_BASE || prefsDeLaBase.current === null) return;
     const todas: ColumnasPorRol = { ...prefsDeLaBase.current, [me.role]: next };
     prefsDeLaBase.current = todas;
-    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas);
+    // La fila se escribe ENTERA: el orden va siempre con ella, o marcar una casilla lo borraría.
+    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS, ordenDeLaBase.current);
   };
+
+  // Reordenar (D-NEXT): flechas, no arrastre — como pidió el dueño para las paradas (D-007). `null` = restablecer: se
+  // BORRA el orden de este rol en vez de igualarlo al canónico, para que una columna futura entre donde diga el canónico.
+  const guardaOrden = (next: string[] | null) => {
+    setOrden(next);
+    if (!me || me.role === "sales" || SIN_BASE || prefsDeLaBase.current === null) return;
+    const todos: ColumnasPorRol = { ...ordenDeLaBase.current };
+    if (next) todos[me.role] = next; else delete todos[me.role];
+    ordenDeLaBase.current = todos;
+    // Y la visibilidad va con él, tal como está: reordenar no la pisa.
+    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, { ...prefsDeLaBase.current, [me.role]: cols }, CLAVE_DE_COLUMNAS, todos);
+  };
+  const ordenDelSelector = ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden);
+  // La flecha se apaga cuando pulsarla no movería nada (el tope, contando que una visible salta sobre las ocultas).
+  const seMueve = (clave: string, delta: -1 | 1) => mueveColumna(ordenDelSelector, clave, delta, cols).join() !== ordenDelSelector.join();
 
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275); antes solo con su botón.
   // El contenedor envuelve botón y menú: pulsar el botón con el menú abierto lo cierra, y marcar
@@ -421,11 +446,13 @@ export default function OrdersPage() {
               {showCols && (
                 <div className="col-menu">
                   <div className="col-menu-head">
-                    <b>{t("Show columns", "Mostrar columnas")}</b>
+                    <b>{t("Show and order columns", "Mostrar y ordenar columnas")}</b>
                     <button className="notif-clear" onClick={() => saveCols(defaultColsFor(me.role))}>{t("Reset", "Restablecer")}</button>
+                    {orden && <button className="notif-clear" onClick={() => guardaOrden(null)}>{t("Reset order", "Restablecer orden")}</button>}
                   </div>
-                  {ORDER_COLUMNS.map((c) => (
-                    <label key={c.key} className="col-opt">
+                  {ordenDelSelector.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!).map((c) => (
+                    <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <label className="col-opt" style={{ flex: 1 }}>
                       <input
                         type="checkbox"
                         checked={cols.includes(c.key)}
@@ -433,6 +460,9 @@ export default function OrdersPage() {
                       />
                       {lang === "es" ? c.es : c.en}
                     </label>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, -1)} aria-label={t(`Move ${c.en} up`, `Subir ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, -1, cols))}>↑</button>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, 1)} aria-label={t(`Move ${c.en} down`, `Bajar ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, 1, cols))}>↓</button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -564,6 +594,7 @@ export default function OrdersPage() {
             onOpen={setOpen}
             empty={t("No orders match this view.", "No hay órdenes en esta vista.")}
             visible={cols}
+            orden={me?.role === "sales" ? null : orden}
             // The checkbox column only earns its space for roles that have a
             // bulk action in the bar above (approve, cancel, reassign, set a
             // date, export). A driver has none, so it was pure clutter.
