@@ -23122,3 +23122,82 @@ contadas con la misma función y las mismas etapas que leería planificar. No se
   círculo del marcador, y dos choferes recogiendo en la misma tienda se pisan en el mismo punto. Es lo primero que miraría.
 - Un mutante queda vivo y se declara equivalente: arrastrar los pallets a bordo de un viaje al siguiente no cambia nada, porque
   cada viaje descarga exactamente lo que cargó y acaba en cero (en centésimas enteras).
+## D-335 · Con un plan publicado, las etiquetas P/D de la ruta son las del plan — mientras la ruta siga siendo la que el plan escribió
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No escribe nada:** es solo
+cómo se LEE una ruta.
+**Pedido por:** el orquestador, al cerrar D-334: el hueco entre «Plan del día» y la tabla de paradas.
+
+### Qué pasaba, medido
+
+D-334 lee CUALQUIER ruta asignada con `secuenciaPD`: todas las recogidas del viaje delante, y las entregas numeradas por el orden
+de recogida que ella deduce. Un plan del motor decide él dónde va cada recogida, y las intercala. Las dos lecturas no coinciden
+para la misma ruta. Reproducido en una prueba con el motor de verdad (`lectura-de-ruta.test.ts`, «el hueco, reproducido»): para la
+secuencia `P x → P y → D y → D x` el plan dice **`P1:x P2:y D2:y D1:x`**, y `secuenciaPD` sobre lo que ESE MISMO plan escribió en
+`deliveries` dice **y = D1, x = D2**. El chofer vería «D2» en la tarjeta «Orden planeado del día» y «D1» en su lista, para la misma
+orden; quien despacha, lo mismo entre «Plan del día» y la tabla de paradas.
+
+### La regla
+
+**Por chofer:** si su ruta de hoy es EXACTAMENTE la que el plan publicó —las mismas órdenes, cada una en el mismo viaje
+(`load_no`) y el mismo puesto (`route_seq`)— **manda el plan**: sus etiquetas y su secuencia, con las recogidas donde el motor las
+puso. Si alguien la tocó a mano después, **manda la lectura derivada de D-334, y se dice**: «Esta ruta cambió desde que se publicó
+el plan: las etiquetas P/D se recalcularon.»
+
+- Un cambio de ETAPA (en camino, entregada) **no** es tocar la ruta.
+- Tocar la ruta de un chofer no invalida las de los demás.
+- **Las flechas de mover NO se bloquean** cuando hay plan. Se pensó y se descartó: quien despacha tiene que poder corregir una
+  ruta a media mañana, y el aviso basta para que sepa que las etiquetas ya no son las del plan.
+- «La que el plan publicó» se recalcula de las PARADAS del plan, con la misma función que usa publicar, y no de
+  `route_plans.writes`: el chofer no puede leer `route_plans`, pero sí sus paradas (134). Así el Gestor y «Mi ruta» deciden igual.
+
+### Cómo
+
+- `src/lib/route-plan/lectura-de-ruta.ts` (nuevo): `sigueElPlan` y `lecturaDeLaRuta(viajes, paradas | null)`. Devuelve la
+  etiqueta de cada orden, las filas que informan ANTES de cada entrega y las que quedan al final.
+- **Órdenes repartidas en cargas:** la fila de la orden lleva todas sus etiquetas («D3·D5»), y la entrega de la otra carga sale
+  como fila informativa («Entregar otra carga de…»), donde el plan la puso — también si es lo último de la ruta.
+- Recogidas seguidas en el mismo sitio son una sola fila («P1·P2»), como una parada física.
+- `publicar.ts`: lo que decide `(load_no, route_seq)` se sacó a `posicionesDeLaRuta`, para que leer y publicar usen LA MISMA
+  cuenta. **Probado que publicar escribe lo mismo que antes:** la prueba compara, para la forma completa, la salida de hoy con una
+  copia congelada de la función anterior.
+- `GET /api/route-plan?date=&status=published`: el plan PUBLICADO aunque haya un borrador más nuevo encima. Solo ese valor lo
+  activa; sin él, todo como estaba. Misma sesión, misma RLS.
+- `usePlanPublicado.ts` (nuevo): una lectura por fecha. El Gestor no pide nada viendo «todas las fechas» o las pendientes: sin
+  UNA fecha no hay plan con el que comparar.
+- «Mi ruta»: la lectura de `/api/route-plan/mine` subió de la tarjeta `MiPlanPublicado` a la página, que la comparte con la
+  lista. La tarjeta ya no pide nada. Una sola lectura, y las dos cosas dicen lo mismo.
+- **El orden de las filas de un viaje es una función pura, `filasDelViaje`, y las dos pantallas pintan eso tal cual:** lo que
+  informa va justo ANTES de la entrega a la que precede, y lo del final tras la última entrega del último viaje.
+- **Recién publicado, el Gestor relee el plan:** `PlanDelDia` llama a `onPublicado` en la rama de éxito de publicar, la página
+  sube un contador, y el contador es dependencia de `usePlanPublicadoDelGestor`. Planificar de nuevo no cambia el publicado (crea
+  un borrador), así que solo publicar lo dispara. **El chofer se entera al volver a entrar en «Mi ruta»**, no en caliente.
+- Si la lectura falla o no hay plan, es `null` y todo se lee como en D-334.
+
+### Dos defectos de la primera entrega de esta rama, cazados por el orquestador leyendo el sitio de montaje
+
+1. La librería guardaba bien «lo que va antes de cada entrega», pero las dos pantallas lo **juntaban todo en cabeza del viaje**:
+   un plan `P1·P2 → D2 → P3 → D3 → D1` salía con las tres recogidas delante. El comentario decía «donde el motor las puso» y no
+   era verdad. Mis pruebas miraban la librería y el TEXTO de la página, y ninguna el orden pintado. De ahí `filasDelViaje`.
+2. El plan publicado solo se leía al cambiar de fecha: justo después de pulsar «Publicar» la tabla seguía sin plan, con las
+   etiquetas derivadas y sin aviso — el hueco original entero, en el momento en que más se mira.
+
+### Mutantes
+
+37 en dos tandas (26 + 11 de la corrección), leídos por nombre; caen los 37. «Todas las recogidas delante» cae con el plan que
+recoge a media ruta; «el hook no depende de publicar», «el panel no avisa» y «avisa también si publicar falla», con su prueba.
+De la primera tanda:  El que pidió el orquestador —que el criterio compare solo el conjunto de órdenes— cae con «otro
+orden». Dos sobrevivieron a la primera tanda y eran **pruebas flojas, no código de sobra**: «no mira el viaje» (mi caso de cambio
+de viaje cambiaba también el puesto; ahora cambia SOLO `load_no`) y «lo que queda tras la última entrega se pierde» (ningún plan
+de las pruebas dejaba nada al final; ahora hay uno con la segunda carga de una orden repartida entregada la última).
+
+### Lo que NO está
+
+- **No verificado:** nada abierto en un navegador, y sin base desde la rama: `?status=published` está fijado por una prueba sobre
+  el texto de la ruta, no por una petición real. El 2026-09-19 había 0 filas en `route_plans`, así que hoy en producción todo
+  sigue leyéndose como en D-334; esto se verá la primera vez que se publique un plan.
+- **El plan se empareja con el chofer por NOMBRE** (`driver_name` del plan contra `assigned_driver`). Publicar escribe ese mismo
+  nombre, así que casa; pero si se renombra al chofer después, deja de casar y su ruta cae a la lectura derivada **sin aviso**,
+  porque para ese nombre no hay plan.
+- El aviso sale en la tabla del Gestor. En «Mi ruta» el chofer no ve aviso: ve las etiquetas derivadas en su lista, y la tarjeta
+  del plan sigue enseñando las del plan. Tras un cambio a mano las dos pueden discrepar; es lo primero que miraría.

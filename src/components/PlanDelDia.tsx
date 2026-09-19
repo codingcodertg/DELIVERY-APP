@@ -76,7 +76,8 @@ const MOTIVOS: Record<string, [string, string]> = {
   no_disponible: ["off today", "hoy no está"],
 };
 
-export function PlanDelDia({ date }: { date: string }) {
+/** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla). */
+export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: () => void }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
@@ -168,6 +169,7 @@ export function PlanDelDia({ date }: { date: string }) {
         for (const a of avisos) void fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notification_id: a.notification_id }) }).catch(() => undefined);
         setPublicado({ escritas: Number(b.written ?? 0), avisos: avisos.length });
         void lee();
+        onPublicado?.();
         notify(t("Route published", "Ruta publicada"));
       }
     } catch { setError(t("Network error.", "Error de red.")); }

@@ -85,40 +85,80 @@ describe("dónde se ve", () => {
   const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n").replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n").replace(/\s+/g, " ");
   const gestor = leer("src/app/(app)/routes/page.tsx"), miRuta = leer("src/app/(app)/my-route/page.tsx"), panel = leer("src/components/PlanDelDia.tsx");
 
-  it("el Gestor: la tabla de paradas por ruta lee la ruta con la función probada, con los MISMOS viajes que pinta", () => {
-    expect(gestor).toContain("const trips = buildTrips(stops, capacity); const pd = secuenciaPD(trips.map(ordenesDeRuta)); const dDe = etiquetaDeEntrega(pd);");
+  // Desde D-335 las pantallas no llaman a `secuenciaPD` directamente: pasan por `lecturaDeLaRuta`, que la usa cuando no hay
+  // plan publicado —o cuando la ruta se tocó después— y usa las etiquetas del plan cuando la ruta sigue siendo la publicada.
+  it("el Gestor: la tabla de paradas por ruta lee la ruta con los MISMOS viajes que pinta, y por chofer", () => {
+    expect(gestor).toContain("const trips = buildTrips(stops, capacity); const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver)); const dDe = lectura.etiquetaDe;");
     expect(gestor).toContain('{d.route_seq != null ? (dDe.get(d.id) ?? i + 1) : "—"}</td>');
   });
-  it("las recogidas son filas propias, una por tienda, SIN flechas; solo salen cuando la ruta ya tiene secuencia", () => {
-    const i = gestor.indexOf('{sequenced && pd.filter((p) => p.tipo === "P" && p.viaje === ti + 1).map((p) => (');
+  it("las filas que informan —recogidas, u otra carga de una orden repartida— van ANTES de su entrega, SIN flechas; solo con secuencia", () => {
+    // El ORDEN de las filas lo decide `filasDelViaje` (probada en lectura-de-ruta.test.ts): aquí, que la tabla pinta ESO y nada más.
+    const i = gestor.indexOf("{filasDelViaje(sequenced ? lectura : null, batch, ti === trips.length - 1).map((f) => {");
     expect(i).toBeGreaterThanOrEqual(0);
-    const fila = gestor.slice(i, gestor.indexOf("{batch.map((d, bi) => {", i));
+    const z = gestor.indexOf("const d = f.orden, bi = f.indice;", i);
+    expect(z).toBeGreaterThan(i);
+    const fila = gestor.slice(i, z);
+    expect(fila).toContain('if (f.clase === "informa") { const p = f.fila; return (');
+    expect(gestor).not.toMatch(/lectura\.previas\.get|batch\.map\(\(d, bi\)/);            // nadie las junta en cabeza del viaje por su cuenta
     expect(fila).toContain('{p.etiquetas.join("·")}');
     expect(fila).toContain("nombraLaOrden(deliveries, id, lang === \"es\")");
     expect(fila).toContain("pallets a bordo");
     expect(fila).not.toMatch(/moveStop|moveTrip|onClick|↑|↓/);
   });
-  it("el mapa: las entregas pasan de «1, 2, 3» a «D1, D2…», y cada tienda donde la ruta recoge lleva su «P1·P2» del color del chofer", () => {
+  it("si la ruta cambió tras publicar, la tabla LO DICE, una vez por ruta", () => {
+    expect(gestor).toContain("{sequenced && ti === 0 && lectura.cambioTrasPublicar && (");
+    expect(gestor).toContain("Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.");
+  });
+  it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color del chofer — con la misma lectura que la tabla", () => {
     expect(gestor).toContain("const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;");
-    expect(gestor).toContain("const pd = secuenciaPD(buildTrips(list, capacityFor(driverOf(laneKey))).map(ordenesDeRuta));");
+    expect(gestor).toContain("const lectura = lecturaDeLaRuta(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver));");
     expect(gestor).toContain('badge: p.etiquetas.join("·"),');
     expect(gestor).toContain("color: colorFor(list[0].assigned_driver),");
-    // Una ruta sin secuencia todavía no tiene etiquetas que enseñar.
     expect(gestor).toContain("if (!list.some((d) => d.route_seq != null)) continue;");
+    expect(gestor).toContain("depotCoords, lanes, rutasPublicadas]);");                 // el plan llega después: el mapa se recalcula
+  });
+  it("el plan publicado se lee UNA vez por fecha, y sin UNA fecha —«todas», pendientes— no hay plan con el que comparar", () => {
+    expect(gestor).toContain("const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date, publicaciones);");
+    expect(gestor).toContain("rutasPublicadas?.find((r) => r.chofer === chofer)?.paradas ?? null;");
+    const hook = leer("src/lib/route-plan/usePlanPublicado.ts");
+    expect(hook).toContain("fetch(`/api/route-plan?date=${encodeURIComponent(date)}&status=published`)");
+    expect(hook).toContain("fetch(`/api/route-plan/mine?date=${encodeURIComponent(date)}`)");
+    expect(hook.split("}, [date]);").length - 1).toBe(1);                                    // el chofer: al volver a entrar
+  });
+  it("recién PUBLICADO en la misma página, el Gestor relee el plan: publicar dispara lo que el hook tiene de dependencia", () => {
+    const hook = leer("src/lib/route-plan/usePlanPublicado.ts"), panel = leer("src/components/PlanDelDia.tsx");
+    expect(hook).toContain("export function usePlanPublicadoDelGestor(date: string | null, publicaciones: number)");
+    expect(hook.split("}, [date, publicaciones]);").length - 1).toBe(1);
+    expect(gestor).toContain("const [publicaciones, setPublicaciones] = useState(0);");
+    expect(gestor).toContain("<PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />");
+    // …y el panel lo llama SOLO en la rama de éxito de publicar, una vez.
+    expect(panel.split("onPublicado?.()").length - 1).toBe(1);
+    const exito = panel.indexOf("setPublicado({ escritas:"), llamada = panel.indexOf("onPublicado?.();"), fin = panel.indexOf("notify(t(\"Route published\"");
+    expect(exito).toBeGreaterThanOrEqual(0);
+    expect(llamada).toBeGreaterThan(exito);
+    expect(fin).toBeGreaterThan(llamada);
+    expect(hook).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(|method:/);
   });
   it("nada de esto escribe: ni `route_seq`, ni `load_no`, ni una orden", () => {
-    for (const trozo of [gestor.slice(gestor.indexOf("const dDeTodas"), gestor.indexOf("const badge = d.route_seq")), gestor.slice(gestor.indexOf("{sequenced && pd.filter"), gestor.indexOf("{batch.map((d, bi) => {", gestor.indexOf("{sequenced && pd.filter")))]) {
+    const tabla = gestor.slice(gestor.indexOf("{sequenced && ti === 0 && lectura.cambioTrasPublicar"), gestor.indexOf("const d = f.orden, bi = f.indice;"));
+    for (const trozo of [gestor.slice(gestor.indexOf("const dDeTodas"), gestor.indexOf("const badge = d.route_seq")), tabla]) {
       expect(trozo.length).toBeGreaterThan(50);
       expect(trozo).not.toMatch(/updateDelivery|route_seq:|load_no:|\.update\(|setStage/);
     }
   });
-  it("«Mi ruta» del chofer lo lee igual: recogidas por tienda que informan y no se pulsan, y entregas con su D", () => {
-    expect(miRuta).toContain("const pd = useMemo(() => secuenciaPD(trips.map(ordenesDeRuta)), [trips]);");
+  it("«Mi ruta» del chofer: UNA lectura del plan, compartida por la tarjeta y la lista, para que las dos digan lo mismo", () => {
+    expect(miRuta).toContain("const planPublicado = usePlanPublicadoDelChofer(todayISO());");
+    expect(miRuta).toContain("lecturaDeLaRuta(trips, verAtrasadas ? null : planPublicado?.paradas ?? null)");
+    expect(miRuta).toContain("<MiPlanPublicado plan={planPublicado}");
     expect(miRuta).toContain("const n = dDe.get(d.id) ?? String(startIdx + bi + 1);");
     expect(miRuta).toContain("badge: dDe.get(d.id) ?? String(i + 1),");
-    const i = miRuta.indexOf('{pd.filter((p) => p.tipo === "P" && p.viaje === ti + 1).map((p) => (');
+    expect(leer("src/components/MiPlanPublicado.tsx")).not.toMatch(/fetch\(|useEffect/);           // la tarjeta ya no pide nada
+    const i = miRuta.indexOf("{filasDelViaje(lectura, batch, ti === trips.length - 1).map((f) => {");
     expect(i).toBeGreaterThanOrEqual(0);
-    expect(miRuta.slice(i, miRuta.indexOf("{batch.map((d, bi) => {", i))).not.toMatch(/onClick|<button/);
+    const z = miRuta.indexOf("const d = f.orden, bi = f.indice;", i);
+    expect(z).toBeGreaterThan(i);
+    expect(miRuta.slice(i, z)).not.toMatch(/onClick|<button/);
+    expect(miRuta).not.toMatch(/lectura\.previas\.get|batch\.map\(\(d, bi\)/);
   });
   it("«Plan del día» dice lo que hace y lo que da —con P1, P2… D1, D2… dentro—; sin plan, el botón es el primario y dice cuántas órdenes hay", () => {
     expect(panel).toContain('t("Build today\'s routes automatically", "Armar las rutas del día automáticamente")');

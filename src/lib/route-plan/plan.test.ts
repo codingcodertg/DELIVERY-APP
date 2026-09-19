@@ -250,7 +250,9 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(get.length).toBeGreaterThan(100);
     expect(get).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(/);
     expect(get).not.toMatch(/admin|createAdminClient|fetch\(/);
-    expect(plano(get)).toContain('.eq("plan_date", fecha).in("status", ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle()');
+    expect(plano(get)).toContain('.eq("plan_date", fecha).in("status", soloPublicado ? ["published"] : ["draft", "published"]).neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle()');
+    // `?status=published` (D-335): el PUBLICADO aunque haya un borrador más nuevo encima. Solo ese valor lo activa.
+    expect(plano(get)).toContain('const soloPublicado = new URL(req.url).searchParams.get("status") === "published";');
     expect(plano(get)).toContain('if (!fila) return NextResponse.json({ ok: true, plan: null });');
     // No se baja la foto entera (lleva la matriz): solo la lista de órdenes, para saber cuál es de builder.
     expect(get).toContain("ordenes:input->entrada->ordenes");
@@ -365,7 +367,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("el panel sale solo para admin y logística y con una fecha; no decide nada; y el push va con el id que devuelve publicar", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
-    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} />}');
+    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}');
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);
     expect(plano(panel)).toContain('body: JSON.stringify({ notification_id: a.notification_id })');
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");
