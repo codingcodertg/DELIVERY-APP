@@ -23674,7 +23674,8 @@ sobra. Sus otras seis quejas siguen enteras.
 ### La consecuencia, sin adornos
 
 **Desaparece el único punto donde alguien que no es ventas revisaba la tarifa antes de que la orden
-saliera.** Eso es exactamente lo que D-143 y D-146 vinieron a crear, y se acepta a sabiendas.
+saliera.** Eso es exactamente lo que D-143 y D-146 vinieron a crear, y se acepta a sabiendas —y
+ahora, con el número delante: esa revisión cambiaba la tarifa **una de cada dos veces** (abajo).
 
 Lo que queda vigilando, y no se toca:
 
@@ -23701,17 +23702,36 @@ después.
 - **`ChoferYPallets` estaba en tres diálogos** —tarifa, listo y recoger— y ahora está en dos. La
   prueba que contaba tres se actualiza diciendo por qué, no se borra.
 
-### Cuántas veces sirvió
+### Cuántas veces sirvió: 25 de 46. Sirvió.
 
-**Está sin medir mientras se escribe esto, y esa es la mitad incómoda de la decisión.** La huella
-existe: el diálogo escribía en el evento de etapa una nota distinta según lo que pasara —«Tarifa
-corregida a $X (era $Y)», «Tarifa confirmada $X», «Se empezó sin tarifa de entrega cobrada»—, en los
-dos idiomas. La consulta de **solo lectura** que las cuenta, con su denominador —cuántos pasos a
-preparación hubo— y un control de que no cuenta de menos, se le pasó al orquestador, que es quien
-tiene acceso a la base. Una rama no la toca.
+Medido en producción el **2026-09-19**, en solo lectura, sobre `public.order_events` —el diálogo
+escribía en el evento de etapa una nota distinta según lo que pasara, y esa es su única huella—. Lo
+corrió el orquestador; una rama no toca la base.
 
-Cuando la corra, el número va aquí con su fecha. Sin él, esta entrada no puede decir si se está
-quitando algo que atrapaba errores todas las semanas o algo que nadie usó nunca.
+| | |
+|---|---|
+| **Tarifa corregida** | **25** |
+| Tarifa confirmada (estaba bien) | 19 |
+| «Sin tarifa — continuar igual» (D-287) | 2 |
+| **Total de pasos por el diálogo** | **46**, del 2026-09-01 al 2026-09-19 |
+| Pasos a `fulfilling` en total | 104 desde el 2026-07-24 (los otros 58 son anteriores al diálogo o de otras vías) |
+
+**En 25 de las 46 veces —el 54 %— el almacén cambió la tarifa que había puesto ventas.** El control
+de la consulta —notas de `fulfilling` que hablen de tarifa y no encajen en el patrón— dio **cero**,
+así que no está contando de menos.
+
+**Esto no es un trámite que nadie usaba: es el número que más argumenta EN CONTRA de este cambio**, y
+va aquí y no en una nota al pie. Lo que se quita atrapaba un error de tarifa una de cada dos veces
+que alguien lo miró. El dueño lo quita sabiéndolo —la petición es suya y es posterior a que estos 25
+ocurrieran—, y lo que queda para cazar esos casos es la 🚩 SIN TARIFA, «Requiere atención» y lo que
+contabilidad revise después de facturar. Ninguna de las tres para la orden.
+
+**Lo que el número NO dice**, y conviene no estirarlo:
+
+- **No separa las órdenes de entrenamiento** (`is_training`). Alguna de las 46 puede ser una prueba.
+- «Corregida» significa *distinta de la que había*, no *mejor*: la consulta cuenta cambios, no
+  aciertos. Una corrección a peor cuenta igual.
+- El periodo es de 19 días, con el diálogo puesto en su sitio definitivo desde D-146 (2026-08-31).
 
 ### Medido, rompiendo cada pieza
 
@@ -23741,7 +23761,10 @@ citaban texto que un mutante podía dejar intacto y muerto:
 
 - **Nadie lo ha abierto en un navegador.** Que el botón mueva la etapa se comprueba leyendo el código
   y rompiéndolo, no pulsándolo.
-- **Cuántas veces sirvió el diálogo**, arriba: pendiente de que el orquestador corra la consulta.
+- **Las 46 veces que se usó el diálogo no están separadas por modo entrenamiento** (`is_training`):
+  alguna puede ser una prueba y no una orden real. La consulta no lo distinguía y no se rehízo.
+- **Las mediciones de producción son del orquestador, no mías.** Yo escribí la consulta; él la corrió.
+  Una rama no toca la base.
 - **No se ha mirado si alguien fuera de la app dependía de las notas «Tarifa confirmada/corregida»**
   —un reporte, una exportación—. Los eventos viejos **no se tocan**: siguen ahí con su texto; lo que
   deja de haber es notas nuevas.
