@@ -205,7 +205,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 
   it("y la tarjeta está en los DOS diálogos que le quedan al almacén: listo y recoger", () => {
-    // Eran tres. El de la tarifa desapareció con D-NEXT —el dueño se lo quitó al almacén—, así
+    // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén—, así
     // que la tarjeta se queda en los dos que siguen preguntando algo.
     expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(2);
   });
@@ -219,14 +219,14 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 });
 
-describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-NEXT", () => {
+describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-340", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   /**
    * Esta pareja medía la **salida** que D-287 abrió en el diálogo de tarifa: «Sin tarifa —
    * continuar igual», para que almacén no se quedara parado cuando ventas no había cobrado.
    *
-   * Con D-NEXT no hay diálogo del que salir: el dueño le quitó al almacén la confirmación entera
+   * Con D-340 no hay diálogo del que salir: el dueño le quitó al almacén la confirmación entera
    * (*«quítale el bloqueo a warehouse con lo de la tarifa»*), así que lo que D-287 arreglaba ya no
    * puede volver a pasar por la puerta de delante. **No se borran: se dan la vuelta**, porque lo
    * que hay que impedir ahora es que el bloqueo reaparezca.

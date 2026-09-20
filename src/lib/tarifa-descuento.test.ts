@@ -161,7 +161,7 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
 
   it("y ya no queda NINGÚN sitio que lo esconda por coincidir con la lista", () => {
     // Esta prueba fijaba el diálogo de tarifa del almacén, que era el único sitio con la condición
-    // «enséñalo solo si es otro número». **Ese diálogo desapareció con D-NEXT** —el dueño se lo
+    // «enséñalo solo si es otro número». **Ese diálogo desapareció con D-340** —el dueño se lo
     // quitó al almacén—, y con él la condición: hoy no existe en toda la ficha.
     //
     // Lo que D-317 defiende sigue defendido, y más fuerte: antes se comprobaba que esa condición
