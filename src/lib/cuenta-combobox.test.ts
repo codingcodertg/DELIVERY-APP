@@ -72,7 +72,8 @@ describe("cuándo se avisa al formulario", () => {
 describe("las sugerencias", () => {
   it("son el mismo filtro de D-299, y con el campo vacío salen todas", () => {
     expect(sugerenciasPara(CUENTAS, "elite")).toEqual(cuentasQueCoinciden(CUENTAS, "elite"));
-    expect(sugerenciasPara(CUENTAS, "")).toEqual(CUENTAS);
+    // D-337 afina D-305: sin haber tecleado no se enseña la lista de cuentas.
+    expect(sugerenciasPara(CUENTAS, "")).toEqual([]);
   });
 
   it("y la cuenta ya puesta no desaparece aunque no coincida", () => {

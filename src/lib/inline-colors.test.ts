@@ -149,7 +149,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/components/MapLegend.tsx": 1,
     "src/components/NotificationBell.tsx": 1,
     "src/components/OfflineBanner.tsx": 1,
-    "src/components/OrderModal.tsx": 10,
+    "src/components/OrderModal.tsx": 9,
     "src/components/OrdersTable.tsx": 5,
     // 1 desde D-234: el blanco del texto sobre el azul del boton de reintentar. Todo lo
     // demas de esa pantalla usa `var(--token, #hex)`, que respeta la paleta del modulo
@@ -211,11 +211,12 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     }
   });
 
-  it("el total es 76, y de esos 62 son el blanco sobre color", () => {
+  it("el total es 75, y de esos 61 son el blanco sobre color", () => {
     // El número entero, para que un cambio que reparta colores entre ficheros sin subir
     // ninguno por encima de su techo no pase desapercibido.
     // Era 80 y 65 hasta D-274: −2 blancos de la Cuenta, −2 blancos y −1 translúcido de la barra,
     // +1 blanco de la leyenda del mapa. Recontado con esta misma prueba.
+    // 76 y 62 hasta D-337: −1 blanco, el de la lista de facturas ajenas de «Misma factura», que ya no existe.
     let total = 0;
     let blancos = 0;
     for (const ruta of ficherosEntregas) {
@@ -223,8 +224,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       total += h.length;
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
-    expect(total).toBe(76);
-    expect(blancos).toBe(62);
+    expect(total).toBe(75);
+    expect(blancos).toBe(61);
   });
 });
 

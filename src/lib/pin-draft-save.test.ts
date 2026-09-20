@@ -165,7 +165,9 @@ describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
   });
   it("cada vía declara su procedencia", () => {
     expect(src).toMatch(/setPinDraftSource\("manual"\);\s+\/\/ clic derecho/);          // dropPin
-    expect(src).toMatch(/setPinDraftSource\("geocoded"\); setShowPinPicker\(true\);/);  // lookupAddress
+    // «Buscar dirección en el mapa» se quitó (D-337): la ficha ya no PONE «geocoded» en un borrador; solo lo hereda del
+    // pedido, que lo trae del geocodificado al guardar. La regla de `pinParaGuardar` para esa procedencia no cambia.
+    expect(src).not.toMatch(/setPinDraftSource\("geocoded"\)|lookupAddress/);
     // Abrir el selector hereda la del pedido, en los DOS mapas.
     // Sin `as`: `Delivery.delivery_pin_source` ya es esa unión, y un cast de más ocultaría mañana
     // un cambio de tipo.

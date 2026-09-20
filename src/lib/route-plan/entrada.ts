@@ -122,7 +122,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       entrada: d.input_date ? `${d.input_date} ${(d.input_time ?? "").padStart(4, "0")}` : null,
       origen, destino, pallets: Number.isFinite(pallets) && pallets > 0 ? pallets : 0,
       ventana: parseWindow(d.delivery_windows), estrecha: esVentanaDura(d.delivery_windows, settings),
-      builder: tipoDeClienteDeLaOrden(d, reglas, settings.accounts) === "builder",
+      builder: tipoDeClienteDeLaOrden(d, reglas) === "builder",
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
       choferFijado,
     });

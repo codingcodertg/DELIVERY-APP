@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  TIPOS_DE_CLIENTE, esTipoDeCliente, laBaseTieneCustomerType, parcheDeTipoDeCliente, tipoDeClienteDeLaOrden, tipoDeClientePorDefecto,
+  CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, TIPOS_DE_CLIENTE, esCuentaDeMostrador, esTipoDeCliente, laBaseTieneCustomerType, parcheDeTipoDeCliente, tipoDeClienteDeLaOrden, tipoDeClientePorDefecto,
 } from "./customer-type";
 import {
   CAPACIDAD_POR_DEFECTO, PESOS_DE_RUTA_POR_DEFECTO, TOPE_DE_RETRASO_POR_DEFECTO_MIN, TURNO_POR_DEFECTO, VENTANAS_DURAS_POR_DEFECTO,
@@ -12,7 +12,7 @@ import {
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
 import { blankDelivery } from "./blank-delivery";
 import type { OrderTypeRules } from "./required";
-import type { AccountRecord, DriverSettings, NamedLocation } from "./types";
+import type { DriverSettings, NamedLocation } from "./types";
 
 /**
  * Motor de rutas, incremento 1: el modelo (D-316). Chofer, tipo de cliente y ajustes.
@@ -25,11 +25,6 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 const ejecutable = (sql: string) => plano(sql.split("\n").map((l) => l.replace(/--.*$/, "")).join("\n"));
 
 const reglas = { ACliente: { storeToStore: false }, EntreTiendas: { storeToStore: true } } as OrderTypeRules;
-const cuentas: AccountRecord[] = [
-  { name: "Constructora Uno", contact: "", phone: "", customer_type: "builder" },
-  { name: "Ferretería Dos", contact: "", phone: "", customer_type: "counter_sale" },
-  { name: "Sin Marcar", contact: "", phone: "" },
-];
 
 describe("builder o mostrador", () => {
   it("solo existe en las órdenes que van a un cliente", () => {
@@ -39,31 +34,30 @@ describe("builder o mostrador", () => {
     expect(esTipoDeCliente("  ", reglas)).toBe(false);
   });
 
-  it("por defecto: Builder si la cuenta guardada lo es; Mostrador en cualquier otro caso, también sin cuenta", () => {
-    expect(tipoDeClientePorDefecto("Constructora Uno", cuentas)).toBe("builder");
-    expect(tipoDeClientePorDefecto("  constructora uno ", cuentas)).toBe("builder");
-    expect(tipoDeClientePorDefecto("Ferretería Dos", cuentas)).toBe("counter_sale");
-    expect(tipoDeClientePorDefecto("Sin Marcar", cuentas)).toBe("counter_sale");
-    expect(tipoDeClientePorDefecto("No Guardada", cuentas)).toBe("counter_sale");
-    expect(tipoDeClientePorDefecto(null, cuentas)).toBe("counter_sale");
-    expect(tipoDeClientePorDefecto("", null)).toBe("counter_sale");
+  it("por defecto (D-337): Mostrador SOLO con la opción fija de mostrador; Builder todo lo demás, también sin cuenta", () => {
+    expect(tipoDeClientePorDefecto(CUENTA_DE_MOSTRADOR)).toBe("counter_sale");
+    expect(tipoDeClientePorDefecto(CUENTA_DE_MOSTRADOR_EN)).toBe("counter_sale");
+    expect(tipoDeClientePorDefecto(`  ${CUENTA_DE_MOSTRADOR.toUpperCase().replace(" ", "   ")} `)).toBe("counter_sale");
+    expect(tipoDeClientePorDefecto("Constructora Uno")).toBe("builder");
+    expect(tipoDeClientePorDefecto(`${CUENTA_DE_MOSTRADOR} Uno`)).toBe("builder");         // empezar igual no es serlo
+    expect(tipoDeClientePorDefecto(null)).toBe("builder");
+    expect(tipoDeClientePorDefecto("")).toBe("builder");
+    expect([esCuentaDeMostrador(null), esCuentaDeMostrador(""), esCuentaDeMostrador(CUENTA_DE_MOSTRADOR)]).toEqual([false, false, true]);
   });
 
-  it("lo que alguien eligió en la orden manda sobre la cuenta, en los dos sentidos", () => {
-    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: "Constructora Uno", customer_type: "counter_sale" }, reglas, cuentas)).toBe("counter_sale");
-    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: null, customer_type: "builder" }, reglas, cuentas)).toBe("builder");
-    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: "Constructora Uno" }, reglas, cuentas)).toBe("builder");
-    // Un valor que no es ninguno de los dos no se guarda: cae al de la cuenta.
-    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: null, customer_type: "vip" as never }, reglas, cuentas)).toBe("counter_sale");
+  it("el tipo que la orden YA tiene guardado se respeta; sin él, decide la cuenta", () => {
+    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: "Constructora Uno", customer_type: "counter_sale" }, reglas)).toBe("counter_sale");
+    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: CUENTA_DE_MOSTRADOR, customer_type: "builder" }, reglas)).toBe("builder");
+    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: CUENTA_DE_MOSTRADOR }, reglas)).toBe("counter_sale");
+    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: null, customer_type: null }, reglas)).toBe("builder");
+    // Un valor que no es ninguno de los dos no cuenta: cae al de la cuenta.
+    expect(tipoDeClienteDeLaOrden({ order_type: "ACliente", account: CUENTA_DE_MOSTRADOR, customer_type: "vip" as never }, reglas)).toBe("counter_sale");
   });
 
   it("un movimiento entre tiendas no es ni lo uno ni lo otro, aunque traiga una marca", () => {
-    expect(tipoDeClienteDeLaOrden({ order_type: "EntreTiendas", account: "Constructora Uno", customer_type: "builder" }, reglas, cuentas)).toBeNull();
+    expect(tipoDeClienteDeLaOrden({ order_type: "EntreTiendas", account: "Constructora Uno", customer_type: "builder" }, reglas)).toBeNull();
   });
 
-  it("el selector ofrece los dos, con Mostrador primero", () => {
-    expect(TIPOS_DE_CLIENTE.map((o) => o.key)).toEqual(["counter_sale", "builder"]);
-  });
 });
 
 describe("la red: no se manda customer_type a una base que todavía no lo tiene", () => {
@@ -77,31 +71,35 @@ describe("la red: no se manda customer_type a una base que todavía no lo tiene"
   });
 
   it("contra la base vieja el parche va VACÍO: ni la clave, para que el guardado de la orden no falle", () => {
-    expect(parcheDeTipoDeCliente({ order_type: "ACliente", account: "Constructora Uno" }, reglas, cuentas, vieja)).toEqual({});
-    expect("customer_type" in parcheDeTipoDeCliente({ order_type: "ACliente" }, reglas, cuentas, [])).toBe(false);
+    expect(parcheDeTipoDeCliente({ order_type: "ACliente", account: "Constructora Uno" }, reglas, vieja)).toEqual({});
+    expect("customer_type" in parcheDeTipoDeCliente({ order_type: "ACliente" }, reglas, [])).toBe(false);
   });
 
   it("contra la nueva lleva el tipo, y null en lo que no va a un cliente", () => {
-    expect(parcheDeTipoDeCliente({ order_type: "ACliente", account: "Constructora Uno" }, reglas, cuentas, nueva)).toEqual({ customer_type: "builder" });
-    expect(parcheDeTipoDeCliente({ order_type: "EntreTiendas", customer_type: "builder" }, reglas, cuentas, nueva)).toEqual({ customer_type: null });
+    expect(parcheDeTipoDeCliente({ order_type: "ACliente", account: "Constructora Uno" }, reglas, nueva)).toEqual({ customer_type: "builder" });
+    expect(parcheDeTipoDeCliente({ order_type: "EntreTiendas", customer_type: "builder" }, reglas, nueva)).toEqual({ customer_type: null });
   });
 
   it("una orden en blanco (modo enseñanza) trae la clave, a null", () => {
     expect(blankDelivery()).toHaveProperty("customer_type", null);
   });
 
-  it("el formulario guarda con el parche y pinta el selector con las funciones, solo en tipos de cliente", () => {
+  it("el formulario guarda con el parche; ya NO hay selector: la cuenta decide el tipo, y lo cambia con ella (D-337)", () => {
     const f = plano(sinComentarios(leer("src/components/OrderModal.tsx")));
-    expect(f).toContain("...parcheDeTipoDeCliente(d, settings.order_type_rules, settings.accounts, deliveries),");
-    expect(f).toContain("{esTipoDeCliente(d.order_type, settings.order_type_rules) && (");
-    expect(f).toContain('value={tipoDeClienteDeLaOrden(d, settings.order_type_rules, settings.accounts) ?? "counter_sale"}');
-    expect(f).toContain('onChange={(e) => set("customer_type", e.target.value as CustomerType)}');
+    expect(f).toContain("...parcheDeTipoDeCliente(d, settings.order_type_rules, deliveries),");
+    expect(f).toContain("customer_type: tipoDeClientePorDefecto(v),");
+    expect(f).not.toMatch(/Tipo de cliente|TIPOS_DE_CLIENTE|set\("customer_type"/);
   });
 
-  it("en Datos, la cuenta se marca como builder; una de sucursal no lleva tipo", () => {
+  it("en Datos la cuenta ya no se marca como builder, y «Venta al mostrador» no se puede guardar como cuenta", () => {
     const d = plano(sinComentarios(leer("src/app/(app)/data/page.tsx")));
-    expect(d).toContain('builder: a.customer_type === "builder"');
-    expect(d).toContain('customer_type: r.intertienda ? undefined : (r.builder ? "builder" as const : "counter_sale" as const),');
+    expect(d).not.toMatch(/builder/i);
+    expect(d).toContain("customer_type: undefined,");
+    expect(d).toContain("if (!r.name || seen.has(k) || esCuentaDeMostrador(r.name)) return false;");
+    // …y no en silencio: el aviso de guardado lo dice.
+    expect(d).toContain("const fija = rows.some((r) => esCuentaDeMostrador(r.name));");
+    expect(d).toContain("save({ accounts }, fija ? t(");
+    expect(d).toContain("ya es una opción fija del campo Cuenta; no se guarda como cuenta.");
   });
 });
 
