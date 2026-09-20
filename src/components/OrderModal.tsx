@@ -136,7 +136,7 @@ export function OrderModal({
   const [matFactura, setMatFactura] = useState("");
   const [matPallets, setMatPallets] = useState("");
   // Aquí vivía la tarifa que el almacén confirmaba al agarrar la orden (D-143, D-146). Fuera
-  // desde D-NEXT, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
+  // desde D-340, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
   // Almacén ya no confirma ni corrige la tarifa; «Comenzar preparación» mueve la etapa y ya.
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
@@ -757,7 +757,7 @@ export function OrderModal({
 
   // Aquí vivían `startSinTarifa` (D-287) y `confirmStart` (D-146): el almacén confirmaba o
   // corregía la tarifa al agarrar la orden, y de ahí salía el cambio de etapa. Fuera desde
-  // D-NEXT. «Comenzar preparación» ahora va por `onMove("fulfilling")`, como cualquier otro
+  // D-340. «Comenzar preparación» ahora va por `onMove("fulfilling")`, como cualquier otro
   // paso de etapa, y **nadie que no sea ventas escribe ya `delivery_fee`**.
 
   /**
@@ -2835,7 +2835,7 @@ function StageActions({
 
   // Warehouse
   if (canFulfill(me)) {
-    // Agarrar la orden mueve la etapa y ya (D-NEXT). Entre D-146 y hoy, este botón abría el
+    // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
     // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
     // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
     if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={() => onMove("fulfilling")} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);

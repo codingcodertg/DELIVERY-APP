@@ -100,7 +100,7 @@ const BILLABLE: Delivery["stage"][] = ["pending", "approved", "fulfilling", "rea
  * without a word. A wrong number is at least a number somebody typed; a blank
  * one usually means nobody looked.
  *
- * **Ese diálogo ya no existe (D-NEXT): el dueño se lo quitó al almacén.** Con él se
+ * **Ese diálogo ya no existe (D-340): el dueño se lo quitó al almacén.** Con él se
  * fue el único sitio donde alguien que no es ventas revisaba la tarifa antes de que
  * la orden saliera, así que esto —y la 🚩 de la tabla— es lo que queda avisando. No
  * cambia lo que hace esta función; cambia cuánto pesa.

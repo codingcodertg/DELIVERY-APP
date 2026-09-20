@@ -6582,7 +6582,7 @@ distintas y la pantalla debe distinguirlas.
 
 ## D-143 · El almacén confirma también la tarifa, no solo las pallets
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-19). El dueño la retira: *«quítale el bloqueo a warehouse con
+> **⚠ Reemplazada por D-340** (2026-09-19). El dueño la retira: *«quítale el bloqueo a warehouse con
 > lo de la tarifa»*. El almacén ya no confirma ni corrige la tarifa — «Comenzar preparación» mueve la
 > etapa y ya—. **La confirmación de PALLETS de esta misma entrada se queda**: es lo único que sigue
 > preguntándose al marcar listo.
@@ -6744,7 +6744,7 @@ marcar. Se reutiliza el tramo que ya existe.
 
 ## D-146 · La tarifa se confirma al agarrar la orden, no al soltarla
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-19). El dueño quitó la confirmación entera, así que la
+> **⚠ Reemplazada por D-340** (2026-09-19). El dueño quitó la confirmación entera, así que la
 > pregunta que resolvía esta entrada —*¿en qué momento se confirma?*— deja de tener objeto: no se
 > confirma en ninguno. El diálogo, `confirmStart` y el estado que lo sostenía están fuera del código.
 > **El razonamiento de por qué el momento importaba no se toca**, y sigue valiendo el día que alguien
@@ -18613,7 +18613,7 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 
 ## D-287 · Almacén: siete quejas, y dos de ellas no eran lo que parecían
 
-> **⚠ Una de las siete quedó sin objeto el 2026-09-19, por D-NEXT.** La queja 4 —*«quiero comenzar a
+> **⚠ Una de las siete quedó sin objeto el 2026-09-19, por D-340.** La queja 4 —*«quiero comenzar a
 > preparar pero no cobraron delivery, así que no me permite avanzar»*— se resolvió aquí abriendo una
 > **salida** en el diálogo de tarifa: «Sin tarifa — continuar igual». El dueño quitó el diálogo
 > entero, así que ya no hay de dónde salir: el bloqueo que la queja describía no puede volver a
@@ -23638,9 +23638,9 @@ y la 125. Lo de «cuál es la vigente» pasa a fijarlo la prueba de la 138.
   sola factura. Es correcto y deliberado, pero conviene saberlo antes de que alguien lo reporte.
 - **Las mediciones de producción son del orquestador, no mías.** Una rama no toca la base.
 
-## D-NEXT · Al almacén se le quita la confirmación de tarifa: «Comenzar preparación» vuelve a mover la etapa
+## D-340 · Al almacén se le quita la confirmación de tarifa: «Comenzar preparación» vuelve a mover la etapa
 
-**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Fecha:** 2026-09-19 · **Versión:** Entregas 1.165.0, repo 1.229.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«quítale el bloqueo a warehouse con lo de la tarifa»*.
 
 ### Qué se quita
