@@ -53,7 +53,11 @@ export function lecturaDeLaRuta(viajes: readonly (readonly OrdenAsignada[])[], p
   const hayPlan = !!paradas && paradas.length > 0;
   if (hayPlan && sigueElPlan(paradas!, asignadas)) return delPlan(enOrden(paradas!), asignadas);
 
-  const pd = secuenciaPD(viajes.map(ordenesDeRuta));
+  // Una ruta ordenada A MEDIAS (D-336): las órdenes que aún no tienen puesto no gastan número. Si lo gastaran, la tabla
+  // —que les pinta «—»— saltaría de D1 a D3 y la fila de recogida nombraría un P2 que no está en ninguna parte. Si NINGUNA
+  // tiene puesto no hay nada que saltar: se numeran todas, que es como «Mi ruta» enseña una ruta que nadie ordenó.
+  const aMedias = asignadas.some((o) => o.route_seq != null);
+  const pd = secuenciaPD(viajes.map((v) => ordenesDeRuta(aMedias ? v.filter((o) => o.route_seq != null) : v)));
   const etiquetaDe = new Map<string, string>(), previas = new Map<string, FilaInformativa[]>();
   let pendientes: FilaInformativa[] = [];
   for (const p of pd) {

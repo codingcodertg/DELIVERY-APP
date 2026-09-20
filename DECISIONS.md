@@ -23201,3 +23201,36 @@ de las pruebas dejaba nada al final; ahora hay uno con la segunda carga de una o
   porque para ese nombre no hay plan.
 - El aviso sale en la tabla del Gestor. En «Mi ruta» el chofer no ve aviso: ve las etiquetas derivadas en su lista, y la tarjeta
   del plan sigue enseñando las del plan. Tras un cambio a mano las dos pueden discrepar; es lo primero que miraría.
+
+## D-336 · Una ruta ordenada a medias no gasta números en las órdenes que aún no tienen puesto
+
+**Fecha:** 2026-09-19 · **Estado:** Vigente · **Afina:** D-334, D-335
+
+### Qué fallaba
+
+La lectura derivada de una ruta (D-334) numeraba TODAS las órdenes asignadas al chofer, tuvieran o no `route_seq`. Pero la
+tabla del Gestor pinta «—» en la primera celda de una orden sin puesto. En una ruta ordenada a medias —unas órdenes con
+puesto y otras recién añadidas sin él— la tabla habría saltado de D1 a D3, y la fila de recogida habría nombrado un «P2»
+que no aparecía en ninguna entrega. Fallaba callado: nada rompe, solo se lee mal.
+
+Lo encontré al auditar lo publicado ese día, a petición del dueño. Medido en producción el 2026-09-19, solo lectura: de 8
+rutas (chofer + fecha) de los últimos 7 días, 6 con todas sus órdenes ordenadas, 2 sin ninguna, **0 a medias**. No le
+había pasado a nadie todavía.
+
+### Qué se decidió
+
+En `lecturaDeLaRuta`, rama derivada: si ALGUNA orden de la ruta tiene puesto, las que no lo tienen quedan fuera de la
+numeración y de las filas de recogida. Si NINGUNA lo tiene, se numeran todas como antes: es como «Mi ruta» enseña una ruta
+que nadie ordenó, y el Gestor ya no pinta etiquetas en ese caso.
+
+La rama «manda el plan» (D-335) no cambia: exige que todas las órdenes casen con el plan, y el plan les da puesto a todas.
+
+### Qué se descartó
+
+- **Filtrar siempre las órdenes sin puesto:** dejaría «Mi ruta» sin etiquetas en las rutas que nadie ordenó (2 de 8 esa semana).
+- **Filtrar dentro de `secuenciaPD`:** esa función no sabe de `route_seq`, solo recibe el orden; la decisión es de quien la llama.
+
+### Qué queda
+
+En «Mi ruta», la orden sin puesto de una ruta a medias se sigue viendo con su número de lista («3») junto a «D1, D2». No
+verificado en navegador.

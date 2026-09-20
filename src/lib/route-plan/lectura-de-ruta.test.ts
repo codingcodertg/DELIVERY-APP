@@ -203,3 +203,17 @@ describe("el refactor no cambió lo que publicar escribe", () => {
     expect(comparadas).toBeGreaterThan(15);                       // que la igualdad no sea la de dos listas vacías
   });
 });
+
+// D-336: una ruta ordenada a medias. Medido el 2026-09-19: 0 de 8 rutas de la semana estaban así; es un hueco que fallaba callado.
+describe("una ruta ordenada a medias", () => {
+  const o = (id: string, route_seq: number | null): OrdenAsignada => ({ id, store: "Tienda A", est_pallets: 1, load_no: 1, route_seq });
+  it("la orden SIN puesto no gasta número: D1, D2 seguidos, y no aparece en la recogida", () => {
+    const l = lecturaDeLaRuta([[o("a", 0), o("suelta", null), o("b", 1)]], null);
+    expect([...l.etiquetaDe]).toEqual([["a", "D1"], ["b", "D2"]]);
+    expect(l.previas.get("a")?.[0]).toMatchObject({ etiquetas: ["P1", "P2"], ordenes: ["a", "b"], aBordo: 2 });
+    expect(l.previas.has("suelta")).toBe(false);
+  });
+  it("si NINGUNA tiene puesto se numeran todas, como las enseña «Mi ruta»", () => {
+    expect([...lecturaDeLaRuta([[o("a", null), o("b", null)]], null).etiquetaDe.values()]).toEqual(["D1", "D2"]);
+  });
+});
