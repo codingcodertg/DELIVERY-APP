@@ -23279,16 +23279,23 @@ que pintan los dos mapas; vive en el código, no en Ajustes. `src/lib/busqueda-d
 
 - **Texas es un límite; la zona verde, un sesgo** — hay entregas fuera de zona, con su tarifa, y tienen que poder buscarse.
 - La caja de la zona **se calcula del polígono**: si el contorno se mueve, la búsqueda lo sigue.
-- Places (New): `locationBias` con esa caja + filtro de Texas sobre el TEXTO de la sugerencia, que es lo único que Places da,
-  anclado al final («…, TX 78501, USA»): «Texarkana, AR» o una calle «TX-107» de otro estado no cuelan. Geocoding:
-  `components=administrative_area:TX` + `bounds`, y además filtro por el componente de estado. Mapbox: `bbox` de Texas +
-  `proximity` al centro de la zona, y filtro por la región `US-TX` del contexto. Nominatim: `viewbox` + `bounded=1` +
+- **Places (New), en dos pasos, los dos con `locationRestriction`:** primero la caja de la zona verde; y solo si vuelven menos de
+  `MINIMO_LOCALES` = 3 sugerencias de Texas, una segunda llamada con la caja de Texas. Se enseñan las locales primero y luego las
+  de Texas, sin repetir, con tope de 5. Lo que vuelve se filtra siempre por estado sobre el TEXTO, que es lo único que Places da,
+  anclado al final («…, TX 78501, USA»): la caja de Texas pisa estados vecinos y México, y «Texarkana, AR» o una calle «TX-107» de
+  otro estado no cuelan. Si la llamada local falla se intenta Texas igual. `sugerenciasDePlaces`, con la llamada inyectada.
+  **La primera versión de esta rama usaba `locationBias` y el orquestador lo midió con dos llamadas reales («100 Main St», la
+  caja calculada del polígono): contesta 200, pero de 5 sugerencias solo 1 era de Texas — con el filtro habría quedado UNA, peor
+  que antes para quien teclea. Con `locationRestriction` a la misma caja: 5 de 5 locales.** El formato medido es «…, La Feria,
+  TX, USA», que el filtro reconoce.
+- Geocoding: `components=administrative_area:TX` + `bounds`, y además filtro por el componente de estado. Mapbox: `bbox` de
+  Texas + `proximity` al centro de la zona, y filtro por la región `US-TX` del contexto. Nominatim: `viewbox` + `bounded=1` +
   `addressdetails=1`, y filtro por `ISO3166-2-lvl4`.
 - Cada proveedor filtra SU respuesta; si no queda nada se pasa al siguiente, que filtra igual. **Nunca sale una dirección de otro
   estado «por no dejarlo vacío».**
-- **No verificado con una llamada real** (una rama no gasta cuota): que Places no admita `locationBias` y `locationRestriction` a
-  la vez — por eso Texas es ahí un filtro y no un parámetro—, y la forma exacta de las respuestas. Las pruebas son sobre lo que se
-  pide y lo que se acepta, con respuestas inventadas. El orquestador lo mira con UNA llamada tras fusionar.
+- **Sin verificar con una llamada real:** las respuestas de Geocoding, Mapbox y Nominatim. Sus pruebas son sobre lo que se pide
+  y lo que se acepta, con respuestas inventadas. Places sí está medido (arriba), por el orquestador; desde la rama no se llamó a
+  nadie.
 - No se tocó `/api/geocode-point` (lo que ubica una orden al guardar): el dueño habló de la búsqueda.
 
 ### 4 · «Misma factura»: el número completo, y una lupa
@@ -23318,7 +23325,8 @@ obligaría a crear y marcar una cuenta el día del release, y hasta entonces tod
   builder. Casi todas están entregadas, y el motor solo mira las ruteables.
 - **Una consecuencia que hay que decir:** con casi todo builder, la prioridad de builders del motor (D-316) deja de distinguir
   entre ellos. Se vio en una prueba del motor cuya ruta cambiaba al cambiar el defecto; su escenario se fijó a mostrador.
-- En Datos no se puede guardar una cuenta con ese nombre: chocaría con la opción fija. La fila se descarta al guardar, sin aviso.
+- En Datos no se puede guardar una cuenta con ese nombre: chocaría con la opción fija. La fila se descarta al guardar **y el aviso de guardado lo dice**: descartar en
+  silencio es lo que luego parece un bug.
 
 ### 7 · Con mostrador, contacto y teléfono nacen vacíos
 
@@ -23340,7 +23348,9 @@ guardados de la cuenta — esto último no estaba en el encargo, era el mismo pr
 
 ### Mutantes
 
-48, leídos por nombre —qué prueba cae con cada uno—; caen los 48, cada uno con la prueba que lo nombra. Los que pidió el
+63 en dos tandas (48 + 15 de Places en dos pasos y el aviso de Datos), leídos por nombre —qué prueba cae con cada uno—; caen
+los 63, cada uno con la prueba que lo nombra. De la segunda: «siempre dos llamadas», «nunca la segunda», «Texas primero», «una
+llamada que falla tumba todo», «vuelve el sesgo». Los que pidió el
 orquestador: «mostrador se rellena de la última orden» y «sale el botón de guardar con mostrador» caen con su prueba; «la caja con
 números clavados» cae con la que comprueba que cada lado de la caja lo toca un vértice del polígono. Otros: media factura que
 casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido por prefijo, el tipo guardado que no se respeta,
@@ -23348,7 +23358,7 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 
 ### Lo que NO está
 
-- **Nada abierto en un navegador**, ni una llamada real a ningún proveedor de direcciones.
+- **Nada abierto en un navegador.** Desde la rama, ninguna llamada real a ningún proveedor de direcciones.
 - «First delivery in time window»: aparte, con propuesta.
 - El aviso de «orden creada» sigue diciendo «enviada a aprobación» cuando va a aprobación: el dueño habló del botón.
 

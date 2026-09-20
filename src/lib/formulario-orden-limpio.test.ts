@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LETRAS_PARA_SUGERIR, decisionAlConfirmar, sugerenciasPara } from "./account-combobox";
 import {
-  CAJA_DE_LA_ZONA, CAJA_DE_TEXAS, cajaDe, centroDe, cuerpoDePlaces, esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM, esTextoDeTexas,
-  urlDeGoogleGeocode, urlDeMapbox, urlDeOSM,
+  CAJA_DE_LA_ZONA, CAJA_DE_TEXAS, MINIMO_LOCALES, TOPE_DE_PLACES, cajaDe, centroDe, cuerpoDePlaces, esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM,
+  esTextoDeTexas, sugerenciasDePlaces, urlDeGoogleGeocode, urlDeMapbox, urlDeOSM,
 } from "./busqueda-de-direccion";
 import { ROLE_DEFAULT_COLUMNS } from "./constants";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "./cuenta-elegida";
@@ -141,11 +141,66 @@ describe("2 · el autocompletado busca en Texas, y antes en la zona verde", () =
     const z = CAJA_DE_LA_ZONA, t = CAJA_DE_TEXAS;
     expect(z.sur >= t.sur && z.norte <= t.norte && z.oeste >= t.oeste && z.este <= t.este).toBe(true);
   });
-  it("Places: sesgo por la zona verde (no restricción), solo EE. UU.", () => {
+  it("Places: RESTRICCIÓN a la caja que se le pase (el sesgo se midió y no bastaba), solo EE. UU.", () => {
     const z = CAJA_DE_LA_ZONA;
-    expect(cuerpoDePlaces("100 calle")).toEqual({
+    expect(cuerpoDePlaces("100 calle", z)).toEqual({
       input: "100 calle", includedRegionCodes: ["us"],
-      locationBias: { rectangle: { low: { latitude: z.sur, longitude: z.oeste }, high: { latitude: z.norte, longitude: z.este } } },
+      locationRestriction: { rectangle: { low: { latitude: z.sur, longitude: z.oeste }, high: { latitude: z.norte, longitude: z.este } } },
+    });
+    expect(JSON.stringify(cuerpoDePlaces("x", CAJA_DE_TEXAS))).toContain(`"latitude":${CAJA_DE_TEXAS.norte}`);
+  });
+
+  describe("Places en dos pasos: la zona verde, y Texas solo si lo local escasea", () => {
+    const calle = (n: number, ciudad: string, estado = "TX") => `${n} Calle Uno, ${ciudad}, ${estado}, USA`;
+    /** Una llamada fingida: contesta según la caja que le piden, y apunta cada petición. */
+    function finge(porCaja: { zona: string[] | Error; texas: string[] | Error }) {
+      const pedidas: ("zona" | "texas")[] = [];
+      const pide = async (cuerpo: object) => {
+        const norte = (cuerpo as { locationRestriction: { rectangle: { high: { latitude: number } } } }).locationRestriction.rectangle.high.latitude;
+        const cual = norte === CAJA_DE_LA_ZONA.norte ? "zona" : "texas";
+        expect(norte === CAJA_DE_LA_ZONA.norte || norte === CAJA_DE_TEXAS.norte).toBe(true);
+        pedidas.push(cual);
+        const r = porCaja[cual];
+        if (r instanceof Error) throw r;
+        return r;
+      };
+      return { pide, pedidas };
+    }
+    const LOCALES = [calle(1, "Pueblo A"), calle(2, "Pueblo B"), calle(3, "Pueblo C")];
+
+    it("con locales suficientes, UNA llamada, y a la zona", async () => {
+      expect(LOCALES.length).toBe(MINIMO_LOCALES);
+      const f = finge({ zona: LOCALES, texas: [calle(9, "Lejos")] });
+      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual(LOCALES);
+      expect(f.pedidas).toEqual(["zona"]);
+    });
+    it("con locales escasas, DOS: las locales primero, luego las de Texas, sin repetir", async () => {
+      const f = finge({ zona: LOCALES.slice(0, 2), texas: [calle(9, "Lejos"), LOCALES[1], calle(8, "Más Lejos")] });
+      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(9, "Lejos"), calle(8, "Más Lejos")]);
+      expect(f.pedidas).toEqual(["zona", "texas"]);
+    });
+    it("el tope vale en los dos caminos", async () => {
+      const muchas = [1, 2, 3, 4, 5, 6, 7].map((n) => calle(n, "Pueblo A"));
+      expect((await sugerenciasDePlaces("c", finge({ zona: muchas, texas: [] }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
+      expect((await sugerenciasDePlaces("c", finge({ zona: muchas.slice(0, 2), texas: muchas.slice(2) }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
+      expect(TOPE_DE_PLACES).toBe(5);
+    });
+    it("la caja de Texas pisa otros estados: lo que no es de Texas se filtra, venga de la llamada que venga", async () => {
+      const f = finge({ zona: [calle(1, "Pueblo A"), calle(4, "Al Otro Lado", "TAM")], texas: [calle(5, "Texarkana", "AR"), calle(6, "Lejos")] });
+      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([calle(1, "Pueblo A"), calle(6, "Lejos")]);
+    });
+    it("lo que NO es de Texas no cuenta para «suficientes»: tres locales con una de fuera siguen siendo escasas", async () => {
+      const f = finge({ zona: [LOCALES[0], LOCALES[1], calle(4, "Al Otro Lado", "TAM")], texas: [calle(6, "Lejos")] });
+      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(6, "Lejos")]);
+      expect(f.pedidas).toEqual(["zona", "texas"]);
+    });
+    it("si la llamada local FALLA se intenta Texas igual; y si fallan las dos, vacío — para que la ruta pase al siguiente proveedor", async () => {
+      const f = finge({ zona: new Error("caída"), texas: [calle(6, "Lejos")] });
+      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([calle(6, "Lejos")]);
+      expect(f.pedidas).toEqual(["zona", "texas"]);
+      const g = finge({ zona: LOCALES.slice(0, 1), texas: new Error("caída") });
+      expect(await sugerenciasDePlaces("calle", g.pide)).toEqual(LOCALES.slice(0, 1));
+      expect(await sugerenciasDePlaces("calle", finge({ zona: new Error("x"), texas: new Error("y") }).pide)).toEqual([]);
     });
   });
   it("Geocoding, Mapbox y Nominatim: Texas como límite; la zona como sesgo donde el proveedor lo admite", () => {
@@ -180,8 +235,9 @@ describe("2 · el autocompletado busca en Texas, y antes en la zona verde", () =
   });
   it("la ruta usa todo eso, y cada proveedor filtra SU respuesta: si no queda nada de Texas, no sale nada de otro estado", () => {
     const r = leer("src/app/api/geocode/route.ts");
-    expect(r).toContain("body: JSON.stringify(cuerpoDePlaces(q)),");
-    expect(r).toContain("!!t && esTextoDeTexas(t));");
+    expect(r).toContain("return sugerenciasDePlaces(q, async (cuerpo) => {");
+    expect(r).toContain("body: JSON.stringify(cuerpo),");
+    expect(r).not.toMatch(/locationBias|locationRestriction|cuerpoDePlaces/);              // qué se pide a Places lo decide la librería
     expect(r).toContain("fetch(urlDeGoogleGeocode(q, key))");
     expect(r).toContain("(data.results || []).filter(esDeTexasGoogle).map(");
     expect(r).toContain("fetch(urlDeMapbox(q, token))");

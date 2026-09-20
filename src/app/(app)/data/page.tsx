@@ -9,7 +9,7 @@ import { registroDeLugar } from "@/lib/named-location";
 import { nombresEnLinea, normalizaTienda, quienPierdeLaTienda } from "@/lib/visibilidad-tienda";
 import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
-import { esCuentaDeMostrador } from "@/lib/customer-type";
+import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
 
 // ============================================================
 // Data — the reusable reference lists behind the order form: pickup points,
@@ -135,7 +135,11 @@ function AccountsEditor({
       }))
       // «Venta al mostrador» es una opción fija del campo Cuenta, no una cuenta: guardada aquí chocaría con ella.
       .filter((r) => { const k = r.name.toLowerCase(); if (!r.name || seen.has(k) || esCuentaDeMostrador(r.name)) return false; seen.add(k); return true; });
-    save({ accounts }, t("Accounts saved", "Cuentas guardadas"));
+    // …y se DICE: una fila que desaparece sin más parece un bug.
+    const fija = rows.some((r) => esCuentaDeMostrador(r.name));
+    save({ accounts }, fija
+      ? t(`Accounts saved. "${CUENTA_DE_MOSTRADOR_EN}" is already a fixed option of the Account field; it isn't saved as an account.`, `Cuentas guardadas. «${CUENTA_DE_MOSTRADOR}» ya es una opción fija del campo Cuenta; no se guarda como cuenta.`)
+      : t("Accounts saved", "Cuentas guardadas"));
     setDirty(false);
   };
 

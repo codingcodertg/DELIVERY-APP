@@ -96,6 +96,10 @@ describe("la red: no se manda customer_type a una base que todavía no lo tiene"
     expect(d).not.toMatch(/builder/i);
     expect(d).toContain("customer_type: undefined,");
     expect(d).toContain("if (!r.name || seen.has(k) || esCuentaDeMostrador(r.name)) return false;");
+    // …y no en silencio: el aviso de guardado lo dice.
+    expect(d).toContain("const fija = rows.some((r) => esCuentaDeMostrador(r.name));");
+    expect(d).toContain("save({ accounts }, fija ? t(");
+    expect(d).toContain("ya es una opción fija del campo Cuenta; no se guarda como cuenta.");
   });
 });
 

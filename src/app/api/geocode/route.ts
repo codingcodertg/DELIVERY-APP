@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
-import { cuerpoDePlaces, esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM, esTextoDeTexas, urlDeGoogleGeocode, urlDeMapbox, urlDeOSM } from "@/lib/busqueda-de-direccion";
+import { esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM, sugerenciasDePlaces, urlDeGoogleGeocode, urlDeMapbox, urlDeOSM } from "@/lib/busqueda-de-direccion";
 
 // ============================================================
 // Address autocomplete (real-time search suggestions).
@@ -23,17 +23,20 @@ export const runtime = "nodejs";
 // Google Places Autocomplete (NEW API) — best for as-you-type suggestions.
 // Uses the current places.googleapis.com endpoint (the legacy
 // maps/api/place/autocomplete one is off for projects on the new Places API).
+// Una o dos llamadas: primero la zona verde, y Texas solo si lo local escasea. Lo decide `sugerenciasDePlaces`.
 async function viaGoogle(q: string, key: string): Promise<string[]> {
-  const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
-    body: JSON.stringify(cuerpoDePlaces(q)),
+  return sugerenciasDePlaces(q, async (cuerpo) => {
+    const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
+      body: JSON.stringify(cuerpo),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || "Google autocomplete failed");
+    return (data.suggestions || [])
+      .map((s: { placePrediction?: { text?: { text?: string } } }) => s.placePrediction?.text?.text)
+      .filter((t: string | undefined): t is string => !!t);
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || "Google autocomplete failed");
-  return (data.suggestions || [])
-    .map((s: { placePrediction?: { text?: { text?: string } } }) => s.placePrediction?.text?.text)
-    .filter((t: string | undefined): t is string => !!t && esTextoDeTexas(t));
 }
 
 // Google Geocoding fallback — used when the Places API isn't enabled. Not true

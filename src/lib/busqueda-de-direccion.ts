@@ -14,8 +14,12 @@ import { LOCAL_ZONE_DEFAULT, type Vertice } from "./delivery-zone";
  *
  * Puro: aquí se construye lo que se pide y se decide qué respuesta vale. Quien llama a la red es `/api/geocode`.
  *
- * **No verificado con una llamada real** (no se gasta cuota desde una rama): que Places (New) no admita `locationBias` y
- * `locationRestriction` a la vez. Por eso en Places el límite de Texas es un filtro sobre la respuesta y no un parámetro.
+ * **Places, medido el 2026-09-19 por el orquestador con dos llamadas reales** («100 Main St», la caja de la zona): con
+ * `locationBias` contesta 200 pero no prioriza lo bastante —5 sugerencias, 1 de Texas y 4 de otros estados: con el filtro
+ * quedaría UNA—; con `locationRestriction` a la misma caja, 5 de 5 locales. Por eso Places va en DOS pasos, los dos con
+ * restricción: primero la zona verde, y solo si lo local escasea, Texas (`sugerenciasDePlaces`). Así una entrega fuera de zona
+ * sigue pudiendo buscarse y la segunda llamada solo se gasta cuando hace falta. El formato es «…, La Feria, TX, USA».
+ * Las respuestas de los otros tres proveedores siguen sin verificar con una llamada real.
  */
 
 export interface Caja { sur: number; oeste: number; norte: number; este: number }
@@ -37,13 +41,30 @@ export const CAJA_DE_TEXAS: Caja = { sur: 25.83, oeste: -106.65, norte: 36.51, e
 
 // ---------------------------------------------------------------- lo que se pide
 
-export function cuerpoDePlaces(q: string): object {
-  const z = CAJA_DE_LA_ZONA;
+export function cuerpoDePlaces(q: string, caja: Caja): object {
   return {
     input: q,
     includedRegionCodes: ["us"],
-    locationBias: { rectangle: { low: { latitude: z.sur, longitude: z.oeste }, high: { latitude: z.norte, longitude: z.este } } },
+    locationRestriction: { rectangle: { low: { latitude: caja.sur, longitude: caja.oeste }, high: { latitude: caja.norte, longitude: caja.este } } },
   };
+}
+
+/** Con menos sugerencias locales que estas, se pregunta también por todo Texas. */
+export const MINIMO_LOCALES = 3;
+/** Cuántas sugerencias de Places se enseñan como mucho. */
+export const TOPE_DE_PLACES = 5;
+
+/**
+ * Places en dos pasos. `pide` hace la llamada de verdad (la ruta) o la finge (las pruebas) y devuelve los textos sugeridos.
+ * Una llamada que falla cuenta como vacía: si la local falla se intenta Texas igual, en vez de darse por vencido sin probar.
+ * La caja de Texas pisa estados vecinos y México, así que lo que vuelve se filtra SIEMPRE por estado.
+ */
+export async function sugerenciasDePlaces(q: string, pide: (cuerpo: object) => Promise<string[]>): Promise<string[]> {
+  const deTexas = async (caja: Caja) => (await pide(cuerpoDePlaces(q, caja)).catch(() => [] as string[])).filter(esTextoDeTexas);
+  const locales = await deTexas(CAJA_DE_LA_ZONA);
+  if (locales.length >= MINIMO_LOCALES) return locales.slice(0, TOPE_DE_PLACES);
+  const resto = await deTexas(CAJA_DE_TEXAS);
+  return [...new Set([...locales, ...resto])].slice(0, TOPE_DE_PLACES);
 }
 
 export function urlDeGoogleGeocode(q: string, key: string): string {
