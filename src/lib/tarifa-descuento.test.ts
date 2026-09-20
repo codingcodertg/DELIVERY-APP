@@ -159,18 +159,19 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     }
   });
 
-  it("y por eso el diálogo del almacén lo enseña siempre, con la condición que ya tenía", () => {
-    // El diálogo esconde el descuento cuando coincide con la lista. La prueba de arriba dice que
-    // con esta tabla nunca coincide, así que la condición ya no puede esconderlo.
+  it("y ya no queda NINGÚN sitio que lo esconda por coincidir con la lista", () => {
+    // Esta prueba fijaba el diálogo de tarifa del almacén, que era el único sitio con la condición
+    // «enséñalo solo si es otro número». **Ese diálogo desapareció con D-NEXT** —el dueño se lo
+    // quitó al almacén—, y con él la condición: hoy no existe en toda la ficha.
     //
-    // Se cita **pegada a la línea que enseña la lista**, y no suelta: la misma condición aparece
-    // tres veces en la ficha, así que un `toContain` a secas lo pasaba un cambio que dejara este
-    // sitio concreto en `false`. Medido con ese mutante: con la cita suelta sobrevivía.
+    // Lo que D-317 defiende sigue defendido, y más fuerte: antes se comprobaba que esa condición
+    // no podía esconder nada; ahora, que no hay ninguna que pueda.
     const modal = readFileSync("src/components/OrderModal.tsx", "utf8").split("\r\n").join("\n");
-    const bloque = `<strong>\${feeSuggestion.list}</strong> {t("list", "lista")}\n`
-      + `                  {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list\n`
-      + `                    && <> · \${feeSuggestion.discount} {t("discounted", "con descuento")}</>}`;
-    expect(modal.split(bloque).length - 1).toBe(1);
+    expect(modal).not.toContain("feeSuggestion.discount !== feeSuggestion.list");
+    // Y donde se enseña la lista se enseña el descuento: los dos bloques de botones de tarifa
+    // ofrecen los dos precios, cada uno con su única condición, que es tener valor.
+    expect(modal.split("(feeSuggestion.list != null || feeSuggestion.discount != null)").length - 1).toBe(2);
+    expect(modal.split("{feeSuggestion.discount != null && (").length - 1).toBe(2);
   });
 
   it("los dos botones de la ficha salen de `feeSuggestion`, cada uno con su precio", () => {

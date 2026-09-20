@@ -135,13 +135,9 @@ export function OrderModal({
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [matFactura, setMatFactura] = useState("");
   const [matPallets, setMatPallets] = useState("");
-  // La tarifa que el almacén confirma al AGARRAR la orden (D-146). Estuvo un rato en
-  // "Marcar listo" (D-143) y se movió aquí: la tarifa mal puesta se ve al abrir la orden,
-  // y descubrirla al final —con las pallets ya montadas y el camión esperando— es tarde
-  // para preguntarle nada a ventas. Se precarga con la que puso ventas: lo normal es que
-  // esté bien, y obligar a teclearla siempre convertiría la comprobación en un trámite.
-  const [showStartConfirm, setShowStartConfirm] = useState(false);
-  const [startFee, setStartFee] = useState("");
+  // Aquí vivía la tarifa que el almacén confirmaba al agarrar la orden (D-143, D-146). Fuera
+  // desde D-NEXT, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
+  // Almacén ya no confirma ni corrige la tarifa; «Comenzar preparación» mueve la etapa y ya.
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
   // New order: start on a small initial step (Order Type + Delivery Address to
@@ -759,51 +755,10 @@ export function OrderModal({
     if (ok) { setArrivedAt(now); notify(t("Arrived at stop", "Llegó a la parada")); }
   };
 
-  // El almacén confirma la TARIFA al agarrar la orden (D-146). Es el primer momento en que
-  // alguien que no es ventas mira la orden entera, y todavía queda margen para preguntar.
-  /**
-   * Comenzar a preparar SIN tarifa (D-287), que es lo que pidió almacén: *«quiero comenzar a
-   * preparar pero no cobraron delivery, así que no me permite avanzar»*.
-   *
-   * No inventa dinero: no escribe `delivery_fee`, así que la orden sigue saliendo marcada con el
-   * 🚩 SIN TARIFA de la tabla y con el aviso del modal. Lo único que hace es no dejar el camión
-   * parado por un dato que es de ventas, y dejar dicho en la etapa que se empezó así.
-   */
-  const startSinTarifa = async () => {
-    if (!existing) return;
-    setBusy(true);
-    const ok = await setStage(existing.id, "fulfilling", t("Started with no delivery fee charged", "Se empezó sin tarifa de entrega cobrada"));
-    setBusy(false);
-    if (ok) {
-      setShowStartConfirm(false);
-      notify(t("Preparing — no fee charged", "Preparando — sin tarifa cobrada"));
-    }
-  };
-
-  const confirmStart = async () => {
-    if (!existing) return;
-    const fee = Number(startFee);
-    // Cero es una tarifa legítima (recogida, envío de cortesía); lo que no vale es vacío o
-    // negativo.
-    if (startFee.trim() === "" || !Number.isFinite(fee) || fee < 0) {
-      notify(t("Confirm the delivery fee.", "Confirme la tarifa de entrega."));
-      return;
-    }
-    const cambio = fee !== (existing.delivery_fee ?? null);
-    setBusy(true);
-    // La tarifa viaja en la MISMA escritura que el cambio de etapa: en dos, un fallo entre
-    // medias dejaría la orden en preparación con la tarifa vieja y nadie sabría que se
-    // corrigió a medias.
-    const nota = cambio
-      ? t(`Fee corrected to $${fee} (was $${existing.delivery_fee ?? 0})`, `Tarifa corregida a $${fee} (era $${existing.delivery_fee ?? 0})`)
-      : t(`Fee confirmed $${fee}`, `Tarifa confirmada $${fee}`);
-    const ok = await setStage(existing.id, "fulfilling", nota, { delivery_fee: fee });
-    setBusy(false);
-    if (ok) {
-      setShowStartConfirm(false);
-      notify(cambio ? t(`Preparing — fee corrected to $${fee}`, `Preparando — tarifa corregida a $${fee}`) : t("Preparing", "Preparando"));
-    }
-  };
+  // Aquí vivían `startSinTarifa` (D-287) y `confirmStart` (D-146): el almacén confirmaba o
+  // corregía la tarifa al agarrar la orden, y de ahí salía el cambio de etapa. Fuera desde
+  // D-NEXT. «Comenzar preparación» ahora va por `onMove("fulfilling")`, como cualquier otro
+  // paso de etapa, y **nadie que no sea ventas escribe ya `delivery_fee`**.
 
   /**
    * Guardar «agregar material» (D-339): una sola escritura con la factura, los pallets y las dos
@@ -1291,7 +1246,6 @@ export function OrderModal({
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
-      onRequestStart={() => { setStartFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowStartConfirm(true); }}
       onBackToPreparing={volverAPreparar}
       readyConfirmOpen={showReadyConfirm}
       onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
@@ -2562,123 +2516,6 @@ export function OrderModal({
       </div>
     )}
 
-    {/* Confirmar la TARIFA al agarrar la orden (D-146).
-
-        Estuvo primero en "Marcar listo" (D-143). Se mueve aquí porque el momento importa: al
-        agarrarla, la orden todavía está quieta y da tiempo a llamar a ventas; al marcarla lista
-        ya está montada y el camión esperando, y ahí una tarifa mal puesta se despacha con un
-        clic para no parar la salida.
-
-        Lo importante NO es que el almacén la re-teclee: es que vea al lado LO QUE DEBERÍA SER.
-        Pedir que confirme un número que tampoco conoce solo trasladaría el error de sitio. */}
-    {showStartConfirm && existing && (
-      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal" style={{ maxWidth: 420 }}>
-          <h3 style={{ marginTop: 0 }}>{t("Confirm the delivery fee", "Confirmar la tarifa de entrega")}</h3>
-          <p className="hint" style={{ marginTop: 0 }}>
-            {t("Before you start preparing this order, check what is being charged for the delivery.",
-               "Antes de comenzar a preparar esta orden, revise lo que se está cobrando por la entrega.")}
-          </p>
-
-          <ChoferYPallets pedido={existing} />
-
-          <div className="field">
-            <label>{t("Delivery fee", "Tarifa de entrega")}</label>
-            <input type="number" min={0} step="0.01" autoFocus value={startFee}
-              onChange={(e) => setStartFee(e.target.value)} />
-            <div className="hint">
-              {t("Sales charged:", "Ventas cobró:")}{" "}
-              {/* Vacío se enseña como $0 y no como "nada": es la misma cifra que se va a
-                  facturar, y decirlo con palabras obligaba a traducirlo mentalmente. */}
-              <strong>${existing.delivery_fee ?? 0}</strong>
-              {feeSuggestion.list != null ? (
-                <>
-                  {" · "}
-                  {/* Se dice de DÓNDE sale el número —ciudad, zona y millas— y no solo cuál es.
-                      Un importe suelto obliga a creérselo; con su origen delante, quien lo mira
-                      puede darse cuenta de que la zona o las millas están mal, que es la otra
-                      mitad de los errores de tarifa. */}
-                  {feeSuggestion.city || t("this address", "esta dirección")}{" · "}
-                  {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
-                  {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}
-                  {" → "}
-                  {/* Los dos precios, y el descuento solo cuando de verdad es otro número: repetir
-                      la misma cifra dos veces se lee como un error (D-303).
-                      Desde D-317 el descuento tiene fila propia y es más barato en los cuatro
-                      tramos, así que esta condición ya no esconde nada — se queda porque lo que
-                      defiende es la tabla del día de mañana, no la de hoy, y hay prueba de que
-                      con la tabla de hoy se enseña siempre. */}
-                  <strong>${feeSuggestion.list}</strong> {t("list", "lista")}
-                  {feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list
-                    && <> · ${feeSuggestion.discount} {t("discounted", "con descuento")}</>}
-                </>
-              ) : (
-                // Sin millas de ruta no hay tarifa que calcular. Se dice, en vez de callar: un
-                // hueco sin explicación se lee como que el cálculo falló.
-                <> · {t("no route miles yet, so there is nothing to compare against",
-                        "aún no hay millas de ruta, así que no hay con qué comparar")}</>
-              )}
-            </div>
-            {/* Nada cobrado: el caso que el aviso de abajo NO veía, porque comparaba contra
-                la lista de precios y un hueco no se puede comparar con nada. Es el peor de
-                los dos —un número equivocado al menos lo tecleó alguien; uno vacío suele
-                significar que nadie miró— así que va aparte y va primero. */}
-            {sinCobrar && (
-              <div className="banner err" style={{ marginTop: 8 }}>
-                🚩 {existing.delivery_fee == null
-                  ? t("Nothing was charged for this delivery — the fee is blank.",
-                      "No se cobró nada por esta entrega — la tarifa está vacía.")
-                  : t("This delivery is going out free — the fee is $0.",
-                      "Esta entrega va a salir gratis — la tarifa es $0.")}
-                {" "}
-                {t("If that is right, confirm it and it stops being flagged.",
-                   "Si es correcto, confírmelo y deja de marcarse.")}
-                {feeSuggestion.list != null && (
-                  <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
-                    onClick={() => setStartFee(String(feeSuggestion.list))}>
-                    {t("Charge", "Cobrar")} ${feeSuggestion.list}
-                  </button>
-                )}
-              </div>
-            )}
-            {/* El aviso solo cuando de verdad NO cuadra. Un aviso que sale siempre deja de
-                leerse, y entonces el que importa pasa desapercibido. */}
-            {/* Cobrar el descuento NO es no cuadrar (D-303): el aviso tolera los dos precios,
-                como antes de D-283. Con un solo precio, cobrar el descuento salía marcado. */}
-            {!sinCobrar && feeSuggestion.list != null && existing.delivery_fee != null
-              && existing.delivery_fee !== feeSuggestion.list
-              && existing.delivery_fee !== feeSuggestion.discount && (
-              <div className="banner warn" style={{ marginTop: 8 }}>
-                ⚠️ {t(
-                  `Charged $${existing.delivery_fee}. For ${feeSuggestion.zone === "local" ? "a local" : "an out-of-area"} delivery of ${existing.route_miles ?? "?"} miles the price is $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, or $${feeSuggestion.discount} discounted` : ""}.`,
-                  `Se cobró $${existing.delivery_fee}. Para una entrega ${feeSuggestion.zone === "local" ? "local" : "fuera de zona"} de ${existing.route_miles ?? "?"} millas el precio es $${feeSuggestion.list}${feeSuggestion.discount != null && feeSuggestion.discount !== feeSuggestion.list ? `, o $${feeSuggestion.discount} con descuento` : ""}.`,
-                )}
-                {" "}
-                <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }}
-                  onClick={() => setStartFee(String(feeSuggestion.list))}>
-                  {t("Use", "Usar")} ${feeSuggestion.list}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Dos salidas, y la de «sin tarifa» a la izquierda para que no se pulse por inercia
-              (D-287). Almacén pedía no quedarse parado cuando ventas no cobró; lo que NO hace
-              este botón es escribir una tarifa, así que la orden sigue marcada como sin cobrar y
-              el que tenga que cobrarla la encuentra. */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
-            <button className="btn btn-ghost" onClick={() => setShowStartConfirm(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-            <span style={{ flex: 1 }} />
-            <button className="btn btn-ghost" onClick={startSinTarifa} disabled={busy}
-              title={t("Start preparing without writing a fee — the order stays flagged as not charged",
-                       "Comenzar a preparar sin escribir tarifa — la orden queda marcada como no cobrada")}
-            >{t("No fee — continue anyway", "Sin tarifa — continuar igual")}</button>
-            <button className="btn btn-primary" onClick={confirmStart} disabled={busy}>{t("Confirm & start preparing", "Confirmar y comenzar preparación")}</button>
-          </div>
-        </div>
-      </div>
-    )}
-
     {/* Agregar material (D-339), del vendedor dueño de la orden. Un vendedor: «a veces agendo un
         Delivery pero luego el cliente me solicita más material… no voy a poder editar sino que voy
         a poder agregar más facturas e incrementar # de Pallets».
@@ -2914,7 +2751,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
-  onAddMaterial, onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onAddMaterial, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
@@ -2930,10 +2767,8 @@ function StageActions({
   /** Si el motivo elegido (y su texto libre, cuando lo pide) ya permite confirmar la anulación. */
   cancelListo: boolean;
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
-  /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
   /** Abre el diálogo de «Agregar material» del vendedor dueño de la orden (D-339). */
   onAddMaterial: () => void;
-  onRequestStart: () => void;
   /** Devuelve una orden lista a preparación, preguntando antes (D-287). */
   onBackToPreparing: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
@@ -3000,9 +2835,10 @@ function StageActions({
 
   // Warehouse
   if (canFulfill(me)) {
-    // Agarrar la orden pasa por confirmar la tarifa (D-146): el botón ya no mueve la etapa
-    // por sí solo, abre el diálogo, y de ahí sale el cambio de etapa junto con la tarifa.
-    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
+    // Agarrar la orden mueve la etapa y ya (D-NEXT). Entre D-146 y hoy, este botón abría el
+    // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
+    // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
+    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={() => onMove("fulfilling")} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
     if (stage === "fulfilling") {
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);

@@ -94,11 +94,16 @@ const BILLABLE: Delivery["stage"][] = ["pending", "approved", "fulfilling", "rea
 /**
  * A customer delivery going out with **nothing charged for it**.
  *
- * This is the failure D-143/D-146 were built around, and the one the fee dialog
- * did NOT catch: it only warned when the amount disagreed with the price list,
- * so an EMPTY fee — the worst case, a delivery invoiced for free — passed
+ * This is the failure D-143/D-146 were built around, and the one their fee
+ * dialog did NOT catch: it only warned when the amount disagreed with the price
+ * list, so an EMPTY fee — the worst case, a delivery invoiced for free — passed
  * without a word. A wrong number is at least a number somebody typed; a blank
  * one usually means nobody looked.
+ *
+ * **Ese diálogo ya no existe (D-NEXT): el dueño se lo quitó al almacén.** Con él se
+ * fue el único sitio donde alguien que no es ventas revisaba la tarifa antes de que
+ * la orden saliera, así que esto —y la 🚩 de la tabla— es lo que queda avisando. No
+ * cambia lo que hace esta función; cambia cuánto pesa.
  *
  * Zero counts as nothing. It is a legitimate value (a courtesy delivery, a
  * redelivery the company eats), which is exactly why it has to be *seen and
