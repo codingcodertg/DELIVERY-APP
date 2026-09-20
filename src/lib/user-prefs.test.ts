@@ -79,13 +79,13 @@ function clienteFalso(opciones: { fila?: { value: unknown } | null; errorAlLeer?
 describe("la base", () => {
   it("lee SOLO la fila propia de `order_columns`, y la sanea", async () => {
     const { cliente, llamadas } = clienteFalso({ fila: { value: { logistics: ["stage"], sales: ["x"] } } });
-    expect(await leeColumnas(cliente, "yo")).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["stage"] }, orden: {} });
+    expect(await leeColumnas(cliente, "yo")).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["stage"] }, orden: {}, anchos: {} });
     expect(llamadas).toEqual([{ op: "select", args: ["user_prefs", "value", "user_id", "yo", "key", CLAVE_DE_COLUMNAS] }]);
   });
   it("sin fila: leída y sin fila. Con error —la tabla aún no existe— o sin red: NO leída, y no revienta", async () => {
-    expect(await leeColumnas(clienteFalso({ fila: null }).cliente, "yo")).toEqual({ leida: true, hayFila: false, columnas: {}, orden: {} });
-    expect(await leeColumnas(clienteFalso({ errorAlLeer: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {} });
-    expect(await leeColumnas(clienteFalso({ lanza: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {} });
+    expect(await leeColumnas(clienteFalso({ fila: null }).cliente, "yo")).toEqual({ leida: true, hayFila: false, columnas: {}, orden: {}, anchos: {} });
+    expect(await leeColumnas(clienteFalso({ errorAlLeer: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} });
+    expect(await leeColumnas(clienteFalso({ lanza: true }).cliente, "yo")).toEqual({ leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} });
   });
   it("guarda la fila PROPIA, saneada, y mide que se escribió: cero filas no es «guardado»", async () => {
     const { cliente, llamadas } = clienteFalso({});
@@ -99,19 +99,20 @@ describe("la base", () => {
 describe("la página de Órdenes", () => {
   const pagina = sinComentarios(leer("src/app/(app)/page.tsx"));
   it("ventas sigue con la lista del admin y sin tocar `user_prefs`; los demás pintan YA lo del navegador y luego manda la base", () => {
-    const i = pagina.indexOf('if (me.role === "sales") {'), j = pagina.indexOf("semillaDelNavegador(");
-    expect(i).toBeGreaterThan(0);
-    expect(plano(pagina.slice(i, j))).toContain('setCols(settings.sales_columns ?? defaultColsFor("sales")); return; }');
+    // Ventas: sus columnas salen de Ajustes (sin las que le repiten la factura, D-NEXT) y nada de la base las cambia.
+    const j = pagina.indexOf("semillaDelNavegador(");
+    expect(plano(pagina)).toContain('if (esVentas) setCols(columnasDeVentas(settings.sales_columns, defaultColsFor("sales")));');
     expect(j).toBeLessThan(pagina.indexOf("leeColumnas(supabase, yo)"));
-    expect(plano(pagina)).toContain("if (leido.hayFila) { setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }");
+    expect(plano(pagina)).toContain("if (leido.hayFila) { if (!esVentas) setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }");
   });
   it("antes de sembrar pregunta si hay suplantación, y siembra solo si `hayQueSembrar` dice que sí", () => {
     const p = plano(pagina);
     expect(p).toContain('fetch("/api/impersonate/state")');
     expect(p).toContain("suplantando = !!e?.como;");
-    expect(p).toContain("if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, delNavegador)) return;");
+    expect(p).toContain("if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, delNavegador, anchosDelNavegador)) return;");
+    const siembra = p.indexOf("prefsDeLaBase.current = delNavegador; anchosDeLaBase.current = anchosDelNavegador; void escribeLaFila();");
     expect(p.indexOf("hayQueSembrar(")).toBeGreaterThanOrEqual(0);
-    expect(p.indexOf("hayQueSembrar(")).toBeLessThan(p.indexOf("guardaColumnas(supabase, yo, delNavegador)"));
+    expect(siembra).toBeGreaterThan(p.indexOf("hayQueSembrar("));
   });
   it("al cambiar columnas: el navegador SIEMPRE (nunca se borra), y la base solo si se pudo leer; ventas, ni lo uno ni lo otro", () => {
     const p = plano(pagina);
@@ -120,7 +121,7 @@ describe("la página de Órdenes", () => {
     // Un `indexOf` que no encuentra da -1, y -1 es «menor que» cualquier cosa: primero, que ESTÉ.
     expect(guarda.indexOf("localStorage.setItem(colsKey(me.role)")).toBeGreaterThanOrEqual(0);
     expect(guarda.indexOf("localStorage.setItem(colsKey(me.role)")).toBeLessThan(guarda.indexOf("prefsDeLaBase.current === null) return;"));
-    expect(guarda).toContain("const todas: ColumnasPorRol = { ...prefsDeLaBase.current, [me.role]: next };");
+    expect(guarda).toContain("prefsDeLaBase.current = { ...prefsDeLaBase.current, [me.role]: next }; void escribeLaFila();");
     expect(pagina).not.toMatch(/localStorage\.removeItem\([^)]*col/i);
   });
 });

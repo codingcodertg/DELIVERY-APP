@@ -181,14 +181,15 @@ describe("la pantalla usa la regla, no una copia", () => {
     // Desde D-313 cuenta sobre `conPendientes`, no sobre `visible`: sobre la lista normal daba 0
     // para office —sus pendientes están todas entregadas, fuera de la ventana de D-239— y por eso la
     // pestaña no le aparecía. Lo que D-310 fija sigue igual: la cuenta sale de `documentoPendiente`.
-    expect(plano(pagina)).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;");
-    expect(plano(pagina)).toContain("if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!documentoPendiente(d, settings.order_type_rules ?? {})) return false; }");
+    expect(plano(pagina)).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;");
+    expect(plano(pagina)).toContain("if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }");
+    // Desde D-NEXT la pestaña es solo de FACTURAS: `facturaPendiente` es `documentoPendiente` con el campo mirado.
     expect(plano(pagina)).toContain("porTienda={filter === PESTANA_DOCUMENTO_PENDIENTE}");
   });
 
   it("la tabla agrupa solo mientras la persona no haya elegido su orden", () => {
     expect(plano(tabla)).toContain("const agrupada = porTienda && !sortKey;");
-    expect(plano(tabla)).toContain("agrupada ? gruposPorTienda(sortedRows)");
+    expect(plano(tabla)).toContain("agrupada ? gruposPorTienda(sortedRows, tiendasPrimero)");
     expect(plano(tabla)).toContain("<DocumentoPendiente d={d}");
   });
 

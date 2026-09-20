@@ -1,6 +1,6 @@
 import type { Delivery, NamedLocation, Profile } from "@/lib/types";
 import { withinRetention } from "@/lib/utils";
-import { documentoPendiente } from "@/lib/documento-pendiente";
+import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 
@@ -71,7 +71,7 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
 export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista, pendientesEntran: boolean): boolean {
   const { teaching, veTodoElHistorial, me, busqueda, sueloDeVentas, reglas } = ctx;
   if (teaching || veTodoElHistorial) return true;
-  if (pendientesEntran && documentoPendiente(d, reglas)) return true;
+  if (pendientesEntran && facturaPendiente(d, reglas)) return true;
   if (!busqueda.trim()) return withinRetention(d);
   if (me?.role === "sales" && d.delivery_date && d.delivery_date < sueloDeVentas) return false;
   return true;

@@ -8,6 +8,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { useColWidthMap } from "@/lib/use-col-widths";
+import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnasEnOrden, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
@@ -331,6 +332,9 @@ export function OrdersTable({
   resizeKey = "orders",
   collapsible = false,
   porTienda = false,
+  tiendasPrimero,
+  anchos,
+  onAnchos,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
@@ -357,6 +361,11 @@ export function OrdersTable({
    * porque un encabezado de tienda sobre filas ordenadas por fecha mentiría. Los filtros de columna
    * se aplican antes, así que cada cuenta es la de lo que se ve. */
   porTienda?: boolean;
+  /** Con `porTienda`: las tiendas de quien mira; sus grupos salen primero (D-NEXT). */
+  tiendasPrimero?: readonly string[];
+  /** El ancho de las columnas de ESTA persona, leído de la base, y el aviso al soltar para guardarlo (D-NEXT). */
+  anchos?: Record<string, number> | null;
+  onAnchos?: (anchos: Record<string, number>) => void;
 }) {
   const { lang, t } = usePrefs();
   const { me, settings } = useData();
@@ -365,7 +374,7 @@ export function OrdersTable({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const colw = useColWidthMap(`rtg_colw_${resizeKey}`);
+  const colw = useColWidthMap(`rtg_colw_${resizeKey}`, 150, { deLaPersona: anchos, alCambiar: onAnchos, minimo: ANCHO_MINIMO });
   // Drivers read the invoice number off the paperwork; everyone else works
   // from the order code. Driven by the VIEWER's role, so it follows the
   // person across the driver view and the orders board alike.
@@ -467,8 +476,9 @@ export function OrdersTable({
   // Un solo grupo sin nombre cuando no se agrupa: el cuerpo de la tabla se pinta igual en los dos casos.
   const agrupada = porTienda && !sortKey;
   const grupos = useMemo(
-    () => (agrupada ? gruposPorTienda(sortedRows) : [{ tienda: "", filas: sortedRows }]),
-    [agrupada, sortedRows],
+    () => (agrupada ? gruposPorTienda(sortedRows, tiendasPrimero) : [{ tienda: "", filas: sortedRows }]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- la lista llega nueva en cada render; lo que cuenta es su contenido
+    [agrupada, sortedRows, (tiendasPrimero ?? []).join("|")],
   );
 
   if (!rows.length) return <div className="empty">{empty}</div>;
@@ -562,7 +572,7 @@ export function OrdersTable({
                     </button>
                   </div>
                   {/* Drag to resize; double-click to reset this column. */}
-                  <span className="col-resizer" onMouseDown={colw.startResize(c.key)} onDoubleClick={() => colw.resetCol(c.key)} />
+                  <span className="col-resizer" title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} onMouseDown={colw.startResize(c.key)} onDoubleClick={() => colw.resetCol(c.key)} />
                 </th>
               );
             })}

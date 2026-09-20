@@ -67,16 +67,16 @@ describe("visibilidad y orden viven juntos y no se pisan", () => {
   it("`_orden` NO es un rol: no se cuela en las visibles, ni en ningún bucle que recorra roles", () => {
     expect(ROLES_QUE_ELIGEN as readonly string[]).not.toContain(CLAVE_DEL_ORDEN);
     expect(Object.keys(columnasValidas(valor)).sort()).toEqual(["admin", "logistics"]);
-    expect(prefsDeValor(valor)).toEqual({ visibles: { logistics: ["stage", "date"], admin: ["so"] }, orden: { logistics: ["date", "stage", "so"] } });
+    expect(prefsDeValor(valor)).toEqual({ visibles: { logistics: ["stage", "date"], admin: ["so"] }, orden: { logistics: ["date", "stage", "so"] }, anchos: {} });
   });
   it("el orden se sanea igual que la visibilidad: ni ventas, ni roles inventados, ni basura", () => {
     expect(prefsDeValor({ [CLAVE_DEL_ORDEN]: "texto" }).orden).toEqual({});
     expect(prefsDeValor({ [CLAVE_DEL_ORDEN]: ["stage"] }).orden).toEqual({});
-    expect(prefsDeValor(null)).toEqual({ visibles: {}, orden: {} });
+    expect(prefsDeValor(null)).toEqual({ visibles: {}, orden: {}, anchos: {} });
   });
   it("ida y vuelta: lo que se guarda es lo que se lee; y sin orden elegido no se escribe `_orden`", () => {
     const p = { visibles: { logistics: ["stage", "date"] }, orden: { logistics: ["date", "stage"] } };
-    expect(prefsDeValor(valorDeColumnas(p))).toEqual(p);
+    expect(prefsDeValor(valorDeColumnas(p))).toEqual({ ...p, anchos: {} });
     expect(valorDeColumnas({ visibles: { logistics: ["stage"] }, orden: {} })).toEqual({ logistics: ["stage"] });
   });
 
@@ -138,13 +138,14 @@ describe("la tabla y la página", () => {
     expect(pagina).toContain("disabled={!seMueve(c.key, 1)}");
   });
   it("las dos mitades se guardan SIEMPRE juntas: al marcar una casilla va el orden, y al reordenar va la visibilidad", () => {
-    expect(pagina).toContain("guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS, ordenDeLaBase.current);");
-    expect(pagina).toContain("guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, { ...prefsDeLaBase.current, [me.role]: cols }, CLAVE_DE_COLUMNAS, todos);");
-    expect(pagina.split("guardaColumnas(").length - 1).toBe(3);                            // sembrar, marcar, reordenar: ninguno más
+    // Desde D-NEXT (el ancho, la tercera mitad) la fila se escribe por UN solo sitio, con las tres mitades tal como están.
+    expect(pagina).toContain("const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current);");
+    expect(pagina.split("guardaColumnas(").length - 1).toBe(1);
+    expect(pagina.split("escribeLaFila()").length - 1).toBe(4);                            // sembrar, marcar, reordenar, ensanchar
   });
   it("«Restablecer orden» borra el orden del rol; y al leer la base llegan las dos mitades", () => {
     expect(pagina).toContain("if (next) todos[me.role] = next; else delete todos[me.role];");
     expect(pagina).toContain("{orden && <button className=\"notif-clear\" onClick={() => guardaOrden(null)}>");
-    expect(pagina).toContain("ordenDeLaBase.current = leido.orden; setOrden(leido.orden[rol] ?? null);");
+    expect(pagina).toContain("ordenDeLaBase.current = leido.orden; anchosDeLaBase.current = leido.anchos; setOrden(leido.orden[rol] ?? null); setAnchos(leido.anchos[rol] ?? null);");
   });
 });

@@ -8,10 +8,10 @@ import { useConfirm } from "@/lib/confirm";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
-import { CLAVE_DE_COLUMNAS, claveDelNavegador, columnasDe, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
-import { documentoPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
+import { facturaPendiente, PESTANA_DOCUMENTO_PENDIENTE, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 import { ordenesVisibles } from "@/lib/ordenes-visibles";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -97,6 +97,11 @@ export default function OrdersPage() {
   // Solo vive en la base: en el navegador nunca hubo un orden que sembrar.
   const [orden, setOrden] = useState<string[] | null>(null);
   const ordenDeLaBase = useRef<ColumnasPorRol>({});
+  // El ANCHO de las columnas (D-NEXT), la tercera mitad de la misma fila. `null` = nada guardado: manda el navegador.
+  const [anchos, setAnchos] = useState<Record<string, number> | null>(null);
+  const anchosDeLaBase = useRef<AnchosPorRol>({});
+  // La fila se escribe ENTERA y por UN solo sitio, con las tres mitades tal como están: así guardar una no borra las otras.
+  const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   /** Anular en bloque pide el motivo UNA vez y lo escribe en cada orden. Antes este camino no
@@ -132,17 +137,19 @@ export default function OrdersPage() {
   // straight from there (and stays reactive if an admin changes it live).
   useEffect(() => {
     if (!me) return;
-    if (me.role === "sales") {
-      setCols(settings.sales_columns ?? defaultColsFor("sales"));
-      return;
-    }
+    const esVentas = me.role === "sales";
     // Lo del navegador, YA: la pantalla no espera a la base para pintar las columnas de siempre.
     let delNavegador: ColumnasPorRol = {};
-    try { delNavegador = semillaDelNavegador((k) => localStorage.getItem(k)); } catch { /* sin localStorage, sin semilla */ }
-    setCols(columnasDe(me.role, null, delNavegador, defaultColsFor(me.role)).columnas);
+    if (esVentas) setCols(columnasDeVentas(settings.sales_columns, defaultColsFor("sales")));
+    else {
+      try { delNavegador = semillaDelNavegador((k) => localStorage.getItem(k)); } catch { /* sin localStorage, sin semilla */ }
+      setCols(columnasDe(me.role, null, delNavegador, defaultColsFor(me.role)).columnas);
+    }
     prefsDeLaBase.current = null;
     ordenDeLaBase.current = {};
+    anchosDeLaBase.current = {};
     setOrden(null);
+    setAnchos(null);
     if (SIN_BASE) return;
     // Y después la base, que es la que manda (D-330): la elección es de la persona, no del navegador.
     let vivo = true;
@@ -153,14 +160,22 @@ export default function OrdersPage() {
       if (!vivo || !leido.leida) return;
       prefsDeLaBase.current = leido.columnas;
       ordenDeLaBase.current = leido.orden;
+      anchosDeLaBase.current = leido.anchos;
       setOrden(leido.orden[rol] ?? null);
-      if (leido.hayFila) { setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
+      setAnchos(leido.anchos[rol] ?? null);
+      // Ventas lee la base solo por el ANCHO de sus columnas: cuáles ve sigue saliendo de Ajustes.
+      if (leido.hayFila) { if (!esVentas) setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
       // Sin fila: se siembra UNA vez desde este navegador — nunca durante una suplantación (el navegador es del
       // admin y la sesión, de otra persona), y si no se sabe si la hay, tampoco.
       let suplantando: boolean | null = null;
       try { const e = await (await fetch("/api/impersonate/state")).json() as { como?: string }; suplantando = !!e?.como; } catch { /* no se sabe */ }
-      if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, delNavegador)) return;
-      if (await guardaColumnas(supabase, yo, delNavegador)) prefsDeLaBase.current = delNavegador;
+      // …y con las columnas, los anchos que este navegador tuviera arrastrados para este rol.
+      let anchosDelNavegador: AnchosPorRol = {};
+      try { anchosDelNavegador = anchosValidos({ [rol]: JSON.parse(localStorage.getItem(`rtg_colw_orders_${rol}`) ?? "null") }); } catch { /* nada que valga */ }
+      if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, delNavegador, anchosDelNavegador)) return;
+      prefsDeLaBase.current = delNavegador;
+      anchosDeLaBase.current = anchosDelNavegador;
+      void escribeLaFila();
     })();
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,10 +187,8 @@ export default function OrdersPage() {
     // El navegador SIEMPRE: es la red. Y la base, si se pudo leer — si no, no se escribe a ciegas encima de lo que haya.
     try { localStorage.setItem(colsKey(me.role), JSON.stringify(next)); } catch { /* ignore */ }
     if (SIN_BASE || prefsDeLaBase.current === null) return;
-    const todas: ColumnasPorRol = { ...prefsDeLaBase.current, [me.role]: next };
-    prefsDeLaBase.current = todas;
-    // La fila se escribe ENTERA: el orden va siempre con ella, o marcar una casilla lo borraría.
-    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS, ordenDeLaBase.current);
+    prefsDeLaBase.current = { ...prefsDeLaBase.current, [me.role]: next };
+    void escribeLaFila();
   };
 
   // Reordenar (D-332): flechas, no arrastre — como pidió el dueño para las paradas (D-007). `null` = restablecer: se
@@ -187,7 +200,18 @@ export default function OrdersPage() {
     if (next) todos[me.role] = next; else delete todos[me.role];
     ordenDeLaBase.current = todos;
     // Y la visibilidad va con él, tal como está: reordenar no la pisa.
-    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, { ...prefsDeLaBase.current, [me.role]: cols }, CLAVE_DE_COLUMNAS, todos);
+    prefsDeLaBase.current = { ...prefsDeLaBase.current, [me.role]: cols };
+    void escribeLaFila();
+  };
+  // El ancho (D-NEXT): la tabla avisa UNA vez, al soltar. Vale para todos los roles, también ventas. Sin base leída no se
+  // escribe a ciegas: queda en el navegador, como siempre.
+  const guardaAnchos = (next: Record<string, number>) => {
+    if (!me || SIN_BASE || prefsDeLaBase.current === null) return;
+    const todos: AnchosPorRol = { ...anchosDeLaBase.current };
+    const suyos = anchosDeUnRol(next, ["__id", ...ORDER_COLUMNS.map((c) => c.key)]);
+    if (Object.keys(suyos).length) todos[me.role] = suyos; else delete todos[me.role];
+    anchosDeLaBase.current = todos;
+    void escribeLaFila();
   };
   const ordenDelSelector = ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden);
   // La flecha se apaga cuando pulsarla no movería nada (el tope, contando que una visible salta sobre las ocultas).
@@ -261,7 +285,7 @@ export default function OrdersPage() {
     // La de la pestaña cuenta sobre `conPendientes` (D-313): las suyas son trabajo vivo aunque la
     // orden sea vieja, y sobre `visible` daban 0 para office — que es por lo que la pestaña no le
     // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
-    c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;
+    c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;
     return c;
   }, [visible, conPendientes, settings.order_type_rules]);
 
@@ -272,7 +296,7 @@ export default function OrdersPage() {
     const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;
     return desde.filter((d) => {
       // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
-      if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!documentoPendiente(d, settings.order_type_rules ?? {})) return false; }
+      if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }
       else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
       if (preset === "today" && !isToday(d.delivery_date)) return false;
       if (preset === "overdue" && !isOverdue(d)) return false;
@@ -591,6 +615,8 @@ export default function OrdersPage() {
           <OrdersTable
             rows={rows}
             resizeKey={`orders_${me.role}`}
+            anchos={anchos}
+            onAnchos={guardaAnchos}
             onOpen={setOpen}
             empty={t("No orders match this view.", "No hay órdenes en esta vista.")}
             visible={cols}
@@ -602,6 +628,7 @@ export default function OrdersPage() {
             // Phones: one collapsed card per order, opened with the chevron.
             collapsible
             porTienda={filter === PESTANA_DOCUMENTO_PENDIENTE}
+            tiendasPrimero={tiendasDeQuienMira(me)}
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}

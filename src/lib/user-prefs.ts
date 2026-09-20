@@ -11,8 +11,19 @@ import type { UserRole } from "@/lib/types";
  *
  * VENTAS NO ELIGE. Su lista es una sola para toda la empresa y la pone un admin en Ajustes
  * (`settings.sales_columns`): es una decisión del dueño anterior a esto y no se revierte. Aquí ni se lee ni se
- * guarda nada para ventas.
+ * guarda nada para ventas — salvo el ANCHO de sus columnas (`_anchos`, D-NEXT), que sí es suyo.
  */
+
+/**
+ * Las columnas que ve VENTAS: la lista de Ajustes —o el defecto del rol—, sin las que para ventas repiten lo que ya se ve.
+ * El dueño (D-NEXT): «in sales view invoice is duplicated as its already visible with the id number»: la celda `#` ya enseña
+ * «INV …». D-330 la quitó del defecto; esto cierra el otro camino, que un admin la marque en Ajustes. La lista guardada NO se
+ * toca: se filtra al leer.
+ */
+export const COLUMNAS_QUE_VENTAS_NO_VE: readonly string[] = ["invoice"];
+export function columnasDeVentas(deAjustes: readonly string[] | null | undefined, defecto: readonly string[]): string[] {
+  return (deAjustes ?? defecto).filter((k) => !COLUMNAS_QUE_VENTAS_NO_VE.includes(k));
+}
 
 export const CLAVE_DE_COLUMNAS = "order_columns";
 /** Las columnas de las tablas del Gestor de Rutas (137). Misma forma: `{ "<rol>": [columnas] }`. Aquí no hay nada
@@ -45,18 +56,58 @@ export function columnasValidas(v: unknown): ColumnasPorRol {
  * mitades se leen y se escriben SIEMPRE juntas (`valorDeColumnas`): guardar la visibilidad no pisa el orden, ni al revés.
  */
 export const CLAVE_DEL_ORDEN = "_orden";
-export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol }
+
+/**
+ * El ANCHO de las columnas, la tercera mitad del mismo `value` (D-NEXT): `{ "_anchos": { "<rol>": { "<columna>": px } } }`.
+ * El dueño: «make it possible to resize columns and however it keeps that way it saves for ever». Arrastrar ya se podía; lo que
+ * se arrastraba vivía en `localStorage`, o sea por navegador y no por persona.
+ *
+ * A diferencia de las otras dos mitades, esta vale para TODOS los roles, ventas incluida: ventas no elige QUÉ columnas ve
+ * (eso es de Ajustes), pero el ancho es cosa de cada pantalla y cada persona. La RLS de la 136 es por `user_id`, sin rol.
+ */
+export const CLAVE_DE_ANCHOS = "_anchos";
+export const ANCHO_MINIMO = 40;
+export const ANCHO_MAXIMO = 800;
+export const TODOS_LOS_ROLES: readonly UserRole[] = ["admin", "manager", "sales", "warehouse", "driver", "logistics", "accounting"];
+export type AnchosPorRol = Partial<Record<UserRole, Record<string, number>>>;
+
+/** Un juego de anchos, saneado: números finitos, recortados a [mínimo, máximo] y enteros; claves cortas; y, si se dice qué
+ *  columnas existen, solo esas. Un ancho que no es un número se descarta: la columna vuelve a su ancho por defecto. */
+export function anchosDeUnRol(v: unknown, conocidas?: readonly string[]): Record<string, number> {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const r: Record<string, number> = {};
+  for (const [k, px] of Object.entries(v as Record<string, unknown>).slice(0, MAX_COLUMNAS)) {
+    if (!k || k.length > 40 || typeof px !== "number" || !Number.isFinite(px) || (conocidas && !conocidas.includes(k))) continue;
+    r[k] = Math.round(Math.min(ANCHO_MAXIMO, Math.max(ANCHO_MINIMO, px)));
+  }
+  return r;
+}
+
+export function anchosValidos(v: unknown, conocidas?: readonly string[]): AnchosPorRol {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const r: AnchosPorRol = {};
+  for (const rol of TODOS_LOS_ROLES) { const a = anchosDeUnRol((v as Record<string, unknown>)[rol], conocidas); if (Object.keys(a).length) r[rol] = a; }
+  return r;
+}
+
+/** `anchos` es opcional al ESCRIBIR el tipo —las columnas del Gestor no lo usan—, pero `prefsDeValor` lo devuelve siempre. */
+export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol; anchos?: AnchosPorRol }
 
 /** Del `value` de la base a sus dos mitades, saneadas. */
 export function prefsDeValor(v: unknown): PrefsDeColumnas {
   const orden = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>)[CLAVE_DEL_ORDEN] : null;
-  return { visibles: columnasValidas(v), orden: columnasValidas(orden) };
+  const anchos = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>)[CLAVE_DE_ANCHOS] : null;
+  return { visibles: columnasValidas(v), orden: columnasValidas(orden), anchos: anchosValidos(anchos) };
 }
 
 /** De las dos mitades al `value` que se guarda. Sin orden elegido no se escribe `_orden`: el canónico no se guarda. */
 export function valorDeColumnas(p: PrefsDeColumnas): Record<string, unknown> {
-  const orden = columnasValidas(p.orden);
-  return { ...columnasValidas(p.visibles), ...(Object.keys(orden).length ? { [CLAVE_DEL_ORDEN]: orden } : {}) };
+  const orden = columnasValidas(p.orden), anchos = anchosValidos(p.anchos);
+  return {
+    ...columnasValidas(p.visibles),
+    ...(Object.keys(orden).length ? { [CLAVE_DEL_ORDEN]: orden } : {}),
+    ...(Object.keys(anchos).length ? { [CLAVE_DE_ANCHOS]: anchos } : {}),
+  };
 }
 
 /** Lo que hay en ESTE navegador, para todos los roles que eligen. Un JSON roto no es una elección. */
@@ -85,8 +136,8 @@ export function columnasDe(rol: UserRole, deLaBase: ColumnasPorRol | null, delNa
  * navegador es el del admin — sembrar metería las columnas del admin en la fila de otra persona. Si no se sabe si
  * hay suplantación, no se siembra.
  */
-export function hayQueSembrar(estado: { baseLeida: boolean; hayFila: boolean; suplantando: boolean | null }, delNavegador: ColumnasPorRol): boolean {
-  return estado.baseLeida && !estado.hayFila && estado.suplantando === false && Object.keys(delNavegador).length > 0;
+export function hayQueSembrar(estado: { baseLeida: boolean; hayFila: boolean; suplantando: boolean | null }, delNavegador: ColumnasPorRol, anchosDelNavegador: AnchosPorRol = {}): boolean {
+  return estado.baseLeida && !estado.hayFila && estado.suplantando === false && Object.keys(delNavegador).length + Object.keys(anchosDelNavegador).length > 0;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -102,21 +153,21 @@ export interface ClienteDePrefs {
 }
 
 /** `leida: false` = no se pudo leer (sin red, o la tabla aún no existe): se sigue con el navegador y NO se siembra. */
-export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol }> {
+export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol; anchos: AnchosPorRol }> {
   try {
     const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", clave).maybeSingle();
-    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {} };
+    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} };
     const p = prefsDeValor(data?.value);
-    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden };
-  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {} }; }
+    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden, anchos: p.anchos ?? {} };
+  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} }; }
 }
 
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
-/** `orden`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que quien no lo
- *  pase lo borra — por eso la página de Órdenes lo pasa en cada guardado, también al marcar una casilla. */
-export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}): Promise<boolean> {
+/** `orden` y `anchos`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que
+ *  quien no pase una mitad la borra — por eso la página de Órdenes escribe por un solo sitio, con las tres. */
+export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden }) }, { onConflict: "user_id,key" }).select("user_id");
+    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos }) }, { onConflict: "user_id,key" }).select("user_id");
     return !error && !!data && data.length === 1;
   } catch { return false; }
 }

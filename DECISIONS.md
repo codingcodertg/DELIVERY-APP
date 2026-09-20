@@ -21044,6 +21044,11 @@ automáticamente con el nombre de mi tienda cuando es intertienda»*.
 **Reemplaza en parte a D-302** (quién es «Vendido desde») **y a D-309** (la cuenta vuelve). Cada una
 lleva su nota dentro.
 
+> **⚠ Reemplazada en parte el 2026-09-19, por D-NEXT.** La cuenta de una Intertienda **deja de pintarse** en el formulario. El
+> dueño: *«account in intertienda is extra so remove it because is the same as a store destination»*. Se sigue GUARDANDO como
+> manda esta entrada —rellena sola con la tienda que recibe—, porque la leen la tabla, el manifiesto y el volante. Lo demás de
+> esta decisión sigue en pie: vende la tienda que manda. Esta nota se añade; el texto de abajo no se reescribe.
+
 ### Lo primero: la orden que reportó no estaba mal escrita
 
 La #252 estaba **exactamente** como mandaba D-302: `store` = Edinburg congelada, recogida = Pharr,
@@ -23361,4 +23366,83 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 - **Nada abierto en un navegador.** Desde la rama, ninguna llamada real a ningún proveedor de direcciones.
 - «First delivery in time window»: aparte, con propuesta.
 - El aviso de «orden creada» sigue diciendo «enviada a aprobación» cuando va a aprobación: el dueño habló del botón.
+
+## D-NEXT · El ancho de las columnas es de la persona; «Factura pendiente» es solo de facturas y empieza por la tienda propia; y la cuenta de una Intertienda deja de pintarse
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** Andrés, literal: «in sales view invoice is duplicated as its already visible with the id number» · «make it
+possible to resize columns and however it keeps that way it saves for ever» · «account in intertienda is extra so remove it because
+is the same as a store destination» · «in the invoice pending just to show invoice not po» · «en pending the store it shows first
+is the store you have assigned fyi».
+**No están aquí**, porque dos de ellas contradicen D-312 y se le preguntan al dueño citándola: «what store are you buying from»,
+«the pickup can't be same as store sold from intertienda» y «pickup shipping to be a dropdown of the stores».
+
+**Reemplaza en parte a D-312** (la cuenta de una Intertienda se enseñaba) **y afina D-310/D-313** (qué entra en la pestaña) **y
+D-330** (ventas sí guarda algo suyo: el ancho). D-312 lleva su nota dentro.
+
+### b · El ancho de las columnas, guardado por persona
+
+**Lo que pidió ya existía a medias, y eso es un dato:** las columnas de la tabla de Órdenes ya se arrastraban, con doble clic para
+restablecer (`use-col-widths.ts`). Lo que NO hacían era durar: el ancho vivía en `localStorage`, por navegador y no por persona.
+Si lo pidió como nuevo, es que además no encontraba el asa.
+
+- El ancho es la **tercera mitad** del mismo valor de `user_prefs` que ya guarda qué columnas se ven (D-330) y en qué orden
+  (D-332): `{ "<rol>": [...], "_orden": {...}, "_anchos": { "<rol>": { "<columna>": px } } }`. **Sin migración:** la clave
+  `order_columns` ya está permitida (137).
+- **Para todos los roles, ventas incluida.** Ventas no elige QUÉ columnas ve —eso es de Ajustes (D-330)—, pero el ancho es de cada
+  persona. La RLS de la 136 es por `user_id`, sin rol; lo que dejaba fuera a ventas era el validador de las otras dos mitades, así
+  que esta tiene el suyo. Por eso la página de Órdenes ahora lee la base también para ventas, solo por el ancho.
+- **La lección de `_orden`, otra vez:** la fila se escribe ENTERA, así que quien no pasa una mitad la borra. La página escribía por
+  tres sitios; ahora escribe por **uno solo** (`escribeLaFila`), con las tres mitades tal como están. Probado en los dos sentidos:
+  guardar anchos no borra visibles ni orden, y al revés, las seis combinaciones; y una prueba que enseña que sin pasarla SÍ se
+  borra.
+- Se guarda **al soltar**, no en cada píxel; doble clic restablece esa columna; mínimo 40 px (eran 16: una columna encogida a 16 px
+  no se puede volver a agarrar), máximo 800. Las claves que no son una columna de la tabla no se guardan.
+- **Semilla:** quien ya tenía anchos arrastrados en este navegador los conserva: se siembran una vez, con la misma regla que las
+  columnas — nunca durante una suplantación.
+- **Tope de la base:** `pg_column_size(value) < 8192`. Medido en prueba, en bytes de JSON: las tres mitades llenas para un rol, menos
+  de 1 KB; para los siete roles, menos de 4 KB. (`pg_column_size` mide el `jsonb` en disco, no el JSON; no es la misma cifra, y por
+  eso se exige margen y no «que quepa».)
+- **El asa se ve más:** más ancha, la raya se engorda al pasar, y dice «Arrastra para cambiar el ancho; doble clic para
+  restablecer». Las tablas del Gestor no cambian.
+- **No verificado: nada abierto en un navegador.** En particular, que los anchos de la base lleguen DESPUÉS de pintar y la tabla dé
+  un salto al cargar; y el tacto del asa.
+
+### a · Ventas y la factura repetida — cerrado un camino, pero NO encontrada la duplicación
+
+Medido: la celda `#` ya enseña «INV …». D-330 quitó «Factura #» del juego de partida de ventas. Quedaba un camino por el que podía
+volver: ventas no usa ese juego si un admin guardó una lista en Ajustes (`settings.sales_columns`). **Medido por el orquestador en
+producción el 2026-09-19: esa lista es NULL**, así que ese camino hoy no explica lo que ve el dueño. Se cierra igual
+(`columnasDeVentas`: se filtra al leer y Ajustes deja de ofrecer la casilla; la lista guardada no se toca), pero **no encontré
+dónde sale dos veces**: dentro de la celda hay dos copias del «INV» a propósito —una para móvil y otra para escritorio— y las
+reglas de CSS que las alternan son complementarias (≤640 px / ≥641 px). Hace falta una captura. La captura en línea de la factura
+que falta vive en la celda `#`, no en la columna: no se pierde.
+
+### e · La cuenta de una Intertienda ya no se pinta
+
+D-309 la quitó, D-312 la devolvió (de solo lectura, rellena con la tienda que recibe) y ahora se va de la pantalla otra vez. **Se
+sigue guardando igual**, derivada del destino: la leen la tabla, el Gestor, el mapa, el resumen diario, el manifiesto, el volante
+y los exportes. El riesgo que avisaba el propio código —la cuenta decide si la orden nace pendiente (D-292), y una cuenta que no se
+ve no se puede explicar— **hoy no existe**: medido por el orquestador el 2026-09-19, 0 cuentas se llaman como una tienda y 0 piden
+aprobación. Si algún día una cuenta se llama como una tienda, vuelve.
+
+### g · «Factura pendiente» es solo de facturas
+
+La pestaña contaba el documento PRINCIPAL de cada tipo que faltaba: la factura en una orden a cliente, el PO en una Intertienda.
+Ahora cuenta, enseña y exime de la ventana (D-313) solo lo que le falta **factura** (`facturaPendiente`). La pastilla «PO pendiente»
+de la FILA se queda, en las demás pestañas: es de la orden, no de la pestaña. **Consecuencia, aceptada:** una Intertienda entregada
+hace un mes sin PO deja de asomar por esa exención.
+
+### h · Primero, la tienda de quien mira
+
+La pestaña va agrupada por tienda (D-310). Ahora el primer grupo es el de la tienda de quien mira (`profiles.store`), luego las que
+además ve (`visible_stores`, en su orden), y luego el resto como siempre. Quien no tiene tienda lo ve como antes. Se agrupa por
+`store`, que en una Intertienda es la tienda que manda (D-312): eso no cambió.
+
+### Mutantes
+
+40, leídos por nombre —qué prueba cae con cada uno—; caen los 40, cada uno con la prueba que lo nombra. Los que importan: «la
+página escribe sin los anchos», «guardaColumnas no pasa los anchos» y «…no pasa el orden» (las mitades que se pisan); «ventas no
+guarda su ancho»; «siembra anchos durante una suplantación»; «guarda en cada píxel»; «la pestaña cuenta cualquier documento»; y
+«el orden de siempre», que cae porque en la prueba la tienda propia NO es la primera por nombre.
 

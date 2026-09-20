@@ -247,8 +247,9 @@ describe("el formulario", () => {
     expect(tramo).toContain('<input value={d.pickup_address ?? ""} disabled');
   });
 
-  it("la cuenta se enseña y no se teclea en un movimiento entre tiendas", () => {
-    expect(modal).toContain('<input value={d.account ?? ""} disabled placeholder={t("the destination store", "la tienda destino")} />');
+  it("la cuenta de un movimiento entre tiendas ya NO se pinta (D-NEXT); se sigue guardando, derivada del destino", () => {
+    expect(modal).not.toContain('value={d.account ?? ""}');
+    expect(modal).not.toContain('"the destination store"');
   });
 
   it("la dirección de entrega sale de la tienda elegida y no se escribe", () => {
