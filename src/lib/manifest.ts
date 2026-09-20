@@ -1,6 +1,7 @@
 import type { Delivery, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { orderLabel } from "@/lib/utils";
+import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 // ============================================================
 // Printable route manifest / driver day-sheet. Takes a driver's ordered stops
@@ -26,7 +27,9 @@ export function printRouteManifest(
     const addr = d.delivery_address || "";
     const contact = [d.account, d.contact].filter(Boolean).join(" · ");
     const meta = [
-      d.invoice_num ? `${T("Inv", "Fact")} #${esc(d.invoice_num)}` : "",
+      // Todas las facturas (D-339): el manifiesto es papel para entregar, y el chofer tiene que
+      // poder casar lo que lleva con lo que le firman.
+      facturasDeLaOrden(d).length ? `${T("Inv", "Fact")} #${esc(facturasDeLaOrden(d).join(", "))}` : "",
       d.order_type ? esc(d.order_type) : "",
       d.store ? `${T("from", "de")} ${esc(d.store)}` : "",
     ].filter(Boolean).join(" · ");

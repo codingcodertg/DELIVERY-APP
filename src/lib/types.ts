@@ -129,6 +129,16 @@ export interface Delivery {
   po2: string | null;
   so_num: string | null;
   invoice_num: string | null;
+  /**
+   * Las facturas **añadidas después** de crear la orden (D-339, migración 138): el cliente pidió
+   * más material y va en el mismo envío. `invoice_num` sigue siendo «la» factura y no cambia de
+   * significado — la leen trece sitios—; esta lista va aparte y solo crece.
+   *
+   * En la base es `not null default '{}'`, así que nunca llega nula desde Postgres. Se tipa
+   * tolerante igualmente porque el proveedor local de demostración y las filas cacheadas de antes
+   * de la migración sí pueden no traerla, y `facturasDeLaOrden` es quien lo resuelve en un sitio.
+   */
+  invoices_extra?: string[] | null;
   /** Internal reference for store-to-store moves (Transfer): an estimate #
    * instead of a customer invoice / PO / SO. */
   estimate_num: string | null;

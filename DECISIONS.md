@@ -23446,3 +23446,174 @@ página escribe sin los anchos», «guardaColumnas no pasa los anchos» y «…n
 guarda su ancho»; «siembra anchos durante una suplantación»; «guarda en cada píxel»; «la pestaña cuenta cualquier documento»; y
 «el orden de siempre», que cae porque en la prueba la tienda propia NO es la primera por nombre.
 
+## D-339 · Ventas agrega material a una orden ya hecha: más facturas y más pallets
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
+`138_agregar_material.sql`, **escrita y NO aplicada** — la ensaya y la aplica el orquestador, y va
+**antes** que el código. **Plan en papel:** `docs/PLAN-138-agregar-material.md`.
+**Pedido por un vendedor**, literal: *«A veces agendo un Delivery pero luego el cliente me solicita
+más material. Para enviarlo con el mismo envío quiero que agregues la opción de "editar" pero no voy
+a poder editar sino que voy a poder agregar más facturas e incrementar # de Pallets»*.
+
+### Dos cosas, y solo esas dos
+
+Un botón **«➕ Agregar material»** en su orden, con un diálogo de dos campos: **una factura más** y
+**los pallets en total**. No es «editar la orden»: ni cambiar ni quitar facturas, ni bajar pallets,
+ni tocar dirección, fecha o tarifa. Lo dice la pantalla y **lo hace cumplir el guard de la base**,
+que es lo que importa cuando alguien llega por otro camino.
+
+Los pallets se teclean como **total**, no como «cuántos sumo»: es como lo dice quien lo mira, y evita
+la pregunta de si el 2 son los nuevos o los de todos.
+
+### `invoice_num` no se toca, y esa es la decisión de diseño
+
+La factura de una orden es **un solo texto** y la leen trece sitios: comprobante, hoja de carga,
+manifiesto, la columna y el agrupado de la tabla, el documento que exige el tipo, la pestaña «Factura
+pendiente» (D-338), la captura desde la fila (D-310), el control de duplicados, la búsqueda, el CSV,
+duplicar, las cuatro pantallas y la API del plan de ruta.
+
+**Meter varios números con comas ahí los rompe a todos en silencio**, y eso es lo peor: ninguno
+falla, todos funcionan mal. `facturaComparable("1234, 5678")` deja de casar con `"1234"`, así que el
+control de duplicados se apaga; la pestaña de factura pendiente da la orden por resuelta; el
+comprobante imprime un churro; agrupar por factura inventa un grupo por cada combinación.
+
+Así que las añadidas van en una columna nueva, **`invoices_extra text[] not null default '{}'`**, y
+`invoice_num` sigue significando exactamente lo mismo. Quien debe enseñarlas todas lo hace por **un
+solo** helper, `facturasDeLaOrden`.
+
+**Se descartó una tabla hija `order_invoices`.** Es lo correcto en un modelo relacional y es lo que
+haría falta el día que una factura lleve importe o fecha propios. Hoy no: la app lee `deliveries`
+como **un array plano**, y una tabla hija obliga a su propia RLS, su propia carga y un join en la
+consulta más leída. El helper es justo el sitio por donde se cambiaría sin tocar las trece lecturas.
+
+### Quién enseña todas, y quién sigue con la de siempre
+
+| Enseña todas | Sigue con `invoice_num` |
+|---|---|
+| la ficha de la orden (fila «Facturas agregadas», solo si hay) | la columna «Factura #» y el agrupado de la tabla |
+| el comprobante de entrega y la hoja de carga | el documento que exige el tipo (`order-document`) |
+| el manifiesto | la pestaña «Factura pendiente» (D-338) y la captura desde la fila |
+| «Mi ruta» del chofer | |
+
+**La búsqueda sí encuentra una añadida**: quien teclea un número no sabe si fue la primera o la
+segunda, y no encontrarla se lee como que la orden no existe.
+
+El criterio no es estético: **enseñan todas los sitios que una persona usa para PREPARAR o
+ENTREGAR**. Cambiar la tabla o la pestaña movería lo que significa «la factura de la orden» para la
+columna, el agrupado y la regla del documento, y eso no lo pidió nadie.
+
+### Hasta `fulfilling`, y no más allá
+
+Se puede en **`pending`, `approved` y `fulfilling`**. Desde **`ready`** no, y el mensaje manda llamar
+a almacén. Tres medidas lo sostienen, y la primera es la que decide:
+
+1. **Desde `ready` el cambio sería invisible.** Almacén confirma `actual_pallets` al marcar listo, y
+   **todo** lo que cuelga de los pallets lee `actual_pallets ?? est_pallets` —medido en `analytics`
+   (×4), `dispatch` (×4), `manifest`, `slip`, `daily-summary`, `ruta-del-dia`, `secuencia-pd`,
+   `one-tap-stop`, `route-plan/entrada` y las tarjetas—. Subir el estimado no movería nada. Dejar
+   hacer algo que no hace nada es peor que no dejarlo.
+2. **Ensuciaría una métrica.** `analytics.ts:354` cuenta «carga corta» cuando `actual < est`: subir
+   el estimado después de que almacén contó convierte una carga normal en una corta, en el panel.
+3. **El Gestor todavía planifica `ready`** (`ETAPAS_RUTEABLES`), así que ahí también tocaría una ruta.
+
+### Qué cuelga de los pallets, medido
+
+- **La tarifa NO depende de ellos.** `suggestDeliveryFee` es función de millas, zona y fecha. Nada
+  que hacer.
+- **Las duraciones SÍ**, y era fácil olvidarlo: `pickup_duration` y `delivery_duration` son
+  `pallets × minutos-por-pallet` y hasta hoy solo se recalculaban al guardar el formulario. **Van en
+  la misma escritura**, y por eso el guard las deja pasar.
+- **Un borrador de ruta sin publicar se negará a publicarse**, y está bien. `publish_route_plan`
+  (`133_route_plans.sql:348-362`) compara el `updated_at` de cada orden con el de la foto y levanta
+  `ROUTE_PLAN_STALE` con motivo `cambio`. El plan se calculó con los pallets de antes.
+- **Un plan YA publicado no se entera**, porque esa comprobación corre al publicar.
+- **La capacidad del camión tampoco avisa.** `assignmentWarnings` se recalcula en vivo **solo para la
+  orden seleccionada en el mapa** (`map/page.tsx:299`): no hay distintivo en la lista, ni en el
+  Gestor, ni campana. **Subir pallets puede desbordar un camión asignado y la app calla.** No se
+  arregla aquí —re-comprobar la capacidad del día es otro trabajo, con su propia decisión sobre
+  dónde se enseña—, pero queda dicho, y el evento y el aviso a almacén son lo que hay mientras tanto.
+
+### La orden NO vuelve a pendiente
+
+El material es del mismo cliente y del mismo envío; devolverla a `pending` la sacaría de la cola de
+almacén, que es lo contrario de lo que se pide. Lo que queda es el **rastro**: un evento con la etapa
+actual y una nota legible — *«Ventas agregó la factura F-9 y subió los pallets de 4 a 6»*—, que dice
+**desde** qué número, o dentro de una semana nadie sabrá si los 6 son los de siempre.
+
+Y si la orden ya está en **`fulfilling`** —almacén la agarró—, se le avisa por la **campana**, una
+notificación por persona de almacén. **Sin SMS ni correo.** En `pending` y `approved` no hace falta:
+la orden todavía no es de nadie y el evento se ve al abrirla.
+
+### Lo que hace cumplir la base (migración 138)
+
+Una columna y **un bloque nuevo** en `guard_delivery_stage`, partiendo de su definición **vigente**,
+que es la de la **127** — `create or replace` reemplaza la función entera, y copiar de una versión
+vieja borra en silencio lo que vino después. Van en la **misma** migración: una columna que el guard
+no nombra es una columna que cualquiera con el módulo escribe a su gusto (la lección de la 131).
+
+El bloque es el mismo patrón que el de la 125: se construye una copia de `NEW`, se le devuelven a
+`OLD` las columnas permitidas, y **si el resto no es idéntico, no pasa**. Las permitidas son cuatro
+—`invoices_extra`, `est_pallets` y las dos duraciones— más `updated_at`. Y exige: la lista solo
+crece y con el prefijo intacto; los pallets solo suben; **≤ 20 facturas, cada una ≤ 40 caracteres y
+sin blancos**; y que algo cambie de verdad.
+
+**Lo que NO entra en el guard es la normalización** de los números (espacios, `#`, mayúsculas). Eso
+vive en `facturaComparable`, en el cliente, y meterla también aquí sería una segunda definición de
+«la misma factura» que acabaría discrepando de la primera.
+
+### Los duplicados: uno para, el otro avisa
+
+Repetir una factura **en la misma orden** impide guardar: es siempre un error de dedo. Que el número
+esté **en otra orden** solo avisa — cuando un cliente pide más material lo normal es que la factura
+nueva sea suya—.
+
+### Medido en producción antes de construir (por el orquestador, 2026-09-19, solo lectura)
+
+- **Los idiomas de array del guard funcionan**: `('{}'::text[])[1:0] is not distinct from '{}'` → true,
+  `(array['a','b'])[1:1]` → `array['a']`, `(array['a','b'])[1:0]` → `'{}'`,
+  `coalesce(array_length('{}',1),0)` → 0.
+- **15 órdenes ya llevan varios números metidos a mano en `invoice_num`** —separadores `,` `;` `/`
+  `+`, «y», «and»—, **2 de ellas vivas**. **No se migran y no se tocan**, y `facturasDeLaOrden` no
+  presume que `invoice_num` sea un solo número: lo enseña tal cual. Partirlo inventaría datos.
+
+### Medido, rompiendo cada pieza
+
+19 cambios: **19 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El permiso sin mirar de quién es la orden; el permiso dejando pasar `ready`; cualquier rol; la
+  repetida que deja de avisar; el tope que desaparece; la factura que **pisa** las que había en vez
+  de añadirse; los pallets que pueden bajar; las duraciones que se quedan viejas; la escritura que se
+  lleva por delante `invoice_num`; la nota sin el número de antes; el guard dejando encoger la lista,
+  bajar los pallets, perder el tope, pasar una quinta columna o abrir `ready`; el proveedor sin
+  `.select("id")`; el aviso a almacén en cualquier etapa; la búsqueda que deja de encontrar una
+  añadida; y la tabla enseñándolas todas, que es justo lo que **no** se pidió.
+- **El gemelo:** `facturasDeLaOrden` escrita con un bucle indexado en vez de un `for…of`.
+
+**Un mutante sobrevivió a la primera vuelta, y era una prueba floja mía:** el guard perdiendo el tope
+(`<= 20` → `<= 2000`). La prueba comparaba el fragmento `"<= 20"`, y `"<= 2000"` lo contiene. Ahora
+cita la cláusula entera.
+
+**Y dos canarios míos de D-313 saltaron**, que es exactamente para lo que estaban: fijaban que la
+**127** era la última migración que define el guard. Ya no lo es. Se rehicieron **al revés y mejor**:
+en vez de `conGuard.at(-2)` —que valía solo mientras la 127 fuera la última— buscan **la
+inmediatamente anterior a la 127 en la lista**, que es el patrón que ya usaban los bloques de la 123
+y la 125. Lo de «cuál es la vigente» pasa a fijarlo la prueba de la 138.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. Y
+`node scripts/decisions-check.mjs`, por la regla de D-319.
+
+### Lo no verificado
+
+- **La migración no está aplicada.** La matriz de **quince** casos con `ROLLBACK` está al final del
+  `.sql` y la corre el orquestador. Escribir el guard leyendo la 127 no es haberlo probado: así pasó
+  lo del `::text[]` de la 131, que reventó al aplicarse y no al leerse.
+- **Nadie lo ha abierto en un navegador.** En particular, «Mi ruta» pinta ahora todas las facturas en
+  la etiqueta de la parada, y con tres o cuatro esa etiqueta es más larga que antes.
+- **La notificación a almacén no está medida.** `pushNotifs` manda el error a `console.error` y
+  devuelve `void` — ahí se perdieron las de «orden asignada» durante meses (D-308). Se cuenta en
+  `notifications` después de aplicar; el orquestador lo hará.
+- **Las dos órdenes vivas con varios números a mano en `invoice_num`** enseñarán «F-1, F-9» como una
+  sola factura. Es correcto y deliberado, pero conviene saberlo antes de que alguien lo reporte.
+- **Las mediciones de producción son del orquestador, no mías.** Una rama no toca la base.

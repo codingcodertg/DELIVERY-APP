@@ -29,6 +29,7 @@ import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
+import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -105,6 +106,11 @@ export interface DataState {
   updateDelivery: (id: string, patch: Partial<Delivery>, opts?: { quiet?: boolean }) => Promise<boolean>;
   /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-310). */
   ponerDocumento: (id: string, campo: CampoDeDocumento, valor: string) => Promise<boolean>;
+  /**
+   * Ventas agrega material a su orden (D-339): una factura más y/o más pallets, en UNA escritura.
+   * Deja el evento con la nota y, si la orden ya está en preparación, avisa a almacén.
+   */
+  agregarMaterial: (id: string, parche: EscrituraDeMaterial, nota: string) => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every
    * write lands, so a realtime refetch can't interleave and snap stops back to
@@ -1085,6 +1091,43 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, logEvent, teaching, deliveries, updateDelivery],
   );
 
+  /**
+   * Ventas agrega material a su orden (D-339, migración 138).
+   *
+   * Camino propio y no `updateDelivery`, por lo mismo que `ponerDocumento`: el guard solo deja pasar
+   * esta escritura si lo ÚNICO que cambia es lo permitido —facturas, pallets y las dos duraciones—,
+   * y un sello de más la convierte en un rechazo. Y con `.select("id")`, que es la lección de D-310:
+   * un UPDATE que la RLS deja en cero filas vuelve sin error y parecería guardado.
+   *
+   * El aviso a almacén va **solo en `fulfilling`**: antes de eso la orden todavía no es de nadie y
+   * el evento se ve al abrirla. Sin SMS ni correo.
+   */
+  const agregarMaterial = useCallback<DataState["agregarMaterial"]>(
+    async (id, parche, nota) => {
+      if (!Object.keys(parche).length) return false;
+      const antes = deliveries.find((c) => c.id === id);
+      if (teaching) {
+        const ok = await updateDelivery(id, parche);
+        if (ok && nota) await logEvent(id, antes?.stage ?? "edited", nota);
+        return ok;
+      }
+      const { data, error } = await supabase.from("deliveries").update(parche).eq("id", id).select("id");
+      const fallo = falloAlGuardarDocumento(error, data);
+      if (fallo) { notify("Error: " + fallo); return false; }
+      setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...parche } : c)));
+      if (nota) await logEvent(id, antes?.stage ?? "edited", nota);
+      // Almacén ya la agarró: se le dice, o se entera cuando abra la orden y ya haya cargado.
+      if (antes?.stage === "fulfilling") {
+        await pushNotifs(users.filter((u) => u.role === "warehouse" && u.id !== me?.id).map((u) => ({
+          user_id: u.id, delivery_id: id, order_no: antes.order_no ?? null,
+          kind: "material_added", message: nota,
+        })));
+      }
+      return true;
+    },
+    [supabase, notify, logEvent, teaching, deliveries, updateDelivery, pushNotifs, users, me],
+  );
+
   // Renumber a route's stops in one shot. The local order is applied FIRST and
   // a write-guard blocks realtime refetches until every row has landed, so the
   // reorder can't be undone mid-flight by a refetch reading a partially
@@ -1774,7 +1817,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

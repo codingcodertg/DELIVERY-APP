@@ -410,6 +410,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     addDelivery, updateDelivery,
     // El demo local no tiene base que rechace nada: el documento en fila es una edición más.
     ponerDocumento: (id, campo, valor) => updateDelivery(id, { [campo]: valor.trim() }),
+    // El demo local no tiene guard que rechace nada ni almacén a quien avisar: agregar material es
+    // una edición más, con su nota en el historial.
+    agregarMaterial: async (id, parche, nota) => {
+      const ok = await updateDelivery(id, parche);
+      if (ok && nota) addNote(id, nota);
+      return ok;
+    },
     reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
