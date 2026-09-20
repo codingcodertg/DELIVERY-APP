@@ -39,8 +39,10 @@ import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
-import type { AccountRecord, CustomerType, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
-import { TIPOS_DE_CLIENTE, esTipoDeCliente, parcheDeTipoDeCliente, tipoDeClienteDeLaOrden } from "@/lib/customer-type";
+import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
+import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
+import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
+import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
@@ -157,7 +159,6 @@ export function OrderModal({
   // enciende el aviso del chofer («se marcó un pin exacto para este sitio, Navegar usa el pin»)
   // sobre un punto que salió justamente de la dirección.
   const [pinDraftSource, setPinDraftSource] = useState<PinSource | null>(null);
-  const [pinLookupBusy, setPinLookupBusy] = useState(false);
   // After a successful delivery we keep the modal open on a success screen so the
   // driver can print the slip; holds the fully-updated (delivered) order.
   const [justDelivered, setJustDelivered] = useState<Delivery | null>(null);
@@ -316,18 +317,9 @@ export function OrderModal({
   // Sharing an invoice across deliveries (one invoice, several drops) is
   // intentional — set when the rep links a past order's invoice, so the
   // duplicate-invoice guard doesn't fight it. Cleared on a manual edit.
+  // Ocupado mientras el pin soltado busca su dirección (`geocodePin`).
+  const [pinLookupBusy, setPinLookupBusy] = useState(false);
   const [sharedInvoice, setSharedInvoice] = useState(false);
-  // Past orders' invoices the rep can optionally attach this delivery to (most
-  // recent first, one entry per distinct invoice).
-  const pastInvoiceOptions = useMemo(() => {
-    const seen = new Set<string>();
-    return deliveries
-      .filter((x) => x.id !== existing?.id && x.stage !== "canceled" && !!(x.invoice_num || "").trim())
-      .sort((a, b) => b.order_no - a.order_no)
-      .filter((x) => { const inv = x.invoice_num!.trim().toLowerCase(); if (seen.has(inv)) return false; seen.add(inv); return true; })
-      .slice(0, 100)
-      .map((x) => ({ invoice: x.invoice_num!.trim(), label: `${x.invoice_num} · #${orderLabel(x)}${x.account ? ` · ${x.account}` : ""}` }));
-  }, [deliveries, existing?.id]);
 
   // Local-zone pricing suggestion for the edit form (fee by miles).
   // Only ever a SUGGESTION: the fee stays blank until the rep picks List or
@@ -529,9 +521,9 @@ export function OrderModal({
   const save = async () => {
     const payload = {
       ...withDurations(d),
-      // Builder o mostrador (D-316). Solo si la base ya tiene la columna: las migraciones se aplican
+      // Builder o mostrador (D-316; desde D-NEXT lo decide la cuenta). Solo si la base ya tiene la columna: las migraciones se aplican
       // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
-      ...parcheDeTipoDeCliente(d, settings.order_type_rules, settings.accounts, deliveries),
+      ...parcheDeTipoDeCliente(d, settings.order_type_rules, deliveries),
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
       // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
       ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
@@ -683,23 +675,6 @@ export function OrderModal({
     setShowPinPicker(false);
     // Fill the address if the drop didn't already (e.g. geocode was still in flight).
     if (!(d.delivery_address || "").trim()) await geocodePin(lat, lng);
-  };
-
-  // Look up the typed delivery address on the map so the rep can confirm the
-  // exact spot before pricing/dispatch — geocodes it and opens the map there.
-  const lookupAddress = async () => {
-    const addr = (d.delivery_address || "").trim();
-    if (!addr) { notify(t("Enter a delivery address first.", "Ingrese primero una dirección de entrega.")); return; }
-    setPinLookupBusy(true);
-    try {
-      const res = await fetch("/api/geocode-point", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr }) });
-      const body = await res.json();
-      if (res.ok && body.lat != null) { setPinDraft([body.lat, body.lng]); setPinDraftSource("geocoded"); setShowPinPicker(true); }
-      else notify(t("Couldn't find that address on the map — check it or drop a pin.", "No se encontró esa dirección en el mapa — revísela o marque un pin."));
-    } catch {
-      notify(t("Network error looking up the address.", "Error de red al buscar la dirección."));
-    }
-    setPinLookupBusy(false);
   };
 
   // Auto-calculate the route as soon as both ends of the trip are known.
@@ -1647,11 +1622,9 @@ export function OrderModal({
               placeholder={t("Search the address…", "Buscar la dirección…")}
             />
 
-            {/* Confirm the address on the map (look it up) or drop an exact pin. */}
+            {/* El punto exacto, soltando un pin. «Buscar dirección en el mapa» se quitó (D-NEXT): la dirección se ubica sola al
+                guardar (`geocode-on-save`), y hasta entonces la zona sale de la ciudad, salvo que se suelte el pin. */}
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 4, marginBottom: showPinPicker ? 8 : 0 }}>
-              <button className="btn btn-ghost btn-sm" disabled={!salesFields || pinLookupBusy} onClick={lookupAddress}>
-                🔎 {t("Look up address on map", "Buscar dirección en el mapa")}
-              </button>
               <button className="btn btn-ghost btn-sm" disabled={!salesFields} onClick={() => {
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
@@ -1782,10 +1755,9 @@ export function OrderModal({
                       />
                       🔗 {t("Same invoice as a past order", "Misma factura que una orden anterior")}
                     </label>
-                    {sharedInvoice && pastInvoiceOptions.length > 0 && (
-                      <PastInvoicePicker
-                        options={pastInvoiceOptions}
-                        current={d.invoice_num ?? ""}
+                    {sharedInvoice && (
+                      <BuscaFactura
+                        busca={(n) => ordenConEsaFactura(deliveries, n, existing?.id)}
                         onPick={(inv) => setD((p) => ({ ...p, invoice_num: inv }))}
                         t={t}
                       />
@@ -1856,7 +1828,9 @@ export function OrderModal({
             <div className="grid g3">
               <AccountCombo
                 val={d.account}
-                on={(v) => {
+                on={(elegida) => {
+                  // «Venta al mostrador» se guarda SIEMPRE con la misma cadena, se teclee como se teclee (D-NEXT).
+                  const v = esCuentaDeMostrador(elegida) ? CUENTA_DE_MOSTRADOR : elegida;
                   // Picking an account pre-fills who to contact there, the phone,
                   // the usual delivery address and the order type (all still
                   // editable). A SAVED account uses its stored record; any other
@@ -1872,8 +1846,10 @@ export function OrderModal({
                     const withAcct: Draft = {
                       ...p,
                       account: v,
-                      contact: rec ? rec.contact : (past?.contact ?? p.contact),
-                      delivery_phone: rec ? rec.phone : (past?.delivery_phone ?? p.delivery_phone),
+                      // Mostrador: vacíos, para teclear los del cliente de paso; nunca los de la última orden (D-NEXT).
+                      ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),
+                      // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-NEXT).
+                      customer_type: tipoDeClientePorDefecto(v),
                       // Do NOT auto-fill the delivery address — the rep picks the
                       // right site from this customer's saved sites (populated
                       // below), since a customer can have several drop-offs.
@@ -1891,7 +1867,7 @@ export function OrderModal({
                   });
                   // Save this customer's known delivery addresses as sites so the
                   // rep can pick one (a nameless site uses the address as its name).
-                  if (v.trim() && !isIntertienda) {
+                  if (laCuentaRecuerda(v) && !isIntertienda) {
                     const addrs = new Set<string>();
                     if (fillAddr) addrs.add(fillAddr);
                     for (const x of deliveries) {
@@ -1906,6 +1882,7 @@ export function OrderModal({
                   }
                 }}
                 options={accountOptions}
+                fija={{ valor: CUENTA_DE_MOSTRADOR, etiqueta: t(CUENTA_DE_MOSTRADOR_EN, CUENTA_DE_MOSTRADOR) }}
                 disabled={!salesFields}
                 placeholder={t("Select account…", "Seleccione cuenta…")}
                 t={t}
@@ -1913,22 +1890,7 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
-            {/* Builder o mostrador (D-316). El dueño: «se marca en cada orden», con la cuenta como valor por
-                defecto. Nunca nace vacío: Builder si la cuenta guardada lo es; Mostrador si no, también sin
-                cuenta. El motor de rutas da prioridad a los builders. */}
-            {esTipoDeCliente(d.order_type, settings.order_type_rules) && (
-              <div className="field" style={{ maxWidth: 260, marginBottom: 10 }}>
-                <label>{t("Customer type", "Tipo de cliente")}</label>
-                <select
-                  value={tipoDeClienteDeLaOrden(d, settings.order_type_rules, settings.accounts) ?? "counter_sale"}
-                  disabled={!salesFields}
-                  onChange={(e) => set("customer_type", e.target.value as CustomerType)}
-                >
-                  {TIPOS_DE_CLIENTE.map((o) => <option key={o.key} value={o.key}>{t(o.en, o.es)}</option>)}
-                </select>
-              </div>
-            )}
-            {salesFields && !!d.account?.trim() && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
+            {salesFields && laCuentaRecuerda(d.account) && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
               !savedAccounts.some((a) => a.name.toLowerCase() === d.account!.trim().toLowerCase() && a.contact === d.contact && a.phone === d.delivery_phone
                 && (a.address ?? "") === (storeToStore ? (a.address ?? "") : (d.delivery_address ?? ""))) && (
                 <button
@@ -2063,7 +2025,7 @@ export function OrderModal({
             ) : (
             <div className="grid g2">
               <LocationCombo
-                nameLabel={t("Pickup Name", "Nombre de Recolección")}
+                nameLabel={t("Pickup warehouse", "Almacén de recolección")}
                 addressLabel={t("Pickup Address", "Dirección de Recolección")}
                 name={d.pickup_name}
                 address={d.pickup_address}
@@ -2450,7 +2412,7 @@ export function OrderModal({
                       cuentaPideAprobacion,
                       intertiendaSinPo: intertiendaNeedsPo,
                     })
-                      ? t("Submit for approval", "Enviar a aprobación")
+                      ? t("Create (goes to approval)", "Crear (va a aprobación)")
                       : ordersLikeOfficeManager(me.role)
                         ? t("Create order (approved)", "Crear orden (aprobada)")
                         : t("Create (auto-approved)", "Crear (auto-aprobada)")}</button>
@@ -2719,47 +2681,35 @@ export function OrderModal({
   );
 }
 
-/** Searchable picker of past orders' invoices. Type to filter by invoice #,
- * order id or account; click a match to attach this delivery to that invoice. */
-function PastInvoicePicker({ options, current, onPick, t }: {
-  options: { invoice: string; label: string }[];
-  current: string;
+/** «Misma factura»: se teclea el número COMPLETO y se busca con la lupa (o Enter). No enseña ninguna factura ajena mientras
+ *  se escribe; qué casa lo decide `ordenConEsaFactura` (D-NEXT). */
+function BuscaFactura({ busca, onPick, t }: {
+  busca: (numero: string) => Delivery | null;
   onPick: (invoice: string) => void;
   t: (en: string, es: string) => string;
 }) {
   const [q, setQ] = useState("");
-  const needle = q.trim().toLowerCase();
-  const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+  // `undefined`: todavía no se ha buscado. `null`: se buscó y no hay ninguna.
+  const [hallada, setHallada] = useState<Delivery | null | undefined>(undefined);
+  const buscar = () => {
+    if (!q.trim()) return;
+    const o = busca(q);
+    setHallada(o);
+    if (o?.invoice_num) onPick(o.invoice_num.trim());
+  };
   return (
     <div style={{ marginTop: 6 }}>
-      <input
-        placeholder={t("Search invoice, order or account…", "Buscar factura, orden o cuenta…")}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
-      <div style={{ maxHeight: 170, overflowY: "auto", border: "1px solid var(--panel-line)", borderRadius: 8, marginTop: 6 }}>
-        {filtered.length === 0 ? (
-          <div className="hint" style={{ padding: 8 }}>{t("No matching past invoices.", "Sin facturas anteriores coincidentes.")}</div>
-        ) : (
-          filtered.slice(0, 50).map((o) => {
-            const picked = o.invoice === current;
-            return (
-              <button
-                key={o.invoice}
-                type="button"
-                onClick={() => onPick(o.invoice)}
-                style={{
-                  display: "block", width: "100%", textAlign: "left", padding: "7px 10px",
-                  background: picked ? "var(--accent)" : "transparent", color: picked ? "#fff" : "inherit",
-                  border: "none", borderBottom: "1px solid var(--row-line)", cursor: "pointer", fontWeight: picked ? 700 : 400,
-                }}
-              >
-                {picked ? "✓ " : ""}{o.label}
-              </button>
-            );
-          })
-        )}
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          placeholder={t("Full invoice number…", "Número de factura completo…")}
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setHallada(undefined); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscar(); } }}
+        />
+        <button type="button" className="btn btn-ghost btn-sm" disabled={!q.trim()} onClick={buscar} aria-label={t("Search", "Buscar")} title={t("Search", "Buscar")}>🔍</button>
       </div>
+      {hallada === null && <div className="hint" style={{ marginTop: 4 }}>{t("No order has that exact invoice number.", "Ninguna orden tiene exactamente ese número de factura.")}</div>}
+      {hallada && <div className="hint" style={{ marginTop: 4 }}>✓ {t("Found", "Encontrada")}: #{hallada.invoice_num} · #{orderLabel(hallada)}{hallada.account ? ` · ${hallada.account}` : ""}</div>}
     </div>
   );
 }
@@ -3522,9 +3472,11 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid }: 
  * se llama SOLO al confirmar —clic en una sugerencia, Enter o salir del campo—, nunca por tecla. Qué
  * se confirma lo decide `decisionAlConfirmar`, que es lo que se prueba importado.
  */
-function AccountCombo({ val, on, options, disabled, placeholder, t }: {
+function AccountCombo({ val, on, options, fija, disabled, placeholder, t }: {
   val: unknown; on: (v: string) => void;
   options: string[]; disabled?: boolean; placeholder?: string;
+  /** Una opción que está SIEMPRE a mano, fuera de la lista: «Venta al mostrador» (D-NEXT). */
+  fija?: { valor: string; etiqueta: string };
   t: (en: string, es: string) => string;
 }) {
   const current = (val as string) ?? "";
@@ -3564,7 +3516,6 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
         value={texto}
         disabled={disabled}
         placeholder={placeholder ?? t("Type to search or add…", "Escriba para buscar o agregar…")}
-        onFocus={() => setAbierto(true)}
         onChange={(e) => { setTexto(e.target.value); setAbierto(true); setActivo(-1); }}
         onBlur={() => { if (abierto) confirmar(); }}
         onKeyDown={(e) => {
@@ -3596,6 +3547,13 @@ function AccountCombo({ val, on, options, disabled, placeholder, t }: {
             </li>
           ))}
         </ul>
+      )}
+      {fija && !disabled && (
+        <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 4 }} aria-pressed={esCuentaDeMostrador(current)}
+          // `mousedown`, como las sugerencias: el clic llegaría después del `blur` del input.
+          onMouseDown={(e) => { e.preventDefault(); elegir(fija.valor); }}>
+          {esCuentaDeMostrador(current) ? "✓ " : ""}{fija.etiqueta}
+        </button>
       )}
     </div>
   );

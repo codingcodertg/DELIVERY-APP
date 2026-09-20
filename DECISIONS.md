@@ -20103,6 +20103,11 @@ funcionado, pero deja las cuatro condiciones escritas a mano, que es lo que prod
 **Pedido por el dueño**, con captura: *«I wanted this field be a search bar that autopopulates
 automatically when you start typing, so it will be a search and dropdown in the same field»*.
 
+> **Afinada por D-NEXT (2026-09-19).** El dueño: *«cuentas shouldn't show you the list»*. El campo sigue siendo un solo control
+> que se escribe y sugiere, pero **ya no enseña la lista al enfocarlo ni con el campo vacío**: sugiere a partir de dos letras. Y
+> gana una opción fija, «Venta al mostrador». Lo demás de esta decisión sigue en pie. Esta nota se añade; el texto de abajo no se
+> reescribe.
+
 ### Qué estaba pasando
 
 D-299, de esta misma tarde, resolvió «la lista de cuentas ya no se busca» con **dos controles**: un
@@ -21816,6 +21821,14 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
 **Plan:** `docs/PLAN-128-130-motor-rutas-modelo.md` · **Diseño:** `docs/route-algorithm-design.md` (§6 y §11).
 **El Gestor de Rutas no cambia todavía:** esto guarda los datos que el motor va a necesitar.
 
+
+> **⚠ Reemplazada en parte el 2026-09-19, por D-NEXT.** Dos cosas de «builder o mostrador» dejan de valer: el tipo de cliente
+> **ya no se marca en cada orden** (se quitó el desplegable del formulario) y **la cuenta ya no se marca como builder en Datos**.
+> El dueño: *«en cuenta ahí se selecciona venta al mostrador y todo lo demás son builders»*. Ahora lo decide la cuenta: mostrador
+> solo con la opción fija «Venta al mostrador» del campo Cuenta; builder todo lo demás, también sin cuenta — justo al revés que el
+> defecto de esta entrada. `deliveries.customer_type`, la 129 y la prioridad del motor siguen en pie. Esta nota se añade; el texto
+> de abajo no se reescribe.
+
 ### Qué faltaba
 
 El motor (D-314) reparte las órdenes del día entre los choferes, pero tres cosas que necesita no estaban
@@ -23234,3 +23247,108 @@ La rama «manda el plan» (D-335) no cambia: exige que todas las órdenes casen 
 
 En «Mi ruta», la orden sin puesto de una ruta a medias se sigue viendo con su número de lista («3») junto a «D1, D2». No
 verificado en navegador.
+## D-NEXT · El formulario de orden, más limpio: la cuenta decide el tipo de cliente, «Venta al mostrador» es una opción fija, y la búsqueda de dirección mira a Texas
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** Andrés, nueve cambios de una vez, en sus palabras (mezcla idiomas): «buscar dirrecion en el mapa take that out
+doesnt do anything» · «put the search dirrecion scope in tx and even more on the area marked in the green» · «misma factura box,
+don't show options in the dropdown you must input a number to be search and the number must be complete to be able to be found so
+add a magnifier icon» · «cuentas shouldn't show you the list like misma factura» · «en cuenta ahi se seleciona venta al mostrador
+y todo lo demas son builders entonces quita el box de tipo de cliente del form» · «si se seleciona cuenta venta al mostrador nombre
+de contacto y telefono siempre sera vacio porque no es una cuenta son cuentas para los que son clientes walkin» · «en ves de enviar
+que diga crear» · «instead of nombre de recolecion dira almacen de recolecion» · «add delivery address column to sales people».
+El noveno —«first delivery in time window»— **no está aquí**: es ambiguo y va aparte, con propuesta.
+
+**Reemplaza en parte a D-316** (el tipo de cliente «se marca en cada orden» y la cuenta se marca como builder en Datos) **y afina
+D-305** (el campo Cuenta enseñaba la lista entera al enfocarlo). Las dos entradas llevan su nota dentro.
+
+### 1 · Fuera «Buscar dirección en el mapa»
+
+El botón geocodificaba lo tecleado y abría el mapa en ese punto. No era el único camino a unas coordenadas: **al guardar, toda
+orden con dirección y sin punto se ubica sola** (`geocode-on-save`, D-221), y si no se encuentra queda la nota y el evento
+`geocode_failed`. Lo que cambia de verdad: **dentro del formulario, antes de guardar, la zona y la tarifa sugerida salen de la
+ciudad de la dirección** salvo que se suelte un pin a mano. Ya era así para quien no pulsaba el botón. Se fue `lookupAddress`.
+**Se queda** `pinLookupBusy` y su «Buscando la dirección…»: dije que quedaría muerto y no: lo usa también el pin soltado a mano,
+que busca su dirección al revés. Se queda también la rama «por el punto que encontró la búsqueda»: un pedido ya guardado sigue
+pudiendo traer `delivery_pin_source = "geocoded"`.
+
+### 2 · El autocompletado busca en Texas, y antes en la zona verde
+
+Hasta ahora a los cuatro proveedores solo se les decía «Estados Unidos». «Lo verde» es `LOCAL_ZONE_DEFAULT` (D-219), el polígono
+que pintan los dos mapas; vive en el código, no en Ajustes. `src/lib/busqueda-de-direccion.ts`, puro:
+
+- **Texas es un límite; la zona verde, un sesgo** — hay entregas fuera de zona, con su tarifa, y tienen que poder buscarse.
+- La caja de la zona **se calcula del polígono**: si el contorno se mueve, la búsqueda lo sigue.
+- Places (New): `locationBias` con esa caja + filtro de Texas sobre el TEXTO de la sugerencia, que es lo único que Places da,
+  anclado al final («…, TX 78501, USA»): «Texarkana, AR» o una calle «TX-107» de otro estado no cuelan. Geocoding:
+  `components=administrative_area:TX` + `bounds`, y además filtro por el componente de estado. Mapbox: `bbox` de Texas +
+  `proximity` al centro de la zona, y filtro por la región `US-TX` del contexto. Nominatim: `viewbox` + `bounded=1` +
+  `addressdetails=1`, y filtro por `ISO3166-2-lvl4`.
+- Cada proveedor filtra SU respuesta; si no queda nada se pasa al siguiente, que filtra igual. **Nunca sale una dirección de otro
+  estado «por no dejarlo vacío».**
+- **No verificado con una llamada real** (una rama no gasta cuota): que Places no admita `locationBias` y `locationRestriction` a
+  la vez — por eso Texas es ahí un filtro y no un parámetro—, y la forma exacta de las respuestas. Las pruebas son sobre lo que se
+  pide y lo que se acepta, con respuestas inventadas. El orquestador lo mira con UNA llamada tras fusionar.
+- No se tocó `/api/geocode-point` (lo que ubica una orden al guardar): el dueño habló de la búsqueda.
+
+### 4 · «Misma factura»: el número completo, y una lupa
+
+Antes, al marcar la casilla salía una lista de hasta cien facturas de otras órdenes, con su cuenta. Ahora: un campo, un botón 🔍,
+y se busca **solo al pulsarlo o con Enter**. Casa el número ENTERO (sin importar mayúsculas, espacios ni el «#»); medio número no
+encuentra nada, a propósito. Da la orden más reciente que no esté anulada ni sea la que se edita; si no hay, lo dice.
+`src/lib/misma-factura.ts`. **No medido:** si las facturas reales llevan prefijos que alguien teclearía de otra forma.
+
+### 5 · Cuenta: no enseña la lista sin haber tecleado
+
+El campo ya no se abre al enfocarlo, y no sugiere hasta `LETRAS_PARA_SUGERIR` = 2 letras. La frase del dueño se cortó; el 2 es
+una constante con nombre. Lo tecleado que no está en la lista sigue siendo una cuenta manual (D-305).
+
+### 6 · «Venta al mostrador» es una opción fija del campo Cuenta; todo lo demás es builder
+
+**Medido por el orquestador en producción el 2026-09-19:** 4 cuentas guardadas, ninguna con `customer_type` ni de mostrador; de 94
+órdenes a cliente, 87 con `customer_type` null, 4 mostrador, 3 builder; 54 sin cuenta. La cuenta «Venta al mostrador» que describe
+el dueño **no existía como dato**, y no había forma de reconocerla salvo por nombre. Se descartó una casilla nueva en Datos: le
+obligaría a crear y marcar una cuenta el día del release, y hasta entonces todo nacería builder en silencio.
+
+- Un botón bajo el campo Cuenta. Guarda SIEMPRE la misma cadena, `CUENTA_DE_MOSTRADOR` —tabla y exportes enseñan `account` tal
+  cual—, se teclee como se teclee o en el idioma que sea. Es vocabulario de la app, no un dato del dueño.
+- Fuera el desplegable «Tipo de cliente» y la columna Builder de Datos. `customer_type` se sigue guardando, **derivado**:
+  mostrador con esa opción; builder con cualquier otra cuenta, texto libre o vacío. Cambia cuando cambia la cuenta.
+- **Las órdenes ya guardadas no se tocan.** Las que tienen tipo lo conservan; las 87 con null pasan de LEERSE mostrador a leerse
+  builder. Casi todas están entregadas, y el motor solo mira las ruteables.
+- **Una consecuencia que hay que decir:** con casi todo builder, la prioridad de builders del motor (D-316) deja de distinguir
+  entre ellos. Se vio en una prueba del motor cuya ruta cambiaba al cambiar el defecto; su escenario se fijó a mostrador.
+- En Datos no se puede guardar una cuenta con ese nombre: chocaría con la opción fija. La fila se descarta al guardar, sin aviso.
+
+### 7 · Con mostrador, contacto y teléfono nacen vacíos
+
+Cada orden de mostrador es de una persona distinta. Al elegirla, contacto y teléfono **se vacían** aunque vinieran de otra cuenta;
+**siguen siendo obligatorios** (el chofer necesita a quién llamar); no se rellenan con «la última orden de esa cuenta», que serían
+los datos de otro cliente; no se ofrece «💾 Guardar contacto + dirección de la cuenta»; y sus direcciones no pasan a ser sitios
+guardados de la cuenta — esto último no estaba en el encargo, era el mismo problema. `src/lib/cuenta-elegida.ts`.
+
+### 8, 9 y 10
+
+- **8.** En una orden NUEVA el botón dice «Crear (va a aprobación)»; los otros dos ya decían «Crear…». Enviar un borrador que ya
+  existe sigue siendo «Enviar a aprobación»: ahí no se crea nada. El «Post / Enviar» de la línea que citaba el encargo era el de
+  las notas privadas, y no se tocó.
+- **9.** «Almacén de recolección / Pickup warehouse» en el formulario, en la lista de lo que falta, en la vista de la orden y en
+  el volante. **La cabecera del CSV sigue siendo «Pickup Name»**: es el contrato de importar y exportar.
+- **10.** La columna «Dirección de entrega» ya existía para todos; faltaba en el juego de partida de ventas. Ventas no elige
+  columnas (D-330), así que la ven todos desde el release. Ojo con D-281 (la tabla de ventas salía recortada): ventas pasa de 5 a 6 columnas, y esta es
+  ancha. **No verificado en un navegador.**
+
+### Mutantes
+
+48, leídos por nombre —qué prueba cae con cada uno—; caen los 48, cada uno con la prueba que lo nombra. Los que pidió el
+orquestador: «mostrador se rellena de la última orden» y «sale el botón de guardar con mostrador» caen con su prueba; «la caja con
+números clavados» cae con la que comprueba que cada lado de la caja lo toca un vértice del polígono. Otros: media factura que
+casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido por prefijo, el tipo guardado que no se respeta,
+«TX» en cualquier sitio del texto, el estado leído de un componente que no es el estado.
+
+### Lo que NO está
+
+- **Nada abierto en un navegador**, ni una llamada real a ningún proveedor de direcciones.
+- «First delivery in time window»: aparte, con propuesta.
+- El aviso de «orden creada» sigue diciendo «enviada a aprobación» cuando va a aprobación: el dueño habló del botón.
+

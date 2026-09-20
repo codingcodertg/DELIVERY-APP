@@ -101,7 +101,7 @@ const datos = (choferes = ["c1", "c2"], ajustes: Partial<DatosDelDia["settings"]
   ordenes: ["a", "b"].map((id, k) => ({
     id, stage: "approved", order_code: id.toUpperCase(), order_type: "ACliente", store: "Tienda Norte", pickup_name: null, delivery_name: null,
     delivery_lat: 26.35 + k / 100, delivery_lng: -98.25, delivery_windows: k === 0 ? "0830-1000" : "0830-1730", est_pallets: 2, actual_pallets: null, pickup_duration: "8 min",
-    delivery_duration: k === 0 ? "10 min" : "90 min", assigned_driver: null, input_date: "2026-03-03", input_time: `090${k}`, account: null, customer_type: null,
+    delivery_duration: k === 0 ? "10 min" : "90 min", assigned_driver: null, input_date: "2026-03-03", input_time: `090${k}`, account: null, customer_type: "counter_sale",
     is_training: false, updated_at: `2026-03-03T15:00:0${k}.000000+00:00`,
   })),
   choferes: [{ id: "c1", full_name: "Chofer Uno", role: "driver" as const }, { id: "c2", full_name: "Chofer Dos", role: "driver" as const }].filter((c) => choferes.includes(c.id)),

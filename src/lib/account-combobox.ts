@@ -15,8 +15,16 @@ import { cuentasQueCoinciden } from "./account-search";
  * manual con ese texto, sin botón aparte. El filtro sigue siendo `cuentasQueCoinciden` (D-299).
  */
 
-/** Las sugerencias para lo escrito: con el campo vacío, todas. La cuenta ya puesta nunca desaparece. */
+/**
+ * Cuántas letras hay que teclear para que el campo sugiera (D-NEXT, afina D-305). El dueño no quiere que el campo enseñe la
+ * lista de cuentas sin más —«cuentas shouldn't show you the list»—: ni al enfocarlo ni con una sola letra.
+ */
+export const LETRAS_PARA_SUGERIR = 2;
+
+/** Las sugerencias para lo escrito: ninguna hasta haber tecleado `LETRAS_PARA_SUGERIR`. La cuenta ya puesta nunca desaparece
+ *  de las que sí salen. */
 export function sugerenciasPara(opciones: readonly string[], texto: string, actual?: string | null): string[] {
+  if (texto.trim().length < LETRAS_PARA_SUGERIR) return [];
   return cuentasQueCoinciden(opciones, texto, actual);
 }
 

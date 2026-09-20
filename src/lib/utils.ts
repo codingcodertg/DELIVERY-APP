@@ -441,7 +441,7 @@ const COLUMN_ES: Record<string, string> = {
   "Input Date": "Fecha de Ingreso",
   "Input Military Time": "Hora de Ingreso (militar)",
   "Delivery Date": "Fecha de Entrega",
-  "Pickup Name": "Nombre de Recolección",
+  "Pickup Name": "Almacén de recolección",
   "Pickup Address": "Dirección de Recolección",
   "Pickup Duration": "Duración de Recolección",
   "Delivery Fee": "Costo de Entrega",
@@ -461,8 +461,12 @@ const COLUMN_ES: Record<string, string> = {
 };
 
 /** Translate a delivery-column key for display (English keys pass through). */
+/** En inglés la clave ES la etiqueta —y la cabecera del CSV, que no se toca: es el contrato de importar y exportar—, salvo
+ *  donde lo que se enseña dejó de coincidir con la cabecera (D-NEXT). */
+const COLUMN_EN: Record<string, string> = { "Pickup Name": "Pickup warehouse" };
+
 export function colLabel(key: string, lang: "en" | "es"): string {
-  return lang === "es" ? COLUMN_ES[key] ?? key : key;
+  return lang === "es" ? COLUMN_ES[key] ?? key : COLUMN_EN[key] ?? key;
 }
 
 // Friendly labels for Delivery field KEYS (as they appear in an update patch),

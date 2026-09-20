@@ -106,7 +106,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   },
   { key: "driver", en: "Driver", es: "Chofer", value: (d) => d.assigned_driver, cell: (d) => d.assigned_driver || "—" },
   { key: "contact", en: "Contact", es: "Contacto", value: (d) => d.contact, cell: (d) => d.contact || "—" },
-  { key: "address", en: "Delivery Address", es: "Dirección", value: (d) => d.delivery_address, cell: (d) => d.delivery_address || "—" },
+  { key: "address", en: "Delivery Address", es: "Dirección de entrega", value: (d) => d.delivery_address, cell: (d) => d.delivery_address || "—" },
 ];
 
 export const DEFAULT_COLUMNS = ["stage", "type", "store", "account", "so", "date", "windows", "pallets", "driver"];

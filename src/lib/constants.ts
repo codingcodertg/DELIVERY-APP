@@ -684,7 +684,8 @@ export const WEEKDAY_ALL_DAY_WINDOW = "0830-1730";
 // orden— para todos los roles (`OrdersTable`, `byInvoice`), así que salía dos veces en la misma fila. Sigue en el
 // selector para quien la quiera, y quien ya la eligió la conserva: esto son solo los DEFECTOS.
 export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
-  sales: ["type", "store", "date", "windows", "account"],
+  // Ventas ve a dónde va la orden sin abrirla (D-NEXT). La columna ya existía para todos; faltaba en su juego de partida.
+  sales: ["type", "store", "date", "windows", "account", "address"],
   // Drivers work off the customer invoice, never the internal SO # — and `#` already shows it.
   driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
   // Warehouse works off the customer invoice too (Invoice # instead of SO #).
