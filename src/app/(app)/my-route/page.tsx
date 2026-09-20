@@ -19,6 +19,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -218,7 +219,8 @@ export default function MyRoutePage() {
         lng: d.delivery_lng,
         color: isDone ? "#1f9d61" : isNext ? "#d1782e" : "#6b7686",
         badge: dDe.get(d.id) ?? String(i + 1),
-        label: `${dDe.get(d.id) ?? i + 1}. ${d.invoice_num || `#${orderLabel(d)}`}${d.delivery_address ? ` — ${d.delivery_address}` : ""}`,
+        // Todas las facturas (D-339): el chofer casa lo que lleva con lo que le firman.
+        label: `${dDe.get(d.id) ?? i + 1}. ${facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}${d.delivery_address ? ` — ${d.delivery_address}` : ""}`,
         dimmed: isDone,
       });
     });
@@ -322,7 +324,7 @@ export default function MyRoutePage() {
                 {t("Next stop", "Siguiente parada")} · {stops.indexOf(next) + 1}/{stops.length}
               </div>
               <div style={{ fontWeight: 800, fontSize: 18 }}>
-                {next.invoice_num || `#${orderLabel(next)}`}
+                {facturasDeLaOrden(next).join(", ") || `#${orderLabel(next)}`}
               </div>
               <div style={{ marginTop: 2 }}>{next.delivery_address || t("(no address)", "(sin dirección)")}</div>
               <div className="hint" style={{ marginTop: 4 }}>
@@ -455,7 +457,7 @@ export default function MyRoutePage() {
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block" }}>
-                            {d.invoice_num || `#${orderLabel(d)}`}
+                            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}
                           </span>
                           <span className="hint" style={{ display: "block" }}>
                             {d.delivery_address || t("(no address)", "(sin dirección)")}
