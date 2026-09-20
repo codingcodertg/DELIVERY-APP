@@ -1803,18 +1803,9 @@ export function OrderModal({
               </div>
             )}
 
-            {/* La cuenta de un movimiento entre tiendas es la tienda que recibe, y se rellena sola
-                (D-312). Damaris, de office: «Account se debe de llenar automáticamente con el nombre
-                de mi tienda cuando es intertienda». De solo lectura: quien la escribiera a mano estaría
-                diciendo que el material va a otro sitio del que dice el destino. */}
-            {storeToStore && (
-              <div className="grid g3">
-                <div className="field">
-                  <label>{t("Account", "Cuenta")}</label>
-                  <input value={d.account ?? ""} disabled placeholder={t("the destination store", "la tienda destino")} />
-                </div>
-              </div>
-            )}
+            {/* La cuenta de un movimiento entre tiendas es la tienda que recibe y se rellena sola (D-312); desde D-338
+                NO se pinta. El dueño: «account in intertienda is extra so remove it because is the same as a store
+                destination». Se sigue GUARDANDO, derivada del destino: la leen la tabla, el manifiesto, el volante… */}
 
             {/* ---- Customer / contact ---- */}
             {/* En un movimiento tienda-a-tienda no hay cliente, así que no hay cuenta, contacto ni

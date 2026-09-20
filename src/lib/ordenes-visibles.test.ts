@@ -211,7 +211,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
   it("la cuenta de la pestaña y sus filas salen de `conPendientes`, no de `visible`", () => {
     // Las dos tienen que salir de la MISMA lista: con la cuenta sobre una y las filas sobre otra, la
     // pestaña diría un número y enseñaría otro.
-    expect(llano).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => documentoPendiente(d, settings.order_type_rules ?? {})).length;");
+    expect(llano).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;");
     expect(llano).toContain("const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;");
     expect(llano).toContain("return desde.filter((d) => {");
   });

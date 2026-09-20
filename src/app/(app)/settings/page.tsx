@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import Link from "next/link";
 import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleHome, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
+import { COLUMNAS_QUE_VENTAS_NO_VE } from "@/lib/user-prefs";
 import dynamic from "next/dynamic";
 import { LOCAL_CITIES_DEFAULT, filasDeLaFormula, REDONDEO } from "@/lib/pricing";
 import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
@@ -295,7 +296,8 @@ export default function SettingsPage() {
             : <span className="hint">{t("(defaults)", "(por defecto)")}</span>}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 2, maxWidth: 620 }}>
-          {ORDER_COLUMNS.map((c) => {
+          {/* «Factura #» no se ofrece: para ventas repite lo que ya enseña la celda `#` (D-338). */}
+          {ORDER_COLUMNS.filter((c) => !COLUMNAS_QUE_VENTAS_NO_VE.includes(c.key)).map((c) => {
             const active = settings.sales_columns ?? ROLE_DEFAULT_COLUMNS.sales ?? DEFAULT_COLUMNS;
             const checked = active.includes(c.key);
             return (
