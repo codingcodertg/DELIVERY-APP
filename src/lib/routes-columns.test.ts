@@ -46,7 +46,7 @@ describe("se guarda por persona, en su propia clave", () => {
       select: () => ({ eq: (_c1, v1) => ({ eq: (_c2, v2) => ({ maybeSingle: async () => { llamadas.push(["lee", v1, v2]); return { data: { value: { logistics: ["invoice"] } }, error: null }; } }) }) }),
       upsert: (fila) => ({ select: async () => { llamadas.push(["guarda", fila.key, fila.value]); return { data: [{ user_id: fila.user_id }], error: null }; } }),
     }) };
-    expect(await leeColumnas(cliente, "yo", CLAVE_DE_COLUMNAS_DEL_GESTOR)).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["invoice"] }, orden: {} });
+    expect(await leeColumnas(cliente, "yo", CLAVE_DE_COLUMNAS_DEL_GESTOR)).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["invoice"] }, orden: {}, anchos: {} });
     expect(await guardaColumnas(cliente, "yo", { logistics: ["invoice", "account"] }, CLAVE_DE_COLUMNAS_DEL_GESTOR)).toBe(true);
     expect(llamadas).toEqual([["lee", "yo", "routes_columns"], ["guarda", "routes_columns", { logistics: ["invoice", "account"] }]]);
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Excel-style resizable table columns. Keeps a width per column (persisted per
 // table in localStorage) and hands back a mousedown handler for a drag handle
@@ -73,11 +73,31 @@ export const COLUMN_WIDTHS: Record<string, number> = {
   address: 240,
 };
 
-export function useColWidthMap(storageKey: string, defaultWidth = 150) {
+/**
+ * `opciones` (D-338), para la tabla de Órdenes, donde el ancho es de la PERSONA y no del navegador:
+ *   · `deLaPersona`: los anchos leídos de la base. Llegan después de pintar; cuando llegan, mandan sobre el navegador.
+ *   · `alCambiar`: se llama UNA vez al soltar (o al restablecer una columna), nunca en cada píxel.
+ *   · `minimo`: por debajo no se encoge. Sin él, los 16 px de siempre (las tablas del Gestor).
+ */
+export interface OpcionesDeAncho { deLaPersona?: Record<string, number> | null; alCambiar?: (anchos: Record<string, number>) => void; minimo?: number }
+
+export function useColWidthMap(storageKey: string, defaultWidth = 150, opciones: OpcionesDeAncho = {}) {
+  const minimo = opciones.minimo ?? 16;
   const [widths, setWidths] = useState<Record<string, number>>(() => {
     try { const raw = localStorage.getItem(storageKey); if (raw) return JSON.parse(raw); } catch { /* ignore */ }
     return {};
   });
+  // Lo último pintado, para avisar al soltar sin meter un efecto dentro de un `setState`.
+  const ultimos = useRef(widths);
+  ultimos.current = widths;
+  const alCambiar = useRef(opciones.alCambiar);
+  alCambiar.current = opciones.alCambiar;
+  const deLaPersona = opciones.deLaPersona ? JSON.stringify(opciones.deLaPersona) : null;
+  useEffect(() => { if (deLaPersona) setWidths(JSON.parse(deLaPersona)); }, [deLaPersona]);
+  const guarda = (w: Record<string, number>) => {
+    try { localStorage.setItem(storageKey, JSON.stringify(w)); } catch { /* ignore */ }
+    alCambiar.current?.(w);
+  };
   const widthOf = (key: string) => widths[key] ?? COLUMN_WIDTHS[key] ?? defaultWidth;
 
   const startResize = (key: string) => (e: React.MouseEvent) => {
@@ -86,13 +106,14 @@ export function useColWidthMap(storageKey: string, defaultWidth = 150) {
     const startX = e.clientX;
     const base = widths[key] ?? COLUMN_WIDTHS[key] ?? defaultWidth;
     const onMove = (ev: MouseEvent) => {
-      setWidths((w) => ({ ...w, [key]: Math.max(16, base + (ev.clientX - startX)) }));
+      setWidths((w) => ({ ...w, [key]: Math.max(minimo, base + (ev.clientX - startX)) }));
     };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
-      setWidths((w) => { try { localStorage.setItem(storageKey, JSON.stringify(w)); } catch { /* ignore */ } return w; });
+      // Al SOLTAR, y fuera del `setState`: un tic después, cuando `ultimos` ya lleva el último ancho pintado.
+      setTimeout(() => guarda(ultimos.current), 0);
     };
     document.body.style.cursor = "col-resize";
     document.addEventListener("mousemove", onMove);
@@ -101,7 +122,9 @@ export function useColWidthMap(storageKey: string, defaultWidth = 150) {
 
   // Double-click a grip to reset just that column to the default width.
   const resetCol = (key: string) => {
-    setWidths((w) => { const n = { ...w }; delete n[key]; try { localStorage.setItem(storageKey, JSON.stringify(n)); } catch { /* ignore */ } return n; });
+    const n = { ...ultimos.current }; delete n[key];
+    setWidths(n);
+    guarda(n);
   };
 
   return { widthOf, startResize, resetCol };

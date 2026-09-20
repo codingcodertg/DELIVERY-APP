@@ -34,6 +34,15 @@ export function documentoPendiente(d: OrdenConDocumento, reglas: OrderTypeRules)
 }
 
 /** El texto de la pastilla: «Invoice pending», «PO pending», «Estimate pending». */
+/**
+ * Lo que entra en la pestaña «Factura pendiente» (D-338). El dueño: «in the invoice pending just to show invoice not po».
+ * La pestaña se llama así y contaba también las Intertienda sin PO, que no son una factura que perseguir. La pastilla de la
+ * FILA sigue diciendo «PO pendiente» donde toque (`documentoPendiente`): eso es de la orden, no de la pestaña.
+ */
+export function facturaPendiente(d: OrdenConDocumento, reglas: OrderTypeRules): boolean {
+  return documentoPendiente(d, reglas)?.campo === "invoice_num";
+}
+
 export function etiquetaDePendiente(doc: DocumentoDeLaOrden, lang: "en" | "es"): string {
   const nombre = (lang === "es" ? doc.es : doc.en).replace(/\s*#$/, "");
   return lang === "es" ? `${nombre} pendiente` : `${nombre} pending`;
@@ -96,7 +105,21 @@ export function ordenPorTienda<T extends Pick<Delivery, "store" | "delivery_date
 }
 
 /** Las filas ya ordenadas, partidas en un grupo por tienda con su cuenta. */
-export function gruposPorTienda<T extends Pick<Delivery, "store" | "delivery_date">>(filas: readonly T[]): { tienda: string; filas: T[] }[] {
+/**
+ * `primero`: las tiendas de quien mira, en orden —la suya y luego las que además ve (D-338)—. Sus grupos salen ANTES que los
+ * demás; dentro de cada tramo, el orden de siempre. El dueño: «in pending the store it shows first is the store you have
+ * assigned». Sin tiendas (admin, quien no tiene), nada cambia.
+ */
+export function tiendasDeQuienMira(yo: { store?: string | null; visible_stores?: string[] | null } | null | undefined): string[] {
+  return [yo?.store, ...(yo?.visible_stores ?? [])].map((s) => (s ?? "").trim()).filter(Boolean);
+}
+
+export function gruposPorTienda<T extends Pick<Delivery, "store" | "delivery_date">>(filas: readonly T[], primero: readonly string[] = []): { tienda: string; filas: T[] }[] {
+  const puesto = (tienda: string) => { const i = primero.findIndex((p) => p.trim().toLowerCase() === tienda.toLowerCase()); return i < 0 ? primero.length : i; };
+  return gruposEnOrden(filas).map((g, i) => ({ g, i })).sort((a, b) => puesto(a.g.tienda) - puesto(b.g.tienda) || a.i - b.i).map((x) => x.g);
+}
+
+function gruposEnOrden<T extends Pick<Delivery, "store" | "delivery_date">>(filas: readonly T[]): { tienda: string; filas: T[] }[] {
   const grupos: { tienda: string; filas: T[] }[] = [];
   for (const f of ordenPorTienda(filas)) {
     const tienda = (f.store ?? "").trim();
