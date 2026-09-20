@@ -135,7 +135,7 @@ describe("los defectos por rol ya no repiten la factura", () => {
   });
   it("lo demás de cada defecto no cambió", () => {
     expect(ROLE_DEFAULT_COLUMNS).toEqual({
-      sales: ["type", "store", "date", "windows", "account"], driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
+      sales: ["type", "store", "date", "windows", "account", "address"], driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
       warehouse: ["stage", "type", "store", "account", "date", "windows", "pallets", "fee", "driver"],
     });
   });

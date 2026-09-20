@@ -49,7 +49,8 @@ describe("a quién le pasaba y quién se beneficia", () => {
     const ventas = ROLE_DEFAULT_COLUMNS.sales!.length;
     // Eran 6 cuando se escribió esto; D-330 (columnas por usuario) quitó «Factura #» de los tres defectos porque `#`
     // ya la enseña. Lo que esta prueba sostiene no es el número: es que ventas sigue viendo MENOS que los demás.
-    expect(ventas).toBe(5);
+    // D-337 le añadió «Dirección de entrega»: 6 otra vez, y sigue siendo el que menos ve.
+    expect(ventas).toBe(6);
     for (const rol of ["driver", "warehouse"] as const) {
       expect(ROLE_DEFAULT_COLUMNS[rol]!.length, rol).toBeGreaterThan(ventas);
     }

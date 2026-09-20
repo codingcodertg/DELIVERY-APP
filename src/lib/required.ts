@@ -66,7 +66,7 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
 
   if (!filled(d.order_type)) out.push({ key: "order_type", en: "Order Type", es: "Tipo de Orden" });
   if (!filled(d.store)) out.push({ key: "store", en: "Store (Sold From)", es: "Tienda (Vendido Desde)" });
-  if (!filled(d.pickup_name)) out.push({ key: "pickup_name", en: "Pickup Name", es: "Nombre de Recolección" });
+  if (!filled(d.pickup_name)) out.push({ key: "pickup_name", en: "Pickup warehouse", es: "Almacén de recolección" });
   if (!filled(d.pickup_address)) out.push({ key: "pickup_address", en: "Pickup Address", es: "Dirección de Recolección" });
   // Dropoff Name is optional **en una entrega a cliente** — ahí lo que importa es la dirección, y el
   // nombre del sitio puede no existir (una obra).

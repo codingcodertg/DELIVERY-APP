@@ -9,6 +9,7 @@ import { registroDeLugar } from "@/lib/named-location";
 import { nombresEnLinea, normalizaTienda, quienPierdeLaTienda } from "@/lib/visibilidad-tienda";
 import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
+import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
 
 // ============================================================
 // Data — the reusable reference lists behind the order form: pickup points,
@@ -108,17 +109,17 @@ function AccountsEditor({
   // tabla reescribía cada cuenta con solo los campos del formulario y se llevaba por delante lo
   // que no enseña —hoy `address`, que se guarda al elegir la cuenta en una orden—. Es la misma
   // lección de D-261 con las tiendas.
-  type Row = { name: string; contact: string; phone: string; intertienda: boolean; requires_approval: boolean; builder: boolean; resto: AccountRecord };
+  type Row = { name: string; contact: string; phone: string; intertienda: boolean; requires_approval: boolean; resto: AccountRecord };
   const build = (): Row[] =>
     (settings.accounts ?? []).map((a) => ({
       name: a.name, contact: a.contact, phone: a.phone,
-      intertienda: !!a.intertienda, requires_approval: !!a.requires_approval, builder: a.customer_type === "builder", resto: a,
+      intertienda: !!a.intertienda, requires_approval: !!a.requires_approval, resto: a,
     }));
   const [rows, setRows] = useState<Row[]>(build);
   const [dirty, setDirty] = useState(false);
 
   const update = (i: number, patch: Partial<Row>) => { setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r))); setDirty(true); };
-  const add = () => { setRows((rs) => [...rs, { name: "", contact: "", phone: "", intertienda: false, requires_approval: false, builder: false, resto: { name: "", contact: "", phone: "" } }]); setDirty(true); };
+  const add = () => { setRows((rs) => [...rs, { name: "", contact: "", phone: "", intertienda: false, requires_approval: false, resto: { name: "", contact: "", phone: "" } }]); setDirty(true); };
   const remove = (i: number) => { setRows((rs) => rs.filter((_, idx) => idx !== i)); setDirty(true); };
   const reset = () => { setRows(build()); setDirty(false); };
 
@@ -129,11 +130,16 @@ function AccountsEditor({
         ...r.resto,
         name: r.name.trim(), contact: r.contact.trim(), phone: r.phone.trim(),
         intertienda: r.intertienda, requires_approval: r.requires_approval,
-        // Builder o mostrador (D-316). Una cuenta de sucursal no es ni lo uno ni lo otro.
-        customer_type: r.intertienda ? undefined : (r.builder ? "builder" as const : "counter_sale" as const),
+        // La cuenta ya no dice si es builder (D-337): todo es builder salvo la opción fija «Venta al mostrador» de la orden.
+        customer_type: undefined,
       }))
-      .filter((r) => { const k = r.name.toLowerCase(); if (!r.name || seen.has(k)) return false; seen.add(k); return true; });
-    save({ accounts }, t("Accounts saved", "Cuentas guardadas"));
+      // «Venta al mostrador» es una opción fija del campo Cuenta, no una cuenta: guardada aquí chocaría con ella.
+      .filter((r) => { const k = r.name.toLowerCase(); if (!r.name || seen.has(k) || esCuentaDeMostrador(r.name)) return false; seen.add(k); return true; });
+    // …y se DICE: una fila que desaparece sin más parece un bug.
+    const fija = rows.some((r) => esCuentaDeMostrador(r.name));
+    save({ accounts }, fija
+      ? t(`Accounts saved. "${CUENTA_DE_MOSTRADOR_EN}" is already a fixed option of the Account field; it isn't saved as an account.`, `Cuentas guardadas. «${CUENTA_DE_MOSTRADOR}» ya es una opción fija del campo Cuenta; no se guarda como cuenta.`)
+      : t("Accounts saved", "Cuentas guardadas"));
     setDirty(false);
   };
 
@@ -155,7 +161,6 @@ function AccountsEditor({
               <th>{t("Phone", "Teléfono")}</th>
               <th style={{ textAlign: "center" }}>{t("Intertienda", "Intertienda")}</th>
               <th style={{ textAlign: "center" }}>{t("Office approval", "Aprobación de oficina")}</th>
-              <th style={{ textAlign: "center" }} title={t("Builders go first on the route. Each order can still say otherwise.", "Los builders van primero en la ruta. Cada orden puede decir otra cosa.")}>{t("Builder", "Builder")}</th>
               <th></th>
             </tr>
           </thead>
@@ -171,10 +176,6 @@ function AccountsEditor({
                 <td style={{ textAlign: "center" }}>
                   <input type="checkbox" checked={r.requires_approval} onChange={(e) => update(i, { requires_approval: e.target.checked })}
                     aria-label={t("This account always needs office approval", "Esta cuenta siempre requiere aprobación de oficina")} />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.builder && !r.intertienda} disabled={r.intertienda} onChange={(e) => update(i, { builder: e.target.checked })}
-                    aria-label={t("This account is a builder", "Esta cuenta es un builder")} />
                 </td>
                 <td><button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button></td>
               </tr>

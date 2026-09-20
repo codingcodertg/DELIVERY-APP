@@ -100,7 +100,7 @@ export function htmlDelComprobante(d: Delivery, settings: Settings, users: Profi
         <h2>${T("Pickup", "Recolección")}</h2>
         <table>
           ${row(T("Store", "Tienda"), d.store || "")}
-          ${row(T("Pickup name", "Nombre"), d.pickup_name || "")}
+          ${row(T("Pickup warehouse", "Almacén"), d.pickup_name || "")}
           ${row(T("Pickup address", "Dirección"), d.pickup_address || storeAddr)}
         </table>
       </div>
