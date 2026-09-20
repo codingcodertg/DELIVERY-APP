@@ -6581,6 +6581,12 @@ distintas y la pantalla debe distinguirlas.
 ---
 
 ## D-143 · El almacén confirma también la tarifa, no solo las pallets
+
+> **⚠ Reemplazada por D-NEXT** (2026-09-19). El dueño la retira: *«quítale el bloqueo a warehouse con
+> lo de la tarifa»*. El almacén ya no confirma ni corrige la tarifa — «Comenzar preparación» mueve la
+> etapa y ya—. **La confirmación de PALLETS de esta misma entrada se queda**: es lo único que sigue
+> preguntándose al marcar listo.
+
 **Fecha:** 2026-08-31 · **Versión:** v1.40.0 (deliveries) · **Pedido por:** Andrés (*"cuando
 warehouse confirma cantidad de pallets también quiero que confirme la delivery fee, porque los
 sales no están poniendo el fee correcto"*)
@@ -6737,6 +6743,12 @@ marcar. Se reutiliza el tramo que ya existe.
 ---
 
 ## D-146 · La tarifa se confirma al agarrar la orden, no al soltarla
+
+> **⚠ Reemplazada por D-NEXT** (2026-09-19). El dueño quitó la confirmación entera, así que la
+> pregunta que resolvía esta entrada —*¿en qué momento se confirma?*— deja de tener objeto: no se
+> confirma en ninguno. El diálogo, `confirmStart` y el estado que lo sostenía están fuera del código.
+> **El razonamiento de por qué el momento importaba no se toca**, y sigue valiendo el día que alguien
+> quiera volver a poner una revisión: al agarrarla la orden está quieta; al soltarla, el camión espera.
 
 **Fecha:** 2026-08-31 · **Versión:** v1.43.0 (deliveries) · **Pedido por:** Andrés (*"vamos a
 poner el confirm fee en start fulfilling, que es cuando la agarra el warehouse, y confirm pallets
@@ -18601,6 +18613,14 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 
 ## D-287 · Almacén: siete quejas, y dos de ellas no eran lo que parecían
 
+> **⚠ Una de las siete quedó sin objeto el 2026-09-19, por D-NEXT.** La queja 4 —*«quiero comenzar a
+> preparar pero no cobraron delivery, así que no me permite avanzar»*— se resolvió aquí abriendo una
+> **salida** en el diálogo de tarifa: «Sin tarifa — continuar igual». El dueño quitó el diálogo
+> entero, así que ya no hay de dónde salir: el bloqueo que la queja describía no puede volver a
+> ocurrir. **La queja estaba bien vista y su arreglo funcionó**; lo que cambia es que el problema se
+> resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
+> vuelta de «listo» a «preparando».
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, siete quejas de Almacén seguidas. Las de esta entrada son cinco; las dos que necesitan
 tocar la base van aparte (abajo, «Lo que queda»).
@@ -23617,3 +23637,111 @@ y la 125. Lo de «cuál es la vigente» pasa a fijarlo la prueba de la 138.
 - **Las dos órdenes vivas con varios números a mano en `invoice_num`** enseñarán «F-1, F-9» como una
   sola factura. Es correcto y deliberado, pero conviene saberlo antes de que alguien lo reporte.
 - **Las mediciones de producción son del orquestador, no mías.** Una rama no toca la base.
+
+## D-NEXT · Al almacén se le quita la confirmación de tarifa: «Comenzar preparación» vuelve a mover la etapa
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Pedido por el dueño**, literal: *«quítale el bloqueo a warehouse con lo de la tarifa»*.
+
+### Qué se quita
+
+Desde D-146, el botón **«Comenzar preparación»** no movía la etapa: abría un diálogo que exigía una
+tarifa no vacía antes de dejar pasar de `approved` a `fulfilling`, y de ahí salía el cambio de etapa
+**junto con la tarifa**. D-287 le añadió una salida —«Sin tarifa — continuar igual»— porque el
+almacén se quedaba parado cuando ventas no había cobrado.
+
+Ahora el botón mueve la etapa y ya, como cualquier otro paso. Fuera el diálogo entero, `confirmStart`,
+`startSinTarifa`, `startFee`, `showStartConfirm` y la prop `onRequestStart`; la nota del evento de
+etapa deja de decir «Tarifa confirmada / corregida».
+
+**Y con ello se va la escritura, no solo el bloqueo.** El único sitio del modal donde un cambio de
+etapa llevaba `delivery_fee` dentro era ese diálogo: hoy **nadie que no sea ventas escribe la tarifa**.
+Hay prueba sobre el cuerpo entero de `move`, no sobre la llamada a `setStage` — reintroducirla en el
+`extra` de unas líneas antes no tocaría la llamada y pasaría desapercibido (medido con ese mutante).
+
+### Esto REVIERTE D-143 y D-146, y deja sin objeto la salida de D-287
+
+Las dos las pidió el dueño el **2026-08-31**, y por una razón concreta: *«los sales no están poniendo
+el fee correcto»*. D-143 puso la confirmación en «Marcar listo» y D-146 la movió a «Comenzar
+preparación», razonando que el momento importaba —al agarrarla la orden está quieta y da tiempo a
+llamar a ventas; al soltarla, el camión ya espera—. Ese razonamiento no se discute aquí: lo que el
+dueño retira es la revisión, no el argumento sobre dónde ponerla.
+
+D-287 no se revierte: su queja 4 estaba bien vista y su arreglo funcionó. Lo que pasa es que el
+problema que describía —*no me deja avanzar*— desaparece por la raíz, así que la salida que abrió
+sobra. Sus otras seis quejas siguen enteras.
+
+### La consecuencia, sin adornos
+
+**Desaparece el único punto donde alguien que no es ventas revisaba la tarifa antes de que la orden
+saliera.** Eso es exactamente lo que D-143 y D-146 vinieron a crear, y se acepta a sabiendas.
+
+Lo que queda vigilando, y no se toca:
+
+- **La 🚩 SIN TARIFA / TARIFA $0**, en la tabla de Órdenes y en la cabecera del modal (D-147, D-148).
+- **«Requiere atención»** del panel, con su tipo `no_fee` (D-147), que se ve *antes* de que el almacén
+  toque la orden.
+- **El desglose de tarifa** de la ficha (D-249) y los dos botones de precio: lista y descuento (D-317).
+- **La confirmación de PALLETS** al marcar listo, y la vuelta de «listo» a «preparando» (D-287).
+
+Y lo que hay que decir aunque incomode: **de los dos sitios donde salía el aviso de D-147, uno era ese
+diálogo.** Se va con él. Queda el del panel, que es el que se ve a tiempo; pero el aviso ya no aparece
+delante de quien está a punto de mover la orden. Lo que queda es la bandera y lo que contabilidad mire
+después.
+
+### Lo que se midió antes de tocar nada
+
+- **La base no exige tarifa para `approved → fulfilling`.** `delivery_fee` aparece en
+  `supabase/migrations/` solo como columna (014) y en los comentarios de ensayo de la 125; la rama de
+  almacén del guard vigente (**127**, la última que define `guard_delivery_stage`) deja pasar ese salto
+  sin ninguna condición sobre el importe. **No hay nada que tocar en la base, así que no hace falta
+  plan en papel.**
+- **`sinCobrar` se usaba en dos sitios**, no en uno: la cabecera del modal (se queda) y el diálogo (se
+  va). Por eso la bandera del modal sigue ahí.
+- **`ChoferYPallets` estaba en tres diálogos** —tarifa, listo y recoger— y ahora está en dos. La
+  prueba que contaba tres se actualiza diciendo por qué, no se borra.
+
+### Cuántas veces sirvió
+
+**Está sin medir mientras se escribe esto, y esa es la mitad incómoda de la decisión.** La huella
+existe: el diálogo escribía en el evento de etapa una nota distinta según lo que pasara —«Tarifa
+corregida a $X (era $Y)», «Tarifa confirmada $X», «Se empezó sin tarifa de entrega cobrada»—, en los
+dos idiomas. La consulta de **solo lectura** que las cuenta, con su denominador —cuántos pasos a
+preparación hubo— y un control de que no cuenta de menos, se le pasó al orquestador, que es quien
+tiene acceso a la base. Una rama no la toca.
+
+Cuando la corra, el número va aquí con su fecha. Sin él, esta entrada no puede decir si se está
+quitando algo que atrapaba errores todas las semanas o algo que nadie usó nunca.
+
+### Medido, rompiendo cada pieza
+
+9 cambios: **9 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- Vuelve el diálogo; la etapa vuelve a escribir la tarifa; el botón desaparece; el botón mueve a otra
+  etapa; el diálogo de pallets queda inalcanzable; «Marcar listo» deja de escribir los pallets reales;
+  la 🚩 del modal se cae; la de la tabla se cae; el panel deja de avisar de las órdenes sin tarifa.
+- **El gemelo:** el manejador del botón escrito como función con nombre en vez de en línea.
+
+**Tres pruebas se reforzaron porque la tanda las encontró flojas**, y las tres por el mismo motivo —
+citaban texto que un mutante podía dejar intacto y muerto:
+
+1. «el botón mueve la etapa» citaba el `onClick` **literal**, así que el gemelo con la función con
+   nombre la tiraba sin cambiar nada. Ahora mira el bloque de almacén entero.
+2. «nadie escribe la tarifa» miraba solo dentro de la llamada a `setStage`. Ahora mira el cuerpo
+   entero de `move`.
+3. El control de «Marcar listo» buscaba el `onClick`, que sigue escrito aunque su `if` sea `false`.
+   Ahora cita también la guarda.
+
+### Verificado
+
+`node scripts/verify.mjs` sobre `.next` limpio: **las tres pasan** — tipos, pruebas y build. Y
+`node scripts/decisions-check.mjs`, por la regla de D-319.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Que el botón mueva la etapa se comprueba leyendo el código
+  y rompiéndolo, no pulsándolo.
+- **Cuántas veces sirvió el diálogo**, arriba: pendiente de que el orquestador corra la consulta.
+- **No se ha mirado si alguien fuera de la app dependía de las notas «Tarifa confirmada/corregida»**
+  —un reporte, una exportación—. Los eventos viejos **no se tocan**: siguen ahí con su texto; lo que
+  deja de haber es notas nuevas.

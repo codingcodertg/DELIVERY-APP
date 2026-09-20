@@ -11,6 +11,9 @@ import type { Delivery, Settings } from "./types";
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
+/** Solo el código: los comentarios pueden nombrar lo que se quitó, el código no. */
+const sinComentarios = (s: string) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
 const parada = (extra: Partial<Delivery> = {}): Delivery => ({
   id: Math.random().toString(36).slice(2),
@@ -201,8 +204,10 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
     expect(tarjeta).toContain('t("Unassigned", "Sin asignar")');
   });
 
-  it("y la tarjeta está en los TRES diálogos del almacén: tarifa, listo y recoger", () => {
-    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(3);
+  it("y la tarjeta está en los DOS diálogos que le quedan al almacén: listo y recoger", () => {
+    // Eran tres. El de la tarifa desapareció con D-NEXT —el dueño se lo quitó al almacén—, así
+    // que la tarjeta se queda en los dos que siguen preguntando algo.
+    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(2);
   });
 
   it("marcar listo sigue escribiendo solo el real, así que el estimado no se pierde", () => {
@@ -214,22 +219,62 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 });
 
-describe("comenzar a preparar sin tarifa (queja 4)", () => {
+describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-NEXT", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
-  const sinTarifa = modal.slice(modal.indexOf("const startSinTarifa"), modal.indexOf("const confirmStart"));
 
-  it("mueve la etapa y deja la nota, sin escribir tarifa", () => {
-    expect(sinTarifa).toMatch(/setStage\(existing\.id, "fulfilling", t\(/);
-    // Lo que NO hace: inventar dinero. Ni delivery_fee, ni la tarifa sugerida.
-    expect(sinTarifa).not.toContain("delivery_fee");
-    expect(sinTarifa).not.toContain("feeSuggestion");
+  /**
+   * Esta pareja medía la **salida** que D-287 abrió en el diálogo de tarifa: «Sin tarifa —
+   * continuar igual», para que almacén no se quedara parado cuando ventas no había cobrado.
+   *
+   * Con D-NEXT no hay diálogo del que salir: el dueño le quitó al almacén la confirmación entera
+   * (*«quítale el bloqueo a warehouse con lo de la tarifa»*), así que lo que D-287 arreglaba ya no
+   * puede volver a pasar por la puerta de delante. **No se borran: se dan la vuelta**, porque lo
+   * que hay que impedir ahora es que el bloqueo reaparezca.
+   */
+  it("el botón ya no pasa por ningún diálogo: mueve la etapa y ya", () => {
+    // Se mira el bloque de almacén entero y no la línea del `onClick`: escribir el manejador
+    // aparte —`const empezar = () => onMove("fulfilling")`— es la misma decisión, y una cita
+    // literal del `onClick` lo daría por roto. Medido con ese gemelo.
+    const bloque = modal.slice(modal.indexOf("if (canFulfill(me)) {"), modal.indexOf('if (stage === "fulfilling") {'));
+    expect(bloque).toContain('if (stage === "approved") btns.push(<button key="start"');
+    expect(bloque).toContain('onMove("fulfilling")');
   });
 
-  it("el botón está en el diálogo, y el de confirmar sigue exigiendo el número", () => {
-    expect(modal).toContain("onClick={startSinTarifa}");
-    expect(modal).toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
-    const confirmar = modal.slice(modal.indexOf("const confirmStart"), modal.indexOf("const confirmStart") + 700);
-    expect(confirmar).toContain('startFee.trim() === ""');
+  it("y no queda nada de la confirmación: ni estado, ni manejadores, ni la salida de D-287", () => {
+    for (const muerto of ["startFee", "showStartConfirm", "confirmStart", "startSinTarifa", "onRequestStart"]) {
+      // El comentario que cuenta que estuvieron ahí sí puede nombrarlos; el código, no.
+      expect(sinComentarios(leer("src/components/OrderModal.tsx")), muerto).not.toContain(muerto);
+    }
+    expect(modal).not.toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
+  });
+
+  it("nadie que no sea ventas escribe ya la tarifa al cambiar de etapa", () => {
+    // Es la mitad que importa: se fue el bloqueo, pero también se fue la escritura. Se mira el
+    // cuerpo ENTERO de `move` —el camino por el que pasan todos los cambios de etapa— y no solo
+    // la llamada a `setStage`: reintroducir la tarifa en el `extra` de unas líneas antes no
+    // tocaría esa llamada y pasaría desapercibido. Medido con ese mutante.
+    const mover = modal.slice(modal.indexOf("const move = async (to: Stage"), modal.indexOf("const depart = async ()"));
+    expect(mover).not.toContain("delivery_fee");
+  });
+
+  it("control: «Marcar listo» SIGUE preguntando los pallets, que eso no se tocó", () => {
+    // Sin esto, «se quitó el diálogo» podría significar que se quitaron los dos. Se cita la
+    // GUARDA además del botón: dejar el botón escrito pero inalcanzable —`if (false)`— pasaba
+    // una prueba que solo buscara el `onClick`. Medido con ese mutante.
+    expect(modal).toContain('if (stage === "fulfilling") {');
+    const listo = modal.slice(modal.indexOf('if (stage === "fulfilling") {'));
+    expect(listo.slice(0, listo.indexOf("</button>"))).toContain("onClick={onRequestReady}");
+    const confirmar = modal.slice(modal.indexOf("const confirmReady"), modal.indexOf("const confirmPickup"));
+    expect(confirmar).toContain('setStage(existing.id, "ready"');
+    expect(confirmar).toContain("{ actual_pallets: n }");
+  });
+
+  it("y la 🚩 SIN TARIFA sigue avisando donde avisaba (D-147, D-148)", () => {
+    // Lo que queda después de quitar la revisión: la bandera de la tabla, la del modal y el
+    // panel de «Requiere atención». Si esto cae, el cambio dejó la tarifa sin vigilar del todo.
+    expect(modal).toContain('🚩 {existing?.delivery_fee == null ? t("NO FEE", "SIN TARIFA")');
+    expect(plano(leer("src/components/OrdersTable.tsx"))).toContain('t("NO FEE", "SIN TARIFA")');
+    expect(leer("src/lib/attention.ts")).toContain('"no_fee"');
   });
 });
 
