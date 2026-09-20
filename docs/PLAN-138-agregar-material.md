@@ -1,10 +1,23 @@
 # Plan — 138 · Ventas agrega material a una orden ya hecha
 
-**Estado:** escrito, **nada construido**. Esta rama trae **solo este documento**: ni código, ni
-migración, ni pruebas. Se escribe para decidir, no para aplicar.
-**Fichero de la migración cuando se apruebe:** `supabase/migrations/138_agregar_material.sql`
-(confirmado con `ls supabase/migrations | tail -3` → 135, 136, **137**).
-**Fecha:** 2026-09-19 · **Rama:** `plan-agregar-material` · **Base medida:** `main` 217b834 (D-338).
+**Estado:** **aprobado y construido.** El código, las pruebas y `supabase/migrations/138_agregar_material.sql`
+están en esta rama; la migración **no está aplicada** — la ensaya y la aplica el orquestador.
+**Fecha:** 2026-09-19 · **Rama:** `agregar-material` · **Base medida:** `main` 217b834 (D-338).
+
+> **Lo que cambió entre el plan y lo construido**, todo por decisión del orquestador al aprobarlo:
+>
+> | | |
+> |---|---|
+> | `invoices_extra` | **`not null default '{}'`** — así no hay nulo que tratar en el guard |
+> | Duplicados contra OTRAS órdenes | **avisan, no bloquean**: el cliente pide más material y lo normal es que la factura nueva sea suya |
+> | Tope en el guard | **≤ 20 facturas, cada una ≤ 40 caracteres y sin blancos** — un `text[]` sin tope en la tabla más leída es donde alguien pega un Excel |
+> | Quién enseña todas | **solo quien PREPARA o ENTREGA** (ficha, comprobante, manifiesto, «Mi ruta»); la tabla, el documento del tipo y la pestaña de factura pendiente siguen con `invoice_num` |
+> | La búsqueda | **sí** encuentra una factura añadida |
+>
+> Y dos medidas suyas en producción (2026-09-19, solo lectura) que entran aquí: los idiomas de array
+> del guard **funcionan** —`('{}'::text[])[1:0] is not distinct from '{}'` → true, `(array['a','b'])[1:1]`
+> → `array['a']`, `coalesce(array_length('{}',1),0)` → 0—, y **15 órdenes ya llevan varios números
+> metidos a mano en `invoice_num`** (separadores `, ; / +`, «y», «and»), 2 de ellas vivas.
 
 ---
 
@@ -181,9 +194,16 @@ Confirmado: lo que se escribe al publicar es `assigned_driver`, `load_no`, `rout
 nuevo contra el anterior**: corre al publicar, no cuando una orden cambia. Así que un plan ya
 publicado **no se entera** de que la carga creció.
 
-**No medido, y hay que medirlo antes de construir:** `publicar.ts` dice en su cabecera que ahí vive
-«cuándo un plan ya no vale porque las órdenes cambiaron». No he leído esa parte. Si existe una
-comprobación de caducidad, subir pallets debería entrar en ella, y eso cambia el alcance.
+**Ya medido** (era el hueco que este plan dejaba abierto): la caducidad **existe y vive en la base**,
+no en `publicar.ts`. `publish_route_plan` (migración `133_route_plans.sql:348-362`) recorre
+`plan.input->'ordenes'` —la foto de cada orden con su `updated_at`— y levanta
+`ROUTE_PLAN_STALE` si alguna `d.updated_at is distinct from (f->>'updated_at')`.
+
+Consecuencia, y **es la correcta**: agregar material a una orden que está en un **borrador todavía
+sin publicar** hace que ese borrador **se niegue a publicarse**, con motivo `cambio`. Tiene que ser
+así — el plan se calculó con los pallets de antes—. Se dice, no se arregla.
+
+Un plan **ya publicado** sigue sin enterarse, como decía el plan: la comprobación corre al publicar.
 
 ### 3.3 La aprobación: **no vuelve a pendiente**, y queda escrito
 
@@ -306,15 +326,20 @@ La migración irá **sin `begin`/`commit`** —la atomicidad la pone quien aplic
 
 ---
 
-## 9. Lo que NO está medido, y hay que medirlo antes de construir
+## 9. Lo que sigue sin medir
 
-- **La caducidad del plan publicado** (§3.2): no he leído esa parte de `publicar.ts`. Si subir
-  pallets debe invalidar un plan, el alcance crece.
-- **Cuántas órdenes tienen hoy más de una factura de hecho** —por ejemplo con una coma o una barra
-  metida a mano en `invoice_num`—. Si las hay, hay que decidir si se migran a la columna nueva o se
-  dejan. Es una consulta de solo lectura y la puedo escribir.
-- **Nada de esto se ha ejecutado contra Postgres.** El bloque del guard de §2.1 está escrito leyendo
-  la 127, no probado: `array_length` sobre un array vacío devuelve `null` y por eso va con
-  `coalesce`, pero el corte `[1:0]` de un `text[]` y la comparación `is not distinct from` con
-  `'{}'` **son exactamente el tipo de cosa que revienta al aplicarse y no al leerse** — es lo que
-  pasó con el `::text[]` de la 131. La matriz del §7 es lo que lo va a decir.
+Los dos huecos que este plan dejó abiertos **ya están cerrados**: la caducidad del plan publicado
+(§3.2, es la de la migración 133) y los idiomas de array del guard, que el orquestador ejecutó en
+producción el 2026-09-19 y funcionan. Lo que queda:
+
+- **La migración no se ha aplicado.** La matriz de quince casos del `.sql` es lo que va a decir si el
+  bloque del guard hace lo que dice. Escribirlo leyendo la 127 no es haberlo probado: fue así como
+  pasó lo del `::text[]` de la 131, que reventó al aplicarse y no al leerse.
+- **Las 15 órdenes con varios números a mano en `invoice_num` no se tocan**, y eso deja una rareza
+  visible: en esas dos que siguen vivas, la ficha enseñará «F-1, F-9» como **una** factura. Es
+  correcto —partirlas inventaría datos— pero conviene saberlo antes de que alguien lo reporte.
+- **Nadie lo ha abierto en un navegador.** En particular, «Mi ruta» pinta ahora todas las facturas en
+  la etiqueta de la parada, y con tres o cuatro esa etiqueta es más larga que antes.
+- **La notificación a almacén no está medida.** `pushNotifs` manda el error a `console.error` y
+  devuelve `void` — ahí se perdieron las de «orden asignada» durante meses (D-308). Se cuenta en
+  `notifications` después de aplicar, no se da por buena.

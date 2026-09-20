@@ -205,13 +205,23 @@ describe("127: la base acepta exactamente eso", () => {
     .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
     .sort();
 
-  it("es la definición vigente, y parte de la 125", () => {
-    expect(conGuard.at(-1)).toBe(nombre);
-    expect(conGuard.at(-2)).toBe("125_ventas_pone_la_factura.sql");
+  /**
+   * De cuál se copió esta: la **inmediatamente anterior en la lista**, no «la penúltima».
+   *
+   * Nació como `conGuard.at(-2)` y eso valía solo mientras la 127 fuera la última. Dejó de serlo
+   * con la 138 y las dos pruebas de abajo cayeron — que es justo para lo que estaban, pero lo que
+   * hay que fijar es de dónde se copió, no qué puesto ocupa. Es el mismo patrón que ya usaban los
+   * bloques de la 123 y la 125.
+   */
+  const yo = conGuard.indexOf(nombre);
+
+  it("parte de la definición que estaba vigente al escribirla: la 125", () => {
+    expect(yo).toBeGreaterThanOrEqual(1);
+    expect(conGuard[yo - 1]).toBe("125_ventas_pone_la_factura.sql");
   });
 
   it("es la ANTERIOR con dos cambios y ninguno más", () => {
-    const anterior = plano(guard(leer(`${dir}/${conGuard.at(-2)!}`).split("\n").map((l) => l.replace(/--.*$/, "")).join("\n")));
+    const anterior = plano(guard(leer(`${dir}/${conGuard[yo - 1]}`).split("\n").map((l) => l.replace(/--.*$/, "")).join("\n")));
     const mio = plano(guard(ejecutable));
     // Primero, que los dos cambios ESTÉN: sin esto, un guard idéntico a la 125 pasaría la
     // comparación de abajo sin más.

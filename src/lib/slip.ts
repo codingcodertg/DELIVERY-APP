@@ -3,6 +3,7 @@ import type { Lang } from "@/lib/prefs";
 import { stageLabel } from "@/lib/constants";
 import { fmtDate, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, orderLabel } from "@/lib/utils";
 import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
+import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 // ============================================================
 // Documentos imprimibles: el comprobante de una orden (#20) y las hojas de carga del día.
@@ -120,7 +121,7 @@ export function htmlDelComprobante(d: Delivery, settings: Settings, users: Profi
       ${row(T("Type", "Tipo"), d.order_type || "")}
       ${row(T("SO #", "SO #"), d.so_num || "")}
       ${row(T("PO #", "PO #"), d.po2 || "")}
-      ${row(T("Invoice #", "Factura #"), d.invoice_num || "")}
+      ${row(T("Invoice #", "Factura #"), facturasDeLaOrden(d).join(", "))}
     </table></div><div><table>
       ${row(T("Delivery date", "Fecha entrega"), d.delivery_date ? fmtDate(d.delivery_date) : "")}
       ${row(T("Windows", "Ventanas"), fmtWindows(d.delivery_windows))}
@@ -211,7 +212,7 @@ export function htmlDeLasHojasDeCarga(orders: Delivery[], settings: Settings, la
         <td>${esc(o.delivery_address || "—")}</td>
         <td>${esc(fmtWindows(o.delivery_windows))}</td>
         <td class="num">${esc(o.actual_pallets ?? o.est_pallets ?? "—")}</td>
-        <td>${esc(o.invoice_num || o.po2 || o.so_num || o.estimate_num || "—")}</td>
+        <td>${esc(facturasDeLaOrden(o).join(", ") || o.po2 || o.so_num || o.estimate_num || "—")}</td>
         <td>${esc(o.delivery_notes || "")}</td>
       </tr>`).join("");
     return `

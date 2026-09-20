@@ -10,6 +10,7 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
+import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura, puedeAgregarMaterial } from "@/lib/agregar-material";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
@@ -77,7 +78,7 @@ export function OrderModal({
   startEditing: boolean;
   onClose: () => void;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, saveSettings, notify, realRole } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, saveSettings, notify, realRole } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -128,6 +129,12 @@ export function OrderModal({
   // load splits the order into #Na / #Nb).
   const [showReadyConfirm, setShowReadyConfirm] = useState(false);
   const [readyPallets, setReadyPallets] = useState("");
+  // «Agregar material» (D-NEXT): la factura nueva y los pallets nuevos, del vendedor dueño de la
+  // orden. Los pallets se precargan con los de ahora, porque lo que se teclea es el TOTAL nuevo y
+  // no lo que se suma: «tengo 6 en total» es como lo dice quien lo mira.
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [matFactura, setMatFactura] = useState("");
+  const [matPallets, setMatPallets] = useState("");
   // La tarifa que el almacén confirma al AGARRAR la orden (D-146). Estuvo un rato en
   // "Marcar listo" (D-143) y se movió aquí: la tarifa mal puesta se ve al abrir la orden,
   // y descubrirla al final —con las pallets ya montadas y el camión esperando— es tarde
@@ -799,6 +806,29 @@ export function OrderModal({
   };
 
   /**
+   * Guardar «agregar material» (D-NEXT): una sola escritura con la factura, los pallets y las dos
+   * duraciones, y su nota en el historial.
+   *
+   * Lo que decide qué se escribe vive en `lib/agregar-material`, no aquí: lo aplican esta pantalla
+   * y el guard de la 138, y dos copias de la misma regla acaban diciendo cosas distintas.
+   */
+  const guardarMaterial = async () => {
+    if (!existing) return;
+    const pallets = matPallets.trim() === "" ? null : Number(matPallets);
+    const parche = escrituraDeAgregarMaterial({
+      pedido: existing, factura: matFactura, pallets,
+      minutosRecogida: settings.pickup_min_per_pallet, minutosEntrega: settings.delivery_min_per_pallet,
+    });
+    if (!parche) { notify(t("Nothing to add.", "No hay nada que agregar.")); return; }
+    setBusy(true);
+    const ok = await agregarMaterial(existing.id, parche, notaDeAgregarMaterial({
+      factura: matFactura, palletsAntes: existing.est_pallets, palletsDespues: parche.est_pallets ?? null, lang,
+    }));
+    setBusy(false);
+    if (ok) { setShowAddMaterial(false); notify(t("Material added", "Material agregado")); }
+  };
+
+  /**
    * Volver de «listo» a «preparando» (D-287), que es lo que pidió almacén: *«si por accidente
    * pongo listo, ¿cómo me regreso a no listo?»*.
    *
@@ -1260,6 +1290,7 @@ export function OrderModal({
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
+      onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
       onRequestStart={() => { setStartFee(existing.delivery_fee != null ? String(existing.delivery_fee) : ""); setShowStartConfirm(true); }}
       onBackToPreparing={volverAPreparar}
       readyConfirmOpen={showReadyConfirm}
@@ -1432,6 +1463,9 @@ export function OrderModal({
                       [t("Delivery Date", "Fecha de Entrega"), existing.delivery_date || "—"],
                       [t("Delivery Windows", "Ventana de Entrega"), fmtWindows(existing.delivery_windows)],
                       ...(filaFacturaOEstimacion(existing, documento) ? [[t("Invoice / Estimate #", "Factura / Estimación #"), filaFacturaOEstimacion(existing, documento)!]] : []),
+                      // Las facturas AÑADIDAS después (D-NEXT), solo cuando hay alguna: la orden lleva más
+                      // material del que se agendó y quien la prepara tiene que verlas todas.
+                      ...((existing.invoices_extra ?? []).length ? [[t("Added invoices", "Facturas agregadas"), (existing.invoices_extra ?? []).join(", ")]] : []),
                       [t("Actual Pallets", "Pallets Reales"), existing.actual_pallets == null ? "—" : String(existing.actual_pallets)],
                       [t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"],
                       [t("Delivery Address", "Dir. Entrega"), existing.delivery_address || "—"],
@@ -2645,6 +2679,88 @@ export function OrderModal({
       </div>
     )}
 
+    {/* Agregar material (D-NEXT), del vendedor dueño de la orden. Un vendedor: «a veces agendo un
+        Delivery pero luego el cliente me solicita más material… no voy a poder editar sino que voy
+        a poder agregar más facturas e incrementar # de Pallets».
+
+        Dos campos y una sola escritura. NO es «editar la orden»: la dirección, la fecha y la tarifa
+        no se tocan, y el guard de la 138 lo hace cumplir aunque alguien llegue por otro camino. */}
+    {showAddMaterial && existing && (() => {
+      const problema = matFactura.trim() ? problemaDeFactura(matFactura, existing) : null;
+      const palletsAhora = existing.est_pallets ?? 0;
+      const palletsPedidos = matPallets.trim() === "" ? null : Number(matPallets);
+      const palletsSuben = palletsPedidos != null && Number.isFinite(palletsPedidos) && palletsPedidos > palletsAhora;
+      const palletsBajan = palletsPedidos != null && Number.isFinite(palletsPedidos) && palletsPedidos < palletsAhora;
+      const enOtra = matFactura.trim() && !problema ? avisoDeFacturaEnOtraOrden(deliveries, matFactura, existing.id) : null;
+      const hayAlgo = (!!matFactura.trim() && !problema) || palletsSuben;
+      return (
+      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal" style={{ maxWidth: 420 }}>
+          <h3 style={{ marginTop: 0 }}>➕ {t("Add material", "Agregar material")}</h3>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t("The same delivery, with more material on it. You can add an invoice and raise the pallets — nothing else changes.",
+               "El mismo envío, con más material. Puede agregar una factura y subir los pallets — nada más cambia.")}
+          </p>
+
+          <div className="field">
+            <label>{t("Additional invoice", "Factura adicional")}</label>
+            <input type="text" autoFocus maxLength={MAX_LARGO_FACTURA} value={matFactura}
+              onChange={(e) => setMatFactura(e.target.value)} />
+            {/* Las que ya tiene, para que nadie repita una mirando otra pantalla. */}
+            <div className="hint">
+              {t("Already on this order:", "Ya en esta orden:")}{" "}
+              <strong>{facturasDeLaOrden(existing).join(" · ") || t("none", "ninguna")}</strong>
+            </div>
+            {problema === "repetida" && (
+              <div className="hint" style={{ color: "var(--red)", fontWeight: 600 }}>
+                ⚠ {t("This order already has that invoice.", "Esta orden ya tiene esa factura.")}
+              </div>
+            )}
+            {problema === "larga" && (
+              <div className="hint" style={{ color: "var(--red)", fontWeight: 600 }}>
+                ⚠ {t(`Too long (max ${MAX_LARGO_FACTURA} characters).`, `Demasiado larga (máximo ${MAX_LARGO_FACTURA} caracteres).`)}
+              </div>
+            )}
+            {problema === "tope" && (
+              <div className="hint" style={{ color: "var(--red)", fontWeight: 600 }}>
+                ⚠ {t("This order already has the maximum number of invoices.", "Esta orden ya tiene el máximo de facturas.")}
+              </div>
+            )}
+            {/* Que el número esté en OTRA orden avisa pero NO bloquea: cuando un cliente pide más
+                material lo normal es que la factura nueva sea suya, y el que de verdad importa —
+                repetirla en ESTA orden— sí para el guardado. */}
+            {enOtra && (
+              <div className="hint" style={{ color: "var(--amber)", fontWeight: 600 }}>
+                ⚠ {t(`Order #${orderLabel(enOtra)} already uses that invoice.`, `La orden #${orderLabel(enOtra)} ya usa esa factura.`)}
+              </div>
+            )}
+          </div>
+
+          <div className="field">
+            <label>{t("Total pallets", "Pallets en total")}</label>
+            <input type="number" min={palletsAhora} step="1" value={matPallets}
+              onChange={(e) => setMatPallets(e.target.value)} />
+            {/* Se teclea el TOTAL, no lo que se suma: es como lo dice quien lo mira, y evita la
+                pregunta «¿los 2 son los nuevos o el total?». */}
+            <div className="hint">{t(`Now: ${palletsAhora}. Warehouse counts the real ones when it loads.`,
+                                     `Ahora: ${palletsAhora}. Almacén cuenta los reales al cargar.`)}</div>
+            {palletsBajan && (
+              <div className="hint" style={{ color: "var(--red)", fontWeight: 600 }}>
+                ⚠ {t("Pallets can only go up here. To lower them, call the office.",
+                      "Aquí los pallets solo suben. Para bajarlos, llame a oficina.")}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+            <button className="btn btn-ghost" onClick={() => setShowAddMaterial(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+            <button className="btn btn-primary" onClick={guardarMaterial} disabled={busy || !hayAlgo}>{t("Add", "Agregar")}</button>
+          </div>
+        </div>
+      </div>
+      );
+    })()}
+
     {showReadyConfirm && existing && (
       <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal" style={{ maxWidth: 420 }}>
@@ -2798,7 +2914,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
-  onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onAddMaterial, onRequestStart, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
@@ -2815,6 +2931,8 @@ function StageActions({
   cancelListo: boolean;
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de tarifa que precede a "Comenzar preparación" (D-146). */
+  /** Abre el diálogo de «Agregar material» del vendedor dueño de la orden (D-NEXT). */
+  onAddMaterial: () => void;
   onRequestStart: () => void;
   /** Devuelve una orden lista a preparación, preguntando antes (D-287). */
   onBackToPreparing: () => void;
@@ -2871,6 +2989,13 @@ function StageActions({
   }
   if (canApprove(me) && stage === "approved") {
     btns.push(<button key="unlock" className="btn btn-amber" onClick={() => onMove("pending")} disabled={busy}>{t("Unlock (back to pending)", "Desbloquear (volver a pendiente)")}</button>);
+  }
+
+  // El vendedor agrega material a SU orden (D-NEXT): más facturas y más pallets, nada más. Quién y
+  // en qué etapa lo decide `puedeAgregarMaterial`, que es la misma regla que hace cumplir el guard
+  // de la 138; aquí no se vuelve a decidir.
+  if (puedeAgregarMaterial(me, pedido)) {
+    btns.push(<button key="material" className="btn btn-ghost" onClick={onAddMaterial} disabled={busy}>➕ {t("Add material", "Agregar material")}</button>);
   }
 
   // Warehouse

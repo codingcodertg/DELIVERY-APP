@@ -3,6 +3,7 @@ import { withinRetention } from "@/lib/utils";
 import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
+import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 /**
  * Qué órdenes salen en la pantalla de Órdenes, y cuáles además en la pestaña de factura pendiente
@@ -82,7 +83,9 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
   const needle = busqueda.trim().toLowerCase();
   if (!needle) return true;
   const hay = [
-    d.order_code, d.order_no, d.account, d.so_num, d.po2, d.invoice_num, d.store,
+    // Las facturas AÑADIDAS después también se buscan (D-NEXT): quien teclea un número no sabe
+    // si fue la primera o la segunda, y no encontrarla se lee como que la orden no existe.
+    d.order_code, d.order_no, d.account, d.so_num, d.po2, ...facturasDeLaOrden(d), d.store,
     d.delivery_address, d.contact, d.assigned_driver, d.delivery_name, d.pickup_name,
   ].map((x) => String(x ?? "").toLowerCase()).join(" ");
   return hay.includes(needle);
