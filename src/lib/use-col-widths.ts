@@ -54,23 +54,28 @@ export function useColWidths(storageKey: string, defaults: number[]) {
  * reach data that would otherwise have fitted.
  *
  * A resize is still remembered per column; these are only the starting points.
+ *
+ * Apretados en D-344 (entre 10 y 26 px por columna), junto con el relleno de las celdas, que baja 8 px
+ * por columna. Las columnas pierden algo más que el relleno: un texto que cabía justo ahora se corta
+ * con puntos suspensivos, y para eso está el asa. Quien ya arrastró una columna conserva SU ancho;
+ * esto solo mueve el punto de partida.
  */
 export const COLUMN_WIDTHS: Record<string, number> = {
-  __id: 190,      // invoice numbers, sometimes two, with the order code beneath
-  stage: 118,     // a pill
-  type: 104,      // Customer / Intertienda / Transfer
-  store: 150,
-  account: 210,   // company names run long — this is the one that needs room
-  so: 82,
-  po: 82,
-  invoice: 120,
-  date: 128,
-  windows: 128,
-  pallets: 88,
-  fee: 84,
-  driver: 140,
-  contact: 130,
-  address: 240,
+  __id: 172,      // invoice numbers, sometimes two, with the order code beneath
+  stage: 108,     // a pill
+  type: 96,       // Customer / Intertienda / Transfer
+  store: 128,
+  account: 184,   // company names run long — this is the one that needs room
+  so: 72,
+  po: 72,
+  invoice: 108,
+  date: 112,
+  windows: 112,
+  pallets: 76,
+  fee: 72,
+  driver: 120,
+  contact: 116,
+  address: 216,
 };
 
 /**
