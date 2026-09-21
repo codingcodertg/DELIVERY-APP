@@ -49,11 +49,11 @@ describe("a quién le pasaba y quién se beneficia", () => {
     const ventas = ROLE_DEFAULT_COLUMNS.sales!.length;
     // Eran 6 cuando se escribió esto; D-330 (columnas por usuario) quitó «Factura #» de los tres defectos porque `#`
     // ya la enseña. Lo que esta prueba sostiene no es el número: es que ventas sigue viendo MENOS que los demás.
-    // D-337 le añadió «Dirección de entrega»: 6 otra vez, y sigue siendo el que menos ve.
-    expect(ventas).toBe(6);
-    for (const rol of ["driver", "warehouse"] as const) {
-      expect(ROLE_DEFAULT_COLUMNS[rol]!.length, rol).toBeGreaterThan(ventas);
-    }
+    // D-337 le añadió «Dirección de entrega»: 6 otra vez, y seguía siendo el que menos veía.
+    // D-347 LO CAMBIA A SABIENDAS: el dueño pidió que la tabla de todos se vea como la suya, así que ventas parte de
+    // las mismas diez. El marco que se estira (D-281) sigue haciendo falta para quien quite columnas.
+    expect(ventas).toBe(10);
+    expect(ROLE_DEFAULT_COLUMNS.warehouse!.length).toBeGreaterThan(ventas);
   });
 
   it("las seis tablas redimensionables piden el marco, y todas ganan lo mismo", () => {

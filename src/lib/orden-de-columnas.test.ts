@@ -149,3 +149,26 @@ describe("la tabla y la página", () => {
     expect(pagina).toContain("ordenDeLaBase.current = leido.orden; anchosDeLaBase.current = leido.anchos; setOrden(leido.orden[rol] ?? null); setAnchos(leido.anchos[rol] ?? null);");
   });
 });
+
+describe("el orden de partida es el de la captura del dueño (D-347)", () => {
+  it("las diez de la captura van en SU orden, y las cuatro que no lleva, junto a su vecina", async () => {
+    const { ORDEN_DE_PARTIDA, enOrdenDePartida } = await import("./orden-de-columnas");
+    const captura = ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"];
+    expect(ORDEN_DE_PARTIDA.filter((k) => captura.includes(k))).toEqual(captura);
+    // Ordena el catálogo de verdad, que llega en OTRO orden (el de siempre, leído del fuente).
+    const antes = ORDER_COLUMNS.map((c) => c.key);
+    const despues = enOrdenDePartida(ORDER_COLUMNS.map((c) => ({ ...c }))).map((c) => c.key);
+    expect(antes).not.toEqual(despues);
+    expect(despues).toEqual([...ORDEN_DE_PARTIDA]);
+  });
+  it("cubre el catálogo entero; y una columna que la lista no conozca se va al final, no desaparece", async () => {
+    const { ORDEN_DE_PARTIDA, enOrdenDePartida } = await import("./orden-de-columnas");
+    expect([...ORDEN_DE_PARTIDA].sort()).toEqual(ORDER_COLUMNS.map((c) => c.key).sort());
+    expect(enOrdenDePartida([{ key: "nueva" }, { key: "windows" }, { key: "po" }]).map((c) => c.key)).toEqual(["po", "windows", "nueva"]);
+  });
+  it("la tabla ordena su catálogo con esa función, y los defectos sin juego propio son los de la captura", () => {
+    const tablaFuente = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8");
+    expect(tablaFuente).toContain("enOrdenDePartida(ORDER_COLUMNS);");
+    expect(tablaFuente).toContain('export const DEFAULT_COLUMNS = ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"];');
+  });
+});

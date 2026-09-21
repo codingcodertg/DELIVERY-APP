@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, roleHome, roleLabel } from "@/lib/constants";
+import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, roleHome, roleLabel, vaEnGeneral } from "@/lib/constants";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -98,8 +98,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // las páginas para decidir si se abren, y tenerla en dos sitios es como una pantalla
   // acabó dejando entrar a quien no tenía pestaña.
   const visibleTabs = TABS.filter((tb) => canOpenTab(tb.id, me));
-  const mainTabs = visibleTabs.filter((tb) => tb.group !== "general");
-  const generalTabs = visibleTabs.filter((tb) => tb.group === "general");
+  const mainTabs = visibleTabs.filter((tb) => !vaEnGeneral(tb, me.role));
+  const generalTabs = visibleTabs.filter((tb) => vaEnGeneral(tb, me.role));
 
   // Match the exact route or a sub-route — never a prefix of another tab
   // (e.g. "/accounts" must not light up the "/account" tab).

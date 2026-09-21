@@ -134,10 +134,11 @@ describe("los defectos por rol ya no repiten la factura", () => {
     // Y sigue en el selector para quien la quiera.
     expect(leer("src/components/OrdersTable.tsx")).toContain('{ key: "invoice", en: "Invoice #", es: "Factura #"');
   });
-  it("lo demás de cada defecto no cambió", () => {
+  it("los defectos son el juego de la captura del dueño (D-347), con dos excepciones: el chofer sin «Chofer», almacén con el costo (D-148)", () => {
+    const juego = ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"];
     expect(ROLE_DEFAULT_COLUMNS).toEqual({
-      sales: ["type", "store", "date", "windows", "account", "address"], driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
-      warehouse: ["stage", "type", "store", "account", "date", "windows", "pallets", "fee", "driver"],
+      sales: juego, driver: juego.filter((k) => k !== "driver"),
+      warehouse: ["po", "type", "account", "stage", "store", "date", "pallets", "fee", "driver", "address", "windows"],
     });
   });
 });
