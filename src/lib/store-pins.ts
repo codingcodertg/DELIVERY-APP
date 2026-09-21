@@ -167,4 +167,20 @@ export function dibujoTiendaUrl(estilo: EstiloTienda, nombre: string): DibujoTie
  * cambio visual en cuatro sitios dentro de un encargo que pedía otra cosa. Queda dicho, con su
  * valor a la vista, para que quien lo cambie algún día sepa que toca los cuatro a la vez.
  */
-export const TIENDA_CLASICA = { fill: "#e11414", diametro: 24, borde: "#fff", grosor: 3 } as const;
+export const TIENDA_CLASICA = { fill: "#0b3d91", diametro: 26, borde: "#fff", grosor: 2 } as const;
+
+/**
+ * La tienda de los mapas de despacho es una CASITA azul (D-348). El dueño: «change store's dots from red to blue» y
+ * «change the dot from a dot to a little house icon to be more amigable». Era un punto rojo `#e11414` escrito dos
+ * veces, distinto en cada motor (D-222 lo dejó dicho y no lo tocó). Ahora es UN dibujo, el mismo SVG en Google, en
+ * Leaflet y en la leyenda, así que mueve las cuatro pantallas a la vez —Mapa, Rutas, Mi ruta y Rastreo— a sabiendas.
+ *
+ * El azul es marino y NO el `#2456c9` del tema: ese ya es el primer color de la paleta de choferes y el de la ruta
+ * elegida. Lo que de verdad la separa de una orden es la FORMA: las órdenes son puntos, los choferes camiones.
+ */
+export function casaDeTienda(lado: number = TIENDA_CLASICA.diametro): string {
+  const { fill, borde, grosor } = TIENDA_CLASICA;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${lado}" height="${lado}" viewBox="0 0 26 26">` +
+    `<path d="M13 2.5 L24 12 H21 V23 H5 V12 H2 Z" fill="${fill}" stroke="${borde}" stroke-width="${grosor}" stroke-linejoin="round"/>` +
+    `<rect x="10.5" y="15" width="5" height="8" fill="${borde}"/></svg>`;
+}
