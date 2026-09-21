@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { PlanDelDia } from "@/components/PlanDelDia";
-import { mismaTiendaOGrupo } from "@/lib/store-group";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
