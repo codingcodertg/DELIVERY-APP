@@ -6,6 +6,34 @@ import { useEffect, useRef, useState } from "react";
 // table in localStorage) and hands back a mousedown handler for a drag handle
 // placed at each header cell's right edge. Pair with a <colgroup> of <col>s and
 // a `table-layout: fixed` table (see the .tbl-resize CSS).
+/**
+ * El ancho que hay que ponerle a una tabla `tbl-resize` para que sus columnas se respeten (D-345).
+ *
+ * Medido en Chrome el 2026-09-20 con el CSS de la app: con `width: auto`, `table-layout: fixed` NO se
+ * aplica — el navegador cae al reparto automático. Seis columnas pedidas a 172/108/96/128/112/76 px se
+ * pintaron todas a ~246; pedir una a 60 px no la movió; pedirla a 300 la llevó a 409 quitándole a las
+ * demás. Eso era «el arrastre no funciona»: encoger era imposible.
+ *
+ * Con un ancho explícito el reparto fijo sí manda. `max(100%, suma)`: si la suma no llena el hueco la
+ * tabla se estira hasta el marco y el sobrante se reparte EN PROPORCIÓN a lo pedido (lo que quería
+ * D-281); si lo pasa, cada columna mide exactamente lo pedido y la tabla se desplaza.
+ */
+/**
+ * Cuántos píxeles de pantalla ocupa cada píxel PEDIDO de esta columna (D-345). Con la tabla estirada
+ * hasta el marco es mayor que 1, y sin corregirlo la columna se adelanta al cursor: medido, arrastrar
+ * 100 px la hacía crecer 159; dividiendo por la escala crece 79 y no se pasa. El asa vive dentro del th.
+ */
+export function escalaDelAsa(asa: EventTarget | null, pedido: number): number {
+  const th = (asa as HTMLElement | null)?.parentElement;
+  const real = th?.getBoundingClientRect().width ?? 0;
+  return real > 0 && pedido > 0 ? Math.max(1, real / pedido) : 1;
+}
+
+export function anchoDeTabla(anchos: readonly number[]): { width: string } {
+  const suma = anchos.reduce((s, w) => s + (Number.isFinite(w) && w > 0 ? w : 0), 0);
+  return { width: `max(100%, ${Math.round(suma)}px)` };
+}
+
 export function useColWidths(storageKey: string, defaults: number[]) {
   const [widths, setWidths] = useState<number[]>(() => {
     try {
@@ -21,8 +49,9 @@ export function useColWidths(storageKey: string, defaults: number[]) {
     e.stopPropagation();
     const startX = e.clientX;
     const base = widths[i];
+    const escala = escalaDelAsa(e.currentTarget, base);
     const onMove = (ev: MouseEvent) => {
-      setWidths((w) => { const n = [...w]; n[i] = Math.max(16, base + (ev.clientX - startX)); return n; });
+      setWidths((w) => { const n = [...w]; n[i] = Math.max(16, Math.round(base + (ev.clientX - startX) / escala)); return n; });
     };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
@@ -110,8 +139,9 @@ export function useColWidthMap(storageKey: string, defaultWidth = 150, opciones:
     e.stopPropagation();
     const startX = e.clientX;
     const base = widths[key] ?? COLUMN_WIDTHS[key] ?? defaultWidth;
+    const escala = escalaDelAsa(e.currentTarget, base);
     const onMove = (ev: MouseEvent) => {
-      setWidths((w) => ({ ...w, [key]: Math.max(minimo, base + (ev.clientX - startX)) }));
+      setWidths((w) => ({ ...w, [key]: Math.max(minimo, Math.round(base + (ev.clientX - startX) / escala)) }));
     };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);

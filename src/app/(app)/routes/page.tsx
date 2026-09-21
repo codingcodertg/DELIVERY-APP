@@ -18,7 +18,7 @@ import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLab
 import { serviceMin, tripTiming, dayMinutes, RELOAD_MIN } from "@/lib/trip-timing";
 import { buildGeoLoads, fillByCapacity, planCostMi } from "@/lib/route-batching";
 import { driverOf, groupIntoLoads, hasManualLoads, loadNoOf, nextLoadFor as nextLoadForPure, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
-import { useColWidthMap, useColWidths } from "@/lib/use-col-widths";
+import { anchoDeTabla, useColWidthMap, useColWidths } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
@@ -1782,7 +1782,7 @@ export default function RoutesPage() {
             <div className="empty">{t("No orders are assigned to a driver or route yet for this date.", "Aún no hay órdenes asignadas a un chofer o ruta en esta fecha.")}</div>
           ) : (
             <div className="tbl-scroll tbl-fit">
-              <table className="orders tbl-resize">
+              <table className="orders tbl-resize" style={anchoDeTabla([schedCols.widthOf("__id"), ...colsProgramadas.map((c) => schedCols.widthOf(`g_${c.key}`)), 44])}>
                 <colgroup>
                   <col style={{ width: schedCols.widthOf("__id") }} />
                   {colsProgramadas.map((c) => <col key={c.key} style={{ width: schedCols.widthOf(`g_${c.key}`) }} />)}
@@ -1917,7 +1917,7 @@ export default function RoutesPage() {
           <div className="empty">{t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda.")}</div>
         ) : (
           <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
-            <table className="orders tbl-resize">
+            <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => poolCols.widthOf(`g_${c.key}`)), 116])}>
               <colgroup>
                 <col style={{ width: 28 }} />
                 <col style={{ width: poolCols.widthOf("__id") }} />

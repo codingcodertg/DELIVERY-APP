@@ -23978,6 +23978,9 @@ destino; sin conservar la guardada; «recoger en» aunque coincida; «recoger en
 
 ## D-344 · Las tablas de órdenes, más compactas; y que las columnas se redimensionan ya estaba
 
+> **⚠ Corregida por D-345** (2026-09-20). «Redimensionar ya se podía» era falso: se leyó el código y no se
+> abrió un navegador. El arrastre no movía la columna. La parte de la densidad sigue vigente.
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.168.0, repo 1.232.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«make columns rezisable en make the order tables more compact but
 efficeintly at view»*.
@@ -24005,3 +24008,65 @@ o el asa sigue sin verse. Nadie ha abierto esto en un navegador desde D-334, as�
   que antes cabía justo (las columnas pierden algo más que el relleno). Si corta, se arrastra.
 - Las filas con dos líneas (la celda del identificador lleva el código debajo) mandan sobre la altura:
   ahí la ganancia es menor.
+
+## D-345 · El arrastre de columnas no funcionaba: con `width: auto` el navegador ignoraba los anchos
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.169.0, repo 1.233.0 · **Sin migración.**
+**Reportado por el dueño**, literal: *«the column resizing is not working»* — un día después de D-338
+y horas después de que D-344 contestara que «ya se podía».
+
+### D-344 se equivocó, y por qué
+
+D-344 dio el arrastre por bueno **leyendo el código**: el asa existe, recibe el clic, el manejador
+guarda el ancho. Todo eso es verdad y la columna no se movía. Nadie lo había abierto en un navegador
+desde D-334, y D-344 lo dejó escrito como «no verificado» en vez de verificarlo.
+
+### Lo medido (Chrome, 2026-09-20, reproducción con el CSS literal de la app)
+
+`table.tbl-resize { table-layout: fixed; width: auto; min-width: 100% }`. El comentario de esa regla
+dice que «con fixed + auto, el ancho de la tabla es la suma de las columnas». **No es lo que pasa:**
+con `width: auto` el reparto fijo no se aplica y el navegador reparte por contenido.
+
+| Se pidió | Se pintó |
+|---|---|
+| seis columnas a 172 / 108 / 96 / 128 / 112 / 76 px | las seis a ~246 px |
+| encoger una a 60 px | **246: no se movió** |
+| agrandarla a 300 px | 409, quitándoles a las demás |
+
+Encoger era imposible y agrandar hacía otra cosa que la pedida. La tabla de paradas de Rutas sí
+funcionaba, y es el dato que lo confirma: era la única que ya llevaba un `width` en línea.
+
+### El arreglo
+
+- **`anchoDeTabla(anchos)`** (`lib/use-col-widths`) devuelve `{ width: "max(100%, <suma>px)" }`, y lo
+  llevan en línea las cuatro tablas que se arrastran: Órdenes (`OrdersTable`, que usan Órdenes,
+  Almacén, Chofer y Ajustes), Cuentas, y las dos de Rutas (programadas y sin asignar). Con un ancho
+  explícito el reparto fijo manda. Medido con el arreglo: si la suma no llena el hueco, la tabla se
+  estira y el sobrante se reparte **en proporción** a lo pedido (lo que quería D-281) y encoger ya
+  encoge; si la suma pasa del hueco, cada columna mide **exactamente** lo pedido (400/60/400…) y la
+  tabla se desplaza.
+- **`escalaDelAsa`**: con la tabla estirada, un píxel pedido ocupa más de uno en pantalla (2,16× en la
+  medición). Sin corregirlo, arrastrar 100 px hacía crecer la columna 159 y se adelantaba al cursor;
+  dividiendo el movimiento por la escala crece 79 y al encoger 60 baja 53. Se queda algo corta —al
+  cambiar una columna cambia el reparto— pero sigue al ratón y no se pasa.
+- La regla CSS se deja, con una nota que dice que su comentario es lo que se pretendía: la usan por
+  estilo dos tablas que no se arrastran (Almacén, zonas de Ajustes).
+
+De paso, el marcador del desplegable de recogida de Intertienda (D-343) pasa de «the store you are
+buying from» a **«Select store»**, por pedido del dueño.
+
+### Verificado
+
+Pruebas de las dos funciones; la expresión del arrastre actualizada en `intertienda-y-columnas.test.ts`;
+y una prueba que exige el ancho en línea en toda tabla con `tbl-resize` y asa. **Esa prueba nació
+inerte** —miraba 400 caracteres tras la etiqueta y casaba con el `style={{ width` de un `<col>`—: el
+mutante «OrdersTable sin ancho» no cayó. Acotada a la etiqueta de apertura, los tres mutantes (uno
+por fichero) caen cada uno con su prueba.
+
+### Lo no verificado
+
+- **La app real, con sesión, sigue sin abrirse en un navegador.** Lo medido es una reproducción con el
+  mismo CSS y la misma aritmética, no la pantalla de Órdenes. El dueño es quien puede confirmarlo.
+- Anchos ya guardados por persona desde D-338: se guardaron con la tabla ignorándolos, así que al
+  aplicarse ahora alguna columna puede salir rara. Doble clic en el asa la restablece.
+- Firefox y Safari no se midieron.

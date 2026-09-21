@@ -109,7 +109,7 @@ describe("b · el ancho de las columnas, por persona", () => {
     const hook = leer("src/lib/use-col-widths.ts");
     const mapa = hook.slice(hook.indexOf("export function useColWidthMap("));
     const mover = mapa.slice(mapa.indexOf("const onMove ="), mapa.indexOf("const onUp ="));
-    expect(mover).toContain("Math.max(minimo, base + (ev.clientX - startX))");
+    expect(mover).toContain("Math.max(minimo, Math.round(base + (ev.clientX - startX) / escala))"); // D-345: el movimiento se divide por la escala
     expect(mover).not.toMatch(/guarda\(|localStorage|alCambiar/);
     expect(mapa.slice(mapa.indexOf("const onUp ="), mapa.indexOf("document.body.style.cursor = \"col-resize\";"))).toContain("guarda(ultimos.current)");
     expect(plano(mapa)).toContain("const n = { ...ultimos.current }; delete n[key]; setWidths(n); guarda(n);");
