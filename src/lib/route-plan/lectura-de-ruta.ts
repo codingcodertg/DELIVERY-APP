@@ -29,7 +29,7 @@ export interface LecturaDeRuta {
   fuente: "plan" | "derivada";
   /** Hay plan publicado para este chofer, pero su ruta ya no es la que el plan escribió: se avisa. */
   cambioTrasPublicar: boolean;
-  /** EN QUÉ cambió (D-NEXT). `null` justo cuando `cambioTrasPublicar` es falso: es la misma decisión, con su detalle. */
+  /** EN QUÉ cambió (D-341). `null` justo cuando `cambioTrasPublicar` es falso: es la misma decisión, con su detalle. */
   cambios: CambiosTrasPublicar | null;
   /** La etiqueta de entrega de cada orden. Una orden repartida en cargas lleva todas: «D3·D5». */
   etiquetaDe: Map<string, string>;
@@ -52,7 +52,7 @@ export function sigueElPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: 
 }
 
 /**
- * EN QUÉ cambió la ruta desde que se publicó el plan (D-NEXT), para decírselo al chofer en «Mi ruta».
+ * EN QUÉ cambió la ruta desde que se publicó el plan (D-341), para decírselo al chofer en «Mi ruta».
  *
  * SI cambió lo sigue decidiendo `sigueElPlan` —no hay una segunda comparación—: esto solo desglosa su «no», contra las
  * mismas posiciones del plan. Por eso puede salir un cambio SIN detalle (listas vacías y los dos falsos): las mismas

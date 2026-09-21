@@ -3,7 +3,7 @@ import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import type { Delivery, Settings } from "@/lib/types";
 
 /**
- * Los dos avisos de «Agregar material» (D-NEXT): subir los pallets de una orden ya hecha (D-339) puede
+ * Los dos avisos de «Agregar material» (D-342): subir los pallets de una orden ya hecha (D-339) puede
  * desbordar el camión donde va, y puede dejar desfasado un plan de ruta que ya se publicó (D-334, D-335).
  *
  * **Avisan, no bloquean.** Quien sube los pallets es ventas, y el material es del cliente y va a salir

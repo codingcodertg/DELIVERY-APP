@@ -220,7 +220,7 @@ describe("una ruta ordenada a medias", () => {
   });
 });
 
-// D-NEXT: EN QUÉ cambió la ruta tras publicar, para el aviso de «Mi ruta». El plan va escrito a mano y con los ids
+// D-341: EN QUÉ cambió la ruta tras publicar, para el aviso de «Mi ruta». El plan va escrito a mano y con los ids
 // DESORDENADOS respecto al alfabeto (m, c, t, f), y las paradas llegan barajadas: nada aquí pasa «porque ya venía ordenado».
 describe("en qué cambió la ruta desde que se publicó el plan", () => {
   const p = (seq: number, kind: "P" | "D", order_ref: string, load_after: number): ParadaDelPlanMinima => ({ kind, order_ref, seq, label: `${kind}${seq}`, load_after, place: null });
@@ -271,7 +271,7 @@ describe("en qué cambió la ruta desde que se publicó el plan", () => {
   });
 });
 
-describe("«Mi ruta» pinta el aviso de D-NEXT", () => {
+describe("«Mi ruta» pinta el aviso de D-341", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/my-route/page.tsx"), "utf8").split("\r\n").join("\n");
   it("sale de `lectura.cambios`, con sus cuatro partes", () => {
     for (const trozo of ["{lectura.cambios && (", "lectura.cambios.anadidas.map(", "lectura.cambios.quitadas.map(", "{lectura.cambios.ordenCambiado && ", "{lectura.cambios.viajeCambiado && "]) expect(pagina).toContain(trozo);

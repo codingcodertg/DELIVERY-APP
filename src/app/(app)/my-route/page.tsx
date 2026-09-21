@@ -293,7 +293,7 @@ export default function MyRoutePage() {
 
       {!verAtrasadas && <MiPlanPublicado plan={planPublicado} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
 
-      {/* La ruta ya no es la que el plan publicó (D-NEXT): se le dice al chofer, y en qué. Va FUERA de la lista, para que
+      {/* La ruta ya no es la que el plan publicó (D-341): se le dice al chofer, y en qué. Va FUERA de la lista, para que
           salga también si le quitaron todas las paradas. Qué cambió lo decide `cambiosTrasPublicar`; aquí solo se pinta.
           Una orden quitada que ya no está a su vista se nombra por el principio de su referencia (`nombraLaOrden`). */}
       {lectura.cambios && (

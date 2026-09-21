@@ -137,7 +137,7 @@ export function OrderModal({
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [matFactura, setMatFactura] = useState("");
   const [matPallets, setMatPallets] = useState("");
-  // El plan PUBLICADO del día de la orden, solo con el diálogo abierto (D-NEXT). Es la lectura que ya hace el
+  // El plan PUBLICADO del día de la orden, solo con el diálogo abierto (D-342). Es la lectura que ya hace el
   // Gestor; a quien la RLS de la 133 no le deja leer planes le llega `null`, que es «sin aviso».
   const rutasPublicadas = usePlanPublicadoDelGestor(showAddMaterial ? existing?.delivery_date ?? null : null, 0);
   // Aquí vivía la tarifa que el almacén confirmaba al agarrar la orden (D-143, D-146). Fuera
@@ -2535,7 +2535,7 @@ export function OrderModal({
       const palletsBajan = palletsPedidos != null && Number.isFinite(palletsPedidos) && palletsPedidos < palletsAhora;
       const enOtra = matFactura.trim() && !problema ? avisoDeFacturaEnOtraOrden(deliveries, matFactura, existing.id) : null;
       const hayAlgo = (!!matFactura.trim() && !problema) || palletsSuben;
-      // Camión que se pasa y plan ya publicado (D-NEXT): lo decide `lib/agregar-material-avisos`; aquí solo se pinta.
+      // Camión que se pasa y plan ya publicado (D-342): lo decide `lib/agregar-material-avisos`; aquí solo se pinta.
       const avisos = avisosDeAgregarMaterial({
         pedido: existing, pallets: palletsPedidos, todas: deliveries, settings,
         paradasPublicadas: rutasPublicadas ? rutasPublicadas.flatMap((r) => r.paradas) : null,
@@ -2597,7 +2597,7 @@ export function OrderModal({
                       "Aquí los pallets solo suben. Para bajarlos, llame a oficina.")}
               </div>
             )}
-            {/* Avisan y dejan seguir (D-NEXT): el material va a salir igual; lo que hace falta es que
+            {/* Avisan y dejan seguir (D-342): el material va a salir igual; lo que hace falta es que
                 ventas sepa que logística tiene que enterarse. */}
             {avisos.desborda && (
               <div className="hint" style={{ color: "var(--amber)", fontWeight: 600 }}>
