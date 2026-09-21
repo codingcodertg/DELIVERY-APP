@@ -23975,3 +23975,33 @@ destino; sin conservar la guardada; «recoger en» aunque coincida; «recoger en
   de la recogida, no se comprobó con una orden de recogida distinta.
 - **El almacén que prepara.** Qué almacén ve la orden en su cola depende de `tiendaDeLaOrdenEsMia`,
   que ya mira la recogida; no se probó con datos reales.
+
+## D-344 · Las tablas de órdenes, más compactas; y que las columnas se redimensionan ya estaba
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.168.0, repo 1.232.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«make columns rezisable en make the order tables more compact but
+efficeintly at view»*.
+
+### Redimensionar: ya se podía, y es la segunda vez que se pide
+
+Las columnas de la tabla de Órdenes se arrastran desde antes de D-338, y D-338 (2026-09-19) hizo que
+el ancho se guarde **por persona** e hizo el asa visible. El dueño lo vuelve a pedir un día después.
+No se construye nada nuevo: **el asa es la raya fina al borde derecho de cada cabecera**; se arrastra,
+y doble clic la restablece. Que se pida dos veces es un dato: o no ha recargado la versión de D-338,
+o el asa sigue sin verse. Nadie ha abierto esto en un navegador desde D-334, así que no se sabe cuál.
+
+### Compactas
+
+- **Relleno de las celdas** de `10px 12px` a `5px 8px`, texto de 13 a 12,5 px y cabeceras de 11,5 a
+  11 px. Solo en las tablas que se redimensionan (`table.orders.tbl-resize`: Órdenes, Almacén, Chofer,
+  Rutas, Cuentas) y solo por encima de 640 px: en el teléfono son tarjetas con su propio relleno.
+  Las demás `table.orders` (Panel, Datos, Auditoría, Mercado) no se tocan: no son «order tables».
+- **Anchos de partida** (`COLUMN_WIDTHS`) entre 10 y 26 px más estrechos por columna. **Quien ya
+  arrastró una columna conserva su ancho** — lo guardado manda sobre el punto de partida.
+
+### Lo no verificado
+
+- **Sin medir en un navegador**: ni cuántas filas más caben, ni si alguna columna corta ahora un texto
+  que antes cabía justo (las columnas pierden algo más que el relleno). Si corta, se arrastra.
+- Las filas con dos líneas (la celda del identificador lleva el código debajo) mandan sobre la altura:
+  ahí la ganancia es menor.

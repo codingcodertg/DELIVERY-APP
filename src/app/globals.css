@@ -332,6 +332,15 @@ table.tbl-resize td { overflow: hidden; text-overflow: ellipsis; white-space: no
 table.orders th, table.orders td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.orders th { background: var(--paper); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-soft); position: sticky; top: 0; }
 table.orders tr:last-child td { border-bottom: none; }
+/* Las tablas de órdenes, más compactas (D-344). El dueño: «make the order tables more compact but
+   efficiently at view». Solo las que se redimensionan (`tbl-resize`: Órdenes, Almacén, Chofer, Rutas,
+   Cuentas) y solo en pantalla ancha: en el teléfono son tarjetas y tienen su propio relleno. El
+   relleno vertical baja a la mitad (10 → 5 px) y el texto medio punto, no más. Sin medir en un navegador. Lo que no quepa en una columna sigue con sus puntos suspensivos y el asa al lado. */
+@media (min-width: 641px) {
+  table.orders.tbl-resize { font-size: 12.5px; }
+  table.orders.tbl-resize th, table.orders.tbl-resize td { padding: 5px 8px; }
+  table.orders.tbl-resize th { font-size: 11px; }
+}
 table.orders tr.clickable:hover td { background: var(--card-hover); cursor: pointer; }
 /* Still pending approval past today's cutoff — needs immediate action. */
 table.orders tr.row-urgent td { background: #fdeaea; }
