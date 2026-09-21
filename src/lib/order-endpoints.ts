@@ -151,6 +151,37 @@ export function eligeOrigen(p: Partial<Delivery>, v: string, tiendas: NamedLocat
 }
 
 /**
+ * Elegir **dónde se recoge** en una Intertienda, aparte de a quién se le compra (D-343).
+ *
+ * D-312 dejó la recogida pegada a «Vendido desde»: se recogía en la tienda a la que se le pide y el
+ * campo no se tecleaba. El dueño lo abre: *«pickup should enable a dropdown of the store he is
+ * shipping and the user should be able to edit it»* — el material que vende una tienda puede salir
+ * físicamente de otra. Escribe SOLO la recogida: «Vendido desde» y la cuenta no se tocan.
+ *
+ * Elegir «Vendido desde» sigue rellenando la recogida con esa misma tienda (`eligeOrigen`): es el
+ * caso normal y el valor de partida; esto es para cuando no coincide.
+ */
+export function eligeRecogida(p: Partial<Delivery>, v: string, tiendas: NamedLocation[]): Partial<Delivery> {
+  const st = tiendas.find((s) => s.name === v);
+  return { ...p, pickup_name: v, pickup_address: st?.address ?? "" };
+}
+
+/**
+ * La tienda donde se recoge, **cuando no es la que vende** (D-343); `null` si coinciden o si la
+ * recogida no es una tienda. La hoja del chofer dice «de <Vendido desde>» (D-312): con la recogida
+ * ya editable, callarse la otra tienda mandaría al chofer a la que no tiene el material.
+ */
+export function recogidaAparte(d: Pick<Partial<Delivery>, "store" | "pickup_name">, tiendas: NamedLocation[]): string | null {
+  const st = tiendas.find((s) => mismoNombre(s.name, d.pickup_name));
+  return st && !mismoNombre(st.name, d.store) ? st.name : null;
+}
+
+/** Las tiendas donde se puede recoger una Intertienda (D-343): todas menos la que recibe. La ya guardada se queda, para que una orden vieja no pierda su valor al abrirla. */
+export function opcionesDeRecogida(d: Pick<Partial<Delivery>, "pickup_name" | "delivery_name">, tiendas: NamedLocation[]): string[] {
+  return tiendas.map((s) => s.name).filter((n) => mismoNombre(n, d.pickup_name) || !mismoNombre(n, d.delivery_name));
+}
+
+/**
  * Elegir la tienda de destino: su nombre, su dirección y **la cuenta** (D-312).
  *
  * La cuenta de un movimiento entre tiendas es la tienda que **recibe**. Damaris, de office: *«Account se

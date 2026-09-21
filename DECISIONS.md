@@ -21055,6 +21055,9 @@ genera una prueba por componente.
 
 ## D-312 · Intertienda: vende la tienda que manda el material
 
+> **⚠ Reemplazada en parte por D-343** (2026-09-20). El dueño vuelve a abrir la recogida: en una Intertienda
+> se elige aparte de «Vendido desde». El resto de esta decisión sigue vigente.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reportado por Damaris Hernandez** (office, Edinburg), literal: *«INV 170059 dice sold from Edinburg y
 debe de ser Pharr; app tiene que automáticamente poder sold from de la tienda de la cual estoy
@@ -23900,3 +23903,75 @@ capacidad no tiene este problema: sale de `deliveries` y `settings`, que ventas 
   capacidad se queda callado cuando debería hablar.
 - **La capacidad por fila de chofer** (`driver_route_settings.capacity_pallets`) puede diferir de la
   de Ajustes; el aviso usa la de Ajustes.
+
+## D-343 · En una Intertienda la recogida vuelve a elegirse, aparte de a quién se le compra; y la pregunta dice «comprar»
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.167.0, repo 1.231.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«in intertienda, change what store are you asking from, to "what
+store are you buying from"»* y *«pickup should enable a dropdown of the store he is shipping and the
+user should be able to edit it»*.
+
+### Qué cambia
+
+1. **El texto.** «Which store do you ask it from? (Sold From)» pasa a **«What store are you buying
+   from? (Sold From)»** — en español, «¿A qué tienda le compras? (Vendido Desde)». El marcador de la
+   recogida lo acompaña: «the store you are buying from».
+2. **La recogida.** En un tipo que recibe (`homeIsDestination`) el campo «Recolección (tienda que
+   envía)» era un `input` deshabilitado que copiaba «Vendido desde». Ahora es un **desplegable de
+   tiendas, editable**: elegir «Vendido desde» lo sigue rellenando con esa misma tienda —el caso
+   normal, y el valor de partida— y quien llena la orden puede cambiarlo por otra. La dirección de
+   recogida sigue saliendo de Ajustes y no se teclea.
+3. **La hoja del chofer** (`manifest.ts`) sigue diciendo «de <Vendido desde>» y, **solo cuando la
+   recogida es otra tienda**, añade «recoger en <tienda>».
+
+### Esto REVIERTE una parte de D-312, a sabiendas
+
+D-312 dejó **un solo desplegable**: a qué tienda se le pide, que escribía «Vendido desde» **y** la
+recogida, y borró `opcionesDeRecogida` y `eligeRecogidaDeTienda` con sus pruebas por quedarse sin uso.
+La razón de entonces era simplificar, no que elegir la recogida estuviera mal: nada de D-312 dice que
+las dos tengan que coincidir. El dueño lo abre porque el material que vende una tienda puede salir
+físicamente de otra. **Lo demás de D-312 no se toca:** `store` sigue siendo el origen en todos los
+tipos (`origenDeLaOrden`), el destino sigue congelado en la tienda del usuario, la cuenta sigue siendo
+la tienda que recibe, y `homeIsDestination` sigue como está en Ajustes.
+
+Por qué no hacía falta nada más: la visibilidad ya miraba las **tres** columnas —`store`,
+`pickup_name`, `delivery_name`— en la app (`tiendasDeLaOrden`, D-309) y en la base (política de
+lectura de la 131). Una tienda que solo aparece como recogida **ya ve la orden**.
+
+### Lo que se decidió aquí
+
+- **Se ofrecen todas las tiendas menos la que recibe** (`opcionesDeRecogida`): recoger donde se entrega
+  es la orden que no va a ningún sitio. La recogida ya guardada se queda en la lista aunque sea esa,
+  para que una orden vieja no pierda su valor al abrirla.
+- **`eligeRecogida` escribe SOLO la recogida.** No toca «Vendido desde» ni la cuenta. Si la tienda no
+  está en Ajustes, la dirección queda vacía en vez de quedarse con la de la anterior.
+- **Cambiar «Vendido desde» después vuelve a pisar la recogida** con la tienda nueva. Es lo que hacía
+  `eligeOrigen` desde antes de D-312 y se deja: el orden natural es de arriba abajo, y una recogida
+  que se queda en la tienda de antes sin que nadie la mire es peor que volver a elegirla.
+- **La hoja del chofer es la razón de tocar `manifest.ts`.** D-312 arregló que dijera que el material
+  salía de la tienda que lo recibía. Con la recogida editable, callarse la otra tienda mandaría al
+  chofer a la que no tiene el material. `recogidaAparte` solo habla cuando la recogida es **una tienda
+  de Ajustes distinta** de la que vende: en los demás tipos la recogida es un almacén y la hoja no cambia.
+
+### Lo que NO se tocó
+
+El aviso «the pickup can't be same as store sold from» que reportó el dueño: **ese texto no existe en
+`src`** (medido con grep de «same as», «can't be» y «misma tienda» el 2026-09-20). Lo que bloquea es
+`origenEsDestino`, que compara «Vendido desde» con el **destino**, no con la recogida. Hace falta la
+captura o el texto exacto para saber qué vio.
+
+### Verificado
+
+Pruebas nuevas en `order-endpoints.test.ts` (4) y la de D-312 en `intertienda-recepcion.test.ts`
+reescrita, afirmando primero que las dos anclas del tramo existen. Seis mutantes, leídos por nombre,
+caen los seis: recogida que también escribe `store`; dirección vieja que se queda; sin filtro del
+destino; sin conservar la guardada; «recoger en» aunque coincida; «recoger en» aunque no sea tienda.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.**
+- **La app del chofer y «Mi ruta»** no se miraron: si alguna pinta el origen desde `store` en vez de
+  `pickup_name`/`pickup_address`, enseñará la tienda que vende. El plan de ruta usa las coordenadas
+  de la recogida, no se comprobó con una orden de recogida distinta.
+- **El almacén que prepara.** Qué almacén ve la orden en su cola depende de `tiendaDeLaOrdenEsMia`,
+  que ya mira la recogida; no se probó con datos reales.

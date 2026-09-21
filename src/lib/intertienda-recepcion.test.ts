@@ -228,7 +228,7 @@ describe("el formulario", () => {
   });
 
   it("«Vendido desde» se puede elegir, y su etiqueta dice lo que se está eligiendo", () => {
-    expect(modal).toContain('t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)")');
+    expect(modal).toContain('t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)")');
     expect(modal).toContain("disabled={!salesFields || origenFijo}");
   });
 
@@ -239,11 +239,15 @@ describe("el formulario", () => {
     expect(tramo).toContain('<input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled');
   });
 
-  it("la recogida ya no se elige: la enseña, porque la escribe el desplegable de arriba", () => {
-    expect(modal).not.toContain("opcionesDeRecogida");
-    expect(modal).not.toContain("eligeRecogidaDeTienda");
-    const tramo = modal.slice(modal.indexOf("{homeIsDestination ? ("), modal.indexOf("{/* ---- Delivery ---- */}"));
-    expect(tramo).toContain('<input value={d.pickup_name ?? ""} disabled');
+  // D-312 la dejó de solo lectura; D-343 la abre, por pedido del dueño: «pickup should enable a dropdown of the
+  // store he is shipping and the user should be able to edit it». La dirección sigue sin teclearse.
+  it("la recogida la rellena el desplegable de arriba y se puede cambiar por otra tienda (D-343)", () => {
+    const desde = modal.indexOf("{homeIsDestination ? ("), hasta = modal.indexOf("{/* ---- Delivery ---- */}");
+    expect(desde).toBeGreaterThan(-1); expect(hasta).toBeGreaterThan(desde);
+    const tramo = modal.slice(desde, hasta);
+    expect(tramo).toContain("val={d.pickup_name} opts={opcionesDeRecogida(d, settings.stores)}");
+    expect(tramo).toContain("on={(v) => setD((p) => eligeRecogida(p, v, settings.stores))} disabled={!salesFields}");
+    expect(tramo).not.toContain('<input value={d.pickup_name ?? ""} disabled');
     expect(tramo).toContain('<input value={d.pickup_address ?? ""} disabled');
   });
 

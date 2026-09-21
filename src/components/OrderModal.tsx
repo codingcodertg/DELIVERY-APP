@@ -36,7 +36,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
-import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada } from "@/lib/order-endpoints";
+import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
@@ -1597,7 +1597,7 @@ export function OrderModal({
                 invalid={missingSet.has("order_type")}
               />
               <Sel
-                label={homeIsDestination ? t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
+                label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
                 opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))}
@@ -1978,7 +1978,7 @@ export function OrderModal({
 
             {/* ---- Store (Sold From) + its address ---- */}
             <div className="grid g2">
-              <Sel label={homeIsDestination ? t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
+              <Sel label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
                 setD((p) => eligeOrigen(p, v, settings.stores));
               }} disabled={!salesFields || origenFijo} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
@@ -1993,14 +1993,12 @@ export function OrderModal({
 
             {/* ---- Pickup ---- */}
             {homeIsDestination ? (
-              // En un tipo que recibe ya no hay una recogida que elegir (D-312): la escribe el mismo
-              // desplegable de arriba, porque se recoge en la tienda a la que se le pide el material.
-              // Se enseña para que se vea de dónde sale, y no se teclea.
+              // La recogida la rellena el desplegable de arriba con la tienda a la que se le compra (D-312), y
+              // desde D-343 se puede cambiar: el material que vende una tienda puede salir de otra. La dirección
+              // sale de Ajustes y no se teclea.
               <div className="grid g2">
-                <div className="field">
-                  <label>{t("Pickup (shipping store)", "Recolección (tienda que envía)")}</label>
-                  <input value={d.pickup_name ?? ""} disabled placeholder={t("the store you ask it from", "la tienda a la que se lo pides")} />
-                </div>
+                <Sel label={t("Pickup (shipping store)", "Recolección (tienda que envía)")} val={d.pickup_name} opts={opcionesDeRecogida(d, settings.stores)}
+                  on={(v) => setD((p) => eligeRecogida(p, v, settings.stores))} disabled={!salesFields} placeholder={t("the store you are buying from", "la tienda a la que le compras")} />
                 <div className="field">
                   <label>{t("Pickup Address", "Dirección de Recolección")}</label>
                   <input value={d.pickup_address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />

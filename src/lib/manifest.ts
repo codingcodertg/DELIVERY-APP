@@ -1,6 +1,7 @@
 import type { Delivery, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { orderLabel } from "@/lib/utils";
+import { recogidaAparte } from "@/lib/order-endpoints";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 // ============================================================
@@ -32,6 +33,8 @@ export function printRouteManifest(
       facturasDeLaOrden(d).length ? `${T("Inv", "Fact")} #${esc(facturasDeLaOrden(d).join(", "))}` : "",
       d.order_type ? esc(d.order_type) : "",
       d.store ? `${T("from", "de")} ${esc(d.store)}` : "",
+      // La recogida, cuando no es la tienda que vende (D-343): es adonde tiene que ir el chofer.
+      recogidaAparte(d, settings.stores) ? `${T("pick up at", "recoger en")} ${esc(recogidaAparte(d, settings.stores))}` : "",
     ].filter(Boolean).join(" · ");
     const notes = d.delivery_notes ? `<div class="notes">${esc(d.delivery_notes)}</div>` : "";
     return `<tr>

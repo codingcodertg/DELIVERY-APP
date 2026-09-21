@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { submitBlockers } from "./required";
-import { mismaDireccion, normalizaLugar, opcionesDeOrigen, origenEsDestino } from "./order-endpoints";
+import { eligeOrigen, eligeRecogida, mismaDireccion, normalizaLugar, opcionesDeOrigen, opcionesDeRecogida, origenEsDestino, recogidaAparte } from "./order-endpoints";
 import type { Delivery, OrderTypeRule, NamedLocation } from "./types";
 
 // Una orden no puede ir de un sitio a ese mismo sitio (D-267). Lo que decide —`submitBlockers`— se
@@ -176,5 +176,33 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
 
   it("y el mensaje separa lo que falta de lo que se contradice", () => {
     expect(modal).toContain("const choques = blockers.filter((m) => m.conflict);");
+  });
+});
+
+describe("la recogida de una Intertienda se elige aparte de a quién se le compra (D-343)", () => {
+  const TRES: NamedLocation[] = [...TIENDAS, { name: "Tienda Este", address: "300 Este Rd, Ciudad TX" }];
+  const [a, b, c] = TRES;
+
+  it("elegir la recogida escribe SOLO la recogida: «Vendido desde», el destino y la cuenta no se tocan", () => {
+    const antes = { ...eligeOrigen({ delivery_name: c.name, account: c.name }, a.name, TRES) };
+    const despues = eligeRecogida(antes, b.name, TRES);
+    expect(despues).toEqual({ ...antes, pickup_name: b.name, pickup_address: b.address });
+    expect(despues.store).toBe(a.name);
+  });
+
+  it("una recogida que no está en Ajustes no arrastra la dirección de la anterior", () => {
+    expect(eligeRecogida({ pickup_name: a.name, pickup_address: a.address }, "", TRES)).toEqual({ pickup_name: "", pickup_address: "" });
+  });
+
+  it("se ofrecen todas las tiendas menos la que recibe; la ya guardada se queda aunque sea esa", () => {
+    expect(opcionesDeRecogida({ delivery_name: c.name }, TRES)).toEqual(TRES.map((s) => s.name).filter((n) => n !== c.name));
+    expect(opcionesDeRecogida({ delivery_name: c.name, pickup_name: c.name }, TRES)).toEqual(TRES.map((s) => s.name));
+  });
+
+  it("la hoja del chofer nombra la recogida solo cuando es OTRA tienda que la que vende", () => {
+    expect(recogidaAparte({ store: a.name, pickup_name: b.name }, TRES)).toBe(b.name);
+    expect(recogidaAparte({ store: a.name, pickup_name: a.name }, TRES)).toBeNull();
+    expect(recogidaAparte({ store: a.name, pickup_name: "un almacén que no es tienda" }, TRES)).toBeNull();
+    expect(recogidaAparte({ store: a.name }, TRES)).toBeNull();
   });
 });
