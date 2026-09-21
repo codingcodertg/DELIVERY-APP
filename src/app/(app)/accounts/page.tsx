@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { deliveryColumns, downloadCSV, fmtDate, fmtMoney, isOverdue, orderLabel, orderOwner, toCSV, todayISO } from "@/lib/utils";
-import { useColWidths } from "@/lib/use-col-widths";
+import { anchoDeTabla, useColWidths } from "@/lib/use-col-widths";
 import { useConfirm } from "@/lib/confirm";
 import type { AccountRecord, Delivery, Settings } from "@/lib/types";
 import { isStoreToStore } from "@/lib/required";
@@ -179,7 +179,7 @@ export default function AccountsPage() {
         <div className="empty">{t("No accounts match.", "No hay cuentas que coincidan.")}</div>
       ) : (
         <div className="tbl-scroll tbl-fit">
-          <table className="orders tbl-resize">
+          <table className="orders tbl-resize" style={anchoDeTabla(acctCols.widths)}>
             <colgroup>{acctCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
             <thead>
               <tr>

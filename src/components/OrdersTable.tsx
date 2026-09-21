@@ -7,7 +7,7 @@ import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
-import { useColWidthMap } from "@/lib/use-col-widths";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnasEnOrden, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -532,7 +532,7 @@ export function OrdersTable({
       </div>
     )}
     <div className="tbl-scroll tbl-fit orders-scroll">
-      <table className="orders tbl-resize orders-responsive">
+      <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key))])}>
         <colgroup>
           {selectable && <col style={{ width: 34 }} />}
           {cols.map((c) => <col key={c.key} style={{ width: colw.widthOf(c.key) }} />)}

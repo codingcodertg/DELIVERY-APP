@@ -1998,7 +1998,7 @@ export function OrderModal({
               // sale de Ajustes y no se teclea.
               <div className="grid g2">
                 <Sel label={t("Pickup (shipping store)", "Recolección (tienda que envía)")} val={d.pickup_name} opts={opcionesDeRecogida(d, settings.stores)}
-                  on={(v) => setD((p) => eligeRecogida(p, v, settings.stores))} disabled={!salesFields} placeholder={t("the store you are buying from", "la tienda a la que le compras")} />
+                  on={(v) => setD((p) => eligeRecogida(p, v, settings.stores))} disabled={!salesFields} placeholder={t("Select store", "Seleccione tienda")} />
                 <div className="field">
                   <label>{t("Pickup Address", "Dirección de Recolección")}</label>
                   <input value={d.pickup_address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />

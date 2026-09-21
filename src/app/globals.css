@@ -301,6 +301,10 @@ table.orders { width: 100%; border-collapse: collapse; font-size: 13px; min-widt
    el marco y el reparto del sobrante lo hace el navegador, respetando la proporción de cada columna.
    Cuando la suma SÍ pasa del hueco, manda `width: auto` y el desplazamiento horizontal sigue igual. */
 table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }
+/* OJO (D-345): el comentario de arriba es lo que se PRETENDÍA. Medido en Chrome: con `width: auto` el
+   reparto fijo no se aplica y los anchos de las columnas se ignoran. Las tablas que se arrastran llevan
+   por eso su ancho en línea (`anchoDeTabla`, en lib/use-col-widths): `max(100%, suma de columnas)`.
+   La regla se deja para las `tbl-resize` que no se arrastran (Almacén, Ajustes) y usan solo el estilo. */
 
 /* El marco de una tabla redimensionable (D-232, cambiada por D-281).
    ---------------------------------------------------------------------------
