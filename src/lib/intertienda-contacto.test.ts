@@ -49,7 +49,7 @@ describe("el contacto vuelve a ser lo que era", () => {
     // La etiqueta es condicional desde D-312 —en un tipo que recibe dice «¿A qué tienda se lo
     // pides?»— y lo que esta prueba vigila sigue siendo que la FILA esté sin condición.
     expect(fila).toContain('t("Store (Sold From)", "Tienda (Vendido Desde)")');
-    expect(fila).toContain('t("Which store do you ask it from? (Sold From)", "¿A qué tienda se lo pides? (Vendido Desde)")');
+    expect(fila).toContain('t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)")');
     expect(fila).toContain('<label>{t("Store address", "Dirección de tienda")}</label>');
     expect(fila).not.toContain("contactoEsOrigen");
   });
