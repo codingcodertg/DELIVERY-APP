@@ -23769,9 +23769,9 @@ citaban texto que un mutante podía dejar intacto y muerto:
   —un reporte, una exportación—. Los eventos viejos **no se tocan**: siguen ahí con su texto; lo que
   deja de haber es notas nuevas.
 
-## D-NEXT · «Mi ruta» le dice al chofer que su ruta cambió desde que se publicó el plan, y en qué
+## D-341 · «Mi ruta» le dice al chofer que su ruta cambió desde que se publicó el plan, y en qué
 
-**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No escribe nada:** es solo
+**Fecha:** 2026-09-19 · **Versión:** Entregas 1.166.0, repo 1.230.0 · **Migraciones:** ninguna. **No escribe nada:** es solo
 cómo se LEE una ruta. · **Cierra** el último punto de «Lo que NO está» de D-335.
 **Pedido por:** el orquestador.
 
@@ -23840,9 +23840,9 @@ la lista»), cada una con la suya.
   fecha (D-335); si se RE-publica con «Mi ruta» abierta, el aviso compara contra el plan viejo hasta que vuelva a entrar.
 - «Orden cambiado» usa el orden en que la pantalla entrega las órdenes (`trips` aplanado), no `route_seq` a pelo.
 
-## D-NEXT · «Agregar material» avisa si el camión se pasa y si la orden ya está en un plan publicado
+## D-342 · «Agregar material» avisa si el camión se pasa y si la orden ya está en un plan publicado
 
-**Fecha:** 2026-09-19 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Fecha:** 2026-09-19 · **Versión:** Entregas 1.166.0, repo 1.230.0 · **Sin migración.**
 
 ### Qué fallaba
 
