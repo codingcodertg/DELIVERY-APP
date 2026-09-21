@@ -13,6 +13,21 @@
 
 /** El orden de TODAS las columnas para esta persona: lo guardado —sin lo que ya no existe ni repetidas—, y al final,
  *  en su orden canónico, las que lo guardado no conoce (una columna nueva entra al final). */
+/**
+ * El ORDEN de partida de las columnas de Órdenes (D-347). El dueño mandó una captura de su tabla —PO, Tipo, Cuenta,
+ * Etapa, Tienda, Fecha, Pallets, Chofer, Dirección, Ventanas— y pidió: «make everybodies order table view look like
+ * this». El orden de quien no ha movido nada es el del catálogo, así que se ordena el catálogo y no cada pantalla. Las
+ * que la captura no lleva (SO, Factura, Contacto, Costo) quedan junto a su vecina natural. Quien ya ordenó las suyas
+ * (`_orden`, D-332) conserva su orden.
+ */
+export const ORDEN_DE_PARTIDA: readonly string[] = ["po", "so", "invoice", "type", "account", "contact", "stage", "store", "date", "pallets", "fee", "driver", "address", "windows"];
+
+/** Ordena el catálogo EN SU SITIO y lo devuelve. Una columna que falte en la lista se va al final: no desaparece. */
+export function enOrdenDePartida<T extends { key: string }>(catalogo: T[]): T[] {
+  const puesto = (k: string) => { const i = ORDEN_DE_PARTIDA.indexOf(k); return i < 0 ? ORDEN_DE_PARTIDA.length : i; };
+  return catalogo.sort((x, y) => puesto(x.key) - puesto(y.key));
+}
+
 export function ordenEfectivo(canonicas: readonly string[], guardado: readonly string[] | null | undefined): string[] {
   const existen = new Set(canonicas);
   const suyo = [...new Set(guardado ?? [])].filter((k) => existen.has(k));

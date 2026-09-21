@@ -9,7 +9,7 @@ import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
-import { columnasEnOrden, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
@@ -110,7 +110,12 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", value: (d) => d.delivery_address, cell: (d) => d.delivery_address || "—" },
 ];
 
-export const DEFAULT_COLUMNS = ["stage", "type", "store", "account", "so", "date", "windows", "pallets", "driver"];
+// El orden de partida (D-347) vive en `lib/orden-de-columnas`, donde se puede probar. Se ordena EN SU SITIO: el catálogo
+// de arriba se queda escrito como estaba, porque hay pruebas que lo leen del fuente.
+enOrdenDePartida(ORDER_COLUMNS);
+
+/** Las de la captura del dueño (D-347), para todo rol sin juego propio. */
+export const DEFAULT_COLUMNS = ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"];
 
 // Pseudo-column for the always-visible ID, so it gets the same sort/filter UI.
 //

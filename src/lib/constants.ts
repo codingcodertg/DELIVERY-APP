@@ -76,19 +76,26 @@ export function stageLabel(key: string, lang: Lang): string {
   return lang === "es" ? STAGE_ES[info.key] ?? info.label : info.label;
 }
 
+/** ¿Esta pestaña va dentro del menú «General» para esta persona? (D-347) */
+export function vaEnGeneral(tb: { group?: "general"; generalFor?: UserRole[] }, role: UserRole | null | undefined): boolean {
+  return tb.group === "general" || (!!role && (tb.generalFor ?? []).includes(role));
+}
+
 // ---- Navigation tabs ------------------------------------------------------
 // `roles` = who sees the tab by default. `cap` = the capability that also
 // unlocks it, so an admin can grant one person access without changing role.
 // `group: "general"` folds the tab into the "General" dropdown instead of
 // giving it its own slot — these are the reference/back-office screens, kept
 // out of the way of the day-to-day work tabs.
-export const TABS: { id: string; label: string; label_es: string; href: string; roles?: UserRole[]; cap?: Capability; group?: "general" }[] = [
+// `generalFor` = lo mismo, pero solo para esos roles (D-347): el Panel va en «General» para admin y en la barra para
+// el gerente, que no tiene tantas pestañas y lo abre a diario.
+export const TABS: { id: string; label: string; label_es: string; href: string; roles?: UserRole[]; cap?: Capability; group?: "general"; generalFor?: UserRole[] }[] = [
   // Warehouse works entirely inside its own queue — it doesn't get the
   // general Orders board, dashboard, accounts, or the driver view.
   // Driver doesn't get the Orders board either — they work entirely from
   // their own Driver view, which has its own "+ New order" button.
   { id: "board",     label: "📋 Orders",    label_es: "📋 Órdenes",   href: "/", roles: ["admin", "manager", "sales", "logistics", "accounting"] },
-  { id: "dashboard", label: "📊 Dashboard", label_es: "📊 Panel",     href: "/dashboard", roles: ["manager", "admin"], cap: "dashboard" },
+  { id: "dashboard", label: "📊 Dashboard", label_es: "📊 Panel",     href: "/dashboard", roles: ["manager", "admin"], cap: "dashboard", generalFor: ["admin"] },
   { id: "accounts",  label: "🏢 Accounts",  label_es: "🏢 Cuentas",    href: "/accounts", roles: ["admin", "manager"], group: "general" },
   { id: "map",       label: "🗺 Map",       label_es: "🗺 Mapa",       href: "/map", roles: ["admin", "manager", "sales", "logistics"] },
   { id: "market",    label: "🏪 Market",    label_es: "🏪 Mercado",    href: "/market", roles: ["admin"], group: "general" },
@@ -685,13 +692,15 @@ export const WEEKDAY_ALL_DAY_WINDOW = "0830-1730";
 // selector para quien la quiera, y quien ya la eligió la conserva: esto son solo los DEFECTOS.
 export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
   // Ventas ve a dónde va la orden sin abrirla (D-337). La columna ya existía para todos; faltaba en su juego de partida.
-  sales: ["type", "store", "date", "windows", "account", "address"],
+  // Desde D-347 todos parten del mismo juego, el de la captura del dueño; lo que sigue son sus excepciones.
+  sales: ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"],
   // Drivers work off the customer invoice, never the internal SO # — and `#` already shows it.
-  driver: ["stage", "type", "store", "account", "date", "windows", "pallets"],
+  // El chofer no necesita la columna con su propio nombre.
+  driver: ["po", "type", "account", "stage", "store", "date", "pallets", "address", "windows"],
   // Warehouse works off the customer invoice too (Invoice # instead of SO #).
   // Y ve el costo (D-148): es quien tiene que darse cuenta de que una orden va a salir
   // sin cobrarse, y no lo puede ver en una columna que no está.
-  warehouse: ["stage", "type", "store", "account", "date", "windows", "pallets", "fee", "driver"],
+  warehouse: ["po", "type", "account", "stage", "store", "date", "pallets", "fee", "driver", "address", "windows"],
 };
 
 /** Drivers come from the Users list — anyone with the "driver" role. They're

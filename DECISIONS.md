@@ -24129,3 +24129,51 @@ sitio de la página, y caía con todos los mutantes—; se cambió por el texto 
 - **Nada abierto en un navegador**, tampoco el ⚙ nuevo ni cómo queda la tabla de paradas con columnas quitadas.
 - La suma de anchos de la tabla de paradas con la dirección abierta (240 px) la hace más ancha que antes: en una
   pantalla estrecha se desplaza.
+
+## D-347 · La tabla de Órdenes de todos parte de la captura del dueño; y el Panel va en «General» para admin
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.171.0, repo 1.235.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«make everybodies order table view look like this»* (con una captura de su tabla)
+y *«move dashboard to general for admin»*.
+
+### La tabla de Órdenes
+
+La captura: `#` · PO · Tipo · Cuenta · Etapa · Tienda · Fecha de entrega · Pallets · Chofer · Dirección · Ventanas.
+
+- **Qué columnas.** Ese es ahora el juego de partida de todos los roles (`DEFAULT_COLUMNS` y `ROLE_DEFAULT_COLUMNS`),
+  con dos excepciones: el **chofer** no lleva la columna con su propio nombre, y **almacén** conserva el **costo**
+  (D-148: es quien tiene que ver que una orden va a salir sin cobrarse).
+- **En qué orden.** El orden de quien no ha movido nada es el del catálogo `ORDER_COLUMNS`, así que se ordena el
+  catálogo (`ORDEN_DE_PARTIDA`, en `lib/orden-de-columnas`) y no cada pantalla. Las cuatro que la captura no lleva
+  —SO, Factura, Contacto, Costo— quedan junto a su vecina natural.
+
+**Lo que esto NO hace, y el dueño tiene que saberlo.** «Everybody» tiene tres capas y el código solo manda en una:
+
+1. **Quien nunca eligió nada** ve el juego nuevo desde hoy.
+2. **Quien ya eligió sus columnas o su orden** (D-330, D-332: la elección es de la persona y vive en `user_prefs`)
+   **conserva lo suyo.** No se pisa desde aquí: borrar preferencias es escribir en producción, y es decisión aparte.
+   Cada persona puede volver al orden de partida con «Restablecer orden» en su selector.
+3. **Ventas** no elige: sus columnas las fija un admin en Ajustes (`settings.sales_columns`). Si ese ajuste está
+   puesto, manda sobre este defecto; hay que cambiarlo allí.
+
+**Revierte a sabiendas** la nota de `ROLE_DEFAULT_COLUMNS` de que ventas no lleva «Chofer», y la premisa de D-281
+de que ventas ve menos columnas que nadie: ahora parte de las mismas diez. El marco que se estira sigue haciendo
+falta para quien quite columnas.
+
+### El Panel en «General», solo para admin
+
+`TABS` gana `generalFor`: la pestaña va dentro del menú «General» **para esos roles** y en la barra para los demás.
+El Panel lo lleva para `admin`; el gerente, que tiene pocas pestañas y lo abre a diario, lo conserva en la barra. La
+pregunta vive en `vaEnGeneral(tb, rol)` y la barra (`TopBar`) reparte con ella.
+
+### Verificado
+
+`orden-de-columnas.test.ts` (el orden de la captura, que cubre el catálogo entero, que lo desconocido va al final),
+`user-prefs.test.ts` y `tabla-ancho.test.ts` puestos al día, `panel-en-general.test.ts` nuevo. Dos mutantes leídos por
+nombre: «no ordena» y «el gerente también en General». Suite entera en local: 3631 pasados, 3 saltados.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.**
+- **Cuánta gente tiene columnas guardadas** (capa 2) y si `settings.sales_columns` está puesto (capa 3): son lecturas
+  de producción que esta sesión no pudo hacer. De eso depende cuánta gente ve de verdad el cambio.
