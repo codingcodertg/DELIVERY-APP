@@ -24015,7 +24015,7 @@ o el asa sigue sin verse. Nadie ha abierto esto en un navegador desde D-334, as�
 **Reportado por el dueño**, literal: *«the column resizing is not working»* — un día después de D-338
 y horas después de que D-344 contestara que «ya se podía».
 
-### D-344 se equivocó, y por qué
+### Por qué se equivocó D-344
 
 D-344 dio el arrastre por bueno **leyendo el código**: el asa existe, recibe el clic, el manejador
 guarda el ancho. Todo eso es verdad y la columna no se movía. Nadie lo había abierto en un navegador
