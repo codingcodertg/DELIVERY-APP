@@ -29,6 +29,8 @@ export interface LecturaDeRuta {
   fuente: "plan" | "derivada";
   /** Hay plan publicado para este chofer, pero su ruta ya no es la que el plan escribió: se avisa. */
   cambioTrasPublicar: boolean;
+  /** EN QUÉ cambió (D-NEXT). `null` justo cuando `cambioTrasPublicar` es falso: es la misma decisión, con su detalle. */
+  cambios: CambiosTrasPublicar | null;
   /** La etiqueta de entrega de cada orden. Una orden repartida en cargas lleva todas: «D3·D5». */
   etiquetaDe: Map<string, string>;
   /** Lo que pasa ANTES de la entrega de cada orden, desde la entrega anterior. */
@@ -37,12 +39,47 @@ export interface LecturaDeRuta {
   alFinal: FilaInformativa[];
 }
 
+/** El viaje y el puesto que el plan le dio a cada orden: lo que publicar escribió, recalculado de las paradas. */
+const posicionesDelPlan = (paradas: readonly ParadaDelPlanMinima[]) =>
+  posicionesDeLaRuta(enOrden(paradas).map((p) => ({ tipo: p.kind, orden: p.order_ref, cargaAlSalir: Number(p.load_after) })));
+
 /** ¿La ruta de hoy es exactamente la que el plan publicó? Mismas órdenes, mismo viaje, mismo puesto. */
 export function sigueElPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly OrdenAsignada[]): boolean {
-  const delPlan = posicionesDeLaRuta(enOrden(paradas).map((p) => ({ tipo: p.kind, orden: p.order_ref, cargaAlSalir: Number(p.load_after) })));
+  const delPlan = posicionesDelPlan(paradas);
   if (delPlan.length === 0 || delPlan.length !== asignadas.length) return false;
   const hoy = new Map(asignadas.map((o) => [o.id, o]));
   return delPlan.every((p) => { const o = hoy.get(p.id); return !!o && Number(o.load_no ?? 1) === p.load_no && o.route_seq === p.route_seq; });
+}
+
+/**
+ * EN QUÉ cambió la ruta desde que se publicó el plan (D-NEXT), para decírselo al chofer en «Mi ruta».
+ *
+ * SI cambió lo sigue decidiendo `sigueElPlan` —no hay una segunda comparación—: esto solo desglosa su «no», contra las
+ * mismas posiciones del plan. Por eso puede salir un cambio SIN detalle (listas vacías y los dos falsos): las mismas
+ * órdenes, en el mismo orden y viaje, pero con el puesto renumerado o sin puesto. Entonces se avisa igual, sin pormenor.
+ *
+ * - `anadidas`: están en la ruta y el plan no las tenía — en el orden en que la pantalla las enseña.
+ * - `quitadas`: el plan las tenía y ya no están en la ruta de hoy (otro chofer, otro día, cancelada) — en el orden del plan.
+ * - `ordenCambiado`: las que siguen en las dos van en otro orden. Se comparan SOLO las comunes: añadir o quitar una
+ *   parada no es, por sí solo, reordenar las demás. El orden de hoy es el de `asignadas`, que es el que la pantalla pinta.
+ * - `viajeCambiado`: alguna de las comunes va ahora en otro viaje (`load_no`).
+ *
+ * `null`: no hay plan con el que comparar, o la ruta sigue siendo la publicada.
+ */
+export interface CambiosTrasPublicar { anadidas: string[]; quitadas: string[]; ordenCambiado: boolean; viajeCambiado: boolean }
+
+export function cambiosTrasPublicar(paradas: readonly ParadaDelPlanMinima[] | null, asignadas: readonly OrdenAsignada[]): CambiosTrasPublicar | null {
+  if (!paradas || paradas.length === 0 || sigueElPlan(paradas, asignadas)) return null;
+  const delPlan = new Map(posicionesDelPlan(paradas).map((p) => [p.id, p]));
+  const hoy = new Set(asignadas.map((o) => o.id));
+  const comunesHoy = asignadas.filter((o) => delPlan.has(o.id));
+  const comunesPlan = [...delPlan.keys()].filter((id) => hoy.has(id));
+  return {
+    anadidas: asignadas.filter((o) => !delPlan.has(o.id)).map((o) => o.id),
+    quitadas: [...delPlan.keys()].filter((id) => !hoy.has(id)),
+    ordenCambiado: comunesHoy.some((o, i) => o.id !== comunesPlan[i]),
+    viajeCambiado: comunesHoy.some((o) => Number(o.load_no ?? 1) !== delPlan.get(o.id)!.load_no),
+  };
 }
 
 const enOrden = (paradas: readonly ParadaDelPlanMinima[]) => [...paradas].sort((a, b) => a.seq - b.seq);
@@ -64,7 +101,8 @@ export function lecturaDeLaRuta(viajes: readonly (readonly OrdenAsignada[])[], p
     if (p.tipo === "P") pendientes.push({ tipo: "P", etiquetas: p.etiquetas, ordenes: p.ordenes, lugar: p.tienda, aBordo: p.aBordo, sinConteo: p.sinConteo });
     else { etiquetaDe.set(p.ordenes[0], p.etiquetas[0]); previas.set(p.ordenes[0], pendientes); pendientes = []; }
   }
-  return { fuente: "derivada", cambioTrasPublicar: hayPlan, etiquetaDe, previas, alFinal: [] };
+  const cambios = cambiosTrasPublicar(paradas, asignadas);
+  return { fuente: "derivada", cambioTrasPublicar: cambios !== null, cambios, etiquetaDe, previas, alFinal: [] };
 }
 
 function delPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly OrdenAsignada[]): LecturaDeRuta {
@@ -84,7 +122,7 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly Or
       ultima.etiquetas.push(p.label); ultima.ordenes.push(id); ultima.aBordo = aBordo; ultima.sinConteo ||= sinPallets.has(id);
     } else pendientes.push({ tipo: p.kind, etiquetas: [p.label], ordenes: [id], lugar: p.place ?? null, aBordo, sinConteo: sinPallets.has(id) });
   }
-  return { fuente: "plan", cambioTrasPublicar: false, etiquetaDe: new Map([...etiquetas].map(([id, e]) => [id, e.join("·")])), previas, alFinal: pendientes };
+  return { fuente: "plan", cambioTrasPublicar: false, cambios: null, etiquetaDe: new Map([...etiquetas].map(([id, e]) => [id, e.join("·")])), previas, alFinal: pendientes };
 }
 
 export type FilaDelViaje<T> = { clase: "informa"; fila: FilaInformativa } | { clase: "orden"; orden: T; indice: number };

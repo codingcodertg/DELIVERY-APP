@@ -293,6 +293,20 @@ export default function MyRoutePage() {
 
       {!verAtrasadas && <MiPlanPublicado plan={planPublicado} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
 
+      {/* La ruta ya no es la que el plan publicó (D-NEXT): se le dice al chofer, y en qué. Va FUERA de la lista, para que
+          salga también si le quitaron todas las paradas. Qué cambió lo decide `cambiosTrasPublicar`; aquí solo se pinta.
+          Una orden quitada que ya no está a su vista se nombra por el principio de su referencia (`nombraLaOrden`). */}
+      {lectura.cambios && (
+        <div className="banner warn" role="status">
+          <b>⚠ {t("Your route changed after the plan was published.", "Tu ruta cambió desde que se publicó el plan.")}</b>
+          {lectura.cambios.anadidas.length > 0 && <div>➕ {t("Added", "Añadidas")}: {lectura.cambios.anadidas.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</div>}
+          {lectura.cambios.quitadas.length > 0 && <div>➖ {t("Removed", "Quitadas")}: {lectura.cambios.quitadas.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</div>}
+          {lectura.cambios.ordenCambiado && <div>↕ {t("The order of your stops changed.", "Cambió el orden de tus paradas.")}</div>}
+          {lectura.cambios.viajeCambiado && <div>🚚 {t("A stop moved to another truckload.", "Una parada pasó a otro viaje.")}</div>}
+          <div className="hint">{t("The list below is the current route; the planned-order card above is the plan as it was published.", "La lista de abajo es la ruta de ahora; la tarjeta del orden planeado, arriba, es el plan tal como se publicó.")}</div>
+        </div>
+      )}
+
       {stops.length === 0 ? (
         <div className="empty">
           {t("No stops assigned to you yet. Logistics will plan your route.",

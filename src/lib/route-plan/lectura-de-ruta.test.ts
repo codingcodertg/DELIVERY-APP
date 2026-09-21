@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { PARAMETROS_POR_DEFECTO, evaluaPlan, parteOrdenesGrandes, planifica, type ChoferEntrada, type Matriz, type OrdenEntrada, type Plan } from "@/lib/route-engine";
 import { etiquetaDeEntrega, secuenciaPD } from "@/lib/secuencia-pd";
 import { escriturasAlPublicar, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
-import { filasDelViaje, lecturaDeLaRuta, sigueElPlan, type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { cambiosTrasPublicar, filasDelViaje, lecturaDeLaRuta, sigueElPlan,type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
 
 /** Las etiquetas P/D cuando hay un plan publicado (D-335). Planes de verdad, evaluados por el motor, en una calle inventada. */
 
@@ -215,5 +217,69 @@ describe("una ruta ordenada a medias", () => {
   });
   it("si NINGUNA tiene puesto se numeran todas, como las enseña «Mi ruta»", () => {
     expect([...lecturaDeLaRuta([[o("a", null), o("b", null)]], null).etiquetaDe.values()]).toEqual(["D1", "D2"]);
+  });
+});
+
+// D-NEXT: EN QUÉ cambió la ruta tras publicar, para el aviso de «Mi ruta». El plan va escrito a mano y con los ids
+// DESORDENADOS respecto al alfabeto (m, c, t, f), y las paradas llegan barajadas: nada aquí pasa «porque ya venía ordenado».
+describe("en qué cambió la ruta desde que se publicó el plan", () => {
+  const p = (seq: number, kind: "P" | "D", order_ref: string, load_after: number): ParadaDelPlanMinima => ({ kind, order_ref, seq, label: `${kind}${seq}`, load_after, place: null });
+  // Dos viajes: [m, c] y [t, f]. El camión queda vacío tras entregar c.
+  const enSuOrden = [p(0, "P", "m", 1), p(1, "P", "c", 2), p(2, "D", "m", 1), p(3, "D", "c", 0), p(4, "P", "t", 1), p(5, "P", "f", 2), p(6, "D", "t", 1), p(7, "D", "f", 0)];
+  const paradas = [enSuOrden[6], enSuOrden[3], enSuOrden[0], enSuOrden[7], enSuOrden[2], enSuOrden[5], enSuOrden[1], enSuOrden[4]];
+  const o = (id: string, load_no: number | null, route_seq: number | null): OrdenAsignada => ({ id, store: "Tienda A", est_pallets: 1, load_no, route_seq });
+  const publicada = [o("m", 1, 0), o("c", 1, 1), o("t", 2, 0), o("f", 2, 1)];
+  const NADA = { anadidas: [], quitadas: [], ordenCambiado: false, viajeCambiado: false };
+
+  it("la ruta publicada, tal cual: `null` — y también sin plan con el que comparar", () => {
+    expect(sigueElPlan(paradas, publicada)).toBe(true);
+    expect(cambiosTrasPublicar(paradas, publicada)).toBeNull();
+    expect(cambiosTrasPublicar(null, publicada)).toBeNull();
+    expect(cambiosTrasPublicar([], publicada)).toBeNull();
+  });
+  it("una parada AÑADIDA en medio: se nombra, y no cuenta como reordenar las demás", () => {
+    const hoy = [o("m", 1, 0), o("a", 1, 1), o("c", 1, 2), o("t", 2, 0), o("f", 2, 1)];
+    expect(cambiosTrasPublicar(paradas, hoy)).toEqual({ ...NADA, anadidas: ["a"] });
+  });
+  it("paradas QUITADAS: salen en el orden del plan, y quitar la primera no es reordenar", () => {
+    expect(cambiosTrasPublicar(paradas, [o("c", 1, 1), o("t", 2, 0), o("f", 2, 1)])).toEqual({ ...NADA, quitadas: ["m"] });
+    expect(cambiosTrasPublicar(paradas, [o("t", 2, 0), o("c", 1, 1)])).toMatchObject({ quitadas: ["m", "f"], anadidas: [] });
+    expect(cambiosTrasPublicar(paradas, [])).toEqual({ ...NADA, quitadas: ["m", "c", "t", "f"] });
+  });
+  it("las mismas paradas en OTRO ORDEN", () => {
+    const hoy = [o("c", 1, 0), o("m", 1, 1), o("t", 2, 0), o("f", 2, 1)];
+    expect(cambiosTrasPublicar(paradas, hoy)).toEqual({ ...NADA, ordenCambiado: true });
+  });
+  it("una parada cambiada de VIAJE sin cambiar el orden; y un `load_no` nulo es el viaje 1, no un viaje distinto", () => {
+    expect(cambiosTrasPublicar(paradas, [o("m", 1, 0), o("c", 1, 1), o("t", 1, 2), o("f", 2, 1)])).toEqual({ ...NADA, viajeCambiado: true });
+    expect(cambiosTrasPublicar(paradas, [o("m", null, 0), o("c", null, 1), o("f", 2, 0), o("t", 2, 1)])).toEqual({ ...NADA, ordenCambiado: true });
+  });
+  it("añadida, quitada y reordenada A LA VEZ", () => {
+    expect(cambiosTrasPublicar(paradas, [o("f", 1, 0), o("z", 1, 1), o("m", 1, 2), o("c", 1, 3)])).toEqual({ anadidas: ["z"], quitadas: ["t"], ordenCambiado: true, viajeCambiado: true });
+  });
+  it("cambió pero sin pormenor que contar (mismo orden y viaje, puestos renumerados): se avisa igual, con el detalle vacío", () => {
+    const renumerada = [o("m", 1, 1), o("c", 1, 2), o("t", 2, 1), o("f", 2, 2)];
+    expect(sigueElPlan(paradas, renumerada)).toBe(false);
+    expect(cambiosTrasPublicar(paradas, renumerada)).toEqual(NADA);
+  });
+  it("la lectura lleva ESE detalle, y `cambioTrasPublicar` dice lo mismo que él", () => {
+    const hoy = [[o("c", 1, 0), o("m", 1, 1)], [o("t", 2, 0), o("f", 2, 1)]];
+    const tocada = lecturaDeLaRuta(hoy, paradas), intacta = lecturaDeLaRuta([publicada.slice(0, 2), publicada.slice(2)], paradas), sinPlan = lecturaDeLaRuta(hoy, null);
+    expect([tocada.cambioTrasPublicar, tocada.cambios]).toEqual([true, { ...NADA, ordenCambiado: true }]);
+    expect([intacta.fuente, intacta.cambioTrasPublicar, intacta.cambios]).toEqual(["plan", false, null]);
+    expect([sinPlan.cambioTrasPublicar, sinPlan.cambios]).toEqual([false, null]);
+  });
+});
+
+describe("«Mi ruta» pinta el aviso de D-NEXT", () => {
+  const pagina = readFileSync(join(process.cwd(), "src/app/(app)/my-route/page.tsx"), "utf8").split("\r\n").join("\n");
+  it("sale de `lectura.cambios`, con sus cuatro partes", () => {
+    for (const trozo of ["{lectura.cambios && (", "lectura.cambios.anadidas.map(", "lectura.cambios.quitadas.map(", "{lectura.cambios.ordenCambiado && ", "{lectura.cambios.viajeCambiado && "]) expect(pagina).toContain(trozo);
+  });
+  it("va FUERA de la lista de paradas: también sale si al chofer le quitaron todas", () => {
+    const aviso = pagina.indexOf("{lectura.cambios && ("), lista = pagina.indexOf("{stops.length === 0 ? (");
+    expect(aviso).toBeGreaterThan(-1);
+    expect(lista).toBeGreaterThan(-1);
+    expect(aviso).toBeLessThan(lista);
   });
 });

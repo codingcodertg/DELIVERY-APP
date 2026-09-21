@@ -23768,3 +23768,74 @@ citaban texto que un mutante podía dejar intacto y muerto:
 - **No se ha mirado si alguien fuera de la app dependía de las notas «Tarifa confirmada/corregida»**
   —un reporte, una exportación—. Los eventos viejos **no se tocan**: siguen ahí con su texto; lo que
   deja de haber es notas nuevas.
+
+## D-NEXT · «Mi ruta» le dice al chofer que su ruta cambió desde que se publicó el plan, y en qué
+
+**Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No escribe nada:** es solo
+cómo se LEE una ruta. · **Cierra** el último punto de «Lo que NO está» de D-335.
+**Pedido por:** el orquestador.
+
+### Qué pasaba
+
+D-335 decide, por chofer, si su ruta de hoy sigue siendo EXACTAMENTE la que el plan publicó (`sigueElPlan`). Cuando no lo es,
+el Gestor lo dice en su tabla; **«Mi ruta» no decía nada**. El chofer veía las etiquetas derivadas en su lista y, encima, la
+tarjeta «Orden planeado del día» con las del plan, sin ninguna pista de por qué no casaban ni de qué le habían movido. D-335 lo
+dejó anotado como lo primero que miraría.
+
+### Qué se decidió
+
+Cuando hay plan publicado para el chofer y su ruta ya no es la publicada, «Mi ruta» pinta un aviso (`.banner.warn`) bajo la
+tarjeta del plan: **«Tu ruta cambió desde que se publicó el plan»**, y debajo lo que aplique:
+
+- **Añadidas:** órdenes que están en su ruta y el plan no tenía — nombradas con `nombraLaOrden` (código y factura, D-331).
+- **Quitadas:** órdenes que el plan tenía y ya no están en su ruta de hoy (otro chofer, otro día, cancelada).
+- **Cambió el orden de tus paradas:** las que siguen en las dos van en otro orden. Se comparan SOLO las comunes: añadir o
+  quitar una parada no es, por sí solo, reordenar las demás.
+- **Una parada pasó a otro viaje:** alguna de las comunes cambió de `load_no`.
+
+Y una línea fija que explica la discrepancia: la lista es la ruta de ahora; la tarjeta, el plan tal como se publicó.
+
+**No hay una segunda comparación.** SI cambió lo sigue decidiendo `sigueElPlan`; `cambiosTrasPublicar` (nueva, en
+`src/lib/route-plan/lectura-de-ruta.ts`) solo desglosa su «no», contra las mismas posiciones del plan (`posicionesDeLaRuta`, la
+de publicar, ahora tras un único `posicionesDelPlan` que usan las dos). `lecturaDeLaRuta` devuelve el detalle en `cambios`, y
+`cambioTrasPublicar` pasa a ser literalmente `cambios !== null`: el Gestor y «Mi ruta» no pueden discrepar sobre si cambió.
+
+**De dónde sale el dato, sin columna nueva:** las paradas del plan publicado que «Mi ruta» ya carga (`/api/route-plan/mine`,
+vía `usePlanPublicadoDelChofer`) y las órdenes asignadas que ya pinta. Nada más.
+
+Consecuencia que se acepta: como la decisión es la de `sigueElPlan`, puede haber un cambio **sin pormenor** —las mismas órdenes,
+mismo orden y viaje, pero `route_seq` renumerado o nulo—. Entonces sale el aviso con su línea fija y sin detalle, en vez de
+callar: las etiquetas ya son las derivadas y la tarjeta ya no casa, que es justo lo que el aviso explica.
+
+El aviso va FUERA de la lista de paradas: si al chofer le quitaron todas, sale igual, con todas como quitadas. Viendo las
+atrasadas no sale (ahí no hay plan con el que comparar, como en D-335).
+
+### Qué se descartó
+
+- **Comparar por firma (`firmaDeRuta`, la de los avisos al publicar):** compara plan con plan, no plan con ruta viva, y sería
+  la segunda comparación que el encargo pedía no escribir.
+- **Decir «orden cambiado» comparando todas las posiciones:** una sola parada añadida en medio desplaza a las demás y saldría
+  «añadida» Y «orden cambiado» para lo que es una sola cosa.
+- **Avisar en caliente / campana / SMS:** fuera de alcance. El chofer lo ve al entrar en «Mi ruta» o cuando la lista se refresca.
+- **Decir QUIÉN o CUÁNDO la cambió:** no está en lo que la pantalla carga, y no se añade columna para eso.
+
+### Mutantes
+
+14, leídos por nombre; caen los 14, y cada una de las 10 pruebas nuevas cae con alguno. «No mira `sigueElPlan`» y «plan vacío
+no es `null`» caen con la prueba de la ruta intacta; «quitadas en orden alfabético», con la de quitadas (el plan va m, c, t, f:
+no es alfabético); «orden compara todas, no las comunes», con añadida y con quitada; «`load_no` nulo no es el viaje 1», solo con
+la de viaje; «paradas sin ordenar por `seq`» tumba siete, porque las paradas de la prueba llegan barajadas; «la lectura no lleva
+el detalle», con la suya; y tres sobre el texto de la página («no pinta el viaje», «no pinta las quitadas», «el aviso dentro de
+la lista»), cada una con la suya.
+
+### Lo que NO está
+
+- **No verificado:** nada abierto en un navegador, y sin base desde la rama. Cómo se ve el aviso en el móvil del chofer, y en
+  tema oscuro, no se ha mirado. Las pruebas de la página son sobre su texto, no sobre lo pintado.
+- **Una orden quitada que ya no está a la vista del chofer** (se la pasaron a otro y su RLS ya no se la enseña) se nombra por
+  el principio de su referencia, no por código y factura: es lo que `nombraLaOrden` hace con una orden que no encuentra. No
+  medido cuántas veces pasará.
+- **El emparejamiento por NOMBRE de D-335 sigue igual:** si se renombra al chofer, para ese nombre no hay plan y no hay aviso.
+- **El chofer se entera al entrar o al refrescarse la lista**, no con una notificación. El plan publicado se lee una vez por
+  fecha (D-335); si se RE-publica con «Mi ruta» abierta, el aviso compara contra el plan viejo hasta que vuelva a entrar.
+- «Orden cambiado» usa el orden en que la pantalla entrega las órdenes (`trips` aplanado), no `route_seq` a pelo.
