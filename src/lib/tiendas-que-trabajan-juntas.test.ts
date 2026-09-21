@@ -149,10 +149,11 @@ describe("dónde se comparte el trabajo", () => {
     expect(modal).not.toContain("tiendaCongelada");
   });
 
-  it("rutas: la sugerencia de chofer mira el grupo, y sigue siendo sugerencia", () => {
-    expect(rutas).toContain("const sameStore = drivers.filter((u) => mismaTiendaOGrupo(u.store, d.store, settings.stores)).map((u) => u.full_name);");
-    // El respaldo de siempre: si nadie del grupo tiene hueco, cualquiera.
-    expect(rutas).toContain("const pick = sameStore.find(hasRoom) ?? sameStore[0]");
+  // La sugerencia de chofer de Rutas miraba el grupo (D-293). El dueño la quitó entera en D-346 —«remove the
+  // suggestion of the driver that is under assign to»—, así que aquí se fija que no vuelva a medias.
+  it("rutas: la sugerencia de chofer ya no existe (D-346)", () => {
+    expect(rutas).not.toContain("const sameStore = drivers.filter(");
+    expect(rutas).not.toContain("sameStore.find(hasRoom)");
   });
 
   it("y lo que NO cambia: la orden sigue teniendo su tienda y la lista no se cierra", () => {

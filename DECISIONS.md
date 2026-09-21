@@ -23102,6 +23102,9 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 
 ## D-334 · El Gestor de Rutas lee las rutas asignadas a mano como P1, P2… D1, D2… — y «Plan del día» dice lo que hace
 
+> **⚠ Reemplazada en parte por D-346** (2026-09-20). «Armar las rutas del día» ya no es imposible de no ver: el dueño
+> lo pidió plegado tras un botón. El resto sigue vigente.
+
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
 asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
 **Pedido por:** Andrés, literal: «I DONT SEE P1 PICKUP 1 PICKUP 2 AS P2 AND D1 AND D2 … AND SO ON».
@@ -24070,3 +24073,59 @@ por fichero) caen cada uno con su prueba.
 - Anchos ya guardados por persona desde D-338: se guardaron con la tabla ignorándolos, así que al
   aplicarse ahora alguna columna puede salir rara. Doble clic en el asa la restablece.
 - Firefox y Safari no se midieron.
+
+## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
+**Pedido por el dueño**, literal, en cuatro mensajes: *«in the routes planner where you can change order show the
+delivery adddres and also like orders let me configure it into columns»* · *«delivery address is missing in the
+logistic manager schedule table»* · *«remove the suggestion of the driver that is under aassgin to in the table of
+logistic manager»* · *«build todays load automatically will be abuttom so it hides all that information and just
+shows when i want it to»*.
+
+### 1 · La dirección de entrega
+
+- **Programadas y Sin asignar** ganan la columna «Dirección de entrega», detrás de la cuenta. Está en el catálogo
+  (`routes-columns.ts`), así que se puede quitar como las demás.
+- **La tabla de paradas** —donde se sube, se baja y se cambia de viaje— ya tenía la dirección, pero nacía encogida
+  a 112 px detrás de un botón ⤢. Ahora nace **abierta**; el botón sigue para encogerla.
+
+### 2 · Columnas elegibles en la tabla de paradas
+
+Sus columnas eran fijas. Ahora Tipo, Pallets, Dirección, Llegada y Ventanas se pueden quitar, con un ⚙ Columnas
+propio junto a la tabla. El número de parada, el ID y las acciones siguen fijos. Esa tabla guarda los anchos **por
+puesto** (`useColWidths`), así que lo quitado se esconde por su puesto —columna, cabecera y celda— y los `colSpan`
+de las filas de viaje se descuentan. Se guarda en la misma preferencia por persona (`routes_columns`, D-331).
+
+**El problema de quien ya había guardado.** Lo guardado es la lista de columnas que se VEN: una columna nueva no
+está en esa lista, y no se distingue de «la quitó». Sin arreglarlo, justo quien más usa el Gestor no habría visto
+nunca la dirección. `conColumnasNuevas` lo distingue con una marca (`_v2`) dentro de la lista: una lista sin marca
+es de antes y recibe las nuevas; con marca, lo que falta es que la persona lo quitó. La marca viaja en todo lo que
+se guarde desde ahora.
+
+### 3 · Sin sugerencia de chofer
+
+El botón «💡 nombre» bajo «Asignar a…» y su función `suggestDriverFor` (misma tienda y con hueco) se quitan. No
+alimentaba nada más. Relacionado y **pendiente**: el dueño pidió el mismo día bases por chofer (Ernesto y Steven
+en McAllen —Steven de temporada—, Julio en Pharr, Máximo en Brownsville) y que Máximo lleve preferiblemente
+Brownsville e Intertiendas. Eso va al planificador, no a este botón, y es otra decisión.
+
+### 4 · «Armar las rutas del día automáticamente», plegado
+
+D-334 lo hizo imposible de no ver porque el dueño no lo encontraba. Ahora lo conoce y le estorba: nace **plegado
+tras su botón**. Plegado sigue diciendo lo que importa —cuántas órdenes de la fecha no tienen plan, o qué versión
+hay en borrador o publicada— y no ofrece planificar ni publicar hasta abrirlo. **Revierte esa parte de D-334**, que
+lleva su nota. No recuerda si se dejó abierto: cada entrada a la pantalla nace plegado.
+
+### Verificado
+
+`routes-columns.test.ts`: catálogo, marca, puestos ocultos, la página y el plegado. Seis mutantes leídos por
+nombre, caen los seis (la marca no se mira; alternar pierde la marca; ocultos al revés; celda de llegada sin
+esconder; lo guardado no recibe las nuevas; nace abierto). Una aserción nació rota —buscaba «💡», que sale en otro
+sitio de la página, y caía con todos los mutantes—; se cambió por el texto propio del botón quitado.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador**, tampoco el ⚙ nuevo ni cómo queda la tabla de paradas con columnas quitadas.
+- La suma de anchos de la tabla de paradas con la dirección abierta (240 px) la hace más ancha que antes: en una
+  pantalla estrecha se desplaza.
