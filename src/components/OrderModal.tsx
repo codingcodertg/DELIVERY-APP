@@ -11,6 +11,8 @@ import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura, puedeAgregarMaterial } from "@/lib/agregar-material";
+import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
+import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
@@ -135,6 +137,9 @@ export function OrderModal({
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [matFactura, setMatFactura] = useState("");
   const [matPallets, setMatPallets] = useState("");
+  // El plan PUBLICADO del día de la orden, solo con el diálogo abierto (D-NEXT). Es la lectura que ya hace el
+  // Gestor; a quien la RLS de la 133 no le deja leer planes le llega `null`, que es «sin aviso».
+  const rutasPublicadas = usePlanPublicadoDelGestor(showAddMaterial ? existing?.delivery_date ?? null : null, 0);
   // Aquí vivía la tarifa que el almacén confirmaba al agarrar la orden (D-143, D-146). Fuera
   // desde D-340, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
   // Almacén ya no confirma ni corrige la tarifa; «Comenzar preparación» mueve la etapa y ya.
@@ -2530,6 +2535,11 @@ export function OrderModal({
       const palletsBajan = palletsPedidos != null && Number.isFinite(palletsPedidos) && palletsPedidos < palletsAhora;
       const enOtra = matFactura.trim() && !problema ? avisoDeFacturaEnOtraOrden(deliveries, matFactura, existing.id) : null;
       const hayAlgo = (!!matFactura.trim() && !problema) || palletsSuben;
+      // Camión que se pasa y plan ya publicado (D-NEXT): lo decide `lib/agregar-material-avisos`; aquí solo se pinta.
+      const avisos = avisosDeAgregarMaterial({
+        pedido: existing, pallets: palletsPedidos, todas: deliveries, settings,
+        paradasPublicadas: rutasPublicadas ? rutasPublicadas.flatMap((r) => r.paradas) : null,
+      });
       return (
       <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal" style={{ maxWidth: 420 }}>
@@ -2585,6 +2595,20 @@ export function OrderModal({
               <div className="hint" style={{ color: "var(--red)", fontWeight: 600 }}>
                 ⚠ {t("Pallets can only go up here. To lower them, call the office.",
                       "Aquí los pallets solo suben. Para bajarlos, llame a oficina.")}
+              </div>
+            )}
+            {/* Avisan y dejan seguir (D-NEXT): el material va a salir igual; lo que hace falta es que
+                ventas sepa que logística tiene que enterarse. */}
+            {avisos.desborda && (
+              <div className="hint" style={{ color: "var(--amber)", fontWeight: 600 }}>
+                ⚠ {t(`This goes over ${avisos.desborda.chofer}'s truck: ${avisos.desborda.usados} already on it + ${avisos.desborda.conEsta} from this order = ${avisos.desborda.usados + avisos.desborda.conEsta} of ${avisos.desborda.capacidad} pallets. You can still add it — let logistics know.`,
+                      `Esto se pasa del camión de ${avisos.desborda.chofer}: ${avisos.desborda.usados} que ya lleva + ${avisos.desborda.conEsta} de esta orden = ${avisos.desborda.usados + avisos.desborda.conEsta} de ${avisos.desborda.capacidad} pallets. Puede agregarlo igual — avise a logística.`)}
+              </div>
+            )}
+            {avisos.enPlanPublicado && (
+              <div className="hint" style={{ color: "var(--amber)", fontWeight: 600 }}>
+                ⚠ {t("This order is already on a published route plan, made with the old pallet count. You can still add it — let logistics know so they re-plan.",
+                      "Esta orden ya está en un plan de ruta publicado, hecho con los pallets de antes. Puede agregarlo igual — avise a logística para que vuelva a planificar.")}
               </div>
             )}
           </div>
