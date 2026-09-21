@@ -72,7 +72,8 @@ describe("lo que no se rompe", () => {
     // La prueba del marco (D-281) cuenta contenedores buscando `<table className="…">` literal.
     // Poner ahí una expresión la dejaba contar 5 en vez de 6, sin que nada más se quejara: por eso
     // la marca de la casilla va en la FILA, que ya tenía clases condicionales.
-    expect(tabla).toContain('<table className="orders tbl-resize orders-responsive">');
+    // Desde D-345 la etiqueta lleva además el ancho en línea; lo que se fija es que la CLASE siga literal.
+    expect(tabla).toContain('<table className="orders tbl-resize orders-responsive" style={anchoDeTabla(');
   });
 
   it("el bloque nuevo no trae colores escritos a mano", () => {
