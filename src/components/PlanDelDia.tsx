@@ -82,6 +82,7 @@ export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: 
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
   const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
+  const [abierto, setAbierto] = useState(false);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
@@ -177,12 +178,22 @@ export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: 
   };
 
   const r = borrador?.resumen;
+  // Plegado tras un botón (D-346). El dueño: «build todays load automatically will be a button so it hides all that
+  // information and just shows when i want it to». D-334 lo había hecho imposible de no ver porque entonces no lo
+  // encontraba; ahora lo conoce y le estorba. Plegado sigue diciendo lo que importa: cuántas órdenes no tienen plan.
+  if (!abierto) return (
+    <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <button className="btn btn-ghost btn-sm" aria-expanded={false} onClick={() => setAbierto(true)}>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")} ▸</button>
+      {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
+      {borrador && <span className="hint" style={{ margin: 0 }}>{borrador.status === "published" ? t(`Published v${borrador.version}`, `Publicado v${borrador.version}`) : t(`Draft v${borrador.version}`, `Borrador v${borrador.version}`)}</span>}
+    </div>
+  );
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {/* Que no se pueda no ver (D-334): el dueño buscaba P1, P2… D1, D2… y no había pulsado esto nunca. El título dice
             lo que HACE, la frase lo que DA, y sin plan el botón es el primario de la pantalla. «Motor nuevo» era jerga nuestra. */}
-        <b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b>
+        <button className="btn btn-ghost btn-sm" aria-expanded onClick={() => setAbierto(false)} title={t("Hide", "Ocultar")}><b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b> ▾</button>
         {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
         <span className="hint" style={{ margin: 0, flexBasis: "100%" }}>
           {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",

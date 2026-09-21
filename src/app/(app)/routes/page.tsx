@@ -26,7 +26,7 @@ import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/
 import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla } from "@/lib/routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "@/lib/routes-columns";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -198,7 +198,8 @@ export default function RoutesPage() {
   // Stops table Address on a single line; a toggle expands it when the full
   // address is needed. Kept narrow by default so Windows + the row-action
   // arrows never get pushed off the right edge.
-  const [addrWide, setAddrWide] = useState(false);
+  // Nace ABIERTA desde D-346: el dueño pidió ver la dirección de entrega donde se cambia el orden.
+  const [addrWide, setAddrWide] = useState(true);
   // Excel-style resizable columns, remembered per table. Tighter defaults (and
   // bumped keys, so they replace older wide ones) so the route + truckload
   // tables fit the screen without horizontal scrolling. Columns are still
@@ -213,6 +214,10 @@ export default function RoutesPage() {
   const [verColumnas, setVerColumnas] = useState(false);
   const cajaDeColumnas = useRef<HTMLDivElement>(null);
   useCierraAlSalir(verColumnas, () => setVerColumnas(false), () => [cajaDeColumnas.current]);
+  // El mismo selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
+  const [verColsParadas, setVerColsParadas] = useState(false);
+  const cajaDeColsParadas = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(verColsParadas, () => setVerColsParadas(false), () => [cajaDeColsParadas.current]);
   useEffect(() => {
     if (!me || SIN_BASE) return;
     let vivo = true;
@@ -221,7 +226,8 @@ export default function RoutesPage() {
       if (!vivo || !leido.leida) return;
       prefsDelGestor.current = leido.columnas;
       const suyas = leido.columnas[rol];
-      if (suyas) setColsGestor(suyas);
+      // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas).
+      if (suyas) setColsGestor(conColumnasNuevas(suyas));
     });
     return () => { vivo = false; };
   }, [me?.id, me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -236,6 +242,8 @@ export default function RoutesPage() {
   };
   const colsProgramadas = columnasDeLaTabla("programadas", colsGestor);
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
+  // La tabla de paradas guarda los anchos por puesto: lo que la persona quitó se esconde por su puesto (D-346).
+  const paradasOcultas = indicesOcultosDeParadas(colsGestor);
   // [#, ID, Account, Address(expanded), ETA, Windows, actions]. Address is
   // forced to 92px when collapsed; everything else is sized to show its value
   // in full so Windows and the ↑↓ action arrows never get clipped.
@@ -1106,23 +1114,6 @@ export default function RoutesPage() {
     ));
   };
 
-  // Suggest the best driver for one order: prefer a driver whose home store
-  // matches the order's sold-from store and still has free truck capacity;
-  // otherwise the same-store driver, otherwise any driver with room.
-  const suggestDriverFor = (d: Delivery): string | null => {
-    const pallets = Number(d.actual_pallets ?? d.est_pallets ?? 0);
-    const hasRoom = (name: string) => {
-      const load = (byDriver.get(name) ?? []).reduce((n, x) => n + Number(x.actual_pallets ?? x.est_pallets ?? 0), 0);
-      return load + pallets <= capacityFor(name);
-    };
-    // La tienda de la orden, y las que trabajan con ella (D-293). Sigue siendo una sugerencia:
-    // si el grupo no tiene a nadie con hueco, cae a cualquier chofer, como antes.
-    const sameStore = drivers.filter((u) => mismaTiendaOGrupo(u.store, d.store, settings.stores)).map((u) => u.full_name);
-    const pick = sameStore.find(hasRoom) ?? sameStore[0]
-      ?? drivers.map((u) => u.full_name).find(hasRoom) ?? null;
-    return pick ?? null;
-  };
-
   /** Simulate adding an unassigned order to the selected driver's day —
    * shows the would-be route (dashed) and totals without saving anything. */
   const previewAdd = async (d: Delivery, driver: string) => {
@@ -1768,7 +1759,7 @@ export default function RoutesPage() {
               <button className="btn btn-ghost btn-sm" aria-expanded={verColumnas} onClick={() => setVerColumnas((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
               {verColumnas && (
                 <div className="card" style={{ position: "absolute", right: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4 }}>
-                  {COLUMNAS_DEL_GESTOR.map((c) => (
+                  {COLUMNAS_DEL_GESTOR.filter((c) => !c.tablas.includes("paradas")).map((c) => (
                     <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
                       <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {lang === "es" ? c.es : c.en}
                     </label>
@@ -1808,6 +1799,7 @@ export default function RoutesPage() {
                           <td key={c.key}>
                             {c.key === "invoice" ? (d.invoice_num || "—")
                               : c.key === "account" ? (d.account || "—")
+                              : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
                               : c.key === "driver" ? (<><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(d.assigned_driver), marginRight: 6, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />{d.assigned_driver}{bucket ? ` 🧭` : ""}</>)
                               : c.key === "load" ? (!bucket && loadNoOf(d) > 1 ? loadNoOf(d) : (bucket ? "—" : 1))
                               : c.key === "stop" ? (d.route_seq != null ? idx + 1 : "—")
@@ -1958,6 +1950,7 @@ export default function RoutesPage() {
                         <td key={c.key} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
                           {c.key === "invoice" ? (d.invoice_num || "—")
                             : c.key === "account" ? (d.account || "—")
+                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
                             : c.key === "store" ? (d.store || "—")
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
                             : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
@@ -1987,15 +1980,7 @@ export default function RoutesPage() {
                               <option value="__newroute__">＋ {t("New route…", "Nueva ruta…")}</option>
                             </optgroup>
                           </select>
-                          {/* One-tap assign to the suggested driver (same store + free capacity). */}
-                          {(() => {
-                            const sug = suggestDriverFor(d);
-                            return sug ? (
-                              <button className="btn btn-ghost btn-sm" style={{ color: "var(--green)" }}
-                                title={t(`Assign to ${sug} (same store, has room)`, `Asignar a ${sug} (misma tienda, con espacio)`)}
-                                onClick={() => manualAssign(d.id, sug)}>💡 {sug}</button>
-                            ) : null;
-                          })()}
+                          {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
                           {singleSel && (
                             <button
                               className="btn btn-ghost btn-sm"
@@ -2215,20 +2200,35 @@ export default function RoutesPage() {
               );
             })()}
             {stops.length > 0 && (
+              <div ref={cajaDeColsParadas} style={{ position: "relative", textAlign: "right" }}>
+                <button className="btn btn-ghost btn-sm" aria-expanded={verColsParadas} onClick={() => setVerColsParadas((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
+                {verColsParadas && (
+                  <div className="card" style={{ position: "absolute", right: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4, textAlign: "left" }}>
+                    {COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => (
+                      <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
+                        <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
+                      </label>
+                    ))}
+                    <span className="hint" style={{ margin: 0 }}>{t("Saved for you.", "Se guarda para usted.")}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {stops.length > 0 && (
               <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
                 {/* Address stays on one line (narrow by default) with an
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (i === 4 ? (addrWide ? w : 112) : w), 0) }}>
-                  <colgroup>{stopCols.widths.map((w, i) => <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}</colgroup>
+                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : i === 4 ? (addrWide ? w : 112) : w), 0) }}>
+                  <colgroup>{stopCols.widths.map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}</colgroup>
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={stopCols.startResize(0)} /></th>
                       <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={stopCols.startResize(1)} /></th>
-                      <th>{t("Type", "Tipo")}<span className="col-resizer" onMouseDown={stopCols.startResize(2)} /></th>
-                      <th title={t("Pallets on this stop", "Pallets de esta parada")}>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={stopCols.startResize(3)} /></th>
-                      <th>
+                      {!paradasOcultas.has(2) && <th>{t("Type", "Tipo")}<span className="col-resizer" onMouseDown={stopCols.startResize(2)} /></th>}
+                      {!paradasOcultas.has(3) && <th title={t("Pallets on this stop", "Pallets de esta parada")}>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={stopCols.startResize(3)} /></th>}
+                      {!paradasOcultas.has(4) && <th>
                         <button
                           className="btn btn-ghost btn-sm"
                           style={{ padding: "0 5px", minHeight: 0, marginRight: 4 }}
@@ -2237,9 +2237,9 @@ export default function RoutesPage() {
                         >{addrWide ? "⤡" : "⤢"}</button>
                         {t("Address", "Dirección")}
                         {addrWide && <span className="col-resizer" onMouseDown={stopCols.startResize(4)} />}
-                      </th>
-                      <th>{t("ETA", "Llegada")}<span className="col-resizer" onMouseDown={stopCols.startResize(5)} /></th>
-                      <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={stopCols.startResize(6)} /></th>
+                      </th>}
+                      {!paradasOcultas.has(5) && <th>{t("ETA", "Llegada")}<span className="col-resizer" onMouseDown={stopCols.startResize(5)} /></th>}
+                      {!paradasOcultas.has(6) && <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={stopCols.startResize(6)} /></th>}
                       <th></th>
                     </tr>
                   </thead>
@@ -2259,7 +2259,7 @@ export default function RoutesPage() {
                       return (
                         <Fragment key={ti}>
                           <tr>
-                            <td colSpan={8} style={{ background: "var(--card-hover)", fontWeight: 700, fontSize: 12 }}>
+                            <td colSpan={8 - paradasOcultas.size} style={{ background: "var(--card-hover)", fontWeight: 700, fontSize: 12 }}>
                               <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: tColor, marginRight: 7, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />
                               🚚 {t("Truckload", "Viaje")} {ti + 1} — {estimated ? "~" : ""}{load}/{capacity} {t("pallets", "pallets")}
                               {noCount > 0 && (
@@ -2315,13 +2315,13 @@ export default function RoutesPage() {
                               a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
                               No llevan flechas: en una ruta manual solo se decide el orden de las entregas. */}
                           {sequenced && ti === 0 && lectura.cambioTrasPublicar && (
-                            <tr><td colSpan={8} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
+                            <tr><td colSpan={8 - paradasOcultas.size} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                           )}
                           {filasDelViaje(sequenced ? lectura : null, batch, ti === trips.length - 1).map((f) => {
                             if (f.clase === "informa") { const p = f.fila; return (
                             <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`}>
                               <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
-                              <td colSpan={7}>
+                              <td colSpan={7 - paradasOcultas.size}>
                                 {p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" && <b>{p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
                                 {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
                                 <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
@@ -2370,11 +2370,11 @@ export default function RoutesPage() {
                                       columna que aparece y desaparece. Sale si la columna «Factura #» está elegida. */}
                                   {colsGestor.includes("invoice") && d.invoice_num && <div className="hint" style={{ margin: 0, textDecoration: "none" }}>{t("Inv.", "Fact.")} {d.invoice_num}</div>}
                                 </td>
-                                <td title={d.order_type || undefined}>{d.order_type || "—"}</td>
+                                {!paradasOcultas.has(2) && <td title={d.order_type || undefined}>{d.order_type || "—"}</td>}
                                 {/* Where the truckload's pallet total comes
                                     from. An estimate is marked so nobody plans
                                     capacity on a guess thinking it's counted. */}
-                                <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                {!paradasOcultas.has(3) && <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                                   {d.actual_pallets != null ? (
                                     <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
                                   ) : d.est_pallets != null ? (
@@ -2382,12 +2382,12 @@ export default function RoutesPage() {
                                   ) : (
                                     <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the load total", "Sin conteo de pallets — esta parada no suma al total del viaje")}>—</span>
                                   )}
-                                </td>
-                                <td title={d.delivery_address || undefined}>{d.delivery_address || "—"}</td>
-                                <td style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
+                                </td>}
+                                {!paradasOcultas.has(4) && <td title={d.delivery_address || undefined}>{d.delivery_address || "—"}</td>}
+                                {!paradasOcultas.has(5) && <td style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
                                   {eta ?? "—"}{late ? " ⚠️" : ""}
-                                </td>
-                                <td>{fmtWindows(d.delivery_windows)}</td>
+                                </td>}
+                                {!paradasOcultas.has(6) && <td>{fmtWindows(d.delivery_windows)}</td>}
                                 {/* Reordering and moving loads are edits, not
                                     "show me this" — they must not also hijack
                                     the map to this one stop. */}

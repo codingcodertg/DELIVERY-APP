@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -17,9 +17,9 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0].key).toBe("invoice");
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0].key).toBe("invoice");
   });
-  it("por defecto cada tabla enseña lo que ya enseñaba, en el mismo orden, con la factura delante", () => {
-    expect(columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "driver", "load", "stop", "windows", "pallets"]);
-    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "store", "pallets", "date", "windows", "status"]);
+  it("por defecto cada tabla enseña lo que ya enseñaba, en el mismo orden, con la factura delante — y la dirección tras la cuenta (D-346)", () => {
+    expect(columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "address", "driver", "load", "stop", "windows", "pallets"]);
+    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "address", "store", "pallets", "date", "windows", "status"]);
   });
   it("el orden es el de la tabla, no el de quien marca; una clave que ya no existe se ignora; y cada columna sale solo en SU tabla", () => {
     expect(columnasDeLaTabla("programadas", ["pallets", "columna_retirada", "invoice", "store", "status"]).map((c) => c.key)).toEqual(["invoice", "pallets"]);
@@ -27,15 +27,36 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("programadas", [])).toEqual([]);
   });
   it("todas las columnas del catálogo salen en alguna tabla, y toda la que sale en una tabla está en el catálogo", () => {
-    const enTablas = new Set([...columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO), ...columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)].map((c) => c.key));
+    const enTablas = new Set((["programadas", "sinAsignar", "paradas"] as const).flatMap((tb) => columnasDeLaTabla(tb, COLUMNAS_DEL_GESTOR_POR_DEFECTO)).map((c) => c.key));
     expect([...enTablas].sort()).toEqual(COLUMNAS_DEL_GESTOR.map((c) => c.key).sort());
-    for (const c of COLUMNAS_DEL_GESTOR) for (const tabla of ["programadas", "sinAsignar"] as const) expect(columnasDeLaTabla(tabla, [c.key]).length === 1, `${c.key} en ${tabla}`).toBe(c.tablas.includes(tabla));
+    for (const c of COLUMNAS_DEL_GESTOR) for (const tabla of ["programadas", "sinAsignar", "paradas"] as const) expect(columnasDeLaTabla(tabla, [c.key]).length === 1, `${c.key} en ${tabla}`).toBe(c.tablas.includes(tabla));
   });
-  it("marcar y desmarcar: en orden canónico, sin repetidas y sin claves desconocidas", () => {
-    expect(alternaColumna(["pallets", "invoice"], "account")).toEqual(["invoice", "account", "pallets"]);
-    expect(alternaColumna(["invoice", "account"], "invoice")).toEqual(["account"]);
-    expect(alternaColumna(["invoice", "invoice", "no_existe"], "stop")).toEqual(["invoice", "stop"]);
-    expect(alternaColumna([], "no_existe")).toEqual([]);
+  it("marcar y desmarcar: en orden canónico, sin repetidas y sin claves desconocidas — y con la marca de D-346 siempre", () => {
+    expect(alternaColumna(["pallets", "invoice"], "account")).toEqual(["invoice", "account", "pallets", MARCA_V2]);
+    expect(alternaColumna(["invoice", "account"], "invoice")).toEqual(["account", MARCA_V2]);
+    expect(alternaColumna(["invoice", "invoice", "no_existe"], "stop")).toEqual(["invoice", "stop", MARCA_V2]);
+    expect(alternaColumna([], "no_existe")).toEqual([MARCA_V2]);
+    expect(alternaColumna(["invoice", MARCA_V2], "account")).toEqual(["invoice", "account", MARCA_V2]);
+  });
+  it("la DIRECCIÓN de entrega está en las dos tablas del Gestor, que es lo que el dueño echó en falta (D-346)", () => {
+    expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "address")).toMatchObject({ tablas: ["programadas", "sinAsignar"] });
+  });
+  it("a quien guardó sus columnas ANTES de D-346 le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
+    const deAntes = conColumnasNuevas(["invoice", "pallets"]);
+    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2]);
+    expect(columnasDeLaTabla("programadas", deAntes).map((c) => c.key)).toEqual(["invoice", "address", "pallets"]);
+    // Ya conoce las nuevas (lleva la marca) y quitó la dirección: se respeta.
+    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2]);
+    // Una que ya la tenía no la gana dos veces.
+    expect(conColumnasNuevas(["address"]).filter((k) => k === "address")).toHaveLength(1);
+  });
+  it("la tabla de paradas: lo que se quita se esconde por su puesto; por defecto no se esconde nada", () => {
+    expect([...indicesOcultosDeParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)]).toEqual([]);
+    expect([...indicesOcultosDeParadas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))]).toEqual([5]);
+    expect([...indicesOcultosDeParadas(["invoice", MARCA_V2])].sort()).toEqual([2, 3, 4, 5, 6]);
+    // Los puestos son los de la tabla, sin repetir y sin pisar los fijos (0 número, 1 ID, 7 acciones).
+    const puestos = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => c.indice);
+    expect(puestos).toEqual([2, 3, 4, 5, 6]);
   });
 });
 
@@ -62,6 +83,19 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("{colsSinAsignar.map((c) => <th key={c.key}>");
     // La tercera tabla (paradas por ruta) la enseña bajo el código, si la columna está elegida.
     expect(pagina).toContain('{colsGestor.includes("invoice") && d.invoice_num && <div');
+  });
+  it("D-346: la dirección se pinta en las dos tablas, lo guardado de antes recibe las columnas nuevas, y la sugerencia de chofer ya no está", () => {
+    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>').length - 1).toBe(2);
+    expect(pagina).toContain("if (suyas) setColsGestor(conColumnasNuevas(suyas));");
+    expect(pagina).not.toContain("suggestDriverFor");
+    expect(pagina).not.toContain("same store, has room");
+  });
+  it("D-346: la tabla de paradas esconde por su puesto lo que la persona quitó — columna, cabecera y celda — y la dirección nace abierta", () => {
+    expect(pagina).toContain("const paradasOcultas = indicesOcultosDeParadas(colsGestor);");
+    expect(pagina).toContain("paradasOcultas.has(i) ? null : <col key={i}");
+    for (const n of [2, 3, 4, 5, 6]) expect(pagina.split(`{!paradasOcultas.has(${n}) && <t`).length - 1, `puesto ${n}`).toBe(2);
+    expect(pagina).toContain("<td colSpan={8 - paradasOcultas.size}");
+    expect(pagina).toContain("const [addrWide, setAddrWide] = useState(true);");
   });
   it("el selector marca y desmarca con la función probada, se cierra al hacer clic fuera, y nace con el defecto", () => {
     expect(pagina).toContain("const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);");
@@ -103,5 +137,18 @@ describe("137: la lista cerrada de la base es la del código", () => {
     expect(sql).toContain("debe seguir con 3 politicas");
     expect(sql).toContain("MENOS que el total");
     expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\)\n {2}values \('137_user_prefs_routes_columns\.sql', '[0-9a-f]{64}'\)/);
+  });
+});
+
+describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () => {
+  const plan = plano(sinComentarios(leer("src/components/PlanDelDia.tsx")));
+  it("plegado por defecto, y plegado sigue diciendo cuántas órdenes no tienen plan", () => {
+    expect(plan).toContain("const [abierto, setAbierto] = useState(false);");
+    const desde = plan.indexOf("if (!abierto) return ("), hasta = plan.indexOf("return ( <div className=\"card\"> <div style");
+    expect(desde).toBeGreaterThan(-1); expect(hasta).toBeGreaterThan(desde);
+    const plegado = plan.slice(desde, hasta);
+    expect(plegado).toContain("onClick={() => setAbierto(true)}");
+    expect(plegado).toContain("{!borrador && sinPlan > 0 &&");
+    expect(plegado).not.toContain("planifica()");
   });
 });
