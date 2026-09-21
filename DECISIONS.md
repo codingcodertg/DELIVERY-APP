@@ -23839,3 +23839,64 @@ la lista»), cada una con la suya.
 - **El chofer se entera al entrar o al refrescarse la lista**, no con una notificación. El plan publicado se lee una vez por
   fecha (D-335); si se RE-publica con «Mi ruta» abierta, el aviso compara contra el plan viejo hasta que vuelva a entrar.
 - «Orden cambiado» usa el orden en que la pantalla entrega las órdenes (`trips` aplanado), no `route_seq` a pelo.
+
+## D-NEXT · «Agregar material» avisa si el camión se pasa y si la orden ya está en un plan publicado
+
+**Fecha:** 2026-09-19 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+
+### Qué fallaba
+
+Desde D-339 ventas puede subir los pallets de una orden ya hecha. Nadie avisaba de dos cosas:
+
+1. que el total nuevo **desborda el camión** del chofer al que la orden ya está asignada;
+2. que la orden ya es una parada de un **plan de ruta publicado** (D-320, D-334, D-335), hecho con los
+   pallets de antes: el plan queda desfasado y nadie de logística se entera.
+
+### Qué hace ahora
+
+El diálogo de «Agregar material» enseña un aviso ámbar para cada situación, **antes de guardar y sin
+bloquear**. El material es del cliente y va a salir igual; lo que hace falta es que el vendedor sepa
+que tiene que decírselo a logística. Bloquear dejaría a ventas sin poder apuntar lo que ya vendió.
+
+Lo que decide vive en `src/lib/agregar-material-avisos.ts` (`avisosDeAgregarMaterial`), con sus
+pruebas; `OrderModal.tsx` solo lo pinta.
+
+- **Solo si los pallets SUBEN.** Una factura más no ocupa sitio ni cambia el plan.
+- **Capacidad: ninguna fuente nueva.** La cuenta es `assignmentWarnings` de `lib/dispatch` (la del
+  panel del mapa), y el tope sale de la misma cadena que usan `routes`, `map`, `my-route` y `summary`:
+  `settings.driver_capacity[chofer]` → `settings.default_truck_capacity` → 12.
+- **El tope es por viaje.** Si la orden ya tiene `load_no`, se cuenta contra las órdenes de ese viaje;
+  sin viaje, contra el día entero del chofer, como hace el mapa al asignar.
+- **Plan publicado: la lectura que ya existe.** `usePlanPublicadoDelGestor` →
+  `GET /api/route-plan?date=&status=published`, y la orden está en el plan si alguna parada la lleva
+  (`ordenDeLaParte(order_ref)`, para las órdenes partidas en cargas). Se pide solo con el diálogo abierto.
+
+### Lo que se descartó
+
+- **Bloquear el guardado.** Ver arriba.
+- **Una fuente propia de capacidad** (leer `driver_route_settings.capacity_pallets`, que es el primer
+  eslabón de `choferParaElMotor`): traerla al diálogo era otra lectura y otra RLS. Se usa la cadena
+  que ya usan las pantallas.
+- **Abrir `route_plans` a ventas.** Es una migración de RLS y está fuera del encargo. Ver abajo.
+
+### Limitación conocida — el aviso del plan publicado NO le sale hoy a un vendedor real
+
+La política `route_plans select` de la migración 133 deja leer planes a admin, logistics, manager,
+accounting y (solo publicados) warehouse. **Ventas lee 0 filas** — la propia 133 lo lista como caso E4
+de su matriz. Y «Agregar material» solo se le ofrece a `role = sales` (`puedeAgregarMaterial`). O sea:
+con la base como está, el `GET` le contesta `plan: null` al vendedor y el aviso del plan publicado
+**no aparece**. El código está puesto y probado, pero para que llegue a quien tiene que llegar hace
+falta una migración —por ejemplo una función `security definer` mínima al estilo de la 134, que
+conteste solo «¿esta orden mía está en un plan publicado?»— con su plan en papel. El aviso de
+capacidad no tiene este problema: sale de `deliveries` y `settings`, que ventas ya lee.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Los avisos se comprueban por la función y sus mutantes.
+- **La RLS de arriba se leyó en el `.sql` de la 133, no se midió en la base.** Una rama no toca la
+  base. El grep de `route_plans select` en `supabase/migrations` solo da la 133.
+- **Si ventas ve en `deliveries` las órdenes de OTROS vendedores del mismo chofer.** Si su RLS o su
+  visibilidad por tienda (131) se las esconde, «lo que ya lleva el camión» sale corto y el aviso de
+  capacidad se queda callado cuando debería hablar.
+- **La capacidad por fila de chofer** (`driver_route_settings.capacity_pallets`) puede diferir de la
+  de Ajustes; el aviso usa la de Ajustes.
