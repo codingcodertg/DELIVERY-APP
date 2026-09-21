@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPolygon, LatLng } from "leaflet";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
-import { dibujoTienda, estiloTienda, TIENDA_CLASICA, type PapelTienda } from "@/lib/store-pins";
+import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, type PapelTienda } from "@/lib/store-pins";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -49,7 +49,7 @@ export interface MapPoint {
   dimmed?: boolean;
 }
 
-/** A store / branch location, drawn as a big red point that's always visible
+/** A store / branch location, drawn as a blue house (D-348; it was a big red point) that's always visible
  * on top of everything else — the fixed landmarks the fleet works around. */
 export interface StoreMarker {
   name: string;
@@ -59,8 +59,8 @@ export interface StoreMarker {
    * Qué es esta tienda **para el pedido que se edita** (D-222): `origen` la del pedido,
    * `otra` las demás. Solo lo pasa el selector de pin de la ficha.
    *
-   * Ausente —los cuatro mapas de despacho— es el punto rojo de siempre, sin un pixel de
-   * diferencia: allí no hay pedido con el que comparar, y el rojo no compite con nada.
+   * Ausente —los cuatro mapas de despacho— es la casita azul de `casaDeTienda` (D-348; antes, un punto
+   * rojo): allí no hay pedido con el que comparar.
    */
   papel?: PapelTienda;
 }
@@ -117,7 +117,7 @@ export function LeafletMap({
   zone?: { lat: number; lng: number }[];
   /** Route traces drawn under the pins (e.g. per-driver optimized paths). */
   lines?: MapLine[];
-  /** Store/branch locations — always drawn as big red points on top. */
+  /** Store/branch locations — always drawn as blue houses on top (D-348). */
   stores?: StoreMarker[];
   /** Drivers currently on shift, drawn where their phone last reported. */
   liveDrivers?: LiveDriver[];
@@ -337,7 +337,7 @@ export function LeafletMap({
     return () => { cancelled = true; };
   }, [points]);
 
-  // Store/branch markers: big red points, always drawn on top of the fleet
+  // Store/branch markers: blue houses (D-348), always drawn on top of the fleet
   // pins and never dimmed — the fixed landmarks the whole map is built around.
   useEffect(() => {
     let cancelled = false;
@@ -349,7 +349,7 @@ export function LeafletMap({
       for (const s of stores) {
         if (s.lat == null || s.lng == null) continue;
         // Con papel (el selector de pin de la ficha): el cuadrado del módulo compartido, el mismo
-        // SVG que dibuja el mapa de Google. Sin papel: el punto rojo de siempre, intacto.
+        // SVG que dibuja el mapa de Google. Sin papel: la casita azul de los mapas de despacho (D-348).
         const estilo = s.papel ? estiloTienda(s.papel) : null;
         const dib = estilo ? dibujoTienda(estilo, s.name) : null;
         const icon = dib
@@ -361,7 +361,8 @@ export function LeafletMap({
             })
           : L.divIcon({
               className: "",
-              html: `<div style="width:${TIENDA_CLASICA.diametro}px;height:${TIENDA_CLASICA.diametro}px;border-radius:50%;background:${TIENDA_CLASICA.fill};border:${TIENDA_CLASICA.grosor}px solid ${TIENDA_CLASICA.borde};box-shadow:0 2px 6px rgba(0,0,0,.55)"></div>`,
+              // La casita azul (D-348), el mismo SVG que pinta Google. La sombra va por `filter` porque ya no es un círculo.
+              html: `<div style="width:${TIENDA_CLASICA.diametro}px;height:${TIENDA_CLASICA.diametro}px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">${casaDeTienda()}</div>`,
               iconSize: [TIENDA_CLASICA.diametro, TIENDA_CLASICA.diametro],
               iconAnchor: [TIENDA_CLASICA.diametro / 2, TIENDA_CLASICA.diametro / 2],
             });

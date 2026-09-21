@@ -1,7 +1,7 @@
 "use client";
 
 import { usePrefs } from "@/lib/prefs";
-import { TIENDA_CLASICA } from "@/lib/store-pins";
+import { casaDeTienda } from "@/lib/store-pins";
 import type { ElementoLeyenda } from "@/lib/map-legend";
 
 /**
@@ -34,7 +34,8 @@ function Muestra({ e }: { e: ElementoLeyenda }) {
   switch (e.forma) {
     case "tienda":
       return (
-        <span aria-hidden style={{ width: 16, height: 16, borderRadius: "50%", background: e.color, border: `3px solid ${TIENDA_CLASICA.borde}`, boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
+        // La misma casita que pinta el mapa (D-348): el dibujo es una cadena fija de `store-pins`, sin nada del usuario dentro.
+        <span aria-hidden style={{ width: 18, height: 18, flex: "0 0 auto", display: "inline-flex" }} dangerouslySetInnerHTML={{ __html: casaDeTienda(18) }} />
       );
     case "punto":
       return (

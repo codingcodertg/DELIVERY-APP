@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, MAPS_MAP_ID } from "@/lib/google-maps-loader";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
-import { dibujoTiendaUrl, estiloTienda, TIENDA_CLASICA } from "@/lib/store-pins";
+import { casaDeTienda, dibujoTiendaUrl, estiloTienda } from "@/lib/store-pins";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 
 // ============================================================
@@ -42,11 +42,7 @@ function pinIcon(color: string, badge: string, dimmed?: boolean): string {
 }
 
 function storeIcon(): string {
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">` +
-    `<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA.fill}" stroke="${TIENDA_CLASICA.borde}" ` +
-    `stroke-width="${TIENDA_CLASICA.grosor}"/></svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(casaDeTienda())}`;
 }
 
 /** Grey once the fix has gone stale — the truck's last known spot, not where
@@ -304,7 +300,7 @@ export function GoogleMapView({
     for (const s of stores) {
       if (s.lat == null || s.lng == null) continue;
       // Con papel (el selector de pin de la ficha): el cuadrado del módulo compartido, el mismo
-      // SVG que dibuja el mapa de Leaflet. Sin papel: el punto rojo de siempre, intacto.
+      // SVG que dibuja el mapa de Leaflet. Sin papel: la casita azul de los mapas de despacho (D-348).
       const estilo = s.papel ? estiloTienda(s.papel) : null;
       const dib = estilo ? dibujoTiendaUrl(estilo, s.name) : null;
       storeMarkersRef.current.push(new maps.Marker({

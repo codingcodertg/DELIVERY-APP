@@ -24177,3 +24177,43 @@ nombre: «no ordena» y «el gerente también en General». Suite entera en loca
 - **Nada abierto en un navegador.**
 - **Cuánta gente tiene columnas guardadas** (capa 2) y si `settings.sales_columns` está puesto (capa 3): son lecturas
   de producción que esta sesión no pudo hacer. De eso depende cuánta gente ve de verdad el cambio.
+
+## D-348 · La tienda en los mapas de despacho es una casita azul
+
+**Fecha:** 2026-09-20 · **Versión:** Entregas 1.172.0, repo 1.236.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«change store's dots from red to blue»* y *«change the dot from a dot to a
+little house icon to be more amigable»*.
+
+La tienda era un punto rojo `#e11414`, escrito de forma distinta en cada motor de mapa (Google un SVG, Leaflet un
+`div`); D-222 lo dejó dicho y no lo tocó, y una prueba avisaba a quien lo cambiara de que movía cuatro pantallas.
+Ahora es **un solo dibujo** —`casaDeTienda`, en `lib/store-pins`— que pintan Google, Leaflet y la leyenda. Mueve las
+cuatro pantallas a la vez, a sabiendas: **Mapa, Rutas, Mi ruta y Rastreo**. El selector de pin de la ficha (D-222),
+que pinta las tiendas con su papel, no cambia.
+
+El azul es marino (`#0b3d91`) y no el `#2456c9` del tema: ese ya es el primer color de la paleta de choferes y el de
+la ruta elegida. Lo que de verdad separa una tienda de una orden es la **forma**: órdenes, puntos; choferes,
+camiones; tiendas, casas.
+
+### Lo que el dueño pidió el mismo día y YA estaba, o no es código
+
+- *«the drivers have to be a truck icon of the color of each driver»*: el chofer en vivo **ya** es un camión de su
+  color (`LiveDriver`, en los dos motores). No se toca.
+- *«the orders assign to each driver will have his color»*: las órdenes asignadas **ya** toman el color del chofer
+  (`colorDeChofer` sobre `settings.driver_colors`). No se toca.
+- *«julio color purple and ernesto green»*: el color de cada chofer es un dato de Ajustes (`settings.driver_colors`)
+  que se elige en la leyenda del Mapa, con el selector de color junto a cada nombre. No es código, y escribirlo en el
+  repo sería clavar datos del dueño en él. Lo pone quien tenga acceso de admin, en un minuto.
+
+**Pendiente, y es otra decisión:** dibujar las rutas por calles con el color de cada chofer y pines numerados, como
+la captura de OptimoRoute que mandó, «sin modificar lo anterior, para visualizarlo».
+
+### Verificado
+
+`store-pins.test.ts` y `map-legend.test.ts`, reescritas: fijan el dibujo, que los tres lo pintan con la misma
+función y que ya no queda ningún círculo propio. Un mutante («Leaflet sin casita») cae con las dos. Suite entera
+local: 3631 pasados, 3 saltados.
+
+### Lo no verificado
+
+- **La casita no se ha visto en una pantalla.** Se intentó pintar en Chrome y el navegador no respondió. El dibujo es
+  un `path` de cinco vértices con una puerta; si sale feo o pequeño sobre el mapa, se ajusta en un solo sitio.

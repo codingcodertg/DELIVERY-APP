@@ -5,6 +5,7 @@ import {
   AZUL_ORIGEN_FALLBACK,
   GRIS_OTRA_FALLBACK,
   TIENDA_CLASICA,
+  casaDeTienda,
   dibujoTienda,
   dibujoTiendaUrl,
   estiloTienda,
@@ -192,33 +193,26 @@ describe("el cableado: quién pasa qué, y a quién NO", () => {
     expect(google).not.toContain(TIENDA_CLASICA.fill);
     expect(leer("src/lib/store-pins.ts")).toContain(`fill: "${TIENDA_CLASICA.fill}"`);
   });
-  it("el punto rojo de siempre sale IDÉNTICO, carácter a carácter, en los dos motores", () => {
-    // Esto no es una impresión: son los dos literales que main tenía escritos a mano, copiados
-    // aquí tal cual, y reconstruidos desde la constante. Si alguien toca `TIENDA_CLASICA`
-    // creyendo que solo afecta a la ficha, esta prueba le enseña los cuatro mapas de despacho
-    // (Mapa, Rutas, Mi ruta, Rastreo) que acaba de mover.
-    //
-    // Y OJO con la asimetría, que es de main y esta rama no la corrige: los dos motores NO
-    // dibujan la tienda igual. Google es un SVG de 26×26 con el borde a caballo del trazo;
-    // Leaflet es un div de 24×24 con el borde por fuera y sombra. Cada uno conserva el suyo
-    // exactamente — que es la única forma de no cambiar nada en las cuatro pantallas.
-    expect(TIENDA_CLASICA).toEqual({ fill: "#e11414", diametro: 24, borde: "#fff", grosor: 3 });
+  it("la tienda de los mapas de despacho es UNA casita azul, el mismo dibujo en los dos motores y en la leyenda (D-348)", () => {
+    // Esta prueba decía «el punto rojo sale IDÉNTICO en los dos motores» y existía para avisar a quien tocara
+    // `TIENDA_CLASICA` de que movía cuatro pantallas (Mapa, Rutas, Mi ruta, Rastreo). D-348 las mueve a sabiendas: el
+    // dueño pidió azul y una casita. De paso se acaba la asimetría de main (Google un SVG, Leaflet un div): un dibujo.
+    expect(TIENDA_CLASICA).toEqual({ fill: "#0b3d91", diametro: 26, borde: "#fff", grosor: 2 });
+    const casa = casaDeTienda();
+    expect(casa).toContain('<path d="M13 2.5 L24 12 H21 V23 H5 V12 H2 Z" fill="#0b3d91" stroke="#fff" stroke-width="2"');
+    expect(casa).toContain('width="26" height="26" viewBox="0 0 26 26"');
+    expect(casa).not.toContain("<circle");
+    expect(casaDeTienda(18)).toContain('width="18" height="18" viewBox="0 0 26 26"');
+    // No es el azul del tema: ese ya es un chofer de la paleta y la ruta elegida.
+    expect(TIENDA_CLASICA.fill).not.toBe(AZUL_ORIGEN_FALLBACK);
 
-    const googleDeMain = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="9" fill="#e11414" stroke="#fff" stroke-width="3"/></svg>`;
-    const googleDeAhora =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">` +
-      `<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA.fill}" stroke="${TIENDA_CLASICA.borde}" ` +
-      `stroke-width="${TIENDA_CLASICA.grosor}"/></svg>`;
-    expect(googleDeAhora).toBe(googleDeMain);
-
-    const leafletDeMain = `<div style="width:24px;height:24px;border-radius:50%;background:#e11414;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.55)"></div>`;
-    const leafletDeAhora = `<div style="width:${TIENDA_CLASICA.diametro}px;height:${TIENDA_CLASICA.diametro}px;border-radius:50%;background:${TIENDA_CLASICA.fill};border:${TIENDA_CLASICA.grosor}px solid ${TIENDA_CLASICA.borde};box-shadow:0 2px 6px rgba(0,0,0,.55)"></div>`;
-    expect(leafletDeAhora).toBe(leafletDeMain);
-
-    // Y que cada motor siga armando ESA cadena, no otra parecida.
-    expect(google).toContain('<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA.fill}" stroke="${TIENDA_CLASICA.borde}" ');
-    expect(leaflet).toContain("box-shadow:0 2px 6px rgba(0,0,0,.55)");
+    // Y que los tres la pinten con ESA función, no con otra parecida ni con un círculo propio.
+    expect(google).toContain("encodeURIComponent(casaDeTienda())");
+    expect(leaflet).toContain("${casaDeTienda()}</div>");
     expect(leaflet).toContain("iconSize: [TIENDA_CLASICA.diametro, TIENDA_CLASICA.diametro]");
+    expect(leer("src/components/MapLegend.tsx")).toContain("casaDeTienda(18)");
+    for (const motor of [google, leaflet]) expect(motor).not.toContain("border-radius:50%;background:${TIENDA_CLASICA.fill}");
+    expect(google).not.toContain('<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA');
   });
   it("los otros CUATRO mapas que ya pintaban tiendas siguen sin pasar papel", () => {
     for (const ruta of ["src/app/(app)/map/page.tsx", "src/app/(app)/routes/page.tsx", "src/app/(app)/my-route/page.tsx", "src/app/(app)/track/page.tsx"]) {

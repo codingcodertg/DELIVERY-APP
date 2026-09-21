@@ -103,7 +103,8 @@ describe("la página pinta con lo mismo que lee la leyenda", () => {
 
   it("los dos motores pintan la tienda sin papel con `TIENDA_CLASICA`, el color de la leyenda", () => {
     for (const f of ["src/components/LeafletMap.tsx", "src/components/GoogleMapView.tsx"]) {
-      expect(sinComentarios(leer(f)), f).toContain("TIENDA_CLASICA.fill");
+      // Desde D-348 el color no se escribe en los motores: lo lleva dentro `casaDeTienda`, que lee `TIENDA_CLASICA.fill`.
+      expect(sinComentarios(leer(f)), f).toContain("casaDeTienda()");
     }
     // Y esta página no le da papel a ninguna tienda: `useStoreMarkers` no lo pone.
     expect(sinComentarios(leer("src/lib/useStoreMarkers.ts"))).not.toContain("papel");
