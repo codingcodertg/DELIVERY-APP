@@ -5,7 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
-import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager } from "@/lib/constants";
+import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
@@ -121,6 +121,12 @@ export function OrderModal({
   const [cancelNote, setCancelNote] = useState("");
   const [showCancel, setShowCancel] = useState(false);
   const [redeliverReason, setRedeliverReason] = useState("");
+  // Entregar ya / deshacer un paso, de office y gerente (D-361, migración 139). El motivo es
+  // obligatorio y viaja en la nota del evento: es lo único que va a explicar mañana por qué esta
+  // orden se cerró sin firma, o por qué volvió atrás.
+  const [showEntregarYa, setShowEntregarYa] = useState(false);
+  const [showDeshacer, setShowDeshacer] = useState(false);
+  const [motivoDeSalto, setMotivoDeSalto] = useState("");
   const [redeliverCharge, setRedeliverCharge] = useState("");
   const [showRedeliver, setShowRedeliver] = useState(false);
   const [routing, setRouting] = useState(false);
@@ -807,6 +813,28 @@ export function OrderModal({
     setBusy(true);
     await setStage(existing.id, "fulfilling", t("Back to preparing (marked ready by mistake)", "Vuelve a preparación (se marcó listo por error)"));
     setBusy(false);
+  };
+
+  /**
+   * Entregar de inmediato (D-361): cierra la orden sin firma ni POD. No pide confirmación aparte
+   * porque el motivo obligatorio ya es la confirmación, y el aviso de abajo dice lo que se pierde.
+   */
+  const entregarYa = async () => {
+    if (!existing || !motivoDeSalto.trim()) return;
+    setBusy(true);
+    const ok = await setStage(existing.id, "delivered", t(`Delivered by office (no signature): ${motivoDeSalto.trim()}`, `Entregada por oficina (sin firma): ${motivoDeSalto.trim()}`));
+    setBusy(false);
+    if (ok) { setShowEntregarYa(false); setMotivoDeSalto(""); notify(t("Marked delivered", "Marcada entregada")); }
+  };
+
+  /** Deshacer UN paso (D-361): a la etapa inmediatamente anterior, con su motivo. Lo firmado no se borra. */
+  const deshacerEtapa = async () => {
+    const atras = existing ? etapaAnterior(existing.stage) : null;
+    if (!existing || !atras || !motivoDeSalto.trim()) return;
+    setBusy(true);
+    const ok = await setStage(existing.id, atras, t(`Stage undone (was a mistake): ${motivoDeSalto.trim()}`, `Etapa deshecha (fue un error): ${motivoDeSalto.trim()}`));
+    setBusy(false);
+    if (ok) { setShowDeshacer(false); setMotivoDeSalto(""); notify(t("Stage undone", "Etapa deshecha")); }
   };
 
   // Warehouse confirms the real pallet count as part of marking the order
@@ -2307,6 +2335,53 @@ export function OrderModal({
             "approve". Verified against the live database: both are refused
             with "Not allowed to log this re-delivery", so those two roles had
             a button that could only ever throw. */}
+        {/* ---------- ENTREGAR YA / DESHACER UN PASO (D-361, migración 139) ---------- */}
+        {/* Office y el gerente cierran una orden que se entregó sin marcarse (o que el cliente se llevó del
+            mostrador), y deshacen la etapa que alguien adelantó por error. El motivo es obligatorio: sin él, en
+            el historial queda un salto sin explicación. La base dice lo mismo (139), así que ningún botón de
+            aquí puede acabar en un error del guard. */}
+        {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || puedeDeshacer(me.role, existing.stage)) && (
+          showEntregarYa || showDeshacer ? (
+            <div className="field" style={{ marginTop: 14 }}>
+              <label>{showEntregarYa
+                ? t("Why is this being marked delivered without a signature?", "¿Por qué se marca entregada sin firma?")
+                : t("Why is this stage being undone?", "¿Por qué se deshace esta etapa?")}</label>
+              <textarea rows={2} value={motivoDeSalto} onChange={(e) => setMotivoDeSalto(e.target.value)}
+                placeholder={showEntregarYa
+                  ? t("e.g. customer picked it up at the counter", "ej. el cliente se lo llevó del mostrador")
+                  : t("e.g. marked by mistake", "ej. se marcó por error")} />
+              {showEntregarYa && (
+                <div className="hint" style={{ color: "var(--amber-text)" }}>
+                  ⚠ {t("No signature or GPS is recorded. The order closes as delivered and leaves the working queues.",
+                        "No se registra firma ni GPS. La orden se cierra como entregada y sale de las colas de trabajo.")}
+                </div>
+              )}
+              {showDeshacer && existing.stage === "delivered" && (
+                <div className="hint">{t("What was signed is kept; only the stage goes back.", "Lo que se firmó se conserva; solo vuelve la etapa.")}</div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setShowEntregarYa(false); setShowDeshacer(false); setMotivoDeSalto(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+                <button className="btn btn-primary btn-sm" disabled={busy || !motivoDeSalto.trim()} onClick={() => void (showEntregarYa ? entregarYa() : deshacerEtapa())}>
+                  {showEntregarYa ? t("Mark delivered", "Marcar entregada") : t("Undo stage", "Deshacer etapa")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              {puedeEntregarYa(me.role, existing.stage) && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { setMotivoDeSalto(""); setShowEntregarYa(true); }} disabled={busy}
+                  title={t("Close it as delivered, without a signature", "Cerrarla como entregada, sin firma")}
+                >✓ {t("Mark delivered now", "Marcar entregada ya")}</button>
+              )}
+              {puedeDeshacer(me.role, existing.stage) && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { setMotivoDeSalto(""); setShowDeshacer(true); }} disabled={busy}
+                  title={t(`Back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}`, `Volver a ${stageLabel(etapaAnterior(existing.stage)!, lang)}`)}
+                >↩ {t("Undo stage", "Deshacer etapa")}</button>
+              )}
+            </div>
+          )
+        )}
+
         {!editing && existing && existing.stage === "delivered"
           && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && (
           showRedeliver ? (

@@ -24529,3 +24529,58 @@ ignorada; «» no es sin valor; comparar números como texto; estimado sobre rea
 pintando la lista sin ordenar). **No verificado:** nada abierto en un navegador — la posición del menú en portal
 sobre `.tbl-scroll` y el clic real en el ID se dan por buenos por ser el mismo código que Órdenes y que la tabla de
 paradas.
+
+## D-361 · Office y el gerente entregan de inmediato y deshacen un paso
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.185.0, repo 1.249.0 · **Migración: 139, SIN APLICAR.**
+**Pedido por el dueño**, literal: *«quiero que office people puedan darle deliver a una orden de inmediato y
+revertir stages si fue un error»*; preguntado si incluía al gerente, *«si office incluye al gerente»*.
+**Plan en papel aprobado antes de escribir el `.sql`:** `docs/PLAN-139-office-entrega-y-deshace.md`.
+
+### Lo que faltaba, y por qué no era un botón
+
+Office y gerente solo movían pendiente↔aprobada, rechazar y anular con motivo (118, 122, 127). No había forma de
+cerrar una orden que el cliente se llevó del mostrador, ni de cerrar la que el chofer entregó sin marcar; y una
+etapa adelantada por error no tenía camino de vuelta. **Poner el botón sin tocar la base habría sido un botón que
+el guard rechaza** — el fallo de D-044, y el que la prueba espejo de la 122 vino a cazar.
+
+### Qué se abre, exactamente
+
+- **Entregar ya:** `approved | fulfilling | ready | picked_up → delivered`. Cierra la orden **sin firma ni GPS**.
+  Se incluye `approved` a propósito: la orden de mostrador nunca pasa por almacén, y es justo el caso que el dueño
+  describe.
+- **Deshacer un paso, y solo uno:** `delivered → picked_up`, `picked_up → ready`, `ready → fulfilling`,
+  `fulfilling → approved` (`approved → pending` ya existía). Un paso cada vez para que el historial diga por dónde
+  volvió; dos de golpe siguen prohibidos.
+- **El motivo es obligatorio** en los dos, y viaja en la nota del evento (`order_events`), no en una columna nueva:
+  lo que explica el salto ya se cuenta ahí, y una columna sería un segundo sitio donde mirar.
+
+### Lo que NO cambia
+
+Ventas, chofer, almacén y logística: idénticos. El admin sigue saltándose el guard. **Una entregada sigue sin
+poder anularse, tampoco para el admin** (invariante de la 122, que va antes de la salida de admin; el `.sql` lo
+comprueba y lo comprueba también en su sitio). Sin columnas nuevas y sin tocar RLS.
+
+### `delivered` deja de ser terminal, y eso se dice aquí
+
+`LEGAL_TRANSITIONS.delivered` era `[]` y ahora es `["picked_up"]`; `fulfilling` gana `approved`. Una prueba de
+`demo-data` fijaba «entregada y anulada son terminales» y se reescribe: **anulada sigue siéndolo, entregada vuelve
+un solo paso**. Es un cambio de invariante, no un ajuste, y por eso va con su nombre en la prueba.
+
+### Verificado
+
+`entregar-ya-y-deshacer.test.ts` es una **prueba espejo**, como la de la 122: lee el `.sql` y compara rol por rol
+y etapa por etapa contra `puedeEntregarYa` / `puedeDeshacer`. Para el admin la invariante es más floja a propósito
+—se salta el guard, así que la base le deja todo y la app le ofrece solo lo que significa algo—: se comprueba que
+la app **nunca ofrece lo que la base rechaza**. Cinco mutantes leídos por nombre, caen los cinco: entrega desde
+cualquier etapa; cualquier rol entrega; deshacer salta dos pasos; sin motivo se puede confirmar; y el `.sql` pierde
+el paso de `delivered`. Suite entera local en verde.
+
+### Lo NO verificado, y es lo importante
+
+- **La migración 139 no está aplicada.** Todo lo probado es la app contra el texto del `.sql`; **nada se ha
+  ejecutado contra la base**. Hasta que se aplique, los dos botones nuevos fallarán con el error del guard.
+- **La matriz de 12 casos con ROLLBACK está escrita, no corrida.** Esta laptop no tiene acceso a producción (el
+  clasificador de permisos lo niega), así que la aplica el dueño o el orquestador desde la otra máquina, con
+  respaldo hecho y `migrate-status` antes y después.
+- Nada abierto en un navegador.
