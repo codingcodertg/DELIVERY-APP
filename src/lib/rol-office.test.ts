@@ -92,8 +92,8 @@ describe("Office crea y aprueba, como el gerente sin el panel", () => {
     }
   });
 
-  it("y ve solo ayer, hoy y lo que viene, como todos menos admin y logística", () => {
-    expect(seesAllHistory("accounting")).toBe(false);
+  it("y ve todo el historial, como todos desde D-356 (antes, solo ayer, hoy y lo que viene)", () => {
+    expect(seesAllHistory("accounting")).toBe(true);
   });
 });
 
