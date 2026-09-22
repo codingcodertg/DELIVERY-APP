@@ -2497,10 +2497,14 @@ function DateCell({
   onChange: (id: string, delivery_date: string) => void;
   t: (en: string, es: string) => string;
 }) {
-  if (d.delivery_date === date) return <>{fmtDate(d.delivery_date)}</>;
+  // «Atrasada» lo decide la orden, no el día que se mira (D-354). Antes solo salía cuando la fecha de la orden no
+  // era la del selector: mirando AYER, una orden de ayer sin entregar salía como una fecha cualquiera. El dueño, con
+  // captura: «estas son de ayer y no están delivered y no me sale el cuadro de que están late».
+  const vencida = isOverdue(d);
+  if (d.delivery_date === date && !vencida) return <>{fmtDate(d.delivery_date)}</>;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{t("Late", "Atrasada")}</span>
+      {vencida && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{t("Late", "Atrasada")}</span>}
       <input
         type="date"
         value={d.delivery_date ?? ""}

@@ -167,3 +167,15 @@ describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
     expect(pagina).toContain("useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);");
   });
 });
+
+describe("«Atrasada» en el Gestor lo decide la orden, no el día que se mira (D-354)", () => {
+  it("la celda de fecha pregunta isOverdue y pinta la etiqueta solo si está vencida", () => {
+    const pagina = leer("src/app/(app)/routes/page.tsx");
+    const i = pagina.indexOf("function DateCell(");
+    expect(i).toBeGreaterThan(-1);
+    const celda = pagina.slice(i, i + 1500);
+    expect(celda).toContain("const vencida = isOverdue(d);");
+    expect(celda).toContain("if (d.delivery_date === date && !vencida) return <>{fmtDate(d.delivery_date)}</>;");
+    expect(celda).toContain('{vencida && <span className="sema"');
+  });
+});
