@@ -179,3 +179,14 @@ describe("«Atrasada» en el Gestor lo decide la orden, no el día que se mira (
     expect(celda).toContain('{vencida && <span className="sema"');
   });
 });
+
+describe("la carga y lo libre del viaje van a la décima (D-355)", () => {
+  it("el Gestor redondea la suma de pallets y el sobrante antes de pintarlos", () => {
+    const pagina = leer("src/app/(app)/routes/page.tsx");
+    expect(pagina).toContain("const load = Math.round(batch.reduce((n, d) => n + (d.actual_pallets ?? d.est_pallets ?? 0), 0) * 10) / 10;");
+    expect(pagina).toContain("const free = Math.round(Math.max(0, capacity - load) * 10) / 10;");
+    // Lo que el dueño vio: 12 − (4 + 0.4 + 0.03) en coma flotante.
+    expect(12 - (4 + 0.4 + 0.03)).not.toBe(7.57);
+    expect(Math.round((12 - (4 + 0.4 + 0.03)) * 10) / 10).toBe(7.6);
+  });
+});
