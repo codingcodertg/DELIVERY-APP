@@ -24312,3 +24312,41 @@ tiene la capacidad de historial: esa ya dejaba fuera las vencidas de más de un 
 
 **Verificado:** prueba nueva en `history-window.test.ts`; el mutante «sin arrastre» cae con ella.
 **Lo no verificado:** nada abierto en un navegador.
+
+## D-352 · En el Gestor, la línea del chofer seleccionado sigue su plan publicado, recogidas incluidas
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.176.0, repo 1.240.0 · **Sin migración.**
+**Reportado por el dueño**, con captura: *«no tienen sentido los puntos, averigua qué pasó porque no salen bien las
+rutas: cuando selecciono el driver debería mostrar las rutas que él tiene»*.
+
+### Qué pasaba
+
+En la captura, Ernesto seleccionado: P1 en Edinburg, D1 en Weslaco, D2 en La Feria… y la línea solo de D1 a D2.
+**Dos fuentes para un mismo dibujo.** Los puntos P/D salen del plan publicado (D-334/D-335); la **línea** la trazaba
+el optimizador viejo de la pantalla (`planDriver` → `/api/optimize-route`), que solo conoce las entregas y un
+«depósito» que adivina por la dirección de recogida más repetida (y si no la geocodifica, ninguno). Ese trazo no
+sabe de recogidas ni del orden publicado: podía empezar en D1, ir en otro orden o no empezar en la tienda.
+
+### Arreglo
+
+Al seleccionar un chofer con plan publicado, la página pide al servicio de rutas el camino por calles **de sus
+paradas en el orden del plan** (`optimize: false`: recorre las paradas tal cual, que el API ya admitía), con cada P en
+el punto de su tienda y cada D en el punto de entrega de su orden (`puntosDelTrazoPublicado`). Esa línea manda
+sobre la del optimizador viejo para ese chofer. Se pide una vez por chofer y fecha; una parada sin punto se salta
+sin romper el trazo; dos recogidas seguidas en la misma tienda son un punto.
+
+**Lo que no cambia:** el optimizador viejo y sus millas siguen para los choferes sin plan publicado y para
+«Simular»; las etiquetas P/D siguen siendo las de D-335. **Sigue pendiente**, y es otra decisión: los pines
+numerados y las rutas de todos a la vez como en OptimoRoute.
+
+### Verificado
+
+`trazo-del-plan.test.ts` con datos desordenados por `seq`; y que la página pide sin optimizar y pisa el trazo viejo.
+Suite entera local: 3641 pasados, 3 saltados.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador** con un plan publicado real. La captura dice dónde estaba el error; que la línea
+  nueva salga bien lo confirma el dueño al seleccionar al chofer.
+- Cada selección con plan gasta una llamada al servicio de rutas (una por chofer y día); no se midió contra el
+  presupuesto diario.
