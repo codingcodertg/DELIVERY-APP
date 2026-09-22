@@ -9,6 +9,7 @@ import {
 import type { LatLng } from "@/lib/route-times/claves";
 import type { Delivery, DriverSettings, NamedLocation, Profile, Settings } from "@/lib/types";
 import { ETAPAS_RUTEABLES, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
+import { palletsDeLaOrden } from "../pallets";
 
 /**
  * De lo que hay en la base a lo que entiende el motor, y de vuelta (D-320). Puro: recibe filas y devuelve
@@ -116,7 +117,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       puntos[destino] = { lat: d.delivery_lat, lng: d.delivery_lng };
     } else if (entreTiendas) destino = tiendaConPunto(d.delivery_name);
 
-    const pallets = Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    const pallets = palletsDeLaOrden(d);
     ordenes.push({
       id: d.id, codigo: d.order_code ?? null,
       entrada: d.input_date ? `${d.input_date} ${(d.input_time ?? "").padStart(4, "0")}` : null,

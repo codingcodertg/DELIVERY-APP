@@ -1,4 +1,5 @@
 import type { Delivery } from "@/lib/types";
+import { sumaPallets } from "./pallets";
 
 /**
  * La ruta del día, agrupada por chofer (D-287).
@@ -65,7 +66,7 @@ export function rutaPorChofer(orders: Delivery[]): GrupoDeChofer[] {
       const rb = b.route_seq ?? 1e9;
       return ra !== rb ? ra - rb : inicioDeVentana(a) - inicioDeVentana(b);
     });
-    const pallets = paradas.reduce((s, o) => s + Number(o.actual_pallets ?? o.est_pallets ?? 0), 0);
+    const pallets = sumaPallets(paradas);
     return { chofer, paradas, pallets };
   });
 }

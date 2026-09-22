@@ -20,6 +20,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
+import { sumaPallets } from "@/lib/pallets";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -398,7 +399,7 @@ export default function MyRoutePage() {
               same truckloads logistics built. */}
           {trips.map((batch, ti) => {
             const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
-            const pallets = batch.reduce((n, d) => n + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0);
+            const pallets = sumaPallets(batch);
             return (
               <div className="card" key={ti} style={{ marginBottom: 12 }}>
                 {/* Tapping the truckload traces THAT trip on the map and

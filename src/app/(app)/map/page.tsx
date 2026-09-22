@@ -14,6 +14,7 @@ import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { assignmentWarnings, autoAssign, recommendDriver, type AssignWarning } from "@/lib/dispatch";
 import type { Delivery } from "@/lib/types";
+import { sumaPallets } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -449,7 +450,7 @@ export default function MapPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0 }}>
               {selectedList.length} {t("loads selected", "cargas seleccionadas")}{" "}
-              <span className="count-tag">{Math.round(selectedList.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0))} {t("pallets", "pallets")}</span>
+              <span className="count-tag">{sumaPallets(selectedList)} {t("pallets", "pallets")}</span>
             </h2>
             <button className="btn btn-ghost btn-sm" onClick={clearSelection}>✕ {t("Clear", "Limpiar")}</button>
           </div>

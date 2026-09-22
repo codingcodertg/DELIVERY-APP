@@ -1,4 +1,5 @@
 import type { Delivery, DriverShift } from "@/lib/types";
+import { palletsDeLaOrden } from "./pallets";
 
 // ============================================================
 // The day, in the few lines someone will actually read.
@@ -29,7 +30,7 @@ export interface DailySummary {
 
 const done = (d: Delivery) => d.stage === "delivered";
 const day = (v: string | null | undefined) => (v ?? "").slice(0, 10);
-const pallets = (d: Delivery) => Number(d.actual_pallets ?? d.est_pallets ?? 0);
+const pallets = (d: Delivery) => palletsDeLaOrden(d);
 
 /**
  * Build the summary for `date` (business date, YYYY-MM-DD).

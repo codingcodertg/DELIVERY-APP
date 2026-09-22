@@ -1,3 +1,4 @@
+import { palletsDeLaOrden } from "./pallets";
 // ============================================================
 // «¿Este botón puede cerrar la parada de un toque?» (D-218)
 //
@@ -94,7 +95,7 @@ export interface PedidoRecogida {
  * estimadas, o ninguna. Es el mismo número que ya usaba la vía rápida de la ficha.
  */
 export function palletsDeRecogida(pedido: PedidoRecogida): number {
-  return pedido.actual_pallets ?? pedido.est_pallets ?? 0;
+  return palletsDeLaOrden(pedido);
 }
 
 /**
