@@ -6,7 +6,7 @@ import { filtraFilas, opcionesDeFiltro, ordenaFilas, type FiltrosPorColumna, typ
 
 /**
  * El estado del orden y los filtros de UNA tabla, con el menú por columna de Órdenes (D-275) llevado a las tablas
- * del Gestor de Rutas (D-NEXT). Es solo estado de la pantalla: al salir se pierde, a propósito — el dueño pidió
+ * del Gestor de Rutas (D-360). Es solo estado de la pantalla: al salir se pierde, a propósito — el dueño pidió
  * ordenar y filtrar, no guardar vistas; y una vista guardada que nadie recuerda es un filtro que esconde órdenes.
  *
  * `valorDe(clave, fila)` es lo que la columna `clave` extrae de una fila; debe ser estable entre renders

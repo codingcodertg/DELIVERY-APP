@@ -14,7 +14,7 @@ export type ColumnaConMenu = { key: string; en: string; es: string; etiqueta?: (
 
 /**
  * La cabecera de una columna con el menú de ordenar y filtrar de Órdenes (D-275), para las tablas del Gestor de
- * Rutas (D-NEXT). Mismas clases (`th-cell`, `th-sort`, `th-filter-btn`) y mismo gesto: el nombre y el ▾ abren el
+ * Rutas (D-360). Mismas clases (`th-cell`, `th-sort`, `th-filter-btn`) y mismo gesto: el nombre y el ▾ abren el
  * mismo menú; la flecha dice por dónde está ordenada la tabla; el ▾ en color, que hay filtro en esa columna.
  * El `<th>` lo pone quien llama, porque ahí va también el tirador del ancho.
  */

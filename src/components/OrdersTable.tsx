@@ -229,12 +229,12 @@ const ID_COLUMN: OrderColumn = {
 };
 
 // La clave del «sin valor» y cómo se compara, filtra y se listan las opciones viven en `lib/orden-y-filtro`
-// (D-NEXT): las tablas del Gestor de Rutas hacen lo mismo con las mismas funciones.
+// (D-360): las tablas del Gestor de Rutas hacen lo mismo con las mismas funciones.
 
 /** One column header's menu: sort it, then an Excel-style checklist filter (search box,
  * select-all, one checkbox per distinct value present in the other-filters-applied rows).
  * Sorting sits in the same menu so both are one click away (D-275).
- * Se exporta para las tablas del Gestor de Rutas (D-NEXT): el menú es el mismo, solo cambian las filas. */
+ * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
 export function ColumnFilterMenu({
   col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef,
 }: {
@@ -448,7 +448,7 @@ export function OrdersTable({
   // that would remain visible if you cleared just that filter (Excel-style
   // cascading options), while other columns' choices still narrow it down.
   // Solo cuentan los filtros de las columnas que se VEN: el de una columna que se quitó del juego
-  // no sigue filtrando a escondidas (era así antes de D-NEXT y sigue siéndolo).
+  // no sigue filtrando a escondidas (era así antes de D-360 y sigue siéndolo).
   const applyFilters = (data: Delivery[], skipKey?: string) => {
     const visiblesConFiltro: Record<string, Set<string>> = {};
     for (const c of cols) if (filters[c.key]) visiblesConFiltro[c.key] = filters[c.key];

@@ -9,7 +9,7 @@ import { fmtDate } from "./utils";
 import { stageLabel } from "./constants";
 import type { Delivery } from "./types";
 
-/** Ordenar, filtrar y abrir la orden en las tablas del Gestor de Rutas (D-NEXT). */
+/** Ordenar, filtrar y abrir la orden en las tablas del Gestor de Rutas (D-360). */
 
 const ctx: ContextoDelGestor = {
   lang: "es",
@@ -57,7 +57,7 @@ describe("valorDelGestor", () => {
   });
 });
 
-describe("el Gestor de Rutas usa el menú en las dos tablas y abre la orden desde el ID y la factura (D-NEXT)", () => {
+describe("el Gestor de Rutas usa el menú en las dos tablas y abre la orden desde el ID y la factura (D-360)", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n");
   const entre = (desde: string, hasta: string) => {
     const i = pagina.indexOf(desde);

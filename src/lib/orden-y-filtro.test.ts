@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SIN_VALOR, claveDeFiltro, comparaCeldas, filtraFilas, opcionesDeFiltro, ordenaFilas } from "./orden-y-filtro";
 
-/** Ordenar y filtrar por columna, fuera de la pantalla (D-NEXT): la lógica que comparten Órdenes y el Gestor. */
+/** Ordenar y filtrar por columna, fuera de la pantalla (D-360): la lógica que comparten Órdenes y el Gestor. */
 
 type Fila = { id: string; n: number | null; txt: string | null };
 // Desordenadas a propósito, con nulos en medio y un texto con número («#10» tiene que ir después de «#9»).
@@ -81,7 +81,7 @@ describe("opcionesDeFiltro", () => {
   });
 });
 
-describe("OrdersTable usa la librería en vez de su copia (D-NEXT)", () => {
+describe("OrdersTable usa la librería en vez de su copia (D-360)", () => {
   const tabla = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8").split("\r\n").join("\n");
   it("compara, filtra y lista opciones con las funciones extraídas; su comparador ya no vive dentro", () => {
     expect(tabla.indexOf('from "@/lib/orden-y-filtro"')).toBeGreaterThan(-1);

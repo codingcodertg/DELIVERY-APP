@@ -1,5 +1,5 @@
 /**
- * Ordenar por una columna y filtrar por sus valores, fuera de la pantalla (D-NEXT).
+ * Ordenar por una columna y filtrar por sus valores, fuera de la pantalla (D-360).
  *
  * La tabla de Órdenes (`OrdersTable`) ya ordenaba y filtraba así desde D-275, pero la lógica vivía dentro del
  * componente y el Gestor de Rutas no podía usarla. El dueño pidió lo mismo en las tablas del Gestor («logistic

@@ -776,7 +776,7 @@ export default function RoutesPage() {
     return map;
   }, [dayOrders]);
 
-  // Ordenar y filtrar por columna en «Programadas» y «Sin asignar» (D-NEXT), con el menú de Órdenes. El valor de
+  // Ordenar y filtrar por columna en «Programadas» y «Sin asignar» (D-360), con el menú de Órdenes. El valor de
   // cada columna lo decide `valorDelGestor`; la carga y la parada salen del reparto del día, que vive aquí.
   const ctxDelGestor = useMemo<ContextoDelGestor>(() => ({
     lang,
@@ -795,7 +795,7 @@ export default function RoutesPage() {
   const COL_ID: ColumnaConMenu = { key: CLAVE_ID, en: "ID", es: "ID" };
   const menuProgramadas: ColumnaConMenu[] = [COL_ID, ...colsProgramadas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
   const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
-  // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-NEXT). Para el
+  // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
   const abreLaOrden = (d: Delivery) => ({
     onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(d); },
@@ -1845,7 +1845,7 @@ export default function RoutesPage() {
                 </colgroup>
                 <thead>
                   <tr>
-                    {/* Cada cabecera abre el menú de ordenar y filtrar (D-NEXT); el tirador del ancho sigue en su sitio. */}
+                    {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
                     <th><CabeceraConMenu estado={ordenProgramadas} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize("__id")} /></th>
                     {menuProgramadas.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenProgramadas} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize(`g_${c.key}`)} /></th>)}
                     <th></th>
@@ -2008,7 +2008,7 @@ export default function RoutesPage() {
                     <input
                       type="checkbox"
                       aria-label={t("Select all", "Seleccionar todo")}
-                      // «Seleccionar todo» es lo que se VE: con un filtro de columna puesto (D-NEXT), solo esas filas.
+                      // «Seleccionar todo» es lo que se VE: con un filtro de columna puesto (D-360), solo esas filas.
                       checked={ordenSinAsignar.visibles.length > 0 && ordenSinAsignar.visibles.every((d) => selectedOrders.has(d.id))}
                       onChange={(e) => setSelectedOrders((s) => {
                         const n = new Set(s);
@@ -2018,7 +2018,7 @@ export default function RoutesPage() {
                       })}
                     />
                   </th>
-                  {/* Cada cabecera abre el menú de ordenar y filtrar (D-NEXT); el tirador del ancho sigue en su sitio. */}
+                  {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
                   <th><CabeceraConMenu estado={ordenSinAsignar} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
                   {menuSinAsignar.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`)} /></th>)}
                   <th>{singleSel ? t("Add to", "Agregar a") : t("Assign to", "Asignar a")}</th>

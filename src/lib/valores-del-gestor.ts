@@ -1,5 +1,5 @@
 /**
- * Lo que cada columna del Gestor de Rutas saca de una orden para ORDENAR y FILTRAR (D-NEXT).
+ * Lo que cada columna del Gestor de Rutas saca de una orden para ORDENAR y FILTRAR (D-360).
  *
  * Las celdas de «Programadas» y «Sin asignar» se pintan en la página (`routes/page.tsx`) y ahí hay JSX, color y
  * títulos. Pero el menú de columna (el de Órdenes, D-275) no compara lo pintado: compara un valor crudo por fila

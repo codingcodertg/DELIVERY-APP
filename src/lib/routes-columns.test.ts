@@ -81,7 +81,7 @@ describe("la página del Gestor", () => {
   it("las dos tablas se pintan desde el catálogo, con la factura leída de la orden", () => {
     expect(pagina).toContain('const colsProgramadas = columnasDeLaTabla("programadas", colsGestor);');
     expect(pagina).toContain('const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);');
-    // Desde D-NEXT la factura es un enlace que abre la orden, y las cabeceras salen del juego con menú (el catálogo más el ID).
+    // Desde D-360 la factura es un enlace que abre la orden, y las cabeceras salen del juego con menú (el catálogo más el ID).
     expect(pagina.split('c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")').length - 1).toBe(2);
     expect(pagina).toContain("const menuProgramadas: ColumnaConMenu[] = [COL_ID, ...colsProgramadas.map(");
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map(");

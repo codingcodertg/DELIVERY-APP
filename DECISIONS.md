@@ -24476,9 +24476,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 «todas» y «pendientes» igual); el mutante «el chip no trae las de otros días» cae. Suite entera local en verde.
 **No verificado:** nada abierto en un navegador.
 
-## D-NEXT · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
 
-**Fecha:** 2026-09-22 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.184.0, repo 1.248.0 · **Sin migración.**
 **Pedido del dueño**, literal: *«logistic manager columns must also have a sorting option and still pending the
 clicking on the ID or invoice # to view the full order details»* y *«and also filters on the logistic manager view»*.
 
