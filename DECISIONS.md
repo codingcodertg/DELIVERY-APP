@@ -13133,6 +13133,9 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Reemplazada en parte por D-350** (2026-09-22). Ver el historial entero deja de ser solo de admin y logística: es una
+> capacidad por persona que se marca en Usuarios; los dos roles la traen de fábrica. La ventana en sí no cambia.
+
 > **⚠ Reemplazada en parte el 2026-09-18, por D-313.** La ventana sigue siendo exactamente esta
 > —ayer, hoy y el futuro, para todos menos admin y logística— **salvo dentro de la pestaña «Factura
 > pendiente»**, donde una orden a la que le falta su documento entra aunque sea vieja. El dueño:
@@ -24244,3 +24247,49 @@ por persona (`routes_columns`, D-331). Medido en el demo: ofrece las ocho, y qui
 ### Lo no verificado
 
 - Producción con la sesión del dueño. Si allí la tabla de verdad no sale, es otra cosa y hace falta la captura.
+
+## D-350 · «Ver todas las órdenes» es una capacidad por persona, y la pantalla de Órdenes nace en «Reciente»
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.174.0, repo 1.238.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«HAZ QUE TODOS LOS USUARIOS PUEDAN VER TODAS LAS ORDENES, NO SOLO AYER HOY Y
+PASADO PER SOLO QUE TENGAN QUE VER SU TIENDA, OSEA QUE SALGAN DE SU TIENDA Y QUE EN INTERTIENDA TENGA QUE VER CON SU
+TIENDA, AHORA OJO ESTA ES UNA OPCION QUE SE HABILITA EN USUARIOS Y TAMBIEN AL LADO DE TODAS Y HOY PON TAMBIEN
+RECIENTE QUE AL APRETAR AHI SE VERAN LAS ORDENES DE AYER HOY Y MANNAA Y AHI ESO ESTARA SELECIONADA POR DEFAULT»*.
+
+### Ver todo el historial: de rol a capacidad
+
+D-239 dejó el historial entero solo para admin y logística; los demás ven «de ayer en adelante». Ahora es una
+**capacidad** (`history`, «Ver todas las órdenes») que un admin marca por persona en **Usuarios**, en la misma
+lista que «Aprobar órdenes» o «Planificar rutas». Admin y logística la traen de fábrica (`ROLE_CAPS`), así que para
+ellos nada cambia. **Reemplaza en parte a D-239**, que lleva su nota.
+
+**La tienda no la decide esto.** «Solo las de su tienda, y en Intertienda las que tengan que ver con su tienda» es
+exactamente la política de la 131 (D-315): un admin marca en Usuarios qué tiendas ve cada persona, y la base corta
+`store`, `pickup_name` y `delivery_name` —las tres puntas de una Intertienda (D-309)—. Aplica a todo rol salvo admin,
+chofer y almacén. **Si a alguien no se le marcan tiendas, ve las de todas**: eso ya era así y no es de esta decisión.
+
+Lo que la capacidad abre es la **ventana de fechas**, no el corte por rol: una vendedora con la capacidad ve todas las
+suyas y las de su tienda, de siempre, no las de otro vendedor (`ventasVeLaOrden` sigue); almacén sigue sin ver lo
+anterior a la aprobación. Antes «ver todo» saltaba también ese corte, y daba igual porque solo lo tenían dos roles
+sin corte. Consecuencia menor: un admin previsualizando «como vendedor» ve ahora el corte de ventas, que es lo que
+la vista previa debería enseñar.
+
+### «Reciente» por defecto
+
+La pantalla de Órdenes gana el chip **«Reciente»** entre «Todas» y «Hoy»: ayer, hoy y mañana (sin fecha entra:
+sigue programándose). **Es el de partida.** «Todas» es todo lo que la persona puede ver: de ayer en adelante sin la
+capacidad, el historial entero con ella —y con ella «Todas» pide al proveedor el historial completo, que su ventana
+normal no alcanza—. «Hoy» sigue igual.
+
+### Verificado
+
+`history-window.test.ts`: la capacidad, los roles de fábrica, la ventana de «Reciente» y la pantalla. Tres mutantes
+leídos por nombre (la capacidad no cuenta; «Reciente» sin tope de mañana; logística sin la capacidad de fábrica),
+caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fue la prueba de tiempo de
+`route-engine` en esta laptop, que el CI decide.
+
+### Lo no verificado
+
+- Nada abierto en un navegador: ni el chip ni la casilla en Usuarios.
+- **Cuánto pesa «Todas» con historial para un vendedor**: la pantalla carga entonces todo lo que la RLS le deja ver.
+  Admin y logística ya lo hacían al buscar; para una tienda grande no se midió.

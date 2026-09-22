@@ -18,14 +18,14 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
-import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
+import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { orderTypeRule } from "@/lib/required";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
-type Preset = "all" | "today" | "overdue" | "unassigned" | "mine";
+type Preset = "all" | "recent" | "today" | "overdue" | "unassigned" | "mine";
 
 // Column choices are remembered per role — so switching "View as" in local
 // demo mode (or just different people on different roles) doesn't clobber
@@ -43,7 +43,7 @@ export default function OrdersPage() {
   // `realRole === "admin"` aquí y otra condición distinta en cada pantalla. Cambia
   // también el NOMBRE: `veTodoElHistorial` ya no diría la verdad con logística dentro,
   // y un nombre que miente es lo que hace que la siguiente lectura sea falsa.
-  const veTodoElHistorial = seesAllHistory(realRole);
+  const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -77,12 +77,14 @@ export default function OrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
-  const [preset, setPreset] = useState<Preset>("all");
+  // «Reciente» por defecto (D-350): ayer, hoy y mañana. «Todas» es todo lo que la persona puede ver.
+  const [preset, setPreset] = useState<Preset>("recent");
   const [q, setQ] = useState("");
   // G-16: the provider keeps a window of orders; an admin typing a search may be looking for an
   // old one, so the first non-empty search asks for the whole history (once; idempotent). Sales
   // are capped at 30 days below anyway, well inside the window.
-  useEffect(() => { if (veTodoElHistorial && q.trim()) void ensureDeliveriesSince(null); }, [q, veTodoElHistorial, ensureDeliveriesSince]);
+  // Y «Todas» con historial (D-350) pide lo mismo: la ventana del proveedor no llega a agosto.
+  useEffect(() => { if (veTodoElHistorial && (q.trim() || preset === "all")) void ensureDeliveriesSince(null); }, [q, preset, veTodoElHistorial, ensureDeliveriesSince]);
   const [view, setView] = useState<"table" | "board">("table");
   const [open, setOpen] = useState<Delivery | null>(null);
   const [creating, setCreating] = useState(false);
@@ -298,6 +300,7 @@ export default function OrdersPage() {
       // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
       if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }
       else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
+      if (preset === "recent" && !withinRecent(d)) return false;
       if (preset === "today" && !isToday(d.delivery_date)) return false;
       if (preset === "overdue" && !isOverdue(d)) return false;
       // A draft has no driver either, but it isn't waiting for one — nobody
@@ -310,6 +313,7 @@ export default function OrdersPage() {
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },
+    { id: "recent", en: "Recent", es: "Reciente" },
     { id: "today", en: "Today", es: "Hoy" },
   ];
 

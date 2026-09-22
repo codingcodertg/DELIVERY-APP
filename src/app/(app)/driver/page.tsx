@@ -56,7 +56,7 @@ export default function DriverPage() {
       // La ventana pregunta por el historial, no por «ser admin»: exentos, admin y
       // logística (D-239). Se deja aparte de `adminAllAccess`, que aquí decide otra
       // cosa —ver los pedidos de OTROS choferes— y esa no cambia en esta rama.
-      if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
+      if (!seesAllHistory(realRole, me?.permissions) && !withinRetention(d)) return false;
       return true;
     });
   }, [deliveries, me, storeFilter, q, adminAllAccess, realRole]);

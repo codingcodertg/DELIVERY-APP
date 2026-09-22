@@ -799,7 +799,7 @@ export function permissionsFor(
 // on a non-admin only showed them a tab that led to "Admins only." With
 // Users moved to the hub (no longer a tab at all, see TABS above), keeping a
 // checkbox that never did anything would be actively misleading.
-export type Capability = "create" | "approve" | "fulfill" | "deliver" | "dashboard" | "settings" | "route_plan";
+export type Capability = "create" | "approve" | "fulfill" | "deliver" | "dashboard" | "settings" | "route_plan" | "history";
 
 export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: string; desc_es: string }[] = [
   { key: "create",    en: "Create orders",    es: "Crear órdenes",       desc_en: "Log new orders and submit them for approval", desc_es: "Registrar órdenes y enviarlas a aprobación" },
@@ -809,18 +809,20 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
   { key: "dashboard", en: "View dashboard",   es: "Ver panel",           desc_en: "See company-wide KPIs and reports",           desc_es: "Ver KPIs y reportes de la empresa" },
   { key: "settings",  en: "Change settings",  es: "Cambiar ajustes",     desc_en: "Edit workspace settings and pick-lists",      desc_es: "Editar ajustes y listas del espacio" },
   { key: "route_plan", en: "Plan routes",     es: "Planificar rutas",    desc_en: "Assign orders to drivers and optimize their route", desc_es: "Asignar órdenes a choferes y optimizar su ruta" },
+  // D-350: sin esto, la pantalla corta a «de ayer en adelante» (D-239). Con esto, todo el historial — de las tiendas que la 131 le deja ver.
+  { key: "history",   en: "See all orders",   es: "Ver todas las órdenes", desc_en: "Every order of their store(s), not just recent days", desc_es: "Todas las órdenes de su(s) tienda(s), no solo las de estos días" },
 ];
 
 /** The capabilities each role gets automatically. */
 export const ROLE_CAPS: Record<UserRole, Capability[]> = {
-  admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan"],
+  admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan", "history"],
   manager:   ["create", "approve", "dashboard"],
   sales:     ["create"],
   warehouse: ["fulfill", "deliver"],
   // Drivers do NOT create orders — orders must be programmed by sales/office and
   // dispatched by the logistics manager. A driver only delivers what's assigned.
   driver:    ["deliver"],
-  logistics: ["route_plan", "approve"],
+  logistics: ["route_plan", "approve", "history"],
   // Office (the `accounting` key, D-279): creates and approves like the Office Manager, without the
   // dashboard. It used to be approve-only (D-044, replaced in part), and the database refused even that:
   // until 118 the guard had no branch for this role at all.
