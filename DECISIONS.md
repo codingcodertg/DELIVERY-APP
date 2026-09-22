@@ -24366,3 +24366,19 @@ lleva se le añade la recogida una vez; a quien la lleva y la quitó, se le resp
 
 **Verificado:** `routes-columns.test.ts` al día (catálogo, orden, marcas); el mutante «la recogida no llega a quien
 ya guardó» cae. Suite entera local en verde. **No verificado:** nada abierto en un navegador.
+
+## D-354 · En el Gestor, «Atrasada» lo decide la orden, no el día que se mira
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.178.0, repo 1.242.0 · **Sin migración.**
+**Reportado por el dueño**, con captura: *«estas son de ayer y no están delivered y no me sale el cuadro de que
+están late o no están entregadas»*.
+
+La celda de fecha de «Sin asignar» ponía «Atrasada» solo cuando la fecha de la orden **no era la del selector**: era
+una marca de «esta orden no es de este día», no de vencida. Mirando el día de ayer, una orden de ayer sin entregar
+salía con su fecha a secas; y mirando mañana, una de pasado mañana salía como «Atrasada» sin serlo. Ahora la
+etiqueta y el selector de fecha para reprogramar salen cuando la orden está **vencida** (`isOverdue`: fecha pasada y
+ni entregada ni anulada), se mire el día que se mire; una orden de otro día que no está vencida sigue enseñando el
+selector, sin etiqueta.
+
+**Verificado:** prueba de texto sobre `DateCell`; el mutante «vuelve a mirar solo el día» cae. Suite entera local en
+verde. **No verificado:** nada abierto en un navegador.
