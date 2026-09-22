@@ -199,3 +199,15 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
     expect(tablero).toContain('if (veTodoElHistorial && (q.trim() || preset === "all")) void ensureDeliveriesSince(null);');
   });
 });
+
+describe("los chips de etapa cuentan lo que el chip de fechas deja pasar (D-357)", () => {
+  it("las cuentas y la lista usan el MISMO predicado del preset", () => {
+    const tablero = leer("src/app/(app)/page.tsx");
+    expect(tablero).toContain("const enElPreset = visible.filter(pasaElPreset);");
+    expect(tablero).toContain("const c: Record<string, number> = { all: enElPreset.length };");
+    expect(tablero).toContain("for (const d of enElPreset) c[d.stage] = (c[d.stage] ?? 0) + 1;");
+    expect(tablero).toContain("return pasaElPreset(d);");
+    // El preset se escribe una vez: la lista ya no lo repite.
+    expect(tablero.split('preset === "today" && !isToday(d.delivery_date)').length - 1).toBe(1);
+  });
+});

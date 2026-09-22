@@ -24420,3 +24420,17 @@ La pantalla de Órdenes sigue naciendo en «Reciente» (D-350/D-351): «Todas» 
 **Verificado:** `history-window.test.ts` y `rol-office.test.ts` al día; el mutante «ventas sin history» cae con dos
 pruebas. Suite entera local en verde. **No verificado:** nada abierto en un navegador; el peso de «Todas» para
 chofer y almacén, que ahora cargan más órdenes que antes (sus listas siguen filtrando por etapa y por persona).
+
+## D-357 · Los chips de etapa cuentan lo que el chip de fechas deja pasar
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.181.0, repo 1.245.0 · **Sin migración.**
+**Reportado por el dueño**, con captura: *«the filter needs to change when selected all / recent / today»*.
+
+Con «Hoy» pulsado, la lista enseñaba una orden y los chips seguían diciendo «Todas 44 · Programadas 9 · Entregadas
+35»: contaban sobre todo lo visible, sin pasar por el chip de fechas. Desde D-350 ese chip es la vista de partida,
+así que la discrepancia se veía siempre. Ahora la lista y las cuentas usan **el mismo predicado** (`pasaElPreset`):
+un chip dice lo que la lista va a enseñar al pulsarlo. La pestaña de documento pendiente sigue contando sobre
+`conPendientes` (D-313), fuera del chip de fechas, porque es trabajo vivo aunque sea viejo.
+
+**Verificado:** prueba de texto (mismo predicado, y el preset escrito una sola vez); `ordenes-visibles.test.ts` al
+día. Suite entera local en verde. **No verificado:** nada abierto en un navegador.
