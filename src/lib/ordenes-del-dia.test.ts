@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Stage } from "@/lib/types";
-import { ordenesDelDia, paradasDelChofer, pendientesDeOtrosDias } from "./ordenes-del-dia";
+import { ordenesDelDia, paradasDelChofer, pendientesDeOtrosDias, sinAsignarDelGestor } from "./ordenes-del-dia";
 
 /** El Gestor de Rutas: cada día es aparte (D-331). «Hoy» se fija en el 19 para que las fechas de abajo signifiquen algo. */
 
@@ -88,5 +88,22 @@ describe("«Mi ruta» del chofer: mismo criterio", () => {
     expect(pagina).toContain("parada(s) atrasadas de días anteriores — no son de hoy.");
     expect(pagina).toContain("{!verAtrasadas && <MiPlanPublicado plan={planPublicado}");
     expect(pagina).not.toMatch(/if \(d\.delivery_date === today\) return true; return isOverdue\(d\);/);
+  });
+});
+
+describe("«Sin asignar» lleva también las atrasadas sin chofer (D-358)", () => {
+  const n = (x: ReturnType<typeof o>, order_no: number) => ({ ...x, order_no });
+  const POOL = [
+    n(o("de-hoy", "2026-09-19"), 5), n(o("de-ayer", "2026-09-18"), 2), n(o("de-hace-un-mes", "2026-08-19"), 9),
+    n(o("de-ayer-con-chofer", "2026-09-18", "approved", "Chofer"), 1), n(o("de-hoy-con-chofer", "2026-09-19", "approved", "Chofer"), 3),
+    n(o("ayer-entregada", "2026-09-18", "delivered"), 4), n(o("sin-fecha", null), 6), n(o("de-manana", "2026-09-20"), 7),
+  ];
+  it("viendo el día: lo del día sin chofer MÁS lo atrasado sin chofer, ordenado por número; sin fecha y mañana, no", () => {
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "dia", ETAPAS))).toEqual(["de-ayer", "de-hoy", "de-hace-un-mes"]);
+  });
+  it("viendo AYER, la de ayer no sale dos veces; y en «todas» y «pendientes» nada cambia", () => {
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-18", "dia", ETAPAS))).toEqual(["de-ayer", "de-hace-un-mes"]);
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "todas", ETAPAS))).toEqual(["de-ayer", "de-hoy", "sin-fecha", "de-manana", "de-hace-un-mes"]);
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "pendientes", ETAPAS))).toEqual(["de-ayer", "sin-fecha", "de-hace-un-mes"]);
   });
 });
