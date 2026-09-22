@@ -187,10 +187,11 @@ describe("workflow transitions on real orders", () => {
     expect(canTransition(draft.stage, "delivered")).toBe(false);
   });
 
-  it("treats delivered and canceled as terminal", () => {
-    for (const s of ["delivered", "canceled"] as Stage[]) {
-      for (const t of STAGES) expect(canTransition(s, t.key)).toBe(false);
-    }
+  // `canceled` sigue siendo terminal. `delivered` dejó de serlo en D-361 (139): office y el gerente pueden
+  // deshacer la entrega marcada por error, y SOLO eso — un paso atrás, a la etapa de la que salió.
+  it("canceled es terminal, y delivered solo vuelve un paso atrás (D-361)", () => {
+    for (const t of STAGES) expect([t.key, canTransition("canceled", t.key)]).toEqual([t.key, false]);
+    for (const t of STAGES) expect([t.key, canTransition("delivered", t.key)]).toEqual([t.key, t.key === "picked_up"]);
   });
 });
 

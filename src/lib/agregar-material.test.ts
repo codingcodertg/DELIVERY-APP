@@ -187,8 +187,9 @@ describe("la 138 dice lo mismo que el código", () => {
     const conGuard = readdirSync(join(process.cwd(), dir))
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
       .sort();
-    expect(conGuard.at(-1)).toBe("138_agregar_material.sql");
-    expect(conGuard.at(-2)).toBe("127_borrador_enviado_nace_aprobado.sql");
+    // La 139 (D-361) es ahora la última que lo define; la 138 es la anterior, de la que parte.
+    expect(conGuard.at(-1)).toBe("139_office_entrega_y_deshace.sql");
+    expect(conGuard.at(-2)).toBe("138_agregar_material.sql");
   });
 
   it("no se perdió nada de la 127, la 125, la 123 ni la 122", () => {

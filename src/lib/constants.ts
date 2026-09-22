@@ -1007,7 +1007,8 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   pending:    ["approved", "rejected", "canceled"],
   rejected:   ["pending", "approved", "canceled"],
   approved:   ["fulfilling", "pending", "canceled"],   // pending = manager "unlock"
-  fulfilling: ["ready", "canceled"],
+  // `approved` es el paso atrás de office/gerente (D-361, 139); quién lo da lo dice `puedeDeshacer`.
+  fulfilling: ["ready", "approved", "canceled"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
@@ -1015,7 +1016,9 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // `picked_up` NO lleva "canceled" aunque el admin pueda anular desde ahí: el admin se salta esta
   // lista entera en los dos proveedores, y nadie más anula con la carga en el camión (`puedeAnular`).
   picked_up:  ["delivered", "ready"],      // driver delivers (or reverts if not taken)
-  delivered:  [],
+  // D-361 (139): office y el gerente deshacen un paso, y una entregada vuelve a `picked_up`, que es de donde
+  // salió. Quién puede lo dice `puedeDeshacer`; esta lista solo dice que el salto EXISTE.
+  delivered:  ["picked_up"],
   canceled:   [],
 };
 
@@ -1051,6 +1054,38 @@ export function puedeAnular(r: UserRole, stage: Stage): boolean {
  * database guard. The two have to move together: a role the app treats as office but the guard doesn't is
  * a button the database refuses (D-044).
  */
+/**
+ * Office y gerente **entregan de inmediato** y **deshacen un paso** (D-361, migración 139).
+ *
+ * El dueño: «quiero que office people puedan darle deliver a una orden de inmediato y revertir stages si fue un
+ * error» — y sí, incluye al gerente. El caso real es el mostrador (el cliente se lleva el material) y el chofer que
+ * entregó sin marcarlo; y, al revés, la etapa adelantada por error que no tenía camino de vuelta.
+ *
+ * **Son el espejo del guard de la 139**, y la prueba los compara contra el `.sql`: si la app ofrece un salto que la
+ * base rechaza, el botón falla al pulsarlo (D-044). Quién los ve lo decide `ordersLikeOfficeManager`; el admin no
+ * los necesita porque se salta el guard, pero los tiene igual para que el botón exista también para él.
+ */
+export const ETAPAS_QUE_ENTREGAN_YA: readonly Stage[] = ["approved", "fulfilling", "ready", "picked_up"];
+
+export function puedeEntregarYa(r: UserRole, stage: Stage): boolean {
+  if (!ETAPAS_QUE_ENTREGAN_YA.includes(stage)) return false;
+  return r === "admin" || ordersLikeOfficeManager(r);
+}
+
+/** Un solo paso atrás, y siempre el inmediato: el historial dice por dónde volvió. `null` = no hay vuelta. */
+const PASO_ATRAS: Partial<Record<Stage, Stage>> = {
+  delivered: "picked_up", picked_up: "ready", ready: "fulfilling", fulfilling: "approved", approved: "pending",
+};
+
+export function etapaAnterior(stage: Stage): Stage | null {
+  return PASO_ATRAS[stage] ?? null;
+}
+
+export function puedeDeshacer(r: UserRole, stage: Stage): boolean {
+  if (etapaAnterior(stage) == null) return false;
+  return r === "admin" || ordersLikeOfficeManager(r);
+}
+
 export function ordersLikeOfficeManager(r: string | null | undefined): boolean {
   return r === "manager" || r === "accounting";
 }
