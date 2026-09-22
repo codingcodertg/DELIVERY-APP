@@ -52,7 +52,7 @@ export default function MapPage() {
   // no exento puede abrir, y su selector de fecha llegaba hasta donde uno quisiera.
   // Se acota el SELECTOR además de la lista: filtrar solo la lista dejaría un día
   // vacío sin explicación, y el `min` del campo dice por qué sin escribir un aviso.
-  const veTodoElHistorial = seesAllHistory(realRole);
+  const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
   const pisoFecha = retentionFloorISO();
   const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
 

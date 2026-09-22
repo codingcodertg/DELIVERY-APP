@@ -382,8 +382,22 @@ export function withinRetention(
  */
 export const HISTORY_EXEMPT_ROLES = ["admin", "logistics"] as const;
 
-export function seesAllHistory(role: string | null | undefined): boolean {
-  return (HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "");
+/**
+ * Desde D-350 también es una CAPACIDAD por persona (`history`, «Ver todas las órdenes»), que un admin
+ * marca en Usuarios. El dueño: «que todos los usuarios puedan ver todas las órdenes, no solo ayer, hoy y
+ * mañana, pero solo las de su tienda; es una opción que se habilita en Usuarios». La tienda no se decide
+ * aquí: la corta la política de la 131 (`tiendas_visibles`), que ya aplica a todo rol salvo admin, chofer y
+ * almacén. Los dos roles exentos la traen de fábrica (`ROLE_CAPS`), así que nada cambia para ellos.
+ */
+export function seesAllHistory(role: string | null | undefined, permissions?: readonly string[] | null): boolean {
+  return (HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "") || !!permissions?.includes("history");
+}
+
+/** La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana. Sin fecha entra: sigue programándose. */
+export function withinRecent(d: { delivery_date?: string | null }, today: string = todayISO()): boolean {
+  if (!d.delivery_date) return true;
+  const dia = d.delivery_date.slice(0, 10);
+  return dia >= shiftDateISO(today, -1) && dia <= shiftDateISO(today, 1);
 }
 
 /** El día más antiguo que ve quien no está exento: ayer. Para los selectores de

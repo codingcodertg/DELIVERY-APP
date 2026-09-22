@@ -89,7 +89,7 @@ export default function WarehousePage() {
       // reachable by the invoice search above.
       // Quien ve todo el historial (admin y logística, D-239) no se filtra, y se
       // mira el rol REAL: un admin previsualizando almacén sigue viendo todo.
-      if (!seesAllHistory(realRole) && !withinRetention(d)) return false;
+      if (!seesAllHistory(realRole, me?.permissions) && !withinRetention(d)) return false;
       return true;
     });
   }, [deliveries, effectiveStore, atStore, q, realRole]);

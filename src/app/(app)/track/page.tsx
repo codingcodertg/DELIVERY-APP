@@ -53,7 +53,7 @@ export default function TrackPage() {
   // le quita a un gerente el «a ver qué pasó el martes pasado». Se acota igual porque
   // la regla del dueño no distingue pantallas, y quien planifica rutas —admin y
   // logística— la conserva entera.
-  const veTodoElHistorial = seesAllHistory(realRole);
+  const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
   const pisoFecha = retentionFloorISO();
   const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
   const [fixes, setFixes] = useState<Fix[]>([]);

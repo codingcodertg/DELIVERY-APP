@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HISTORY_EXEMPT_ROLES, RETENTION_DAYS_BACK, retentionFloorISO, seesAllHistory, shiftDateISO, withinRetention } from "./utils";
+import { HISTORY_EXEMPT_ROLES, RETENTION_DAYS_BACK, retentionFloorISO, seesAllHistory, shiftDateISO, withinRecent, withinRetention } from "./utils";
 import { ROLE_INFO } from "./constants";
 
 // El dueño, literal: «in deliveries app the same rule that you can only see yesterday today
@@ -93,12 +93,13 @@ describe("las cinco pantallas preguntan lo mismo", () => {
     // rol REAL— solo que ahora se comprueba donde se decide.
     for (const f of [CHOFER, ALMACEN]) {
       const src = sinComentarios(leer(f));
-      expect(src, f).toMatch(/seesAllHistory\(realRole\)|veTodoElHistorial/);
+      // Desde D-350 lleva también los permisos de la persona real (la capacidad `history`).
+      expect(src, f).toMatch(/seesAllHistory\(realRole, me\?\.permissions\)|veTodoElHistorial/);
       expect(src, f).toContain("withinRetention(d)");
       expect(src, f).not.toMatch(/seesAllHistory\(me\?\.role\)/);
     }
     const tablero = sinComentarios(leer(TABLERO));
-    expect(tablero).toContain("const veTodoElHistorial = seesAllHistory(realRole);");
+    expect(tablero).toContain("const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);");
     expect(tablero).toContain("veTodoElHistorial,");
     expect(tablero).not.toMatch(/seesAllHistory\(me\?\.role\)/);
     expect(sinComentarios(leer("src/lib/ordenes-visibles.ts"))).toContain("withinRetention(d)");
@@ -154,4 +155,35 @@ describe("las que NO llevan ventana, y por qué", () => {
       expect(sinComentarios(leer(f))).not.toContain("withinRetention");
     });
   }
+});
+
+describe("ver todo el historial es también una capacidad por persona (D-350)", () => {
+  it("la capacidad `history` abre el historial a cualquier rol; sin ella, solo los dos roles exentos", () => {
+    expect(seesAllHistory("sales", ["history"])).toBe(true);
+    expect(seesAllHistory("accounting", ["create", "history"])).toBe(true);
+    expect(seesAllHistory("sales", ["create"])).toBe(false);
+    expect(seesAllHistory("sales", null)).toBe(false);
+    expect(seesAllHistory("logistics", [])).toBe(true);
+  });
+  it("admin y logística la traen de fábrica, así que nada cambia para ellos; y está en el catálogo que pinta Usuarios", async () => {
+    const { CAPABILITIES, ROLE_CAPS } = await import("./constants");
+    for (const r of HISTORY_EXEMPT_ROLES) expect(ROLE_CAPS[r], r).toContain("history");
+    expect(CAPABILITIES.find((c) => c.key === "history")).toMatchObject({ es: "Ver todas las órdenes" });
+  });
+  it("«Reciente» es ayer, hoy y mañana; sin fecha entra; pasado mañana y anteayer, no", () => {
+    const hoy = "2026-09-22";
+    expect(withinRecent({ delivery_date: "2026-09-21" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-22T10:00:00" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-23" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: null }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-20" }, hoy)).toBe(false);
+    expect(withinRecent({ delivery_date: "2026-09-24" }, hoy)).toBe(false);
+  });
+  it("la pantalla de Órdenes nace en «Reciente», ofrece el chip entre «Todas» y «Hoy», y «Todas» con historial pide todo al proveedor", () => {
+    const tablero = leer("src/app/(app)/page.tsx");
+    expect(tablero).toContain('useState<Preset>("recent")');
+    expect(tablero).toContain('{ id: "recent", en: "Recent", es: "Reciente" }');
+    expect(tablero).toContain('if (preset === "recent" && !withinRecent(d)) return false;');
+    expect(tablero).toContain('if (veTodoElHistorial && (q.trim() || preset === "all")) void ensureDeliveriesSince(null);');
+  });
 });

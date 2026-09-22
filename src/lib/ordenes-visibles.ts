@@ -41,8 +41,11 @@ export type ContextoDeLista = {
 
 /** ¿Puede esta persona ver esta orden, por su rol? No mira fechas. */
 export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
-  const { me, teaching, veTodoElHistorial } = ctx;
-  if (teaching || veTodoElHistorial) return true;
+  const { me, teaching } = ctx;
+  // Ver todo el historial (D-350) abre la VENTANA, no el corte por rol: una vendedora con la capacidad ve
+  // todas las suyas y las de su tienda, de siempre — no las de otro. Antes «ver todo» saltaba también
+  // este corte, y era indiferente porque solo lo tenían admin y logística, que no tienen corte.
+  if (teaching) return true;
   if (me?.role === "sales") {
     if (!ventasVeLaOrden({
       miId: me.id,
