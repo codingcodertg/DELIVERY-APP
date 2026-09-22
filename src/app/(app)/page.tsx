@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -279,9 +279,24 @@ export default function OrdersPage() {
     [deliveries, q, me, teaching, veTodoElHistorial, salesSearchFloor, settings.order_type_rules, settings.stores],
   );
 
+  // ¿Pasa el chip de fechas («Todas / Reciente / Hoy») que está pulsado? Lo usan la lista Y las cuentas por etapa
+  // (D-357): el dueño vio «Programadas 9» con «Hoy» pulsado y una sola fila. Las cuentas dicen lo que la lista va a
+  // enseñar, o no dicen nada.
+  const pasaElPreset = useCallback((d: Delivery): boolean => {
+    if (preset === "recent" && !withinRecent(d)) return false;
+    if (preset === "today" && !isToday(d.delivery_date)) return false;
+    if (preset === "overdue" && !isOverdue(d)) return false;
+    // A draft has no driver either, but it isn't waiting for one — nobody
+    // has submitted it. It was showing up as work to schedule.
+    if (preset === "unassigned" && !awaitingDriver(d)) return false;
+    if (preset === "mine" && orderOwner(d) !== me?.id) return false;
+    return true;
+  }, [preset, me?.id]);
+
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: visible.length };
-    for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;
+    const enElPreset = visible.filter(pasaElPreset);
+    const c: Record<string, number> = { all: enElPreset.length };
+    for (const d of enElPreset) c[d.stage] = (c[d.stage] ?? 0) + 1;
     // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
     // esta persona ve.
     // La de la pestaña cuenta sobre `conPendientes` (D-313): las suyas son trabajo vivo aunque la
@@ -289,7 +304,7 @@ export default function OrdersPage() {
     // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
     c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;
     return c;
-  }, [visible, conPendientes, settings.order_type_rules]);
+  }, [visible, conPendientes, settings.order_type_rules, pasaElPreset]);
 
   const rows = useMemo(() => {
     // The board shows every stage as its own column, so ignore the stage chip there.
@@ -300,16 +315,9 @@ export default function OrdersPage() {
       // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
       if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }
       else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
-      if (preset === "recent" && !withinRecent(d)) return false;
-      if (preset === "today" && !isToday(d.delivery_date)) return false;
-      if (preset === "overdue" && !isOverdue(d)) return false;
-      // A draft has no driver either, but it isn't waiting for one — nobody
-      // has submitted it. It was showing up as work to schedule.
-      if (preset === "unassigned" && !awaitingDriver(d)) return false;
-      if (preset === "mine" && orderOwner(d) !== me?.id) return false;
-      return true;
+      return pasaElPreset(d);
     });
-  }, [visible, filter, preset, view, me?.id, settings.order_type_rules]);
+  }, [visible, filter, view, settings.order_type_rules, pasaElPreset, conPendientes]);
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },

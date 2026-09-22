@@ -219,7 +219,9 @@ describe("la pantalla le pide las dos listas a la función", () => {
   it("y las cuentas de etapa y «Todas» siguen saliendo de la lista normal", () => {
     // Si «Todas» contara sobre `conPendientes`, su número dejaría de cuadrar con lo que la tabla
     // enseña al pulsarla.
-    expect(llano).toContain("const c: Record<string, number> = { all: visible.length };");
-    expect(llano).toContain("for (const d of visible) c[d.stage] = (c[d.stage] ?? 0) + 1;");
+    // Desde D-357 pasan además por el chip de fechas, el mismo que filtra la lista; siguen sin mirar `conPendientes`.
+    expect(llano).toContain("const enElPreset = visible.filter(pasaElPreset);");
+    expect(llano).toContain("const c: Record<string, number> = { all: enElPreset.length };");
+    expect(llano).not.toContain("{ all: conPendientes.length }");
   });
 });
