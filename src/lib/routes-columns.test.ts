@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -18,8 +18,8 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0].key).toBe("invoice");
   });
   it("por defecto cada tabla enseña lo que ya enseñaba, en el mismo orden, con la factura delante — y la dirección tras la cuenta (D-346)", () => {
-    expect(columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "address", "driver", "load", "stop", "windows", "pallets"]);
-    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "address", "store", "pallets", "date", "windows", "status"]);
+    expect(columnasDeLaTabla("programadas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "pickup", "address", "driver", "load", "stop", "windows", "pallets"]);
+    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "pickup", "address", "store", "pallets", "date", "windows", "status"]);
   });
   it("el orden es el de la tabla, no el de quien marca; una clave que ya no existe se ignora; y cada columna sale solo en SU tabla", () => {
     expect(columnasDeLaTabla("programadas", ["pallets", "columna_retirada", "invoice", "store", "status"]).map((c) => c.key)).toEqual(["invoice", "pallets"]);
@@ -32,21 +32,24 @@ describe("las columnas del Gestor", () => {
     for (const c of COLUMNAS_DEL_GESTOR) for (const tabla of ["programadas", "sinAsignar", "paradas"] as const) expect(columnasDeLaTabla(tabla, [c.key]).length === 1, `${c.key} en ${tabla}`).toBe(c.tablas.includes(tabla));
   });
   it("marcar y desmarcar: en orden canónico, sin repetidas y sin claves desconocidas — y con la marca de D-346 siempre", () => {
-    expect(alternaColumna(["pallets", "invoice"], "account")).toEqual(["invoice", "account", "pallets", MARCA_V2]);
-    expect(alternaColumna(["invoice", "account"], "invoice")).toEqual(["account", MARCA_V2]);
-    expect(alternaColumna(["invoice", "invoice", "no_existe"], "stop")).toEqual(["invoice", "stop", MARCA_V2]);
-    expect(alternaColumna([], "no_existe")).toEqual([MARCA_V2]);
-    expect(alternaColumna(["invoice", MARCA_V2], "account")).toEqual(["invoice", "account", MARCA_V2]);
+    // Y la de D-353 (la recogida): las dos marcas viajan siempre.
+    expect(alternaColumna(["pallets", "invoice"], "account")).toEqual(["invoice", "account", "pallets", MARCA_V2, MARCA_V3]);
+    expect(alternaColumna(["invoice", "account"], "invoice")).toEqual(["account", MARCA_V2, MARCA_V3]);
+    expect(alternaColumna(["invoice", "invoice", "no_existe"], "stop")).toEqual(["invoice", "stop", MARCA_V2, MARCA_V3]);
+    expect(alternaColumna([], "no_existe")).toEqual([MARCA_V2, MARCA_V3]);
+    expect(alternaColumna(["invoice", MARCA_V2, MARCA_V3], "account")).toEqual(["invoice", "account", MARCA_V2, MARCA_V3]);
   });
   it("la DIRECCIÓN de entrega está en las dos tablas del Gestor, que es lo que el dueño echó en falta (D-346)", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "address")).toMatchObject({ tablas: ["programadas", "sinAsignar"] });
   });
   it("a quien guardó sus columnas ANTES de D-346 le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
     const deAntes = conColumnasNuevas(["invoice", "pallets"]);
-    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2]);
-    expect(columnasDeLaTabla("programadas", deAntes).map((c) => c.key)).toEqual(["invoice", "address", "pallets"]);
-    // Ya conoce las nuevas (lleva la marca) y quitó la dirección: se respeta.
-    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2]);
+    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3]);
+    expect(columnasDeLaTabla("programadas", deAntes).map((c) => c.key)).toEqual(["invoice", "pickup", "address", "pallets"]);
+    // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
+    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3]);
+    // Con las dos marcas, ya nada se añade: quitó la recogida y se respeta.
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3]);
     // Una que ya la tenía no la gana dos veces.
     expect(conColumnasNuevas(["address"]).filter((k) => k === "address")).toHaveLength(1);
   });
@@ -86,6 +89,8 @@ describe("la página del Gestor", () => {
   });
   it("D-346: la dirección se pinta en las dos tablas, lo guardado de antes recibe las columnas nuevas, y la sugerencia de chofer ya no está", () => {
     expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>').length - 1).toBe(2);
+    // Y la recogida (D-353): el nombre de la tienda o almacén, y la dirección al pasar el ratón.
+    expect(pagina.split('c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>').length - 1).toBe(2);
     expect(pagina).toContain("if (suyas) setColsGestor(conColumnasNuevas(suyas));");
     expect(pagina).not.toContain("suggestDriverFor");
     expect(pagina).not.toContain("same store, has room");

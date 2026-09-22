@@ -1834,6 +1834,7 @@ export default function RoutesPage() {
                             {c.key === "invoice" ? (d.invoice_num || "—")
                               : c.key === "account" ? (d.account || "—")
                               : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
+                              : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
                               : c.key === "driver" ? (<><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(d.assigned_driver), marginRight: 6, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />{d.assigned_driver}{bucket ? ` 🧭` : ""}</>)
                               : c.key === "load" ? (!bucket && loadNoOf(d) > 1 ? loadNoOf(d) : (bucket ? "—" : 1))
                               : c.key === "stop" ? (d.route_seq != null ? idx + 1 : "—")
@@ -1998,6 +1999,7 @@ export default function RoutesPage() {
                           {c.key === "invoice" ? (d.invoice_num || "—")
                             : c.key === "account" ? (d.account || "—")
                             : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
+                            : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
                             : c.key === "store" ? (d.store || "—")
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
                             : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
