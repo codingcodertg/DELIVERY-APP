@@ -393,10 +393,17 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
   return (HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "") || !!permissions?.includes("history");
 }
 
-/** La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana. Sin fecha entra: sigue programándose. */
-export function withinRecent(d: { delivery_date?: string | null }, today: string = todayISO()): boolean {
+/**
+ * La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana. Sin fecha entra: sigue programándose.
+ *
+ * Y una orden VENCIDA que sigue abierta entra también, tenga la fecha que tenga (D-351). El dueño: «cuando una orden
+ * no se entrega y pasa el día siguiente, antes salía como LATE y se arrastraba para reprogramar». D-350 la escondía
+ * al segundo día: una vencida sin entregar es trabajo vivo, no historial, y esconderla es perderla.
+ */
+export function withinRecent(d: { delivery_date?: string | null; stage?: string | null }, today: string = todayISO()): boolean {
   if (!d.delivery_date) return true;
   const dia = d.delivery_date.slice(0, 10);
+  if (dia < today && d.stage !== "delivered" && d.stage !== "canceled") return true;
   return dia >= shiftDateISO(today, -1) && dia <= shiftDateISO(today, 1);
 }
 
