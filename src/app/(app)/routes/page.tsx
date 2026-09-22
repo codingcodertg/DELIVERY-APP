@@ -23,6 +23,7 @@ import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "@/lib/routes-columns";
@@ -322,6 +323,30 @@ export default function RoutesPage() {
   const [publicaciones, setPublicaciones] = useState(0);
   const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date, publicaciones);
   const paradasPublicadasDe = (chofer: string | null | undefined) => rutasPublicadas?.find((r) => r.chofer === chofer)?.paradas ?? null;
+  // La línea del plan PUBLICADO de cada chofer, por calles y en el orden del plan (D-352). Se pide al seleccionar al
+  // chofer, una vez por chofer y fecha, y manda sobre el trazo del optimizador viejo, que no conoce las recogidas.
+  const [trazosDelPlan, setTrazosDelPlan] = useState<Record<string, [number, number][]>>({});
+  useEffect(() => { setTrazosDelPlan({}); }, [date, rutasPublicadas]);
+  useEffect(() => {
+    if (!rutasPublicadas) return;
+    for (const chofer of selected) {
+      if (trazosDelPlan[chofer] !== undefined) continue;
+      const paradas = paradasPublicadasDe(chofer);
+      if (!paradas) continue;
+      const puntos = puntosDelTrazoPublicado(paradas, deliveries, settings.stores ?? []);
+      if (puntos.length < 2) { setTrazosDelPlan((p) => ({ ...p, [chofer]: [] })); continue; }
+      setTrazosDelPlan((p) => ({ ...p, [chofer]: [] }));
+      void fetch("/api/optimize-route", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stops: puntos, roundtrip: false, optimize: false, date }),
+      }).then(async (res) => {
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !Array.isArray(data?.geometry)) return;
+        const geom = (data.geometry as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]);
+        setTrazosDelPlan((p) => ({ ...p, [chofer]: geom }));
+      }).catch(() => undefined);
+    }
+  }, [selected, rutasPublicadas, trazosDelPlan, deliveries, settings.stores, date]); // eslint-disable-line react-hooks/exhaustive-deps
   const modo: ModoDelGestor = soloPendientes ? "pendientes" : allDates ? "todas" : "dia";
   const dayOrders = useMemo(() => ordenesDelDia(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
   const pendientes = useMemo(() => pendientesDeOtrosDias(deliveries, ROUTE_STAGES), [deliveries]);
@@ -1345,7 +1370,13 @@ export default function RoutesPage() {
     const center = (total - 1) / 2;
     const out: MapLine[] = [];
     let idx = 0;
+    // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la del optimizador viejo.
+    for (const [driver, geom] of Object.entries(trazosDelPlan)) {
+      if (geom.length < 2) continue;
+      out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: geom, dimmed: isDim(driver), offset: 0 });
+    }
     for (const [driver, trips] of entries) {
+      if ((trazosDelPlan[driver]?.length ?? 0) > 1) continue;
       trips.forEach((trace, i) => {
         const color = tripColor(colorFor(driverOf(driver)), i);
         const dimmed = isDim(driver);
@@ -1387,7 +1418,7 @@ export default function RoutesPage() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeLines, selected, preview, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders]);
+  }, [routeLines, trazosDelPlan, selected, preview, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders]);
 
   const onLineClick = (id: string) => {
     const m = id.match(/^(?:line|ret):(.+)#\d+$/);
