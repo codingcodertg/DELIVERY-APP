@@ -21,7 +21,7 @@ import { anchoDeTabla, useColWidthMap, useColWidths } from "@/lib/use-col-widths
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { ordenesDelDia, pendientesDeOtrosDias, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
@@ -667,10 +667,8 @@ export default function RoutesPage() {
     }
   };
 
-  const unassigned = useMemo(
-    () => dayOrders.filter((d) => !d.assigned_driver).sort((a, b) => a.order_no - b.order_no),
-    [dayOrders],
-  );
+  // Con las atrasadas sin chofer dentro (D-358), venga del día que venga: son trabajo por asignar.
+  const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
   // Every assigned order for the day, grouped view for the "Scheduled" list —
   // sorted by driver, then load, then optimized sequence.
   const scheduled = useMemo(

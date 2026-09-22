@@ -26,6 +26,23 @@ export function ordenesDelDia<T extends Orden>(deliveries: readonly T[], fecha: 
 }
 
 /**
+ * La tabla «Sin asignar» del Gestor (D-358): lo del día sin chofer, y ADEMÁS lo atrasado sin chofer, venga del día que
+ * venga. El dueño: «en logistic manager el table de unscheduled no me salen las late». Es una excepción consciente a
+ * D-331 —el día sigue siendo aparte en el mapa, las rutas y los totales—: una orden vencida sin chofer es trabajo que
+ * alguien tiene que asignar, y escondida tras «Verlas» no se asignaba. Sale con su «Atrasada» (D-354) para que se
+ * distinga del día. En «todas» y «pendientes» ya estaban; no se repite ninguna.
+ */
+export function sinAsignarDelGestor<T extends Orden & Pick<Delivery, "assigned_driver" | "order_no">>(
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[],
+): T[] {
+  const delDia = ordenesDelDia(deliveries, fecha, modo, etapas).filter((d) => !d.assigned_driver);
+  if (modo !== "dia") return delDia.sort((a, b) => a.order_no - b.order_no);
+  const ya = new Set(delDia.map((d) => d.id));
+  const atrasadas = pendientesDeOtrosDias(deliveries, etapas).atrasadas.filter((d) => !d.assigned_driver && !ya.has(d.id));
+  return [...delDia, ...atrasadas].sort((a, b) => a.order_no - b.order_no);
+}
+
+/**
  * Lo mismo para «Mi ruta» del chofer: HOY son sus paradas de hoy. Lo suyo atrasado —«a slipped stop is still theirs to
  * finish», decía el código, y sigue siendo verdad— no se esconde: se cuenta y se ve APARTE, a un toque. Se separa porque
  * quien despacha ya no lo ve dentro de hoy, y al chofer no puede salirle dentro de su día una orden que el Gestor no

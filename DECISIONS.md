@@ -22938,6 +22938,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
+> marcadas «Atrasada». El día sigue siendo aparte en el mapa, las rutas y los totales.
+
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `137_user_prefs_routes_columns.sql`,
 escrita y **no aplicada**. **Pedido por:** Andrés, literal: «pero te pedí que viera invoice y no aparece y estoy en el 19 y
 aún veo órdenes schedule del día anterior, recuerda que cada día es aparte». Habla del Logistics Manager (`/routes`).
@@ -24434,3 +24437,20 @@ un chip dice lo que la lista va a enseñar al pulsarlo. La pestaña de documento
 
 **Verificado:** prueba de texto (mismo predicado, y el preset escrito una sola vez); `ordenes-visibles.test.ts` al
 día. Suite entera local en verde. **No verificado:** nada abierto en un navegador.
+
+## D-358 · «Sin asignar» del Gestor lleva también las atrasadas sin chofer
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.182.0, repo 1.246.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«en logistic manager el table de unscheduled no me salen las late!!»*.
+
+**Contradice en parte D-331**, que el dueño pidió el 19 —«cada día es aparte»— y que sacó lo atrasado del día a una
+vista aparte tras «Verlas». Se cambia a sabiendas y **solo en la tabla «Sin asignar»**: las órdenes vencidas sin
+chofer (`pendientesDeOtrosDias`, sin `assigned_driver`) entran en la tabla del día que se esté mirando, con su
+etiqueta «Atrasada» (D-354) y su selector para reprogramar. Una orden vencida sin chofer es trabajo que alguien
+tiene que asignar, y escondida tras un botón no se asignaba. **El día sigue siendo aparte** en el mapa, las rutas,
+los totales y la tabla de programadas: nada de eso cambia. En «todas» y «pendientes» ya estaban; no se repite
+ninguna. D-331 lleva su nota.
+
+**Verificado:** `ordenes-del-dia.test.ts` con datos que contradicen (una atrasada con chofer y una del día con chofer
+no entran; viendo ayer, la de ayer no sale dos veces); el mutante «atrasadas con chofer también» cae con las dos.
+Suite entera local en verde. **No verificado:** nada abierto en un navegador.
