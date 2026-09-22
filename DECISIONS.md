@@ -24537,6 +24537,18 @@ paradas.
 revertir stages si fue un error»*; preguntado si incluía al gerente, *«si office incluye al gerente»*.
 **Plan en papel aprobado antes de escribir el `.sql`:** `docs/PLAN-139-office-entrega-y-deshace.md`.
 
+> **⚠ APLICADA el 2026-09-22**, poco despues de fusionarse — la cabecera dice «SIN APLICAR» porque lo estaba al
+> escribirla, y el historial no se reescribe (regla 2). El dueno dio permiso y la corrio el mismo desde su terminal.
+> El ensayo con ROLLBACK salio como se esperaba: **antes**, la base rechazaba los 8 saltos nuevos («accounting cannot
+> move an order from approved to delivered»); **despues**, los pasaba, y los 4 prohibidos seguian fallando — incluida
+> la invariante de la 122, que una entregada no se anula. `migrate-status`: 138 de 138, «todo al dia».
+>
+> **Lo que el ensayo NO midio:** 4 de los 12 casos se SALTARON por falta de datos — no habia ninguna orden en
+> `fulfilling` ni en `picked_up` en produccion en ese momento. Los saltos `fulfilling->delivered`,
+> `picked_up->delivered`, `picked_up->ready` y `fulfilling->approved` estan en el guard y probados contra el `.sql`,
+> pero no se han ejercido contra la base. El respaldo del guard anterior quedo en `RESPALDO-guard-antes-de-139.sql`;
+> revertir es volver a aplicar la 138.
+
 ### Lo que faltaba, y por qué no era un botón
 
 Office y gerente solo movían pendiente↔aprobada, rechazar y anular con motivo (118, 122, 127). No había forma de
