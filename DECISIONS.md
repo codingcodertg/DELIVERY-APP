@@ -24475,3 +24475,57 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **Verificado:** pruebas rehechas (defecto solo el día; el chip trae de cualquier día, se mire el día que se mire;
 «todas» y «pendientes» igual); el mutante «el chip no trae las de otros días» cae. Suite entera local en verde.
 **No verificado:** nada abierto en un navegador.
+
+## D-NEXT · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+**Fecha:** 2026-09-22 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido del dueño**, literal: *«logistic manager columns must also have a sorting option and still pending the
+clicking on the ID or invoice # to view the full order details»* y *«and also filters on the logistic manager view»*.
+
+**Qué fallaba.** Las dos tablas de órdenes del Gestor («Programadas» y «Sin asignar», columnas del catálogo de
+D-331/D-346/D-353) salían en un orden fijo (chofer, viaje, secuencia) y solo se acotaban con los chips y el buscador.
+Ni se podía ordenar por cuenta, fecha o pallets, ni quitar de la vista una tienda. Y el código de orden y la factura
+eran texto muerto: para ver la orden entera había que ir a Órdenes y buscarla.
+
+**Qué se hizo.**
+- Cada cabecera de las dos tablas —el ID fijo y todas las del catálogo— abre **el mismo menú de Órdenes (D-275)**:
+  ordenar ascendente/descendente/quitar, y la lista de valores con buscador y «Seleccionar todo». Mismas clases
+  (`th-cell`, `th-sort`, `th-filter-btn`, `col-opt`), misma barra «Filtrado por … ✕ Limpiar filtros» (D-297) y el
+  mismo cierre con clic fuera o Escape. Sin filas tras filtrar, la tabla dice «Ninguna fila coincide con los filtros
+  actuales» en vez de quedarse en blanco.
+- **El orden y los filtros NO se guardan**: viven mientras la pantalla está abierta. Un filtro guardado que nadie
+  recuerda esconde órdenes que hay que asignar; lo que sí se guarda sigue siendo qué columnas se ven (D-331).
+- En «Sin asignar», «Seleccionar todo» marca **lo que se ve** con el filtro puesto, no toda la lista: asignar en
+  bloque lo que el filtro dejó fuera sería justo lo que el filtro quería evitar.
+- **Pulsar el ID (`#…`) o la factura abre la orden completa** con el mismo modal y el mismo gesto que la tabla de
+  paradas por chofer (subrayado punteado, cursor de mano, título «Abrir esta orden»), con `stopPropagation` para
+  que en «Sin asignar» no se seleccione la fila de paso.
+
+### Por qué D-275 se extrajo a `src/lib` en vez de copiarse
+
+El comparador, la clave del «sin valor», el filtro en cascada y la lista de opciones vivían dentro de
+`OrdersTable.tsx`. Se sacaron a `src/lib/orden-y-filtro.ts` (`comparaCeldas`, `ordenaFilas`, `filtraFilas`,
+`opcionesDeFiltro`, `claveDeFiltro`) y Órdenes los usa desde ahí **sin cambiar lo que hacía**: su descendente
+sigue trayendo los nulos arriba (era así desde D-275; cambiarlo sería otra decisión), y solo filtran las columnas
+que se ven. El menú (`ColumnFilterMenu`) se **exporta** de `OrdersTable.tsx` en vez de duplicarse; solo pide el
+nombre de la columna en los dos idiomas. Lo nuevo es el cableado: `use-orden-y-filtro.ts` (el estado de una
+tabla), `valores-del-gestor.ts` (qué valor saca cada columna del Gestor de una orden) y
+`components/CabeceraConMenu.tsx` (la cabecera, el menú en portal y la barra de filtros).
+
+**Diferencia consciente:** en el Gestor, `ordenaFilas` deja los nulos **al final en las dos direcciones**
+(invertir es invertir lo que hay, no traer arriba lo que falta). En Órdenes no se tocó. Si algún día se unifica,
+que sea a la de nulos al final. Otra medida al escribir las pruebas: en la lista del filtro el «—» (sin valor) sale
+**el primero**, porque `localeCompare` pone la raya antes que letras y números; ya era así en Órdenes.
+
+**Descartado:** guardar el orden y los filtros por persona (`user_prefs`): nadie lo pidió y el riesgo de un filtro
+olvidado es peor que volver a ponerlo. Reutilizar `OrdersTable` entera en el Gestor: sus filas llevan celdas
+propias (carga, parada, el selector «Asignar a…», el chip de fecha) que ese componente no sabe pintar.
+
+**Verificado:** `tsc` limpio; `eslint` de los ficheros tocados sin errores (3 avisos de `exhaustive-deps` que ya
+existían); vitest de las pruebas nuevas y de las 16 que citan `OrdersTable` o la página del Gestor, en verde. Once
+mutantes a mano, cada uno con su prueba caída por nombre (nulos arriba en descendente; `saltar` ignorado; etiqueta
+ignorada; «» no es sin valor; comparar números como texto; estimado sobre real en pallets; etapa sin idioma; ID de
+«Sin asignar» sin enlace; Órdenes con comparador propio; «Seleccionar todo» sobre la lista sin filtrar; «Programadas»
+pintando la lista sin ordenar). **No verificado:** nada abierto en un navegador — la posición del menú en portal
+sobre `.tbl-scroll` y el clic real en el ID se dan por buenos por ser el mismo código que Órdenes y que la tabla de
+paradas.
