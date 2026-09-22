@@ -816,17 +816,18 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
 /** The capabilities each role gets automatically. */
 export const ROLE_CAPS: Record<UserRole, Capability[]> = {
   admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan", "history"],
-  manager:   ["create", "approve", "dashboard"],
-  sales:     ["create"],
-  warehouse: ["fulfill", "deliver"],
+  // D-356: todos ven todas las órdenes (de sus tiendas, 131), sin ventana de fechas.
+  manager:   ["create", "approve", "dashboard", "history"],
+  sales:     ["create", "history"],
+  warehouse: ["fulfill", "deliver", "history"],
   // Drivers do NOT create orders — orders must be programmed by sales/office and
   // dispatched by the logistics manager. A driver only delivers what's assigned.
-  driver:    ["deliver"],
+  driver:    ["deliver", "history"],
   logistics: ["route_plan", "approve", "history"],
   // Office (the `accounting` key, D-279): creates and approves like the Office Manager, without the
   // dashboard. It used to be approve-only (D-044, replaced in part), and the database refused even that:
   // until 118 the guard had no branch for this role at all.
-  accounting: ["create", "approve"],
+  accounting: ["create", "approve", "history"],
 };
 
 // ---- Module access descriptors (D-057) -------------------------------------

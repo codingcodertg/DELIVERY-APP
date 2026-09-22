@@ -13133,6 +13133,9 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
+> historial entero; la tienda la sigue cortando la 131.
+
 > **⚠ Reemplazada en parte por D-350** (2026-09-22). Ver el historial entero deja de ser solo de admin y logística: es una
 > capacidad por persona que se marca en Usuarios; los dos roles la traen de fábrica. La ventana en sí no cambia.
 
@@ -24394,3 +24397,26 @@ pintarse. Solo cambia lo que se enseña; la capacidad y las comparaciones («sob
 redondeados, que a la décima no cambian ninguna decisión.
 
 **Verificado:** prueba de texto y del cálculo. **No verificado:** nada abierto en un navegador.
+
+## D-356 · Todos los roles ven todas las órdenes, sin ventana de fechas
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.180.0, repo 1.244.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«activa lo que pueden ver todas las órdenes regardless del date a todos, la
+opción que creamos actívala»*.
+
+La capacidad `history` de D-350 pasa a **todos los roles de fábrica** (`ROLE_CAPS`): admin, gerente, ventas,
+almacén, chofer, logística y office. Se hace en el código y no marcando la casilla usuario por usuario: activarla a
+mano son escrituras en producción que esta sesión no hace, y una regla que vale para todos vive mejor en un sitio.
+En Usuarios la casilla sale marcada y fija, como las demás del rol. `seesAllHistory` lee ahora `ROLE_CAPS`: quitarle
+el historial a un rol el día de mañana es quitarle `history` allí, y la prueba que recorre `ROLE_INFO` lo canta.
+
+**Lo que sigue cortando:** la tienda (política 131, D-315: quien tiene tiendas marcadas ve solo esas, Intertiendas
+por sus tres puntas) y los cortes por rol (ventas lo suyo y lo de su tienda; almacén desde la aprobación; chofer lo
+suyo). La ventana de retención de D-239 queda **sin nadie dentro**; se deja escrita por si algún rol vuelve a ella.
+La pantalla de Órdenes sigue naciendo en «Reciente» (D-350/D-351): «Todas» es la que ahora enseña el historial.
+
+**Reemplaza a D-239 en lo de «solo admin y logística»**, que lleva su nota; D-350 sigue vigente en la mecánica.
+
+**Verificado:** `history-window.test.ts` y `rol-office.test.ts` al día; el mutante «ventas sin history» cae con dos
+pruebas. Suite entera local en verde. **No verificado:** nada abierto en un navegador; el peso de «Todas» para
+chofer y almacén, que ahora cargan más órdenes que antes (sus listas siguen filtrando por etapa y por persona).

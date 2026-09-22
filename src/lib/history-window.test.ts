@@ -27,13 +27,13 @@ describe("quién ve el historial entero", () => {
     expect(seesAllHistory("logistics")).toBe(true);
   });
 
-  it("todos los demás roles del hub entran en la ventana", () => {
-    // Se recorre `ROLE_INFO` en vez de escribir la lista: el día que se añada un rol,
-    // entra en la ventana por defecto, que es el lado seguro — y si tiene que quedar
-    // exento, hay que decirlo aquí a propósito. Así fue como `logistics` se quedó fuera
-    // por omisión: nadie lo decidió.
+  it("desde D-356 NINGÚN rol del hub entra en la ventana: todos traen `history` de fábrica", () => {
+    // Se recorre `ROLE_INFO` en vez de escribir la lista, como antes: un rol nuevo que no lleve
+    // `history` en ROLE_CAPS entra en la ventana, y esta prueba lo canta para que sea a propósito.
     const dentro = Object.keys(ROLE_INFO).filter((r) => !seesAllHistory(r));
-    expect(dentro.sort()).toEqual(["accounting", "driver", "manager", "sales", "warehouse"]);
+    expect(dentro).toEqual([]);
+    // Y un rol que no existe en ROLE_CAPS sigue en la ventana: la regla no se abre por defecto.
+    expect(seesAllHistory("rol_inventado")).toBe(false);
   });
 
   it("un rol desconocido o ausente NO queda exento", () => {
@@ -161,8 +161,11 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
   it("la capacidad `history` abre el historial a cualquier rol; sin ella, solo los dos roles exentos", () => {
     expect(seesAllHistory("sales", ["history"])).toBe(true);
     expect(seesAllHistory("accounting", ["create", "history"])).toBe(true);
-    expect(seesAllHistory("sales", ["create"])).toBe(false);
-    expect(seesAllHistory("sales", null)).toBe(false);
+    // Desde D-356 ventas también la trae de fábrica; lo que sigue midiendo la capacidad suelta es un rol sin ella.
+    expect(seesAllHistory("rol_inventado", ["create"])).toBe(false);
+    expect(seesAllHistory("rol_inventado", null)).toBe(false);
+    expect(seesAllHistory("rol_inventado", ["history"])).toBe(true);
+    expect(seesAllHistory("sales", null)).toBe(true);
     expect(seesAllHistory("logistics", [])).toBe(true);
   });
   it("admin y logística la traen de fábrica, así que nada cambia para ellos; y está en el catálogo que pinta Usuarios", async () => {

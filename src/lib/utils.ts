@@ -1,5 +1,6 @@
 import type { Delivery } from "./types";
 import { parseWindow } from "./dispatch";
+import { ROLE_CAPS } from "./constants";
 
 /** Deterministic fallback color for a driver with no assigned color yet, so
  * map pins/route markers are still distinguishable before a manager sets
@@ -389,8 +390,15 @@ export const HISTORY_EXEMPT_ROLES = ["admin", "logistics"] as const;
  * aquí: la corta la política de la 131 (`tiendas_visibles`), que ya aplica a todo rol salvo admin, chofer y
  * almacén. Los dos roles exentos la traen de fábrica (`ROLE_CAPS`), así que nada cambia para ellos.
  */
+/**
+ * Y desde D-356 la traen TODOS los roles de fábrica: el dueño, «activa lo que pueden ver todas las órdenes regardless
+ * del date a todos». Se mira `ROLE_CAPS` para que la regla viva en un sitio: quitarle el historial a un rol es
+ * quitarle `history` allí, y la casilla de Usuarios lo enseña fijo.
+ */
 export function seesAllHistory(role: string | null | undefined, permissions?: readonly string[] | null): boolean {
-  return (HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "") || !!permissions?.includes("history");
+  if ((HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "")) return true;
+  if (role && (ROLE_CAPS as Record<string, readonly string[]>)[role]?.includes("history")) return true;
+  return !!permissions?.includes("history");
 }
 
 /**
