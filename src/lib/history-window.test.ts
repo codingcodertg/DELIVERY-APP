@@ -176,8 +176,17 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
     expect(withinRecent({ delivery_date: "2026-09-22T10:00:00" }, hoy)).toBe(true);
     expect(withinRecent({ delivery_date: "2026-09-23" }, hoy)).toBe(true);
     expect(withinRecent({ delivery_date: null }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-20" }, hoy)).toBe(false);
+    expect(withinRecent({ delivery_date: "2026-09-20", stage: "delivered" }, hoy)).toBe(false);
     expect(withinRecent({ delivery_date: "2026-09-24" }, hoy)).toBe(false);
+  });
+  it("una VENCIDA que sigue abierta entra en «Reciente» aunque sea de hace una semana; entregada o anulada, no (D-351)", () => {
+    const hoy = "2026-09-22";
+    expect(withinRecent({ delivery_date: "2026-09-15", stage: "approved" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-20", stage: "fulfilling" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-15", stage: "delivered" }, hoy)).toBe(false);
+    expect(withinRecent({ delivery_date: "2026-09-15", stage: "canceled" }, hoy)).toBe(false);
+    // Mañana abierta entra por la ventana, no por vencida; pasado mañana abierta, no entra.
+    expect(withinRecent({ delivery_date: "2026-09-24", stage: "approved" }, hoy)).toBe(false);
   });
   it("la pantalla de Órdenes nace en «Reciente», ofrece el chip entre «Todas» y «Hoy», y «Todas» con historial pide todo al proveedor", () => {
     const tablero = leer("src/app/(app)/page.tsx");

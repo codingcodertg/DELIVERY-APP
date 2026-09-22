@@ -24293,3 +24293,22 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 - Nada abierto en un navegador: ni el chip ni la casilla en Usuarios.
 - **Cuánto pesa «Todas» con historial para un vendedor**: la pantalla carga entonces todo lo que la RLS le deja ver.
   Admin y logística ya lo hacían al buscar; para una tienda grande no se midió.
+
+## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.175.0, repo 1.239.0 · **Sin migración.**
+**Reportado por el dueño**, literal: *«WHEN AN ORDER NO SE ENTREGA Y PASA EL DIA SIGUIENTE ANTES SALIA COMO LATE Y
+SE ARRASTRABA PARA REPROGRAMAR PORQUE AHORA NO SE MIRA»*.
+
+**Lo que rompió D-350, el mismo día.** «Reciente» cortaba por fecha a secas: ayer, hoy y mañana. Para el admin, que
+antes nacía en «Todas» y veía todo, una orden del jueves sin entregar salía el sábado con su etiqueta «Atrasada» y
+seguía saliendo hasta que alguien la reprogramara. Con «Reciente» de partida, al segundo día desaparecía de la vista
+sin que nadie la hubiera atendido. Una vencida sin entregar es **trabajo vivo, no historial**.
+
+**Arreglo:** `withinRecent` deja entrar cualquier orden con fecha pasada que **no esté entregada ni anulada**, tenga
+la fecha que tenga. Sigue saliendo con «Atrasada», y sale de «Reciente» sola cuando se entrega, se anula o se
+reprograma a más de un día. «Todas» y «Hoy» no cambian. Tampoco cambia la ventana de retención de D-239 para quien no
+tiene la capacidad de historial: esa ya dejaba fuera las vencidas de más de un día, y eso no es de esta decisión.
+
+**Verificado:** prueba nueva en `history-window.test.ts`; el mutante «sin arrastre» cae con ella.
+**Lo no verificado:** nada abierto en un navegador.
