@@ -24217,3 +24217,30 @@ local: 3631 pasados, 3 saltados.
 
 - **La casita no se ha visto en una pantalla.** Se intentó pintar en Chrome y el navegador no respondió. El dibujo es
   un `path` de cinco vértices con una puerta; si sale feo o pequeño sobre el mapa, se ajusta en un solo sitio.
+
+## D-349 · «Sin asignar» del Gestor tiene su propio ⚙ Columnas
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.173.0, repo 1.237.0 · **Sin migración.**
+**Reportado por el dueño**, literal: *«I DONT SEE THE TABLE IN THE LOGISTICS MANAGER VIEW THE ORDER TABLE IS NOT
+VISIBLE AND I WANT IT TO ALSO CUTZOMIZABLE THE COLUMNS REMMEBER AS THE SALES ORDER VIEW»*.
+
+### Lo medido, esta vez en pantalla
+
+Se abrió el Gestor **como logística en el modo demo local** (`NEXT_PUBLIC_LOCAL_MODE`, sin base ni llaves, «Ver como»
+Laura Logistics) en Chrome, con la versión 1.172.0. La tabla de órdenes **existe y se pinta**: está bajo la tarjeta
+**«Sin asignar»** (42 filas: ID, Factura, Cuenta, Dirección, Tienda, Pallets, Fecha, Ventanas, Estado, Asignar a) y
+la de «Programadas» bajo su tarjeta. En la vista de partida —el planificador— no hay tabla de órdenes, solo las de
+paradas por chofer; **eso es así desde antes** de D-346 y no lo cambia esta decisión. Si el dueño ve otra cosa en
+producción, hace falta su captura: en el demo no se reproduce.
+
+Lo que sí faltaba: el único **⚙ Columnas** estaba en «Programadas», y logística aterriza en el planificador y
+trabaja en «Sin asignar». Desde ahí no había forma de elegir columnas.
+
+### Qué cambia
+
+«Sin asignar» gana su ⚙ Columnas junto al buscador, con las columnas de **esa** tabla, sobre la misma preferencia
+por persona (`routes_columns`, D-331). Medido en el demo: ofrece las ocho, y quitar «Tienda» quita la columna.
+
+### Lo no verificado
+
+- Producción con la sesión del dueño. Si allí la tabla de verdad no sale, es otra cosa y hace falta la captura.

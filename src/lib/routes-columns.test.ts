@@ -152,3 +152,13 @@ describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () 
     expect(plegado).not.toContain("planifica()");
   });
 });
+
+describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
+  const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
+  it("el selector está junto al buscador, con las columnas de ESA tabla, y usa la misma función que los otros dos", () => {
+    const i = pagina.indexOf('{COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => (');
+    expect(i).toBeGreaterThan(-1);
+    expect(pagina.slice(i, i + 400)).toContain("onChange={() => alternaColumnaDelGestor(c.key)}");
+    expect(pagina).toContain("useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);");
+  });
+});

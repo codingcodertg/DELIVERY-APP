@@ -214,6 +214,10 @@ export default function RoutesPage() {
   const cajaDeColumnas = useRef<HTMLDivElement>(null);
   useCierraAlSalir(verColumnas, () => setVerColumnas(false), () => [cajaDeColumnas.current]);
   // El mismo selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
+  // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas».
+  const [verColsPool, setVerColsPool] = useState(false);
+  const cajaDeColsPool = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);
   const [verColsParadas, setVerColsParadas] = useState(false);
   const cajaDeColsParadas = useRef<HTMLDivElement>(null);
   useCierraAlSalir(verColsParadas, () => setVerColsParadas(false), () => [cajaDeColsParadas.current]);
@@ -1865,6 +1869,19 @@ export default function RoutesPage() {
             placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
             style={{ maxWidth: 300 }}
           />
+          <div ref={cajaDeColsPool} style={{ position: "relative", display: "inline-block" }}>
+            <button className="btn btn-ghost btn-sm" aria-expanded={verColsPool} onClick={() => setVerColsPool((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
+            {verColsPool && (
+              <div className="card" style={{ position: "absolute", left: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4 }}>
+                {COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => (
+                  <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
+                    <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {lang === "es" ? c.es : c.en}
+                  </label>
+                ))}
+                <span className="hint" style={{ margin: 0 }}>{t("Saved for you.", "Se guarda para usted.")}</span>
+              </div>
+            )}
+          </div>
           {(["all", "overdue", "windowed", "noloc"] as const).map((f) => (
             <button
               key={f}
