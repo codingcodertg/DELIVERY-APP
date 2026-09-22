@@ -22940,6 +22940,8 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 > **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
 > marcadas «Atrasada». El día sigue siendo aparte en el mapa, las rutas y los totales.
+>
+> **Corregido por D-359** el mismo día: el defecto vuelve a ser el día; las atrasadas de cualquier día salen con el chip «Atrasadas».
 
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `137_user_prefs_routes_columns.sql`,
 escrita y **no aplicada**. **Pedido por:** Andrés, literal: «pero te pedí que viera invoice y no aparece y estoy en el 19 y
@@ -24440,6 +24442,9 @@ día. Suite entera local en verde. **No verificado:** nada abierto en un navegad
 
 ## D-358 · «Sin asignar» del Gestor lleva también las atrasadas sin chofer
 
+> **⚠ Reemplazada por D-359** (2026-09-22), el mismo día: el dueño no quería las atrasadas en el defecto, sino en el chip
+> «Atrasadas», que era el que no funcionaba.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.182.0, repo 1.246.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«en logistic manager el table de unscheduled no me salen las late!!»*.
 
@@ -24454,3 +24459,19 @@ ninguna. D-331 lleva su nota.
 **Verificado:** `ordenes-del-dia.test.ts` con datos que contradicen (una atrasada con chofer y una del día con chofer
 no entran; viendo ayer, la de ayer no sale dos veces); el mutante «atrasadas con chofer también» cae con las dos.
 Suite entera local en verde. **No verificado:** nada abierto en un navegador.
+
+## D-359 · En «Sin asignar», el día por defecto y las atrasadas por su chip
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.183.0, repo 1.247.0 · **Sin migración.**
+**Corrección del dueño a D-358**, literal: *«no, pero lo que pasa es que para eso tienes filtros: hoy y todas y
+atrasadas»*.
+
+D-358 metió las atrasadas sin chofer en la tabla «Sin asignar» por defecto. No era eso: la tabla ya tiene sus chips
+(«Todas · Atrasadas · Con ventana · Sin ubicación»), y el fallo real era que **«Atrasadas» filtraba solo lo del
+día** —y lo del día, por definición, no está vencido— así que salía vacío. **Reemplaza a D-358**: el defecto vuelve a
+ser el día, como manda D-331, y con el chip «Atrasadas» la tabla enseña las vencidas sin chofer **de cualquier día**,
+con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan la corrección.
+
+**Verificado:** pruebas rehechas (defecto solo el día; el chip trae de cualquier día, se mire el día que se mire;
+«todas» y «pendientes» igual); el mutante «el chip no trae las de otros días» cae. Suite entera local en verde.
+**No verificado:** nada abierto en un navegador.

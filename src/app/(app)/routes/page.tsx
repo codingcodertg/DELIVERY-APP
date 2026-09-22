@@ -667,8 +667,8 @@ export default function RoutesPage() {
     }
   };
 
-  // Con las atrasadas sin chofer dentro (D-358), venga del día que venga: son trabajo por asignar.
-  const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
+  // Lo del día sin chofer; con el chip «Atrasadas», las vencidas sin chofer de cualquier día (D-359).
+  const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES, poolFilter === "overdue"), [deliveries, date, modo, poolFilter]);
   // Every assigned order for the day, grouped view for the "Scheduled" list —
   // sorted by driver, then load, then optimized sequence.
   const scheduled = useMemo(

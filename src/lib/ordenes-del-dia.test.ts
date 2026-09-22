@@ -91,18 +91,22 @@ describe("«Mi ruta» del chofer: mismo criterio", () => {
   });
 });
 
-describe("«Sin asignar» lleva también las atrasadas sin chofer (D-358)", () => {
+describe("«Sin asignar»: el día por defecto, y con el chip «Atrasadas» las vencidas sin chofer de cualquier día (D-359)", () => {
   const n = (x: ReturnType<typeof o>, order_no: number) => ({ ...x, order_no });
   const POOL = [
     n(o("de-hoy", "2026-09-19"), 5), n(o("de-ayer", "2026-09-18"), 2), n(o("de-hace-un-mes", "2026-08-19"), 9),
     n(o("de-ayer-con-chofer", "2026-09-18", "approved", "Chofer"), 1), n(o("de-hoy-con-chofer", "2026-09-19", "approved", "Chofer"), 3),
     n(o("ayer-entregada", "2026-09-18", "delivered"), 4), n(o("sin-fecha", null), 6), n(o("de-manana", "2026-09-20"), 7),
   ];
-  it("viendo el día: lo del día sin chofer MÁS lo atrasado sin chofer, ordenado por número; sin fecha y mañana, no", () => {
-    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "dia", ETAPAS))).toEqual(["de-ayer", "de-hoy", "de-hace-un-mes"]);
+  it("por defecto, SOLO lo del día sin chofer (D-331 sigue): ni ayer, ni sin fecha, ni mañana", () => {
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "dia", ETAPAS))).toEqual(["de-hoy"]);
   });
-  it("viendo AYER, la de ayer no sale dos veces; y en «todas» y «pendientes» nada cambia", () => {
-    expect(ids(sinAsignarDelGestor(POOL, "2026-09-18", "dia", ETAPAS))).toEqual(["de-ayer", "de-hace-un-mes"]);
+  it("con «Atrasadas», las vencidas sin chofer de cualquier día, por número; con chofer o entregada, no", () => {
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "dia", ETAPAS, true))).toEqual(["de-ayer", "de-hace-un-mes"]);
+    // Y da igual el día que se mire: el chip manda.
+    expect(ids(sinAsignarDelGestor(POOL, "2026-09-20", "dia", ETAPAS, true))).toEqual(["de-ayer", "de-hace-un-mes"]);
+  });
+  it("en «todas» y «pendientes» nada cambia", () => {
     expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "todas", ETAPAS))).toEqual(["de-ayer", "de-hoy", "sin-fecha", "de-manana", "de-hace-un-mes"]);
     expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "pendientes", ETAPAS))).toEqual(["de-ayer", "sin-fecha", "de-hace-un-mes"]);
   });
