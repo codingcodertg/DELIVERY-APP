@@ -26,20 +26,17 @@ export function ordenesDelDia<T extends Orden>(deliveries: readonly T[], fecha: 
 }
 
 /**
- * La tabla «Sin asignar» del Gestor (D-358): lo del día sin chofer, y ADEMÁS lo atrasado sin chofer, venga del día que
- * venga. El dueño: «en logistic manager el table de unscheduled no me salen las late». Es una excepción consciente a
- * D-331 —el día sigue siendo aparte en el mapa, las rutas y los totales—: una orden vencida sin chofer es trabajo que
- * alguien tiene que asignar, y escondida tras «Verlas» no se asignaba. Sale con su «Atrasada» (D-354) para que se
- * distinga del día. En «todas» y «pendientes» ya estaban; no se repite ninguna.
+ * La tabla «Sin asignar» del Gestor (D-358, corregida por D-359): lo del día sin chofer, como manda D-331. Y con el
+ * chip «Atrasadas» pulsado, las vencidas sin chofer **de cualquier día**: ese chip filtraba solo lo del día, y como
+ * lo del día no está vencido, salía vacío. El dueño: «para eso tienes filtros: hoy, todas y atrasadas». D-358 las
+ * había metido en el defecto; no: el defecto es el día, y «Atrasadas» es el chip.
  */
 export function sinAsignarDelGestor<T extends Orden & Pick<Delivery, "assigned_driver" | "order_no">>(
-  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[],
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], soloAtrasadas = false,
 ): T[] {
-  const delDia = ordenesDelDia(deliveries, fecha, modo, etapas).filter((d) => !d.assigned_driver);
-  if (modo !== "dia") return delDia.sort((a, b) => a.order_no - b.order_no);
-  const ya = new Set(delDia.map((d) => d.id));
-  const atrasadas = pendientesDeOtrosDias(deliveries, etapas).atrasadas.filter((d) => !d.assigned_driver && !ya.has(d.id));
-  return [...delDia, ...atrasadas].sort((a, b) => a.order_no - b.order_no);
+  const sinChofer = (xs: readonly T[]) => xs.filter((d) => !d.assigned_driver).sort((a, b) => a.order_no - b.order_no);
+  if (soloAtrasadas) return sinChofer(pendientesDeOtrosDias(deliveries, etapas).atrasadas);
+  return sinChofer(ordenesDelDia(deliveries, fecha, modo, etapas));
 }
 
 /**
