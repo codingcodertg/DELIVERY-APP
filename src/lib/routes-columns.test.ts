@@ -183,11 +183,13 @@ describe("«Atrasada» en el Gestor lo decide la orden, no el día que se mira (
   });
 });
 
-describe("la carga y lo libre del viaje van a la décima (D-355)", () => {
-  it("el Gestor redondea la suma de pallets y el sobrante antes de pintarlos", () => {
+describe("la carga y lo libre del viaje van a la décima (D-355, generalizado en D-362)", () => {
+  it("el Gestor ya no redondea a mano: usa las funciones compartidas, y ninguna suma de pallets queda cruda", () => {
     const pagina = leer("src/app/(app)/routes/page.tsx");
-    expect(pagina).toContain("const load = Math.round(batch.reduce((n, d) => n + (d.actual_pallets ?? d.est_pallets ?? 0), 0) * 10) / 10;");
-    expect(pagina).toContain("const free = Math.round(Math.max(0, capacity - load) * 10) / 10;");
+    expect(pagina).toContain("const load = sumaPallets(batch);");
+    expect(pagina).toContain("const free = aLaDecima(Math.max(0, capacity - load));");
+    // D-362: la página no vuelve a sumar pallets por su cuenta, ni redondeando ni sin redondear.
+    expect(pagina).not.toMatch(new RegExp("reduce" + String.fromCharCode(92) + "([^)]*actual_pallets"));
     // Lo que el dueño vio: 12 − (4 + 0.4 + 0.03) en coma flotante.
     expect(12 - (4 + 0.4 + 0.03)).not.toBe(7.57);
     expect(Math.round((12 - (4 + 0.4 + 0.03)) * 10) / 10).toBe(7.6);

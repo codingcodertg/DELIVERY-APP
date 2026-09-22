@@ -1,4 +1,5 @@
 import type { Delivery, Stage } from "@/lib/types";
+import { aLaDecima, palletsDeLaOrden } from "./pallets";
 
 // ============================================================
 // Dispatch helpers: driver auto-assignment (#6), delivery-window conflict
@@ -79,9 +80,10 @@ export function driverPalletsOn(
     if (d.assigned_driver !== driver) continue;
     if (d.delivery_date !== date) continue;
     if (d.stage === "delivered" || d.stage === "canceled" || d.stage === "rejected") continue;
-    total += Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    total += palletsDeLaOrden(d);
   }
-  return total;
+  // A la décima (D-362): esta suma es la que pinta «4.43/12» en la lista de choferes.
+  return aLaDecima(total);
 }
 
 export interface AssignWarning {
@@ -109,7 +111,7 @@ export function assignmentWarnings(
   if (conflicts.length) out.push({ kind: "conflict", conflicts });
   if (capacity && capacity > 0) {
     const used = driverPalletsOn(driver, order.delivery_date, deliveries, order.id);
-    const adding = Number(order.actual_pallets ?? order.est_pallets ?? 0);
+    const adding = palletsDeLaOrden(order);
     if (used + adding > capacity) out.push({ kind: "over_capacity", used, adding, capacity });
   }
   return out;
@@ -214,7 +216,7 @@ export function autoAssign(
   for (const o of sorted) {
     if (o.delivery_lat == null || o.delivery_lng == null) { unplaced.push(o); continue; }
     const oc: [number, number] = [o.delivery_lat, o.delivery_lng];
-    const pallets = Number(o.actual_pallets ?? o.est_pallets ?? 0);
+    const pallets = palletsDeLaOrden(o);
     const ow = parseWindow(o.delivery_windows);
 
     let best: string | null = null;
@@ -267,7 +269,7 @@ export function splitIntoTrips(stops: Delivery[], capacity: number): Delivery[][
   let current: Delivery[] = [];
   let load = 0;
   for (const d of stops) {
-    const pallets = d.actual_pallets ?? d.est_pallets ?? 0;
+    const pallets = palletsDeLaOrden(d);
     if (current.length && load + pallets > capacity) {
       trips.push(current);
       current = [];

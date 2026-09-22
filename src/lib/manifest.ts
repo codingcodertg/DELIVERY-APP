@@ -3,6 +3,7 @@ import type { Lang } from "@/lib/prefs";
 import { orderLabel } from "@/lib/utils";
 import { recogidaAparte } from "@/lib/order-endpoints";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
+import { sumaPallets } from "./pallets";
 
 // ============================================================
 // Printable route manifest / driver day-sheet. Takes a driver's ordered stops
@@ -21,7 +22,7 @@ export function printRouteManifest(
   const T = (en: string, es: string) => (lang === "es" ? es : en);
   const esc = (s: unknown) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
 
-  const totalPallets = stops.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0);
+  const totalPallets = sumaPallets(stops);
   const totalMiles = Math.round(stops.reduce((s, d) => s + Number(d.route_miles ?? 0), 0) * 10) / 10;
 
   const rows = stops.map((d, i) => {

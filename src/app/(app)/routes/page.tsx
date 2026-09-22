@@ -35,6 +35,7 @@ import { CLAVE_ID, etiquetaDelGestor, valorDelGestor, type ContextoDelGestor } f
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
+import { aLaDecima, sumaPallets } from "@/lib/pallets";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -810,7 +811,7 @@ export default function RoutesPage() {
     ];
     for (const u of lanes) {
       const orders = byDriver.get(u.key) ?? [];
-      const pallets = Math.round(orders.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0));
+      const pallets = sumaPallets(orders);
       cols.push({ key: u.key, title: u.label, color: colorFor(u.driver), orders, sub: `${pallets}/${capacityFor(u.driver)}` });
     }
     return cols;
@@ -1691,7 +1692,7 @@ export default function RoutesPage() {
                 const needsDriver = !isRealDriver(u.driver);
                 // Load vs truck capacity — a filled bar the dispatcher can read
                 // at a glance; over capacity turns red (the day needs a reload trip).
-                const pallets = stops.reduce((s, o) => s + Number(o.actual_pallets ?? o.est_pallets ?? 0), 0);
+                const pallets = sumaPallets(stops);
                 const cap = capacityFor(u.driver);
                 const pct = cap > 0 ? Math.min(100, (pallets / cap) * 100) : 0;
                 const over = pallets > cap;
@@ -2254,7 +2255,7 @@ export default function RoutesPage() {
               </div>
             )}
             {trips.length > 1 && (() => {
-              const load = stops.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0);
+              const load = sumaPallets(stops);
               return (
                 <div className="hint" style={{ marginBottom: 8, color: "var(--accent)" }}>
                   💡 {t(
@@ -2342,8 +2343,8 @@ export default function RoutesPage() {
                     {trips.map((batch, ti) => {
                       const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
                       // A la décima (D-355): los pallets llevan fracciones (0.03) y la suma en coma flotante salía «7.569999999999999».
-                      const load = Math.round(batch.reduce((n, d) => n + (d.actual_pallets ?? d.est_pallets ?? 0), 0) * 10) / 10;
-                      const free = Math.round(Math.max(0, capacity - load) * 10) / 10;
+                      const load = sumaPallets(batch);
+                      const free = aLaDecima(Math.max(0, capacity - load));
                       const tColor = tripColor(colorFor(u.driver), ti);
                       const ts = routeTrips[u.key]?.[ti];
                       const doneN = batch.filter((d) => d.stage === "delivered").length;

@@ -24393,6 +24393,9 @@ verde. **No verificado:** nada abierto en un navegador.
 
 ## D-355 · La carga y los pallets libres de un viaje se enseñan a la décima
 
+> **⚠ Generalizada por D-362** (2026-09-22): arreglaba un sitio y el fallo era de sumar. Quince sitios sumaban pallets
+> por su cuenta, y cuatro redondeaban a ENTERO, que es peor. Ahora hay una sola función.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.179.0, repo 1.243.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«carga en recolección ↺ (7.569999999999999 libres) round it nearest tenth»*.
 
@@ -24596,3 +24599,58 @@ el paso de `delivered`. Suite entera local en verde.
   clasificador de permisos lo niega), así que la aplica el dueño o el orquestador desde la otra máquina, con
   respaldo hecho y `migrate-status` antes y después.
 - Nada abierto en un navegador.
+
+## D-362 · Sumar pallets es de una función, y siempre a la décima
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.186.0, repo 1.251.0 · **Sin migración.**
+**Reportado por el dueño**, con captura de la lista de choferes: *«4.430000000000001/12»*, y *«fix all those decimals
+and check the overall system for this»*.
+
+### Por qué D-355 no bastaba
+
+D-355 arregló **un sitio** —la cabecera del viaje— y el fallo no era de esa pantalla: era de sumar. Los pallets
+admiten fracciones (hay órdenes de 0.03 y de 0.1) y la suma en coma flotante deja cola. Se midió el repo entero:
+**quince sitios** sumaban pallets por su cuenta, cada uno a su manera.
+
+**Y el orden de la suma decide**, que es por qué salía en un chofer y no en el de al lado:
+
+| | |
+|---|---|
+| `4 + 0.4 + 0.03` | `4.430000000000001` |
+| `0.03 + 0.4 + 4` | `4.43` |
+
+### La otra forma de equivocarse, que era peor
+
+Cuatro de esos quince hacían `Math.round(...)` **a entero**: Cuentas, el mapa y dos del Gestor. Eso no deja cola —
+deja un número **mal y creíble**: una ruta con cuatro órdenes de 0.1 enseñaba «0», y un total de 4.43 enseñaba «4».
+Nadie lo habría reportado nunca, porque no se ve raro. Ese era el fallo de verdad, y salió al buscar el otro.
+
+### Qué se hizo
+
+`src/lib/pallets.ts`, tres funciones y ningún sitio más:
+
+- `palletsDeLaOrden(d)` — los contados si los hay, si no los estimados; `0` si no hay ninguno. Un **cero contado no
+  cae al estimado**: contado es contado.
+- `aLaDecima(n)` — la unidad de la app. Con una décima de pallet nadie decide nada distinto.
+- `sumaPallets(lista)` — la suma, ya a la décima. Es lo que se pinta y contra lo que se compara la capacidad.
+
+Los quince sitios pasan por ahí: `dispatch` (la barra de cada chofer, que es lo de la captura), `ruta-del-dia`,
+`manifest`, `analytics` (tres acumuladores), `daily-summary`, `route-plan/entrada`, `one-tap-stop`, y las páginas de
+Cuentas, Mapa, Mi ruta y el Gestor. **Donde NO se redondea es dentro de los bucles de reparto por camión**
+(`dispatch`): ahí la suma se compara con la capacidad paso a paso, y redondear en cada paso movería el corte.
+
+Una prueba impide la recaída: el Gestor ya no puede volver a sumar pallets a mano.
+
+### Verificado
+
+`pallets.test.ts` con los números de la captura, incluido el control de que la suma cruda **sí** deja cola (si algún
+día dejara de dejarla, la función sobraría y la prueba lo diría). Cuatro mutantes leídos por nombre, caen los cuatro:
+redondear a entero, el estimado mandando sobre el contado, la suma sin redondear, y la página volviendo a sumar a
+mano. Suite entera local: 3682 pasados.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.**
+- **Los totales de dinero y millas no se tocaron.** `delivery_fee` y `route_miles` se suman igual de crudos en
+  `analytics` y en el manifiesto, y pueden tener el mismo problema — con dinero, además, la décima no es la unidad
+  correcta. No entraba en lo pedido y se deja dicho aquí en vez de arreglarlo de paso.

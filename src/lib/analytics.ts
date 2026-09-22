@@ -2,6 +2,7 @@ import type { Delivery, DriverShift, OrderEvent, Profile, Stage } from "@/lib/ty
 import { isOverdue, orderOwner } from "@/lib/utils";
 import { parseWindow } from "@/lib/dispatch";
 import { distanceMeters } from "@/lib/geo";
+import { palletsDeLaOrden } from "./pallets";
 
 // How far the POD GPS stamp can sit from the geocoded destination before the
 // delivery is flagged as location-mismatched (metres). ~250 m tolerates
@@ -46,7 +47,7 @@ export function computeKpis(deliveries: Delivery[]): Kpis {
       case "canceled": canceled++; break;
     }
     if (isOverdue(d)) overdue++;
-    totalPallets += Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    totalPallets += palletsDeLaOrden(d);
     totalMiles += Number(d.route_miles ?? 0);
     if (d.stage !== "canceled") totalFees += Number(d.delivery_fee ?? 0);
     if (d.stage === "delivered" && d.delivery_date) {
@@ -91,7 +92,7 @@ export function driverStats(deliveries: Delivery[]): DriverStat[] {
     s.total++;
     if (d.stage === "delivered") s.delivered++;
     if (activeStages.includes(d.stage)) s.active++;
-    s.pallets += Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    s.pallets += palletsDeLaOrden(d);
     s.miles += Number(d.route_miles ?? 0);
     map.set(d.assigned_driver, s);
   }
@@ -197,7 +198,7 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
     if (d.delivery_date) a.days.add(d.delivery_date);
     a.miles += Number(d.route_miles ?? 0);
     a.revenue += Number(d.delivery_fee ?? 0);
-    a.pallets += Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    a.pallets += palletsDeLaOrden(d);
     if (d.stage === "delivered") {
       a.delivered++;
       const due = promisedDue(d);
@@ -402,7 +403,7 @@ export function groupVolume(deliveries: Delivery[], field: "store" | "account"):
     const s = map.get(key) ?? { key, total: 0, delivered: 0, pallets: 0 };
     s.total++;
     if (d.stage === "delivered") s.delivered++;
-    s.pallets += Number(d.actual_pallets ?? d.est_pallets ?? 0);
+    s.pallets += palletsDeLaOrden(d);
     map.set(key, s);
   }
   return [...map.values()]

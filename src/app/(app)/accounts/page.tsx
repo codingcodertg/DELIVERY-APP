@@ -10,6 +10,7 @@ import { anchoDeTabla, useColWidths } from "@/lib/use-col-widths";
 import { useConfirm } from "@/lib/confirm";
 import type { AccountRecord, Delivery, Settings } from "@/lib/types";
 import { isStoreToStore } from "@/lib/required";
+import { sumaPallets } from "@/lib/pallets";
 
 // ============================================================
 // Customer accounts — every order grouped by the customer it belongs to.
@@ -70,7 +71,8 @@ export default function AccountsPage() {
         active: orders.filter((d) => !CLOSED.includes(d.stage)).length,
         delivered: orders.filter((d) => d.stage === "delivered").length,
         overdue: orders.filter(isOverdue).length,
-        pallets: Math.round(orders.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0)),
+        // A la décima, no a entero (D-362): `Math.round` enseñaba «4» donde había 4.43.
+        pallets: sumaPallets(orders),
         fees: Math.round(orders.filter((d) => d.stage !== "canceled").reduce((s, d) => s + (d.delivery_fee ?? 0), 0) * 100) / 100,
         lastDate: orders.map((d) => d.delivery_date).filter(Boolean).sort().reverse()[0] ?? null,
         // "Mine" = this customer has at least one order I own (created / assigned to me).
