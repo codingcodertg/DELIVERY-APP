@@ -17,6 +17,8 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
   { key: "account", en: "Account", es: "Cuenta", tablas: ["programadas", "sinAsignar"], ancho: 140 },
   // La dirección de entrega (D-346). El dueño: «delivery address is missing in the logistic manager schedule table».
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", tablas: ["programadas", "sinAsignar"], ancho: 220 },
+  // Dónde recoge (D-353). El dueño: «en logistic manager table también quiero ver dónde recoge».
+  { key: "pickup", en: "Pickup", es: "Recogida", tablas: ["programadas", "sinAsignar"], ancho: 160 },
   { key: "store", en: "Store", es: "Tienda", tablas: ["sinAsignar"], ancho: 92 },
   { key: "driver", en: "Driver / Route", es: "Chofer / Ruta", tablas: ["programadas"], ancho: 140 },
   { key: "load", en: "Load", es: "Carga", tablas: ["programadas"], ancho: 52 },
@@ -36,12 +38,12 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
 ];
 
 /** Por defecto, TODAS: lo que ya se veía, más la factura. Quitar columnas es una elección, no el punto de partida. */
-export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.map((c) => c.key), "_v2"];
+export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.map((c) => c.key), "_v2", "_v3"];
 
 /** El orden de cada tabla es el que ya tenía antes de poder elegir: la factura entra la primera y nada más se mueve. */
 const ORDEN: Record<TablaDelGestor, readonly string[]> = {
-  programadas: ["invoice", "account", "address", "driver", "load", "stop", "windows", "pallets"],
-  sinAsignar: ["invoice", "account", "address", "store", "pallets", "date", "windows", "status"],
+  programadas: ["invoice", "account", "pickup", "address", "driver", "load", "stop", "windows", "pallets"],
+  sinAsignar: ["invoice", "account", "pickup", "address", "store", "pallets", "date", "windows", "status"],
   paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows"],
 };
 
@@ -61,9 +63,13 @@ export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly stri
  */
 export const MARCA_V2 = "_v2";
 const NUEVAS_EN_V2: readonly string[] = ["address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows"];
+// D-353 llegó después de que alguien pudiera tener ya la marca v2: segunda tanda, con su propia marca.
+export const MARCA_V3 = "_v3";
+const NUEVAS_EN_V3: readonly string[] = ["pickup"];
 export function conColumnasNuevas(guardadas: readonly string[]): string[] {
-  if (guardadas.includes(MARCA_V2)) return [...guardadas];
-  return [...new Set([...guardadas, ...NUEVAS_EN_V2])].concat(MARCA_V2);
+  let lista = guardadas.includes(MARCA_V2) ? [...guardadas] : [...new Set([...guardadas, ...NUEVAS_EN_V2])].concat(MARCA_V2);
+  if (!lista.includes(MARCA_V3)) lista = [...new Set([...lista, ...NUEVAS_EN_V3])].concat(MARCA_V3);
+  return lista;
 }
 
 /** Los índices (puestos) de la tabla de paradas que NO se pintan: las columnas de `paradas` que la persona quitó. */
@@ -77,5 +83,5 @@ export function alternaColumna(elegidas: readonly string[], key: string): string
   const si = new Set(elegidas);
   if (si.has(key)) si.delete(key); else si.add(key);
   // La marca viaja siempre: lo que se guarde a partir de aquí ya conoce las columnas de D-346.
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3);
 }

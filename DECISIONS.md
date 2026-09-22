@@ -24350,3 +24350,19 @@ Suite entera local: 3641 pasados, 3 saltados.
   nueva salga bien lo confirma el dueño al seleccionar al chofer.
 - Cada selección con plan gasta una llamada al servicio de rutas (una por chofer y día); no se midió contra el
   presupuesto diario.
+
+## D-353 · Las tablas del Gestor enseñan dónde recoge cada orden
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.177.0, repo 1.241.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«en logistic manager table también quiero ver dónde recoge»*.
+
+Programadas y Sin asignar ganan la columna **«Recogida»**, delante de la dirección de entrega: el nombre de la
+tienda o almacén de recogida (`pickup_name`), y la dirección al pasar el ratón. Está en el catálogo, así que se puede
+quitar con el ⚙ de cada tabla.
+
+Quien ya tenía sus columnas guardadas con la marca de D-346 (`_v2`) no la habría recibido nunca, por lo mismo que
+explica D-346: una columna nueva no se distingue de una quitada. Segunda marca (`_v3`) con su tanda: a quien no la
+lleva se le añade la recogida una vez; a quien la lleva y la quitó, se le respeta.
+
+**Verificado:** `routes-columns.test.ts` al día (catálogo, orden, marcas); el mutante «la recogida no llega a quien
+ya guardó» cae. Suite entera local en verde. **No verificado:** nada abierto en un navegador.
