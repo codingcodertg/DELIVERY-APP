@@ -2295,8 +2295,9 @@ export default function RoutesPage() {
                   <tbody>
                     {trips.map((batch, ti) => {
                       const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
-                      const load = batch.reduce((n, d) => n + (d.actual_pallets ?? d.est_pallets ?? 0), 0);
-                      const free = Math.max(0, capacity - load);
+                      // A la décima (D-355): los pallets llevan fracciones (0.03) y la suma en coma flotante salía «7.569999999999999».
+                      const load = Math.round(batch.reduce((n, d) => n + (d.actual_pallets ?? d.est_pallets ?? 0), 0) * 10) / 10;
+                      const free = Math.round(Math.max(0, capacity - load) * 10) / 10;
                       const tColor = tripColor(colorFor(u.driver), ti);
                       const ts = routeTrips[u.key]?.[ti];
                       const doneN = batch.filter((d) => d.stage === "delivered").length;

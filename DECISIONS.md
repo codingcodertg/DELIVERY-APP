@@ -24382,3 +24382,15 @@ selector, sin etiqueta.
 
 **Verificado:** prueba de texto sobre `DateCell`; el mutante «vuelve a mirar solo el día» cae. Suite entera local en
 verde. **No verificado:** nada abierto en un navegador.
+
+## D-355 · La carga y los pallets libres de un viaje se enseñan a la décima
+
+**Fecha:** 2026-09-22 · **Versión:** Entregas 1.179.0, repo 1.243.0 · **Sin migración.**
+**Reportado por el dueño**, literal: *«carga en recolección ↺ (7.569999999999999 libres) round it nearest tenth»*.
+
+Los pallets admiten fracciones (una orden de 0.03) y la suma en coma flotante deja cola: `12 − (4 + 0.4 + 0.03)`
+no es `7.57`. En la cabecera de cada viaje del Gestor, la carga y lo libre se redondean ahora a la décima antes de
+pintarse. Solo cambia lo que se enseña; la capacidad y las comparaciones («sobre capacidad») usan los mismos números
+redondeados, que a la décima no cambian ninguna decisión.
+
+**Verificado:** prueba de texto y del cálculo. **No verificado:** nada abierto en un navegador.
