@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { PlanDelDia } from "@/components/PlanDelDia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
@@ -30,6 +30,9 @@ import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, c
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
+import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { CLAVE_ID, etiquetaDelGestor, valorDelGestor, type ContextoDelGestor } from "@/lib/valores-del-gestor";
+import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 
@@ -772,6 +775,33 @@ export default function RoutesPage() {
     }
     return map;
   }, [dayOrders]);
+
+  // Ordenar y filtrar por columna en «Programadas» y «Sin asignar» (D-360), con el menú de Órdenes. El valor de
+  // cada columna lo decide `valorDelGestor`; la carga y la parada salen del reparto del día, que vive aquí.
+  const ctxDelGestor = useMemo<ContextoDelGestor>(() => ({
+    lang,
+    cargaDe: (d) => (bucketNames.includes(d.assigned_driver || "") ? null : loadNoOf(d)),
+    paradaDe: (d) => {
+      if (d.route_seq == null) return null;
+      const clave = orderLaneKeyPure(d, (n) => bucketNames.includes(n));
+      const i = clave ? (byDriver.get(clave) ?? []).findIndex((x) => x.id === d.id) : -1;
+      return i < 0 ? null : i + 1;
+    },
+  }), [lang, bucketNames, byDriver]);
+  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, ctxDelGestor), [ctxDelGestor]);
+  const ordenProgramadas = useOrdenYFiltro(scheduled, valorDelGestorAqui);
+  const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
+  // El ID es fijo en las dos tablas y ordena y filtra igual que las del catálogo; la fecha se lista formateada.
+  const COL_ID: ColumnaConMenu = { key: CLAVE_ID, en: "ID", es: "ID" };
+  const menuProgramadas: ColumnaConMenu[] = [COL_ID, ...colsProgramadas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
+  const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
+  // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
+  // dueño «still pending the clicking on the ID or invoice # to view the full order details».
+  const abreLaOrden = (d: Delivery) => ({
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(d); },
+    style: { cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 } as const,
+    title: t("Open this order", "Abrir esta orden"),
+  });
 
   // Columns for the drag-and-drop board: the unassigned pool, then one per driver.
   const boardColumns: BoardColumn[] = useMemo(() => {
@@ -1804,6 +1834,8 @@ export default function RoutesPage() {
           {scheduled.length === 0 ? (
             <div className="empty">{t("No orders are assigned to a driver or route yet for this date.", "Aún no hay órdenes asignadas a un chofer o ruta en esta fecha.")}</div>
           ) : (
+            <>
+            <FiltrosPuestos estado={ordenProgramadas} columnas={menuProgramadas} lang={lang} t={t} />
             <div className="tbl-scroll tbl-fit">
               <table className="orders tbl-resize" style={anchoDeTabla([schedCols.widthOf("__id"), ...colsProgramadas.map((c) => schedCols.widthOf(`g_${c.key}`)), 44])}>
                 <colgroup>
@@ -1813,23 +1845,27 @@ export default function RoutesPage() {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={schedCols.startResize("__id")} /></th>
-                    {colsProgramadas.map((c) => <th key={c.key}>{lang === "es" ? c.es : c.en}<span className="col-resizer" onMouseDown={schedCols.startResize(`g_${c.key}`)} /></th>)}
+                    {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
+                    <th><CabeceraConMenu estado={ordenProgramadas} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize("__id")} /></th>
+                    {menuProgramadas.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenProgramadas} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize(`g_${c.key}`)} /></th>)}
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduled.map((d) => {
+                  {ordenProgramadas.visibles.length === 0 && (
+                    <tr><td colSpan={colsProgramadas.length + 2} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+                  )}
+                  {ordenProgramadas.visibles.map((d) => {
                     const laneKey = orderLaneKey(d)!;
                     const seqList = byDriver.get(laneKey) ?? [];
                     const idx = seqList.findIndex((x) => x.id === d.id);
                     const bucket = isBucket(d.assigned_driver || "");
                     return (
                       <tr key={d.id}>
-                        <td className="ordno">#{orderLabel(d)}</td>
+                        <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
                         {colsProgramadas.map((c) => (
                           <td key={c.key}>
-                            {c.key === "invoice" ? (d.invoice_num || "—")
+                            {c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
                               : c.key === "account" ? (d.account || "—")
                               : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
                               : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
@@ -1849,6 +1885,8 @@ export default function RoutesPage() {
                 </tbody>
               </table>
             </div>
+            <MenuDeColumnaAbierto estado={ordenProgramadas} columnas={menuProgramadas} lang={lang} t={t} />
+            </>
           )}
         </div>
       )}
@@ -1954,6 +1992,8 @@ export default function RoutesPage() {
         ) : unassignedShown.length === 0 ? (
           <div className="empty">{t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda.")}</div>
         ) : (
+          <>
+          <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
           <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
             <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => poolCols.widthOf(`g_${c.key}`)), 116])}>
               <colgroup>
@@ -1968,22 +2008,27 @@ export default function RoutesPage() {
                     <input
                       type="checkbox"
                       aria-label={t("Select all", "Seleccionar todo")}
-                      checked={unassignedShown.length > 0 && unassignedShown.every((d) => selectedOrders.has(d.id))}
+                      // «Seleccionar todo» es lo que se VE: con un filtro de columna puesto (D-360), solo esas filas.
+                      checked={ordenSinAsignar.visibles.length > 0 && ordenSinAsignar.visibles.every((d) => selectedOrders.has(d.id))}
                       onChange={(e) => setSelectedOrders((s) => {
                         const n = new Set(s);
-                        if (e.target.checked) unassignedShown.forEach((d) => n.add(d.id));
-                        else unassignedShown.forEach((d) => n.delete(d.id));
+                        if (e.target.checked) ordenSinAsignar.visibles.forEach((d) => n.add(d.id));
+                        else ordenSinAsignar.visibles.forEach((d) => n.delete(d.id));
                         return n;
                       })}
                     />
                   </th>
-                  <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
-                  {colsSinAsignar.map((c) => <th key={c.key}>{lang === "es" ? c.es : c.en}<span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`)} /></th>)}
+                  {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
+                  <th><CabeceraConMenu estado={ordenSinAsignar} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
+                  {menuSinAsignar.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`)} /></th>)}
                   <th>{singleSel ? t("Add to", "Agregar a") : t("Assign to", "Asignar a")}</th>
                 </tr>
               </thead>
               <tbody>
-                {unassignedShown.map((d) => {
+                {ordenSinAsignar.visibles.length === 0 && (
+                  <tr><td colSpan={colsSinAsignar.length + 3} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+                )}
+                {ordenSinAsignar.visibles.map((d) => {
                   const s = stageInfo(d.stage);
                   return (
                     <tr key={d.id} className={selectedOrders.has(d.id) ? "row-selected" : ""} onClick={() => toggleOrder(d.id)} style={{ cursor: "pointer" }}>
@@ -1991,10 +2036,11 @@ export default function RoutesPage() {
                         <input type="checkbox" checked={selectedOrders.has(d.id)} readOnly aria-label={`#${orderLabel(d)}`} />
                         {selectedOrders.has(d.id) && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
                       </td>
-                      <td className="ordno">#{orderLabel(d)}</td>
+                      {/* El ID abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
+                      <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
                       {colsSinAsignar.map((c) => (
                         <td key={c.key} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
-                          {c.key === "invoice" ? (d.invoice_num || "—")
+                          {c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
                             : c.key === "account" ? (d.account || "—")
                             : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
                             : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
@@ -2046,6 +2092,8 @@ export default function RoutesPage() {
               </tbody>
             </table>
           </div>
+          <MenuDeColumnaAbierto estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
+          </>
         )}
         </>}
       </div>

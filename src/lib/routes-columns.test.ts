@@ -81,9 +81,12 @@ describe("la página del Gestor", () => {
   it("las dos tablas se pintan desde el catálogo, con la factura leída de la orden", () => {
     expect(pagina).toContain('const colsProgramadas = columnasDeLaTabla("programadas", colsGestor);');
     expect(pagina).toContain('const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);');
-    expect(pagina.split('c.key === "invoice" ? (d.invoice_num || "—")').length - 1).toBe(2);
-    expect(pagina).toContain("{colsProgramadas.map((c) => <th key={c.key}>");
-    expect(pagina).toContain("{colsSinAsignar.map((c) => <th key={c.key}>");
+    // Desde D-360 la factura es un enlace que abre la orden, y las cabeceras salen del juego con menú (el catálogo más el ID).
+    expect(pagina.split('c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")').length - 1).toBe(2);
+    expect(pagina).toContain("const menuProgramadas: ColumnaConMenu[] = [COL_ID, ...colsProgramadas.map(");
+    expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map(");
+    expect(pagina).toContain("{menuProgramadas.slice(1).map((c) => <th key={c.key}>");
+    expect(pagina).toContain("{menuSinAsignar.slice(1).map((c) => <th key={c.key}>");
     // La tercera tabla (paradas por ruta) la enseña bajo el código, si la columna está elegida.
     expect(pagina).toContain('{colsGestor.includes("invoice") && d.invoice_num && <div');
   });

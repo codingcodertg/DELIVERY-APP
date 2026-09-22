@@ -12,6 +12,7 @@ import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
+import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
 import type { CancelReason, Delivery } from "@/lib/types";
@@ -25,7 +26,7 @@ type Ctx = {
   /** Los motivos de anulación vigentes, para traducir la clave que guarda la orden (122). */
   motivos?: CancelReason[];
 };
-type CellValue = string | number | null;
+type CellValue = ValorDeCelda;
 
 // ---- Column registry (#13 column customization) ---------------------------
 // "ID" is always shown; everything else can be toggled by the user.
@@ -227,19 +228,18 @@ const ID_COLUMN: OrderColumn = {
   },
 };
 
-const NO_VALUE = " —"; // internal key for null/blank, kept out of user-typed territory
-
-function filterKey(v: CellValue): string {
-  return v == null || v === "" ? NO_VALUE : String(v);
-}
+// La clave del «sin valor» y cómo se compara, filtra y se listan las opciones viven en `lib/orden-y-filtro`
+// (D-360): las tablas del Gestor de Rutas hacen lo mismo con las mismas funciones.
 
 /** One column header's menu: sort it, then an Excel-style checklist filter (search box,
  * select-all, one checkbox per distinct value present in the other-filters-applied rows).
- * Sorting sits in the same menu so both are one click away (D-275). */
-function ColumnFilterMenu({
+ * Sorting sits in the same menu so both are one click away (D-275).
+ * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
+export function ColumnFilterMenu({
   col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef,
 }: {
-  col: OrderColumn;
+  /** Solo hace falta el nombre de la columna en los dos idiomas. */
+  col: Pick<OrderColumn, "en" | "es">;
   options: { key: string; label: string }[];
   active: Set<string> | undefined;
   /** How THIS column is sorted right now; null when the table is sorted by another or not at all. */
@@ -447,15 +447,13 @@ export function OrdersTable({
   // own filter — used so that column's own checklist still offers every value
   // that would remain visible if you cleared just that filter (Excel-style
   // cascading options), while other columns' choices still narrow it down.
-  const applyFilters = (data: Delivery[], skipKey?: string) =>
-    data.filter((d) =>
-      cols.every((c) => {
-        if (c.key === skipKey) return true;
-        const active = filters[c.key];
-        if (!active || active.size === 0) return true;
-        return active.has(filterKey(c.value(d, ctx)));
-      }),
-    );
+  // Solo cuentan los filtros de las columnas que se VEN: el de una columna que se quitó del juego
+  // no sigue filtrando a escondidas (era así antes de D-360 y sigue siéndolo).
+  const applyFilters = (data: Delivery[], skipKey?: string) => {
+    const visiblesConFiltro: Record<string, Set<string>> = {};
+    for (const c of cols) if (filters[c.key]) visiblesConFiltro[c.key] = filters[c.key];
+    return filtraFilas(data, visiblesConFiltro, (k, d) => cols.find((c) => c.key === k)!.value(d, ctx), skipKey);
+  };
 
   const filteredRows = useMemo(() => applyFilters(rows), [rows, filters, cols, lang]);
 
@@ -464,15 +462,10 @@ export function OrdersTable({
     const col = cols.find((c) => c.key === sortKey);
     if (!col) return filteredRows;
     const copy = [...filteredRows];
+    // Aquí el descendente invierte TODO, nulos incluidos (los trae arriba): es como estaba desde D-275 y
+    // no se cambia sin decisión. `ordenaFilas` de la misma librería los deja al final en las dos direcciones.
     copy.sort((a, b) => {
-      const va = col.value(a, ctx);
-      const vb = col.value(b, ctx);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      const cmp = typeof va === "number" && typeof vb === "number"
-        ? va - vb
-        : String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: "base" });
+      const cmp = comparaCeldas(col.value(a, ctx), col.value(b, ctx));
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
@@ -495,19 +488,7 @@ export function OrdersTable({
     setOpenFilter(null);
   };
 
-  const optionsFor = (col: OrderColumn) => {
-    const base = applyFilters(rows, col.key);
-    const map = new Map<string, string>();
-    for (const d of base) {
-      const raw = col.value(d, ctx);
-      const key = filterKey(raw);
-      if (map.has(key)) continue;
-      map.set(key, key === NO_VALUE ? "—" : col.filterLabel ? col.filterLabel(raw) : key);
-    }
-    return [...map.entries()]
-      .map(([key, label]) => ({ key, label }))
-      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
-  };
+  const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
 
   const allChecked = !!selected && rows.length > 0 && rows.every((r) => selected.has(r.id));
 
