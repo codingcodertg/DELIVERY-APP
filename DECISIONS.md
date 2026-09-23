@@ -25353,3 +25353,99 @@ quién corra es peor que una lenta: el rojo no dice nada del código. Ahora el l
 - **La 141 está sin aplicar.**
 - **El avance del admin —cuántos grupos terminaron y el resultado por tienda— NO está aquí**, y es a propósito: es un resumen de
   solo lectura sobre `promo_decisions` que no comparte nada con lo de arriba salvo el concepto de grupo. Va en su propia entrega.
+
+## D-NEXT · El script con el que se cargan las rondas de promociones
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Sin migración.**
+**De dónde sale:** el dueño quitó la subida por pantalla —*«eso de cargar files no, quita eso: yo te doy la información y tú la
+subes y punto»*— así que las rondas las carga quien administra el sistema. Hasta ahora eso era un fichero de pruebas temporal y
+un script con `pg`, que **no es un método**: `pg` no es dependencia de este proyecto y un `npm ci` se lo lleva.
+
+`scripts/promos/cargar.mjs`, con su `README.md` al lado, escrito para que **una sesión que no estuvo pueda usarlo leyendo solo
+eso**: cómo se lanza, qué comprueba, y cómo se detecta y se borra una ronda mal cargada.
+
+### Usa la app, no una copia de la app
+
+Importa los mismos `.ts` de `src/lib/promos` que usaba la pantalla: el lector del libro, las filas que se guardan, los topes y
+la huella. **El día que el libro cambie de forma, cambia en un sitio.** Una copia del lector se habría quedado atrás sin que
+nada fallara, y nadie se habría enterado hasta que una ronda entrara mal. Hay prueba de los tres imports y de que el script no
+se haya traído el trabajo (ni encabezados, ni reglas de celda).
+
+### Sin dependencia nueva, y medido antes de decidirlo
+
+Se evaluó añadir `tsx`. **No hace falta:** Node 22.6+ quita los tipos él solo, y los tres módulos que se importan **no tienen ni
+un import de runtime con el alias `@/`** — los suyos son relativos o de tipo, y los de tipo se borran. Se comprobó importándolos
+de verdad, no leyéndolos. Una dependencia de desarrollo para un script es coste de `npm ci` y superficie, a cambio de nada.
+
+Lo que sí cuesta, dicho: sale un aviso `MODULE_TYPELESS_PACKAGE_JSON`. **No se arregla poniendo `"type": "module"`** en el
+`package.json`, que cambiaría la resolución de módulos de toda la app por un script; se apaga con
+`--disable-warning=MODULE_TYPELESS_PACKAGE_JSON`, que silencia **ese** y no los demás — un `--no-warnings` a secas taparía
+avisos que sí importan.
+
+Y el punto de entrada es `.mjs` y no `.ts` **para poder comprobar la versión de Node antes de que nada se parsee**: en un Node
+viejo un `.ts` revienta con un error de sintaxis que no dice cuál es el problema. Hay prueba de que esa comprobación va **antes**
+de los imports, que es lo único que la hace útil.
+
+### Mirar no cuesta nada; escribir pide una bandera
+
+Sin `--escribir` **no escribe**, y además **no necesita la llave de servicio**: comprobar un Excel no debería exigir la llave que
+escribe. La prueba lo sostiene **por posición** —las tres escrituras están después del corte del modo lectura—, no con un «existe
+un `if`», que leerlo no habría cazado.
+
+Sin llave no se puede leer Ajustes, así que no se sabe de qué grupo es cada hoja: hay `--grupos=UNO,DOS` **solo para mirar**, y
+se **rechaza** junto con `--escribir`. Al escribir, los grupos salen de Ajustes y de ningún otro sitio; una lista escrita a mano
+metería sugerencias de grupos que en la base no existen.
+
+### El aviso de la tienda nueva, y el error que cometí al escribirlo
+
+El encargo pedía avisar de un grupo que no esté en Ajustes **antes de escribir**. La primera versión lo derivaba de los
+productos: las hojas de las que salieron, menos los grupos conocidos. **Probándolo con un grupo quitado a mano, no lo vio.** La
+razón es bonita: si a una hoja de tienda le falta su grupo, se lee como catálogo, y entonces **todos sus productos chocan con los
+de la hoja general y pierden** —gana el primero— así que **ningún producto se queda con el nombre de esa hoja**. La derivación
+escondía justo el caso que venía a cazar.
+
+Ahora se deriva de **las hojas del libro** (`disposicionDe` dice cuáles son de productos), menos los grupos conocidos. Con un
+grupo fuera, aparece. Es la diferencia entre mirar el resultado y mirar la entrada.
+
+### Dos trampas más, las dos encontradas corriéndolo
+
+- **`buf.buffer` no es el fichero.** Node saca los `Buffer` pequeños de un fondo común, así que su `ArrayBuffer` es el fondo
+  entero. Con un libro pequeño se habría leído basura de al lado. Se recorta con `byteOffset`/`byteLength`.
+- **El informe mentía por exceso.** Sin grupos conocidos, el libro real daba **110 avisos** de código repetido —uno por fila de
+  cada hoja de tienda— y parecía traer ciento diez problemas cuando traía uno: que no se sabía de quién era cada hoja. Ahora los
+  avisos van **agrupados por tipo**, con unos pocos ejemplos, y cuando eso pasa se explica en una línea.
+
+### No hay transacción, y qué se hace en su lugar
+
+`supabase-js` no la ofrece. En vez de fingirla:
+
+- **la ronda nace CERRADA** (`closed_at`), que en la 140 significa «esta ronda no se decide»: el disparador rechaza toda
+  escritura de decisión mientras lo esté. Una carga interrumpida —red caída, Ctrl-C— deja **una ronda cerrada con el catálogo a
+  medias**, sobre la que nadie puede aprobar, en vez de una abierta con la mitad de los productos y gente decidiendo;
+- al final **se cuentan** las filas escritas contra las mandadas y **solo si cuadran se abre**. «Ronda abierta» quiere decir «el
+  script contó sus filas y salieron»;
+- y si un paso falla, **borra la ronda**: la cascada se lleva productos y sugerencias.
+
+**No se ha inventado ninguna columna**: `closed_at` ya existía y se usa con su significado. Distinguir «cerrada por el admin» de
+«carga a medias» sí sería una columna nueva, y no está — el README dice cómo se distinguen con el recuento, que es lo que hay.
+
+### Verificado
+
+Corrido **de verdad contra el libro real, en modo lectura** (no escribe nada, no necesita llave): **60 productos y 106
+sugerencias — BRO 29, WES 12, PHR 28, MCAMIS 22, EDG 15**. Cuadran con lo que midió el orquestador por su cuenta al ensayar la
+inserción, que es la primera vez que las dos mitades de esto se comprueban por caminos distintos.
+
+`script.test.ts`, 14 casos. **Mutantes: 10, leídos por nombre; caen los 10**, y el gemelo —el corte del modo lectura escrito de
+otra forma— se queda en verde. Entre ellos: «la ronda nace abierta», «se abre antes de contar», «deja de borrar la ronda si falla
+un paso», «escribe sin la bandera», «mirar un libro pasa a exigir la llave», «el script se trae su propio lector» y «la versión
+de Node se comprueba después de importar los `.ts`».
+
+**Y uno de esos mutantes estaba mal escrito y sobrevivió sin significar nada**: el de «se abre antes de contar» no movía la
+apertura, solo la reescribía en su sitio. Corregido, cae. Un mutante que sobrevive hay que mirarlo dos veces: la primera, para
+ver si de verdad hace lo que dice su nombre.
+
+### Lo no verificado
+
+- **El script NO ha escrito nunca.** Lo probado es el camino de lectura, que es el que se puede correr sin tocar nada. La
+  primera carga real la hará quien administre, con `--escribir`.
+- **El aviso de la tienda nueva se probó quitando un grupo a mano**, no con un libro que traiga una tienda nueva de verdad.
