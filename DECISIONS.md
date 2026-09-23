@@ -25040,3 +25040,105 @@ de línea de cada fichero. Vale la pena saberlo antes de creerse una tanda de mu
   enseñaba el número de Entregas — el caso que el propio fichero llama «peor que ninguno». Lo vi al añadir la versión:
   una clave nueva en `APP_VERSIONS` no sirve de nada si ninguna ruta la elige. Prueba con nombre en
   `app-for-path.test.ts`, y el mutante que quita la línea la tumba.
+
+## D-NEXT · Subir una ronda de promociones: el servidor vuelve a leer el fichero, y confirmar es un segundo paso
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Migraciones:** ninguna.
+**De dónde sale:** fase B de RTG PROMOS. La A (D-366) montó el módulo; esta trae la única superficie del módulo que escribe con
+la **llave de servicio**, que se salta la RLS entera. Va sola, y en dos pasos, por lo que se cuenta abajo.
+
+### Por qué en dos pasos, y no en uno
+
+**Los previews de Vercel de este proyecto apuntan a la misma base que producción** (regla 4 del flujo de ramas). Una ruta que
+escribe, en un preview, **sube rondas de verdad en cuanto alguien la abre**. Así que subir se parte:
+
+- **`/api/promos/preview`** analiza el libro y **no escribe nada**. No importa la llave de servicio ni por asomo, y tampoco la
+  importa el lector que comparte con la otra ruta: todo lo que toca va con el cliente de quien llama, o sea por la RLS. Es una
+  propiedad comprobable de un vistazo, y hay prueba que la sostiene — **mirando el código sin comentarios**, porque la primera
+  versión se ponía roja solo porque un comentario nombraba la función, y una prueba que confunde la prosa con el código es una
+  prueba que alguien acabará relajando.
+- **`/api/promos/commit`** escribe. Comprueba el rol **en el servidor** antes de nada, porque una ruta es una URL y la pantalla
+  no es una puerta.
+
+Y la pantalla lo hace visible: el primer botón analiza, y el segundo **no se habilita hasta que lo analizado está delante** —
+cuántos productos, qué sugiere cada grupo, y sobre todo **qué decidió el lector no meter y por qué**. No es adorno: el libro
+real trae tres filas con descripción y sin código, cinco productos con el costo en blanco y una hoja que no es de productos.
+Confirmar sin ver eso es subir a ciegas y enterarse cuando alguien pregunte por un producto que falta.
+
+### La decisión que sostiene lo demás: el servidor vuelve a leer el fichero
+
+`commit` **no recibe filas del navegador**. Recibe el `.xlsx` otra vez y lo analiza él. La app ya tenía el otro patrón —
+`ComparaConLaHoja` analiza en el navegador y manda JSON— y aquí **no vale**:
+
+> Si el cliente pudiera mandar las filas, podría mandar **el costo que quisiera**. Y el costo es exactamente lo que la 140 se
+> pasó una migración entera cerrando por privilegio de columna. Cerrarlo por un lado y abrirlo por el otro no es cerrarlo.
+
+Lo que se escribe sale de una **función pura**, `filasParaGuardar`, probada campo por campo sin base de datos — incluida una
+prueba que lee la migración 140 y exige que **las claves sean exactamente sus columnas**. Un nombre mal escrito no lo dice
+`tsc`: lo diría PostgREST al insertar, en producción y con media ronda dentro.
+
+### La huella, y lo que NO es
+
+`preview` devuelve una huella de lo que el servidor leyó; `commit` la recalcula al releer el fichero y **no escribe si no
+casan**. Caza que el admin elija otro fichero entre los dos pasos — el segundo `<input type="file">` no sabe del primero — y
+confirme unos avisos que eran de otro libro.
+
+**No es criptografía y no lo pretende**: no protege de nadie que quiera engañar al servidor, porque el servidor lee el fichero
+por su cuenta y no hay nada que falsificar. Por eso es una FNV-1a de 32 bits escrita a mano: determinista, sin dependencias y
+probable sin navegador. Mira el código, la hoja, la fila, el **costo**, el precio y las existencias de cada producto, más las
+sugerencias y los avisos.
+
+### Lo que `preview` manda al navegador
+
+El recuento, los avisos y una muestra **sin las cinco columnas privadas** — ni el costo, ni las notas, ni la demanda, ni los
+meses de stock, ni el margen. Quien sube es un admin y la base sí le dejaría verlas; se omiten igual porque **para comprobar
+que un libro se leyó bien no hacen falta**, y no se manda por el cable lo que no se necesita. Es la misma idea que sostiene el
+privilegio de columna de la 140, aplicada donde la base ya no llega.
+
+### Los topes, copiados de la 140 a propósito
+
+Cinco megas de fichero, dos mil productos por ronda, y **los tres largos de la migración**: etiqueta 120, código 80, grupo 40.
+Los tres últimos no son una precaución: un código de 81 caracteres **reventaría el `insert` entero** y la ronda quedaría a
+medias, con un error de Postgres que no dice cuál era la fila mala. Aquí sí lo dice. Y hay prueba que lee las cláusulas del
+`.sql` **enteras**, porque «between 1 and 40» es subcadena de «between 1 and 400».
+
+### Si falla a mitad
+
+Las tres escrituras no son una transacción — PostgREST no la ofrece. Van en orden y, si una falla, **se borra la ronda**;
+`promo_products` y `promo_suggestions` cuelgan de ella con `on delete cascade`, así que eso lo deja todo como estaba. Se dice
+que existe esa vuelta atrás en vez de suponer que no hará falta.
+
+Y queda línea en el registro de seguridad: `promo_round_uploaded`, con quién, qué ronda, cuántos productos y desde qué fichero.
+Sin `target_id`, que esa columna apunta a `auth.users` y una ronda no es una persona.
+
+### Verificado
+
+`subida.test.ts` y `libro.test.ts`, 43 casos nuevos. Lo que de verdad cubren:
+
+- **La costura, con un libro escrito por `exceljs` y vuelto a leer.** Las pruebas de `excel.test.ts` construyen las celdas a
+  mano, así que prueban las reglas pero no que la librería entregue lo que ellas suponen. Aquí el dato pasa por la librería:
+  que **una fila vacía en medio no cambia el número de las de abajo** (si cambiara, el admin buscaría en Excel una fila que no
+  es), que una fórmula llega por su `result`, y que **el costo en blanco llega ausente y no cero**, extremo a extremo.
+- **Una prueba de puerta que recorre `src` entero** y exige **cero** `select("*")` sobre `promo_products`. Es una regla de
+  forma, no de un sitio: las cinco columnas están revocadas, así que un `select("*")` falla **para todo el mundo, manager
+  incluido**, y se lee como una avería. Lleva su control, con el caso repartido en varias líneas, porque un detector que no
+  detecta convierte el cero en una respuesta.
+- Que `preview` no conoce la llave de servicio, que `commit` comprueba quién llama **y la huella** antes de cogerla, y que no
+  acepta filas del navegador.
+
+### Mutantes
+
+14, leídos por nombre; caen los 14, y el gemelo —`gruposDeAjustes` con un `for` clásico— se queda en verde. Entre ellos: «el
+costo ausente se guarda como cero», «se pierde una columna al componer la fila», «la huella deja de mirar el costo», «el lector
+deja de comprobar el rol», «`commit` coge la llave antes de saber quién llama», «`commit` deja de comparar la huella»,
+«`preview` coge la llave de servicio», «la pantalla pide `select(*)` sobre `promo_products`» y «`leeLibro` se salta las filas
+vacías».
+
+### Lo no verificado, y esto importa
+
+- **`commit` NO se ha ejecutado nunca.** Ni contra producción, ni contra un preview — que en este proyecto es lo mismo. Todo lo
+  de arriba son funciones puras y lectura de código. Está acordado con el orquestador: se probará **una vez, juntos, con un
+  libro de prueba y borrando la ronda después**. Hasta entonces, que la ronda se escriba bien es una deducción, no una medida.
+- **Nada abierto en un navegador.** Ni el par de botones, ni la lista de avisos, ni la tabla de rondas.
+- **Ninguna tienda tiene grupo todavía**, así que la primera ronda que se suba entrará entera como catálogo y sin sugerencias
+  por tienda. La pantalla lo avisa antes de confirmar, en vez de dejar que parezca que el libro no las traía.

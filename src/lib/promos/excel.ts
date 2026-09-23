@@ -336,3 +336,35 @@ export function leePromo(hojas: readonly HojaCruda[], gruposConocidos: readonly 
 
   return { productos, sugerencias, avisos };
 }
+
+/**
+ * Una huella de lo que el servidor leyó del libro, para que **lo que se confirma sea lo que se
+ * vio**.
+ *
+ * Subir es de dos pasos: `preview` analiza y no escribe, `commit` escribe. Entre uno y otro el
+ * admin puede elegir otro fichero sin darse cuenta —el segundo `<input type="file">` no sabe del
+ * primero— y entonces confirmaría unos avisos que eran de otro libro. `commit` vuelve a leer el
+ * fichero él mismo y compara esta huella con la que devolvió `preview`; si no casan, no escribe.
+ *
+ * **No es criptografía y no pretende serlo**: no protege de nadie que quiera engañar al servidor
+ * —el servidor lee el fichero por su cuenta, así que no hay nada que falsificar— sino de un
+ * despiste. Por eso es una FNV-1a de 32 bits escrita aquí mismo: determinista, sin dependencias, y
+ * probable sin navegador.
+ */
+export function huellaDeLectura(r: ResultadoPromo): string {
+  const canonico = [
+    r.productos.length,
+    r.sugerencias.length,
+    r.avisos.length,
+    ...r.productos.map((p) => `${p.code}|${p.sourceSheet}|${p.rowNo}|${p.cost ?? ""}|${p.price ?? ""}|${p.qoh ?? ""}`),
+    ...r.sugerencias.map((s) => `${s.groupCode}>${s.code}`),
+    ...r.avisos.map((a) => `${a.tipo}@${a.hoja}#${a.fila ?? ""}`),
+  ].join("\n");
+  let h = 0x811c9dc5;
+  for (let i = 0; i < canonico.length; i++) {
+    h ^= canonico.charCodeAt(i);
+    // El desplazamiento de FNV-1a, en aritmética de 32 bits sin signo.
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
