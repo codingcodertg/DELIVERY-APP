@@ -29,8 +29,11 @@ export const CLAVE_DE_COLUMNAS = "order_columns";
 /** Las columnas de las tablas del Gestor de Rutas (137). Misma forma: `{ "<rol>": [columnas] }`. Aquí no hay nada
  *  en el navegador que sembrar: nace con el defecto. */
 export const CLAVE_DE_COLUMNAS_DEL_GESTOR = "routes_columns";
+/** Las columnas de la tabla de RTG PROMOS (141). Misma forma: `{ "<rol>": [columnas] }`, y tampoco
+ *  hay nada en el navegador que sembrar. */
+export const CLAVE_DE_COLUMNAS_DE_PROMOS = "promos_columns";
 /** La lista CERRADA de la base (`user_prefs_key_permitida`). Una prueba la compara con la última migración que la toca. */
-export const CLAVES_DE_PREFERENCIA = [CLAVE_DE_COLUMNAS, CLAVE_DE_COLUMNAS_DEL_GESTOR] as const;
+export const CLAVES_DE_PREFERENCIA = [CLAVE_DE_COLUMNAS, CLAVE_DE_COLUMNAS_DEL_GESTOR, CLAVE_DE_COLUMNAS_DE_PROMOS] as const;
 export type ClaveDePreferencia = typeof CLAVES_DE_PREFERENCIA[number];
 export const claveDelNavegador = (rol: UserRole): string => `rtg_order_columns_${rol}`;
 export const ROLES_QUE_ELIGEN: readonly UserRole[] = ["admin", "manager", "warehouse", "driver", "logistics", "accounting"];
