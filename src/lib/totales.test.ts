@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { redondeaDinero, redondeaMillas, sumaDinero, sumaMillas } from "./totales";
-import { computeKpis, driverStats } from "./analytics";
+import { computeKpis, driverStats, groupVolume } from "./analytics";
+import { buildDailySummary } from "./daily-summary";
 import { mkDelivery } from "./__fixtures";
 import type { Delivery } from "./types";
 
@@ -91,6 +92,84 @@ describe("el resto de D-362 que quedaba en el Panel: pallets a ENTERO", () => {
   it("y por chofer tampoco, que es donde más se nota", () => {
     const suyas = cuatroDeDiezmo.map((d) => ({ ...d, assigned_driver: "Ana" }));
     expect(driverStats(suyas)[0].pallets).toBe(0.4);
+  });
+
+  it("ni el volumen por tienda y por cuenta, que estaba ocho líneas más abajo", () => {
+    // El cuarto, en el mismo fichero: se arregla lo que se está mirando y el barrido no se hace
+    // entero. Por eso además de estos casos hay una puerta, abajo.
+    const suyas = cuatroDeDiezmo.map((d) => ({ ...d, store: "Norte", account: "ACME" }));
+    expect(groupVolume(suyas, "store")[0].pallets).toBe(0.4);
+    expect(groupVolume(suyas, "account")[0].pallets).toBe(0.4);
+  });
+
+  it("y el resumen que se publica en Notion no manda la cola de decimales", () => {
+    // Es el único sitio del barrido donde el número se imprime TAL CUAL: sin `sumaPallets` decía
+    // «4.430000000000001 pallets».
+    const ordenes = [0.03, 0.4, 4].map((p, i) => mkDelivery({
+      id: `n${i}`, stage: "delivered", est_pallets: p, actual_pallets: null,
+      assigned_driver: "Ana", delivery_date: "2026-09-23", pod_delivered_at: "2026-09-23T10:00:00Z",
+    }));
+    const resumen = buildDailySummary(ordenes, [], "2026-09-23", () => "");
+    expect(resumen.perDriver[0].pallets).toBe(4.4);
+  });
+});
+
+describe("la puerta cerrada: nadie vuelve a redondear pallets a entero", () => {
+  /**
+   * Los casos de arriba prueban los sitios que había. Esto impide el **cuarto**.
+   *
+   * D-362 arregló quince sitios y se le escaparon seis; esta rama arregló tres y se le escaparon
+   * otros tres —los encontró el orquestador en el mismo fichero que yo estaba tocando—. El patrón
+   * es siempre el mismo: se arregla lo que se está mirando y el barrido no se hace entero. Así que
+   * lo que se fija aquí no es una lista de sitios, es que **no haya ninguno**.
+   *
+   * Lo que se busca: una línea con `Math.round(` que hable de pallets **y que no divida después**,
+   * que es lo que lo convierte en «a entero». Un `Math.round(x * 10) / 10` legítimo —la décima— no
+   * cuenta, y por eso `pallets.ts` y los minutos de `utils.ts` no saltan.
+   *
+   * **No se mira la estructura con paréntesis, y es a propósito:** la primera versión exigía que
+   * `pallets` apareciera dentro de los paréntesis del `Math.round` y se le escapó
+   * `Math.round(suyas.reduce((n, d) => n + Number(d.est_pallets ?? 0), 0))`, porque el `[^)]*` se
+   * paraba en el primer `)`, que era el de `Number(`. Medido con ese mutante. Una regla por línea
+   * entera no tiene esa trampa.
+   */
+  const esEntero = (l: string) =>
+    /Math\.round\(/.test(l) && /pallets/i.test(l) && !/\/\s*(10|100)\b/.test(l) && !/minPerPallet/.test(l);
+
+  function ficherosDeSrc(dir: string): string[] {
+    const out: string[] = [];
+    for (const e of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) out.push(...ficherosDeSrc(p));
+      else if (/\.(ts|tsx)$/.test(e.name) && !e.name.includes(".test.")) out.push(p);
+    }
+    return out;
+  }
+
+  it("ningún `Math.round` deja pallets en entero, en todo `src`", () => {
+    const culpables: string[] = [];
+    for (const f of ficherosDeSrc("src")) {
+      // `pallets.ts` es el sitio donde la regla vive, y su `Math.round(n * 10) / 10` sí divide.
+      if (f === "src/lib/pallets.ts") continue;
+      leer(f).split("\n").forEach((l, i) => {
+        if (l.trim().startsWith("//") || l.trim().startsWith("*")) return;  // comentarios, no código
+        if (esEntero(l)) culpables.push(`${f}:${i + 1} ${l.trim().slice(0, 90)}`);
+      });
+    }
+    expect(culpables, "pallets a entero: usa `sumaPallets` o `aLaDecima`").toEqual([]);
+  });
+
+  it("control: SÍ ve los cuatro que había, o la prueba de arriba no diría nada", () => {
+    // Sin esto, un error en la regla haría que la puerta pareciera cerrada estando abierta — el
+    // fallo más caro de una prueba de barrido. Son los cuatro sitios reales, copiados tal cual.
+    expect(esEntero("    totalPallets: Math.round(totalPallets),")).toBe(true);
+    expect(esEntero("    .map((s) => ({ ...s, pallets: Math.round(s.pallets) }))")).toBe(true);
+    expect(esEntero('<span>🚚 {t("Truckload", "Viaje")} {ti + 1} · {Math.round(pallets)} pallets</span>')).toBe(true);
+    // Y el que se le escapó a la primera versión, con paréntesis anidados dentro del `Math.round`.
+    expect(esEntero(".map(({ suyas, ...s }) => ({ ...s, pallets: Math.round(suyas.reduce((n, d) => n + Number(d.est_pallets ?? 0), 0)) }))")).toBe(true);
+    // Y NO ve los legítimos: la décima, y los minutos por pallet de `utils.ts`.
+    expect(esEntero("return Number.isFinite(n) ? Math.round(n * 10) / 10 : 0;")).toBe(false);
+    expect(esEntero("  return `${Math.round(n * minPerPallet)} min`;")).toBe(false);
   });
 });
 

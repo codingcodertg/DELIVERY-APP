@@ -21,6 +21,7 @@ import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayIS
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { sumaPallets } from "@/lib/pallets";
+import { aLaDecima } from "@/lib/pallets";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -417,7 +418,9 @@ export default function MyRoutePage() {
                   aria-expanded={openTrip === ti}
                 >
                   <span>{openTrip === ti ? "▾" : "▸"}</span>
-                  <span>🚚 {t("Truckload", "Viaje")} {ti + 1} · {Math.round(pallets)} {t("pallets", "pallets")}</span>
+                  {/* A la décima (D-NEXT). Es la pantalla que más se mira, y es el ejemplo exacto de D-362: una
+                      carga de cuatro órdenes de 0,1 le decía al chofer «0 pallets». */}
+                  <span>🚚 {t("Truckload", "Viaje")} {ti + 1} · {aLaDecima(pallets)} {t("pallets", "pallets")}</span>
                   {tripBusy === ti && <span className="hint">{t("measuring…", "midiendo…")}</span>}
                   {tripRoutes[ti] && (
                     <span className="hint" style={{ textTransform: "none", letterSpacing: 0 }}>

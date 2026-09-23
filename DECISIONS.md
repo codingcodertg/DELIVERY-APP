@@ -24655,32 +24655,45 @@ mano. Suite entera local: 3682 pasados.
   `analytics` y en el manifiesto, y pueden tener el mismo problema — con dinero, además, la décima no es la unidad
   correcta. No entraba en lo pedido y se deja dicho aquí en vez de arreglarlo de paso.
 
-## D-NEXT · Los pallets del Panel salían a entero, y de paso el dinero y las millas se suman en un sitio
+## D-NEXT · Los pallets salían a entero en seis sitios, y de paso el dinero y las millas se suman en un sitio
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 Sale del punto 9 del traspaso, y es el mismo patrón de **D-355** y **D-362** con los pallets.
 
-### Lo primero, porque es lo que se ve: tres restos de D-362
+### Lo primero, porque es lo que se ve: seis restos de D-362
 
 D-362 arregló quince sitios que sumaban pallets por su cuenta, y dedicó una sección a *«la otra forma
 de equivocarse, que era peor»*: redondear a **entero**. No deja cola que delate nada; deja un número
 **mal y creíble** — «una ruta con cuatro órdenes de 0.1 enseñaba "0", y un total de 4.43 enseñaba
 "4"». Nombró cuatro: Cuentas, el mapa y dos del Gestor.
 
-**El Panel no estaba en esa lista, y tenía tres:**
+**Quedaban seis, y `sumaPallets` ni siquiera estaba importada en `analytics.ts`:**
 
 | | |
 |---|---|
-| `analytics.ts:65` | `totalPallets: Math.round(totalPallets)` — el total del día |
-| `analytics.ts:100` | `pallets: Math.round(s.pallets)` — por chofer, en la carga |
-| `analytics.ts:238` | `pallets: Math.round(a.pallets)` — por chofer, en el rendimiento |
+| `analytics.ts:65` | el total del día |
+| `analytics.ts:100` | por chofer, en la carga |
+| `analytics.ts:238` | por chofer, en el rendimiento |
+| `analytics.ts:416` | el volumen por **tienda y por cuenta** |
+| `my-route/page.tsx:420` | **la pantalla del chofer**: «🚚 Viaje 1 · 0 pallets» con cuatro órdenes de 0,1 |
+| `summary/page.tsx:150` | el KPI «Pallets movidos» |
 
-`sumaPallets` **ni siquiera estaba importada** en ese fichero. Así que el Panel enseñaba «0» donde
-había 0,4 y «4» donde había 4,43, con las mismas órdenes que el resto de la app ya contaba bien desde
-D-362. Ahora los tres salen de `sumaPallets`, y hay prueba con los datos exactos que D-362 describe.
+Y **dos más** que no redondeaban a entero pero sumaban crudo y pintaban el resultado tal cual:
+
+- **`daily-summary.ts:59`** — el resumen que se publica en **Notion**. Es el **único sitio de todo el
+  barrido donde la cola de la coma flotante llegaba de verdad a una persona**: «4.430000000000001
+  pallets».
+- **`map/page.tsx:345`** — suma filas que ya vienen a la décima de D-362, y 0,1 + 0,2 pintaba
+  0.30000000000000004.
+
+Los ocho salen ahora de `sumaPallets` o de `aLaDecima`, y hay prueba con los datos exactos que D-362
+describe.
 
 Esto **no es un hallazgo nuevo: es un resto**. La decisión que lo cubría ya estaba escrita; lo que
-falló fue el barrido.
+falló fue el barrido — y falló **dos veces**: D-362 arregló quince sitios y se dejó seis, y la primera
+versión de esta rama arregló tres y se dejó los otros tres, que encontró el orquestador **en el mismo
+fichero que yo estaba tocando, ocho líneas debajo de uno que sí había arreglado**. Por eso lo que
+cierra esto no es la lista: es una prueba que recorre `src` entero y exige que no haya ninguno.
 
 ### Y lo segundo: dinero y millas, cada uno con su unidad y en un sitio
 
@@ -24739,12 +24752,15 @@ nombre que significa dos cosas es una trampa para el siguiente que pase.
 
 ### Medido, rompiendo cada pieza
 
-11 cambios: **11 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+14 cambios: **14 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
 
 - El dinero a la décima (la suma y el redondeo, por separado); las millas quedándose a la centésima;
   redondear cada sumando en vez del total; acumular en coma flotante; lo nulo envenenando la suma;
   los dos restos de D-362 devueltos —total del día y por chofer—; el total del Panel dejando de
   excluir las anuladas; y el Excel cambiando de valor por los dos lados.
+- Y los tres de la puerta: devolver a entero **uno** de los sitios arreglados, devolverlo **con
+  paréntesis anidados** dentro del `Math.round`, y meter un **cuarto sitio nuevo en un fichero que
+  nadie ha tocado**. Los tres caen por la prueba de barrido.
 - **El gemelo:** `sumaDinero` escrita con un bucle en vez de `reduce`.
 
 **Un mutante no lo puede cazar ningún dato, y se dice:** acumular en coma flotante en vez de en
@@ -24764,13 +24780,15 @@ para la misma regla es justo lo que esta entrada viene a quitar.
 
 ### Verificado
 
-`npx tsc --noEmit` y `npx vitest run`: **3700 pasadas | 3 saltadas**. Y `decisions-check`. El
+`npx tsc --noEmit` y `npx vitest run`: **3704 pasadas | 3 saltadas**. Y `decisions-check`. El
 `next build` se deja al CI, por acuerdo con el orquestador.
 
 ### Lo no verificado
 
 - **Nadie lo ha abierto en un navegador.** Los tres números del Panel se comprueban llamando a
   `computeKpis` y `driverStats` con órdenes inventadas, no mirando la pantalla.
+- **`utils.ts:235` es `Math.round(n * minPerPallet)`: son MINUTOS, no pallets.** Queda dicho para
+  que nadie lo persiga, y la prueba de barrido lo excluye por nombre.
 - **No se ha contado cuántos días del histórico enseñaban un pallet de menos** por el redondeo a
   entero. Haría falta leer producción, y el cambio no reescribe nada: solo cambia lo que se pinta de
   aquí en adelante.

@@ -15,6 +15,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { assignmentWarnings, autoAssign, recommendDriver, type AssignWarning } from "@/lib/dispatch";
 import type { Delivery } from "@/lib/types";
 import { sumaPallets } from "@/lib/pallets";
+import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -342,7 +343,9 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dayOrders, me],
   );
-  const totalPallets = summaryRows.reduce((sum, r) => sum + (r.pallets ?? 0), 0);
+  // A la décima (D-NEXT): las filas ya vienen a la décima de D-362, pero sumarlas en coma
+  // flotante y pintarlas tal cual devolvía la cola — 0,1 + 0,2 es 0.30000000000000004.
+  const totalPallets = aLaDecima(summaryRows.reduce((sum, r) => sum + (r.pallets ?? 0), 0));
 
   if (!me) return null;
 

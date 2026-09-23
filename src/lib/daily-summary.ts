@@ -1,5 +1,6 @@
 import type { Delivery, DriverShift } from "@/lib/types";
 import { palletsDeLaOrden } from "./pallets";
+import { sumaPallets } from "./pallets";
 
 // ============================================================
 // The day, in the few lines someone will actually read.
@@ -51,12 +52,15 @@ export function buildDailySummary(
   // driver handed it over.
   const deliveredToday = deliveries.filter((d) => done(d) && day(d.pod_delivered_at ?? d.delivery_date) === date);
 
-  const perDriver = new Map<string, { delivered: number; pallets: number }>();
+  // Se juntan las órdenes y los pallets salen de `sumaPallets` al final (D-NEXT): este resumen
+  // imprime el número TAL CUAL en Notion, así que era el único sitio del barrido donde la cola de
+  // la coma flotante llegaba de verdad a una persona — «4.430000000000001 pallets».
+  const perDriver = new Map<string, { delivered: number; suyas: Delivery[] }>();
   for (const d of deliveredToday) {
     const who = d.assigned_driver || "—";
-    const cur = perDriver.get(who) ?? { delivered: 0, pallets: 0 };
+    const cur = perDriver.get(who) ?? { delivered: 0, suyas: [] as Delivery[] };
     cur.delivered += 1;
-    cur.pallets += pallets(d);
+    cur.suyas.push(d);
     perDriver.set(who, cur);
   }
 
@@ -75,7 +79,7 @@ export function buildDailySummary(
     created: deliveries.filter((d) => day(d.created_at) === date).length,
     overdueUnassigned: overdueUnassigned.length,
     perDriver: [...perDriver.entries()]
-      .map(([driver, v]) => ({ driver, ...v }))
+      .map(([driver, v]) => ({ driver, delivered: v.delivered, pallets: sumaPallets(v.suyas) }))
       .sort((a, b) => b.delivered - a.delivered || a.driver.localeCompare(b.driver)),
     // Named, not counted: "3 orders are stuck" sends someone hunting. Capped
     // because a report with forty order codes in it is a wall, not a summary.

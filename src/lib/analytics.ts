@@ -403,17 +403,19 @@ export interface GroupStat { key: string; total: number; delivered: number; pall
 
 /** Volume grouped by an arbitrary string field (store / account). */
 export function groupVolume(deliveries: Delivery[], field: "store" | "account"): GroupStat[] {
-  const map = new Map<string, GroupStat>();
+  const map = new Map<string, GroupStat & { suyas: Delivery[] }>();
   for (const d of deliveries) {
     const key = (d[field] || "").trim() || "—";
-    const s = map.get(key) ?? { key, total: 0, delivered: 0, pallets: 0 };
+    const s = map.get(key) ?? { key, total: 0, delivered: 0, pallets: 0, suyas: [] as Delivery[] };
     s.total++;
     if (d.stage === "delivered") s.delivered++;
-    s.pallets += palletsDeLaOrden(d);
+    s.suyas.push(d);
     map.set(key, s);
   }
   return [...map.values()]
-    .map((s) => ({ ...s, pallets: Math.round(s.pallets) }))
+    // El cuarto resto de D-362, ocho líneas debajo de otro que ya lo era: el volumen por tienda y
+    // por cuenta también redondeaba a entero.
+    .map(({ suyas, ...s }) => ({ ...s, pallets: sumaPallets(suyas) }))
     .sort((a, b) => b.total - a.total);
 }
 
