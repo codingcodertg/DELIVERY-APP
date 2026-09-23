@@ -294,6 +294,15 @@ export function motivoParaNoDecidir(opts: { esDecisor: boolean; grupo: string | 
   };
 }
 
+export interface FilaDeDecision {
+  round_id: string;
+  code: string;
+  group_code: string;
+  status: EstadoDeDecision;
+  /** **Ausente a propósito** cuando no se está cambiando la nota. Ver abajo. */
+  note?: string | null;
+}
+
 /**
  * Las filas que se escriben al decidir, en bloque o de una en una — **es la misma operación**.
  *
@@ -304,30 +313,47 @@ export function motivoParaNoDecidir(opts: { esDecisor: boolean; grupo: string | 
  * `decided_by` y `decided_at` **no se mandan**: los pisa el disparador de la 140 con `auth.uid()` y
  * `now()`. Mandarlos sería escribir algo que va a ser ignorado, y leerlo de vuelta como si lo
  * hubiéramos puesto nosotros.
+ *
+ * ---
+ *
+ * **LA NOTA SOLO VIAJA CUANDO LA NOTA ES LO QUE SE CAMBIA**, y esto es un arreglo, no una
+ * preferencia. La primera versión mandaba `note: null` siempre que la llamada no traía nota, así
+ * que **aprobar veinte productos en bloque borraba la nota de los que la tuvieran** — en silencio.
+ * La regla del dueño, escrita en su propia hoja, es *«MANAGERS CAN … WRITE DOWN NOTES (EX.
+ * DISCONTINUED ITEM)»*: la nota es lo único que el gerente aporta además del sí o el no, y el uso
+ * natural —anotar «descontinuado» en tres, rechazarlos, y luego aprobar todo lo pendiente de
+ * golpe— era justo el que la borraba.
+ *
+ * Al omitir la clave, el `on conflict do update` que arma PostgREST **solo toca las columnas que
+ * van en el lote**, así que la nota existente se queda como está y una fila nueva la recibe vacía
+ * por el defecto de la columna. Por eso **todas las filas de una misma llamada llevan las mismas
+ * claves**: PostgREST saca las columnas del lote entero, y mezclar filas con `note` y sin `note`
+ * en el mismo `upsert` es otra trampa. Aquí sale solo porque la decisión se toma una vez, fuera
+ * del bucle.
  */
 export function cambioEnBloque(opts: {
   roundId: string;
   grupo: string;
   codigos: readonly string[];
   estado: EstadoDeDecision;
+  /** Sin este argumento, la nota **no se toca**. Con él, se escribe (vacía = se borra). */
   nota?: string | null;
-}): { round_id: string; code: string; group_code: string; status: EstadoDeDecision; note: string | null }[] {
-  const nota = opts.nota === undefined ? undefined : (opts.nota ?? "").trim() || null;
+}): FilaDeDecision[] {
+  const cambiaLaNota = opts.nota !== undefined;
+  const nota = cambiaLaNota ? (opts.nota ?? "").trim() || null : null;
   const vistos = new Set<string>();
-  const out: { round_id: string; code: string; group_code: string; status: EstadoDeDecision; note: string | null }[] = [];
+  const out: FilaDeDecision[] = [];
   for (const code of opts.codigos) {
     if (vistos.has(code)) continue;
     vistos.add(code);
-    out.push({
+    const fila: FilaDeDecision = {
       round_id: opts.roundId,
       code,
       group_code: opts.grupo,
       status: opts.estado,
-      // Sin nota en la llamada, la nota queda vacía. Es lo correcto para un cambio en bloque: no
-      // hay una nota que valga para veinte productos, y conservar la que cada uno tuviera exigiría
-      // leerlas antes — que es lo que hace la edición de una fila, donde sí se manda.
-      note: nota ?? null,
-    });
+    };
+    if (cambiaLaNota) fila.note = nota;
+    out.push(fila);
   }
   return out;
 }

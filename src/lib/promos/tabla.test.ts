@@ -240,15 +240,40 @@ describe("lo que se escribe al decidir", () => {
   it("una fila por producto, con la clave primaria de la 140 y nada más", () => {
     const filas = cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1", "X2"], estado: "approved" });
     expect(filas).toEqual([
-      { round_id: "R1", code: "X1", group_code: "G1", status: "approved", note: null },
-      { round_id: "R1", code: "X2", group_code: "G1", status: "approved", note: null },
+      { round_id: "R1", code: "X1", group_code: "G1", status: "approved" },
+      { round_id: "R1", code: "X2", group_code: "G1", status: "approved" },
     ]);
   });
 
   it("NO manda `decided_by` ni `decided_at`: los pisa el disparador", () => {
     // Mandarlos sería escribir algo que va a ser ignorado y leerlo de vuelta como si fuera nuestro.
     const [fila] = cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1"], estado: "rejected" });
-    expect(Object.keys(fila).sort()).toEqual(["code", "group_code", "note", "round_id", "status"]);
+    expect(Object.keys(fila).sort()).toEqual(["code", "group_code", "round_id", "status"]);
+  });
+
+  it("SIN nota, la clave `note` NO VA — es lo que impide que aprobar en bloque borre las notas", () => {
+    // `"note" in fila` y no `fila.note === undefined`: lo segundo pasaría igual con la clave
+    // presente y vacía, que es justo el caso que hay que impedir.
+    const filas = cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1", "X2"], estado: "approved" });
+    for (const f of filas) expect("note" in f, f.code).toBe(false);
+  });
+
+  it("CON nota, la llevan todas", () => {
+    const filas = cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1", "X2"], estado: "rejected", nota: "descontinuado" });
+    for (const f of filas) expect(f.note, f.code).toBe("descontinuado");
+    expect(filas.every((f) => "note" in f)).toBe(true);
+  });
+
+  it("y TODAS las filas de un lote llevan exactamente las mismas claves", () => {
+    // Medido en la librería instalada (`@supabase/postgrest-js` 2.112.4, `dist/index.mjs:3236`):
+    // las columnas del `upsert` son la UNIÓN de las claves de todas las filas, y con
+    // `defaultToNull` —el defecto— las filas que no traen una columna del lote se escriben a
+    // `null`. Un lote mezclado borraría la nota justo de las que no se pensaba tocar.
+    for (const nota of [undefined, "x", null] as const) {
+      const filas = cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1", "X2", "X3"], estado: "approved", ...(nota === undefined ? {} : { nota }) });
+      const claves = filas.map((f) => Object.keys(f).sort().join(","));
+      expect(new Set(claves).size, String(nota)).toBe(1);
+    }
   });
 
   it("un código repetido en la selección se escribe una vez", () => {
@@ -258,6 +283,22 @@ describe("lo que se escribe al decidir", () => {
   it("una nota en blanco se guarda como NULA, no como cadena vacía", () => {
     expect(cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1"], estado: "approved", nota: "   " })[0].note).toBeNull();
     expect(cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1"], estado: "approved", nota: " hola " })[0].note).toBe("hola");
+  });
+
+  it("y la PANTALLA solo manda la nota desde el recuadro de editarla", () => {
+    // `cambioEnBloque` conserva la nota cuando no se la dan, pero eso no sirve de nada si la
+    // pantalla se la da igual. Los botones de ✓/✕ de una fila reenviaban `f.nota`: además de
+    // innecesario era una escritura perdida, porque pisaría la nota que otra persona hubiera
+    // escrito mientras esta pantalla tenía la suya en memoria.
+    const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+    // Con el `}` del cierre de la expresión JSX: sin él, `guarda([f.code], "approved")` es
+    // SUBCADENA de `guarda([f.code], "approved", f.nota)` y esta prueba pasaría con el fallo puesto.
+    expect(tabla).toContain('onClick={() => guarda([f.code], "approved")}');
+    expect(tabla).toContain('onClick={() => guarda([f.code], "rejected")}');
+    // Y por el otro lado, que no quede ninguna llamada de fila con tercer argumento.
+    expect(tabla).not.toMatch(/guarda\(\[f\.code\], "(approved|rejected)",/);
+    // El único sitio donde la nota viaja: el recuadro de editarla, que manda el estado que ya tenía.
+    expect(tabla).toContain("guarda([f.code], f.estado, notaEditando.texto)");
   });
 
   it("el tope de la nota es el de la migración, leído del `.sql`", () => {

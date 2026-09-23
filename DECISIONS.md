@@ -25282,8 +25282,38 @@ misma operación**, `cambioEnBloque`, probada sin base de datos.
 `decided_by` y `decided_at` **no se mandan**: los pisa el disparador de la 140. Mandarlos sería escribir algo que va a ser
 ignorado y leerlo de vuelta como si fuera nuestro.
 
-Un cambio **en bloque deja la nota vacía**, y la pantalla lo dice: no hay una nota que valga para veinte productos, y conservar
-la de cada uno exigiría leerlas antes. Editar la nota de una fila sí la manda.
+### La nota solo viaja cuando la nota es lo que se cambia — y esto empezó siendo un defecto
+
+La primera versión de esta rama mandaba `note: null` siempre que la llamada no traía nota, así que **aprobar veinte productos en
+bloque borraba la nota de los que la tuvieran**, en silencio. El comentario que lo acompañaba lo defendía —«no hay una nota que
+valga para veinte productos»— y **ese razonamiento es bueno para escribir una nota en bloque y malo para borrarla**. Lo encontró
+el orquestador al revisar, y se anota aquí en vez de arreglarlo callando, porque la razón por la que estaba mal es lo que hay que
+recordar:
+
+> La regla del dueño, en su propia hoja: *«MANAGERS CAN … WRITE DOWN NOTES (EX. DISCONTINUED ITEM)»*. La nota es **lo único que
+> el gerente aporta además del sí o el no**, y el uso natural —anotar «descontinuado» en tres, rechazarlos, y luego aprobar de
+> golpe todo lo pendiente— era justo el que la borraba.
+
+**El arreglo:** cuando no se está cambiando la nota, la clave `note` **no se manda**. La prueba lo comprueba con `"note" in fila`
+y no con `fila.note === undefined`, que pasaría igual con la clave presente y vacía — que es justo el caso a impedir.
+
+**Y por qué eso basta, medido en la librería instalada** (`@supabase/postgrest-js` 2.112.4, `dist/index.mjs:3236-3240`): las
+columnas del `upsert` son **la unión de las claves de todas las filas del lote**, y `defaultToNull` viene encendido por defecto
+(el `Prefer: missing=default` solo se añade cuando se apaga). O sea:
+
+- ninguna fila con `note` → `note` no entra en `columns` → el `on conflict do update` no la toca → **la nota se conserva**;
+- **algunas sí y otras no** → `note` entra en `columns` y las que no la traen se escriben a `null` → borraría justo las que no
+  se pensaba tocar.
+
+Por eso hay una prueba de que **todas las filas de un lote llevan exactamente las mismas claves**, con nota y sin ella: hoy lo
+sostiene que la decisión se toma una vez fuera del bucle, y eso es una línea que alguien puede cambiar mañana. No se usa
+`defaultToNull: false` como atajo: cambiaría el comportamiento del resto de columnas y sería otra cosa que entender.
+
+**De paso, los botones de ✓/✕ de una fila dejaron de reenviar la nota que habían leído.** Era innecesario y además una escritura
+perdida: pisaría la nota que otra persona hubiera escrito mientras esta pantalla tenía la suya en memoria. **La nota sale solo
+del recuadro de editarla**, y hay prueba de las dos cosas — citando el paréntesis de cierre de la llamada, porque
+`guarda([f.code], "approved")` es **subcadena** de `guarda([f.code], "approved", f.nota)` y un `toContain` a secas habría pasado
+con el fallo puesto.
 
 ### El cierre de ronda va aquí, y no en su propio paso
 
@@ -25297,11 +25327,16 @@ tiene grupo todavía y dónde se pone. Un botón apagado sin explicación es una
 
 ### Verificado
 
-`tabla.test.ts`, 33 casos, sin navegador. **Mutantes: 17, leídos por nombre; caen los 17**, y el gemelo —`grupoDeLaTienda` con
+`tabla.test.ts`, 40 casos, sin navegador. **Mutantes: 22, leídos por nombre; caen los 22**, y el gemelo —`grupoDeLaTienda` con
 `find` en vez de un bucle— se queda en verde. Entre ellos: «el dinero deja de redondearse», «las cinco privadas se ofrecen a todo
 el mundo», «las claves de tienda salen solo del primer producto», «se casa la decisión de cualquier grupo», «una ronda cerrada
 deja decidir», «un vendedor pasa a ser decisor», «el cambio en bloque manda `decided_by`», «`valorParaFiltrar` invierte los
 argumentos» y **«la 141 parte de la 136 y se come `routes_columns`»**.
+
+Los cinco de la nota, que son los del arreglo de arriba: «vuelve el `note: nota ?? null`», «un lote MEZCLADO, la primera fila con
+`note` y las demás sin ella», «con nota, la nota deja de mandarse», «una nota vacía deja de ser nula» y «los botones de fila
+vuelven a reenviar la nota que leyeron». **El último sobrevivió a la primera tanda**: no había nada que mirara las llamadas de
+la pantalla, solo la función pura. Se cerró con la prueba que cita esas llamadas, y entonces cayó.
 
 ### Una prueba floja, encontrada y arreglada aquí
 

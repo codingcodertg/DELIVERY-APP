@@ -178,7 +178,7 @@ export function TablaDeRonda({
           <button disabled={ocupado} onClick={() => guarda([...seleccion], "rejected")}>{t("Reject", "Rechazar")}</button>
           <button disabled={ocupado} onClick={() => guarda([...seleccion], "pending")}>{t("Back to pending", "Dejar pendiente")}</button>
           <button onClick={() => setSeleccion(new Set())}>{t("Clear", "Limpiar")}</button>
-          <span className="hint">{t("A bulk change clears the note.", "Un cambio en bloque deja la nota vacía.")}</span>
+          <span className="hint">{t("Notes are kept: a bulk change only changes the decision.", "Las notas se conservan: un cambio en bloque solo cambia la decisión.")}</span>
         </div>
       )}
 
@@ -232,8 +232,12 @@ export function TablaDeRonda({
                 {sePuede && (
                   <td>
                     <span style={{ display: "flex", gap: 4 }}>
-                      <button disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved", f.nota)} title={t("Approve", "Aprobar")}>✓</button>
-                      <button disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected", f.nota)} title={t("Reject", "Rechazar")}>✕</button>
+                      {/* SIN nota: estos botones cambian el estado, no la nota. Antes reenviaban
+                          `f.nota`, que además de innecesario era una escritura perdida — la nota
+                          que esta pantalla leyó pisaría la que otra persona hubiera escrito
+                          mientras. La nota solo viaja desde el recuadro de editarla. */}
+                      <button disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")}>✓</button>
+                      <button disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")}>✕</button>
                     </span>
                   </td>
                 )}
