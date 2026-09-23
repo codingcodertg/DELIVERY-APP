@@ -35,6 +35,7 @@ import { CLAVE_ID, etiquetaDelGestor, valorDelGestor, type ContextoDelGestor } f
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
+import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
 import { aLaDecima, sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
 
@@ -1384,7 +1385,11 @@ export default function RoutesPage() {
         dimmed: false,
       });
     }
-    return pts;
+    // Lo último: las marcas que caen en el MISMO punto se abren en abanico (D-367). Solo aquí, en el Gestor, que es donde
+    // se ven todas las rutas a la vez y donde se midió que 18 pares se tapaban. Las otras seis pantallas que montan un mapa
+    // no pasan `offset`, así que pintan igual que antes. La casita de la tienda no entra: no es de nadie y es el punto fijo.
+    const abanico = abanicoDeMarcas(pts);
+    return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, depotCoords, lanes, rutasPublicadas]);
 
