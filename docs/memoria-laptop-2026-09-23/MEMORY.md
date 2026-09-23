@@ -1,0 +1,52 @@
+- [Prueba espejo vs. prueba de verdad](regla-prueba-espejo.md) — si lo que decide acaba en la base, se importa la función; si decide cómo se pinta, la copia basta.
+- [Una auditoría no es una medición](auditoria-no-es-medicion.md) — un dato que llega de otra sesión sigue sin medir hasta que lo mido yo.
+- [Un HEAD que deja de ser final se avisa](worktree-quieto-tras-rama-lista.md) — quien revisa mide un commit concreto; y no se empuja lo que nadie ha revisado (sin auditor desde 2026-09-15).
+- [No clavar datos del dueño en las pruebas](pruebas-sin-datos-del-dueno.md) — nombres de tienda y demás datos de Ajustes no se afirman en el repo.
+- [Título pendiente de la regla 16](regla-16-titulo-pendiente.md) — decir «de otra sesión» y no «de la auditoría», la próxima vez que se toque ese fichero.
+- [Verificar contra el código que ejecuta](verificar-contra-el-codigo-que-ejecuta.md) — la documentación dice lo que se pretendía; el fichero, lo que va a pasar.
+- [Comprobar la capa que manda](comprobar-la-capa-que-manda.md) — un fallo en la pantalla no prueba que el efecto ocurriera; mira el servidor antes de contarlo.
+- [Pedir una medición no autoriza nada](peticion-de-medir-no-autoriza.md) — el límite de producción no depende de quién pida la comprobación.
+- [Un dato correcto, una conclusión falsa](dato-correcto-conclusion-falsa.md) — recontar valida el número, no la afirmación que se construye encima.
+- [El comentario dice la verdad, el código no](comentario-dice-la-verdad.md) — cuando discrepan, la discrepancia es el bug; leer el comentario primero.
+- [Una medida no debería necesitar explicación](medida-que-no-necesita-explicacion.md) — si el número lleva nota al pie, acota mejor el comando.
+- [El canario se mira en las dos direcciones](canario-en-las-dos-direcciones.md) — al rebasar, mi rama también puede romper la prueba global que dejó la ya fusionada.
+- [Un residuo no es «quedó fuera»](residuo-no-es-quedo-fuera.md) — tras un squash, ni `--is-ancestor` ni `main...rama` valen; decide el contenido (dos puntos sobre sus ficheros) o la decisión numerada.
+- [El estado de una rama no es el fichero](estado-de-rama-no-es-el-fichero.md) — HEAD y status dicen dónde está la rama; el árbol de trabajo, no.
+- [La última migración que toca el objeto](ultima-migracion-que-toca-el-objeto.md) — `create or replace` reemplaza entero; partir de la definición vigente, no de la que lo creó.
+- [Un redirect en el camino de error](redirect-en-el-camino-de-error.md) — qué del diff lee lo que aún no existe, y qué hace la app si falta: un redirect lo vuelve bucle.
+- [Un grep de línea no ve la estructura](grep-de-una-linea-no-ve-la-estructura.md) — lo repartido en varias líneas no sale, y el cero parece una respuesta.
+- [Descartar el error no falla](descartar-el-error-no-falla.md) — sigue con datos incompletos; lo que pasa después lo decide el camino ya escrito para el caso nulo.
+- [El nombre corto no identifica la tabla](nombre-corto-no-identifica-la-tabla.md) — `public.profiles` y `clockin.profiles` existen: sin el esquema, el count equivocado da un número plausible y nada chirría.
+- [in.() vacío filtra en PostgREST](in-vacio-filtra-en-postgrest.md) — medido: `.in(col, [])` devuelve cero filas; `NO_MATCH` es consistencia, no seguridad.
+- [Una premisa heredada no es una medición](premisa-heredada-no-es-medicion.md) — un comentario del repo sostuvo tres decisiones en un día; «no verificado» no impide construir encima.
+- [D-NEXT también en el código](d-next-tambien-en-el-codigo.md) — al numerar, `grep D-NEXT` en DECISIONS.md y en src tiene que dar cero; se sustituye en el mismo commit de release.
+- [Un UPDATE de cero filas no es un error](update-cero-filas-no-es-error.md) — PostgREST vuelve limpio y el código lo lee como guardado; se mide con `.select("id")`.
+- [Un arreglo que parece hecho](arreglo-que-parece-hecho.md) — compila, se lee bien, no hace nada, y cierra la pregunta; se caza con un mutante, no leyéndolo.
+- [Leer la implementación instalada](leer-la-implementacion-instalada.md) — una API que acepta lo que le das puede fallar más adentro; la firma no lo dice y los tipos tampoco.
+- [CRLF tras un rebase](crlf-tras-rebase.md) — ficheros mezclados en el mismo commit; una edición por anclas falla en silencio; encadenar con `&&` y comprobar con grep lo escrito.
+- [Comprobar la edición, no el comando](comprobar-la-edicion-no-el-comando.md) — el verde de al lado no dice que la edición se aplicara; tras un rebase los finales de línea difieren por fichero.
+- [Una prueba se alimenta de quien llama](prueba-alimentada-por-quien-llama.md) — no de lo que la función sabría contestar; el mutante tiene que caer con la entrada real.
+- [Datos que no contradicen](datos-que-no-contradicen.md) — una prueba de orden con datos ya ordenados pasa con la implementación equivocada.
+- [Un número copiado no lo recuenta nadie](numero-copiado-no-se-recuenta.md) — se cuenta una vez y viaja a la entrada, al `.sql` y al título de la prueba.
+- [El APK publicado es lo que corre](apk-publicado-es-lo-que-corre.md) — un cambio en `mobile/` no está hecho hasta que hay un APK en Storage con él; leer la config embebida, misma llave, misma ruta, y luego subir `LATEST_APK_VERSION_CODE`.
+- [Escape en plantilla, prueba inerte](escape-en-plantilla-prueba-inerte.md) — una regex construida en una plantilla pierde su barra; `not.toMatch` pasa siempre. Mirar qué prueba cae con el mutante.
+- [Una tanda de mutantes se lee por nombre](tanda-de-mutantes-se-lee-por-nombre.md) — qué prueba cae con cada uno; el código de salida y el «cayó algo» esconden pruebas inertes.
+- [Una edición resuelve escapes en silencio](replace-con-cadena-come-dolares.md) — `$$` en String.replace, barras en `node -e`, los escapes de unicode en la herramienta Write, y la barra doble en un heredoc; construir la barra por código y barrer bytes con control.
+- [El hub centraliza la cuenta](hub-centraliza-la-cuenta.md) — contraseña, idioma y perfil se ajustan una vez en «Mi perfil» y valen para todas las apps.
+- [Subir y fusionar sin pedir](push-y-merge-sin-pedir.md) — rama aprobada por mí: la subo, abro PR y fusiono yo; el dueño no aprueba pushes de workers.
+- [Una prueba de texto no fija el orden](prueba-de-texto-no-fija-el-orden.md) — condiciones SQL como conjuntos normalizados; el gemelo es el orden de operandos; correr la prueba sola antes del gemelo.
+- [Disco lleno por los .next de los worktrees](disco-lleno-por-next-de-worktrees.md) — ~1,4 GB por worktree; `df -h /c` antes de verificar, y borrar cachés ajenas se pregunta cada vez.
+- [Un mutante vivo puede ser código de sobra](mutante-vivo-puede-ser-codigo-de-sobra.md) — o una prueba floja: «quién notaría esto si lo borro» decide cuál de los dos (3 veces el 2026-09-17).
+- [Renombrar no lo ve tsc](renombrar-no-lo-ve-tsc.md) — las pruebas que citan el nombre como texto caen en silencio; una prueba que cae con todos los mutantes está rota en la base.
+- [Una política FOR ALL también lee](politica-for-all-tambien-lee.md) — permisivas se suman con OR; listar `pg_policies` de la tabla y ensayar con un caso que espere MENOS que el total.
+- [Una política que no decide nada](politica-que-no-decide.md) — las permisivas se suman y una ALL cubre SELECT; grep del objeto en DECISIONS.md, no solo en las migraciones.
+- [Una migración con commit propio rompe el ensayo](migracion-con-commit-propio-rompe-el-ensayo.md) — el begin anidado es WARNING y el commit cierra mi transacción; grep de begin/commit antes de ejecutar cualquier .sql ajeno.
+- [Una migración no lleva su propia transacción](migracion-sin-transaccion-propia.md) — el commit de dentro cierra el de fuera: la 124 se aplicó sola en un ensayo con ROLLBACK.
+- [Vercel corta a los 100 deploys al día](vercel-100-deploys-al-dia.md) — cada PR gasta 3 (preview, merge, release); contar antes de fusionar y agrupar releases; mirar el estado de Vercel en el commit.
+- [Decidir y terminar](decidir-y-terminar.md) — el dueño delegó las decisiones abiertas: defecto medido y editable en Ajustes, contarlo como hecho; Notion y la hoja real, aparcados.
+- [Dos copias pueden ser un empalme](dos-copias-pueden-ser-un-empalme.md) — si la costura corta una palabra por la mitad, no hay dos versiones que reconciliar.
+- [DECISIONS.md no se fusiona solo](decisions-md-no-se-fusiona-solo.md) — tomar un lado, insertar a mano las entradas del otro y pasar `scripts/decisions-check.mjs`; dos empalmes medidos.
+- [Cuándo corre decide qué caza](cuando-corre-decide-que-caza.md) — medir si la comprobación que ya hay lo cubre; CI y verify corren después del commit, no al resolver el conflicto.
+- [indexOf −1 pasa la prueba de orden](indexof-menos-uno-pasa-el-orden.md) — `indexOf(a) < indexOf(b)` pasa si `a` no existe; afirmar primero que está.
+- [La laptop: estado y límites](laptop-estado-y-limites.md) — desde 2026-09-19 se trabaja aquí; identidad de git local, lecturas de producción negadas por el clasificador, workers como agentes.
+- [Una tubería tapa el CI](tuberia-tapa-el-ci.md) — `gh pr checks | tail && merge` fusionó en rojo (#168): el merge va en un `if` sin tuberías, y ningún `;` tras una comprobación.
