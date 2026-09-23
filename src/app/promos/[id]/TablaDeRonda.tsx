@@ -1,16 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
-import { CabeceraConMenu, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
+import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import { CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import type { UserRole } from "@/lib/types";
 import {
-  cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
-  cuentaPorEstado, filasDePromo, LARGO_DE_NOTA, motivoParaNoDecidir, puedeDecidir, valorParaFiltrar,
-  type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
+  cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
+  COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, LARGO_DE_NOTA, motivoParaNoDecidir, puedeDecidir,
+  valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
+
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * La tabla de una ronda: decidir producto por producto o en bloque.
@@ -28,12 +33,13 @@ import {
  * filas y PostgREST responde limpio: sin `.select()`, «guardado» sería una suposición.
  */
 export function TablaDeRonda({
-  ronda, productos, decisiones, grupo, esDecisor, esAdmin, gruposDelLibro,
+  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro,
 }: {
   ronda: { id: string; label: string; closed_at: string | null };
   productos: ProductoDeCatalogo[];
   decisiones: DecisionDeGrupo[];
   rol: string | null;
+  userId: string | null;
   grupo: string | null;
   esDecisor: boolean;
   esAdmin: boolean;
@@ -65,8 +71,40 @@ export function TablaDeRonda({
     [clavesDeTienda, puedeVerPrivadas],
   );
 
+  // Las columnas de cada persona, en `user_prefs` (migración 141). La versión anterior las tenía
+  // en un `useState` y nada más: se elegían, se veían, y al recargar volvían al defecto — la clave
+  // de la 141 estaba declarada y no la usaba nadie. Mismo cableado que el Gestor de Rutas.
   const [visibles, setVisibles] = useState<string[]>(() => columnasDePromosPorDefecto(clavesDeTienda, puedeVerPrivadas));
+  const prefsLeidas = useRef<ColumnasPorRol | null>(null);
+  useEffect(() => {
+    if (!userId || !rol || SIN_BASE) return;
+    let vivo = true;
+    void leeColumnas(createClient() as unknown as ClienteDePrefs, userId, CLAVE_DE_COLUMNAS_DE_PROMOS).then((leido) => {
+      if (!vivo || !leido.leida) return;
+      prefsLeidas.current = leido.columnas;
+      const suyas = leido.columnas[rol as UserRole];
+      if (suyas) setVisibles(columnasVisiblesDePromos(suyas, columnas));
+    });
+    return () => { vivo = false; };
+  }, [userId, rol]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const alternaColumna = (key: string) => {
+    if (COLUMNAS_FIJAS.includes(key)) return;
+    const next = columnasVisiblesDePromos(
+      visibles.includes(key) ? visibles.filter((k) => k !== key) : [...visibles, key],
+      columnas,
+    );
+    setVisibles(next);
+    // A la base solo si se pudo leer: no se escribe a ciegas encima de lo que haya.
+    if (!userId || !rol || SIN_BASE || prefsLeidas.current === null) return;
+    const todas: ColumnasPorRol = { ...prefsLeidas.current, [rol as UserRole]: next };
+    prefsLeidas.current = todas;
+    void guardaColumnas(createClient() as unknown as ClienteDePrefs, userId, todas, CLAVE_DE_COLUMNAS_DE_PROMOS);
+  };
+
   const columnasPintadas = columnas.filter((c) => visibles.includes(c.key));
+  // Los anchos, arrastrables y recordados, como en Ordenes y en el Gestor (D-338).
+  const anchos = useColWidthMap("rtg_promos_cols", 120);
 
   const filas = useMemo(() => filasDePromo(productos, decisiones, grupoActivo), [productos, decisiones, grupoActivo]);
   const orden = useOrdenYFiltro(filas, valorParaFiltrar);
@@ -162,7 +200,7 @@ export function TablaDeRonda({
                   type="checkbox"
                   checked={visibles.includes(c.key)}
                   disabled={COLUMNAS_FIJAS.includes(c.key)}
-                  onChange={(ev) => setVisibles((v) => (ev.target.checked ? [...v, c.key] : v.filter((k) => k !== c.key)))}
+                  onChange={() => alternaColumna(c.key)}
                 />
                 <span>{lang === "es" ? c.es : c.en}</span>
               </label>
@@ -182,31 +220,61 @@ export function TablaDeRonda({
         </div>
       )}
 
-      <div className="tbl-scroll">
-        <table>
+      <FiltrosPuestos estado={orden} columnas={columnasConMenu} lang={lang} t={t} />
+      {/* La MISMA tabla de Ordenes, no una parecida: sus clases, su `colgroup`, sus asas de
+          arrastre y su corte con puntos (D-338/D-344/D-345).
+          SIN alto propio, y eso se midio: la de Ordenes NO tiene desplazamiento vertical propio
+          —quien baja es la pagina— y lo que da la sensacion de «cabe en una pantalla» es no
+          salirse de LADO (la caja se desplaza sola) mas la cabecera pegada. Acotarle el alto seria
+          hacer mas que la referencia, y el dueno pidio el estilo de Ordenes. */}
+      <div className="tbl-scroll tbl-fit orders-scroll">
+        <table
+          className="orders tbl-resize orders-responsive"
+          style={anchoDeTabla([sePuede ? 34 : 0, ...columnasPintadas.map((c) => anchos.widthOf(c.key)), sePuede ? 92 : 0])}
+        >
+          <colgroup>
+            {sePuede && <col style={{ width: 34 }} />}
+            {columnasPintadas.map((c) => <col key={c.key} style={{ width: anchos.widthOf(c.key) }} />)}
+            {sePuede && <col style={{ width: 92 }} />}
+          </colgroup>
           <thead>
             <tr>
               {sePuede && (
-                <th style={{ width: 34 }}>
+                <th>
                   <input
                     type="checkbox"
                     checked={todasVisiblesSeleccionadas}
                     onChange={(e) => setSeleccion(e.target.checked ? new Set(orden.visibles.map((f) => f.code)) : new Set())}
+                    style={{ width: 15, height: 15 }}
                   />
                 </th>
               )}
               {columnasConMenu.map((c) => (
-                <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /></th>
+                <th key={c.key}>
+                  <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
+                  <span
+                    className="col-resizer"
+                    title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")}
+                    onMouseDown={anchos.startResize(c.key)}
+                    onDoubleClick={() => anchos.resetCol(c.key)}
+                  />
+                </th>
               ))}
-              {sePuede && <th style={{ width: 150 }}>{t("Decide", "Decidir")}</th>}
+              {sePuede && <th>{t("Decide", "Decidir")}</th>}
             </tr>
           </thead>
           <tbody>
             {orden.visibles.map((f) => (
-              <tr key={f.code}>
-                {sePuede && <td><input type="checkbox" checked={seleccion.has(f.code)} onChange={() => alterna(f.code)} /></td>}
+              <tr key={f.code} className={sePuede ? "con-casilla" : undefined}>
+                {sePuede && (
+                  <td className="sel-cell" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={seleccion.has(f.code)} onChange={() => alterna(f.code)} style={{ width: 15, height: 15 }} />
+                  </td>
+                )}
                 {columnasPintadas.map((c) => (
-                  <td key={c.key} style={{ textAlign: c.numero ? "right" : undefined }}>
+                  // `data-label` no es decoracion: es lo que `orders-responsive` usa para
+                  // convertir cada fila en una tarjeta con su rotulo en el telefono.
+                  <td key={c.key} data-label={lang === "es" ? c.es : c.en} style={{ textAlign: c.numero ? "right" : undefined }}>
                     {c.key === "nota" && sePuede ? (
                       notaEditando?.code === f.code ? (
                         <span style={{ display: "flex", gap: 4 }}>

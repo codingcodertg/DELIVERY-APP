@@ -145,9 +145,50 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
   return out;
 }
 
-/** Por defecto se ven TODAS: quitar es una elección, no el punto de partida (igual que el Gestor). */
+/**
+ * Las que se ven **al entrar**: pocas, y a propósito.
+ *
+ * La primera versión ofrecía TODAS —hasta diecisiete, con las seis de existencias por tienda y las
+ * cinco privadas— y el dueño lo vio y dijo *«it's horrible, first it doesn't fit in 1 screen»*. Una
+ * tabla que nace fuera de la pantalla obliga a desplazarse a lo ancho antes de leer nada, así que
+ * el punto de partida es lo mínimo para decidir: qué es, cuánto hay, a cuánto se vende, y qué se
+ * decidió. Las demás **siguen estando**, en ⚙ Columnas, a un clic.
+ *
+ * Es lo contrario de lo que hace el Gestor de Rutas (D-331, «por defecto todas»), y la diferencia
+ * es que allí son nueve columnas fijas y aquí el número **lo pone el libro**: cada tienda nueva del
+ * Excel añade una, así que «todas» crece sola y nadie se entera hasta que no cabe.
+ */
+export const COLUMNAS_DE_PROMOS_POR_DEFECTO: readonly string[] = [
+  "code", "description", "size", "qoh", "price", "estado", "nota",
+];
+
+/** Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla). */
 export function columnasDePromosPorDefecto(clavesDeTienda: readonly string[], puedeVerPrivadas: boolean): string[] {
-  return columnasDePromos(clavesDeTienda, puedeVerPrivadas).map((c) => c.key);
+  const hay = new Set(columnasDePromos(clavesDeTienda, puedeVerPrivadas).map((c) => c.key));
+  return COLUMNAS_DE_PROMOS_POR_DEFECTO.filter((k) => hay.has(k));
+}
+
+/**
+ * Las columnas que se pintan, a partir de lo que esa persona guardó.
+ *
+ * Dos reglas, y las dos son por algo que pasa de verdad:
+ *   · **una clave guardada que ya no existe se ignora** — una columna de tienda desaparece en
+ *     cuanto el libro del mes que viene no la trae, y quien la tuviera guardada se quedaría con una
+ *     cabecera sin celdas;
+ *   · **las fijas entran siempre**, aunque lo guardado no las traiga. Sin el código no se sabe qué
+ *     fila es, y sin el estado ni la nota la tabla no sirve para lo que se entra aquí. Una lista
+ *     guardada antes de que una de ellas fuera fija dejaría una pantalla inútil sin decir por qué.
+ *
+ * Se devuelven **en el orden del catálogo**, no en el que se marcaron: el orden de las columnas es
+ * del diseño, no de en qué orden alguien pulsó las casillas.
+ */
+export function columnasVisiblesDePromos(
+  guardadas: readonly string[] | null | undefined,
+  disponibles: readonly ColumnaDePromos[],
+): string[] {
+  const elegidas = new Set(guardadas ?? COLUMNAS_DE_PROMOS_POR_DEFECTO);
+  for (const fija of COLUMNAS_FIJAS) elegidas.add(fija);
+  return disponibles.filter((c) => elegidas.has(c.key)).map((c) => c.key);
 }
 
 /**

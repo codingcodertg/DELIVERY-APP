@@ -25122,6 +25122,14 @@ misma clave— el guardián decide algo y el mutante cae.
 **De dónde sale:** fase B de RTG PROMOS. La A (D-366) montó el módulo; esta trae la única superficie del módulo que escribe con
 la **llave de servicio**, que se salta la RLS entera. Va sola, y en dos pasos, por lo que se cuenta abajo.
 
+> **REEMPLAZADA EN PARTE POR D-NEXT (2026-09-23), el mismo día.** El dueño abrió la pantalla y quitó la subida por navegador:
+> *«eso de cargar files no, quita eso: yo te doy la información y tú la subes y punto»*. Así que **ya no existen `SubirRonda`,
+> `/api/promos/preview` ni `/api/promos/commit`**, y con `commit` se fue **la única superficie del módulo con llave de
+> servicio** — una puerta que ya no usa nadie no se deja abierta. **Lo que no se va son las funciones puras** (`leeLibro`,
+> `leePromo`, `filasParaGuardar`, la huella, los topes): son las que carga ahora el script de `scripts/promos/`. Y el
+> razonamiento de por qué quien escribe vuelve a leer el fichero, en vez de fiarse de filas que le pasen, **vale igual para el
+> script**; por eso esta entrada se queda entera en vez de reescribirse.
+
 ### Por qué en dos pasos, y no en uno
 
 **Los previews de Vercel de este proyecto apuntan a la misma base que producción** (regla 4 del flujo de ramas). Una ruta que
@@ -25353,3 +25361,87 @@ quién corra es peor que una lenta: el rojo no dice nada del código. Ahora el l
 - **La 141 está sin aplicar.**
 - **El avance del admin —cuántos grupos terminaron y el resultado por tienda— NO está aquí**, y es a propósito: es un resumen de
   solo lectura sobre `promo_decisions` que no comparte nada con lo de arriba salvo el concepto de grupo. Va en su propia entrega.
+
+## D-NEXT · La tabla de promociones pasa a ser la de Órdenes, y se quita la subida por pantalla
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Sin migración.**
+**De dónde sale:** el dueño abrió RTG PROMOS con su primera ronda real. Dos frases suyas, literales:
+*«it's horrible, first it doesn't fit in 1 screen, make it the style of the order table in deliveries because is horrible»* y
+*«eso de cargar files no, quita eso: yo te doy la información y tú la subes y punto»*.
+**Reemplaza en parte a D-368**, que lleva su nota dentro.
+
+### Lo que estaba mal, medido
+
+`TablaDeRonda` pintaba un `<div className="tbl-scroll"><table>` **pelado**, sin las clases de Órdenes, y
+`columnasDePromosPorDefecto` devolvía **todas** las columnas — con las seis de existencias por tienda y las cinco privadas, que
+son **diecisiete**. Una tabla que nace más ancha que la pantalla obliga a desplazarse a lo ancho antes de leer nada, y encima no
+se parecía a la única tabla que el dueño usa todos los días.
+
+### El arreglo: las MISMAS piezas, no unas parecidas
+
+Las clases (`tbl-scroll tbl-fit orders-scroll` y `orders tbl-resize orders-responsive`), el `colgroup` con anchos, las asas de
+arrastre con doble clic para restablecer, `anchoDeTabla`, el `data-label` de cada celda —que es lo que convierte cada fila en una
+tarjeta con su rótulo en el teléfono— y el aviso de filtros puestos. **Reusadas, no copiadas**: si el CSS de Órdenes cambia,
+cambia aquí, y hay prueba que exige que las dos cadenas de clases estén en los dos ficheros.
+
+**Y NO se le pone alto propio.** La instrucción inicial pedía «la tabla ocupando el alto que queda con su propio
+desplazamiento», y **medir la referencia lo desmintió**: la tabla de Órdenes, a 1280 y 1440 en producción, **no tiene
+desplazamiento vertical propio** — quien baja es la página (2742 px con 86 filas). Lo que da la sensación de «cabe en una
+pantalla» son otras dos cosas: que la **caja** se desplace de lado en vez de la página, y la **cabecera pegada**. Hacer más que
+la referencia habría sido darle otra cosa a quien pidió «el estilo de la tabla de Órdenes».
+
+### Pocas columnas al entrar, y por qué aquí sí
+
+Se parte de **siete**: código, descripción, tamaño, existencias, precio, decisión y nota. Las de tienda y las cinco privadas
+siguen estando, en ⚙ Columnas.
+
+Es lo contrario de lo que hace el Gestor de Rutas (D-331, «por defecto todas»), y la diferencia es real: **allí el número de
+columnas lo fija el código y aquí lo pone el libro.** Cada tienda nueva del Excel añade una columna, así que «todas» crece sola
+y nadie se entera hasta que no cabe. Hay prueba de que las de partida **suman menos de 1100 px**, que es lo que queda a 1280.
+
+### Una cosa que estaba a medias y no se había dicho
+
+**Las columnas elegidas no se guardaban.** Vivían en un `useState`: se elegían, se veían, y al recargar volvían al defecto. O
+sea que **la migración 141 se aplicó a producción para una clave que no usaba nadie**, y D-369 daba a entender lo contrario.
+Ahora se leen y se guardan en `user_prefs` con el mismo cableado que el Gestor —y sin escribir a ciegas: solo si se pudo leer
+antes—. Se cuenta aquí porque el fallo no es el olvido, es haberlo dado por hecho en una entrada.
+
+Y con eso entra una regla nueva, `columnasVisiblesDePromos`: lo guardado manda, **una clave que ya no existe se cae** —una
+columna de tienda desaparece en cuanto el libro del mes que viene no la trae— y **las fijas entran siempre**, porque una lista
+guardada antes de que lo fueran dejaría una pantalla sin código, sin estado y sin nota, o sea inútil y sin decir por qué.
+
+### Fuera la subida
+
+Borrados `SubirRonda.tsx`, `/api/promos/preview`, `/api/promos/commit` y `lectura-servidor.ts`, que solo servía a las rutas. Con
+`commit` se va **la única superficie del módulo con llave de servicio**. La prueba que había —«`preview` no coge la llave»— se
+sustituye por una **más fuerte**: que no la coja **nadie** en todo el módulo, recorriendo `src/app/promos` y `src/lib/promos`
+enteros, y que el directorio de las rutas no exista.
+
+**Lo que se queda son las funciones puras**, porque son las que va a usar el script con el que se cargan las rondas: el lector
+del libro, las filas que se guardan, los topes y la huella. Están probadas y no dependen de un navegador.
+
+### Datos de demo, porque la queja era visual
+
+`/promos` daba 404 en modo demo —no hay base—, así que la queja del dueño **no se podía comprobar mirando**. Se añaden datos
+inventados (`lib/promos/demo.ts`): doce productos, dos rondas (una cerrada), cinco grupos y **seis claves de existencias por
+tienda**, que son las mismas seis que trae su libro para que la tabla se vea igual de ancha. Con descripciones largas de las que
+cortan, costos con toda su precisión, y productos sin costo ni precio, como los de la hoja suelta.
+
+**Ni un dato del dueño**: ni códigos, ni tiendas, ni proveedores, ni precios. Lo que se copia es la forma.
+
+### Verificado
+
+`tabla.test.ts` pasa de 33 a 45 casos. Las nuevas: que las columnas de partida son siete y **caben**, que lo guardado se respeta
+con las dos reglas de arriba, que la tabla usa **las mismas cadenas de clases que `OrdersTable`** (comprobando que están en los
+dos ficheros), que lleva `colgroup`, asas y `data-label`, que **no** tiene alto propio —mirando la caja y no el fichero entero,
+que el menú de ⚙ Columnas sí lleva el suyo— y que las preferencias se leen y se guardan con la clave de la 141.
+
+Y `tabla-ancho.test.ts` pasa de contar **seis** marcos `tbl-scroll tbl-fit` a **siete**. Esa cuenta exacta es del proyecto desde
+D-281 y su comentario dice que el número se mueve con su motivo: este es el motivo.
+
+### Lo no verificado
+
+- **Sigue sin haberlo mirado yo en un navegador.** Los datos de demo existen para que se pueda, y lo mide `worker` a 1280 y
+  1440. Que no haya desplazamiento lateral está **calculado** (la suma de anchos), no visto.
+- El script con el que se cargarán las rondas **no está**: va en la entrega siguiente. Hasta entonces las rondas las carga a
+  mano quien administra, que es como entró la primera.
