@@ -50,7 +50,7 @@ export default async function PromosIndex() {
             <tbody>
               {rondas.map((r) => (
                 <tr key={r.id}>
-                  <td><b>{r.label}</b></td>
+                  <td><Link href={`/promos/${r.id}`}><b>{r.label}</b></Link></td>
                   <td className="hint">{r.source_name ?? "—"}</td>
                   <td className="hint">{new Date(r.uploaded_at as string).toLocaleString()}</td>
                   <td>{r.closed_at ? "Cerrada / Closed" : "Abierta / Open"}</td>
@@ -60,8 +60,8 @@ export default async function PromosIndex() {
           </table>
         )}
         <p className="hint" style={{ marginBottom: 0, marginTop: 10 }}>
-          Aprobar y rechazar producto por producto llega en el siguiente paso. / Approving and
-          rejecting product by product comes next.
+          Toca una ronda para aprobar o rechazar sus productos. / Open a round to approve or reject
+          its products.
         </p>
       </div>
 
