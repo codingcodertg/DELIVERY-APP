@@ -348,6 +348,17 @@ export interface NamedLocation {
    * permiso — un admin retocando cómo se agrupan los teléfonos cambiaría quién ve y trabaja qué
    * órdenes sin enterarse. */
   group?: string | null;
+  /** Stores only: el **grupo de promociones** (RTG PROMOS, migración 140). Las tiendas que comparten
+   * este valor **deciden juntas** qué productos entran en promoción: una sola decisión por producto
+   * para todas ellas, que es lo que pidió el dueño para las dos tiendas que su hoja de Excel trae
+   * juntas. Ausente o vacío = esa tienda no decide nada todavía, y es el valor seguro: sin grupo,
+   * `promo_group_of_user()` devuelve nulo y su gerente no puede aprobar ni rechazar.
+   *
+   * **Es el TERCER campo de agrupar, y a propósito no es ninguno de los otros dos.** `directory_code`
+   * agrupa el directorio telefónico y `group` agrupa quién trabaja con quién; reusar cualquiera de
+   * los dos ataría el calendario de las promociones al de otra cosa, y un admin reagrupando teléfonos
+   * movería en silencio quién decide una promoción. Tres hechos distintos, tres campos. */
+  promo_group?: string | null;
 }
 
 /** A saved customer/site account — picking it on an order auto-fills who to

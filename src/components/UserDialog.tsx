@@ -29,7 +29,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -94,6 +94,15 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         // granted:true porque cambiar el tier presupone que ya tiene el módulo.
         updateUserErpAccess(u.id, { granted: true, erp_role: roleValue });
         return;
+      case "promos":
+        // No tiene rol propio (ver MODULE_ACCESS): sin `roleColumn` el bloque no dibuja el
+        // `<select>`, así que aquí no llega nadie. El caso existe porque el `default: never` de
+        // abajo es lo que hace que añadir un módulo falle en `tsc` en vez de escribir en la
+        // columna equivocada (D-057), y no se puede tener lo uno sin lo otro.
+        // Que siga siendo inalcanzable NO se deja a la vista: lo fija `promos-modulo.test.ts`
+        // exigiendo que `promos` no tenga `roleColumn`. Si alguien le da uno, esa prueba cae y
+        // apunta aquí.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -107,6 +116,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         return;
       case "erp":
         updateUserErpAccess(u.id, { granted });
+        return;
+      case "promos":
+        // Solo la casilla: la 140 no creó ninguna columna de rol para este módulo.
+        updateUserPromosAccess(u.id, { granted });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

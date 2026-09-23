@@ -26,6 +26,9 @@ export type SecurityKind =
   | "timetracker_access_changed"
   | "erp_access_changed"
   | "erp_role_changed"
+  // RTG PROMOS (migración 140). Solo el acceso: este módulo no tiene columna de rol propia, así
+  // que no hay un `promos_role_changed` que registrar.
+  | "promos_access_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed"
   // D-243: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
@@ -58,6 +61,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     timetracker_access_changed: "Timetracker access changed",
     erp_access_changed: "ERP access changed",
     erp_role_changed: "ERP tier changed",
+    promos_access_changed: "RTG PROMOS access changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
     impersonation_start: "Signed in as this user",
@@ -78,6 +82,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     timetracker_access_changed: "Acceso a Timetracker cambiado",
     erp_access_changed: "Acceso al ERP cambiado",
     erp_role_changed: "Nivel de ERP cambiado",
+    promos_access_changed: "Acceso a RTG PROMOS cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
     // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
     // porque es el mismo mapa que estoy tocando y dejar el hueco al lado de las líneas nuevas

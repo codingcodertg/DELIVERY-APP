@@ -44,3 +44,14 @@ describe("appForPath", () => {
     }
   });
 });
+
+// D-366: RTG PROMOS tiene version propia; sin su prefijo la pantalla enseñaria el numero de Entregas.
+describe("RTG PROMOS", () => {
+  it("/promos y sus subrutas son promos, no deliveries", () => {
+    expect(appForPath("/promos")).toBe("promos");
+    expect(appForPath("/promos/ronda/1")).toBe("promos");
+  });
+  it("un prefijo parecido no cuela", () => {
+    expect(appForPath("/promosx")).toBe("deliveries");
+  });
+});

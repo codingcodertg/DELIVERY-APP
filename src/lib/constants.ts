@@ -383,6 +383,18 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Time tracking and payroll",
     desc_es: "Registro de horas y nómina",
   },
+  {
+    // RTG PROMOS (migración 140). La tarjeta se llama así, en las dos lenguas, porque es como lo
+    // nombró el dueño; la clave es "promos", que es la palabra que ya acepta `module_access` en la
+    // base desde la 140 — cambiarla sería una migración de datos por un rótulo.
+    key: "promos",
+    href: "/promos",
+    emoji: "🏷️",
+    label_en: "RTG PROMOS",
+    label_es: "RTG PROMOS",
+    desc_en: "Promo rounds: approve or reject by store",
+    desc_es: "Rondas de promoción: aprobar o rechazar por tienda",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -851,7 +863,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -965,6 +977,28 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
       return (lang === "es" ? L[key]?.es : L[key]?.en) ?? key;
     },
     accessColumn: "module_access",
+  },
+  {
+    key: "promos", label_en: "RTG PROMOS", label_es: "RTG PROMOS",
+    alwaysOn: false,
+    // SIN escalafón propio, y esto es una decisión, no un hueco. Quién aprueba una promoción lo
+    // decide `profiles.role` siendo Gerente de Oficina (`manager`) u Oficina (`accounting`) —los dos
+    // papeles que nombró el dueño— y esa columna es la de Entregas: la regla de D-057 prohíbe que
+    // dos módulos apunten a la misma, así que `promos` no la reclama.
+    //
+    // ES LA MISMA FORMA QUE EL DEFECTO A-2d DEL ERP, y por eso se dice aquí en vez de dejarlo
+    // implícito: allí «ve costo» viajaba pegado a «es Gerente de Oficina de Entregas» porque nadie
+    // los había separado nunca. La diferencia es que aquí la costura YA ESTÁ CORTADA en la base:
+    // `promo_is_decider()` y `promo_can_see_private()` son dos funciones distintas (migración 140),
+    // así que el día que «aprobar» y «ver el costo» dejen de ir juntos no hay nada que desenredar,
+    // solo un `promos_role` que crear.
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own: who approves is the Office Manager or Office of the store, from the Deliveries role above. The store's promo group is set in Data → Stores.",
+      es: "Sin rol propio: aprueba el Gerente de Oficina o la Oficina de la tienda, según el rol de Entregas de arriba. El grupo de promociones de cada tienda se pone en Datos → Tiendas.",
+    },
   },
 ];
 

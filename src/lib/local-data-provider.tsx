@@ -357,6 +357,12 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
+  // Y lo mismo con promociones: en demo no hay ninguna ronda que decidir, así que conceder el
+  // módulo no llevaría a ninguna parte. Se contesta como los demás en vez de callarse.
+  const updateUserPromosAccess = useCallback<DataState["updateUserPromosAccess"]>(async () => {
+    notify("Not available in demo mode");
+  }, [notify]);
+
   // En demo todo el mundo tiene Entregas — es lo único que hay — así que quitarla no
   // significaría nada aquí. Se responde como los demás módulos en vez de callarse.
   const updateUserDeliveriesAccess = useCallback<DataState["updateUserDeliveriesAccess"]>(async () => {
@@ -418,7 +424,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,
