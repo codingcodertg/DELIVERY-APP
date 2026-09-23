@@ -24795,3 +24795,81 @@ para la misma regla es justo lo que esta entrada viene a quitar.
 - **Las 27 copias de la regla no desaparecen todas**: quedan las del motor de rutas y las de
   timetracker, que son otras magnitudes y están fuera. Lo que se exige por prueba es que **en los
   ficheros tocados** no quede ninguna.
+## D-364 · Tres cosas que solo se vieron abriendo la app: la ficha se quedaba con una foto, las pastillas se partían y «Aplicar» se iba con el desplazamiento
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde salen:** de la primera revisión en un navegador desde D-334 — veintinueve decisiones sin que nadie abriera la app
+con sesión. Modo demo local (`NEXT_PUBLIC_LOCAL_MODE=true`), Chrome conducido por CDP; **no se tocó producción**.
+
+### 1 · La ficha abierta leía una foto, no la orden
+
+Las ocho pantallas que montan `OrderModal` le pasan el objeto de la fila pulsada, guardado en su estado. Mientras la ficha
+está abierta, ese objeto **no se entera de nada**. Con D-361 eso pasó de ser invisible a ser un problema: se pulsa «Deshacer
+etapa», el aviso dice «Etapa deshecha», y debajo siguen la etapa vieja y los botones de la etapa vieja. Medido: tras deshacer,
+los chips de la lista pasan de Programmed 30 a 31 y de Preparing 18 a 17, y la fila ya dice Programmed, **pero la ficha abierta
+seguía diciendo Preparing**. Se presta a pulsar dos veces sobre una orden que ya cambió.
+
+**No era de siempre, y por eso nadie lo había visto:** las acciones de etapa anteriores **cierran** la ficha —se comprobó con
+«Approve», que la cierra—, así que el desfase no llegaba a verse nunca. Las dos de D-361 la dejan abierta a propósito.
+
+Se arregla **en la raíz y en un solo sitio**: la ficha deriva la orden de la lista viva por su id, con la foto como respaldo.
+Un arreglo más barato era cerrar la ficha, como hace «Approve»; se descartó porque cerrar pierde el sitio donde estabas, y
+porque el problema no es que la ficha siga abierta sino que guardaba una copia. El respaldo importa: si la orden desaparece de
+la lista —se borró, o la ventana de fechas la dejó fuera— se sigue enseñando lo último que se sabía, en vez de vaciar la
+pantalla. Comprobado en el navegador: tras deshacer, sin cerrar, la pastilla pasa a **Programmed** y el pie cambia de «Mark
+ready» a «Unlock (back to pending) · Start preparing».
+
+**Y el rótulo que chocaba:** en una orden recogida se veían a la vez dos botones «Mark delivered» — el verde del pie, que abre
+la firma y el comprobante, y el de D-361, que cierra la orden SIN firma. No sobra ninguno: hacen cosas distintas. El de D-361
+pasa a **«Mark delivered without signature» / «Marcar entregada sin firma»**.
+
+### 2 · Las pastillas se partían a media letra
+
+En la tabla de Órdenes, «Pending Approval» mide **117 px** y su celda da **92** de contenido (108 de columna menos 16 de
+relleno): la pastilla se salía 15 px y la columna de al lado la cortaba. La insignia «Atrasada» junto a la fecha se salía entre
+10 y 23 px. Medido a 1100, 1280, 1440 y 1680 px de ancho de ventana: se cortaba en los cuatro.
+
+Anchos medidos de todas las pastillas de etapa (Chrome, fuente real, 2026-09-23): en inglés, de 45 («Draft») a **117**
+(«Pending Approval»); en español, de 45 («Listo») a **87** («Programado»); las insignias, hasta 69 («Atrasada»).
+
+**No se arregla ensanchando la columna**, que es lo primero que apetece: D-344 estrechó estas tablas a propósito y dejó escrito
+que lo que no cabe se corta con puntos suspensivos y que para eso está el asa. Una pastilla no hacía ni eso. Ahora la celda que
+lleva pastillas **las deja bajar de línea** si hay varias, y **una sola que no quepa se recorta con puntos**, con el texto
+entero en su `title`. Los anchos por defecto siguen siendo los compactos de D-344. La regla no depende del texto: vale en los
+dos idiomas, con cualquier etiqueta futura y con la columna al ancho que cada persona le haya dejado (D-338).
+
+### 3 · «Limpiar» y «Aplicar» se iban con el desplazamiento
+
+En el menú de ordenar y filtrar del Gestor (D-360), una columna con muchos valores —«ID» tiene 45— da 431 px de contenido en
+una caja de 320 con desplazamiento: los botones del final quedaban fuera de la vista al abrir. Ahora **la caja no se desplaza y
+solo lo hace la lista de valores**; el encabezado, el orden, el buscador y los botones quedan siempre a la vista. Va acotado al
+menú de filtro: el de «⚙ Columnas» comparte la clase `.col-menu` y no cambia.
+
+**Un aviso que di y era falso, y así queda escrito:** informé de que el menú «abre fuera de pantalla, con Aplicar 226 px por
+debajo del borde». Era un artefacto de mi medición: pulsé por código el botón de una cabecera que estaba **fuera de la
+pantalla**, cosa que una persona no puede hacer. Abriéndolo como se abre de verdad —con la cabecera a la vista— el menú cabe
+entero, y `posicionDelMenu` sí voltea hacia arriba cuando no hay hueco abajo. Lo que sí era cierto es lo de los botones.
+
+### De paso, una pregunta de D-344 que queda contestada
+
+D-344 se preguntaba si el asa de redimensionar se veía, porque el dueño pidió dos veces algo que ya existía, y decía: «nadie ha
+abierto esto en un navegador desde D-334, así que no se sabe cuál». Ya se sabe: **el asa funciona**. Tiene su `title`,
+arrastrar 90 px da exactamente 90, el ancho se guarda (`rtg_colw_orders_admin`), sobrevive a recargar y el doble clic lo
+restablece. Lo que no se puede comprobar en demo es el guardado por persona de D-338, que necesita servidor.
+
+### Mutantes
+
+19, leídos por nombre —qué prueba cae con cada uno—; caen los 19. Los que sostienen cada arreglo: «la ficha vuelve a la foto»,
+«sin respaldo: la orden borrada vacía la ficha», «la copia deja de mandar» (D-286 sigue en pie), «busca por otra cosa que el
+id», «vuelve el rótulo que chocaba»; «la celda no recibe la clase», «todas las celdas se marcan», «sin el `title` del texto
+entero», «la pastilla sin recorte», «se arregla ensanchando a mano» y «se revienta la compacidad de D-344»; y «vuelve el scroll
+de la caja entera», «la lista deja de desplazarse», «las acciones se encogen con la lista».
+
+### Lo que NO está
+
+- **Las marcas P/D que se pisan en el mapa** no se tocan: medidos 18 pares que se solapan sobre 8 marcas con todas las rutas, y
+  6 eligiendo una sola. Es diseño —desplazar, agrupar o fundir— y lo decide el dueño con el número delante.
+- **D-341, el aviso de ruta cambiada, sigue sin verificar:** necesita un plan publicado, que vive en el servidor. No se inventó
+  uno en demo para poder tacharlo.
+- Las pruebas de aquí son de estructura: sin jsdom, lo que se mide de verdad —píxeles, recortes, qué se ve sin desplazarse— está
+  medido en Chrome y anotado arriba.
