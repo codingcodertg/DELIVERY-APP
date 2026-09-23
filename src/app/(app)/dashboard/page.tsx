@@ -19,6 +19,7 @@ import {
   shiftDateISO, shiftMonthISO, startOfMonthISO, startOfWeekISO, toCSV, todayISO, deliveryColumns, orderLabel,
 } from "@/lib/utils";
 import type { Stage } from "@/lib/types";
+import { redondeaDinero, sumaDinero, sumaMillas } from "@/lib/totales";
 
 // Default the date-range to the last 30 days.
 function daysAgoISO(n: number): string {
@@ -117,9 +118,10 @@ export default function DashboardPage() {
       const v = vals.filter((x): x is number => x != null);
       return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
     };
-    const revenue = drivers.reduce((s, d) => s + d.revenue, 0);
-    const miles = drivers.reduce((s, d) => s + d.miles, 0);
-    const fuel = drivers.reduce((s, d) => s + (d.fuelCost ?? 0), 0);
+    // Suma de segundo nivel: lo que ya venía redondeado por chofer. Misma magnitud, misma unidad.
+    const revenue = sumaDinero(drivers, (d) => d.revenue);
+    const miles = sumaMillas(drivers, (d) => d.miles);
+    const fuel = sumaDinero(drivers, (d) => d.fuelCost);
     const anyFuel = drivers.some((d) => d.fuelCost != null);
     const avgUtil = avg(drivers.map((d) => d.utilizationPct));
     const avgOnTime = avg(drivers.map((d) => d.onTimePct));
@@ -131,9 +133,9 @@ export default function DashboardPage() {
     const totalRedeliveries = quality.reduce((s, d) => s + d.redeliveries, 0);
     const totalGpsOff = quality.reduce((s, d) => s + d.podGpsFar, 0);
     return {
-      revenue: Math.round(revenue * 100) / 100,
-      revPerMile: miles > 0 ? Math.round((revenue / miles) * 100) / 100 : null,
-      fuelCost: anyFuel ? Math.round(fuel * 100) / 100 : null,
+      revenue,
+      revPerMile: miles > 0 ? redondeaDinero(revenue / miles) : null,
+      fuelCost: anyFuel ? fuel : null,
       avgCostPer: avgCostPer == null ? null : Math.round(avgCostPer * 100) / 100,
       avgUtil: avgUtil == null ? null : Math.round(avgUtil),
       avgOnTime: avgOnTime == null ? null : Math.round(avgOnTime),
@@ -372,7 +374,7 @@ export default function DashboardPage() {
                         <td>{fleet.avgOnTime == null ? "—" : `${fleet.avgOnTime}%`}</td>
                         <td>—</td>
                         <td>—</td>
-                        <td>{Math.round(drivers.reduce((s, d) => s + d.miles, 0) * 10) / 10}</td>
+                        <td>{sumaMillas(drivers, (d) => d.miles)}</td>
                         <td>{fmtMoney(fleet.revenue)}</td>
                         <td>{fleet.revPerMile == null ? "—" : fmtMoney(fleet.revPerMile)}</td>
                         <td>{fleet.avgUtil == null ? "—" : `${fleet.avgUtil}%`}</td>

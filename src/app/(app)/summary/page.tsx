@@ -8,6 +8,8 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { driverKpis, driverQualityKpis } from "@/lib/analytics";
 import { fmtDate, fmtMoney, isOverdue, orderLabel, orderOwner, shiftDateISO, todayISO, yesterdayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import { sumaDinero } from "@/lib/totales";
+import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager / Dashboard default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -54,7 +56,7 @@ export default function SummaryPage() {
       active: active.length,
       delivered: mine.filter((d) => d.stage === "delivered").length,
       overdue: mine.filter(isOverdue).length,
-      fees: Math.round(mine.filter((d) => d.stage !== "canceled").reduce((s, d) => s + (d.delivery_fee ?? 0), 0) * 100) / 100,
+      fees: sumaDinero(mine.filter((d) => d.stage !== "canceled"), (d) => d.delivery_fee),
     };
   }, [mine]);
 
@@ -146,7 +148,8 @@ export default function SummaryPage() {
                 <div className="kpi"><b>{perf.k.routes}</b><span>{t("Days worked", "Días trabajados")}</span></div>
                 <div className="kpi"><b>{perf.k.avgStops.toFixed(1)}</b><span>{t("Stops per day", "Paradas por día")}</span></div>
                 <div className="kpi"><b>{Math.round(perf.k.miles)}</b><span>{t("Miles driven", "Millas recorridas")}</span></div>
-                <div className="kpi"><b>{Math.round(perf.k.pallets)}</b><span>{t("Pallets moved", "Pallets movidos")}</span></div>
+                {/* A la décima, no a entero (D-363): «Pallets movidos» con cuatro órdenes de 0,1 decía «0». */}
+                <div className="kpi"><b>{aLaDecima(perf.k.pallets)}</b><span>{t("Pallets moved", "Pallets movidos")}</span></div>
                 <div className="kpi">
                   <b>{perf.k.utilizationPct == null ? "—" : `${Math.round(perf.k.utilizationPct)}%`}</b>
                   <span>{t("Truck used", "Uso del camión")}</span>

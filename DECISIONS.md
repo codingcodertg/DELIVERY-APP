@@ -24654,3 +24654,144 @@ mano. Suite entera local: 3682 pasados.
 - **Los totales de dinero y millas no se tocaron.** `delivery_fee` y `route_miles` se suman igual de crudos en
   `analytics` y en el manifiesto, y pueden tener el mismo problema — con dinero, además, la décima no es la unidad
   correcta. No entraba en lo pedido y se deja dicho aquí en vez de arreglarlo de paso.
+
+## D-363 · Los pallets salían a entero en seis sitios, y de paso el dinero y las millas se suman en un sitio
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+Sale del punto 9 del traspaso, y es el mismo patrón de **D-355** y **D-362** con los pallets.
+
+### Lo primero, porque es lo que se ve: seis restos de D-362
+
+D-362 arregló quince sitios que sumaban pallets por su cuenta, y dedicó una sección a *«la otra forma
+de equivocarse, que era peor»*: redondear a **entero**. No deja cola que delate nada; deja un número
+**mal y creíble** — «una ruta con cuatro órdenes de 0.1 enseñaba "0", y un total de 4.43 enseñaba
+"4"». Nombró cuatro: Cuentas, el mapa y dos del Gestor.
+
+**Quedaban seis, y `sumaPallets` ni siquiera estaba importada en `analytics.ts`:**
+
+| | |
+|---|---|
+| `analytics.ts:65` | el total del día |
+| `analytics.ts:100` | por chofer, en la carga |
+| `analytics.ts:238` | por chofer, en el rendimiento |
+| `analytics.ts:416` | el volumen por **tienda y por cuenta** |
+| `my-route/page.tsx:420` | **la pantalla del chofer**: «🚚 Viaje 1 · 0 pallets» con cuatro órdenes de 0,1 |
+| `summary/page.tsx:150` | el KPI «Pallets movidos» |
+
+Y **dos más** que no redondeaban a entero pero sumaban crudo y pintaban el resultado tal cual:
+
+- **`daily-summary.ts:59`** — el resumen que se publica en **Notion**. Es el **único sitio de todo el
+  barrido donde la cola de la coma flotante llegaba de verdad a una persona**: «4.430000000000001
+  pallets».
+- **`map/page.tsx:345`** — suma filas que ya vienen a la décima de D-362, y 0,1 + 0,2 pintaba
+  0.30000000000000004.
+
+Los ocho salen ahora de `sumaPallets` o de `aLaDecima`, y hay prueba con los datos exactos que D-362
+describe.
+
+Esto **no es un hallazgo nuevo: es un resto**. La decisión que lo cubría ya estaba escrita; lo que
+falló fue el barrido — y falló **dos veces**: D-362 arregló quince sitios y se dejó seis, y la primera
+versión de esta rama arregló tres y se dejó los otros tres, que encontró el orquestador **en el mismo
+fichero que yo estaba tocando, ocho líneas debajo de uno que sí había arreglado**. Por eso lo que
+cierra esto no es la lista: es una prueba que recorre `src` entero y exige que no haya ninguno.
+
+### Y lo segundo: dinero y millas, cada uno con su unidad y en un sitio
+
+`src/lib/totales.ts`, hermano de `lib/pallets.ts`:
+
+- **`sumaDinero`** y **`redondeaDinero`** — al **centavo**, dos decimales. Con dinero la décima no es
+  una unidad: no existe un precio de $12,3 que alguien pueda cobrar.
+- **`sumaMillas`** y **`redondeaMillas`** — a la **décima**, que es lo que ya hacía el manifiesto y lo
+  que decide algo: con una centésima de milla nadie cambia una ruta.
+
+Dieciséis sitios pasan por ellas: los cuatro totales de `analytics.ts`, el Excel de `export.ts`, el
+manifiesto, Cuentas, Resumen, las tres sumas de segundo nivel del Panel y las dos de incidentes.
+
+### Por qué se hace, y por qué NO se hace
+
+**El motivo es que la regla estaba copiada a mano en 27 sitios y en tres grafías** —
+`Math.round(x * 100) / 100` (12), `Math.round(x * 10) / 10` (12) y `.toFixed(2)` (3)—, sin ningún
+lugar que dijera cuál es la unidad de cada magnitud. Un total que se calcula en catorce sitios acaba
+saliendo distinto en dos de ellos, y nadie sabe cuál es el bueno.
+
+**El motivo que NO vale, y se midió antes de escribir una línea:** «donde no se redondea asoma la cola
+binaria». **No asomaba.** Los ocho sitios que acumulaban en coma flotante redondeaban igualmente antes
+de devolver o de pintar — `analytics.ts:66-68`, `:232-235`, `:471`, `export.ts:90`. La cola no llegaba
+a ninguna pantalla. Queda escrito porque era la premisa del encargo y era falsa: si alguien ve
+decimales de más en dinero o en millas, viene de otro sitio y hay que medirlo.
+
+### Se acumula en enteros, y en una unidad MÁS FINA que la que se enseña
+
+Se suman **centésimas enteras** y se divide al final. Lo que importa y es fácil hacer mal es **no
+redondear cada sumando a la unidad de salida**: con millas a la décima, diez tramos de 0,04 mi darían
+`0` cada uno y **0 en total** en vez de 0,4 — que es otra vez el fallo «mal y creíble» de D-362, ahora
+en millas. Por eso se acumula a la centésima y solo el total baja a la décima. Tiene prueba con esos
+diez tramos.
+
+### Lo que NO entra, y por qué
+
+- **Las millas del motor de rutas** (`route-plan/vista.ts`, `porque.ts`, `ajuste.ts`, `importa.ts`,
+  `route-batching.ts`): son otra magnitud —millas planificadas de una ruta, no `route_miles` de una
+  orden—, ya van a dos decimales, y **una de ellas se guarda en la base**: `route_plans.total_miles`
+  (migración 133), que además la propia 133 **bloquea** al actualizar un plan publicado.
+- **`track-history.ts:157,169`**: convierte metros de GPS a millas, no suma un campo de la orden.
+- **`routes/page.tsx:987`**: suma las millas que devuelve el optimizador en **una** llamada.
+
+### El Excel que alguien concilia
+
+`export.ts` es lo único que sale de la app para que una persona lo compare con otra cosa. El cambio
+unifica **dónde** se redondea, no **a qué**, así que esos totales **no cambian de valor** — y hay dos
+pruebas con ese nombre que los comparan contra la fórmula vieja escrita a mano.
+
+### Sabido y no tocado: `centesimas` significa dos cosas
+
+Está definida **tres veces en privado**: `route-plan/porque.ts:35` y `vista.ts:45` redondean a dos
+decimales; `secuencia-pd.ts:42` convierte a centésimas **enteras**, sin dividir. Mismo nombre, dos
+trabajos. No se toca en esta rama —es del motor, y lo de aquí no lo necesita— pero queda escrito: un
+nombre que significa dos cosas es una trampa para el siguiente que pase.
+
+### Medido, rompiendo cada pieza
+
+14 cambios: **14 caen, cada uno por la prueba que lleva su nombre, y el gemelo se queda en verde.**
+
+- El dinero a la décima (la suma y el redondeo, por separado); las millas quedándose a la centésima;
+  redondear cada sumando en vez del total; acumular en coma flotante; lo nulo envenenando la suma;
+  los dos restos de D-362 devueltos —total del día y por chofer—; el total del Panel dejando de
+  excluir las anuladas; y el Excel cambiando de valor por los dos lados.
+- Y los tres de la puerta: devolver a entero **uno** de los sitios arreglados, devolverlo **con
+  paréntesis anidados** dentro del `Math.round`, y meter un **cuarto sitio nuevo en un fichero que
+  nadie ha tocado**. Los tres caen por la prueba de barrido.
+- **El gemelo:** `sumaDinero` escrita con un bucle en vez de `reduce`.
+
+**Un mutante no lo puede cazar ningún dato, y se dice:** acumular en coma flotante en vez de en
+enteros **da exactamente lo mismo** con estas magnitudes — el error de la coma flotante necesitaría
+del orden de 1e15 sumas para mover un centavo. Sobrevivió a la tanda entera. Se fija **leyendo**, con
+una prueba que cita la línea del sumando; se acumula en enteros porque así no hay nada que explicar,
+no porque hoy cambie un número.
+
+**Y dos pruebas mías eran flojas por la misma razón de siempre:** citaban un **fragmento** que otra
+cadena contiene. `Math.round(n * 100)` está dentro de `Math.round(n * 100) / 100`, así que el mutante
+que quitaba el redondeo del sumando pasaba. Ahora se cita la línea entera. Es el mismo error que ya
+me costó una vuelta con el tope de la 138.
+
+**Y un gemelo que elegí mal:** escribir el redondeo del dinero con `Number(n.toFixed(2))` **no** es
+equivalente —hace caer la prueba que fija la grafía—, y está bien que caiga: tres grafías distintas
+para la misma regla es justo lo que esta entrada viene a quitar.
+
+### Verificado
+
+`npx tsc --noEmit` y `npx vitest run`: **3704 pasadas | 3 saltadas**. Y `decisions-check`. El
+`next build` se deja al CI, por acuerdo con el orquestador.
+
+### Lo no verificado
+
+- **Nadie lo ha abierto en un navegador.** Los tres números del Panel se comprueban llamando a
+  `computeKpis` y `driverStats` con órdenes inventadas, no mirando la pantalla.
+- **`utils.ts:235` es `Math.round(n * minPerPallet)`: son MINUTOS, no pallets.** Queda dicho para
+  que nadie lo persiga, y la prueba de barrido lo excluye por nombre.
+- **No se ha contado cuántos días del histórico enseñaban un pallet de menos** por el redondeo a
+  entero. Haría falta leer producción, y el cambio no reescribe nada: solo cambia lo que se pinta de
+  aquí en adelante.
+- **Las 27 copias de la regla no desaparecen todas**: quedan las del motor de rutas y las de
+  timetracker, que son otras magnitudes y están fuera. Lo que se exige por prueba es que **en los
+  ficheros tocados** no quede ninguna.

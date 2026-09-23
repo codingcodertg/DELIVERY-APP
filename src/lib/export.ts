@@ -6,6 +6,7 @@ import type { Delivery, Profile } from "@/lib/types";
 import { stageLabel } from "@/lib/constants";
 import { fmtDate, orderOwner } from "@/lib/utils";
 import type { Lang } from "@/lib/prefs";
+import { sumaDinero, sumaMillas } from "./totales";
 
 // ============================================================
 // Rich exports of the orders list, grouped by the employee who logged each
@@ -82,12 +83,14 @@ export async function exportExcelByEmployee(deliveries: Delivery[], users: Profi
 
   for (const [employee, orders] of groupByEmployee(deliveries, users, lang)) {
     // Employee banner (level 0 = summary above the collapsible group).
-    const totalMiles = orders.reduce((s, o) => s + (o.route_miles ?? 0), 0);
-    const totalFees = orders.reduce((s, o) => s + (o.delivery_fee ?? 0), 0);
+    // Este es el Excel que alguien concilia: los dos totales salen de su función y NO cambian de
+    // valor con el cambio — hay prueba con ese nombre.
+    const totalMiles = sumaMillas(orders, (o) => o.route_miles);
+    const totalFees = sumaDinero(orders, (o) => o.delivery_fee);
     const banner = ws.addRow([
       `👤 ${employee}`,
       lang === "es" ? `${orders.length} órdenes` : `${orders.length} orders`,
-      `${Math.round(totalMiles * 10) / 10} mi · $${totalFees.toFixed(2)}`,
+      `${totalMiles} mi · $${totalFees.toFixed(2)}`,
     ]);
     ws.mergeCells(banner.number, 3, banner.number, cols.length);
     banner.eachCell((cell) => {
