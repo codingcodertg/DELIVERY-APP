@@ -36,6 +36,7 @@ import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConM
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { aLaDecima, sumaPallets } from "@/lib/pallets";
+import { sumaDinero } from "@/lib/totales";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -2627,16 +2628,19 @@ function DriverIncidents({
 
   // Total logged cost per driver, for a quick at-a-glance tally.
   const totals = useMemo(() => {
-    const m = new Map<string, { count: number; cost: number }>();
+    // El coste es dinero: se junta lo de cada chofer y el total sale de `sumaDinero` (D-NEXT).
+    const m = new Map<string, { count: number; suyos: typeof incidents }>();
     for (const inc of incidents) {
-      const cur = m.get(inc.driver_name) ?? { count: 0, cost: 0 };
-      cur.count += 1; cur.cost += Number(inc.cost) || 0;
+      const cur = m.get(inc.driver_name) ?? { count: 0, suyos: [] as typeof incidents };
+      cur.count += 1; cur.suyos.push(inc);
       m.set(inc.driver_name, cur);
     }
-    return [...m.entries()].sort((a, b) => b[1].cost - a[1].cost);
+    return [...m.entries()]
+      .map(([name, v]) => [name, { count: v.count, cost: sumaDinero(v.suyos, (i) => Number(i.cost)) }] as const)
+      .sort((a, b) => b[1].cost - a[1].cost);
   }, [incidents]);
 
-  const grandTotal = incidents.reduce((s, i) => s + (Number(i.cost) || 0), 0);
+  const grandTotal = sumaDinero(incidents, (i) => Number(i.cost));
   const codeFor = (id: string | null) => {
     if (!id) return null;
     const d = deliveries.find((x) => x.id === id);

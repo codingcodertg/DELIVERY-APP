@@ -2,7 +2,8 @@ import type { Delivery, DriverShift, OrderEvent, Profile, Stage } from "@/lib/ty
 import { isOverdue, orderOwner } from "@/lib/utils";
 import { parseWindow } from "@/lib/dispatch";
 import { distanceMeters } from "@/lib/geo";
-import { palletsDeLaOrden } from "./pallets";
+import { palletsDeLaOrden, sumaPallets } from "./pallets";
+import { redondeaDinero, redondeaMillas, sumaDinero, sumaMillas } from "./totales";
 
 // How far the POD GPS stamp can sit from the geocoded destination before the
 // delivery is flagged as location-mismatched (metres). ~250 m tolerates
@@ -34,7 +35,7 @@ const activeStages: Stage[] = ["draft", "pending", "approved", "fulfilling", "re
 
 export function computeKpis(deliveries: Delivery[]): Kpis {
   let pending = 0, approved = 0, inWarehouse = 0, outForDelivery = 0, delivered = 0, canceled = 0;
-  let overdue = 0, totalPallets = 0, totalMiles = 0, totalFees = 0;
+  let overdue = 0;
   let onTimeEligible = 0, onTime = 0;
 
   for (const d of deliveries) {
@@ -47,9 +48,6 @@ export function computeKpis(deliveries: Delivery[]): Kpis {
       case "canceled": canceled++; break;
     }
     if (isOverdue(d)) overdue++;
-    totalPallets += palletsDeLaOrden(d);
-    totalMiles += Number(d.route_miles ?? 0);
-    if (d.stage !== "canceled") totalFees += Number(d.delivery_fee ?? 0);
     if (d.stage === "delivered" && d.delivery_date) {
       onTimeEligible++;
       // Delivered on time if the last "delivered" event (or updated_at) is on/before the delivery date.
@@ -62,9 +60,11 @@ export function computeKpis(deliveries: Delivery[]): Kpis {
   return {
     total: deliveries.length,
     pending, approved, inWarehouse, outForDelivery, delivered, canceled, overdue,
-    totalPallets: Math.round(totalPallets),
-    totalMiles: Math.round(totalMiles * 10) / 10,
-    totalFees: Math.round(totalFees * 100) / 100,
+    // Los tres, de su función (D-NEXT). El de pallets llevaba `Math.round` **a entero**, que es el
+    // resto de D-362 que aquella decisión no alcanzó: cuatro órdenes de 0,1 enseñaban «0» aquí.
+    totalPallets: sumaPallets(deliveries),
+    totalMiles: sumaMillas(deliveries, (d) => d.route_miles),
+    totalFees: sumaDinero(deliveries.filter((d) => d.stage !== "canceled"), (d) => d.delivery_fee),
     onTimePct: onTimeEligible ? Math.round((onTime / onTimeEligible) * 100) : null,
   };
 }
@@ -85,19 +85,21 @@ export interface DriverStat {
 
 /** Per-driver workload + throughput, sorted by total orders desc. */
 export function driverStats(deliveries: Delivery[]): DriverStat[] {
-  const map = new Map<string, DriverStat>();
+  // Se acumulan las órdenes de cada chofer y los totales se sacan al final, cada uno de su
+  // función. `DriverStat` es lo que SALE; esto es lo que se junta por el camino.
+  const map = new Map<string, DriverStat & { suyas: Delivery[] }>();
   for (const d of deliveries) {
     if (!d.assigned_driver) continue;
-    const s = map.get(d.assigned_driver) ?? { driver: d.assigned_driver, total: 0, delivered: 0, active: 0, pallets: 0, miles: 0 };
+    const s = map.get(d.assigned_driver) ?? { driver: d.assigned_driver, total: 0, delivered: 0, active: 0, pallets: 0, miles: 0, suyas: [] as Delivery[] };
     s.total++;
     if (d.stage === "delivered") s.delivered++;
     if (activeStages.includes(d.stage)) s.active++;
-    s.pallets += palletsDeLaOrden(d);
-    s.miles += Number(d.route_miles ?? 0);
+    s.suyas.push(d);
     map.set(d.assigned_driver, s);
   }
   return [...map.values()]
-    .map((s) => ({ ...s, pallets: Math.round(s.pallets), miles: Math.round(s.miles * 10) / 10 }))
+    // Mismo resto de D-362 en los pallets, y por chofer se nota más: son menos órdenes.
+    .map(({ suyas, ...s }) => ({ ...s, pallets: sumaPallets(suyas), miles: sumaMillas(suyas, (d) => d.route_miles) }))
     .sort((a, b) => b.total - a.total);
 }
 
@@ -187,18 +189,18 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
   interface Acc {
     orders: number; delivered: number; days: Set<string>; miles: number; revenue: number;
     onTimeElig: number; onTime: number; delaySum: number; delayCount: number; pallets: number;
+    /** Las órdenes de este chofer: los totales se sacan de aquí, no acumulando a mano. */
+    suyas: Delivery[];
     csatSum: number; csatCount: number;
   }
   const map = new Map<string, Acc>();
   for (const d of deliveries) {
     if (!d.assigned_driver) continue;
     if (d.stage === "canceled" || d.stage === "rejected") continue;
-    const a = map.get(d.assigned_driver) ?? { orders: 0, delivered: 0, days: new Set<string>(), miles: 0, revenue: 0, onTimeElig: 0, onTime: 0, delaySum: 0, delayCount: 0, pallets: 0, csatSum: 0, csatCount: 0 };
+    const a = map.get(d.assigned_driver) ?? { orders: 0, delivered: 0, days: new Set<string>(), miles: 0, revenue: 0, onTimeElig: 0, onTime: 0, delaySum: 0, delayCount: 0, pallets: 0, csatSum: 0, csatCount: 0, suyas: [] };
     a.orders++;
     if (d.delivery_date) a.days.add(d.delivery_date);
-    a.miles += Number(d.route_miles ?? 0);
-    a.revenue += Number(d.delivery_fee ?? 0);
-    a.pallets += palletsDeLaOrden(d);
+    a.suyas.push(d);
     if (d.stage === "delivered") {
       a.delivered++;
       const due = promisedDue(d);
@@ -219,23 +221,27 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
     .map(([driver, a]) => {
       const routes = a.days.size || 1;
       const cap = capacityOf(driver) || 0;
-      const avgPerDay = a.pallets / routes;
-      const fuelCost = fuelReady ? Math.round((a.miles / (cost!.mpg as number)) * (cost!.fuelPrice as number) * 100) / 100 : null;
+      // Los tres totales de este chofer, cada uno de su función y una sola vez (D-NEXT).
+      const pallets = sumaPallets(a.suyas);
+      const millas = sumaMillas(a.suyas, (d) => d.route_miles);
+      const ingresos = sumaDinero(a.suyas, (d) => d.delivery_fee);
+      const avgPerDay = pallets / routes;
+      const fuelCost = fuelReady ? redondeaDinero((millas / (cost!.mpg as number)) * (cost!.fuelPrice as number)) : null;
       const costTotal = (fuelCost ?? 0) + (base ?? 0) * a.orders;
-      const costPerDelivery = a.orders > 0 && (fuelCost != null || base != null) ? Math.round((costTotal / a.orders) * 100) / 100 : null;
+      const costPerDelivery = a.orders > 0 && (fuelCost != null || base != null) ? redondeaDinero(costTotal / a.orders) : null;
       return {
         driver,
         orders: a.orders,
         delivered: a.delivered,
         routes: a.days.size,
         avgStops: Math.round((a.orders / routes) * 10) / 10,
-        miles: Math.round(a.miles * 10) / 10,
-        avgRouteMiles: Math.round((a.miles / routes) * 10) / 10,
-        revenue: Math.round(a.revenue * 100) / 100,
-        revPerMile: a.miles > 0 ? Math.round((a.revenue / a.miles) * 100) / 100 : null,
+        miles: millas,
+        avgRouteMiles: redondeaMillas(millas / routes),
+        revenue: ingresos,
+        revPerMile: millas > 0 ? redondeaDinero(ingresos / millas) : null,
         onTimePct: a.onTimeElig ? Math.round((a.onTime / a.onTimeElig) * 100) : null,
         avgDelayMin: a.delayCount ? Math.round(a.delaySum / a.delayCount / 60_000) : null,
-        pallets: Math.round(a.pallets),
+        pallets,
         utilizationPct: cap ? Math.round((avgPerDay / cap) * 100) : null,
         fuelCost,
         costPerDelivery,
@@ -454,22 +460,22 @@ export function salesRepStatsThisMonth(deliveries: Delivery[], users: Profile[])
   const now = new Date();
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-  const map = new Map<string, { deliveries: number; chargedTotal: number }>();
+  const map = new Map<string, { deliveries: number; suyas: Delivery[] }>();
   for (const d of deliveries) {
     const owner = orderOwner(d);
     if (!owner || !d.created_at.startsWith(monthPrefix)) continue;
     const rep = nameById.get(owner) ?? "—";
-    const s = map.get(rep) ?? { deliveries: 0, chargedTotal: 0 };
+    const s = map.get(rep) ?? { deliveries: 0, suyas: [] as Delivery[] };
     s.deliveries++;
-    s.chargedTotal += Number(d.delivery_fee ?? 0);
+    s.suyas.push(d);
     map.set(rep, s);
   }
   return [...map.entries()]
     .map(([rep, s]) => ({
       rep,
       deliveries: s.deliveries,
-      chargedTotal: Math.round(s.chargedTotal * 100) / 100,
-      avgPerDelivery: s.deliveries ? Math.round((s.chargedTotal / s.deliveries) * 100) / 100 : 0,
+      chargedTotal: sumaDinero(s.suyas, (d) => d.delivery_fee),
+      avgPerDelivery: s.deliveries ? redondeaDinero(sumaDinero(s.suyas, (d) => d.delivery_fee) / s.deliveries) : 0,
     }))
     .sort((a, b) => b.chargedTotal - a.chargedTotal);
 }

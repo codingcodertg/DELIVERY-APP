@@ -8,6 +8,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { driverKpis, driverQualityKpis } from "@/lib/analytics";
 import { fmtDate, fmtMoney, isOverdue, orderLabel, orderOwner, shiftDateISO, todayISO, yesterdayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import { sumaDinero } from "@/lib/totales";
 
 // Matches the Routes Manager / Dashboard default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -54,7 +55,7 @@ export default function SummaryPage() {
       active: active.length,
       delivered: mine.filter((d) => d.stage === "delivered").length,
       overdue: mine.filter(isOverdue).length,
-      fees: Math.round(mine.filter((d) => d.stage !== "canceled").reduce((s, d) => s + (d.delivery_fee ?? 0), 0) * 100) / 100,
+      fees: sumaDinero(mine.filter((d) => d.stage !== "canceled"), (d) => d.delivery_fee),
     };
   }, [mine]);
 
