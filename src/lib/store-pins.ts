@@ -167,6 +167,22 @@ export function dibujoTiendaUrl(estilo: EstiloTienda, nombre: string): DibujoTie
  * cambio visual en cuatro sitios dentro de un encargo que pedía otra cosa. Queda dicho, con su
  * valor a la vista, para que quien lo cambie algún día sepa que toca los cuatro a la vez.
  */
+/**
+ * El z de la casita en los MAPAS DE DESPACHO (D-365). Reemplaza en parte a D-348, que la puso «siempre encima».
+ *
+ * Medido en el navegador el 2026-09-23: una recogida en una tienda pone la casita y el pin en el MISMO punto, y anclan
+ * distinto —la casita centrada, el pin colgando por encima de su punta—, asi que la casita se comia la cola del pin y,
+ * por estar arriba, tambien su clic: pulsar ahi no abria la orden, porque la casita solo lleva un tooltip.
+ *
+ * Ahora va DEBAJO del pin activo (500) y ENCIMA del apagado (0 en Leaflet, 10 en Google): sigue siendo el punto fijo del
+ * mapa y se ve entera donde no hay pin, pero donde se tocan manda la orden, que es lo que se pulsa. El numero vive aqui
+ * porque los dos motores tienen que usar el MISMO: cada uno tiene su capa y ninguna sabe de la otra.
+ *
+ * Lo que esto NO arregla, y se dijo: la casita tapando el nombre de la ciudad del mosaico, y dos pines de choferes
+ * distintos en la misma direccion. Eso es el abanico, que va aparte.
+ */
+export const Z_CASITA_DESPACHO = 250;
+
 export const TIENDA_CLASICA = { fill: "#0b3d91", diametro: 26, borde: "#fff", grosor: 2 } as const;
 
 /**
