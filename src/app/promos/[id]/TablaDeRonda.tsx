@@ -7,7 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
-import { CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, hayQueSembrar, leeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import type { UserRole } from "@/lib/types";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
@@ -71,19 +71,51 @@ export function TablaDeRonda({
     [clavesDeTienda, puedeVerPrivadas],
   );
 
-  // Las columnas de cada persona, en `user_prefs` (migración 141). La versión anterior las tenía
-  // en un `useState` y nada más: se elegían, se veían, y al recargar volvían al defecto — la clave
-  // de la 141 estaba declarada y no la usaba nadie. Mismo cableado que el Gestor de Rutas.
+  // Las columnas y los ANCHOS de cada persona, en `user_prefs` (migración 141), las dos mitades de
+  // la misma fila. La versión anterior tenía las columnas en un `useState` y los anchos solo en el
+  // navegador, mientras el comentario decía «como en Órdenes»: ni una cosa ni la otra.
+  //
+  // LA LECCIÓN DE D-338, QUE ES LO QUE HACE QUE ESTO NO SE ROMPA SOLO: `guardaColumnas` escribe la
+  // fila ENTERA, así que guardar una mitad con la otra a medio poner la borra. Por eso hay **un
+  // solo escritor**, `escribeLaFila`, que siempre manda las dos tal como están en ese momento;
+  // marcar una columna y arrastrar un ancho llaman al mismo sitio.
   const [visibles, setVisibles] = useState<string[]>(() => columnasDePromosPorDefecto(clavesDeTienda, puedeVerPrivadas));
-  const prefsLeidas = useRef<ColumnasPorRol | null>(null);
+  const [anchosDelRol, setAnchosDelRol] = useState<Record<string, number> | null>(null);
+  const visiblesDeLaBase = useRef<ColumnasPorRol | null>(null);
+  const anchosDeLaBase = useRef<AnchosPorRol>({});
+  const escribeLaFila = () =>
+    guardaColumnas(
+      createClient() as unknown as ClienteDePrefs, userId!, visiblesDeLaBase.current ?? {},
+      CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,
+    );
+
   useEffect(() => {
     if (!userId || !rol || SIN_BASE) return;
     let vivo = true;
-    void leeColumnas(createClient() as unknown as ClienteDePrefs, userId, CLAVE_DE_COLUMNAS_DE_PROMOS).then((leido) => {
+    void leeColumnas(createClient() as unknown as ClienteDePrefs, userId, CLAVE_DE_COLUMNAS_DE_PROMOS).then(async (leido) => {
       if (!vivo || !leido.leida) return;
-      prefsLeidas.current = leido.columnas;
+      visiblesDeLaBase.current = leido.columnas;
+      anchosDeLaBase.current = leido.anchos;
       const suyas = leido.columnas[rol as UserRole];
       if (suyas) setVisibles(columnasVisiblesDePromos(suyas, columnas));
+      const suyos = leido.anchos[rol as UserRole];
+      if (suyos) setAnchosDelRol(suyos);
+      if (leido.hayFila) return;
+
+      // SEMILLA: los anchos que ya se arrastraron en este navegador antes de que esto se guardara
+      // por persona. Solo cuando la fila no existe —así no puede pisar nada— y solo si se SABE que
+      // no se está suplantando: durante una suplantación la sesión es la del otro, y sembrar le
+      // escribiría a esa persona los anchos de este navegador. `hayQueSembrar` exige `false`, no
+      // «no se sabe», que es justo la diferencia que importa aquí.
+      let delNavegador: Record<string, number> = {};
+      try { delNavegador = anchosDeUnRol(JSON.parse(localStorage.getItem("rtg_promos_cols") ?? "{}"), columnas.map((c) => c.key)); } catch { /* sin memoria, sin semilla */ }
+      let suplantando: boolean | null = null;
+      try { const e = await (await fetch("/api/impersonate/state")).json() as { como?: string }; suplantando = !!e?.como; } catch { /* no se sabe: no se siembra */ }
+      const semilla: AnchosPorRol = Object.keys(delNavegador).length ? { [rol as UserRole]: delNavegador } : {};
+      if (!vivo || !hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }, {}, semilla)) return;
+      anchosDeLaBase.current = semilla;
+      setAnchosDelRol(delNavegador);
+      void escribeLaFila();
     });
     return () => { vivo = false; };
   }, [userId, rol]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -96,15 +128,30 @@ export function TablaDeRonda({
     );
     setVisibles(next);
     // A la base solo si se pudo leer: no se escribe a ciegas encima de lo que haya.
-    if (!userId || !rol || SIN_BASE || prefsLeidas.current === null) return;
-    const todas: ColumnasPorRol = { ...prefsLeidas.current, [rol as UserRole]: next };
-    prefsLeidas.current = todas;
-    void guardaColumnas(createClient() as unknown as ClienteDePrefs, userId, todas, CLAVE_DE_COLUMNAS_DE_PROMOS);
+    if (!userId || !rol || SIN_BASE || visiblesDeLaBase.current === null) return;
+    visiblesDeLaBase.current = { ...visiblesDeLaBase.current, [rol as UserRole]: next };
+    void escribeLaFila();
+  };
+
+  // El ancho, al SOLTAR: la misma fila, la otra mitad, y por el mismo escritor.
+  const guardaAnchos = (next: Record<string, number>) => {
+    if (!userId || !rol || SIN_BASE || visiblesDeLaBase.current === null) return;
+    const todos: AnchosPorRol = { ...anchosDeLaBase.current };
+    const suyos = anchosDeUnRol(next, columnas.map((c) => c.key));
+    if (Object.keys(suyos).length) todos[rol as UserRole] = suyos; else delete todos[rol as UserRole];
+    anchosDeLaBase.current = todos;
+    void escribeLaFila();
   };
 
   const columnasPintadas = columnas.filter((c) => visibles.includes(c.key));
-  // Los anchos, arrastrables y recordados, como en Ordenes y en el Gestor (D-338).
-  const anchos = useColWidthMap("rtg_promos_cols", 120);
+  // Los anchos: arrastrables, y guardados POR PERSONA como en Órdenes desde D-338 — el dueño pidió
+  // entonces «resize … and it saves for ever», y aquí «así como Excel, resize sus columnas». El
+  // navegador sigue siendo la red de abajo; lo que manda es la fila de esa persona.
+  const anchos = useColWidthMap("rtg_promos_cols", 120, {
+    deLaPersona: anchosDelRol ?? undefined,
+    alCambiar: guardaAnchos,
+    minimo: ANCHO_MINIMO,
+  });
 
   const filas = useMemo(() => filasDePromo(productos, decisiones, grupoActivo), [productos, decisiones, grupoActivo]);
   const orden = useOrdenYFiltro(filas, valorParaFiltrar);

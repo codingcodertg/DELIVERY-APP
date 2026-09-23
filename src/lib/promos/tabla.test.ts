@@ -323,11 +323,41 @@ describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir p
     // así que la 141 se aplicó a producción para nada.
     expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS");
     expect(tabla).toContain("leeColumnas(createClient() as unknown as ClienteDePrefs, userId, CLAVE_DE_COLUMNAS_DE_PROMOS)");
-    expect(tabla).toContain("guardaColumnas(createClient() as unknown as ClienteDePrefs, userId, todas, CLAVE_DE_COLUMNAS_DE_PROMOS)");
+    // El escritor es uno solo (`escribeLaFila`), así que aquí se cita su cuerpo y no una llamada
+    // suelta: la prueba de más abajo es la que exige que sea UNO.
+    expect(tabla).toContain("createClient() as unknown as ClienteDePrefs, userId!, visiblesDeLaBase.current ?? {},");
   });
 
   it("y no se escribe a ciegas encima de lo que haya: solo si se pudo leer", () => {
-    expect(tabla).toContain("prefsLeidas.current === null) return;");
+    expect(tabla.match(/visiblesDeLaBase\.current === null\) return;/g) ?? []).toHaveLength(2);
+  });
+
+  it("los ANCHOS también son por persona, no por navegador", () => {
+    // D-338: el dueño pidió «resize … and it saves for ever», y aquí «así como Excel, resize sus
+    // columnas». Con los anchos solo en `localStorage`, ensanchar una columna en una máquina no se
+    // veía en la otra — y el comentario de esta línea decía que sí. Es la misma llamada que Órdenes.
+    expect(tabla).toContain("deLaPersona: anchosDelRol ?? undefined,");
+    expect(tabla).toContain("alCambiar: guardaAnchos,");
+    expect(tabla).toContain("minimo: ANCHO_MINIMO,");
+  });
+
+  it("UN SOLO escritor, y siempre manda las DOS mitades", () => {
+    // La lección de D-338: `guardaColumnas` escribe la fila entera, así que guardar una mitad con
+    // la otra a medio poner la borra. Marcar una columna borraría los anchos, y arrastrar un ancho
+    // borraría las columnas. Se comprueba contando: UNA sola llamada, dentro de `escribeLaFila`.
+    expect(tabla.match(/guardaColumnas\(/g) ?? []).toHaveLength(1);
+    expect(tabla).toContain("visiblesDeLaBase.current ?? {},");
+    expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,");
+    // Y que los dos caminos pasen por él.
+    expect(tabla.match(/void escribeLaFila\(\);/g) ?? []).toHaveLength(3);
+  });
+
+  it("la semilla del navegador NO corre si se está suplantando ni si no se sabe", () => {
+    // Durante una suplantación la sesión es la del otro: sembrar le escribiría a esa persona los
+    // anchos de este navegador. `hayQueSembrar` exige `suplantando === false`, no «no se sabe».
+    expect(tabla).toContain("hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }");
+    expect(tabla).toContain('await (await fetch("/api/impersonate/state")).json()');
+    expect(tabla).toContain("if (leido.hayFila) return;");
   });
 });
 

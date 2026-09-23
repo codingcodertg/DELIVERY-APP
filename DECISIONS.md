@@ -25410,6 +25410,26 @@ Y con eso entra una regla nueva, `columnasVisiblesDePromos`: lo guardado manda, 
 columna de tienda desaparece en cuanto el libro del mes que viene no la trae— y **las fijas entran siempre**, porque una lista
 guardada antes de que lo fueran dejaría una pantalla sin código, sin estado y sin nota, o sea inútil y sin decir por qué.
 
+### Los anchos también son de la persona, no del navegador
+
+`useColWidthMap("rtg_promos_cols", 120)` guardaba en `localStorage` mientras **el comentario de esa misma línea decía «como en
+Órdenes y en el Gestor (D-338)»**. Desde D-338 Órdenes los guarda **por persona**, en la misma fila de `user_prefs` como mitad
+`_anchos`, porque el dueño pidió *«resize … and it saves for ever»* — y aquí pidió *«así como Excel, resize sus columnas»*. Tal
+como estaba, ensanchar una columna en una máquina no se veía en la otra. **Cuando el comentario y el código discrepan, la
+discrepancia es el fallo**, y aquí el comentario era el que decía la verdad.
+
+Ahora es la misma llamada que Órdenes (`deLaPersona` / `alCambiar` / `ANCHO_MINIMO`), con dos cosas que vienen con ella:
+
+- **Un solo escritor.** `guardaColumnas` escribe la fila **entera**, así que guardar una mitad con la otra a medio poner la
+  borra. Hay un único `escribeLaFila` que siempre manda las dos tal como están, y marcar una columna y arrastrar un ancho llaman
+  al mismo sitio. La prueba lo cuenta: **una sola llamada** a `guardaColumnas` en todo el fichero. Hasta ahora no perdía nada
+  —nadie escribía `_anchos` en esta clave— pero en cuanto entran los anchos, el código de antes los habría borrado al marcar
+  una columna.
+- **Semilla desde el navegador**, para no perder lo arrastrado desde D-369, y con el guardia de D-338 entero: solo si la fila
+  **no existe** (así no puede pisar nada) y solo si se **sabe** que no se está suplantando. `hayQueSembrar` exige
+  `suplantando === false`, no «no se sabe»: durante una suplantación la sesión es la del otro, y sembrar le escribiría a esa
+  persona los anchos de este navegador.
+
 ### Fuera la subida
 
 Borrados `SubirRonda.tsx`, `/api/promos/preview`, `/api/promos/commit` y `lectura-servidor.ts`, que solo servía a las rutas. Con
@@ -25431,10 +25451,15 @@ cortan, costos con toda su precisión, y productos sin costo ni precio, como los
 
 ### Verificado
 
-`tabla.test.ts` pasa de 33 a 45 casos. Las nuevas: que las columnas de partida son siete y **caben**, que lo guardado se respeta
+`tabla.test.ts` pasa de 33 a 48 casos. Las nuevas: que las columnas de partida son siete y **caben**, que lo guardado se respeta
 con las dos reglas de arriba, que la tabla usa **las mismas cadenas de clases que `OrdersTable`** (comprobando que están en los
 dos ficheros), que lleva `colgroup`, asas y `data-label`, que **no** tiene alto propio —mirando la caja y no el fichero entero,
 que el menú de ⚙ Columnas sí lleva el suyo— y que las preferencias se leen y se guardan con la clave de la 141.
+
+**Mutantes: 17 en total** —once de la tabla y las columnas, seis de los anchos—, leídos por nombre; caen los 17, y los dos
+gemelos se quedan en verde. Entre los de los anchos: «vuelven a ser solo del navegador», «marcar una columna escribe por su
+cuenta y borra los anchos», «el escritor deja de mandar los anchos», «la semilla corre aunque se esté suplantando» y «la semilla
+pisa una fila que ya existe». Uno de los once no es de texto: **volver a crear el directorio `src/app/api/promos`**.
 
 Y `tabla-ancho.test.ts` pasa de contar **seis** marcos `tbl-scroll tbl-fit` a **siete**. Esa cuenta exacta es del proyecto desde
 D-281 y su comentario dice que el número se mueve con su motivo: este es el motivo.
