@@ -539,11 +539,28 @@ input.invalid, select.invalid, textarea.invalid {
 .switch-row-role { white-space: nowrap; margin: 0; }
 
 /* ---------- Column picker ---------- */
+/* Una celda de PASTILLAS no las parte (D-364). D-344 dejo las tablas compactas y dijo que lo que no cabe se corta con
+   puntos suspensivos; una pastilla no hacia ni eso: se salia de su celda y la de al lado la cortaba a media letra
+   («Pending Approval», 117px medidos en una celda de 108, visto en el navegador el 2026-09-23). Ahora, si hay varias,
+   bajan de linea; y una sola que no quepa se recorta con puntos, con el texto entero en su `title`. No depende del
+   texto: vale en los dos idiomas y con la columna al ancho que cada persona le haya dejado. */
+table.orders td.td-pastillas { white-space: normal; }
+table.orders td.td-pastillas .sema {
+  display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+}
+
 .col-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 210px; max-width: 90vw;
   background: var(--card); border: 1px solid var(--line); border-radius: 10px;
   box-shadow: 0 12px 30px rgba(10,20,40,.2); padding: 6px; max-height: 320px; overflow-y: auto;
 }
+/* El menu de ordenar y filtrar: lo unico que se desplaza es la lista de valores (D-364). Con muchos valores —45 en
+   «ID»: 431px de contenido en una caja de 320— «Limpiar» y «Aplicar» se iban con el desplazamiento y no se veian al
+   abrir. Ahora la caja no se desplaza y los botones quedan siempre abajo. Solo el menu de FILTRO: el de «⚙ Columnas»
+   comparte la clase `.col-menu` y sigue desplazandose entero. */
+.col-menu.col-menu-filtro { display: flex; flex-direction: column; overflow: hidden; }
+.col-menu.col-menu-filtro .col-menu-lista { flex: 1 1 auto; min-height: 60px; overflow-y: auto; }
+.col-menu.col-menu-filtro .col-menu-actions { flex: 0 0 auto; }
 .col-menu-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; font-size: 12px; }
 .col-opt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0; cursor: pointer; border-radius: 6px; }
 .col-opt:hover { background: var(--card-hover); }
