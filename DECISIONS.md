@@ -25217,3 +25217,104 @@ vacías».
 - **Nada abierto en un navegador.** Ni el par de botones, ni la lista de avisos, ni la tabla de rondas.
 - **Ninguna tienda tiene grupo todavía**, así que la primera ronda que se suba entrará entera como catálogo y sin sugerencias
   por tienda. La pantalla lo avisa antes de confirmar, en vez de dejar que parezca que el libro no las traía.
+
+## D-NEXT · La tabla de una ronda: decidir por producto o en bloque, y cerrar la ronda
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Migración: la 141**, que la aplica el orquestador al fusionar.
+**De dónde sale:** fase C de RTG PROMOS. La A (D-366) montó el módulo y la B (D-368) la subida. Esta es la pantalla para la que se
+hizo todo lo demás: el dueño pidió «los administradores y Office Managers van a elegir los productos que son en promoción…
+aceptar o denegar… seleccionar varias… sort, filtrar… y eso es por tienda».
+
+### La 141, y por qué se parte de la 137
+
+Guardar las columnas por persona usa `user_prefs`, cuya lista de claves es **cerrada** a propósito (136): añadir una preferencia
+es una migración de una línea, revisada. La 141 añade `promos_columns`.
+
+**Su única trampa es de dónde se copia.** Un `check` no se edita: se quita y se pone entero, así que partir del cuerpo de la
+**136** —en vez del de la **137**, que es la última que la tocó— borraría `routes_columns` en silencio y **el Gestor de Rutas
+perdería las columnas de todo el mundo sin que fallara nada**. La autocomprobación lo vigila explícitamente («se perdió una clave
+que ya existía (¿se partió de la 136?)»), y la prueba que ya existía desde D-360 —«la ÚLTIMA migración que toca esa restricción
+lleva exactamente las claves que usa el código»— se actualiza para apuntar a la 141. **Esa prueba caza el error**: se comprobó
+con un mutante que hace justo eso.
+
+Esa prueba **no se duplica** en el fichero del módulo nuevo: dos copias de «cuál es la última» acabarían señalando a dos
+migraciones distintas. Se queda donde nació, con una nota de que es la invariante compartida.
+
+### Lo que NO se reescribió
+
+Ordenar y filtrar por columna son **los de D-360** (`useOrdenYFiltro`, `CabeceraConMenu`, `MenuDeColumnaAbierto`), los mismos que
+usan la tabla de Órdenes y el Gestor de Rutas: mismo gesto, mismo menú, misma cascada de filtros. Lo único que pone este módulo
+es **qué saca cada columna de una fila**. Una tercera versión del mismo menú habría sido una tercera versión que mantener.
+
+### Las decisiones de diseño que importan
+
+- **El dinero se redondea (D-363) ANTES de ordenar.** El costo llega de la base con toda su precisión —medido en el ensayo de la
+  140— y enseñarlo así no le sirve a nadie. Y se redondea antes de ordenar a propósito: **quien ordena, ordena por lo que ve**, y
+  dos celdas que enseñan `2.35` tienen que empatar en vez de colocarse en un orden que la pantalla no sabría explicar.
+- **Las columnas de tienda salen del DATO**, de las claves que el libro traía en `qoh_by_store`. Ni un código de tienda escrito en
+  el código — hay prueba que lo barre. Y **dos tiendas que deciden juntas salen como dos columnas**: son existencias de dos
+  almacenes distintos, y juntarlas escondería que una tiene el material y la otra no, que es justo lo que se mira para decidir.
+- **Las cinco privadas no existen para quien no puede verlas, ni apagadas.** Y si alguien puede verlas **se deduce del dato**
+  —`promo_catalog.private` llegó nulo o no— en vez de volver a calcular aquí la regla que ya está en la base. Un dato medido no
+  puede discrepar de la base; una regla copiada, sí.
+- **Se lee `promo_catalog`, nunca `promo_products`**: las cinco están revocadas y una consulta a la tabla que las nombrara
+  fallaría para todo el mundo, manager incluido. La prueba de puerta de D-368 ya lo exige en todo `src`.
+
+### Los dos gemelos, y por qué son peligrosos aquí
+
+`grupoDeLaTienda` y `esDecisorDePromos` repiten en TypeScript lo que `promo_group_of_user()` y `promo_is_decider()` deciden en la
+base. Repetir una regla es una deuda, así que se dice por qué se acepta y qué la sujeta:
+
+> Si los dos lados no dijeran lo mismo, la pantalla ofrecería el botón y la RLS rechazaría el `update` **con cero filas y sin
+> error**. Un `insert` que no pasa la política da error; un `update`, no: afecta a cero filas y PostgREST responde limpio.
+
+Así que los dos gemelos comparan **igual que la función**: recortando y sin distinguir mayúsculas, con nulo como valor seguro; y
+sus pruebas leen el `.sql` de la 140 para exigir que la base diga lo mismo. Y, por si acaso, **la pantalla cuenta las filas que
+volvieron** (`.select("code")` en el `upsert`) y avisa si son menos de las pedidas, en vez de decir «guardado» por no haber
+preguntado.
+
+### Cómo se escribe una decisión
+
+Un `upsert` sobre la clave primaria `(round_id, code, group_code)`: un producto sin decidir todavía no tiene fila y uno ya
+decidido la tiene, y distinguirlo desde la pantalla sería un `if` que se puede equivocar. **Decidir uno y decidir veinte es la
+misma operación**, `cambioEnBloque`, probada sin base de datos.
+
+`decided_by` y `decided_at` **no se mandan**: los pisa el disparador de la 140. Mandarlos sería escribir algo que va a ser
+ignorado y leerlo de vuelta como si fuera nuestro.
+
+Un cambio **en bloque deja la nota vacía**, y la pantalla lo dice: no hay una nota que valga para veinte productos, y conservar
+la de cada uno exigiría leerlas antes. Editar la nota de una fila sí la manda.
+
+### El cierre de ronda va aquí, y no en su propio paso
+
+Cerrar y reabrir es `promo_set_round_closed` (140), admin y por RPC. Se entrega **con la tabla** aunque sea pequeño, porque
+**cambia lo que la tabla deja hacer**: si fueran dos entregas, una de ellas ofrecería botones cuyo rechazo es una **excepción del
+disparador**, o sea un error crudo en pantalla. Una sola función (`puedeDecidir`) decide si se puede, y la usan el botón de fila,
+el de bloque y la casilla de selección — si cada uno lo calculara, uno acabaría ofreciendo lo que la base rechaza.
+
+Y cuando no se puede, **se dice por qué** (`motivoParaNoDecidir`): la ronda está cerrada, o no eres quien decide, o tu tienda no
+tiene grupo todavía y dónde se pone. Un botón apagado sin explicación es una llamada de teléfono.
+
+### Verificado
+
+`tabla.test.ts`, 33 casos, sin navegador. **Mutantes: 17, leídos por nombre; caen los 17**, y el gemelo —`grupoDeLaTienda` con
+`find` en vez de un bucle— se queda en verde. Entre ellos: «el dinero deja de redondearse», «las cinco privadas se ofrecen a todo
+el mundo», «las claves de tienda salen solo del primer producto», «se casa la decisión de cualquier grupo», «una ronda cerrada
+deja decidir», «un vendedor pasa a ser decisor», «el cambio en bloque manda `decided_by`», «`valorParaFiltrar` invierte los
+argumentos» y **«la 141 parte de la 136 y se come `routes_columns`»**.
+
+### Una prueba floja, encontrada y arreglada aquí
+
+La prueba de costura de D-368 construía el libro con `exceljs` **una vez por caso**, cinco veces. Sola pasaba en medio segundo;
+con la suite entera por delante, la primera se pasó de los cinco segundos y **falló por tiempo**. Una prueba que falla según con
+quién corra es peor que una lenta: el rojo no dice nada del código. Ahora el libro se construye y se lee **una vez**, en un
+`beforeAll` con su margen. La suite entera corrió dos veces seguidas en verde después.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.** Ni la tabla, ni los menús de columna, ni la selección múltiple.
+- **Ninguna escritura de decisión se ha ejecutado nunca**, ni el `upsert` ni el RPC de cerrar. Lo que está probado es qué filas
+  se compondrían y quién puede pedirlas.
+- **La 141 está sin aplicar.**
+- **El avance del admin —cuántos grupos terminaron y el resultado por tienda— NO está aquí**, y es a propósito: es un resumen de
+  solo lectura sobre `promo_decisions` que no comparte nada con lo de arriba salvo el concepto de grupo. Va en su propia entrega.

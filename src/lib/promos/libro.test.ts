@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { leeLibro } from "./libro";
-import { leePromo } from "./excel";
+import { leePromo, type ResultadoPromo } from "./excel";
 
 /**
  * La costura: que `leeLibro` (impura, `exceljs`) y `leePromo` (pura) encajen de verdad.
@@ -43,36 +43,38 @@ async function libroDePrueba(): Promise<ArrayBuffer> {
 }
 
 describe("leeLibro + leePromo, con un libro escrito por exceljs", () => {
-  it("las filas conservan su NÚMERO DE EXCEL, con la vacía en medio", async () => {
-    const r = leePromo(await leeLibro(await libroDePrueba()), ["G1"]);
+  // El libro se construye y se lee UNA vez. Antes cada prueba lo hacia por su cuenta y, con la
+  // suite entera corriendo, la primera se pasaba de los 5 s por delante: una prueba que falla segun
+  // con quien corra es peor que una lenta, porque el rojo no dice nada del codigo.
+  let r: ResultadoPromo;
+  beforeAll(async () => { r = leePromo(await leeLibro(await libroDePrueba()), ["G1"]); }, 30_000);
+
+  it("las filas conservan su NUMERO DE EXCEL, con la vacia en medio", () => {
     expect(r.productos.map((p) => [p.code, p.rowNo])).toEqual([["X1", 3], ["X2", 5]]);
   });
 
-  it("una celda con fórmula llega por su `result`", async () => {
-    const r = leePromo(await leeLibro(await libroDePrueba()), ["G1"]);
+  it("una celda con formula llega por su `result`", () => {
     expect(r.productos.find((p) => p.code === "X1")!.diff).toBe(1);
   });
 
-  it("el costo en blanco del libro llega como AUSENTE, no como cero", async () => {
+  it("el costo en blanco del libro llega como AUSENTE, no como cero", () => {
     // El caso que trae el libro real cinco veces, comprobado extremo a extremo y no solo contra
     // una celda inventada a mano.
-    const x2 = leePromo(await leeLibro(await libroDePrueba()), ["G1"]).productos.find((p) => p.code === "X2")!;
+    const x2 = r.productos.find((p) => p.code === "X2")!;
     expect(x2.cost).toBeNull();
     expect(x2.cost).not.toBe(0);
     expect(x2.price).toBeNull();
   });
 
-  it("las existencias por tienda salen con el nombre que da el encabezado", async () => {
-    const x1 = leePromo(await leeLibro(await libroDePrueba()), ["G1"]).productos.find((p) => p.code === "X1")!;
-    expect(x1.qohByStore).toEqual({ AA1: 1, BB2: 2, CC3: 3 });
+  it("las existencias por tienda salen con el nombre que da el encabezado", () => {
+    expect(r.productos.find((p) => p.code === "X1")!.qohByStore).toEqual({ AA1: 1, BB2: 2, CC3: 3 });
   });
 
-  it("la hoja que no es de productos se avisa, y la de grupo son sugerencias", async () => {
-    const r = leePromo(await leeLibro(await libroDePrueba()), ["G1"]);
+  it("la hoja que no es de productos se avisa, y la de grupo son sugerencias", () => {
     expect(r.sugerencias).toEqual([{ code: "X2", groupCode: "G1" }]);
     // Las hojas ignoradas van PRIMERO, y no es casualidad: `leePromo` clasifica todas las hojas
-    // antes de leer ninguna fila, porque hasta saber cuál es el universo no puede decidir si un
-    // sugerido está fuera de él. El orden se afirma porque es el que verá el admin en la lista.
+    // antes de leer ninguna fila, porque hasta saber cual es el universo no puede decidir si un
+    // sugerido esta fuera de el. El orden se afirma porque es el que vera el admin en la lista.
     expect(r.avisos.map((a) => [a.tipo, a.hoja])).toEqual([
       ["hoja-ignorada", "REGLAS"],
       ["fila-sin-codigo", "TODO"],
