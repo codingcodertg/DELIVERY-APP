@@ -24928,3 +24928,77 @@ Google solo la cola.
 cuyo pin apagado es 10, que es Google: con 5 el orden de Leaflet aún se cumple), «Leaflet con su propio número», «Google con su
 propio número», «el camión deja de ir arriba del todo», «la casita deja de responder al ratón», «la casita pierde su tooltip»,
 «el selector de pin baja con ella» y «cambia el tamaño de la casita».
+## D-NEXT · Las marcas que caen en el mismo punto se abren en abanico, y solo en el Gestor
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Viene de** la revisión en navegador (D-364), donde se midió que las marcas del mapa se tapan, y del inventario de otra sesión
+(`docs/PROPUESTA-MARCAS-SOLAPADAS.md`). **La eligió el dueño:** usa el mapa para ver por dónde va cada ruta, así que lo que no
+se puede perder es el **color** (de qué chofer) ni el **clic** (qué orden) — y eso descarta fundir las marcas en una sola o
+sustituirlas por burbujas de clúster. D-365 ya quitó de en medio la casita; esto es la otra mitad.
+
+### Lo que pasaba, medido con el abanico apagado y encendido
+
+Cuatro entregas de dos choferes puestas en la MISMA coordenada, con una ruta elegida:
+
+| | posiciones en pantalla | responden a su clic |
+|---|---|---|
+| **sin abanico** | las cuatro en el mismo píxel, (801, 777) | **1 de 4** |
+| **con abanico** | (826,769) (816,798) (801,751) (776,769) | **4 de 4** |
+
+O sea: tres de cada cuatro órdenes no se podían abrir desde el mapa, y no había forma de saber que estaban ahí.
+
+### Cómo
+
+`lib/abanico-de-marcas`, puro, **por encima de `MapView`**: agrupa las marcas que comparten coordenada y le da a cada una un
+desplazamiento en píxeles alrededor del punto. El campo `offset` viaja en el punto, y **cada motor solo lo resta del ancla de
+su icono**. Un punto sin `offset` se pinta exactamente donde se pintaba.
+
+- **Solo se abre lo que está EXACTAMENTE en el mismo punto** (seis decimales, ~0,1 m). Dos marcas a un metro no se tocan: se
+  separan solas al acercar, y moverlas las dejaría mal puestas justo cuando se ven bien.
+- **El radio sale de una cuenta, no de un gusto:** lo que separa dos vecinas es la cuerda, `2r·sen(π/n)`, y se pide que valga
+  al menos un pin (30 px) → `r = 15/sen(π/n)`. Dos marcas, 15 px; cuatro, 22; ocho, 40. **Ahí se para**: de nueve en adelante
+  el radio no crece y las vecinas vuelven a rozarse, a sabiendas — más lejos la mentira pesa más que el estorbo.
+- **La casita de la tienda no entra.** No es de nadie y es el punto fijo del mapa (D-348, D-365).
+- **Solo el Gestor lo cablea.** Las otras seis pantallas que montan un mapa no pasan `offset` y pintan igual que ayer.
+
+**Una diferencia con la propuesta, a propósito:** para las líneas, el proyecto guarda el offset y **lo recalcula en cada
+zoom** (`zoomend` / `zoom_changed`), porque una línea desplazada tiene que seguir siendo perpendicular en píxeles. Para una
+marca no hace falta: moviendo el **ancla del icono** el desplazamiento ya está en píxeles por construcción, así que se ve igual
+a cualquier zoom sin enganchar nada. La posición del marcador no se toca — sigue siendo su dirección de verdad.
+
+### Lo que se paga, en metros
+
+El desplazamiento es en píxeles, así que en metros vale lo que valga el píxel. Medido en el navegador el 2026-09-23, con dos
+tiendas a 1.998 m una de otra:
+
+| vista del Gestor | metros por píxel | lo que se mueve un pin (15 px) |
+|---|---|---|
+| todas las rutas | 285 | ~4,3 km |
+| una ruta elegida | 34 | ~510 m |
+| tres pasos más de zoom | 17 | ~260 m |
+
+Dicho así asusta, y hay que decirlo así. Pero el número que se ve es el de píxeles: **el pin nunca se aleja más de medio pin de
+su sitio**, y el propio pin mide 30 px — a 285 m/px, el dibujo de una marca ya cubre 8 km. Nadie navega con este mapa: el chofer
+lleva su ruta por calles en «Mi ruta». Aun así es una mentira pequeña y consciente, y el dueño la eligió sabiendo el resto.
+
+### Lo que NO arregla
+
+- **La vista por defecto sigue apretada.** Ahí lo que se tapa casi nunca es coincidencia exacta: son marcas *cercanas*, que el
+  abanico no toca por diseño. Medido con el abanico puesto: en ese racimo seguían tocándose 9 pares. Lo que arregla el abanico
+  es lo que **nunca** se separa solo, a ningún zoom.
+- **La casita sobre el nombre de la ciudad** del mosaico: eso es tamaño, no posición.
+- **Sin verificar:** qué motor corre la producción del dueño. El orquestador midió que la llave de Google **existe** en las
+  variables de Producción, pero su valor llega vacío por CLI, así que es «existe», no «no está vacía». Probablemente Google. El
+  cambio es el mismo en los dos y la decisión vive en un sitio.
+
+### Mutantes
+
+15, leídos por nombre; caen los 15: «el abanico no hace nada», «también mueve las que están solas», «agrupa por cercanía y no
+por punto exacto», «el abanico no queda centrado en el punto», «radio fijo», «radio sin tope», «el radio se queda corto», «una
+marca sin coordenada entra igual», «los metros por píxel ignoran la latitud», «el Gestor deja de aplicarlo», y cinco de los
+motores (ignorar el desplazamiento, sumarlo en vez de restarlo, y mover la posición del marcador en vez del dibujo).
+
+**Uno sobrevivió a la primera tanda y la prueba estaba floja dos veces seguidas.** «Una marca sin coordenada entra igual»: mi
+prueba usaba UNA marca sin punto, que se descarta igual por quedarse sola en su grupo; con dos, tampoco, porque les había
+puesto coordenadas inválidas DISTINTAS y cada una caía en su propia clave. Solo con dos marcas sin coordenada **ninguna** —la
+misma clave— el guardián decide algo y el mutante cae.

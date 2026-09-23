@@ -283,8 +283,9 @@ export function GoogleMapView({
         title: p.label,
         zIndex: p.dimmed ? 10 : 500,
         icon: p.badge
-          ? { url: pinIcon(p.color, p.badge, p.dimmed), anchor: new maps.Point(16, 36) }
-          : { url: dotIcon(p.color, p.dimmed), anchor: new maps.Point(9, 9) },
+          // El ancla lleva restado el desplazamiento del abanico (D-NEXT): mover el icono a la derecha es anclar más a la izquierda.
+          ? { url: pinIcon(p.color, p.badge, p.dimmed), anchor: new maps.Point(16 - (p.offset?.x ?? 0), 36 - (p.offset?.y ?? 0)) }
+          : { url: dotIcon(p.color, p.dimmed), anchor: new maps.Point(9 - (p.offset?.x ?? 0), 9 - (p.offset?.y ?? 0)) },
       });
       marker.addListener("click", () => onClickRef.current?.(p.id));
       markersRef.current.push(marker);

@@ -47,6 +47,12 @@ export interface MapPoint {
   /** Faded back (low opacity) — used to push everything that isn't the
    * currently-focused driver into the background. */
   dimmed?: boolean;
+  /**
+   * Desplazamiento en PÍXELES sobre el punto real, para abrir en abanico las marcas que comparten coordenada (D-NEXT).
+   * Lo decide la página con `abanicoDeMarcas`, no el motor: aquí solo se suma al ancla del icono. Sin él, el punto se pinta
+   * exactamente donde se pintaba — que es lo que siguen haciendo las otras seis pantallas que montan un mapa.
+   */
+  offset?: { x: number; y: number };
 }
 
 /** A store / branch location, drawn as a blue house (D-348; it was a big red point) that's always visible
@@ -320,13 +326,13 @@ export function LeafletMap({
               className: "",
               html: `<div style="width:30px;height:30px"><div style="width:26px;height:26px;transform:rotate(-45deg);background:${p.color};border:2px solid #fff;border-radius:50% 50% 50% 0;box-shadow:0 2px 5px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-weight:800;font-size:12px;font-family:sans-serif;line-height:1">${p.badge}</span></div></div>`,
               iconSize: [30, 30],
-              iconAnchor: [13, 28],
+              iconAnchor: [13 - (p.offset?.x ?? 0), 28 - (p.offset?.y ?? 0)],
             })
           : L.divIcon({
               className: "",
               html: `<div style="width:16px;height:16px;border-radius:50%;background:${p.color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>`,
               iconSize: [16, 16],
-              iconAnchor: [8, 8],
+              iconAnchor: [8 - (p.offset?.x ?? 0), 8 - (p.offset?.y ?? 0)],
             });
         const marker = L.marker([p.lat, p.lng], { icon, opacity: p.dimmed ? 0.35 : 1, zIndexOffset: p.dimmed ? 0 : 500 }).addTo(mapRef.current!);
         marker.bindTooltip(p.label);
