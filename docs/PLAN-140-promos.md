@@ -5,7 +5,9 @@
 **Fecha:** 2026-09-23 · **Rama:** `rtg-promos` desde `e025f6c` (D-363).
 **Molde:** `docs/PLAN-A-2a-profiles-rls.md` (inventario → políticas literales → lo que no debe
 romperse → matriz por rol con `ROLLBACK` → reversión).
-**Prerrequisito de aplicación:** `pg_dump` reciente guardado (CLAUDE.md, «antes de tocar RLS…»).
+**Prerrequisito de aplicación:** un respaldo (CLAUDE.md, «antes de tocar RLS…»). **Este plan decía
+`pg_dump` y no fue eso lo que se hizo** — ver la nota de §11, que dice qué se guardó de verdad y por
+qué.
 
 **Alcance de esta fase:** la base (migración 140) y el **lector del Excel como función pura**.
 **No hay pantalla**, no se registra el módulo en `MODULES`/`MODULE_ACCESS` de `constants.ts`, no se
@@ -360,8 +362,9 @@ producto y su grupo, y `decided_by`/`decided_at` los sella la base aunque el cli
 3. ~~**el estado real de `profiles_module_access_known`**~~ — **resuelto**: la redefinición corrió y
    las tres comprobaciones de §3 pasaron, o sea que lo que había en la base era lo que dice el repo.
 
-**Lo que sigue pendiente y no lo resuelve ningún ensayo:** el `pg_dump` guardado justo antes de
-aplicar (y releído antes de revertir, §11), y **el sí del dueño**.
+**Lo que sigue pendiente y no lo resuelve ningún ensayo:** el respaldo guardado justo antes de
+aplicar (y releído antes de revertir, §11 — **qué se guardó de verdad está en la nota de esa
+sección**), y **el sí del dueño**.
 
 ### Dos cosas que la fase 2 se va a encontrar, medidas ya
 
@@ -463,8 +466,23 @@ a 3 de 3 y 4 de 4, y así están medidas arriba.
    revienta** — días después y en otra pantalla, que es peor. Por eso el paso 1 quita la palabra
    antes. Quitársela a alguien **es quitarle el acceso al módulo**: eso es lo que significa revertir
    esto.
-2. **El `drop` de `promo_decisions` borra decisiones ya tomadas.** De eso protege el `pg_dump`.
+2. **El `drop` de `promo_decisions` borra decisiones ya tomadas.** De eso protege el respaldo.
    Releerlo antes de ejecutar.
+
+> **Nota del 2026-09-23, al aplicar: el respaldo NO fue un `pg_dump`.** Este documento lo pedía así
+> en dos sitios, y **en esta máquina no hay `pg_dump` instalado** — un dato operativo que conviene
+> saber antes de planear un respaldo que no se puede hacer. Lo que se guardó, en el scratchpad del
+> orquestador como `respaldo_antes_de_140.json`, fue **lo único existente que la 140 toca**: la
+> definición vieja de `profiles_module_access_known`, el `module_access` de los **41** perfiles, y la
+> comprobación de que ningún objeto `promo_*` existía antes.
+>
+> **Para lo que la 140 hizo, eso alcanza**, y se puede razonar: la migración solo crea, salvo esa
+> restricción, y con esos dos datos se reconstruye el estado anterior exacto. **Para el punto 2 de
+> arriba NO alcanza**: el día que alguien revierta, las decisiones ya tomadas no están en ese
+> `.json` y no hay de dónde sacarlas. Antes de ejecutar la reversión hay que volcar
+> `promo_decisions` — con `pg_dump` desde una máquina que lo tenga, o con un `select` guardado a
+> fichero. **Se corrige con esta nota y no reescribiendo el texto de arriba**, que es la regla 2 de
+> la documentación del proyecto.
 
 ```sql
 begin;

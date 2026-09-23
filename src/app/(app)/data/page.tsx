@@ -547,6 +547,20 @@ function LocationTable({
               )}
             </div>
           </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>{t("Promo group", "Grupo de promociones")}</label>
+            <input
+              value={draft.promo_group ?? ""}
+              placeholder={t("e.g. NORTH — stores sharing this decide together", "ej. NORTE — las tiendas con el mismo valor deciden juntas")}
+              onChange={(e) => setDraft({ ...draft, promo_group: e.target.value })}
+            />
+            <div className="hint">
+              {t(
+                "RTG PROMOS: stores sharing this value approve or reject a promo TOGETHER — one decision for all of them. Match it to the sheet name the promo workbook uses for that group. Empty = this store decides nothing yet. This is NOT the directory code, and NOT 'works together with'.",
+                "RTG PROMOS: las tiendas con el mismo valor aprueban o rechazan una promoción JUNTAS — una sola decisión para todas. Ponle el nombre que la hoja del Excel de promociones usa para ese grupo. Vacío = esa tienda todavía no decide nada. No es el código de directorio, ni «trabaja junto con».",
+              )}
+            </div>
+          </div>
         </div>
       )}
       {autoApprove && (

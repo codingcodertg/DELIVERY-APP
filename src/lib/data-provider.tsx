@@ -179,6 +179,9 @@ export interface DataState {
    *  D-181. On grant without an explicit role, defaults to the lowest tier (staff). Same shape
    *  as updateUserRecruitingAccess/Timetracker: the role selector calls this with the tier. */
   updateUserErpAccess: (userId: string, patch: { granted: boolean; erp_role?: string | null }) => Promise<void>;
+  /** RTG PROMOS (migración 140): solo la casilla. No hay columna de rol que escribir — quién aprueba
+   *  sale de `role` y de la tienda, y eso ya se edita en Identidad. */
+  updateUserPromosAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
@@ -1646,6 +1649,25 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
+  const updateUserPromosAccess = useCallback<DataState["updateUserPromosAccess"]>(
+    async (userId, { granted }) => {
+      const target = users.find((u) => u.id === userId);
+      const before = (target?.module_access ?? []).includes("promos");
+      // Solo la casilla: no hay `promos_role` que escribir, a diferencia de recruiting/TT/ERP.
+      // `knownModules` filtra las palabras que la app ya no lee, así que 'promos' tiene que estar
+      // en MODULE_ACCESS antes de esto — si no, esta escritura la tiraría en silencio.
+      const actuales = knownModules(target?.module_access);
+      const nextModules = granted
+        ? Array.from(new Set([...actuales, "promos"]))
+        : actuales.filter((m) => m !== "promos");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
+      if (before !== granted) void logSecurityClient(userId, "promos_access_changed", change(String(before), String(granted)));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
+  );
+
   const updateUserTimetrackerAccess = useCallback<DataState["updateUserTimetrackerAccess"]>(
     async (userId, { granted, timetracker_role }) => {
       const target = users.find((u) => u.id === userId);
@@ -1818,7 +1840,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,
     incidents, addIncident, removeIncident,

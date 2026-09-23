@@ -19,6 +19,8 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   // La ruta vieja ya solo redirige, pero durante ese instante la página se sirve bajo ella.
   ["/clock-in", "clockin"],
   ["/erp", "erp"],
+  // Sin esta linea /promos caeria en deliveries y el sello enseñaria el numero de otra app (D-366).
+  ["/promos", "promos"],
 ];
 
 export function appForPath(pathname: string | null): AppKey {

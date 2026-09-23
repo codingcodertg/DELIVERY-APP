@@ -45,6 +45,13 @@ export function registroDeLugar(
     const grupo = (draft.group ?? "").trim();
     if (grupo) rec.group = grupo;
     else delete rec.group;
+    // El grupo de promociones (RTG PROMOS, migración 140): el TERCERO que agrupa tiendas, y otra
+    // cosa que los dos de arriba. Decide quién aprueba junto a quién una promoción; vacío quita la
+    // clave, igual que los demás, para que `promo_group_of_user()` no tenga que distinguir entre
+    // «» y ausente — devuelve nulo en los dos casos, que es el valor seguro.
+    const promo = (draft.promo_group ?? "").trim();
+    if (promo) rec.promo_group = promo;
+    else delete rec.promo_group;
   }
 
   return rec;
