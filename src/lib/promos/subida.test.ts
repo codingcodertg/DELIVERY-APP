@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { huellaDeLectura, type ProductoPromo, type ResultadoPromo } from "./excel";
 import {
@@ -8,15 +8,6 @@ import {
 } from "./subida";
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
-
-/**
- * Lo que la PROSA dice no cuenta. Esta prueba mira si `preview` **usa** la llave de servicio, y sin
- * esto bastaba con que un comentario nombrara la función para que la prueba se pusiera roja — o,
- * peor, que alguien la relajara para callarla. Misma forma que en `map-legend.test.ts`.
- */
-const sinComentarios = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .split("\n").map((l) => (/^\s*\/\//.test(l) ? "" : l.replace(/\s\/\/.*$/, ""))).join("\n");
 
 const producto = (extra: Partial<ProductoPromo> = {}): ProductoPromo => ({
   code: "X1", supplier: "PROV", size: "8X48", description: "DESCRIPCION", notes: null,
@@ -223,55 +214,35 @@ describe("lo que `preview` manda al navegador", () => {
 });
 
 // ===========================================================================
-describe("las dos rutas: quién escribe y quién no", () => {
-  const preview = sinComentarios(leer("src/app/api/promos/preview/route.ts"));
-  const commit = sinComentarios(leer("src/app/api/promos/commit/route.ts"));
-  const lector = sinComentarios(leer("src/lib/promos/lectura-servidor.ts"));
-
-  it("`preview` NO conoce la llave de servicio, ni por el lector que comparte", () => {
-    // Es lo que la hace inofensiva en un preview de Vercel, que apunta a la misma base que
-    // producción. Si esto deja de ser cierto, deja de serlo en silencio.
-    for (const [nombre, src] of [["preview", preview], ["lector", lector]] as const) {
-      expect(src, nombre).not.toContain("createAdminClient");
-      expect(src, nombre).not.toContain("supabase/admin");
-      expect(src, nombre).not.toContain(".insert(");
-      expect(src, nombre).not.toContain(".update(");
-      expect(src, nombre).not.toContain(".delete(");
+describe("el módulo ya no tiene NINGUNA superficie con llave de servicio", () => {
+  // Hubo dos rutas —`/api/promos/preview` y `/api/promos/commit`— y el dueño quitó la subida por
+  // pantalla: «eso de cargar files no, quita eso». `commit` era la única puerta del módulo que
+  // escribía con la llave de servicio, o sea la única que se salta la RLS entera. Una puerta que
+  // ya no usa nadie no se deja viva.
+  //
+  // Esta prueba es MÁS fuerte que las que sustituye: aquellas comprobaban que `preview` no cogiera
+  // la llave; esta exige que no la coja NADIE en todo el módulo, incluidos los ficheros que
+  // todavía no existen.
+  const ficheros: string[] = [];
+  const recorre = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const e of readdirSync(dir)) {
+      const p = join(dir, e);
+      if (statSync(p).isDirectory()) { recorre(p); continue; }
+      if (/\.tsx?$/.test(e) && !/\.test\.tsx?$/.test(e)) ficheros.push(p);
     }
+  };
+  recorre(join(process.cwd(), "src/app/promos"));
+  recorre(join(process.cwd(), "src/lib/promos"));
+
+  it("las dos rutas ya no existen", () => {
+    expect(existsSync(join(process.cwd(), "src/app/api/promos"))).toBe(false);
   });
 
-  it("`commit` comprueba quién llama ANTES de coger la llave de servicio", () => {
-    const iLee = commit.indexOf("await leeLaSubida(req)");
-    const iLlave = commit.indexOf("createAdminClient()");
-    // Primero que los dos existen: `indexOf` devuelve −1 si no está, y −1 < n pasaría la
-    // comparación de orden sin que ninguna de las dos cosas estuviera en el fichero.
-    expect(iLee).toBeGreaterThan(-1);
-    expect(iLlave).toBeGreaterThan(-1);
-    expect(iLee).toBeLessThan(iLlave);
-  });
-
-  it("y compara la huella antes de escribir", () => {
-    const iHuella = commit.indexOf("if (huellaDelCliente !== huella)");
-    const iLlave = commit.indexOf("createAdminClient()");
-    expect(iHuella).toBeGreaterThan(-1);
-    expect(iLlave).toBeGreaterThan(-1);
-    expect(iHuella).toBeLessThan(iLlave);
-  });
-
-  it("el rol se comprueba en el SERVIDOR, no se confía en la pantalla", () => {
-    expect(lector).toContain('if (me?.role !== "admin") {');
-  });
-
-  it("`commit` no acepta filas del navegador: las compone de lo que el servidor leyó", () => {
-    // Si el cliente pudiera mandar las filas, podría mandar el costo que quisiera, y la 140 se
-    // pasó una migración entera cerrando ese dato por privilegio de columna.
-    expect(commit).toContain("filasParaGuardar(ronda.id as string, resultado)");
-    expect(commit).not.toMatch(/form\.get\("productos"\)|body\.productos/);
-  });
-
-  it("si falla a mitad, borra la ronda — y la cascada se lleva lo demás", () => {
-    expect(commit.match(/await admin\.from\("promo_rounds"\)\.delete\(\)\.eq\("id", ronda\.id\);/g) ?? [])
-      .toHaveLength(2);
+  it("y ni un fichero del módulo nombra la llave de servicio", () => {
+    expect(ficheros.length).toBeGreaterThan(3);
+    const malos = ficheros.filter((f) => /createAdminClient|supabase\/admin/.test(readFileSync(f, "utf8")));
+    expect(malos).toEqual([]);
   });
 });
 

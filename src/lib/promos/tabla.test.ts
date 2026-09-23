@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ordenaFilas, filtraFilas } from "@/lib/orden-y-filtro";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
-  cuentaPorEstado, esDecisorDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
+  COLOR_DE_ESTADO, columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, puedeVerPrivadasDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
   motivoParaNoDecidir, puedeDecidir,
   valorDeColumna, valorParaFiltrar, type DecisionDeGrupo, type ProductoDeCatalogo,
 } from "./tabla";
@@ -13,6 +13,21 @@ import {
  * Los valores son inventados. Las **formas** están medidas: el costo llega de la base con toda su
  * precisión de coma flotante, y las existencias vienen por tienda con la clave del libro.
  */
+/**
+ * Quita los comentarios antes de mirar el codigo.
+ *
+ * Sin esto, una prueba que exige que algo NO este se pone roja porque MI PROPIO comentario lo
+ * nombra — me ha pasado tres veces en este modulo. Una prueba que confunde la prosa con el codigo
+ * es una que alguien acabara relajando para callarla. Misma forma que en `map-legend.test.ts`.
+ */
+const sinComentarios = (x: string) =>
+  x.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .split(SALTO).map((l) => (/^\s*\/\//.test(l) ? "" : l.replace(/\s\/\/.*$/, ""))).join(SALTO);
+
+/** El salto de linea, por su codigo: escribirlo como literal dentro de una cadena generada es
+ *  justo lo que rompio esta prueba una vez. */
+const SALTO = String.fromCharCode(10);
+
 const producto = (extra: Partial<ProductoDeCatalogo> = {}): ProductoDeCatalogo => ({
   round_id: "R1", code: "X1", supplier: "PROV", size: "8X48", description: "UNO",
   qoh: 100, qoh_by_store: { AA1: 10, BB2: 20 }, price: 1.39,
@@ -71,8 +86,40 @@ describe("qué columnas se ofrecen", () => {
     expect([...COLUMNAS_FIJAS]).toEqual(["code", "estado", "nota"]);
   });
 
-  it("por defecto se ven todas", () => {
-    expect(columnasDePromosPorDefecto(["AA1"], true)).toEqual(columnasDePromos(["AA1"], true).map((c) => c.key));
+  it("por defecto se ven POCAS: ni las de tienda ni las privadas", () => {
+    // El dueño vio la primera versión, que las ofrecía todas —diecisiete con seis tiendas— y dijo
+    // «it's horrible, first it doesn't fit in 1 screen». Una tabla que nace fuera de la pantalla
+    // obliga a desplazarse a lo ancho antes de leer nada.
+    const porDefecto = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
+    expect(porDefecto).toEqual(["code", "description", "size", "qoh", "price", "estado", "nota"]);
+    expect(porDefecto.some((k) => k.startsWith("qoh_"))).toBe(false);
+    for (const privada of ["cost", "diff", "demand", "mo", "notes"]) expect(porDefecto, privada).not.toContain(privada);
+    // Y siguen existiendo, que es lo que las hace una elección y no una pérdida.
+    const todas = columnasDePromos(["AA1", "BB2", "CC3"], true).map((c) => c.key);
+    expect(todas.length).toBeGreaterThan(porDefecto.length + 5);
+  });
+
+  it("y caben: las de partida suman menos de 1100 px, que es lo que hay a 1280", () => {
+    // La cuenta que decide si hay desplazamiento lateral de página. 1280 menos el marco de la
+    // página deja ~1180; se deja margen para la casilla y la columna de decidir.
+    const cols = columnasDePromos(["AA1", "BB2", "CC3"], true);
+    const porDefecto = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
+    const ancho = porDefecto.reduce((n, k) => n + cols.find((c) => c.key === k)!.ancho, 0);
+    expect(ancho).toBeLessThan(1100);
+  });
+
+  it("lo guardado manda, pero las fijas entran siempre y lo que ya no existe se cae", () => {
+    const cols = columnasDePromos(["AA1"], false);
+    // Sin el código no se sabe qué fila es; sin estado ni nota la tabla no sirve para lo que se
+    // entra aquí. Una lista guardada antes de que fueran fijas dejaría una pantalla inútil.
+    expect(columnasVisiblesDePromos(["price"], cols)).toEqual(["code", "price", "estado", "nota"]);
+    // Una columna de tienda que el libro de este mes ya no trae: fuera, sin romper nada.
+    expect(columnasVisiblesDePromos(["code", "qoh_YA_NO", "price"], cols)).toEqual(["code", "price", "estado", "nota"]);
+    // Y en el orden del CATÁLOGO, no en el que se marcaron.
+    expect(columnasVisiblesDePromos(["nota", "price", "code", "estado", "description"], cols))
+      .toEqual(["code", "description", "price", "estado", "nota"]);
+    // Sin nada guardado, el defecto.
+    expect(columnasVisiblesDePromos(null, cols)).toEqual(columnasDePromosPorDefecto(["AA1"], false));
   });
 });
 
@@ -232,6 +279,207 @@ describe("quién puede decidir, y por qué no", () => {
   it("sin grupo no se decide, y se dice dónde se pone", () => {
     expect(puedeDecidir({ ...base, grupo: null })).toBe(false);
     expect(motivoParaNoDecidir({ ...base, grupo: null })!.es).toMatch(/Datos → Tiendas/);
+  });
+});
+
+// ===========================================================================
+describe("la tabla es LA DE ÓRDENES, no una que se le parece", () => {
+  const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+  const ordenes = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8");
+
+  it("usa sus MISMAS clases, sacadas de `OrdersTable` y no escritas de memoria", () => {
+    // El dueño pidió «the style of the order table in deliveries». Que la coherencia venga de usar
+    // las mismas clases y no de copiar CSS: si algún día cambian ahí, cambian aquí.
+    for (const clase of ["tbl-scroll tbl-fit orders-scroll", "orders tbl-resize orders-responsive"]) {
+      expect(ordenes, clase).toContain(clase);
+      expect(tabla, clase).toContain(clase);
+    }
+  });
+
+  it("y sus mismas piezas: `colgroup` con anchos, asas de arrastre y `anchoDeTabla`", () => {
+    expect(tabla).toContain("<colgroup>");
+    expect(tabla).toContain("useColWidthMap(");
+    expect(tabla).toContain("anchoDeTabla([");
+    expect(tabla).toContain('className="col-resizer"');
+    expect(tabla).toContain("anchos.startResize(c.key)");
+  });
+
+  it("cada celda lleva su `data-label`, que es lo que la vuelve tarjeta en el teléfono", () => {
+    // Sin él, `orders-responsive` pinta las tarjetas sin rótulo y no se sabe qué es cada valor.
+    expect(tabla).toContain("data-label={lang === \"es\" ? c.es : c.en}");
+  });
+
+  it("NO se le pone alto propio: la de Órdenes tampoco lo tiene", () => {
+    // Medido en producción a 1280 y 1440: la de Órdenes no tiene desplazamiento vertical propio
+    // —quien baja es la página— y lo que da la sensación de «cabe en una pantalla» es que la caja
+    // no se salga de LADO más la cabecera pegada. Ponerle alto sería hacer más que la referencia.
+    // Se mira la CAJA de la tabla, no el fichero entero: el menú de ⚙ Columnas sí lleva su
+    // `maxHeight`, y prohibirlo en todo el fichero habría sido una prueba que no dice lo que cree.
+    const caja = tabla.split(SALTO).filter((l) => l.includes("tbl-scroll"));
+    expect(caja).toHaveLength(1);
+    expect(caja[0]).not.toMatch(/style=|maxHeight|promos-alto/);
+    expect(tabla).not.toContain("promos-alto");
+    // Y la referencia tampoco lo tiene, que es de donde sale la regla.
+    expect(ordenes.split(SALTO).filter((l) => l.includes("tbl-scroll"))[0]).not.toMatch(/maxHeight|style=/);
+  });
+});
+
+// ===========================================================================
+describe("las cuatro diferencias que se veian al lado de Ordenes", () => {
+  const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+  const ordenes = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8");
+
+  it("el estado es una PASTILLA con las clases de Órdenes, no texto plano", () => {
+    // Era la diferencia más visible al poner las dos tablas al lado.
+    // La expresion ENTERA de la celda, no `className="sema"` a secas: eso lo cumple tambien la
+    // pastilla de «Cerrada» de la cabecera, y con ella la prueba pasaba con el estado en texto
+    // plano. Lo enseño un mutante que sobrevivio.
+    expect(tabla).toContain('<span className="sema" title={texto} style={{ background: COLOR_DE_ESTADO[fila.estado], color: "#fff" }}>{texto}</span>');
+    expect(tabla).toContain('className={c.key === "estado" ? "td-pastillas" : undefined}');
+    // Y las mismas dos clases están en Órdenes: la coherencia viene de usarlas, no de copiarlas.
+    expect(ordenes).toContain('className="sema"');
+    expect(ordenes).toContain("td-pastillas");
+  });
+
+  it("y su color sale de la paleta de las etapas, no de un hex escrito aquí", () => {
+    const fuente = readFileSync(join(process.cwd(), "src/lib/promos/tabla.ts"), "utf8");
+    expect(fuente).toContain('pending: stageInfo("pending").color');
+    expect(fuente).toContain('approved: stageInfo("delivered").color');
+    expect(fuente).toContain('rejected: stageInfo("rejected").color');
+    // Ni un color a mano en el módulo: si alguien retoca la paleta, se retoca aquí también.
+    expect(sinComentarios(fuente)).not.toMatch(/#[0-9a-fA-F]{6}/);
+    // Y los tres son distintos: un estado que se pinta igual que otro no dice nada.
+    expect(new Set(Object.values(COLOR_DE_ESTADO)).size).toBe(3);
+  });
+
+  it("el selector de columnas es el «⚙ Columnas» de Órdenes, no un `details` nativo", () => {
+    expect(tabla).toContain('<button className="btn btn-ghost" onClick={() => setShowCols((v) => !v)}>⚙ ');
+    expect(tabla).toContain('<div className="col-menu">');
+    expect(tabla).toContain('className="col-opt"');
+    expect(sinComentarios(tabla)).not.toContain("<details>");
+    // Y se cierra igual: clic fuera o Escape (D-275).
+    expect(tabla).toContain("useCierraAlSalir(showCols");
+  });
+
+  it("las celdas que se cortan llevan su texto entero en `title`", () => {
+    // La descripción es el NOMBRE del producto que hay que reconocer para decidir; recortada y sin
+    // `title` no hay forma de leerla salvo ensanchando la columna.
+    expect(tabla).toContain('title={c.key === "estado" ? undefined : textoDeCelda(f, c.key)}');
+  });
+});
+
+// ===========================================================================
+describe("el demo respeta «Ver como»", () => {
+  const demo = readFileSync(join(process.cwd(), "src/app/promos/[id]/RondaDemo.tsx"), "utf8");
+  const pagina = readFileSync(join(process.cwd(), "src/app/promos/[id]/page.tsx"), "utf8");
+
+  it("el rol sale de «Ver como» y no está clavado en admin", () => {
+    // Con `rol="admin"` clavado no había forma de medir las dos vistas que más importan: qué ve y
+    // qué no ve un vendedor, y qué puede hacer un gerente.
+    expect(sinComentarios(pagina)).not.toMatch(/rol="admin"/);
+    expect(demo).toContain("localStorage.getItem(ME_DEMO)");
+    // Y que lo LEIDO es lo que se usa: con solo la lectura, un `setRol("admin")` a secas pasaba.
+    expect(demo).toContain('setRol(typeof me?.role === "string" ? me.role : "admin");');
+    expect(demo).toContain('const ME_DEMO = "rtg_deliveries_local_me";');
+  });
+
+  it("y quien no puede ver las cinco privadas NO las recibe, ni en demo", () => {
+    // En la app de verdad esto se deduce del dato; en demo no hay base que lo decida, así que el
+    // demo lo simula. Sin esto enseñaría el costo a un vendedor de mentira.
+    expect(demo).toContain("puedeVerPrivadas ? p : { ...p, private: null }");
+  });
+
+  it("pero quién DECIDE no se simula: sale de la misma función que usa la app", () => {
+    expect(demo).toContain("esDecisor={esDecisorDePromos({ rol, grupo })}");
+  });
+
+  it("no pinta nada hasta saber el rol", () => {
+    // Pintar como admin y cambiar medio segundo despues seria enseñar lo que no toca.
+    expect(demo).toContain("if (rol === null) return null;");
+  });
+});
+
+// ===========================================================================
+describe("quién ve las cinco privadas: el gemelo para el demo", () => {
+  it("admin, gerente de oficina y oficina; nadie más", () => {
+    for (const rol of ["admin", "manager", "accounting"]) expect(puedeVerPrivadasDePromos(rol), rol).toBe(true);
+    for (const rol of ["sales", "driver", "warehouse", "logistics", null, undefined]) {
+      expect(puedeVerPrivadasDePromos(rol), String(rol)).toBe(false);
+    }
+  });
+
+  it("y la base dice lo mismo", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/140_promos.sql"), "utf8");
+    expect(sql).toContain("and (public.is_admin() or public.current_user_role() in ('manager', 'accounting'));");
+  });
+});
+
+// ===========================================================================
+describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir para algo", () => {
+  const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+
+  it("se leen y se guardan con la clave de la 141", () => {
+    // La primera versión las tenía en un `useState` y nada más: se elegían, se veían, y al
+    // recargar volvían al defecto. La clave de la migración estaba declarada y no la usaba nadie,
+    // así que la 141 se aplicó a producción para nada.
+    expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS");
+    expect(tabla).toContain("leeColumnas(createClient() as unknown as ClienteDePrefs, userId, CLAVE_DE_COLUMNAS_DE_PROMOS)");
+    // El escritor es uno solo (`escribeLaFila`), así que aquí se cita su cuerpo y no una llamada
+    // suelta: la prueba de más abajo es la que exige que sea UNO.
+    expect(tabla).toContain("createClient() as unknown as ClienteDePrefs, userId!, visiblesDeLaBase.current ?? {},");
+  });
+
+  it("y no se escribe a ciegas encima de lo que haya: solo si se pudo leer", () => {
+    expect(tabla.match(/visiblesDeLaBase\.current === null\) return;/g) ?? []).toHaveLength(2);
+  });
+
+  it("y el navegador es la RED: al marcar se escribe en los dos sitios", () => {
+    // Principio de D-330, que es lo que hace Órdenes: `user_prefs` manda —por persona, vale en
+    // cualquier máquina— y el navegador guarda por si la base no contesta. Sin él, una lectura
+    // fallida le borra a alguien su elección sin decir nada.
+    expect(tabla).toContain("localStorage.setItem(claveDelNavegadorDePromos(rol), JSON.stringify(next))");
+    expect(tabla).toContain("localStorage.getItem(claveDelNavegadorDePromos(rol))");
+    // Con su try/catch a los dos lados: en una ventana privada `localStorage` puede lanzar.
+    expect((tabla.match(/catch \{ \/\* sin memoria/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("y el navegador se escribe ANTES del corte que protege la base", () => {
+    // Si se escribiera después del `return` que exige haber leído la base, una base que no
+    // contesta dejaría también al navegador sin nada — que es justo el caso que la red cubre.
+    const cuerpo = tabla.slice(tabla.indexOf("const ponVisibles"), tabla.indexOf("const alternaColumna"));
+    const iNavegador = cuerpo.indexOf("localStorage.setItem");
+    const iCorte = cuerpo.indexOf("visiblesDeLaBase.current === null) return;");
+    expect(iNavegador).toBeGreaterThan(-1);
+    expect(iCorte).toBeGreaterThan(-1);
+    expect(iNavegador).toBeLessThan(iCorte);
+  });
+
+  it("los ANCHOS también son por persona, no por navegador", () => {
+    // D-338: el dueño pidió «resize … and it saves for ever», y aquí «así como Excel, resize sus
+    // columnas». Con los anchos solo en `localStorage`, ensanchar una columna en una máquina no se
+    // veía en la otra — y el comentario de esta línea decía que sí. Es la misma llamada que Órdenes.
+    expect(tabla).toContain("deLaPersona: anchosDelRol ?? undefined,");
+    expect(tabla).toContain("alCambiar: guardaAnchos,");
+    expect(tabla).toContain("minimo: ANCHO_MINIMO,");
+  });
+
+  it("UN SOLO escritor, y siempre manda las DOS mitades", () => {
+    // La lección de D-338: `guardaColumnas` escribe la fila entera, así que guardar una mitad con
+    // la otra a medio poner la borra. Marcar una columna borraría los anchos, y arrastrar un ancho
+    // borraría las columnas. Se comprueba contando: UNA sola llamada, dentro de `escribeLaFila`.
+    expect(tabla.match(/guardaColumnas\(/g) ?? []).toHaveLength(1);
+    expect(tabla).toContain("visiblesDeLaBase.current ?? {},");
+    expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,");
+    // Y que los dos caminos pasen por él.
+    expect(tabla.match(/void escribeLaFila\(\);/g) ?? []).toHaveLength(3);
+  });
+
+  it("la semilla del navegador NO corre si se está suplantando ni si no se sabe", () => {
+    // Durante una suplantación la sesión es la del otro: sembrar le escribiría a esa persona los
+    // anchos de este navegador. `hayQueSembrar` exige `suplantando === false`, no «no se sabe».
+    expect(tabla).toContain("hayQueSembrar({ baseLeida: true, hayFila: false, suplantando }");
+    expect(tabla).toContain('await (await fetch("/api/impersonate/state")).json()');
+    expect(tabla).toContain("if (leido.hayFila) return;");
   });
 });
 

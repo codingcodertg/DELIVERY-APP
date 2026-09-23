@@ -25,7 +25,15 @@ export const metadata: Metadata = {
  * login vuelve aquí y el fallo se convierte en un bucle. Solo la fila ausente —con error nulo— es la
  * sesión degradada que manda al login.
  */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function PromosLayout({ children }: { children: React.ReactNode }) {
+  // Modo demo: no hay base ni sesión, así que la puerta no tiene nada que comprobar y mandaría al
+  // login a quien solo viene a mirar. Mismo atajo que `(app)/layout.tsx`. Las pantallas de dentro
+  // usan datos inventados (`lib/promos/demo`), que es lo que permite mirar esto en un navegador —
+  // y la queja del dueño era visual.
+  if (LOCAL_MODE) return <>{children}</>;
+
   const supabase = await createClient();
   const {
     data: { user },
