@@ -1,21 +1,26 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { SubirRonda } from "./SubirRonda";
+import { RONDAS_DEMO } from "@/lib/promos/demo";
+
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export const dynamic = "force-dynamic";
 
 /**
  * La raíz del módulo de promociones.
  *
- * Fase B: la lista de rondas, y para un admin el par de pasos para subir una. La tabla de
- * decisiones —aprobar, rechazar, notas— es la fase C; hasta entonces una ronda subida se ve aquí y
- * nada más, que es poco pero es cierto.
+ * La lista de rondas, y nada más. **Subir ya no se hace desde aquí**: el dueño lo quitó —«eso de
+ * cargar files no, quita eso: yo te doy la información y tú la subes y punto»— así que las rondas
+ * las carga quien administra el sistema con el script de `scripts/promos/`, y esta pantalla solo
+ * las enseña. De paso, el módulo se quedó sin ninguna superficie con llave de servicio.
  *
  * Lee `promo_rounds` con el cliente de quien mira, así que la RLS de la 140 decide: sin el módulo
  * no hay filas. Y no toca `promo_products` — **nunca `select("*")` sobre esa tabla**, ni siquiera
  * para un manager: sus cinco columnas privadas están revocadas y la consulta entera fallaría.
  */
 export default async function PromosIndex() {
+  if (SIN_BASE) return <Pantalla rondas={RONDAS_DEMO} esAdmin />;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: me } = user
@@ -29,13 +34,20 @@ export default async function PromosIndex() {
     .order("uploaded_at", { ascending: false })
     .limit(50);
 
+  return <Pantalla rondas={rondas ?? []} esAdmin={esAdmin} />;
+}
+
+type RondaDeLista = { id: string; label: string; source_name: string | null; uploaded_at: string; closed_at: string | null };
+
+/** Lo que se pinta, aparte de dónde salen las rondas: así el modo demo usa la MISMA pantalla. */
+function Pantalla({ rondas, esAdmin }: { rondas: readonly RondaDeLista[]; esAdmin: boolean }) {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
       <h1 style={{ marginTop: 0 }}>🏷️ RTG PROMOS</h1>
 
       <div className="card">
         <div className="section-label">Rondas / Rounds</div>
-        {!rondas?.length ? (
+        {!rondas.length ? (
           <p className="hint" style={{ marginBottom: 0 }}>
             Todavía no hay ninguna ronda. Una ronda es un Excel de promociones subido por un
             administrador.
@@ -64,8 +76,6 @@ export default async function PromosIndex() {
           its products.
         </p>
       </div>
-
-      {esAdmin && <SubirRonda />}
 
       {esAdmin && (
         <p className="hint" style={{ marginTop: 12 }}>

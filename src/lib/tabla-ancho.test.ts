@@ -56,7 +56,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     expect(ROLE_DEFAULT_COLUMNS.warehouse!.length).toBeGreaterThan(ventas);
   });
 
-  it("las seis tablas redimensionables piden el marco, y todas ganan lo mismo", () => {
+  it("las siete tablas redimensionables piden el marco, y todas ganan lo mismo", () => {
     const tsx: string[] = [];
     const recorre = (d: string) => {
       for (const f of readdirSync(d)) {
@@ -69,9 +69,12 @@ describe("a quién le pasaba y quién se beneficia", () => {
     let marcos = 0;
     for (const p of tsx) marcos += (readFileSync(p, "utf8").match(/tbl-scroll tbl-fit/g) ?? []).length;
     expect(tsx.length).toBeGreaterThanOrEqual(200); // control: el barrido ve la app entera
-    // Seis desde D-287: la sexta es la vista «Ruta del día» de Almacén. El número se mueve con su
-    // motivo; aflojarlo a un «al menos» dejaría de avisar del caso que esta prueba existe para ver,
-    // una tabla redimensionable sin su marco.
-    expect(marcos).toBe(6);
+    // Seis desde D-287: la sexta es la vista «Ruta del día» de Almacén. **Siete** desde que la
+    // tabla de RTG PROMOS adoptó las piezas de Órdenes: el dueño vio la suya con marco propio y
+    // dijo «make it the style of the order table in deliveries because is horrible», así que usa
+    // el mismo marco que las otras seis en vez de uno parecido. El número se mueve con su motivo;
+    // aflojarlo a un «al menos» dejaría de avisar del caso que esta prueba existe para ver, una
+    // tabla redimensionable sin su marco.
+    expect(marcos).toBe(7);
   });
 });
