@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, MAPS_MAP_ID } from "@/lib/google-maps-loader";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
-import { casaDeTienda, dibujoTiendaUrl, estiloTienda } from "@/lib/store-pins";
+import { casaDeTienda, dibujoTiendaUrl, estiloTienda, Z_CASITA_DESPACHO } from "@/lib/store-pins";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 
 // ============================================================
@@ -307,7 +307,8 @@ export function GoogleMapView({
         map,
         position: { lat: s.lat, lng: s.lng },
         title: `🏬 ${s.name}`,
-        zIndex: estilo ? estilo.zIndex : 1000,
+        // Debajo del pin de la orden, encima del apagado (D-365): ver `Z_CASITA_DESPACHO`.
+        zIndex: estilo ? estilo.zIndex : Z_CASITA_DESPACHO,
         icon: dib
           ? { url: dib.url, anchor: new maps.Point(dib.anclaX, dib.anclaY) }
           : { url: storeIcon(), anchor: new maps.Point(13, 13) },
