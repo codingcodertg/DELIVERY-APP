@@ -1,6 +1,7 @@
 # Plan — 140 · RTG PROMOS, fase 1: la base y el lector del Excel
 
-**Estado:** PLAN EN PAPEL. **Nada aplicado.** Espera aprobación del dueño.
+**Estado:** PLAN EN PAPEL. **Nada aplicado.** Ensayado entero contra producción con `ROLLBACK`:
+**38 de 38** (§10), y la base quedó limpia. **Espera aprobación del dueño — sin su sí no se aplica.**
 **Fecha:** 2026-09-23 · **Rama:** `rtg-promos` desde `e025f6c` (D-363).
 **Molde:** `docs/PLAN-A-2a-profiles-rls.md` (inventario → políticas literales → lo que no debe
 romperse → matriz por rol con `ROLLBACK` → reversión).
@@ -13,7 +14,7 @@ toca `APP_VERSIONS` ni `package.json`.
 > **Segunda versión de este documento.** La primera se ensayó con `ROLLBACK` y **no llegó a
 > ejecutarse**; y después el dueño contestó las preguntas que quedaban abiertas, y sus respuestas
 > cambian quién ve qué. Las dos cosas se cuentan aquí donde tocan, sin reescribir lo que decía
-> antes — ver §12.
+> antes — **el inventario del cambio está en §13**. Esta segunda versión sí se ensayó entera: §10.
 
 ---
 
@@ -351,11 +352,16 @@ producto y su grupo, y `decided_by`/`decided_at` los sella la base aunque el cli
 
 **Lo que hay que comprobar a mano antes de aplicar** (no se puede medir desde una rama):
 
-1. que **no exista ya** ninguna de las cuatro tablas ni ninguno de los seis nombres de función;
-2. que `public.settings` tenga la fila `id = 1`;
-3. **el estado real de `profiles_module_access_known` en producción**, con
-   `pg_get_constraintdef`, antes de redefinirla — el repo dice que la última es la 095, y eso hay
-   que verlo en la base, no creerlo.
+1. ~~que **no exista ya** ninguna de las cuatro tablas ni ninguno de los seis nombres de función~~
+   — **resuelto por el ensayo del 2026-09-23**: la migración corrió entera contra producción, así
+   que ningún nombre chocaba, y el `ROLLBACK` dejó la base sin ellas;
+2. ~~que `public.settings` tenga la fila `id = 1`~~ — **resuelto**: el ensayo sembró y comprobó
+   `stores` en esa fila, y la dejó intacta;
+3. ~~**el estado real de `profiles_module_access_known`**~~ — **resuelto**: la redefinición corrió y
+   las tres comprobaciones de §3 pasaron, o sea que lo que había en la base era lo que dice el repo.
+
+**Lo que sigue pendiente y no lo resuelve ningún ensayo:** el `pg_dump` guardado justo antes de
+aplicar (y releído antes de revertir, §11), y **el sí del dueño**.
 
 ### Dos cosas que la fase 2 se va a encontrar, medidas ya
 
@@ -381,46 +387,70 @@ Hace falta sembrar dentro de la transacción: una ronda, tres productos, cuatro 
 `promo_group` en tres tiendas de `settings.stores` (dos de ellas compartiendo grupo, para el caso
 McAllen+Mission). Todo se deshace con el `ROLLBACK`.
 
-### 10a · Lo ya MEDIDO, y que sigue valiendo
+### 10a · El resultado: MEDIDO, 38 de 38
 
-El orquestador corrió la matriz sobre una copia con los dos arreglos de §8 y §3 puestos: **29 de 29**.
-De ahí, **estas filas no las toca ninguna respuesta del dueño y quedan como medidas**:
+**Corrido por el orquestador contra producción el 2026-09-23, sobre `e90b02c7`, entero y con
+`ROLLBACK`.** La base quedó limpia después: sin tablas, `schema_migrations` sin la fila, y `stores`
+y los perfiles intactos. Comprobó además que el checksum `129e57e4` coincide con el estampado, y que
+el `.sql` no lleva control de transacción ni `D-NEXT`.
 
-- `select *`, `select cost` y `select notes, demand, diff` sobre `promo_products`: **los tres
-  denegados**, para vendedor **y para manager**.
-- `promo_catalog.private` → **`null`** para el vendedor; el objeto con el costo para el manager.
-- El vendedor **no puede decidir**, en ningún grupo.
-- El manager decide en su grupo **sí** y en otro **no**; un `update` de otro grupo afecta a **cero
-  filas**; cambiar el `group_code` de una decisión lo **para el guardia**; `decided_by` lo **sella
-  la base** aunque el cliente mande otro uuid.
-- **Office de Edinburg decide en su grupo** (la tienda sin gerente queda cubierta, como pidió el
-  dueño), y **McAllen y Mission comparten decisión**.
-- El admin decide en cualquier grupo. **Ni el admin ni un manager pueden insertar productos o
-  rondas** por la API normal: solo service-role.
-- Anónimo: denegado en todo.
+**Yo no lo corrí**: una rama no toca producción, ni para leer. Esto es una medición de otra sesión, y
+se apunta como tal — no como una comprobación mía.
 
-### 10b · Lo que las respuestas del dueño INVALIDAN — a medir de nuevo
+**Lo que protege el costo:**
 
-| Caso | Medido antes | Ahora debe dar |
-|---|---|---|
-| vendedor: cuántos productos ve | **1 de 3** (solo lo aprobado de su grupo) | **3 de 3** |
-| vendedor: cuántas decisiones ve | **2 de 4** (las de su grupo) | **4 de 4** |
-| vendedor de otra tienda | solo lo suyo | **lo mismo que cualquiera: todo** |
-| manager **sin tienda** | 0 productos, no decide | **ve los 3**, sigue **sin** decidir |
-| chofer con el módulo | 0 productos | **ve los 3** (§1: el módulo es la única puerta) |
-
-### 10c · Los casos NUEVOS, que son los que protegen lo que importa
-
-| Caso | Esperado |
+| Caso | Resultado |
 |---|---|
-| **vendedor: ve los 3 productos Y `select cost` denegado Y `private` en `null` en los 3** | ⛔ / `null` ×3 — **este es el caso clave**: antes se cumplía por la fila y ahora **solo** por la columna |
-| manager decide en una ronda **cerrada** | ⛔ excepción del guardia, no cero filas |
-| **admin** decide en una ronda cerrada | ⛔ igual que el manager |
-| admin reabre y vuelve a decidir | ✅, y `reopened_at` queda puesto |
-| un **no-admin** llama a `promo_set_round_closed` | ⛔ excepción |
-| `update` directo de `promo_rounds` desde el cliente | ⛔ sin grant |
-| la restricción acepta `promos` y **sigue aceptando** las otras cuatro | ✅ / ✅ |
-| conceder `module_access = '{promos}'` a un perfil | ✅ (antes: ⛔ por la restricción) |
+| **vendedor: ve los 3 productos Y `private` es `null` en los 3** | ✅ / `null` ×3 — **el caso clave**: antes se cumplía por la fila, ahora **solo** por la columna |
+| `select *`, `select cost`, `select notes, demand, diff` — vendedor | **los tres denegados** |
+| los mismos tres — **manager** | **también denegados**: por eso la pantalla lee `promo_catalog` |
+| `promo_catalog.private` — manager | el objeto, con el costo |
+| **chofer con el módulo** | ve los 3 y **tampoco le llega el costo** |
+
+**Quién decide, y dónde:**
+
+| Caso | Resultado |
+|---|---|
+| vendedor decide | ⛔, en ningún grupo. Ve las **4** decisiones |
+| manager en su grupo / en otro | ✅ / ⛔ (RLS); el `update` de otro grupo afecta a **cero filas** |
+| cambiar el `group_code` de una decisión | ⛔ el guardia |
+| `decided_by` con otro uuid desde el cliente | lo **sella la base** |
+| **manager sin tienda** | ve los 3 y **no decide** |
+| Office de Edinburg | decide en su grupo — la tienda sin gerente queda cubierta |
+| McAllen y Mission | **comparten decisión** |
+| admin | decide en cualquier grupo |
+| insertar productos o rondas por la API normal (admin incluido) | ⛔ solo service-role |
+| anónimo | ⛔ en todo |
+
+**El cierre de ronda:**
+
+| Caso | Resultado |
+|---|---|
+| manager inserta o actualiza en ronda **cerrada** | ⛔ **con excepción**, no con cero filas |
+| **admin**, lo mismo | ⛔ igual |
+| vendedor con la ronda cerrada | sigue viendo los 3 |
+| admin reabre y el manager vuelve a decidir | ✅, y `reopened_at` queda puesto |
+| `update` directo de `promo_rounds` (admin) | ⛔ sin grant |
+| no-admin llamando a `promo_set_round_closed` | ⛔ `Only an admin can close or reopen a promo round` |
+
+**La restricción:**
+
+| Caso | Resultado |
+|---|---|
+| conceder `module_access = '{promos}'` a un perfil | ✅ — **antes reventaba** |
+| sigue aceptando las otras cuatro, sin resucitar `clockin` | ✅ |
+
+**Lo que esto confirma, y es la razón de dos decisiones de diseño:** el cierre sale con **excepción y
+no con cero filas**, que es exactamente por lo que vive en el disparador y no en la política (§8) —
+una política habría dejado al manager creyendo que guardó.
+
+### 10b · Una medición anterior que ya no describe esta migración
+
+Antes de las respuestas del dueño hubo otra pasada, **29 de 29**, sobre una copia del diseño viejo.
+Se anota para que nadie se tropiece con ese número y crea que falta algo: **no lo contradice, mide
+otra cosa.** Allí el vendedor veía **1 de 3** productos y **2 de 4** decisiones, porque entonces solo
+veía lo aprobado de su grupo. Con «ven todas las tiendas y todos los productos» esas dos filas pasan
+a 3 de 3 y 4 de 4, y así están medidas arriba.
 
 ---
 
