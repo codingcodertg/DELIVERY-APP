@@ -90,6 +90,44 @@ describe("la extensión de directorio, en las tiendas (D-273)", () => {
   });
 });
 
+describe("el grupo de promociones, en las tiendas (RTG PROMOS, migración 140)", () => {
+  it("EDITAR OTRA COSA NO SE LO LLEVA — que es el camino por el que se perdería en silencio", () => {
+    // No el de editar el grupo: ese se ve al instante. El que nadie mira es abrir una tienda que ya
+    // tiene grupo, cambiarle la dirección, guardar, y descubrir semanas después que su gerente dejó
+    // de poder aprobar. Es exactamente el fallo que D-261 vino a cerrar, con un campo más.
+    const prev = tienda({ promo_group: "NORTE" });
+    const rec = registroDeLugar(prev, { ...prev, address: "200 Calle Dos" }, { autoApprove: true, directoryCode: true });
+    expect(rec.promo_group).toBe("NORTE");
+  });
+
+  it("se guarda recortado", () => {
+    const prev = tienda();
+    const rec = registroDeLugar(prev, { ...prev, promo_group: "  NORTE " }, { directoryCode: true });
+    expect(rec.promo_group).toBe("NORTE");
+  });
+
+  it("vaciarlo quita la clave, no guarda una cadena vacía", () => {
+    // `promo_group_of_user()` hace `nullif(trim(...), '')`, así que «» y ausente dan lo mismo en la
+    // base. Se quita la clave igual que con los otros tres para que nadie tenga que saber eso.
+    const prev = tienda({ promo_group: "NORTE" });
+    const rec = registroDeLugar(prev, { ...prev, promo_group: "   " }, { directoryCode: true });
+    expect("promo_group" in rec).toBe(false);
+  });
+
+  it("en una lista que no enseña los campos de tienda, se conserva tal cual", () => {
+    // Los puntos de recolección y los sitios de entrega no son tiendas y no traen estos campos.
+    const prev = tienda({ promo_group: "NORTE" });
+    const rec = registroDeLugar(prev, { ...prev, promo_group: "" }, { directoryCode: false });
+    expect(rec.promo_group).toBe("NORTE");
+  });
+
+  it("es el TERCER campo de agrupar, y tocar uno no toca los otros dos", () => {
+    const prev = tienda({ directory_code: "ABC", group: "OESTE", promo_group: "NORTE" });
+    const rec = registroDeLugar(prev, { ...prev, promo_group: "SUR" }, { directoryCode: true });
+    expect([rec.directory_code, rec.group, rec.promo_group]).toEqual(["ABC", "OESTE", "SUR"]);
+  });
+});
+
 describe("el editor de Datos usa esta función, y no una copia", () => {
   // Sin esto, la prueba de arriba protegería una función que la pantalla podría dejar de llamar.
   const leer = (r: string) => readFileSync(r, "utf8");
@@ -103,6 +141,13 @@ describe("el editor de Datos usa esta función, y no una copia", () => {
   it("y el formulario de tiendas tiene el campo de la extensión", () => {
     expect(pagina).toContain("value={draft.directory_ext ?? \"\"}");
     expect(pagina).toContain("onChange={(e) => setDraft({ ...draft, directory_ext: e.target.value })}");
+  });
+
+  it("y el del grupo de promociones, que si no no habría dónde ponerlo", () => {
+    // La prueba de arriba protege que `registroDeLugar` lo conserve; esta, que exista un sitio
+    // donde escribirlo. Sin las dos, el campo sería un tipo que nadie rellena.
+    expect(pagina).toContain("value={draft.promo_group ?? \"\"}");
+    expect(pagina).toContain("onChange={(e) => setDraft({ ...draft, promo_group: e.target.value })}");
   });
 
   it("y ya no construye el registro de cero", () => {

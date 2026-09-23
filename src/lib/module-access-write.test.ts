@@ -44,7 +44,7 @@ describe("lo que se escribe al conceder un módulo partiendo de ['clockin']", ()
   const alQuitar = (actual: string[] | null, modulo: string) =>
     knownModules(actual).filter((m) => m !== modulo);
 
-  for (const modulo of ["deliveries", "recruiting", "timetracker", "erp"]) {
+  for (const modulo of ["deliveries", "recruiting", "timetracker", "erp", "promos"]) {
     it(`conceder ${modulo}: sin 'clockin' y con el módulo concedido`, () => {
       const escrito = alConceder(["clockin"], modulo);
       expect(escrito).not.toContain("clockin");
@@ -60,10 +60,14 @@ describe("lo que se escribe al conceder un módulo partiendo de ['clockin']", ()
   });
 });
 
-describe("las cuatro escrituras del provider filtran, y el select trae erp_role", () => {
+// Eran cuatro hasta RTG PROMOS (migración 140), que añade la quinta. El número está contado a
+// propósito y no es `toBeGreaterThan`: una escritura de módulo que se saltara `knownModules`
+// devolvería el caso de D-217, y una cuenta exacta es lo único que obliga a mirar aquí al añadir
+// una — que es justo lo que acaba de pasar.
+describe("las cinco escrituras del provider filtran, y el select trae erp_role", () => {
   const src = leer("src/lib/data-provider.tsx");
   it("ninguna parte ya del array crudo de la fila", () => {
-    expect(src.match(/const actuales = knownModules\(target\?\.module_access\);/g) ?? []).toHaveLength(4);
+    expect(src.match(/const actuales = knownModules\(target\?\.module_access\);/g) ?? []).toHaveLength(5);
     expect(src).not.toMatch(/Array\.from\(new Set\(\[\.\.\.\(target\?\.module_access \?\? \[\]\)/);
     expect(src).not.toMatch(/\(target\?\.module_access \?\? \[\]\)\.filter/);
   });
@@ -74,8 +78,8 @@ describe("las cuatro escrituras del provider filtran, y el select trae erp_role"
       expect(select![1], col).toContain(col);
     }
   });
-  it("y el fallo de la base ya no se pinta crudo en las cuatro", () => {
-    // Solo el tramo de las cuatro funciones de módulos: las otras escrituras de perfil
+  it("y el fallo de la base ya no se pinta crudo en las cinco", () => {
+    // Solo el tramo de las funciones de módulos: las otras escrituras de perfil
     // (nombre, tienda, rol de Entregas) siguen como estaban, fuera del alcance del encargo.
     const desde = src.indexOf("const updateUserRecruitingAccess");
     const hasta = src.indexOf("const deleteUser");
@@ -83,8 +87,8 @@ describe("las cuatro escrituras del provider filtran, y el select trae erp_role"
     expect(hasta).toBeGreaterThan(desde);
     const tramo = src.slice(desde, hasta);
     expect(tramo).not.toMatch(/notify\(error\.message\)/);
-    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(4);
-    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(4);
+    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(5);
+    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(5);
   });
 });
 

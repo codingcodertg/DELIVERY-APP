@@ -24928,3 +24928,107 @@ Google solo la cola.
 cuyo pin apagado es 10, que es Google: con 5 el orden de Leaflet aún se cumple), «Leaflet con su propio número», «Google con su
 propio número», «el camión deja de ir arriba del todo», «la casita deja de responder al ratón», «la casita pierde su tooltip»,
 «el selector de pin baja con ella» y «cambia el tamaño de la casita».
+
+## D-NEXT · RTG PROMOS existe como módulo: tarjeta, casilla y el grupo de promociones de cada tienda
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas, y `promos` arranca en 0.1.0) · **Migraciones:** ninguna
+nueva. **La 140 ya está aplicada** en producción.
+**De dónde sale:** el dueño pidió «una nueva view en el RTG Hub» donde administradores y Office Managers elijan qué productos
+van en promoción, por tienda. La fase 1 (plan `docs/PLAN-140-promos.md`, migración 140, lector del Excel) montó la base. Esta
+es la fase A de la 2: que el módulo **exista para la app**, sin ninguna pantalla de decisión todavía.
+
+### Lo primero, porque es una deuda: la 140 se aplicó sin decisión escrita
+
+La migración 140 entró en producción el 2026-09-23 y **redefinió una restricción de `public.profiles`**
+(`profiles_module_access_known`), y durante unas horas no hubo ninguna entrada aquí que lo contara. **La omisión es de los
+dos**: el worker la justificó en su commit —«la migración está sin aplicar y el módulo no lo importa nadie»— y el orquestador
+fusionó y aplicó sin volver a mirar esa justificación, que para entonces ya era falsa. Se anota aquí, con su fecha, en vez de
+dejarlo como si la decisión hubiera existido desde el principio.
+
+**Qué hizo la 140, en corto** (el detalle está en el plan, que sigue en `docs/`): cuatro tablas —`promo_rounds`,
+`promo_products`, `promo_suggestions`, `promo_decisions`—, seis funciones, una vista y un disparador. El costo se cierra por
+**privilegio de columna** y no por una vista, que es la opción (B) que `docs/PLAN-A-2d-erp-role-cost.md` ya había recomendado
+para el mismo problema en el ERP. Ensayada entera contra producción con `ROLLBACK`: 38 de 38.
+
+### Por qué la restricción había que tocarla
+
+`profiles_module_access_known` (última definición: la **095**, no la 088) es
+`module_access <@ array['deliveries','recruiting','timetracker','erp']`. Con eso, **dar `'promos'` a un perfil reventaba**, así
+que `has_promos_access()` solo habría sido cierta por la rama del rol: el módulo habría sido invisible para todo el mundo menos
+para un admin. La primera versión del plan decía «la 140 solo CREA» y **era falso** por esto; nadie había buscado si algo
+restringía esa columna.
+
+### El cambio de esta entrada
+
+1. **`promos` en `MODULES` y en `MODULE_ACCESS`** (`constants.ts`), tarjeta **«RTG PROMOS»** hacia `/promos`. Sin esto la base
+   aceptaba la palabra pero la app la tiraba: `knownModules()` filtra lo que se **escribe** contra las claves de
+   `MODULE_ACCESS` (D-217), así que conceder el módulo desde el diálogo de Usuarios lo habría descartado **en silencio**.
+2. **Sin escalafón propio, y dicho en su nota.** Quién aprueba es el Gerente de Oficina (`manager`) o la Oficina
+   (`accounting`) de la tienda, que viven en `profiles.role` — la columna de **Entregas**. La regla de D-057 prohíbe que dos
+   módulos apunten a la misma, así que `promos` no la reclama y trae `roleNote` en vez de un selector vacío.
+
+   **Es la misma forma que el defecto A-2d del ERP**, donde «ve costo» viajaba pegado a «es Gerente de Oficina de Entregas», y
+   por eso se escribe en vez de dejarlo implícito. La diferencia: **allí nadie había separado nada y aquí la costura ya está
+   cortada en la base** — `promo_is_decider()` y `promo_can_see_private()` son dos funciones distintas desde la 140. El día que
+   «aprobar» y «ver el costo» dejen de ir juntos no hay que desenredar nada, solo crear el tramo.
+3. **`promo_group` en cada tienda** (`settings.stores`, sin DDL: ya es `jsonb` desde la 003), editable en **Datos → Tiendas**.
+   Las tiendas que comparten valor **deciden juntas**, que es lo que el dueño pidió para las dos que su Excel trae en una sola
+   hoja. Vacío = esa tienda no decide nada, y es el valor seguro: `promo_group_of_user()` devuelve nulo.
+
+   **Es el TERCER campo que agrupa tiendas y a propósito no es ninguno de los otros dos.** `directory_code` agrupa el
+   directorio telefónico (D-261) y `group` agrupa quién trabaja con quién (D-293). Reusar cualquiera ataría el calendario de
+   las promociones al de otra cosa: un admin reagrupando teléfonos movería en silencio quién decide una promoción.
+4. **`/promos` con su puerta**, igual que la del ERP y la de RR. HH. (D-051): el acceso se comprueba en el servidor, el admin
+   siempre entra —como dice `has_promos_access()`—, y un fallo de **lectura** del perfil no redirige, porque el login vuelve
+   aquí y sería un bucle (D-234). La página es mínima a propósito: dice en qué punto está y manda a configurar los grupos.
+5. **`promos_access_changed`** en el registro de seguridad, con sus dos rótulos. Solo el acceso: no hay columna de rol que
+   registrar.
+
+### Lo que NO trae, y es a sabiendas
+
+Ni la subida del Excel ni la tabla de decisiones. El encargo se parte en tres porque **la ruta de subida es la única
+superficie con service-role del módulo**, y service-role se salta RLS entero; además los previews de Vercel apuntan a
+producción, así que una ruta que escribe **sube rondas de verdad en cuanto alguien abre un preview**. Va sola, y en dos pasos:
+`preview` analiza y no escribe, `commit` escribe. La tabla va tercera y lleva su propia migración (la **141**: la clave de
+`user_prefs` es una lista cerrada, y su última definición es la 137).
+
+### Verificado
+
+`promos/modulo.test.ts` (16 casos): que la tarjeta y la casilla existen, que `knownModules` deja pasar la palabra, que el
+aterrizaje es `/promos` con solo ese módulo y `/home` con dos, que un chofer con Entregas no cambia de aterrizaje, que **no
+reclama columna de rol** y trae nota que manda a los dos sitios donde esto se configura de verdad, que el diálogo escribe por
+`updateUserPromosAccess`, y que la puerta comprueba en el servidor sin redirigir ante un fallo de lectura. Y una que ata el
+código a la base: **la palabra del `MODULE_ACCESS` y la de la migración 140 son la misma cadena** — si alguien renombra la
+clave, conceder el módulo reventaría contra la restricción.
+
+`named-location.test.ts` gana cinco casos, y el primero es el que importa: **editar la DIRECCIÓN de una tienda que ya tiene
+grupo no se lleva el grupo**. Ese es el camino por el que se perdería en silencio —el de editar el grupo se ve al instante— y
+es el mismo fallo que D-261 vino a cerrar, con un campo más.
+
+`module-access-write.test.ts` pasa de contar **cuatro** escrituras de módulo a **cinco**. La cuenta es exacta a propósito y no
+un `toBeGreaterThan`: una escritura que se saltara `knownModules` devolvería el caso de D-217, y solo un número exacto obliga a
+mirar ahí al añadir un módulo — que es justo lo que pasó.
+
+### Mutantes
+
+10, leídos por nombre; caen los 10, y el gemelo —el bloque del grupo escrito con un `if` invertido en vez de `if/else`— se
+queda en verde: «deja de tratar el grupo», «un grupo vacío guarda la cadena vacía», «el grupo se escribe sin recortar», «la
+tarjeta desaparece de `MODULES`», «`promos` reclama la columna de rol de Entregas», «se queda sin su nota», «la escritura del
+provider parte del array crudo», «la puerta deja fuera al admin», «un fallo de lectura redirige» y «la casilla escribe por la
+del ERP».
+
+El que más dice es el quinto: darle a `promos` la columna `role` hace caer **tres pruebas que ya existían** —la regla de D-057
+escrita en tres sitios— además de las dos nuevas. La regla no estaba de adorno.
+
+Y uno que falló al meterse y enseñó otra cosa: los finales de línea de este árbol **están mezclados** (unos ficheros vienen
+del checkout con CRLF y otros se escribieron con LF), así que cuatro mutantes con ancla de varias líneas no entraron y el
+informe decía «no se pudo meter», que se lee igual que «no había nada que cambiar». Se arregló normalizando el ancla al final
+de línea de cada fichero. Vale la pena saberlo antes de creerse una tanda de mutantes en este repo.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.** Que la tarjeta se dibuje, que la casilla se marque y que el campo de Datos se guarde están
+  comprobados por el registro y por las funciones puras, no por haberlo visto.
+- **Ningún perfil tiene `promos` todavía**: el reparto lo hace el dueño desde Usuarios.
+- El grupo de cada tienda **está sin rellenar**. Hasta que el admin lo ponga, solo un admin podría decidir — que es el valor
+  seguro, pero significa que el módulo aún no sirve para nadie más.
