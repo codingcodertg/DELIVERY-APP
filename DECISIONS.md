@@ -25410,6 +25410,39 @@ Y con eso entra una regla nueva, `columnasVisiblesDePromos`: lo guardado manda, 
 columna de tienda desaparece en cuanto el libro del mes que viene no la trae— y **las fijas entran siempre**, porque una lista
 guardada antes de que lo fueran dejaría una pantalla sin código, sin estado y sin nota, o sea inútil y sin decir por qué.
 
+### Lo que se vio al ponerla al lado de Órdenes
+
+Medido en el navegador a 1280 y 1440, con Órdenes remedida el mismo día: **lo pedido se cumple** —página sin desplazamiento
+lateral (tabla de 1246 y 1366 px), cabecera fija idéntica, misma letra, mismo relleno, mismo corte, nada fuera de su celda, y
+**202 px por encima de la tabla contra 274 de Órdenes**—. Pero al ponerlas lado a lado quedaban cuatro diferencias que se ven, y
+el dueño pidió **el estilo de Órdenes**, no algo que se le parezca:
+
+1. **El estado era texto plano** y en Órdenes la etapa es una **pastilla de color**. Era la diferencia más visible. Ahora es la
+   misma pastilla, con las clases de Órdenes y su corte con puntos (D-364), y **el color sale de la paleta de las etapas**
+   (`stageInfo`) en vez de tres hex escritos aquí: la app tiene una sola lengua de color, y si un día se retoca esa paleta se
+   retoca esto con ella. Hay prueba de que en el módulo **no hay ni un color a mano**.
+2. **El selector de columnas era un `<details>` nativo**, que se veía distinto de todo lo demás justo en la pantalla a la que
+   había que parecerse. Ahora es el **«⚙ Columnas»** de Órdenes y del Gestor, con su `.col-menu` y su cierre con clic fuera o
+   Escape (D-275).
+3. **Las celdas se cortaban sin `title`.** Aquí pesa más que en Órdenes: la descripción es **el nombre del producto que hay que
+   reconocer para decidir**, y recortada y sin `title` no había forma de leerla salvo ensanchando la columna. Órdenes tiene el
+   mismo hueco y **no se toca**: no lo pidieron y va aparte.
+4. **El demo clavaba `rol="admin"`.** Así un vendedor de mentira veía «Cerrar ronda» y —lo que importa— **no había forma de
+   medir las dos vistas que más importan**: qué ve y qué no ve un vendedor, y qué puede hacer un gerente. Ahora el demo toma el
+   rol de «Ver como». Como no hay base que decida quién ve el costo, **el demo lo simula** con `puedeVerPrivadasDePromos`,
+   gemelo de `promo_can_see_private()` con su prueba atada al `.sql`: sin eso, el demo le enseñaría el costo a un vendedor y
+   estaría mintiendo sobre lo único que este módulo se pasó una migración entera cerrando. **Lo que no se simula es quién
+   decide**: eso sale de la misma función que usa la app.
+
+### Y el navegador vuelve a ser la red
+
+Las columnas visibles se guardaban **solo** en `user_prefs`. Órdenes las guarda además en el navegador y lo usa de red si la
+base no contesta — es el principio de **D-330**. Sin eso, una lectura fallida de `user_prefs` le borra a alguien su elección en
+silencio; y en el modo demo, donde no hay base, no sobrevivía a recargar, así que no se podía ni medir. Ahora se escribe en los
+dos sitios, con `try/catch` a los dos lados, y **el navegador se escribe ANTES del corte que protege la base** — si se escribiera
+después, una base que no contesta dejaría también al navegador sin nada, que es justo el caso que la red cubre. Hay prueba de ese
+orden.
+
 ### Los anchos también son de la persona, no del navegador
 
 `useColWidthMap("rtg_promos_cols", 120)` guardaba en `localStorage` mientras **el comentario de esa misma línea decía «como en
@@ -25456,8 +25489,19 @@ con las dos reglas de arriba, que la tabla usa **las mismas cadenas de clases qu
 dos ficheros), que lleva `colgroup`, asas y `data-label`, que **no** tiene alto propio —mirando la caja y no el fichero entero,
 que el menú de ⚙ Columnas sí lleva el suyo— y que las preferencias se leen y se guardan con la clave de la 141.
 
-**Mutantes: 17 en total** —once de la tabla y las columnas, seis de los anchos—, leídos por nombre; caen los 17, y los dos
-gemelos se quedan en verde. Entre los de los anchos: «vuelven a ser solo del navegador», «marcar una columna escribe por su
+**Mutantes: 30 en total** —once de la tabla y las columnas, seis de los anchos, trece de las cuatro diferencias y la red—,
+leídos por nombre; caen los 30, y los tres gemelos se quedan en verde.
+
+**Dos de esos trece sobrevivieron a la primera pasada, y los dos eran pruebas mías flojas**, no código malo:
+*«el estado vuelve a ser texto plano»* pasaba porque yo citaba `className="sema"` a secas — y eso **lo cumple también la pastilla
+de «Cerrada» de la cabecera**, en otra parte del fichero; y *«el demo vuelve a clavar admin»* pasaba porque yo solo exigía que
+leyera `localStorage`, no que **usara lo leído**. Las dos se arreglaron citando la expresión entera. Es la misma familia que ya
+me había mordido con `f(a, "x")` siendo subcadena de `f(a, "x", y)`: **una aserción positiva que se cumple por otro sitio del
+fichero no prueba nada**.
+
+Y una tercera vez en este módulo: una prueba que exigía que **no** hubiera un `<details>` se puso roja porque **mi propio
+comentario** lo nombraba. Ahora este fichero tiene su `sinComentarios`, como `map-legend.test.ts`: una prueba que confunde la
+prosa con el código es una que alguien acabará relajando para callarla. Entre los de los anchos: «vuelven a ser solo del navegador», «marcar una columna escribe por su
 cuenta y borra los anchos», «el escritor deja de mandar los anchos», «la semilla corre aunque se esté suplantando» y «la semilla
 pisa una fila que ya existe». Uno de los once no es de texto: **volver a crear el directorio `src/app/api/promos`**.
 

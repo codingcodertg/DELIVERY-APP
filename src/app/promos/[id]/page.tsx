@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { esDecisorDePromos, grupoDeLaTienda, type DecisionDeGrupo, type ProductoDeCatalogo } from "@/lib/promos/tabla";
 import type { NamedLocation } from "@/lib/types";
-import { DECISIONES_DEMO, GRUPOS_DEMO_LISTA, PRODUCTOS_DEMO, RONDAS_DEMO } from "@/lib/promos/demo";
+import { RONDAS_DEMO } from "@/lib/promos/demo";
+import { RondaDemo } from "./RondaDemo";
 import { TablaDeRonda } from "./TablaDeRonda";
 
 export const dynamic = "force-dynamic";
@@ -26,24 +27,14 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 export default async function RondaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Modo demo: los datos son inventados (`lib/promos/demo`) y quien mira es un admin, para que se
-  // vea la pantalla entera — el selector de grupo, el cierre de ronda y las cinco privadas.
+  // Modo demo: los datos son inventados (`lib/promos/demo`) y el ROL lo pone «Ver como», que vive
+  // en `localStorage` — una pagina de servidor no lo puede leer, asi que lo hace `RondaDemo`.
   if (SIN_BASE) {
     const demo = RONDAS_DEMO.find((r) => r.id === id) ?? RONDAS_DEMO[0];
     return (
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
         <p style={{ margin: "0 0 8px" }}><Link href="/promos">← RTG PROMOS</Link></p>
-        <TablaDeRonda
-          ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }}
-          productos={demo.id === "demo-ronda-1" ? PRODUCTOS_DEMO : []}
-          decisiones={demo.id === "demo-ronda-1" ? DECISIONES_DEMO : []}
-          rol="admin"
-          userId={null}
-          grupo={GRUPOS_DEMO_LISTA[0]}
-          esDecisor
-          esAdmin
-          gruposDelLibro={GRUPOS_DEMO_LISTA}
-        />
+        <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }} />
       </div>
     );
   }

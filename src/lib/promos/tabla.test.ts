@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ordenaFilas, filtraFilas } from "@/lib/orden-y-filtro";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
-  columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
+  COLOR_DE_ESTADO, columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, puedeVerPrivadasDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
   motivoParaNoDecidir, puedeDecidir,
   valorDeColumna, valorParaFiltrar, type DecisionDeGrupo, type ProductoDeCatalogo,
 } from "./tabla";
@@ -13,6 +13,17 @@ import {
  * Los valores son inventados. Las **formas** están medidas: el costo llega de la base con toda su
  * precisión de coma flotante, y las existencias vienen por tienda con la clave del libro.
  */
+/**
+ * Quita los comentarios antes de mirar el codigo.
+ *
+ * Sin esto, una prueba que exige que algo NO este se pone roja porque MI PROPIO comentario lo
+ * nombra — me ha pasado tres veces en este modulo. Una prueba que confunde la prosa con el codigo
+ * es una que alguien acabara relajando para callarla. Misma forma que en `map-legend.test.ts`.
+ */
+const sinComentarios = (x: string) =>
+  x.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .split(SALTO).map((l) => (/^\s*\/\//.test(l) ? "" : l.replace(/\s\/\/.*$/, ""))).join(SALTO);
+
 /** El salto de linea, por su codigo: escribirlo como literal dentro de una cadena generada es
  *  justo lo que rompio esta prueba una vez. */
 const SALTO = String.fromCharCode(10);
@@ -314,6 +325,96 @@ describe("la tabla es LA DE ÓRDENES, no una que se le parece", () => {
 });
 
 // ===========================================================================
+describe("las cuatro diferencias que se veian al lado de Ordenes", () => {
+  const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+  const ordenes = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8");
+
+  it("el estado es una PASTILLA con las clases de Órdenes, no texto plano", () => {
+    // Era la diferencia más visible al poner las dos tablas al lado.
+    // La expresion ENTERA de la celda, no `className="sema"` a secas: eso lo cumple tambien la
+    // pastilla de «Cerrada» de la cabecera, y con ella la prueba pasaba con el estado en texto
+    // plano. Lo enseño un mutante que sobrevivio.
+    expect(tabla).toContain('<span className="sema" title={texto} style={{ background: COLOR_DE_ESTADO[fila.estado], color: "#fff" }}>{texto}</span>');
+    expect(tabla).toContain('className={c.key === "estado" ? "td-pastillas" : undefined}');
+    // Y las mismas dos clases están en Órdenes: la coherencia viene de usarlas, no de copiarlas.
+    expect(ordenes).toContain('className="sema"');
+    expect(ordenes).toContain("td-pastillas");
+  });
+
+  it("y su color sale de la paleta de las etapas, no de un hex escrito aquí", () => {
+    const fuente = readFileSync(join(process.cwd(), "src/lib/promos/tabla.ts"), "utf8");
+    expect(fuente).toContain('pending: stageInfo("pending").color');
+    expect(fuente).toContain('approved: stageInfo("delivered").color');
+    expect(fuente).toContain('rejected: stageInfo("rejected").color');
+    // Ni un color a mano en el módulo: si alguien retoca la paleta, se retoca aquí también.
+    expect(sinComentarios(fuente)).not.toMatch(/#[0-9a-fA-F]{6}/);
+    // Y los tres son distintos: un estado que se pinta igual que otro no dice nada.
+    expect(new Set(Object.values(COLOR_DE_ESTADO)).size).toBe(3);
+  });
+
+  it("el selector de columnas es el «⚙ Columnas» de Órdenes, no un `details` nativo", () => {
+    expect(tabla).toContain('<button className="btn btn-ghost" onClick={() => setShowCols((v) => !v)}>⚙ ');
+    expect(tabla).toContain('<div className="col-menu">');
+    expect(tabla).toContain('className="col-opt"');
+    expect(sinComentarios(tabla)).not.toContain("<details>");
+    // Y se cierra igual: clic fuera o Escape (D-275).
+    expect(tabla).toContain("useCierraAlSalir(showCols");
+  });
+
+  it("las celdas que se cortan llevan su texto entero en `title`", () => {
+    // La descripción es el NOMBRE del producto que hay que reconocer para decidir; recortada y sin
+    // `title` no hay forma de leerla salvo ensanchando la columna.
+    expect(tabla).toContain('title={c.key === "estado" ? undefined : textoDeCelda(f, c.key)}');
+  });
+});
+
+// ===========================================================================
+describe("el demo respeta «Ver como»", () => {
+  const demo = readFileSync(join(process.cwd(), "src/app/promos/[id]/RondaDemo.tsx"), "utf8");
+  const pagina = readFileSync(join(process.cwd(), "src/app/promos/[id]/page.tsx"), "utf8");
+
+  it("el rol sale de «Ver como» y no está clavado en admin", () => {
+    // Con `rol="admin"` clavado no había forma de medir las dos vistas que más importan: qué ve y
+    // qué no ve un vendedor, y qué puede hacer un gerente.
+    expect(sinComentarios(pagina)).not.toMatch(/rol="admin"/);
+    expect(demo).toContain("localStorage.getItem(ME_DEMO)");
+    // Y que lo LEIDO es lo que se usa: con solo la lectura, un `setRol("admin")` a secas pasaba.
+    expect(demo).toContain('setRol(typeof me?.role === "string" ? me.role : "admin");');
+    expect(demo).toContain('const ME_DEMO = "rtg_deliveries_local_me";');
+  });
+
+  it("y quien no puede ver las cinco privadas NO las recibe, ni en demo", () => {
+    // En la app de verdad esto se deduce del dato; en demo no hay base que lo decida, así que el
+    // demo lo simula. Sin esto enseñaría el costo a un vendedor de mentira.
+    expect(demo).toContain("puedeVerPrivadas ? p : { ...p, private: null }");
+  });
+
+  it("pero quién DECIDE no se simula: sale de la misma función que usa la app", () => {
+    expect(demo).toContain("esDecisor={esDecisorDePromos({ rol, grupo })}");
+  });
+
+  it("no pinta nada hasta saber el rol", () => {
+    // Pintar como admin y cambiar medio segundo despues seria enseñar lo que no toca.
+    expect(demo).toContain("if (rol === null) return null;");
+  });
+});
+
+// ===========================================================================
+describe("quién ve las cinco privadas: el gemelo para el demo", () => {
+  it("admin, gerente de oficina y oficina; nadie más", () => {
+    for (const rol of ["admin", "manager", "accounting"]) expect(puedeVerPrivadasDePromos(rol), rol).toBe(true);
+    for (const rol of ["sales", "driver", "warehouse", "logistics", null, undefined]) {
+      expect(puedeVerPrivadasDePromos(rol), String(rol)).toBe(false);
+    }
+  });
+
+  it("y la base dice lo mismo", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/140_promos.sql"), "utf8");
+    expect(sql).toContain("and (public.is_admin() or public.current_user_role() in ('manager', 'accounting'));");
+  });
+});
+
+// ===========================================================================
 describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir para algo", () => {
   const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
 
@@ -330,6 +431,27 @@ describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir p
 
   it("y no se escribe a ciegas encima de lo que haya: solo si se pudo leer", () => {
     expect(tabla.match(/visiblesDeLaBase\.current === null\) return;/g) ?? []).toHaveLength(2);
+  });
+
+  it("y el navegador es la RED: al marcar se escribe en los dos sitios", () => {
+    // Principio de D-330, que es lo que hace Órdenes: `user_prefs` manda —por persona, vale en
+    // cualquier máquina— y el navegador guarda por si la base no contesta. Sin él, una lectura
+    // fallida le borra a alguien su elección sin decir nada.
+    expect(tabla).toContain("localStorage.setItem(claveDelNavegadorDePromos(rol), JSON.stringify(next))");
+    expect(tabla).toContain("localStorage.getItem(claveDelNavegadorDePromos(rol))");
+    // Con su try/catch a los dos lados: en una ventana privada `localStorage` puede lanzar.
+    expect((tabla.match(/catch \{ \/\* sin memoria/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("y el navegador se escribe ANTES del corte que protege la base", () => {
+    // Si se escribiera después del `return` que exige haber leído la base, una base que no
+    // contesta dejaría también al navegador sin nada — que es justo el caso que la red cubre.
+    const cuerpo = tabla.slice(tabla.indexOf("const ponVisibles"), tabla.indexOf("const alternaColumna"));
+    const iNavegador = cuerpo.indexOf("localStorage.setItem");
+    const iCorte = cuerpo.indexOf("visiblesDeLaBase.current === null) return;");
+    expect(iNavegador).toBeGreaterThan(-1);
+    expect(iCorte).toBeGreaterThan(-1);
+    expect(iNavegador).toBeLessThan(iCorte);
   });
 
   it("los ANCHOS también son por persona, no por navegador", () => {

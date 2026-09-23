@@ -5,17 +5,21 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, hayQueSembrar, leeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import type { UserRole } from "@/lib/types";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
-  COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, LARGO_DE_NOTA, motivoParaNoDecidir, puedeDecidir,
+  COLOR_DE_ESTADO, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, LARGO_DE_NOTA, motivoParaNoDecidir, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
 
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
+/** La clave del navegador, por rol, igual que la de Órdenes (`claveDelNavegador` de user-prefs). */
+const claveDelNavegadorDePromos = (rol: string) => `rtg_promos_columns_${rol}`;
 
 /**
  * La tabla de una ronda: decidir producto por producto o en bloque.
@@ -89,6 +93,17 @@ export function TablaDeRonda({
       CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,
     );
 
+  // Lo del navegador primero, para que la elección esté puesta antes de que la base conteste (y
+  // para que en demo, donde no hay base, sobreviva a recargar). Lo que llegue de la base lo pisa.
+  useEffect(() => {
+    if (!rol) return;
+    try {
+      const crudo = localStorage.getItem(claveDelNavegadorDePromos(rol));
+      const lista = crudo ? JSON.parse(crudo) : null;
+      if (Array.isArray(lista)) setVisibles(columnasVisiblesDePromos(lista.filter((k) => typeof k === "string"), columnas));
+    } catch { /* sin memoria, el defecto */ }
+  }, [rol]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!userId || !rol || SIN_BASE) return;
     let vivo = true;
@@ -120,18 +135,35 @@ export function TablaDeRonda({
     return () => { vivo = false; };
   }, [userId, rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const alternaColumna = (key: string) => {
-    if (COLUMNAS_FIJAS.includes(key)) return;
-    const next = columnasVisiblesDePromos(
-      visibles.includes(key) ? visibles.filter((k) => k !== key) : [...visibles, key],
-      columnas,
-    );
+  /**
+   * Guardar las columnas elegidas: **en los dos sitios**.
+   *
+   * `user_prefs` es lo que manda —por persona, vale en cualquier máquina— y **el navegador es la
+   * red si la base no contesta**, que es el principio de D-330 y lo que hace Órdenes. Sin él, una
+   * lectura fallida le borra a alguien su elección sin decir nada; y en el modo demo, donde no hay
+   * base, no habría forma de que sobreviviera a recargar.
+   */
+  const ponVisibles = (next: string[]) => {
     setVisibles(next);
+    if (rol) { try { localStorage.setItem(claveDelNavegadorDePromos(rol), JSON.stringify(next)); } catch { /* sin memoria, sin red */ } }
     // A la base solo si se pudo leer: no se escribe a ciegas encima de lo que haya.
     if (!userId || !rol || SIN_BASE || visiblesDeLaBase.current === null) return;
     visiblesDeLaBase.current = { ...visiblesDeLaBase.current, [rol as UserRole]: next };
     void escribeLaFila();
   };
+
+  const alternaColumna = (key: string) => {
+    if (COLUMNAS_FIJAS.includes(key)) return;
+    ponVisibles(columnasVisiblesDePromos(
+      visibles.includes(key) ? visibles.filter((k) => k !== key) : [...visibles, key],
+      columnas,
+    ));
+  };
+
+  // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275), como en Órdenes.
+  const [showCols, setShowCols] = useState(false);
+  const colsRef = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(showCols, () => setShowCols(false), () => [colsRef.current]);
 
   // El ancho, al SOLTAR: la misma fila, la otra mitad, y por el mismo escritor.
   const guardaAnchos = (next: Record<string, number>) => {
@@ -195,12 +227,25 @@ export function TablaDeRonda({
     setOcupado(false);
   };
 
-  const celda = (fila: (typeof filas)[number], clave: string) => {
-    if (clave.startsWith("qoh_")) return fila.porTienda[clave.slice(4)] ?? "—";
+  // El texto de una celda, para pintarlo y para el `title`. El estado se pinta aparte: es pastilla.
+  const textoDeCelda = (fila: (typeof filas)[number], clave: string) => {
+    if (clave.startsWith("qoh_")) { const v = fila.porTienda[clave.slice(4)]; return v == null ? "—" : String(v); }
     if (clave === "estado") return t(ETIQUETA_ESTADO[fila.estado].en, ETIQUETA_ESTADO[fila.estado].es);
     if (clave === "nota") return fila.nota ?? "—";
     const v = (fila as unknown as Record<string, unknown>)[clave];
     return v === null || v === undefined || v === "" ? "—" : String(v);
+  };
+
+  const celda = (fila: (typeof filas)[number], clave: string) => {
+    const texto = textoDeCelda(fila, clave);
+    if (clave !== "estado") return texto;
+    // La PASTILLA, con las clases de Órdenes y su mismo corte con puntos (D-364): el estado en
+    // texto plano era la diferencia que más se veía al poner las dos tablas al lado, y el dueño
+    // pidió «the style of the order table in deliveries». El color sale de la paleta de las etapas,
+    // no de aquí.
+    return (
+      <span className="sema" title={texto} style={{ background: COLOR_DE_ESTADO[fila.estado], color: "#fff" }}>{texto}</span>
+    );
   };
 
   return (
@@ -238,22 +283,33 @@ export function TablaDeRonda({
           </button>
         ))}
         <span className="hint">{orden.visibles.length} / {filas.length}</span>
-        <details>
-          <summary>{t("Columns", "Columnas")}</summary>
-          <div className="card" style={{ position: "absolute", zIndex: 5, maxHeight: 320, overflow: "auto" }}>
-            {columnas.map((c) => (
-              <label key={c.key} className="perm-opt" style={{ display: "block" }}>
-                <input
-                  type="checkbox"
-                  checked={visibles.includes(c.key)}
-                  disabled={COLUMNAS_FIJAS.includes(c.key)}
-                  onChange={() => alternaColumna(c.key)}
-                />
-                <span>{lang === "es" ? c.es : c.en}</span>
-              </label>
-            ))}
-          </div>
-        </details>
+        {/* El MISMO «⚙ Columnas» de Órdenes y del Gestor, con su `.col-menu` y su cierre al pulsar
+            fuera o con Escape (D-275). Era un `<details>` nativo, que se veía distinto de todo lo
+            demás justo en la pantalla a la que el dueño pidió parecerse. */}
+        <div ref={colsRef} style={{ position: "relative" }}>
+          <button className="btn btn-ghost" onClick={() => setShowCols((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
+          {showCols && (
+            <div className="col-menu">
+              <div className="col-menu-head">
+                <b>{t("Show columns", "Mostrar columnas")}</b>
+                <button className="notif-clear" onClick={() => ponVisibles(columnasDePromosPorDefecto(clavesDeTienda, puedeVerPrivadas))}>
+                  {t("Reset", "Restablecer")}
+                </button>
+              </div>
+              {columnas.map((c) => (
+                <label key={c.key} className="col-opt">
+                  <input
+                    type="checkbox"
+                    checked={visibles.includes(c.key)}
+                    disabled={COLUMNAS_FIJAS.includes(c.key)}
+                    onChange={() => alternaColumna(c.key)}
+                  />
+                  {lang === "es" ? c.es : c.en}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {sePuede && seleccion.size > 0 && (
@@ -321,7 +377,16 @@ export function TablaDeRonda({
                 {columnasPintadas.map((c) => (
                   // `data-label` no es decoracion: es lo que `orders-responsive` usa para
                   // convertir cada fila en una tarjeta con su rotulo en el telefono.
-                  <td key={c.key} data-label={lang === "es" ? c.es : c.en} style={{ textAlign: c.numero ? "right" : undefined }}>
+                  // Y `title` con el texto entero: la celda corta con puntos (`tbl-resize`), y aquí
+                  // la descripción es el NOMBRE del producto que hay que reconocer para decidir.
+                  // Sin esto no hay forma de leerlo salvo ensanchando la columna.
+                  <td
+                    key={c.key}
+                    data-label={lang === "es" ? c.es : c.en}
+                    title={c.key === "estado" ? undefined : textoDeCelda(f, c.key)}
+                    className={c.key === "estado" ? "td-pastillas" : undefined}
+                    style={{ textAlign: c.numero ? "right" : undefined }}
+                  >
                     {c.key === "nota" && sePuede ? (
                       notaEditando?.code === f.code ? (
                         <span style={{ display: "flex", gap: 4 }}>

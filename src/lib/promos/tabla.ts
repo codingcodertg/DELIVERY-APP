@@ -1,3 +1,4 @@
+import { stageInfo } from "@/lib/constants";
 import { redondeaDinero } from "@/lib/totales";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 
@@ -13,6 +14,37 @@ import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 
 export type EstadoDeDecision = "pending" | "approved" | "rejected";
 export const ESTADOS: readonly EstadoDeDecision[] = ["pending", "approved", "rejected"];
+
+/**
+ * El color de cada estado, **sacado de la paleta de las etapas de Órdenes y no inventado aquí**.
+ *
+ * El dueño pidió «el estilo de la tabla de Órdenes», y el estado en texto plano era la diferencia
+ * que más se veía al ponerlas al lado. Los colores salen de `stageInfo` por la clave cuyo color
+ * significa eso —espera, sí, no— para que la app tenga **una sola lengua de color**: si un día se
+ * retoca esa paleta, se retoca aquí también sin que nadie tenga que acordarse.
+ *
+ * (La clave `delivered` se usa por su VERDE, no porque una promoción se entregue. Va dicho para que
+ * nadie lo lea como un error.)
+ */
+export const COLOR_DE_ESTADO: Record<EstadoDeDecision, string> = {
+  pending: stageInfo("pending").color,
+  approved: stageInfo("delivered").color,
+  rejected: stageInfo("rejected").color,
+};
+
+/**
+ * Quién ve las cinco privadas, **para el modo demo y solo para él**.
+ *
+ * En la app de verdad esto NO se calcula: se lee del dato —si `promo_catalog.private` llegó nulo,
+ * no se puede— porque un dato medido no puede discrepar de la base. Pero en demo no hay base que
+ * mida nada, así que el demo tiene que simular la regla; y si no la simulara, enseñaría el costo a
+ * un vendedor de mentira y el demo mentiría justo sobre lo que más importa del módulo.
+ *
+ * Gemelo de `promo_can_see_private()` (140), con su prueba atada al `.sql`.
+ */
+export function puedeVerPrivadasDePromos(rol: string | null | undefined): boolean {
+  return rol === "admin" || rol === "manager" || rol === "accounting";
+}
 
 /**
  * El grupo de promociones de una tienda, tal como lo pone el admin en Datos.
