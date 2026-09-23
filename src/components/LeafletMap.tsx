@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPolygon, LatLng } from "leaflet";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
-import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, type PapelTienda } from "@/lib/store-pins";
+import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, Z_CASITA_DESPACHO, type PapelTienda } from "@/lib/store-pins";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -337,8 +337,9 @@ export function LeafletMap({
     return () => { cancelled = true; };
   }, [points]);
 
-  // Store/branch markers: blue houses (D-348), always drawn on top of the fleet
-  // pins and never dimmed — the fixed landmarks the whole map is built around.
+  // Store/branch markers: blue houses (D-348), never dimmed — the fixed landmarks the whole map is built around.
+  // Desde D-NEXT ya no van encima del pin de una orden: `Z_CASITA_DESPACHO`. Con la recogida en la tienda las dos marcas
+  // caen en el mismo punto, y la casita se comia la cola del pin y su clic.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -366,7 +367,7 @@ export function LeafletMap({
               iconSize: [TIENDA_CLASICA.diametro, TIENDA_CLASICA.diametro],
               iconAnchor: [TIENDA_CLASICA.diametro / 2, TIENDA_CLASICA.diametro / 2],
             });
-        const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: estilo ? estilo.zIndex : 1000, interactive: true }).addTo(mapRef.current!);
+        const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: estilo ? estilo.zIndex : Z_CASITA_DESPACHO, interactive: true }).addTo(mapRef.current!);
         // El nombre de la destacada ya va dentro del dibujo; el resto lo enseña al pasar el ratón.
         if (!estilo?.etiquetaPermanente) marker.bindTooltip(`🏬 ${s.name}`, { permanent: false, direction: "top" });
         storeMarkersRef.current.push(marker);

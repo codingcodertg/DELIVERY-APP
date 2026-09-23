@@ -24191,6 +24191,11 @@ nombre: «no ordena» y «el gerente también en General». Suite entera en loca
 
 ## D-348 · La tienda en los mapas de despacho es una casita azul
 
+> **⚠ Reemplazada en parte el 2026-09-23, por D-NEXT.** La casita **ya no va «siempre encima»**: pasa a un z por debajo
+> del pin de una orden y por encima del apagado. Con la recogida en la tienda las dos marcas caen en el mismo punto, y
+> medido en el navegador la casita se comia la cola del pin y ademas se quedaba su clic. El dibujo, el tamano y el color
+> de esta entrada no cambian; lo unico que cambia es el orden de las capas.
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.172.0, repo 1.236.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«change store's dots from red to blue»* y *«change the dot from a dot to a
 little house icon to be more amigable»*.
@@ -24873,3 +24878,53 @@ de la caja entera», «la lista deja de desplazarse», «las acciones se encogen
   uno en demo para poder tacharlo.
 - Las pruebas de aquí son de estructura: sin jsdom, lo que se mide de verdad —píxeles, recortes, qué se ve sin desplazarse— está
   medido en Chrome y anotado arriba.
+## D-NEXT · La casita de la tienda deja de tapar el pin de la orden y de quedarse su clic
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale:** de la revisión en navegador (D-364), donde se midió que las marcas del mapa se pisan, y del inventario que
+escribió otra sesión (`docs/PROPUESTA-MARCAS-SOLAPADAS.md`, en su rama): dos motores, cuatro capas y quién gana a quién.
+**Reemplaza en parte a D-348**, que puso la casita «siempre encima». Lleva su nota dentro.
+
+### Qué pasaba
+
+Con la recogida en una tienda, la casita y el pin de la orden caen en el **mismo punto**, y anclan distinto: la casita va
+centrada —de −13 a +13 píxeles— y el pin cuelga por encima de su punta. La casita iba a z 1000 y el pin a 500, así que la
+casita se comía la cola del pin; y como además es interactiva (lleva su tooltip con el nombre de la tienda) pero **no tiene
+manejador de clic**, pulsar en esa banda no abría la orden: el clic moría en la casita.
+
+No es cosa de un motor. En Leaflet el z de un marcador es `pos.y + zIndexOffset` (leído en la librería instalada, 1.9.4), y en
+el mismo punto decide el offset; en Google el `zIndex` es absoluto. Con 1000 contra 500, en los dos gana la casita.
+
+### Qué se hizo
+
+Un solo número, `Z_CASITA_DESPACHO = 250` en `lib/store-pins`, que usan los dos motores: **debajo del pin encendido (500) y
+encima del apagado** (0 en Leaflet, 10 en Google — no son iguales, y por eso la prueba lee el de cada motor en vez de
+repetirlo). La casita sigue siendo el punto fijo del mapa y se ve entera donde no hay pin; donde se tocan, manda la orden, que
+es lo que se pulsa. **No pierde el tooltip**: sigue siendo interactiva, así que su nombre se lee al pasar por encima en toda la
+parte que queda despejada. Ni el dibujo ni el tamaño cambian, y el selector de pin de la ficha (D-222), que pinta tiendas «con
+papel» y manda su propio z, no se toca.
+
+**Medido en el navegador el 2026-09-23**, con una ruta secuenciada y tiendas en los puntos de recogida: de los 8 pares de
+casita-contra-pin que se tocan, en los 8 queda arriba el pin (z 658–676 contra 421 y 415, que es lo que da `pos.y + offset`);
+y un clic en la banda donde se solapan responde ahora **el pin**, no la casita.
+
+### Lo que esto NO arregla, y es la mitad del problema
+
+- **Dos pines entre sí.** Dos choferes en la misma dirección, o dos paradas de una ruta en el mismo sitio, se siguen pisando
+  igual: los dos llevan 500 y gana el que se pinte después. De los 18 pares que se midieron en la vista de todas las rutas,
+  esto solo toca los de casita contra pin.
+- **La casita sobre el nombre de la ciudad** del mosaico. Eso no es orden de capas: es tamaño, y se cura encogiéndola o
+  moviéndola.
+- Las dos cosas son el **abanico** (separar las marcas del mismo punto unos píxeles), que va aparte y solo en el Gestor.
+
+**Sin verificar:** qué motor corre la producción del dueño. El repo lo afirma en un comentario, pero eso es una premisa, no una
+medición, y no tengo las variables de Vercel. El cambio es el mismo en los dos motores y el número vive en un sitio, así que la
+respuesta no cambia lo que se hizo; sí cambiaría cuánto se nota, porque en Leaflet la casita se comía la letra del pin y en
+Google solo la cola.
+
+### Mutantes
+
+9, leídos por nombre; caen los 9: «la casita vuelve a ir encima», «la casita por debajo del pin apagado» (cae con el motor
+cuyo pin apagado es 10, que es Google: con 5 el orden de Leaflet aún se cumple), «Leaflet con su propio número», «Google con su
+propio número», «el camión deja de ir arriba del todo», «la casita deja de responder al ratón», «la casita pierde su tooltip»,
+«el selector de pin baja con ella» y «cambia el tamaño de la casita».
