@@ -152,6 +152,9 @@ describe("la ficha, al duplicar", () => {
     const tramo = modal.slice(modal.indexOf("const duplicate = async"), modal.indexOf("// ---- Saved pickup"));
     expect(tramo).toContain("setCopia(row);");
     expect(tramo).not.toContain("onClose();");
-    expect(modal).toContain("const existing = copia ?? abiertaPorLaLista;");
+    // Desde D-NEXT la ficha lee la orden VIVA de la lista; lo que esta prueba sostiene es que la COPIA sigue mandando
+    // sobre la foto de la fila, que es lo que decidió D-286.
+    expect(modal).toContain("const abierta = copia ?? abiertaPorLaLista;");
+    expect(modal.replace(/\s+/g, " ")).toContain("const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;");
   });
 });

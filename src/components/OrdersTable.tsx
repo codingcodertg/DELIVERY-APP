@@ -38,6 +38,9 @@ export interface OrderColumn {
   /** Raw comparable value used for sorting + the Excel-style filter checklist.
    * Numbers sort numerically; everything else sorts as text. */
   value: (d: Delivery, ctx: Ctx) => CellValue;
+  /** Esta celda lleva PASTILLAS (la etapa, «Atrasada»…), que miden lo que mida su texto. En vez de cortarlas cuando no
+   *  caben, la celda las deja bajar de línea (D-NEXT). Ver `.td-pastillas`. */
+  pastillas?: true;
   /** Optional override for how a raw value is labeled in the filter checklist
    * (e.g. a date column keeps its ISO value as the sort/filter key but shows
    * the formatted date to the user). Defaults to String(value). */
@@ -45,14 +48,14 @@ export interface OrderColumn {
 }
 
 export const ORDER_COLUMNS: OrderColumn[] = [
-  { key: "stage", en: "Stage", es: "Etapa", value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos }) => {
+  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos }) => {
       const s = stageInfo(d.stage);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
       const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
       return (
         <>
-          <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
+          <span className="sema" title={stageLabel(d.stage, lang)} style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
           {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
         </>
       );
@@ -64,7 +67,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   { key: "po", en: "PO #", es: "PO #", value: (d) => d.po2, cell: (d) => d.po2 || "—" },
   { key: "invoice", en: "Invoice #", es: "Factura #", value: (d) => d.invoice_num, cell: (d) => d.invoice_num || "—" },
   {
-    key: "date", en: "Delivery Date", es: "Fecha entrega",
+    key: "date", en: "Delivery Date", es: "Fecha entrega", pastillas: true,
     value: (d) => d.delivery_date,
     filterLabel: (v) => fmtDate(v as string | null),
     cell: (d, { t }) => {
@@ -273,7 +276,7 @@ export function ColumnFilterMenu({
     });
 
   return (
-    <div ref={menuRef} className="col-menu" style={style} onClick={(e) => e.stopPropagation()}>
+    <div ref={menuRef} className="col-menu col-menu-filtro" style={style} onClick={(e) => e.stopPropagation()}>
       <div className="col-menu-head">
         <b>{lang === "es" ? col.es : col.en}</b>
         <button className="notif-clear" onClick={onClose}>✕</button>
@@ -302,7 +305,7 @@ export function ColumnFilterMenu({
         <input type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} />
         <b>{t("Select all", "Seleccionar todo")}</b>
       </label>
-      <div style={{ maxHeight: 220, overflowY: "auto" }}>
+      <div className="col-menu-lista">
         {visible.map((o) => (
           <label key={o.key} className="col-opt">
             <input type="checkbox" checked={draft.has(o.key)} onChange={() => toggle(o.key)} />
@@ -591,7 +594,7 @@ export function OrdersTable({
                 </td>
               )}
               {cols.map((c) => (
-                <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : undefined}>
+                <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.cell(d, ctx)}
                   {/* The chevron is only offered where the extra rows are
                       worth unfolding. On the invoice-led card the header

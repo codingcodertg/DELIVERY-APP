@@ -88,7 +88,20 @@ export function OrderModal({
   // aviso con el número: se pulsaba, desaparecía todo y parecía que no había pasado nada. La lista de
   // fuera sigue con la orden de origen; al cerrar, se vuelve a ella.
   const [copia, setCopia] = useState<Delivery | null>(null);
-  const existing = copia ?? abiertaPorLaLista;
+  /**
+   * La ficha lee la orden VIVA de la lista, no la foto que le pasó quien la abrió (D-NEXT).
+   *
+   * Las ocho pantallas que montan esta ficha guardan en su estado el objeto de la fila pulsada. Mientras la ficha está
+   * abierta, una acción que cambia la orden —«Marcar entregada ya» o «Deshacer etapa» (D-361)— actualiza la lista, pero esa
+   * foto se queda como estaba: se veía el aviso «Etapa deshecha» y, debajo, la etapa vieja y los botones de la etapa vieja.
+   * Visto en un navegador el 2026-09-23. Se prestaba a pulsar dos veces sobre una orden que ya había cambiado.
+   *
+   * No se veía antes porque las acciones de etapa de siempre CIERRAN la ficha; estas dos la dejan abierta a propósito.
+   * Se arregla aquí, en la raíz, y no cerrando la ficha: cerrar pierde el sitio donde estabas. Si la orden desaparece de la
+   * lista (se borró, o la ventana de fechas la dejó fuera), se sigue enseñando la foto en vez de vaciar la pantalla.
+   */
+  const abierta = copia ?? abiertaPorLaLista;
+  const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
   const editable = isNew || (startEditing && canEditFields(me.role, stage));
@@ -2362,7 +2375,7 @@ export function OrderModal({
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => { setShowEntregarYa(false); setShowDeshacer(false); setMotivoDeSalto(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
                 <button className="btn btn-primary btn-sm" disabled={busy || !motivoDeSalto.trim()} onClick={() => void (showEntregarYa ? entregarYa() : deshacerEtapa())}>
-                  {showEntregarYa ? t("Mark delivered", "Marcar entregada") : t("Undo stage", "Deshacer etapa")}
+                  {showEntregarYa ? t("Mark delivered without signature", "Marcar entregada sin firma") : t("Undo stage", "Deshacer etapa")}
                 </button>
               </div>
             </div>
