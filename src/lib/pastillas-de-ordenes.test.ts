@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "./pastillas-de-ordenes";
 import { PESTANA_DOCUMENTO_PENDIENTE } from "./documento-pendiente";
+import { PESTANA_ATRASADAS } from "./atrasadas";
 
 /**
  * La pastilla «Todas» de Órdenes (D-313).
@@ -24,13 +25,14 @@ describe("qué pastillas salen y en qué orden", () => {
     expect(claves(fila)[0]).toBe(PASTILLA_TODAS);
   });
 
-  it("después las etapas del rol, en su orden, y la de factura pendiente al final", () => {
-    expect(claves(fila)).toEqual([PASTILLA_TODAS, ...ETAPAS, PESTANA_DOCUMENTO_PENDIENTE]);
+  it("después las etapas del rol, en su orden, «Outdated» y la de factura pendiente al final", () => {
+    // «Outdated» (D-NEXT) va antes de la de factura pendiente, que es la que aparece y desaparece.
+    expect(claves(fila)).toEqual([PASTILLA_TODAS, ...ETAPAS, PESTANA_ATRASADAS, PESTANA_DOCUMENTO_PENDIENTE]);
   });
 
   it("y si este rol ve menos etapas, salen menos: la fila es la suya", () => {
     const corta = pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
-    expect(claves(corta)).toEqual([PASTILLA_TODAS, "approved", "ready", PESTANA_DOCUMENTO_PENDIENTE]);
+    expect(claves(corta)).toEqual([PASTILLA_TODAS, "approved", "ready", PESTANA_ATRASADAS, PESTANA_DOCUMENTO_PENDIENTE]);
   });
 });
 
@@ -69,7 +71,8 @@ describe("la cuenta de «Todas»", () => {
 
   it("y sin cuenta ninguna es cero, no un hueco", () => {
     const fila = pastillasDeOrdenes({ etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
-    expect(fila.map((p) => p.cuenta)).toEqual([0, 0]);
+    // «Todas», la etapa y «Outdated», que sale siempre (D-NEXT).
+    expect(fila.map((p) => p.cuenta)).toEqual([0, 0, 0]);
   });
 });
 
@@ -96,7 +99,9 @@ describe("lo que ya decidía esta fila y no cambia", () => {
   it("y se sigue pintando distinta de las demás", () => {
     const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(fila.find((p) => p.key === PESTANA_DOCUMENTO_PENDIENTE)?.clase).toBe("chip-pend");
-    expect(fila.filter((p) => p.clase).length).toBe(1);
+    // Y desde D-NEXT hay otra pintada distinta, «Outdated», en rojo; son dos y ninguna más.
+    expect(fila.find((p) => p.key === PESTANA_ATRASADAS)?.clase).toBe("chip-late");
+    expect(fila.filter((p) => p.clase).length).toBe(2);
   });
 });
 

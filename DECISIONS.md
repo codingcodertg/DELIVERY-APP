@@ -24343,6 +24343,12 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
+> ayer ya no sale en la lista normal sino en su propia pastilla, «Outdated / Atrasadas», con su número a la vista.
+> Lo pidió el dueño sabiendo que esto decía lo contrario. `withinRecent` no se tocó y sigue dejándola pasar; lo que
+> cambió es que la lista normal ya no se la ofrece. Lo que sigue en pie: sigue sin esconderse del todo —está a un
+> clic y la pastilla la cuenta aunque no se esté dentro— y la de ayer sigue en la lista normal con su «Tarde».
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.175.0, repo 1.239.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«WHEN AN ORDER NO SE ENTREGA Y PASA EL DIA SIGUIENTE ANTES SALIA COMO LATE Y
 SE ARRASTRABA PARA REPROGRAMAR PORQUE AHORA NO SE MIRA»*.
@@ -25850,6 +25856,12 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
+> ventana de abajo sigue dejándolas pasar (`withinRetention` no cambió), pero Órdenes las saca de su lista normal y
+> las pone en la pastilla «Outdated / Atrasadas». La Cola de almacén y la pantalla del chofer, que usan la misma
+> ventana, las siguen enseñando como aquí se decidió. Quién ve qué (almacén sus tiendas, ventas lo suyo) no cambia
+> y vale también dentro de «Outdated».
+
 **Fecha:** 2026-09-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 
 Tres cosas que pidió el dueño el mismo día, y que resultaron ser la misma: **quién ve qué**.
@@ -26696,3 +26708,112 @@ comportamiento de D-286.
   `approved…delivered` (la 142 lo dice en su plan, §2a); cerrar eso es otro encargo.
 - **Almacén no ve borradores** (RLS), así que para él «Eliminar» no sale nunca en la práctica, aunque `puedeBorrar` le
   dejaría su propio borrador si lo tuviera.
+
+## D-NEXT · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
+
+**Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido por el dueño**, literal: *«make a filter name outdated and put the old order there»*. Preguntado, precisó:
+dentro van las órdenes **atrasadas y abiertas** —fecha de entrega anterior a ayer, ni entregadas ni anuladas—; **salen
+de la lista normal**, que se queda con ayer, hoy y lo que viene; y vale **para todos los roles**, cada uno con lo que
+ya podía ver.
+
+**Revierte en parte D-351 y D-374**, y el dueño lo decidió sabiendo por qué existían: las dos dejaban la vencida
+abierta siempre en la lista porque es trabajo vivo y esconderla era perderla. Las dos llevan su nota. Lo que se
+conserva de ellas es que **no se esconde**: está a un clic, y la pastilla dice cuántas hay aunque no se esté dentro.
+
+### Qué es «atrasada» aquí, y la única discrepancia que hay
+
+No se escribió una definición nueva. `vaAAtrasadas` (`src/lib/atrasadas.ts`) es **`isOverdue`** —la de D-351, D-354 y
+D-374: fecha pasada, ni entregada ni anulada— **más el suelo de la ventana**, `retentionFloorISO` (ayer). Las dos
+piezas ya existían.
+
+El suelo hace falta porque **`isOverdue` cuenta la de ayer como atrasada** y el dueño dejó ayer en la lista normal. Esa
+es la discrepancia, y se resolvió así: la orden de ayer sin entregar se queda en la lista normal, con su etiqueta roja
+«Tarde» como antes; la de anteayer hacia atrás va a «Outdated». Sin el suelo, la de ayer saldría en las dos listas.
+La otra copia de la regla —la línea de D-351 dentro de `withinRecent`— dice lo mismo que `isOverdue` (fecha < hoy y
+ni entregada ni anulada); no discrepan.
+
+### Cómo queda la pantalla
+
+- **La lista normal** (`visibles` de `ordenesVisibles`) ya no lleva las atrasadas anteriores a ayer, **con ningún chip
+  de fecha**, tampoco «Todas» del admin, que sigue enseñando las entregadas viejas pero no las abiertas viejas.
+- **Buscando sí salen en la lista normal.** Es la única excepción y es decisión mía, no del dueño: D-374 dejó escrito
+  que buscar es el camino a todo, y una factura que no aparece al teclearla se lee como que la orden no existe. La
+  pastilla «Outdated» también la cuenta mientras se busca. Si el dueño prefiere lo contrario, es la condición
+  `buscando` en `ordenesVisibles`, y hay una prueba con nombre que caerá.
+- **La pastilla «Outdated / Atrasadas»**, en rojo, tras las de etapa y antes de «Factura pendiente». **Sale siempre,
+  también con 0**, a diferencia de la de factura: las atrasadas ya no están en la lista, y si la pastilla se escondiera
+  el día que hubiera no habría dónde buscarlas. Un 0 dice «no hay nada atrasado», que también es saberlo. Dentro
+  enseña las atrasadas de **todas las etapas abiertas**.
+- **Entrar mueve el chip de fecha a «Todas»**, como la de factura pendiente (D-380), y por la misma razón: con «Hoy»
+  la lista saldría vacía con la pastilla diciendo otro número; con «Reciente» sí las enseñaría —`withinRecent` deja
+  pasar la vencida abierta— pero con «Reciente» encendido sobre órdenes de hace semanas. Se añadió a
+  `presetAlElegirPastilla`, y ninguna otra pastilla mueve nada.
+- **La cuenta**, como la de factura: fuera cuenta todas sin mirar el chip de fecha (es el aviso); dentro pasa por el
+  chip (describe la lista). Al entrar coinciden.
+- **Para cada rol, lo suyo.** `atrasadas` sale del mismo bucle que las otras dos listas, después de `leTocaPorRol` y de
+  la ventana: ventas ve solo sus atrasadas, almacén solo las de sus tiendas y desde la aprobación. No es una llave para
+  ver órdenes de otro.
+- **El tablero** (vista «Board») pinta la lista normal, así que tampoco las lleva; las pastillas solo existen en la
+  vista de tabla.
+- **La etiqueta roja «Tarde»** (columna de fecha e ID, `isOverdue`) sigue teniendo sentido: dentro de «Outdated» la
+  llevan todas las filas, y en la lista normal solo la de ayer sin entregar.
+
+### Las cuentas y las filas, a `lib`
+
+Los dos `useMemo` de la pantalla que contaban y listaban pasaron a `src/lib/filas-de-ordenes.ts` (`cuentasDeOrdenes`,
+`filasDeOrdenes`), que reciben las tres listas, la pastilla, el chip de fecha y las reglas. Con una tercera lista
+propia, escribir a mano «cuenta sobre la misma lista de la que listas» por tercera vez era pedir el fallo que ya pasó
+dos veces (D-357, D-380). Ahora se prueba **con datos**: para cada pastilla y cada chip de fecha, el número es el de
+filas que enseña al pulsarla. La pantalla solo le pasa sus listas, y eso lo fija una prueba de texto.
+
+Canarios que se movieron, con la razón dentro de cada uno: siete pruebas de `documento-pendiente`, `ordenes-visibles`
+e `history-window` fijaban líneas literales de la pantalla que ahora viven en `filas-de-ordenes.ts`; leen ese fichero
+y además comprueban que la pantalla lo llama. Cuatro de `pastillas-de-ordenes` esperaban la fila sin «Outdated».
+
+### Qué NO cambia, y qué pantallas siguen viendo las atrasadas
+
+La ventana compartida, **`withinRetention`, no se tocó**: sigue dejando pasar la atrasada abierta. Quitarla ahí la
+habría sacado también de la **Cola de almacén** (`warehouse/page.tsx`) y de la **pantalla del chofer**
+(`driver/page.tsx`), y el pedido era para la lista de Órdenes. Esas dos pantallas las siguen enseñando. Tampoco
+cambian: el **Gestor de rutas** (su chip «Atrasadas» de D-359, con `isOverdue`), la **Ruta del día** y las hojas de
+carga (van por fecha del día, D-380), ni los resúmenes y cuentas por cliente que cuentan vencidas.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4053 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 12, los 12 caen**, leídos por nombre con la herramienta de mutantes. Entre ellos: la lista normal
+  sigue enseñando atrasadas (caen 4, entre ellas *«office: normal = ayer, hoy, futuro y sin fecha…»*); la pantalla
+  pinta la normal desde `conPendientes` (cae *«pide las tres listas a `ordenesVisibles`…»*); `vaAAtrasadas` deja de
+  preguntar a `isOverdue` y mete entregadas y anuladas (cae *«entregada o anulada, no, por vieja que sea»*); las
+  filas de Outdated suman entregadas de la normal (cae *«admin, chip «todas»: cuenta = filas…»*); la cuenta o las
+  filas ignoran el chip de fecha dentro (caen *«office/admin, chip «hoy»: cuenta = filas…»*); la pantalla cuenta
+  sobre otra lista (caen tres); entrar deja de mover el chip (cae *«entrar mueve el chip de fecha a «Todas»…»*);
+  Outdated se llena antes del corte por rol (caen *«ventas: la suya sí, la de otro no»* y *«almacén: su tienda sí…»*);
+  la pantalla arma Outdated a mano desde `deliveries` (caen dos de texto); la pastilla solo sale con algo dentro
+  (caen cinco); buscando, la atrasada deja de salir en la normal (cae la suya).
+- **En el navegador, 2026-09-24, demo local** (`next dev`, sin base), con dos órdenes sembradas del mismo día viejo
+  (hoy − 10) en McAllen, de ventas: una **Programada** y una **Entregada**. El demo ya traía otra atrasada abierta,
+  la #1020 (Ready, Brownsville, 22-sep). Con los dos chips abiertos (pastilla «Todas» y fecha «Todas»):
+
+  | rol | lista normal «Todas» | atrasadas en ella | «Outdated» (pastilla / filas) | entregada vieja dentro | con «Hoy» dentro |
+  |---|---|---|---|---|---|
+  | Admin | 89 | 0 | 2 / 2 | no | 0 / 0 |
+  | Office | 85 | 0 | 2 / 2 | no | 0 / 0 |
+  | Almacén (McAllen) | 14 | 0 | 1 / 1 (solo la de McAllen) | no | 0 / 0 |
+  | Ventas | 83 | 0 | 2 / 2 | no | 0 / 0 |
+
+  Al entrar, el chip de fecha pasó solo de «Reciente» a «Todas» en los cuatro. Con «Reciente» dentro: 2/2, 2/2, 1/1,
+  2/2. **Control del detector:** buscando la factura de la sembrada, la lista normal la enseña (1 fila) y el
+  detector la marca; así que el 0 de la columna «atrasadas en ella» no es un detector ciego. La página no se
+  desplaza de lado.
+
+### Lo no verificado
+
+- **Nada contra producción.** El 2026-09-23 había **0** órdenes abiertas anteriores a ayer (medido por el
+  orquestador en D-374), así que hoy la pastilla saldría con 0 en producción; es por eso que sale siempre.
+- El chofer no se midió en el navegador: su pantalla es `/driver`, que no cambia; en Órdenes le aplica lo mismo que
+  a los demás.
+- Entrar en «Outdated» pone «Todas», y para admin y logística «Todas» pide el historial entero al proveedor
+  (`ensureDeliveriesSince(null)`), como ya hacía la de factura pendiente. No hacía falta para las atrasadas —las
+  abiertas se cargan siempre, tengan la fecha que tengan— pero no se separó; no se midió el peso.

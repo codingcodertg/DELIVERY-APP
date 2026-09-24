@@ -253,6 +253,9 @@
    sitio del «—» de la celda # y no pasa de una línea: la fila no crece. El formulario en fila, igual. */
 .chip.chip-pend { border-color: var(--amber); color: var(--amber-text); background: var(--amber-soft); }
 .chip.chip-pend.on { background: var(--amber); border-color: var(--amber); color: #fff; }
+/* «Outdated» (D-NEXT): las atrasadas abiertas, en el rojo de la etiqueta «Tarde» de la fila. */
+.chip.chip-late { border-color: var(--red-chip-line); color: var(--red-chip-text); background: var(--red-chip-bg); }
+.chip.chip-late.on { background: var(--red); border-color: var(--red); color: #fff; }
 .doc-pend {
   display: inline-block; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
   font: 800 10.5px/1.5 inherit; letter-spacing: .02em;

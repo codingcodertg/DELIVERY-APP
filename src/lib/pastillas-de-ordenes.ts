@@ -1,4 +1,5 @@
 import { PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
+import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
 
 /**
  * La fila de pastillas de Órdenes: cuáles salen, en qué orden y cuál está encendida (D-313).
@@ -16,12 +17,12 @@ import { PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
 export const PASTILLA_TODAS = "all";
 
 export type PastillaDeOrdenes = {
-  /** La clave del filtro. `PASTILLA_TODAS`, una etapa, o la pestaña del documento pendiente. */
+  /** La clave del filtro. `PASTILLA_TODAS`, una etapa, la pestaña del documento pendiente o «Outdated». */
   key: string;
   /** Lo que la persona vería al pulsarla, con el resto de sus filtros ya aplicados. */
   cuenta: number;
   activa: boolean;
-  /** Clase extra, para la única que se pinta distinta (D-310). */
+  /** Clase extra, para las dos que se pintan distintas: factura pendiente (D-310) y «Outdated» (D-NEXT). */
   clase?: string;
 };
 
@@ -48,6 +49,13 @@ export function pastillasDeOrdenes(args: {
     if (todasAprueban && key === "pending") continue;
     salida.push(pastilla(key));
   }
+
+  // «Outdated» (D-NEXT) sale SIEMPRE, también con 0, a diferencia de la de factura pendiente. Las
+  // atrasadas ya no están en la lista normal: si la pastilla se escondiera al no haber ninguna, el día
+  // que hubiera no habría dónde buscarlas, y un 0 dice «no hay nada atrasado», que también es saberlo.
+  // Va tras las etapas y antes de la de factura pendiente, que es la que aparece y desaparece: así
+  // esta no cambia de sitio.
+  salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
 
   // La del documento pendiente (D-310) solo sale si hay algo pendiente **o** si se está dentro de
   // ella: si no, al vaciarse desaparecería bajo el dedo y la lista se quedaría en un filtro invisible.
