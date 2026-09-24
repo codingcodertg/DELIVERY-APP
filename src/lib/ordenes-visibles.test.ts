@@ -256,7 +256,8 @@ describe("la pantalla le pide las dos listas a la función", () => {
   const llano = plano(pagina);
 
   it("no arma la lista a mano: la pide, con sus siete datos", () => {
-    expect(llano).toContain("const { visibles: visible, conPendientes } = useMemo(");
+    // D-NEXT añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
+    expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);
     const args = llano.slice(i, llano.indexOf("})", i));
@@ -272,18 +273,22 @@ describe("la pantalla le pide las dos listas a la función", () => {
     // D-380 partió la línea: el CONJUNTO que se cuenta sigue siendo `conPendientes`, que es lo
     // que esta prueba defiende; encima se le añadió el chip de fecha, pero solo cuando la pestaña
     // está puesta, y entonces las filas pasan por el mismo chip. Siguen saliendo de la misma lista.
-    expect(llano).toContain("const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));");
-    expect(llano).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = (filter === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;");
-    expect(llano).toContain("const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;");
-    expect(llano).toContain("return desde.filter((d) => {");
+    // D-NEXT llevó las cuentas y las filas a `filas-de-ordenes.ts`, donde además se prueban con
+    // datos; las líneas que esta prueba defendía están allí, y la pantalla le pasa las listas.
+    const filas = plano(leer("src/lib/filas-de-ordenes.ts"));
+    expect(filas).toContain("const pendientes = listas.conPendientes.filter((d) => facturaPendiente(d, reglas));");
+    expect(filas).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = (filtro === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;");
+    expect(filas).toContain("return listas.conPendientes.filter((d) => facturaPendiente(d, reglas) && pasaElPreset(d));");
+    expect(llano).toContain("const listas = useMemo(() => ({ visibles: visible, conPendientes, atrasadas }), [visible, conPendientes, atrasadas]);");
   });
 
   it("y las cuentas de etapa y «Todas» siguen saliendo de la lista normal", () => {
     // Si «Todas» contara sobre `conPendientes`, su número dejaría de cuadrar con lo que la tabla
     // enseña al pulsarla.
     // Desde D-357 pasan además por el chip de fechas, el mismo que filtra la lista; siguen sin mirar `conPendientes`.
-    expect(llano).toContain("const enElPreset = visible.filter(pasaElPreset);");
-    expect(llano).toContain("const c: Record<string, number> = { all: enElPreset.length };");
-    expect(llano).not.toContain("{ all: conPendientes.length }");
+    const filas = plano(leer("src/lib/filas-de-ordenes.ts"));
+    expect(filas).toContain("const enElPreset = listas.visibles.filter(pasaElPreset);");
+    expect(filas).toContain("const c: Record<string, number> = { [PASTILLA_TODAS]: enElPreset.length };");
+    expect(filas).not.toContain("enElPreset = listas.conPendientes");
   });
 });

@@ -5,6 +5,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
+import { vaAAtrasadas } from "@/lib/atrasadas";
 
 /**
  * Qué órdenes salen en la pantalla de Órdenes, y cuáles además en la pestaña de factura pendiente
@@ -110,18 +111,33 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * la misma más las que solo se caían por la ventana y tienen documento pendiente, y es la que cuenta
  * y llena la pestaña. Se devuelven juntas para que **nadie las calcule por su cuenta**: dos listas
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
+ *
+ * `atrasadas` (D-NEXT) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
+ * ella. Es lo que `visibles` ya no lleva —las abiertas con fecha anterior a ayer, `vaAAtrasadas`—,
+ * con los mismos cortes por rol y la misma ventana, así que cada persona ve en «Outdated» solo las
+ * atrasadas que ya podía ver.
  */
 export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDeLista): {
   visibles: Delivery[];
   conPendientes: Delivery[];
+  atrasadas: Delivery[];
 } {
   const visibles: Delivery[] = [];
   const conPendientes: Delivery[] = [];
+  const atrasadas: Delivery[] = [];
+  const buscando = !!ctx.busqueda.trim();
   for (const d of deliveries) {
+    // Los cortes por ROL y la búsqueda valen igual para las tres listas: «Outdated» enseña las
+    // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
     const normal = pasaLaVentana(d, ctx, false);
-    if (normal) visibles.push(d);
+    // «Outdated» (D-NEXT): la atrasada abierta anterior a ayer sale de la lista normal y va a la
+    // suya. Buscando, se queda también en la normal: buscar es el camino a todo (D-374), y una
+    // factura que no sale al teclearla se lee como que la orden no existe.
+    const atrasada = vaAAtrasadas(d);
+    if (normal && atrasada) atrasadas.push(d);
+    if (normal && (!atrasada || buscando)) visibles.push(d);
     if (normal || pasaLaVentana(d, ctx, true)) conPendientes.push(d);
   }
-  return { visibles, conPendientes };
+  return { visibles, conPendientes, atrasadas };
 }

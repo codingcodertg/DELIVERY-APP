@@ -12,9 +12,11 @@ import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
-import { facturaPendiente, PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
+import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 import { ordenesVisibles } from "@/lib/ordenes-visibles";
+import { cuentasDeOrdenes, filasDeOrdenes } from "@/lib/filas-de-ordenes";
+import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -271,7 +273,7 @@ export default function OrdersPage() {
    * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa; `conPendientes` es
    * esa más las que solo se caían por la ventana y tienen documento pendiente.
    */
-  const { visibles: visible, conPendientes } = useMemo(
+  const { visibles: visible, conPendientes, atrasadas } = useMemo(
     () => ordenesVisibles(deliveries, {
       me,
       teaching,
@@ -300,37 +302,21 @@ export default function OrdersPage() {
     return true;
   }, [preset, me?.id]);
 
-  const counts = useMemo(() => {
-    const enElPreset = visible.filter(pasaElPreset);
-    const c: Record<string, number> = { all: enElPreset.length };
-    for (const d of enElPreset) c[d.stage] = (c[d.stage] ?? 0) + 1;
-    // La pestaña del documento pendiente (D-310) cuenta sobre lo mismo que las de etapa: lo que
-    // esta persona ve.
-    // La de la pestaña cuenta sobre `conPendientes` (D-313): las suyas son trabajo vivo aunque la
-    // orden sea vieja, y sobre `visible` daban 0 para office — que es por lo que la pestaña no le
-    // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
-    // Fuera de la pestaña cuenta TODO lo pendiente, sin mirar el chip de fecha: ese número es el
-    // aviso de que hay trabajo fuera de la ventana, y es lo que D-313 arregló. DENTRO de la
-    // pestaña pasa por el chip, como las de etapa (D-357), porque ahí el número ya no avisa de
-    // nada: describe la lista que hay debajo. Al entrar coinciden —entrar pone «Todas»—; dejan de
-    // coincidir solo si quien mira acota la fecha a propósito, y entonces el número le sigue.
-    const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));
-    c[PESTANA_DOCUMENTO_PENDIENTE] = (filter === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;
-    return c;
-  }, [visible, conPendientes, settings.order_type_rules, pasaElPreset, filter]);
+  // Las cuentas y las filas salen de la MISMA función de `lib` y de las mismas tres listas (D-NEXT):
+  // antes eran dos `useMemo` escritos aquí, y cada pastilla con lista propia tenía que acordarse de
+  // contar sobre la lista de la que listaba. Cómo cuenta cada una —la normal por el chip de fecha
+  // (D-357), factura pendiente y «Outdated» por el chip solo estando dentro (D-380)— está allí.
+  const listas = useMemo(() => ({ visibles: visible, conPendientes, atrasadas }), [visible, conPendientes, atrasadas]);
+  const counts = useMemo(
+    () => cuentasDeOrdenes(listas, filter, pasaElPreset, settings.order_type_rules ?? {}),
+    [listas, filter, pasaElPreset, settings.order_type_rules],
+  );
 
-  const rows = useMemo(() => {
+  const rows = useMemo(
     // The board shows every stage as its own column, so ignore the stage chip there.
-    const activeFilter = view === "board" ? "all" : filter;
-    // Dentro de la pestaña se listan las mismas que cuenta (D-313); fuera, la lista normal.
-    const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;
-    return desde.filter((d) => {
-      // No es una etapa: enseña lo pendiente de TODAS (casi todo está ya entregado).
-      if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }
-      else if (activeFilter !== "all" && d.stage !== activeFilter) return false;
-      return pasaElPreset(d);
-    });
-  }, [visible, filter, view, settings.order_type_rules, pasaElPreset, conPendientes]);
+    () => filasDeOrdenes(listas, view === "board" ? PASTILLA_TODAS : filter, pasaElPreset, settings.order_type_rules ?? {}),
+    [listas, filter, view, pasaElPreset, settings.order_type_rules],
+  );
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },
@@ -578,7 +564,9 @@ export default function OrdersPage() {
                   ? t("All", "Todas")
                   : p.key === PESTANA_DOCUMENTO_PENDIENTE
                     ? t("Invoice pending", "Factura pendiente")
-                    : stageLabel(p.key, lang)} <span className="cnt">{p.cuenta}</span>
+                    : p.key === PESTANA_ATRASADAS
+                      ? t("Outdated", "Atrasadas")
+                      : stageLabel(p.key, lang)} <span className="cnt">{p.cuenta}</span>
               </button>
             ))}
           </>
