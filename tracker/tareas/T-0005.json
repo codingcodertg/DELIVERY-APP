@@ -1,0 +1,30 @@
+{
+  "id": "T-0005",
+  "fecha": "2026-09-23",
+  "resumen": "Un sistema de accountability para llevar control de todo lo que pide: tracker de tareas con CLI y app, reconstrucción de los últimos 2 meses, hooks y subagentes.",
+  "texto_original": "",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [
+      "tracker/cli.mjs",
+      "tracker/tarea.mjs"
+    ],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T01:50:20.989Z",
+      "texto": "Esta tarea es el propio tracker. Se deja de ejemplo a proposito: si el sistema no puede registrar su propio encargo, no sirve."
+    }
+  ],
+  "fuentes": [
+    "orquestador:deliveries-app-ef"
+  ],
+  "creado": "2026-09-24T01:50:20.989Z",
+  "modificado": "2026-09-24T01:50:20.990Z"
+}

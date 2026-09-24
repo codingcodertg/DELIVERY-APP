@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+// La app del tracker: un servidor de Node a secas y una pagina. `npm run tracker`.
+//
+// **Escucha solo en 127.0.0.1**, a proposito: esta pagina escribe ficheros del repo sin pedir
+// contrasena a nadie. En la red de casa eso seria una pagina que cualquiera del wifi puede editar.
+// Si algun dia hace falta verla desde otro equipo, es una decision, no una bandera.
+
+import { createServer } from "node:http";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import {
+  ESTADOS, ESTADO_FINAL, HECHO, RAIZ, ZONA_NEGOCIO, busca, guarda, lee, normalizaEstado, tapaSecretos, todas,
+} from "./tarea.mjs";
+
+const PUERTO = Number(process.env.TRACKER_PUERTO) || 4319;
+const PAGINA = join(RAIZ, "app.html");
+
+const json = (res, codigo, cuerpo) => {
+  const t = JSON.stringify(cuerpo);
+  res.writeHead(codigo, { "content-type": "application/json; charset=utf-8", "content-length": Buffer.byteLength(t) });
+  res.end(t);
+};
+
+function cuerpoDe(req) {
+  return new Promise((resolve, reject) => {
+    let b = "";
+    req.on("data", (d) => {
+      b += d;
+      // Una nota no ocupa un mega. El tope evita que un fallo deje el proceso comiendo memoria.
+      if (b.length > 1_000_000) { reject(new Error("cuerpo demasiado grande")); req.destroy(); }
+    });
+    req.on("end", () => { try { resolve(b ? JSON.parse(b) : {}); } catch (e) { reject(e); } });
+    req.on("error", reject);
+  });
+}
+
+const servidor = createServer(async (req, res) => {
+  const url = new URL(req.url, "http://127.0.0.1");
+  try {
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+      if (!existsSync(PAGINA)) return json(res, 500, { error: "falta tracker/app.html" });
+      const html = readFileSync(PAGINA);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      return res.end(html);
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/tareas") {
+      return json(res, 200, { estados: ESTADOS, hecho: HECHO, estadoFinal: ESTADO_FINAL, zona: ZONA_NEGOCIO, tareas: todas() });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/buscar") {
+      const q = url.searchParams.get("q") ?? "";
+      const r = busca(q, todas(), { limite: Number(url.searchParams.get("limite")) || 8 });
+      return json(res, 200, { resultados: r.map((x) => ({ id: x.tarea.id, puntos: x.puntos, comunes: x.comunes })) });
+    }
+
+    if (req.method === "POST" && url.pathname.startsWith("/api/tarea/")) {
+      const id = url.pathname.slice("/api/tarea/".length);
+      const t = lee(id);
+      if (!t) return json(res, 404, { error: "no existe " + id });
+      const c = await cuerpoDe(req);
+
+      if (c.estado !== undefined) {
+        const e = normalizaEstado(c.estado);
+        if (!e) return json(res, 400, { error: "estado desconocido" });
+        // La misma regla que el CLI, escrita en los dos sitios por los que se puede escribir: una
+        // regla que solo vigila una puerta no vigila nada.
+        if (e === ESTADO_FINAL) {
+          if (!c.confirmadoPorElDueno) return json(res, 400, { error: "«" + ESTADO_FINAL + "» solo lo pone el dueno" });
+          if (!String(c.nota ?? "").trim()) return json(res, 400, { error: "para cerrar hace falta una nota que diga cuando y donde lo confirmo" });
+        }
+        t.estado = e;
+      }
+      if (c.lo_hizo_claude !== undefined) {
+        if (!HECHO.includes(c.lo_hizo_claude)) return json(res, 400, { error: "valor desconocido" });
+        t.lo_hizo_claude = c.lo_hizo_claude;
+      }
+      if (String(c.nota ?? "").trim()) {
+        const { texto, tapados } = tapaSecretos(String(c.nota));
+        t.notas.push({ fecha: new Date().toISOString(), texto });
+        if (tapados.length) t.notas[t.notas.length - 1].texto += "  (se tapo: " + tapados.join(", ") + ")";
+      }
+      guarda(t);
+      return json(res, 200, { tarea: t });
+    }
+
+    json(res, 404, { error: "no hay nada en " + url.pathname });
+  } catch (e) {
+    json(res, 500, { error: String(e?.message ?? e) });
+  }
+});
+
+servidor.listen(PUERTO, "127.0.0.1", () => {
+  console.log("tracker en http://127.0.0.1:" + PUERTO + "   (" + todas().length + " tareas)");
+  console.log("Ctrl-C para pararlo.");
+});

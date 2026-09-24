@@ -1,0 +1,33 @@
+{
+  "id": "T-0001",
+  "fecha": "2026-09-23",
+  "resumen": "Almacén ve solo lo de sus tiendas y tiene una vista de Recepción con las Intertiendas que le llegan; ventas ve solo sus propias órdenes, en cualquier tienda; y vuelve la ventana de fechas para todos menos admin y logística.",
+  "texto_original": "warehouse should only see what they are in charge of / for warehouse a new view where the loads intertienda going to his store will be visible; these orders will be extracted from his list and passed to that one / if account in intertienda is my store then put that under receiving / ayer, hoy, futuro y atrasadas",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – no desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "09a53fab"
+    ],
+    "prs": [],
+    "ficheros": [
+      "src/lib/almacen.ts",
+      "src/app/(app)/warehouse/page.tsx",
+      "src/lib/visibilidad-ventas.ts"
+    ],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T01:50:02.174Z",
+      "texto": "Sin fusionar y sin desplegar: espera que se mida en un navegador la vista de Recepción y que una entregada vieja ya no salga para almacén."
+    }
+  ],
+  "fuentes": [
+    "orquestador:deliveries-app-ef (retransmitido, no es texto del dueno palabra por palabra)"
+  ],
+  "creado": "2026-09-24T01:50:02.175Z",
+  "modificado": "2026-09-24T01:50:02.176Z"
+}

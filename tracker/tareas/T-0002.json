@@ -1,0 +1,33 @@
+{
+  "id": "T-0002",
+  "fecha": "2026-09-23",
+  "resumen": "Vista de Recepción en almacén: las Intertiendas cuyo destino es su tienda salen de la cola y pasan a una lista aparte.",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – no desplegado",
+  "padre": "T-0001",
+  "evidencia": {
+    "commits": [
+      "09a53fab"
+    ],
+    "prs": [],
+    "ficheros": [
+      "src/lib/almacen.ts"
+    ],
+    "decisiones": [
+      "D-NEXT"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T01:50:11.707Z",
+      "texto": "El destino se lee de delivery_name y no de la cuenta: medido en produccion, de 123 Intertiendas la cuenta coincide en 51. Las 2 sin destino se quedan en la cola y se cuentan aparte."
+    }
+  ],
+  "fuentes": [
+    "orquestador:deliveries-app-ef"
+  ],
+  "creado": "2026-09-24T01:50:11.707Z",
+  "modificado": "2026-09-24T01:51:53.081Z"
+}

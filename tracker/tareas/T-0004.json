@@ -1,0 +1,27 @@
+{
+  "id": "T-0004",
+  "fecha": "2026-09-23",
+  "resumen": "Pedir confirmación antes de cualquier acción destructiva y antes de hacer push o desplegar. Vale para todo el proyecto.",
+  "texto_original": "pideme confirmacion antes de cualquier accion destructiva o de hacer push/deploy",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T01:50:20.876Z",
+      "texto": "Parcial: el worker ya no empuja nunca, pero la regla no esta escrita en CLAUDE.md todavia. El texto va en tracker/PROPUESTA-CLAUDE-MD.md y lo aplica el orquestador."
+    }
+  ],
+  "fuentes": [
+    "orquestador:deliveries-app-ef"
+  ],
+  "creado": "2026-09-24T01:50:20.877Z",
+  "modificado": "2026-09-24T01:50:20.877Z"
+}
