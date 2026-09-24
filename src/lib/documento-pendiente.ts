@@ -17,6 +17,25 @@ import { orderOwner } from "./utils";
 /** El valor de `filter` de la pestaña «Invoice pending». No es una etapa: ninguna se llama así. */
 export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
 
+/**
+ * A qué chip de fecha se mueve la pantalla al pulsar una pastilla (D-380).
+ *
+ * **Solo la de factura pendiente mueve nada, y solo hacia «Todas».** Lo demás se queda como esté.
+ *
+ * El problema que arregla: la pestaña **cuenta** sobre `conPendientes` —lo pendiente aunque sea
+ * viejo, que es lo que D-313 arregló para que a office no le saliera 0— pero la **lista** sigue
+ * pasando por el chip de fecha, que arranca en «Reciente». Casi todo lo que tiene factura pendiente
+ * está entregado hace semanas, así que la pastilla decía «52» y debajo salían tres filas o ninguna.
+ * Un número que no es el de la lista es exactamente lo que D-357 vino a quitar de esta pantalla.
+ *
+ * Se mueve el chip en vez de ignorarlo dentro de la pestaña: así **se ve** por qué aparecen órdenes
+ * viejas, y quien quiera volver a acotar por fecha lo hace y ve el chip que lo está haciendo. Un
+ * filtro que se salta en silencio es el mismo problema al revés.
+ */
+export function presetAlElegirPastilla<P extends string>(clave: string, presetActual: P, todas: P): P {
+  return clave === PESTANA_DOCUMENTO_PENDIENTE ? todas : presetActual;
+}
+
 /** Etapas en las que todavía no se espera el documento, o ya da igual. */
 const ETAPAS_SIN_DOCUMENTO: readonly Stage[] = ["draft", "rejected", "canceled"];
 

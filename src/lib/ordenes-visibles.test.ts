@@ -269,7 +269,11 @@ describe("la pantalla le pide las dos listas a la función", () => {
   it("la cuenta de la pestaña y sus filas salen de `conPendientes`, no de `visible`", () => {
     // Las dos tienen que salir de la MISMA lista: con la cuenta sobre una y las filas sobre otra, la
     // pestaña diría un número y enseñaría otro.
-    expect(llano).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;");
+    // D-380 partió la línea: el CONJUNTO que se cuenta sigue siendo `conPendientes`, que es lo
+    // que esta prueba defiende; encima se le añadió el chip de fecha, pero solo cuando la pestaña
+    // está puesta, y entonces las filas pasan por el mismo chip. Siguen saliendo de la misma lista.
+    expect(llano).toContain("const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));");
+    expect(llano).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = (filter === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;");
     expect(llano).toContain("const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;");
     expect(llano).toContain("return desde.filter((d) => {");
   });

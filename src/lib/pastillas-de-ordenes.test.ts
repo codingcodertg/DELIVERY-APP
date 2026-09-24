@@ -109,7 +109,11 @@ describe("la pantalla", () => {
   it("pulsar la encendida vuelve a «todas», y pulsar «Todas» estando en ella no rompe nada", () => {
     // El mismo manejador para las tres clases de pastilla: si está encendida, se vuelve a «todas»
     // —que para «Todas» significa quedarse—, y si no, se elige.
-    expect(pagina).toContain("onClick={() => setFilter(p.activa ? PASTILLA_TODAS : p.key)}");
+    // D-380 lo abrió a varias líneas porque el chip de FECHA también se mueve al entrar en la
+    // pestaña de factura pendiente. Lo que esta prueba defiende no cambia: la clave que queda
+    // puesta sale del mismo ternario, y es UNA sola, que es lo que la comparte entre las tres
+    // clases de pastilla.
+    expect(pagina.replace(/\s+/g, " ")).toContain("const queda = p.activa ? PASTILLA_TODAS : p.key; setFilter(queda);");
   });
 
   it("solo se pinta en la vista de tabla: el tablero ya enseña cada etapa en su columna", () => {

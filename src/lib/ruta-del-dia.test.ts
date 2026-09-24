@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { inicioDeVentana, rutaPorChofer, SIN_CHOFER } from "./ruta-del-dia";
+import { inicioDeVentana, rutaPorChofer, SIN_CHOFER, ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA } from "./ruta-del-dia";
 import { htmlDeLasHojasDeCarga } from "./slip";
 import { canTransition } from "./constants";
 import type { Delivery, Settings } from "./types";
@@ -281,15 +281,39 @@ describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-3
 describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
   const pagina = plano(leer("src/app/(app)/warehouse/page.tsx"));
 
-  it("hay dos vistas y la de ruta usa el agrupado compartido", () => {
-    expect(pagina).toContain('t("Day\'s route", "Ruta del día")');
-    expect(pagina).toContain("rutaPorChofer(cargasDelDia)");
+  it("hay dos vistas y la de ruta agrupa por chofer las paradas del día", () => {
+    expect(pagina).toContain("Ruta del día");                 // la pestaña sigue estando
+    expect(pagina).toContain("rutaPorChofer(paradasDelDia)");
   });
 
-  it("la hoja impresa y la pantalla miran las MISMAS órdenes", () => {
+  it("la hoja impresa y la pantalla ya NO miran las mismas órdenes, y esa es la corrección", () => {
+    // Esta prueba exigía lo contrario, y su razón —«el filtro vive una vez, si se escribiera dos
+    // podrían discrepar»— era buena para el filtro y equivocada para la lista: compartirla hacía
+    // que una entregada **desapareciera de la ruta al entregarla**. El filtro sigue viviendo una
+    // sola vez (`delDia`); lo que cambia es la LISTA DE ETAPAS que se le pasa.
     expect(pagina).toContain("printLoadSheets(cargasDelDia, settings, lang, loadDate)");
-    // El filtro vive una vez: si se escribiera dos veces, la hoja y la pantalla podrían discrepar.
-    expect((pagina.match(/ACTIVAS\.includes\(d\.stage\)/g) ?? [])).toHaveLength(1);
+    expect(pagina).toContain("const cargasDelDia = useMemo(() => delDia(ETAPAS_DE_LA_HOJA_DE_CARGA)");
+    expect(pagina).toContain("const paradasDelDia = useMemo(() => delDia(ETAPAS_DE_LA_RUTA_DEL_DIA)");
+    expect(pagina.match(/etapas\.includes\(d\.stage\)/g) ?? []).toHaveLength(1);
+    expect(pagina).not.toContain("ACTIVAS");
+  });
+
+  it("y el mapa pinta el día entero, no solo lo que queda por cargar", () => {
+    // Si el mapa se hubiera quedado con `cargasDelDia`, una parada entregada saldría en la tabla y
+    // no en el mapa de al lado, que es peor que no estar en ninguno de los dos.
+    expect(pagina).toContain("useMemo<MapPoint[]>(() => paradasDelDia.flatMap");
+  });
+
+  it("cada parada dice su etapa, con la pastilla de Órdenes", () => {
+    const vista = pagina.slice(pagina.indexOf("ruta.map((g)"), pagina.indexOf("</tbody>"));
+    expect(vista).toContain("Etapa");                            // la columna nueva
+    expect(vista).toContain("stageInfo(d.stage).color");
+    expect(vista).toContain("{stageLabel(d.stage, lang)}");
+  });
+
+  it("y el vacío ya no habla de cargar: la ruta es el día entero", () => {
+    expect(pagina).toContain("Nada en la ruta de este día.");
+    expect(pagina).not.toContain("Nothing to load for this day");
   });
 
   it("es de solo lectura: abre la orden, pero no cambia nada desde ahí", () => {
@@ -305,5 +329,34 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
     // el canario cambia de lado en vez de borrarse.
     expect(pagina).toContain("driverLocations");
     expect(pagina).toContain("choferesEnVivo(driverLocations");
+  });
+});
+
+describe("qué etapas lleva cada lista (D-380)", () => {
+  it("la hoja de carga es lo que queda por cargar: sin entregadas", () => {
+    expect([...ETAPAS_DE_LA_HOJA_DE_CARGA]).toEqual(["approved", "fulfilling", "ready", "picked_up"]);
+    expect(ETAPAS_DE_LA_HOJA_DE_CARGA).not.toContain("delivered");
+  });
+  it("la ruta del día es la hoja MÁS lo entregado, y lo hereda sola", () => {
+    // Escrito como derivación y probado como derivación: si mañana alguien añade una etapa a la
+    // hoja, la ruta la trae sin que nadie se acuerde. Es lo que faltó la primera vez.
+    expect([...ETAPAS_DE_LA_RUTA_DEL_DIA]).toEqual([...ETAPAS_DE_LA_HOJA_DE_CARGA, "delivered"]);
+    for (const e of ETAPAS_DE_LA_HOJA_DE_CARGA) expect(ETAPAS_DE_LA_RUTA_DEL_DIA, e).toContain(e);
+    expect(ETAPAS_DE_LA_RUTA_DEL_DIA.length).toBe(ETAPAS_DE_LA_HOJA_DE_CARGA.length + 1);
+  });
+  it("y está ESCRITA como derivación, no copiada: eso es lo que la hace heredar", () => {
+    // Una copia con las mismas cinco etapas pasa la prueba de arriba igual de bien —lo comprobé con
+    // ese mutante, y no lo cazaba nadie—. Y sin embargo no es lo mismo: el día que alguien añada una
+    // etapa a la hoja de carga, la derivada la trae y la copia se queda corta, que es exactamente
+    // cómo nació este fallo. Como la diferencia está en el FUENTE y no en el valor, se mira el
+    // fuente; es feo y es lo único que lo sostiene.
+    const fuente = readFileSync(join(process.cwd(), "src/lib/ruta-del-dia.ts"), "utf8");
+    expect(fuente).toContain("ETAPAS_DE_LA_RUTA_DEL_DIA: readonly string[] = [...ETAPAS_DE_LA_HOJA_DE_CARGA,");
+  });
+
+  it("y ninguna de las dos trae borradores, rechazadas ni anuladas", () => {
+    for (const fuera of ["draft", "pending", "rejected", "canceled"]) {
+      expect(ETAPAS_DE_LA_RUTA_DEL_DIA, fuera).not.toContain(fuera);
+    }
   });
 });

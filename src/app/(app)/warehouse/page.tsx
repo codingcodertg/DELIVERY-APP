@@ -1,17 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { tiendasDelGrupo } from "@/lib/store-group";
 import { normalizaLugar, tiendasDeLaOrden } from "@/lib/order-endpoints";
 import { reparteLaColaDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
-import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
+import { canFulfill, ROLE_DEFAULT_COLUMNS, stageInfo, stageLabel } from "@/lib/constants";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
-import { rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
+import { ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA, rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { colorDeChofer } from "@/lib/map-legend";
 import { MapView, type MapPoint } from "@/components/MapView";
@@ -114,20 +114,22 @@ export default function WarehousePage() {
     });
   }, [deliveries, effectiveStore, atStore, q, realRole]);
 
-  // Lo que se carga ese día: las órdenes activas de la fecha elegida, en las tiendas que toquen.
-  // Lo comparten el botón de las hojas de carga y la vista de ruta, así que la hoja impresa y la
-  // pantalla no pueden decir cosas distintas.
-  const cargasDelDia = useMemo(() => {
-    const ACTIVAS = ["approved", "fulfilling", "ready", "picked_up"];
-    return deliveries.filter((d) =>
-      d.delivery_date === loadDate && ACTIVAS.includes(d.stage) && (!effectiveStore || atStore(d)));
-  }, [deliveries, loadDate, effectiveStore, atStore]);
+  // El día elegido, en las tiendas que toquen. **Dos listas y no una** (D-380): qué etapas lleva
+  // cada una lo decide `lib/ruta-del-dia`, con el porqué escrito allí. En corto: la hoja de carga
+  // es lo que queda por cargar, y la ruta del día es el día entero — antes compartían lista y una
+  // entregada se caía de la pantalla en el momento de entregarla.
+  const delDia = useCallback((etapas: readonly string[]) => deliveries.filter((d) =>
+    d.delivery_date === loadDate && etapas.includes(d.stage) && (!effectiveStore || atStore(d))),
+    [deliveries, loadDate, effectiveStore, atStore]);
 
-  const ruta = useMemo(() => rutaPorChofer(cargasDelDia), [cargasDelDia]);
+  const cargasDelDia = useMemo(() => delDia(ETAPAS_DE_LA_HOJA_DE_CARGA), [delDia]);
+  const paradasDelDia = useMemo(() => delDia(ETAPAS_DE_LA_RUTA_DEL_DIA), [delDia]);
+
+  const ruta = useMemo(() => rutaPorChofer(paradasDelDia), [paradasDelDia]);
 
   // Las paradas del día en el mapa: las que tienen punto. Una dirección sin geocodificar no se
   // inventa aquí — eso es de la ficha del pedido.
-  const puntos = useMemo<MapPoint[]>(() => cargasDelDia.flatMap((d) => (
+  const puntos = useMemo<MapPoint[]>(() => paradasDelDia.flatMap((d) => (
     d.delivery_lat == null || d.delivery_lng == null ? [] : [{
       id: d.id,
       lat: d.delivery_lat,
@@ -136,7 +138,7 @@ export default function WarehousePage() {
       label: `#${orderLabel(d)} · ${d.account || d.delivery_name || ""}`,
       badge: d.route_seq != null ? String(d.route_seq) : undefined,
     }]
-  )), [cargasDelDia, settings.driver_colors]);
+  )), [paradasDelDia, settings.driver_colors]);
 
   // Por dónde va cada camión (D-289). Llega desde la 121: hasta ella, la política de
   // `driver_locations` no dejaba leer a almacén y esta lista salía siempre vacía —sin error y sin
@@ -293,7 +295,7 @@ export default function WarehousePage() {
            leen admin, logística y gerencia, y abrirlas es otra decisión. Se puede abrir una orden
            desde aquí, que es el mismo modal de siempre y con los mismos permisos. */
         <div style={{ display: "grid", gap: 12 }}>
-          {ruta.length === 0 && <div className="empty">{t("Nothing to load for this day.", "Nada que cargar para este día.")}</div>}
+          {ruta.length === 0 && <div className="empty">{t("Nothing on this day's route.", "Nada en la ruta de este día.")}</div>}
           {puntos.length > 0 && (
             <div>
               {/* El mapa es para MIRAR: no se asigna ni se reordena desde aquí, que es del gestor
@@ -316,7 +318,7 @@ export default function WarehousePage() {
                 </span>
               </div>
               <div className="tbl-scroll tbl-fit" style={{ marginTop: 8 }}>
-                <table className="orders tbl-resize" style={{ minWidth: 520 }}>
+                <table className="orders tbl-resize" style={{ minWidth: 620 }}>
                   <thead>
                     <tr>
                       <th style={{ width: 34 }}>#</th>
@@ -325,6 +327,7 @@ export default function WarehousePage() {
                       <th style={{ textAlign: "left" }}>{t("Address", "Dirección")}</th>
                       <th style={{ textAlign: "left" }}>{t("Window", "Ventana")}</th>
                       <th style={{ textAlign: "left" }}>{t("Pallets", "Pallets")}</th>
+                      <th style={{ textAlign: "left" }}>{t("Stage", "Etapa")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -336,6 +339,14 @@ export default function WarehousePage() {
                         <td>{d.delivery_address || "—"}</td>
                         <td>{fmtWindows(d.delivery_windows)}</td>
                         <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
+                        {/* La pastilla, con el color de la etapa y las clases de Órdenes (D-380).
+                            Sin ella, ahora que las entregadas se quedan, una parada terminada se
+                            leería igual que una que sigue esperando camión. */}
+                        <td className="td-pastillas">
+                          <span className="sema" style={{ background: stageInfo(d.stage).color, color: "#fff" }}>
+                            {stageLabel(d.stage, lang)}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
