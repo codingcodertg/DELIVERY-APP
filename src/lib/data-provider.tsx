@@ -15,6 +15,7 @@ import { fallóElRegistro } from "@/lib/security-log-notice";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
 import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, knownModules } from "@/lib/constants";
+import { borrarOrden } from "@/lib/deshacer-y-borrar";
 import { orderOwner, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
@@ -122,7 +123,9 @@ export interface DataState {
    * regroup later), false = a person (leave it alone). Omitted leaves it as it
    * was, for moves that change order without changing the grouping. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean) => Promise<boolean>;
-  deleteDelivery: (id: string) => Promise<void>;
+  /** Borra una orden. `true` solo si la base devolvió la fila (D-NEXT): un DELETE que la política no deja
+   * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
+  deleteDelivery: (id: string) => Promise<boolean>;
   /** Move an order to a new workflow stage and log the event. `extra` merges
    * additional column updates into the SAME write (e.g. proof-of-delivery),
    * so they persist atomically instead of being clobbered by a follow-up save. */
@@ -1280,13 +1283,18 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           const updated = { ...o.updated }; delete updated[id];
           return { ...o, deleted, updated };
         });
-        return;
+        return true;
       }
-      setDeliveries((prev) => prev.filter((c) => c.id !== id));
-      const { error } = await supabase.from("deliveries").delete().eq("id", id);
-      if (error) notify("Error: " + error.message);
+      // `.select("id")` y contar (D-NEXT, 142): sin él, un borrado que la política rechaza parecía hecho y
+      // la fila desaparecía de la lista hasta recargar. La fila solo se quita si la base la devolvió.
+      return borrarOrden({
+        borrar: async () => await supabase.from("deliveries").delete().eq("id", id).select("id"),
+        quitarDeLaLista: () => setDeliveries((prev) => prev.filter((c) => c.id !== id)),
+        avisar: notify,
+        lang,
+      });
     },
-    [supabase, notify, teaching],
+    [supabase, notify, teaching, lang],
   );
 
   const setStage = useCallback<DataState["setStage"]>(
