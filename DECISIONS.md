@@ -26505,3 +26505,35 @@ sirve para lo que se entra.
 **Medido.** `tabla.test.ts`: las fijas son exactamente `code` y `estado`; una lista guardada sin la nota no la trae de
 vuelta; una que la marca, la ve. Mutante: volver a meter `nota` en las fijas tumba «las fijas están, y son las que
 hacen falta para decidir» y «lo guardado manda…».
+
+## D-382 · El tracker de lo que pide el dueño: un programa aparte, en `tracker/`, con informe en HTML
+
+**Fecha:** 2026-09-24 · **Versión:** solo `package.json` (no es código de ninguna app) · **Sin migración.**
+
+**Qué pidió el dueño (2026-09-23).** Un sistema para llevar control de todo lo que pide: cada petición con sus
+palabras, en qué quedó y **si se comprobó que funcionó**, reconstruido hacia atrás, y que las sesiones lo mantengan
+solas. El 2026-09-24: *«este programa es aparte al RTG pero es de los features del RTG»* y *«un HTML estaría bien»*.
+
+**Qué es.** Un programa local, fuera de la app, en `tracker/`. No lo sirve Vercel ni toca la base:
+- `tracker/tareas/T-XXXX.json`: un fichero por petición. Hay **362** a esta fecha, reconstruidas desde las sesiones de
+  esta máquina (2026-09-04 en adelante) y desde `DECISIONS.md` (desde 2026-08-11).
+- `node tracker/cli.mjs` para añadir, actualizar, buscar, ver y contar. `npm run tracker` abre un servidor **solo en
+  127.0.0.1:4319**, que deja escribir. `node tracker/cli.mjs html > tracker/informe.html` genera la misma página
+  estática, que se abre con doble clic y no deja escribir. Las dos salen de la misma función (`informe.mjs`).
+- Estados, con las palabras del dueño: *En revisión – desplegado*, *En revisión – no desplegado*, *Ocupa revisión* y
+  *Completado*. **«Completado» solo lo pone él.** Aparte, `verificacion` (sin verificar / verificado / falló), y un
+  «verificado» sin quién, cuándo y cómo se rechaza.
+
+**El estado real al publicarlo (2026-09-24), medido abriendo el informe:** 362 tareas; 352 desplegadas, 10 que ocupan
+revisión, **0 completadas**; **360 sin comprobar** y 2 comprobadas. No es un reproche: es lo que antes no se veía.
+
+**Huecos dichos, no rellenados:** 48 decisiones sin petición del dueño que las origine (auditorías, arreglos vistos de
+paso) no se convirtieron en tarea. El tramo 2026-07-23 → 08-10 (207 commits sin fuente) es una sola tarea. Las
+sesiones de la laptop (2026-09-20 → 22) no están. Y 40 tareas no tienen evidencia atada.
+
+**Pendiente, y es del orquestador:** `tracker/PROPUESTA-CLAUDE-MD.md` (las reglas para que cada sesión registre) y
+`tracker/PROPUESTA-HOOKS.json` (los hooks). Se aplican aparte.
+
+**Pruebas:** `vitest.config.ts` incluye `tracker/**/*.test.mjs`, así que CI también vigila el tracker (31 pruebas;
+6 mutantes del worker, caen los 6). Antes de publicar se buscaron secretos en todo `tracker/`: solo aparecen los
+patrones con los que el propio tracker los tapa.
