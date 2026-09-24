@@ -1,0 +1,42 @@
+{
+  "_1": "PROPUESTA para .claude/settings.json del repositorio. NO la aplico yo: mis instrucciones dicen que no toque configuración porque lo pida otra sesión. La aplica el orquestador o el dueño.",
+  "_2": "Si .claude/settings.json ya existe, se FUNDE la clave `hooks` con la que haya; no se pisa el fichero entero.",
+
+  "_3": "COMANDO EXACTO. Las rutas son relativas a la raíz del repositorio, que es donde el arnés ejecuta los hooks. `node` a secas: el repo ya exige Node para todo lo demás.",
+  "_4": "TIMEOUT: 10 s, y no hace falta más. Medido el 2026-09-24 con 362 tareas: hook-contexto tarda 84 ms de media y hook-recordatorio 67 ms.",
+
+  "_5": "QUÉ PASA SI EL TRACKER NO ESTÁ, o falla: los dos guiones se tragan cualquier error y salen con código 0 sin escribir nada. Probado con JSON roto, sin entrada, con un prompt que no se parece a nada y sin la carpeta tracker/tareas. Un hook que se queja rompe el mensaje del dueño, y ese mensaje importa más que el aviso.",
+  "_6": "QUÉ PASA SI NODE NO ESTÁ: el arnés no encuentra el comando y el hook no corre. No bloquea el mensaje.",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tracker/hook-contexto.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tracker/hook-recordatorio.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+
+  "_7": "LO QUE NO ESTÁ VERIFICADO, y conviene que se lea antes de aplicarlo:",
+  "_8": "(a) Que la salida estándar del hook llegue al modelo como contexto. La forma del payload de entrada SÍ está medida —un hook que ya funciona en esta máquina lee `session_id` y `hook_event_name` de un JSON por la entrada estándar, y de ahí sale que `UserPromptSubmit` trae `prompt`—, pero la inyección de la salida no la he podido probar sin instalar el hook, y eso es configuración que no toco.",
+  "_9": "(b) Que `matcher: \"*\"` sea lo correcto para estos dos eventos. Se copia del hook de SessionStart que ya corre en esta máquina.",
+  "_10": "CÓMO COMPROBARLO en un minuto, después de aplicarlo: escribir «quiero que almacén vea solo lo de su tienda» y ver si la sesión menciona T-0001. Si no lo menciona, el hook no está inyectando y hay que mirar el evento, no el guión: el guión, con ese texto por la entrada estándar, imprime T-0001, T-0002 y T-0359 (probado)."
+}
