@@ -41,3 +41,6 @@ _*.json
 # vuelve a generar con un comando.
 desktop/node_modules
 desktop/dist
+
+# informe del tracker generado a mano (node tracker/cli.mjs html > tracker/informe.html)
+tracker/informe.html

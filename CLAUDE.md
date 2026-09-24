@@ -103,6 +103,49 @@ con `gh auth refresh -h github.com -s workflow`.
    real. Si cambia el comportamiento: entrada en `DECISIONS.md` **y** en el ADR
    de Notion
 8. Actualizar Notion (regla 1)
+9. Actualizar el tracker: `node tracker/cli.mjs update T-XXXX --commit <sha> --pr <n>`, y una
+   `--nota` con lo que se midió. Si el cambio no tenía tarea, se crea con `add`.
+
+## El tracker: cada cosa que pide el dueño queda registrada
+
+Existe `tracker/` (ver `tracker/LEEME.md`): un fichero por tarea, con lo que pidió, con sus
+palabras, en qué quedó y la prueba de que funciona. Está porque hacía falta: el dueño llegó a pedir
+**seis veces en ocho días** la misma cosa —entrar como otro usuario, T-0007— y ninguna sesión supo
+que ya se había pedido.
+
+**Antes de empezar una tarea, se busca.**
+
+```bash
+node tracker/cli.mjs search "lo que acaba de pedir"
+```
+
+Si sale algo igual o parecido, **se le dice antes de tocar nada**, con su número, su fecha y su
+estado: *«esto es T-0044, del 2026-09-10, y quedó en Parcial — ¿lo rehago, lo corrijo o lo dejo?»*.
+No se decide por él, y no se rehace en silencio algo que ya estaba.
+
+**Al terminar, se actualiza siempre.** Un commit sin su tarea al día deja el tracker mintiendo, y
+un tracker que miente se deja de mirar a la semana.
+
+**Dos cosas que NO se ponen solas:**
+
+- **«Completado» lo pone él.** Una tarea la cierra quien la pidió, no quien la hizo. El CLI exige
+  `--confirmado-por-el-dueno` y una `--nota` que diga cuándo y dónde lo confirmó.
+- **«verificado» necesita decir quién lo midió, cuándo y cómo.** «Desplegado» significa que el
+  código está publicado; no significa que nadie lo haya abierto. Poner `--verificacion verificado`
+  sin `--prueba` se rechaza, y así debe ser: una afirmación sin nada detrás es peor que ninguna,
+  porque se cree.
+
+**La fecha de una tarea es cuándo lo pidió él.** De un mensaje suyo, la del mensaje; de una entrada
+de `DECISIONS.md`, la de la decisión. **Nunca la del commit, la del despliegue ni la de un espejo**
+— esas dicen cuándo se hizo algo, y la tabla ordena por cuándo lo pidió.
+
+**Su texto no se transcribe: se extrae.** Al copiar a mano las palabras del dueño se le quitan los
+acentos y se le arreglan las faltas sin querer, y entonces deja de ser una cita. Se saca del fichero
+de sesión o de la cita de `DECISIONS.md`.
+
+**Para enseñárselo:** `npm run tracker` abre la página en `127.0.0.1:4319`, y
+`node tracker/cli.mjs html > tracker/informe.html` deja un fichero que se abre con doble clic, sin
+servidor y sin internet.
 
 ## Flujo de ramas
 
