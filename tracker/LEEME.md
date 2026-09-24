@@ -23,7 +23,7 @@ consultas no compensa perder la revisión por PR de lo que dijo el dueño.
 | campo | qué es |
 |---|---|
 | `id` | `T-0001`. El nombre del fichero **es** el candado: dos sesiones no pueden crear el mismo. |
-| `fecha` | cuándo lo pidió, `YYYY-MM-DD` en la zona del negocio (`America/Chicago`). |
+| `fecha` | **cuándo lo pidió él**, `YYYY-MM-DD` en la zona del negocio (`America/Chicago`). Ver abajo: se equivoca con facilidad. |
 | `resumen` | una o dos líneas. Lo que se lee en la tabla. |
 | `texto_original` | **sus palabras, literales**, cuando las hay. Vacío no es lo mismo que «no dijo nada»: es «no lo tengo». |
 | `lo_hizo_claude` | `Si` / `Parcial` / `No`. |
@@ -35,6 +35,20 @@ consultas no compensa perder la revisión por PR de lo que dijo el dueño.
 
 Los cuatro estados, con sus palabras: **En revisión – desplegado**, **En revisión – no desplegado**,
 **Ocupa revisión**, **Completado**.
+
+## La fecha es la del pedido, y solo la del pedido
+
+De un mensaje suyo, la del mensaje. De una entrada de `DECISIONS.md`, la de la decisión, que es lo
+más cerca del pedido que queda cuando no hay transcripción.
+
+**Nunca la de un commit, la de un despliegue, ni la de una fila de un espejo.** Esas dicen cuándo se
+hizo algo, y la tabla ordena por cuándo lo pidió: mezclarlas hace que una petición de agosto
+aparezca en septiembre y parezca reciente.
+
+Ya se coló una vez. T-0016 llevaba `2026-09-17` porque era la fila más nueva del espejo de Notion —
+que además resultó ser un parche escrito a mano, así que ni siquiera medía lo que parecía medir. Se
+corrigió a `2026-08-18`, la fecha de D-046, que es donde el dueño pidió la documentación viva.
+`update --fecha` existe para eso: se corrige por el CLI, con su validación, y no editando el JSON.
 
 ## «Completado» no se pone solo
 

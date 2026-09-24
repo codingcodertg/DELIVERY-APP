@@ -168,6 +168,13 @@ function cmd_update() {
     t.lo_hizo_claude = flags.hizo; cambios++;
   }
   if (flags.resumen && flags.resumen !== true) { t.resumen = tapaSecretos(String(flags.resumen)).texto; cambios++; }
+  if (flags.fecha && flags.fecha !== true) {
+    // `fecha` es **cuándo lo pidió el dueño**, y se equivoca con facilidad: es tentador poner la del
+    // commit, la de la fila de un espejo o la del día en que uno se entera. Se puede corregir desde
+    // aquí, y no editando el JSON a mano, para que el cambio pase por la validación y se note.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(flags.fecha)) muere("--fecha tiene que ser YYYY-MM-DD");
+    t.fecha = flags.fecha; cambios++;
+  }
   if (flags.padre && flags.padre !== true) {
     if (!lee(flags.padre)) muere("la tarea madre " + flags.padre + " no existe");
     t.padre = flags.padre; cambios++;

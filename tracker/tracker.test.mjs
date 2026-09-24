@@ -239,6 +239,23 @@ describe("un fichero por tarea, y los ids no se pisan", () => {
     }
   });
 
+  it("y ninguna fecha cae fuera del tramo que se reconstruye", () => {
+    // La `fecha` es la del PEDIDO. No lo puede comprobar una prueba —no sabe qué pidió él— pero sí
+    // puede cazar las dos formas en que se equivoca: una fecha del futuro, que solo sale de copiar
+    // un reloj, y una anterior al corte, que sale de copiar la de un commit viejo.
+    //
+    // Ya se coló una: T-0016 llevaba la fecha de una fila del espejo de Notion en vez de la de
+    // D-046. Esa no la caza esto, porque caía dentro del tramo; por eso la regla vive en el LEEME
+    // y aquí solo está el cinturón.
+    const dir = join(process.cwd(), "tracker", "tareas");
+    const hoy = diaLocal();
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      const t = JSON.parse(readFileSync(join(dir, f), "utf8"));
+      expect([f, t.fecha >= "2026-07-23"], f).toEqual([f, true]);
+      expect([f, t.fecha <= hoy], f).toEqual([f, true]);
+    }
+  });
+
   it("y ninguna tarea de ejemplo se declara Completada", () => {
     // El dueño aún no ha confirmado nada. Que el propio repo arranque con ceros es parte del punto.
     const dir = join(process.cwd(), "tracker", "tareas");
