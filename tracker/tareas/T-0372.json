@@ -1,0 +1,29 @@
+{
+  "id": "T-0372",
+  "fecha": "2026-09-24",
+  "resumen": "Los campos de contraseña nacen vacíos, sin puntos de ejemplo",
+  "texto_original": "in the login field el sugerido de los dots confunde como si ya hubiese algo entonces que ese field y el de todos los password este blank y no con algo sugerido",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-388"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T11:48:09-05:00",
+  "modificado": "2026-09-24T11:48:09-05:00"
+}

@@ -17,9 +17,12 @@ import { usePrefs } from "@/lib/prefs";
  *
  * El botón dice lo que hace en los dos idiomas, como título y como `aria-label`, y marca su estado con
  * `aria-pressed`: un lector de pantalla no ve el emoji.
+ *
+ * **Sin nada sugerido dentro** (D-388). El campo traía ocho puntos de ejemplo y el dueño: «el sugerido
+ * de los dots confunde, como si ya hubiese algo». Un campo de contraseña vacío tiene que verse vacío.
  */
 export function PasswordInput({
-  value, onChange, onKeyDown, placeholder = "••••••••", autoComplete, autoFocus,
+  value, onChange, onKeyDown, placeholder = "", autoComplete, autoFocus,
 }: {
   value: string;
   onChange: (v: string) => void;
