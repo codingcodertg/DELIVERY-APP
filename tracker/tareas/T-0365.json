@@ -1,0 +1,31 @@
+{
+  "id": "T-0365",
+  "fecha": "2026-09-24",
+  "resumen": "Promos: la columna Nota se puede quitar en ⚙ Columnas",
+  "texto_original": "nota esta showign en el promos table pero no aaprece para quitar en el columns",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "205"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-381"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:21-05:00",
+  "modificado": "2026-09-24T09:31:21-05:00"
+}

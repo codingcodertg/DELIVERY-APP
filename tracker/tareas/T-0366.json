@@ -1,0 +1,31 @@
+{
+  "id": "T-0366",
+  "fecha": "2026-09-24",
+  "resumen": "Pantalla del 142: almacén deshace una etapa en su tienda, office borra borradores de su tienda, y un borrado rechazado no se da por hecho",
+  "texto_original": "LAS LO DEL 142 LO DEMAS OLVIDALO",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": "T-0359",
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "208"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-383"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:21-05:00",
+  "modificado": "2026-09-24T09:31:21-05:00"
+}

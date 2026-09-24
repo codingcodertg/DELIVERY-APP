@@ -1,0 +1,31 @@
+{
+  "id": "T-0363",
+  "fecha": "2026-09-23",
+  "resumen": "Promos: botón para volver al RTG Hub desde la tabla de una ronda",
+  "texto_original": "el promo bien pero quitaste el boton para volver al rtg hub",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "202"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-378"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:20-05:00",
+  "modificado": "2026-09-24T09:31:20-05:00"
+}

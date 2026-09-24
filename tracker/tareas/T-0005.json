@@ -8,12 +8,17 @@
   "padre": null,
   "evidencia": {
     "commits": [],
-    "prs": [],
+    "prs": [
+      "206",
+      "207"
+    ],
     "ficheros": [
       "tracker/cli.mjs",
       "tracker/tarea.mjs"
     ],
-    "decisiones": [],
+    "decisiones": [
+      "D-382"
+    ],
     "links": []
   },
   "verificacion": {
@@ -29,6 +34,10 @@
     {
       "fecha": "2026-09-23T21:33:02-05:00",
       "texto": "Lo pidió o lo afinó el 2026-09-23 a las 20:41: «<pasted_content id=\"e8e0\"> Necesito que construyas un sistema de \"accountability\" para llevar control de todas las tareas que te pido en este repositorio: [NOMBRE DEL REPO / ORGANIZACIÓN EN GITHUB]. Antes de escribir código, preséntame un plan corto (stack, estructura de archivos, cómo vas a reconstruir el historial y cómo se conecta contigo) y espera mi aprobación. ## PARTE 1 — Reconstruir el historial (últimos 2 meses) Revisa todas las fuentes disponibles para encontrar las tareas que te he pedido desde hace 2 meses hasta hoy: 1. Los transcripts de sesiones de Claude Code en ~/.claude/projects/ (archivos .jsonl) que correspondan a este proyecto. De ahí saca mis pedidos originales y la fecha. 2. El historial de git: commits (sobre todo los que tengan \"Co-Authored-By: Claude\"), ramas y tags. 3. GitHub: Pull Requests, issues, y el estado de deploys/GitHub Actions (usa `gh` CLI si está disponible). Cruza las fuentes para armar una lista de tareas. Si una misma tarea aparece en varias sesiones, júntala en una sola entrada. Si alguna fuente no está disponible o está incompleta (por ejemplo, transcripts borrados), avísame qué rango de fechas no se pudo cubrir. Para cada tarea guarda: - ID - Qué pedí (resumen claro de 1–2 líneas + el texto original si existe) - Fecha del pedido - ¿Claude lo hizo? (Sí / Parcial / No) - Estado, uno de estos: • \"En revisión – desplegado\" • \"En revisión – no desplegado\" • \"Ocupa revisión\" (hay algo mal o incompleto) • \"Completado\" (está bien hecho y cerrado) - Evidencia: commits, PRs, archivos tocados, links - Notas Asigna el estado inicial según la evidencia (por ejemplo: PR mergeado y desplegado = \"En revisión – desplegado\"; código hecho sin deploy = \"En revisión – no desplegado\"). Yo soy el único que marca algo como \"Completado\", salvo que la evidencia sea muy clara; en ese caso márcalo y déjalo anotado. ## PARTE 2 — La app Crea una app web sencilla (local) para ver y administrar las tareas: - Tabla con todas las tareas, ordenadas por fecha - Filtros por estado y por rango de fechas, y buscador por texto - Poder cambiar el estado y agregar notas desde la app - Contadores arriba: cuántas en cada estado - Vista de detalle con la evidencia (commits, PRs) Los datos deben vivir en un archivo dentro del repo (SQLite o JSON, lo que te parezca mejor) para que tú también puedas leerlos y escribirlos. Incluye un comando simple para levantar la app (ej: `npm run tracker`). ## PARTE 3 — Conexión contigo (lo más importante) Quiero que cada tarea nueva quede registrada automáticamente, y que si te pido algo que ya se hizo, me avises. 1. Crea un CLI o script (ej: `tracker add`, `tracker update`, `tracker search`) que tú puedas usar para leer y escribir en el tracker. 2. Configura hooks de Claude Code en .claude/settings.json: - En UserPromptSubmit: buscar en el tracker tareas parecidas a lo que estoy pidiendo y, si hay coincidencias, inyectarlas como contexto. - Al terminar una tarea (Stop): registrar o actualizar la tarea con su estado y evidencia. 3. Agrega reglas en CLAUDE.md: - Antes de empezar cualquier tarea, busca en el tracker. Si ya existe algo igual o muy parecido, dímelo primero con su fecha y estado, y pregúntame si quiero rehacerla, corregirla o dejarla así. - Al terminar, actualiza el tracker siempre. Nunca marques \"Completado\" sin mi confirmación. ## PARTE 4 — Multitasking: orchestrator + 2 workers Configura subagentes en .claude/agents/ para trabajar en paralelo: - Un \"orchestrator\" que reciba mis pedidos, los divida en subtareas independientes, las reparta, revise los resultados y actualice el tracker. - Dos \"workers\" que ejecuten subtareas. Cada worker debe trabajar en su propia rama o git worktree para no pisarse con el otro. - Reglas: solo paralelizar trabajo que no toque los mismos archivos; si hay dependencia, hacerlo en orden. Cada subtarea también se registra en el tracker, ligada a la tarea padre. Documenta en un README corto cómo usar todo esto: cómo abrir la app, cómo lanzar el orchestrator, y cómo correr sesiones en paralelo con worktrees. ## Reglas generales - No borres ni modifiques código existente del proyecto fuera de lo necesario para esto. - Pídeme confirmación antes de cualquier acción destructiva o de hacer push/deploy. - Al final, dame un resumen: cuántas tareas encontraste, cuántas en cada estado, y qué huecos quedaron en el historial. </pasted_content id=\"e8e0\">»"
+    },
+    {
+      "fecha": "2026-09-24T09:31:22-05:00",
+      "texto": "2026-09-24: publicado el tracker con informe HTML (#206) y las reglas en CLAUDE.md (#207); hooks instalados en local (.claude/settings.json, ignorado por git). Hook de contexto probado a mano: con «almacén vea solo lo de su tienda» devuelve T-0001, T-0002, T-0359."
     }
   ],
   "fuentes": [
@@ -36,5 +45,5 @@
     "sesion:83590ac0 2026-09-23 20:41"
   ],
   "creado": "2026-09-23T20:50:20-05:00",
-  "modificado": "2026-09-23T21:33:02-05:00"
+  "modificado": "2026-09-24T09:31:22-05:00"
 }
