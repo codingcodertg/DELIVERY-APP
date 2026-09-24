@@ -24,8 +24,15 @@ tocado producción, no he ensayado nada y no tengo `.env.local` en este worktree
 | estados | `cli.mjs list --contar` | 352 desplegado · 10 ocupa revisión · **0 Completado** |
 | verificación | ídem | 360 sin verificar · 2 verificado · 0 falló |
 | última migración | `supabase/migrations/` | **143**, así que esta es la **144** |
-| `is_admin()` | `099_profiles_row_rls.sql:26` | `current_user_role() = 'admin'`, `security definer` |
+| `is_admin()` | `099_profiles_row_rls.sql:26` | `coalesce(current_user_role() = 'admin', false)`, `security definer` |
+| `current_user_role()` | `supabase/roles.sql:15` | `select role from public.profiles where id = auth.uid()` |
 | el patrón de la casa para service-role | `009_routes.sql:26` | `if auth.uid() is null then return NEW; end if;` — **«sin sesión, pasa todo»** |
+
+**De esas dos definiciones se sigue algo que conviene tener leído y no supuesto:** sin sesión,
+`auth.uid()` es null, así que `current_user_role()` devuelve null y **`is_admin()` devuelve `false`**
+por el `coalesce`. O sea que service-role **no** pasa por `is_admin()`. Las políticas de §5 no le
+afectan igualmente, porque `supabase_admin` tiene `bypassrls` y la RLS ni se evalúa; lo que sí le
+afecta es el **trigger** de §6, que corre siempre. Esa es la pieza que hace cumplir la regla.
 
 **NO medido, y hace falta antes de aplicar:**
 
