@@ -25765,6 +25765,17 @@ de mayor a menor da «$112.00 | $112.00 | $112.00 | $110.00 | $104.00 …», y e
 tabla. **La tabla de paradas no ordena ni filtra**, ni antes ni ahora: su orden ES la ruta, y ordenarla por otra columna
 contradiría las flechas.
 
+### Mutantes
+
+18, leídos por el nombre de la prueba que cae; **caen los 18**. Los que se pidieron: «el costo no se puede elegir en
+«Sin asignar»» (M1), «el costo se pinta con otro formato: toma la celda del PO» (M2, lo caza la prueba de rótulos y la del
+valor), «la página no pinta con la celda de Órdenes» (M3) o «pinta el valor crudo» (M4), y «no ordena»: en la librería
+(M5) y en la página, que deja de pasar el catálogo (M6). Además: la etiqueta de dinero del filtro (M7), la etapa que no
+encuentra `stage` (M8), un rótulo distinto (M9, M16), una de paradas que nace visible (M10), lo guardado sin la marca v4
+(M11), las de paradas sin puesto colándose en los ocultos (M12), `colSpan` y ancho que no las cuentan (M13, M14), la cuenta
+«Programadas» que no lleva a Rutas (M15), la etapa sin `td-pastillas` (M17) y una lista con chofer/carga/parada que no se
+limpia al marcar (M18).
+
 ### Lo que no se verificó
 
 - **El guardado por persona contra la base real.** El demo no tiene `user_prefs`: la marca `_v4`, y que una lista guardada con
