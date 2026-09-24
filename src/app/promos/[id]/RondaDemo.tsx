@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { esDecisorDePromos, puedeVerPrivadasDePromos, type ProductoDeCatalogo } from "@/lib/promos/tabla";
-import { DECISIONES_DEMO, GRUPOS_DEMO_LISTA, PRODUCTOS_DEMO } from "@/lib/promos/demo";
+import { DECISIONES_DEMO, GRUPOS_DEMO_LISTA, PRODUCTOS_DEMO, RONDAS_DEMO, TIENDAS_CON_GRUPO_DEMO } from "@/lib/promos/demo";
+import { tiendasSinGrupoDePromos } from "@/lib/promos/entrada";
 import { TablaDeRonda } from "./TablaDeRonda";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe el selector «Ver como». */
@@ -69,6 +70,8 @@ export function RondaDemo({ ronda }: { ronda: { id: string; label: string; close
       esDecisor={esDecisorDePromos({ rol, grupo })}
       esAdmin={rol === "admin"}
       gruposDelLibro={GRUPOS_DEMO_LISTA}
+      rondas={RONDAS_DEMO}
+      tiendasSinGrupo={tiendasSinGrupoDePromos(TIENDAS_CON_GRUPO_DEMO)}
     />
   );
 }
