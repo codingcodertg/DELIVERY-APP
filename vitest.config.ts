@@ -14,6 +14,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // `tracker/` vive fuera de `src/` —es una herramienta, no la app— pero sus pruebas corren en la
+    // misma suite a propósito: una herramienta que CI no vigila se pudre sin que nadie se entere, y
+    // esta guarda la regla de que «Completado» no se pone solo.
+    include: ["src/**/*.test.ts", "tracker/**/*.test.mjs"],
   },
 });

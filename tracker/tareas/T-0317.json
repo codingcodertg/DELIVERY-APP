@@ -1,0 +1,38 @@
+{
+  "id": "T-0317",
+  "fecha": "2026-09-17",
+  "resumen": "El campo de cuenta es un solo control: se escribe y sugiere",
+  "texto_original": "I wanted this field be a search bar that autopopulates\nautomatically when you start typing, so it will be a search and dropdown in the same field",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "36dbbcee"
+    ],
+    "prs": [
+      "127"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-305"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-305 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

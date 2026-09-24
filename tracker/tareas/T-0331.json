@@ -1,0 +1,38 @@
+{
+  "id": "T-0331",
+  "fecha": "2026-09-19",
+  "resumen": "Con un plan publicado, las etiquetas P/D de la ruta son las del plan — mientras la ruta siga siendo la que el plan escribió",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "af18dbbd"
+    ],
+    "prs": [
+      "156"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-335"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:28-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-335 (2026-09-19)"
+  ],
+  "creado": "2026-09-24T08:34:28-05:00",
+  "modificado": "2026-09-24T08:34:28-05:00"
+}

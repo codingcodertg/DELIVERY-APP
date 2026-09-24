@@ -1,0 +1,33 @@
+{
+  "id": "T-0046",
+  "fecha": "2026-09-10",
+  "resumen": "Recruiting pasa a ser Recursos Humanos: Reclutamiento queda dentro, y fuera el expediente de cada empleado con alta, baja, usuario, correo, teléfono y extensión.",
+  "texto_original": "Quiero en el eh, Recruiting App, que ahora es Human Resources App, quiero que esté el apartado, ¿verdad? Todas esas views, que sea un botón que haya Recruiting dentro de ahí. Y afuera esté como los expedientes de todos los empleados. Cuando ingresaron, cuando si se fueron, si están desactivados, si tienen user creado, si ocupan un user creado, si tienen cuenta, email, eh, teléfono, Eh, si tiene Ring Central y todo ese tipo de cosas, quiero que me hagas un apartado para que es, con eso se cree.",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "ec5631eb"
+    ],
+    "prs": [
+      "73"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-251"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-10 21:15"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

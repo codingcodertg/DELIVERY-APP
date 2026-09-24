@@ -1,0 +1,33 @@
+{
+  "id": "T-0034",
+  "fecha": "2026-09-08",
+  "resumen": "«Recogido» y «Entregado» pedían dos toques: el primero abría la ficha en vez de cambiar la etapa.",
+  "texto_original": "PICKUP AND DELIVERED NEEDS 2 TAPS porque si no he abierto el orden y en el view the my route no estoy dentro del order form y me sale pickup odeliver enves de cambiar el stage me abre el formulario y me toca volver a presionar deliver o pickup",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "e35b41c0"
+    ],
+    "prs": [
+      "34"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-218"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-08 10:37"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

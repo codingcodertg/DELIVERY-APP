@@ -1,0 +1,38 @@
+{
+  "id": "T-0293",
+  "fecha": "2026-09-17",
+  "resumen": "Intertienda: el destino no puede ser «Vendido desde» por ningún camino",
+  "texto_original": "la regla de tienda a tienda (vender a la misma tienda) funcionó en el preview\npero no en el formulario final; o sea, en Intertienda el destino no puede ser la misma que la tienda\n\"vendido desde\"",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "e68da9ec"
+    ],
+    "prs": [
+      "97"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-276"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:24-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-276 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

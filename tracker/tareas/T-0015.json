@@ -1,0 +1,56 @@
+{
+  "id": "T-0015",
+  "fecha": "2026-07-23",
+  "resumen": "TRAMO SIN REGISTRO DEL PEDIDO: del 2026-07-23 al 2026-08-10 hay 207 commits y ninguna fuente de qué se pidió.",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "No hay transcripción de sesión —la más antigua en esta máquina es del 2026-09-04— ni entrada de DECISIONS.md, que empieza el 2026-08-11. Lo único que queda es git."
+    },
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "NO se reconstruye que pidió el dueño a partir de los mensajes de commit. De un commit sale lo que se HIZO, no lo que se PIDIÓ, y convertir lo uno en lo otro sería fabricar justo el dato que este tracker viene a controlar."
+    },
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "Las áreas que se tocaron en ese tramo van en las notas de abajo, sacadas del mensaje de cada commit, y estan para que el dueño reconozca lo que sea suyo — no como afirmación de que lo pidió."
+    },
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "El corte del 23 de julio son sus «2 meses hasta hoy». Del 17 al 22 de julio hay commits que quedan fuera por el corte, no por falta de fuente."
+    },
+    {
+      "fecha": "2026-09-23T21:12:05-05:00",
+      "texto": "CORRECCIÓN DEL NÚMERO: la primera versión de esta entrada decía 245 commits. 245 es el tramo 07-17..08-10; con el corte aprobado en el 23 de julio —los «2 meses hasta hoy» del dueño— son 207. Recontado con git log --since=2026-07-23 --until=2026-08-11."
+    },
+    {
+      "fecha": "2026-09-23T21:12:05-05:00",
+      "texto": "Los 207 llevan los tres a Claude como coautor: 207 de 207, contado sin distinguir mayúsculas. Por eso «lo hizo Claude: Si» aquí es un hecho medible aunque no sepamos que se pidió."
+    },
+    {
+      "fecha": "2026-09-23T21:12:05-05:00",
+      "texto": "Áreas más tocadas, del mensaje de cada commit y SOLO como inventario de lo que se hizo: Rutas 40, Mapa de mercado 8, Formulario de orden 6, Modo enseñanza 4, Paradas de ruta 4, Epic C 4, Almacén 3, Roles 3, Precios 3, Mapa 3, Panel 3, Cuentas 3, y una cola larga de una o dos (Usuarios, Tablas, Ajustes, Gestor de rutas, Reentrega, Órdenes, Tipos de orden, Móvil)."
+    }
+  ],
+  "fuentes": [
+    "git log 2026-07-23..2026-08-10"
+  ],
+  "creado": "2026-09-23T21:11:38-05:00",
+  "modificado": "2026-09-23T21:14:35-05:00"
+}

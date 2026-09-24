@@ -1,0 +1,38 @@
+{
+  "id": "T-0272",
+  "fecha": "2026-09-13",
+  "resumen": "El desglose de la tarifa, en los dos sitios donde se enseña la tarifa",
+  "texto_original": "¿Cómo se calculó?",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "bd908d5b"
+    ],
+    "prs": [
+      "72"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-249"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:23-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-249 (2026-09-13)"
+  ],
+  "creado": "2026-09-24T08:34:23-05:00",
+  "modificado": "2026-09-24T08:34:23-05:00"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "T-0057",
+  "fecha": "2026-09-16",
+  "resumen": "La opción de instalar la app solo la veía el admin.",
+  "texto_original": "APP PARA INSTALAR SE MIRA SOLO PARA EL ADMIN",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 12:05"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

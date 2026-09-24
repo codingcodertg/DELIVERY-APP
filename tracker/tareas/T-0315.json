@@ -1,0 +1,38 @@
+{
+  "id": "T-0315",
+  "fecha": "2026-09-17",
+  "resumen": "Intertienda: la tienda que la abre vende y recibe, y lo que se elige es quién manda",
+  "texto_original": "el store sold from debería quedar freeze, y solo en ese caso\nquitar el store address, no se necesita; el store destination es el mismo store sold from, y el pickup\nes el dropdown que se elige qué tienda es",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "7b4af87a"
+    ],
+    "prs": [
+      "124"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-302"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-302 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

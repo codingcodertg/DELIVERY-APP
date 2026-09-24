@@ -1,0 +1,27 @@
+{
+  "id": "T-0037",
+  "fecha": "2026-09-08",
+  "resumen": "El chofer puede dejar una orden en una tienda para que otro la recoja, y los pines del mapa se limitan: aviso al tercero y bloqueo al tercer aviso del día, que lo levanta un admin.",
+  "texto_original": "DRIVER HAS AN OPTION TO DROP THE ORDER ON A STORE SO SOMEBODY ELSE CAN PICK IT UP AND DELVIER THE ORDER ON THIS GOES BACK ON THE LIST IF THE USER PINPOINTS MORE THAN 3 TIMES GIVE THEM A REMINDER TO STOP BECAUSE EVEYR RQUEST COSTS MONEY IN 1 ORDER, KEEP PINPOINTS LIMITED IT COSTS MONEY IF THEY GET THIS WARNING 3 TIMES A DAY BLOCK THEM AND THE ADMIN CAN UNBLOCK IT",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-08 17:34"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

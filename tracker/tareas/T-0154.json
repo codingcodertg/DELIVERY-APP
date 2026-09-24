@@ -1,0 +1,36 @@
+{
+  "id": "T-0154",
+  "fecha": "2026-08-21",
+  "resumen": "La brecha real de D-073: lo trabajado después del corte de la migración",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "a9b72947"
+    ],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-078"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:16-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-078 (2026-08-21)"
+  ],
+  "creado": "2026-09-24T08:34:16-05:00",
+  "modificado": "2026-09-24T08:34:16-05:00"
+}

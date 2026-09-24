@@ -1,0 +1,38 @@
+{
+  "id": "T-0307",
+  "fecha": "2026-09-17",
+  "resumen": "Dos tiendas que trabajan juntas: comparten la cola, se venden la una desde la otra y se prestan gente",
+  "texto_original": "no, no como una tienda; siempre 2 tiendas, pero ambos\nemployees mirarán las órdenes de ambas",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "a6f167ed"
+    ],
+    "prs": [
+      "115"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-293"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-293 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

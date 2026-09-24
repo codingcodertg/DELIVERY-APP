@@ -1,0 +1,38 @@
+{
+  "id": "T-0292",
+  "fecha": "2026-09-17",
+  "resumen": "Órdenes: ordenar y filtrar desde el mismo menú, y los menús se cierran al salir",
+  "texto_original": "el filtro en la pestaña de órdenes solo se habilita\ndespués de ordenar; que ordenar y filtrar estén disponibles al primer clic",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "63f7de26"
+    ],
+    "prs": [
+      "96"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-275"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:24-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-275 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

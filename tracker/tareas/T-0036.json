@@ -1,0 +1,33 @@
+{
+  "id": "T-0036",
+  "fecha": "2026-09-08",
+  "resumen": "Al fijar una ubicación en el mapa salen siempre los puntos de las tiendas, como referencia.",
+  "texto_original": "donde se pone set location pon los puntos donde estan las tiendas siempre para referencia",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "c73b2bdb"
+    ],
+    "prs": [
+      "38"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-222"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-08 15:54"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "T-0040",
+  "fecha": "2026-09-09",
+  "resumen": "Un perfil sin acceso entraba directo al ERP, y desde el ERP no había forma de volver al hub.",
+  "texto_original": "entro en el perfil de patricia hernandez y entro directamente al erp cuando no tiene acceso y le doy ir al hub all apps y nome sale nada",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-09 a las 21:51: «YA NO ME APARECE EL BOTON PARA VOLVER AL HUB EN EL ERP»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-09 16:35",
+    "sesion:83590ac0 2026-09-09 21:51"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

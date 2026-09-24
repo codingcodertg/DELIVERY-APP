@@ -1,0 +1,38 @@
+{
+  "id": "T-0295",
+  "fecha": "2026-09-17",
+  "resumen": "«Office»: `accounting` se llama Oficina, y crea y aprueba órdenes como el gerente",
+  "texto_original": "cambia accounting a office; manager sigue siendo office manager; y office tiene la misma regla de solo\n  ver ayer, hoy y mañana",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "8eaafca7"
+    ],
+    "prs": [
+      "101"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-279"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:25-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-279 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:25-05:00",
+  "modificado": "2026-09-24T08:34:25-05:00"
+}

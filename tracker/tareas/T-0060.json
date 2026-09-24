@@ -1,0 +1,49 @@
+{
+  "id": "T-0060",
+  "fecha": "2026-09-16",
+  "resumen": "Restablecer la contraseña por correo no funcionaba: sin acceso al dominio de la empresa, con «Error sending recovery email» y con enlaces que morían con «PKCE code verifier not found».",
+  "texto_original": "NO TENGO ACCESO A DOMINIO DE RDZTILEGROUP.NET HAGAMOSLO DE OTRA FORMA",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 12:57: «Error sending recovery email»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 13:01: «try again la puse con espacios ahoria se los quite»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 13:02: «works but look Otra cuenta The link is no longer valid: PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies.»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 16:23: «managementrfc email no esta dejando reset password investiga qe paso»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 12:44",
+    "sesion:83590ac0 2026-09-16 12:57",
+    "sesion:83590ac0 2026-09-16 12:57",
+    "sesion:83590ac0 2026-09-16 13:01",
+    "sesion:83590ac0 2026-09-16 13:02",
+    "sesion:83590ac0 2026-09-17 16:23"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

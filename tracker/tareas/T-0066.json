@@ -1,0 +1,39 @@
+{
+  "id": "T-0066",
+  "fecha": "2026-09-17",
+  "resumen": "El rol «accounting» pasa a llamarse Office, puede crear órdenes como el gerente, y le aplica la misma ventana de fechas.",
+  "texto_original": "all office people need to have the option to create new orders",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "960e396c"
+    ],
+    "prs": [
+      "99"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-277"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 12:07: «change accounting to office but manager is still offfice manager and office has the same rule that can only see yesterday today and tomorrow»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-17 11:55",
+    "sesion:83590ac0 2026-09-17 12:07"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

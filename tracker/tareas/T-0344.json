@@ -1,0 +1,38 @@
+{
+  "id": "T-0344",
+  "fecha": "2026-09-22",
+  "resumen": "En el Gestor, la línea del chofer seleccionado sigue su plan publicado, recogidas incluidas",
+  "texto_original": "no tienen sentido los puntos, averigua qué pasó porque no salen bien las\nrutas: cuando selecciono el driver debería mostrar las rutas que él tiene",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "5d54e348"
+    ],
+    "prs": [
+      "176"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-352"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:29-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-352 (2026-09-22)"
+  ],
+  "creado": "2026-09-24T08:34:29-05:00",
+  "modificado": "2026-09-24T08:34:29-05:00"
+}

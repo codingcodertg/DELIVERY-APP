@@ -1,0 +1,33 @@
+{
+  "id": "T-0033",
+  "fecha": "2026-09-07",
+  "resumen": "El perfil de una empleada abría Entregas en blanco.",
+  "texto_original": "entro al perfil de patricia hernandez y sale totalmente en blanco el deliveries app",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-07 a las 12:49: «y que perfil era el que origino el bug?»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-07 11:54",
+    "sesion:83590ac0 2026-09-07 12:49"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

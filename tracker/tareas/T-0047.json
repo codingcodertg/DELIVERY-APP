@@ -1,0 +1,27 @@
+{
+  "id": "T-0047",
+  "fecha": "2026-09-11",
+  "resumen": "Crear un usuario super admin para otra persona, con los mismos permisos que él.",
+  "texto_original": "please [correo-tapado] as a super admin create him a user just like me",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-11 14:46"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

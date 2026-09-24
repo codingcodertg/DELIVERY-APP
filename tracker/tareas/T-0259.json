@@ -1,0 +1,38 @@
+{
+  "id": "T-0259",
+  "fecha": "2026-09-09",
+  "resumen": "El ERP decide con su propio escalafón: `erp_role`, no el rol de Entregas",
+  "texto_original": "manager · cost visible",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "3f58e5d5"
+    ],
+    "prs": [
+      "44"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-228"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:22-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-228 (2026-09-09)"
+  ],
+  "creado": "2026-09-24T08:34:22-05:00",
+  "modificado": "2026-09-24T08:34:22-05:00"
+}

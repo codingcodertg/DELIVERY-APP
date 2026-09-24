@@ -1,0 +1,27 @@
+{
+  "id": "T-0073",
+  "fecha": "2026-09-17",
+  "resumen": "La ventana de entrega de los sábados solo se ofrece cuando el día elegido es sábado.",
+  "texto_original": "delivery window, the saturday delivery window is only available when selected a saturday day",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-17 19:53"
+  ],
+  "creado": "2026-09-23T21:30:53-05:00",
+  "modificado": "2026-09-23T21:30:53-05:00"
+}

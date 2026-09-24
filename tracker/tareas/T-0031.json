@@ -1,0 +1,33 @@
+{
+  "id": "T-0031",
+  "fecha": "2026-09-06",
+  "resumen": "Cada foto del fichaje guarda la posición GPS, y en Auditoría se ve dónde se tomó.",
+  "texto_original": "en time tracker, el clock in app tiene que guardar gps position cada vez que se toma una foto entonces en audit quiero que integresa esa feature a cada foto para ver la location",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "515d7ab8"
+    ],
+    "prs": [
+      "28"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-212"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-06 18:40"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}
