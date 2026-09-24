@@ -44,3 +44,8 @@ desktop/dist
 
 # informe del tracker generado a mano (node tracker/cli.mjs html > tracker/informe.html)
 tracker/informe.html
+
+# La pagina del tracker se GENERA en el prebuild con las variables del entorno.
+# Commitearla meteria la anon key en git y, el dia que la roten, quedaria una pagina que
+# no entra y nadie sabe por que.
+public/tracker.html
