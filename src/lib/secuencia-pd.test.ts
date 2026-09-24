@@ -89,13 +89,13 @@ describe("dónde se ve", () => {
   // plan publicado —o cuando la ruta se tocó después— y usa las etiquetas del plan cuando la ruta sigue siendo la publicada.
   it("el Gestor: la tabla de paradas por ruta lee la ruta con los MISMOS viajes que pinta, y por chofer", () => {
     expect(gestor).toContain("const trips = buildTrips(stops, capacity); const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver)); const dDe = lectura.etiquetaDe;");
-    // Desde D-NEXT la celda la decide `etiquetaDeLaParada` (probada en lectura-de-ruta.test.ts), también sin optimizar.
+    // Desde D-379 la celda la decide `etiquetaDeLaParada` (probada en lectura-de-ruta.test.ts), también sin optimizar.
     expect(gestor).toContain("const provisional = esProvisional(stops);");
     expect(gestor).toContain("const e = etiquetaDeLaParada(d, dDe, i + 1, provisional);");
     expect(gestor).toContain(">{e.texto}</td>");
     expect(gestor).not.toContain('{d.route_seq != null ? (dDe.get(d.id) ?? i + 1) : "—"}</td>');
   });
-  it("las filas que informan —recogidas, u otra carga de una orden repartida— van ANTES de su entrega, SIN flechas; con secuencia, o provisionales si nadie la ordenó (D-NEXT)", () => {
+  it("las filas que informan —recogidas, u otra carga de una orden repartida— van ANTES de su entrega, SIN flechas; con secuencia, o provisionales si nadie la ordenó (D-379)", () => {
     // El ORDEN de las filas lo decide `filasDelViaje` (probada en lectura-de-ruta.test.ts): aquí, que la tabla pinta ESO y nada más.
     const i = gestor.indexOf("{filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1).map((f) => {");
     expect(i).toBeGreaterThanOrEqual(0);

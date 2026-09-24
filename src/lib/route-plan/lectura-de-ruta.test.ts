@@ -284,10 +284,10 @@ describe("«Mi ruta» pinta el aviso de D-341", () => {
   });
 });
 
-// D-NEXT: el dueño, ante un chofer sin optimizar que enseñaba «—» junto a otro con P1·P2, D1, D2: «¿por qué no tiene P1,
+// D-379: el dueño, ante un chofer sin optimizar que enseñaba «—» junto a otro con P1·P2, D1, D2: «¿por qué no tiene P1,
 // D1 y así?». Las tiendas van INTERCALADAS (B, A, B): el número de recogida no coincide con el de la fila, así que una
 // implementación que numerara por fila no pasaría.
-describe("D-NEXT: una ruta que nadie ordenó enseña su P/D provisional", () => {
+describe("D-379: una ruta que nadie ordenó enseña su P/D provisional", () => {
   const o = (id: string, store: string, route_seq: number | null = null): OrdenAsignada => ({ id, store, est_pallets: 1, load_no: 1, route_seq });
   const viaje = [o("a", "Tienda B"), o("b", "Tienda A"), o("c", "Tienda B")];
   const l = lecturaDeLaRuta([viaje], null);

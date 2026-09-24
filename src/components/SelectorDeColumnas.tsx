@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 
 /**
- * El ⚙ Columnas de las tablas del Gestor de Rutas (D-NEXT), con el mismo aspecto que el de Órdenes (`.col-menu`, `.col-opt`).
+ * El ⚙ Columnas de las tablas del Gestor de Rutas (D-379), con el mismo aspecto que el de Órdenes (`.col-menu`, `.col-opt`).
  *
  * Por qué es un componente y no un trozo de la página: el de la tabla de paradas se pinta UNA VEZ POR CHOFER, dentro de un
  * `map`, y colgaba de un solo estado y una sola `ref` de la página. Medido en el demo (2026-09-23, 4 choferes): pulsar el ⚙

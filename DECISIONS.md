@@ -23267,7 +23267,7 @@ de las pruebas dejaba nada al final; ahora hay uno con la segunda carga de una o
 
 ## D-336 · Una ruta ordenada a medias no gasta números en las órdenes que aún no tienen puesto
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): una ruta que nadie ordenó ya enseña sus etiquetas en el Gestor,
+> **⚠ Reemplazada en parte por D-379** (2026-09-23): una ruta que nadie ordenó ya enseña sus etiquetas en el Gestor,
 > provisionales (en gris y cursiva). Lo de las rutas a medias sigue vigente.
 
 **Fecha:** 2026-09-19 · **Estado:** Vigente · **Afina:** D-334, D-335
@@ -24105,7 +24105,7 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
-> **⚠ Corregida en parte por D-NEXT** (2026-09-23): el ⚙ de paradas colgaba de un solo estado y una sola `ref` para
+> **⚠ Corregida en parte por D-379** (2026-09-23): el ⚙ de paradas colgaba de un solo estado y una sola `ref` para
 > todas las tarjetas; abría todos a la vez y no dejaba marcar (medido en la primera tarjeta). Ahora cada una tiene el suyo.
 
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
@@ -26107,7 +26107,7 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 
 ## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
 
-> **⚠ Corregida por D-NEXT** (2026-09-23): el ⚙ de la tabla de paradas no dejaba marcar las columnas (medido con un clic de
+> **⚠ Corregida por D-379** (2026-09-23): el ⚙ de la tabla de paradas no dejaba marcar las columnas (medido con un clic de
 > persona en la primera tarjeta), y el menú heredaba el estilo de formulario. Lo que abajo se da por «visto al medir» y de aspecto era el
 > fallo: se marcó con `.click()` por código, que no dispara `mousedown`. El resto sigue vigente.
 
@@ -26305,7 +26305,7 @@ no volviera el enlace a `/promos`, prohibía en realidad **cualquier** enlace, t
 quería decir: ningún `href="/promos"`. Y `volver-al-hub.test.ts` exige el enlace a `/home` en las dos pantallas.
 Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
 
-## D-NEXT · El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional
+## D-379 · El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** el dueño, en producción, con captura de la tabla de paradas de un chofer, tras publicarse D-376:

@@ -126,9 +126,9 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly Or
 }
 
 /**
- * Una ruta que NADIE ordenó —ninguna de sus órdenes tiene puesto (`route_seq`)— enseña su P/D **provisional** (D-NEXT).
+ * Una ruta que NADIE ordenó —ninguna de sus órdenes tiene puesto (`route_seq`)— enseña su P/D **provisional** (D-379).
  *
- * Hasta D-NEXT el Gestor pintaba «—» en toda ella (D-336 lo dejó escrito: «el Gestor ya no pinta etiquetas en ese caso»),
+ * Hasta D-379 el Gestor pintaba «—» en toda ella (D-336 lo dejó escrito: «el Gestor ya no pinta etiquetas en ese caso»),
  * aunque `lecturaDeLaRuta` ya la numeraba entera para «Mi ruta». El dueño, viendo un chofer sin optimizar junto a otro
  * con P1·P2, D1, D2: «¿por qué no tiene P1, D1 y así?». Ahora se pinta la misma lectura —el orden en que la tabla enseña
  * las paradas, el que las flechas ↑↓ cambian—, marcada como provisional. Una ruta ordenada A MEDIAS no es provisional:

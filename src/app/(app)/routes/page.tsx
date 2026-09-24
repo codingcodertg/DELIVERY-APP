@@ -227,7 +227,7 @@ export default function RoutesPage() {
   // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
   // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-376, con
   // «Programadas» fuera, son los dos únicos.
-  // Cada ⚙ lleva su propio estado desde D-NEXT (`SelectorDeColumnas`): el de paradas se pinta una vez por chofer y
+  // Cada ⚙ lleva su propio estado desde D-379 (`SelectorDeColumnas`): el de paradas se pinta una vez por chofer y
   // colgaba de un solo estado y una sola `ref` de la página — abría todos a la vez y cerraba el menú al pulsar una casilla.
   useEffect(() => {
     if (!me || SIN_BASE) return;
@@ -2033,7 +2033,7 @@ export default function RoutesPage() {
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
         const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver));
         const dDe = lectura.etiquetaDe;
-        // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-NEXT). A medias, no: D-336.
+        // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
         const provisional = esProvisional(stops);
         // A load a person pinned; the optimizer won't regroup those.
         const pinnedLoads = stops.some((d) => (d.load_no ?? 1) > 1 && !d.load_auto);
@@ -2387,7 +2387,7 @@ export default function RoutesPage() {
                                   style={{ cursor: "pointer" }}
                                   title={t("Open this order", "Abrir esta orden")}
                                 >
-                                  {/* Un renglón por dato (D-NEXT): el código, subrayado porque abre la orden, y la factura debajo, en
+                                  {/* Un renglón por dato (D-379): el código, subrayado porque abre la orden, y la factura debajo, en
                                       pequeño y sin subrayar. El subrayado iba en la celda entera y bajaba también a la factura —un
                                       subrayado heredado no se quita en el hijo—: dos renglones subrayados, uno encima del otro. */}
                                   <span className="parada-id">#{orderLabel(d)}</span>

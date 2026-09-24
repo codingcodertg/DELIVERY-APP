@@ -223,7 +223,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas"))} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
     expect(pagina).toContain('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
   });
-  it("D-NEXT: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
+  it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
     // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
     // choferes. Abría los cuatro a la vez y la ref era la caja del ÚLTIMO: la casilla de otro contaba como clic fuera.
     const mapa = pagina.slice(pagina.indexOf("{shownDrivers.map((u) => {"));
@@ -237,7 +237,7 @@ describe("la página del Gestor", () => {
     expect(selector).toContain("<div ref={caja}");
     expect(selector).toContain('<input type="checkbox" checked={elegidas.includes(c.key)} onChange={() => onAlterna(c.key)} />');
   });
-  it("D-NEXT: el ⚙ del Gestor usa el menú de Órdenes, que quita el estilo de formulario a sus rótulos y casillas", () => {
+  it("D-379: el ⚙ del Gestor usa el menú de Órdenes, que quita el estilo de formulario a sus rótulos y casillas", () => {
     // Un `label` suelto hereda el de formulario: MAYÚSCULAS, y la casilla con width: 100% (medido: 130 px) empujando el texto.
     const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
     expect(selector).toContain('<div className="col-menu"');
@@ -247,7 +247,7 @@ describe("la página del Gestor", () => {
     expect(css).toMatch(/\.col-opt \{[^}]*text-transform: none;/);
     expect(css).toContain(".col-opt input { width: 14px; height: 14px; }");
   });
-  it("D-NEXT: la celda del ID de una parada — un renglón por dato, y solo el código subrayado", () => {
+  it("D-379: la celda del ID de una parada — un renglón por dato, y solo el código subrayado", () => {
     const i = pagina.indexOf('<span className="parada-id">#{orderLabel(d)}</span>');
     expect(i).toBeGreaterThan(-1);
     // La celda ya no se subraya entera: el subrayado heredado bajaba también a la factura.
@@ -317,7 +317,7 @@ describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () 
 describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("el selector está junto al buscador, con las columnas de ESA tabla, y usa la misma función que los otros dos", () => {
-    // Desde D-NEXT es un `SelectorDeColumnas`, con su propio estado (lo fija la prueba de «una vez por chofer»).
+    // Desde D-379 es un `SelectorDeColumnas`, con su propio estado (lo fija la prueba de «una vez por chofer»).
     const i = pagina.indexOf('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))}');
     expect(i).toBeGreaterThan(-1);
     expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
