@@ -92,8 +92,13 @@ describe("Office crea y aprueba, como el gerente sin el panel", () => {
     }
   });
 
-  it("y ve todo el historial, como todos desde D-356 (antes, solo ayer, hoy y lo que viene)", () => {
-    expect(seesAllHistory("accounting")).toBe(true);
+  it("y VUELVE a la ventana de fechas: ayer, hoy y lo que viene (se revierte D-356)", () => {
+    // D-356 le dio el historial entero a los siete roles; el dueño lo cambió el 2026-09-23 y office
+    // volvió adentro. Que lo diga esta prueba —la del rol, no solo la de la ventana— es a propósito:
+    // aquí es donde alguien viene a leer qué puede Office, y un cambio así no debe enterarse por un
+    // fichero de al lado. Si a office hay que devolverle el historial, se le marca la casilla.
+    expect(seesAllHistory("accounting")).toBe(false);
+    expect(seesAllHistory("accounting", ["history"])).toBe(true);
   });
 });
 

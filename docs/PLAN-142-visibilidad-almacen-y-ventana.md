@@ -1,6 +1,22 @@
 # Plan — 142 · Almacén solo lo suyo, la ventana de fechas vuelve, y la vista de recepción
 
-**Estado:** PLAN EN PAPEL. **Nada aplicado, nada construido.** Espera aprobación del dueño.
+**Estado:** RESUELTO el 2026-09-23 — ver la entrada **D-NEXT** de `DECISIONS.md`, que es lo que
+manda. Este plan se deja entero porque es de donde salieron las mediciones, pero **construido no
+está todo lo que hay aquí**:
+
+- Se construyó: el corte de almacén por tienda, la vista de Recepción, ventas solo lo suyo, y la
+  vuelta de la ventana de fechas.
+- **Se descartó entero lo de la base: §5, §7 y §8, y NO hay migración 142.** Una ventana en la
+  política de lectura cortaría la búsqueda por factura (que es el camino al historial), las
+  lecturas de planificación de rutas, y dejaría la casilla de Usuarios sin significado. La base
+  decide **si** puedes leer una orden; la pantalla, **en qué lista sale**.
+- La ventana elegida es la de **D-239** (`withinRetention`: suelo, sin techo), no la de «Reciente».
+
+Lo de abajo queda como estaba el día que se escribió. **No se edita para que cuadre**: si algo de
+aquí contradice a D-NEXT, manda D-NEXT.
+
+---
+
 **Fecha:** 2026-09-23 · **Rama:** `visibilidad-almacen-y-ventana` desde `b7182e21`.
 **Molde:** `docs/PLAN-A-2a-profiles-rls.md`.
 **Prerrequisito:** respaldo antes de aplicar (CLAUDE.md). Aquí la reversión es una política, así que

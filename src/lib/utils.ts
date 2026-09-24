@@ -391,9 +391,13 @@ export const HISTORY_EXEMPT_ROLES = ["admin", "logistics"] as const;
  * almacén. Los dos roles exentos la traen de fábrica (`ROLE_CAPS`), así que nada cambia para ellos.
  */
 /**
- * Y desde D-356 la traen TODOS los roles de fábrica: el dueño, «activa lo que pueden ver todas las órdenes regardless
- * del date a todos». Se mira `ROLE_CAPS` para que la regla viva en un sitio: quitarle el historial a un rol es
- * quitarle `history` allí, y la casilla de Usuarios lo enseña fijo.
+ * D-356 se la dio a los siete roles de fábrica; **eso se revirtió el 2026-09-23** y volvieron a ser
+ * dos. Lo que NO cambió es este mecanismo, que es la parte que salió bien: se mira `ROLE_CAPS`, así
+ * que quitarle el historial a un rol es quitarle `history` allí y nada más, y la casilla de Usuarios
+ * lo enseña fijo. Por eso revertir la decisión fue editar una lista, no tocar esta función.
+ *
+ * Los tres caminos siguen sumando y ninguno resta: rol exento, rol con la capacidad de fábrica, o la
+ * capacidad marcada a esa persona en Usuarios. A quien le hace falta el historial se le marca.
  */
 export function seesAllHistory(role: string | null | undefined, permissions?: readonly string[] | null): boolean {
   if ((HISTORY_EXEMPT_ROLES as readonly string[]).includes(role ?? "")) return true;

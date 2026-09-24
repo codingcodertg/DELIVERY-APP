@@ -16,6 +16,8 @@ import type { PersonaDirectorio } from "./phone-book";
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
+const sinComentarios = (t: string) =>
+  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 const tablero = leer("src/app/(app)/page.tsx");
 const almacen = leer("src/app/(app)/warehouse/page.tsx");
 const cuentas = leer("src/app/(app)/accounts/page.tsx");
@@ -99,54 +101,80 @@ describe("¿es mía alguna de las tiendas de la orden?", () => {
     const cliente = { store: "Tienda Norte", pickup_name: "Tienda Sur", delivery_name: "Casa" };
     expect(tiendaDeLaOrdenEsMia(cliente, A_CLIENTE, "Tienda Sur", TIENDAS)).toBe(false);
     // **Ojo con leer esto como la decisión de ventas.** Es `true`, y aun así un vendedor NO ve la
-    // orden de cliente de su compañero de tienda: quien decide eso es `ventasVeLaOrden`, que exige
-    // además que el tipo sea tienda-a-tienda. Probar esta pieza y dar por hecha la decisión fue
-    // exactamente el defecto que se coló en la primera versión de esta rama.
+    // orden de su compañero de tienda: quien lo decide es `ventasVeLaOrden`, que **desde hoy ya no
+    // mira la tienda en absoluto**. Probar esta pieza y dar por hecha la decisión fue exactamente el
+    // defecto que se coló en la primera versión de esta rama, y por eso siguen siendo dos cosas.
     expect(tiendaDeLaOrdenEsMia(cliente, A_CLIENTE, "Tienda Norte", TIENDAS)).toBe(true);
   });
 });
 
 describe("qué órdenes le tocan a un vendedor", () => {
-  // La decisión ENTERA, con datos. La primera versión de esta rama probaba la pieza
-  // (`tiendaDeLaOrdenEsMia`) y daba por hecho el resto, y por ahí se coló que un vendedor viera las
-  // órdenes de CLIENTE de sus compañeros de tienda: la pieza devuelve `[store]` en un tipo de
-  // cliente, que es lo correcto para la cola de almacén y lo contrario de lo que quiere ventas.
-  const YO = { miId: "vendedor-1", miTienda: "Pharr", tiendas: TIENDAS_RGV };
-  const deOtro = { created_by: "vendedor-2", assigned_sales_rep: null, stage: "approved" as const };
+  // **ESTE BLOQUE SE DIO LA VUELTA A PROPÓSITO, y no es que se rompiera.** D-309 le daba al vendedor
+  // un tercer camino —«de tienda a tienda, y una de las dos es la mía»—; el dueño lo quitó:
+  // *«ventas solo ve sus propias órdenes, pero en cualquier tienda»*. Las respuestas que cambian son
+  // exactamente las que antes concedía la TIENDA, que era el único sitio donde esta función la miraba.
+  //
+  // Los datos de cada caso se dejan enteros —con `store`, `pickup_name` y `delivery_name`— aunque la
+  // función ya no los reciba: así cada `false` dice «con estos datos ANTES era `true`», que es lo que
+  // hay que poder leer dentro de un año. TypeScript los admite porque no son literales frescos.
+  const YO = { miId: "vendedor-1" };
+  const DE_OTRO = { created_by: "vendedor-2", assigned_sales_rep: null, stage: "approved" as const };
 
-  it("una orden de CLIENTE de su tienda, escrita por otro: NO la ve", () => {
-    const orden = { ...deOtro, store: "Pharr", pickup_name: "Pharr", delivery_name: "Casa de un cliente" };
-    expect(ventasVeLaOrden({ ...YO, orden, regla: A_CLIENTE })).toBe(false);
+  it("la orden de CLIENTE de su compañero de tienda: no la ve (esto ya era así)", () => {
+    const orden = { ...DE_OTRO, store: "Pharr", pickup_name: "Un patio", delivery_name: "Casa" };
+    expect(ventasVeLaOrden({ ...YO, orden })).toBe(false);
   });
 
-  it("la misma orden, pero de tienda a tienda: sí la ve", () => {
-    const orden = { ...deOtro, store: "Pharr", pickup_name: "McAllen", delivery_name: "Pharr" };
-    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(true);
+  it("y AHORA TAMPOCO la Intertienda de su tienda escrita por otro — esto es lo que cambió", () => {
+    // Antes: `true`. Era el camino que le enseñaba el trabajo de sus compañeros de tienda.
+    const orden = { ...DE_OTRO, store: "Pharr", pickup_name: "McAllen", delivery_name: "Pharr" };
+    expect(ventasVeLaOrden({ ...YO, orden })).toBe(false);
   });
 
-  it("una Intertienda donde su tienda solo ENVÍA: también la ve", () => {
-    const orden = { ...deOtro, store: "McAllen", pickup_name: "Pharr", delivery_name: "McAllen" };
-    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(true);
+  it("ni aquella en la que su tienda solo ENVÍA — antes también la veía", () => {
+    const orden = { ...DE_OTRO, store: "McAllen", pickup_name: "Pharr", delivery_name: "McAllen" };
+    expect(ventasVeLaOrden({ ...YO, orden })).toBe(false);
   });
 
-  it("una Intertienda entre dos tiendas ajenas: no la ve", () => {
-    const orden = { ...deOtro, store: "McAllen", pickup_name: "Mission", delivery_name: "McAllen" };
-    expect(ventasVeLaOrden({ ...YO, orden, regla: A_TIENDA })).toBe(false);
+  it("y el grupo de tiendas (D-293) tampoco: la PIEZA sigue diciendo que sí, la DECISIÓN ya no la consulta", () => {
+    // Este caso mide que la divergencia es a propósito y no un descuido. D-293 —tiendas que trabajan
+    // juntas— **sigue vivo**: la cola de almacén lo usa, y por eso se afirman las dos cosas en la
+    // misma prueba. Si alguien vuelve a atar ventas a la pieza, esta se pone roja.
+    const orden = { ...DE_OTRO, store: "McAllen", pickup_name: "Mission", delivery_name: "McAllen" };
+    expect(tiendaDeLaOrdenEsMia(orden, A_TIENDA, "Mission", TIENDAS_RGV)).toBe(true);
+    expect(ventasVeLaOrden({ ...YO, orden })).toBe(false);
   });
 
-  it("y el grupo cuenta: quien está en Mission ve una Intertienda de McAllen (D-293)", () => {
-    const orden = { ...deOtro, store: "McAllen", pickup_name: "Pharr", delivery_name: "McAllen" };
-    expect(ventasVeLaOrden({ ...YO, miTienda: "Mission", orden, regla: A_TIENDA })).toBe(true);
+  it("la suya la ve, y ahora EN CUALQUIER TIENDA: es la otra mitad del cambio", () => {
+    // Ya no queda cláusula que pueda quitársela por la tienda. La orden es de una tienda que no es la
+    // suya —ni de su grupo— y aun así sale.
+    const suya = { created_by: "vendedor-1", assigned_sales_rep: null, stage: "approved" as const,
+      store: "Mission", pickup_name: "Mission", delivery_name: "Casa" };
+    expect(ventasVeLaOrden({ ...YO, orden: suya })).toBe(true);
   });
 
-  it("la suya la ve siempre, sea del tipo que sea", () => {
-    const suya = { created_by: "vendedor-1", assigned_sales_rep: null, stage: "approved" as const, store: "McAllen", pickup_name: "McAllen", delivery_name: "Casa" };
-    expect(ventasVeLaOrden({ ...YO, orden: suya, regla: A_CLIENTE })).toBe(true);
+  it("y la que le asignó oficina también, porque manda `orderOwner` y no quién la escribió", () => {
+    const asignada = { created_by: "oficina-1", assigned_sales_rep: "vendedor-1", stage: "approved" as const };
+    expect(ventasVeLaOrden({ ...YO, orden: asignada })).toBe(true);
   });
 
-  it("y la que le asignó oficina también, porque `orderOwner` manda sobre quién la escribió", () => {
-    const asignada = { created_by: "oficina-1", assigned_sales_rep: "vendedor-1", stage: "approved" as const, store: "McAllen", pickup_name: "McAllen", delivery_name: "Casa" };
-    expect(ventasVeLaOrden({ ...YO, orden: asignada, regla: A_CLIENTE })).toBe(true);
+  it("un BORRADOR de otro sí lo ve: D-286 no se toca", () => {
+    // El dueño: *«para borrador, deja que cualquiera pueda volver y editarlo»*. Es decisión suya y
+    // este cambio no la revierte; si algún día se revierte, será otra decisión, escrita.
+    expect(ventasVeLaOrden({ ...YO, orden: { ...DE_OTRO, stage: "draft" } })).toBe(true);
+  });
+
+  it("la función ya no PUEDE mirar la tienda: no la recibe", () => {
+    // Un argumento que no se lee es una invitación a creer que se sigue mirando la tienda, así que
+    // `miTienda`, `regla` y `tiendas` se fueron de la firma. Esto lo fija por si vuelven «por si acaso».
+    //
+    // Sin comentarios, porque el de arriba de ese fichero **cuenta** que esos argumentos se quitaron:
+    // una negativa que tumba mi propia prosa es una prueba que alguien acabará relajando para callarla.
+    const codigo = sinComentarios(leer("src/lib/visibilidad-ventas.ts"));
+    expect(codigo).toContain("ventasVeLaOrden");
+    for (const rastro of ["miTienda", "tiendas", "regla", "storeToStore", "tiendaDeLaOrdenEsMia"]) {
+      expect(codigo).not.toContain(rastro);
+    }
   });
 
   it("la lista del tablero llama a esa función y no a la pieza suelta", () => {

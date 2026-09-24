@@ -825,21 +825,37 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
   { key: "history",   en: "See all orders",   es: "Ver todas las órdenes", desc_en: "Every order of their store(s), not just recent days", desc_es: "Todas las órdenes de su(s) tienda(s), no solo las de estos días" },
 ];
 
-/** The capabilities each role gets automatically. */
+/**
+ * The capabilities each role gets automatically.
+ *
+ * **`history` volvió a ser de dos roles, y eso revierte D-356.** D-356 se la dio a los siete el
+ * 2026-09-21 para que nadie perdiera órdenes por la ventana; el dueño lo cambió el 2026-09-23:
+ * *«ayer, hoy, futuro y atrasadas»* — que es exactamente la ventana de D-239 (`withinRetention`:
+ * suelo y **sin techo**), no la de «Reciente». Con esa ventana lo de delante no se pierde: el
+ * orquestador midió en producción que **el 40% de las órdenes (76 de 192) están programadas a 2 días
+ * o más vista, y 21 a más de una semana**, y todas siguen saliendo porque no hay techo. Lo que se
+ * corta es el pasado ya cerrado, que era el bulto.
+ *
+ * Fuera de la ventana quedan solo `admin` y `logistics` (`HISTORY_EXEMPT_ROLES` en `utils.ts`), y el
+ * chofer **entra** en ella: lo preguntamos y el dueño lo confirmó.
+ *
+ * La capacidad **no se borra**, solo deja de venir de serie: un admin puede seguir marcándosela a una
+ * persona concreta desde Usuarios, porque los permisos individuales solo suman. Quien de verdad
+ * necesite el historial lo tiene a un clic, en vez de tenerlo todo el mundo sin pedirlo.
+ */
 export const ROLE_CAPS: Record<UserRole, Capability[]> = {
   admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan", "history"],
-  // D-356: todos ven todas las órdenes (de sus tiendas, 131), sin ventana de fechas.
-  manager:   ["create", "approve", "dashboard", "history"],
-  sales:     ["create", "history"],
-  warehouse: ["fulfill", "deliver", "history"],
+  manager:   ["create", "approve", "dashboard"],
+  sales:     ["create"],
+  warehouse: ["fulfill", "deliver"],
   // Drivers do NOT create orders — orders must be programmed by sales/office and
   // dispatched by the logistics manager. A driver only delivers what's assigned.
-  driver:    ["deliver", "history"],
+  driver:    ["deliver"],
   logistics: ["route_plan", "approve", "history"],
   // Office (the `accounting` key, D-279): creates and approves like the Office Manager, without the
   // dashboard. It used to be approve-only (D-044, replaced in part), and the database refused even that:
   // until 118 the guard had no branch for this role at all.
-  accounting: ["create", "approve", "history"],
+  accounting: ["create", "approve"],
 };
 
 // ---- Module access descriptors (D-057) -------------------------------------

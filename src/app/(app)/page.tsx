@@ -21,6 +21,7 @@ import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
+import { tiendasDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
@@ -275,6 +276,8 @@ export default function OrdersPage() {
       sueloDeVentas: salesSearchFloor,
       reglas: settings.order_type_rules ?? {},
       tiendas: settings.stores,
+      // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
+      tiendasDeAlmacen: me?.role === "warehouse" ? tiendasDeAlmacen(me.store, settings.stores) : [],
     }),
     [deliveries, q, me, teaching, veTodoElHistorial, salesSearchFloor, settings.order_type_rules, settings.stores],
   );

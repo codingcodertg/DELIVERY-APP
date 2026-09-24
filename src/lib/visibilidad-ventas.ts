@@ -1,6 +1,5 @@
-import type { Delivery, NamedLocation, OrderTypeRule } from "@/lib/types";
+import type { Delivery } from "@/lib/types";
 import { orderOwner } from "@/lib/utils";
-import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
 
 /**
  * Qué órdenes le tocan a un vendedor (D-309).
@@ -14,12 +13,19 @@ import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
  * Las piezas sueltas están bien y se siguen usando: la cola de almacén **sí** quiere `[store]` en una
  * orden de cliente. Lo que no se puede es probar la pieza y dar por hecha la decisión.
  *
- * Tres caminos, y ninguno depende de los otros:
- *   1. **Un borrador lo ve cualquiera** (D-286): el dueño pidió que se pudiera volver a editar, y un
- *      borrador que no se ve no se edita.
+ * Dos caminos, y ninguno depende del otro:
+ *   1. **Un borrador lo ve cualquiera** (D-286): el dueño pidió *«para borrador, deja que cualquiera
+ *      pueda volver y editarlo»*, y un borrador que no se ve no se edita.
  *   2. **La suya**, por `orderOwner` — que incluye las que oficina o un admin le asignaron.
- *   3. **De tienda a tienda, y una de sus tiendas es la suya** (o la de su grupo, D-293). Solo aquí
- *      mira la tienda: en una orden de cliente el dueño dijo que ventas sigue viendo solo lo suyo.
+ *
+ * **HABÍA UN TERCERO Y SE FUE**: «de tienda a tienda, y una de sus tiendas es la suya». El dueño lo
+ * cambió: *«ventas solo ve sus propias órdenes, pero en cualquier tienda»*. Ese camino era justo el
+ * que le enseñaba a un vendedor las Intertiendas de sus compañeros de tienda, y era **el único sitio
+ * donde esta función miraba la tienda**. Al quitarlo, la tienda deja de importar aquí del todo — que
+ * es la otra mitad de lo que pidió: sus órdenes las ve **en cualquier tienda**.
+ *
+ * Por eso `miTienda`, `regla` y `tiendas` ya no se usan y **se han quitado de la firma**: un
+ * argumento que no se lee es una invitación a creer que se sigue mirando la tienda.
  *
  * Lo que NO decide esta función: las anuladas y la ventana de fechas, que son cortes aparte y valen
  * para más gente. Siguen donde estaban.
@@ -27,16 +33,9 @@ import { tiendaDeLaOrdenEsMia } from "@/lib/order-endpoints";
 export function ventasVeLaOrden(args: {
   /** El id de quien mira. */
   miId: string;
-  /** Su tienda, o null/vacío si no tiene. */
-  miTienda: string | null | undefined;
-  orden: Pick<Delivery, "stage" | "created_by" | "assigned_sales_rep"> &
-    Pick<Partial<Delivery>, "store" | "pickup_name" | "delivery_name">;
-  /** La regla del tipo de ESA orden, ya resuelta por quien llama. */
-  regla: Pick<OrderTypeRule, "storeToStore">;
-  tiendas: NamedLocation[];
+  orden: Pick<Delivery, "stage" | "created_by" | "assigned_sales_rep">;
 }): boolean {
-  const { miId, miTienda, orden, regla, tiendas } = args;
+  const { miId, orden } = args;
   if (orden.stage === "draft") return true;
-  if (orderOwner(orden) === miId) return true;
-  return regla.storeToStore === true && tiendaDeLaOrdenEsMia(orden, regla, miTienda, tiendas);
+  return orderOwner(orden) === miId;
 }

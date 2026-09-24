@@ -13136,6 +13136,11 @@ alguien la mide.
 > **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
 > historial entero; la tienda la sigue cortando la 131.
 
+> **⚠ Y esa sustitución se deshizo el 2026-09-23, por D-NEXT: esta entrada vuelve a estar vigente
+> tal como se escribió.** Duró un día. La nota de arriba se deja donde está porque pasó; lo que ya
+> no vale es su efecto. Vigente otra vez: la ventana es de todos menos `admin` y `logistics`, el
+> chofer incluido.
+
 > **⚠ Reemplazada en parte por D-350** (2026-09-22). Ver el historial entero deja de ser solo de admin y logística: es una
 > capacidad por persona que se marca en Usuarios; los dos roles la traen de fábrica. La ventana en sí no cambia.
 
@@ -24413,6 +24418,18 @@ redondeados, que a la décima no cambian ninguna decisión.
 
 ## D-356 · Todos los roles ven todas las órdenes, sin ventana de fechas
 
+> **⚠ Reemplazada por D-NEXT** (2026-09-23), al día siguiente. El dueño volvió a pedir la ventana:
+> *«ayer, hoy, futuro y atrasadas»*, que es la de D-239. `history` vuelve a ser de `admin` y
+> `logistics` solamente; el chofer **entra** en la ventana, preguntado y confirmado. Lo que sí
+> queda de aquí es la mecánica: `seesAllHistory` sigue leyendo `ROLE_CAPS`, y por eso revertir esto
+> fue editar una lista y nada más. La capacidad suelta tampoco se tocó: a quien necesite el
+> historial se le marca en Usuarios.
+>
+> Lo que falló en el razonamiento de esta entrada no fue la mecánica sino la premisa: se dio por
+> hecho que con la ventana se perdía lo programado a futuro. **No se pierde**: la de D-239 tiene
+> suelo y no tiene techo. Medido en producción el 2026-09-23, 76 de 192 órdenes están programadas a
+> dos días o más vista —21 a más de una semana— y todas siguen entrando.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.180.0, repo 1.244.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«activa lo que pueden ver todas las órdenes regardless del date a todos, la
 opción que creamos actívala»*.
@@ -25610,3 +25627,105 @@ ver si de verdad hace lo que dice su nombre.
 - **El script NO ha escrito nunca.** Lo probado es el camino de lectura, que es el que se puede correr sin tocar nada. La
   primera carga real la hará quien administre, con `--escribir`.
 - **El aviso de la tienda nueva se probó quitando un grupo a mano**, no con un libro que traiga una tienda nueva de verdad.
+
+## D-NEXT · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
+
+**Fecha:** 2026-09-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+
+Tres cosas que pidió el dueño el mismo día, y que resultaron ser la misma: **quién ve qué**.
+
+1. *«warehouse should only see what they are in charge of»*, y *«for warehouse a new view where the
+   loads intertienda going to his store will be visible; these orders will be extracted from his
+   list and passed to that one»*.
+2. Ventas: **solo sus propias órdenes, pero en cualquier tienda**.
+3. La ventana de fechas: **«ayer, hoy, futuro y atrasadas»** para todos menos admin y logística.
+
+### Nada de esto baja a la base, y esa fue la decisión de verdad
+
+El plan en papel proponía además una ventana en la política de lectura de la 131 (la migración 142).
+**Se descartó entera**, y conviene que quede escrito por qué, porque era la parte más vistosa:
+
+- **Cortaría la búsqueda por factura**, que es *el* camino al historial en la cola de almacén y en
+  Órdenes. Una fila que la base no manda no se encuentra buscándola: no hay nada que filtrar.
+- **Cortaría lecturas que no son listas**: la planificación de rutas y los agregados leen órdenes
+  viejas a propósito.
+- **Dejaría la casilla de Usuarios sin significado.** «Ver todas las órdenes» es un permiso de
+  persona; si la base ya no manda la fila, marcarla no hace nada y nadie entiende por qué.
+
+La base ya decide **si** puedes leer una orden (la 131, por tienda). Lo de aquí decide **en qué
+lista sale**, que es otra pregunta. Mezclarlas se paga caro y en silencio. Sin migración 142.
+
+### Almacén: dos listas donde había una
+
+`src/lib/almacen.ts`, nuevo y puro. A la cola le entra el mismo corte de tienda que ya tenía su
+pantalla, y **ahora también en el tablero de Órdenes**, donde almacén veía las de todas las tiendas:
+es la misma función, `esDeMisTiendas`, no una copia. «Mis tiendas» son la suya y las de su grupo
+(D-293).
+
+**Recepción** son las Intertiendas cuyo destino es una de mis tiendas **y que no salen de ellas**.
+Las dos mitades importan: un movimiento entre dos tiendas del mismo grupo entra a una mía, y si solo
+se mirara el destino desaparecería de la cola de quien tiene que prepararlo. Se escondería trabajo
+propio en la bandeja de entrada.
+
+**Qué campo dice el destino.** El dueño lo pidió por la cuenta —*«if account in intertienda is my
+store then put that under receiving»*— pero la cuenta es una **copia** del destino: `order-sites.ts`
+la escribe desde `delivery_name` al elegirlo (D-312) y luego es texto libre que se teclea encima.
+Medido en producción el 2026-09-23: **de 123 Intertiendas, la cuenta coincide con el destino en 51**.
+Manda `delivery_name`.
+
+Y **2 no tienen destino ninguno**. Esas no se pueden clasificar, así que **no se esconden**: se
+quedan en la cola, donde estaban, y se cuentan aparte para que la pantalla lo diga. Perder dos
+órdenes en silencio por no saber dónde ponerlas es peor que enseñarlas mal.
+
+### Ventas: se va el tercer camino, y con él la tienda
+
+`ventasVeLaOrden` tenía tres caminos (D-309): borrador, propia, y «de tienda a tienda y una de las
+dos es la mía». **Se va el tercero**, que era el único sitio donde esta función miraba la tienda. Con
+él se va el argumento: `miTienda`, `regla` y `tiendas` **salen de la firma**, porque un argumento que
+no se lee es una invitación a creer que se sigue mirando la tienda.
+
+El borrador **se queda**: D-286 son palabras del dueño —*«para borrador, deja que cualquiera pueda
+volver y editarlo»*— y nadie pidió revertirlo. Quitarlo de paso habría sido revertir una decisión sin
+decirlo.
+
+La otra mitad de lo pedido sale sola: sin cláusula de tienda, sus órdenes las ve **en cualquier
+tienda**.
+
+### La ventana: vuelve, y se revierte D-356
+
+`history` deja de venir de fábrica para gerente, ventas, almacén, chofer y office; se queda en admin
+y logística. **El chofer entra en la ventana**: se preguntó expresamente y el dueño lo confirmó.
+
+Lo que hacía dudar era perder lo programado a futuro. **No se pierde**, y esto es medición, no
+opinión: la ventana de D-239 (`withinRetention`) tiene **suelo y no tiene techo**. El orquestador
+midió en producción el 2026-09-23 que **76 de 192 órdenes (el 40%) están programadas a dos días o
+más vista, y 21 a más de una semana** — y todas siguen entrando. Lo que se corta es el pasado ya
+cerrado, que era el bulto. Por eso tampoco hizo falta lo que el plan proponía de «añadir siempre las
+propias»: con esta ventana sobra.
+
+La **capacidad no se borra**: un admin se la marca a quien la necesite en Usuarios, y ahora esa
+casilla vuelve a decidir algo. Mientras todos la traían de fábrica, marcarla o no daba igual.
+
+### Verificado
+
+`npx tsc --noEmit` limpio. Suite entera local: **3926 pasados | 3 saltados**, 226 ficheros.
+
+**Mutantes: 12, leídos por nombre; caen los 12.** Entre ellos: «esParaRecibir deja de exigir *y no
+sale*» (cae la de dos tiendas mías), «el reparto mete la de Recepción también en la cola» (cae «ninguna
+orden se pierde ni sale dos veces»), «deja de contar las Intertiendas sin destino», «el tablero deja
+de cortar almacén por tienda», «el corte se aplica también sin tienda asignada», «ventas vuelve a ver
+la orden de cualquiera» (caen cinco), «ventas deja de ver los borradores» y «almacén recupera
+`history` de fábrica».
+
+**Y la primera tanda dio 12 supervivientes de 12, que era mentira**: el arnés buscaba el nombre de la
+prueba en los renglones del resumen, donde no está entero. Doce de doce sobreviviendo no es un
+resultado, es un arnés roto — se mira el arnés antes que el código.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.** Queda medir en pantalla la vista de Recepción y que una entregada
+  de agosto ya no salga para almacén; lo hace el otro worker.
+- **Los números de producción los midió el orquestador, no yo**: 76 de 192, 123 Intertiendas, 51
+  coincidencias, 2 sin destino. Este worktree no tiene llaves de producción, a propósito.
+- **El peso de las listas no se ha medido.** Almacén y ventas cargan ahora menos órdenes que ayer, no
+  más, así que si cambia será a mejor; pero es deducción, no medición.

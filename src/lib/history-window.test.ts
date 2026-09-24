@@ -27,14 +27,20 @@ describe("quién ve el historial entero", () => {
     expect(seesAllHistory("logistics")).toBe(true);
   });
 
-  it("desde D-356 NINGÚN rol del hub entra en la ventana: todos traen `history` de fábrica", () => {
-    // Se recorre `ROLE_INFO` en vez de escribir la lista, como antes: un rol nuevo que no lleve
-    // `history` en ROLE_CAPS entra en la ventana, y esta prueba lo canta para que sea a propósito.
-    const dentro = Object.keys(ROLE_INFO).filter((r) => !seesAllHistory(r));
-    expect(dentro).toEqual([]);
+  it("y los otros CINCO entran en la ventana — esto revierte D-356, que se la había quitado a todos", () => {
+    // D-356 (2026-09-21) le dio `history` de fábrica a los siete y la ventana dejó de existir. El
+    // dueño lo cambió el 2026-09-23: *«ayer, hoy, futuro y atrasadas»*, que es esta misma ventana.
+    //
+    // Se recorre `ROLE_INFO` en vez de escribir la lista a mano: un rol nuevo aparece aquí solo, y
+    // hay que decidir a propósito de qué lado cae en vez de heredarlo por descuido.
+    const dentro = Object.keys(ROLE_INFO).filter((r) => !seesAllHistory(r)).sort();
+    expect(dentro).toEqual(["accounting", "driver", "manager", "sales", "warehouse"]);
+    // El chofer entra: lo preguntamos expresamente y el dueño lo confirmó. Fuera, solo dos.
+    expect(seesAllHistory("driver")).toBe(false);
     // Y un rol que no existe en ROLE_CAPS sigue en la ventana: la regla no se abre por defecto.
     expect(seesAllHistory("rol_inventado")).toBe(false);
   });
+
 
   it("un rol desconocido o ausente NO queda exento", () => {
     expect(seesAllHistory(null)).toBe(false);
@@ -161,11 +167,15 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
   it("la capacidad `history` abre el historial a cualquier rol; sin ella, solo los dos roles exentos", () => {
     expect(seesAllHistory("sales", ["history"])).toBe(true);
     expect(seesAllHistory("accounting", ["create", "history"])).toBe(true);
-    // Desde D-356 ventas también la trae de fábrica; lo que sigue midiendo la capacidad suelta es un rol sin ella.
+    expect(seesAllHistory("warehouse", ["fulfill", "history"])).toBe(true);
     expect(seesAllHistory("rol_inventado", ["create"])).toBe(false);
     expect(seesAllHistory("rol_inventado", null)).toBe(false);
     expect(seesAllHistory("rol_inventado", ["history"])).toBe(true);
-    expect(seesAllHistory("sales", null)).toBe(true);
+    // **Esta línea es la que mide que revertir D-356 sirvió de algo.** Mientras ventas trajo
+    // `history` de fábrica era `true` pasara lo que pasara, y la casilla de Usuarios no decidía nada
+    // para ese rol: daba igual marcarla. Ahora un vendedor sin la casilla entra en la ventana, que es
+    // justo lo que pidió el dueño, y marcársela vuelve a ser una decisión con efecto.
+    expect(seesAllHistory("sales", null)).toBe(false);
     expect(seesAllHistory("logistics", [])).toBe(true);
   });
   it("admin y logística la traen de fábrica, así que nada cambia para ellos; y está en el catálogo que pinta Usuarios", async () => {
