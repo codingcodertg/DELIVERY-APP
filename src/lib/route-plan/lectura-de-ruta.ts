@@ -125,7 +125,35 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly Or
   return { fuente: "plan", cambioTrasPublicar: false, cambios: null, etiquetaDe: new Map([...etiquetas].map(([id, e]) => [id, e.join("·")])), previas, alFinal: pendientes };
 }
 
-export type FilaDelViaje<T> = { clase: "informa"; fila: FilaInformativa } | { clase: "orden"; orden: T; indice: number };
+/**
+ * Una ruta que NADIE ordenó —ninguna de sus órdenes tiene puesto (`route_seq`)— enseña su P/D **provisional** (D-NEXT).
+ *
+ * Hasta D-NEXT el Gestor pintaba «—» en toda ella (D-336 lo dejó escrito: «el Gestor ya no pinta etiquetas en ese caso»),
+ * aunque `lecturaDeLaRuta` ya la numeraba entera para «Mi ruta». El dueño, viendo un chofer sin optimizar junto a otro
+ * con P1·P2, D1, D2: «¿por qué no tiene P1, D1 y así?». Ahora se pinta la misma lectura —el orden en que la tabla enseña
+ * las paradas, el que las flechas ↑↓ cambian—, marcada como provisional. Una ruta ordenada A MEDIAS no es provisional:
+ * sigue D-336 (las que no tienen puesto no gastan número y enseñan «—»).
+ */
+export function esProvisional(ordenes: readonly { route_seq?: number | null }[]): boolean {
+  return ordenes.length > 0 && ordenes.every((o) => o.route_seq == null);
+}
+
+/** Lo que pinta la celda «#» de una parada en la tabla del Gestor. `puesto` es su número en la lista (1 = primera). */
+export function etiquetaDeLaParada(
+  o: { id: string; route_seq?: number | null }, etiquetaDe: ReadonlyMap<string, string>, puesto: number, provisional: boolean,
+): { texto: string; provisional: boolean } {
+  if (o.route_seq != null) return { texto: etiquetaDe.get(o.id) ?? String(puesto), provisional: false };
+  const e = provisional ? etiquetaDe.get(o.id) : undefined;
+  return e ? { texto: e, provisional: true } : { texto: "—", provisional: false };
+}
+
+/** La lectura que se pasa a `filasDelViaje`: con la ruta ordenada entera, o con la provisional, salen las filas de
+ *  recogida delante de sus entregas —una D nunca antes que su P—; a medias, no (D-336). */
+export function lecturaParaLasFilas(lectura: LecturaDeRuta, secuenciada: boolean, provisional: boolean): LecturaDeRuta | null {
+  return secuenciada || provisional ? lectura : null;
+}
+
+export type FilaDelViaje<T> ={ clase: "informa"; fila: FilaInformativa } | { clase: "orden"; orden: T; indice: number };
 
 /** Las filas de UN viaje en el orden en que se pintan: lo que informa va justo ANTES de la entrega a la que precede —donde el
  *  plan lo puso—, y `alFinal` tras la última entrega del último viaje. Las dos pantallas pintan esto, tal cual. */
