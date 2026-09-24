@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { esDecisorDePromos, grupoDeLaTienda, type DecisionDeGrupo, type ProductoDeCatalogo } from "@/lib/promos/tabla";
@@ -33,6 +34,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
     const demo = RONDAS_DEMO.find((r) => r.id === id) ?? RONDAS_DEMO[0];
     return (
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+        <VolverAlHub />
         <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }} />
       </div>
     );
@@ -84,6 +86,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+        <VolverAlHub />
       <TablaDeRonda
         ronda={{
           id: ronda.id as string,
@@ -102,5 +105,14 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
         tiendasSinGrupo={tiendasSinGrupoDePromos(tiendas)}
       />
     </div>
+  );
+}
+
+/** Volver al RTG Hub (D-378): al quitar la lista de rondas (D-375) se fue con ella el único enlace de vuelta. */
+function VolverAlHub() {
+  return (
+    <p style={{ margin: "0 0 8px" }}>
+      <Link href="/home" className="btn btn-ghost btn-sm">◂ Volver al hub / Back to hub</Link>
+    </p>
   );
 }

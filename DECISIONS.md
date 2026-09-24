@@ -26276,3 +26276,21 @@ nada de 122, 123, 125, 127, 138 ni 139.
   guard como quien borra. Un borrador no es origen de reentregas, así que no debería darse; dicho por si aparece.
 - **Pruebas del repo que leen la 139** como definición del guard (`entregar-ya-y-deshacer.test.ts`,
   `agregar-material.test.ts`) se mueven a la 142 en la rama de pantalla.
+
+## D-378 · La ronda de promos vuelve a tener cómo volver al hub
+
+**Fecha:** 2026-09-23 · **Versión:** promos 0.6.0 · **Sin migración.**
+
+**Qué fallaba.** D-375 quitó la lista de rondas: `/promos` redirige directo a la tabla. La página de la ronda tenía
+un solo enlace de vuelta, «← RTG PROMOS», que llevaba a esa lista; como ahora `/promos` redirige a la misma ronda, ese
+enlace se quitó también (volvería aquí mismo). Resultado: **desde Promos no había forma de volver al RTG Hub** salvo
+escribir la dirección. El dueño, el mismo día de publicarlo: *«el promo bien pero quitaste el botón para volver al rtg
+hub»*.
+
+**Qué se hace.** Un botón «◂ Volver al hub / Back to hub» que va a `/home`, con el mismo estilo que el de las páginas
+del hub (`btn btn-ghost btn-sm`), en las dos salidas de la página de la ronda (demo y base).
+
+**La prueba que lo dejó pasar.** `entrada.test.ts` afirmaba que la página no importaba `next/link` — pensada para que
+no volviera el enlace a `/promos`, prohibía en realidad **cualquier** enlace, también el de salida. Se acota a lo que
+quería decir: ningún `href="/promos"`. Y `volver-al-hub.test.ts` exige el enlace a `/home` en las dos pantallas.
+Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
