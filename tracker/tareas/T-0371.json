@@ -1,0 +1,31 @@
+{
+  "id": "T-0371",
+  "fecha": "2026-09-24",
+  "resumen": "Promos: fuera la columna Nota, el precio con $, y Proveedor visible para todos",
+  "texto_original": "quita eso de notas en general / y a precioo agrtegale el $ / y activales a todo lo de proveedor",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": "T-0013",
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "213"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-387"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T11:16:11-05:00",
+  "modificado": "2026-09-24T11:16:11-05:00"
+}
