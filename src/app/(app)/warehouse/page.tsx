@@ -227,7 +227,22 @@ export default function WarehousePage() {
       {!ready ? (
         <div className="empty">{t("Loading…", "Cargando…")}</div>
       ) : vista === "cola" ? (
-        <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+        <div style={{ display: "grid", gap: 10 }}>
+          {/* El aviso va DONDE ESTAN esas ordenes, que es aqui.
+              Estaba en Recepcion, y ahi decia una cosa cierta en el sitio equivocado: quien abre
+              Recepcion no las tiene delante, y quien trabaja la Cola —que si las tiene— no se
+              enteraba de que esas dos no estan clasificadas. Un aviso que no ve quien puede actuar
+              no es un aviso, es una nota al pie. */}
+          {reparto.sinDestino.length > 0 && (
+            <div className="hint" style={{ margin: 0 }}>
+              ⚠️ {reparto.sinDestino.length} {t(
+                "store-to-store order(s) in this queue have no destination, so they can't be sorted into Receiving — check them.",
+                "orden(es) de tienda a tienda de esta cola no tienen destino, así que no se pueden mandar a Recepción — revíselas.",
+              )}
+            </div>
+          )}
+          <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+        </div>
       ) : vista === "recepcion" ? (
         /* Recepción: las Intertiendas cuyo DESTINO es una de sus tiendas y que no salen de ellas.
            El destino se lee de `delivery_name` y no de la cuenta, aunque el dueño lo dijera por la
@@ -239,25 +254,13 @@ export default function WarehousePage() {
               {t("Pick a store above to see what's coming into it.", "Elija una tienda arriba para ver lo que llega a ella.")}
             </div>
           ) : (
-            <>
-              {/* Las que NO se pudieron clasificar se dicen, no se pierden: una Intertienda sin
-                  destino se queda en la Cola, y si nadie lo cuenta parece que no existe. */}
-              {reparto.sinDestino.length > 0 && (
-                <div className="hint" style={{ margin: 0 }}>
-                  ⚠️ {reparto.sinDestino.length} {t(
-                    "store-to-store order(s) have no destination, so they can't be sorted here — they stay in the Queue.",
-                    "orden(es) de tienda a tienda no tienen destino, así que no se pueden clasificar aquí — se quedan en la Cola.",
-                  )}
-                </div>
-              )}
-              <OrdersTable
-                rows={recepcion}
-                resizeKey="warehouse-recepcion"
-                onOpen={setOpen}
-                visible={ROLE_DEFAULT_COLUMNS.warehouse}
-                empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
-              />
-            </>
+            <OrdersTable
+              rows={recepcion}
+              resizeKey="warehouse-recepcion"
+              onOpen={setOpen}
+              visible={ROLE_DEFAULT_COLUMNS.warehouse}
+              empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
+            />
           )}
         </div>
       ) : (

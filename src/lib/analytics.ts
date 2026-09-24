@@ -441,7 +441,7 @@ export function approvalTurnaroundMs(deliveries: Delivery[], events: OrderEvent[
 /** Orders whose delivery date has passed but that aren't delivered/canceled. */
 export function overdueOrders(deliveries: Delivery[]): Delivery[] {
   return deliveries
-    .filter(isOverdue)
+    .filter((d) => isOverdue(d))
     .sort((a, b) => (a.delivery_date || "").localeCompare(b.delivery_date || ""));
 }
 

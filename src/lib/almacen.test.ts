@@ -198,8 +198,23 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
     expect(pagina).toContain('{tb.key === "all" ? reparto.cola.length : (counts[tb.key] ?? 0)}');
   });
 
-  it("la vista de Recepción existe y dice cuántas no se pudieron clasificar", () => {
+  it("la vista de Recepción existe", () => {
     expect(pagina).toContain('vista === "recepcion"');
-    expect(pagina).toContain("{reparto.sinDestino.length}");
+  });
+
+  it("y el aviso de las que no tienen destino sale en la COLA, que es donde están", () => {
+    // Estaba en Recepción, y ahí decía algo cierto en el sitio equivocado: esas órdenes se quedan
+    // en la Cola, así que quien puede actuar sobre ellas no lo veía. Se fija el sitio, no solo que
+    // el texto exista, porque «existe en alguna parte del fichero» es lo que dejó pasar el fallo.
+    // Los anclas llevan el `) : ` delante a propósito. Sin él, `vista === "cola" ?` casa primero
+    // con el botón de la pestaña, cincuenta líneas más arriba, y el recorte sale vacío: la prueba
+    // se pondría verde sin mirar nada. Es la misma trampa que ya costó un informe falso.
+    const iCola = pagina.indexOf(') : vista === "cola" ? (');
+    const iRec = pagina.indexOf(') : vista === "recepcion" ? (');
+    expect([iCola > 0, iRec > iCola]).toEqual([true, true]);
+    const cola = pagina.slice(iCola, iRec);
+    expect(cola).toContain("{reparto.sinDestino.length}");
+    expect(cola).toContain("no se pueden mandar a Recepci");
+    expect(pagina.slice(iRec)).not.toContain("{reparto.sinDestino.length}");
   });
 });

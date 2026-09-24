@@ -54,15 +54,25 @@ describe("quién ve el historial entero", () => {
   });
 });
 
-describe("la ventana en sí no cambia", () => {
+describe("la ventana: el suelo no cambia, y ahora rescata lo atrasado y abierto", () => {
   const hoy = "2026-09-11";
   const ayer = shiftDateISO(hoy, -1);
+  // La etapa ya NO da igual cuando la orden es vieja, así que cada caso dice la suya. Antes estas
+  // pruebas pasaban `{ delivery_date }` a secas y por eso no vieron el fallo: medían una regla que
+  // solo miraba la fecha, que es exactamente la que había que cambiar.
+  const cerrada = (delivery_date: string | null) => ({ delivery_date, stage: "delivered" });
+  const abierta = (delivery_date: string | null) => ({ delivery_date, stage: "ready" });
 
-  it("ayer, hoy y el futuro entran; anteayer no", () => {
-    expect(withinRetention({ delivery_date: ayer }, hoy)).toBe(true);
-    expect(withinRetention({ delivery_date: hoy }, hoy)).toBe(true);
-    expect(withinRetention({ delivery_date: shiftDateISO(hoy, 30) }, hoy)).toBe(true);
-    expect(withinRetention({ delivery_date: shiftDateISO(hoy, -2) }, hoy)).toBe(false);
+  it("ayer, hoy y el futuro entran; anteayer ya cerrada, no", () => {
+    expect(withinRetention(cerrada(ayer), hoy)).toBe(true);
+    expect(withinRetention(cerrada(hoy), hoy)).toBe(true);
+    expect(withinRetention(cerrada(shiftDateISO(hoy, 30)), hoy)).toBe(true);
+    expect(withinRetention(cerrada(shiftDateISO(hoy, -2)), hoy)).toBe(false);
+  });
+
+  it("y anteayer ABIERTA sí entra: es lo atrasado, que el dueño nombró aparte", () => {
+    expect(withinRetention(abierta(shiftDateISO(hoy, -2)), hoy)).toBe(true);
+    expect(withinRetention(abierta(shiftDateISO(hoy, -60)), hoy)).toBe(true);
   });
 
   it("un pedido sin fecha siempre se ve", () => {
@@ -71,10 +81,11 @@ describe("la ventana en sí no cambia", () => {
 
   it("el piso de los selectores es el mismo día que el de la lista", () => {
     // Dos formas de la misma regla: si se separan, el selector deja elegir un día que la
-    // lista va a enseñar vacío.
+    // lista va a enseñar vacío. El piso se mide con una orden CERRADA, que es la que de verdad
+    // se cae al cruzarlo.
     expect(retentionFloorISO(hoy)).toBe(shiftDateISO(hoy, -RETENTION_DAYS_BACK));
-    expect(withinRetention({ delivery_date: retentionFloorISO(hoy) }, hoy)).toBe(true);
-    expect(withinRetention({ delivery_date: shiftDateISO(retentionFloorISO(hoy), -1) }, hoy)).toBe(false);
+    expect(withinRetention(cerrada(retentionFloorISO(hoy)), hoy)).toBe(true);
+    expect(withinRetention(cerrada(shiftDateISO(retentionFloorISO(hoy), -1)), hoy)).toBe(false);
   });
 });
 

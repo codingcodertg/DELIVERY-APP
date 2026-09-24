@@ -25691,6 +25691,11 @@ decirlo.
 La otra mitad de lo pedido sale sola: sin cláusula de tienda, sus órdenes las ve **en cualquier
 tienda**.
 
+**La regla entera, con sus palabras:** un vendedor ve **solo sus propias órdenes, en cualquier
+tienda, salvo los borradores**, que los sigue viendo cualquiera por D-286. Los tres trozos importan:
+lo de otro no lo ve, la tienda ya no le quita nada suyo, y el borrador es la única excepción.
+Medido en el navegador por otra sesión: un vendedor ve el borrador de un compañero.
+
 ### La ventana: vuelve, y se revierte D-356
 
 `history` deja de venir de fábrica para gerente, ventas, almacén, chofer y office; se queda en admin
@@ -25705,6 +25710,36 @@ propias»: con esta ventana sobra.
 
 La **capacidad no se borra**: un admin se la marca a quien la necesite en Usuarios, y ahora esa
 casilla vuelve a decidir algo. Mientras todos la traían de fábrica, marcarla o no daba igual.
+
+> **⚠ Corrección dentro de la misma rama (2026-09-23), y la frase de arriba estaba mal.** Decía
+> *«lo que se corta es el pasado ya cerrado»* y el código no hacía eso: `withinRetention` miraba
+> `delivery_date` y **no la etapa**, así que una orden **atrasada y todavía abierta** desaparecía
+> para los cinco roles. Lo encontró otra sesión midiendo en el navegador: una `ready` del 21
+> —trabajo vivo— no salía para gerente, office, ventas ni chofer.
+>
+> Va contra lo que el dueño eligió con cuatro palabras —*«ayer, hoy, futuro **y atrasadas**»*— y
+> contra **D-351**, que ya lo tenía escrito para la vista «Reciente»: *una vencida sin entregar es
+> trabajo vivo, no historial, y esconderla es perderla*. O sea que la misma orden salía en
+> «Reciente» y desaparecía de la lista.
+>
+> Arreglado: la ventana deja pasar **fecha ≥ ayer, o atrasada sin entregar**, y lo pregunta a
+> `isOverdue` —la definición de D-351— en vez de escribirla otra vez. Para poder reutilizarla,
+> `isOverdue` acepta ahora un `today` y su tipo se estrechó a los dos campos que mira; eso obligó a
+> cambiar tres `filter(isOverdue)` por `filter((d) => isOverdue(d))`, porque pasada pelada recibía
+> el ÍNDICE del array como fecha. Lo caza `tsc`.
+>
+> **Y las pruebas defendían el fallo.** Una se llamaba literalmente *«cuts off the day before
+> yesterday, whatever the stage»* y usaba `ready`: afirmaba como correcto justo lo que el dueño no
+> quería. Reescritas, con el caso de la entregada y la abierta del **mismo día viejo**, que es lo
+> que separa una regla de la otra.
+>
+> Medido en producción al arreglarlo: **0** órdenes abiertas con fecha anterior a ayer. Cero porque
+> esta tarde se movieron las activas a mañana, no porque el fallo no pudiera darse: en cuanto una se
+> retrase dos días, desaparece.
+>
+> Tercera cosa del mismo repaso: el aviso de las Intertiendas **sin destino** se pintaba en
+> Recepción, y esas órdenes se quedan en la **Cola**. Cierto en el sitio equivocado: quien puede
+> actuar sobre ellas no lo veía. Ahora sale en la Cola.
 
 ### Verificado
 

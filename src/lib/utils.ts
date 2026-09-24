@@ -255,15 +255,23 @@ export function avatarColor(name: string): string {
 }
 
 /** An order is overdue when its delivery date is in the past and it hasn't
- * reached a terminal stage (delivered/canceled). Used for SLA flagging. */
-export function isOverdue(d: Delivery): boolean {
+ * reached a terminal stage (delivered/canceled). Used for SLA flagging.
+ *
+ * El tipo se estrechó a los dos campos que de verdad mira, y `today` se puede pasar: así la usa
+ * también `withinRetention`, que necesita fijar el día para poder probarse. Antes pedía un
+ * `Delivery` entero y leía el reloj por dentro, y eso obligaba a quien quisiera reutilizarla a
+ * escribir la regla otra vez — que es como una vencida se quedó fuera de la ventana. */
+export function isOverdue(
+  d: { delivery_date?: string | null; stage?: string | null },
+  today: string = todayISO(),
+): boolean {
   if (!d.delivery_date) return false;
   if (d.stage === "delivered" || d.stage === "canceled") return false;
   // Overdue once its calendar day has fully passed. Compared as YYYY-MM-DD
   // strings against the business-timezone "today" so the result is identical on
   // the server (UTC) and in the browser — a Date.now() comparison flips across
   // timezones and would desync SSR from hydration.
-  return d.delivery_date.slice(0, 10) < todayISO();
+  return d.delivery_date.slice(0, 10) < today;
 }
 
 /** How far the warehouse's actual pallet count landed from the sales estimate.
@@ -361,7 +369,20 @@ export function withinRetention(
   today: string = todayISO(),
 ): boolean {
   if (!d.delivery_date) return true;            // undated — still being scheduled
-  return d.delivery_date.slice(0, 10) >= shiftDateISO(today, -RETENTION_DAYS_BACK);
+  if (d.delivery_date.slice(0, 10) >= shiftDateISO(today, -RETENTION_DAYS_BACK)) return true;
+  // **Y una ATRASADA que sigue abierta entra, tenga la fecha que tenga.**
+  //
+  // El dueño eligió con esas cuatro palabras: *«ayer, hoy, futuro y atrasadas»*. Y no es una
+  // excepción nueva: es la misma razón que ya tiene escrita D-351 para la vista «Reciente» —*una
+  // vencida sin entregar es trabajo vivo, no historial, y esconderla es perderla*—. Aquí faltaba,
+  // así que la misma orden se veía en «Reciente» y desaparecía de la lista.
+  //
+  // Se pregunta a `isOverdue`, que es donde vive esa definición desde D-351, en vez de escribir
+  // «fecha pasada y sin entregar» otra vez. Dos copias de esta regla se separan: ya pasó con la
+  // ventana, que estaba en tres pantallas de tres formas (D-239).
+  //
+  // Lo que se corta, entonces, es solo el pasado CERRADO: entregada o anulada, y vieja.
+  return isOverdue(d, today);
 }
 
 /**
