@@ -85,6 +85,38 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
   });
 });
 
+describe("el puerto ocupado se dice en una línea, no con una traza", () => {
+  it("y sale con código 1 sin soltar «Unhandled error event»", async () => {
+    // El caso normal: varias sesiones trabajan en este repo a la vez. El 2026-09-23 una levantó el
+    // tracker, se encontró el puerto ocupado por otra, leyó la traza como «está roto», midió el
+    // servidor ajeno creyendo que era el suyo y acabó matándolo por PID.
+    //
+    // Se ocupa un puerto EFÍMERO de verdad en vez del 4319: así la prueba no depende de que nadie
+    // más lo tenga cogido, ni lo coge ella.
+    const { createServer } = await import("node:net");
+    const cerrojo = createServer();
+    const puerto = await new Promise((r) => cerrojo.listen(0, "127.0.0.1", () => r(cerrojo.address().port)));
+    try {
+      const salida = (() => {
+        try {
+          execFileSync(process.execPath, [join(process.cwd(), "tracker", "server.mjs")],
+            { encoding: "utf8", env: { ...process.env, TRACKER_PUERTO: String(puerto) }, timeout: 10000 });
+          return "(arrancó igual, que es lo que no debe pasar)";
+        } catch (e) {
+          return String(e.stderr ?? "") + "|codigo:" + e.status;
+        }
+      })();
+      expect(salida).toContain("Ya hay un tracker escuchando");
+      expect(salida).toContain("TRACKER_PUERTO");
+      expect(salida).toContain("|codigo:1");
+      expect(salida).not.toContain("Unhandled");
+      expect(salida).not.toContain("at Server.");
+    } finally {
+      cerrojo.close();
+    }
+  });
+});
+
 describe("los secretos no llegan al repo", () => {
   it("tapa los tokens que de verdad se han pegado en este chat", () => {
     const casos = [

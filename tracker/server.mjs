@@ -90,6 +90,31 @@ const servidor = createServer(async (req, res) => {
   }
 });
 
+/**
+ * El puerto ocupado es el caso NORMAL, no el raro: varias sesiones trabajan en este repo a la vez y
+ * cualquiera puede haber levantado ya el tracker.
+ *
+ * Sin esto, Node suelta un `Unhandled 'error' event` con su traza, que se lee como «el tracker esta
+ * roto» y empuja a lo peor que puede pasar aqui: buscar el PID del 4319 y matarlo. Eso ya ocurrio
+ * el 2026-09-23 — una sesion midio el servidor de otra creyendo que era el suyo, y despues lo
+ * cerro. **No se arranca otro en otro puerto por las buenas**: dos trackers escuchando es como dos
+ * sesiones acaban mirando numeros distintos y discutiendo cual es el bueno.
+ */
+servidor.on("error", (e) => {
+  if (e?.code === "EADDRINUSE") {
+    console.error("Ya hay un tracker escuchando en http://127.0.0.1:" + PUERTO + " — abrelo en el navegador.");
+    console.error("Si de verdad quieres otro aparte: TRACKER_PUERTO=" + (PUERTO + 1) + " npm run tracker");
+    console.error("No lo mates por PID sin comprobar que lo arrancaste tu: puede ser el de otra sesion.");
+    process.exit(1);
+  }
+  if (e?.code === "EACCES") {
+    console.error("El sistema no deja escuchar en el puerto " + PUERTO + ". Prueba con TRACKER_PUERTO=4320.");
+    process.exit(1);
+  }
+  console.error("No se pudo levantar el tracker: " + (e?.message ?? e));
+  process.exit(1);
+});
+
 servidor.listen(PUERTO, "127.0.0.1", () => {
   console.log("tracker en http://127.0.0.1:" + PUERTO + "   (" + todas().length + " tareas)");
   console.log("Ctrl-C para pararlo.");
