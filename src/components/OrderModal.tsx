@@ -782,7 +782,11 @@ export function OrderModal({
   // Aquí vivían `startSinTarifa` (D-287) y `confirmStart` (D-146): el almacén confirmaba o
   // corregía la tarifa al agarrar la orden, y de ahí salía el cambio de etapa. Fuera desde
   // D-340. «Comenzar preparación» ahora va por `onMove("fulfilling")`, como cualquier otro
-  // paso de etapa, y **nadie que no sea ventas escribe ya `delivery_fee`**.
+  // paso de etapa.
+  //
+  // Lo que este comentario decía hasta D-NEXT —«nadie que no sea ventas escribe ya
+  // `delivery_fee`»— describía el agujero, no la intención: al almacén se le fue la
+  // escritura de rebote al quitar el diálogo. La escribe por el campo de siempre, con `tarifaEditable`.
 
   /**
    * Guardar «agregar material» (D-339): una sola escritura con la factura, los pallets y las dos
@@ -1237,6 +1241,21 @@ export function OrderModal({
   // reprogram) — the cue to offer the "deliver first thing in the morning" flag.
   const rescheduledForward = !!existing?.delivery_date && !!d.delivery_date && d.delivery_date > existing.delivery_date;
   const whFields = editing && (me.role === "warehouse" || me.role === "admin");
+
+  /**
+   * La tarifa la escriben ventas Y ALMACÉN (D-NEXT). Gate propio, ni `salesFields` ni `whFields`: almacén no entra en los
+   * campos de ventas ni ventas en los de almacén; lo único que comparten es este.
+   *
+   * D-146 hizo que almacén confirmara la tarifa en un diálogo antes de «Comenzar preparación», y D-340 quitó ese diálogo
+   * porque el dueño pidió quitarle el bloqueo. Con el diálogo se fue también **la escritura** —lo dejó dicho la propia
+   * entrada de D-340— y desde entonces almacén VE la tarifa y no la puede cambiar por ningún lado. El dueño, el 2026-09-23:
+   * «delivery fee in customer isn't working for warehouse».
+   *
+   * Se le devuelve entera, no solo cuando está vacía: en la medición de D-340 almacén **corrigió** la tarifa en 25 de 46
+   * órdenes, así que limitarlo a rellenar huecos le quitaría el uso que tenía. Lo que faltaba cuando se cerró —que quedara
+   * rastro— ya está: desde D-372 el historial guarda «Delivery Fee: 50 → 75».
+   */
+  const tarifaEditable = salesFields || whFields;
   // Warehouse may edit only pallets + prepared status; temp & driver are admin-only.
   const adminFields = editing && me.role === "admin";
   // The Warehouse / Fulfillment section is only shown to warehouse & admin.
@@ -1940,12 +1959,13 @@ export function OrderModal({
             {/* ---- Order type · fee · pallets ---- */}
             <div className="grid g3">
               <Sel label={t("Order Type", "Tipo de Orden")} val={d.order_type} opts={settings.order_types} on={(v) => setD((p) => withTypeDefaults(p, v))} disabled={!salesFields} placeholder={t("Select order type", "Seleccione tipo de orden")} invalid={missingSet.has("order_type")} />
-              <Txt label={t("Delivery Fee charged ($)", "Costo de Entrega cobrado ($)")} type="number" val={d.delivery_fee ?? ""} on={(v) => set("delivery_fee", v === "" ? null : Number(v))} disabled={!salesFields} placeholder="0.00" invalid={missingSet.has("delivery_fee")} />
+              <Txt label={t("Delivery Fee charged ($)", "Costo de Entrega cobrado ($)")} type="number" val={d.delivery_fee ?? ""} on={(v) => set("delivery_fee", v === "" ? null : Number(v))} disabled={!tarifaEditable} placeholder="0.00" invalid={missingSet.has("delivery_fee")} />
               <Txt label={t("Est. Pallets (sales)", "Pallets Est. (ventas)")} type="number" val={d.est_pallets ?? ""} on={(v) => set("est_pallets", v === "" ? null : Number(v))} disabled={!salesFields} invalid={missingSet.has("est_pallets")} />
             </div>
 
             {/* ---- Local-zone fee suggestion ---- */}
-            {salesFields && (d.delivery_address || "").trim() && (
+            {/* Los botones de Lista y Descuento van con el mismo gate que el campo: teclear la tarifa a ciegas es peor. */}
+            {tarifaEditable && (d.delivery_address || "").trim() && (
               <div className="card" style={{ marginTop: -4, marginBottom: 10, padding: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className="sema" style={{ background: feeSuggestion.zone === "local" ? "var(--green)" : "var(--red)", color: "#fff" }}>
