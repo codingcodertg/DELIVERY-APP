@@ -22943,6 +22943,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
+> factura y el selector de columnas siguen, en «Sin asignar» y en la tabla de paradas.
+
 > **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
 > marcadas «Atrasada». El día sigue siendo aparte en el mapa, las rutas y los totales.
 >
@@ -24099,6 +24102,9 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
+> además ofrece ahora las columnas de Órdenes (ocultas por defecto).
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
 **Pedido por el dueño**, literal, en cuatro mensajes: *«in the routes planner where you can change order show the
 delivery adddres and also like orders let me configure it into columns»* · *«delivery address is missing in the
@@ -24247,6 +24253,9 @@ local: 3631 pasados, 3 saltados.
   un `path` de cinco vértices con una puerta; si sale feo o pequeño sobre el mapa, se ajusta en un solo sitio.
 
 ## D-349 · «Sin asignar» del Gestor tiene su propio ⚙ Columnas
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): el ⚙ de «Programadas» se fue con su pestaña; el de «Sin asignar» y el de la tabla de paradas
+> son los únicos.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.173.0, repo 1.237.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«I DONT SEE THE TABLE IN THE LOGISTICS MANAGER VIEW THE ORDER TABLE IS NOT
@@ -24509,6 +24518,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **No verificado:** nada abierto en un navegador.
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
+> vigente.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.184.0, repo 1.248.0 · **Sin migración.**
 **Pedido del dueño**, literal: *«logistic manager columns must also have a sorting option and still pending the
@@ -26086,3 +26098,114 @@ Si sale solo el dueño, se decide si se le pisan o se le dice. **No se pisan sin
 **Dos de esos mutantes no los cazaba nadie la primera vez** —los dos del color— y esa es la razón de
 que estén las pruebas de `btn-green` / `btn-danger`: el cambio que el dueño pidió en el punto 2 no
 tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
+
+## D-NEXT · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale:** dos peticiones del dueño, literales, el mismo día:
+«las mismas columnas que se miran en órdenes quiero que se miren en el logistic manager, así que agrega eso», y
+«en gestor de rutas el view programados es innecesario, quítalo». Van juntas porque tocan el mismo fichero
+(`routes/page.tsx`) y el mismo catálogo (`lib/routes-columns.ts`): en dos ramas se habrían pisado.
+
+**Reemplaza en parte** a D-331, D-346, D-349 y D-360 en lo que decían de «Programadas»: esa tabla ya no existe. Lo demás de
+esas decisiones sigue igual.
+
+### 1 · «Programadas» se quita, y no se pierde ninguna orden
+
+La pestaña listaba `scheduled`: las órdenes del día **con chofer**. Antes de quitarla se comprobó en el código que cada una
+sale ya en la tarjeta de su chofer, en «Rutas»: `byDriver` agrupa **todas** las del día por chofer; `lanes` añade una tarjeta
+de rescate para cualquier chofer que no esté en la lista (retirado, ruta temporal vieja); `shownDrivers` enseña toda tarjeta
+con paradas; y `buildTrips` (por capacidad o por carga) no deja ninguna parada fuera de un viaje. **Medido en el demo**
+(2026-09-23, «Ver como» logística): la cuenta «Programadas» dice **15** y las tablas de paradas de «Rutas» tienen **15**
+filas de orden, a 1280 y a 1440.
+
+- **La cuenta «Programadas» del resumen se queda** —cuántas tienen chofer es un dato— y ahora lleva a «Rutas», que es donde
+  están. Llevaba a la pestaña quitada. Medido: pulsarla deja «Rutas» activa.
+- Se borró lo que colgaba solo de ella: `scheduled`, `colsProgramadas`, `ordenProgramadas`, `menuProgramadas`, `schedCols`
+  (los anchos de `rtg_routes_sched4`, que se quedan en el navegador sin que nadie los lea), su ⚙ propio (`verColumnas`), y
+  del catálogo las tres columnas que solo salían ahí: **chofer, carga y parada**, con sus casos de `valorDelGestor` y el
+  contexto que las calculaba.
+- **Lo guardado no rompe.** `routes_columns` en `user_prefs` guarda una LISTA de claves, no una por tabla. Una lista que aún
+  diga `driver`, `load` o `stop` se lee igual: `columnasDeLaTabla` ignora las claves que no están en el catálogo, y la próxima
+  vez que la persona marque algo, `alternaColumna` las limpia. Hay prueba con una lista así.
+
+### 2 · Las columnas de Órdenes, con la celda de Órdenes
+
+Órdenes tiene 14 columnas elegibles. «Sin asignar» ya tenía factura, cuenta, dirección, tienda, pallets, fecha y ventanas.
+**Le faltaban tipo, SO #, PO #, costo y contacto**, y se añaden.
+
+**La «Etapa» ya estaba, con otro nombre.** La columna `status` del Gestor («Status / Estado») pintaba la etapa de la orden
+con su pastilla de color y ordenaba por su nombre: lo mismo que la «Etapa» de Órdenes. Añadir `stage` habría sido la misma
+columna dos veces. Se renombra a **«Stage / Etapa»**, como en Órdenes, y se pinta con la celda de Órdenes; **la clave sigue
+siendo `status`** porque es la que está guardada en las listas de cada persona.
+
+**Se reutiliza, no se copia.** Cada columna nueva del catálogo del Gestor lleva `deOrdenes: "<clave>"`, la columna de
+`ORDER_COLUMNS` de la que toma **la celda, el valor para ordenar y filtrar, y la etiqueta del filtro**. La página llama a esa
+misma función con el mismo contexto que Órdenes (idioma, traducción y motivos de anulación). Por eso el costo sale igual que
+allí —«$85.00», y en rojo con bandera «🚩 NO FEE» o «🚩 $0.00»—, el filtro del costo lista dinero, y la etapa lleva la clase
+`td-pastillas` (D-364). Órdenes no se tocó: `ORDER_COLUMNS` sigue donde estaba, porque varias pruebas leen su fuente.
+`columnaDeOrdenes` recibe el catálogo como argumento en vez de importarlo: vive en un componente con JSX, y vitest (en
+`node`, sin JSX) no lo carga — se probó y falla al transformar.
+
+**En la tabla de paradas de cada chofer** se añaden como elegibles: etapa, tienda, cuenta, SO #, PO #, fecha, costo y
+contacto. No el chofer —la tabla ES la de un chofer— ni la factura, que ya sale bajo el ID desde D-331. Van entre «Ventanas»
+y las acciones. Sus anchos se guardan **por clave** en su propia llave (`rtg_routes_stops_extra1`), con el ancho de partida
+de Órdenes: los de siempre van por posición en `rtg_routes_stops7`, y alargar esa lista habría tirado los anchos que cada
+quien ya ajustó (`useColWidths` descarta lo guardado si la longitud no cuadra). Los `colSpan` de las filas que cruzan la
+tabla (el viaje, el aviso de plan cambiado, la recogida) cuentan las nuevas.
+
+### 3 · Qué sale por defecto, y por qué distinto en cada tabla
+
+- **«Sin asignar»: las cinco nuevas SALEN**, también a quien ya tenía guardadas sus columnas (marca `_v4`, como `_v2` y
+  `_v3`). El dueño pidió **verlas**, y la historia de D-331 («te pedí que viera invoice y no aparece») es justo lo que pasa si
+  nacen escondidas. Quien no las quiera las quita en ⚙, y se respeta.
+- **Paradas: las ocho NO salen**; se eligen en su ⚙. Esa tabla es donde se cambia el orden con las flechas de la derecha, y
+  la página arrastra desde antes el cuidado de que esas flechas no se salgan de la pantalla (`addrWide`, los anchos
+  apretados de `rtg_routes_stops7`). **Medido:** con las ocho puestas la tabla mide 1768 px y la flecha ↑ queda en x≈1801,
+  con la caja terminando en 1213 (a 1280) o en 1369 (a 1440): fuera de vista, hay que desplazar la caja para reordenar.
+
+**El coste de lo que sí sale** (2026-09-23, demo, logística): «Sin asignar» mide **1716 px** medidos; sin las cinco serían
+1216 (calculado: cinco columnas de 100 px por defecto). A 1280 ya no cabía antes (caja de 1146 px); **a 1440 antes cabía
+(caja de 1298 px) y ahora no**: la columna «Asignar a» queda a la derecha y hay que desplazar la caja para verla. La
+**página no se desplaza de lado** en ningún caso medido (0 px, a 1280 y a 1440, en «Rutas», en «Sin asignar» y con las ocho
+de paradas puestas): se desplaza la caja, como en Órdenes (D-338/D-344/D-345). La asignación en bloque de arriba («Asignar
+selección a…») no se mueve. Si al dueño le estorba, se cambia en una línea por columna: `oculta: true`.
+
+> **Nota (2026-09-23, mismo día, tras 3b):** los 1716 px de arriba se midieron con las cinco a 100 px. Con el ancho de
+> Órdenes (3b), «Sin asignar» mide **1652 px** medidos, a 1280 y a 1440 (1216 + 428 de las cinco + 8 que gana la etapa). A
+> 1440 sigue sin caber en la caja de 1298: lo dicho de «Asignar a» vale igual.
+
+### 3b · El ancho de partida es el de Órdenes
+
+Con el ancho general de «Sin asignar» (100 px), la etapa salía «Program…» y en Órdenes «Programmed» entero: justo lo primero
+que se ve al comparar las dos. Ahora cada columna que viene de Órdenes nace con **el ancho que tiene en Órdenes**, leído de
+`COLUMN_WIDTHS` (no copiado): etapa 108, tipo 96, SO 72, PO 72, costo 72, contacto 116. `useColWidthMap` acepta un ancho de
+partida por columna (`widthOf(key, porDefecto)`), que manda por debajo de lo que la persona ya arrastró y de `COLUMN_WIDTHS`
+por su propia clave. **Medido** (2026-09-23, 1280 y 1440): la cabecera «Stage» mide 108 en las dos tablas, y en las dos la
+única pastilla que se corta es «Pending Approval» — la misma, al mismo ancho; «Programmed», «Ready» y «Preparing» salen
+enteras. La tabla de paradas ya tomaba estos anchos: sus columnas de Órdenes van por la clave de Órdenes.
+
+### 4 · Ordenar y filtrar
+
+Las cinco nuevas de «Sin asignar» ordenan y filtran con el menú de D-360, con el valor de Órdenes. Medido: ordenar el costo
+de mayor a menor da «$112.00 | $112.00 | $112.00 | $110.00 | $104.00 …», y el filtro de tipo ofrece los tipos que hay en la
+tabla. **La tabla de paradas no ordena ni filtra**, ni antes ni ahora: su orden ES la ruta, y ordenarla por otra columna
+contradiría las flechas.
+
+### Mutantes
+
+18, leídos por el nombre de la prueba que cae; **caen los 18**. Los que se pidieron: «el costo no se puede elegir en
+«Sin asignar»» (M1), «el costo se pinta con otro formato: toma la celda del PO» (M2, lo caza la prueba de rótulos y la del
+valor), «la página no pinta con la celda de Órdenes» (M3) o «pinta el valor crudo» (M4), y «no ordena»: en la librería
+(M5) y en la página, que deja de pasar el catálogo (M6). Además: la etiqueta de dinero del filtro (M7), la etapa que no
+encuentra `stage` (M8), un rótulo distinto (M9, M16), una de paradas que nace visible (M10), lo guardado sin la marca v4
+(M11), las de paradas sin puesto colándose en los ocultos (M12), `colSpan` y ancho que no las cuentan (M13, M14), la cuenta
+«Programadas» que no lleva a Rutas (M15), la etapa sin `td-pastillas` (M17) y una lista con chofer/carga/parada que no se
+limpia al marcar (M18).
+
+### Lo que no se verificó
+
+- **El guardado por persona contra la base real.** El demo no tiene `user_prefs`: la marca `_v4`, y que una lista guardada con
+  `driver/load/stop` se lea bien, están probadas con funciones, no en un navegador con sesión.
+- **El ⚙ de paradas abre el de TODAS las tarjetas a la vez** (un solo estado, `verColsParadas`). Es así desde D-346 y esta
+  decisión no lo cambia; se vio al medir.
