@@ -13136,7 +13136,7 @@ alguien la mide.
 > **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
 > historial entero; la tienda la sigue cortando la 131.
 
-> **⚠ Y esa sustitución se deshizo el 2026-09-23, por D-NEXT: esta entrada vuelve a estar vigente
+> **⚠ Y esa sustitución se deshizo el 2026-09-23, por D-374: esta entrada vuelve a estar vigente
 > tal como se escribió.** Duró un día. La nota de arriba se deja donde está porque pasó; lo que ya
 > no vale es su efecto. Vigente otra vez: la ventana es de todos menos `admin` y `logistics`, el
 > chofer incluido.
@@ -22943,7 +22943,7 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
 > factura y el selector de columnas siguen, en «Sin asignar» y en la tabla de paradas.
 
 > **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
@@ -23684,11 +23684,11 @@ etapa llevaba `delivery_fee` dentro era ese diálogo: hoy **nadie que no sea ven
 Hay prueba sobre el cuerpo entero de `move`, no sobre la llamada a `setStage` — reintroducirla en el
 `extra` de unas líneas antes no tocaría la llamada y pasaría desapercibido (medido con ese mutante).
 
-> **Nota dentro de esta entrada (2026-09-23, D-NEXT):** esa frase describe lo que pasó, y se cumplió al pie de la
+> **Nota dentro de esta entrada (2026-09-23, D-373):** esa frase describe lo que pasó, y se cumplió al pie de la
 > letra —demasiado. Lo que el dueño pidió aquí fue quitar **el bloqueo**, no quitarle al almacén la tarifa; que se
 > fueran las dos juntas es consecuencia de que vivían en el mismo diálogo, no una decisión aparte. Cuatro días
-> después: *«delivery fee in customer isn't working for warehouse»*. **D-NEXT le devuelve la escritura** con un gate
-> propio, sin diálogo y sin bloqueo —o sea sin revertir nada de lo de arriba—, así que desde D-NEXT la frase se lee
+> después: *«delivery fee in customer isn't working for warehouse»*. **D-373 le devuelve la escritura** con un gate
+> propio, sin diálogo y sin bloqueo —o sea sin revertir nada de lo de arriba—, así que desde D-373 la frase se lee
 > «nadie que no sea ventas escribe la tarifa **al mover la etapa**». El resto de esta entrada sigue vigente.
 
 ### Esto REVIERTE D-143 y D-146, y deja sin objeto la salida de D-287
@@ -24102,7 +24102,7 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
 > además ofrece ahora las columnas de Órdenes (ocultas por defecto).
 
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
@@ -24254,7 +24254,7 @@ local: 3631 pasados, 3 saltados.
 
 ## D-349 · «Sin asignar» del Gestor tiene su propio ⚙ Columnas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): el ⚙ de «Programadas» se fue con su pestaña; el de «Sin asignar» y el de la tabla de paradas
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): el ⚙ de «Programadas» se fue con su pestaña; el de «Sin asignar» y el de la tabla de paradas
 > son los únicos.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.173.0, repo 1.237.0 · **Sin migración.**
@@ -24434,7 +24434,7 @@ redondeados, que a la décima no cambian ninguna decisión.
 
 ## D-356 · Todos los roles ven todas las órdenes, sin ventana de fechas
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-23), al día siguiente. El dueño volvió a pedir la ventana:
+> **⚠ Reemplazada por D-374** (2026-09-23), al día siguiente. El dueño volvió a pedir la ventana:
 > *«ayer, hoy, futuro y atrasadas»*, que es la de D-239. `history` vuelve a ser de `admin` y
 > `logistics` solamente; el chofer **entra** en la ventana, preguntado y confirmado. Lo que sí
 > queda de aquí es la mecánica: `seesAllHistory` sigue leyendo `ROLE_CAPS`, y por eso revertir esto
@@ -24519,7 +24519,7 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
 > vigente.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.184.0, repo 1.248.0 · **Sin migración.**
@@ -25435,14 +25435,14 @@ Es lo contrario de lo que hace el Gestor de Rutas (D-331, «por defecto todas»)
 columnas lo fija el código y aquí lo pone el libro.** Cada tienda nueva del Excel añade una columna, así que «todas» crece sola
 y nadie se entera hasta que no cabe. Hay prueba de que las de partida **suman menos de 1100 px**, que es lo que queda a 1280.
 
-> **Nota dentro de esta entrada (2026-09-23, D-NEXT):** de las tres cosas de este apartado, **una la cambió el dueño el
+> **Nota dentro de esta entrada (2026-09-23, D-375):** de las tres cosas de este apartado, **una la cambió el dueño el
 > mismo día**: *«pon el inventario de todas las tiendas para vista de todos»*. Las **seis de tienda** pasan a verse al
 > entrar, para todos los roles. Lo demás de aquí sigue en pie —las cinco privadas **no** vuelven al arranque, y el
 > razonamiento de por qué «todas» crece sola tampoco se cae—; lo que cambia es el juicio sobre estas seis: saber qué
 > tienda tiene el material resultó ser parte de decidir, no un extra. **Y con ello caduca el número**: las de partida ya
 > no suman menos de 1100 px sino **1358** con seis tiendas (la prueba lo fija con ese número, no se borró). Lo que
 > sostiene que siga siendo usable no es que quepa, sino lo que esta misma entrada midió de Órdenes: la **página** no se
-> desplaza de lado y la **caja** sí. Medido en el navegador en D-NEXT.
+> desplaza de lado y la **caja** sí. Medido en el navegador en D-375.
 
 ### Una cosa que estaba a medias y no se había dicho
 
@@ -25731,7 +25731,7 @@ tanda:** «el número es el de la selección» —pasarle a la pregunta `chosen`
 porque la prueba de estructura solo miraba que se llamara a la función. Es exactamente el error que causó el incidente, así
 que la prueba ahora fija la llamada entera.
 
-## D-NEXT · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
+## D-373 · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
 
 **Fecha:** 2026-09-23 · **Sin migración.**
 **Pedido por el dueño**, literal: *«delivery fee in customer isn't working for warehouse»*.
@@ -25833,7 +25833,7 @@ así que va atribuido: es un dato de otra sesión.
 - Vuelve el comentario que decía lo que ya no era verdad; la otra pareja de botones se gatea también.
 - Los dos del autor del evento: `updateDelivery` y `addNote` pierden `me` de sus dependencias.
 
-## D-NEXT · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
+## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
 **Fecha:** 2026-09-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 
@@ -25979,7 +25979,7 @@ resultado, es un arnés roto — se mira el arnés antes que el código.
 - **El peso de las listas no se ha medido.** Almacén y ventas cargan ahora menos órdenes que ayer, no
   más, así que si cambia será a mejor; pero es deducción, no medición.
 
-## D-NEXT · Promos entra directo a la tabla, los botones de decidir se ven, y el inventario por tienda es de todos
+## D-375 · Promos entra directo a la tabla, los botones de decidir se ven, y el inventario por tienda es de todos
 
 **Fecha:** 2026-09-23 · **Sin migración.**
 **De dónde sale:** el dueño mandó una captura de `/promos` —la lista de rondas, con el renglón
@@ -26069,17 +26069,17 @@ guardadas— seguía leyendo la lista estática. O sea que quien no hubiera guar
 mundo hoy, no las habría visto nunca. Lo cazó la prueba que exigía que las dos coincidieran. Ahora
 hay un solo cálculo.
 
-### Lo que NO está medido, y quién tiene que medirlo
+### Medido al fusionar: no había nada que pisar
 
-**Si alguien ya tiene columnas de promos guardadas en `user_prefs`, a esa persona el defecto nuevo no
-le llega** — lo guardado manda, que es lo correcto, pero significa que el cambio no la alcanza. No lo
-he medido: **una rama no toca producción**. Lo tiene que contar el orquestador:
+**Cero personas tenían columnas de promos guardadas.** Lo contó el orquestador en producción el
+2026-09-23, antes de fusionar:
 
-```sql
-select count(*) from public.user_prefs where key = 'promos_columns';
-```
+    select count(*) from public.user_prefs where key = 'promos_columns';   -- 0
 
-Si sale solo el dueño, se decide si se le pisan o se le dice. **No se pisan sin decirlo.**
+O sea que el defecto nuevo le llega a todo el mundo y no hubo que decidir si pisar la elección de
+nadie. Se deja escrito el número porque la pregunta era real —lo guardado manda sobre el defecto, así
+que un cambio de defecto no alcanza a quien ya eligió— y porque **dentro de un mes ya no será cero**:
+quien lea esto después no puede deducir de aquí que no haya nadie, solo que no lo había ese día.
 
 ### Medido, rompiendo cada pieza
 
@@ -26099,7 +26099,7 @@ Si sale solo el dueño, se decide si se le pisan o se le dice. **No se pisan sin
 que estén las pruebas de `btn-green` / `btn-danger`: el cambio que el dueño pidió en el punto 2 no
 tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 
-## D-NEXT · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
+## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** dos peticiones del dueño, literales, el mismo día:
@@ -26209,3 +26209,70 @@ limpia al marcar (M18).
   `driver/load/stop` se lea bien, están probadas con funciones, no en un navegador con sesión.
 - **El ⚙ de paradas abre el de TODAS las tarjetas a la vez** (un solo estado, `verColsParadas`). Es así desde D-346 y esta
   decisión no lo cambia; se vio al medir.
+
+## D-377 · Almacén deshace una etapa en su tienda, borrar pasa a ser del borrador, y cada orden borrada deja rastro
+
+**Fecha:** 2026-09-23 · **Versión:** solo `package.json` (cambio solo de base) · **Migración: la 142**, aplicada por el
+orquestador al fusionar, con respaldo antes.
+
+**De dónde sale.** El dueño, literal: *«deja que warehouse y office tenga la opción de deshacer un stage, como por
+ejemplo deshacer un delivered o un fulfilling o un ready, y también que los draft, si no lo ocupan, lo puedan borrar
+o seguir editando, igual las duplicadas»*. Respondió a dos preguntas: office **y gerente** borran **cualquier**
+borrador de su tienda (no solo el suyo), y **sí** se guarda registro de cada orden borrada.
+
+**Plan en papel:** `docs/PLAN-142-deshacer-y-borradores.md` (inventario, políticas literales, matriz por rol,
+reversión). Escrito por un subagente; medido y ensayado por el orquestador.
+
+### Lo que había, medido en producción el 2026-09-23 (solo lectura)
+
+- **Office y gerente ya deshacían** cinco pasos desde la 139 (D-361). No les faltaba nada de deshacer.
+- **Almacén ya podía en la base** `ready→fulfilling`, `picked_up→ready` y `delivered→picked_up`, **en cualquier
+  tienda**. En pantalla solo tenía `ready→fulfilling`.
+- **Borrar estaba abierto en la base.** La política `"deliveries delete"` (la de la 131) dejaba borrar **cualquier
+  orden visible a cualquiera con el módulo de Entregas**; solo la pantalla, que enseña el botón nada más al admin, lo
+  frenaba. No había trigger de DELETE.
+- **Borrar no dejaba rastro:** `order_events` y `notifications` cuelgan de `deliveries` con `ON DELETE CASCADE`.
+  Desde el `stats_reset` (2026-07-15) se borraron **4 órdenes, 946 `order_events` y 141 `notifications`**. Las 4
+  órdenes no explican los 946 eventos, y ni el código ni las migraciones borran eventos: **sin explicar**.
+
+### Lo que cambia (solo base; la pantalla va en otra rama)
+
+1. **Almacén deshace un paso, solo en órdenes de sus tiendas** (la suya y las de su grupo, D-293):
+   `delivered→picked_up`, `ready→fulfilling` (ya los tenía, ahora acotados) y `fulfilling→approved` (nuevo).
+   `approved→pending` **no**: es de quien aprueba. `picked_up→ready` se queda **sin límite de tienda**, porque es
+   también «Dejar en tienda» (D-224). Hacia delante, idéntico y en cualquier tienda. La tienda la decide
+   `orden_de_mis_tiendas()` mirando `store`, `pickup_name`, `delivery_name` y la dirección de recogida, **de la orden
+   como estaba** (OLD). Sin tienda propia, no deshace.
+2. **Borrar:** el admin, cualquier orden; **office y gerente, cualquier borrador de su tienda y su grupo**; cualquier
+   otro, **solo su propio borrador**. Una pendiente, aprobada o entregada ya no la borra nadie más que el admin.
+   Un DELETE que la política no deja pasar **no da error: borra cero filas**; la pantalla tiene que pedir
+   `.select("id")` y contarlas.
+3. **Quién creó la orden no se reescribe.** En INSERT la base pone `created_by = auth.uid()`; en UPDATE cambiarlo se
+   rechaza (el admin sí puede corregirlo). Sin esto la regla 2 era decoración: el tramo de «misma etapa» no mira
+   columnas, y un vendedor podía ponerse de autor del borrador de otro y borrarlo.
+4. **Rastro de cada borrado:** tabla `public.deliveries_borradas`, escrita por un trigger `before delete` con la fila
+   entera, sus eventos y sus avisos (en `jsonb`), quién (`auth.uid()`, **nulo si borra service-role**), su rol y
+   cuándo. Solo la lee el admin. **Nadie la cambia, la borra ni la vacía** —admin, service-role y postgres
+   incluidos—: lo impide un trigger. **Revertir la 142 no borra esta tabla.**
+
+### Ensayo en producción, con ROLLBACK (2026-09-23)
+
+La matriz del plan (46 casos) más 4 del orquestador: grupo McAllen+Mission (almacén de McAllen deshace en Mission;
+office de McAllen borra un borrador ajeno de Mission) y dos de borrado fuera de tienda (office de McAllen en Pharr;
+office **sin** tienda). **50 de 50 como se esperaba.** Corrida también **sin** la 142 para comparar: difieren
+exactamente los que la 142 cambia. Tras el ROLLBACK: ni tabla, ni trigger, ni fila en el registro, ni órdenes de prueba.
+
+Y el guard nuevo contra el que corre en producción (`pg_get_functiondef`, finales de línea normalizados): **solo**
+cambian los dos bloques marcados «142» (el candado de `created_by` y el deshacer de almacén con tienda). No se perdió
+nada de 122, 123, 125, 127, 138 ni 139.
+
+### Lo que hay que saber
+
+- **1 office y 2 gerentes no tienen tienda** (medido el 2026-09-23): con la 142 solo borran sus propios borradores.
+  Si deben borrar los de una tienda, se les pone en Ajustes.
+- **El motivo obligatorio del deshacer lo pide la pantalla** y va en la nota del evento, como en la 139: la base no
+  lo comprueba.
+- **Borrar una orden a la que apunta una reentrega** pone `redelivery_of` a nulo con un UPDATE interno que pasa por el
+  guard como quien borra. Un borrador no es origen de reentregas, así que no debería darse; dicho por si aparece.
+- **Pruebas del repo que leen la 139** como definición del guard (`entregar-ya-y-deshacer.test.ts`,
+  `agregar-material.test.ts`) se mueven a la 142 en la rama de pantalla.

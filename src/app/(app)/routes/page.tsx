@@ -213,11 +213,11 @@ export default function RoutesPage() {
   // tables fit the screen without horizontal scrolling. Columns are still
   // draggable from here.
   // Anchos por CLAVE de columna, no por posición: las columnas de esta tabla ahora se eligen (D-331). La de «Programadas»
-  // (`rtg_routes_sched4`) se fue con su pestaña (D-NEXT).
+  // (`rtg_routes_sched4`) se fue con su pestaña (D-376).
   const poolCols = useColWidthMap("rtg_routes_pool4", 100);
-  // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-NEXT): con 100 px la etapa salía «Program…», y allí entera.
+  // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-376): con 100 px la etapa salía «Program…», y allí entera.
   const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
-  // Las columnas de Órdenes en la tabla de paradas (D-NEXT) no tienen puesto: su ancho va por clave, en su propia llave,
+  // Las columnas de Órdenes en la tabla de paradas (D-376) no tienen puesto: su ancho va por clave, en su propia llave,
   // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7`.
   const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
@@ -225,7 +225,7 @@ export default function RoutesPage() {
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
   // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
-  // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-NEXT, con
+  // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-376, con
   // «Programadas» fuera, son los dos únicos.
   const [verColsPool, setVerColsPool] = useState(false);
   const cajaDeColsPool = useRef<HTMLDivElement>(null);
@@ -258,7 +258,7 @@ export default function RoutesPage() {
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
   // La tabla de paradas guarda los anchos por puesto: lo que la persona quitó se esconde por su puesto (D-346).
   const paradasOcultas = indicesOcultosDeParadas(colsGestor);
-  // Y las columnas de Órdenes que la persona eligió para ella (D-NEXT), entre «Ventanas» y las acciones.
+  // Y las columnas de Órdenes que la persona eligió para ella (D-376), entre «Ventanas» y las acciones.
   const paradasExtra = extrasDeParadas(colsGestor);
   // Cuántas columnas pinta la tabla de paradas: las 8 de siempre, menos las quitadas, más las de Órdenes elegidas.
   const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;
@@ -270,7 +270,7 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Sin «scheduled» desde D-NEXT: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
+  // Sin «scheduled» desde D-376: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
   const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");
   const [busyDriver, setBusyDriver] = useState<string | null>(null);
@@ -780,7 +780,7 @@ export default function RoutesPage() {
   }, [dayOrders]);
 
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
-  // `valorDelGestor`; las que vienen de Órdenes (D-NEXT) toman el valor, la celda y la etiqueta de la columna de Órdenes,
+  // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings) }), [lang, t, settings]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
@@ -1612,7 +1612,7 @@ export default function RoutesPage() {
       {/* ---------- Stats strip (each tile jumps to the matching view) ---------- */}
       <div className="card" style={{ display: "flex", padding: 0, overflow: "hidden", marginBottom: 14 }}>
         {([
-          // Sin pestaña «Programadas» (D-NEXT), la cuenta se queda —cuántas tienen chofer— y lleva a las rutas, que es
+          // Sin pestaña «Programadas» (D-376), la cuenta se queda —cuántas tienen chofer— y lleva a las rutas, que es
           // donde está cada una: en la tarjeta de su chofer.
           { n: scheduledCount, label: t("Scheduled", "Programadas"), target: "routes" as const },
           { n: unassigned.length, label: t("Unscheduled", "Sin programar"), accent: true, target: "orders" as const },
@@ -1963,7 +1963,7 @@ export default function RoutesPage() {
                       <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
                       {colsSinAsignar.map((c) => (
                         <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
-                          {/* Las que vienen de Órdenes (D-NEXT) —etapa, tipo, SO, PO, costo, contacto— con la celda de Órdenes. */}
+                          {/* Las que vienen de Órdenes (D-376) —etapa, tipo, SO, PO, costo, contacto— con la celda de Órdenes. */}
                           {c.deOrdenes ? celdaDeOrdenes(c.key, d)
                             : c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
                             : c.key === "account" ? (d.account || "—")
@@ -2241,7 +2241,7 @@ export default function RoutesPage() {
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
                 <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : i === 4 ? (addrWide ? w : 112) : w), 0) + paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>
-                  {/* Los puestos 0-6, luego las columnas de Órdenes elegidas (D-NEXT), y el 7 —las acciones— siempre al final. */}
+                  {/* Los puestos 0-6, luego las columnas de Órdenes elegidas (D-376), y el 7 —las acciones— siempre al final. */}
                   <colgroup>
                     {stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}
                     {paradasExtra.map((c) => <col key={c.key} style={{ width: stopExtraCols.widthOf(c.deOrdenes!) }} />)}

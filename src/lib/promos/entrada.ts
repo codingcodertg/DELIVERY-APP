@@ -1,7 +1,7 @@
 import type { NamedLocation } from "@/lib/types";
 
 /**
- * A qué ronda se entra cuando alguien escribe `/promos`, y qué hace falta avisar al llegar (D-NEXT).
+ * A qué ronda se entra cuando alguien escribe `/promos`, y qué hace falta avisar al llegar (D-375).
  *
  * **Por qué desaparece la lista de rondas.** El dueño mandó una captura de esa pantalla —la tabla de
  * rondas con el renglón «Toca una ronda para aprobar o rechazar sus productos»— y dijo: *«esto

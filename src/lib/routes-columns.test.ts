@@ -21,7 +21,7 @@ describe("las columnas del Gestor", () => {
     expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain("invoice");
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0].key).toBe("invoice");
   });
-  it("por defecto «Sin asignar» enseña lo que ya enseñaba, en el mismo orden, y DETRÁS las de Órdenes (D-NEXT)", () => {
+  it("por defecto «Sin asignar» enseña lo que ya enseñaba, en el mismo orden, y DETRÁS las de Órdenes (D-376)", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "pickup", "address", "store", "pallets", "date", "windows", "status", ...NUEVAS_DE_ORDENES]);
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
@@ -30,7 +30,7 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", ["pallets", "columna_retirada", "fee", "invoice", "p_eta"]).map((c) => c.key)).toEqual(["invoice", "pallets", "fee"]);
     expect(columnasDeLaTabla("sinAsignar", [])).toEqual([]);
   });
-  it("D-NEXT: lo guardado cuando existía «Programadas» —chofer, carga, parada— se ignora sin romper, y al marcar se limpia", () => {
+  it("D-376: lo guardado cuando existía «Programadas» —chofer, carga, parada— se ignora sin romper, y al marcar se limpia", () => {
     for (const k of ["driver", "load", "stop"]) expect(COLUMNAS_DEL_GESTOR.some((c) => c.key === k), k).toBe(false);
     const guardada = ["invoice", "driver", "load", "stop", "pallets", MARCA_V2, MARCA_V3];
     expect(columnasDeLaTabla("sinAsignar", conColumnasNuevas(guardada)).map((c) => c.key)).toEqual(["invoice", "pallets", ...NUEVAS_DE_ORDENES]);
@@ -58,7 +58,7 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["invoice", "pickup", "address", "pallets", ...NUEVAS_DE_ORDENES]);
     // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
     expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
-    // Con la v3 y sin la v4 (guardó antes de D-NEXT): le llegan las de Órdenes, una vez.
+    // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.
     expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
     // Con las tres marcas, ya nada se añade: quitó el costo y se respeta.
     expect(conColumnasNuevas(["invoice", ...MARCAS])).toEqual(["invoice", ...MARCAS]);
@@ -88,7 +88,7 @@ describe("las columnas del Gestor", () => {
   });
 });
 
-describe("D-NEXT: las columnas de Órdenes, con el rótulo, la celda y el valor de Órdenes", () => {
+describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor de Órdenes", () => {
   // Solo el catálogo `ORDER_COLUMNS`, para que un `key:` de otro sitio del fichero no conteste por él.
   const tabla = leer("src/components/OrdersTable.tsx").split("export const ORDER_COLUMNS: OrderColumn[] = [")[1].split("\n];")[0];
   // El rótulo de cada columna de `ORDER_COLUMNS`, leído de su fuente: el catálogo tiene JSX y no se importa aquí.
@@ -168,7 +168,7 @@ describe("la página del Gestor", () => {
     for (const n of [2, 3, 4, 5, 6]) expect(pagina.split(`{!paradasOcultas.has(${n}) && <t`).length - 1, `puesto ${n}`).toBe(2);
     expect(pagina).toContain("const [addrWide, setAddrWide] = useState(true);");
   });
-  it("D-NEXT: las columnas de Órdenes en paradas — col, cabecera y celda — entre «Ventanas» y las acciones, y los colSpan las cuentan", () => {
+  it("D-376: las columnas de Órdenes en paradas — col, cabecera y celda — entre «Ventanas» y las acciones, y los colSpan las cuentan", () => {
     expect(pagina).toContain("const paradasExtra = extrasDeParadas(colsGestor);");
     expect(pagina).toContain("const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;");
     // Los tres colSpan de las filas que ocupan la tabla entera (el viaje, el aviso, la fila informativa).
@@ -187,7 +187,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain('const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);');
     expect(pagina).toContain('const stopCols = useColWidths("rtg_routes_stops7", [40, 96, 140, 70, 240, 56, 110, 150]);');
   });
-  it("D-NEXT: «Sin asignar» pinta, ordena y filtra las de Órdenes con las funciones de Órdenes", () => {
+  it("D-376: «Sin asignar» pinta, ordena y filtra las de Órdenes con las funciones de Órdenes", () => {
     expect(pagina).toContain('import { ORDER_COLUMNS } from "@/components/OrdersTable";');
     expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings) }), [lang, t, settings]);");
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
@@ -200,7 +200,7 @@ describe("la página del Gestor", () => {
     // La pastilla de etapa que la página pintaba a mano se fue: la pinta la celda de Órdenes.
     expect(pagina).not.toContain("stageLabel(d.stage, lang)");
   });
-  it("D-NEXT: «Sin asignar» usa el ancho de Órdenes en la tabla, en cada col y en el asa; y el hook lo respeta por debajo de lo arrastrado", () => {
+  it("D-376: «Sin asignar» usa el ancho de Órdenes en la tabla, en cada col y en el asa; y el hook lo respeta por debajo de lo arrastrado", () => {
     expect(pagina).toContain("const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));");
     expect(pagina).toContain("...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])");
     expect(pagina).toContain("{colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}");
@@ -210,7 +210,7 @@ describe("la página del Gestor", () => {
     expect(hook).toContain("const widthOf = (key: string, porDefecto?: number) => widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;");
     expect(hook).toContain("const base = widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;");
   });
-  it("D-NEXT: la pestaña «Programadas» ya no está, ni lo que colgaba de ella; su cuenta lleva a las rutas", () => {
+  it("D-376: la pestaña «Programadas» ya no está, ni lo que colgaba de ella; su cuenta lleva a las rutas", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");');

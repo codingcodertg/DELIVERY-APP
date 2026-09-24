@@ -4,7 +4,7 @@ import { esDeMisTiendas, esParaRecibir, intertiendaSinDestino, reparteLaColaDeAl
 import type { NamedLocation } from "./types";
 
 /**
- * El reparto de la cola de almacén (D-NEXT).
+ * El reparto de la cola de almacén (D-374).
  *
  * El dueño pidió dos cosas el 2026-09-23: *«warehouse should only see what they are in charge of»* y
  * *«for warehouse a new view where the loads intertienda going to his store will be visible; these

@@ -784,7 +784,7 @@ export function OrderModal({
   // D-340. «Comenzar preparación» ahora va por `onMove("fulfilling")`, como cualquier otro
   // paso de etapa.
   //
-  // Lo que este comentario decía hasta D-NEXT —«nadie que no sea ventas escribe ya
+  // Lo que este comentario decía hasta D-373 —«nadie que no sea ventas escribe ya
   // `delivery_fee`»— describía el agujero, no la intención: al almacén se le fue la
   // escritura de rebote al quitar el diálogo. La escribe por el campo de siempre, con `tarifaEditable`.
 
@@ -1243,7 +1243,7 @@ export function OrderModal({
   const whFields = editing && (me.role === "warehouse" || me.role === "admin");
 
   /**
-   * La tarifa la escriben ventas Y ALMACÉN (D-NEXT). Gate propio, ni `salesFields` ni `whFields`: almacén no entra en los
+   * La tarifa la escriben ventas Y ALMACÉN (D-373). Gate propio, ni `salesFields` ni `whFields`: almacén no entra en los
    * campos de ventas ni ventas en los de almacén; lo único que comparten es este.
    *
    * D-146 hizo que almacén confirmara la tarifa en un diálogo antes de «Comenzar preparación», y D-340 quitó ese diálogo

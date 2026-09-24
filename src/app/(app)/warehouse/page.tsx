@@ -149,7 +149,7 @@ export default function WarehousePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors]);
 
-  // El reparto en dos listas: lo que sale de sus tiendas y lo que ENTRA (D-NEXT). El dueño: *«for
+  // El reparto en dos listas: lo que sale de sus tiendas y lo que ENTRA (D-374). El dueño: *«for
   // warehouse a new view where the loads intertienda going to his store will be visible; these
   // orders will be extracted from his list and passed to that one»* — «extracted» es literal, así
   // que lo de Recepción sale de la cola en vez de salir en las dos.

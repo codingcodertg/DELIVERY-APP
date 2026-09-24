@@ -7,7 +7,7 @@
  *
  * La primera columna (`#`, el código de la orden) y la de acciones son FIJAS: no se pueden quitar.
  *
- * D-NEXT: la pestaña «Programadas» ya no existe —el dueño: «el view programados es innecesario»—, y con ella se fueron
+ * D-376: la pestaña «Programadas» ya no existe —el dueño: «el view programados es innecesario»—, y con ella se fueron
  * las tres columnas que solo salían ahí (chofer, carga, parada). Quedan dos tablas: «Sin asignar» y la de paradas de
  * cada chofer. Una lista guardada que aún las nombre no rompe nada: una clave que ya no está en el catálogo se ignora.
  */
@@ -20,7 +20,7 @@ export interface ColumnaDelGestor {
    *  las cinco de D-346; las que llegaron después se guardan por clave y no llevan puesto. */
   indice?: number;
   /** La columna de Órdenes (`ORDER_COLUMNS`) de la que esta toma la celda, el valor para ordenar y filtrar, y la
-   *  etiqueta del filtro (D-NEXT). Así «Costo» se pinta aquí exactamente como en Órdenes, con su bandera roja. */
+   *  etiqueta del filtro (D-376). Así «Costo» se pinta aquí exactamente como en Órdenes, con su bandera roja. */
   deOrdenes?: string;
   /** No sale por defecto: se elige en ⚙ Columnas. */
   oculta?: true;
@@ -38,9 +38,9 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
   { key: "date", en: "Delivery Date", es: "Fecha de Entrega", tablas: ["sinAsignar"], ancho: 100 },
   { key: "windows", en: "Windows", es: "Ventanas", tablas: ["sinAsignar"], ancho: 100 },
   // Era «Status / Estado» y pintaba lo mismo que la «Etapa» de Órdenes: la etapa de la orden, en su pastilla de color.
-  // Desde D-NEXT se llama como en Órdenes y se pinta con su celda. La clave sigue siendo `status`: es la que está guardada.
+  // Desde D-376 se llama como en Órdenes y se pinta con su celda. La clave sigue siendo `status`: es la que está guardada.
   { key: "status", en: "Stage", es: "Etapa", tablas: ["sinAsignar"], ancho: 88, deOrdenes: "stage" },
-  // Las de Órdenes que el Gestor no tenía (D-NEXT). El dueño: «las mismas columnas que se miran en órdenes quiero que se
+  // Las de Órdenes que el Gestor no tenía (D-376). El dueño: «las mismas columnas que se miran en órdenes quiero que se
   // miren en el logistic manager». Mismo rótulo, misma celda, mismo valor para ordenar y filtrar.
   { key: "type", en: "Type", es: "Tipo", tablas: ["sinAsignar"], ancho: 96, deOrdenes: "type" },
   { key: "so", en: "SO #", es: "SO #", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "so" },
@@ -55,7 +55,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
   { key: "p_address", en: "Stops: Address", es: "Paradas: Dirección", tablas: ["paradas"], ancho: 240, indice: 4 },
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
   { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 110, indice: 6 },
-  // Las de Órdenes que la tabla de paradas no tenía (D-NEXT). NO salen por defecto: esta tabla es donde se cambia el orden
+  // Las de Órdenes que la tabla de paradas no tenía (D-376). NO salen por defecto: esta tabla es donde se cambia el orden
   // con las flechas de la derecha, y ocho columnas más las sacarían de la pantalla (medido: ver la decisión). Se eligen
   // en su ⚙. Ni el chofer —la tabla ES la de un chofer— ni la factura —ya sale bajo el ID—.
   { key: "p_stage", en: "Stops: Stage", es: "Paradas: Etapa", tablas: ["paradas"], ancho: 108, deOrdenes: "stage", oculta: true },
@@ -87,7 +87,7 @@ export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly stri
 }
 
 /**
- * La columna de Órdenes que pinta la columna `clave` del Gestor, o nada si el Gestor la pinta a su manera (D-NEXT).
+ * La columna de Órdenes que pinta la columna `clave` del Gestor, o nada si el Gestor la pinta a su manera (D-376).
  * Recibe el catálogo de Órdenes en vez de importarlo: ese catálogo vive en un componente con JSX, y esto se prueba sin él.
  */
 export function columnaDeOrdenes<T extends { key: string }>(clave: string, catalogoDeOrdenes: readonly T[]): T | undefined {
@@ -117,7 +117,7 @@ const NUEVAS_EN_V2: readonly string[] = ["address", "p_type", "p_pallets", "p_ad
 // D-353 llegó después de que alguien pudiera tener ya la marca v2: segunda tanda, con su propia marca.
 export const MARCA_V3 = "_v3";
 const NUEVAS_EN_V3: readonly string[] = ["pickup"];
-// D-NEXT: las de Órdenes en «Sin asignar». Solo las que salen por defecto; las de paradas nacen ocultas y no se añaden.
+// D-376: las de Órdenes en «Sin asignar». Solo las que salen por defecto; las de paradas nacen ocultas y no se añaden.
 export const MARCA_V4 = "_v4";
 const NUEVAS_EN_V4: readonly string[] = ["type", "so", "po", "fee", "contact"];
 export function conColumnasNuevas(guardadas: readonly string[]): string[] {
@@ -134,7 +134,7 @@ export function indicesOcultosDeParadas(elegidas: readonly string[]): Set<number
   return new Set(COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.indice != null && !si.has(c.key)).map((c) => c.indice!));
 }
 
-/** Las columnas de paradas SIN puesto que la persona eligió (D-NEXT), en su orden: van entre «Ventanas» y las acciones. */
+/** Las columnas de paradas SIN puesto que la persona eligió (D-376), en su orden: van entre «Ventanas» y las acciones. */
 export function extrasDeParadas(elegidas: readonly string[]): ColumnaDelGestor[] {
   return columnasDeLaTabla("paradas", elegidas).filter((c) => c.indice == null);
 }

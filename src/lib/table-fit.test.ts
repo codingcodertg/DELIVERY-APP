@@ -92,7 +92,7 @@ describe("quién lleva la clase", () => {
   it("los CINCO contenedores que envuelven una `tbl-resize`, y ninguno más", () => {
     // Sube de cinco a seis con D-287: la vista «Ruta del día» de Almacén trae otra tabla de
     // columnas redimensionables. El número es un techo, no una estimación, así que se mueve con su
-    // motivo y no se afloja. Baja a cinco con D-NEXT: la tabla de «Programadas» del Gestor de Rutas se fue con su pestaña.
+    // motivo y no se afloja. Baja a cinco con D-376: la tabla de «Programadas» del Gestor de Rutas se fue con su pestaña.
     const { conResize, conFit, fitSinResize } = contenedores();
     expect(conResize).toBe(5);
     expect(conFit).toBe(5);

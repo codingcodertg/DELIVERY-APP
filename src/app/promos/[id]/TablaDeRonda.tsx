@@ -48,7 +48,7 @@ export function TablaDeRonda({
   esDecisor: boolean;
   esAdmin: boolean;
   gruposDelLibro: string[];
-  /** Todas las rondas, para el selector que sustituye a la lista que se quitó (D-NEXT). */
+  /** Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). */
   rondas: readonly { id: string; label: string; uploaded_at: string; closed_at: string | null }[];
   /** Tiendas a las que les falta el grupo de promociones. Vacío = no hay nada que avisar. */
   tiendasSinGrupo: readonly string[];
@@ -257,7 +257,7 @@ export function TablaDeRonda({
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0 }}>🏷️ {ronda.label}</h1>
         {rondaCerrada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>{t("Closed", "Cerrada")}</span>}
-        {/* El selector que sustituye a la lista de rondas (D-NEXT). Solo sale si hay MAS DE UNA:
+        {/* El selector que sustituye a la lista de rondas (D-375). Solo sale si hay MAS DE UNA:
             con una sola ronda seria un desplegable de un elemento, que es justo el clic de mas que
             el dueno mando quitar. Es un `<select>` y no enlaces porque las rondas crecen con los
             meses y una fila de enlaces se hace larga sola. */}

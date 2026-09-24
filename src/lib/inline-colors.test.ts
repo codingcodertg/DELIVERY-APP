@@ -139,7 +139,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/map/page.tsx": 4,
     "src/app/(app)/market/page.tsx": 3,
     "src/app/(app)/my-route/page.tsx": 1,
-    // 11 hasta D-NEXT: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
+    // 11 hasta D-376: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
     "src/app/(app)/routes/page.tsx": 10,
     "src/app/(app)/settings/page.tsx": 1,
     "src/app/(app)/summary/page.tsx": 1,
@@ -218,7 +218,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // Era 80 y 65 hasta D-274: −2 blancos de la Cuenta, −2 blancos y −1 translúcido de la barra,
     // +1 blanco de la leyenda del mapa. Recontado con esta misma prueba.
     // 76 y 62 hasta D-337: −1 blanco, el de la lista de facturas ajenas de «Misma factura», que ya no existe.
-    // 75 y 61 hasta D-NEXT: −1 blanco, la pastilla de etapa de «Sin asignar» en el Gestor, que pasa a ser la de Órdenes.
+    // 75 y 61 hasta D-376: −1 blanco, la pastilla de etapa de «Sin asignar» en el Gestor, que pasa a ser la de Órdenes.
     let total = 0;
     let blancos = 0;
     for (const ruta of ficherosEntregas) {

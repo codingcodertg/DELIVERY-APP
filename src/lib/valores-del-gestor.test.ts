@@ -52,7 +52,7 @@ describe("valorDelGestor", () => {
     expect(valorDelGestor("pallets", d)).toBe(5);
     expect(valorDelGestor("no_existe", d, ordenes)).toBeNull();
   });
-  it("D-NEXT: las que vienen de Órdenes toman el valor de SU columna de Órdenes, con el contexto que pasa la página", () => {
+  it("D-376: las que vienen de Órdenes toman el valor de SU columna de Órdenes, con el contexto que pasa la página", () => {
     const d = mk({ stage: "approved", order_type: "Intertienda", so_num: "SO-9", po2: "PO-9", delivery_fee: 0, contact: "Otra" });
     expect(valorDelGestor("status", d, ordenes)).toBe("es:approved");
     expect(valorDelGestor("status", d, { ...ordenes, ctx: { lang: "en" } })).toBe("en:approved");

@@ -197,7 +197,7 @@ describe("las piezas por separado", () => {
   });
 });
 
-describe("almacén: solo sus tiendas, también en el tablero (D-NEXT)", () => {
+describe("almacén: solo sus tiendas, también en el tablero (D-374)", () => {
   // El dueño: *«warehouse should only see what they are in charge of»*. El corte ya existía, pero
   // **solo en su propia cola** (`warehouse/page.tsx`): en Órdenes veía las de todas las tiendas. Es
   // el mismo corte, en la otra pantalla, con la misma función —`esDeMisTiendas`— y no una copia.

@@ -5,10 +5,10 @@
  * de columna (el de Órdenes, D-275) no compara lo pintado: compara un valor crudo por fila —un número o un texto, o
  * nulo si la orden no lo tiene—. Ese valor se decide aquí, por clave de columna, para poder probarlo sin navegador.
  *
- * Las columnas que el Gestor toma de Órdenes (D-NEXT: tipo, SO, PO, costo, contacto, etapa) no tienen caso propio:
+ * Las columnas que el Gestor toma de Órdenes (D-376: tipo, SO, PO, costo, contacto, etapa) no tienen caso propio:
  * su valor es el de la columna de Órdenes, que la página pasa en `ordenes`. Así se ordena y se filtra igual que allí.
  *
- * D-NEXT también quitó la pestaña «Programadas», y con ella el chofer, la carga y la parada, que solo salían ahí.
+ * D-376 también quitó la pestaña «Programadas», y con ella el chofer, la carga y la parada, que solo salían ahí.
  */
 
 import { fmtDate, orderLabel } from "@/lib/utils";

@@ -158,7 +158,7 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
     { key: "qoh", en: "QOH", es: "Existencias", ancho: 80, numero: true },
   ];
   for (const t of clavesDeTienda) {
-    // 64 y no 76 (D-NEXT): desde que salen por defecto son seis columnas más en la pantalla de
+    // 64 y no 76 (D-375): desde que salen por defecto son seis columnas más en la pantalla de
     // todo el mundo, y lo que llevan son números de tres o cuatro cifras. Lo que se estrecha es el
     // hueco, no el dato. La cabecera corta con puntos, como el resto de la tabla, y el nombre
     // entero sigue en ⚙ Columnas y en el menú de la propia cabecera.
@@ -200,7 +200,7 @@ export const COLUMNAS_DE_PROMOS_POR_DEFECTO: readonly string[] = [
 
 /**
  * Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla),
- * **más las seis de existencias por tienda** (D-NEXT).
+ * **más las seis de existencias por tienda** (D-375).
  *
  * **Esto cambia en parte la decisión de arriba, y el dueño lo pidió sabiendo cuál era**: *«pon el
  * inventario de todas las tiendas para vista de todos»*. La razón de que estuvieran apagadas sigue
@@ -238,7 +238,7 @@ export function columnasVisiblesDePromos(
   guardadas: readonly string[] | null | undefined,
   disponibles: readonly ColumnaDePromos[],
 ): string[] {
-  // Sin nada guardado, EL MISMO defecto que calcula `columnasDePromosPorDefecto` —que desde D-NEXT
+  // Sin nada guardado, EL MISMO defecto que calcula `columnasDePromosPorDefecto` —que desde D-375
   // incluye las de tienda— y no la lista estática. Escrito así porque ya divergieron una vez: al
   // añadir las de tienda al defecto, esta función seguía devolviendo el defecto viejo, y quien no
   // hubiera guardado columnas nunca las habría visto. Un defecto en dos sitios acaba siendo dos.

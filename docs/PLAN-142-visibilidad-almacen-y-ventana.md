@@ -1,6 +1,6 @@
 # Plan — 142 · Almacén solo lo suyo, la ventana de fechas vuelve, y la vista de recepción
 
-**Estado:** RESUELTO el 2026-09-23 — ver la entrada **D-NEXT** de `DECISIONS.md`, que es lo que
+**Estado:** RESUELTO el 2026-09-23 — ver la entrada **D-374** de `DECISIONS.md`, que es lo que
 manda. Este plan se deja entero porque es de donde salieron las mediciones, pero **construido no
 está todo lo que hay aquí**:
 
@@ -13,7 +13,7 @@ está todo lo que hay aquí**:
 - La ventana elegida es la de **D-239** (`withinRetention`: suelo, sin techo), no la de «Reciente».
 
 Lo de abajo queda como estaba el día que se escribió. **No se edita para que cuadre**: si algo de
-aquí contradice a D-NEXT, manda D-NEXT.
+aquí contradice a D-374, manda D-374.
 
 ---
 

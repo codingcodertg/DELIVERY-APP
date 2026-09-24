@@ -5,7 +5,7 @@ import { rondaDeEntrada, tiendasSinGrupoDePromos } from "./entrada";
 import type { NamedLocation } from "@/lib/types";
 
 /**
- * Entrar directo a la tabla (D-NEXT). El dueño mandó la captura de la lista de rondas: «esto
+ * Entrar directo a la tabla (D-375). El dueño mandó la captura de la lista de rondas: «esto
  * elimínalo, que entre directo a la tabla».
  */
 

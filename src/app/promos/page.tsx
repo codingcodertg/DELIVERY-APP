@@ -9,7 +9,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 export const dynamic = "force-dynamic";
 
 /**
- * La raíz del módulo de promociones: **no es una pantalla, es una puerta** (D-NEXT).
+ * La raíz del módulo de promociones: **no es una pantalla, es una puerta** (D-375).
  *
  * Aquí había la lista de rondas. El dueño la vio y dijo *«esto elimínalo, que entre directo a la
  * tabla»*, y tenía razón: casi siempre había una sola ronda abierta, así que la lista era un clic

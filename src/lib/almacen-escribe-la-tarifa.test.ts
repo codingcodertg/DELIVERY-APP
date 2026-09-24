@@ -5,7 +5,7 @@ import { canEditFields } from "./constants";
 import type { Stage, UserRole } from "./types";
 
 /**
- * Almacén vuelve a poder escribir la tarifa (D-NEXT), que es el efecto colateral que dejó D-340 al quitar el diálogo.
+ * Almacén vuelve a poder escribir la tarifa (D-373), que es el efecto colateral que dejó D-340 al quitar el diálogo.
  * Sin jsdom no se puede montar la ficha, así que esto fija el GATE y que no abra nada más; lo que se ve en pantalla está
  * medido en el navegador y anotado en la entrada.
  */

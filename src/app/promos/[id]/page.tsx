@@ -55,7 +55,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
   const { data: ajustes } = await supabase.from("settings").select("stores").eq("id", 1).maybeSingle();
   const tiendas = (ajustes?.stores ?? []) as NamedLocation[];
 
-  // Todas las rondas, para el selector que sustituye a la lista que se quitó (D-NEXT). Son dos
+  // Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). Son dos
   // campos y como mucho cincuenta filas: cuesta menos que la página que se ahorra.
   const { data: todasLasRondas } = await supabase
     .from("promo_rounds")
