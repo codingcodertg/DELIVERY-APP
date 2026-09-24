@@ -25610,3 +25610,78 @@ ver si de verdad hace lo que dice su nombre.
 - **El script NO ha escrito nunca.** Lo probado es el camino de lectura, que es el que se puede correr sin tocar nada. La
   primera carga real la hará quien administre, con `--escribir`.
 - **El aviso de la tienda nueva se probó quitando un grupo a mano**, no con un libro que traiga una tienda nueva de verdad.
+
+## D-372 · Un cambio en bloque pregunta a cuántas toca, no toca entregadas ni anuladas, y el historial guarda de qué valor venía
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale:** de un incidente en producción el **2026-09-23 a las 18:53** (hora de Texas). El dueño cambió por error la
+fecha de **162 de 245 órdenes** a un día después; **110 ya estaban entregadas**. Se pidió deshacerlo y **no se pudo del todo**:
+las 110 entregadas se devolvieron al día de su prueba de entrega, pero **las 52 activas se quedaron sin su fecha original**,
+porque el historial decía «Changed: Delivery Date» y no de qué día venían.
+
+Tres cosas lo hicieron posible, y se arreglan las tres.
+
+### 1 · El historial guarda antes → después
+
+`changedFieldsNote` recibía el estado anterior y solo apuntaba los NOMBRES de los campos. Ahora escribe
+`Changed: Delivery Date: 2026-09-24 → 2026-12-25`, y con varios campos los separa: `… · Est. Pallets: 3 → 7`.
+
+- **El texto libre largo no trae su valor** —notas de la orden, notas por rol, motivo de reentrega, nota de anulación—: solo
+  que cambió. Y cualquier valor de más de `LARGO_DE_VALOR_EN_NOTA` (40) tampoco, aunque sea de un campo corto: así una
+  dirección normal se apunta entera y un párrafo pegado en ella, no.
+- Lo vacío se escribe «—», porque `Driver:  → Carlos` se lee como una nota rota.
+- **La nota entera tiene tope de 500.** Es una precaución, no una medida: **`order_events` no se crea en ninguna migración
+  del repo** —es anterior a la carpeta—, así que el tipo de `note` no se puede leer desde aquí. Que hoy se escriban notas de
+  texto libre sin recortar (el motivo de «entregada sin firma», por ejemplo) sugiere que es `text` sin límite, pero eso es
+  una inferencia, no una medición.
+- **Nadie ANALIZA esta nota**, así que cambiar el formato no rompe nada: se comprobó antes de tocarla. Se lee en un solo
+  sitio, la fila del historial de la ficha (`OrderModal`), y se pinta tal cual.
+- **El demo escribía el evento sin nota**, así que esto no se habría podido ver nunca en un navegador. Ahora escribe la misma
+  que la app: esa pantalla existe justo para poder mirar lo que pasó.
+
+### 2 · Elegir y aplicar son dos pasos, y se pregunta a cuántas
+
+El `<input type="date">` de la barra de selección aplicaba **en su propio `onChange`**: elegir el día ERA el cambio, sin
+confirmación y sin decir a cuántas. El selector de chofer, igual. Ahora elegir solo elige; aparece un botón («Fijar fecha
+2026-12-25…»), y al pulsarlo se pregunta, con el mismo patrón que ya usaba «Marcar entregadas»:
+
+> ¿Fijar la fecha de entrega en 2026-12-25? · Se cambian **84** orden(es): #1089, #1088, … · Se saltan **2** orden(es):
+> 1 cancelado y 1 entregado. Para cambiar una, ábrela.
+
+**El número es el de las que ENTRAN, no el de la selección.** Preguntar «se cambian 162» cuando cambian 52 es una pregunta
+que miente, y hay un mutante que lo vigila.
+
+### 3 · Una entregada o anulada no entra en un cambio en bloque
+
+`reparteParaElBloque` (puro) separa lo que se cambia de lo que se salta, y la pregunta lo dice con su cuenta por etapa. No es
+cosa de permisos —el admin puede cambiar una entregada— sino de que en un bloque nadie las mira de una en una. Quien quiera
+mover una entregada la abre y la mueve, que es donde se ve lo que se hace.
+`bulkStage`, `bulkMarkDelivered` y `bulkOverride` **no se tocan**: tienen su propia lógica de etapas.
+
+### Medido en el navegador, no deducido
+
+Con las 86 órdenes del demo seleccionadas: elegir la fecha **ya no cambia nada**; el botón aparece; la pregunta dice «This
+changes 84 order(s)» y «2 order(s) are skipped: 1 canceled and 1 delivered». Tras aplicar, **las 4 entregadas y la anulada
+conservan su fecha** y el resto se movió. Y la ficha de una de las cambiadas enseña en su historial: *Edited · You (Admin) —
+Changed: Delivery Date: 2026-09-24 → 2026-12-25*.
+
+### La pregunta de la base: mi recomendación es NO
+
+Se pidió medir y proponer si la base debería impedir cambiar la fecha de una orden entregada. **Recomiendo no hacerlo**, y la
+razón es el propio incidente: **la reparación consistió en escribir fechas sobre órdenes entregadas** —las 110 volvieron al
+día de su prueba de entrega—. Un invariante que ni el admin se salta, como el de «una entregada no se anula» (122), habría
+hecho esa reparación imposible. Y la base no puede distinguir una corrección legítima —se registró mal el día en que se
+entregó— de un accidente en bloque: las dos son el mismo `update`.
+
+Lo que sí propondría para la base, si se quiere una segunda red, es **lo que de verdad falló**: que el registro de qué cambió
+no dependa del cliente. Un trigger que escriba en `order_events` el valor anterior de los campos clave dejaría el historial
+completo aunque el cambio venga de un script, de la consola de Supabase o de una versión vieja de la app. Eso sí es
+migración y plan en papel, y no lo he escrito.
+
+### Mutantes
+
+16, leídos por nombre; caen los 16. Los cuatro pedidos: «el onChange vuelve a aplicar directamente», «la pregunta sin el
+número», «una entregada entra en el bloque» y «la nota vuelve a apuntar solo el nombre». **Uno sobrevivió a la primera
+tanda:** «el número es el de la selección» —pasarle a la pregunta `chosen` en vez de lo que entra— y no lo cazaba nadie,
+porque la prueba de estructura solo miraba que se llamara a la función. Es exactamente el error que causó el incidente, así
+que la prueba ahora fija la llamada entera.
