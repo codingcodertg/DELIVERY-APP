@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "./routes-columns";
+import { COLUMN_WIDTHS } from "./use-col-widths";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -114,6 +115,13 @@ describe("D-NEXT: las columnas de Órdenes, con el rótulo, la celda y el valor 
       expect({ en: quitaPrefijo(c.en), es: quitaPrefijo(c.es) }, c.key).toEqual(r);
     }
   });
+  it("cada columna que viene de Órdenes nace con el ancho de Órdenes — la etapa, 108, para que no salga «Program…»", () => {
+    expect(COLUMN_WIDTHS.stage).toBeGreaterThan(100);
+    expect(anchoDePartida("status", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.stage);
+    for (const c of COLUMNAS_DEL_GESTOR.filter((x) => x.deOrdenes)) expect(anchoDePartida(c.key, COLUMN_WIDTHS), c.key).toBe(COLUMN_WIDTHS[c.deOrdenes!]);
+    // Las que el Gestor pinta a su manera siguen con el ancho general de su tabla, aunque Órdenes tenga una con su clave.
+    for (const k of ["invoice", "account", "address", "date", "no_existe"]) expect(anchoDePartida(k, COLUMN_WIDTHS), k).toBeUndefined();
+  });
   it("`columnaDeOrdenes` devuelve la columna de Órdenes de cada clave, y nada para las que el Gestor pinta a su manera", () => {
     const catalogo = ["stage", "type", "store", "account", "so", "po", "invoice", "date", "fee", "contact"].map((key) => ({ key }));
     expect(columnaDeOrdenes("fee", catalogo)).toBe(catalogo.find((o) => o.key === "fee"));
@@ -191,6 +199,16 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("{c.deOrdenes ? celdaDeOrdenes(c.key, d) : c.key === \"invoice\"");
     // La pastilla de etapa que la página pintaba a mano se fue: la pinta la celda de Órdenes.
     expect(pagina).not.toContain("stageLabel(d.stage, lang)");
+  });
+  it("D-NEXT: «Sin asignar» usa el ancho de Órdenes en la tabla, en cada col y en el asa; y el hook lo respeta por debajo de lo arrastrado", () => {
+    expect(pagina).toContain("const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));");
+    expect(pagina).toContain("...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])");
+    expect(pagina).toContain("{colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}");
+    expect(pagina).toContain("onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))}");
+    expect(pagina).not.toContain("poolCols.widthOf(`g_${c.key}`)");
+    const hook = plano(leer("src/lib/use-col-widths.ts"));
+    expect(hook).toContain("const widthOf = (key: string, porDefecto?: number) => widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;");
+    expect(hook).toContain("const base = widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;");
   });
   it("D-NEXT: la pestaña «Programadas» ya no está, ni lo que colgaba de ella; su cuenta lleva a las rutas", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])

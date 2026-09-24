@@ -132,13 +132,15 @@ export function useColWidthMap(storageKey: string, defaultWidth = 150, opciones:
     try { localStorage.setItem(storageKey, JSON.stringify(w)); } catch { /* ignore */ }
     alCambiar.current?.(w);
   };
-  const widthOf = (key: string) => widths[key] ?? COLUMN_WIDTHS[key] ?? defaultWidth;
+  // `porDefecto` (D-NEXT): el ancho de partida de UNA columna, cuando no es el general. Lo usa el Gestor para que una
+  // columna tomada de Órdenes nazca con el ancho que tiene allí. Lo que la persona ya arrastró sigue mandando.
+  const widthOf = (key: string, porDefecto?: number) => widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;
 
-  const startResize = (key: string) => (e: React.MouseEvent) => {
+  const startResize = (key: string, porDefecto?: number) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const base = widths[key] ?? COLUMN_WIDTHS[key] ?? defaultWidth;
+    const base = widths[key] ?? COLUMN_WIDTHS[key] ?? porDefecto ?? defaultWidth;
     const escala = escalaDelAsa(e.currentTarget, base);
     const onMove = (ev: MouseEvent) => {
       setWidths((w) => ({ ...w, [key]: Math.max(minimo, Math.round(base + (ev.clientX - startX) / escala)) }));

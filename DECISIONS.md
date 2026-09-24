@@ -22938,6 +22938,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
+> factura y el selector de columnas siguen, en «Sin asignar» y en la tabla de paradas.
+
 > **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
 > marcadas «Atrasada». El día sigue siendo aparte en el mapa, las rutas y los totales.
 >
@@ -24087,6 +24090,9 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
+> además ofrece ahora las columnas de Órdenes (ocultas por defecto).
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
 **Pedido por el dueño**, literal, en cuatro mensajes: *«in the routes planner where you can change order show the
 delivery adddres and also like orders let me configure it into columns»* · *«delivery address is missing in the
@@ -24235,6 +24241,9 @@ local: 3631 pasados, 3 saltados.
   un `path` de cinco vértices con una puerta; si sale feo o pequeño sobre el mapa, se ajusta en un solo sitio.
 
 ## D-349 · «Sin asignar» del Gestor tiene su propio ⚙ Columnas
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): el ⚙ de «Programadas» se fue con su pestaña; el de «Sin asignar» y el de la tabla de paradas
+> son los únicos.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.173.0, repo 1.237.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«I DONT SEE THE TABLE IN THE LOGISTICS MANAGER VIEW THE ORDER TABLE IS NOT
@@ -24485,6 +24494,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **No verificado:** nada abierto en un navegador.
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
+> vigente.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.184.0, repo 1.248.0 · **Sin migración.**
 **Pedido del dueño**, literal: *«logistic manager columns must also have a sorting option and still pending the
@@ -25757,6 +25769,20 @@ tabla (el viaje, el aviso de plan cambiado, la recogida) cuentan las nuevas.
 **página no se desplaza de lado** en ningún caso medido (0 px, a 1280 y a 1440, en «Rutas», en «Sin asignar» y con las ocho
 de paradas puestas): se desplaza la caja, como en Órdenes (D-338/D-344/D-345). La asignación en bloque de arriba («Asignar
 selección a…») no se mueve. Si al dueño le estorba, se cambia en una línea por columna: `oculta: true`.
+
+> **Nota (2026-09-23, mismo día, tras 3b):** los 1716 px de arriba se midieron con las cinco a 100 px. Con el ancho de
+> Órdenes (3b), «Sin asignar» mide **1652 px** medidos, a 1280 y a 1440 (1216 + 428 de las cinco + 8 que gana la etapa). A
+> 1440 sigue sin caber en la caja de 1298: lo dicho de «Asignar a» vale igual.
+
+### 3b · El ancho de partida es el de Órdenes
+
+Con el ancho general de «Sin asignar» (100 px), la etapa salía «Program…» y en Órdenes «Programmed» entero: justo lo primero
+que se ve al comparar las dos. Ahora cada columna que viene de Órdenes nace con **el ancho que tiene en Órdenes**, leído de
+`COLUMN_WIDTHS` (no copiado): etapa 108, tipo 96, SO 72, PO 72, costo 72, contacto 116. `useColWidthMap` acepta un ancho de
+partida por columna (`widthOf(key, porDefecto)`), que manda por debajo de lo que la persona ya arrastró y de `COLUMN_WIDTHS`
+por su propia clave. **Medido** (2026-09-23, 1280 y 1440): la cabecera «Stage» mide 108 en las dos tablas, y en las dos la
+única pastilla que se corta es «Pending Approval» — la misma, al mismo ancho; «Programmed», «Ready» y «Preparing» salen
+enteras. La tabla de paradas ya tomaba estos anchos: sus columnas de Órdenes van por la clave de Órdenes.
 
 ### 4 · Ordenar y filtrar
 

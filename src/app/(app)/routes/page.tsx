@@ -17,7 +17,7 @@ import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLab
 import { serviceMin, tripTiming, dayMinutes, RELOAD_MIN } from "@/lib/trip-timing";
 import { buildGeoLoads, fillByCapacity, planCostMi } from "@/lib/route-batching";
 import { driverOf, groupIntoLoads, hasManualLoads, loadNoOf, nextLoadFor as nextLoadForPure, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
-import { anchoDeTabla, useColWidthMap, useColWidths } from "@/lib/use-col-widths";
+import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap, useColWidths } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
@@ -26,7 +26,7 @@ import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "@/lib/routes-columns";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
@@ -215,6 +215,8 @@ export default function RoutesPage() {
   // Anchos por CLAVE de columna, no por posición: las columnas de esta tabla ahora se eligen (D-331). La de «Programadas»
   // (`rtg_routes_sched4`) se fue con su pestaña (D-NEXT).
   const poolCols = useColWidthMap("rtg_routes_pool4", 100);
+  // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-NEXT): con 100 px la etapa salía «Program…», y allí entera.
+  const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
   // Las columnas de Órdenes en la tabla de paradas (D-NEXT) no tienen puesto: su ancho va por clave, en su propia llave,
   // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7`.
   const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
@@ -1917,11 +1919,11 @@ export default function RoutesPage() {
           <>
           <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
           <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
-            <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => poolCols.widthOf(`g_${c.key}`)), 116])}>
+            <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
               <colgroup>
                 <col style={{ width: 28 }} />
                 <col style={{ width: poolCols.widthOf("__id") }} />
-                {colsSinAsignar.map((c) => <col key={c.key} style={{ width: poolCols.widthOf(`g_${c.key}`) }} />)}
+                {colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}
                 <col style={{ width: 116 }} />
               </colgroup>
               <thead>
@@ -1942,7 +1944,7 @@ export default function RoutesPage() {
                   </th>
                   {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
                   <th><CabeceraConMenu estado={ordenSinAsignar} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
-                  {menuSinAsignar.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`)} /></th>)}
+                  {menuSinAsignar.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
                   <th>{singleSel ? t("Add to", "Agregar a") : t("Assign to", "Asignar a")}</th>
                 </tr>
               </thead>

@@ -96,6 +96,16 @@ export function columnaDeOrdenes<T extends { key: string }>(clave: string, catal
 }
 
 /**
+ * El ancho de partida de la columna `clave` del Gestor si viene de Órdenes: el MISMO que tiene allí (`COLUMN_WIDTHS`, que
+ * la página pasa), para que la pastilla de etapa no salga cortada aquí y entera allí. Sin columna de Órdenes, nada: manda
+ * el ancho general de la tabla. Lo que la persona ya arrastró sigue mandando sobre esto.
+ */
+export function anchoDePartida(clave: string, anchosDeOrdenes: Readonly<Record<string, number>>): number | undefined {
+  const deOrdenes = COLUMNAS_DEL_GESTOR.find((c) => c.key === clave)?.deOrdenes;
+  return deOrdenes ? anchosDeOrdenes[deOrdenes] : undefined;
+}
+
+/**
  * Las columnas que llegaron DESPUÉS de que alguien guardara las suyas (D-346).
  *
  * Lo guardado es la lista de las que se ven. Una columna nueva no está en esa lista, así que a quien ya guardó no le
