@@ -18,7 +18,7 @@ import { orderOwner } from "./utils";
 export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
 
 /**
- * A qué chip de fecha se mueve la pantalla al pulsar una pastilla (D-NEXT).
+ * A qué chip de fecha se mueve la pantalla al pulsar una pastilla (D-380).
  *
  * **Solo la de factura pendiente mueve nada, y solo hacia «Todas».** Lo demás se queda como esté.
  *

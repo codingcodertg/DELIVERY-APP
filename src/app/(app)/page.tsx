@@ -568,7 +568,7 @@ export default function OrdersPage() {
                 onClick={() => {
                   // Pulsar la encendida vuelve a «Todas» (D-313), y de ahí sale la clave que de
                   // verdad queda puesta. El chip de FECHA lo decide `presetAlElegirPastilla`
-                  // (D-NEXT): solo la pestaña de factura pendiente lo mueve, y solo a «Todas».
+                  // (D-380): solo la pestaña de factura pendiente lo mueve, y solo a «Todas».
                   const queda = p.activa ? PASTILLA_TODAS : p.key;
                   setFilter(queda);
                   setPreset((antes) => presetAlElegirPastilla(queda, antes, "all"));

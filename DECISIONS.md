@@ -26388,7 +26388,7 @@ tiendas intercaladas), sin filas de recogida (M12), y la página sin usar la eti
 - **La columna «#» mide 40 px** por defecto (`rtg_routes_stops7`): «P1·P2» sale «P1…», ordenada o provisional. Es de antes.
   Subir el valor por defecto no alcanza a quien ya guardó sus anchos.
 
-## D-NEXT · La pestaña de factura pendiente abre la ventana, y la Ruta del día deja de encoger
+## D-380 · La pestaña de factura pendiente abre la ventana, y la Ruta del día deja de encoger
 
 **Fecha:** 2026-09-23 · **Sin migración.**
 Dos quejas de pantalla del dueño, las dos de la misma forma: **una lista que dice un número y enseña

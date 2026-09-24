@@ -16,7 +16,7 @@ import { sumaPallets } from "./pallets";
  */
 
 /**
- * Qué etapas entran, y por qué **la hoja impresa y la pantalla ya no llevan las mismas** (D-NEXT).
+ * Qué etapas entran, y por qué **la hoja impresa y la pantalla ya no llevan las mismas** (D-380).
  *
  * Estaban en una sola lista, con un comentario que decía que compartirlas evitaba que dijeran cosas
  * distintas. La intención era buena y el efecto no: **una orden entregada desaparecía de la ruta del

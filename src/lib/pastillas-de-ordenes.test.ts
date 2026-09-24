@@ -109,7 +109,7 @@ describe("la pantalla", () => {
   it("pulsar la encendida vuelve a «todas», y pulsar «Todas» estando en ella no rompe nada", () => {
     // El mismo manejador para las tres clases de pastilla: si está encendida, se vuelve a «todas»
     // —que para «Todas» significa quedarse—, y si no, se elige.
-    // D-NEXT lo abrió a varias líneas porque el chip de FECHA también se mueve al entrar en la
+    // D-380 lo abrió a varias líneas porque el chip de FECHA también se mueve al entrar en la
     // pestaña de factura pendiente. Lo que esta prueba defiende no cambia: la clave que queda
     // puesta sale del mismo ternario, y es UNA sola, que es lo que la comparte entre las tres
     // clases de pastilla.

@@ -332,7 +332,7 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
   });
 });
 
-describe("qué etapas lleva cada lista (D-NEXT)", () => {
+describe("qué etapas lleva cada lista (D-380)", () => {
   it("la hoja de carga es lo que queda por cargar: sin entregadas", () => {
     expect([...ETAPAS_DE_LA_HOJA_DE_CARGA]).toEqual(["approved", "fulfilling", "ready", "picked_up"]);
     expect(ETAPAS_DE_LA_HOJA_DE_CARGA).not.toContain("delivered");

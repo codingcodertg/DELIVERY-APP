@@ -114,7 +114,7 @@ export default function WarehousePage() {
     });
   }, [deliveries, effectiveStore, atStore, q, realRole]);
 
-  // El día elegido, en las tiendas que toquen. **Dos listas y no una** (D-NEXT): qué etapas lleva
+  // El día elegido, en las tiendas que toquen. **Dos listas y no una** (D-380): qué etapas lleva
   // cada una lo decide `lib/ruta-del-dia`, con el porqué escrito allí. En corto: la hoja de carga
   // es lo que queda por cargar, y la ruta del día es el día entero — antes compartían lista y una
   // entregada se caía de la pantalla en el momento de entregarla.
@@ -339,7 +339,7 @@ export default function WarehousePage() {
                         <td>{d.delivery_address || "—"}</td>
                         <td>{fmtWindows(d.delivery_windows)}</td>
                         <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
-                        {/* La pastilla, con el color de la etapa y las clases de Órdenes (D-NEXT).
+                        {/* La pastilla, con el color de la etapa y las clases de Órdenes (D-380).
                             Sin ella, ahora que las entregadas se quedan, una parada terminada se
                             leería igual que una que sigue esperando camión. */}
                         <td className="td-pastillas">

@@ -181,7 +181,7 @@ describe("la pantalla usa la regla, no una copia", () => {
     // Desde D-313 cuenta sobre `conPendientes`, no sobre `visible`: sobre la lista normal daba 0
     // para office —sus pendientes están todas entregadas, fuera de la ventana de D-239— y por eso la
     // pestaña no le aparecía. Lo que D-310 fija sigue igual: la cuenta sale de `documentoPendiente`.
-    // D-NEXT partió la línea en dos: el conjunto que se cuenta sigue siendo el mismo —lo que
+    // D-380 partió la línea en dos: el conjunto que se cuenta sigue siendo el mismo —lo que
     // manda es `conPendientes` y `facturaPendiente`— y lo que se le añadió encima es el chip de
     // fecha cuando la pestaña está puesta. Lo de D-313 y D-310 se comprueba aquí; lo nuevo, abajo.
     expect(plano(pagina)).toContain("const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));");
@@ -322,7 +322,7 @@ describe("125: lo que la base le abre a ventas es lo mismo que la pantalla le of
   });
 });
 
-describe("entrar en la pestaña mueve el chip de fecha (D-NEXT)", () => {
+describe("entrar en la pestaña mueve el chip de fecha (D-380)", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/page.tsx"), "utf8").replace(/\r\n/g, "\n");
   const plano = (s: string) => s.replace(/\s+/g, " ");
 

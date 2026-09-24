@@ -142,7 +142,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 11 hasta D-376: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
     "src/app/(app)/routes/page.tsx": 10,
     "src/app/(app)/settings/page.tsx": 1,
-    // 1 desde D-NEXT: el blanco de la pastilla de etapa que cada parada de la Ruta del día estrena,
+    // 1 desde D-380: el blanco de la pastilla de etapa que cada parada de la Ruta del día estrena,
     // la misma `.sema` sobre el color de `stageInfo` que usan Órdenes y Promos. Sube el techo, no
     // se salta: la regla de esta tabla es que un fichero solo sube cuando la decisión lo dice.
     "src/app/(app)/warehouse/page.tsx": 1,
@@ -223,7 +223,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // +1 blanco de la leyenda del mapa. Recontado con esta misma prueba.
     // 76 y 62 hasta D-337: −1 blanco, el de la lista de facturas ajenas de «Misma factura», que ya no existe.
     // 75 y 61 hasta D-376: −1 blanco, la pastilla de etapa de «Sin asignar» en el Gestor, que pasa a ser la de Órdenes.
-    // 74 y 60 hasta D-NEXT: +1 blanco, la pastilla de etapa de cada parada de la Ruta del día de almacén.
+    // 74 y 60 hasta D-380: +1 blanco, la pastilla de etapa de cada parada de la Ruta del día de almacén.
     let total = 0;
     let blancos = 0;
     for (const ruta of ficherosEntregas) {
