@@ -29,15 +29,24 @@
 --      poner `created_by` = si mismo en el borrador de otro (el tramo de misma etapa no mira columnas)
 --      y despues borrarlo. En INSERT la base pone `created_by := auth.uid()` (como canceled_by en la
 --      122); en UPDATE, cambiarlo se rechaza. El admin queda fuera, como en todo el guard.
---   3. BORRAR: el admin, cualquier orden (como hoy); cualquier otro, SOLO SU PROPIO BORRADOR
---      (stage 'draft' y created_by = el). Nadie mas borra nada.
+--   3. BORRAR: el admin, cualquier orden (como hoy); office y gerente (accounting, manager),
+--      CUALQUIER BORRADOR de su tienda y su grupo (respuesta del dueno, 2026-09-23); cualquier otro,
+--      SOLO SU PROPIO BORRADOR (stage 'draft' y created_by = el). Nadie mas borra nada.
+--   4. RASTRO DE CADA BORRADO: tabla `deliveries_borradas`, escrita por un trigger BEFORE DELETE con
+--      la fila entera, sus order_events y sus notifications (que la cascada se lleva despues), quien
+--      y cuando. Solo se inserta: nadie la actualiza, la borra ni la vacia, admin y service-role
+--      incluidos (lo impide un trigger, que service-role no se salta). La lee solo el admin.
+--
+-- Medido en produccion por el orquestador el 2026-09-23 (solo lectura): guard vigente = 139; ningun
+-- trigger de DELETE sobre deliveries; "deliveries delete" = la de la 131; desde el stats_reset del
+-- 2026-07-15 se borraron 4 ordenes (y 946 order_events, que esas 4 no explican: sin explicar).
 --
 -- Lo que NO cambia:
 --   - Office y gerente: identicos (139). Ventas, chofer y logistica: identicos, salvo que ya no
 --     pueden reescribir created_by ni borrar lo que no es su borrador.
 --   - Almacen hacia delante: identico y en cualquier tienda.
 --   - La invariante de la 122 (una entregada no se anula) sigue ANTES de la salida de admin.
---   - Ninguna columna nueva, ninguna fila escrita.
+--   - Ninguna columna nueva en deliveries, ninguna fila escrita. Una tabla nueva (la del rastro).
 --
 -- El MOTIVO obligatorio del deshacer lo pide la pantalla y viaja en la nota de order_events, como en
 -- la 139: la base no lo comprueba. Esta dicho en el plan como no cubierto por la base.
@@ -61,8 +70,11 @@
 -- mira delivery_name en tienda-a-tienda). A proposito, como en la 131: un guard mas ANCHO que la
 -- pantalla no produce un boton que la base rechace (D-044); uno mas estrecho si.
 --
--- Sin tienda propia devuelve false: almacen sin tienda no deshace. Falla cerrado, y la pantalla
--- tiene que decir lo mismo (no ensenar el boton si me.store esta vacio).
+-- Sin tienda propia devuelve false: almacen sin tienda no deshace, y office/gerente sin tienda solo
+-- borran sus propios borradores. Falla cerrado, y la pantalla tiene que decir lo mismo.
+--
+-- La usan el guard (almacen deshace) y la politica de borrar (office borra borradores de su tienda).
+-- En una politica la funcion corre como quien consulta, por eso el grant a authenticated.
 --
 -- Normaliza como `nombreNormalizado`/`normalizaLugar` (store-pins.ts, order-endpoints.ts): espacios
 -- colapsados, recortada, en minusculas. El grupo, como `grupoNormalizado` (store-group.ts): recortado
@@ -106,6 +118,7 @@ create or replace function public.orden_de_mis_tiendas(
 $$;
 
 revoke execute on function public.orden_de_mis_tiendas(text, text, text, text) from public, anon;
+grant execute on function public.orden_de_mis_tiendas(text, text, text, text) to authenticated;
 
 -- ===========================================================================
 -- El guard, desde la definicion VIGENTE (la de la 139) con dos cambios marcados "142"
@@ -332,27 +345,124 @@ end $function$
 ;
 
 -- ===========================================================================
--- Borrar: el admin, cualquiera; los demas, solo su propio borrador
+-- El rastro de cada orden borrada
 -- ===========================================================================
--- Definicion vigente, la de 131_visibilidad_por_tienda.sql:195 (ninguna migracion posterior la toca):
+-- Pedido del dueno (2026-09-23): que quede constancia de cada orden borrada, con su historial.
+-- Hoy borrar una orden se lleva en cascada sus order_events y sus notifications (schema.sql:129 y
+-- :145; medido en produccion por el orquestador, M4), asi que no queda nada.
+--
+-- Se escribe en un trigger BEFORE DELETE, no desde la app: a esa altura los hijos todavia existen
+-- (la cascada de la FK corre despues de borrar la fila), y un trigger no se lo salta nadie que borre
+-- por SQL, service-role incluido. Solo se salta con session_replication_role = replica o
+-- deshabilitando el trigger, y eso solo lo puede hacer el dueno de la tabla (postgres).
+--
+-- `borrada_por` es auth.uid(): NULL cuando borra service-role o postgres sin sesion de usuario. Eso
+-- no es un hueco, es el dato: "lo borro el sistema, no una persona".
+--
+-- Si el DELETE se deshace (ROLLBACK, o falla despues), la fila del rastro se deshace con el: el
+-- rastro dice lo que SE BORRO, no lo que se intento borrar.
+create table if not exists public.deliveries_borradas (
+  id              uuid primary key default gen_random_uuid(),
+  delivery_id     uuid not null,          -- sin FK: la orden ya no existe
+  order_no        bigint,
+  fila            jsonb not null,         -- la orden entera, tal como estaba
+  eventos         jsonb not null default '[]'::jsonb,   -- sus order_events, por fecha
+  notificaciones  jsonb not null default '[]'::jsonb,   -- sus notifications, por fecha
+  borrada_por     uuid,                   -- auth.uid(); NULL = service-role o postgres sin sesion
+  borrada_por_rol text,                   -- profiles.role en ese momento
+  borrada_en      timestamptz not null default now()
+);
+
+create index if not exists deliveries_borradas_en_idx on public.deliveries_borradas (borrada_en desc);
+create index if not exists deliveries_borradas_delivery_idx on public.deliveries_borradas (delivery_id);
+
+comment on table public.deliveries_borradas is
+  'Rastro de ordenes borradas (142). Lo escribe el trigger deliveries_guardar_borrada (BEFORE DELETE). Solo se inserta: un trigger rechaza UPDATE, DELETE y TRUNCATE para todos, service-role y admin incluidos. Solo el admin la lee.';
+
+-- Leerla: solo el admin. Escribirla: NADIE desde fuera; la escribe la funcion DEFINER del trigger.
+alter table public.deliveries_borradas enable row level security;
+drop policy if exists "deliveries_borradas select admin" on public.deliveries_borradas;
+create policy "deliveries_borradas select admin" on public.deliveries_borradas
+  for select to authenticated
+  using ((select public.is_admin()));
+
+revoke all on public.deliveries_borradas from anon;
+revoke insert, update, delete, truncate on public.deliveries_borradas from authenticated, service_role;
+grant select on public.deliveries_borradas to authenticated;
+
+-- Inmutable de verdad: los privilegios no frenan al dueno de la tabla ni a quien se los devuelva;
+-- un trigger si, y service-role no se lo salta.
+create or replace function public.deliveries_borradas_inmutable()
+  returns trigger language plpgsql set search_path = public as $$
+begin
+  raise exception 'deliveries_borradas is append-only: its rows are never updated, deleted or truncated';
+end $$;
+
+drop trigger if exists deliveries_borradas_inmutable on public.deliveries_borradas;
+create trigger deliveries_borradas_inmutable
+  before update or delete on public.deliveries_borradas
+  for each row execute function public.deliveries_borradas_inmutable();
+
+drop trigger if exists deliveries_borradas_sin_truncate on public.deliveries_borradas;
+create trigger deliveries_borradas_sin_truncate
+  before truncate on public.deliveries_borradas
+  for each statement execute function public.deliveries_borradas_inmutable();
+
+-- El que escribe. SECURITY DEFINER: tiene que poder insertar (nadie mas puede) y leer TODOS los
+-- eventos y avisos de la orden, aunque quien borra no los vea.
+create or replace function public.guardar_orden_borrada()
+  returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.deliveries_borradas
+    (delivery_id, order_no, fila, eventos, notificaciones, borrada_por, borrada_por_rol)
+  values (
+    OLD.id,
+    OLD.order_no,
+    to_jsonb(OLD),
+    coalesce((select jsonb_agg(to_jsonb(e) order by e.created_at)
+                from public.order_events e where e.delivery_id = OLD.id), '[]'::jsonb),
+    coalesce((select jsonb_agg(to_jsonb(n) order by n.created_at)
+                from public.notifications n where n.delivery_id = OLD.id), '[]'::jsonb),
+    auth.uid(),
+    public.current_user_role()
+  );
+  return OLD;
+end $$;
+
+revoke execute on function public.guardar_orden_borrada() from public, anon, authenticated;
+
+drop trigger if exists deliveries_guardar_borrada on public.deliveries;
+create trigger deliveries_guardar_borrada
+  before delete on public.deliveries
+  for each row execute function public.guardar_orden_borrada();
+
+-- ===========================================================================
+-- Borrar: el admin, cualquiera; office y gerente, los borradores de su tienda; los demas, el suyo
+-- ===========================================================================
+-- Definicion vigente, la de 131_visibilidad_por_tienda.sql:195 (ninguna migracion posterior la toca;
+-- confirmado en produccion por el orquestador, M3):
 --   create policy "deliveries delete" on public.deliveries
 --     for delete to authenticated
 --     using ((select public.has_deliveries_access()));
 --
 -- `alter policy` y no drop+create: no hay ni un instante sin politica.
 --
+-- Office y gerente (accounting y manager: los dos son "office" para el dueno) borran CUALQUIER
+-- borrador de su tienda y su grupo, sea de quien sea (respuesta del dueno, 2026-09-23). La tienda se
+-- decide con la misma funcion que el deshacer de almacen. Sin tienda propia, solo el suyo.
+--
 -- Un DELETE que la politica no deja pasar NO da error: borra cero filas y vuelve limpio. La pantalla
 -- tiene que pedir `.select("id")` y mirar cuantas volvieron (hoy `deleteDelivery` no lo hace y quita
 -- la fila de la lista de todas formas: con el boton solo para admin no se notaba).
---
--- Office NO borra los borradores de otros: puede anularlos con motivo (draft->canceled, 118/122), que
--- deja rastro. Si el dueno lo quiere, es una linea mas -- esta escrita comentada en el plan.
 alter policy "deliveries delete" on public.deliveries
   using (
     (select public.has_deliveries_access())
     and (
       (select public.is_admin())
       or (stage = 'draft' and created_by = (select auth.uid()))
+      or (stage = 'draft'
+          and (select public.current_user_role()) in ('manager', 'accounting')
+          and public.orden_de_mis_tiendas(store, pickup_name, delivery_name, pickup_address))
     )
   );
 
@@ -364,7 +474,7 @@ declare
   def text := pg_get_functiondef('public.guard_delivery_stage()'::regprocedure);
   pol text;
 begin
-  -- Lo que trae la 142.
+  -- Lo que trae la 142 en el guard.
   if position('or (old_stage = ''fulfilling'' and new_stage = ''approved'')) then' in def) = 0
      or position('public.orden_de_mis_tiendas(OLD.store, OLD.pickup_name, OLD.delivery_name, OLD.pickup_address)' in def) = 0 then
     raise exception '142: falta el deshacer de almacen acotado a su tienda';
@@ -393,7 +503,7 @@ begin
     raise exception '142: la invariante de la anulacion quedo despues de la salida de admin';
   end if;
   if not exists (select 1 from pg_trigger where tgrelid = 'public.deliveries'::regclass and tgname = 'deliveries_guard_stage' and not tgisinternal) then
-    raise exception '142: el disparador no esta';
+    raise exception '142: el disparador del guard no esta';
   end if;
   if to_regprocedure('public.orden_de_mis_tiendas(text, text, text, text)') is null then
     raise exception '142: falta orden_de_mis_tiendas';
@@ -402,7 +512,9 @@ begin
   -- La politica de borrar dice lo que tiene que decir...
   select qual into pol from pg_policies
    where schemaname = 'public' and tablename = 'deliveries' and policyname = 'deliveries delete';
-  if pol is null or position('is_admin' in pol) = 0 or position('draft' in pol) = 0 or position('created_by' in pol) = 0 then
+  if pol is null or position('is_admin' in pol) = 0 or position('draft' in pol) = 0
+     or position('created_by' in pol) = 0 or position('orden_de_mis_tiendas' in pol) = 0
+     or position('accounting' in pol) = 0 then
     raise exception '142: la politica de borrar no quedo como se esperaba: %', pol;
   end if;
   -- ...y es la UNICA que otorga DELETE. Las permisivas se suman con OR: una ALL o una DELETE mas
@@ -412,6 +524,36 @@ begin
                 and permissive = 'PERMISSIVE' and cmd in ('ALL', 'DELETE')
                 and policyname <> 'deliveries delete') then
     raise exception '142: otra politica otorga DELETE sobre deliveries';
+  end if;
+
+  -- El rastro: el trigger de borrar esta puesto y es BEFORE DELETE por fila...
+  if not exists (select 1 from pg_trigger
+                  where tgrelid = 'public.deliveries'::regclass and tgname = 'deliveries_guardar_borrada'
+                    and not tgisinternal and tgenabled = 'O'
+                    and pg_get_triggerdef(oid) like '%BEFORE DELETE%FOR EACH ROW%') then
+    raise exception '142: falta el trigger que guarda la orden borrada';
+  end if;
+  -- ...la tabla tiene RLS, una sola politica y es de lectura...
+  if not (select relrowsecurity from pg_class where oid = 'public.deliveries_borradas'::regclass) then
+    raise exception '142: deliveries_borradas sin RLS';
+  end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'deliveries_borradas'
+              and cmd <> 'SELECT') then
+    raise exception '142: deliveries_borradas tiene una politica que no es de lectura';
+  end if;
+  -- ...nadie de fuera escribe en ella...
+  if has_table_privilege('authenticated', 'public.deliveries_borradas', 'INSERT')
+     or has_table_privilege('authenticated', 'public.deliveries_borradas', 'UPDATE')
+     or has_table_privilege('authenticated', 'public.deliveries_borradas', 'DELETE')
+     or has_table_privilege('service_role', 'public.deliveries_borradas', 'UPDATE')
+     or has_table_privilege('service_role', 'public.deliveries_borradas', 'DELETE') then
+    raise exception '142: deliveries_borradas quedo escribible desde fuera';
+  end if;
+  -- ...y los triggers de inmutabilidad estan puestos.
+  if (select count(*) from pg_trigger where tgrelid = 'public.deliveries_borradas'::regclass
+       and tgname in ('deliveries_borradas_inmutable', 'deliveries_borradas_sin_truncate')
+       and not tgisinternal and tgenabled = 'O') <> 2 then
+    raise exception '142: faltan los triggers que hacen inmutable deliveries_borradas';
   end if;
 end $chk$;
 
@@ -431,11 +573,17 @@ end $chk$;
 --   -- 2. La politica de borrar, tal como la dejo la 131:
 --   alter policy "deliveries delete" on public.deliveries
 --     using ((select public.has_deliveries_access()));
---   -- 3. La funcion nueva (despues del paso 1: el guard de la 142 la llama).
+--   -- 3. El trigger que guarda las borradas (deja de escribir rastro).
+--   drop trigger if exists deliveries_guardar_borrada on public.deliveries;
+--   drop function if exists public.guardar_orden_borrada();
+--   -- 4. La funcion de tiendas (despues del 1 y el 2: el guard y la politica de la 142 la llaman).
 --   drop function if exists public.orden_de_mis_tiendas(text, text, text, text);
---   -- 4. La fila del registro.
+--   -- 5. La tabla del rastro: NO se borra al revertir. Guarda ordenes que ya no existen en ningun
+--   --    otro sitio; se deja, con sus triggers de inmutabilidad, aunque nadie escriba mas en ella.
+--   --    Si de verdad hubiera que quitarla, es decision del dueno y va con pg_dump de esa tabla antes.
+--   -- 6. La fila del registro.
 --   delete from public.schema_migrations where name = '142_deshacer_almacen_y_borrar_borradores.sql';
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('142_deshacer_almacen_y_borrar_borradores.sql', 'e1aec446c54171bc5b6e6b2f628553641bbc6cf0772199ef1ed18410193aa07c') on conflict (name) do nothing;
+  values ('142_deshacer_almacen_y_borrar_borradores.sql', 'b80064bc87f823e57c73d3f31d358a1c385f48f4ebd5c6e2b5df9cf2ae554c6b') on conflict (name) do nothing;
