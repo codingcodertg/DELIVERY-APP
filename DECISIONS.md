@@ -24986,6 +24986,8 @@ propio número», «el camión deja de ir arriba del todo», «la casita deja de
 
 ## D-366 · RTG PROMOS existe como módulo: tarjeta, casilla y el grupo de promociones de cada tienda
 
+> **⚠ Reemplazada en parte por D-386** (2026-09-24): las cinco columnas privadas (costo y compañía) ya solo las ve el admin; gerente y office siguen decidiendo.
+
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas, y `promos` arranca en 0.1.0) · **Migraciones:** ninguna
 nueva. **La 140 ya está aplicada** en producción.
 **De dónde sale:** el dueño pidió «una nueva view en el RTG Hub» donde administradores y Office Managers elijan qué productos
@@ -26940,3 +26942,30 @@ la base» era una prueba floja mía: exigía que se leyera `leido.orden[rol]`, n
   de `ROLES_QUE_ELIGEN`, que no incluye `sales`, así que el orden y las visibles de un vendedor en promos solo viven en su
   navegador. Ya pasaba con las visibles desde D-370; tocarlo es tocar Órdenes, y va aparte.
 - **Arrastrar la cabecera para moverla**: Órdenes no lo tiene, y la instrucción fue usar su mecanismo.
+
+## D-386 · Promos: el costo solo lo ve el admin, y el módulo pasa a todo ventas y office
+
+**Fecha:** 2026-09-24 · **Versión:** promos 0.9.0 · **Migración: la 143**, aplicada por el orquestador al fusionar. **Datos:**
+`module_access` de 28 perfiles.
+
+**El dueño, literal y en este orden:** *«give it access to all sales and office but sales cant see costs»*, *«nvm just admin
+can see costs»*, *«not office or sales can't see costs»*, *«and make the app available for all of them»*.
+
+**Qué había.** `promo_can_see_private()` (140) daba las cinco privadas —notes, demand, months_of_stock, cost, diff— al admin,
+al gerente (`manager`) y a office (`accounting`). El módulo lo tenían 2 perfiles (el dueño y otro admin).
+
+**Qué cambia.**
+1. **La 143** reemplaza solo `promo_can_see_private()`: `has_promos_access() and is_admin()`. `promo_is_decider()` no se toca:
+   gerente y office **siguen aprobando y rechazando**, sin ver el costo. Las cinco van juntas: `diff` es precio menos costo.
+2. **La pantalla** no calcula nada en producción (pinta las privadas si `promo_catalog.private` llega no nulo). El gemelo del
+   demo, `puedeVerPrivadasDePromos`, pasa a solo admin, y su prueba lee **la última** migración que define la función.
+3. **Módulo:** se añade `promos` a `module_access` de todos los `sales`, `accounting` y `manager` (28 perfiles: 14 + 8 + 6),
+   sin tocar ningún otro módulo. Respaldo antes en `respaldos/2026-09-24_module_access_antes_promos.json` (fuera del repo).
+   **Orden a propósito:** primero la 143, después el módulo; al revés, 14 personas de office habrían visto costos al entrar.
+
+**Ensayo en producción con ROLLBACK (2026-09-24),** dando el módulo a los 28 dentro de la transacción: antes de la 143, gerente
+y office veían 60 de 60 con costo; después, 0 de 60, y `promo_is_decider()` sigue en true para los dos. Ventas: 60 filas, 0
+con costo, no decide. Admin: 60 de 60 con costo. Tras el ROLLBACK: la 143 sin registrar y 2 perfiles con el módulo.
+
+**Qué ve un vendedor:** lo que ya decidía la 140 — solo lo aprobado de su grupo, sin costo (las cinco columnas están revocadas
+a `authenticated` y la función le devuelve null).

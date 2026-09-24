@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ordenaFilas, filtraFilas } from "@/lib/orden-y-filtro";
 import { prefsDeValor, valorDeColumnas } from "@/lib/user-prefs";
@@ -430,16 +430,22 @@ describe("el demo respeta «Ver como»", () => {
 
 // ===========================================================================
 describe("quién ve las cinco privadas: el gemelo para el demo", () => {
-  it("admin, gerente de oficina y oficina; nadie más", () => {
-    for (const rol of ["admin", "manager", "accounting"]) expect(puedeVerPrivadasDePromos(rol), rol).toBe(true);
-    for (const rol of ["sales", "driver", "warehouse", "logistics", null, undefined]) {
+  it("solo el admin (D-386); gerente y office deciden pero no ven costos", () => {
+    expect(puedeVerPrivadasDePromos("admin")).toBe(true);
+    for (const rol of ["manager", "accounting", "sales", "driver", "warehouse", "logistics", null, undefined]) {
       expect(puedeVerPrivadasDePromos(rol), String(rol)).toBe(false);
     }
   });
 
-  it("y la base dice lo mismo", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/140_promos.sql"), "utf8");
-    expect(sql).toContain("and (public.is_admin() or public.current_user_role() in ('manager', 'accounting'));");
+  it("y la base dice lo mismo: la ÚLTIMA migración que define promo_can_see_private", () => {
+    const dir = join(process.cwd(), "supabase/migrations");
+    const conLaFuncion = readdirSync(dir).filter((f) => f.endsWith(".sql") && readFileSync(join(dir, f), "utf8").includes("function public.promo_can_see_private()")).sort();
+    expect(conLaFuncion.at(-1)).toBe("143_promos_costo_solo_admin.sql");
+    const sql = readFileSync(join(dir, conLaFuncion.at(-1)!), "utf8");
+    const cuerpo = sql.slice(sql.indexOf("function public.promo_can_see_private()"), sql.indexOf("$$;", sql.indexOf("function public.promo_can_see_private()")));
+    expect(cuerpo).toContain("select public.has_promos_access() and public.is_admin();");
+    expect(cuerpo).not.toContain("manager");
+    expect(cuerpo).not.toContain("accounting");
   });
 });
 

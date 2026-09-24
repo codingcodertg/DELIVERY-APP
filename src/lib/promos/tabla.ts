@@ -41,10 +41,11 @@ export const COLOR_DE_ESTADO: Record<EstadoDeDecision, string> = {
  * mida nada, así que el demo tiene que simular la regla; y si no la simulara, enseñaría el costo a
  * un vendedor de mentira y el demo mentiría justo sobre lo que más importa del módulo.
  *
- * Gemelo de `promo_can_see_private()` (140), con su prueba atada al `.sql`.
+ * Gemelo de `promo_can_see_private()`, con su prueba atada al `.sql`. Desde la 143 (D-386) **solo el
+ * admin**: el dueño, «just admin can see costs». Gerente y office siguen decidiendo (`esDecisorDePromos`).
  */
 export function puedeVerPrivadasDePromos(rol: string | null | undefined): boolean {
-  return rol === "admin" || rol === "manager" || rol === "accounting";
+  return rol === "admin";
 }
 
 /**
