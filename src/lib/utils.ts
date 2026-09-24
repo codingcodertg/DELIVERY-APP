@@ -513,17 +513,41 @@ const FIELD_LABELS: Record<string, string> = {
 // Keys that change on nearly every save (recomputed/auto), never worth logging.
 const NOISY_KEYS = new Set(["pickup_duration", "delivery_duration", "input_date", "input_time", "updated_at", "route_miles", "route_duration", "route_provider", "route_traffic"]);
 
-/** Human summary of which meaningful fields an update patch actually changes,
- * e.g. "Delivery Date, Assigned Driver". "" if nothing notable changed. */
+/** Campos cuyo valor NO se apunta en el historial aunque cambien: son texto libre y largo, y la nota dejaría de leerse.
+ *  De estos se apunta solo que cambiaron; el contenido está en la propia orden. */
+const CAMPOS_SIN_VALOR_EN_EL_HISTORIAL = new Set(["delivery_notes", "role_notes", "redelivery_reason", "canceled_reason_note"]);
+/** Un valor más largo que esto tampoco se apunta entero: se recorta. Una dirección cabe; un párrafo, no. */
+export const LARGO_DE_VALOR_EN_NOTA = 40;
+/** Y la nota entera tiene tope, porque `order_events.note` no se crea en ninguna migración del repo y no se sabe su tipo.
+ *  Con 62 campos posibles, una edición grande podría escribir miles de caracteres; esto lo corta antes de averiguarlo. */
+export const LARGO_DE_LA_NOTA = 500;
+
+/**
+ * Qué cambió en una edición, **con el valor de antes y el de después** en los campos cortos.
+ *
+ * Antes decía solo los nombres —«Changed: Delivery Date»— y el 2026-09-23 eso impidió deshacer un cambio en bloque: 162
+ * órdenes cambiaron de fecha por error y el historial no sabía de qué día venían, así que 52 se quedaron sin su fecha
+ * original. Con el valor anterior escrito, deshacer es leer la nota.
+ *
+ * Nadie ANALIZA esta nota: se lee en la ficha de la orden (`OrderModal`, la fila del historial) y se pinta tal cual, así que
+ * el formato puede cambiar sin romper nada. Se comprobó antes de tocarla.
+ */
 export function changedFieldsNote(before: Record<string, unknown>, patch: Record<string, unknown>): string {
   const norm = (v: unknown) => (v == null ? "" : String(v));
-  const names: string[] = [];
+  const corta = (s: string) => (s.length > LARGO_DE_VALOR_EN_NOTA ? s.slice(0, LARGO_DE_VALOR_EN_NOTA - 1) + "…" : s);
+  const trozos: string[] = [];
   for (const k of Object.keys(patch)) {
     if (NOISY_KEYS.has(k)) continue;
-    if (norm(before?.[k]) === norm(patch[k])) continue;
-    names.push(FIELD_LABELS[k] ?? k);
+    const antes = norm(before?.[k]), despues = norm(patch[k]);
+    if (antes === despues) continue;
+    const nombre = FIELD_LABELS[k] ?? k;
+    // Vacío se escribe «—», que si no «Driver:  → Carlos» se lee como un error de la propia nota.
+    const sinValor = CAMPOS_SIN_VALOR_EN_EL_HISTORIAL.has(k) || antes.length > LARGO_DE_VALOR_EN_NOTA || despues.length > LARGO_DE_VALOR_EN_NOTA;
+    trozos.push(sinValor ? nombre : `${nombre}: ${corta(antes) || "—"} → ${corta(despues) || "—"}`);
   }
-  return names.length ? `Changed: ${names.join(", ")}` : "";
+  if (!trozos.length) return "";
+  const nota = `Changed: ${trozos.join(" · ")}`;
+  return nota.length > LARGO_DE_LA_NOTA ? nota.slice(0, LARGO_DE_LA_NOTA - 1) + "…" : nota;
 }
 
 export function deliveryColumns(d: Delivery): [string, string][] {

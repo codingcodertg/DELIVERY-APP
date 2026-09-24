@@ -5,7 +5,7 @@ import { Ctx, type DataState } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition } from "@/lib/constants";
-import { orderOwner, todayISO } from "@/lib/utils";
+import { changedFieldsNote, orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
@@ -155,10 +155,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlEditar.length) { notify(avisoNoVaANingunSitio(choqueAlEditar, "en")); return false; }
+    // La MISMA nota que el proveedor de verdad (D-NEXT): «Delivery Date: 2026-09-20 → 2026-12-25». El demo la escribía
+    // vacía, así que el historial del incidente no se podía ni mirar aquí — y esta pantalla existe justo para mirarla.
+    const antes = s.deliveries.find((c) => c.id === id) as unknown as Record<string, unknown> | undefined;
     persist({
       ...s,
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch, updated_at: new Date().toISOString() } : c)),
-      events: addEvent(s, id, "edited"),
+      events: addEvent(s, id, "edited", antes ? changedFieldsNote(antes, patch as Record<string, unknown>) || undefined : undefined),
     });
     return true;
   }, [persist, notify]);

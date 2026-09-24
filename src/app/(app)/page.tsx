@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
+import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
@@ -106,6 +107,9 @@ export default function OrdersPage() {
   const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  // Elegir y aplicar son DOS pasos (D-NEXT): aquí vive lo elegido hasta que se pulsa el botón y se confirma.
+  const [fechaEnBloque, setFechaEnBloque] = useState("");
+  const [choferEnBloque, setChoferEnBloque] = useState("");
   /** Anular en bloque pide el motivo UNA vez y lo escribe en cada orden. Antes este camino no
    *  mandaba motivo ninguno, así que convivía con «en la ficha es obligatorio» (122). */
   const [bulkCancel, setBulkCancel] = useState(false);
@@ -351,23 +355,36 @@ export default function OrdersPage() {
     setSelected((prev) => (rows.every((r) => prev.has(r.id)) ? new Set() : new Set(rows.map((r) => r.id))));
   const chosen = rows.filter((r) => selected.has(r.id));
 
-  const bulkAssignDriver = async (driver: string) => {
-    if (!driver || !chosen.length) return;
+  /**
+   * Un cambio en bloque de fecha o de chofer: se elige, se PREGUNTA con el número y una muestra, y solo entonces se hace
+   * (D-NEXT). Antes el `<input type="date">` aplicaba en su `onChange`, o sea al elegir el día, y el 2026-09-23 eso cambió
+   * la fecha de 162 órdenes de golpe, 110 de ellas ya entregadas. Las entregadas y anuladas ya no entran: `reparteParaElBloque`.
+   */
+  const cambioEnBloque = async (accion: { en: string; es: string }, parche: Partial<Delivery>, hecho: (n: number) => { en: string; es: string }) => {
+    const { entran, saltadas } = reparteParaElBloque(chosen);
+    if (!entran.length) {
+      notify(t(`Nothing to change: all ${chosen.length} selected are delivered or canceled.`, `Nada que cambiar: las ${chosen.length} seleccionadas están entregadas o anuladas.`));
+      return;
+    }
+    const pregunta = preguntaDelBloque({ accion, entran, saltadas, etiqueta: (d) => orderLabel(d), etiquetaDeEtapa: stageLabel });
+    if (!(await confirmAction(t(pregunta.en, pregunta.es), { danger: false, confirmLabel: t("Apply", "Aplicar") }))) return;
     setBulkBusy(true);
-    for (const d of chosen) await updateDelivery(d.id, { assigned_driver: driver });
+    for (const d of entran) await updateDelivery(d.id, parche);
     setBulkBusy(false);
-    notify(t(`Assigned ${chosen.length} order(s) to ${driver}`, `${chosen.length} orden(es) asignadas a ${driver}`));
+    const fin = hecho(entran.length);
+    notify(t(fin.en, fin.es));
     setSelected(new Set());
   };
 
-  const bulkSetDate = async (date: string) => {
-    if (!date || !chosen.length) return;
-    setBulkBusy(true);
-    for (const d of chosen) await updateDelivery(d.id, { delivery_date: date });
-    setBulkBusy(false);
-    notify(t(`Set delivery date on ${chosen.length} order(s)`, `Fecha de entrega fijada en ${chosen.length} orden(es)`));
-    setSelected(new Set());
-  };
+  const bulkAssignDriver = (driver: string) => cambioEnBloque(
+    { en: `Assign these orders to ${driver}?`, es: `¿Asignar estas órdenes a ${driver}?` },
+    { assigned_driver: driver },
+    (n) => ({ en: `Assigned ${n} order(s) to ${driver}`, es: `${n} orden(es) asignadas a ${driver}` }));
+
+  const bulkSetDate = (date: string) => cambioEnBloque(
+    { en: `Set the delivery date to ${date}?`, es: `¿Fijar la fecha de entrega en ${date}?` },
+    { delivery_date: date },
+    (n) => ({ en: `Set delivery date on ${n} order(s)`, es: `Fecha de entrega fijada en ${n} orden(es)` }));
 
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
    *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. */
@@ -557,10 +574,17 @@ export default function OrdersPage() {
           <b>{chosen.length} {t("selected", "seleccionadas")}</b>
           <span style={{ flex: 1 }} />
           {me.role === "admin" && (
-            <select defaultValue="" disabled={bulkBusy} onChange={(e) => { bulkAssignDriver(e.target.value); e.target.value = ""; }} style={{ width: "auto" }}>
+            <select value={choferEnBloque} disabled={bulkBusy} onChange={(e) => setChoferEnBloque(e.target.value)} style={{ width: "auto" }}>
               <option value="">🚚 {t("Assign driver…", "Asignar chofer…")}</option>
               {driverNames(users).map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
+          )}
+          {/* Elegir no aplica: aplicar es este botón, y pregunta antes (D-NEXT). */}
+          {me.role === "admin" && choferEnBloque && (
+            <button className="btn btn-primary btn-sm" disabled={bulkBusy}
+              onClick={async () => { await bulkAssignDriver(choferEnBloque); setChoferEnBloque(""); }}>
+              {t(`Assign to ${choferEnBloque}…`, `Asignar a ${choferEnBloque}…`)}
+            </button>
           )}
           {me.role === "admin" && (
             <select
@@ -612,8 +636,15 @@ export default function OrdersPage() {
           {(me.role === "manager" || me.role === "admin" || me.role === "logistics") && (
             <label style={{ margin: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }} title={t("Set delivery date on all selected", "Fijar fecha de entrega en las seleccionadas")}>
               📅
-              <input type="date" disabled={bulkBusy} onChange={(e) => { if (e.target.value) bulkSetDate(e.target.value); e.target.value = ""; }} style={{ width: "auto", padding: "4px 6px" }} />
+              <input type="date" value={fechaEnBloque} disabled={bulkBusy} onChange={(e) => setFechaEnBloque(e.target.value)} style={{ width: "auto", padding: "4px 6px" }} />
             </label>
+          )}
+          {/* Igual que el chofer: la fecha elegida no se aplica hasta pulsar, y entonces se pregunta (D-NEXT). */}
+          {(me.role === "manager" || me.role === "admin" || me.role === "logistics") && fechaEnBloque && (
+            <button className="btn btn-primary btn-sm" disabled={bulkBusy}
+              onClick={async () => { await bulkSetDate(fechaEnBloque); setFechaEnBloque(""); }}>
+              {t(`Set date ${fechaEnBloque}…`, `Fijar fecha ${fechaEnBloque}…`)}
+            </button>
           )}
           {me.role === "admin" && <button className="btn btn-ghost btn-sm" disabled={bulkBusy} onClick={exportSelected}>⬇ {t("Export", "Exportar")}</button>}
           <button className="btn btn-sm" onClick={() => setSelected(new Set())}>✕</button>
