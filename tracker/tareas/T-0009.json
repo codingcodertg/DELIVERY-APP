@@ -1,0 +1,34 @@
+{
+  "id": "T-0009",
+  "fecha": "2026-09-10",
+  "resumen": "Sistema de puntos: los empleados suman por hacer las cosas bien y restan por hacerlas mal, con un dia libre pagado al acumular; los clientes suman subiendo fotos de sus proyectos.",
+  "texto_original": "customers can earn points if they upload their projects pictures with our products Employees do good they get points. They do bad then minus points. If they accumulate enough points we can give them a paid day off For example the ones who show up on time every day get points",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-250"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.599Z",
+      "texto": "CASO RARO: hecho a MEDIAS, y la propia decision lo dice. D-250 se llama a si misma «encargo 1 de cinco» y no trae una sola pantalla: es el libro mayor de puntos y nada mas. Las otras cuatro —puntear a mano, la puntualidad automatica, el canje del dia libre y la subida del cliente— no tienen decision ninguna, y no hay mas entradas de puntos en todo el fichero."
+    },
+    {
+      "fecha": "2026-09-24T02:11:38.599Z",
+      "texto": "O sea que hay base de datos y no hay producto: hoy nadie puede ganar ni gastar un punto. Por eso «Parcial» y no «Si», y por eso ocupa que lo mire el."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-10 18:28",
+    "DECISIONS.md:D-250"
+  ],
+  "creado": "2026-09-24T02:11:38.599Z",
+  "modificado": "2026-09-24T02:11:38.599Z"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "T-0013",
+  "fecha": "2026-09-23",
+  "resumen": "RTG PROMOS: una tabla donde los gerentes de tienda aprueban o rechazan productos en promocion, con la vista de admin del avance por tienda.",
+  "texto_original": "Ok, quiero que hagamos una nueva view en el RGG Hub. No es una nueva app como tal, solo es un table practicamente. [...] los administradores Office Managers van a elegir los productos que son en promocion [...] Ellos pueden aceptar o denegar [...] y eso es por tienda, entonces cada ahi tambien me tiene que salir cuantas tiendas ya hicieron eso y yo verlo como administrador verlo todo, pero cada office manager se le asigna su tienda",
+  "lo_hizo_claude": "Parcial",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "196",
+      "197",
+      "198",
+      "199"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-366",
+      "D-368",
+      "D-369",
+      "D-370",
+      "D-371"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.628Z",
+      "texto": "CASO RARO: cinco decisiones en un dia, con una vuelta atras dentro. A las 17:58 dijo «its horrble, first it doesnt fit in 1 screen, make it the style of the order table in deliveries» y ademas «eso de cargar files no quita eso yo te doy la informacion y tu la subes»: D-370 rehizo la tabla y quito la subida por pantalla que D-368 habia construido cinco horas antes."
+    },
+    {
+      "fecha": "2026-09-24T02:11:38.628Z",
+      "texto": "«Parcial» porque falta el resumen de avance por tienda para el admin, que es la mitad de lo que pidio. Esta en espera de que el use la tabla."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-23 14:33",
+    "sesion:83590ac0 2026-09-23 17:52",
+    "sesion:83590ac0 2026-09-23 17:58"
+  ],
+  "creado": "2026-09-24T02:11:38.628Z",
+  "modificado": "2026-09-24T02:11:38.628Z"
+}

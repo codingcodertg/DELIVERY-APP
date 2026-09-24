@@ -1,0 +1,37 @@
+{
+  "id": "T-0012",
+  "fecha": "2026-09-04",
+  "resumen": "Montar el flujo de trabajo en paralelo: orquestador, worker en un worktree y auditor de solo lectura, con reglas escritas en CLAUDE.md y nadie empujando a main directo.",
+  "texto_original": "Quiero montar el flujo de trabajo paralelo: orquestador (esta sesion, checkout principal en main) + worker (worktree, escribe codigo en una rama) + auditor (revisa el diff del worker). [...] PLAN CORTO primero (media pagina) y luego arma todo. PRIMERO VERIFICA EN ESTA VERSION DE CLAUDE CODE [...] REGLAS DE ESTE PROYECTO que el flujo DEBE encodear (escribelas en CLAUDE.md como seccion \"Flujo de ramas\")",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [
+      "CLAUDE.md",
+      "docs/WORKFLOW-PARALELO.md",
+      ".claude/agents/auditor-rtg.md",
+      ".github/workflows/ci.yml"
+    ],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.620Z",
+      "texto": "No es una peticion de producto sino de COMO se trabaja, y por eso casi se queda fuera del tracker. Se mete: es de las que mas ha cambiado el dia a dia, y el propio encargo del tracker sale de esta linea."
+    },
+    {
+      "fecha": "2026-09-24T02:11:38.620Z",
+      "texto": "El auditor dejo de usarse el 2026-09-15 («solo vamos a usar este tab y el worker ya no mas el auditor»). Eso es otra tarea, no una nota que borre esta."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-04 10:45",
+    "sesion:1067d5bd 2026-09-04 15:54"
+  ],
+  "creado": "2026-09-24T02:11:38.620Z",
+  "modificado": "2026-09-24T02:11:38.621Z"
+}

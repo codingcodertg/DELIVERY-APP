@@ -1,0 +1,40 @@
+{
+  "id": "T-0006",
+  "fecha": "2026-09-11",
+  "resumen": "La ventana de fechas (ayer, hoy y futuro) vale para todos los roles menos admin y gerente de logistica.",
+  "texto_original": "in delieries app the same rule that you can only see yesterday today and future applies to everyone except admina and logistic manager",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-239",
+      "D-350",
+      "D-356"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.575Z",
+      "texto": "CASO RARO: pedida, hecha, DESHECHA y vuelta a hacer. D-239 la implanto el 2026-09-11. El 2026-09-21 el dueno pidio lo contrario («activa lo que pueden ver todas las ordenes regardless del date a todos») y D-356 la quito a los siete roles. El 2026-09-23 la volvio a pedir con «ayer, hoy, futuro y atrasadas», y vuelve."
+    },
+    {
+      "fecha": "2026-09-24T02:11:38.575Z",
+      "texto": "Se deja como UNA tarea con su historia, y la vuelta de hoy es su propia tarea aparte, ligada. Fundirlas escondia que se deshizo; separarlas del todo escondia que es la misma peticion."
+    },
+    {
+      "fecha": "2026-09-24T02:12:12.111Z",
+      "texto": "Ligada a T-0003 (la peticion contraria del 2026-09-21, D-356) y a T-0001 (la vuelta del 2026-09-23). Las tres cuentan la misma regla yendo y viniendo, y por eso ninguna se puede leer sola."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-11 16:17",
+    "DECISIONS.md:D-239"
+  ],
+  "creado": "2026-09-24T02:11:38.576Z",
+  "modificado": "2026-09-24T02:12:12.112Z"
+}

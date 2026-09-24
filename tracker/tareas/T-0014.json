@@ -1,0 +1,33 @@
+{
+  "id": "T-0014",
+  "fecha": "2026-09-04",
+  "resumen": "Renombrar todo de «deliveries app» a RTG Hub, incluida la URL de produccion.",
+  "texto_original": "quiero cambiar el nombre de vercel y de todo de deliveries app a RTG HUB y el url y todo",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-188",
+      "D-189"
+    ],
+    "links": [
+      "https://rtg-hub.vercel.app"
+    ]
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.637Z",
+      "texto": "Confirmado por el hoy: /api/version de rtg-hub.vercel.app responde, y la URL vieja redirige con 307 en vez de morir (D-189)."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-04 17:36",
+    "sesion:83590ac0 2026-09-04 18:10"
+  ],
+  "creado": "2026-09-24T02:11:38.637Z",
+  "modificado": "2026-09-24T02:11:38.637Z"
+}

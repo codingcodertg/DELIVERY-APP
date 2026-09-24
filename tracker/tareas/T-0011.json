@@ -1,0 +1,33 @@
+{
+  "id": "T-0011",
+  "fecha": "2026-09-18",
+  "resumen": "Un chat de ayuda de ida y vuelta, para poder responder a la persona que pide ayuda y que ella conteste.",
+  "texto_original": "work on a help chat feature so i can chat with the people and be back and forth",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [
+      "src/app/home/solicitudes-de-ayuda",
+      "src/app/home/ayuda"
+    ],
+    "decisiones": [
+      "D-311"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.613Z",
+      "texto": "Contrapeso de las dos de arriba: aqui SI hay decision, migracion, pantallas y despliegue. Sirve para ver la diferencia entre «Si» y «Parcial» con casos de la misma semana."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-18 11:03",
+    "DECISIONS.md:D-311"
+  ],
+  "creado": "2026-09-24T02:11:38.613Z",
+  "modificado": "2026-09-24T02:11:38.613Z"
+}

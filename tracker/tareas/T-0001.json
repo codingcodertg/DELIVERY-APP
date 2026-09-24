@@ -23,11 +23,15 @@
     {
       "fecha": "2026-09-24T01:50:02.174Z",
       "texto": "Sin fusionar y sin desplegar: espera que se mida en un navegador la vista de Recepción y que una entregada vieja ya no salga para almacén."
+    },
+    {
+      "fecha": "2026-09-24T02:12:12.309Z",
+      "texto": "Ligada a T-0006 (2026-09-11, la regla original) y a T-0003 (2026-09-21, cuando pidio quitarla)."
     }
   ],
   "fuentes": [
     "orquestador:deliveries-app-ef (retransmitido, no es texto del dueno palabra por palabra)"
   ],
   "creado": "2026-09-24T01:50:02.175Z",
-  "modificado": "2026-09-24T01:50:02.176Z"
+  "modificado": "2026-09-24T02:12:12.310Z"
 }

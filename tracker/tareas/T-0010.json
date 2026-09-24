@@ -1,0 +1,32 @@
+{
+  "id": "T-0010",
+  "fecha": "2026-09-08",
+  "resumen": "Escribir una politica de entrega de producto: que no se tumban cercas, que no se entrega con lodo, y lo que impone el montacargas y el peso de las tarimas.",
+  "texto_original": "CREATE A POLICY FOR DELIVERING THE TILE PRODUCTS, FOR EXAMPLE WE CNAT TEAR DOWN FENCES OR WE CANT DELIVERED WHEN THERE IS MUD, BECAUSE THE DELIVERY GUY USES A FORKLIFT AND THE WEIGHT OF THE PALLETS",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T02:11:38.606Z",
+      "texto": "CASO RARO: contestado en el chat y NO construido. Ocho minutos despues escribio «DAME LAS POLITICAS QUE CREASTE», asi que hubo respuesta; pero no hay entrada en DECISIONS.md ni pantalla, y una politica que vive en un chat que ya no existe no la lee ningun chofer."
+    },
+    {
+      "fecha": "2026-09-24T02:11:38.606Z",
+      "texto": "«Parcial» dice exactamente eso: se le contesto, no se entrego. Si se da por «Si» porque hubo respuesta, el tracker empieza a premiar el hablar."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-08 21:58",
+    "sesion:83590ac0 2026-09-08 22:06"
+  ],
+  "creado": "2026-09-24T02:11:38.606Z",
+  "modificado": "2026-09-24T02:11:38.606Z"
+}
