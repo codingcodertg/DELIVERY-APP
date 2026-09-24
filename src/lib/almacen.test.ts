@@ -202,6 +202,27 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
     expect(pagina).toContain('vista === "recepcion"');
   });
 
+  it("almacén no tiene calendario, y su día se calcula en cada pintado", () => {
+    // El dueño: *«warehouse, el botón de cambiar date no lo ocupa»*, y preguntado eligió quitarlo.
+    //
+    // La fecha se calcula, no se guarda: una pestaña abierta toda la noche amanecería enseñando la
+    // ruta de ayer, y eso es peor que no tener calendario porque no se nota.
+    expect(pagina).toContain("const loadDate = lockedToOwnStore ? todayISO() : fechaElegida;");
+    expect(pagina).not.toContain("const [loadDate, setLoadDate]");
+    // El campo sigue existiendo para quien NO está fijado a su tienda —el admin ve esta pantalla—,
+    // así que se comprueba que está DENTRO de esa condición.
+    //
+    // Se cita la cadena ENTERA desde la condición hasta el campo, y no «la condición aparece antes
+    // del campo»: `{!lockedToOwnStore && (` sale DOS veces en este fichero —la otra es el selector
+    // de tienda— y con la primera forma el mutante que quita la condición al calendario sobrevivía,
+    // porque la comprobación se cumplía con el bloque del selector.
+    const plano = pagina.replace(/\s+/g, " ");
+    expect(plano).toContain('{!lockedToOwnStore && ( <label style={{ margin: 0, textTransform: "none",'
+      + ' letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}> 📅 <input type="date"');
+    // Y solo hay UN campo de fecha en la pantalla: si aparece otro suelto, esto lo canta.
+    expect(plano.split('<input type="date"').length - 1).toBe(1);
+  });
+
   it("y el aviso de las que no tienen destino sale en la COLA, que es donde están", () => {
     // Estaba en Recepción, y ahí decía algo cierto en el sitio equivocado: esas órdenes se quedan
     // en la Cola, así que quien puede actuar sobre ellas no lo veía. Se fija el sitio, no solo que

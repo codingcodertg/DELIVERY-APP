@@ -25740,6 +25740,15 @@ casilla vuelve a decidir algo. Mientras todos la traían de fábrica, marcarla o
 > Tercera cosa del mismo repaso: el aviso de las Intertiendas **sin destino** se pintaba en
 > Recepción, y esas órdenes se quedan en la **Cola**. Cierto en el sitio equivocado: quien puede
 > actuar sobre ellas no lo veía. Ahora sale en la Cola.
+>
+> Y una cuarta, ya preguntada al dueño: *«warehouse, el botón de cambiar date no lo ocupa»*.
+> **Fuera el calendario de la pantalla de almacén.** Su día pasa a calcularse en cada pintado
+> (`todayISO()`) en vez de guardarse en el estado: una pestaña abierta toda la noche amanecería
+> enseñando la ruta de ayer, y eso es peor que no tener calendario porque no se nota.
+>
+> **Se le quita solo a almacén.** Esta pantalla la ve también un admin —`canFulfill` son admin y
+> almacén, más quien tenga `fulfill` marcado a mano— y quitarle a él el calendario no lo pidió
+> nadie. La frontera es `lockedToOwnStore`, la misma que ya decide quién puede elegir tienda.
 
 ### Verificado
 

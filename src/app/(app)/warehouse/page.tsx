@@ -38,7 +38,7 @@ export default function WarehousePage() {
   // Admin can browse any store; a warehouse worker is locked to their own
   // (PU = pickup store). Falls back to "every store" only if unassigned.
   const [storeFilter, setStoreFilter] = useState<string>("");
-  const [loadDate, setLoadDate] = useState<string>(todayISO());
+  const [fechaElegida, setFechaElegida] = useState<string>(todayISO());
   // Tres vistas de lo mismo: la cola por etapa, que es como se trabaja; **Recepción**, con lo que
   // llega de otra tienda; y la ruta del día por chofer (D-287), que es lo que pidió almacén para
   // saber a quién le carga y en qué orden va.
@@ -48,6 +48,24 @@ export default function WarehousePage() {
   // all stores) so they can try each store and see every order.
   const lockedToOwnStore = me?.role === "warehouse" && realRole !== "admin";
   const effectiveStore = lockedToOwnStore ? (me?.store ?? "") : storeFilter;
+
+  /**
+   * El día de las hojas de carga y de la Ruta del día.
+   *
+   * **Almacén ya no tiene calendario**: el dueño, *«warehouse, el botón de cambiar date no lo
+   * ocupa»*, y preguntado eligió quitárselo. Para él la fecha es HOY y no hay control que la
+   * mueva.
+   *
+   * Se calcula en cada pintado en vez de guardarse en el estado: una pestaña que se queda abierta
+   * toda la noche amanecería enseñando la ruta de ayer, y eso es peor que no tener calendario,
+   * porque no se nota. `todayISO()` cuesta un `Intl.format`.
+   *
+   * **Quien NO está fijado a su tienda lo conserva**, y eso es a propósito: esta pantalla la ve
+   * también un admin (`canFulfill` = admin y almacén, más a quien se le haya marcado `fulfill` a
+   * mano), y quitarle el calendario a él no lo pidió nadie. Es la misma frontera que ya decide
+   * quién puede elegir tienda.
+   */
+  const loadDate = lockedToOwnStore ? todayISO() : fechaElegida;
 
   // An order is "at" a warehouse store if it's sold from there OR physically
   // picked up there — so a warehouse worker also sees pickup orders staged at
@@ -176,13 +194,18 @@ export default function WarehousePage() {
               </select>
             </label>
           )}
-          {/* Print the day's load sheets (one page per driver) for the scoped store. */}
-          <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            📅 <input type="date" value={loadDate} onChange={(e) => setLoadDate(e.target.value)} style={{ width: "auto", padding: "5px 7px" }} />
-          </label>
+          {/* Print the day's load sheets (one page per driver) for the scoped store.
+              El calendario solo lo ve quien no está fijado a su tienda; para almacén es hoy. */}
+          {!lockedToOwnStore && (
+            <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              📅 <input type="date" value={loadDate} onChange={(e) => setFechaElegida(e.target.value)} style={{ width: "auto", padding: "5px 7px" }} />
+            </label>
+          )}
           <button
             className="btn btn-ghost"
-            title={t("Print one load sheet per driver for the chosen day", "Imprimir una hoja de carga por chofer para el día elegido")}
+            title={lockedToOwnStore
+              ? t("Print one load sheet per driver for today", "Imprimir una hoja de carga por chofer para hoy")
+              : t("Print one load sheet per driver for the chosen day", "Imprimir una hoja de carga por chofer para el día elegido")}
             onClick={() => printLoadSheets(cargasDelDia, settings, lang, loadDate)}
           >
             🖨 {t("Load sheets", "Hojas de carga")}
