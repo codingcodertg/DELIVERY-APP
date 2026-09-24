@@ -27007,7 +27007,7 @@ confunde como si ya hubiese algo, entonces que ese field y el de todos los passw
 heredaban el defecto), así que los cinco campos quedan en blanco. Prueba en `password-input.test.ts`: el defecto es
 vacío y el componente no contiene puntos; el mutante que los devuelve cae.
 
-## D-NEXT · El tracker se muda a la base del RTG, y el dueño cierra una tarea de un clic
+## D-389 · El tracker se muda a la base del RTG, y el dueño cierra una tarea de un clic
 
 **Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar ·
 **Migración:** `144_tracker_tareas.sql`, escrita y **no aplicada**; la aplica el orquestador.
