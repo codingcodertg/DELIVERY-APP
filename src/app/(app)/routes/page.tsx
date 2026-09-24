@@ -22,7 +22,7 @@ import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ModoDelGestor } from "@/lib/ordenes-del-dia";
-import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -31,10 +31,10 @@ import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
-import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CLAVE_ID, etiquetaDelGestor, valorDelGestor } from "@/lib/valores-del-gestor";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
@@ -227,12 +227,8 @@ export default function RoutesPage() {
   // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
   // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-376, con
   // «Programadas» fuera, son los dos únicos.
-  const [verColsPool, setVerColsPool] = useState(false);
-  const cajaDeColsPool = useRef<HTMLDivElement>(null);
-  useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);
-  const [verColsParadas, setVerColsParadas] = useState(false);
-  const cajaDeColsParadas = useRef<HTMLDivElement>(null);
-  useCierraAlSalir(verColsParadas, () => setVerColsParadas(false), () => [cajaDeColsParadas.current]);
+  // Cada ⚙ lleva su propio estado desde D-379 (`SelectorDeColumnas`): el de paradas se pinta una vez por chofer y
+  // colgaba de un solo estado y una sola `ref` de la página — abría todos a la vez y cerraba el menú al pulsar una casilla.
   useEffect(() => {
     if (!me || SIN_BASE) return;
     let vivo = true;
@@ -1861,19 +1857,12 @@ export default function RoutesPage() {
             placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
             style={{ maxWidth: 300 }}
           />
-          <div ref={cajaDeColsPool} style={{ position: "relative", display: "inline-block" }}>
-            <button className="btn btn-ghost btn-sm" aria-expanded={verColsPool} onClick={() => setVerColsPool((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
-            {verColsPool && (
-              <div className="card" style={{ position: "absolute", left: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4 }}>
-                {COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => (
-                  <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
-                    <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {lang === "es" ? c.es : c.en}
-                  </label>
-                ))}
-                <span className="hint" style={{ margin: 0 }}>{t("Saved for you.", "Se guarda para usted.")}</span>
-              </div>
-            )}
-          </div>
+          <SelectorDeColumnas
+            columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))}
+            elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
+            rotulo={(c) => (lang === "es" ? c.es : c.en)}
+            titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
+          />
           {(["all", "overdue", "windowed", "noloc"] as const).map((f) => (
             <button
               key={f}
@@ -2044,6 +2033,8 @@ export default function RoutesPage() {
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
         const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver));
         const dDe = lectura.etiquetaDe;
+        // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
+        const provisional = esProvisional(stops);
         // A load a person pinned; the optimizer won't regroup those.
         const pinnedLoads = stops.some((d) => (d.load_no ?? 1) > 1 && !d.load_auto);
         const isC = isCollapsed(u.key);
@@ -2205,6 +2196,7 @@ export default function RoutesPage() {
             {stops.length > 0 && !sequenced && (
               <div className="hint" style={{ marginBottom: 8 }}>
                 {t("Not optimized yet — run “Optimize route” to get a sequence.", "Aún no optimizada — ejecute “Optimizar ruta” para obtener una secuencia.")}
+                {provisional && <> {t("The grey P/D labels follow the current order and may change when optimized.", "Las etiquetas P/D en gris siguen el orden de ahora y pueden cambiar al optimizar.")}</>}
               </div>
             )}
             {missingPins > 0 && (() => {
@@ -2220,18 +2212,13 @@ export default function RoutesPage() {
               );
             })()}
             {stops.length > 0 && (
-              <div ref={cajaDeColsParadas} style={{ position: "relative", textAlign: "right" }}>
-                <button className="btn btn-ghost btn-sm" aria-expanded={verColsParadas} onClick={() => setVerColsParadas((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
-                {verColsParadas && (
-                  <div className="card" style={{ position: "absolute", right: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4, textAlign: "left" }}>
-                    {COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => (
-                      <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
-                        <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
-                      </label>
-                    ))}
-                    <span className="hint" style={{ margin: 0 }}>{t("Saved for you.", "Se guarda para usted.")}</span>
-                  </div>
-                )}
+              <div style={{ textAlign: "right" }}>
+                <SelectorDeColumnas
+                  columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas"))}
+                  elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
+                  rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
+                  titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
+                />
               </div>
             )}
             {stops.length > 0 && (
@@ -2345,10 +2332,10 @@ export default function RoutesPage() {
                           {sequenced && ti === 0 && lectura.cambioTrasPublicar && (
                             <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                           )}
-                          {filasDelViaje(sequenced ? lectura : null, batch, ti === trips.length - 1).map((f) => {
+                          {filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1).map((f) => {
                             if (f.clase === "informa") { const p = f.fila; return (
                             <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`}>
-                              <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
+                              <td className={provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
                               <td colSpan={columnasDeParadas - 1}>
                                 {p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" && <b>{p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
                                 {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
@@ -2386,17 +2373,27 @@ export default function RoutesPage() {
                                 onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
                                 title={t("Show this stop on the map", "Ver esta parada en el mapa")}
                               >
-                                <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}
-                                >{d.route_seq != null ? (dDe.get(d.id) ?? i + 1) : "—"}</td>
+                                {(() => {
+                                  const e = etiquetaDeLaParada(d, dDe, i + 1, provisional);
+                                  return (
+                                    <td className={e.provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}
+                                      title={e.provisional ? t("Provisional: follows the current order, not optimized yet", "Provisional: sigue el orden de ahora, aún sin optimizar") : undefined}
+                                    >{e.texto}</td>
+                                  );
+                                })()}
                                 <td
                                   className="ordno"
                                   onClick={(e) => { e.stopPropagation(); setOpenOrder(d); }}
-                                  style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}
+                                  style={{ cursor: "pointer" }}
                                   title={t("Open this order", "Abrir esta orden")}
-                                >#{orderLabel(d)}
+                                >
+                                  {/* Un renglón por dato (D-379): el código, subrayado porque abre la orden, y la factura debajo, en
+                                      pequeño y sin subrayar. El subrayado iba en la celda entera y bajaba también a la factura —un
+                                      subrayado heredado no se quita en el hijo—: dos renglones subrayados, uno encima del otro. */}
+                                  <span className="parada-id">#{orderLabel(d)}</span>
                                   {/* La factura, debajo del código: esta tabla tiene los anchos por posición y no admite una
                                       columna que aparece y desaparece. Sale si la columna «Factura #» está elegida. */}
-                                  {colsGestor.includes("invoice") && d.invoice_num && <div className="hint" style={{ margin: 0, textDecoration: "none" }}>{t("Inv.", "Fact.")} {d.invoice_num}</div>}
+                                  {colsGestor.includes("invoice") && d.invoice_num && <span className="parada-factura" title={d.invoice_num}>{t("Inv.", "Fact.")} {d.invoice_num}</span>}
                                 </td>
                                 {!paradasOcultas.has(2) && <td title={d.order_type || undefined}>{d.order_type || "—"}</td>}
                                 {/* Where the truckload's pallet total comes

@@ -153,7 +153,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map(");
     expect(pagina).toContain("{menuSinAsignar.slice(1).map((c) => <th key={c.key}>");
     // La tabla de paradas por ruta la enseña bajo el código, si la columna está elegida.
-    expect(pagina).toContain('{colsGestor.includes("invoice") && d.invoice_num && <div');
+    expect(pagina).toContain('{colsGestor.includes("invoice") && d.invoice_num && <span className="parada-factura" title={d.invoice_num}>');
   });
   it("D-346: la dirección y la recogida se pintan en «Sin asignar», lo guardado de antes recibe las columnas nuevas, y la sugerencia de chofer ya no está", () => {
     expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>').length - 1).toBe(1);
@@ -219,10 +219,44 @@ describe("la página del Gestor", () => {
   it("el selector marca y desmarca con la función probada, se cierra al hacer clic fuera, y nace con el defecto", () => {
     expect(pagina).toContain("const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);");
     expect(pagina).toContain("const next = alternaColumna(colsGestor, key);");
-    expect(pagina).toContain("useCierraAlSalir(verColsParadas, () => setVerColsParadas(false), () => [cajaDeColsParadas.current]);");
-    expect(pagina).toContain("onChange={() => alternaColumnaDelGestor(c.key)}");
-    // Cada ⚙ ofrece las de SU tabla, nuevas incluidas: ahí es donde se eligen.
-    expect(pagina).toContain('{COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => (');
+    // Cada ⚙ ofrece las de SU tabla, nuevas incluidas, y marca con la función probada.
+    expect(pagina).toContain('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas"))} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
+    expect(pagina).toContain('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
+  });
+  it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
+    // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
+    // choferes. Abría los cuatro a la vez y la ref era la caja del ÚLTIMO: la casilla de otro contaba como clic fuera.
+    const mapa = pagina.slice(pagina.indexOf("{shownDrivers.map((u) => {"));
+    expect(mapa.indexOf("<SelectorDeColumnas")).toBeGreaterThan(-1);
+    expect(pagina).not.toMatch(/verColsParadas|cajaDeColsParadas|verColsPool|cajaDeColsPool|useCierraAlSalir/);
+    expect(pagina.split("<SelectorDeColumnas").length - 1).toBe(2);
+    const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
+    expect(selector).toContain("const [abierto, setAbierto] = useState(false);");
+    expect(selector).toContain("const caja = useRef<HTMLDivElement>(null);");
+    expect(selector).toContain("useCierraAlSalir(abierto, () => setAbierto(false), () => [caja.current]);");
+    expect(selector).toContain("<div ref={caja}");
+    expect(selector).toContain('<input type="checkbox" checked={elegidas.includes(c.key)} onChange={() => onAlterna(c.key)} />');
+  });
+  it("D-379: el ⚙ del Gestor usa el menú de Órdenes, que quita el estilo de formulario a sus rótulos y casillas", () => {
+    // Un `label` suelto hereda el de formulario: MAYÚSCULAS, y la casilla con width: 100% (medido: 130 px) empujando el texto.
+    const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
+    expect(selector).toContain('<div className="col-menu"');
+    expect(selector).toContain('<label key={c.key} className="col-opt">');
+    expect(selector).not.toMatch(/<label key=\{c\.key\} style=/);
+    const css = leer("src/app/globals.css");
+    expect(css).toMatch(/\.col-opt \{[^}]*text-transform: none;/);
+    expect(css).toContain(".col-opt input { width: 14px; height: 14px; }");
+  });
+  it("D-379: la celda del ID de una parada — un renglón por dato, y solo el código subrayado", () => {
+    const i = pagina.indexOf('<span className="parada-id">#{orderLabel(d)}</span>');
+    expect(i).toBeGreaterThan(-1);
+    // La celda ya no se subraya entera: el subrayado heredado bajaba también a la factura.
+    const celda = pagina.slice(pagina.lastIndexOf("<td", i), i);
+    expect(celda).not.toContain("textDecoration");
+    const css = leer("src/app/globals.css");
+    expect(css).toMatch(/\.parada-id \{[^}]*display: block;[^}]*text-decoration: underline dotted;/);
+    expect(css).toMatch(/\.parada-factura \{[^}]*display: block;[^}]*margin-top: 4px;/);
+    expect(css).not.toMatch(/\.parada-factura \{[^}]*text-decoration/);
   });
   it("lee y guarda en `routes_columns`; guarda solo si antes se pudo leer, y sin pisar lo de otros roles; aquí no se siembra nada", () => {
     expect(pagina).toContain("leeColumnas(createClient() as unknown as ClienteDePrefs, me.id, CLAVE_DE_COLUMNAS_DEL_GESTOR)");
@@ -283,10 +317,11 @@ describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () 
 describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("el selector está junto al buscador, con las columnas de ESA tabla, y usa la misma función que los otros dos", () => {
-    const i = pagina.indexOf('{COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => (');
+    // Desde D-379 es un `SelectorDeColumnas`, con su propio estado (lo fija la prueba de «una vez por chofer»).
+    const i = pagina.indexOf('columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))}');
     expect(i).toBeGreaterThan(-1);
-    expect(pagina.slice(i, i + 400)).toContain("onChange={() => alternaColumnaDelGestor(c.key)}");
-    expect(pagina).toContain("useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);");
+    expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
+    expect(pagina.slice(pagina.lastIndexOf("<input", i), i)).toContain("value={orderSearch}");
   });
 });
 

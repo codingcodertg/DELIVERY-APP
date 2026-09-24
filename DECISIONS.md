@@ -23267,6 +23267,9 @@ de las pruebas dejaba nada al final; ahora hay uno con la segunda carga de una o
 
 ## D-336 · Una ruta ordenada a medias no gasta números en las órdenes que aún no tienen puesto
 
+> **⚠ Reemplazada en parte por D-379** (2026-09-23): una ruta que nadie ordenó ya enseña sus etiquetas en el Gestor,
+> provisionales (en gris y cursiva). Lo de las rutas a medias sigue vigente.
+
 **Fecha:** 2026-09-19 · **Estado:** Vigente · **Afina:** D-334, D-335
 
 ### Qué fallaba
@@ -24101,6 +24104,9 @@ por fichero) caen cada uno con su prueba.
 - Firefox y Safari no se midieron.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
+
+> **⚠ Corregida en parte por D-379** (2026-09-23): el ⚙ de paradas colgaba de un solo estado y una sola `ref` para
+> todas las tarjetas; abría todos a la vez y no dejaba marcar (medido en la primera tarjeta). Ahora cada una tiene el suyo.
 
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
 > además ofrece ahora las columnas de Órdenes (ocultas por defecto).
@@ -26101,6 +26107,10 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 
 ## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
 
+> **⚠ Corregida por D-379** (2026-09-23): el ⚙ de la tabla de paradas no dejaba marcar las columnas (medido con un clic de
+> persona en la primera tarjeta), y el menú heredaba el estilo de formulario. Lo que abajo se da por «visto al medir» y de aspecto era el
+> fallo: se marcó con `.click()` por código, que no dispara `mousedown`. El resto sigue vigente.
+
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** dos peticiones del dueño, literales, el mismo día:
 «las mismas columnas que se miran en órdenes quiero que se miren en el logistic manager, así que agrega eso», y
@@ -26294,3 +26304,86 @@ del hub (`btn btn-ghost btn-sm`), en las dos salidas de la página de la ronda (
 no volviera el enlace a `/promos`, prohibía en realidad **cualquier** enlace, también el de salida. Se acota a lo que
 quería decir: ningún `href="/promos"`. Y `volver-al-hub.test.ts` exige el enlace a `/home` en las dos pantallas.
 Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
+
+## D-379 · El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale:** el dueño, en producción, con captura de la tabla de paradas de un chofer, tras publicarse D-376:
+«no me deja seleccionar la columna y se mira un solo relajo, también donde está el id y el invoice qué feo se mira,
+arregla eso». Y en la misma pantalla, ante un chofer sin optimizar que enseñaba «—» junto a otro con P1·P2, D1, D2:
+«¿por qué Máximo no tiene P1, D1 y así? Arregla eso».
+
+**Corrige** a D-376 (su «Lo que no se verificó» daba el ⚙ compartido por un detalle de aspecto, y era el fallo) y
+**reemplaza en parte** a D-336 (el Gestor pasa a pintar etiquetas en una ruta que nadie ordenó). Las dos llevan su nota.
+
+### 1 · El ⚙ de paradas no dejaba marcar nada — medido con clics de persona
+
+El ⚙ de la tabla de paradas se pinta **una vez por chofer**, dentro del `map` de tarjetas, pero colgaba de **un solo
+estado y una sola `ref` de la página** (`verColsParadas`, `cajaDeColsParadas`, de D-346). Dos efectos, medidos en el demo
+(2026-09-23, logística, 4 choferes) con `Input.dispatchMouseEvent` y la casilla traída a la vista:
+
+- Pulsar el ⚙ de una tarjeta **abría los cuatro** (4 menús con la casilla «Etapa»).
+- La `ref` acababa apuntando a la caja de la **última** tarjeta. «Cerrar al pulsar fuera» (`useCierraAlSalir`) escucha el
+  `mousedown`: en cualquier otra tarjeta, pulsar una casilla era «fuera», el menú se cerraba en el `mousedown` y la casilla
+  nunca recibía el clic. Medido en la primera tarjeta: tras el clic, el menú **cerrado** y la columna **no** aparece. (Que en la última sí se marcara sale del código; no lo medí.)
+
+**Por qué D-376 no lo vio:** marqué las casillas con `.click()` por código, que no dispara `mousedown`. Es la trampa ya
+escrita en la herramienta de revisión visual («pulsar por código no es pulsar como una persona»), y la pagué igual.
+
+**Arreglo:** `SelectorDeColumnas` (`src/components/SelectorDeColumnas.tsx`), con su propio estado y su propia caja, uno por
+tarjeta. Sirve también al de «Sin asignar». La página ya no tiene estado de menús ni importa `useCierraAlSalir`. Medido
+después, a 1280 y a 1440: se abre **1** menú; un clic de persona en «Fee» lo deja **abierto y marcado**, la cabecera «Fee»
+aparece en la tabla, y un clic fuera lo cierra.
+
+### 2 · «Un solo relajo»: el menú heredaba el estilo de formulario
+
+Los rótulos eran `label` sueltos dentro de una `.card`, y la app les da estilo de formulario: **MAYÚSCULAS**, y el `input` con
+`width: 100%` y relleno. Medido antes: la casilla medía **130 px** de ancho y empujaba el texto a la derecha; «SO #», «PO #» y
+«DELIVERY DATE» salían en dos renglones. Ahora el menú es el de Órdenes (`.col-menu`, `.col-opt`), que ya neutraliza las dos
+cosas. Medido después: sin mayúsculas, casilla de **14×14**, cada rótulo en un renglón (28 px de alto «SO #» igual que «Fee»).
+
+### 3 · La celda del ID
+
+Llevaba el subrayado punteado en la celda entera, y la factura debajo en un `div` con `textDecoration: none`. Un subrayado
+heredado **no se quita en el hijo**, así que salían los dos renglones subrayados, uno encima del otro. Ahora es un renglón
+por dato: `.parada-id` (el código, subrayado, porque abre la orden) y `.parada-factura` (pequeña, gris, sin subrayar, con
+4 px de aire). La celda ya no se subraya. Medido: la celda sin subrayado; el código subrayado a 6 px del borde; la factura
+a 26 px, sin subrayar, 12 px, gris. El clic en la celda sigue abriendo la orden.
+
+### 4 · Un chofer sin optimizar enseña su P/D provisional
+
+**Por qué salía «—»:** no era un fallo de cálculo. `lecturaDeLaRuta` ya numeraba una ruta que nadie ordenó (D-336: «si
+NINGUNA tiene puesto se numeran todas, como las enseña Mi ruta»), pero la tabla pintaba `d.route_seq != null ? … : "—"` y
+pasaba `sequenced ? lectura : null` a las filas de recogida. D-336 lo dejó escrito: «el Gestor ya no pinta etiquetas en ese
+caso». Nadie decidió que no debiera verlas; se decidió que la tabla no las pintara porque solo pintaba lo ordenado.
+
+**Ahora** (`esProvisional`, `etiquetaDeLaParada` y `lecturaParaLasFilas`, en `lectura-de-ruta.ts`, puras y probadas):
+
+- Si **ninguna** parada del chofer tiene puesto, la tabla pinta la misma lectura de «Mi ruta»: filas de recogida P
+  delante de sus entregas, y cada entrega con su D. El orden es el de la tabla, el que las flechas ↑↓ cambian.
+- **Provisional, y se ve:** mismo texto, en **gris y cursiva** (`.etiqueta-provisional`), con un `title` que lo dice, y el
+  aviso «Aún no optimizada» añade «Las etiquetas P/D en gris siguen el orden de ahora y pueden cambiar al optimizar».
+  En cuanto alguien ordena la ruta (optimizar o una flecha), pasan a definitivas, en negro y sin cursiva.
+- **Ninguna D antes que su P:** las recogidas salen como filas propias delante de sus entregas, con `filasDelViaje`, como en
+  una ruta ordenada. La prueba lo recorre con tiendas intercaladas (B, A, B), donde el número de recogida no coincide con el de
+  la fila: sale `P1, P2, P3, D1, D3, D2`.
+- **A medias sigue D-336:** si ALGUNA tiene puesto, las que no lo tienen siguen con «—» y no hay filas de recogida provisionales.
+
+**Medido** (demo, logística, 1280 y 1440): los 4 choferes del demo están sin optimizar. Antes, «—» en todas. Ahora, por
+ejemplo, `P1 · D1 · P2 · P3 · D2 · D3 · P4 · D4`, todas en gris `rgb(107, 118, 134)` y cursiva, y el aviso con la frase
+nueva. Tras ordenar a mano uno de ellos, sus etiquetas salen en `rgb(21, 34, 56)` y sin cursiva, y su aviso desaparece.
+
+### Mutantes
+
+14, leídos por el nombre de la prueba que cae; **caen los 14**. El fallo del dueño: volver a UN estado de página para
+todos los ⚙ (M1), una caja que no es la suya (M2), rótulos de formulario (M3), una casilla que no marca (M4). La celda del
+ID: subrayada entera (M5), factura subrayada (M6) o sin aire (M7). El P/D provisional: siempre «—» (M8), a medias tratada
+como provisional (M9), sin marca de provisional (M10), numerada por fila y no por la lectura (M11 — lo caza la prueba de
+tiendas intercaladas), sin filas de recogida (M12), y la página sin usar la etiqueta (M13) o sin pasar la lectura (M14).
+
+### Lo que no se hizo
+
+- **El mapa** sigue sin marcas P/D para un chofer sin ordenar (`if (!list.some((d) => d.route_seq != null)) continue;`).
+  Lo pedido era la tabla; en el mapa, una etiqueta provisional necesitaría su propio aspecto.
+- **La columna «#» mide 40 px** por defecto (`rtg_routes_stops7`): «P1·P2» sale «P1…», ordenada o provisional. Es de antes.
+  Subir el valor por defecto no alcanza a quien ya guardó sus anchos.

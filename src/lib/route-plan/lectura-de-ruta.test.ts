@@ -4,7 +4,7 @@ import { etiquetaDeEntrega, secuenciaPD } from "@/lib/secuencia-pd";
 import { escriturasAlPublicar, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cambiosTrasPublicar, filasDelViaje, lecturaDeLaRuta, sigueElPlan,type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
+import { cambiosTrasPublicar, esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas, sigueElPlan,type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
 
 /** Las etiquetas P/D cuando hay un plan publicado (D-335). Planes de verdad, evaluados por el motor, en una calle inventada. */
 
@@ -281,5 +281,42 @@ describe("«Mi ruta» pinta el aviso de D-341", () => {
     expect(aviso).toBeGreaterThan(-1);
     expect(lista).toBeGreaterThan(-1);
     expect(aviso).toBeLessThan(lista);
+  });
+});
+
+// D-379: el dueño, ante un chofer sin optimizar que enseñaba «—» junto a otro con P1·P2, D1, D2: «¿por qué no tiene P1,
+// D1 y así?». Las tiendas van INTERCALADAS (B, A, B): el número de recogida no coincide con el de la fila, así que una
+// implementación que numerara por fila no pasaría.
+describe("D-379: una ruta que nadie ordenó enseña su P/D provisional", () => {
+  const o = (id: string, store: string, route_seq: number | null = null): OrdenAsignada => ({ id, store, est_pallets: 1, load_no: 1, route_seq });
+  const viaje = [o("a", "Tienda B"), o("b", "Tienda A"), o("c", "Tienda B")];
+  const l = lecturaDeLaRuta([viaje], null);
+
+  it("es provisional solo si NINGUNA orden tiene puesto: ni a medias, ni vacía", () => {
+    expect(esProvisional(viaje)).toBe(true);
+    expect(esProvisional([o("a", "Tienda B", 0), o("b", "Tienda A")])).toBe(false);
+    expect(esProvisional([])).toBe(false);
+  });
+  it("la celda «#»: cada orden su D, marcada provisional; con puesto, definitiva; a medias, la suelta sigue con «—» (D-336)", () => {
+    expect(viaje.map((d, i) => etiquetaDeLaParada(d, l.etiquetaDe, i + 1, esProvisional(viaje)))).toEqual([
+      { texto: "D1", provisional: true }, { texto: "D3", provisional: true }, { texto: "D2", provisional: true },
+    ]);
+    expect(etiquetaDeLaParada(o("b", "Tienda A"), l.etiquetaDe, 2, false)).toEqual({ texto: "—", provisional: false });
+    expect(etiquetaDeLaParada(o("a", "Tienda B", 0), l.etiquetaDe, 1, false)).toEqual({ texto: "D1", provisional: false });
+    expect(etiquetaDeLaParada(o("z", "Tienda B", 3), new Map(), 4, false)).toEqual({ texto: "4", provisional: false });
+  });
+  it("las filas de la tabla llevan sus recogidas, y ninguna D sale antes que su P", () => {
+    const lectura = lecturaParaLasFilas(l, false, esProvisional(viaje));
+    expect(lectura).toBe(l);
+    const filas = filasDelViaje(lectura, viaje, true).flatMap((f) => (f.clase === "informa" ? f.fila.etiquetas : [l.etiquetaDe.get(f.orden.id)!]));
+    expect(filas).toEqual(["P1", "P2", "P3", "D1", "D3", "D2"]);
+    for (const d of filas.filter((x) => x.startsWith("D"))) {
+      const p = "P" + d.slice(1);
+      expect(filas.indexOf(p), p).toBeGreaterThan(-1);
+      expect(filas.indexOf(p), `${p} antes que ${d}`).toBeLessThan(filas.indexOf(d));
+    }
+    // A medias (ni ordenada entera ni provisional) no hay filas de recogida, como antes; ordenada, sí.
+    expect(lecturaParaLasFilas(l, false, false)).toBeNull();
+    expect(lecturaParaLasFilas(l, true, false)).toBe(l);
   });
 });
