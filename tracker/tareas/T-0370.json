@@ -1,0 +1,31 @@
+{
+  "id": "T-0370",
+  "fecha": "2026-09-24",
+  "resumen": "Promos para todo ventas y office; el costo solo lo ve el admin",
+  "texto_original": "give it access to all sales and office but sales cant see costs / nvm just admin can see costs / not office or sales can't see costs / and make the app available for all of them",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": "T-0013",
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "211"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-386"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "verificado",
+    "prueba": "Orquestador, 2026-09-24, en producción y solo lectura: perfil por perfil contra promo_catalog con su sesión — admin 2 de 2 ven costo; manager 0 de 6, accounting 0 de 8, sales 0 de 14. module_access con promos: 30 perfiles.",
+    "fecha": "2026-09-24T10:52:38-05:00"
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T10:52:37-05:00",
+  "modificado": "2026-09-24T10:52:38-05:00"
+}
