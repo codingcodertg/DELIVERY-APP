@@ -18631,6 +18631,13 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 > ocurrir. **La queja estaba bien vista y su arreglo funcionó**; lo que cambia es que el problema se
 > resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
 > vuelta de «listo» a «preparando».
+>
+> **⚠ La queja 2 cambió de forma el 2026-09-24, por D-NEXT (pantalla de la 142).** El botón propio
+> «↩ Volver a preparando», que preguntaba y escribía una nota fija, **ya no existe**: almacén vuelve de
+> `listo` a `preparando` con el «↩ Deshacer etapa» general de la ficha, **con motivo obligatorio** y
+> **solo en órdenes de sus tiendas** (la 142 acotó ese salto por tienda). El aviso de su pregunta —puede
+> haber un chofer en camino— lo lleva ahora el diálogo. La queja sigue resuelta; lo que cambia es el
+> camino.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, siete quejas de Almacén seguidas. Las de esta entrada son cinco; las dos que necesitan
@@ -26537,3 +26544,155 @@ sesiones de la laptop (2026-09-20 → 22) no están. Y 40 tareas no tienen evide
 **Pruebas:** `vitest.config.ts` incluye `tracker/**/*.test.mjs`, así que CI también vigila el tracker (31 pruebas;
 6 mutantes del worker, caen los 6). Antes de publicar se buscaron secretos en todo `tracker/`: solo aparecen los
 patrones con los que el propio tracker los tapa.
+
+## D-NEXT · Almacén deshace en su tienda, office borra los borradores de su tienda, y un borrado que la base rechaza ya no se da por hecho
+
+**Fecha:** 2026-09-24 · **Versión:** la pone el orquestador (Entregas) · **Sin migración:** es la pantalla de la
+**142**, que ya está aplicada en producción (D-377, 2026-09-23). **Corrige en parte** a D-287 (su «Volver a
+preparando» pasa a ser el «Deshacer etapa» general; lleva su nota).
+
+**De dónde sale.** El dueño, literal: *«deja que warehouse y office tengan la opción de deshacer un stage, como por
+ejemplo deshacer un delivered o un fulfilling o un ready, y también que los draft, si no los ocupan, los puedan
+borrar o seguir editando; igual las duplicadas»*. «Office» son los roles `accounting` y `manager`. Respondió que
+office y gerente borran **cualquier** borrador de su tienda (y su grupo), y que cada borrado deja registro — eso ya
+lo hace la base desde la 142 (`deliveries_borradas`).
+
+D-377 cambió la base; la pantalla seguía como antes: almacén solo veía «Volver a preparando», y «Eliminar» solo lo
+veía el admin. Esta entrada hace que la app **ofrezca lo que la base ya permite, ni más ni menos**.
+
+### Qué cambia en pantalla
+
+| Quién | Deshacer una etapa | Eliminar |
+|---|---|---|
+| admin | los 5 pasos (sin cambio) | cualquier orden (sin cambio) |
+| office, gerente | los 5 pasos, con motivo (sin cambio, D-361) | **cualquier borrador de sus tiendas y su grupo**, y el suyo esté donde esté |
+| **almacén** | **`delivered→picked_up`, `ready→fulfilling`, `fulfilling→approved`, solo en órdenes de sus tiendas y con motivo** | su propio borrador (en la práctica, nada: almacén no crea borradores) |
+| ventas, chofer, logística | nada (sin cambio) | **solo su propio borrador** |
+
+- **Almacén nunca deshace `approved→pending`** (desaprobar es de quien aprueba) y **no tiene «Deshacer» en
+  `picked_up`**: ese salto ya es «Dejar en tienda» (D-224), que además cambia la tienda en la misma escritura. Dos
+  botones para el mismo salto serían el mismo camino con otro nombre.
+- **Almacén sin tienda no deshace nada.** Ojo aquí, porque es la trampa: la cola de almacén, **sin tienda, enseña
+  todo** (`warehouse/page.tsx`). Si el botón copiara esa regla, un almacenista sin tienda vería «Deshacer» en todas las
+  órdenes y la base se lo rechazaría en todas (la 142 falla cerrado). Office o gerente sin tienda solo borran lo suyo,
+  por lo mismo. **Medido el 2026-09-23 por el orquestador: 1 office y 2 gerentes no tienen tienda.**
+- **«Volver a preparando» (D-287) desaparece como botón propio.** Escribía una nota fija sin motivo; ahora almacén
+  pasa por el mismo diálogo de «Deshacer etapa» que office: motivo obligatorio, que va a la nota de `order_events`.
+  El diálogo dice a qué etapa vuelve, y en `listo` avisa de lo que avisaba la pregunta de D-287 (puede haber un chofer
+  en camino).
+- **«Eliminar» pregunta antes** (como ya lo hacía para el admin) y **solo da la orden por borrada si la base la
+  devolvió** (abajo).
+
+### «¿Es de mis tiendas?»: se copia la base, no la cola de almacén
+
+`ordenDeMisTiendas` (`src/lib/deshacer-y-borrar.ts`) es el espejo de `public.orden_de_mis_tiendas` de la 142: mi
+tienda (siempre, aunque ya no esté en Ajustes) más las de mi grupo (D-293), contra **las tres columnas** de tienda
+de la orden —`store`, `pickup_name`, `delivery_name`— **sin mirar el tipo**, o su `pickup_address` igual a la
+dirección de una de ellas. Nombres normalizados como en la base; la dirección, **solo recortada**, sin minúsculas,
+porque la base compara `btrim` contra `btrim`.
+
+**Se descartó reusar `esDeMisTiendas`** (la de la cola de almacén): solo mira `delivery_name` en tienda-a-tienda y
+**no mira `pickup_name` en una orden de cliente**, así que es más estrecha que la base. Estrecha no rompe nada —solo
+esconde un botón que la base habría dejado—, pero lo que decide aquí es «¿la base lo va a dejar?», y a esa pregunta
+contesta la función de la base.
+
+### Un DELETE que la base rechaza no da error
+
+La política de borrar de la 142 dice que no **sin error**: PostgREST devuelve cero filas y vuelve limpio.
+`deleteDelivery` hacía `.delete().eq("id", id)` sin mirar nada y **quitaba la fila de la lista antes de saber** si se
+había borrado; con el botón solo para el admin nunca se notó. Ahora:
+
+- pide `.select("id")` y cuenta; **sin fila, avisa** («No se borró: solo se puede borrar un borrador propio…») y **la
+  orden se queda en la lista**, porque sigue existiendo;
+- devuelve `true`/`false`, y la ficha solo dice «Orden eliminada» y se cierra con `true`;
+- el orden «confirmar y luego quitar» vive una sola vez, en `borrarOrden`, que usan **los dos proveedores**. El demo
+  no tiene base, así que simula la política con `puedeBorrar`: antes borraba cualquier orden.
+
+### Seguir editando un borrador o un duplicado: ya funcionaba, medido
+
+No hacía falta tocar nada (D-286). Lo que se añadió es la **prueba contra el guard vigente**: la de D-286 leía la
+118, y ahora otra compara `canEditFields("draft")` rol por rol con el tramo de misma etapa de la **142**. También se
+comprueba que la ficha no pone `created_by: me.id` al guardar: la 142 rechaza reescribir el autor, y si la ficha lo
+hiciera, editar el borrador de otro fallaría en la base. Medido en el navegador (abajo): ventas edita un borrador
+ajeno; un duplicado nace borrador **suyo** y la ficha se queda en la copia ya en modo edición, con «Eliminar».
+
+### Pruebas
+
+- `entregar-ya-y-deshacer.test.ts` **lee la 142** (antes la 139) y **modela almacén de verdad**: parte la rama de
+  almacén del guard donde la 142 pone `orden_de_mis_tiendas(OLD…)` y compara rol por rol, etapa por etapa y «en mi
+  tienda / en otra». Antes trataba a almacén como «la base no le deja deshacer nada», lo cual **ya era falso con la
+  139** (le dejaba tres pasos en cualquier tienda): pasaba porque comparaba `false` con `false`. La única diferencia
+  permitida es almacén en `picked_up` (la base sí, la ficha no: D-224), escrita con su motivo en la prueba.
+- `deshacer-y-borrar.test.ts` (nuevo, 23 pruebas) **interpreta la política `"deliveries delete"` del `.sql`**: la
+  parte en sus ramas `or` y sus átomos `and`, traduce cada átomo, y **tumba la prueba si aparece uno que no sabe
+  leer**. Con eso compara `puedeBorrar` en 7 roles × 9 etapas × mío/ajeno × mi tienda/otra. Además: la función de
+  tiendas contra lo que mira la del `.sql`, `borrarOrden` con respuestas falsas (cero filas, `null`, error, una
+  fila), y que los dos proveedores y la ficha usen lo probado.
+- `ruta-del-dia.test.ts`: la prueba del botón de D-287 pasa a comprobar que la vuelta de listo sigue existiendo por
+  el camino nuevo.
+
+**26 mutantes, los 26 caen con una prueba con nombre** (herramienta de mutantes, leído por nombre):
+
+| Mutante | Cae con |
+|---|---|
+| M1 almacén **sin tienda** deshace (como la cola, que sin tienda enseña todo) | «sin tienda propia, nada es mío», «office sin tienda solo borra sus propios borradores» |
+| M2 `puedeDeshacer` de almacén ignora la tienda | «rol por rol, etapa por etapa y en mi tienda o en otra», «almacén deshace … SOLO en sus tiendas» |
+| M3 almacén desaprueba (`approved`) · M4 almacén con «Deshacer» en `picked_up` | las mismas dos |
+| M5 la ficha pasa `true` en vez de la tienda | «los dos botones se pintan con las funciones probadas» |
+| M6 office pierde deshacer fuera de su tienda | «office y gerente, igual que en D-361» |
+| M7 `puedeBorrar` deja borrar una pendiente | «rol por rol … mío o ajeno», «una pendiente, aprobada o entregada solo la borra el admin» |
+| M8 office borra borradores de cualquier tienda | «en concreto: office y gerente borran el borrador AJENO de su tienda», «office sin tienda…» |
+| M9 ventas borra el borrador ajeno | «en concreto…», «rol por rol…» |
+| M10 `borrarOrden` quita la fila antes de mirar · M11 da por bueno un vacío | «cero filas y sin error: se avisa y la orden se queda» (y las de `null`/error) |
+| M12 el proveedor real sin `.select("id")` · M13 quita la fila por su cuenta | «el proveedor real pide `.select("id")` y solo quita la fila dentro de `borrarOrden`» |
+| M14 el demo borra sin mirar la política | «el demo simula la política con `puedeBorrar`» |
+| M15 «Eliminar» vuelve a ser solo del admin · M16 la ficha cierra aunque no se borró | «Eliminar sale con `puedeBorrar`, pregunta antes, y solo cierra si se borró» |
+| M17 motivo opcional en el botón · M18 motivo opcional en `deshacerEtapa` | «sin motivo no se puede confirmar» |
+| M19–M23 la función de tiendas ignora `delivery_name`, el grupo, empareja grupos vacíos, pasa la dirección a minúsculas, ignora la dirección | la prueba de `ordenDeMisTiendas` que toca cada caso |
+| M24 el `.sql` deja borrar a ventas · M26 el `.sql` pierde «su propio borrador» | «rol por rol, etapa por etapa, mío o ajeno…» (M26 también el control de tres ramas) |
+| M25 el `.sql` deja `fulfilling→approved` de almacén sin tienda | «la rama de almacén se partió donde la 142 pone el límite de tienda» |
+
+Un mutante que **no** se puso, a propósito: `created_by != null &&` delante de `created_by === yo.id` era código de
+sobra (un id de sesión nunca es nulo) y se quitó en vez de probarlo.
+
+`verify.mjs` en el worktree, con placeholders: **4055 pasados | 3 saltados**, tsc y build en verde. La rama añade 28
+pruebas (23 nuevas en `deshacer-y-borrar.test.ts`, 5 más en `entregar-ya-y-deshacer.test.ts`); **contado sobre los
+ficheros, no medido en `main`**.
+
+### Medido en el navegador (demo, 2026-09-24): 46 de 47
+
+`next dev` en modo demo y Chrome headless por CDP, **clics de persona** (elemento traído a la vista, `mousePressed`
+/`mouseReleased`, motivo tecleado con `Input.insertText`). Perfiles puestos en el «Ver como» del demo.
+
+- **Almacén de McAllen**: «Deshacer etapa» **sí** en `ready`, `delivered` y `fulfilling` de McAllen (#1012, #1017,
+  #1034); **no** en las mismas etapas de Brownsville/Mission (#1020, #1016, #1010), ni en `approved` (#1008), ni en
+  `picked_up` (#1014). Ningún «Volver a preparando» ni «Eliminar» en las 8. En #1012: el botón de confirmar
+  **deshabilitado sin motivo** y habilitado con él; al confirmar, la orden pasó a `fulfilling` y la nota del historial
+  lleva el motivo.
+- **Almacén sin tienda**: ningún «Deshacer» (#1017).
+- **Office de Edinburg**: «Eliminar» **sí** en el borrador ajeno de Edinburg (#1002, de otro vendedor), **no** en el
+  borrador de Weslaco (#1001) ni en su entregada (#1019), que sigue teniendo «Deshacer» (D-361). Borrar #1002: pide
+  confirmación, y las órdenes pasan de **89 a 88**. **Office sin tienda**: no borra el ajeno.
+- **Ventas**: «Eliminar» **sí** en su borrador (#1001, y lo borró: 90 → 89), **no** en el ajeno ni en su pendiente
+  (#1003); «Editar» **sí** en el ajeno (seguir editando, D-286). Duplicar el ajeno crea **una** copia `draft` con
+  `created_by` suyo, con «Eliminar».
+- **Admin**: «Eliminar» y «Deshacer» en una entregada (#1017); la borró (89 → 88).
+
+**El único «MAL» fue mi expectativa, no la app:** esperaba «Editar» en la ficha de la copia duplicada, y no lo hay
+porque **la copia se abre ya en modo edición** (campos abiertos; captura `ventas-copia-duplicada`). Es el
+comportamiento de D-286.
+
+### Lo que NO se hizo o no se verificó
+
+- **Nada contra producción.** Todo lo de arriba es app contra el texto de la 142 y el demo. Que la base real diga lo
+  mismo lo midió el orquestador en el ensayo de D-377 (50 de 50), no esta rama.
+- **El «No se borró» no se vio en el navegador**: en el demo el botón solo sale cuando `puedeBorrar` dice que sí, y la
+  simulación usa la misma función, así que el camino de cero filas no se puede provocar desde la pantalla. Lo cubren
+  las pruebas de `borrarOrden`. En producción puede salir si la orden cambió (se envió, o cambió de tienda) entre abrir
+  la ficha y pulsar.
+- **La vista de admin «Órdenes borradas» no se hizo.** Era opcional; `deliveries_borradas` se consulta a mano (solo
+  la lee el admin). Cabría como una página de solo lectura, pero no entraba limpia sin tocar la navegación.
+- **El límite de tienda es de pantalla y de guard, no de edición**: almacén puede editar cualquier campo de una orden
+  `approved…delivered` (la 142 lo dice en su plan, §2a); cerrar eso es otro encargo.
+- **Almacén no ve borradores** (RLS), así que para él «Eliminar» no sale nunca en la práctica, aunque `puedeBorrar` le
+  dejaría su propio borrador si lo tuviera.
