@@ -1,0 +1,48 @@
+{
+  "id": "T-0054",
+  "fecha": "2026-09-14",
+  "resumen": "Un directorio telefónico de la empresa en el hub: por tienda, luego por departamento, luego la persona, con su correo, teléfono y extensión.",
+  "texto_original": "Okay. Quiero que en el RTG Hub, vamos a hacer un phone book de la compañía, donde todos los empleados van a tener acceso a él y buscar los empleados y los números de teléfono y los correos de ellos. Entonces, lo que vamos a hacer es que primero va a ser por categoría, le vamos a hacer así un poquito más difícil solo de buscar por cuestiones de el manager. El dueño no quiera así. Quiero que companies phone book, después ingresar y que diga por tienda, luego por departamento, luego las personas, y al clic las personas, ahí te va a tirar la información esa. Entonces quiero que me hagas eso, yo ya te voy a mandar la información, pero quiero que hagas la",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-15 a las 15:52: «[Image #25] here are the emails name, position and phone number so you add it to the directory»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-15 a las 15:52: «\"C:\\Users\\andre\\Downloads\\RTG EMAILS.xlsx\"»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 15:50: «\"C:\\Users\\andre\\Downloads\\RTG EMAILS (1).xlsx\" therare updated phone numebrs check and update»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 11:01: «if they dont have a phone number remove it from the directory»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 12:09: «ext is all lowercase make it Ext in the directory»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-14 15:04",
+    "sesion:83590ac0 2026-09-15 15:52",
+    "sesion:83590ac0 2026-09-15 15:52",
+    "sesion:83590ac0 2026-09-16 15:50",
+    "sesion:83590ac0 2026-09-17 11:01",
+    "sesion:83590ac0 2026-09-17 12:09"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

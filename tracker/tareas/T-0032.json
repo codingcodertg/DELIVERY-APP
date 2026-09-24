@@ -1,0 +1,44 @@
+{
+  "id": "T-0032",
+  "fecha": "2026-09-06",
+  "resumen": "En las fotos del fichaje se ve el geocerco: dentro o fuera, con la distancia marcada y con una señal que se note.",
+  "texto_original": "quiero que las coordenadas donde se tomo la foto, salga el geofencing visible, y si esta adentro bien pero si esta afuera la distancia marcada",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "b6e6d9fb"
+    ],
+    "prs": [
+      "29"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-213"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-06 a las 20:43: «perfecto pero quiero que sea un icon rojo mas visible»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-06 a las 21:46: «[Image #9] mira no se mira muy bien que diga on site quiero que se diga onsite or out»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-06 a las 22:10: «[Image #10] mira en este caso apenas se mira el cuadro verde entonces ocupo como arrows o un tag que se note y el numero 1.4 km awaya tambien ocupo un dot o arrow para que sea mas obvio»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-06 20:00",
+    "sesion:83590ac0 2026-09-06 20:43",
+    "sesion:83590ac0 2026-09-06 21:46",
+    "sesion:83590ac0 2026-09-06 22:10"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

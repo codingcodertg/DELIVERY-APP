@@ -1,0 +1,39 @@
+{
+  "id": "T-0028",
+  "fecha": "2026-09-05",
+  "resumen": "El reloj del Time Tracker no se para aunque la app se actualice, se cierre o se reinicie, y sigue desde donde lo dejó; el cierre automático no le corta a quien está trabajando.",
+  "texto_original": "AH MIRA HAGAMOS ALGO, EL TIME TRACKER SI SE ACTUALIZA ME HACE STOP EL TIMER ENTONCES QUIERO QUE AUNQUE SE CIERRE EL APP O SE ACTUALICE O REINICE EL TIMER SIMEPRE ESTARA PRENDIDO Y QUE EL SIENTA CUANDO LA APP YA ESTA ONLINE DENUEVO PARA SEGUIR TOMANDO SCREENSHOTS Y ASI NO PERDER TIEMPO CONTANDO PORQUE EL APP SE ACTUALIZO Y NO NOS DIMOS CUENTA",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "cf4d53fe"
+    ],
+    "prs": [
+      "12"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-195"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-05 a las 12:28: «HAZ B PORQUE SI QUIERO PODER ACTUALIZAR PERO QUE NO SE PIERDA LA CONTINUIDAD QUE CUANDO SE ABRA ESTE SIGA DE DONDE DEJO ASI COMO TE EXPLIQUE ME ESTAS CAMBIANDO LAS COSAS»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-05 a las 13:01: «PERO SI YO ESTOY ACTIVAMENTE TRABAJANDO NO ME LO VA ACERRAR CRON VERDAD PON ESA EXCEPECION Y ESA REGLA»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-05 12:10",
+    "sesion:83590ac0 2026-09-05 12:28",
+    "sesion:83590ac0 2026-09-05 13:01"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

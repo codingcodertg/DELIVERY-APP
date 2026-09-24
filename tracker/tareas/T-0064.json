@@ -1,0 +1,49 @@
+{
+  "id": "T-0064",
+  "fecha": "2026-09-17",
+  "resumen": "Un apartado de videos tutoriales en el hub, con la categoría puesta al video —no persona por persona— y los roles de cada app editables con casillas.",
+  "texto_original": "hagamos un tab asi como usuario en el hub pero que sea para los videos tutoriales",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "f25a3e31"
+    ],
+    "prs": [
+      "88"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-268"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 10:02: «quiero categorias porque habran videos solo para sales solo para office y asi y yo pueda configurar el usuario»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 10:18: «de hecho no al reves uno le categoria al video solo para sales solo para office asi es mas facil que ir usuario por usuario»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 10:36: «OK GOOD PERO MUY GRANDE, Y ACUERDA BIEN PERO DENTRO DE CADA APP TAMBIEN QUE SALGA LOS ROLES Y QUE SEA CHECK BOXES Y PUEDA EDITAR ESO»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 11:03: «anthony hernandez is a salesperson and the video i selected sales and I can't see it from his profie»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-17 09:37",
+    "sesion:83590ac0 2026-09-17 10:02",
+    "sesion:83590ac0 2026-09-17 10:18",
+    "sesion:83590ac0 2026-09-17 10:36",
+    "sesion:83590ac0 2026-09-17 11:03"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

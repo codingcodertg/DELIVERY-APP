@@ -1,0 +1,28 @@
+{
+  "id": "T-0081",
+  "fecha": "2026-09-19",
+  "resumen": "Un vendedor pidió poder añadir facturas y pallets a un envío ya agendado, sin editar el resto de la orden.",
+  "texto_original": "Subject: Help request from Everto Prado (Salesperson) Aveces agendo un Delivery pero luego el cliente me solicita mas material. Para enviarlo con el mismo envio quiero que agregues la opcion de \"editar\" pero no voy a poder editar sino que voy a poder agregar mas facturas e incrementar # de Pallets",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "a08534b4"
+    ],
+    "prs": [
+      "160"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-339"
+    ],
+    "links": []
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-19 21:40"
+  ],
+  "creado": "2026-09-23T21:30:53-05:00",
+  "modificado": "2026-09-23T21:30:53-05:00"
+}

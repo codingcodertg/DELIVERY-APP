@@ -1,0 +1,39 @@
+{
+  "id": "T-0023",
+  "fecha": "2026-09-04",
+  "resumen": "En Asignaciones y Horario, los formularios pasan a ser botones que abren una ventana, sin salir de la pantalla, y traducidos.",
+  "texto_original": "en asignacionees y horario, el form para nueva asignacion y el from para add shifts y clock someone in or out, primero qeu todo no esta traducido sehundo tambien deben de ser botones porque agarran mucho espacio y cuando se aprete debe abrirse como una window pero n lllevar a otro lado",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "625036b9"
+    ],
+    "prs": [
+      "4"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-187"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:51-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-04 a las 23:34: «ent[Image #4] esto hazlo un boton»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:51-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-05 a las 20:11: «EL CREAR PROYECTO TAMBIEN QUE SEA UN BOTON»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-04 15:45",
+    "sesion:83590ac0 2026-09-04 23:34",
+    "sesion:83590ac0 2026-09-05 20:11"
+  ],
+  "creado": "2026-09-23T21:30:51-05:00",
+  "modificado": "2026-09-23T21:30:51-05:00"
+}

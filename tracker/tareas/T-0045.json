@@ -1,0 +1,33 @@
+{
+  "id": "T-0045",
+  "fecha": "2026-09-10",
+  "resumen": "Google Maps pasa a una cuenta de la empresa: instrucciones paso a paso para que su jefe la active, y las llaves nuevas en el proyecto.",
+  "texto_original": "quiero set lo de google maps en el account de mi jefe, dame paso por paso como el lo debe set up y que te debe copiar",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-15 a las 21:18: «ok vamos a ahcer lo de la nueva cuetna de google maps dame las intrcucionnes par ami jefe para activarl»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 10:18: «neavegador [llave-google-tapada] servidor [llave-google-tapada] LAS NUEVSA KEY DE GOOGLE MAPS PARA QUE YA NO USES LAS MIAS PORQUE SON DE MI EMAIL PERSONAL»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-10 20:03",
+    "sesion:83590ac0 2026-09-15 21:18",
+    "sesion:83590ac0 2026-09-16 10:18"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

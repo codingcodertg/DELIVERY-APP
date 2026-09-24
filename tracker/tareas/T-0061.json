@@ -1,0 +1,28 @@
+{
+  "id": "T-0061",
+  "fecha": "2026-09-16",
+  "resumen": "En el hub, cada persona ve y edita su información y su contraseña en un solo sitio, para todas las apps — y lo que se pueda hacer solo, que se haga solo.",
+  "texto_original": "quiero que en el hub[Image #29] aqui es donde todos losusaurio van a ver su informacion su login, sus password reset centraalizado de todas las apps",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-16 a las 15:24: «porque no hacen eso en automatico asegurate que se haga todo sin molestarme»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 15:17",
+    "sesion:83590ac0 2026-09-16 15:24"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

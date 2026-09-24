@@ -1,0 +1,22 @@
+{
+  "id": "T-0063",
+  "fecha": "2026-09-16",
+  "resumen": "El Time Tracker lo seguía sacando aunque la sesión no se hubiera perdido.",
+  "texto_original": "mira que el tarcker me sigue sacando, eso si no se perdio la sesion pero porqe me sigue sacandoi",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 20:09"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

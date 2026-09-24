@@ -236,6 +236,12 @@ function cmd_list() {
   if (flags.hasta && flags.hasta !== true) l = l.filter((t) => t.fecha <= flags.hasta);
   if (flags.padre && flags.padre !== true) l = l.filter((t) => t.padre === flags.padre);
   if (flags.sueltas) l = l.filter((t) => !t.padre);
+  // Las que no tienen NADA que pulsar. Se puede preguntar, en vez de que el hueco pase por
+  // despiste: en la reconstrucción hay tareas cuya decisión no se pudo atar automáticamente, y
+  // conviene que eso sea una lista y no una sospecha.
+  if (flags["sin-evidencia"]) {
+    l = l.filter((t) => !Object.values(t.evidencia ?? {}).some((v) => v?.length));
+  }
 
   if (salidaJSON) { console.log(JSON.stringify(l, null, 2)); return; }
   if (flags.contar) {
@@ -270,7 +276,8 @@ if (!orden || flags.help || orden === "help") {
     "  update  T-0001 [las mismas banderas; la evidencia y las notas SUMAN]",
     "  search  \"texto\" [--limite 5]        parecidos por palabras, sin salir de esta máquina",
     "  show    T-0001",
-    "  list    [--estado ...] [--hizo ...] [--desde ...] [--hasta ...] [--padre T-3] [--sueltas] [--contar]",
+    "  list    [--estado ...] [--hizo ...] [--desde ...] [--hasta ...] [--padre T-3] [--sueltas]",
+    "          [--sin-evidencia] [--contar]",
     "",
     "Todas aceptan --json.",
     "",

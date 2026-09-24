@@ -62,6 +62,10 @@
     {
       "fecha": "2026-09-23T21:14:35-05:00",
       "texto": "Lo repitió el 2026-09-19 a las 15:14: «ADD THE SWTICH USER ALSO IN THE DELIVRIES APP AS AS DUPLICATE»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-17 a las 19:55: «te pedi que si cambiaba usuario en el swtich si estoy en otro usuario ya swtich que isga la opcion para seguir swtiching»"
     }
   ],
   "fuentes": [
@@ -73,5 +77,5 @@
     "sesion:83590ac0 2026-09-19 15:14"
   ],
   "creado": "2026-09-23T21:11:38-05:00",
-  "modificado": "2026-09-23T21:14:35-05:00"
+  "modificado": "2026-09-23T21:33:02-05:00"
 }

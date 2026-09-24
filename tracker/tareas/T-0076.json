@@ -1,0 +1,49 @@
+{
+  "id": "T-0076",
+  "fecha": "2026-09-18",
+  "resumen": "Las órdenes sin factura se distinguen en la tabla, ventas puede escribir el número ahí mismo sin abrirlas, y hay una pestaña «Invoice pending» —también para office— junto a un filtro «Todas».",
+  "texto_original": "quiero que en el table de ordenes las ordenes que no tengan invoice number tengan un distinctivo y tu sabes que los de sales no pueden editar pero si les falta el invoicew solo eso pueden ingresar pero directo en la orden sin abrirla ahi en el table que puedan ingresar el invoice nuber y guardar y ojo seria un nuevo filtro al lado del search bar que diga invoice pending y este en anaranjano o rojo para que sepan",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "887b6b1e"
+    ],
+    "prs": [
+      "131"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-310"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-18 a las 12:24: «el filtro de invoices tambien falta el filtro de all en ordenes para que lo agregues»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-18 a las 12:30: «invoice pending must be visible for officee too»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-19 a las 11:11: «pero te pedi que viera invoice y no aparece y estoy en el 19 y aun veo ordenes chedule del dia anterior receurda que cada dia es aparte»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-19 a las 11:36: «enunassigned no me sale el invoice»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-18 09:22",
+    "sesion:83590ac0 2026-09-18 12:24",
+    "sesion:83590ac0 2026-09-18 12:30",
+    "sesion:83590ac0 2026-09-19 11:11",
+    "sesion:83590ac0 2026-09-19 11:36"
+  ],
+  "creado": "2026-09-23T21:30:53-05:00",
+  "modificado": "2026-09-23T21:30:53-05:00"
+}

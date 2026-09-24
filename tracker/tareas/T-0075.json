@@ -1,0 +1,42 @@
+{
+  "id": "T-0075",
+  "fecha": "2026-09-17",
+  "resumen": "Devolver la tarifa con descuento, con su fórmula para los envíos locales de más de 50 millas, y que el cálculo original vuelva a verse.",
+  "texto_original": "discounted fee was removed bring it back",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "2645d296",
+      "4245a6ad"
+    ],
+    "prs": [
+      "105",
+      "125"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-283",
+      "D-303"
+    ],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 21:02: «discuounted price for local deliveries over 50 mi will be =105+(0.80xmiles)»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:53-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-18 a las 15:04: «the original calculation of the discount is no ta pearing fix it and work on that»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-17 21:01",
+    "sesion:83590ac0 2026-09-17 21:02",
+    "sesion:83590ac0 2026-09-18 15:04"
+  ],
+  "creado": "2026-09-23T21:30:53-05:00",
+  "modificado": "2026-09-23T21:30:53-05:00"
+}
