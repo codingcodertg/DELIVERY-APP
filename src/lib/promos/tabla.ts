@@ -138,7 +138,7 @@ export interface ColumnaDePromos {
  * Las columnas que NO se pueden quitar. El código identifica la fila, y el estado es para lo que se
  * entra aquí: esconderlo dejaría una tabla que no sirve para decidir.
  *
- * La nota era fija también (D-369) y dejó de serlo en D-381: el dueño, viéndola en la tabla, «nota está
+ * La columna «Nota» ya no existe (D-387: el dueño, «quita eso de notas en general»). Antes fue fija (D-369) y dejó de serlo en D-381: el dueño, viéndola en la tabla, «nota está
  * showing en el promos table pero no aparece para quitar en el columns». Sigue saliendo por defecto;
  * quitarla solo la esconde, las notas escritas no se tocan.
  */
@@ -182,7 +182,6 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
   }
   out.push(
     { key: "estado", en: "Decision", es: "Decisión", ancho: 120 },
-    { key: "nota", en: "Note", es: "Nota", ancho: 200 },
   );
   return out;
 }
@@ -201,8 +200,19 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
  * Excel añade una, así que «todas» crece sola y nadie se entera hasta que no cabe.
  */
 export const COLUMNAS_DE_PROMOS_POR_DEFECTO: readonly string[] = [
-  "code", "description", "size", "qoh", "price", "estado", "nota",
+  // «supplier» entra al arranque en D-387: el dueño, «actívales a todos lo de proveedor».
+  "code", "description", "supplier", "size", "qoh", "price", "estado",
 ];
+
+/**
+ * El precio como se pinta: con su signo de dólar y dos decimales (D-387, el dueño: «a precio
+ * agrégale el $»). Sin precio, «—». Solo pinta: ordenar y filtrar siguen usando el número.
+ */
+export function textoDePrecio(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? `$${n.toFixed(2)}` : String(v);
+}
 
 /**
  * Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla),
@@ -433,7 +443,6 @@ export function valorDeColumna(fila: FilaDePromo, clave: string): ValorDeCelda {
     case "mo": return fila.mo;
     case "notes": return fila.notes;
     case "estado": return fila.estado;
-    case "nota": return fila.nota;
     default: return null;
   }
 }

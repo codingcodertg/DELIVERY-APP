@@ -12,7 +12,7 @@ import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumna
 import type { UserRole } from "@/lib/types";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
-  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, LARGO_DE_NOTA,
+  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, textoDePrecio,
   MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
@@ -68,7 +68,6 @@ export function TablaDeRonda({
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notaEditando, setNotaEditando] = useState<{ code: string; texto: string } | null>(null);
 
   const rondaCerrada = ronda.closed_at !== null;
   const sePuede = puedeDecidir({ esDecisor, grupo: grupoActivo, rondaCerrada });
@@ -251,10 +250,11 @@ export function TablaDeRonda({
     setSeleccion((s) => { const n = new Set(s); if (n.has(code)) n.delete(code); else n.add(code); return n; });
   const todasVisiblesSeleccionadas = orden.visibles.length > 0 && orden.visibles.every((f) => seleccion.has(f.code));
 
-  const guarda = async (codigos: string[], estado: EstadoDeDecision, nota?: string | null) => {
+  // Sin nota (D-387): la tabla ya no la enseña ni la edita, así que ninguna escritura la toca.
+  const guarda = async (codigos: string[], estado: EstadoDeDecision) => {
     if (!sePuede || !grupoActivo || codigos.length === 0) return;
     setOcupado(true); setError(null);
-    const filasAEscribir = cambioEnBloque({ roundId: ronda.id, grupo: grupoActivo, codigos, estado, nota });
+    const filasAEscribir = cambioEnBloque({ roundId: ronda.id, grupo: grupoActivo, codigos, estado });
     const { data, error: err } = await supabase
       .from("promo_decisions")
       .upsert(filasAEscribir, { onConflict: "round_id,code,group_code" })
@@ -269,7 +269,6 @@ export function TablaDeRonda({
       ));
     } else {
       setSeleccion(new Set());
-      setNotaEditando(null);
       router.refresh();
     }
     setOcupado(false);
@@ -287,7 +286,7 @@ export function TablaDeRonda({
   const textoDeCelda = (fila: (typeof filas)[number], clave: string) => {
     if (clave.startsWith("qoh_")) { const v = fila.porTienda[clave.slice(4)]; return v == null ? "—" : String(v); }
     if (clave === "estado") return t(ETIQUETA_ESTADO[fila.estado].en, ETIQUETA_ESTADO[fila.estado].es);
-    if (clave === "nota") return fila.nota ?? "—";
+    if (clave === "price") return textoDePrecio(fila.price);
     const v = (fila as unknown as Record<string, unknown>)[clave];
     return v === null || v === undefined || v === "" ? "—" : String(v);
   };
@@ -441,7 +440,6 @@ export function TablaDeRonda({
           <button className="btn btn-danger" disabled={ocupado} onClick={() => guarda([...seleccion], "rejected")}>✕ {t("Reject", "Rechazar")}</button>
           <button className="btn btn-ghost" disabled={ocupado} onClick={() => guarda([...seleccion], "pending")}>{t("Back to pending", "Dejar pendiente")}</button>
           <button className="btn btn-ghost" onClick={() => setSeleccion(new Set())}>{t("Clear", "Limpiar")}</button>
-          <span className="hint">{t("Notes are kept: a bulk change only changes the decision.", "Las notas se conservan: un cambio en bloque solo cambia la decisión.")}</span>
         </div>
       )}
 
@@ -509,35 +507,12 @@ export function TablaDeRonda({
                     className={c.key === "estado" ? "td-pastillas" : undefined}
                     style={{ textAlign: c.numero ? "right" : undefined }}
                   >
-                    {c.key === "nota" && sePuede ? (
-                      notaEditando?.code === f.code ? (
-                        <span style={{ display: "flex", gap: 4 }}>
-                          <input
-                            value={notaEditando.texto}
-                            maxLength={LARGO_DE_NOTA}
-                            autoFocus
-                            onChange={(e) => setNotaEditando({ code: f.code, texto: e.target.value })}
-                          />
-                          <button disabled={ocupado} onClick={() => guarda([f.code], f.estado, notaEditando.texto)}>✓</button>
-                          <button onClick={() => setNotaEditando(null)}>✕</button>
-                        </span>
-                      ) : (
-                        <button className="link" onClick={() => setNotaEditando({ code: f.code, texto: f.nota ?? "" })}>
-                          {f.nota ?? t("+ note", "+ nota")}
-                        </button>
-                      )
-                    ) : (
-                      celda(f, c.key)
-                    )}
+                    {celda(f, c.key)}
                   </td>
                 ))}
                 {sePuede && (
                   <td>
                     <span style={{ display: "flex", gap: 4 }}>
-                      {/* SIN nota: estos botones cambian el estado, no la nota. Antes reenviaban
-                          `f.nota`, que además de innecesario era una escritura perdida — la nota
-                          que esta pantalla leyó pisaría la que otra persona hubiera escrito
-                          mientras. La nota solo viaja desde el recuadro de editarla. */}
                       <button className="btn btn-sm btn-green" disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")} aria-label={t("Approve", "Aprobar")}>✓</button>
                       <button className="btn btn-sm btn-danger" disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")} aria-label={t("Reject", "Rechazar")}>✕</button>
                     </span>

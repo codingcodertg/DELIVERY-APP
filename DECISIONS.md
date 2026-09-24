@@ -25285,6 +25285,8 @@ vacías».
 
 ## D-369 · La tabla de una ronda: decidir por producto o en bloque, y cerrar la ronda
 
+> **⚠ Reemplazada en parte por D-387** (2026-09-24): la tabla ya no enseña ni edita la nota de cada decisión.
+
 > **⚠ Reemplazada en parte por D-381** (2026-09-24): la columna «Nota» deja de ser fija; se puede quitar en ⚙ Columnas. Código y decisión siguen fijos.
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Migración: la 141**, que la aplica el orquestador al fusionar.
@@ -26515,6 +26517,8 @@ promesa que el comentario hace.
 
 ## D-381 · La nota de promos se puede quitar de la tabla
 
+> **⚠ Reemplazada por D-387** (2026-09-24): la columna «Nota» ya no existe; no hay nada que quitar.
+
 **Fecha:** 2026-09-24 · **Versión:** promos 0.7.0 · **Sin migración.**
 
 **Qué pasaba.** En la tabla de una ronda, la columna «Nota» salía siempre y en ⚙ Columnas su casilla estaba
@@ -26969,3 +26973,24 @@ con costo, no decide. Admin: 60 de 60 con costo. Tras el ROLLBACK: la 143 sin re
 
 **Qué ve un vendedor:** lo que ya decidía la 140 — solo lo aprobado de su grupo, sin costo (las cinco columnas están revocadas
 a `authenticated` y la función le devuelve null).
+
+## D-387 · Promos: fuera la columna «Nota», el precio con $, y «Proveedor» al arranque
+
+**Fecha:** 2026-09-24 · **Versión:** promos 0.10.0 · **Sin migración.** **Datos:** una fila de `user_prefs` (la del dueño).
+
+**El dueño, literal:** *«quita eso de notas en general»* (con una captura de la columna «Nota» llena de «+ nota»), *«y a
+precio agrégale el $»*, *«y actívales a todo lo de proveedor»*.
+
+**Qué cambia.**
+1. **La columna «Nota» desaparece** del catálogo de columnas, para todos los roles. Con ella se van el recuadro de editarla
+   y el aviso «Las notas se conservan…». `guarda` ya no acepta nota, así que ninguna escritura la toca. **No se borra ningún
+   dato:** `promo_decisions.note` sigue en la base con lo que hubiera escrito. `cambioEnBloque` conserva su parámetro
+   `nota` (sin él, la clave `note` no viaja), por si algún día vuelve. Una lista de columnas guardada con `nota` la pierde
+   sin romper nada. La privada «Notes» del libro (Sheet6) es otra cosa, de solo admin (D-386), y se queda.
+2. **El precio se pinta con $ y dos decimales** (`textoDePrecio`): `1.19` → `$1.19`, sin precio «—». Solo se pinta; ordenar
+   y filtrar siguen con el número. El costo y el margen (solo admin) no cambian: el pedido fue el precio.
+3. **«Proveedor» entra al arranque** para todos. Quien ya tenía columnas guardadas no recibe un defecto nuevo (lo guardado
+   manda), así que se midió en producción: 4 filas `promos_columns`; 2 ya tenían `supplier`, 1 vacía (usa el defecto) y 1,
+   la del dueño, no. **A esa se le añade `supplier`** detrás de `description`, con respaldo antes.
+
+**Medido:** 3 mutantes (precio sin $, la pantalla sin `textoDePrecio`, proveedor fuera del arranque), caen los 3.
