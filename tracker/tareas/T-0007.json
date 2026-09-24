@@ -1,14 +1,28 @@
 {
   "id": "T-0007",
   "fecha": "2026-09-12",
-  "resumen": "Entrar como cualquier usuario desde el perfil de admin, sin contrasena, con la lista ordenada por tienda y pudiendo seguir cambiando una vez dentro.",
-  "texto_original": "Quiero que me hagas una opcion para que yo desde mi admin profile pueda [...] entrar directamente sin necesidad de poner password ni nada a cualquier usuario [...] para poder entrar en el profile de cualquier usuario para hacer administracion para chequear bugs",
+  "resumen": "Entrar como cualquier usuario desde el perfil de admin, sin contraseña, con la lista ordenada por tienda y pudiendo seguir cambiando una vez dentro.",
+  "texto_original": "Quiero que me hagas una opción para que yo desde mi admin profile pueda en el siempre en el hub hay una opción solo para administrador que yo pueda login no ni login yo pueda entrar directamente sin necesidad de poner password ni nada a cualquier usuario o sea es como change roles pero quiero verlo desde el usuario para poder hacerlo y que sea perfecto quiero poder hacer esto entonces quiero que me ayudes a hacer eso para yo poder entrar en, en el profile de cualquier usuario para hacer administración para chequear bugs para hacer lo que sea pero ocupo que me deje esa opción perfecta",
   "lo_hizo_claude": "Si",
   "estado": "En revisión – desplegado",
   "padre": null,
   "evidencia": {
-    "commits": [],
-    "prs": [],
+    "commits": [
+      "054e1373",
+      "2f2b96d1",
+      "4e1687d4",
+      "acbfda18",
+      "d54b5246",
+      "d968ea33"
+    ],
+    "prs": [
+      "67",
+      "69",
+      "70",
+      "71",
+      "76",
+      "128"
+    ],
     "ficheros": [],
     "decisiones": [
       "D-243",
@@ -22,12 +36,32 @@
   },
   "notas": [
     {
-      "fecha": "2026-09-24T02:11:38.584Z",
-      "texto": "CASO RARO: la pidio SEIS veces en ocho dias, en cuatro formas distintas — «donde esta la opcion», «lo que quiero es que lo habilites», «vuelvo LO MISMO», «te pedi que siga la opcion para seguir switching», «anadelo tambien en Entregas». Las seis son una sola tarea; las repeticiones estan aqui y en `fuentes` con su fecha."
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "CASO RARO: la pidió SEIS veces en ocho días, en cuatro formas distintas — «donde esta la opcion», «lo que quiero es que lo habilites», «vuelvo LO MISMO», «te pedi que siga la opcion para seguir switching», «anadelo tambien en Entregas». Las seis son una sola tarea; las repeticiones estan aquí y en `fuentes` con su fecha."
     },
     {
-      "fecha": "2026-09-24T02:11:38.584Z",
-      "texto": "Que lo pidiera seis veces es en si mismo el dato: cada vez que volvio, lo entregado no era lo que queria. Eso no se ve mirando solo la ultima."
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "Que lo pidiera seis veces es en sí mismo el dato: cada vez que volvió, lo entregado no era lo que quería. Eso no se ve mirando solo la última."
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-12 a las 20:10: «donde esta la opcion decambiar usuario desde el admin»"
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-12 a las 20:15: «lo que quiero es que lo habilites, y en el hub haya un boton que diga swtich usuario y ahi tenga la lista sorted por tienda»"
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-13 a las 15:19: «vuelvo LO MIAMO SW PODER SWITCH AL USUARIO EN QUE QUED OESO»"
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-17 a las 19:55: «the mobile view and the sitch user pass that to the hub becuase thats general for hte hub»"
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-19 a las 15:14: «ADD THE SWTICH USER ALSO IN THE DELIVRIES APP AS AS DUPLICATE»"
     }
   ],
   "fuentes": [
@@ -38,6 +72,6 @@
     "sesion:83590ac0 2026-09-17 19:55",
     "sesion:83590ac0 2026-09-19 15:14"
   ],
-  "creado": "2026-09-24T02:11:38.584Z",
-  "modificado": "2026-09-24T02:11:38.585Z"
+  "creado": "2026-09-23T21:11:38-05:00",
+  "modificado": "2026-09-23T21:14:35-05:00"
 }

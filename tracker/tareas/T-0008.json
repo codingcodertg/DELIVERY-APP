@@ -1,13 +1,15 @@
 {
   "id": "T-0008",
   "fecha": "2026-08-11",
-  "resumen": "Los choferes no pueden crear ordenes: las programa oficina y las despacha el gerente de logistica.",
+  "resumen": "Los choferes no pueden crear órdenes: las programa oficina y las despacha el gerente de logística.",
   "texto_original": "¿Pueden los choferes agregar entregas si nadie las programó? No, el gerente de logística se encargará de que todos hagan bien su trabajo.",
   "lo_hizo_claude": "Si",
   "estado": "En revisión – desplegado",
   "padre": null,
   "evidencia": {
-    "commits": [],
+    "commits": [
+      "30830fd5"
+    ],
     "prs": [],
     "ficheros": [],
     "decisiones": [
@@ -17,17 +19,17 @@
   },
   "notas": [
     {
-      "fecha": "2026-09-24T02:11:38.591Z",
-      "texto": "CASO RARO: de SEGUNDA MANO. De este dia no queda transcripcion de sesion en esta maquina — las sesiones empiezan el 2026-09-04 — asi que la frase literal sale de la cita que guardo `DECISIONS.md`, no del mensaje original."
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "CASO RARO: de SEGUNDA MANO. De este día no queda transcripción de sesión en esta máquina — las sesiones empiezan el 2026-09-04 — así que la frase literal sale de la cita que guardó `DECISIONS.md`, no del mensaje original."
     },
     {
-      "fecha": "2026-09-24T02:11:38.591Z",
-      "texto": "Se marca en `fuentes` a proposito: es una cita de una cita, y quien lea esto tiene que poder saberlo sin preguntar."
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "Se marca en `fuentes` a propósito: es una cita de una cita, y quien lea esto tiene que poder saberlo sin preguntar."
     }
   ],
   "fuentes": [
     "DECISIONS.md:D-001 (2026-08-11)"
   ],
-  "creado": "2026-09-24T02:11:38.591Z",
-  "modificado": "2026-09-24T02:11:38.591Z"
+  "creado": "2026-09-23T21:11:38-05:00",
+  "modificado": "2026-09-23T21:14:35-05:00"
 }

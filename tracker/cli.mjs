@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// El tracker por linea de ordenes: add, update, search, show, list.
+// El tracker por línea de órdenes: add, update, search, show, list.
 //
 //   node tracker/cli.mjs add --resumen "..." [--texto "..."] [--fecha 2026-09-23] ...
 //   node tracker/cli.mjs update T-0001 --estado "en revision - desplegado" --nota "..."
@@ -11,7 +11,7 @@
 
 import { readFileSync } from "node:fs";
 import {
-  ESTADOS, ESTADO_FINAL, HECHO, busca, diaLocal, guarda, lee, normalizaEstado, siguienteId, tapaSecretos,
+  ESTADOS, ESTADO_FINAL, HECHO, ahoraLocal, busca, diaLocal, guarda, lee, normalizaEstado, siguienteId, tapaSecretos,
   tareaNueva, todas,
 } from "./tarea.mjs";
 
@@ -67,7 +67,7 @@ function pintaDetalle(t) {
   l.push(t.resumen);
   if (t.texto_original) {
     l.push("");
-    l.push("--- lo que pidio, literal -------------------------------------------------");
+    l.push("--- lo que pidió, literal -------------------------------------------------");
     l.push(t.texto_original);
     l.push("---------------------------------------------------------------------------");
   }
@@ -77,7 +77,7 @@ function pintaDetalle(t) {
   for (const [k, v] of Object.entries(e)) if (v?.length) l.push(k + ": " + v.join(", "));
   const hijas = todas().filter((x) => x.padre === t.id);
   if (hijas.length) l.push("subtareas: " + hijas.map((x) => x.id).join(", "));
-  if (t.fuentes?.length) l.push("de donde salio: " + t.fuentes.join(", "));
+  if (t.fuentes?.length) l.push("de dónde salió: " + t.fuentes.join(", "));
   if (t.notas?.length) {
     l.push("");
     l.push("notas:");
@@ -106,7 +106,7 @@ function textoDe(f) {
 }
 
 function avisaDeLoTapado(tapados, donde) {
-  if (tapados.length) console.error("aviso: se tapo " + tapados.join(", ") + " en " + donde + " antes de escribirlo al repo");
+  if (tapados.length) console.error("aviso: se tapó " + tapados.join(", ") + " en " + donde + " antes de escribirlo al repo");
 }
 
 // ---------------------------------------------------------------- ordenes
@@ -116,7 +116,7 @@ function cmd_add() {
   const estado = flags.estado ? normalizaEstado(flags.estado) : undefined;
   if (flags.estado && !estado) muere("estado desconocido. Los que hay:\n  " + ESTADOS.join("\n  "));
   if (estado === ESTADO_FINAL && !flags["confirmado-por-el-dueno"]) {
-    muere("«" + ESTADO_FINAL + "» solo lo pone el dueno: anade --confirmado-por-el-dueno y una --nota que diga cuando lo dijo.");
+    muere("«" + ESTADO_FINAL + "» solo lo pone el dueño: añade --confirmado-por-el-dueno y una --nota que diga cuándo lo dijo.");
   }
   const hecho = flags.hizo && flags.hizo !== true ? flags.hizo : undefined;
   if (hecho && !HECHO.includes(hecho)) muere("--hizo tiene que ser uno de: " + HECHO.join(", "));
@@ -134,7 +134,7 @@ function cmd_add() {
     estado,
     padre: flags.padre && flags.padre !== true ? flags.padre : null,
     evidencia: evidenciaDe(flags),
-    notas: (flags.nota ?? []).map((n) => ({ fecha: new Date().toISOString(), texto: tapaSecretos(n).texto })),
+    notas: (flags.nota ?? []).map((n) => ({ fecha: ahoraLocal(), texto: tapaSecretos(n).texto })),
     fuentes: flags.fuente ?? [],
   });
   if (t.padre && !lee(t.padre)) muere("la tarea madre " + t.padre + " no existe");
@@ -155,11 +155,11 @@ function cmd_update() {
     if (!e) muere("estado desconocido. Los que hay:\n  " + ESTADOS.join("\n  "));
     // La regla del dueno, en el unico sitio por el que se puede escribir este estado.
     if (e === ESTADO_FINAL && !flags["confirmado-por-el-dueno"]) {
-      muere("«" + ESTADO_FINAL + "» solo lo pone el dueno.\n"
-        + "  Si lo confirmo, repite con --confirmado-por-el-dueno y una --nota que diga cuando y donde lo dijo.");
+      muere("«" + ESTADO_FINAL + "» solo lo pone el dueño.\n"
+        + "  Si lo confirmó, repite con --confirmado-por-el-dueno y una --nota que diga cuándo y dónde lo dijo.");
     }
     if (e === ESTADO_FINAL && !(flags.nota ?? []).length) {
-      muere("para cerrar una tarea hace falta ademas una --nota diciendo cuando y donde lo confirmo.");
+      muere("para cerrar una tarea hace falta además una --nota diciendo cuándo y dónde lo confirmó.");
     }
     t.estado = e; cambios++;
   }
@@ -185,7 +185,7 @@ function cmd_update() {
   for (const n of flags.nota ?? []) {
     const { texto, tapados } = tapaSecretos(n);
     avisaDeLoTapado(tapados, "la nota");
-    t.notas.push({ fecha: new Date().toISOString(), texto });
+    t.notas.push({ fecha: ahoraLocal(), texto });
     cambios++;
   }
   for (const f of flags.fuente ?? []) { t.fuentes = [...new Set([...(t.fuentes ?? []), f])]; cambios++; }
@@ -255,20 +255,20 @@ const ORDENES = { add: cmd_add, update: cmd_update, search: cmd_search, show: cm
 
 if (!orden || flags.help || orden === "help") {
   console.log([
-    "El tracker de lo que pide el dueno.",
+    "El tracker de lo que pide el dueño.",
     "",
     "  add     --resumen \"...\" [--texto \"...\"|--texto-de f] [--fecha YYYY-MM-DD] [--hizo Si|Parcial|No]",
     "          [--estado \"...\"] [--padre T-0003] [--commit x] [--pr 12] [--fichero p] [--decision D-1]",
     "          [--link u] [--fuente s] [--nota \"...\"]",
     "  update  T-0001 [las mismas banderas; la evidencia y las notas SUMAN]",
-    "  search  \"texto\" [--limite 5]        parecidos por palabras, sin salir de esta maquina",
+    "  search  \"texto\" [--limite 5]        parecidos por palabras, sin salir de esta máquina",
     "  show    T-0001",
     "  list    [--estado ...] [--hizo ...] [--desde ...] [--hasta ...] [--padre T-3] [--sueltas] [--contar]",
     "",
     "Todas aceptan --json.",
     "",
     "Estados: " + ESTADOS.join(" | "),
-    "«" + ESTADO_FINAL + "» solo lo pone el dueno: hace falta --confirmado-por-el-dueno y una --nota.",
+    "«" + ESTADO_FINAL + "» solo lo pone el dueño: hace falta --confirmado-por-el-dueno y una --nota.",
   ].join("\n"));
   process.exit(orden && orden !== "help" ? 2 : 0);
 }

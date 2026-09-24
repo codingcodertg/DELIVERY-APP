@@ -1,0 +1,41 @@
+{
+  "id": "T-0016",
+  "fecha": "2026-09-17",
+  "resumen": "La documentación viva de Notion se quedó parada: el espejo de decisiones llega a D-308 y el repo va por D-372.",
+  "texto_original": "",
+  "lo_hizo_claude": "No",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [
+      "scripts/notion/sync.mjs",
+      "CLAUDE.md"
+    ],
+    "decisiones": [],
+    "links": [
+      "https://app.notion.com/p/RDZ-Deliveries-Documentaci-n-3c069c11154f812a8684e0d5737b3dbf"
+    ]
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "MEDIDO HOY, no supuesto: la base de ADR en Notion termina en D-308, fechada el 2026-09-17, y la página índice se editó por última vez el 2026-08-18. En el repo hay 372 decisiones numeradas. Faltan 64."
+    },
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "No es una tarea que él pidiera con esas palabras: sale de la regla 1 de CLAUDE.md, que dice que cada cambio de código actualiza Notion en la misma sesión. Entra en el tracker porque es una acción pendiente que nadie estaba contando, que es justo lo que este sistema viene a evitar."
+    },
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "Lo que lo bloquea es concreto: sync.mjs necesita NOTION_TOKEN, que vive en las variables de Vercel y no en el repo. El asistente lo recibe del dueño cuando hace falta, y desde el 17 de septiembre no se ha pasado. Correrlo es un comando; conseguir el token es la parte que ocupa a alguien."
+    }
+  ],
+  "fuentes": [
+    "CLAUDE.md, regla 1 de la documentación viva",
+    "medido en Notion el 2026-09-23"
+  ],
+  "creado": "2026-09-23T21:21:29-05:00",
+  "modificado": "2026-09-23T21:21:29-05:00"
+}

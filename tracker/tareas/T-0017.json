@@ -1,0 +1,31 @@
+{
+  "id": "T-0017",
+  "fecha": "2026-09-19",
+  "resumen": "Poner el proyecto en marcha en la laptop: instalar Herdr y Claude Code, copiar lo que no viaja por git, y dejar el flujo de sesiones funcionando allí.",
+  "texto_original": "quiero continuar este poryeecot y esto en mi laptop como hago?",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:21:39-05:00",
+      "texto": "Doce mensajes seguidos entre las 22:40 y las 23:14 del 19 de septiembre, casi todos trazas pegadas: el «&&» que PowerShell 5.1 no acepta, Copy-Item sin encontrar .env.local ni .claude/settings.json, «herdr no se reconoce», «claude.exe no es una aplicación válida para esta plataforma», y una versión de Claude Code demasiado vieja para el modelo. Se juntan aquí en una sola tarea: es un trabajo, no doce peticiones."
+    },
+    {
+      "fecha": "2026-09-23T21:21:39-05:00",
+      "texto": "Que sea UNA tarea y no doce es la regla que acordamos para el soporte; que sea una tarea y no cero es porque dejó algo hecho: del 19 al 23 se trabajó en la laptop, y de allí volvieron 23 decisiones y 53 ficheros de memoria."
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-19 20:00"
+  ],
+  "creado": "2026-09-23T21:21:39-05:00",
+  "modificado": "2026-09-23T21:21:39-05:00"
+}

@@ -78,6 +78,31 @@ export function diaLocal(cuando = new Date()) {
 }
 
 /**
+ * El instante, **con el desfase de Texas escrito dentro**: `2026-09-23T21:11:38-05:00`.
+ *
+ * No es lo mismo que guardar en `Z`. Los dos apuntan al mismo momento, pero el JSON se lee a ojo
+ * —con `show`, en un diff, en una revision— y `2026-09-24T02:11:38Z` se lee como «el 24». Una nota
+ * escrita a las nueve de la noche aparecia fechada al dia siguiente para quien mirase el fichero,
+ * aunque la pagina la pintara bien. Con el desfase, el dia correcto esta delante sin convertir nada.
+ */
+export function ahoraLocal(cuando = new Date()) {
+  const d = typeof cuando === "string" ? new Date(cuando) : cuando;
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_NEGOCIO, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    timeZoneName: "longOffset",
+  }).formatToParts(d);
+  const p = (t) => partes.find((x) => x.type === t)?.value ?? "";
+  // `longOffset` da «GMT-05:00»; el desfase se queda tal cual, y «GMT» (sin numero) es UTC.
+  const bruto = p("timeZoneName").replace("GMT", "");
+  const desfase = bruto === "" ? "+00:00" : bruto;
+  // La hora 24 existe en este formato para la medianoche; ISO quiere 00.
+  const hora = p("hour") === "24" ? "00" : p("hour");
+  return p("year") + "-" + p("month") + "-" + p("day") + "T" + hora + ":" + p("minute") + ":" + p("second") + desfase;
+}
+
+/**
  * «Completado» no se pone solo.
  *
  * Lo pidio el dueno y es la regla que sostiene todo lo demas: una tarea la cierra EL, no quien la
@@ -95,7 +120,7 @@ export const ESTADO_INICIAL = ESTADOS[2];
 /** Una tarea nueva, con todos los campos puestos aunque esten vacios: un campo que falta se lee
  *  como «no lo se» y un campo vacio se lee como «no hay», y no son lo mismo. */
 export function tareaNueva(campos = {}) {
-  const ahora = new Date().toISOString();
+  const ahora = ahoraLocal();
   return {
     id: campos.id ?? null,
     fecha: campos.fecha ?? diaLocal(),
@@ -157,7 +182,7 @@ export function guarda(t) {
   mkdirSync(DIR_TAREAS, { recursive: true });
   const problemas = valida(t);
   if (problemas.length) throw new Error("tarea invalida (" + t.id + "): " + problemas.join("; "));
-  t.modificado = new Date().toISOString();
+  t.modificado = ahoraLocal();
   const destino = rutaDe(t.id);
   const tmp = destino + ".tmp";
   writeFileSync(tmp, JSON.stringify(t, null, 2) + "\n");

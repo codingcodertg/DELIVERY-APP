@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  ESTADOS, ESTADO_FINAL, ESTADO_INICIAL, busca, diaLocal, normalizaEstado, palabras, tapaSecretos,
+  ESTADOS, ESTADO_FINAL, ESTADO_INICIAL, ahoraLocal, busca, diaLocal, normalizaEstado, palabras, tapaSecretos,
   tareaNueva, valida,
 } from "./tarea.mjs";
 
@@ -63,7 +63,7 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
   };
 
   it("el CLI se niega sin la confirmación del dueño", () => {
-    expect(rechaza(["update", "T-0001", "--estado", "Completado"])).toContain("solo lo pone el dueno");
+    expect(rechaza(["update", "T-0001", "--estado", "Completado"])).toContain("solo lo pone el dueño");
   });
 
   it("y con la confirmación sigue exigiendo una nota que diga cuándo lo dijo", () => {
@@ -157,6 +157,26 @@ describe("la fecha es la del negocio, no la de UTC", () => {
 
   it("y una tarea nueva nace con esa fecha", () => {
     expect(tareaNueva().fecha).toBe(diaLocal());
+  });
+
+  it("las horas se guardan con el desfase de Texas dentro, no en Z", () => {
+    // `Z` apunta al mismo instante, pero el JSON se lee A OJO —con `show`, en un diff— y
+    // «2026-09-24T02:11:38Z» se lee como «el 24». Con el desfase delante no hay que convertir nada.
+    expect(ahoraLocal(new Date("2026-09-24T02:11:38Z"))).toBe("2026-09-23T21:11:38-05:00");
+    expect(ahoraLocal()).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+    // Y el dia que lleva dentro es el mismo que da `diaLocal`, que es lo que ordena la tabla.
+    expect(ahoraLocal().slice(0, 10)).toBe(diaLocal());
+  });
+
+  it("ninguna tarea guardada quedo con una hora en Z", () => {
+    // Las quince primeras se escribieron antes de este arreglo y hubo que migrarlas. Esto impide
+    // que vuelva a colarse una por otro camino.
+    const dir = join(process.cwd(), "tracker", "tareas");
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      const t = JSON.parse(readFileSync(join(dir, f), "utf8"));
+      const horas = [t.creado, t.modificado, ...(t.notas ?? []).map((n) => n.fecha)];
+      for (const h of horas) expect([f, h], f).toEqual([f, expect.stringMatching(/[+-]\d{2}:\d{2}$/)]);
+    }
   });
 });
 

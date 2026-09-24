@@ -9,7 +9,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ESTADOS, ESTADO_FINAL, HECHO, RAIZ, ZONA_NEGOCIO, busca, guarda, lee, normalizaEstado, tapaSecretos, todas,
+  ESTADOS, ESTADO_FINAL, HECHO, RAIZ, ZONA_NEGOCIO, ahoraLocal, busca, guarda, lee, normalizaEstado, tapaSecretos, todas,
 } from "./tarea.mjs";
 
 const PUERTO = Number(process.env.TRACKER_PUERTO) || 4319;
@@ -77,7 +77,7 @@ const servidor = createServer(async (req, res) => {
       }
       if (String(c.nota ?? "").trim()) {
         const { texto, tapados } = tapaSecretos(String(c.nota));
-        t.notas.push({ fecha: new Date().toISOString(), texto });
+        t.notas.push({ fecha: ahoraLocal(), texto });
         if (tapados.length) t.notas[t.notas.length - 1].texto += "  (se tapo: " + tapados.join(", ") + ")";
       }
       guarda(t);

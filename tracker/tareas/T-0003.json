@@ -7,8 +7,12 @@
   "estado": "En revisión – desplegado",
   "padre": null,
   "evidencia": {
-    "commits": [],
-    "prs": [],
+    "commits": [
+      "063a1623"
+    ],
+    "prs": [
+      "180"
+    ],
     "ficheros": [],
     "decisiones": [
       "D-356"
@@ -17,17 +21,17 @@
   },
   "notas": [
     {
-      "fecha": "2026-09-24T01:50:11.784Z",
-      "texto": "REVERTIDA el 2026-09-23 a peticion suya: ver T-0001. Se deja porque paso, y porque el tracker tiene que poder ensenar una peticion que luego se deshizo."
+      "fecha": "2026-09-23T20:50:11-05:00",
+      "texto": "REVERTIDA el 2026-09-23 a petición suya: ver T-0001. Se deja porque paso, y porque el tracker tiene que poder enseñar una petición que luego se deshizo."
     },
     {
-      "fecha": "2026-09-24T02:12:12.201Z",
-      "texto": "Ligada a T-0006 (la peticion original del 2026-09-11) y a T-0001 (la vuelta de hoy)."
+      "fecha": "2026-09-23T21:12:12-05:00",
+      "texto": "Ligada a T-0006 (la petición original del 2026-09-11) y a T-0001 (la vuelta de hoy)."
     }
   ],
   "fuentes": [
     "DECISIONS.md:D-356"
   ],
-  "creado": "2026-09-24T01:50:11.785Z",
-  "modificado": "2026-09-24T02:12:12.202Z"
+  "creado": "2026-09-23T20:50:11-05:00",
+  "modificado": "2026-09-23T21:14:35-05:00"
 }
