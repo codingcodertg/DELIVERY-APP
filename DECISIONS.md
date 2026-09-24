@@ -26355,6 +26355,14 @@ caso». Nadie decidió que no debiera verlas; se decidió que la tabla no las pi
 ejemplo, `P1 · D1 · P2 · P3 · D2 · D3 · P4 · D4`, todas en gris `rgb(107, 118, 134)` y cursiva, y el aviso con la frase
 nueva. Tras ordenar a mano uno de ellos, sus etiquetas salen en `rgb(21, 34, 56)` y sin cursiva, y su aviso desaparece.
 
+### Mutantes
+
+14, leídos por el nombre de la prueba que cae; **caen los 14**. El fallo del dueño: volver a UN estado de página para
+todos los ⚙ (M1), una caja que no es la suya (M2), rótulos de formulario (M3), una casilla que no marca (M4). La celda del
+ID: subrayada entera (M5), factura subrayada (M6) o sin aire (M7). El P/D provisional: siempre «—» (M8), a medias tratada
+como provisional (M9), sin marca de provisional (M10), numerada por fila y no por la lectura (M11 — lo caza la prueba de
+tiendas intercaladas), sin filas de recogida (M12), y la página sin usar la etiqueta (M13) o sin pasar la lectura (M14).
+
 ### Lo que no se hizo
 
 - **El mapa** sigue sin marcas P/D para un chofer sin ordenar (`if (!list.some((d) => d.route_seq != null)) continue;`).
