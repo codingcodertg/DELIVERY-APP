@@ -21,7 +21,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** La clave del navegador, por rol, igual que la de Órdenes (`claveDelNavegador` de user-prefs). */
 const claveDelNavegadorDePromos = (rol: string) => `rtg_promos_columns_${rol}`;
-/** Y la del ORDEN (D-NEXT), aparte, como en la fila de la base: `_orden` no es la lista de visibles. */
+/** Y la del ORDEN (D-385), aparte, como en la fila de la base: `_orden` no es la lista de visibles. */
 const claveDelOrdenDePromos = (rol: string) => `rtg_promos_orden_${rol}`;
 
 /**
@@ -94,7 +94,7 @@ export function TablaDeRonda({
   const [anchosDelRol, setAnchosDelRol] = useState<Record<string, number> | null>(null);
   const visiblesDeLaBase = useRef<ColumnasPorRol | null>(null);
   const anchosDeLaBase = useRef<AnchosPorRol>({});
-  // El ORDEN (D-NEXT), la tercera mitad de la misma fila (`_orden`, como Órdenes en D-332). Hasta
+  // El ORDEN (D-385), la tercera mitad de la misma fila (`_orden`, como Órdenes en D-332). Hasta
   // aquí el escritor mandaba `{}` en su sitio: no borraba nada porque nadie lo escribía. En cuanto
   // alguien ordena, mandar `{}` le borraría el orden al marcar una casilla — así que va lo leído.
   const [ordenDeColumnas, setOrdenDeColumnas] = useState<string[] | null>(null);
@@ -155,7 +155,7 @@ export function TablaDeRonda({
     return () => { vivo = false; };
   }, [userId, rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // El orden de TODAS las columnas para esta persona (D-NEXT), y las que se ven, ya con él. Las
+  // El orden de TODAS las columnas para esta persona (D-385), y las que se ven, ya con él. Las
   // dos salen de `lib/promos/tabla`: la pantalla no decide ni el orden ni quién es nueva.
   const ordenDelSelector = ordenDeColumnasDePromos(columnas, ordenDeColumnas);
   const visiblesEfectivas = columnasVisiblesDePromos(visibles, columnas, ordenDeColumnas);
@@ -168,7 +168,7 @@ export function TablaDeRonda({
    * lectura fallida le borra a alguien su elección sin decir nada; y en el modo demo, donde no hay
    * base, no habría forma de que sobreviviera a recargar.
    *
-   * **Marcar una casilla guarda también el orden** (D-NEXT), tal como está: el orden lista todas
+   * **Marcar una casilla guarda también el orden** (D-385), tal como está: el orden lista todas
    * las columnas que esa persona tenía delante, y así la tienda que traiga el libro del mes que
    * viene se reconoce como nueva y sale, en vez de quedarse escondida por una lista de septiembre.
    */
@@ -188,7 +188,7 @@ export function TablaDeRonda({
   const ponVisibles = (next: string[]) => ponColumnas(next, ordenDelSelector);
 
   /**
-   * Mover columnas (D-NEXT): flechas ↑ ↓ en ⚙ Columnas, **las de Órdenes** (D-332) — Órdenes no
+   * Mover columnas (D-385): flechas ↑ ↓ en ⚙ Columnas, **las de Órdenes** (D-332) — Órdenes no
    * arrastra la cabecera, y en la cabecera el arrastre ya es del asa del ancho. La visibilidad va
    * con él tal como está: reordenar no la pisa.
    */
@@ -232,7 +232,7 @@ export function TablaDeRonda({
     minimo: ANCHO_MINIMO,
   });
 
-  // El filtro de tienda (D-NEXT): elegida una, fuera lo que tenga menos de 10 en ELLA. Se aplica
+  // El filtro de tienda (D-385): elegida una, fuera lo que tenga menos de 10 en ELLA. Se aplica
   // ANTES que todo lo demás, así que los contadores de estado, el «N / M» y «seleccionar todo»
   // hablan de la lista ya filtrada — un chip que dijera «Pendiente · 60» sobre una tabla de 22
   // mentiría justo en el número que se mira para saber cuánto falta.
@@ -368,7 +368,7 @@ export function TablaDeRonda({
             {t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)} · {cuenta[e]}
           </button>
         ))}
-        {/* El filtro de tienda (D-NEXT). Hasta aquí NO existía: lo único con «tienda» era el menú de
+        {/* El filtro de tienda (D-385). Hasta aquí NO existía: lo único con «tienda» era el menú de
             cabecera de cada columna de existencias, que filtra por VALOR exacto —una casilla por
             cada número distinto— y así quitar «menos de 10» era desmarcar los números uno a uno. */}
         {clavesDeTienda.length > 0 && (

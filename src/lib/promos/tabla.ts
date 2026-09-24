@@ -237,12 +237,12 @@ export function columnasDePromosPorDefecto(clavesDeTienda: readonly string[], pu
  *     guardada antes de que una de ellas fuera fija dejaría una pantalla inútil sin decir por qué.
  *
  * Se devuelven **en el orden de esa persona** (`ordenDeColumnasDePromos`), que sin orden guardado es
- * el del catálogo. Hasta D-NEXT era siempre el del catálogo —«el orden de las columnas es del
+ * el del catálogo. Hasta D-385 era siempre el del catálogo —«el orden de las columnas es del
  * diseño»— y el dueño pidió moverlas: *«make it to where I can move the place of the columns»*. Lo
  * que NO cambia es que el orden de `guardadas` no cuenta: esa lista es un conjunto y sale en el
  * orden en que se pulsaron las casillas. El orden va aparte, como en Órdenes (D-332).
  *
- * **Y una tercera regla, que sale del orden (D-NEXT): una columna que esa persona NO CONOCÍA entra
+ * **Y una tercera regla, que sale del orden (D-385): una columna que esa persona NO CONOCÍA entra
  * con el defecto.** El orden guardado lista TODAS las columnas que había cuando guardó, visibles o
  * no; así que una que no está en él es nueva para esa persona —casi siempre, una tienda que trae el
  * libro de este mes— y no puede haberla escondido. Sin esto, quien guardó sus columnas en septiembre
@@ -272,7 +272,7 @@ export function columnasVisiblesDePromos(
 export const COLUMNA_PRIMERA = "code";
 
 /**
- * El ORDEN de todas las columnas para esta persona (D-NEXT), visibles o no — el de ⚙ Columnas.
+ * El ORDEN de todas las columnas para esta persona (D-385), visibles o no — el de ⚙ Columnas.
  *
  * Es el mismo mecanismo que Órdenes (`orden-de-columnas`, D-332): el orden se guarda **aparte** de
  * qué columnas se ven, en la mitad `_orden` de la misma fila de `user_prefs`, así que esconder una
@@ -324,7 +324,7 @@ export function mueveColumnaDePromos(
 }
 
 /**
- * El filtro de tienda (D-NEXT): elegida una tienda, **fuera los productos con menos de este número
+ * El filtro de tienda (D-385): elegida una tienda, **fuera los productos con menos de este número
  * de existencias en ELLA**. El dueño: *«if the item in existencia in the store has less than 10 then
  * that will not be included in the list»*. 10 justo se queda.
  */

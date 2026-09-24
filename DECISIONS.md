@@ -25476,7 +25476,7 @@ Y con eso entra una regla nueva, `columnasVisiblesDePromos`: lo guardado manda, 
 columna de tienda desaparece en cuanto el libro del mes que viene no la trae— y **las fijas entran siempre**, porque una lista
 guardada antes de que lo fueran dejaría una pantalla sin código, sin estado y sin nota, o sea inútil y sin decir por qué.
 
-> **Nota dentro de esta entrada (2026-09-24, D-NEXT):** esta regla devolvía las columnas **en el orden del catálogo**, a
+> **Nota dentro de esta entrada (2026-09-24, D-385):** esta regla devolvía las columnas **en el orden del catálogo**, a
 > propósito —el comentario del código decía «el orden de las columnas es del diseño, no de en qué orden alguien pulsó las
 > casillas»—. **Eso es lo que se reemplaza**: el dueño pidió *«make it to where I can move the place of the columns in
 > promos»*, y ahora cada persona las ordena con las flechas de ⚙ Columnas, como en Órdenes (D-332). Las otras dos reglas
@@ -26825,7 +26825,7 @@ carga (van por fecha del día, D-380), ni los resúmenes y cuentas por cliente q
   (`ensureDeliveriesSince(null)`), como ya hacía la de factura pendiente. No hacía falta para las atrasadas —las
   abiertas se cargan siempre, tengan la fecha que tengan— pero no se separó; no se midió el peso.
 
-## D-NEXT · Promos: las columnas se mueven, y el filtro de tienda deja fuera lo que tiene menos de 10
+## D-385 · Promos: las columnas se mueven, y el filtro de tienda deja fuera lo que tiene menos de 10
 
 **Fecha:** 2026-09-24 · **Versión:** la pone el orquestador (promos) · **Sin migración.**
 **De dónde sale:** dos frases del dueño sobre la misma tabla, literales: *«Can you make it to where I can move the place of

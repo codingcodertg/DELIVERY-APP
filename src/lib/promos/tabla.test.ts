@@ -144,7 +144,7 @@ describe("qué columnas se ofrecen", () => {
     // Y quien la marcó, la ve.
     expect(columnasVisiblesDePromos(["price", "nota"], cols)).toEqual(["code", "price", "estado", "nota"]);
     // Y el orden de la lista de visibles NO cuenta: sale en el que se marcaron. Sin orden guardado,
-    // el del catálogo (el orden va aparte desde D-NEXT, como en Órdenes).
+    // el del catálogo (el orden va aparte desde D-385, como en Órdenes).
     expect(columnasVisiblesDePromos(["nota", "price", "code", "estado", "description"], cols))
       .toEqual(["code", "description", "price", "estado", "nota"]);
     // Sin nada guardado, el defecto.
@@ -498,7 +498,7 @@ describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir p
     // borraría las columnas. Se comprueba contando: UNA sola llamada, dentro de `escribeLaFila`.
     expect(tabla.match(/guardaColumnas\(/g) ?? []).toHaveLength(1);
     expect(tabla).toContain("visiblesDeLaBase.current ?? {},");
-    // Y desde D-NEXT las TRES: el orden va con lo leído, no con un `{}` que lo borraría.
+    // Y desde D-385 las TRES: el orden va con lo leído, no con un `{}` que lo borraría.
     expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS, ordenDeLaBase.current, anchosDeLaBase.current,");
     // Y que los dos caminos pasen por él.
     expect(tabla.match(/void escribeLaFila\(\);/g) ?? []).toHaveLength(3);
@@ -587,7 +587,7 @@ describe("lo que se escribe al decidir", () => {
 });
 
 // ===========================================================================
-describe("el ORDEN de las columnas es de cada persona (D-NEXT)", () => {
+describe("el ORDEN de las columnas es de cada persona (D-385)", () => {
   // El dueño: «Can you make it to where I can move the place of the columns in promos». Mismo
   // mecanismo que Órdenes (D-332): el orden va aparte de qué se ve, en `_orden` de la misma fila.
   const cols = columnasDePromos(["AA1", "BB2"], false);
@@ -669,7 +669,7 @@ describe("el ORDEN de las columnas es de cada persona (D-NEXT)", () => {
   });
 });
 
-describe("la pantalla ordena con la función, y guarda el orden sin pisar nada (D-NEXT)", () => {
+describe("la pantalla ordena con la función, y guarda el orden sin pisar nada (D-385)", () => {
   const tabla = sinComentarios(readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8"));
 
   it("lo que se pinta sale de `columnasVisiblesDePromos` CON el orden de la persona", () => {
@@ -710,7 +710,7 @@ describe("la pantalla ordena con la función, y guarda el orden sin pisar nada (
 });
 
 // ===========================================================================
-describe("el filtro de tienda: fuera lo que tiene menos de 10 en ELLA (D-NEXT)", () => {
+describe("el filtro de tienda: fuera lo que tiene menos de 10 en ELLA (D-385)", () => {
   // El dueño: «make the store filter work meaning if the item in existencia in the store has less
   // than 10 then that will not be included in the list».
   const conTienda = (code: string, qoh_by_store: Record<string, number | null>) => producto({ code, qoh_by_store });
