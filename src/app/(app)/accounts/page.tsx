@@ -71,7 +71,7 @@ export default function AccountsPage() {
         total: orders.length,
         active: orders.filter((d) => !CLOSED.includes(d.stage)).length,
         delivered: orders.filter((d) => d.stage === "delivered").length,
-        overdue: orders.filter(isOverdue).length,
+        overdue: orders.filter((d) => isOverdue(d)).length,
         // A la décima, no a entero (D-362): `Math.round` enseñaba «4» donde había 4.43.
         pallets: sumaPallets(orders),
         fees: sumaDinero(orders.filter((d) => d.stage !== "canceled"), (d) => d.delivery_fee),

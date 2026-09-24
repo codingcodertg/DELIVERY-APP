@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { coincideConLaBusqueda, leTocaPorRol, ordenesVisibles, pasaLaVentana, type ContextoDeLista } from "./ordenes-visibles";
 import { documentoPendiente } from "./documento-pendiente";
 import { mkDelivery } from "./__fixtures";
-import { shiftDateISO, todayISO } from "./utils";
+import { seesAllHistory, shiftDateISO, todayISO } from "./utils";
 import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
@@ -39,6 +39,10 @@ const ctx = (over: Partial<ContextoDeLista> = {}): ContextoDeLista => ({
   sueloDeVentas: shiftDateISO(HOY, -30),
   reglas: REGLAS,
   tiendas: TIENDAS,
+  // Vacío por defecto: estas pruebas son de oficina, y con la lista vacía el corte de almacén no
+  // recorta nada (`reparteLaColaDeAlmacen` no reparte sin saber cuál es «mi tienda»). Quien quiera
+  // medir ese corte lo pasa explícito, que es lo que hace el bloque de almacén de más abajo.
+  tiendasDeAlmacen: [],
   ...over,
 });
 
@@ -190,6 +194,60 @@ describe("las piezas por separado", () => {
     const vieja = pendienteVieja({ account: "ACME" });
     const { conPendientes } = ordenesVisibles([vieja], ctx({ busqueda: "otra cosa" }));
     expect(ids(conPendientes)).toEqual([]);
+  });
+});
+
+describe("almacén: solo sus tiendas, también en el tablero (D-374)", () => {
+  // El dueño: *«warehouse should only see what they are in charge of»*. El corte ya existía, pero
+  // **solo en su propia cola** (`warehouse/page.tsx`): en Órdenes veía las de todas las tiendas. Es
+  // el mismo corte, en la otra pantalla, con la misma función —`esDeMisTiendas`— y no una copia.
+  const almacen = (over: Partial<ContextoDeLista> = {}) => ctx({
+    me: { id: "u-almacen", role: "warehouse", store: "Norte" },
+    tiendasDeAlmacen: ["norte"],
+    ...over,
+  });
+  const aprobada = (over: Partial<Delivery> = {}) => mkDelivery({
+    id: "x", stage: "approved", order_type: "SinDocumento", delivery_date: HOY, ...over,
+  });
+
+  it("una aprobada de su tienda sí, y la misma de otra tienda NO", () => {
+    expect(leTocaPorRol(aprobada({ id: "mia", store: "Norte" }), almacen())).toBe(true);
+    expect(leTocaPorRol(aprobada({ id: "ajena", store: "Sur" }), almacen())).toBe(false);
+  });
+
+  it("y la Intertienda que ENTRA a su tienda también: es la que luego sale en Recepción", () => {
+    // Si este corte la dejara fuera, la vista de Recepción no tendría de dónde sacarla: reparte lo
+    // que ya es visible, no abre nada.
+    const entra = aprobada({ id: "entra", order_type: "Entre", store: "Sur", pickup_name: "Sur", delivery_name: "Norte" });
+    expect(leTocaPorRol(entra, almacen())).toBe(true);
+  });
+
+  it("sin tienda asignada NO se acota: se ve todo, en vez de la pantalla en blanco", () => {
+    // Cero órdenes se lee como una app rota; todas se lee como una configuración que falta, y eso
+    // se arregla en Usuarios. Es la misma elección que hace `reparteLaColaDeAlmacen`.
+    expect(leTocaPorRol(aprobada({ store: "Sur" }), almacen({ me: { id: "u", role: "warehouse", store: null }, tiendasDeAlmacen: [] }))).toBe(true);
+  });
+
+  it("el corte por etapa de siempre sigue: un borrador de su propia tienda tampoco", () => {
+    expect(leTocaPorRol(aprobada({ stage: "draft", store: "Norte" }), almacen())).toBe(false);
+  });
+
+  it("y una ENTREGADA vieja ya no le sale, porque vuelve a entrar en la ventana", () => {
+    // Esto es lo que revierte D-356 desde la otra punta. Mientras almacén trajo `history` de
+    // fábrica, `veTodoElHistorial` era `true` en esta pantalla y la orden entregada de hace 50 días
+    // salía igual. La cadena entera: `ROLE_CAPS` → `seesAllHistory` → `veTodoElHistorial` (que el
+    // tablero calcula en `page.tsx:47`) → esta función.
+    //
+    // Se afirma el primer eslabón aquí mismo: si esta prueba solo pusiera `veTodoElHistorial: false`
+    // a mano, mediría un booleano que me he inventado yo, y seguiría verde aunque `ROLE_CAPS` le
+    // devolviera el historial a almacén mañana.
+    expect(seesAllHistory("warehouse")).toBe(false);
+    const vieja = aprobada({ id: "agosto", stage: "delivered", store: "Norte", delivery_date: HACE_CINCUENTA });
+    const { visibles } = ordenesVisibles([vieja], almacen({ veTodoElHistorial: seesAllHistory("warehouse") }));
+    expect(ids(visibles)).toEqual([]);
+    // Y con la casilla marcada a esa persona, vuelve: la capacidad suelta no se quitó.
+    const { visibles: conLlave } = ordenesVisibles([vieja], almacen({ veTodoElHistorial: seesAllHistory("warehouse", ["history"]) }));
+    expect(ids(conLlave)).toEqual(["agosto"]);
   });
 });
 

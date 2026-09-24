@@ -56,7 +56,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     expect(ROLE_DEFAULT_COLUMNS.warehouse!.length).toBeGreaterThan(ventas);
   });
 
-  it("las siete tablas redimensionables piden el marco, y todas ganan lo mismo", () => {
+  it("las seis tablas redimensionables piden el marco, y todas ganan lo mismo", () => {
     const tsx: string[] = [];
     const recorre = (d: string) => {
       for (const f of readdirSync(d)) {
@@ -75,6 +75,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     // el mismo marco que las otras seis en vez de uno parecido. El número se mueve con su motivo;
     // aflojarlo a un «al menos» dejaría de avisar del caso que esta prueba existe para ver, una
     // tabla redimensionable sin su marco.
-    expect(marcos).toBe(7);
+    // **Seis** otra vez desde D-376: la pestaña «Programadas» del Gestor de Rutas se quitó, y su tabla con ella.
+    expect(marcos).toBe(6);
   });
 });

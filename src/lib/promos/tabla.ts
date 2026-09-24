@@ -158,7 +158,11 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
     { key: "qoh", en: "QOH", es: "Existencias", ancho: 80, numero: true },
   ];
   for (const t of clavesDeTienda) {
-    out.push({ key: `qoh_${t}`, en: `QOH ${t}`, es: `Existencias ${t}`, ancho: 76, numero: true, tienda: t });
+    // 64 y no 76 (D-375): desde que salen por defecto son seis columnas más en la pantalla de
+    // todo el mundo, y lo que llevan son números de tres o cuatro cifras. Lo que se estrecha es el
+    // hueco, no el dato. La cabecera corta con puntos, como el resto de la tabla, y el nombre
+    // entero sigue en ⚙ Columnas y en el menú de la propia cabecera.
+    out.push({ key: `qoh_${t}`, en: `QOH ${t}`, es: `Existencias ${t}`, ancho: 64, numero: true, tienda: t });
   }
   out.push({ key: "price", en: "Price", es: "Precio", ancho: 84, numero: true });
   if (puedeVerPrivadas) {
@@ -194,10 +198,26 @@ export const COLUMNAS_DE_PROMOS_POR_DEFECTO: readonly string[] = [
   "code", "description", "size", "qoh", "price", "estado", "nota",
 ];
 
-/** Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla). */
+/**
+ * Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla),
+ * **más las seis de existencias por tienda** (D-375).
+ *
+ * **Esto cambia en parte la decisión de arriba, y el dueño lo pidió sabiendo cuál era**: *«pon el
+ * inventario de todas las tiendas para vista de todos»*. La razón de que estuvieran apagadas sigue
+ * siendo verdad —la tabla se ensancha— y lo que cambia es el juicio: saber qué tienda tiene el
+ * material es parte de decidir, no un extra. Lo que **no** vuelve es «todas»: las cinco privadas
+ * siguen fuera del arranque y siguen siendo de quien puede verlas.
+ *
+ * Lo que compensa el ancho no es esconder columnas: es que la página **nunca** se desplace de lado
+ * —se desplaza la caja de la tabla, como en Órdenes— y que estas seis sean estrechas (64 px).
+ *
+ * Se devuelven en el orden del catálogo, que es donde las de tienda ya viven entre `qoh` y `price`.
+ */
 export function columnasDePromosPorDefecto(clavesDeTienda: readonly string[], puedeVerPrivadas: boolean): string[] {
-  const hay = new Set(columnasDePromos(clavesDeTienda, puedeVerPrivadas).map((c) => c.key));
-  return COLUMNAS_DE_PROMOS_POR_DEFECTO.filter((k) => hay.has(k));
+  const catalogo = columnasDePromos(clavesDeTienda, puedeVerPrivadas);
+  const arranque = new Set<string>(COLUMNAS_DE_PROMOS_POR_DEFECTO);
+  for (const c of catalogo) if (c.tienda) arranque.add(c.key);
+  return catalogo.filter((c) => arranque.has(c.key)).map((c) => c.key);
 }
 
 /**
@@ -218,7 +238,12 @@ export function columnasVisiblesDePromos(
   guardadas: readonly string[] | null | undefined,
   disponibles: readonly ColumnaDePromos[],
 ): string[] {
-  const elegidas = new Set(guardadas ?? COLUMNAS_DE_PROMOS_POR_DEFECTO);
+  // Sin nada guardado, EL MISMO defecto que calcula `columnasDePromosPorDefecto` —que desde D-375
+  // incluye las de tienda— y no la lista estática. Escrito así porque ya divergieron una vez: al
+  // añadir las de tienda al defecto, esta función seguía devolviendo el defecto viejo, y quien no
+  // hubiera guardado columnas nunca las habría visto. Un defecto en dos sitios acaba siendo dos.
+  const porDefecto = disponibles.filter((c) => COLUMNAS_DE_PROMOS_POR_DEFECTO.includes(c.key) || c.tienda).map((c) => c.key);
+  const elegidas = new Set(guardadas ?? porDefecto);
   for (const fija of COLUMNAS_FIJAS) elegidas.add(fija);
   return disponibles.filter((c) => elegidas.has(c.key)).map((c) => c.key);
 }

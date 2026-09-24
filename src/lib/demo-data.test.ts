@@ -87,7 +87,10 @@ describe("dashboard KPIs over the full dataset", () => {
 
   it("flags the overdue orders", () => {
     expect(k.overdue).toBeGreaterThan(0);
-    expect(k.overdue).toBe(orders.filter(isOverdue).length);
+    // `filter((d) => isOverdue(d))` y no `filter(isOverdue)`: desde que `isOverdue` acepta un
+    // `today` opcional, pasarla pelada le mete el ÍNDICE del array como fecha. Lo caza `tsc`, que
+    // es por lo que se ve aquí en vez de en producción.
+    expect(k.overdue).toBe(orders.filter((d) => isOverdue(d)).length);
   });
 });
 

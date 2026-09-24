@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { esDecisorDePromos, grupoDeLaTienda, type DecisionDeGrupo, type ProductoDeCatalogo } from "@/lib/promos/tabla";
+import { tiendasSinGrupoDePromos } from "@/lib/promos/entrada";
 import type { NamedLocation } from "@/lib/types";
 import { RONDAS_DEMO } from "@/lib/promos/demo";
 import { RondaDemo } from "./RondaDemo";
@@ -33,7 +33,6 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
     const demo = RONDAS_DEMO.find((r) => r.id === id) ?? RONDAS_DEMO[0];
     return (
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
-        <p style={{ margin: "0 0 8px" }}><Link href="/promos">← RTG PROMOS</Link></p>
         <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }} />
       </div>
     );
@@ -56,6 +55,14 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
   const { data: ajustes } = await supabase.from("settings").select("stores").eq("id", 1).maybeSingle();
   const tiendas = (ajustes?.stores ?? []) as NamedLocation[];
 
+  // Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). Son dos
+  // campos y como mucho cincuenta filas: cuesta menos que la página que se ahorra.
+  const { data: todasLasRondas } = await supabase
+    .from("promo_rounds")
+    .select("id, label, uploaded_at, closed_at")
+    .order("uploaded_at", { ascending: false })
+    .limit(50);
+
   const { data: productos } = await supabase
     .from("promo_catalog")
     .select("round_id, code, supplier, size, description, qoh, qoh_by_store, price, source_sheet, row_no, private")
@@ -77,7 +84,6 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
-      <p style={{ margin: "0 0 8px" }}><Link href="/promos">← RTG PROMOS</Link></p>
       <TablaDeRonda
         ronda={{
           id: ronda.id as string,
@@ -92,6 +98,8 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
         esDecisor={esDecisorDePromos({ rol, grupo })}
         esAdmin={rol === "admin"}
         gruposDelLibro={gruposDelLibro}
+        rondas={(todasLasRondas ?? []) as { id: string; label: string; uploaded_at: string; closed_at: string | null }[]}
+        tiendasSinGrupo={tiendasSinGrupoDePromos(tiendas)}
       />
     </div>
   );

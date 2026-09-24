@@ -3,6 +3,7 @@ import { withinRetention } from "@/lib/utils";
 import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
+import { esDeMisTiendas } from "@/lib/almacen";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 
 /**
@@ -23,6 +24,11 @@ import { facturasDeLaOrden } from "@/lib/agregar-material";
  * Los cortes por **rol** no se relajan: ventas sigue viendo lo suyo (`ventasVeLaOrden`) y nunca una
  * anulada, y almacén sigue sin ver lo anterior a la aprobación. Una factura pendiente no es una
  * llave para ver órdenes de otro.
+ *
+ * **Y almacén, además, solo sus tiendas.** El dueño: *«warehouse should only see what they are in
+ * charge of»*. Hasta hoy eso lo hacía **solo su propia cola** (`warehouse/page.tsx`), así que en el
+ * tablero de Órdenes veía las de todas las tiendas. Es el mismo corte, en la otra pantalla, con la
+ * misma función — no una copia.
  */
 
 export type ContextoDeLista = {
@@ -37,6 +43,8 @@ export type ContextoDeLista = {
   sueloDeVentas: string;
   reglas: OrderTypeRules;
   tiendas: NamedLocation[];
+  /** Las tiendas de almacén de quien mira (`tiendasDeAlmacen`), normalizadas. Vacío = sin acotar. */
+  tiendasDeAlmacen: string[];
 };
 
 /** ¿Puede esta persona ver esta orden, por su rol? No mira fechas. */
@@ -47,17 +55,18 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
   // este corte, y era indiferente porque solo lo tenían admin y logística, que no tienen corte.
   if (teaching) return true;
   if (me?.role === "sales") {
-    if (!ventasVeLaOrden({
-      miId: me.id,
-      miTienda: me.store,
-      orden: d,
-      regla: orderTypeRule(d.order_type, ctx.reglas),
-      tiendas: ctx.tiendas,
-    })) return false;
+    // Desde el cambio de hoy, esto ya no mira la tienda: ventas ve LO SUYO en cualquier tienda.
+    if (!ventasVeLaOrden({ miId: me.id, orden: d })) return false;
     // Una anulada desaparece para ventas, y eso no lo abre ninguna pestaña.
     if (d.stage === "canceled") return false;
   }
-  if (me?.role === "warehouse" && !["approved", "fulfilling", "ready", "picked_up", "delivered"].includes(d.stage)) return false;
+  if (me?.role === "warehouse") {
+    if (!["approved", "fulfilling", "ready", "picked_up", "delivered"].includes(d.stage)) return false;
+    // Sin tienda asignada no se acota: quien no tiene tienda vería CERO órdenes, y eso se lee como
+    // una app rota en vez de como una configuración que falta.
+    if (ctx.tiendasDeAlmacen.length > 0
+      && !esDeMisTiendas(d, orderTypeRule(d.order_type, ctx.reglas), ctx.tiendasDeAlmacen)) return false;
+  }
   return true;
 }
 

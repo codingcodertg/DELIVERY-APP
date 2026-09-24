@@ -86,26 +86,48 @@ describe("qué columnas se ofrecen", () => {
     expect([...COLUMNAS_FIJAS]).toEqual(["code", "estado", "nota"]);
   });
 
-  it("por defecto se ven POCAS: ni las de tienda ni las privadas", () => {
-    // El dueño vio la primera versión, que las ofrecía todas —diecisiete con seis tiendas— y dijo
-    // «it's horrible, first it doesn't fit in 1 screen». Una tabla que nace fuera de la pantalla
-    // obliga a desplazarse a lo ancho antes de leer nada.
+  it("por defecto entran las SEIS de tienda, y las privadas siguen fuera", () => {
+    // ESTO CAMBIA EN PARTE LA DECISION DE ANTES, y conviene que se lea entera. La primera version
+    // ofrecia las diecisiete y el dueno dijo «it's horrible, first it doesn't fit in 1 screen», asi
+    // que el arranque se dejo en siete. El 2026-09-23 pidio lo contrario para una parte: «pon el
+    // inventario de todas las tiendas para vista de todos». Lo que cambia es el juicio sobre las de
+    // tienda —saber quien tiene el material es parte de decidir—, no la razon de que estorben.
+    // Las cinco PRIVADAS no vuelven al arranque: eso sigue como estaba.
     const porDefecto = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
-    expect(porDefecto).toEqual(["code", "description", "size", "qoh", "price", "estado", "nota"]);
-    expect(porDefecto.some((k) => k.startsWith("qoh_"))).toBe(false);
+    expect(porDefecto).toEqual(["code", "description", "size", "qoh", "qoh_AA1", "qoh_BB2", "qoh_CC3", "price", "estado", "nota"]);
     for (const privada of ["cost", "diff", "demand", "mo", "notes"]) expect(porDefecto, privada).not.toContain(privada);
-    // Y siguen existiendo, que es lo que las hace una elección y no una pérdida.
+    // Lo que queda fuera del arranque, dicho por nombre y no por una resta: las cinco privadas y
+    // «Proveedor». Siguen existiendo en ⚙ Columnas, que es lo que las hace una eleccion.
     const todas = columnasDePromos(["AA1", "BB2", "CC3"], true).map((c) => c.key);
-    expect(todas.length).toBeGreaterThan(porDefecto.length + 5);
+    expect(todas.filter((k) => !porDefecto.includes(k))).toEqual(["supplier", "cost", "diff", "demand", "mo", "notes"]);
   });
 
-  it("y caben: las de partida suman menos de 1100 px, que es lo que hay a 1280", () => {
-    // La cuenta que decide si hay desplazamiento lateral de página. 1280 menos el marco de la
-    // página deja ~1180; se deja margen para la casilla y la columna de decidir.
-    const cols = columnasDePromos(["AA1", "BB2", "CC3"], true);
-    const porDefecto = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
-    const ancho = porDefecto.reduce((n, k) => n + cols.find((c) => c.key === k)!.ancho, 0);
-    expect(ancho).toBeLessThan(1100);
+  it("un vendedor las ve igual: el inventario por tienda no es privado", () => {
+    // «para vista de todos», literal. Lo unico que separa a un vendedor de un gerente aqui son las
+    // cinco privadas, que decide la BASE (`private` llego nulo o no), no esta funcion.
+    const deVentas = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], false);
+    const deGerente = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
+    expect(deVentas).toEqual(deGerente);
+    expect(deVentas.filter((k) => k.startsWith("qoh_"))).toEqual(["qoh_AA1", "qoh_BB2", "qoh_CC3"]);
+  });
+
+  it("y ya NO caben en 1280: la caja se desplaza, la pagina no", () => {
+    // El numero se mueve y hay que decirlo: con seis tiendas el arranque pasa de 974 px a 1358.
+    // La regla no es «que quepa», que con un libro de diez tiendas seria imposible: es la de
+    // Ordenes —la PAGINA nunca se desplaza de lado y la caja de la tabla si—, y eso se mide en el
+    // navegador, no aqui. Lo que esta prueba sostiene es lo que si es una cuenta: que estas seis
+    // sean las columnas ESTRECHAS de la tabla, y que apagarlas devuelva el arranque de antes.
+    const seis = ["AA1", "BB2", "CC3", "DD4", "EE5", "FF6"];
+    const cols = columnasDePromos(seis, true);
+    const ancho = (claves: readonly string[]) => claves.reduce((n, k) => n + cols.find((c) => c.key === k)!.ancho, 0);
+    const porDefecto = columnasDePromosPorDefecto(seis, true);
+    const deTienda = porDefecto.filter((k) => k.startsWith("qoh_"));
+    expect(deTienda.length).toBe(6);
+    for (const k of deTienda) expect(cols.find((c) => c.key === k)!.ancho, k).toBeLessThanOrEqual(64);
+    expect(ancho(porDefecto)).toBe(1358);
+    // Apagarlas en ⚙ Columnas deja exactamente lo de antes, que cabia a 1280.
+    expect(ancho(porDefecto.filter((k) => !k.startsWith("qoh_")))).toBe(974);
+    expect(1358 - 974).toBe(384);                       // lo que se ensancha: 384 px, no «unos 450»
   });
 
   it("lo guardado manda, pero las fijas entran siempre y lo que ya no existe se cae", () => {

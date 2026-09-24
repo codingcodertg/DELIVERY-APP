@@ -13136,6 +13136,11 @@ alguien la mide.
 > **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
 > historial entero; la tienda la sigue cortando la 131.
 
+> **⚠ Y esa sustitución se deshizo el 2026-09-23, por D-374: esta entrada vuelve a estar vigente
+> tal como se escribió.** Duró un día. La nota de arriba se deja donde está porque pasó; lo que ya
+> no vale es su efecto. Vigente otra vez: la ventana es de todos menos `admin` y `logistics`, el
+> chofer incluido.
+
 > **⚠ Reemplazada en parte por D-350** (2026-09-22). Ver el historial entero deja de ser solo de admin y logística: es una
 > capacidad por persona que se marca en Usuarios; los dos roles la traen de fábrica. La ventana en sí no cambia.
 
@@ -22938,6 +22943,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
+> factura y el selector de columnas siguen, en «Sin asignar» y en la tabla de paradas.
+
 > **⚠ Reemplazada en parte por D-358** (2026-09-22): las atrasadas SIN chofer vuelven a la tabla «Sin asignar» del día,
 > marcadas «Atrasada». El día sigue siendo aparte en el mapa, las rutas y los totales.
 >
@@ -23676,6 +23684,13 @@ etapa llevaba `delivery_fee` dentro era ese diálogo: hoy **nadie que no sea ven
 Hay prueba sobre el cuerpo entero de `move`, no sobre la llamada a `setStage` — reintroducirla en el
 `extra` de unas líneas antes no tocaría la llamada y pasaría desapercibido (medido con ese mutante).
 
+> **Nota dentro de esta entrada (2026-09-23, D-373):** esa frase describe lo que pasó, y se cumplió al pie de la
+> letra —demasiado. Lo que el dueño pidió aquí fue quitar **el bloqueo**, no quitarle al almacén la tarifa; que se
+> fueran las dos juntas es consecuencia de que vivían en el mismo diálogo, no una decisión aparte. Cuatro días
+> después: *«delivery fee in customer isn't working for warehouse»*. **D-373 le devuelve la escritura** con un gate
+> propio, sin diálogo y sin bloqueo —o sea sin revertir nada de lo de arriba—, así que desde D-373 la frase se lee
+> «nadie que no sea ventas escribe la tarifa **al mover la etapa**». El resto de esta entrada sigue vigente.
+
 ### Esto REVIERTE D-143 y D-146, y deja sin objeto la salida de D-287
 
 Las dos las pidió el dueño el **2026-08-31**, y por una razón concreta: *«los sales no están poniendo
@@ -24087,6 +24102,9 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
+> además ofrece ahora las columnas de Órdenes (ocultas por defecto).
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
 **Pedido por el dueño**, literal, en cuatro mensajes: *«in the routes planner where you can change order show the
 delivery adddres and also like orders let me configure it into columns»* · *«delivery address is missing in the
@@ -24235,6 +24253,9 @@ local: 3631 pasados, 3 saltados.
   un `path` de cinco vértices con una puerta; si sale feo o pequeño sobre el mapa, se ajusta en un solo sitio.
 
 ## D-349 · «Sin asignar» del Gestor tiene su propio ⚙ Columnas
+
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): el ⚙ de «Programadas» se fue con su pestaña; el de «Sin asignar» y el de la tabla de paradas
+> son los únicos.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.173.0, repo 1.237.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«I DONT SEE THE TABLE IN THE LOGISTICS MANAGER VIEW THE ORDER TABLE IS NOT
@@ -24413,6 +24434,18 @@ redondeados, que a la décima no cambian ninguna decisión.
 
 ## D-356 · Todos los roles ven todas las órdenes, sin ventana de fechas
 
+> **⚠ Reemplazada por D-374** (2026-09-23), al día siguiente. El dueño volvió a pedir la ventana:
+> *«ayer, hoy, futuro y atrasadas»*, que es la de D-239. `history` vuelve a ser de `admin` y
+> `logistics` solamente; el chofer **entra** en la ventana, preguntado y confirmado. Lo que sí
+> queda de aquí es la mecánica: `seesAllHistory` sigue leyendo `ROLE_CAPS`, y por eso revertir esto
+> fue editar una lista y nada más. La capacidad suelta tampoco se tocó: a quien necesite el
+> historial se le marca en Usuarios.
+>
+> Lo que falló en el razonamiento de esta entrada no fue la mecánica sino la premisa: se dio por
+> hecho que con la ventana se perdía lo programado a futuro. **No se pierde**: la de D-239 tiene
+> suelo y no tiene techo. Medido en producción el 2026-09-23, 76 de 192 órdenes están programadas a
+> dos días o más vista —21 a más de una semana— y todas siguen entrando.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.180.0, repo 1.244.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«activa lo que pueden ver todas las órdenes regardless del date a todos, la
 opción que creamos actívala»*.
@@ -24485,6 +24518,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **No verificado:** nada abierto en un navegador.
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+> **⚠ Reemplazada en parte por D-376** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
+> vigente.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.184.0, repo 1.248.0 · **Sin migración.**
 **Pedido del dueño**, literal: *«logistic manager columns must also have a sorting option and still pending the
@@ -25399,6 +25435,15 @@ Es lo contrario de lo que hace el Gestor de Rutas (D-331, «por defecto todas»)
 columnas lo fija el código y aquí lo pone el libro.** Cada tienda nueva del Excel añade una columna, así que «todas» crece sola
 y nadie se entera hasta que no cabe. Hay prueba de que las de partida **suman menos de 1100 px**, que es lo que queda a 1280.
 
+> **Nota dentro de esta entrada (2026-09-23, D-375):** de las tres cosas de este apartado, **una la cambió el dueño el
+> mismo día**: *«pon el inventario de todas las tiendas para vista de todos»*. Las **seis de tienda** pasan a verse al
+> entrar, para todos los roles. Lo demás de aquí sigue en pie —las cinco privadas **no** vuelven al arranque, y el
+> razonamiento de por qué «todas» crece sola tampoco se cae—; lo que cambia es el juicio sobre estas seis: saber qué
+> tienda tiene el material resultó ser parte de decidir, no un extra. **Y con ello caduca el número**: las de partida ya
+> no suman menos de 1100 px sino **1358** con seis tiendas (la prueba lo fija con ese número, no se borró). Lo que
+> sostiene que siga siendo usable no es que quepa, sino lo que esta misma entrada midió de Órdenes: la **página** no se
+> desplaza de lado y la **caja** sí. Medido en el navegador en D-375.
+
 ### Una cosa que estaba a medias y no se había dicho
 
 **Las columnas elegidas no se guardaban.** Vivían en un `useState`: se elegían, se veían, y al recargar volvían al defecto. O
@@ -25685,3 +25730,549 @@ número», «una entregada entra en el bloque» y «la nota vuelve a apuntar sol
 tanda:** «el número es el de la selección» —pasarle a la pregunta `chosen` en vez de lo que entra— y no lo cazaba nadie,
 porque la prueba de estructura solo miraba que se llamara a la función. Es exactamente el error que causó el incidente, así
 que la prueba ahora fija la llamada entera.
+
+## D-373 · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
+
+**Fecha:** 2026-09-23 · **Sin migración.**
+**Pedido por el dueño**, literal: *«delivery fee in customer isn't working for warehouse»*.
+
+### Qué fallaba
+
+Desde **D-340** (2026-09-19) el almacén **ve** la tarifa en la ficha y no la puede cambiar por ningún
+lado. No fue una decisión: fue el rebote de quitar el diálogo. Hasta D-146 el almacén escribía la
+tarifa **dentro** de la confirmación de «Comenzar preparación», y cuando el dueño pidió *«quítale el
+bloqueo a warehouse con lo de la tarifa»* se fue el diálogo entero, y con él la única vía que tenía
+para escribirla. La propia entrada de D-340 lo dejó dicho —*«hoy nadie que no sea ventas escribe la
+tarifa»*— como consecuencia aceptada, y ahí queda la nota dentro de esa entrada.
+
+Lo que el dueño quitó fue **el bloqueo**, no la escritura. Esto devuelve la segunda sin traer el
+primero: no vuelve ningún diálogo, «Comenzar preparación» sigue moviendo la etapa y ya.
+
+### El gate: propio, ni de ventas ni de almacén
+
+```ts
+const tarifaEditable = salesFields || whFields;
+```
+
+En `OrderModal.tsx`, junto a los otros dos. Lo cuelgan el campo **Delivery Fee charged ($)** y la
+tarjeta de **Lista / Descuento** — los dos botones, con el mismo gate, porque teclear la tarifa a
+ciegas cuando al lado hay dos precios calculados es peor que no dejarla tocar.
+
+**Se descartaron las dos formas cortas**, y por la misma razón:
+
+- **Meter `warehouse` en `salesFields`** le abriría de rebote los 21 controles de ventas —tipo de
+  orden, fechas, factura, contacto, teléfono—, que es exactamente lo que el reparto de campos
+  separa.
+- **Meter la tarifa en `whFields`** se la quitaría a ventas, que la tiene desde siempre.
+
+Un gate propio dice en una línea lo único que los dos papeles comparten. La prueba que lo sostiene no
+es que el gate exista, sino que **`disabled={!salesFields}` sigue apareciendo 21 veces** y
+`disabled={!tarifaEditable}` una: si alguien lo «arregla» ensanchando `salesFields`, el número se
+mueve y la prueba cae.
+
+**Se le devuelve entera, no solo cuando está vacía.** Limitarla a rellenar huecos sonaba prudente,
+pero el número de D-340 lo desmiente: de las 46 veces que el almacén pasó por aquel diálogo,
+**corrigió** la tarifa en 25 —el 54 %— y solo 2 fueron «sin tarifa». Un gate que solo deja rellenar
+lo vacío le quita justo el uso que tenía. Lo que faltaba cuando se cerró —que quedara rastro— ya está
+desde **D-372**: el historial guarda «Delivery Fee: 126 → 80», con el valor anterior.
+
+### Lo que NO abre
+
+Los otros 21 controles siguen colgando de `salesFields`, uno por uno; «Actual Pallets (warehouse)»
+sigue en `whFields`; y las **etapas** no se tocan: el almacén edita donde `canEditFields` ya decía
+—`approved`, `fulfilling`, `ready`, `picked_up`, `delivered`—, ni una más. La otra pareja de botones
+Lista/Descuento, la del alta paso a paso (D-303), se queda como estaba: vive dentro de
+`paso === "inicial"`, donde `salesFields` ya es `true` por `isNew`.
+
+### Medido en el navegador, con «Ver como» almacén
+
+Modo demo en `127.0.0.1:3917`, Chrome de verdad por CDP, perfil desechable. Orden **#1089**
+(`approved`, McAllen, tarifa 126). Con el rol puesto desde el propio selector de la barra:
+
+| | |
+|---|---|
+| Campo de la tarifa, solo mirando | no se pinta (la ficha no está en edición) |
+| Campo tras pulsar «Edit» | **activo**, `disabled=false`, valor `126` |
+| Botones de la tarjeta | **«List $100.00» y «Discount $80.00»**, los dos activos |
+| Tras pulsar «Discount» | el campo pasa a `80` |
+| Tras «Save changes» | la fila de la tabla pasa de `$126.00` a **`$80.00`** |
+| El evento que queda | `edited` · **«Changed: Delivery Fee: 126 → 80»** |
+
+**Lo que el almacén no ve, y no lo cambia esto:** la línea de tiempo de la ficha —y con ella esa
+nota— está detrás de `me.role === "admin" || me.role === "manager" || existing.created_by === me.id`
+(`OrderModal.tsx:1583`). Es de antes y se deja como está; la línea se comprobó cambiando a Admin en
+la misma sesión, donde sí se lee. Que el almacén escriba la tarifa y no vea el historial de lo que
+escribió es una decisión anterior, no un descuido de esta.
+
+### Un hallazgo de paso: el evento lo firmaba otro
+
+La primera medición dio la nota correcta con el **autor equivocado**: `edited por u-admin`, habiendo
+guardado el almacén. No es de producción —allí firma la base— sino del **demo**: en
+`local-data-provider.tsx`, `updateDelivery` era un `useCallback` con `[persist, notify]`, y `addEvent`
+cierra sobre `me.id`, así que se quedaba con el `me` del primer render. Barrido mecánico de los cuatro
+sitios que escriben un evento: `addNote` tenía el mismo olvido, `createDelivery` y el cambio de etapa
+no. Los dos arreglados, y la prueba recorre **todos** los `addEvent` en vez de nombrar dos, que es lo
+que hizo aparecer el segundo. Viene de antes de D-372; lo que hizo D-372 fue poner valores en la nota
+y con ello hacerlo visible.
+
+### En producción, medido por el orquestador
+
+En solo lectura y con `ROLLBACK`, el **2026-09-23**: el almacén escribe `delivery_fee` en **1 fila**
+en cada una de `approved`, `fulfilling` y `ready`. **No lo he medido yo** —una rama no toca la base—,
+así que va atribuido: es un dato de otra sesión.
+
+### Medido, rompiendo cada pieza
+
+14 cambios: **14 caen, cada uno por la prueba que lleva su nombre.**
+
+- El gate vuelve a ser solo el de ventas (el agujero de D-340); pide los dos papeles a la vez; se
+  queda solo con almacén; el campo vuelve a `salesFields`; la tarjeta vuelve a `salesFields`.
+- Los dos arreglos feos: `warehouse` metido en `salesFields`, y `sales` metido en `whFields`.
+- Un campo de ventas abierto de rebote; el campo de almacén pasado al gate compartido; el almacén
+  deja de editar en `ready`.
+- Vuelve el comentario que decía lo que ya no era verdad; la otra pareja de botones se gatea también.
+- Los dos del autor del evento: `updateDelivery` y `addNote` pierden `me` de sus dependencias.
+
+## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
+
+**Fecha:** 2026-09-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+
+Tres cosas que pidió el dueño el mismo día, y que resultaron ser la misma: **quién ve qué**.
+
+1. *«warehouse should only see what they are in charge of»*, y *«for warehouse a new view where the
+   loads intertienda going to his store will be visible; these orders will be extracted from his
+   list and passed to that one»*.
+2. Ventas: **solo sus propias órdenes, pero en cualquier tienda**.
+3. La ventana de fechas: **«ayer, hoy, futuro y atrasadas»** para todos menos admin y logística.
+
+### Nada de esto baja a la base, y esa fue la decisión de verdad
+
+El plan en papel proponía además una ventana en la política de lectura de la 131 (la migración 142).
+**Se descartó entera**, y conviene que quede escrito por qué, porque era la parte más vistosa:
+
+- **Cortaría la búsqueda por factura**, que es *el* camino al historial en la cola de almacén y en
+  Órdenes. Una fila que la base no manda no se encuentra buscándola: no hay nada que filtrar.
+- **Cortaría lecturas que no son listas**: la planificación de rutas y los agregados leen órdenes
+  viejas a propósito.
+- **Dejaría la casilla de Usuarios sin significado.** «Ver todas las órdenes» es un permiso de
+  persona; si la base ya no manda la fila, marcarla no hace nada y nadie entiende por qué.
+
+La base ya decide **si** puedes leer una orden (la 131, por tienda). Lo de aquí decide **en qué
+lista sale**, que es otra pregunta. Mezclarlas se paga caro y en silencio. Sin migración 142.
+
+### Almacén: dos listas donde había una
+
+`src/lib/almacen.ts`, nuevo y puro. A la cola le entra el mismo corte de tienda que ya tenía su
+pantalla, y **ahora también en el tablero de Órdenes**, donde almacén veía las de todas las tiendas:
+es la misma función, `esDeMisTiendas`, no una copia. «Mis tiendas» son la suya y las de su grupo
+(D-293).
+
+**Recepción** son las Intertiendas cuyo destino es una de mis tiendas **y que no salen de ellas**.
+Las dos mitades importan: un movimiento entre dos tiendas del mismo grupo entra a una mía, y si solo
+se mirara el destino desaparecería de la cola de quien tiene que prepararlo. Se escondería trabajo
+propio en la bandeja de entrada.
+
+**Qué campo dice el destino.** El dueño lo pidió por la cuenta —*«if account in intertienda is my
+store then put that under receiving»*— pero la cuenta es una **copia** del destino: `order-sites.ts`
+la escribe desde `delivery_name` al elegirlo (D-312) y luego es texto libre que se teclea encima.
+Medido en producción el 2026-09-23: **de 123 Intertiendas, la cuenta coincide con el destino en 51**.
+Manda `delivery_name`.
+
+Y **2 no tienen destino ninguno**. Esas no se pueden clasificar, así que **no se esconden**: se
+quedan en la cola, donde estaban, y se cuentan aparte para que la pantalla lo diga. Perder dos
+órdenes en silencio por no saber dónde ponerlas es peor que enseñarlas mal.
+
+### Ventas: se va el tercer camino, y con él la tienda
+
+`ventasVeLaOrden` tenía tres caminos (D-309): borrador, propia, y «de tienda a tienda y una de las
+dos es la mía». **Se va el tercero**, que era el único sitio donde esta función miraba la tienda. Con
+él se va el argumento: `miTienda`, `regla` y `tiendas` **salen de la firma**, porque un argumento que
+no se lee es una invitación a creer que se sigue mirando la tienda.
+
+El borrador **se queda**: D-286 son palabras del dueño —*«para borrador, deja que cualquiera pueda
+volver y editarlo»*— y nadie pidió revertirlo. Quitarlo de paso habría sido revertir una decisión sin
+decirlo.
+
+La otra mitad de lo pedido sale sola: sin cláusula de tienda, sus órdenes las ve **en cualquier
+tienda**.
+
+**La regla entera, con sus palabras:** un vendedor ve **solo sus propias órdenes, en cualquier
+tienda, salvo los borradores**, que los sigue viendo cualquiera por D-286. Los tres trozos importan:
+lo de otro no lo ve, la tienda ya no le quita nada suyo, y el borrador es la única excepción.
+Medido en el navegador por otra sesión: un vendedor ve el borrador de un compañero.
+
+### La ventana: vuelve, y se revierte D-356
+
+`history` deja de venir de fábrica para gerente, ventas, almacén, chofer y office; se queda en admin
+y logística. **El chofer entra en la ventana**: se preguntó expresamente y el dueño lo confirmó.
+
+Lo que hacía dudar era perder lo programado a futuro. **No se pierde**, y esto es medición, no
+opinión: la ventana de D-239 (`withinRetention`) tiene **suelo y no tiene techo**. El orquestador
+midió en producción el 2026-09-23 que **76 de 192 órdenes (el 40%) están programadas a dos días o
+más vista, y 21 a más de una semana** — y todas siguen entrando. Lo que se corta es el pasado ya
+cerrado, que era el bulto. Por eso tampoco hizo falta lo que el plan proponía de «añadir siempre las
+propias»: con esta ventana sobra.
+
+La **capacidad no se borra**: un admin se la marca a quien la necesite en Usuarios, y ahora esa
+casilla vuelve a decidir algo. Mientras todos la traían de fábrica, marcarla o no daba igual.
+
+> **⚠ Corrección dentro de la misma rama (2026-09-23), y la frase de arriba estaba mal.** Decía
+> *«lo que se corta es el pasado ya cerrado»* y el código no hacía eso: `withinRetention` miraba
+> `delivery_date` y **no la etapa**, así que una orden **atrasada y todavía abierta** desaparecía
+> para los cinco roles. Lo encontró otra sesión midiendo en el navegador: una `ready` del 21
+> —trabajo vivo— no salía para gerente, office, ventas ni chofer.
+>
+> Va contra lo que el dueño eligió con cuatro palabras —*«ayer, hoy, futuro **y atrasadas**»*— y
+> contra **D-351**, que ya lo tenía escrito para la vista «Reciente»: *una vencida sin entregar es
+> trabajo vivo, no historial, y esconderla es perderla*. O sea que la misma orden salía en
+> «Reciente» y desaparecía de la lista.
+>
+> Arreglado: la ventana deja pasar **fecha ≥ ayer, o atrasada sin entregar**, y lo pregunta a
+> `isOverdue` —la definición de D-351— en vez de escribirla otra vez. Para poder reutilizarla,
+> `isOverdue` acepta ahora un `today` y su tipo se estrechó a los dos campos que mira; eso obligó a
+> cambiar tres `filter(isOverdue)` por `filter((d) => isOverdue(d))`, porque pasada pelada recibía
+> el ÍNDICE del array como fecha. Lo caza `tsc`.
+>
+> **Y las pruebas defendían el fallo.** Una se llamaba literalmente *«cuts off the day before
+> yesterday, whatever the stage»* y usaba `ready`: afirmaba como correcto justo lo que el dueño no
+> quería. Reescritas, con el caso de la entregada y la abierta del **mismo día viejo**, que es lo
+> que separa una regla de la otra.
+>
+> Medido en producción al arreglarlo: **0** órdenes abiertas con fecha anterior a ayer. Cero porque
+> esta tarde se movieron las activas a mañana, no porque el fallo no pudiera darse: en cuanto una se
+> retrase dos días, desaparece.
+>
+> Tercera cosa del mismo repaso: el aviso de las Intertiendas **sin destino** se pintaba en
+> Recepción, y esas órdenes se quedan en la **Cola**. Cierto en el sitio equivocado: quien puede
+> actuar sobre ellas no lo veía. Ahora sale en la Cola.
+>
+> Y una cuarta, ya preguntada al dueño: *«warehouse, el botón de cambiar date no lo ocupa»*.
+> **Fuera el calendario de la pantalla de almacén.** Su día pasa a calcularse en cada pintado
+> (`todayISO()`) en vez de guardarse en el estado: una pestaña abierta toda la noche amanecería
+> enseñando la ruta de ayer, y eso es peor que no tener calendario porque no se nota.
+>
+> **Se le quita solo a almacén.** Esta pantalla la ve también un admin —`canFulfill` son admin y
+> almacén, más quien tenga `fulfill` marcado a mano— y quitarle a él el calendario no lo pidió
+> nadie. La frontera es `lockedToOwnStore`, la misma que ya decide quién puede elegir tienda.
+
+### Verificado
+
+`npx tsc --noEmit` limpio. Suite entera local: **3926 pasados | 3 saltados**, 226 ficheros.
+
+**Mutantes: 12, leídos por nombre; caen los 12.** Entre ellos: «esParaRecibir deja de exigir *y no
+sale*» (cae la de dos tiendas mías), «el reparto mete la de Recepción también en la cola» (cae «ninguna
+orden se pierde ni sale dos veces»), «deja de contar las Intertiendas sin destino», «el tablero deja
+de cortar almacén por tienda», «el corte se aplica también sin tienda asignada», «ventas vuelve a ver
+la orden de cualquiera» (caen cinco), «ventas deja de ver los borradores» y «almacén recupera
+`history` de fábrica».
+
+**Y la primera tanda dio 12 supervivientes de 12, que era mentira**: el arnés buscaba el nombre de la
+prueba en los renglones del resumen, donde no está entero. Doce de doce sobreviviendo no es un
+resultado, es un arnés roto — se mira el arnés antes que el código.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.** Queda medir en pantalla la vista de Recepción y que una entregada
+  de agosto ya no salga para almacén; lo hace el otro worker.
+- **Los números de producción los midió el orquestador, no yo**: 76 de 192, 123 Intertiendas, 51
+  coincidencias, 2 sin destino. Este worktree no tiene llaves de producción, a propósito.
+- **El peso de las listas no se ha medido.** Almacén y ventas cargan ahora menos órdenes que ayer, no
+  más, así que si cambia será a mejor; pero es deducción, no medición.
+
+## D-375 · Promos entra directo a la tabla, los botones de decidir se ven, y el inventario por tienda es de todos
+
+**Fecha:** 2026-09-23 · **Sin migración.**
+**De dónde sale:** el dueño mandó una captura de `/promos` —la lista de rondas, con el renglón
+«Toca una ronda para aprobar o rechazar sus productos»— y dijo, literal: *«esto elimínalo, que entre
+directo a la tabla; y los botones de aprobar y desaprobar que sean más grandes y por color; y pon el
+inventario de todas las tiendas para vista de todos»*.
+**Lleva nota dentro de D-370**, que es la que decidió lo contrario en una de las tres cosas.
+
+### 1 · `/promos` deja de ser una pantalla y pasa a ser una puerta
+
+La lista de rondas era un clic obligatorio entre, casi siempre, **una sola opción**: la ronda de este
+mes. Ahora `/promos` resuelve a cuál se entra y redirige.
+
+A cuál se entra lo decide `lib/promos/entrada.ts`, aparte de la página y sin React: **la más reciente
+que siga abierta**; si todas están cerradas, la más reciente de todas. Preferir una abierta no es
+adorno — a una cerrada no se le puede decidir nada, y entrar a una pantalla con todos los botones
+apagados se lee como que la app está rota. Ese caso existe: el día que se sube octubre sin haber
+cerrado septiembre hay una cerrada más nueva que la abierta.
+
+**Lo que no se pierde es llegar a una ronda vieja**, que es a lo que la lista servía de verdad: el
+selector vive ahora **dentro de la tabla**, al lado del título, y se sigue entrando por
+`/promos/<id>`. Sale **solo si hay más de una** ronda: un desplegable de un elemento sería otra vez
+el clic que se mandó quitar.
+
+**Sin rondas no se redirige a ningún sitio** — un redirect en el camino del error es como se hace un
+bucle — se pinta un mensaje. Y ese mensaje dice **las dos razones**, porque cero filas puede ser
+«todavía no se ha subido ninguna» o «no tienes el módulo»: la RLS de la 140 devuelve lo mismo en los
+dos casos, así que prometer que subiendo un Excel se arregla sería mentirle a la mitad de quien lo
+lea.
+
+**El aviso de los grupos de tienda cambia de sitio y de regla.** Estaba en la raíz y se enseñaba
+**siempre** al admin. Ahora está en la tabla, **solo si falta algún grupo**, y **dice cuáles**. Un
+aviso permanente sobre algo que ya está hecho —los seis grupos llevan puestos desde que se estrenó el
+módulo— deja de leerse a las dos semanas, y entonces tampoco se lee el día que sí falta uno.
+
+### 2 · Los botones de decidir, medidos antes y después
+
+En cada fila eran un `✓` y un `✕` sin clase: **10 × 17 px**, fondo transparente. En la barra de
+bloque, «Aprobar» era el azul de `primary` y «Rechazar» un botón igual que «Limpiar» — el color no
+distinguía las dos acciones de la pantalla.
+
+| | antes | después |
+|---|---|---|
+| `✓` de la fila | 10 × 17, transparente | **29 × 26**, `#e5f6ee` sobre `--green` `#1f9d61` |
+| «Aprobar» en bloque | azul `primary` | **98 × 35**, verde |
+| «Rechazar» en bloque | neutro, igual que «Limpiar» | **85 × 35**, `#fdeaea` sobre `--red` `#d64545` |
+| «Dejar pendiente» | neutro | neutro, a propósito: es deshacer, no una tercera decisión |
+
+Clases de la paleta (`btn-green`, `btn-danger`), ningún hex suelto en el componente.
+
+**La fila crece de 29 a 37 px, y eso es acercarse a la referencia, no romperla:** la fila de Órdenes
+mide **37** (medida el 2026-09-23 y guardada en `referencia-tabla-ordenes.json`). La tabla de promos
+era ocho píxeles más apretada que aquella a la que el dueño pidió parecerse.
+
+### 3 · Las seis columnas de existencias por tienda, para todos
+
+**Esto cambia en parte D-370, que las dejó apagadas**, y el dueño lo pidió sabiendo cuál era la razón
+—fue él quien dijo *«it's horrible, first it doesn't fit in 1 screen»*—. Lo que cambia es el juicio
+sobre **estas seis**: saber qué tienda tiene el material es parte de decidir. Lo que **no** vuelve al
+arranque son las cinco privadas.
+
+«Para vista de todos» es literal y se comprobó: un vendedor las ve igual que un gerente. Lo único que
+los separa en esta tabla siguen siendo las cinco privadas, y eso lo decide **la base** —si
+`promo_catalog.private` llegó nulo—, no esta pantalla.
+
+Se estrechan de **76 a 64 px**: lo que llevan son números de tres o cuatro cifras, así que lo que se
+recorta es hueco, no dato. El nombre entero sigue en ⚙ Columnas y en el menú de la cabecera.
+
+**El ancho, medido en el navegador a 1280, con el libro de demo (seis tiendas):**
+
+| | antes | después |
+|---|---|---|
+| columnas al entrar | 7 (+ casilla + Decidir) | **13** (+ casilla + Decidir) |
+| ancho de la tabla | 1246 px | **1686 px** |
+| ¿se desplaza la **página**? | no | **no** |
+| ¿se desplaza la **caja**? | no | **sí** |
+
+Que la página no se desplace es la regla de Órdenes, y es lo que sostiene que esto sea usable en vez
+de «que quepa»: con un libro de diez tiendas «que quepa» sería imposible. Apagar las seis en ⚙
+Columnas devuelve exactamente el arranque de antes (974 px de columnas frente a 1358).
+
+### Un fallo que me hice yo y que la prueba cazó
+
+Al añadir las de tienda al defecto, el defecto quedó **en dos sitios**: `columnasDePromosPorDefecto`
+las incluía y `columnasVisiblesDePromos` —la que decide cuando alguien **no** tiene columnas
+guardadas— seguía leyendo la lista estática. O sea que quien no hubiera guardado nada, que es todo el
+mundo hoy, no las habría visto nunca. Lo cazó la prueba que exigía que las dos coincidieran. Ahora
+hay un solo cálculo.
+
+### Medido al fusionar: no había nada que pisar
+
+**Cero personas tenían columnas de promos guardadas.** Lo contó el orquestador en producción el
+2026-09-23, antes de fusionar:
+
+    select count(*) from public.user_prefs where key = 'promos_columns';   -- 0
+
+O sea que el defecto nuevo le llega a todo el mundo y no hubo que decidir si pisar la elección de
+nadie. Se deja escrito el número porque la pregunta era real —lo guardado manda sobre el defecto, así
+que un cambio de defecto no alcanza a quien ya eligió— y porque **dentro de un mes ya no será cero**:
+quien lea esto después no puede deducir de aquí que no haya nadie, solo que no lo había ese día.
+
+### Medido, rompiendo cada pieza
+
+17 cambios: **17 caen, cada uno por la prueba que lleva su nombre.**
+
+- **A qué ronda se entra:** se entra a la más reciente aunque esté cerrada; no se ordena y se confía
+  en cómo llegan; sin rondas se devuelve algo en vez de `null`, que es el bucle.
+- **La puerta:** `/promos` deja de redirigir con base; el demo deja de redirigir; el mensaje sin
+  rondas vuelve a hablar solo de subir un Excel.
+- **El selector:** sale con una sola ronda; deja de navegar; la página deja de pasarle las rondas.
+- **El aviso de grupos:** vuelve a salir siempre; un grupo puesto en blanco cuenta como puesto.
+- **Los botones:** los de la fila pierden el color; «Rechazar» en bloque pierde el rojo.
+- **Las columnas:** las de tienda salen del defecto; el defecto vuelve a estar en dos sitios; vuelven
+  a 76 px; se le esconden al vendedor.
+
+**Dos de esos mutantes no los cazaba nadie la primera vez** —los dos del color— y esa es la razón de
+que estén las pruebas de `btn-green` / `btn-danger`: el cambio que el dueño pidió en el punto 2 no
+tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
+
+## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
+
+**Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale:** dos peticiones del dueño, literales, el mismo día:
+«las mismas columnas que se miran en órdenes quiero que se miren en el logistic manager, así que agrega eso», y
+«en gestor de rutas el view programados es innecesario, quítalo». Van juntas porque tocan el mismo fichero
+(`routes/page.tsx`) y el mismo catálogo (`lib/routes-columns.ts`): en dos ramas se habrían pisado.
+
+**Reemplaza en parte** a D-331, D-346, D-349 y D-360 en lo que decían de «Programadas»: esa tabla ya no existe. Lo demás de
+esas decisiones sigue igual.
+
+### 1 · «Programadas» se quita, y no se pierde ninguna orden
+
+La pestaña listaba `scheduled`: las órdenes del día **con chofer**. Antes de quitarla se comprobó en el código que cada una
+sale ya en la tarjeta de su chofer, en «Rutas»: `byDriver` agrupa **todas** las del día por chofer; `lanes` añade una tarjeta
+de rescate para cualquier chofer que no esté en la lista (retirado, ruta temporal vieja); `shownDrivers` enseña toda tarjeta
+con paradas; y `buildTrips` (por capacidad o por carga) no deja ninguna parada fuera de un viaje. **Medido en el demo**
+(2026-09-23, «Ver como» logística): la cuenta «Programadas» dice **15** y las tablas de paradas de «Rutas» tienen **15**
+filas de orden, a 1280 y a 1440.
+
+- **La cuenta «Programadas» del resumen se queda** —cuántas tienen chofer es un dato— y ahora lleva a «Rutas», que es donde
+  están. Llevaba a la pestaña quitada. Medido: pulsarla deja «Rutas» activa.
+- Se borró lo que colgaba solo de ella: `scheduled`, `colsProgramadas`, `ordenProgramadas`, `menuProgramadas`, `schedCols`
+  (los anchos de `rtg_routes_sched4`, que se quedan en el navegador sin que nadie los lea), su ⚙ propio (`verColumnas`), y
+  del catálogo las tres columnas que solo salían ahí: **chofer, carga y parada**, con sus casos de `valorDelGestor` y el
+  contexto que las calculaba.
+- **Lo guardado no rompe.** `routes_columns` en `user_prefs` guarda una LISTA de claves, no una por tabla. Una lista que aún
+  diga `driver`, `load` o `stop` se lee igual: `columnasDeLaTabla` ignora las claves que no están en el catálogo, y la próxima
+  vez que la persona marque algo, `alternaColumna` las limpia. Hay prueba con una lista así.
+
+### 2 · Las columnas de Órdenes, con la celda de Órdenes
+
+Órdenes tiene 14 columnas elegibles. «Sin asignar» ya tenía factura, cuenta, dirección, tienda, pallets, fecha y ventanas.
+**Le faltaban tipo, SO #, PO #, costo y contacto**, y se añaden.
+
+**La «Etapa» ya estaba, con otro nombre.** La columna `status` del Gestor («Status / Estado») pintaba la etapa de la orden
+con su pastilla de color y ordenaba por su nombre: lo mismo que la «Etapa» de Órdenes. Añadir `stage` habría sido la misma
+columna dos veces. Se renombra a **«Stage / Etapa»**, como en Órdenes, y se pinta con la celda de Órdenes; **la clave sigue
+siendo `status`** porque es la que está guardada en las listas de cada persona.
+
+**Se reutiliza, no se copia.** Cada columna nueva del catálogo del Gestor lleva `deOrdenes: "<clave>"`, la columna de
+`ORDER_COLUMNS` de la que toma **la celda, el valor para ordenar y filtrar, y la etiqueta del filtro**. La página llama a esa
+misma función con el mismo contexto que Órdenes (idioma, traducción y motivos de anulación). Por eso el costo sale igual que
+allí —«$85.00», y en rojo con bandera «🚩 NO FEE» o «🚩 $0.00»—, el filtro del costo lista dinero, y la etapa lleva la clase
+`td-pastillas` (D-364). Órdenes no se tocó: `ORDER_COLUMNS` sigue donde estaba, porque varias pruebas leen su fuente.
+`columnaDeOrdenes` recibe el catálogo como argumento en vez de importarlo: vive en un componente con JSX, y vitest (en
+`node`, sin JSX) no lo carga — se probó y falla al transformar.
+
+**En la tabla de paradas de cada chofer** se añaden como elegibles: etapa, tienda, cuenta, SO #, PO #, fecha, costo y
+contacto. No el chofer —la tabla ES la de un chofer— ni la factura, que ya sale bajo el ID desde D-331. Van entre «Ventanas»
+y las acciones. Sus anchos se guardan **por clave** en su propia llave (`rtg_routes_stops_extra1`), con el ancho de partida
+de Órdenes: los de siempre van por posición en `rtg_routes_stops7`, y alargar esa lista habría tirado los anchos que cada
+quien ya ajustó (`useColWidths` descarta lo guardado si la longitud no cuadra). Los `colSpan` de las filas que cruzan la
+tabla (el viaje, el aviso de plan cambiado, la recogida) cuentan las nuevas.
+
+### 3 · Qué sale por defecto, y por qué distinto en cada tabla
+
+- **«Sin asignar»: las cinco nuevas SALEN**, también a quien ya tenía guardadas sus columnas (marca `_v4`, como `_v2` y
+  `_v3`). El dueño pidió **verlas**, y la historia de D-331 («te pedí que viera invoice y no aparece») es justo lo que pasa si
+  nacen escondidas. Quien no las quiera las quita en ⚙, y se respeta.
+- **Paradas: las ocho NO salen**; se eligen en su ⚙. Esa tabla es donde se cambia el orden con las flechas de la derecha, y
+  la página arrastra desde antes el cuidado de que esas flechas no se salgan de la pantalla (`addrWide`, los anchos
+  apretados de `rtg_routes_stops7`). **Medido:** con las ocho puestas la tabla mide 1768 px y la flecha ↑ queda en x≈1801,
+  con la caja terminando en 1213 (a 1280) o en 1369 (a 1440): fuera de vista, hay que desplazar la caja para reordenar.
+
+**El coste de lo que sí sale** (2026-09-23, demo, logística): «Sin asignar» mide **1716 px** medidos; sin las cinco serían
+1216 (calculado: cinco columnas de 100 px por defecto). A 1280 ya no cabía antes (caja de 1146 px); **a 1440 antes cabía
+(caja de 1298 px) y ahora no**: la columna «Asignar a» queda a la derecha y hay que desplazar la caja para verla. La
+**página no se desplaza de lado** en ningún caso medido (0 px, a 1280 y a 1440, en «Rutas», en «Sin asignar» y con las ocho
+de paradas puestas): se desplaza la caja, como en Órdenes (D-338/D-344/D-345). La asignación en bloque de arriba («Asignar
+selección a…») no se mueve. Si al dueño le estorba, se cambia en una línea por columna: `oculta: true`.
+
+> **Nota (2026-09-23, mismo día, tras 3b):** los 1716 px de arriba se midieron con las cinco a 100 px. Con el ancho de
+> Órdenes (3b), «Sin asignar» mide **1652 px** medidos, a 1280 y a 1440 (1216 + 428 de las cinco + 8 que gana la etapa). A
+> 1440 sigue sin caber en la caja de 1298: lo dicho de «Asignar a» vale igual.
+
+### 3b · El ancho de partida es el de Órdenes
+
+Con el ancho general de «Sin asignar» (100 px), la etapa salía «Program…» y en Órdenes «Programmed» entero: justo lo primero
+que se ve al comparar las dos. Ahora cada columna que viene de Órdenes nace con **el ancho que tiene en Órdenes**, leído de
+`COLUMN_WIDTHS` (no copiado): etapa 108, tipo 96, SO 72, PO 72, costo 72, contacto 116. `useColWidthMap` acepta un ancho de
+partida por columna (`widthOf(key, porDefecto)`), que manda por debajo de lo que la persona ya arrastró y de `COLUMN_WIDTHS`
+por su propia clave. **Medido** (2026-09-23, 1280 y 1440): la cabecera «Stage» mide 108 en las dos tablas, y en las dos la
+única pastilla que se corta es «Pending Approval» — la misma, al mismo ancho; «Programmed», «Ready» y «Preparing» salen
+enteras. La tabla de paradas ya tomaba estos anchos: sus columnas de Órdenes van por la clave de Órdenes.
+
+### 4 · Ordenar y filtrar
+
+Las cinco nuevas de «Sin asignar» ordenan y filtran con el menú de D-360, con el valor de Órdenes. Medido: ordenar el costo
+de mayor a menor da «$112.00 | $112.00 | $112.00 | $110.00 | $104.00 …», y el filtro de tipo ofrece los tipos que hay en la
+tabla. **La tabla de paradas no ordena ni filtra**, ni antes ni ahora: su orden ES la ruta, y ordenarla por otra columna
+contradiría las flechas.
+
+### Mutantes
+
+18, leídos por el nombre de la prueba que cae; **caen los 18**. Los que se pidieron: «el costo no se puede elegir en
+«Sin asignar»» (M1), «el costo se pinta con otro formato: toma la celda del PO» (M2, lo caza la prueba de rótulos y la del
+valor), «la página no pinta con la celda de Órdenes» (M3) o «pinta el valor crudo» (M4), y «no ordena»: en la librería
+(M5) y en la página, que deja de pasar el catálogo (M6). Además: la etiqueta de dinero del filtro (M7), la etapa que no
+encuentra `stage` (M8), un rótulo distinto (M9, M16), una de paradas que nace visible (M10), lo guardado sin la marca v4
+(M11), las de paradas sin puesto colándose en los ocultos (M12), `colSpan` y ancho que no las cuentan (M13, M14), la cuenta
+«Programadas» que no lleva a Rutas (M15), la etapa sin `td-pastillas` (M17) y una lista con chofer/carga/parada que no se
+limpia al marcar (M18).
+
+### Lo que no se verificó
+
+- **El guardado por persona contra la base real.** El demo no tiene `user_prefs`: la marca `_v4`, y que una lista guardada con
+  `driver/load/stop` se lea bien, están probadas con funciones, no en un navegador con sesión.
+- **El ⚙ de paradas abre el de TODAS las tarjetas a la vez** (un solo estado, `verColsParadas`). Es así desde D-346 y esta
+  decisión no lo cambia; se vio al medir.
+
+## D-377 · Almacén deshace una etapa en su tienda, borrar pasa a ser del borrador, y cada orden borrada deja rastro
+
+**Fecha:** 2026-09-23 · **Versión:** solo `package.json` (cambio solo de base) · **Migración: la 142**, aplicada por el
+orquestador al fusionar, con respaldo antes.
+
+**De dónde sale.** El dueño, literal: *«deja que warehouse y office tenga la opción de deshacer un stage, como por
+ejemplo deshacer un delivered o un fulfilling o un ready, y también que los draft, si no lo ocupan, lo puedan borrar
+o seguir editando, igual las duplicadas»*. Respondió a dos preguntas: office **y gerente** borran **cualquier**
+borrador de su tienda (no solo el suyo), y **sí** se guarda registro de cada orden borrada.
+
+**Plan en papel:** `docs/PLAN-142-deshacer-y-borradores.md` (inventario, políticas literales, matriz por rol,
+reversión). Escrito por un subagente; medido y ensayado por el orquestador.
+
+### Lo que había, medido en producción el 2026-09-23 (solo lectura)
+
+- **Office y gerente ya deshacían** cinco pasos desde la 139 (D-361). No les faltaba nada de deshacer.
+- **Almacén ya podía en la base** `ready→fulfilling`, `picked_up→ready` y `delivered→picked_up`, **en cualquier
+  tienda**. En pantalla solo tenía `ready→fulfilling`.
+- **Borrar estaba abierto en la base.** La política `"deliveries delete"` (la de la 131) dejaba borrar **cualquier
+  orden visible a cualquiera con el módulo de Entregas**; solo la pantalla, que enseña el botón nada más al admin, lo
+  frenaba. No había trigger de DELETE.
+- **Borrar no dejaba rastro:** `order_events` y `notifications` cuelgan de `deliveries` con `ON DELETE CASCADE`.
+  Desde el `stats_reset` (2026-07-15) se borraron **4 órdenes, 946 `order_events` y 141 `notifications`**. Las 4
+  órdenes no explican los 946 eventos, y ni el código ni las migraciones borran eventos: **sin explicar**.
+
+### Lo que cambia (solo base; la pantalla va en otra rama)
+
+1. **Almacén deshace un paso, solo en órdenes de sus tiendas** (la suya y las de su grupo, D-293):
+   `delivered→picked_up`, `ready→fulfilling` (ya los tenía, ahora acotados) y `fulfilling→approved` (nuevo).
+   `approved→pending` **no**: es de quien aprueba. `picked_up→ready` se queda **sin límite de tienda**, porque es
+   también «Dejar en tienda» (D-224). Hacia delante, idéntico y en cualquier tienda. La tienda la decide
+   `orden_de_mis_tiendas()` mirando `store`, `pickup_name`, `delivery_name` y la dirección de recogida, **de la orden
+   como estaba** (OLD). Sin tienda propia, no deshace.
+2. **Borrar:** el admin, cualquier orden; **office y gerente, cualquier borrador de su tienda y su grupo**; cualquier
+   otro, **solo su propio borrador**. Una pendiente, aprobada o entregada ya no la borra nadie más que el admin.
+   Un DELETE que la política no deja pasar **no da error: borra cero filas**; la pantalla tiene que pedir
+   `.select("id")` y contarlas.
+3. **Quién creó la orden no se reescribe.** En INSERT la base pone `created_by = auth.uid()`; en UPDATE cambiarlo se
+   rechaza (el admin sí puede corregirlo). Sin esto la regla 2 era decoración: el tramo de «misma etapa» no mira
+   columnas, y un vendedor podía ponerse de autor del borrador de otro y borrarlo.
+4. **Rastro de cada borrado:** tabla `public.deliveries_borradas`, escrita por un trigger `before delete` con la fila
+   entera, sus eventos y sus avisos (en `jsonb`), quién (`auth.uid()`, **nulo si borra service-role**), su rol y
+   cuándo. Solo la lee el admin. **Nadie la cambia, la borra ni la vacía** —admin, service-role y postgres
+   incluidos—: lo impide un trigger. **Revertir la 142 no borra esta tabla.**
+
+### Ensayo en producción, con ROLLBACK (2026-09-23)
+
+La matriz del plan (46 casos) más 4 del orquestador: grupo McAllen+Mission (almacén de McAllen deshace en Mission;
+office de McAllen borra un borrador ajeno de Mission) y dos de borrado fuera de tienda (office de McAllen en Pharr;
+office **sin** tienda). **50 de 50 como se esperaba.** Corrida también **sin** la 142 para comparar: difieren
+exactamente los que la 142 cambia. Tras el ROLLBACK: ni tabla, ni trigger, ni fila en el registro, ni órdenes de prueba.
+
+Y el guard nuevo contra el que corre en producción (`pg_get_functiondef`, finales de línea normalizados): **solo**
+cambian los dos bloques marcados «142» (el candado de `created_by` y el deshacer de almacén con tienda). No se perdió
+nada de 122, 123, 125, 127, 138 ni 139.
+
+### Lo que hay que saber
+
+- **1 office y 2 gerentes no tienen tienda** (medido el 2026-09-23): con la 142 solo borran sus propios borradores.
+  Si deben borrar los de una tienda, se les pone en Ajustes.
+- **El motivo obligatorio del deshacer lo pide la pantalla** y va en la nota del evento, como en la 139: la base no
+  lo comprueba.
+- **Borrar una orden a la que apunta una reentrega** pone `redelivery_of` a nulo con un UPDATE interno que pasa por el
+  guard como quien borra. Un borrador no es origen de reentregas, así que no debería darse; dicho por si aparece.
+- **Pruebas del repo que leen la 139** como definición del guard (`entregar-ya-y-deshacer.test.ts`,
+  `agregar-material.test.ts`) se mueven a la 142 en la rama de pantalla.

@@ -37,7 +37,7 @@ const claveDelNavegadorDePromos = (rol: string) => `rtg_promos_columns_${rol}`;
  * filas y PostgREST responde limpio: sin `.select()`, «guardado» sería una suposición.
  */
 export function TablaDeRonda({
-  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro,
+  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas, tiendasSinGrupo,
 }: {
   ronda: { id: string; label: string; closed_at: string | null };
   productos: ProductoDeCatalogo[];
@@ -48,6 +48,10 @@ export function TablaDeRonda({
   esDecisor: boolean;
   esAdmin: boolean;
   gruposDelLibro: string[];
+  /** Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). */
+  rondas: readonly { id: string; label: string; uploaded_at: string; closed_at: string | null }[];
+  /** Tiendas a las que les falta el grupo de promociones. Vacío = no hay nada que avisar. */
+  tiendasSinGrupo: readonly string[];
 }) {
   const { lang, t } = usePrefs();
   const router = useRouter();
@@ -250,15 +254,45 @@ export function TablaDeRonda({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0 }}>🏷️ {ronda.label}</h1>
         {rondaCerrada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>{t("Closed", "Cerrada")}</span>}
+        {/* El selector que sustituye a la lista de rondas (D-375). Solo sale si hay MAS DE UNA:
+            con una sola ronda seria un desplegable de un elemento, que es justo el clic de mas que
+            el dueno mando quitar. Es un `<select>` y no enlaces porque las rondas crecen con los
+            meses y una fila de enlaces se hace larga sola. */}
+        {rondas.length > 1 && (
+          <select
+            value={ronda.id}
+            aria-label={t("Round", "Ronda")}
+            style={{ maxWidth: 260 }}
+            onChange={(e) => { if (e.target.value !== ronda.id) router.push(`/promos/${e.target.value}`); }}
+          >
+            {rondas.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}{r.closed_at ? t(" · closed", " · cerrada") : ""}
+              </option>
+            ))}
+          </select>
+        )}
         {esAdmin && (
           <button onClick={() => cierraOReabre(!rondaCerrada)} disabled={ocupado}>
             {rondaCerrada ? t("Reopen round", "Reabrir ronda") : t("Close round", "Cerrar ronda")}
           </button>
         )}
       </div>
+
+      {/* El aviso de los grupos de tienda: SOLO al admin y SOLO si falta alguno, y diciendo cual.
+          Antes se ensenaba siempre, en la pantalla que ya no existe; un aviso permanente sobre algo
+          que ya esta hecho deja de leerse, y entonces tampoco se lee el dia que si falta. */}
+      {esAdmin && tiendasSinGrupo.length > 0 && (
+        <div className="card" style={{ borderColor: "var(--amber)", marginTop: 10 }}>
+          {t(
+            `These stores have no promo group, so nobody there can approve: ${tiendasSinGrupo.join(", ")}. Set it in Data → Stores.`,
+            `Estas tiendas no tienen grupo de promociones, así que nadie de ellas puede aprobar: ${tiendasSinGrupo.join(", ")}. Se pone en Datos → Tiendas.`,
+          )}
+        </div>
+      )}
 
       {esAdmin && gruposDelLibro.length > 0 && (
         <div className="field" style={{ maxWidth: 260, marginTop: 10 }}>
@@ -315,10 +349,15 @@ export function TablaDeRonda({
       {sePuede && seleccion.size > 0 && (
         <div className="card" style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <b>{t(`${seleccion.size} selected`, `${seleccion.size} seleccionados`)}</b>
-          <button className="primary" disabled={ocupado} onClick={() => guarda([...seleccion], "approved")}>{t("Approve", "Aprobar")}</button>
-          <button disabled={ocupado} onClick={() => guarda([...seleccion], "rejected")}>{t("Reject", "Rechazar")}</button>
-          <button disabled={ocupado} onClick={() => guarda([...seleccion], "pending")}>{t("Back to pending", "Dejar pendiente")}</button>
-          <button onClick={() => setSeleccion(new Set())}>{t("Clear", "Limpiar")}</button>
+          {/* Aprobar VERDE y rechazar ROJO, aqui y en cada fila, con las clases de la paleta
+              (`btn-green` / `btn-danger`, que salen de --green y --red). Antes aprobar era el azul
+              de `primary` y rechazar un boton igual que «Limpiar»: el color no distinguia lo que se
+              iba a hacer, y son las dos acciones de la pantalla. Dejar pendiente se queda neutro a
+              proposito — es deshacer, no una tercera decision. */}
+          <button className="btn btn-green" disabled={ocupado} onClick={() => guarda([...seleccion], "approved")}>✓ {t("Approve", "Aprobar")}</button>
+          <button className="btn btn-danger" disabled={ocupado} onClick={() => guarda([...seleccion], "rejected")}>✕ {t("Reject", "Rechazar")}</button>
+          <button className="btn btn-ghost" disabled={ocupado} onClick={() => guarda([...seleccion], "pending")}>{t("Back to pending", "Dejar pendiente")}</button>
+          <button className="btn btn-ghost" onClick={() => setSeleccion(new Set())}>{t("Clear", "Limpiar")}</button>
           <span className="hint">{t("Notes are kept: a bulk change only changes the decision.", "Las notas se conservan: un cambio en bloque solo cambia la decisión.")}</span>
         </div>
       )}
@@ -416,8 +455,8 @@ export function TablaDeRonda({
                           `f.nota`, que además de innecesario era una escritura perdida — la nota
                           que esta pantalla leyó pisaría la que otra persona hubiera escrito
                           mientras. La nota solo viaja desde el recuadro de editarla. */}
-                      <button disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")}>✓</button>
-                      <button disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")}>✕</button>
+                      <button className="btn btn-sm btn-green" disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")} aria-label={t("Approve", "Aprobar")}>✓</button>
+                      <button className="btn btn-sm btn-danger" disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")} aria-label={t("Reject", "Rechazar")}>✕</button>
                     </span>
                   </td>
                 )}
