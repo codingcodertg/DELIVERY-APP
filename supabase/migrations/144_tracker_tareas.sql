@@ -124,10 +124,22 @@ begin
     NEW.completado_en  := now();
   end if;
 
-  -- Deshacer de un clic: al salir de «Completado» se borra el sello, para que no quede mintiendo.
-  if TG_OP = 'UPDATE' and OLD.estado = 'Completado' and NEW.estado is distinct from 'Completado' then
+  -- El sello se decide SIEMPRE aqui, no solo al entrar y al salir de «Completado».
+  --
+  -- La primera version solo lo sellaba al entrar y lo limpiaba al salir, y dejaba un hueco: en una
+  -- tarea que NUNCA ha estado completada, el cliente podia mandar `completado_por` y `completado_en`
+  -- a mano y quedaban escritos. Una tarea sin cerrar con el sello de alguien puesto es una mentira
+  -- que nadie mira, porque el estado se lee y el sello no.
+  --
+  -- Las tres ramas: fuera de «Completado» el sello no existe; si sigue completada, se conserva el de
+  -- OLD —o sea que tampoco se puede reescribir quien la cerro—; y al ENTRAR, el bloque de arriba ya
+  -- lo puso desde auth.uid() y aqui no se toca (esa rama no entra por ninguna de las dos).
+  if NEW.estado is distinct from 'Completado' then
     NEW.completado_por := null;
     NEW.completado_en  := null;
+  elsif TG_OP = 'UPDATE' and OLD.estado = 'Completado' then
+    NEW.completado_por := OLD.completado_por;
+    NEW.completado_en  := OLD.completado_en;
   end if;
 
   NEW.modificado := now();
@@ -144,8 +156,13 @@ create trigger tracker_tareas_guard
 -- ---------------------------------------------------------------------------
 do $chk$
 declare
-  n_pol int;
-  def   text := pg_get_functiondef('public.tracker_guard_completado()'::regprocedure);
+  n_pol  int;
+  def    text := pg_get_functiondef('public.tracker_guard_completado()'::regprocedure);
+  -- El cuerpo SIN las lineas de comentario. Se quitan solo las que empiezan por `--` (con espacios
+  -- delante), y no cualquier `--` suelto, para no tocar un `--` que viviera dentro de una cadena.
+  -- La `n` de las banderas es lo que hace que `^` y `$` valgan por linea; sin ella, `.` se come los
+  -- saltos y el primer comentario se llevaria por delante el resto de la funcion.
+  codigo text := regexp_replace(def, '^[ \t]*--.*$', '', 'gn');
 begin
   if not exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'tracker_tareas') then
     raise exception '144: no existe public.tracker_tareas';
@@ -172,11 +189,22 @@ begin
     raise exception '144: alguna politica de authenticated no mira is_admin()';
   end if;
   -- El trigger NO puede llevar el «sin sesion, pasa todo» de los guard_*.
-  if position('auth.uid() is null then return NEW' in def) > 0 then
+  --
+  -- **Se mira el CODIGO, no los comentarios**, y esto costo un ensayo entero: `pg_get_functiondef`
+  -- devuelve el cuerpo con sus comentarios dentro, y el comentario que explica esta misma regla cita
+  -- la frase prohibida. La comprobacion se disparaba sola y la migracion abortaba antes de aplicar
+  -- nada. Quitando las lineas `--` se puede seguir explicando la regla sin que la explicacion la
+  -- rompa, que es lo que se quiere: el dia que alguien vuelva a citar el patron para contar por que
+  -- no se usa, esto seguira funcionando.
+  if position('auth.uid() is null then return NEW' in codigo) > 0 then
     raise exception '144: el trigger dejaria pasar a service-role, que es justo lo que no debe';
   end if;
-  if position('auth.uid() is null' in def) = 0 then
+  if position('auth.uid() is null' in codigo) = 0 then
     raise exception '144: el trigger no comprueba que haya sesion';
+  end if;
+  -- Y el sello se decide siempre, no solo al entrar y salir de «Completado».
+  if position('NEW.estado is distinct from ''Completado'' then' in codigo) = 0 then
+    raise exception '144: el trigger no limpia el sello cuando el estado final no es Completado';
   end if;
   if not exists (select 1 from pg_trigger where tgname = 'tracker_tareas_guard' and not tgisinternal) then
     raise exception '144: falta el trigger tracker_tareas_guard';
@@ -190,4 +218,4 @@ end $chk$;
 --   delete from public.schema_migrations where name = '144_tracker_tareas.sql';
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('144_tracker_tareas.sql', '7e63da42f99cd31e0876ebc9c3303958f943c607bada32658d620e073a72e250') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('144_tracker_tareas.sql', 'b1b984d41490c02c74502af441ab0a29bb988c3fe3680482ba081f993ababbdb') on conflict (name) do nothing;

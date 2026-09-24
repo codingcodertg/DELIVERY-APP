@@ -23,11 +23,12 @@ const SQL = readFileSync(join(process.cwd(), "supabase", "migrations", "144_trac
  * negativa no distingue la prosa del código. Y el bloque de auto-comprobación también nombra esa
  * cadena dentro de un `position(...)`, así que tampoco vale mirar el fichero entero.
  */
-const CUERPO_TRIGGER = (() => {
+const CUERPO_CON_COMENTARIOS = (() => {
   const i = SQL.indexOf("create or replace function public.tracker_guard_completado()");
   const j = SQL.indexOf("drop trigger if exists", i);
-  return SQL.slice(i, j).replace(/^\s*--.*$/gm, "");
+  return SQL.slice(i, j);
 })();
+const CUERPO_TRIGGER = CUERPO_CON_COMENTARIOS.replace(/^\s*--.*$/gm, "");
 
 describe("la 144: «Completado» solo lo pone el dueño desde su sesión", () => {
   it("el trigger NO lleva el «sin sesión, pasa todo» de los guard_*", () => {
@@ -64,6 +65,62 @@ describe("la 144: «Completado» solo lo pone el dueño desde su sesión", () =>
     expect(SQL).toContain("se esperaban 4 politicas para authenticated");
     expect(SQL).toContain("hay una politica FOR ALL para authenticated");
     expect(SQL).toContain("el trigger dejaria pasar a service-role");
+  });
+});
+
+describe("la 144: la autocomprobación no se dispara con su propio comentario", () => {
+  // **Esto reprodujo un fallo real, y por eso está escrito así.** El primer ensayo de la 144 contra
+  // la base abortó con «144: el trigger dejaría pasar a service-role» — y el trigger estaba bien. La
+  // causa: `pg_get_functiondef` devuelve el cuerpo CON sus comentarios, y el comentario que explica
+  // por qué no se usa el patrón de los `guard_*` **cita la frase prohibida**. La comprobación se
+  // disparaba sola.
+  //
+  // Las pruebas de antes no lo cazaban porque leen el `.sql`, no lo ejecutan. Esta imita en JS lo
+  // que hace la comprobación en SQL, sobre el mismo cuerpo, así que sí lo caza.
+
+  /** Lo mismo que hace el `regexp_replace(def, '^[ \\t]*--.*$', '', 'gn')` de la migración. */
+  const sinComentarios = (t) => t.replace(/^[ \t]*--.*$/gm, "");
+
+  it("el cuerpo SÍ contiene la frase prohibida, dentro de un comentario", () => {
+    // La reproducción: si esto dejara de ser cierto, la prueba de abajo pasaría por no haber nada
+    // que quitar, y estaría midiendo el vacío.
+    expect(CUERPO_CON_COMENTARIOS).toContain("`if auth.uid() is null then return NEW`");
+  });
+
+  it("y quitando los comentarios ya no, que es lo que mira la migración", () => {
+    expect(sinComentarios(CUERPO_CON_COMENTARIOS)).not.toContain("auth.uid() is null then return NEW");
+  });
+
+  it("y la migración quita los comentarios ANTES de buscar, no después", () => {
+    const chk = SQL.slice(SQL.indexOf("do $chk$"));
+    expect(chk).toContain("regexp_replace(def, '^[ \\t]*--.*$', '', 'gn')");
+    // Busca sobre `codigo`, nunca sobre `def`: si se le escapa uno, vuelve el falso positivo.
+    expect(chk).toContain("position('auth.uid() is null then return NEW' in codigo)");
+    expect(chk).not.toContain("in def) > 0");
+  });
+
+  it("la bandera `n` está puesta: sin ella el primer comentario se come la función entera", () => {
+    // `.` incluye los saltos de línea si no se pide sensibilidad a línea, así que `--.*$` sin `n`
+    // borraría desde el primer comentario hasta el final.
+    expect(SQL).toContain("'gn')");
+    expect(sinComentarios(CUERPO_CON_COMENTARIOS).length).toBeGreaterThan(500);
+  });
+});
+
+describe("la 144: el sello de quién cerró no se puede escribir a mano", () => {
+  it("se limpia SIEMPRE que el estado final no sea «Completado»", () => {
+    // El hueco de la primera versión: solo sellaba al entrar y limpiaba al salir, así que en una
+    // tarea que nunca estuvo cerrada el cliente podía mandar el sello y quedaba escrito. Una tarea
+    // sin cerrar con el sello de alguien puesto es una mentira que nadie mira, porque se lee el
+    // estado y no el sello.
+    expect(CUERPO_TRIGGER).toContain("if NEW.estado is distinct from 'Completado' then");
+    const rama = CUERPO_TRIGGER.slice(CUERPO_TRIGGER.indexOf("if NEW.estado is distinct from 'Completado' then"));
+    expect(rama).toContain("NEW.completado_por := null;");
+  });
+
+  it("y si sigue cerrada, se conserva el de OLD: tampoco se reescribe quién la cerró", () => {
+    expect(CUERPO_TRIGGER).toContain("elsif TG_OP = 'UPDATE' and OLD.estado = 'Completado' then");
+    expect(CUERPO_TRIGGER).toContain("NEW.completado_por := OLD.completado_por;");
   });
 });
 
