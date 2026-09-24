@@ -1,0 +1,33 @@
+{
+  "id": "T-0067",
+  "fecha": "2026-09-17",
+  "resumen": "La ficha de una Intertienda enseña lo que importa a las dos tiendas: sin cuenta ni contacto de cliente, con el teléfono del almacén al que llamar, el destino en rojo, y visible desde las dos puntas.",
+  "texto_original": "in intertienda, the store sold from should be the contact tname and remove the row fo store sold from ands store address from interitenda orders only",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-18 a las 09:31: «in intertienda orders people from both pickup and delivery store can see the order because les importa a ambos remove account contact name and phone number from intertienda store sold from should have the address so driver could clcik on any pu or del store and see the warehouse phone number so he can call him in intertienda the store estination should be in red as well add a tab of pending invoice entry pending and sorted by store»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-17 12:31",
+    "sesion:83590ac0 2026-09-18 09:31"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

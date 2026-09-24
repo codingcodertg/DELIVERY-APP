@@ -1,0 +1,38 @@
+{
+  "id": "T-0297",
+  "fecha": "2026-09-17",
+  "resumen": "La tabla ocupa el ancho con cualquier número de columnas",
+  "texto_original": "only sales people gets the table cropped",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "e9fe6b37"
+    ],
+    "prs": [
+      "103"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-281"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:25-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-281 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:25-05:00",
+  "modificado": "2026-09-24T08:34:25-05:00"
+}

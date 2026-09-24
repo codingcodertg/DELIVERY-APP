@@ -1,0 +1,42 @@
+{
+  "id": "T-0003",
+  "fecha": "2026-09-21",
+  "resumen": "Todos los roles ven todas las órdenes, sin ventana de fechas.",
+  "texto_original": "activa lo que pueden ver todas las ordenes regardless del date a todos, la opcion que creamos activala",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "063a1623"
+    ],
+    "prs": [
+      "180"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-356"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T20:50:11-05:00",
+      "texto": "REVERTIDA el 2026-09-23 a petición suya: ver T-0001. Se deja porque paso, y porque el tracker tiene que poder enseñar una petición que luego se deshizo."
+    },
+    {
+      "fecha": "2026-09-23T21:12:12-05:00",
+      "texto": "Ligada a T-0006 (la petición original del 2026-09-11) y a T-0001 (la vuelta de hoy)."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-356"
+  ],
+  "creado": "2026-09-23T20:50:11-05:00",
+  "modificado": "2026-09-23T21:14:35-05:00"
+}

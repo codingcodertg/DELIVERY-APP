@@ -1,0 +1,38 @@
+{
+  "id": "T-0324",
+  "fecha": "2026-09-18",
+  "resumen": "El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer",
+  "texto_original": "the original calculation of the discount is not appearing fix it\nand work on that",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "404ea02f"
+    ],
+    "prs": [
+      "138"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-317"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-317 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

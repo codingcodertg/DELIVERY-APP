@@ -1,0 +1,38 @@
+{
+  "id": "T-0256",
+  "fecha": "2026-09-08",
+  "resumen": "La ventana de escritorio aprende a qué sitio pertenece, y deja de echar fuera lo suyo",
+  "texto_original": "en la app de escritorio, Sign out no cierra la sesión: abre el\nnavegador",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "67532201"
+    ],
+    "prs": [
+      "41"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-225"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:22-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-225 (2026-09-08)"
+  ],
+  "creado": "2026-09-24T08:34:22-05:00",
+  "modificado": "2026-09-24T08:34:22-05:00"
+}

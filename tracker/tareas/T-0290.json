@@ -1,0 +1,38 @@
+{
+  "id": "T-0290",
+  "fecha": "2026-09-17",
+  "resumen": "El directorio enseña la extensión de cada tienda",
+  "texto_original": "pon la extensión en el directorio: RHC BRO ext 100, y lo mismo con las demás tiendas; todas las\nextensiones de una tienda empiezan por el mismo número, así que es ese número con 00",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "d01e7184"
+    ],
+    "prs": [
+      "93"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-273"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:24-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-273 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

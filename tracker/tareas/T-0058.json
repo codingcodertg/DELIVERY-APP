@@ -1,0 +1,27 @@
+{
+  "id": "T-0058",
+  "fecha": "2026-09-16",
+  "resumen": "Cambiar el número de teléfono al que llega la ayuda.",
+  "texto_original": "CAMBIA MI NUMERO DE HELP A ES TE 9564626849",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 12:17"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

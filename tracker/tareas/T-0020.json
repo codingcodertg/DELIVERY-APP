@@ -1,0 +1,33 @@
+{
+  "id": "T-0020",
+  "fecha": "2026-09-04",
+  "resumen": "El horario pasa a vivir dentro de Asignaciones: las dos pantallas se funden en una.",
+  "texto_original": "en deliveries app schedule tiene que ir dentro de assignments haz un merge inteligente y eficiente para que el feature de las 2 sea uno solo",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "7a54260b"
+    ],
+    "prs": [
+      "3"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-186"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-04 12:48"
+  ],
+  "creado": "2026-09-23T21:30:51-05:00",
+  "modificado": "2026-09-23T21:30:51-05:00"
+}

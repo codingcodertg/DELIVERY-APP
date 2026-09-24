@@ -1,0 +1,69 @@
+{
+  "id": "T-0013",
+  "fecha": "2026-09-23",
+  "resumen": "RTG PROMOS: una tabla donde los gerentes de tienda aprueban o rechazan productos en promoción, con la vista de admin del avance por tienda.",
+  "texto_original": "<pasted_content id=\"e8e0\"> Ok, quiero que hagamos una nueva view en el RGG Hub. No es una no es una nueva app como tal, solo es un es un table prácticamente. Donde van a venir los se van a subir un, un table, ya te lo voy a mandar, y los administradores Office Managers van a elegir los productos que son en promoción y van a elegir qué promoción quiere y cuál no. Entonces quiero que te voy a mandar eso para que ellos miren. Ellos pueden aceptar o denegar y cada eh, eh, table tiene su, orden, las puedes cambiar de voz, así como Excel, resize, eh, sus columnas, sele los puedes seleccionar varias, eh, ¿qué más? Vamos a hacer también lo que es eh, eh, sort, eh, filtrar, todo eso. Y, y obviamente lo que es elegir cuáles apruebo y cuáles no apruebo y después que quede un filtro decir cuáles fueron las aprobadas y eso es por tienda, entonces cada ahí también me tiene que salir cuántas tiendas ya hicieron eso y, y yo verlo como administrador verlo todo, pero cada office manager se le asigna su tienda y ellos tienen que elegir eso y después a mí me sale el resultado prácticamente. </pasted_content id=\"e8e0\"> \"C:\\Users\\andre\\Downloads\\9.25.26 Promo (1).xlsx\"",
+  "lo_hizo_claude": "Parcial",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "69f30487",
+      "6c6e351f",
+      "a3dc418c",
+      "b079e3ff",
+      "b7182e21"
+    ],
+    "prs": [
+      "194",
+      "196",
+      "197",
+      "198",
+      "199"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-366",
+      "D-368",
+      "D-369",
+      "D-370",
+      "D-371"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "CASO RARO: cinco decisiones en un día, con una vuelta atrás dentro. A las 17:58 dijo «its horrble, first it doesnt fit in 1 screen, make it the style of the order table in deliveries» y además «eso de cargar files no quita eso yo te doy la informacion y tu la subes»: D-370 rehizo la tabla y quitó la subida por pantalla que D-368 había construido cinco horas antes."
+    },
+    {
+      "fecha": "2026-09-23T21:11:38-05:00",
+      "texto": "«Parcial» porque falta el resumen de avance por tienda para el admin, que es la mitad de lo que pidió. Esta en espera de que él use la tabla."
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-23 a las 17:52: «no me aparece en el RTG hub»"
+    },
+    {
+      "fecha": "2026-09-23T21:14:35-05:00",
+      "texto": "Lo repitió el 2026-09-23 a las 17:58: «its horrble, first it doesnt fit in 1 screen, make it the style of the order tabl;e in deliveries encause is horrible and also eso de cargar files no quita eso yo te doy l ainformacion y tu la subes y punto»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-23 a las 17:54: «porque no me aparece nada ya lo puse caragalo»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-23 14:33",
+    "sesion:83590ac0 2026-09-23 17:52",
+    "sesion:83590ac0 2026-09-23 17:58",
+    "sesion:83590ac0 2026-09-23 17:54"
+  ],
+  "creado": "2026-09-23T21:11:38-05:00",
+  "modificado": "2026-09-23T21:33:02-05:00"
+}

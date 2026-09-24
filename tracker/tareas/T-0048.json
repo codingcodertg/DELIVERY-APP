@@ -1,0 +1,33 @@
+{
+  "id": "T-0048",
+  "fecha": "2026-09-11",
+  "resumen": "A las 18:30 se cierra la sesión de todos menos admin y dueño, sin perder la entrada rápida: solo hay que volver a poner la contraseña.",
+  "texto_original": "PON LA REGLA QUE A LSA 630 PM DE TODOS LOS DIAS TODOS LOS USAURIO EXCEPETO ADMIN Y OWNER HACER UN AUTOMATIC SIGN OUT, CLARO SIN PERDER EL FAST LOGIN QUE YA ESTA DONDE AHI QUEDA GUARDADO EL PERFIL YT SOLO DEBEN PONER LA CONTRASENA",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "d0133852"
+    ],
+    "prs": [
+      "66"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-248"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-11 22:03"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

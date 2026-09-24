@@ -1,0 +1,72 @@
+{
+  "id": "T-0018",
+  "fecha": "2026-09-04",
+  "resumen": "Los dos crons que quedaron sin programar desde D-182: el de fichaje (necesita correr varias veces al día) y el borrado de fotos.",
+  "texto_original": "no vamos a quitar ese sistema de cron y nosotros hacer uno",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "2b9f4d2d"
+    ],
+    "prs": [],
+    "ficheros": [
+      "vercel.json"
+    ],
+    "decisiones": [
+      "D-182"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:22:12-05:00",
+      "texto": "MEDIDO HOY: vercel.json sigue con dos crons, notion-summary y roll-schedules. Los otros dos que D-182 inventarió el 2026-09-03 —clock-in/api/cron y cleanup-photos— siguen sin programar, veinte días después."
+    },
+    {
+      "fecha": "2026-09-23T21:22:12-05:00",
+      "texto": "La propia D-182 dice por qué se dejaron: el de fichaje necesita correr más de una vez al día y el de fotos es destructivo. O sea que no es un olvido, es una decisión aplazada. Entra en el tracker porque aplazada sin fecha y sin dueño es indistinguible de olvidada."
+    },
+    {
+      "fecha": "2026-09-23T21:22:12-05:00",
+      "texto": "Ese día hubo cuatro mensajes suyos sobre el cron y el secreto (15:01, 15:02, 15:06, 15:24), tres de ellos preguntas. Las preguntas no son tareas; ESTA sí, porque dejó algo por hacer."
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-04 a las 14:35: «dame instrucciones para lo del cron»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-04 a las 14:41: «no puedo ver el valor porque es sereto»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-04 a las 14:53: «no me deja verlo poqque es secreto y ya lo habia puesto yo en vercel»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-04 a las 15:01: «y donde consigo ese secret dame los links»"
+    },
+    {
+      "fecha": "2026-09-23T21:33:02-05:00",
+      "texto": "Lo pidió o lo afinó el 2026-09-04 a las 15:24: «dame el link de cron para conseguir ese secreto»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-04 15:06",
+    "DECISIONS.md:D-182",
+    "sesion:83590ac0 2026-09-04 14:35",
+    "sesion:83590ac0 2026-09-04 14:41",
+    "sesion:83590ac0 2026-09-04 14:53",
+    "sesion:83590ac0 2026-09-04 15:01",
+    "sesion:83590ac0 2026-09-04 15:24"
+  ],
+  "creado": "2026-09-23T21:22:12-05:00",
+  "modificado": "2026-09-23T21:33:02-05:00"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "T-0080",
+  "fecha": "2026-09-19",
+  "resumen": "Doce retoques del formulario de orden en un solo mensaje: la búsqueda de dirección acotada a Texas y a la zona verde, buscar por número completo en factura y en cuenta, fuera el tipo de cliente, «Crear» en vez de «Enviar», «Almacén de recolección», y una columna de dirección de entrega para ventas.",
+  "texto_original": "buscar dirrrecion en el mapa take that out doesnt do anything put the search dirrecion scope in tx and even more on the area marked in the green first delivery in time window misma factura box, don;t show options in the dropdwon you must input a number to be search and the number must be complete to be able to be found so add a magnificer icon that means to search cuentas shou'dnt show you the lsit like misma factura they must enter a en cuenta ahi se elecion venta al mosttador y todo lo demas son builders aentonces quita el box de tipo de cliente del form si se selecicona centa venta al mostrador nombre de contacto yt telefono siemrpe sera vacio porque no es unac uenta son cuentas par alos qe son clientes walkin en ves de enviar que diga crear isntead of nombre de recolecion dira almacen de recolecion add delivery addres column to sales poeple",
+  "lo_hizo_claude": "Parcial",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9e3a0e9f"
+    ],
+    "prs": [
+      "158"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-337"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-19 20:52"
+  ],
+  "creado": "2026-09-23T21:30:53-05:00",
+  "modificado": "2026-09-23T21:30:53-05:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "T-0355",
+  "fecha": "2026-09-23",
+  "resumen": "Un cambio en bloque pregunta a cuántas toca, no toca entregadas ni anuladas, y el historial guarda de qué valor venía",
+  "texto_original": "Changed: Delivery Date",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "b1a847cf"
+    ],
+    "prs": [
+      "200"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-372"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:30-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-372 (2026-09-23)"
+  ],
+  "creado": "2026-09-24T08:34:30-05:00",
+  "modificado": "2026-09-24T08:34:30-05:00"
+}

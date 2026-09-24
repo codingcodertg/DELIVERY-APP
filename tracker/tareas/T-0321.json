@@ -1,0 +1,38 @@
+{
+  "id": "T-0321",
+  "fecha": "2026-09-18",
+  "resumen": "Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear",
+  "texto_original": "el filtro de invoices también falta el filtro de all en órdenes para que lo agregues",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "fba7e0b7"
+    ],
+    "prs": [
+      "134"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-313"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-313 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "T-0248",
+  "fecha": "2026-09-06",
+  "resumen": "La foto fuera de la geocerca se marca en rojo y más grande (mapa y línea bajo la foto)",
+  "texto_original": "quiero que sea un icon rojo más visible",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "3d02fdd4"
+    ],
+    "prs": [
+      "30"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-214"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:21-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-214 (2026-09-06)"
+  ],
+  "creado": "2026-09-24T08:34:21-05:00",
+  "modificado": "2026-09-24T08:34:21-05:00"
+}

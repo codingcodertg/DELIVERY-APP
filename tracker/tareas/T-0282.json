@@ -1,0 +1,38 @@
+{
+  "id": "T-0282",
+  "fecha": "2026-09-16",
+  "resumen": "«¿Olvidaste tu contraseña?» funciona abriendo el correo en cualquier equipo",
+  "texto_original": "me manda el correo pero al ingresar solo me lleva al RTG Hub lobby y nada más",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "c4551bd8"
+    ],
+    "prs": [
+      "84"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-263"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:23-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-263 (2026-09-16)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

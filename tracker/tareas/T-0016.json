@@ -1,0 +1,87 @@
+{
+  "id": "T-0016",
+  "fecha": "2026-08-18",
+  "resumen": "La documentación viva de Notion lleva parada desde D-089: de 370 decisiones del repo, Notion solo tiene 94.",
+  "texto_original": "",
+  "lo_hizo_claude": "No",
+  "estado": "Ocupa revisión",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [
+      "scripts/notion/sync.mjs",
+      "CLAUDE.md"
+    ],
+    "decisiones": [],
+    "links": [
+      "https://app.notion.com/p/RDZ-Deliveries-Documentaci-n-3c069c11154f812a8684e0d5737b3dbf"
+    ]
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "MEDIDO HOY, no supuesto: la base de ADR en Notion termina en D-308, fechada el 2026-09-17, y la página índice se editó por última vez el 2026-08-18. En el repo hay 372 decisiones numeradas. Faltan 64."
+    },
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "No es una tarea que él pidiera con esas palabras: sale de la regla 1 de CLAUDE.md, que dice que cada cambio de código actualiza Notion en la misma sesión. Entra en el tracker porque es una acción pendiente que nadie estaba contando, que es justo lo que este sistema viene a evitar."
+    },
+    {
+      "fecha": "2026-09-23T21:21:29-05:00",
+      "texto": "Lo que lo bloquea es concreto: sync.mjs necesita NOTION_TOKEN, que vive en las variables de Vercel y no en el repo. El asistente lo recibe del dueño cuando hace falta, y desde el 17 de septiembre no se ha pasado. Correrlo es un comando; conseguir el token es la parte que ocupa a alguien."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "CORRECCIÓN, y el número de arriba estaba mal. «La base termina en D-308» es cierto; «por eso faltan 64» no se sigue de ahí: el máximo no dice que esté todo lo anterior. Lo señaló el orquestador y lo he vuelto a medir yo contra Notion, sacando la lista entera de IDs en vez del máximo."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "MEDIDO (SQL sobre la base de ADR, lista completa de IDs, no MAX): Notion tiene 94 filas — D-001 a D-088 seguidas, y luego D-303 a D-308. Nada entre medias. Los huecos son D-089 a D-302 y D-309 a D-372. El repo tiene 370 entradas numeradas, porque D-124 y D-178 nunca existieron (comprobado comparando los 372 números con los títulos del fichero). Así que faltan en Notion 370 - 94 = 276, no 64."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "Las seis de D-303 a D-308 las creó el orquestador a mano por MCP el 2026-09-18, y por eso la fecha más reciente es del 17 y engaña: parece que el sync corrió hasta entonces y lo que hubo fue un parche manual de seis filas. La última corrida real de sync.mjs está antes de D-089."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "Y el token no se puede sacar por línea de órdenes. Medido por el orquestador, no por mí: NOTION_TOKEN existe en Vercel Producción, pero `vercel env pull` lo devuelve vacío, igual que las otras 34 variables cifradas. Tiene que verlo el dueño en el panel de Vercel y pasarlo."
+    },
+    {
+      "fecha": "2026-09-23T21:24:30-05:00",
+      "texto": "AVISO SOBRE ESTA MISMA ENTRADA: además de las notas, cambié el resumen, que es más de lo que me pidieron («corrige con una nota dentro, sin reescribirla»). Lo hago porque el resumen es la línea que se ve en la tabla, y dejarla diciendo «faltan 64» hace que el tracker enseñe un dato falso con la corrección a tres clics. El texto que había, palabra por palabra, para que no se pierda: «La documentación viva de Notion se quedó parada: el espejo de decisiones llega a D-308 y el repo va por D-372.» Si el orquestador prefiere el original, se vuelve a poner y esta nota explica el ida y vuelta."
+    },
+    {
+      "fecha": "2026-09-23T21:24:30-05:00",
+      "texto": "La fecha de la tarea sigue siendo 2026-09-17 y también es discutible: se puso por la fila más reciente de Notion, que ahora sabemos que es un parche manual. El corte real está entre D-088 (2026-08-21, la última sincronizada) y D-089 (2026-08-22, la primera que falta). Se deja la fecha como está y se dice aquí, en vez de moverla y que nadie sepa por qué bailó."
+    },
+    {
+      "fecha": "2026-09-23T21:26:35-05:00",
+      "texto": "FECHA CORREGIDA a 2026-08-18. El campo es «cuándo lo pidió el dueño», no cuándo se paró Notion ni cuándo me enteré. Estaba en 2026-09-17, que era la fila parcheada a mano: la peor de las opciones, porque ni siquiera era el corte real."
+    },
+    {
+      "fecha": "2026-09-23T21:26:35-05:00",
+      "texto": "El pedido es D-046, «La documentación viva se mantiene en Notion», del 2026-08-18 y con «Pedido por: Andrés». Es lo más cerca del pedido que hay, que es la regla para las tareas que salen de DECISIONS.md."
+    },
+    {
+      "fecha": "2026-09-23T21:26:35-05:00",
+      "texto": "COMPROBADO antes de poner otra fecha: el dueño NO escribió ningún mensaje sobre Notion ni sobre el token en las sesiones de esta máquina — busqué «notion», «ntn_» y «documentación viva» en los 257 y los dos únicos aciertos son informes de la laptop que él pegó, o sea texto mío, no suyo. Y el «dónde consigo ese secret» del 2026-09-04 es del CRON_SECRET, no de Notion: el mensaje de las 15:24 dice «el link de cron para conseguir ese secreto». Ese hilo está en T-0018, donde le toca."
+    },
+    {
+      "fecha": "2026-09-23T21:26:35-05:00",
+      "texto": "El corte entre D-088 (2026-08-21) y D-089 (2026-08-22) no es la fecha de la tarea: es evidencia de hasta dónde llegó el sync, y se queda en las notas."
+    }
+  ],
+  "fuentes": [
+    "CLAUDE.md, regla 1 de la documentación viva",
+    "medido en Notion el 2026-09-23",
+    "DECISIONS.md:D-046 (2026-08-18)"
+  ],
+  "creado": "2026-09-23T21:21:29-05:00",
+  "modificado": "2026-09-23T21:26:35-05:00"
+}

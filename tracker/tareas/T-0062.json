@@ -1,0 +1,38 @@
+{
+  "id": "T-0062",
+  "fecha": "2026-09-16",
+  "resumen": "Al crear una Intertienda, la dirección y la cuenta se llenan solas con las de su tienda, el origen es la tienda a la que se le pide el material, y una tienda no puede venderse a sí misma.",
+  "texto_original": "When i create an intertienda order it wants me to type address. You should have it to where it automatically puts my store address since i want the other store to send me the material",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-17 a las 21:01: «also in the preview interitenda since is intertienda the delivery address must be one of the stores»"
+    },
+    {
+      "fecha": "2026-09-23T21:30:52-05:00",
+      "texto": "Lo repitió o lo afinó el 2026-09-18 a las 11:46: «INV 170059 DICE SOLD FROM EDINBURG Y DEBE DE SER PHARR; APP TIENE QUE AUTOMATICAMENTE PODER SOLD FROM DE LA TIENDA DE LA CUAL ESTOY SOLICITANDO EL MATERIAL Y NO DEBE PERMITIR QUE LA TIENDA SE VENDA A SI MISMO. ACCOUNT SE DEBE DE LLENAR AUTOMATICAMENTE CON EL NOMBRE DE MI TIENDA CUANDO ES INTERTIENDA, GRACIAS.»"
+    }
+  ],
+  "fuentes": [
+    "sesion:83590ac0 2026-09-16 16:00",
+    "sesion:83590ac0 2026-09-17 21:01",
+    "sesion:83590ac0 2026-09-18 11:46"
+  ],
+  "creado": "2026-09-23T21:30:52-05:00",
+  "modificado": "2026-09-23T21:30:52-05:00"
+}

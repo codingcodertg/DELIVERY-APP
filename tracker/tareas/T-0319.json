@@ -1,0 +1,38 @@
+{
+  "id": "T-0319",
+  "fecha": "2026-09-18",
+  "resumen": "Intertienda: las dos tiendas la ven, sin cliente, con destino obligatorio y con a quién llamar",
+  "texto_original": "in intertienda orders people from both pickup and\ndelivery store can see the order because les importa a ambos · remove account contact name and phone\nnumber from intertienda · store sold from should have the address · so driver could click on any pu or\ndel store and see the warehouse phone number so he can call him · in intertienda the store destination\nshould be in red as well",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "887b6b1e"
+    ],
+    "prs": [
+      "131"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-309"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-309 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

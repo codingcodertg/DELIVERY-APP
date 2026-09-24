@@ -1,0 +1,38 @@
+{
+  "id": "T-0309",
+  "fecha": "2026-09-17",
+  "resumen": "La ventana de sábado solo en sábado, y ninguna que termine después del cierre",
+  "texto_original": "delivery window: la ventana de sábado solo debe estar disponible cuando se\nelige un sábado",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "6415e1a5"
+    ],
+    "prs": [
+      "118"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-296"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-296 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

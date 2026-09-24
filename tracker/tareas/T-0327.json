@@ -1,0 +1,38 @@
+{
+  "id": "T-0327",
+  "fecha": "2026-09-18",
+  "resumen": "Motor de rutas, incremento 9: «¿se cumplió el plan?» — la hora real de cada parada, y por qué hoy casi no hay con qué medirla",
+  "texto_original": "¿se cumplió el plan?",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "71aa8929"
+    ],
+    "prs": [
+      "149"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-328"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-328 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:28-05:00",
+  "modificado": "2026-09-24T08:34:28-05:00"
+}

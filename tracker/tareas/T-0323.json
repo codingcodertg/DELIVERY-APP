@@ -1,0 +1,38 @@
+{
+  "id": "T-0323",
+  "fecha": "2026-09-18",
+  "resumen": "Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes",
+  "texto_original": "en cuenta ahí se selecciona venta al mostrador y todo lo demás son builders",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "a47c4be3"
+    ],
+    "prs": [
+      "137"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-316"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-316 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

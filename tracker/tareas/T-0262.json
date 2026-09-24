@@ -1,0 +1,38 @@
+{
+  "id": "T-0262",
+  "fecha": "2026-09-10",
+  "resumen": "El marco de la tabla mide lo que miden sus columnas",
+  "texto_original": "un espacio en blanco que\nparece de la tabla",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "1dc64374"
+    ],
+    "prs": [
+      "48"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-232"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:22-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-232 (2026-09-10)"
+  ],
+  "creado": "2026-09-24T08:34:22-05:00",
+  "modificado": "2026-09-24T08:34:22-05:00"
+}

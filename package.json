@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.269.0",
+  "version": "1.270.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,7 @@
     "lint": "eslint src",
     "test": "vitest run",
     "test:watch": "vitest",
+    "tracker": "node tracker/server.mjs",
     "prepare": "husky"
   },
   "dependencies": {

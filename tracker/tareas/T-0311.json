@@ -1,0 +1,38 @@
+{
+  "id": "T-0311",
+  "fecha": "2026-09-17",
+  "resumen": "La tarjeta de una orden baja de cuatro filas a tres",
+  "texto_original": "sin destruir la\nestética",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "1aa8447b"
+    ],
+    "prs": [
+      "120"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-298"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-298 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

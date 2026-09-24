@@ -1,0 +1,38 @@
+{
+  "id": "T-0254",
+  "fecha": "2026-09-08",
+  "resumen": "El pedido se ubica al guardarse, y cuando no se puede se dice",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9bc2e0e8"
+    ],
+    "prs": [
+      "39"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-223"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:21-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-223 (2026-09-08)"
+  ],
+  "creado": "2026-09-24T08:34:21-05:00",
+  "modificado": "2026-09-24T08:34:21-05:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "T-0352",
+  "fecha": "2026-09-22",
+  "resumen": "Office y el gerente entregan de inmediato y deshacen un paso",
+  "texto_original": "quiero que office people puedan darle deliver a una orden de inmediato y\nrevertir stages si fue un error",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9cc62b42"
+    ],
+    "prs": [
+      "185"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-361"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:30-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-361 (2026-09-22)"
+  ],
+  "creado": "2026-09-24T08:34:30-05:00",
+  "modificado": "2026-09-24T08:34:30-05:00"
+}

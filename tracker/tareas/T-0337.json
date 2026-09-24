@@ -1,0 +1,38 @@
+{
+  "id": "T-0337",
+  "fecha": "2026-09-20",
+  "resumen": "Las tablas de órdenes, más compactas; y que las columnas se redimensionan ya estaba",
+  "texto_original": "make columns rezisable en make the order tables more compact but\nefficeintly at view",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "4d8cdac5"
+    ],
+    "prs": [
+      "167"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-344"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:28-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-344 (2026-09-20)"
+  ],
+  "creado": "2026-09-24T08:34:29-05:00",
+  "modificado": "2026-09-24T08:34:29-05:00"
+}

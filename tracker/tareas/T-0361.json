@@ -1,0 +1,38 @@
+{
+  "id": "T-0361",
+  "fecha": "2026-09-23",
+  "resumen": "El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional",
+  "texto_original": "no me deja seleccionar la columna y se mira un solo relajo, también donde está el id y el invoice qué feo se mira,\narregla eso",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "ed17b3a6"
+    ],
+    "prs": [
+      "203"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-379"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:31-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-379 (2026-09-23)"
+  ],
+  "creado": "2026-09-24T08:34:31-05:00",
+  "modificado": "2026-09-24T08:34:31-05:00"
+}
