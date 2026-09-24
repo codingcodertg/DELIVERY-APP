@@ -25423,6 +25423,15 @@ Es lo contrario de lo que hace el Gestor de Rutas (D-331, «por defecto todas»)
 columnas lo fija el código y aquí lo pone el libro.** Cada tienda nueva del Excel añade una columna, así que «todas» crece sola
 y nadie se entera hasta que no cabe. Hay prueba de que las de partida **suman menos de 1100 px**, que es lo que queda a 1280.
 
+> **Nota dentro de esta entrada (2026-09-23, D-NEXT):** de las tres cosas de este apartado, **una la cambió el dueño el
+> mismo día**: *«pon el inventario de todas las tiendas para vista de todos»*. Las **seis de tienda** pasan a verse al
+> entrar, para todos los roles. Lo demás de aquí sigue en pie —las cinco privadas **no** vuelven al arranque, y el
+> razonamiento de por qué «todas» crece sola tampoco se cae—; lo que cambia es el juicio sobre estas seis: saber qué
+> tienda tiene el material resultó ser parte de decidir, no un extra. **Y con ello caduca el número**: las de partida ya
+> no suman menos de 1100 px sino **1358** con seis tiendas (la prueba lo fija con ese número, no se borró). Lo que
+> sostiene que siga siendo usable no es que quepa, sino lo que esta misma entrada midió de Órdenes: la **página** no se
+> desplaza de lado y la **caja** sí. Medido en el navegador en D-NEXT.
+
 ### Una cosa que estaba a medias y no se había dicho
 
 **Las columnas elegidas no se guardaban.** Vivían en un `useState`: se elegían, se veían, y al recargar volvían al defecto. O
@@ -25957,3 +25966,123 @@ resultado, es un arnés roto — se mira el arnés antes que el código.
   coincidencias, 2 sin destino. Este worktree no tiene llaves de producción, a propósito.
 - **El peso de las listas no se ha medido.** Almacén y ventas cargan ahora menos órdenes que ayer, no
   más, así que si cambia será a mejor; pero es deducción, no medición.
+
+## D-NEXT · Promos entra directo a la tabla, los botones de decidir se ven, y el inventario por tienda es de todos
+
+**Fecha:** 2026-09-23 · **Sin migración.**
+**De dónde sale:** el dueño mandó una captura de `/promos` —la lista de rondas, con el renglón
+«Toca una ronda para aprobar o rechazar sus productos»— y dijo, literal: *«esto elimínalo, que entre
+directo a la tabla; y los botones de aprobar y desaprobar que sean más grandes y por color; y pon el
+inventario de todas las tiendas para vista de todos»*.
+**Lleva nota dentro de D-370**, que es la que decidió lo contrario en una de las tres cosas.
+
+### 1 · `/promos` deja de ser una pantalla y pasa a ser una puerta
+
+La lista de rondas era un clic obligatorio entre, casi siempre, **una sola opción**: la ronda de este
+mes. Ahora `/promos` resuelve a cuál se entra y redirige.
+
+A cuál se entra lo decide `lib/promos/entrada.ts`, aparte de la página y sin React: **la más reciente
+que siga abierta**; si todas están cerradas, la más reciente de todas. Preferir una abierta no es
+adorno — a una cerrada no se le puede decidir nada, y entrar a una pantalla con todos los botones
+apagados se lee como que la app está rota. Ese caso existe: el día que se sube octubre sin haber
+cerrado septiembre hay una cerrada más nueva que la abierta.
+
+**Lo que no se pierde es llegar a una ronda vieja**, que es a lo que la lista servía de verdad: el
+selector vive ahora **dentro de la tabla**, al lado del título, y se sigue entrando por
+`/promos/<id>`. Sale **solo si hay más de una** ronda: un desplegable de un elemento sería otra vez
+el clic que se mandó quitar.
+
+**Sin rondas no se redirige a ningún sitio** — un redirect en el camino del error es como se hace un
+bucle — se pinta un mensaje. Y ese mensaje dice **las dos razones**, porque cero filas puede ser
+«todavía no se ha subido ninguna» o «no tienes el módulo»: la RLS de la 140 devuelve lo mismo en los
+dos casos, así que prometer que subiendo un Excel se arregla sería mentirle a la mitad de quien lo
+lea.
+
+**El aviso de los grupos de tienda cambia de sitio y de regla.** Estaba en la raíz y se enseñaba
+**siempre** al admin. Ahora está en la tabla, **solo si falta algún grupo**, y **dice cuáles**. Un
+aviso permanente sobre algo que ya está hecho —los seis grupos llevan puestos desde que se estrenó el
+módulo— deja de leerse a las dos semanas, y entonces tampoco se lee el día que sí falta uno.
+
+### 2 · Los botones de decidir, medidos antes y después
+
+En cada fila eran un `✓` y un `✕` sin clase: **10 × 17 px**, fondo transparente. En la barra de
+bloque, «Aprobar» era el azul de `primary` y «Rechazar» un botón igual que «Limpiar» — el color no
+distinguía las dos acciones de la pantalla.
+
+| | antes | después |
+|---|---|---|
+| `✓` de la fila | 10 × 17, transparente | **29 × 26**, `#e5f6ee` sobre `--green` `#1f9d61` |
+| «Aprobar» en bloque | azul `primary` | **98 × 35**, verde |
+| «Rechazar» en bloque | neutro, igual que «Limpiar» | **85 × 35**, `#fdeaea` sobre `--red` `#d64545` |
+| «Dejar pendiente» | neutro | neutro, a propósito: es deshacer, no una tercera decisión |
+
+Clases de la paleta (`btn-green`, `btn-danger`), ningún hex suelto en el componente.
+
+**La fila crece de 29 a 37 px, y eso es acercarse a la referencia, no romperla:** la fila de Órdenes
+mide **37** (medida el 2026-09-23 y guardada en `referencia-tabla-ordenes.json`). La tabla de promos
+era ocho píxeles más apretada que aquella a la que el dueño pidió parecerse.
+
+### 3 · Las seis columnas de existencias por tienda, para todos
+
+**Esto cambia en parte D-370, que las dejó apagadas**, y el dueño lo pidió sabiendo cuál era la razón
+—fue él quien dijo *«it's horrible, first it doesn't fit in 1 screen»*—. Lo que cambia es el juicio
+sobre **estas seis**: saber qué tienda tiene el material es parte de decidir. Lo que **no** vuelve al
+arranque son las cinco privadas.
+
+«Para vista de todos» es literal y se comprobó: un vendedor las ve igual que un gerente. Lo único que
+los separa en esta tabla siguen siendo las cinco privadas, y eso lo decide **la base** —si
+`promo_catalog.private` llegó nulo—, no esta pantalla.
+
+Se estrechan de **76 a 64 px**: lo que llevan son números de tres o cuatro cifras, así que lo que se
+recorta es hueco, no dato. El nombre entero sigue en ⚙ Columnas y en el menú de la cabecera.
+
+**El ancho, medido en el navegador a 1280, con el libro de demo (seis tiendas):**
+
+| | antes | después |
+|---|---|---|
+| columnas al entrar | 7 (+ casilla + Decidir) | **13** (+ casilla + Decidir) |
+| ancho de la tabla | 1246 px | **1686 px** |
+| ¿se desplaza la **página**? | no | **no** |
+| ¿se desplaza la **caja**? | no | **sí** |
+
+Que la página no se desplace es la regla de Órdenes, y es lo que sostiene que esto sea usable en vez
+de «que quepa»: con un libro de diez tiendas «que quepa» sería imposible. Apagar las seis en ⚙
+Columnas devuelve exactamente el arranque de antes (974 px de columnas frente a 1358).
+
+### Un fallo que me hice yo y que la prueba cazó
+
+Al añadir las de tienda al defecto, el defecto quedó **en dos sitios**: `columnasDePromosPorDefecto`
+las incluía y `columnasVisiblesDePromos` —la que decide cuando alguien **no** tiene columnas
+guardadas— seguía leyendo la lista estática. O sea que quien no hubiera guardado nada, que es todo el
+mundo hoy, no las habría visto nunca. Lo cazó la prueba que exigía que las dos coincidieran. Ahora
+hay un solo cálculo.
+
+### Lo que NO está medido, y quién tiene que medirlo
+
+**Si alguien ya tiene columnas de promos guardadas en `user_prefs`, a esa persona el defecto nuevo no
+le llega** — lo guardado manda, que es lo correcto, pero significa que el cambio no la alcanza. No lo
+he medido: **una rama no toca producción**. Lo tiene que contar el orquestador:
+
+```sql
+select count(*) from public.user_prefs where key = 'promos_columns';
+```
+
+Si sale solo el dueño, se decide si se le pisan o se le dice. **No se pisan sin decirlo.**
+
+### Medido, rompiendo cada pieza
+
+17 cambios: **17 caen, cada uno por la prueba que lleva su nombre.**
+
+- **A qué ronda se entra:** se entra a la más reciente aunque esté cerrada; no se ordena y se confía
+  en cómo llegan; sin rondas se devuelve algo en vez de `null`, que es el bucle.
+- **La puerta:** `/promos` deja de redirigir con base; el demo deja de redirigir; el mensaje sin
+  rondas vuelve a hablar solo de subir un Excel.
+- **El selector:** sale con una sola ronda; deja de navegar; la página deja de pasarle las rondas.
+- **El aviso de grupos:** vuelve a salir siempre; un grupo puesto en blanco cuenta como puesto.
+- **Los botones:** los de la fila pierden el color; «Rechazar» en bloque pierde el rojo.
+- **Las columnas:** las de tienda salen del defecto; el defecto vuelve a estar en dos sitios; vuelven
+  a 76 px; se le esconden al vendedor.
+
+**Dos de esos mutantes no los cazaba nadie la primera vez** —los dos del color— y esa es la razón de
+que estén las pruebas de `btn-green` / `btn-danger`: el cambio que el dueño pidió en el punto 2 no
+tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
