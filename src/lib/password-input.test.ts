@@ -64,6 +64,12 @@ describe("el mensaje dice qué cambiar", () => {
 describe("el componente del ojo", () => {
   const src = readFileSync("src/components/PasswordInput.tsx", "utf8");
 
+  it("sin nada sugerido dentro: un campo vacío se ve vacío (D-388)", () => {
+    // El dueño: «el sugerido de los dots confunde, como si ya hubiese algo».
+    expect(src).toContain("placeholder = \"\",");
+    expect(src).not.toMatch(/[•●]/);
+  });
+
   it("alterna el tipo del campo", () => {
     expect(src).toContain('type={visible ? "text" : "password"}');
     expect(src).toContain("onClick={() => setVisible((v) => !v)}");

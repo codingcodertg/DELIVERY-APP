@@ -26994,3 +26994,15 @@ precio agrégale el $»*, *«y actívales a todo lo de proveedor»*.
    la del dueño, no. **A esa se le añade `supplier`** detrás de `description`, con respaldo antes.
 
 **Medido:** 3 mutantes (precio sin $, la pantalla sin `textoDePrecio`, proveedor fuera del arranque), caen los 3.
+
+## D-388 · Los campos de contraseña nacen vacíos, sin puntos de ejemplo
+
+**Fecha:** 2026-09-24 · **Versión:** deliveries, recruiting y timetracker (componente compartido del login) · **Sin migración.**
+
+**Qué pasaba.** `PasswordInput` (D-271), el único campo de contraseña de la app —login, restablecer contraseña y «Mi
+perfil»—, traía por defecto ocho puntos como texto de ejemplo. El dueño: *«in the login field el sugerido de los dots
+confunde como si ya hubiese algo, entonces que ese field y el de todos los password esté blank y no con algo sugerido»*.
+
+**Qué cambia.** El `placeholder` por defecto pasa a vacío. Ningún llamador pasaba uno propio (medido: los tres usos
+heredaban el defecto), así que los cinco campos quedan en blanco. Prueba en `password-input.test.ts`: el defecto es
+vacío y el componente no contiene puntos; el mutante que los devuelve cae.
