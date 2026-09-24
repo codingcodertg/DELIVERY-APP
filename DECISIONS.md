@@ -26994,3 +26994,96 @@ precio agrégale el $»*, *«y actívales a todo lo de proveedor»*.
    la del dueño, no. **A esa se le añade `supplier`** detrás de `description`, con respaldo antes.
 
 **Medido:** 3 mutantes (precio sin $, la pantalla sin `textoDePrecio`, proveedor fuera del arranque), caen los 3.
+
+## D-NEXT · El tracker se muda a la base del RTG, y el dueño cierra una tarea de un clic
+
+**Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar ·
+**Migración:** `144_tracker_tareas.sql`, escrita y **no aplicada**; la aplica el orquestador.
+**Plan en papel:** `docs/PLAN-144-tracker-en-la-nube.md` (aprobado).
+
+El dueño: *«en el html, primero, que se guarde en la nube, y segundo, si yo le doy a comprobar que se
+cambie sin pedir diálogo»*. Preguntado: *«no no físico en el app pero sí en el mismo de rtg»*, y que
+el botón marque **«Completado»**.
+
+### Lo que cambia
+
+Las tareas dejan de vivir en `tracker/tareas/*.json` y pasan a **`public.tracker_tareas`**. La
+carpeta se queda en git **congelada** —son sus palabras, y en un diff se revisan— y **nada vuelve a
+escribirla**: no es un acuerdo, es que en el código no existe ninguna función que lo haga.
+
+**En `public` y no en un esquema `tracker`:** la página lee por PostgREST, que solo sirve los
+esquemas expuestos, y un esquema nuevo obliga a cambiar un ajuste de **todo el proyecto**. Lo que un
+esquema aparte daría —que la app no la lea— lo da la RLS.
+
+### «Completado» lo pone él, y el trigger se aparta del patrón de la casa
+
+Los `guard_*` de este repo empiezan con `if auth.uid() is null then return NEW` (`009_routes.sql:26`)
+—sin sesión, pasa todo—. **Aquí eso sería justo al revés de lo pedido**: quien no debe poder cerrar
+una tarea es, sobre todo, un script. Con el patrón copiado, cualquier sesión con la llave de
+servicio cerraría tareas y la regla no existiría.
+
+Y la pieza que manda es **el trigger, no las políticas**: service-role salta la RLS por `bypassrls`,
+pero el trigger corre siempre. Las políticas protegen de los otros roles; el trigger, del script.
+
+`completado_por` y `completado_en` los pone la base desde `auth.uid()`, nunca el cliente. Y se
+deciden **siempre**, no solo al entrar y salir: la primera versión dejaba que una tarea que nunca
+estuvo cerrada llevara el sello de alguien puesto a mano, que es una mentira que nadie mira porque se
+lee el estado y no el sello.
+
+### No hay cubo de Storage, y esto conviene que quede escrito
+
+La idea era un bucket público con una URL fija. **No sirve, y está medido:** Supabase Storage
+**sobrescribe a `text/plain`** el content-type de los `.html` de un cubo público, a propósito, como
+defensa contra páginas engañosas, y manda `X-Content-Type-Options: nosniff` para cerrar el único
+rodeo. La URL del cubo enseñaría **el código fuente** en vez de la página.
+
+- <https://github.com/orgs/supabase/discussions/39110>
+- <https://github.com/supabase/supabase/discussions/2557>
+- <https://github.com/orgs/supabase/discussions/7377>
+- <https://github.com/supabase/storage/issues/186>
+
+La migración 145 llegó a escribirse y **se borró antes de aplicarse**: una migración guardada para
+algo que no funciona es una trampa para el siguiente que la lea.
+
+En su lugar, la página se genera en el `prebuild` a `public/tracker.html` y se sirve en
+**`https://rtg-hub.vercel.app/tracker.html`** — mismo dominio del RTG, ninguna ruta del hub, y nada
+la enlaza. Medido en la documentación de Vercel: para Next.js *«Vercel checks for the `build` command
+in `scripts` and uses this to build the project»*, o sea `npm run build`, que dispara el `prebuild`.
+`verify.mjs` y el CI llaman a `next build` **directamente**, así que ahí no corre.
+
+**El generador no puede tumbar el despliegue:** sin variables, o con los valores de compilación del
+CI, escribe una página que lo dice y sale con 0. Y **no lee jamás la llave de servicio**: lo que
+escribe acaba en una URL pública, y la anon key va porque sin sesión no abre nada.
+
+### Verificado
+
+`tsc` limpio y la suite entera en verde. **Mutantes: 20 en cuatro tandas, caen los 20** — entre
+ellos «el trigger vuelve al patrón de la casa», «la página se lleva la llave de servicio dentro»,
+«un update rechazado por la RLS se lee como guardado», «sin variables el generador tumba el build» y
+«los placeholders del CI acaban publicados».
+
+**Dos mutantes sobrevivieron primero y valen más que los otros dieciocho.** Uno porque ninguna prueba
+llamaba al CLI —solo a la función—, así que el fichero guardado podía salir con los controles de
+escritura puestos. Otro porque comentar la línea del `.gitignore` deja la cadena dentro, y un
+`toContain` la seguía encontrando: la regla tenía que estar **activa**, no presente.
+
+### Lo no verificado
+
+- **Nada se ha ejecutado contra la base.** Las reglas de la 144 se comprueban **leyendo el `.sql`**,
+  que no es lo mismo. La matriz de 12 casos con `ROLLBACK` del plan es la única prueba real.
+- **La página no se ha abierto con una sesión de verdad.** Se abrió en un navegador y pinta la
+  pantalla de acceso; lo que pasa después de entrar está sin medir.
+- **Que `service_role` exista con ese nombre** en este proyecto: la migración lo comprueba antes de
+  usarlo, pero si no existiera habría que mirarlo.
+
+### El fallo que costó un ensayo
+
+El primer intento de aplicar la 144 abortó con *«144: el trigger dejaría pasar a service-role»* — y
+el trigger estaba bien. `pg_get_functiondef` devuelve el cuerpo **con sus comentarios**, y el
+comentario que explica por qué no se usa el patrón **cita la frase prohibida**. La autocomprobación
+se disparaba sola.
+
+Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el comentario: así el día
+que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
+lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
+porque leen el `.sql` en vez de ejecutarlo.

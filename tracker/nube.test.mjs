@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { afterAll } from "vitest";
+import { readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { paginaEnVivoHTML } from "./pagina-en-vivo.mjs";
 
@@ -182,38 +183,71 @@ describe("la 144: la forma que exige este repo", () => {
   });
 });
 
-describe("la 145: el cubo con URL fija", () => {
-  const SQL145 = readFileSync(join(process.cwd(), "supabase", "migrations", "145_tracker_bucket.sql"), "utf8");
+describe("el generador de `public/tracker.html`", () => {
+  // Corre en el `prebuild`, asi que su primera obligacion no es funcionar: es **no tumbar el
+  // despliegue**. Una app de entregas caida porque una pagina de notas no encontro una variable
+  // seria un mal reparto del dano.
+  const GEN = join(process.cwd(), "tracker", "genera-pagina.mjs");
+  const DESTINO = join(process.cwd(), "public", "tracker.html");
+  const corre = (env) => execFileSync(process.execPath, [GEN], { encoding: "utf8", env: { ...process.env, ...env } });
+  const antes = existsSync(DESTINO) ? readFileSync(DESTINO, "utf8") : null;
+  afterAll(() => { if (antes !== null) writeFileSync(DESTINO, antes); else rmSync(DESTINO, { force: true }); });
 
-  it("el cubo es público de LECTURA, y escribir solo service-role", () => {
-    // Lo que se publica es la PÁGINA, que no lleva datos dentro. Escribir solo el script: dejar que
-    // alguien la sustituya desde el navegador sería dejar que sustituya lo que el dueño ve.
-    expect(SQL145).toContain("for select to public using (bucket_id = 'tracker')");
-    expect(SQL145).toContain("for all to service_role using (bucket_id = ''tracker'')");
-    expect(SQL145).not.toContain("for all to authenticated");
+  it("sin variables NO falla: escribe una pagina que lo dice y sale con 0", () => {
+    const salida = corre({ NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_ANON_KEY: "" });
+    expect(salida).toContain("sin configurar");
+    const html = readFileSync(DESTINO, "utf8");
+    expect(html).toContain("no qued\u00f3 configurada");
+    expect(html).toContain("el resto del RTG funciona igual");
   });
 
-  it("y las dos políticas están acotadas a ESE cubo", () => {
-    // Una política de `storage.objects` sin `bucket_id` alcanza a todos los cubos del proyecto —
-    // fotos de fichaje, adjuntos de ayuda, documentos del ERP.
-    const pols = SQL145.split("create policy").slice(1);
-    expect(pols.length).toBeGreaterThanOrEqual(2);
-    for (const p of pols) expect([p.slice(0, 40), p.includes("bucket_id")]).toEqual([p.slice(0, 40), true]);
+  it("y con los placeholders del CI tampoco publica nada usable", () => {
+    // `verify.mjs` y el CI llaman a `next build` DIRECTAMENTE, no a `npm run build`, asi que el
+    // prebuild no corre ahi y estos valores no deberian llegar nunca. Se comprueba igual: «no
+    // deberia llegar» y «no llega» no son lo mismo, y alguien puede correr `npm run build` en local.
+    corre({
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-ci.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder-not-a-real-key.ci-placeholder-signature",
+    });
+    const html = readFileSync(DESTINO, "utf8");
+    expect(html).not.toContain("placeholder-ci");
+    expect(html).toContain("no qued\u00f3 configurada");
   });
 
-  it("va aparte de la 144 para poder revertirse sola", () => {
-    expect(SQL145).toContain("delete from public.schema_migrations where name = '145_tracker_bucket.sql'");
-    const [, ledger] = SQL145.split("-- @ledger-below");
-    expect(ledger).toContain("'145_tracker_bucket.sql'");
+  it("con variables de verdad si escribe la pagina", () => {
+    corre({
+      NEXT_PUBLIC_SUPABASE_URL: "https://abcdefgh.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiJ9.real.firma",
+    });
+    const html = readFileSync(DESTINO, "utf8");
+    expect(html).toContain("tracker_tareas");
+    expect(html).toContain("https://abcdefgh.supabase.co");
   });
 
-  it("y su checksum es el que calcula `migrate-status`", () => {
-    const salida = execFileSync(process.execPath,
-      [join(process.cwd(), "scripts", "db", "migrate-status.mjs"), "--sum", "145_tracker_bucket.sql"],
-      { encoding: "utf8" });
-    const calculado = salida.match(/'([0-9a-f]{64})'/)?.[1];
-    const inscrito = SQL145.split("-- @ledger-below")[1].match(/'([0-9a-f]{64})'/)?.[1];
-    expect([calculado, inscrito]).toEqual([inscrito, inscrito]);
+  it("NUNCA lee la llave de servicio: ni la nombra", () => {
+    // Lo que escribe acaba servido en una URL publica. La anon key va porque es publica y sin sesion
+    // no abre nada; la de servicio lo abriria todo.
+    const src = readFileSync(GEN, "utf8");
+    const codigo = src.replace(/^\s*\/\/.*$/gm, "");
+    expect(codigo).not.toContain("SERVICE_ROLE");
+    expect(codigo).not.toContain("SUPABASE_SERVICE");
+  });
+
+  it("y el fichero que genera no se commitea", () => {
+    // Commitearlo meteria la anon key en git, y el dia que la roten quedaria una pagina que no entra
+    // y nadie sabe por que.
+    // La regla tiene que estar ACTIVA, no solo presente: `# public/tracker.html` contiene la cadena
+    // y no ignora nada. Un mutante que comentaba la línea sobrevivía a un `toContain`.
+    const lineas = readFileSync(join(process.cwd(), ".gitignore"), "utf8").split(/\r?\n/).map((l) => l.trim());
+    expect(lineas).toContain("public/tracker.html");
+  });
+
+  it("el `prebuild` lo llama, que es lo que hace que Vercel lo genere", () => {
+    // Medido en la documentacion de Vercel: para Next.js «Vercel checks for the build command in
+    // scripts and uses this to build the project», o sea `npm run build`, que dispara `prebuild`.
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
+    expect(pkg.scripts.prebuild).toBe("node tracker/genera-pagina.mjs");
+    expect(pkg.scripts.build).toBe("next build");
   });
 });
 
