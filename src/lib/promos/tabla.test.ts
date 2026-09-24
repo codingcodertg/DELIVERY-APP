@@ -7,7 +7,7 @@ import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
   COLOR_DE_ESTADO, columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, puedeVerPrivadasDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
   motivoParaNoDecidir, puedeDecidir, ordenDeColumnasDePromos, mueveColumnaDePromos, COLUMNA_PRIMERA, filtraPorTienda, MINIMO_EN_LA_TIENDA,
-  valorDeColumna, valorParaFiltrar, type DecisionDeGrupo, type ProductoDeCatalogo,
+  valorDeColumna, valorParaFiltrar, textoDePrecio, COLUMNAS_DE_PROMOS_POR_DEFECTO, type DecisionDeGrupo, type ProductoDeCatalogo,
 } from "./tabla";
 
 /**
@@ -78,14 +78,16 @@ describe("qué columnas se ofrecen", () => {
       expect(con, k).toContain(k);
     }
     // Y lo que sí ve todo el mundo sigue estando.
-    for (const k of ["code", "description", "qoh", "qoh_AA1", "price", "estado", "nota"]) expect(sin, k).toContain(k);
+    for (const k of ["code", "description", "qoh", "qoh_AA1", "price", "estado"]) expect(sin, k).toContain(k);
+    // D-387: la columna «Nota» ya no existe, para nadie.
+    expect(sin).not.toContain("nota");
+    expect(con).not.toContain("nota");
   });
 
   it("las fijas están, y son las que hacen falta para decidir", () => {
     const claves = columnasDePromos(["AA1"], true).map((c) => c.key);
     for (const k of COLUMNAS_FIJAS) expect(claves, k).toContain(k);
     expect([...COLUMNAS_FIJAS]).toEqual(["code", "estado"]);
-    // D-381: la nota se puede quitar. Sigue en el arranque, pero no es fija.
     expect(COLUMNAS_FIJAS).not.toContain("nota");
   });
 
@@ -97,12 +99,12 @@ describe("qué columnas se ofrecen", () => {
     // tienda —saber quien tiene el material es parte de decidir—, no la razon de que estorben.
     // Las cinco PRIVADAS no vuelven al arranque: eso sigue como estaba.
     const porDefecto = columnasDePromosPorDefecto(["AA1", "BB2", "CC3"], true);
-    expect(porDefecto).toEqual(["code", "description", "size", "qoh", "qoh_AA1", "qoh_BB2", "qoh_CC3", "price", "estado", "nota"]);
+    expect(porDefecto).toEqual(["code", "description", "supplier", "size", "qoh", "qoh_AA1", "qoh_BB2", "qoh_CC3", "price", "estado"]);
     for (const privada of ["cost", "diff", "demand", "mo", "notes"]) expect(porDefecto, privada).not.toContain(privada);
-    // Lo que queda fuera del arranque, dicho por nombre y no por una resta: las cinco privadas y
-    // «Proveedor». Siguen existiendo en ⚙ Columnas, que es lo que las hace una eleccion.
+    // Lo que queda fuera del arranque, dicho por nombre y no por una resta: las cinco privadas.
+    // «Proveedor» entró en D-387. Siguen existiendo en ⚙ Columnas, que es lo que las hace una eleccion.
     const todas = columnasDePromos(["AA1", "BB2", "CC3"], true).map((c) => c.key);
-    expect(todas.filter((k) => !porDefecto.includes(k))).toEqual(["supplier", "cost", "diff", "demand", "mo", "notes"]);
+    expect(todas.filter((k) => !porDefecto.includes(k))).toEqual(["cost", "diff", "demand", "mo", "notes"]);
   });
 
   it("un vendedor las ve igual: el inventario por tienda no es privado", () => {
@@ -127,10 +129,11 @@ describe("qué columnas se ofrecen", () => {
     const deTienda = porDefecto.filter((k) => k.startsWith("qoh_"));
     expect(deTienda.length).toBe(6);
     for (const k of deTienda) expect(cols.find((c) => c.key === k)!.ancho, k).toBeLessThanOrEqual(64);
-    expect(ancho(porDefecto)).toBe(1358);
+    // D-387: sin la «Nota» (200 px) y con «Proveedor» (160), el arranque con seis tiendas mide 1318; sin ellas, 934.
+    expect(ancho(porDefecto)).toBe(1318);
     // Apagarlas en ⚙ Columnas deja exactamente lo de antes, que cabia a 1280.
-    expect(ancho(porDefecto.filter((k) => !k.startsWith("qoh_")))).toBe(974);
-    expect(1358 - 974).toBe(384);                       // lo que se ensancha: 384 px, no «unos 450»
+    expect(ancho(porDefecto.filter((k) => !k.startsWith("qoh_")))).toBe(934);
+    expect(1318 - 934).toBe(384);                       // lo que se ensancha: 384 px, no «unos 450»
   });
 
   it("lo guardado manda, pero las fijas entran siempre y lo que ya no existe se cae", () => {
@@ -141,12 +144,12 @@ describe("qué columnas se ofrecen", () => {
     expect(columnasVisiblesDePromos(["price"], cols)).toEqual(["code", "price", "estado"]);
     // Una columna de tienda que el libro de este mes ya no trae: fuera, sin romper nada.
     expect(columnasVisiblesDePromos(["code", "qoh_YA_NO", "price"], cols)).toEqual(["code", "price", "estado"]);
-    // Y quien la marcó, la ve.
-    expect(columnasVisiblesDePromos(["price", "nota"], cols)).toEqual(["code", "price", "estado", "nota"]);
+    // Una lista guardada con la «Nota» (antes de D-387) la pierde sin romper nada.
+    expect(columnasVisiblesDePromos(["price", "nota"], cols)).toEqual(["code", "price", "estado"]);
     // Y el orden de la lista de visibles NO cuenta: sale en el que se marcaron. Sin orden guardado,
     // el del catálogo (el orden va aparte desde D-385, como en Órdenes).
     expect(columnasVisiblesDePromos(["nota", "price", "code", "estado", "description"], cols))
-      .toEqual(["code", "description", "price", "estado", "nota"]);
+      .toEqual(["code", "description", "price", "estado"]);
     // Sin nada guardado, el defecto.
     expect(columnasVisiblesDePromos(null, cols)).toEqual(columnasDePromosPorDefecto(["AA1"], false));
   });
@@ -569,7 +572,7 @@ describe("lo que se escribe al decidir", () => {
     expect(cambioEnBloque({ roundId: "R1", grupo: "G1", codigos: ["X1"], estado: "approved", nota: " hola " })[0].note).toBe("hola");
   });
 
-  it("y la PANTALLA solo manda la nota desde el recuadro de editarla", () => {
+  it("y la PANTALLA no manda nota nunca: desde D-387 ni la enseña ni la edita", () => {
     // `cambioEnBloque` conserva la nota cuando no se la dan, pero eso no sirve de nada si la
     // pantalla se la da igual. Los botones de ✓/✕ de una fila reenviaban `f.nota`: además de
     // innecesario era una escritura perdida, porque pisaría la nota que otra persona hubiera
@@ -581,8 +584,9 @@ describe("lo que se escribe al decidir", () => {
     expect(tabla).toContain('onClick={() => guarda([f.code], "rejected")}');
     // Y por el otro lado, que no quede ninguna llamada de fila con tercer argumento.
     expect(tabla).not.toMatch(/guarda\(\[f\.code\], "(approved|rejected)",/);
-    // El único sitio donde la nota viaja: el recuadro de editarla, que manda el estado que ya tenía.
-    expect(tabla).toContain("guarda([f.code], f.estado, notaEditando.texto)");
+    // D-387: ya no hay recuadro de nota; `guarda` ni siquiera acepta una.
+    expect(tabla).not.toContain("notaEditando");
+    expect(tabla).toContain("const guarda = async (codigos: string[], estado: EstadoDeDecision) => {");
   });
 
   it("el tope de la nota es el de la migración, leído del `.sql`", () => {
@@ -605,9 +609,9 @@ describe("el ORDEN de las columnas es de cada persona (D-385)", () => {
   });
 
   it("el orden guardado manda en lo que se pinta", () => {
-    const orden = ["code", "nota", "price", "estado", "description", "qoh_BB2", "qoh_AA1", "size", "qoh", "supplier"];
-    expect(columnasVisiblesDePromos(["description", "price", "estado", "nota", "qoh_AA1"], cols, orden))
-      .toEqual(["code", "nota", "price", "estado", "description", "qoh_AA1"]);
+    const orden = ["code", "price", "estado", "description", "qoh_BB2", "qoh_AA1", "size", "qoh", "supplier"];
+    expect(columnasVisiblesDePromos(["description", "price", "estado", "qoh_AA1"], cols, orden))
+      .toEqual(["code", "price", "estado", "description", "qoh_AA1"]);
   });
 
   it("`code` va siempre primera, no se mueve, y nadie se le pone delante", () => {
@@ -645,7 +649,7 @@ describe("el ORDEN de las columnas es de cada persona (D-385)", () => {
 
   it("una tienda NUEVA entra detrás de su vecina: ni desaparece ni se va al final", () => {
     // Septiembre: solo había AA1, y esta persona la puso delante del todo.
-    const deSeptiembre = ["code", "qoh_AA1", "nota", "estado", "description", "supplier", "size", "qoh", "price"];
+    const deSeptiembre = ["code", "qoh_AA1", "estado", "description", "supplier", "size", "qoh", "price"];
     const r = ordenDeColumnasDePromos(cols, deSeptiembre);
     expect(r).toContain("qoh_BB2");
     expect(r.indexOf("qoh_BB2")).toBe(r.indexOf("qoh_AA1") + 1);
@@ -763,5 +767,25 @@ describe("el filtro de tienda: fuera lo que tiene menos de 10 en ELLA (D-385)", 
     expect(tabla).toContain("const cuenta = cuentaPorEstado(filas);");
     // Y dice cuántos esconde y por qué, en vez de dejar una tabla más corta sin explicación.
     expect(tabla).toContain("ocultos: menos de ${MINIMO_EN_LA_TIENDA} en ${tiendaFiltro}");
+  });
+});
+
+describe("el precio lleva su signo de dólar (D-387)", () => {
+  it("dos decimales y el $ delante; sin precio, «—»", () => {
+    expect(textoDePrecio(1.19)).toBe("$1.19");
+    expect(textoDePrecio(2)).toBe("$2.00");
+    expect(textoDePrecio("1.5")).toBe("$1.50");
+    expect(textoDePrecio(null)).toBe("—");
+    expect(textoDePrecio(undefined)).toBe("—");
+  });
+
+  it("y la PANTALLA lo usa para pintar la celda del precio", () => {
+    const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+    expect(tabla).toContain("if (clave === \"price\") return textoDePrecio(fila.price);");
+  });
+
+  it("«Proveedor» entra al arranque para todos", () => {
+    expect(COLUMNAS_DE_PROMOS_POR_DEFECTO).toContain("supplier");
+    expect(columnasDePromosPorDefecto(["AA1"], false)).toContain("supplier");
   });
 });
