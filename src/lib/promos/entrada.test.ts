@@ -100,7 +100,8 @@ describe("la pantalla: el selector de ronda vive dentro de la tabla", () => {
   });
   it("y se fue el enlace «← RTG PROMOS», que ahora volvería a redirigir aquí mismo", () => {
     expect(pagina).not.toContain("RTG PROMOS</Link>");
-    expect(pagina).not.toContain('from "next/link"');
+    // Un enlace a /promos volveria aqui mismo; el de vuelta va al hub (D-378), no a la raiz del modulo.
+    expect(pagina).not.toContain('href="/promos"');
   });
 });
 
