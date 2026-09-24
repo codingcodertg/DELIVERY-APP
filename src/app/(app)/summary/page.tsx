@@ -55,7 +55,7 @@ export default function SummaryPage() {
       total: mine.length,
       active: active.length,
       delivered: mine.filter((d) => d.stage === "delivered").length,
-      overdue: mine.filter(isOverdue).length,
+      overdue: mine.filter((d) => isOverdue(d)).length,
       fees: sumaDinero(mine.filter((d) => d.stage !== "canceled"), (d) => d.delivery_fee),
     };
   }, [mine]);

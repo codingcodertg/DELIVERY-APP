@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { tiendasDelGrupo } from "@/lib/store-group";
 import { normalizaLugar, tiendasDeLaOrden } from "@/lib/order-endpoints";
+import { reparteLaColaDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
@@ -37,15 +38,34 @@ export default function WarehousePage() {
   // Admin can browse any store; a warehouse worker is locked to their own
   // (PU = pickup store). Falls back to "every store" only if unassigned.
   const [storeFilter, setStoreFilter] = useState<string>("");
-  const [loadDate, setLoadDate] = useState<string>(todayISO());
-  // Dos vistas de lo mismo: la cola por etapa, que es como se trabaja, y la ruta del día por
-  // chofer (D-287), que es lo que pidió almacén para saber a quién le carga y en qué orden va.
-  const [vista, setVista] = useState<"cola" | "ruta">("cola");
+  const [fechaElegida, setFechaElegida] = useState<string>(todayISO());
+  // Tres vistas de lo mismo: la cola por etapa, que es como se trabaja; **Recepción**, con lo que
+  // llega de otra tienda; y la ruta del día por chofer (D-287), que es lo que pidió almacén para
+  // saber a quién le carga y en qué orden va.
+  const [vista, setVista] = useState<"cola" | "recepcion" | "ruta">("cola");
   // A real warehouse worker is locked to their own store. An ADMIN previewing
   // the warehouse role is NOT locked — they get the store picker (defaulting to
   // all stores) so they can try each store and see every order.
   const lockedToOwnStore = me?.role === "warehouse" && realRole !== "admin";
   const effectiveStore = lockedToOwnStore ? (me?.store ?? "") : storeFilter;
+
+  /**
+   * El día de las hojas de carga y de la Ruta del día.
+   *
+   * **Almacén ya no tiene calendario**: el dueño, *«warehouse, el botón de cambiar date no lo
+   * ocupa»*, y preguntado eligió quitárselo. Para él la fecha es HOY y no hay control que la
+   * mueva.
+   *
+   * Se calcula en cada pintado en vez de guardarse en el estado: una pestaña que se queda abierta
+   * toda la noche amanecería enseñando la ruta de ayer, y eso es peor que no tener calendario,
+   * porque no se nota. `todayISO()` cuesta un `Intl.format`.
+   *
+   * **Quien NO está fijado a su tienda lo conserva**, y eso es a propósito: esta pantalla la ve
+   * también un admin (`canFulfill` = admin y almacén, más a quien se le haya marcado `fulfill` a
+   * mano), y quitarle el calendario a él no lo pidió nadie. Es la misma frontera que ya decide
+   * quién puede elegir tienda.
+   */
+  const loadDate = lockedToOwnStore ? todayISO() : fechaElegida;
 
   // An order is "at" a warehouse store if it's sold from there OR physically
   // picked up there — so a warehouse worker also sees pickup orders staged at
@@ -129,16 +149,33 @@ export default function WarehousePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors]);
 
+  // El reparto en dos listas: lo que sale de sus tiendas y lo que ENTRA (D-NEXT). El dueño: *«for
+  // warehouse a new view where the loads intertienda going to his store will be visible; these
+  // orders will be extracted from his list and passed to that one»* — «extracted» es literal, así
+  // que lo de Recepción sale de la cola en vez de salir en las dos.
+  //
+  // Se hace aquí, sobre `scoped`, y no en la consulta: lo que puede LEER ya lo decidió la base
+  // (131); esto solo decide en qué lista sale. Y se calcula de una vez para que el contador de la
+  // pestaña y la tabla no puedan decir cosas distintas.
+  const reparto = useMemo(
+    () => reparteLaColaDeAlmacen(scoped, (d) => orderTypeRule(d.order_type, settings.order_type_rules), colaNormalizada),
+    [scoped, colaNormalizada, settings.order_type_rules],
+  );
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const d of scoped) c[d.stage] = (c[d.stage] ?? 0) + 1;
+    for (const d of reparto.cola) c[d.stage] = (c[d.stage] ?? 0) + 1;
     return c;
-  }, [scoped]);
+  }, [reparto]);
 
   const rows = useMemo(
-    () => (tab === "all" ? [...scoped].sort((a, b) => b.order_no - a.order_no) : scoped.filter((d) => d.stage === tab)),
-    [scoped, tab],
+    () => (tab === "all"
+      ? [...reparto.cola].sort((a, b) => b.order_no - a.order_no)
+      : reparto.cola.filter((d) => d.stage === tab)),
+    [reparto, tab],
   );
+
+  const recepcion = useMemo(() => [...reparto.recepcion].sort((a, b) => b.order_no - a.order_no), [reparto]);
 
   if (!me) return null;
   if (!canFulfill(me)) return <div className="empty">{t("You don’t have access to the warehouse queue.", "No tienes acceso a la cola del almacén.")}</div>;
@@ -146,7 +183,7 @@ export default function WarehousePage() {
   return (
     <>
       <div className="page-head">
-        <h2>{t("Warehouse", "Almacén")} <span className="count-tag">{rows.length}</span></h2>
+        <h2>{t("Warehouse", "Almacén")} <span className="count-tag">{vista === "recepcion" ? recepcion.length : rows.length}</span></h2>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {!lockedToOwnStore && (
             <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -157,13 +194,18 @@ export default function WarehousePage() {
               </select>
             </label>
           )}
-          {/* Print the day's load sheets (one page per driver) for the scoped store. */}
-          <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            📅 <input type="date" value={loadDate} onChange={(e) => setLoadDate(e.target.value)} style={{ width: "auto", padding: "5px 7px" }} />
-          </label>
+          {/* Print the day's load sheets (one page per driver) for the scoped store.
+              El calendario solo lo ve quien no está fijado a su tienda; para almacén es hoy. */}
+          {!lockedToOwnStore && (
+            <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              📅 <input type="date" value={loadDate} onChange={(e) => setFechaElegida(e.target.value)} style={{ width: "auto", padding: "5px 7px" }} />
+            </label>
+          )}
           <button
             className="btn btn-ghost"
-            title={t("Print one load sheet per driver for the chosen day", "Imprimir una hoja de carga por chofer para el día elegido")}
+            title={lockedToOwnStore
+              ? t("Print one load sheet per driver for today", "Imprimir una hoja de carga por chofer para hoy")
+              : t("Print one load sheet per driver for the chosen day", "Imprimir una hoja de carga por chofer para el día elegido")}
             onClick={() => printLoadSheets(cargasDelDia, settings, lang, loadDate)}
           >
             🖨 {t("Load sheets", "Hojas de carga")}
@@ -180,6 +222,11 @@ export default function WarehousePage() {
       <div className="filters filters-oneline">
         <div className="viewtoggle">
           <button className={"vt " + (vista === "cola" ? "on" : "")} onClick={() => setVista("cola")}>☰ {t("Queue", "Cola")}</button>
+          {/* El contador va en la pestaña a propósito: lo que llega de otra tienda no se ve en la
+              cola, así que sin número no habría forma de enterarse de que hay algo esperando. */}
+          <button className={"vt " + (vista === "recepcion" ? "on" : "")} onClick={() => setVista("recepcion")}>
+            📥 {t("Receiving", "Recepción")} <span className="cnt">{recepcion.length}</span>
+          </button>
           <button className={"vt " + (vista === "ruta" ? "on" : "")} onClick={() => setVista("ruta")}>🧭 {t("Day's route", "Ruta del día")}</button>
         </div>
       </div>
@@ -194,7 +241,7 @@ export default function WarehousePage() {
           />
           {TABS.map((tb) => (
             <button key={tb.key} className={"chip " + (tab === tb.key ? "on" : "")} onClick={() => setTab(tb.key)}>
-              {lang === "es" ? tb.label_es : tb.label} <span className="cnt">{tb.key === "all" ? scoped.length : (counts[tb.key] ?? 0)}</span>
+              {lang === "es" ? tb.label_es : tb.label} <span className="cnt">{tb.key === "all" ? reparto.cola.length : (counts[tb.key] ?? 0)}</span>
             </button>
           ))}
         </div>
@@ -203,7 +250,42 @@ export default function WarehousePage() {
       {!ready ? (
         <div className="empty">{t("Loading…", "Cargando…")}</div>
       ) : vista === "cola" ? (
-        <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+        <div style={{ display: "grid", gap: 10 }}>
+          {/* El aviso va DONDE ESTAN esas ordenes, que es aqui.
+              Estaba en Recepcion, y ahi decia una cosa cierta en el sitio equivocado: quien abre
+              Recepcion no las tiene delante, y quien trabaja la Cola —que si las tiene— no se
+              enteraba de que esas dos no estan clasificadas. Un aviso que no ve quien puede actuar
+              no es un aviso, es una nota al pie. */}
+          {reparto.sinDestino.length > 0 && (
+            <div className="hint" style={{ margin: 0 }}>
+              ⚠️ {reparto.sinDestino.length} {t(
+                "store-to-store order(s) in this queue have no destination, so they can't be sorted into Receiving — check them.",
+                "orden(es) de tienda a tienda de esta cola no tienen destino, así que no se pueden mandar a Recepción — revíselas.",
+              )}
+            </div>
+          )}
+          <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+        </div>
+      ) : vista === "recepcion" ? (
+        /* Recepción: las Intertiendas cuyo DESTINO es una de sus tiendas y que no salen de ellas.
+           El destino se lee de `delivery_name` y no de la cuenta, aunque el dueño lo dijera por la
+           cuenta: la cuenta es una copia que se puede teclear encima, y el 2026-09-23 se midió que
+           de 123 Intertiendas coincidía en 51. El porqué entero, en `src/lib/almacen.ts`. */
+        <div style={{ display: "grid", gap: 10 }}>
+          {colaNormalizada.length === 0 ? (
+            <div className="empty">
+              {t("Pick a store above to see what's coming into it.", "Elija una tienda arriba para ver lo que llega a ella.")}
+            </div>
+          ) : (
+            <OrdersTable
+              rows={recepcion}
+              resizeKey="warehouse-recepcion"
+              onOpen={setOpen}
+              visible={ROLE_DEFAULT_COLUMNS.warehouse}
+              empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
+            />
+          )}
+        </div>
       ) : (
         /* La ruta del día, de SOLO LECTURA (D-287). Sale de las órdenes que almacén ya puede
            leer: chofer asignado, secuencia de ruta, ventana y dirección. Lo que NO está aquí es

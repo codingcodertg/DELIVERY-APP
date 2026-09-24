@@ -100,30 +100,68 @@ describe("withinRetention — yesterday, today, and everything ahead", () => {
     expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2027-01-01" }), TODAY)).toBe(true);
   });
 
-  it("cuts off the day before yesterday, whatever the stage", () => {
-    // The whole point: a list reaching weeks back buries today under
-    // finished business.
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-07-13" }), TODAY)).toBe(false);
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-06-30" }), TODAY)).toBe(false);
+  it("cuts off the day before yesterday ONCE THE ORDER IS CLOSED", () => {
+    // El punto de la ventana: una lista que llega semanas atrás entierra el trabajo de hoy debajo
+    // de negocio terminado. Lo que se corta es el pasado CERRADO — entregada o anulada.
+    //
+    // Antes esta prueba decía «whatever the stage» y usaba `ready`, o sea una orden ABIERTA y
+    // vencida. Pasaba, y eso era justo el fallo: escondía trabajo vivo.
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-13" }), TODAY)).toBe(false);
+    expect(withinRetention(mkDelivery({ stage: "canceled", delivery_date: "2026-06-30" }), TODAY)).toBe(false);
   });
 
-  it("treats finished orders the same as open ones", () => {
-    // The window is about WHEN, not about status.
-    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-14" }), TODAY)).toBe(true);
-    expect(withinRetention(mkDelivery({ stage: "canceled", delivery_date: "2026-07-14" }), TODAY)).toBe(true);
+  it("pero una ATRASADA que sigue abierta entra, tenga la fecha que tenga", () => {
+    // El dueño eligió con cuatro palabras: «ayer, hoy, futuro y atrasadas». Y es la misma razón
+    // que ya tenía escrita D-351 para la vista «Reciente»: una vencida sin entregar es trabajo
+    // vivo, no historial, y esconderla es perderla.
+    for (const stage of ["approved", "fulfilling", "ready", "picked_up"] as const) {
+      expect([stage, withinRetention(mkDelivery({ stage, delivery_date: "2026-07-13" }), TODAY)])
+        .toEqual([stage, true]);
+      expect([stage, withinRetention(mkDelivery({ stage, delivery_date: "2026-05-01" }), TODAY)])
+        .toEqual([stage, true]);
+    }
+  });
+
+  it("la entregada y la abierta del MISMO día viejo se separan: ahí está la diferencia", () => {
+    // Las dos con fecha del 13. Si esta prueba cayera, la ventana habría vuelto a mirar solo la
+    // fecha, que es el mutante que hay que cazar.
+    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-07-13" }), TODAY)).toBe(true);
     expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-13" }), TODAY)).toBe(false);
   });
 
+  it("manda el `today` que se le pasa, no el reloj de la máquina", () => {
+    // Un mutante que cambiaba `< today` por `< todayISO()` dentro de `isOverdue` SOBREVIVIÓ a todo
+    // lo demás, y con razón: como el `TODAY` de estas pruebas es del pasado, la fecha real siempre
+    // es mayor y las dos versiones contestan igual. Una prueba con un día fijo del pasado no puede
+    // distinguir «usa mi día» de «usa el de hoy».
+    //
+    // Este caso las separa poniendo el día fijo en el FUTURO: el 10 de enero de 2027 está atrasado
+    // respecto al 15, pero no respecto a hoy. Solo la versión que respeta el parámetro lo rescata.
+    const futuro = "2027-01-15";
+    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2027-01-10" }), futuro)).toBe(true);
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2027-01-10" }), futuro)).toBe(false);
+    expect(isOverdue(mkDelivery({ stage: "ready", delivery_date: "2027-01-10" }), futuro)).toBe(true);
+  });
+
   it("brings a slipped order back when it's reprogrammed into the window", () => {
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-07-12" }), TODAY)).toBe(false);
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-07-16" }), TODAY)).toBe(true);
+    // Una entregada vieja no se ve; reprogramarla hacia delante la devuelve.
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-12" }), TODAY)).toBe(false);
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-16" }), TODAY)).toBe(true);
   });
 
   it("handles a month boundary", () => {
     // String comparison would be wrong here without real date maths: the day
     // before 2026-07-01 is 2026-06-30, not "2026-07-00".
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-06-30" }), "2026-07-01")).toBe(true);
-    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-06-29" }), "2026-07-01")).toBe(false);
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-06-30" }), "2026-07-01")).toBe(true);
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-06-29" }), "2026-07-01")).toBe(false);
+  });
+
+  it("dentro de la ventana, la etapa da igual: lo de ayer sale este como este", () => {
+    // Lo que la etapa decide es solo si una orden VIEJA se rescata. Del suelo hacia delante no
+    // decide nada.
+    expect(withinRetention(mkDelivery({ stage: "delivered", delivery_date: "2026-07-14" }), TODAY)).toBe(true);
+    expect(withinRetention(mkDelivery({ stage: "canceled", delivery_date: "2026-07-14" }), TODAY)).toBe(true);
+    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: "2026-07-14" }), TODAY)).toBe(true);
   });
 
   it("always keeps an undated draft visible", () => {
