@@ -210,7 +210,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const deleteDelivery = useCallback<DataState["deleteDelivery"]>(async (id) => {
     const s = storeRef.current;
-    // Espejo de la política de borrar de la 142 (D-NEXT): aquí no hay base que diga que no, así que la
+    // Espejo de la política de borrar de la 142 (D-383): aquí no hay base que diga que no, así que la
     // respuesta de cero filas se simula con `puedeBorrar`, y pasa por el mismo `borrarOrden` que el
     // proveedor real. Sin esto, el demo borraba cualquier orden y nunca enseñaba el «no se borró».
     // `me` y no la fila de `s.users`: es el mismo perfil con el que la ficha decide si pinta «Eliminar»

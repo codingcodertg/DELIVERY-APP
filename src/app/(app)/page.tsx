@@ -302,7 +302,7 @@ export default function OrdersPage() {
     return true;
   }, [preset, me?.id]);
 
-  // Las cuentas y las filas salen de la MISMA función de `lib` y de las mismas tres listas (D-NEXT):
+  // Las cuentas y las filas salen de la MISMA función de `lib` y de las mismas tres listas (D-384):
   // antes eran dos `useMemo` escritos aquí, y cada pastilla con lista propia tenía que acordarse de
   // contar sobre la lista de la que listaba. Cómo cuenta cada una —la normal por el chip de fecha
   // (D-357), factura pendiente y «Outdated» por el chip solo estando dentro (D-380)— está allí.

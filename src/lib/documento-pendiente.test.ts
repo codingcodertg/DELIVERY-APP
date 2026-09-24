@@ -184,7 +184,7 @@ describe("la pantalla usa la regla, no una copia", () => {
     // D-380 partió la línea en dos: el conjunto que se cuenta sigue siendo el mismo —lo que
     // manda es `conPendientes` y `facturaPendiente`— y lo que se le añadió encima es el chip de
     // fecha cuando la pestaña está puesta. Lo de D-313 y D-310 se comprueba aquí; lo nuevo, abajo.
-    // D-NEXT sacó las cuentas y las filas de la pantalla a `filas-de-ordenes.ts` («Outdated» era la
+    // D-384 sacó las cuentas y las filas de la pantalla a `filas-de-ordenes.ts` («Outdated» era la
     // tercera lista y dos `useMemo` a mano ya habían discrepado dos veces). Las mismas dos líneas,
     // allí; y que la pantalla las pida con las reglas de Ajustes lo comprueba `filas-de-ordenes.test.ts`.
     const filas = plano(readFileSync(join(process.cwd(), "src/lib/filas-de-ordenes.ts"), "utf8"));
@@ -351,7 +351,7 @@ describe("entrar en la pestaña mueve el chip de fecha (D-380)", () => {
   it("dentro de la pestaña la cuenta pasa por el chip, y fuera no", () => {
     // Fuera avisa de trabajo que la ventana esconde (D-313, o a office le salía 0). Dentro
     // describe la lista de abajo (D-357). Quitar el ternario rompe una de las dos.
-    // Desde D-NEXT la línea vive en `filas-de-ordenes.ts`, con `filtro` en vez de `filter`; la
+    // Desde D-384 la línea vive en `filas-de-ordenes.ts`, con `filtro` en vez de `filter`; la
     // pantalla le pasa su `filter` (lo mide `filas-de-ordenes.test.ts` por nombre de argumento).
     const filas = plano(readFileSync(join(process.cwd(), "src/lib/filas-de-ordenes.ts"), "utf8"));
     expect(filas).toContain('c[PESTANA_DOCUMENTO_PENDIENTE] = (filtro === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;');

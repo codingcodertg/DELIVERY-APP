@@ -123,7 +123,7 @@ export interface DataState {
    * regroup later), false = a person (leave it alone). Omitted leaves it as it
    * was, for moves that change order without changing the grouping. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean) => Promise<boolean>;
-  /** Borra una orden. `true` solo si la base devolvió la fila (D-NEXT): un DELETE que la política no deja
+  /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja
    * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
   deleteDelivery: (id: string) => Promise<boolean>;
   /** Move an order to a new workflow stage and log the event. `extra` merges
@@ -1285,7 +1285,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         });
         return true;
       }
-      // `.select("id")` y contar (D-NEXT, 142): sin él, un borrado que la política rechaza parecía hecho y
+      // `.select("id")` y contar (D-383, 142): sin él, un borrado que la política rechaza parecía hecho y
       // la fila desaparecía de la lista hasta recargar. La fila solo se quita si la base la devolvió.
       return borrarOrden({
         borrar: async () => await supabase.from("deliveries").delete().eq("id", id).select("id"),

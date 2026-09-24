@@ -3,7 +3,7 @@ import { nombreNormalizado } from "@/lib/store-pins";
 import type { Delivery, NamedLocation, Profile } from "@/lib/types";
 
 /**
- * Almacén deshace un paso en SUS órdenes, y borrar pasa a ser del borrador (D-NEXT, pantalla de la 142).
+ * Almacén deshace un paso en SUS órdenes, y borrar pasa a ser del borrador (D-383, pantalla de la 142).
  *
  * El dueño, literal: *«deja que warehouse y office tengan la opción de deshacer un stage, como por
  * ejemplo deshacer un delivered o un fulfilling o un ready, y también que los draft, si no los ocupan,

@@ -11,7 +11,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
 /**
- * La pastilla «Outdated / Atrasadas» de Órdenes (D-NEXT).
+ * La pastilla «Outdated / Atrasadas» de Órdenes (D-384).
  *
  * El dueño: *«make a filter name outdated and put the old order there»*. Dentro, las atrasadas
  * abiertas anteriores a ayer; fuera de la lista normal, que se queda con ayer, hoy y lo que viene.

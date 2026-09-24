@@ -34,7 +34,7 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
  * viejas, y quien quiera volver a acotar por fecha lo hace y ve el chip que lo está haciendo. Un
  * filtro que se salta en silencio es el mismo problema al revés.
  *
- * **Y la de «Outdated» (D-NEXT), por la misma razón y hacia el mismo sitio.** Todo lo que lista es
+ * **Y la de «Outdated» (D-384), por la misma razón y hacia el mismo sitio.** Todo lo que lista es
  * de antes de ayer: con «Hoy» puesto enseñaría cero filas con la pastilla diciendo otro número, y
  * con «Reciente» las enseñaría —`withinRecent` deja pasar la vencida abierta (D-351)— pero con
  * «Reciente» encendido sobre órdenes de hace semanas, que es la confusión que D-380 quitó.

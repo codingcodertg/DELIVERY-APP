@@ -112,7 +112,7 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * y llena la pestaña. Se devuelven juntas para que **nadie las calcule por su cuenta**: dos listas
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
  *
- * `atrasadas` (D-NEXT) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
+ * `atrasadas` (D-384) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
  * ella. Es lo que `visibles` ya no lleva —las abiertas con fecha anterior a ayer, `vaAAtrasadas`—,
  * con los mismos cortes por rol y la misma ventana, así que cada persona ve en «Outdated» solo las
  * atrasadas que ya podía ver.
@@ -131,7 +131,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
     const normal = pasaLaVentana(d, ctx, false);
-    // «Outdated» (D-NEXT): la atrasada abierta anterior a ayer sale de la lista normal y va a la
+    // «Outdated» (D-384): la atrasada abierta anterior a ayer sale de la lista normal y va a la
     // suya. Buscando, se queda también en la normal: buscar es el camino a todo (D-374), y una
     // factura que no sale al teclearla se lee como que la orden no existe.
     const atrasada = vaAAtrasadas(d);

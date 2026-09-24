@@ -14,7 +14,7 @@ import type { Stage, UserRole } from "./types";
  * cuando alguien pulse un botón que la base rechaza, que es el fallo de D-044 y el que cazó la prueba espejo de
  * la 122.
  *
- * **Desde D-NEXT lee la 142**, que es la definición vigente del guard, y modela almacén de verdad. Hasta entonces
+ * **Desde D-383 lee la 142**, que es la definición vigente del guard, y modela almacén de verdad. Hasta entonces
  * leía la 139 y trataba a almacén como «la base no le deja deshacer nada», lo cual ya era falso con la 139 (le
  * dejaba tres pasos en cualquier tienda): la prueba pasaba porque comparaba `false` con `false`.
  */
@@ -200,7 +200,7 @@ describe("la ficha de la orden pide motivo y avisa de lo que se pierde", () => {
     expect(tramo).toContain("puedeEntregarYa(me.role, existing.stage)");
     expect(tramo).toContain("deshaceAqui");
     expect(tramo).toContain("etapaAnterior(existing.stage)!");
-    // Y `deshaceAqui` es la función probada, con la tienda de la ORDEN contra la MÍA (D-NEXT, 142).
+    // Y `deshaceAqui` es la función probada, con la tienda de la ORDEN contra la MÍA (D-383, 142).
     expect(modal).toContain("const deshaceAqui = !!existing && puedeDeshacer(me.role, existing.stage, ordenDeMisTiendas(existing, me.store, settings.stores));");
   });
 

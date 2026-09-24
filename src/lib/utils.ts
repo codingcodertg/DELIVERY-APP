@@ -433,7 +433,7 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
  * no se entrega y pasa el día siguiente, antes salía como LATE y se arrastraba para reprogramar». D-350 la escondía
  * al segundo día: una vencida sin entregar es trabajo vivo, no historial, y esconderla es perderla.
  *
- * Desde D-NEXT la lista normal de Órdenes ya no le trae las anteriores a ayer (van a la pastilla «Outdated»,
+ * Desde D-384 la lista normal de Órdenes ya no le trae las anteriores a ayer (van a la pastilla «Outdated»,
  * `vaAAtrasadas`), así que esa cláusula solo actúa dentro de esa pastilla con «Reciente» puesto. Se deja: quitarla
  * no cambiaría la lista normal y haría que «Reciente» dentro de «Outdated» saliera vacío.
  */

@@ -22,7 +22,7 @@ export type PastillaDeOrdenes = {
   /** Lo que la persona vería al pulsarla, con el resto de sus filtros ya aplicados. */
   cuenta: number;
   activa: boolean;
-  /** Clase extra, para las dos que se pintan distintas: factura pendiente (D-310) y «Outdated» (D-NEXT). */
+  /** Clase extra, para las dos que se pintan distintas: factura pendiente (D-310) y «Outdated» (D-384). */
   clase?: string;
 };
 
@@ -50,7 +50,7 @@ export function pastillasDeOrdenes(args: {
     salida.push(pastilla(key));
   }
 
-  // «Outdated» (D-NEXT) sale SIEMPRE, también con 0, a diferencia de la de factura pendiente. Las
+  // «Outdated» (D-384) sale SIEMPRE, también con 0, a diferencia de la de factura pendiente. Las
   // atrasadas ya no están en la lista normal: si la pastilla se escondiera al no haber ninguna, el día
   // que hubiera no habría dónde buscarlas, y un 0 dice «no hay nada atrasado», que también es saberlo.
   // Va tras las etapas y antes de la de factura pendiente, que es la que aparece y desaparece: así

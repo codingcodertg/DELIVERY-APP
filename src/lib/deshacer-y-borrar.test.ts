@@ -5,7 +5,7 @@ import { borrarOrden, ordenDeMisTiendas, puedeBorrar } from "./deshacer-y-borrar
 import type { NamedLocation, Stage, UserRole } from "./types";
 
 /**
- * La pantalla de la 142 (D-NEXT): almacén deshace en SUS órdenes, borrar es del borrador, y un borrado
+ * La pantalla de la 142 (D-383): almacén deshace en SUS órdenes, borrar es del borrador, y un borrado
  * que la base no deja pasar no se da por hecho.
  *
  * Lo que decide acaba en la base, así que las pruebas **leen el `.sql` de la 142** y comparan: la política

@@ -26,7 +26,7 @@ describe("qué pastillas salen y en qué orden", () => {
   });
 
   it("después las etapas del rol, en su orden, «Outdated» y la de factura pendiente al final", () => {
-    // «Outdated» (D-NEXT) va antes de la de factura pendiente, que es la que aparece y desaparece.
+    // «Outdated» (D-384) va antes de la de factura pendiente, que es la que aparece y desaparece.
     expect(claves(fila)).toEqual([PASTILLA_TODAS, ...ETAPAS, PESTANA_ATRASADAS, PESTANA_DOCUMENTO_PENDIENTE]);
   });
 
@@ -71,7 +71,7 @@ describe("la cuenta de «Todas»", () => {
 
   it("y sin cuenta ninguna es cero, no un hueco", () => {
     const fila = pastillasDeOrdenes({ etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
-    // «Todas», la etapa y «Outdated», que sale siempre (D-NEXT).
+    // «Todas», la etapa y «Outdated», que sale siempre (D-384).
     expect(fila.map((p) => p.cuenta)).toEqual([0, 0, 0]);
   });
 });
@@ -99,7 +99,7 @@ describe("lo que ya decidía esta fila y no cambia", () => {
   it("y se sigue pintando distinta de las demás", () => {
     const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(fila.find((p) => p.key === PESTANA_DOCUMENTO_PENDIENTE)?.clase).toBe("chip-pend");
-    // Y desde D-NEXT hay otra pintada distinta, «Outdated», en rojo; son dos y ninguna más.
+    // Y desde D-384 hay otra pintada distinta, «Outdated», en rojo; son dos y ninguna más.
     expect(fila.find((p) => p.key === PESTANA_ATRASADAS)?.clase).toBe("chip-late");
     expect(fila.filter((p) => p.clase).length).toBe(2);
   });

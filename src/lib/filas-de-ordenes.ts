@@ -5,10 +5,10 @@ import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
 import { PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 
 /**
- * Las filas de la tabla de Órdenes y las cuentas de sus pastillas, **escritas una vez** (D-NEXT).
+ * Las filas de la tabla de Órdenes y las cuentas de sus pastillas, **escritas una vez** (D-384).
  *
  * Vivían en dos `useMemo` de la pantalla, uno junto al otro, y cada pastilla con lista propia
- * («Factura pendiente», D-313/D-380; «Outdated», D-NEXT) tenía que acordarse de contar sobre la misma
+ * («Factura pendiente», D-313/D-380; «Outdated», D-384) tenía que acordarse de contar sobre la misma
  * lista de la que luego listaba. Eso es exactamente lo que se rompió dos veces: «Programadas 9» con
  * una fila (D-357) y «Invoice pending 3» con una fila (D-380). Aquí la regla se puede probar con
  * datos —pulsar una pastilla enseña tantas filas como decía su número— en vez de solo leyendo el

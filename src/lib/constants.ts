@@ -1132,7 +1132,7 @@ export function etapaAnterior(stage: Stage): Stage | null {
 }
 
 /**
- * Los pasos que **almacén** deshace (D-NEXT, migración 142), y solo en órdenes de sus tiendas:
+ * Los pasos que **almacén** deshace (D-383, migración 142), y solo en órdenes de sus tiendas:
  * `delivered → picked_up`, `ready → fulfilling` y `fulfilling → approved`.
  *
  * - **`approved → pending` no**: es «desaprobar», y aprobar no es de almacén. Además, en `pending` deja de

@@ -224,7 +224,7 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
 describe("los chips de etapa cuentan lo que el chip de fechas deja pasar (D-357)", () => {
   it("las cuentas y la lista usan el MISMO predicado del preset", () => {
     const tablero = leer("src/app/(app)/page.tsx");
-    // D-NEXT sacó las cuentas y las filas a `filas-de-ordenes.ts`: allí se comprueba que usan el mismo
+    // D-384 sacó las cuentas y las filas a `filas-de-ordenes.ts`: allí se comprueba que usan el mismo
     // predicado, y aquí que la pantalla les pasa el SUYO a las dos.
     const filas = leer("src/lib/filas-de-ordenes.ts");
     expect(filas).toContain("const enElPreset = listas.visibles.filter(pasaElPreset);");

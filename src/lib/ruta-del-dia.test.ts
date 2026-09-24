@@ -171,8 +171,8 @@ describe("volver de listo a preparando (queja 2)", () => {
     expect(plano(vigente)).toContain("(old_stage = 'ready' and new_stage = 'fulfilling')");
   });
 
-  it("la vuelta de almacén es el «Deshacer etapa» general, con motivo y en su tienda (D-NEXT)", () => {
-    // Hasta D-NEXT era un botón propio, «↩ Volver a preparando», que preguntaba y escribía una nota fija.
+  it("la vuelta de almacén es el «Deshacer etapa» general, con motivo y en su tienda (D-383)", () => {
+    // Hasta D-383 era un botón propio, «↩ Volver a preparando», que preguntaba y escribía una nota fija.
     // Ahora almacén deshace `ready` (y `delivered`, y `fulfilling`) con el diálogo de office: motivo
     // obligatorio y solo en órdenes de sus tiendas. Lo que decide quién y dónde lo prueba
     // `entregar-ya-y-deshacer.test.ts` contra la 142; aquí solo que la vuelta de listo sigue existiendo.

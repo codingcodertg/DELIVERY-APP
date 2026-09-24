@@ -1,7 +1,7 @@
 import { isOverdue, retentionFloorISO, todayISO } from "@/lib/utils";
 
 /**
- * La pastilla «Outdated / Atrasadas» de Órdenes (D-NEXT).
+ * La pastilla «Outdated / Atrasadas» de Órdenes (D-384).
  *
  * El dueño: *«make a filter name outdated and put the old order there»*. Preguntado, precisó las dos
  * mitades: dentro van las **atrasadas y abiertas** —fecha de entrega anterior a ayer, ni entregadas

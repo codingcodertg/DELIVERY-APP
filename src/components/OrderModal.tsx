@@ -813,7 +813,7 @@ export function OrderModal({
   };
 
   // Aquí vivía `volverAPreparar` (D-287): «Volver a preparando», el botón de almacén en `listo`, que
-  // preguntaba y escribía una nota fija. Desde D-NEXT almacén deshace con el diálogo general de
+  // preguntaba y escribía una nota fija. Desde D-383 almacén deshace con el diálogo general de
   // «Deshacer etapa» (abajo, `deshacerEtapa`), con motivo obligatorio como office, y en tres pasos, no
   // en uno. Lo que el diálogo de D-287 avisaba —que deja de estar lista para cargar— lo dice ahora la
   // pista del diálogo en `ready`.
@@ -1100,7 +1100,7 @@ export function OrderModal({
       t(`Delete order #${orderLabel(existing)}? This cannot be undone.`, `¿Eliminar la orden #${orderLabel(existing)}? No se puede deshacer.`),
       { danger: true, confirmLabel: t("Delete", "Eliminar") },
     ))) return;
-    // Solo se da por borrada si la base devolvió la fila (D-NEXT): un DELETE que la política no deja
+    // Solo se da por borrada si la base devolvió la fila (D-383): un DELETE que la política no deja
     // pasar vuelve limpio con cero filas, y el proveedor ya avisó de por qué.
     const borrada = await deleteDelivery(existing.id);
     if (!borrada) return;
@@ -1108,7 +1108,7 @@ export function OrderModal({
     onClose();
   };
 
-  // Deshacer y borrar, espejo de la 142 (D-NEXT). Almacén solo deshace en órdenes de sus tiendas, y
+  // Deshacer y borrar, espejo de la 142 (D-383). Almacén solo deshace en órdenes de sus tiendas, y
   // borrar es del admin, del autor del borrador, y de office/gerente en los borradores de su tienda.
   const deshaceAqui = !!existing && puedeDeshacer(me.role, existing.stage, ordenDeMisTiendas(existing, me.store, settings.stores));
   const borraAqui = !!existing && puedeBorrar(me, existing, settings.stores);
@@ -2366,7 +2366,7 @@ export function OrderModal({
             mostrador), y deshacen la etapa que alguien adelantó por error. El motivo es obligatorio: sin él, en
             el historial queda un salto sin explicación. La base dice lo mismo (139), así que ningún botón de
             aquí puede acabar en un error del guard.
-            D-NEXT (142): almacén también deshace aquí —`delivered`, `ready` y `fulfilling`, un paso— pero solo en
+            D-383 (142): almacén también deshace aquí —`delivered`, `ready` y `fulfilling`, un paso— pero solo en
             órdenes de sus tiendas (`deshaceAqui`), y con el mismo motivo obligatorio. Es el que sustituye al
             «Volver a preparando» de D-287. */}
         {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || deshaceAqui) && (
@@ -2977,7 +2977,7 @@ function StageActions({
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);
     }
-    // El camino de vuelta de `listo` (D-287) ya no se pinta aquí: desde D-NEXT es el «↩ Deshacer etapa»
+    // El camino de vuelta de `listo` (D-287) ya no se pinta aquí: desde D-383 es el «↩ Deshacer etapa»
     // general de la ficha, con motivo, y solo en órdenes de sus tiendas (142). Dos botones para el mismo
     // salto, uno con motivo y otro sin él, dejarían el historial a medias.
   }

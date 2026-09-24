@@ -18632,7 +18632,7 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 > resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
 > vuelta de «listo» a «preparando».
 >
-> **⚠ La queja 2 cambió de forma el 2026-09-24, por D-NEXT (pantalla de la 142).** El botón propio
+> **⚠ La queja 2 cambió de forma el 2026-09-24, por D-383 (pantalla de la 142).** El botón propio
 > «↩ Volver a preparando», que preguntaba y escribía una nota fija, **ya no existe**: almacén vuelve de
 > `listo` a `preparando` con el «↩ Deshacer etapa» general de la ficha, **con motivo obligatorio** y
 > **solo en órdenes de sus tiendas** (la 142 acotó ese salto por tienda). El aviso de su pregunta —puede
@@ -24343,7 +24343,7 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
+> **⚠ Reemplazada en parte por D-384** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
 > ayer ya no sale en la lista normal sino en su propia pastilla, «Outdated / Atrasadas», con su número a la vista.
 > Lo pidió el dueño sabiendo que esto decía lo contrario. `withinRecent` no se tocó y sigue dejándola pasar; lo que
 > cambió es que la lista normal ya no se la ofrece. Lo que sigue en pie: sigue sin esconderse del todo —está a un
@@ -25856,7 +25856,7 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
+> **⚠ Reemplazada en parte por D-384** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
 > ventana de abajo sigue dejándolas pasar (`withinRetention` no cambió), pero Órdenes las saca de su lista normal y
 > las pone en la pastilla «Outdated / Atrasadas». La Cola de almacén y la pantalla del chofer, que usan la misma
 > ventana, las siguen enseñando como aquí se decidió. Quién ve qué (almacén sus tiendas, ventas lo suyo) no cambia
@@ -26557,7 +26557,7 @@ sesiones de la laptop (2026-09-20 → 22) no están. Y 40 tareas no tienen evide
 6 mutantes del worker, caen los 6). Antes de publicar se buscaron secretos en todo `tracker/`: solo aparecen los
 patrones con los que el propio tracker los tapa.
 
-## D-NEXT · Almacén deshace en su tienda, office borra los borradores de su tienda, y un borrado que la base rechaza ya no se da por hecho
+## D-383 · Almacén deshace en su tienda, office borra los borradores de su tienda, y un borrado que la base rechaza ya no se da por hecho
 
 **Fecha:** 2026-09-24 · **Versión:** la pone el orquestador (Entregas) · **Sin migración:** es la pantalla de la
 **142**, que ya está aplicada en producción (D-377, 2026-09-23). **Corrige en parte** a D-287 (su «Volver a
@@ -26709,7 +26709,7 @@ comportamiento de D-286.
 - **Almacén no ve borradores** (RLS), así que para él «Eliminar» no sale nunca en la práctica, aunque `puedeBorrar` le
   dejaría su propio borrador si lo tuviera.
 
-## D-NEXT · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
+## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
 **Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«make a filter name outdated and put the old order there»*. Preguntado, precisó:

@@ -256,7 +256,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
   const llano = plano(pagina);
 
   it("no arma la lista a mano: la pide, con sus siete datos", () => {
-    // D-NEXT añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
+    // D-384 añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
     expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);
@@ -273,7 +273,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
     // D-380 partió la línea: el CONJUNTO que se cuenta sigue siendo `conPendientes`, que es lo
     // que esta prueba defiende; encima se le añadió el chip de fecha, pero solo cuando la pestaña
     // está puesta, y entonces las filas pasan por el mismo chip. Siguen saliendo de la misma lista.
-    // D-NEXT llevó las cuentas y las filas a `filas-de-ordenes.ts`, donde además se prueban con
+    // D-384 llevó las cuentas y las filas a `filas-de-ordenes.ts`, donde además se prueban con
     // datos; las líneas que esta prueba defendía están allí, y la pantalla le pasa las listas.
     const filas = plano(leer("src/lib/filas-de-ordenes.ts"));
     expect(filas).toContain("const pendientes = listas.conPendientes.filter((d) => facturaPendiente(d, reglas));");
