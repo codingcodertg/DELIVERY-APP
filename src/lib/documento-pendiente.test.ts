@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   campoCapturableEnFila, documentoPendiente, etiquetaDePendiente, falloAlGuardarDocumento, gruposPorTienda,
-  ordenPorTienda, otraConLaMismaFactura, PESTANA_DOCUMENTO_PENDIENTE, valorDeDocumento,
+  ordenPorTienda, otraConLaMismaFactura, PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, valorDeDocumento,
 } from "./documento-pendiente";
 import { STAGES } from "./constants";
 import type { OrderTypeRules } from "./required";
@@ -181,7 +181,10 @@ describe("la pantalla usa la regla, no una copia", () => {
     // Desde D-313 cuenta sobre `conPendientes`, no sobre `visible`: sobre la lista normal daba 0
     // para office —sus pendientes están todas entregadas, fuera de la ventana de D-239— y por eso la
     // pestaña no le aparecía. Lo que D-310 fija sigue igual: la cuenta sale de `documentoPendiente`.
-    expect(plano(pagina)).toContain("c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;");
+    // D-NEXT partió la línea en dos: el conjunto que se cuenta sigue siendo el mismo —lo que
+    // manda es `conPendientes` y `facturaPendiente`— y lo que se le añadió encima es el chip de
+    // fecha cuando la pestaña está puesta. Lo de D-313 y D-310 se comprueba aquí; lo nuevo, abajo.
+    expect(plano(pagina)).toContain("const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));");
     expect(plano(pagina)).toContain("if (activeFilter === PESTANA_DOCUMENTO_PENDIENTE) { if (!facturaPendiente(d, settings.order_type_rules ?? {})) return false; }");
     // Desde D-338 la pestaña es solo de FACTURAS: `facturaPendiente` es `documentoPendiente` con el campo mirado.
     expect(plano(pagina)).toContain("porTienda={filter === PESTANA_DOCUMENTO_PENDIENTE}");
@@ -316,5 +319,38 @@ describe("125: lo que la base le abre a ventas es lo mismo que la pantalla le of
     const [, despues] = sql.split("-- @ledger-below");
     expect(despues).toContain(nombre);
     expect(sql).not.toContain("D-" + "NEXT");
+  });
+});
+
+describe("entrar en la pestaña mueve el chip de fecha (D-NEXT)", () => {
+  const pagina = readFileSync(join(process.cwd(), "src/app/(app)/page.tsx"), "utf8").replace(/\r\n/g, "\n");
+  const plano = (s: string) => s.replace(/\s+/g, " ");
+
+  it("la de factura pendiente pone «Todas», venga del chip que venga", () => {
+    for (const antes of ["recent", "today", "overdue", "all"]) {
+      expect(presetAlElegirPastilla(PESTANA_DOCUMENTO_PENDIENTE, antes, "all"), antes).toBe("all");
+    }
+  });
+  it("ninguna otra pastilla lo toca: una etapa no dice nada sobre fechas", () => {
+    for (const clave of ["all", "approved", "delivered", "ready", "doc_pendiente_mal_escrito"]) {
+      expect(presetAlElegirPastilla(clave, "recent", "all"), clave).toBe("recent");
+      expect(presetAlElegirPastilla(clave, "today", "all"), clave).toBe("today");
+    }
+  });
+  it("y apagarla tampoco lo mueve: la pantalla pasa la clave que QUEDA, no la pulsada", () => {
+    expect(presetAlElegirPastilla("all", "today", "all")).toBe("today");
+  });
+
+  it("la pantalla lo cablea con la clave que queda", () => {
+    expect(plano(pagina)).toContain('const queda = p.activa ? PASTILLA_TODAS : p.key; setFilter(queda); setPreset((antes) => presetAlElegirPastilla(queda, antes, "all"));');
+  });
+  it("dentro de la pestaña la cuenta pasa por el chip, y fuera no", () => {
+    // Fuera avisa de trabajo que la ventana esconde (D-313, o a office le salía 0). Dentro
+    // describe la lista de abajo (D-357). Quitar el ternario rompe una de las dos.
+    expect(plano(pagina)).toContain('c[PESTANA_DOCUMENTO_PENDIENTE] = (filter === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;');
+    expect(plano(pagina)).toContain('}, [visible, conPendientes, settings.order_type_rules, pasaElPreset, filter]);');
+  });
+  it("la lista de la pestaña sigue saliendo de `conPendientes`, que es lo que D-313 arregló", () => {
+    expect(plano(pagina)).toContain('const desde = activeFilter === PESTANA_DOCUMENTO_PENDIENTE ? conPendientes : visible;');
   });
 });

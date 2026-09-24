@@ -12,7 +12,7 @@ import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
-import { facturaPendiente, PESTANA_DOCUMENTO_PENDIENTE, tiendasDeQuienMira } from "@/lib/documento-pendiente";
+import { facturaPendiente, PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 import { ordenesVisibles } from "@/lib/ordenes-visibles";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -309,9 +309,15 @@ export default function OrdersPage() {
     // La de la pestaña cuenta sobre `conPendientes` (D-313): las suyas son trabajo vivo aunque la
     // orden sea vieja, y sobre `visible` daban 0 para office — que es por lo que la pestaña no le
     // aparecía. Las de etapa y «Todas» siguen contando sobre lo que se ve en la lista normal.
-    c[PESTANA_DOCUMENTO_PENDIENTE] = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {})).length;
+    // Fuera de la pestaña cuenta TODO lo pendiente, sin mirar el chip de fecha: ese número es el
+    // aviso de que hay trabajo fuera de la ventana, y es lo que D-313 arregló. DENTRO de la
+    // pestaña pasa por el chip, como las de etapa (D-357), porque ahí el número ya no avisa de
+    // nada: describe la lista que hay debajo. Al entrar coinciden —entrar pone «Todas»—; dejan de
+    // coincidir solo si quien mira acota la fecha a propósito, y entonces el número le sigue.
+    const pendientes = conPendientes.filter((d) => facturaPendiente(d, settings.order_type_rules ?? {}));
+    c[PESTANA_DOCUMENTO_PENDIENTE] = (filter === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;
     return c;
-  }, [visible, conPendientes, settings.order_type_rules, pasaElPreset]);
+  }, [visible, conPendientes, settings.order_type_rules, pasaElPreset, filter]);
 
   const rows = useMemo(() => {
     // The board shows every stage as its own column, so ignore the stage chip there.
@@ -559,7 +565,14 @@ export default function OrdersPage() {
               <button
                 key={p.key}
                 className={"chip " + (p.clase ? p.clase + " " : "") + (p.activa ? "on" : "")}
-                onClick={() => setFilter(p.activa ? PASTILLA_TODAS : p.key)}
+                onClick={() => {
+                  // Pulsar la encendida vuelve a «Todas» (D-313), y de ahí sale la clave que de
+                  // verdad queda puesta. El chip de FECHA lo decide `presetAlElegirPastilla`
+                  // (D-NEXT): solo la pestaña de factura pendiente lo mueve, y solo a «Todas».
+                  const queda = p.activa ? PASTILLA_TODAS : p.key;
+                  setFilter(queda);
+                  setPreset((antes) => presetAlElegirPastilla(queda, antes, "all"));
+                }}
               >
                 {p.key === PASTILLA_TODAS
                   ? t("All", "Todas")
