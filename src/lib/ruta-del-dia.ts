@@ -15,6 +15,28 @@ import { sumaPallets } from "./pallets";
  * decisión, del dueño.
  */
 
+/**
+ * Qué etapas entran, y por qué **la hoja impresa y la pantalla ya no llevan las mismas** (D-NEXT).
+ *
+ * Estaban en una sola lista, con un comentario que decía que compartirlas evitaba que dijeran cosas
+ * distintas. La intención era buena y el efecto no: **una orden entregada desaparecía de la ruta del
+ * día en el momento de entregarla.** A media tarde la pantalla enseñaba tres paradas de las doce que
+ * había habido, y almacén no tenía dónde ver lo que ya salió — que es justo lo que se mira cuando
+ * alguien pregunta «¿y el pedido de Casa Bella?».
+ *
+ * Así que se separan, y se dice por qué cada una es la que es:
+ *   · **La hoja de carga** es lo que queda por cargar. Una entregada en una hoja de carga es una
+ *     instrucción de cargar algo que ya se fue.
+ *   · **La ruta del día** es el día entero, y cada parada dice en qué estado está.
+ *
+ * Que la de la ruta sea la de la hoja **más** `delivered` no es casualidad y hay prueba de ello: si
+ * mañana alguien añade una etapa a la hoja, la ruta la hereda sola en vez de quedarse corta otra vez.
+ */
+export const ETAPAS_DE_LA_HOJA_DE_CARGA: readonly string[] = ["approved", "fulfilling", "ready", "picked_up"];
+
+/** La hoja de carga MÁS lo ya entregado: la ruta del día no encoge según avanza el día. */
+export const ETAPAS_DE_LA_RUTA_DEL_DIA: readonly string[] = [...ETAPAS_DE_LA_HOJA_DE_CARGA, "delivered"];
+
 /** La clave del grupo «sin chofer»: una cadena vacía, sin centinelas. */
 export const SIN_CHOFER = "";
 

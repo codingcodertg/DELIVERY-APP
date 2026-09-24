@@ -26387,3 +26387,98 @@ tiendas intercaladas), sin filas de recogida (M12), y la página sin usar la eti
   Lo pedido era la tabla; en el mapa, una etiqueta provisional necesitaría su propio aspecto.
 - **La columna «#» mide 40 px** por defecto (`rtg_routes_stops7`): «P1·P2» sale «P1…», ordenada o provisional. Es de antes.
   Subir el valor por defecto no alcanza a quien ya guardó sus anchos.
+
+## D-NEXT · La pestaña de factura pendiente abre la ventana, y la Ruta del día deja de encoger
+
+**Fecha:** 2026-09-23 · **Sin migración.**
+Dos quejas de pantalla del dueño, las dos de la misma forma: **una lista que dice un número y enseña
+otro**.
+
+### 1 · «Factura pendiente» decía 3 y enseñaba 1
+
+La pestaña **cuenta** sobre `conPendientes` —lo pendiente aunque sea viejo, que es lo que D-313
+arregló para que a office no le saliera 0— pero la **lista** seguía pasando por el chip de fecha, que
+arranca en «Reciente». Y casi todo lo que tiene factura pendiente está entregado hace semanas.
+
+Medido en el navegador el 2026-09-23, como Office, con tres órdenes entregadas sin factura (dos de
+agosto y septiembre, una de hoy):
+
+| | antes de pulsar | después de pulsar |
+|---|---|---|
+| chip de fecha | Reciente | **Todas** |
+| la pastilla dice | Invoice pending **3** | Invoice pending **3** |
+| filas en la lista | **1** (solo la de hoy) | **3** |
+
+**Se mueve el chip en vez de ignorarlo dentro de la pestaña.** Ignorarlo habría dado el mismo
+resultado y habría sido peor: quien entra vería órdenes de agosto con «Reciente» encendido y sin
+saber por qué. Al mover el chip, la razón está a la vista y quien quiera volver a acotar por fecha lo
+hace y ve el filtro que lo está haciendo. Un filtro que se salta en silencio es este mismo problema
+al revés.
+
+La regla vive en `lib/documento-pendiente.ts` (`presetAlElegirPastilla`), no en la pantalla: es una
+decisión de una línea y con ella se prueba que **ninguna otra pastilla mueve nada**. Una etapa no
+dice nada sobre fechas.
+
+**Y la cuenta de la pestaña cambia según dónde estés, a propósito.** Fuera, cuenta todo lo pendiente
+sin mirar el chip: ese número es el aviso de que hay trabajo *fuera* de la ventana, y es justo lo que
+D-313 arregló. Dentro, pasa por el chip, como las de etapa desde D-357, porque ahí ya no avisa de
+nada: describe la lista que hay debajo. Al entrar coinciden —entrar pone «Todas»—; dejan de coincidir
+solo si quien mira acota la fecha a propósito, y entonces el número le sigue.
+
+### 2 · Una entrega desaparecía de la Ruta del día al entregarla
+
+`cargasDelDia` alimentaba **las hojas de carga y la vista de ruta**, con un comentario que decía que
+compartirlas evitaba que dijeran cosas distintas. La intención era buena; el efecto, no: su lista de
+etapas no incluye `delivered`, así que **una parada se caía de la pantalla en el momento de
+entregarla**. A media tarde almacén veía tres paradas de las doce que había habido, y no tenía dónde
+mirar lo que ya salió —que es lo que se busca cuando alguien pregunta «¿y el pedido de Casa Bella?».
+
+Se separan las **etapas**, no el filtro:
+
+- `ETAPAS_DE_LA_HOJA_DE_CARGA` — lo que queda por cargar. Una entregada en una hoja de carga es una
+  instrucción de cargar algo que ya se fue.
+- `ETAPAS_DE_LA_RUTA_DEL_DIA` — **esa lista más `delivered`**, escrita como derivación
+  (`[...ETAPAS_DE_LA_HOJA_DE_CARGA, "delivered"]`) para que una etapa nueva en la hoja la herede la
+  ruta sin que nadie se acuerde. El filtro sigue viviendo una sola vez, en `delDia`.
+
+Y como ahora conviven terminadas y pendientes, **cada parada dice su etapa**: la misma pastilla
+`.sema` con el color de `stageInfo` que usan Órdenes y Promos. Sin ella, una parada terminada se
+leería igual que una que sigue esperando camión.
+
+Medido en el navegador, almacén, con una entregada de hoy sembrada (el demo no traía ninguna):
+**13 paradas**, columna «Stage», y las pastillas repartidas en **Programmed 8 · Ready 2 · Preparing 1
+· Picked Up 1 · Delivered 1**. La página no se desplaza de lado.
+
+Dos cosas que arrastra el cambio y se dicen:
+
+- **El mapa de esa vista pasa también a las paradas del día.** Si se hubiera quedado con las de
+  carga, una entregada saldría en la tabla y no en el mapa de al lado, que es peor que no estar en
+  ninguno de los dos.
+- **El vacío deja de decir «Nada que cargar para este día»** y dice «Nada en la ruta de este día»:
+  la vista ya no es lo que queda por cargar.
+
+### Tres canarios que había que mover, y por qué no es holgura
+
+- `inline-colors`: el blanco de la pastilla nueva sube el techo de `warehouse/page.tsx` de 0 a 1 y el
+  total de 74 a 75 (61 blancos). **Se sube el techo, no se salta la regla**, que es lo que esa tabla
+  pide.
+- `ordenes-visibles` y `pastillas-de-ordenes` fijaban la línea literal que ahora se partió en dos.
+  Lo que defendían sigue en pie y así está escrito en cada una: la cuenta sale de `conPendientes`, y
+  la clave que queda puesta es una sola para las tres clases de pastilla.
+- `ruta-del-dia` exigía **lo contrario de este cambio** —«la hoja impresa y la pantalla miran las
+  MISMAS órdenes»—. Su razón valía para el filtro y no para la lista. La prueba dice ahora eso, con
+  el motivo dentro, en vez de borrarse.
+
+### Medido, rompiendo cada pieza
+
+15 cambios: **15 caen, cada uno por la prueba que lleva su nombre.** Entre ellos: la pestaña deja de
+mover el chip; lo mueve cualquier pastilla; la pantalla pasa la pastilla pulsada en vez de la que
+queda; la cuenta ignora el chip siempre; la cuenta lo aplica siempre (que rompe D-313); la ruta
+vuelve a la lista de la hoja; la hoja se lleva las entregadas; el mapa se queda corto; la pastilla
+desaparece; la pastilla dice siempre lo mismo.
+
+**Uno sobrevivió a la primera y enseñó algo:** sustituir `[...ETAPAS_DE_LA_HOJA_DE_CARGA,
+"delivered"]` por las cinco etapas escritas a mano. Hoy valen lo mismo, así que ninguna prueba de
+valor podía cazarlo — y sin embargo no es lo mismo: la copia es exactamente cómo nació este fallo. La
+diferencia está en el fuente, así que se comprueba en el fuente. Es feo y es lo único que sostiene la
+promesa que el comentario hace.
