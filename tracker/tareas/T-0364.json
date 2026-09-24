@@ -1,0 +1,31 @@
+{
+  "id": "T-0364",
+  "fecha": "2026-09-23",
+  "resumen": "Gestor: el ⚙ Columnas de paradas deja marcar, la celda del ID limpia, y P/D provisional para un chofer sin optimizar",
+  "texto_original": "no me deja selecionar la columna y se mira un solo relajo tambien donde esta el id y el invoic que feo se mira arregla eso / porque maximo no tiene p1 d1 y asi arregla eso",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "203"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-379"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:20-05:00",
+  "modificado": "2026-09-24T09:31:20-05:00"
+}

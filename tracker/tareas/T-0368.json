@@ -1,0 +1,31 @@
+{
+  "id": "T-0368",
+  "fecha": "2026-09-24",
+  "resumen": "Promos: mover el orden de las columnas",
+  "texto_original": "Can you make it to where I can move the place of the columns in promos",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "209"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-385"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:21-05:00",
+  "modificado": "2026-09-24T09:31:21-05:00"
+}

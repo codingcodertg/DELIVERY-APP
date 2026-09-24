@@ -1,0 +1,31 @@
+{
+  "id": "T-0369",
+  "fecha": "2026-09-24",
+  "resumen": "Promos: el filtro de tienda deja fuera lo que tiene menos de 10 en esa tienda",
+  "texto_original": "make the store filter work meaning if the item in extistencia in the store has less than 10 then that will not be included in the list",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [],
+    "prs": [
+      "209"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-385"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [],
+  "fuentes": [
+    "sesion"
+  ],
+  "creado": "2026-09-24T09:31:21-05:00",
+  "modificado": "2026-09-24T09:31:21-05:00"
+}
