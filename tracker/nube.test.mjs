@@ -125,6 +125,41 @@ describe("la 144: la forma que exige este repo", () => {
   });
 });
 
+describe("la 145: el cubo con URL fija", () => {
+  const SQL145 = readFileSync(join(process.cwd(), "supabase", "migrations", "145_tracker_bucket.sql"), "utf8");
+
+  it("el cubo es público de LECTURA, y escribir solo service-role", () => {
+    // Lo que se publica es la PÁGINA, que no lleva datos dentro. Escribir solo el script: dejar que
+    // alguien la sustituya desde el navegador sería dejar que sustituya lo que el dueño ve.
+    expect(SQL145).toContain("for select to public using (bucket_id = 'tracker')");
+    expect(SQL145).toContain("for all to service_role using (bucket_id = ''tracker'')");
+    expect(SQL145).not.toContain("for all to authenticated");
+  });
+
+  it("y las dos políticas están acotadas a ESE cubo", () => {
+    // Una política de `storage.objects` sin `bucket_id` alcanza a todos los cubos del proyecto —
+    // fotos de fichaje, adjuntos de ayuda, documentos del ERP.
+    const pols = SQL145.split("create policy").slice(1);
+    expect(pols.length).toBeGreaterThanOrEqual(2);
+    for (const p of pols) expect([p.slice(0, 40), p.includes("bucket_id")]).toEqual([p.slice(0, 40), true]);
+  });
+
+  it("va aparte de la 144 para poder revertirse sola", () => {
+    expect(SQL145).toContain("delete from public.schema_migrations where name = '145_tracker_bucket.sql'");
+    const [, ledger] = SQL145.split("-- @ledger-below");
+    expect(ledger).toContain("'145_tracker_bucket.sql'");
+  });
+
+  it("y su checksum es el que calcula `migrate-status`", () => {
+    const salida = execFileSync(process.execPath,
+      [join(process.cwd(), "scripts", "db", "migrate-status.mjs"), "--sum", "145_tracker_bucket.sql"],
+      { encoding: "utf8" });
+    const calculado = salida.match(/'([0-9a-f]{64})'/)?.[1];
+    const inscrito = SQL145.split("-- @ledger-below")[1].match(/'([0-9a-f]{64})'/)?.[1];
+    expect([calculado, inscrito]).toEqual([inscrito, inscrito]);
+  });
+});
+
 describe("la página en vivo", () => {
   const html = paginaEnVivoHTML({ url: "https://ejemplo.supabase.co", anonKey: "eyJhbGciOiJIUzI1NiJ9.anon.firma" });
 
