@@ -1,0 +1,38 @@
+{
+  "id": "T-0299",
+  "fecha": "2026-09-17",
+  "resumen": "Documentos y fotos en la solicitud de ayuda",
+  "texto_original": "en la solicitud de ayuda, que se puedan añadir documentos o fotos",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "28d7a32c"
+    ],
+    "prs": [
+      "106"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-284"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:25-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-284 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:25-05:00",
+  "modificado": "2026-09-24T08:34:25-05:00"
+}

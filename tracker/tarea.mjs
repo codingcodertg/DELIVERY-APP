@@ -115,6 +115,27 @@ export const ESTADO_FINAL = "Completado";
 /** Donde nace una tarea: pendiente de que el dueno la mire. */
 export const ESTADO_INICIAL = ESTADOS[2];
 
+/**
+ * **Si alguien COMPROBO que funciona, y como.** Es otra pregunta que el estado.
+ *
+ * «Desplegado» dice que el codigo esta publicado; no dice que nadie lo haya abierto. Esa diferencia
+ * es la que el dueno lleva pidiendo: *«la prueba de que funciono»*. Casi nada de lo reconstruido se
+ * ha visto en un navegador con sesion real, y el tracker tiene que decirlo en vez de dar por bueno
+ * lo que solo esta compilado.
+ *
+ * - `sin verificar` — el caso normal, y no es un reproche: es el estado de casi todo.
+ * - `verificado`   — alguien lo midio. La nota dice QUIEN, CUANDO y COMO; sin eso no se acepta.
+ * - `fallo`        — se midio y no hacia lo que se pidio. Vale tanto como un verificado.
+ */
+export const VERIFICACION = ["sin verificar", "verificado", "fallo"];
+export const VERIFICACION_INICIAL = VERIFICACION[0];
+
+/** Un estado de verificacion tecleado de cualquier forma. */
+export function normalizaVerificacion(s) {
+  const llano = (t) => (t ?? "").normalize("NFD").replace(ACENTOS, "").toLowerCase().replace(/\s+/g, " ").trim();
+  return VERIFICACION.find((v) => llano(v) === llano(s)) ?? null;
+}
+
 // ---------------------------------------------------------------- forma de una tarea
 
 /** Una tarea nueva, con todos los campos puestos aunque esten vacios: un campo que falta se lee
@@ -136,6 +157,13 @@ export function tareaNueva(campos = {}) {
       decisiones: campos.evidencia?.decisiones ?? [],
       links: campos.evidencia?.links ?? [],
     },
+    // Si alguien lo COMPROBO, y con que. `prueba` es la frase que lo sostiene —«worker lo abrio en
+    // el navegador el 23 y vio la 1020»— y sin ella `verificado` no significa nada.
+    verificacion: {
+      estado: campos.verificacion?.estado ?? VERIFICACION_INICIAL,
+      prueba: campos.verificacion?.prueba ?? "",
+      fecha: campos.verificacion?.fecha ?? null,
+    },
     notas: campos.notas ?? [],
     // De donde salio esta fila. En la reconstruccion del historial es lo que separa «lo dijo el
     // dueno» de «lo deduje de un commit», y sin eso el tracker no se puede auditar.
@@ -153,6 +181,14 @@ export function valida(t) {
   if (!ESTADOS.includes(t.estado)) problemas.push("estado desconocido: " + t.estado);
   if (!HECHO.includes(t.lo_hizo_claude)) problemas.push("lo_hizo_claude desconocido: " + t.lo_hizo_claude);
   if (t.padre && t.padre === t.id) problemas.push("una tarea no puede ser su propia madre");
+  if (t.verificacion) {
+    if (!VERIFICACION.includes(t.verificacion.estado)) problemas.push("verificacion desconocida: " + t.verificacion.estado);
+    // **Un «verificado» sin prueba no vale.** Es la misma regla que «Completado»: una afirmacion
+    // sin nada detras es peor que no afirmar nada, porque se cree.
+    if (t.verificacion.estado !== VERIFICACION_INICIAL && !t.verificacion.prueba?.trim()) {
+      problemas.push("«" + t.verificacion.estado + "» sin decir quien lo midio, cuando y como");
+    }
+  }
   return problemas;
 }
 

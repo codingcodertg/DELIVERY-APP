@@ -6,14 +6,16 @@
 // Si algun dia hace falta verla desde otro equipo, es una decision, no una bandera.
 
 import { createServer } from "node:http";
-import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { informeHTML } from "./informe.mjs";
 import {
-  ESTADOS, ESTADO_FINAL, HECHO, RAIZ, ZONA_NEGOCIO, ahoraLocal, busca, guarda, lee, normalizaEstado, tapaSecretos, todas,
+  ESTADO_FINAL, HECHO, RAIZ, VERIFICACION, ahoraLocal, guarda, lee, normalizaEstado, normalizaVerificacion,
+  tapaSecretos, todas,
 } from "./tarea.mjs";
 
 const PUERTO = Number(process.env.TRACKER_PUERTO) || 4319;
-const PAGINA = join(RAIZ, "app.html");
+void RAIZ;
+void join;
 
 const json = (res, codigo, cuerpo) => {
   const t = JSON.stringify(cuerpo);
@@ -38,20 +40,12 @@ const servidor = createServer(async (req, res) => {
   const url = new URL(req.url, "http://127.0.0.1");
   try {
     if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-      if (!existsSync(PAGINA)) return json(res, 500, { error: "falta tracker/app.html" });
-      const html = readFileSync(PAGINA);
+      // **La misma página que el fichero suelto**, pintada por `informe.mjs`, con `editable` en
+      // true. Dos plantillas acabarían discrepando y el dueño vería una cosa en la pantalla y
+      // otra en el fichero guardado.
+      const html = informeHTML({ editable: true, tareas: todas() });
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return res.end(html);
-    }
-
-    if (req.method === "GET" && url.pathname === "/api/tareas") {
-      return json(res, 200, { estados: ESTADOS, hecho: HECHO, estadoFinal: ESTADO_FINAL, zona: ZONA_NEGOCIO, tareas: todas() });
-    }
-
-    if (req.method === "GET" && url.pathname === "/api/buscar") {
-      const q = url.searchParams.get("q") ?? "";
-      const r = busca(q, todas(), { limite: Number(url.searchParams.get("limite")) || 8 });
-      return json(res, 200, { resultados: r.map((x) => ({ id: x.tarea.id, puntos: x.puntos, comunes: x.comunes })) });
     }
 
     if (req.method === "POST" && url.pathname.startsWith("/api/tarea/")) {
@@ -74,6 +68,16 @@ const servidor = createServer(async (req, res) => {
       if (c.lo_hizo_claude !== undefined) {
         if (!HECHO.includes(c.lo_hizo_claude)) return json(res, 400, { error: "valor desconocido" });
         t.lo_hizo_claude = c.lo_hizo_claude;
+      }
+      if (c.verificacion !== undefined) {
+        const v = normalizaVerificacion(c.verificacion);
+        if (!v) return json(res, 400, { error: "verificación desconocida" });
+        // La misma regla que el CLI: sin decir quién lo midió, cuándo y cómo, no se acepta.
+        const prueba = String(c.prueba ?? "").trim();
+        if (v !== VERIFICACION[0] && !prueba) {
+          return json(res, 400, { error: "para marcar «" + v + "» hace falta decir quién lo midió, cuándo y cómo" });
+        }
+        t.verificacion = { estado: v, prueba: tapaSecretos(prueba).texto, fecha: v === VERIFICACION[0] ? null : ahoraLocal() };
       }
       if (String(c.nota ?? "").trim()) {
         const { texto, tapados } = tapaSecretos(String(c.nota));

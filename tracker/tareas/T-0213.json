@@ -1,0 +1,36 @@
+{
+  "id": "T-0213",
+  "fecha": "2026-08-31",
+  "resumen": "El almacén confirma también la tarifa, no solo las pallets",
+  "texto_original": "quítale el bloqueo a warehouse con\n> lo de la tarifa",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "c4bc4cfd"
+    ],
+    "prs": [],
+    "ficheros": [],
+    "decisiones": [
+      "D-143"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:19-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-143 (2026-08-31)"
+  ],
+  "creado": "2026-09-24T08:34:19-05:00",
+  "modificado": "2026-09-24T08:34:19-05:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "T-0308",
+  "fecha": "2026-09-17",
+  "resumen": "La casa del hub, más grande y sólida",
+  "texto_original": "haz esa casita bigger and solid",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "bd20bf18"
+    ],
+    "prs": [
+      "117"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-295"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-295 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

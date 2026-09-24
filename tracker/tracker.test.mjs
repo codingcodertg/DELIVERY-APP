@@ -7,6 +7,7 @@ import {
   ESTADOS, ESTADO_FINAL, ESTADO_INICIAL, ahoraLocal, busca, diaLocal, normalizaEstado, palabras, tapaSecretos,
   tareaNueva, valida,
 } from "./tarea.mjs";
+import { informeHTML } from "./informe.mjs";
 
 /**
  * El tracker se vigila desde la misma suite que la app, aunque viva fuera de `src/`.
@@ -78,6 +79,26 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
     expect(JSON.parse(readFileSync(join(dir, "T-0001.json"), "utf8")).estado).toBe(ESTADO_FINAL);
   });
 
+  it("y «verificado» sin prueba tampoco se acepta, que es la misma regla para otra cosa", () => {
+    // «Desplegado» dice que el código está publicado; no dice que nadie lo haya abierto. Un
+    // «comprobado» sin decir quién lo midió, cuándo y cómo es peor que no afirmar nada, porque se
+    // cree — y es justo lo que el dueño lleva pidiendo: la prueba de que funcionó.
+    expect(rechaza(["update", "T-0001", "--verificacion", "verificado"])).toContain("--prueba");
+    const salida = corre(["update", "T-0001", "--verificacion", "verificado",
+      "--prueba", "lo abrió worker en el navegador el 2026-09-24"], entorno);
+    expect(salida).toContain("verificado");
+    const t = JSON.parse(readFileSync(join(dir, "T-0001.json"), "utf8"));
+    expect(t.verificacion.estado).toBe("verificado");
+    expect(t.verificacion.prueba).toContain("worker");
+    expect(t.verificacion.fecha).toMatch(/[+-]\d{2}:\d{2}$/);
+  });
+
+  it("una tarea con «verificado» y sin prueba no pasa la validación", () => {
+    const t = tareaNueva({ id: "T-0009", resumen: "x" });
+    t.verificacion = { estado: "verificado", prueba: "", fecha: null };
+    expect(valida(t).join(" ")).toContain("sin decir quien lo midio");
+  });
+
   it("el servidor lleva la misma regla escrita, no una parecida", () => {
     const src = readFileSync(join(process.cwd(), "tracker", "server.mjs"), "utf8");
     expect(src).toContain("if (!c.confirmadoPorElDueno) return json(res, 400,");
@@ -114,6 +135,71 @@ describe("el puerto ocupado se dice en una línea, no con una traza", () => {
     } finally {
       cerrojo.close();
     }
+  });
+});
+
+describe("el informe: una sola plantilla para la pantalla y para el fichero suelto", () => {
+  // El dueño: *«I believe un HTML estaría bien»*. Lo que se mide aquí es que las dos versiones
+  // salgan de la MISMA función: si fueran dos plantillas acabarían discrepando, y vería una cosa en
+  // la pantalla y otra en el fichero que guarda.
+  const tareas = [
+    tareaNueva({ id: "T-0001", fecha: "2026-09-01", resumen: "una petición de prueba",
+      texto_original: "quiero que la tabla haga algo", estado: ESTADOS[0],
+      evidencia: { decisiones: ["D-100"], prs: ["42"], commits: ["abc1234"] } }),
+  ];
+
+  it("la suelta no trae con qué escribir, y lo dice", () => {
+    const html = informeHTML({ editable: false, tareas });
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("una petición de prueba");
+    expect(html).toContain("quiero que la tabla haga algo");
+    expect(html).toContain("es una foto");
+    expect(html).toContain('"editable":false');
+  });
+
+  it("la servida sí, y es la misma página", () => {
+    const suelta = informeHTML({ editable: false, tareas });
+    const servida = informeHTML({ editable: true, tareas });
+    expect(servida).toContain('"editable":true');
+    // Lo único que las separa es esa bandera: el resto del documento es idéntico.
+    expect(servida.replace('"editable":true', '"editable":false')).toBe(suelta);
+  });
+
+  it("y `cli.mjs html` produce la NO editable, que es el punto de generarlo", () => {
+    // Las de arriba llaman a `informeHTML` directamente, así que ninguna veía qué bandera le pasa el
+    // CLI. Un mutante que la cambiara a `true` sobrevivía: el fichero que el dueño guarda saldría
+    // con los controles de escribir puestos, apuntando a un servidor que no existe.
+    const html = corre(["html"], { maxBuffer: 64 * 1024 * 1024 });
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain('"editable":false');
+    expect(html).not.toContain('"editable":true');
+    expect(html).toContain("es una foto");
+  });
+
+  it("no carga NADA de fuera: ni tipografías, ni librerías, ni CDN", () => {
+    // Un informe que necesita internet para pintarse no es un fichero que puedas guardar.
+    const html = informeHTML({ editable: false, tareas });
+    for (const rastro of ["<script src", "<link rel=\"stylesheet\"", "cdn.", "googleapis", "unpkg", "jsdelivr", "@import"]) {
+      expect([rastro, html.includes(rastro)], rastro).toEqual([rastro, false]);
+    }
+  });
+
+  it("el PR y el commit son enlaces al repositorio, que es la prueba que se pulsa", () => {
+    const html = informeHTML({ editable: false, tareas });
+    expect(html).toContain("github.com/codingcodertg/DELIVERY-APP");
+    expect(html).toContain("/pull/");
+    expect(html).toContain("/commit/");
+  });
+
+  it("y un `</script>` dentro del texto del dueño no parte la página", () => {
+    // Pasa con cualquier mensaje que hable de HTML, y el dueño pega de todo. Sin escapar, la
+    // etiqueta se cierra antes de tiempo y la página queda muerta a partir de ahí.
+    const conTrampa = [tareaNueva({ id: "T-0002", fecha: "2026-09-01", resumen: "x",
+      texto_original: "mira este </script><h1>roto</h1>", estado: ESTADOS[0] })];
+    const html = informeHTML({ editable: false, tareas: conTrampa });
+    const datos = html.slice(html.indexOf('id="datos"'), html.indexOf("</script>", html.indexOf('id="datos"')));
+    expect(datos).toContain("<\\/script>");
+    expect(datos).not.toContain("</script>");
   });
 });
 

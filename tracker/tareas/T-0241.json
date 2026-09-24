@@ -1,0 +1,38 @@
+{
+  "id": "T-0241",
+  "fecha": "2026-09-05",
+  "resumen": "Crear / editar proyecto pasa a botón + ventana (Time Tracker)",
+  "texto_original": "falta mgr.proj.newBtn en\nespañol (usada en …projects/page.tsx)",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "86aa2ac6"
+    ],
+    "prs": [
+      "21"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-205"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:21-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-205 (2026-09-05)"
+  ],
+  "creado": "2026-09-24T08:34:21-05:00",
+  "modificado": "2026-09-24T08:34:21-05:00"
+}

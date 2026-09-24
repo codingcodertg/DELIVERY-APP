@@ -1,0 +1,38 @@
+{
+  "id": "T-0285",
+  "fecha": "2026-09-16",
+  "resumen": "Una orden no puede ir de un sitio a ese mismo sitio",
+  "texto_original": "no permitas que una tienda se venda a sí misma, ni recoja y entregue en sí\nmisma; no tiene sentido",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "85e03dcf"
+    ],
+    "prs": [
+      "87"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-267"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:24-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-267 (2026-09-16)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

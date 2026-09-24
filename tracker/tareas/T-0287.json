@@ -1,0 +1,38 @@
+{
+  "id": "T-0287",
+  "fecha": "2026-09-17",
+  "resumen": "Tutoriales compactos, y la audiencia de cada video son los roles de su app",
+  "texto_original": "OK good, pero muy grande; y dentro de cada app también que salgan los\nroles, que sean check boxes y que pueda editar eso",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "888fb0d9"
+    ],
+    "prs": [
+      "90"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-270"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:24-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-270 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:24-05:00",
+  "modificado": "2026-09-24T08:34:24-05:00"
+}

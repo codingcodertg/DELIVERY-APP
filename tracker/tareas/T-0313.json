@@ -1,0 +1,38 @@
+{
+  "id": "T-0313",
+  "fecha": "2026-09-17",
+  "resumen": "El formulario de crear usuario, detrás de un botón",
+  "texto_original": "make it a buttom and a form desplegable",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "61cf22c8"
+    ],
+    "prs": [
+      "122"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-300"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-300 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

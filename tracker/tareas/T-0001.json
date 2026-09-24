@@ -4,7 +4,7 @@
   "resumen": "Almacén ve solo lo de sus tiendas y tiene una vista de Recepción con las Intertiendas que le llegan; ventas ve solo sus propias órdenes, en cualquier tienda; y vuelve la ventana de fechas para todos menos admin y logística.",
   "texto_original": "warehouse should only see what they are in charge of / for warehouse a new view where the loads intertienda going to his store will be visible; these orders will be extracted from his list and passed to that one / if account in intertienda is my store then put that under receiving / ayer, hoy, futuro y atrasadas",
   "lo_hizo_claude": "Si",
-  "estado": "En revisión – no desplegado",
+  "estado": "En revisión – desplegado",
   "padre": null,
   "evidencia": {
     "commits": [
@@ -16,8 +16,15 @@
       "src/app/(app)/warehouse/page.tsx",
       "src/lib/visibilidad-ventas.ts"
     ],
-    "decisiones": [],
+    "decisiones": [
+      "D-374"
+    ],
     "links": []
+  },
+  "verificacion": {
+    "estado": "verificado",
+    "prueba": "La sesión `worker` lo abrió en el navegador el 2026-09-23 y el 24: almacén ve solo sus tiendas, la vista de Recepción sale, una entregada de agosto ya no aparece, ventas solo ve lo suyo, y la 1020 (ready del 21, atrasada y abierta) vuelve a salir tras el arreglo de la ventana.",
+    "fecha": "2026-09-24T08:36:59-05:00"
   },
   "notas": [
     {
@@ -31,6 +38,10 @@
     {
       "fecha": "2026-09-23T21:33:02-05:00",
       "texto": "Lo pidió o lo afinó el 2026-09-23 a las 19:28: «<pasted_content id=\"e8e0\"> invoice pending in office view should always be set to all when pressed warehouse should only ssee what they are in charge of them for warehouse a new view where the loads intertienda going to his store will be visible this orders will be extracted from his list and passed to that one if account in intertiends is my store then put that under receiving for warehouse warehouse should see the calender change date have the rule again that they can only see yesterday today and tomoprrow and late orders except for logistic manager and admins and only sales has the rule to see all stores. when delivered the order it deissapears form the ruta del dia de warehouse so instead deleted it, add tags delivered and pickup and ready delivery fee in customer isnt working for warehouse </pasted_content id=\"e8e0\">»"
+    },
+    {
+      "fecha": "2026-09-24T08:35:01-05:00",
+      "texto": "Fusionada y DESPLEGADA. Se numeró como D-374 al fusionar. Medido el 2026-09-24: producción responde deliveries 1.195.0 y `APP_VERSIONS` en main dice lo mismo, así que lo que está en main está publicado."
     }
   ],
   "fuentes": [
@@ -38,5 +49,5 @@
     "sesion:83590ac0 2026-09-23 19:28"
   ],
   "creado": "2026-09-23T20:50:02-05:00",
-  "modificado": "2026-09-23T21:33:02-05:00"
+  "modificado": "2026-09-24T08:36:59-05:00"
 }

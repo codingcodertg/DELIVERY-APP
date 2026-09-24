@@ -13,6 +13,11 @@
     "decisiones": [],
     "links": []
   },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
   "notas": [],
   "fuentes": [
     "sesion:83590ac0 2026-09-09 00:20"

@@ -1,0 +1,38 @@
+{
+  "id": "T-0347",
+  "fecha": "2026-09-22",
+  "resumen": "La carga y los pallets libres de un viaje se enseñan a la décima",
+  "texto_original": "carga en recolección ↺ (7.569999999999999 libres) round it nearest tenth",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9d69f5f7"
+    ],
+    "prs": [
+      "179"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-355"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:29-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-355 (2026-09-22)"
+  ],
+  "creado": "2026-09-24T08:34:30-05:00",
+  "modificado": "2026-09-24T08:34:30-05:00"
+}

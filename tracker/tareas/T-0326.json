@@ -1,0 +1,38 @@
+{
+  "id": "T-0326",
+  "fecha": "2026-09-18",
+  "resumen": "«Switch to another user» en el banner reventaba: el panel no tenía sus proveedores",
+  "texto_original": "Cambiar a otro usuario / Switch to another\nuser",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9bf6a123"
+    ],
+    "prs": [
+      "142"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-321"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:27-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-321 (2026-09-18)"
+  ],
+  "creado": "2026-09-24T08:34:27-05:00",
+  "modificado": "2026-09-24T08:34:27-05:00"
+}

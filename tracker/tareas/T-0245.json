@@ -1,0 +1,38 @@
+{
+  "id": "T-0245",
+  "fecha": "2026-09-06",
+  "resumen": "G-20: la ficha del pedido (`OrderModal`) se carga en diferido; `routes/page.tsx` no arrastra nada a `/`",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "1a35b69c"
+    ],
+    "prs": [
+      "25"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-209"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:21-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-209 (2026-09-06)"
+  ],
+  "creado": "2026-09-24T08:34:21-05:00",
+  "modificado": "2026-09-24T08:34:21-05:00"
+}

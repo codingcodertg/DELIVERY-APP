@@ -1,0 +1,38 @@
+{
+  "id": "T-0350",
+  "fecha": "2026-09-22",
+  "resumen": "En «Sin asignar», el día por defecto y las atrasadas por su chip",
+  "texto_original": "no, pero lo que pasa es que para eso tienes filtros: hoy y todas y\natrasadas",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "13065f79"
+    ],
+    "prs": [
+      "183"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-359"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:30-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-359 (2026-09-22)"
+  ],
+  "creado": "2026-09-24T08:34:30-05:00",
+  "modificado": "2026-09-24T08:34:30-05:00"
+}

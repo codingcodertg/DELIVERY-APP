@@ -1,0 +1,38 @@
+{
+  "id": "T-0281",
+  "fecha": "2026-09-16",
+  "resumen": "«Apps para instalar» solo la ve el admin",
+  "texto_original": "Apps para instalar",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "fb613fec"
+    ],
+    "prs": [
+      "83"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-262"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:23-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-262 (2026-09-16)"
+  ],
+  "creado": "2026-09-24T08:34:23-05:00",
+  "modificado": "2026-09-24T08:34:23-05:00"
+}

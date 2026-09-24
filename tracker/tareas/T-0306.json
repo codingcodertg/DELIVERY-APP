@@ -1,0 +1,38 @@
+{
+  "id": "T-0306",
+  "fecha": "2026-09-17",
+  "resumen": "Anular una orden deja motivo, quién y cuándo; una entregada no se anula",
+  "texto_original": "agrega una opción para anular órdenes y deben dejar razón por qué la\nanularon, ya sea duplicación, o cliente canceló, o cliente recogerá en tienda",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "9a034fd3"
+    ],
+    "prs": [
+      "113"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-291"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:26-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-291 (2026-09-17)"
+  ],
+  "creado": "2026-09-24T08:34:26-05:00",
+  "modificado": "2026-09-24T08:34:26-05:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "T-0278",
+  "fecha": "2026-09-15",
+  "resumen": "El directorio omite a quien no tiene ningún dato de contacto",
+  "texto_original": "si no tiene tiendas o puestos y así\nentonces omítelo por ahora",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "65fced50"
+    ],
+    "prs": [
+      "82"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-259"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:23-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-259 (2026-09-15)"
+  ],
+  "creado": "2026-09-24T08:34:23-05:00",
+  "modificado": "2026-09-24T08:34:23-05:00"
+}

@@ -18,6 +18,11 @@
       "https://app.notion.com/p/RDZ-Deliveries-Documentaci-n-3c069c11154f812a8684e0d5737b3dbf"
     ]
   },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
   "notas": [
     {
       "fecha": "2026-09-23T21:21:29-05:00",

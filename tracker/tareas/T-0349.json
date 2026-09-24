@@ -1,0 +1,38 @@
+{
+  "id": "T-0349",
+  "fecha": "2026-09-22",
+  "resumen": "«Sin asignar» del Gestor lleva también las atrasadas sin chofer",
+  "texto_original": "en logistic manager el table de unscheduled no me salen las late!!",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "20c8e7ac"
+    ],
+    "prs": [
+      "182"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-358"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:30-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-358 (2026-09-22)"
+  ],
+  "creado": "2026-09-24T08:34:30-05:00",
+  "modificado": "2026-09-24T08:34:30-05:00"
+}

@@ -10,8 +10,10 @@
 // Todo lleva `--json` para que otro programa lo lea sin parsear texto para humanos.
 
 import { readFileSync } from "node:fs";
+import { informeHTML } from "./informe.mjs";
 import {
-  ESTADOS, ESTADO_FINAL, HECHO, ahoraLocal, busca, diaLocal, guarda, lee, normalizaEstado, siguienteId, tapaSecretos,
+  ESTADOS, ESTADO_FINAL, HECHO, VERIFICACION, ahoraLocal, busca, diaLocal, guarda, lee, normalizaEstado,
+  normalizaVerificacion, siguienteId, tapaSecretos,
   tareaNueva, todas,
 } from "./tarea.mjs";
 
@@ -73,6 +75,10 @@ function pintaDetalle(t) {
   }
   l.push("");
   l.push("lo hizo Claude: " + t.lo_hizo_claude);
+  const v = t.verificacion ?? {};
+  l.push("¿se comprobó?: " + (v.estado ?? "sin verificar")
+    + (v.prueba ? "  — " + v.prueba : "")
+    + (v.fecha ? "  (" + diaLocal(v.fecha) + ")" : ""));
   const e = t.evidencia ?? {};
   for (const [k, v] of Object.entries(e)) if (v?.length) l.push(k + ": " + v.join(", "));
   const hijas = todas().filter((x) => x.padre === t.id);
@@ -180,6 +186,18 @@ function cmd_update() {
     t.padre = flags.padre; cambios++;
   }
   if (flags["sin-padre"]) { t.padre = null; cambios++; }
+  if (flags.verificacion && flags.verificacion !== true) {
+    const v = normalizaVerificacion(flags.verificacion);
+    if (!v) muere("--verificacion tiene que ser uno de: " + VERIFICACION.join(", "));
+    // La prueba es obligatoria salvo para volver a «sin verificar»: un «verificado» sin decir
+    // quién lo midió, cuándo y cómo es peor que no afirmar nada, porque se cree.
+    const prueba = flags.prueba && flags.prueba !== true ? String(flags.prueba) : "";
+    if (v !== VERIFICACION[0] && !prueba.trim()) {
+      muere("para marcar «" + v + "» hace falta --prueba con quién lo midió, cuándo y cómo");
+    }
+    t.verificacion = { estado: v, prueba: tapaSecretos(prueba).texto, fecha: v === VERIFICACION[0] ? null : ahoraLocal() };
+    cambios++;
+  }
 
   const nueva = evidenciaDe(flags);
   for (const k of Object.keys(nueva)) {
@@ -236,6 +254,11 @@ function cmd_list() {
   if (flags.hasta && flags.hasta !== true) l = l.filter((t) => t.fecha <= flags.hasta);
   if (flags.padre && flags.padre !== true) l = l.filter((t) => t.padre === flags.padre);
   if (flags.sueltas) l = l.filter((t) => !t.padre);
+  if (flags.verificacion && flags.verificacion !== true) {
+    const v = normalizaVerificacion(flags.verificacion);
+    if (!v) muere("--verificacion tiene que ser uno de: " + VERIFICACION.join(", "));
+    l = l.filter((t) => (t.verificacion?.estado ?? VERIFICACION[0]) === v);
+  }
   // Las que no tienen NADA que pulsar. Se puede preguntar, en vez de que el hueco pase por
   // despiste: en la reconstrucción hay tareas cuya decisión no se pudo atar automáticamente, y
   // conviene que eso sea una lista y no una sospecha.
@@ -255,6 +278,11 @@ function cmd_list() {
       const n = l.filter((t) => t.lo_hizo_claude === h).length;
       console.log("  " + String(n).padStart(4) + "  lo hizo Claude: " + h);
     }
+    console.log("");
+    for (const v of VERIFICACION) {
+      const n = l.filter((t) => (t.verificacion?.estado ?? VERIFICACION[0]) === v).length;
+      console.log("  " + String(n).padStart(4) + "  " + v);
+    }
     return;
   }
   for (const t of l) console.log(pintaFila(t));
@@ -264,7 +292,20 @@ function cmd_list() {
 
 // ---------------------------------------------------------------- despachar
 
-const ORDENES = { add: cmd_add, update: cmd_update, search: cmd_search, show: cmd_show, list: cmd_list };
+/**
+ * El informe entero en un fichero que se abre con doble clic.
+ *
+ * El dueño: *«I believe un HTML estaría bien»*. Esto es para que no dependa de que alguien tenga
+ * el servidor levantado: se guarda, se manda por correo y se abre en cualquier equipo.
+ *
+ * Sale por la salida estándar a propósito —`> tracker/informe.html`— para que quien lo genera
+ * decida dónde cae, y para que el programa no escriba nunca un fichero que nadie le pidió.
+ */
+function cmd_html() {
+  process.stdout.write(informeHTML({ editable: false, tareas: todas() }));
+}
+
+const ORDENES = { add: cmd_add, update: cmd_update, search: cmd_search, show: cmd_show, list: cmd_list, html: cmd_html };
 
 if (!orden || flags.help || orden === "help") {
   console.log([
@@ -276,8 +317,10 @@ if (!orden || flags.help || orden === "help") {
     "  update  T-0001 [las mismas banderas; la evidencia y las notas SUMAN]",
     "  search  \"texto\" [--limite 5]        parecidos por palabras, sin salir de esta máquina",
     "  show    T-0001",
+    "  html                                el informe entero, para guardar: `node tracker/cli.mjs html > tracker/informe.html`",
     "  list    [--estado ...] [--hizo ...] [--desde ...] [--hasta ...] [--padre T-3] [--sueltas]",
-    "          [--sin-evidencia] [--contar]",
+    "          [--sin-evidencia] [--verificacion ...] [--contar]",
+    "  update  ... [--verificacion verificado --prueba \"quién lo midió, cuándo y cómo\"]",
     "",
     "Todas aceptan --json.",
     "",

@@ -1,0 +1,38 @@
+{
+  "id": "T-0237",
+  "fecha": "2026-09-05",
+  "resumen": "Auditoría 2026-09-05, lote 3 (eficiencia): ventanas con carga bajo demanda, realtime por tabla, lotes en HR, un salto en los enlaces viejos, y `fast-uri`",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "7e199cd8"
+    ],
+    "prs": [
+      "17"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-201"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:20-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-201 (2026-09-05)"
+  ],
+  "creado": "2026-09-24T08:34:20-05:00",
+  "modificado": "2026-09-24T08:34:20-05:00"
+}

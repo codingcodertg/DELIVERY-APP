@@ -1,0 +1,38 @@
+{
+  "id": "T-0240",
+  "fecha": "2026-09-05",
+  "resumen": "Auditoría 2026-09-05, lote 5b (el ERP en dos idiomas, segunda mitad): los otros 51 ficheros, las etiquetas de librería como pares, y la hoja `<Tx>` para los server components",
+  "texto_original": "",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "e204ad7b"
+    ],
+    "prs": [
+      "20"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-204"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:20-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona. Esta entrada NO trae una cita suya, así que el campo literal va vacío: se sabe que lo pidió él, no con qué palabras."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-204 (2026-09-05)"
+  ],
+  "creado": "2026-09-24T08:34:21-05:00",
+  "modificado": "2026-09-24T08:34:21-05:00"
+}

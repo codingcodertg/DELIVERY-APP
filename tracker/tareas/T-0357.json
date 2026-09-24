@@ -1,0 +1,38 @@
+{
+  "id": "T-0357",
+  "fecha": "2026-09-23",
+  "resumen": "Promos entra directo a la tabla, los botones de decidir se ven, y el inventario por tienda es de todos",
+  "texto_original": "esto elimínalo, que entre\ndirecto a la tabla; y los botones de aprobar y desaprobar que sean más grandes y por color; y pon el\ninventario de todas las tiendas para vista de todos",
+  "lo_hizo_claude": "Si",
+  "estado": "En revisión – desplegado",
+  "padre": null,
+  "evidencia": {
+    "commits": [
+      "5dd104ea"
+    ],
+    "prs": [
+      "201"
+    ],
+    "ficheros": [],
+    "decisiones": [
+      "D-375"
+    ],
+    "links": []
+  },
+  "verificacion": {
+    "estado": "sin verificar",
+    "prueba": "",
+    "fecha": null
+  },
+  "notas": [
+    {
+      "fecha": "2026-09-24T08:34:31-05:00",
+      "texto": "Reconstruida desde `DECISIONS.md`. **El resumen es el título de la decisión, palabra por palabra**, no una paráfrasis mía: esos títulos ya están escritos para que los lea una persona."
+    }
+  ],
+  "fuentes": [
+    "DECISIONS.md:D-375 (2026-09-23)"
+  ],
+  "creado": "2026-09-24T08:34:31-05:00",
+  "modificado": "2026-09-24T08:34:31-05:00"
+}
