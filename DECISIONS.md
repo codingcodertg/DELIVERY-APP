@@ -25463,6 +25463,13 @@ Y con eso entra una regla nueva, `columnasVisiblesDePromos`: lo guardado manda, 
 columna de tienda desaparece en cuanto el libro del mes que viene no la trae— y **las fijas entran siempre**, porque una lista
 guardada antes de que lo fueran dejaría una pantalla sin código, sin estado y sin nota, o sea inútil y sin decir por qué.
 
+> **Nota dentro de esta entrada (2026-09-24, D-NEXT):** esta regla devolvía las columnas **en el orden del catálogo**, a
+> propósito —el comentario del código decía «el orden de las columnas es del diseño, no de en qué orden alguien pulsó las
+> casillas»—. **Eso es lo que se reemplaza**: el dueño pidió *«make it to where I can move the place of the columns in
+> promos»*, y ahora cada persona las ordena con las flechas de ⚙ Columnas, como en Órdenes (D-332). Las otras dos reglas
+> de aquí siguen en pie (lo que ya no existe se cae; las fijas entran siempre), y la mitad que no cambia es que la lista
+> de visibles sigue sin contar como orden: el orden se guarda aparte, en `_orden`.
+
 ### Lo que se vio al ponerla al lado de Órdenes
 
 Medido en el navegador a 1280 y 1440, con Órdenes remedida el mismo día: **lo pedido se cumple** —página sin desplazamiento
@@ -26505,3 +26512,119 @@ sirve para lo que se entra.
 **Medido.** `tabla.test.ts`: las fijas son exactamente `code` y `estado`; una lista guardada sin la nota no la trae de
 vuelta; una que la marca, la ve. Mutante: volver a meter `nota` en las fijas tumba «las fijas están, y son las que
 hacen falta para decidir» y «lo guardado manda…».
+
+## D-NEXT · Promos: las columnas se mueven, y el filtro de tienda deja fuera lo que tiene menos de 10
+
+**Fecha:** 2026-09-24 · **Versión:** la pone el orquestador (promos) · **Sin migración.**
+**De dónde sale:** dos frases del dueño sobre la misma tabla, literales: *«Can you make it to where I can move the place of
+the columns in promos»* y *«make the store filter work meaning if the item in existencia in the store has less than 10 then
+that will not be included in the list»*.
+**Lleva nota dentro de D-370**, cuya regla `columnasVisiblesDePromos` devolvía siempre el orden del catálogo.
+
+### 1 · Mover columnas: el mecanismo de Órdenes, no otro
+
+D-370 decidió que la tabla de promos sea «la de Órdenes», así que se miró qué hace Órdenes antes de escribir nada
+(D-332, `lib/orden-de-columnas.ts`): **flechas ↑ ↓ en ⚙ Columnas**, no arrastrar la cabecera. Órdenes no arrastra
+cabeceras, y en la cabecera el arrastre ya es del asa del ancho. Aquí va lo mismo: el menú pasa a «Mostrar y ordenar
+columnas», lista las columnas en el orden de la persona, cada una con sus dos flechas, y trae «Restablecer orden».
+**`mueveColumna` es la de Órdenes**, reusada: salta por encima de las escondidas, como allí.
+
+**Dónde se guarda.** En la misma fila de `user_prefs` (clave `promos_columns`, 141), en la mitad `_orden` que ya existía
+desde D-332 para Órdenes: `{ "<rol>": [visibles], "_orden": { "<rol>": [todas, en su orden] }, "_anchos": {...} }`. **Sin
+migración**: la forma ya lo admitía, y hay prueba de que el orden va y vuelve igual por `valorDeColumnas`/`prefsDeValor`.
+Y en el navegador (`rtg_promos_orden_<rol>`), la red de D-330, escrito **antes** del corte que protege la base.
+
+**Un defecto que habría aparecido con esto.** El escritor único de D-370 mandaba `{}` en el hueco del orden. No borraba
+nada porque nadie lo escribía; en cuanto alguien ordena, marcar una casilla le habría borrado el orden. Ahora manda lo
+leído, y hay prueba (y mutante) de eso.
+
+**«Guardar sin pisar a otro».** Aquí no hay más columnas que mandar o no mandar: la fila es `(user_id, key, value)` y el
+`value` es un JSON entero. Lo que sí se hace es partir **siempre de lo leído** y cambiar **solo el rol propio**
+(`{ ...ordenDeLaBase.current, [rol]: nextOrden }`), igual que las visibles y los anchos. Lo que eso no cubre, y es lo mismo
+que ya pasaba: la misma persona en dos pestañas a la vez, la última que guarda gana.
+
+### Las cuatro reglas del orden, y por qué
+
+- **`code` va siempre primera y no se mueve** (`COLUMNA_PRIMERA`). Es la `#` de Órdenes: identifica la fila. Sus
+  flechas salen apagadas y nadie se le puede poner delante. **`estado` sí se
+  mueve** —es fija en el sentido de D-381, no se puede quitar—, pero su sitio lo elige cada uno.
+- **Lo que ya no existe se cae**, igual que en Órdenes. Aquí pasa cada mes: las `qoh_XXX` son las del libro de esa ronda.
+- **Una columna que el orden guardado no conoce entra detrás de su vecina del catálogo**, no al final (en Órdenes va al
+  final). Aquí la columna nueva es casi siempre una tienda que trae el libro del mes que viene, y al final —detrás de la
+  nota— quedaría lejos de las otras tiendas. Sin orden guardado, esta misma regla da el catálogo tal cual: es un camino,
+  no un caso aparte.
+- **Y sale visible, si es de las del arranque.** Esto es nuevo y va más allá del orden: hasta hoy, quien hubiera guardado
+  sus columnas en septiembre **no habría visto nunca** la tienda nueva de octubre, porque lo guardado manda y no la
+  traía — aunque D-375 dijera que las de tienda son «para vista de todos». Ahora el orden guardado sirve de lista de
+  «las que esa persona tenía delante»: una que no está ahí es nueva y entra con el defecto; una que estaba y no marcó,
+  sigue escondida. Para eso, **marcar una casilla guarda también el orden** tal como está.
+
+**Lo que esa última regla no alcanza:** quien guardó columnas **antes de esta entrega** no tiene orden guardado, así que
+para esa persona una tienda nueva sigue saliendo escondida hasta que toque cualquier casilla o flecha. No se contó cuántas
+filas `promos_columns` hay hoy en producción (D-375 contó **0** el 2026-09-23); desde una rama no se lee producción.
+
+### 2 · El filtro de tienda
+
+**Qué había.** Ningún filtro de tienda. Lo que el dueño llamaba así solo puede ser una de dos cosas, y ninguna filtra por
+existencias:
+
+- **«Decidiendo por»** (solo admin): cambia de qué **grupo** se leen y escriben las decisiones. No quita ningún producto.
+- **El menú de la cabecera de una columna `Existencias XXX`**: es el de D-360, filtra por **valor exacto**, con una casilla
+  por cada número distinto. Quitar «menos de 10» era desmarcar los números uno a uno.
+
+**Qué hay ahora.** Un selector «Todas las tiendas / XXX: 10 o más» al lado de los chips de estado, con las tiendas **del
+libro de esa ronda**. Elegida una, **fuera los productos con menos de 10 en ESA tienda**; **10 justo se queda**. El número
+es `MINIMO_EN_LA_TIENDA`, con prueba. **Sin dato cuenta como 0 y queda fuera**, nulo o sin la clave: ofrecer en promoción lo
+que no se sabe si hay es peor que esconderlo. Una tienda que la ronda no trae no filtra nada, en vez de vaciar la tabla sin
+decir por qué. Lo pueden usar todos los roles: filtra lo que se ve, no lo que se puede decidir.
+
+**Por tienda del libro, no por grupo — y esto es a sabiendas.** La apuesta del orquestador era filtrar por **grupo** y
+sumar sus tiendas (McAllen + Mission = `MCAMIS`). **No se puede sin inventar un dato**: el libro llama a sus tiendas como
+diga el encabezado (`qoh_by_store`) y el grupo es un campo de Ajustes (`promo_group`, D-366), y **no hay ningún cruce
+guardado** entre las dos cosas (el plan de la 140 lo dice: «las tiendas de Ajustes no llevan ese código»). Adivinarlo por el
+nombre —que `MCAMIS` contiene `MCA` y `MIS`— es una regla que falla en silencio el día que un código contenga a otro, y
+además pondría códigos del dueño en el código, que una prueba prohíbe. **Si se quiere la suma por grupo, falta un dato**:
+qué columnas del libro son de cada grupo, puesto por el admin en Datos → Tiendas, como `promo_group`. Es una decisión
+aparte.
+
+**Que no mienta.** El filtro se aplica **antes** que todo lo demás: los chips (Pendiente · N, Aprobado · N, Rechazado · N),
+el «N / M» y «seleccionar todo» hablan de la lista ya filtrada, y al lado sale cuántos esconde y por qué («1 ocultos:
+menos de 10 en N1»). Cambiar de tienda limpia la selección, para que un «Aprobar» en bloque no se lleve productos que ya no
+se ven. Los chips siguen sin descontar los filtros de columna (D-360), como antes.
+
+**No se guarda.** La tienda elegida vive mientras la pantalla está abierta; recargar vuelve a «Todas». No se pidió, y
+guardarlo por persona sería otra clave o otra mitad de la fila.
+
+### Medido
+
+**`tabla.test.ts`, de 61 a 82 casos**, y las dos pruebas viejas del escritor único se actualizan: ahora el escritor
+manda las TRES mitades.
+
+**En el navegador, demo a 1440** (`next dev` en modo demo, clics de persona con el elemento a la vista): «Precio» subió
+tres puestos con ↑ —saltando las tres tiendas que tenía delante—, se recargó la página y **seguía en su sitio** (las
+cabeceras antes y después de recargar, idénticas). Las flechas de «Code» salen apagadas. El demo no tiene base, así que lo
+que sobrevivió a recargar es el navegador; la base se prueba con la función (`valorDeColumnas`/`prefsDeValor`), no en vivo.
+Filtro: con N1 elegida quedan 11 de 12; la que sale tenía 0 en N1, y la menor de las que quedan tiene 37. Los chips pasan de
+9·2·1 a 9·1·1. **La página no se desplaza de lado** (1440 de 1440); la caja sí (1686 dentro de 1366), como en D-375.
+
+**Mutantes: 23, leídos por nombre; caen los 23.** Del orden: «el orden guardado se ignora al pintar», «una columna nueva
+desaparece», «una columna nueva se va al final», «una tienda nueva sigue escondida para quien guardó antes», «una que se
+conocía y se escondió vuelve a salir», «una fija se puede quitar», «`code` deja de forzarse primera», «`code` se puede mover
+con las flechas», «una tienda que ya no existe se queda en el orden», «la pantalla pinta en el orden del catálogo», «la
+pantalla calcula las visibles sin el orden», «el escritor vuelve a mandar `{}` en el orden», «guardar el orden pisa los otros
+roles», «el orden no se lee de la base», «el orden no se lee del navegador» y «marcar una casilla deja de guardar el orden».
+Del filtro: «`< 10` pasa a `<= 10`», «sin dato pasa el filtro», «el filtro se ignora», «una tienda que la ronda no trae vacía
+la tabla», «el umbral deja de ser 10», «la pantalla no usa el filtro» y «los chips cuentan la lista entera».
+
+**Dos no cayeron a la primera, y no por lo mismo.** «Se va al final» era un mutante mal escrito: cambiaba el sitio inicial,
+pero el bucle de la vecina lo pisaba justo después — no hacía lo que decía su nombre. Reescrito, cae. «El orden no se lee de
+la base» era una prueba floja mía: exigía que se leyera `leido.orden[rol]`, no que **se usara**. Se cerró citando el
+`setOrdenDeColumnas(suOrden)`, y lo mismo para el navegador.
+
+### Lo que no está
+
+- **La suma por grupo**, arriba: falta el dato que cruce columnas del libro con grupos.
+- **Un vendedor no guarda nada en la base.** `columnasValidas` (user-prefs, compartida con Órdenes) solo acepta los roles
+  de `ROLES_QUE_ELIGEN`, que no incluye `sales`, así que el orden y las visibles de un vendedor en promos solo viven en su
+  navegador. Ya pasaba con las visibles desde D-370; tocarlo es tocar Órdenes, y va aparte.
+- **Arrastrar la cabecera para moverla**: Órdenes no lo tiene, y la instrucción fue usar su mecanismo.

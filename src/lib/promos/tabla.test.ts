@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ordenaFilas, filtraFilas } from "@/lib/orden-y-filtro";
+import { prefsDeValor, valorDeColumnas } from "@/lib/user-prefs";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
   COLOR_DE_ESTADO, columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, puedeVerPrivadasDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
-  motivoParaNoDecidir, puedeDecidir,
+  motivoParaNoDecidir, puedeDecidir, ordenDeColumnasDePromos, mueveColumnaDePromos, COLUMNA_PRIMERA, filtraPorTienda, MINIMO_EN_LA_TIENDA,
   valorDeColumna, valorParaFiltrar, type DecisionDeGrupo, type ProductoDeCatalogo,
 } from "./tabla";
 
@@ -142,7 +143,8 @@ describe("qué columnas se ofrecen", () => {
     expect(columnasVisiblesDePromos(["code", "qoh_YA_NO", "price"], cols)).toEqual(["code", "price", "estado"]);
     // Y quien la marcó, la ve.
     expect(columnasVisiblesDePromos(["price", "nota"], cols)).toEqual(["code", "price", "estado", "nota"]);
-    // Y en el orden del CATÁLOGO, no en el que se marcaron.
+    // Y el orden de la lista de visibles NO cuenta: sale en el que se marcaron. Sin orden guardado,
+    // el del catálogo (el orden va aparte desde D-NEXT, como en Órdenes).
     expect(columnasVisiblesDePromos(["nota", "price", "code", "estado", "description"], cols))
       .toEqual(["code", "description", "price", "estado", "nota"]);
     // Sin nada guardado, el defecto.
@@ -473,7 +475,7 @@ describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir p
   it("y el navegador se escribe ANTES del corte que protege la base", () => {
     // Si se escribiera después del `return` que exige haber leído la base, una base que no
     // contesta dejaría también al navegador sin nada — que es justo el caso que la red cubre.
-    const cuerpo = tabla.slice(tabla.indexOf("const ponVisibles"), tabla.indexOf("const alternaColumna"));
+    const cuerpo = tabla.slice(tabla.indexOf("const ponColumnas"), tabla.indexOf("const ponVisibles"));
     const iNavegador = cuerpo.indexOf("localStorage.setItem");
     const iCorte = cuerpo.indexOf("visiblesDeLaBase.current === null) return;");
     expect(iNavegador).toBeGreaterThan(-1);
@@ -496,7 +498,8 @@ describe("las columnas de cada persona se GUARDAN — la 141 tenía que servir p
     // borraría las columnas. Se comprueba contando: UNA sola llamada, dentro de `escribeLaFila`.
     expect(tabla.match(/guardaColumnas\(/g) ?? []).toHaveLength(1);
     expect(tabla).toContain("visiblesDeLaBase.current ?? {},");
-    expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,");
+    // Y desde D-NEXT las TRES: el orden va con lo leído, no con un `{}` que lo borraría.
+    expect(tabla).toContain("CLAVE_DE_COLUMNAS_DE_PROMOS, ordenDeLaBase.current, anchosDeLaBase.current,");
     // Y que los dos caminos pasen por él.
     expect(tabla.match(/void escribeLaFila\(\);/g) ?? []).toHaveLength(3);
   });
@@ -580,5 +583,179 @@ describe("lo que se escribe al decidir", () => {
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/140_promos.sql"), "utf8");
     // La cláusula entera: «length(note) <= 500» es subcadena de «<= 5000».
     expect(sql).toContain(`check (note is null or length(note) <= ${LARGO_DE_NOTA})`);
+  });
+});
+
+// ===========================================================================
+describe("el ORDEN de las columnas es de cada persona (D-NEXT)", () => {
+  // El dueño: «Can you make it to where I can move the place of the columns in promos». Mismo
+  // mecanismo que Órdenes (D-332): el orden va aparte de qué se ve, en `_orden` de la misma fila.
+  const cols = columnasDePromos(["AA1", "BB2"], false);
+  const catalogo = cols.map((c) => c.key);
+
+  it("sin orden guardado, el del catálogo: nadie nota nada hasta que pulsa una flecha", () => {
+    expect(ordenDeColumnasDePromos(cols, null)).toEqual(catalogo);
+    expect(columnasVisiblesDePromos(null, cols, null)).toEqual(columnasVisiblesDePromos(null, cols));
+  });
+
+  it("el orden guardado manda en lo que se pinta", () => {
+    const orden = ["code", "nota", "price", "estado", "description", "qoh_BB2", "qoh_AA1", "size", "qoh", "supplier"];
+    expect(columnasVisiblesDePromos(["description", "price", "estado", "nota", "qoh_AA1"], cols, orden))
+      .toEqual(["code", "nota", "price", "estado", "description", "qoh_AA1"]);
+  });
+
+  it("`code` va siempre primera, no se mueve, y nadie se le pone delante", () => {
+    expect(COLUMNA_PRIMERA).toBe("code");
+    // Aunque lo guardado la ponga en otro sitio.
+    expect(ordenDeColumnasDePromos(cols, ["price", "estado", "code"])[0]).toBe("code");
+    const orden = ordenDeColumnasDePromos(cols, null);
+    expect(mueveColumnaDePromos(orden, "code", 1)).toEqual(orden);
+    // La segunda no sube por encima de ella: pulsar ↑ no hace nada.
+    expect(mueveColumnaDePromos(orden, orden[1], -1)).toEqual(orden);
+  });
+
+  it("las fijas se MUEVEN pero no se QUITAN", () => {
+    const orden = ordenDeColumnasDePromos(cols, null);
+    const movido = mueveColumnaDePromos(orden, "estado", -1);
+    expect(movido.indexOf("estado")).toBe(orden.indexOf("estado") - 1);
+    // Una lista guardada sin `estado` lo trae igual, en su sitio.
+    expect(columnasVisiblesDePromos(["price"], cols, movido)).toEqual(movido.filter((k) => ["code", "price", "estado"].includes(k)));
+  });
+
+  it("una flecha mueve entre las VISIBLES, saltando las escondidas (la de Órdenes)", () => {
+    const orden = ["code", "description", "supplier", "size", "estado"];
+    const pocas = columnasDePromos([], false).filter((c) => orden.includes(c.key));
+    expect(mueveColumnaDePromos(ordenDeColumnasDePromos(pocas, orden), "size", -1, ["code", "description", "size", "estado"]))
+      .toEqual(["code", "size", "description", "supplier", "estado"]);
+  });
+
+  it("una tienda que el libro de este mes ya NO trae se cae del orden, sin romper nada", () => {
+    const orden = ["code", "qoh_YA_NO", "price", ...catalogo];
+    const r = ordenDeColumnasDePromos(cols, orden);
+    expect(r).not.toContain("qoh_YA_NO");
+    expect([...r].sort()).toEqual([...catalogo].sort());
+    expect(r.slice(0, 2)).toEqual(["code", "price"]);
+  });
+
+  it("una tienda NUEVA entra detrás de su vecina: ni desaparece ni se va al final", () => {
+    // Septiembre: solo había AA1, y esta persona la puso delante del todo.
+    const deSeptiembre = ["code", "qoh_AA1", "nota", "estado", "description", "supplier", "size", "qoh", "price"];
+    const r = ordenDeColumnasDePromos(cols, deSeptiembre);
+    expect(r).toContain("qoh_BB2");
+    expect(r.indexOf("qoh_BB2")).toBe(r.indexOf("qoh_AA1") + 1);
+    // Y lo demás, como lo dejó.
+    expect(r.filter((k) => k !== "qoh_BB2")).toEqual(deSeptiembre);
+  });
+
+  it("y sale VISIBLE para quien guardó sus columnas antes de que existiera", () => {
+    const deSeptiembre = ordenDeColumnasDePromos(columnasDePromos(["AA1"], false), null);
+    const visiblesDeSeptiembre = ["code", "description", "qoh_AA1", "estado"];
+    expect(columnasVisiblesDePromos(visiblesDeSeptiembre, cols, deSeptiembre)).toContain("qoh_BB2");
+  });
+
+  it("pero una que CONOCÍA y escondió sigue escondida: eso sí lo decidió", () => {
+    const conAmbas = ordenDeColumnasDePromos(cols, null);
+    expect(columnasVisiblesDePromos(["code", "description", "qoh_AA1", "estado"], cols, conAmbas)).not.toContain("qoh_BB2");
+    // Y una privada nueva para quien ahora puede verlas no entra sola: no son del arranque.
+    const conPrivadas = columnasDePromos(["AA1", "BB2"], true);
+    expect(columnasVisiblesDePromos(["code", "estado"], conPrivadas, conAmbas)).not.toContain("cost");
+  });
+
+  it("el orden viaja en la fila de `user_prefs` y vuelve igual (`_orden`, por rol)", () => {
+    const orden = ordenDeColumnasDePromos(cols, ["code", "nota", "qoh_BB2"]);
+    const valor = valorDeColumnas({ visibles: { manager: ["code", "estado"] }, orden: { manager: orden }, anchos: {} });
+    expect(valor._orden).toEqual({ manager: orden });
+    expect(prefsDeValor(valor).orden.manager).toEqual(orden);
+  });
+});
+
+describe("la pantalla ordena con la función, y guarda el orden sin pisar nada (D-NEXT)", () => {
+  const tabla = sinComentarios(readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8"));
+
+  it("lo que se pinta sale de `columnasVisiblesDePromos` CON el orden de la persona", () => {
+    expect(tabla).toContain("const visiblesEfectivas = columnasVisiblesDePromos(visibles, columnas, ordenDeColumnas);");
+    expect(tabla).toContain("const columnasPintadas = visiblesEfectivas.map(");
+    expect(tabla).toContain("const ordenDelSelector = ordenDeColumnasDePromos(columnas, ordenDeColumnas);");
+  });
+
+  it("⚙ Columnas lista en ese orden, con las flechas ↑ ↓ de Órdenes", () => {
+    expect(tabla).toContain("{ordenDelSelector.map((k) => columnas.find((c) => c.key === k)!).map((c) => (");
+    expect(tabla).toContain("guardaOrden(mueveColumnaDePromos(ordenDelSelector, c.key, -1, visiblesEfectivas))");
+    expect(tabla).toContain("guardaOrden(mueveColumnaDePromos(ordenDelSelector, c.key, 1, visiblesEfectivas))");
+  });
+
+  it("el orden se LEE de la base y del navegador", () => {
+    expect(tabla).toContain("ordenDeLaBase.current = leido.orden;");
+    expect(tabla).toContain("const suOrden = leido.orden[rol as UserRole];");
+    expect(tabla).toContain("localStorage.getItem(claveDelOrdenDePromos(rol))");
+    // Y lo leído SE USA: leerlo y no ponerlo es lo mismo que no leerlo.
+    expect(tabla).toContain("if (suOrden) setOrdenDeColumnas(suOrden);");
+    expect(tabla).toContain('if (Array.isArray(lista)) setOrdenDeColumnas(lista.filter((k) => typeof k === "string"));');
+  });
+
+  it("y se GUARDA en los dos, con el navegador antes del corte y sin pisar los otros roles", () => {
+    const cuerpo = tabla.slice(tabla.indexOf("const ponColumnas"), tabla.indexOf("const ponVisibles"));
+    const iNavegador = cuerpo.indexOf("localStorage.setItem(claveDelOrdenDePromos(rol), JSON.stringify(nextOrden))");
+    const iCorte = cuerpo.indexOf("visiblesDeLaBase.current === null) return;");
+    expect(iNavegador).toBeGreaterThan(-1);
+    expect(iNavegador).toBeLessThan(iCorte);
+    // Se parte de lo LEÍDO y se cambia solo el rol propio: el resto de la fila va como vino.
+    expect(cuerpo).toContain("ordenDeLaBase.current = { ...ordenDeLaBase.current, [rol as UserRole]: nextOrden };");
+  });
+
+  it("marcar una casilla guarda también el orden, que es lo que deja reconocer una tienda nueva", () => {
+    expect(tabla).toContain("const ponVisibles = (next: string[]) => ponColumnas(next, ordenDelSelector);");
+    expect(tabla).toContain("const guardaOrden = (nextOrden: string[]) => ponColumnas(visiblesEfectivas, nextOrden);");
+  });
+});
+
+// ===========================================================================
+describe("el filtro de tienda: fuera lo que tiene menos de 10 en ELLA (D-NEXT)", () => {
+  // El dueño: «make the store filter work meaning if the item in existencia in the store has less
+  // than 10 then that will not be included in the list».
+  const conTienda = (code: string, qoh_by_store: Record<string, number | null>) => producto({ code, qoh_by_store });
+  const filas = filasDePromo([
+    conTienda("NUEVE", { AA1: 9, BB2: 500 }),
+    conTienda("DIEZ", { AA1: 10, BB2: 0 }),
+    conTienda("ONCE", { AA1: 11, BB2: 0 }),
+    conTienda("NULO", { AA1: null, BB2: 500 }),
+    conTienda("SIN_CLAVE", { BB2: 500 }),
+  ], [], null);
+  const claves = ["AA1", "BB2"];
+  const codigos = (fs: readonly { code: string }[]) => fs.map((f) => f.code);
+
+  it("el número es 10, y tiene nombre", () => {
+    expect(MINIMO_EN_LA_TIENDA).toBe(10);
+  });
+
+  it("menos de 10 fuera; 10 JUSTO se queda", () => {
+    expect(codigos(filtraPorTienda(filas, "AA1", claves))).toEqual(["DIEZ", "ONCE"]);
+  });
+
+  it("sin dato cuenta como 0, y queda fuera — nulo o sin la clave", () => {
+    const r = codigos(filtraPorTienda(filas, "AA1", claves));
+    expect(r).not.toContain("NULO");
+    expect(r).not.toContain("SIN_CLAVE");
+  });
+
+  it("mira SOLO la tienda elegida: ni otra, ni el total", () => {
+    // DIEZ y ONCE pasan en AA1 y tienen 0 en BB2; el total del producto de prueba es 100 en todos.
+    // Con BB2 elegida quedan justo los que tienen 500 en ELLA.
+    expect(codigos(filtraPorTienda(filas, "BB2", claves))).toEqual(["NUEVE", "NULO", "SIN_CLAVE"]);
+  });
+
+  it("sin tienda elegida, o con una que esta ronda no trae, no filtra nada", () => {
+    expect(codigos(filtraPorTienda(filas, "", claves))).toEqual(codigos(filas));
+    expect(codigos(filtraPorTienda(filas, null, claves))).toEqual(codigos(filas));
+    expect(codigos(filtraPorTienda(filas, "YA_NO", claves))).toEqual(codigos(filas));
+  });
+
+  it("la pantalla filtra con la función, y ANTES de contar: los chips hablan de la lista filtrada", () => {
+    const tabla = sinComentarios(readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8"));
+    expect(tabla).toContain("() => filtraPorTienda(todasLasFilas, tiendaFiltro, clavesDeTienda),");
+    expect(tabla).toContain("const orden = useOrdenYFiltro(filas, valorParaFiltrar);");
+    expect(tabla).toContain("const cuenta = cuentaPorEstado(filas);");
+    // Y dice cuántos esconde y por qué, en vez de dejar una tabla más corta sin explicación.
+    expect(tabla).toContain("ocultos: menos de ${MINIMO_EN_LA_TIENDA} en ${tiendaFiltro}");
   });
 });

@@ -12,7 +12,8 @@ import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumna
 import type { UserRole } from "@/lib/types";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
-  COLOR_DE_ESTADO, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, LARGO_DE_NOTA, motivoParaNoDecidir, puedeDecidir,
+  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, LARGO_DE_NOTA,
+  MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
 
@@ -20,6 +21,8 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** La clave del navegador, por rol, igual que la de Órdenes (`claveDelNavegador` de user-prefs). */
 const claveDelNavegadorDePromos = (rol: string) => `rtg_promos_columns_${rol}`;
+/** Y la del ORDEN (D-NEXT), aparte, como en la fila de la base: `_orden` no es la lista de visibles. */
+const claveDelOrdenDePromos = (rol: string) => `rtg_promos_orden_${rol}`;
 
 /**
  * La tabla de una ronda: decidir producto por producto o en bloque.
@@ -91,10 +94,15 @@ export function TablaDeRonda({
   const [anchosDelRol, setAnchosDelRol] = useState<Record<string, number> | null>(null);
   const visiblesDeLaBase = useRef<ColumnasPorRol | null>(null);
   const anchosDeLaBase = useRef<AnchosPorRol>({});
+  // El ORDEN (D-NEXT), la tercera mitad de la misma fila (`_orden`, como Órdenes en D-332). Hasta
+  // aquí el escritor mandaba `{}` en su sitio: no borraba nada porque nadie lo escribía. En cuanto
+  // alguien ordena, mandar `{}` le borraría el orden al marcar una casilla — así que va lo leído.
+  const [ordenDeColumnas, setOrdenDeColumnas] = useState<string[] | null>(null);
+  const ordenDeLaBase = useRef<ColumnasPorRol>({});
   const escribeLaFila = () =>
     guardaColumnas(
       createClient() as unknown as ClienteDePrefs, userId!, visiblesDeLaBase.current ?? {},
-      CLAVE_DE_COLUMNAS_DE_PROMOS, {}, anchosDeLaBase.current,
+      CLAVE_DE_COLUMNAS_DE_PROMOS, ordenDeLaBase.current, anchosDeLaBase.current,
     );
 
   // Lo del navegador primero, para que la elección esté puesta antes de que la base conteste (y
@@ -106,6 +114,11 @@ export function TablaDeRonda({
       const lista = crudo ? JSON.parse(crudo) : null;
       if (Array.isArray(lista)) setVisibles(columnasVisiblesDePromos(lista.filter((k) => typeof k === "string"), columnas));
     } catch { /* sin memoria, el defecto */ }
+    try {
+      const crudo = localStorage.getItem(claveDelOrdenDePromos(rol));
+      const lista = crudo ? JSON.parse(crudo) : null;
+      if (Array.isArray(lista)) setOrdenDeColumnas(lista.filter((k) => typeof k === "string"));
+    } catch { /* sin memoria, el orden del catálogo */ }
   }, [rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -115,8 +128,11 @@ export function TablaDeRonda({
       if (!vivo || !leido.leida) return;
       visiblesDeLaBase.current = leido.columnas;
       anchosDeLaBase.current = leido.anchos;
+      ordenDeLaBase.current = leido.orden;
       const suyas = leido.columnas[rol as UserRole];
       if (suyas) setVisibles(columnasVisiblesDePromos(suyas, columnas));
+      const suOrden = leido.orden[rol as UserRole];
+      if (suOrden) setOrdenDeColumnas(suOrden);
       const suyos = leido.anchos[rol as UserRole];
       if (suyos) setAnchosDelRol(suyos);
       if (leido.hayFila) return;
@@ -139,27 +155,53 @@ export function TablaDeRonda({
     return () => { vivo = false; };
   }, [userId, rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // El orden de TODAS las columnas para esta persona (D-NEXT), y las que se ven, ya con él. Las
+  // dos salen de `lib/promos/tabla`: la pantalla no decide ni el orden ni quién es nueva.
+  const ordenDelSelector = ordenDeColumnasDePromos(columnas, ordenDeColumnas);
+  const visiblesEfectivas = columnasVisiblesDePromos(visibles, columnas, ordenDeColumnas);
+
   /**
-   * Guardar las columnas elegidas: **en los dos sitios**.
+   * Guardar columnas y orden: **en los dos sitios, y por un solo camino**.
    *
    * `user_prefs` es lo que manda —por persona, vale en cualquier máquina— y **el navegador es la
    * red si la base no contesta**, que es el principio de D-330 y lo que hace Órdenes. Sin él, una
    * lectura fallida le borra a alguien su elección sin decir nada; y en el modo demo, donde no hay
    * base, no habría forma de que sobreviviera a recargar.
+   *
+   * **Marcar una casilla guarda también el orden** (D-NEXT), tal como está: el orden lista todas
+   * las columnas que esa persona tenía delante, y así la tienda que traiga el libro del mes que
+   * viene se reconoce como nueva y sale, en vez de quedarse escondida por una lista de septiembre.
    */
-  const ponVisibles = (next: string[]) => {
+  const ponColumnas = (next: string[], nextOrden: string[]) => {
     setVisibles(next);
-    if (rol) { try { localStorage.setItem(claveDelNavegadorDePromos(rol), JSON.stringify(next)); } catch { /* sin memoria, sin red */ } }
+    setOrdenDeColumnas(nextOrden);
+    if (rol) {
+      try { localStorage.setItem(claveDelNavegadorDePromos(rol), JSON.stringify(next)); } catch { /* sin memoria, sin red */ }
+      try { localStorage.setItem(claveDelOrdenDePromos(rol), JSON.stringify(nextOrden)); } catch { /* sin memoria, sin red */ }
+    }
     // A la base solo si se pudo leer: no se escribe a ciegas encima de lo que haya.
     if (!userId || !rol || SIN_BASE || visiblesDeLaBase.current === null) return;
     visiblesDeLaBase.current = { ...visiblesDeLaBase.current, [rol as UserRole]: next };
+    ordenDeLaBase.current = { ...ordenDeLaBase.current, [rol as UserRole]: nextOrden };
     void escribeLaFila();
   };
+  const ponVisibles = (next: string[]) => ponColumnas(next, ordenDelSelector);
+
+  /**
+   * Mover columnas (D-NEXT): flechas ↑ ↓ en ⚙ Columnas, **las de Órdenes** (D-332) — Órdenes no
+   * arrastra la cabecera, y en la cabecera el arrastre ya es del asa del ancho. La visibilidad va
+   * con él tal como está: reordenar no la pisa.
+   */
+  const guardaOrden = (nextOrden: string[]) => ponColumnas(visiblesEfectivas, nextOrden);
+  const ordenDelCatalogo = ordenDeColumnasDePromos(columnas, null);
+  // La flecha se apaga cuando pulsarla no movería nada: el tope, o `code`, que no se mueve.
+  const seMueve = (clave: string, delta: -1 | 1) =>
+    mueveColumnaDePromos(ordenDelSelector, clave, delta, visiblesEfectivas).join() !== ordenDelSelector.join();
 
   const alternaColumna = (key: string) => {
     if (COLUMNAS_FIJAS.includes(key)) return;
     ponVisibles(columnasVisiblesDePromos(
-      visibles.includes(key) ? visibles.filter((k) => k !== key) : [...visibles, key],
+      visiblesEfectivas.includes(key) ? visiblesEfectivas.filter((k) => k !== key) : [...visiblesEfectivas, key],
       columnas,
     ));
   };
@@ -179,7 +221,8 @@ export function TablaDeRonda({
     void escribeLaFila();
   };
 
-  const columnasPintadas = columnas.filter((c) => visibles.includes(c.key));
+  // Las que se pintan, y EN EL ORDEN DE LA PERSONA: una sola función decide las dos cosas.
+  const columnasPintadas = visiblesEfectivas.map((k) => columnas.find((c) => c.key === k)!);
   // Los anchos: arrastrables, y guardados POR PERSONA como en Órdenes desde D-338 — el dueño pidió
   // entonces «resize … and it saves for ever», y aquí «así como Excel, resize sus columnas». El
   // navegador sigue siendo la red de abajo; lo que manda es la fila de esa persona.
@@ -189,7 +232,16 @@ export function TablaDeRonda({
     minimo: ANCHO_MINIMO,
   });
 
-  const filas = useMemo(() => filasDePromo(productos, decisiones, grupoActivo), [productos, decisiones, grupoActivo]);
+  // El filtro de tienda (D-NEXT): elegida una, fuera lo que tenga menos de 10 en ELLA. Se aplica
+  // ANTES que todo lo demás, así que los contadores de estado, el «N / M» y «seleccionar todo»
+  // hablan de la lista ya filtrada — un chip que dijera «Pendiente · 60» sobre una tabla de 22
+  // mentiría justo en el número que se mira para saber cuánto falta.
+  const [tiendaFiltro, setTiendaFiltro] = useState<string>("");
+  const todasLasFilas = useMemo(() => filasDePromo(productos, decisiones, grupoActivo), [productos, decisiones, grupoActivo]);
+  const filas = useMemo(
+    () => filtraPorTienda(todasLasFilas, tiendaFiltro, clavesDeTienda),
+    [todasLasFilas, tiendaFiltro, clavesDeTienda],
+  );
   const orden = useOrdenYFiltro(filas, valorParaFiltrar);
   const cuenta = cuentaPorEstado(filas);
 
@@ -316,7 +368,31 @@ export function TablaDeRonda({
             {t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)} · {cuenta[e]}
           </button>
         ))}
+        {/* El filtro de tienda (D-NEXT). Hasta aquí NO existía: lo único con «tienda» era el menú de
+            cabecera de cada columna de existencias, que filtra por VALOR exacto —una casilla por
+            cada número distinto— y así quitar «menos de 10» era desmarcar los números uno a uno. */}
+        {clavesDeTienda.length > 0 && (
+          <select
+            value={tiendaFiltro}
+            aria-label={t("Store filter", "Filtro de tienda")}
+            style={{ maxWidth: 220 }}
+            onChange={(e) => { setTiendaFiltro(e.target.value); setSeleccion(new Set()); }}
+          >
+            <option value="">{t("All stores", "Todas las tiendas")}</option>
+            {clavesDeTienda.map((k) => (
+              <option key={k} value={k}>{t(`${k}: ${MINIMO_EN_LA_TIENDA}+ in stock`, `${k}: ${MINIMO_EN_LA_TIENDA} o más`)}</option>
+            ))}
+          </select>
+        )}
         <span className="hint">{orden.visibles.length} / {filas.length}</span>
+        {todasLasFilas.length > filas.length && (
+          <span className="hint">
+            {t(
+              `${todasLasFilas.length - filas.length} hidden: under ${MINIMO_EN_LA_TIENDA} in ${tiendaFiltro}`,
+              `${todasLasFilas.length - filas.length} ocultos: menos de ${MINIMO_EN_LA_TIENDA} en ${tiendaFiltro}`,
+            )}
+          </span>
+        )}
         {/* El MISMO «⚙ Columnas» de Órdenes y del Gestor, con su `.col-menu` y su cierre al pulsar
             fuera o con Escape (D-275). Era un `<details>` nativo, que se veía distinto de todo lo
             demás justo en la pantalla a la que el dueño pidió parecerse. */}
@@ -325,21 +401,28 @@ export function TablaDeRonda({
           {showCols && (
             <div className="col-menu">
               <div className="col-menu-head">
-                <b>{t("Show columns", "Mostrar columnas")}</b>
+                <b>{t("Show and order columns", "Mostrar y ordenar columnas")}</b>
                 <button className="notif-clear" onClick={() => ponVisibles(columnasDePromosPorDefecto(clavesDeTienda, puedeVerPrivadas))}>
                   {t("Reset", "Restablecer")}
                 </button>
+                {ordenDelSelector.join() !== ordenDelCatalogo.join() && <button className="notif-clear" onClick={() => guardaOrden(ordenDelCatalogo)}>{t("Reset order", "Restablecer orden")}</button>}
               </div>
-              {columnas.map((c) => (
-                <label key={c.key} className="col-opt">
-                  <input
-                    type="checkbox"
-                    checked={visibles.includes(c.key)}
-                    disabled={COLUMNAS_FIJAS.includes(c.key)}
-                    onChange={() => alternaColumna(c.key)}
-                  />
-                  {lang === "es" ? c.es : c.en}
-                </label>
+              {/* En el orden de la persona, con las flechas de Órdenes (D-332). `code` no lleva
+                  flechas activas: va siempre primera. */}
+              {ordenDelSelector.map((k) => columnas.find((c) => c.key === k)!).map((c) => (
+                <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <label className="col-opt" style={{ flex: 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={visiblesEfectivas.includes(c.key)}
+                      disabled={COLUMNAS_FIJAS.includes(c.key)}
+                      onChange={() => alternaColumna(c.key)}
+                    />
+                    {lang === "es" ? c.es : c.en}
+                  </label>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={c.key === COLUMNA_PRIMERA || !seMueve(c.key, -1)} aria-label={t(`Move ${c.en} up`, `Subir ${c.es}`)} onClick={() => guardaOrden(mueveColumnaDePromos(ordenDelSelector, c.key, -1, visiblesEfectivas))}>↑</button>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={c.key === COLUMNA_PRIMERA || !seMueve(c.key, 1)} aria-label={t(`Move ${c.en} down`, `Bajar ${c.es}`)} onClick={() => guardaOrden(mueveColumnaDePromos(ordenDelSelector, c.key, 1, visiblesEfectivas))}>↓</button>
+                </div>
               ))}
             </div>
           )}

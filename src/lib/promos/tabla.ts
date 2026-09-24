@@ -1,6 +1,7 @@
 import { stageInfo } from "@/lib/constants";
 import { redondeaDinero } from "@/lib/totales";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
+import { mueveColumna } from "@/lib/orden-de-columnas";
 
 /**
  * RTG PROMOS — la tabla de decisiones, **sin React**.
@@ -235,12 +236,23 @@ export function columnasDePromosPorDefecto(clavesDeTienda: readonly string[], pu
  *     fila es, y sin el estado ni la nota la tabla no sirve para lo que se entra aquí. Una lista
  *     guardada antes de que una de ellas fuera fija dejaría una pantalla inútil sin decir por qué.
  *
- * Se devuelven **en el orden del catálogo**, no en el que se marcaron: el orden de las columnas es
- * del diseño, no de en qué orden alguien pulsó las casillas.
+ * Se devuelven **en el orden de esa persona** (`ordenDeColumnasDePromos`), que sin orden guardado es
+ * el del catálogo. Hasta D-NEXT era siempre el del catálogo —«el orden de las columnas es del
+ * diseño»— y el dueño pidió moverlas: *«make it to where I can move the place of the columns»*. Lo
+ * que NO cambia es que el orden de `guardadas` no cuenta: esa lista es un conjunto y sale en el
+ * orden en que se pulsaron las casillas. El orden va aparte, como en Órdenes (D-332).
+ *
+ * **Y una tercera regla, que sale del orden (D-NEXT): una columna que esa persona NO CONOCÍA entra
+ * con el defecto.** El orden guardado lista TODAS las columnas que había cuando guardó, visibles o
+ * no; así que una que no está en él es nueva para esa persona —casi siempre, una tienda que trae el
+ * libro de este mes— y no puede haberla escondido. Sin esto, quien guardó sus columnas en septiembre
+ * no vería nunca la tienda nueva de octubre, aunque las de tienda sean «para vista de todos» (D-375).
+ * Una que SÍ conocía y no marcó, sigue escondida: eso sí lo decidió.
  */
 export function columnasVisiblesDePromos(
   guardadas: readonly string[] | null | undefined,
   disponibles: readonly ColumnaDePromos[],
+  orden?: readonly string[] | null,
 ): string[] {
   // Sin nada guardado, EL MISMO defecto que calcula `columnasDePromosPorDefecto` —que desde D-375
   // incluye las de tienda— y no la lista estática. Escrito así porque ya divergieron una vez: al
@@ -248,8 +260,95 @@ export function columnasVisiblesDePromos(
   // hubiera guardado columnas nunca las habría visto. Un defecto en dos sitios acaba siendo dos.
   const porDefecto = disponibles.filter((c) => COLUMNAS_DE_PROMOS_POR_DEFECTO.includes(c.key) || c.tienda).map((c) => c.key);
   const elegidas = new Set(guardadas ?? porDefecto);
+  if (guardadas && orden) {
+    const conocidas = new Set(orden);
+    for (const k of porDefecto) if (!conocidas.has(k)) elegidas.add(k);
+  }
   for (const fija of COLUMNAS_FIJAS) elegidas.add(fija);
-  return disponibles.filter((c) => elegidas.has(c.key)).map((c) => c.key);
+  return ordenDeColumnasDePromos(disponibles, orden).filter((k) => elegidas.has(k));
+}
+
+/** La que va **siempre primera y no se mueve**, como la `#` de Órdenes (D-332): identifica la fila. */
+export const COLUMNA_PRIMERA = "code";
+
+/**
+ * El ORDEN de todas las columnas para esta persona (D-NEXT), visibles o no — el de ⚙ Columnas.
+ *
+ * Es el mismo mecanismo que Órdenes (`orden-de-columnas`, D-332): el orden se guarda **aparte** de
+ * qué columnas se ven, en la mitad `_orden` de la misma fila de `user_prefs`, así que esconder una
+ * columna y volver a mostrarla no le hace perder su sitio. Tres diferencias, las tres por el libro:
+ *
+ *   · **Una clave guardada que ya no existe se cae**, igual que allí. Aquí pasa cada mes: las de
+ *     tienda (`qoh_XXX`) son las que trae el libro de esa ronda.
+ *   · **Una columna que el orden guardado no conoce entra detrás de su vecina del catálogo**, no al
+ *     final. En Órdenes una columna nueva es rara y el final vale; aquí la nueva es casi siempre
+ *     una tienda que trae el libro del mes que viene, y al final —detrás de la nota— se perdería.
+ *     Detrás de su vecina queda con las otras tiendas. Sin nada guardado, esto da el catálogo tal
+ *     cual: es el mismo camino, no un caso aparte.
+ *   · **`code` va siempre primera.** Aunque lo guardado diga otra cosa.
+ */
+export function ordenDeColumnasDePromos(
+  disponibles: readonly ColumnaDePromos[],
+  guardado: readonly string[] | null | undefined,
+): string[] {
+  const catalogo = disponibles.map((c) => c.key);
+  const existen = new Set(catalogo);
+  const out = [...new Set(guardado ?? [])].filter((k) => existen.has(k) && k !== COLUMNA_PRIMERA);
+  for (let i = 0; i < catalogo.length; i++) {
+    const k = catalogo[i];
+    if (k === COLUMNA_PRIMERA || out.includes(k)) continue;
+    let sitio = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const p = out.indexOf(catalogo[j]);
+      if (p >= 0) { sitio = p + 1; break; }
+    }
+    out.splice(sitio, 0, k);
+  }
+  return existen.has(COLUMNA_PRIMERA) ? [COLUMNA_PRIMERA, ...out] : out;
+}
+
+/**
+ * Sube (-1) o baja (+1) una columna un puesto entre las visibles: la `mueveColumna` de Órdenes, con
+ * `code` fuera del juego — ni se mueve ni nadie se le pone delante.
+ */
+export function mueveColumnaDePromos(
+  orden: readonly string[],
+  clave: string,
+  delta: -1 | 1,
+  visibles?: readonly string[],
+): string[] {
+  if (clave === COLUMNA_PRIMERA) return [...orden];
+  const resto = orden.filter((k) => k !== COLUMNA_PRIMERA);
+  const movido = mueveColumna(resto, clave, delta, visibles);
+  return orden.includes(COLUMNA_PRIMERA) ? [COLUMNA_PRIMERA, ...movido] : movido;
+}
+
+/**
+ * El filtro de tienda (D-NEXT): elegida una tienda, **fuera los productos con menos de este número
+ * de existencias en ELLA**. El dueño: *«if the item in existencia in the store has less than 10 then
+ * that will not be included in the list»*. 10 justo se queda.
+ */
+export const MINIMO_EN_LA_TIENDA = 10;
+
+/**
+ * Las filas que quedan con el filtro de tienda puesto.
+ *
+ * · **Sin dato cuenta como 0**, y queda fuera: una celda vacía en la columna de esa tienda es que
+ *   el libro no le apunta existencias, y ofrecer en promoción lo que no se sabe si hay es peor que
+ *   no enseñarlo.
+ * · **Una tienda que esta ronda no trae no filtra nada.** Es la elegida en otra ronda: con el libro
+ *   de este mes no significa nada, y aplicarla dejaría la tabla vacía sin decir por qué.
+ * · **Es por columna del libro, no por grupo.** El libro trae existencias por tienda (`qoh_by_store`)
+ *   y el grupo de promociones es de Ajustes, y **no hay ningún cruce guardado** entre las dos cosas:
+ *   el libro llama a una tienda como diga su encabezado y Ajustes la llama por su nombre.
+ */
+export function filtraPorTienda<F extends Pick<FilaDePromo, "porTienda">>(
+  filas: readonly F[],
+  tienda: string | null | undefined,
+  clavesDeTienda: readonly string[],
+): F[] {
+  if (!tienda || !clavesDeTienda.includes(tienda)) return [...filas];
+  return filas.filter((f) => (f.porTienda[tienda] ?? 0) >= MINIMO_EN_LA_TIENDA);
 }
 
 /**
