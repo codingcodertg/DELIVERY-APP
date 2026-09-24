@@ -133,10 +133,14 @@ export interface ColumnaDePromos {
 }
 
 /**
- * Las columnas que NO se pueden quitar. El código identifica la fila, y el estado y la nota son
- * para lo que se entra aquí: esconderlos dejaría una tabla que no sirve para decidir.
+ * Las columnas que NO se pueden quitar. El código identifica la fila, y el estado es para lo que se
+ * entra aquí: esconderlo dejaría una tabla que no sirve para decidir.
+ *
+ * La nota era fija también (D-369) y dejó de serlo en D-381: el dueño, viéndola en la tabla, «nota está
+ * showing en el promos table pero no aparece para quitar en el columns». Sigue saliendo por defecto;
+ * quitarla solo la esconde, las notas escritas no se tocan.
  */
-export const COLUMNAS_FIJAS: readonly string[] = ["code", "estado", "nota"];
+export const COLUMNAS_FIJAS: readonly string[] = ["code", "estado"];
 
 /**
  * El catálogo de columnas de una ronda.

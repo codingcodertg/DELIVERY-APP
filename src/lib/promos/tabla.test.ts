@@ -83,7 +83,9 @@ describe("qué columnas se ofrecen", () => {
   it("las fijas están, y son las que hacen falta para decidir", () => {
     const claves = columnasDePromos(["AA1"], true).map((c) => c.key);
     for (const k of COLUMNAS_FIJAS) expect(claves, k).toContain(k);
-    expect([...COLUMNAS_FIJAS]).toEqual(["code", "estado", "nota"]);
+    expect([...COLUMNAS_FIJAS]).toEqual(["code", "estado"]);
+    // D-381: la nota se puede quitar. Sigue en el arranque, pero no es fija.
+    expect(COLUMNAS_FIJAS).not.toContain("nota");
   });
 
   it("por defecto entran las SEIS de tienda, y las privadas siguen fuera", () => {
@@ -132,11 +134,14 @@ describe("qué columnas se ofrecen", () => {
 
   it("lo guardado manda, pero las fijas entran siempre y lo que ya no existe se cae", () => {
     const cols = columnasDePromos(["AA1"], false);
-    // Sin el código no se sabe qué fila es; sin estado ni nota la tabla no sirve para lo que se
-    // entra aquí. Una lista guardada antes de que fueran fijas dejaría una pantalla inútil.
-    expect(columnasVisiblesDePromos(["price"], cols)).toEqual(["code", "price", "estado", "nota"]);
+    // Sin el código no se sabe qué fila es; sin el estado la tabla no sirve para lo que se entra
+    // aquí. Una lista guardada antes de que fueran fijas dejaría una pantalla inútil. La nota ya no
+    // es fija (D-381): quien la quitó, no la ve.
+    expect(columnasVisiblesDePromos(["price"], cols)).toEqual(["code", "price", "estado"]);
     // Una columna de tienda que el libro de este mes ya no trae: fuera, sin romper nada.
-    expect(columnasVisiblesDePromos(["code", "qoh_YA_NO", "price"], cols)).toEqual(["code", "price", "estado", "nota"]);
+    expect(columnasVisiblesDePromos(["code", "qoh_YA_NO", "price"], cols)).toEqual(["code", "price", "estado"]);
+    // Y quien la marcó, la ve.
+    expect(columnasVisiblesDePromos(["price", "nota"], cols)).toEqual(["code", "price", "estado", "nota"]);
     // Y en el orden del CATÁLOGO, no en el que se marcaron.
     expect(columnasVisiblesDePromos(["nota", "price", "code", "estado", "description"], cols))
       .toEqual(["code", "description", "price", "estado", "nota"]);
