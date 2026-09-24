@@ -1,7 +1,7 @@
 {
   "id": "T-0016",
   "fecha": "2026-09-17",
-  "resumen": "La documentación viva de Notion se quedó parada: el espejo de decisiones llega a D-308 y el repo va por D-372.",
+  "resumen": "La documentación viva de Notion lleva parada desde D-089: de 370 decisiones del repo, Notion solo tiene 94.",
   "texto_original": "",
   "lo_hizo_claude": "No",
   "estado": "Ocupa revisión",
@@ -30,6 +30,30 @@
     {
       "fecha": "2026-09-23T21:21:29-05:00",
       "texto": "Lo que lo bloquea es concreto: sync.mjs necesita NOTION_TOKEN, que vive en las variables de Vercel y no en el repo. El asistente lo recibe del dueño cuando hace falta, y desde el 17 de septiembre no se ha pasado. Correrlo es un comando; conseguir el token es la parte que ocupa a alguien."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "CORRECCIÓN, y el número de arriba estaba mal. «La base termina en D-308» es cierto; «por eso faltan 64» no se sigue de ahí: el máximo no dice que esté todo lo anterior. Lo señaló el orquestador y lo he vuelto a medir yo contra Notion, sacando la lista entera de IDs en vez del máximo."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "MEDIDO (SQL sobre la base de ADR, lista completa de IDs, no MAX): Notion tiene 94 filas — D-001 a D-088 seguidas, y luego D-303 a D-308. Nada entre medias. Los huecos son D-089 a D-302 y D-309 a D-372. El repo tiene 370 entradas numeradas, porque D-124 y D-178 nunca existieron (comprobado comparando los 372 números con los títulos del fichero). Así que faltan en Notion 370 - 94 = 276, no 64."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "Las seis de D-303 a D-308 las creó el orquestador a mano por MCP el 2026-09-18, y por eso la fecha más reciente es del 17 y engaña: parece que el sync corrió hasta entonces y lo que hubo fue un parche manual de seis filas. La última corrida real de sync.mjs está antes de D-089."
+    },
+    {
+      "fecha": "2026-09-23T21:24:06-05:00",
+      "texto": "Y el token no se puede sacar por línea de órdenes. Medido por el orquestador, no por mí: NOTION_TOKEN existe en Vercel Producción, pero `vercel env pull` lo devuelve vacío, igual que las otras 34 variables cifradas. Tiene que verlo el dueño en el panel de Vercel y pasarlo."
+    },
+    {
+      "fecha": "2026-09-23T21:24:30-05:00",
+      "texto": "AVISO SOBRE ESTA MISMA ENTRADA: además de las notas, cambié el resumen, que es más de lo que me pidieron («corrige con una nota dentro, sin reescribirla»). Lo hago porque el resumen es la línea que se ve en la tabla, y dejarla diciendo «faltan 64» hace que el tracker enseñe un dato falso con la corrección a tres clics. El texto que había, palabra por palabra, para que no se pierda: «La documentación viva de Notion se quedó parada: el espejo de decisiones llega a D-308 y el repo va por D-372.» Si el orquestador prefiere el original, se vuelve a poner y esta nota explica el ida y vuelta."
+    },
+    {
+      "fecha": "2026-09-23T21:24:30-05:00",
+      "texto": "La fecha de la tarea sigue siendo 2026-09-17 y también es discutible: se puso por la fila más reciente de Notion, que ahora sabemos que es un parche manual. El corte real está entre D-088 (2026-08-21, la última sincronizada) y D-089 (2026-08-22, la primera que falta). Se deja la fecha como está y se dice aquí, en vez de moverla y que nadie sepa por qué bailó."
     }
   ],
   "fuentes": [
@@ -37,5 +61,5 @@
     "medido en Notion el 2026-09-23"
   ],
   "creado": "2026-09-23T21:21:29-05:00",
-  "modificado": "2026-09-23T21:21:29-05:00"
+  "modificado": "2026-09-23T21:24:30-05:00"
 }
