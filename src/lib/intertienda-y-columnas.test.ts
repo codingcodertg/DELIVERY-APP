@@ -122,7 +122,7 @@ describe("b · el ancho de las columnas, por persona", () => {
     expect(css).toMatch(/\.col-resizer \{[^}]*cursor: col-resize;/);
     expect(css).toContain(".col-resizer:hover::after { background: var(--accent);");
     // Las tablas del Gestor siguen con su mínimo de siempre: no pasan opciones.
-    expect(leer("src/app/(app)/routes/page.tsx")).toContain('useColWidthMap("rtg_routes_sched4", 100);');
+    expect(leer("src/app/(app)/routes/page.tsx")).toContain('useColWidthMap("rtg_routes_pool4", 100);');
   });
 
   it("la página: el ancho vale para ventas; se valida contra las columnas que existen; sin base leída no se escribe", () => {

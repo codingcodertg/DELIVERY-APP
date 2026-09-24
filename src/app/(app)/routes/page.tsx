@@ -6,7 +6,7 @@ import { PlanDelDia } from "@/components/PlanDelDia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
-import { canPlanRoutes, stageInfo, stageLabel } from "@/lib/constants";
+import { canPlanRoutes } from "@/lib/constants";
 import { autoAssign, parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -26,12 +26,14 @@ import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnasDeLaTabla, conColumnasNuevas, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { ORDER_COLUMNS } from "@/components/OrdersTable";
+import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
-import { CLAVE_ID, etiquetaDelGestor, valorDelGestor, type ContextoDelGestor } from "@/lib/valores-del-gestor";
+import { CLAVE_ID, etiquetaDelGestor, valorDelGestor } from "@/lib/valores-del-gestor";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
@@ -210,18 +212,19 @@ export default function RoutesPage() {
   // bumped keys, so they replace older wide ones) so the route + truckload
   // tables fit the screen without horizontal scrolling. Columns are still
   // draggable from here.
-  // Anchos por CLAVE de columna, no por posición: las columnas de estas dos tablas ahora se eligen (D-331).
-  const schedCols = useColWidthMap("rtg_routes_sched4", 100);
+  // Anchos por CLAVE de columna, no por posición: las columnas de esta tabla ahora se eligen (D-331). La de «Programadas»
+  // (`rtg_routes_sched4`) se fue con su pestaña (D-NEXT).
   const poolCols = useColWidthMap("rtg_routes_pool4", 100);
+  // Las columnas de Órdenes en la tabla de paradas (D-NEXT) no tienen puesto: su ancho va por clave, en su propia llave,
+  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7`.
+  const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
-  const [verColumnas, setVerColumnas] = useState(false);
-  const cajaDeColumnas = useRef<HTMLDivElement>(null);
-  useCierraAlSalir(verColumnas, () => setVerColumnas(false), () => [cajaDeColumnas.current]);
-  // El mismo selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
-  // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas».
+  // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
+  // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-NEXT, con
+  // «Programadas» fuera, son los dos únicos.
   const [verColsPool, setVerColsPool] = useState(false);
   const cajaDeColsPool = useRef<HTMLDivElement>(null);
   useCierraAlSalir(verColsPool, () => setVerColsPool(false), () => [cajaDeColsPool.current]);
@@ -250,10 +253,13 @@ export default function RoutesPage() {
     prefsDelGestor.current = todas;
     void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS_DEL_GESTOR);
   };
-  const colsProgramadas = columnasDeLaTabla("programadas", colsGestor);
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
   // La tabla de paradas guarda los anchos por puesto: lo que la persona quitó se esconde por su puesto (D-346).
   const paradasOcultas = indicesOcultosDeParadas(colsGestor);
+  // Y las columnas de Órdenes que la persona eligió para ella (D-NEXT), entre «Ventanas» y las acciones.
+  const paradasExtra = extrasDeParadas(colsGestor);
+  // Cuántas columnas pinta la tabla de paradas: las 8 de siempre, menos las quitadas, más las de Órdenes elegidas.
+  const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;
   // [#, ID, Account, Address(expanded), ETA, Windows, actions]. Address is
   // forced to 92px when collapsed; everything else is sized to show its value
   // in full so Windows and the ↑↓ action arrows never get clipped.
@@ -262,7 +268,9 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "scheduled" | "incidents">("routes");
+  // Sin «scheduled» desde D-NEXT: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
+  // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
+  const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");
   const [busyDriver, setBusyDriver] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<Record<string, { miles: number; duration_text: string; trips: number; minutes: number; dayMinutes: number; dayText: string }>>({});
   // Per-truckload numbers, keyed by driver then load index.
@@ -675,16 +683,6 @@ export default function RoutesPage() {
 
   // Lo del día sin chofer; con el chip «Atrasadas», las vencidas sin chofer de cualquier día (D-359).
   const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES, poolFilter === "overdue"), [deliveries, date, modo, poolFilter]);
-  // Every assigned order for the day, grouped view for the "Scheduled" list —
-  // sorted by driver, then load, then optimized sequence.
-  const scheduled = useMemo(
-    () => dayOrders.filter((d) => !!d.assigned_driver).sort((a, b) =>
-      (a.assigned_driver ?? "").localeCompare(b.assigned_driver ?? "") ||
-      loadNoOf(a) - loadNoOf(b) ||
-      (a.route_seq ?? 9999) - (b.route_seq ?? 9999) ||
-      a.order_no - b.order_no),
-    [dayOrders],
-  );
 
   // Draw each selected unassigned load's pickup→dropoff route on the map
   // (throttled, cached), so pressing loads shows where they go.
@@ -779,25 +777,20 @@ export default function RoutesPage() {
     return map;
   }, [dayOrders]);
 
-  // Ordenar y filtrar por columna en «Programadas» y «Sin asignar» (D-360), con el menú de Órdenes. El valor de
-  // cada columna lo decide `valorDelGestor`; la carga y la parada salen del reparto del día, que vive aquí.
-  const ctxDelGestor = useMemo<ContextoDelGestor>(() => ({
-    lang,
-    cargaDe: (d) => (bucketNames.includes(d.assigned_driver || "") ? null : loadNoOf(d)),
-    paradaDe: (d) => {
-      if (d.route_seq == null) return null;
-      const clave = orderLaneKeyPure(d, (n) => bucketNames.includes(n));
-      const i = clave ? (byDriver.get(clave) ?? []).findIndex((x) => x.id === d.id) : -1;
-      return i < 0 ? null : i + 1;
-    },
-  }), [lang, bucketNames, byDriver]);
-  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, ctxDelGestor), [ctxDelGestor]);
-  const ordenProgramadas = useOrdenYFiltro(scheduled, valorDelGestorAqui);
+  // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
+  // `valorDelGestor`; las que vienen de Órdenes (D-NEXT) toman el valor, la celda y la etiqueta de la columna de Órdenes,
+  // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
+  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings) }), [lang, t, settings]);
+  const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
+  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
-  // El ID es fijo en las dos tablas y ordena y filtra igual que las del catálogo; la fecha se lista formateada.
+  // El ID es fijo y ordena y filtra igual que las del catálogo; la fecha se lista formateada, y el costo como dinero.
   const COL_ID: ColumnaConMenu = { key: CLAVE_ID, en: "ID", es: "ID" };
-  const menuProgramadas: ColumnaConMenu[] = [COL_ID, ...colsProgramadas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
-  const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key) }))];
+  const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }))];
+  /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
+  const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
+  /** Las pastillas (la etapa, «Tarde») bajan de línea en vez de cortarse, como en Órdenes (D-364). */
+  const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
   const abreLaOrden = (d: Delivery) => ({
@@ -1617,7 +1610,9 @@ export default function RoutesPage() {
       {/* ---------- Stats strip (each tile jumps to the matching view) ---------- */}
       <div className="card" style={{ display: "flex", padding: 0, overflow: "hidden", marginBottom: 14 }}>
         {([
-          { n: scheduledCount, label: t("Scheduled", "Programadas"), target: "scheduled" as const },
+          // Sin pestaña «Programadas» (D-NEXT), la cuenta se queda —cuántas tienen chofer— y lleva a las rutas, que es
+          // donde está cada una: en la tarjeta de su chofer.
+          { n: scheduledCount, label: t("Scheduled", "Programadas"), target: "routes" as const },
           { n: unassigned.length, label: t("Unscheduled", "Sin programar"), accent: true, target: "orders" as const },
           { n: dayOrders.length, label: t("Total", "Total"), target: "board" as const },
           { n: withStops.length, label: t("Routes", "Rutas"), target: "routes" as const },
@@ -1811,92 +1806,12 @@ export default function RoutesPage() {
       <div className="viewtoggle" style={{ marginBottom: 12 }}>
         <button className={"vt " + (tab === "routes" ? "on" : "")} onClick={() => setTab("routes")}>🧭 {t("Routes", "Rutas")} ({withStops.length})</button>
         <button className={"vt " + (tab === "orders" ? "on" : "")} onClick={() => setTab("orders")}>📦 {t("Unassigned", "Sin asignar")} ({unassigned.length})</button>
-        <button className={"vt " + (tab === "scheduled" ? "on" : "")} onClick={() => setTab("scheduled")}>✅ {t("Scheduled", "Programadas")} ({scheduled.length})</button>
         <button className={"vt " + (tab === "board" ? "on" : "")} onClick={() => setTab("board")}>🗂 {t("Board", "Tablero")}</button>
         <button className={"vt " + (tab === "timeline" ? "on" : "")} onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
         <button className={"vt " + (tab === "incidents" ? "on" : "")} onClick={() => setTab("incidents")}>⚠ {t("Incidents", "Incidencias")} ({incidents.length})</button>
       </div>
 
       {tab === "incidents" && <DriverIncidents me={me} drivers={drivers} deliveries={deliveries} incidents={incidents} addIncident={addIncident} removeIncident={removeIncident} confirmAction={confirmAction} notify={notify} t={t} />}
-
-      {/* ---------- Scheduled (assigned) orders list ---------- */}
-      {tab === "scheduled" && (
-        <div className="card" style={{ margin: 0 }}>
-          <div className="page-head" style={{ marginBottom: 8 }}>
-            <h2 style={{ margin: 0 }}>✅ {t("Scheduled orders", "Órdenes programadas")} <span className="count-tag">{scheduled.length}</span></h2>
-            <div ref={cajaDeColumnas} style={{ position: "relative", display: "inline-block" }}>
-              <button className="btn btn-ghost btn-sm" aria-expanded={verColumnas} onClick={() => setVerColumnas((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
-              {verColumnas && (
-                <div className="card" style={{ position: "absolute", right: 0, zIndex: 20, padding: 10, minWidth: 200, display: "grid", gap: 4 }}>
-                  {COLUMNAS_DEL_GESTOR.filter((c) => !c.tablas.includes("paradas")).map((c) => (
-                    <label key={c.key} style={{ display: "flex", gap: 6, alignItems: "center", margin: 0 }}>
-                      <input type="checkbox" checked={colsGestor.includes(c.key)} onChange={() => alternaColumnaDelGestor(c.key)} /> {lang === "es" ? c.es : c.en}
-                    </label>
-                  ))}
-                  <span className="hint" style={{ margin: 0 }}>{t("Applies to both tables. Saved for you.", "Vale para las dos tablas. Se guarda para usted.")}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          {scheduled.length === 0 ? (
-            <div className="empty">{t("No orders are assigned to a driver or route yet for this date.", "Aún no hay órdenes asignadas a un chofer o ruta en esta fecha.")}</div>
-          ) : (
-            <>
-            <FiltrosPuestos estado={ordenProgramadas} columnas={menuProgramadas} lang={lang} t={t} />
-            <div className="tbl-scroll tbl-fit">
-              <table className="orders tbl-resize" style={anchoDeTabla([schedCols.widthOf("__id"), ...colsProgramadas.map((c) => schedCols.widthOf(`g_${c.key}`)), 44])}>
-                <colgroup>
-                  <col style={{ width: schedCols.widthOf("__id") }} />
-                  {colsProgramadas.map((c) => <col key={c.key} style={{ width: schedCols.widthOf(`g_${c.key}`) }} />)}
-                  <col style={{ width: 44 }} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
-                    <th><CabeceraConMenu estado={ordenProgramadas} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize("__id")} /></th>
-                    {menuProgramadas.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenProgramadas} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={schedCols.startResize(`g_${c.key}`)} /></th>)}
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ordenProgramadas.visibles.length === 0 && (
-                    <tr><td colSpan={colsProgramadas.length + 2} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
-                  )}
-                  {ordenProgramadas.visibles.map((d) => {
-                    const laneKey = orderLaneKey(d)!;
-                    const seqList = byDriver.get(laneKey) ?? [];
-                    const idx = seqList.findIndex((x) => x.id === d.id);
-                    const bucket = isBucket(d.assigned_driver || "");
-                    return (
-                      <tr key={d.id}>
-                        <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
-                        {colsProgramadas.map((c) => (
-                          <td key={c.key}>
-                            {c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
-                              : c.key === "account" ? (d.account || "—")
-                              : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
-                              : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
-                              : c.key === "driver" ? (<><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(d.assigned_driver), marginRight: 6, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />{d.assigned_driver}{bucket ? ` 🧭` : ""}</>)
-                              : c.key === "load" ? (!bucket && loadNoOf(d) > 1 ? loadNoOf(d) : (bucket ? "—" : 1))
-                              : c.key === "stop" ? (d.route_seq != null ? idx + 1 : "—")
-                              : c.key === "windows" ? fmtWindows(d.delivery_windows)
-                              : (d.actual_pallets ?? d.est_pallets ?? "—")}
-                          </td>
-                        ))}
-                        <td style={{ textAlign: "right" }}>
-                          <button className="btn btn-ghost btn-sm" title={t("Unassign", "Quitar asignación")} onClick={() => manualUnassign(d.id)}>✕</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <MenuDeColumnaAbierto estado={ordenProgramadas} columnas={menuProgramadas} lang={lang} t={t} />
-            </>
-          )}
-        </div>
-      )}
 
       {/* ---------- Day timeline (Gantt) ---------- */}
       {tab === "timeline" && (
@@ -2036,7 +1951,6 @@ export default function RoutesPage() {
                   <tr><td colSpan={colsSinAsignar.length + 3} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
                 )}
                 {ordenSinAsignar.visibles.map((d) => {
-                  const s = stageInfo(d.stage);
                   return (
                     <tr key={d.id} className={selectedOrders.has(d.id) ? "row-selected" : ""} onClick={() => toggleOrder(d.id)} style={{ cursor: "pointer" }}>
                       <td>
@@ -2046,8 +1960,10 @@ export default function RoutesPage() {
                       {/* El ID abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
                       <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
                       {colsSinAsignar.map((c) => (
-                        <td key={c.key} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
-                          {c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
+                        <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
+                          {/* Las que vienen de Órdenes (D-NEXT) —etapa, tipo, SO, PO, costo, contacto— con la celda de Órdenes. */}
+                          {c.deOrdenes ? celdaDeOrdenes(c.key, d)
+                            : c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
                             : c.key === "account" ? (d.account || "—")
                             : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
                             : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
@@ -2055,7 +1971,7 @@ export default function RoutesPage() {
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
                             : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
                             : c.key === "windows" ? fmtWindows(d.delivery_windows)
-                            : <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>}
+                            : "—"}
                         </td>
                       ))}
                       <td onClick={(e) => e.stopPropagation()}>
@@ -2322,8 +2238,13 @@ export default function RoutesPage() {
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : i === 4 ? (addrWide ? w : 112) : w), 0) }}>
-                  <colgroup>{stopCols.widths.map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}</colgroup>
+                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : i === 4 ? (addrWide ? w : 112) : w), 0) + paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>
+                  {/* Los puestos 0-6, luego las columnas de Órdenes elegidas (D-NEXT), y el 7 —las acciones— siempre al final. */}
+                  <colgroup>
+                    {stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}
+                    {paradasExtra.map((c) => <col key={c.key} style={{ width: stopExtraCols.widthOf(c.deOrdenes!) }} />)}
+                    <col style={{ width: stopCols.widths[7] }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={stopCols.startResize(0)} /></th>
@@ -2342,6 +2263,8 @@ export default function RoutesPage() {
                       </th>}
                       {!paradasOcultas.has(5) && <th>{t("ETA", "Llegada")}<span className="col-resizer" onMouseDown={stopCols.startResize(5)} /></th>}
                       {!paradasOcultas.has(6) && <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={stopCols.startResize(6)} /></th>}
+                      {/* El rótulo es el de Órdenes: el del catálogo sin su «Paradas: ». */}
+                      {paradasExtra.map((c) => <th key={c.key}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={stopExtraCols.startResize(c.deOrdenes!)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
@@ -2362,7 +2285,7 @@ export default function RoutesPage() {
                       return (
                         <Fragment key={ti}>
                           <tr>
-                            <td colSpan={8 - paradasOcultas.size} style={{ background: "var(--card-hover)", fontWeight: 700, fontSize: 12 }}>
+                            <td colSpan={columnasDeParadas} style={{ background: "var(--card-hover)", fontWeight: 700, fontSize: 12 }}>
                               <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: tColor, marginRight: 7, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />
                               🚚 {t("Truckload", "Viaje")} {ti + 1} — {estimated ? "~" : ""}{load}/{capacity} {t("pallets", "pallets")}
                               {noCount > 0 && (
@@ -2418,13 +2341,13 @@ export default function RoutesPage() {
                               a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
                               No llevan flechas: en una ruta manual solo se decide el orden de las entregas. */}
                           {sequenced && ti === 0 && lectura.cambioTrasPublicar && (
-                            <tr><td colSpan={8 - paradasOcultas.size} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
+                            <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                           )}
                           {filasDelViaje(sequenced ? lectura : null, batch, ti === trips.length - 1).map((f) => {
                             if (f.clase === "informa") { const p = f.fila; return (
                             <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`}>
                               <td style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
-                              <td colSpan={7 - paradasOcultas.size}>
+                              <td colSpan={columnasDeParadas - 1}>
                                 {p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" && <b>{p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
                                 {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
                                 <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
@@ -2491,6 +2414,7 @@ export default function RoutesPage() {
                                   {eta ?? "—"}{late ? " ⚠️" : ""}
                                 </td>}
                                 {!paradasOcultas.has(6) && <td>{fmtWindows(d.delivery_windows)}</td>}
+                                {paradasExtra.map((c) => <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>)}
                                 {/* Reordering and moving loads are edits, not
                                     "show me this" — they must not also hijack
                                     the map to this one stop. */}
