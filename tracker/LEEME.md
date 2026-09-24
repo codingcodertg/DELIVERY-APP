@@ -10,7 +10,26 @@ node tracker/cli.mjs list                    # lo mismo, en la terminal
 node tracker/cli.mjs --help                  # todas las órdenes
 ```
 
-## Las dos formas de verlo
+## Dónde viven las tareas
+
+**En la base del RTG**, en `public.tracker_tareas`, desde la migración 144. Ahí es donde el dueño
+pulsa «Completado» desde la página, y ahí manda.
+
+`tracker/tareas/*.json` es una **foto congelada del 2026-09-24** y ya no se escribe nunca — ver
+`tracker/tareas/LEEME.md`. No se borró porque son sus palabras y en git se revisan en un diff; lo que
+evita las dos fuentes no es borrarla, es que ninguna función pueda escribirla.
+
+**Leer sin base funciona y avisa; escribir sin base falla diciéndolo.** Un worktree no lleva las
+variables a propósito (CLAUDE.md), así que esto no es un fallo raro: es el caso normal de media
+sesión.
+
+```bash
+node tracker/cli.mjs list          # avisa si está leyendo la copia congelada
+node tracker/cli.mjs add ...       # sin base, se para y dice qué falta (código 2)
+node tracker/importa.mjs           # ensayo de la carga; --escribir para hacerla
+```
+
+## Las tres formas de verlo
 
 **`npm run tracker`** abre la página y deja cambiar el estado, la verificación y añadir notas.
 
@@ -19,7 +38,19 @@ fichero, se abre con doble clic: sin servidor, sin internet y sin nada de fuera 
 librerías, ni CDN—, porque un informe que necesita internet para pintarse no es un fichero que
 puedas guardar. Se puede mandar por correo o imprimir.
 
-**Las dos salen de la misma función** (`informe.mjs`). Si fueran dos plantillas acabarían
+**La página en vivo** (`node tracker/cli.mjs vivo > tracker/en-vivo.html`) es la tercera, y la que
+él pidió: entra con **su usuario del RTG**, lee de la base y **cierra una tarea de un clic, sin
+diálogo**; el mismo botón deshace. Lleva la URL y la anon key, que son públicas; **ninguna llave de
+servicio**, y la función se niega si se la pasan. **No lleva ni una tarea dentro**: las pide al
+abrirse, y lo que ve lo decide la RLS, no el JavaScript.
+
+Con la 145 vive además en una URL fija:
+`node tracker/sube-pagina.mjs` (ensayo) y `--escribir` para publicarla en el cubo `tracker`.
+
+Esta es la única que **sí** carga algo de fuera: `supabase-js` desde `cdn.jsdelivr.net`, con la
+versión fijada. El informe estático sigue sin cargar nada.
+
+**Las dos primeras salen de la misma función** (`informe.mjs`). Si fueran dos plantillas acabarían
 discrepando, y el dueño vería una cosa en la pantalla y otra en el fichero. Una prueba compara las
 dos salidas y exige que solo las separe la bandera de «se puede escribir».
 

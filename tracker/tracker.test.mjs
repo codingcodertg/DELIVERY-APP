@@ -48,8 +48,10 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
   let dir;
   let entorno;
   beforeAll(() => {
+    // Desde la 144 el CLI escribe en la BASE, no en ficheros. Las pruebas usan una base de mentira
+    // —un .json en una carpeta temporal, `TRACKER_BASE_FALSA`— para no hablar con produccion.
     dir = mkdtempSync(join(tmpdir(), "tracker-"));
-    entorno = { env: { ...process.env, TRACKER_TAREAS: dir } };
+    entorno = { env: { ...process.env, TRACKER_BASE_FALSA: join(dir, "base.json") } };
     corre(["add", "--resumen", "una tarea para cerrarla"], entorno);
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -76,7 +78,7 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
     const salida = corre(["update", "T-0001", "--estado", "Completado",
       "--confirmado-por-el-dueno", "--nota", "lo confirmo el 2026-09-23 por mensaje"], entorno);
     expect(salida).toContain(ESTADO_FINAL);
-    expect(JSON.parse(readFileSync(join(dir, "T-0001.json"), "utf8")).estado).toBe(ESTADO_FINAL);
+    expect(JSON.parse(readFileSync(join(dir, "base.json"), "utf8"))["T-0001"].estado).toBe(ESTADO_FINAL);
   });
 
   it("y «verificado» sin prueba tampoco se acepta, que es la misma regla para otra cosa", () => {
@@ -87,7 +89,7 @@ describe("«Completado» no se pone solo — la regla que sostiene el resto", ()
     const salida = corre(["update", "T-0001", "--verificacion", "verificado",
       "--prueba", "lo abrió worker en el navegador el 2026-09-24"], entorno);
     expect(salida).toContain("verificado");
-    const t = JSON.parse(readFileSync(join(dir, "T-0001.json"), "utf8"));
+    const t = JSON.parse(readFileSync(join(dir, "base.json"), "utf8"))["T-0001"];
     expect(t.verificacion.estado).toBe("verificado");
     expect(t.verificacion.prueba).toContain("worker");
     expect(t.verificacion.fecha).toMatch(/[+-]\d{2}:\d{2}$/);
