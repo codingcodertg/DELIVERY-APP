@@ -25270,6 +25270,8 @@ vacías».
 
 ## D-369 · La tabla de una ronda: decidir por producto o en bloque, y cerrar la ronda
 
+> **⚠ Reemplazada en parte por D-381** (2026-09-24): la columna «Nota» deja de ser fija; se puede quitar en ⚙ Columnas. Código y decisión siguen fijos.
+
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (promos) · **Migración: la 141**, que la aplica el orquestador al fusionar.
 **De dónde sale:** fase C de RTG PROMOS. La A (D-366) montó el módulo y la B (D-368) la subida. Esta es la pantalla para la que se
 hizo todo lo demás: el dueño pidió «los administradores y Office Managers van a elegir los productos que son en promoción…
@@ -26482,3 +26484,24 @@ desaparece; la pastilla dice siempre lo mismo.
 valor podía cazarlo — y sin embargo no es lo mismo: la copia es exactamente cómo nació este fallo. La
 diferencia está en el fuente, así que se comprueba en el fuente. Es feo y es lo único que sostiene la
 promesa que el comentario hace.
+
+## D-381 · La nota de promos se puede quitar de la tabla
+
+**Fecha:** 2026-09-24 · **Versión:** promos 0.7.0 · **Sin migración.**
+
+**Qué pasaba.** En la tabla de una ronda, la columna «Nota» salía siempre y en ⚙ Columnas su casilla estaba
+deshabilitada: era una de las tres columnas fijas de D-369 (código, decisión y nota), con la razón de que «sin estado ni
+nota la tabla no sirve para decidir». El dueño, el 2026-09-24: *«nota está showing en el promos table pero no aparece
+para quitar en el columns»*.
+
+**Qué cambia.** `COLUMNAS_FIJAS` pasa a ser `code` y `estado`. La nota **sigue en el arranque** (quien no guardó
+columnas la ve igual que antes) y se puede desmarcar. Esconderla no toca ninguna nota escrita: la columna solo se pinta,
+y un cambio en bloque ya no reenvía la nota (D-369/D-370). Quien la esconde, tampoco puede editarla hasta volver a
+marcarla.
+
+**Qué no cambia.** Código y decisión siguen fijos: sin el código no se sabe qué fila es y sin la decisión la tabla no
+sirve para lo que se entra.
+
+**Medido.** `tabla.test.ts`: las fijas son exactamente `code` y `estado`; una lista guardada sin la nota no la trae de
+vuelta; una que la marca, la ve. Mutante: volver a meter `nota` en las fijas tumba «las fijas están, y son las que
+hacen falta para decidir» y «lo guardado manda…».
