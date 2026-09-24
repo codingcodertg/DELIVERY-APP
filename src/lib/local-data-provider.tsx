@@ -164,7 +164,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       events: addEvent(s, id, "edited", antes ? changedFieldsNote(antes, patch as Record<string, unknown>) || undefined : undefined),
     });
     return true;
-  }, [persist, notify]);
+  }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-NEXT)
 
   // Renumber a route's stops (see the real provider) — one local write, so the
   // whole new sequence lands at once.
@@ -259,7 +259,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (!body) return;
     const s = storeRef.current;
     persist({ ...s, events: addEvent(s, deliveryId, "note", body) });
-  }, [persist]);
+  }, [me, persist]);           // idem: la nota la firma quien la escribe (D-NEXT)
 
   const markNotifRead = useCallback<DataState["markNotifRead"]>(async (id) => {
     const s = storeRef.current;

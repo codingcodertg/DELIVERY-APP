@@ -23676,6 +23676,13 @@ etapa llevaba `delivery_fee` dentro era ese diálogo: hoy **nadie que no sea ven
 Hay prueba sobre el cuerpo entero de `move`, no sobre la llamada a `setStage` — reintroducirla en el
 `extra` de unas líneas antes no tocaría la llamada y pasaría desapercibido (medido con ese mutante).
 
+> **Nota dentro de esta entrada (2026-09-23, D-NEXT):** esa frase describe lo que pasó, y se cumplió al pie de la
+> letra —demasiado. Lo que el dueño pidió aquí fue quitar **el bloqueo**, no quitarle al almacén la tarifa; que se
+> fueran las dos juntas es consecuencia de que vivían en el mismo diálogo, no una decisión aparte. Cuatro días
+> después: *«delivery fee in customer isn't working for warehouse»*. **D-NEXT le devuelve la escritura** con un gate
+> propio, sin diálogo y sin bloqueo —o sea sin revertir nada de lo de arriba—, así que desde D-NEXT la frase se lee
+> «nadie que no sea ventas escribe la tarifa **al mover la etapa**». El resto de esta entrada sigue vigente.
+
 ### Esto REVIERTE D-143 y D-146, y deja sin objeto la salida de D-287
 
 Las dos las pidió el dueño el **2026-08-31**, y por una razón concreta: *«los sales no están poniendo
@@ -25685,3 +25692,105 @@ número», «una entregada entra en el bloque» y «la nota vuelve a apuntar sol
 tanda:** «el número es el de la selección» —pasarle a la pregunta `chosen` en vez de lo que entra— y no lo cazaba nadie,
 porque la prueba de estructura solo miraba que se llamara a la función. Es exactamente el error que causó el incidente, así
 que la prueba ahora fija la llamada entera.
+
+## D-NEXT · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
+
+**Fecha:** 2026-09-23 · **Sin migración.**
+**Pedido por el dueño**, literal: *«delivery fee in customer isn't working for warehouse»*.
+
+### Qué fallaba
+
+Desde **D-340** (2026-09-19) el almacén **ve** la tarifa en la ficha y no la puede cambiar por ningún
+lado. No fue una decisión: fue el rebote de quitar el diálogo. Hasta D-146 el almacén escribía la
+tarifa **dentro** de la confirmación de «Comenzar preparación», y cuando el dueño pidió *«quítale el
+bloqueo a warehouse con lo de la tarifa»* se fue el diálogo entero, y con él la única vía que tenía
+para escribirla. La propia entrada de D-340 lo dejó dicho —*«hoy nadie que no sea ventas escribe la
+tarifa»*— como consecuencia aceptada, y ahí queda la nota dentro de esa entrada.
+
+Lo que el dueño quitó fue **el bloqueo**, no la escritura. Esto devuelve la segunda sin traer el
+primero: no vuelve ningún diálogo, «Comenzar preparación» sigue moviendo la etapa y ya.
+
+### El gate: propio, ni de ventas ni de almacén
+
+```ts
+const tarifaEditable = salesFields || whFields;
+```
+
+En `OrderModal.tsx`, junto a los otros dos. Lo cuelgan el campo **Delivery Fee charged ($)** y la
+tarjeta de **Lista / Descuento** — los dos botones, con el mismo gate, porque teclear la tarifa a
+ciegas cuando al lado hay dos precios calculados es peor que no dejarla tocar.
+
+**Se descartaron las dos formas cortas**, y por la misma razón:
+
+- **Meter `warehouse` en `salesFields`** le abriría de rebote los 21 controles de ventas —tipo de
+  orden, fechas, factura, contacto, teléfono—, que es exactamente lo que el reparto de campos
+  separa.
+- **Meter la tarifa en `whFields`** se la quitaría a ventas, que la tiene desde siempre.
+
+Un gate propio dice en una línea lo único que los dos papeles comparten. La prueba que lo sostiene no
+es que el gate exista, sino que **`disabled={!salesFields}` sigue apareciendo 21 veces** y
+`disabled={!tarifaEditable}` una: si alguien lo «arregla» ensanchando `salesFields`, el número se
+mueve y la prueba cae.
+
+**Se le devuelve entera, no solo cuando está vacía.** Limitarla a rellenar huecos sonaba prudente,
+pero el número de D-340 lo desmiente: de las 46 veces que el almacén pasó por aquel diálogo,
+**corrigió** la tarifa en 25 —el 54 %— y solo 2 fueron «sin tarifa». Un gate que solo deja rellenar
+lo vacío le quita justo el uso que tenía. Lo que faltaba cuando se cerró —que quedara rastro— ya está
+desde **D-372**: el historial guarda «Delivery Fee: 126 → 80», con el valor anterior.
+
+### Lo que NO abre
+
+Los otros 21 controles siguen colgando de `salesFields`, uno por uno; «Actual Pallets (warehouse)»
+sigue en `whFields`; y las **etapas** no se tocan: el almacén edita donde `canEditFields` ya decía
+—`approved`, `fulfilling`, `ready`, `picked_up`, `delivered`—, ni una más. La otra pareja de botones
+Lista/Descuento, la del alta paso a paso (D-303), se queda como estaba: vive dentro de
+`paso === "inicial"`, donde `salesFields` ya es `true` por `isNew`.
+
+### Medido en el navegador, con «Ver como» almacén
+
+Modo demo en `127.0.0.1:3917`, Chrome de verdad por CDP, perfil desechable. Orden **#1089**
+(`approved`, McAllen, tarifa 126). Con el rol puesto desde el propio selector de la barra:
+
+| | |
+|---|---|
+| Campo de la tarifa, solo mirando | no se pinta (la ficha no está en edición) |
+| Campo tras pulsar «Edit» | **activo**, `disabled=false`, valor `126` |
+| Botones de la tarjeta | **«List $100.00» y «Discount $80.00»**, los dos activos |
+| Tras pulsar «Discount» | el campo pasa a `80` |
+| Tras «Save changes» | la fila de la tabla pasa de `$126.00` a **`$80.00`** |
+| El evento que queda | `edited` · **«Changed: Delivery Fee: 126 → 80»** |
+
+**Lo que el almacén no ve, y no lo cambia esto:** la línea de tiempo de la ficha —y con ella esa
+nota— está detrás de `me.role === "admin" || me.role === "manager" || existing.created_by === me.id`
+(`OrderModal.tsx:1583`). Es de antes y se deja como está; la línea se comprobó cambiando a Admin en
+la misma sesión, donde sí se lee. Que el almacén escriba la tarifa y no vea el historial de lo que
+escribió es una decisión anterior, no un descuido de esta.
+
+### Un hallazgo de paso: el evento lo firmaba otro
+
+La primera medición dio la nota correcta con el **autor equivocado**: `edited por u-admin`, habiendo
+guardado el almacén. No es de producción —allí firma la base— sino del **demo**: en
+`local-data-provider.tsx`, `updateDelivery` era un `useCallback` con `[persist, notify]`, y `addEvent`
+cierra sobre `me.id`, así que se quedaba con el `me` del primer render. Barrido mecánico de los cuatro
+sitios que escriben un evento: `addNote` tenía el mismo olvido, `createDelivery` y el cambio de etapa
+no. Los dos arreglados, y la prueba recorre **todos** los `addEvent` en vez de nombrar dos, que es lo
+que hizo aparecer el segundo. Viene de antes de D-372; lo que hizo D-372 fue poner valores en la nota
+y con ello hacerlo visible.
+
+### En producción, medido por el orquestador
+
+En solo lectura y con `ROLLBACK`, el **2026-09-23**: el almacén escribe `delivery_fee` en **1 fila**
+en cada una de `approved`, `fulfilling` y `ready`. **No lo he medido yo** —una rama no toca la base—,
+así que va atribuido: es un dato de otra sesión.
+
+### Medido, rompiendo cada pieza
+
+14 cambios: **14 caen, cada uno por la prueba que lleva su nombre.**
+
+- El gate vuelve a ser solo el de ventas (el agujero de D-340); pide los dos papeles a la vez; se
+  queda solo con almacén; el campo vuelve a `salesFields`; la tarjeta vuelve a `salesFields`.
+- Los dos arreglos feos: `warehouse` metido en `salesFields`, y `sales` metido en `whFields`.
+- Un campo de ventas abierto de rebote; el campo de almacén pasado al gate compartido; el almacén
+  deja de editar en `ready`.
+- Vuelve el comentario que decía lo que ya no era verdad; la otra pareja de botones se gatea también.
+- Los dos del autor del evento: `updateDelivery` y `addNote` pierden `me` de sus dependencias.
