@@ -1131,9 +1131,28 @@ export function etapaAnterior(stage: Stage): Stage | null {
   return PASO_ATRAS[stage] ?? null;
 }
 
-export function puedeDeshacer(r: UserRole, stage: Stage): boolean {
+/**
+ * Los pasos que **almacén** deshace (D-383, migración 142), y solo en órdenes de sus tiendas:
+ * `delivered → picked_up`, `ready → fulfilling` y `fulfilling → approved`.
+ *
+ * - **`approved → pending` no**: es «desaprobar», y aprobar no es de almacén. Además, en `pending` deja de
+ *   ver la orden y no podría deshacer su propio error.
+ * - **`picked_up → ready` no va aquí**: ya existe como «Dejar en tienda» (D-224), que además cambia la
+ *   tienda en la misma escritura. Un segundo botón para el mismo salto sería el mismo camino con otro nombre.
+ */
+export const ETAPAS_QUE_ALMACEN_DESHACE: readonly Stage[] = ["delivered", "ready", "fulfilling"];
+
+/**
+ * ¿Ofrece la ficha «Deshacer etapa» a este rol en esta etapa?
+ *
+ * `deMiTienda` es `ordenDeMisTiendas(orden, me.store, settings.stores)` (`lib/deshacer-y-borrar`), el espejo
+ * de la función de la 142; solo lo mira almacén. Por defecto `false`: quien no lo pasa no le da nada a almacén.
+ */
+export function puedeDeshacer(r: UserRole, stage: Stage, deMiTienda = false): boolean {
   if (etapaAnterior(stage) == null) return false;
-  return r === "admin" || ordersLikeOfficeManager(r);
+  if (r === "admin" || ordersLikeOfficeManager(r)) return true;
+  if (r === "warehouse") return deMiTienda && ETAPAS_QUE_ALMACEN_DESHACE.includes(stage);
+  return false;
 }
 
 export function ordersLikeOfficeManager(r: string | null | undefined): boolean {

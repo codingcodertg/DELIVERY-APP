@@ -18631,6 +18631,13 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 > ocurrir. **La queja estaba bien vista y su arreglo funcionó**; lo que cambia es que el problema se
 > resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
 > vuelta de «listo» a «preparando».
+>
+> **⚠ La queja 2 cambió de forma el 2026-09-24, por D-383 (pantalla de la 142).** El botón propio
+> «↩ Volver a preparando», que preguntaba y escribía una nota fija, **ya no existe**: almacén vuelve de
+> `listo` a `preparando` con el «↩ Deshacer etapa» general de la ficha, **con motivo obligatorio** y
+> **solo en órdenes de sus tiendas** (la 142 acotó ese salto por tienda). El aviso de su pregunta —puede
+> haber un chofer en camino— lo lleva ahora el diálogo. La queja sigue resuelta; lo que cambia es el
+> camino.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador al fusionar · **Sin migración** · **Pedido
 por:** el dueño, siete quejas de Almacén seguidas. Las de esta entrada son cinco; las dos que necesitan
@@ -24336,6 +24343,12 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
+> **⚠ Reemplazada en parte por D-384** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
+> ayer ya no sale en la lista normal sino en su propia pastilla, «Outdated / Atrasadas», con su número a la vista.
+> Lo pidió el dueño sabiendo que esto decía lo contrario. `withinRecent` no se tocó y sigue dejándola pasar; lo que
+> cambió es que la lista normal ya no se la ofrece. Lo que sigue en pie: sigue sin esconderse del todo —está a un
+> clic y la pastilla la cuenta aunque no se esté dentro— y la de ayer sigue en la lista normal con su «Tarde».
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.175.0, repo 1.239.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«WHEN AN ORDER NO SE ENTREGA Y PASA EL DIA SIGUIENTE ANTES SALIA COMO LATE Y
 SE ARRASTRABA PARA REPROGRAMAR PORQUE AHORA NO SE MIRA»*.
@@ -25843,6 +25856,12 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-384** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
+> ventana de abajo sigue dejándolas pasar (`withinRetention` no cambió), pero Órdenes las saca de su lista normal y
+> las pone en la pastilla «Outdated / Atrasadas». La Cola de almacén y la pantalla del chofer, que usan la misma
+> ventana, las siguen enseñando como aquí se decidió. Quién ve qué (almacén sus tiendas, ventas lo suyo) no cambia
+> y vale también dentro de «Outdated».
+
 **Fecha:** 2026-09-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 
 Tres cosas que pidió el dueño el mismo día, y que resultaron ser la misma: **quién ve qué**.
@@ -26537,3 +26556,264 @@ sesiones de la laptop (2026-09-20 → 22) no están. Y 40 tareas no tienen evide
 **Pruebas:** `vitest.config.ts` incluye `tracker/**/*.test.mjs`, así que CI también vigila el tracker (31 pruebas;
 6 mutantes del worker, caen los 6). Antes de publicar se buscaron secretos en todo `tracker/`: solo aparecen los
 patrones con los que el propio tracker los tapa.
+
+## D-383 · Almacén deshace en su tienda, office borra los borradores de su tienda, y un borrado que la base rechaza ya no se da por hecho
+
+**Fecha:** 2026-09-24 · **Versión:** la pone el orquestador (Entregas) · **Sin migración:** es la pantalla de la
+**142**, que ya está aplicada en producción (D-377, 2026-09-23). **Corrige en parte** a D-287 (su «Volver a
+preparando» pasa a ser el «Deshacer etapa» general; lleva su nota).
+
+**De dónde sale.** El dueño, literal: *«deja que warehouse y office tengan la opción de deshacer un stage, como por
+ejemplo deshacer un delivered o un fulfilling o un ready, y también que los draft, si no los ocupan, los puedan
+borrar o seguir editando; igual las duplicadas»*. «Office» son los roles `accounting` y `manager`. Respondió que
+office y gerente borran **cualquier** borrador de su tienda (y su grupo), y que cada borrado deja registro — eso ya
+lo hace la base desde la 142 (`deliveries_borradas`).
+
+D-377 cambió la base; la pantalla seguía como antes: almacén solo veía «Volver a preparando», y «Eliminar» solo lo
+veía el admin. Esta entrada hace que la app **ofrezca lo que la base ya permite, ni más ni menos**.
+
+### Qué cambia en pantalla
+
+| Quién | Deshacer una etapa | Eliminar |
+|---|---|---|
+| admin | los 5 pasos (sin cambio) | cualquier orden (sin cambio) |
+| office, gerente | los 5 pasos, con motivo (sin cambio, D-361) | **cualquier borrador de sus tiendas y su grupo**, y el suyo esté donde esté |
+| **almacén** | **`delivered→picked_up`, `ready→fulfilling`, `fulfilling→approved`, solo en órdenes de sus tiendas y con motivo** | su propio borrador (en la práctica, nada: almacén no crea borradores) |
+| ventas, chofer, logística | nada (sin cambio) | **solo su propio borrador** |
+
+- **Almacén nunca deshace `approved→pending`** (desaprobar es de quien aprueba) y **no tiene «Deshacer» en
+  `picked_up`**: ese salto ya es «Dejar en tienda» (D-224), que además cambia la tienda en la misma escritura. Dos
+  botones para el mismo salto serían el mismo camino con otro nombre.
+- **Almacén sin tienda no deshace nada.** Ojo aquí, porque es la trampa: la cola de almacén, **sin tienda, enseña
+  todo** (`warehouse/page.tsx`). Si el botón copiara esa regla, un almacenista sin tienda vería «Deshacer» en todas las
+  órdenes y la base se lo rechazaría en todas (la 142 falla cerrado). Office o gerente sin tienda solo borran lo suyo,
+  por lo mismo. **Medido el 2026-09-23 por el orquestador: 1 office y 2 gerentes no tienen tienda.**
+- **«Volver a preparando» (D-287) desaparece como botón propio.** Escribía una nota fija sin motivo; ahora almacén
+  pasa por el mismo diálogo de «Deshacer etapa» que office: motivo obligatorio, que va a la nota de `order_events`.
+  El diálogo dice a qué etapa vuelve, y en `listo` avisa de lo que avisaba la pregunta de D-287 (puede haber un chofer
+  en camino).
+- **«Eliminar» pregunta antes** (como ya lo hacía para el admin) y **solo da la orden por borrada si la base la
+  devolvió** (abajo).
+
+### «¿Es de mis tiendas?»: se copia la base, no la cola de almacén
+
+`ordenDeMisTiendas` (`src/lib/deshacer-y-borrar.ts`) es el espejo de `public.orden_de_mis_tiendas` de la 142: mi
+tienda (siempre, aunque ya no esté en Ajustes) más las de mi grupo (D-293), contra **las tres columnas** de tienda
+de la orden —`store`, `pickup_name`, `delivery_name`— **sin mirar el tipo**, o su `pickup_address` igual a la
+dirección de una de ellas. Nombres normalizados como en la base; la dirección, **solo recortada**, sin minúsculas,
+porque la base compara `btrim` contra `btrim`.
+
+**Se descartó reusar `esDeMisTiendas`** (la de la cola de almacén): solo mira `delivery_name` en tienda-a-tienda y
+**no mira `pickup_name` en una orden de cliente**, así que es más estrecha que la base. Estrecha no rompe nada —solo
+esconde un botón que la base habría dejado—, pero lo que decide aquí es «¿la base lo va a dejar?», y a esa pregunta
+contesta la función de la base.
+
+### Un DELETE que la base rechaza no da error
+
+La política de borrar de la 142 dice que no **sin error**: PostgREST devuelve cero filas y vuelve limpio.
+`deleteDelivery` hacía `.delete().eq("id", id)` sin mirar nada y **quitaba la fila de la lista antes de saber** si se
+había borrado; con el botón solo para el admin nunca se notó. Ahora:
+
+- pide `.select("id")` y cuenta; **sin fila, avisa** («No se borró: solo se puede borrar un borrador propio…») y **la
+  orden se queda en la lista**, porque sigue existiendo;
+- devuelve `true`/`false`, y la ficha solo dice «Orden eliminada» y se cierra con `true`;
+- el orden «confirmar y luego quitar» vive una sola vez, en `borrarOrden`, que usan **los dos proveedores**. El demo
+  no tiene base, así que simula la política con `puedeBorrar`: antes borraba cualquier orden.
+
+### Seguir editando un borrador o un duplicado: ya funcionaba, medido
+
+No hacía falta tocar nada (D-286). Lo que se añadió es la **prueba contra el guard vigente**: la de D-286 leía la
+118, y ahora otra compara `canEditFields("draft")` rol por rol con el tramo de misma etapa de la **142**. También se
+comprueba que la ficha no pone `created_by: me.id` al guardar: la 142 rechaza reescribir el autor, y si la ficha lo
+hiciera, editar el borrador de otro fallaría en la base. Medido en el navegador (abajo): ventas edita un borrador
+ajeno; un duplicado nace borrador **suyo** y la ficha se queda en la copia ya en modo edición, con «Eliminar».
+
+### Pruebas
+
+- `entregar-ya-y-deshacer.test.ts` **lee la 142** (antes la 139) y **modela almacén de verdad**: parte la rama de
+  almacén del guard donde la 142 pone `orden_de_mis_tiendas(OLD…)` y compara rol por rol, etapa por etapa y «en mi
+  tienda / en otra». Antes trataba a almacén como «la base no le deja deshacer nada», lo cual **ya era falso con la
+  139** (le dejaba tres pasos en cualquier tienda): pasaba porque comparaba `false` con `false`. La única diferencia
+  permitida es almacén en `picked_up` (la base sí, la ficha no: D-224), escrita con su motivo en la prueba.
+- `deshacer-y-borrar.test.ts` (nuevo, 23 pruebas) **interpreta la política `"deliveries delete"` del `.sql`**: la
+  parte en sus ramas `or` y sus átomos `and`, traduce cada átomo, y **tumba la prueba si aparece uno que no sabe
+  leer**. Con eso compara `puedeBorrar` en 7 roles × 9 etapas × mío/ajeno × mi tienda/otra. Además: la función de
+  tiendas contra lo que mira la del `.sql`, `borrarOrden` con respuestas falsas (cero filas, `null`, error, una
+  fila), y que los dos proveedores y la ficha usen lo probado.
+- `ruta-del-dia.test.ts`: la prueba del botón de D-287 pasa a comprobar que la vuelta de listo sigue existiendo por
+  el camino nuevo.
+
+**26 mutantes, los 26 caen con una prueba con nombre** (herramienta de mutantes, leído por nombre):
+
+| Mutante | Cae con |
+|---|---|
+| M1 almacén **sin tienda** deshace (como la cola, que sin tienda enseña todo) | «sin tienda propia, nada es mío», «office sin tienda solo borra sus propios borradores» |
+| M2 `puedeDeshacer` de almacén ignora la tienda | «rol por rol, etapa por etapa y en mi tienda o en otra», «almacén deshace … SOLO en sus tiendas» |
+| M3 almacén desaprueba (`approved`) · M4 almacén con «Deshacer» en `picked_up` | las mismas dos |
+| M5 la ficha pasa `true` en vez de la tienda | «los dos botones se pintan con las funciones probadas» |
+| M6 office pierde deshacer fuera de su tienda | «office y gerente, igual que en D-361» |
+| M7 `puedeBorrar` deja borrar una pendiente | «rol por rol … mío o ajeno», «una pendiente, aprobada o entregada solo la borra el admin» |
+| M8 office borra borradores de cualquier tienda | «en concreto: office y gerente borran el borrador AJENO de su tienda», «office sin tienda…» |
+| M9 ventas borra el borrador ajeno | «en concreto…», «rol por rol…» |
+| M10 `borrarOrden` quita la fila antes de mirar · M11 da por bueno un vacío | «cero filas y sin error: se avisa y la orden se queda» (y las de `null`/error) |
+| M12 el proveedor real sin `.select("id")` · M13 quita la fila por su cuenta | «el proveedor real pide `.select("id")` y solo quita la fila dentro de `borrarOrden`» |
+| M14 el demo borra sin mirar la política | «el demo simula la política con `puedeBorrar`» |
+| M15 «Eliminar» vuelve a ser solo del admin · M16 la ficha cierra aunque no se borró | «Eliminar sale con `puedeBorrar`, pregunta antes, y solo cierra si se borró» |
+| M17 motivo opcional en el botón · M18 motivo opcional en `deshacerEtapa` | «sin motivo no se puede confirmar» |
+| M19–M23 la función de tiendas ignora `delivery_name`, el grupo, empareja grupos vacíos, pasa la dirección a minúsculas, ignora la dirección | la prueba de `ordenDeMisTiendas` que toca cada caso |
+| M24 el `.sql` deja borrar a ventas · M26 el `.sql` pierde «su propio borrador» | «rol por rol, etapa por etapa, mío o ajeno…» (M26 también el control de tres ramas) |
+| M25 el `.sql` deja `fulfilling→approved` de almacén sin tienda | «la rama de almacén se partió donde la 142 pone el límite de tienda» |
+
+Un mutante que **no** se puso, a propósito: `created_by != null &&` delante de `created_by === yo.id` era código de
+sobra (un id de sesión nunca es nulo) y se quitó en vez de probarlo.
+
+`verify.mjs` en el worktree, con placeholders: **4055 pasados | 3 saltados**, tsc y build en verde. La rama añade 28
+pruebas (23 nuevas en `deshacer-y-borrar.test.ts`, 5 más en `entregar-ya-y-deshacer.test.ts`); **contado sobre los
+ficheros, no medido en `main`**.
+
+### Medido en el navegador (demo, 2026-09-24): 46 de 47
+
+`next dev` en modo demo y Chrome headless por CDP, **clics de persona** (elemento traído a la vista, `mousePressed`
+/`mouseReleased`, motivo tecleado con `Input.insertText`). Perfiles puestos en el «Ver como» del demo.
+
+- **Almacén de McAllen**: «Deshacer etapa» **sí** en `ready`, `delivered` y `fulfilling` de McAllen (#1012, #1017,
+  #1034); **no** en las mismas etapas de Brownsville/Mission (#1020, #1016, #1010), ni en `approved` (#1008), ni en
+  `picked_up` (#1014). Ningún «Volver a preparando» ni «Eliminar» en las 8. En #1012: el botón de confirmar
+  **deshabilitado sin motivo** y habilitado con él; al confirmar, la orden pasó a `fulfilling` y la nota del historial
+  lleva el motivo.
+- **Almacén sin tienda**: ningún «Deshacer» (#1017).
+- **Office de Edinburg**: «Eliminar» **sí** en el borrador ajeno de Edinburg (#1002, de otro vendedor), **no** en el
+  borrador de Weslaco (#1001) ni en su entregada (#1019), que sigue teniendo «Deshacer» (D-361). Borrar #1002: pide
+  confirmación, y las órdenes pasan de **89 a 88**. **Office sin tienda**: no borra el ajeno.
+- **Ventas**: «Eliminar» **sí** en su borrador (#1001, y lo borró: 90 → 89), **no** en el ajeno ni en su pendiente
+  (#1003); «Editar» **sí** en el ajeno (seguir editando, D-286). Duplicar el ajeno crea **una** copia `draft` con
+  `created_by` suyo, con «Eliminar».
+- **Admin**: «Eliminar» y «Deshacer» en una entregada (#1017); la borró (89 → 88).
+
+**El único «MAL» fue mi expectativa, no la app:** esperaba «Editar» en la ficha de la copia duplicada, y no lo hay
+porque **la copia se abre ya en modo edición** (campos abiertos; captura `ventas-copia-duplicada`). Es el
+comportamiento de D-286.
+
+### Lo que NO se hizo o no se verificó
+
+- **Nada contra producción.** Todo lo de arriba es app contra el texto de la 142 y el demo. Que la base real diga lo
+  mismo lo midió el orquestador en el ensayo de D-377 (50 de 50), no esta rama.
+- **El «No se borró» no se vio en el navegador**: en el demo el botón solo sale cuando `puedeBorrar` dice que sí, y la
+  simulación usa la misma función, así que el camino de cero filas no se puede provocar desde la pantalla. Lo cubren
+  las pruebas de `borrarOrden`. En producción puede salir si la orden cambió (se envió, o cambió de tienda) entre abrir
+  la ficha y pulsar.
+- **La vista de admin «Órdenes borradas» no se hizo.** Era opcional; `deliveries_borradas` se consulta a mano (solo
+  la lee el admin). Cabría como una página de solo lectura, pero no entraba limpia sin tocar la navegación.
+- **El límite de tienda es de pantalla y de guard, no de edición**: almacén puede editar cualquier campo de una orden
+  `approved…delivered` (la 142 lo dice en su plan, §2a); cerrar eso es otro encargo.
+- **Almacén no ve borradores** (RLS), así que para él «Eliminar» no sale nunca en la práctica, aunque `puedeBorrar` le
+  dejaría su propio borrador si lo tuviera.
+
+## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
+
+**Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido por el dueño**, literal: *«make a filter name outdated and put the old order there»*. Preguntado, precisó:
+dentro van las órdenes **atrasadas y abiertas** —fecha de entrega anterior a ayer, ni entregadas ni anuladas—; **salen
+de la lista normal**, que se queda con ayer, hoy y lo que viene; y vale **para todos los roles**, cada uno con lo que
+ya podía ver.
+
+**Revierte en parte D-351 y D-374**, y el dueño lo decidió sabiendo por qué existían: las dos dejaban la vencida
+abierta siempre en la lista porque es trabajo vivo y esconderla era perderla. Las dos llevan su nota. Lo que se
+conserva de ellas es que **no se esconde**: está a un clic, y la pastilla dice cuántas hay aunque no se esté dentro.
+
+### Qué es «atrasada» aquí, y la única discrepancia que hay
+
+No se escribió una definición nueva. `vaAAtrasadas` (`src/lib/atrasadas.ts`) es **`isOverdue`** —la de D-351, D-354 y
+D-374: fecha pasada, ni entregada ni anulada— **más el suelo de la ventana**, `retentionFloorISO` (ayer). Las dos
+piezas ya existían.
+
+El suelo hace falta porque **`isOverdue` cuenta la de ayer como atrasada** y el dueño dejó ayer en la lista normal. Esa
+es la discrepancia, y se resolvió así: la orden de ayer sin entregar se queda en la lista normal, con su etiqueta roja
+«Tarde» como antes; la de anteayer hacia atrás va a «Outdated». Sin el suelo, la de ayer saldría en las dos listas.
+La otra copia de la regla —la línea de D-351 dentro de `withinRecent`— dice lo mismo que `isOverdue` (fecha < hoy y
+ni entregada ni anulada); no discrepan.
+
+### Cómo queda la pantalla
+
+- **La lista normal** (`visibles` de `ordenesVisibles`) ya no lleva las atrasadas anteriores a ayer, **con ningún chip
+  de fecha**, tampoco «Todas» del admin, que sigue enseñando las entregadas viejas pero no las abiertas viejas.
+- **Buscando sí salen en la lista normal.** Es la única excepción y es decisión mía, no del dueño: D-374 dejó escrito
+  que buscar es el camino a todo, y una factura que no aparece al teclearla se lee como que la orden no existe. La
+  pastilla «Outdated» también la cuenta mientras se busca. Si el dueño prefiere lo contrario, es la condición
+  `buscando` en `ordenesVisibles`, y hay una prueba con nombre que caerá.
+- **La pastilla «Outdated / Atrasadas»**, en rojo, tras las de etapa y antes de «Factura pendiente». **Sale siempre,
+  también con 0**, a diferencia de la de factura: las atrasadas ya no están en la lista, y si la pastilla se escondiera
+  el día que hubiera no habría dónde buscarlas. Un 0 dice «no hay nada atrasado», que también es saberlo. Dentro
+  enseña las atrasadas de **todas las etapas abiertas**.
+- **Entrar mueve el chip de fecha a «Todas»**, como la de factura pendiente (D-380), y por la misma razón: con «Hoy»
+  la lista saldría vacía con la pastilla diciendo otro número; con «Reciente» sí las enseñaría —`withinRecent` deja
+  pasar la vencida abierta— pero con «Reciente» encendido sobre órdenes de hace semanas. Se añadió a
+  `presetAlElegirPastilla`, y ninguna otra pastilla mueve nada.
+- **La cuenta**, como la de factura: fuera cuenta todas sin mirar el chip de fecha (es el aviso); dentro pasa por el
+  chip (describe la lista). Al entrar coinciden.
+- **Para cada rol, lo suyo.** `atrasadas` sale del mismo bucle que las otras dos listas, después de `leTocaPorRol` y de
+  la ventana: ventas ve solo sus atrasadas, almacén solo las de sus tiendas y desde la aprobación. No es una llave para
+  ver órdenes de otro.
+- **El tablero** (vista «Board») pinta la lista normal, así que tampoco las lleva; las pastillas solo existen en la
+  vista de tabla.
+- **La etiqueta roja «Tarde»** (columna de fecha e ID, `isOverdue`) sigue teniendo sentido: dentro de «Outdated» la
+  llevan todas las filas, y en la lista normal solo la de ayer sin entregar.
+
+### Las cuentas y las filas, a `lib`
+
+Los dos `useMemo` de la pantalla que contaban y listaban pasaron a `src/lib/filas-de-ordenes.ts` (`cuentasDeOrdenes`,
+`filasDeOrdenes`), que reciben las tres listas, la pastilla, el chip de fecha y las reglas. Con una tercera lista
+propia, escribir a mano «cuenta sobre la misma lista de la que listas» por tercera vez era pedir el fallo que ya pasó
+dos veces (D-357, D-380). Ahora se prueba **con datos**: para cada pastilla y cada chip de fecha, el número es el de
+filas que enseña al pulsarla. La pantalla solo le pasa sus listas, y eso lo fija una prueba de texto.
+
+Canarios que se movieron, con la razón dentro de cada uno: siete pruebas de `documento-pendiente`, `ordenes-visibles`
+e `history-window` fijaban líneas literales de la pantalla que ahora viven en `filas-de-ordenes.ts`; leen ese fichero
+y además comprueban que la pantalla lo llama. Cuatro de `pastillas-de-ordenes` esperaban la fila sin «Outdated».
+
+### Qué NO cambia, y qué pantallas siguen viendo las atrasadas
+
+La ventana compartida, **`withinRetention`, no se tocó**: sigue dejando pasar la atrasada abierta. Quitarla ahí la
+habría sacado también de la **Cola de almacén** (`warehouse/page.tsx`) y de la **pantalla del chofer**
+(`driver/page.tsx`), y el pedido era para la lista de Órdenes. Esas dos pantallas las siguen enseñando. Tampoco
+cambian: el **Gestor de rutas** (su chip «Atrasadas» de D-359, con `isOverdue`), la **Ruta del día** y las hojas de
+carga (van por fecha del día, D-380), ni los resúmenes y cuentas por cliente que cuentan vencidas.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4053 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 12, los 12 caen**, leídos por nombre con la herramienta de mutantes. Entre ellos: la lista normal
+  sigue enseñando atrasadas (caen 4, entre ellas *«office: normal = ayer, hoy, futuro y sin fecha…»*); la pantalla
+  pinta la normal desde `conPendientes` (cae *«pide las tres listas a `ordenesVisibles`…»*); `vaAAtrasadas` deja de
+  preguntar a `isOverdue` y mete entregadas y anuladas (cae *«entregada o anulada, no, por vieja que sea»*); las
+  filas de Outdated suman entregadas de la normal (cae *«admin, chip «todas»: cuenta = filas…»*); la cuenta o las
+  filas ignoran el chip de fecha dentro (caen *«office/admin, chip «hoy»: cuenta = filas…»*); la pantalla cuenta
+  sobre otra lista (caen tres); entrar deja de mover el chip (cae *«entrar mueve el chip de fecha a «Todas»…»*);
+  Outdated se llena antes del corte por rol (caen *«ventas: la suya sí, la de otro no»* y *«almacén: su tienda sí…»*);
+  la pantalla arma Outdated a mano desde `deliveries` (caen dos de texto); la pastilla solo sale con algo dentro
+  (caen cinco); buscando, la atrasada deja de salir en la normal (cae la suya).
+- **En el navegador, 2026-09-24, demo local** (`next dev`, sin base), con dos órdenes sembradas del mismo día viejo
+  (hoy − 10) en McAllen, de ventas: una **Programada** y una **Entregada**. El demo ya traía otra atrasada abierta,
+  la #1020 (Ready, Brownsville, 22-sep). Con los dos chips abiertos (pastilla «Todas» y fecha «Todas»):
+
+  | rol | lista normal «Todas» | atrasadas en ella | «Outdated» (pastilla / filas) | entregada vieja dentro | con «Hoy» dentro |
+  |---|---|---|---|---|---|
+  | Admin | 89 | 0 | 2 / 2 | no | 0 / 0 |
+  | Office | 85 | 0 | 2 / 2 | no | 0 / 0 |
+  | Almacén (McAllen) | 14 | 0 | 1 / 1 (solo la de McAllen) | no | 0 / 0 |
+  | Ventas | 83 | 0 | 2 / 2 | no | 0 / 0 |
+
+  Al entrar, el chip de fecha pasó solo de «Reciente» a «Todas» en los cuatro. Con «Reciente» dentro: 2/2, 2/2, 1/1,
+  2/2. **Control del detector:** buscando la factura de la sembrada, la lista normal la enseña (1 fila) y el
+  detector la marca; así que el 0 de la columna «atrasadas en ella» no es un detector ciego. La página no se
+  desplaza de lado.
+
+### Lo no verificado
+
+- **Nada contra producción.** El 2026-09-23 había **0** órdenes abiertas anteriores a ayer (medido por el
+  orquestador en D-374), así que hoy la pastilla saldría con 0 en producción; es por eso que sale siempre.
+- El chofer no se midió en el navegador: su pantalla es `/driver`, que no cambia; en Órdenes le aplica lo mismo que
+  a los demás.
+- Entrar en «Outdated» pone «Todas», y para admin y logística «Todas» pide el historial entero al proveedor
+  (`ensureDeliveriesSince(null)`), como ya hacía la de factura pendiente. No hacía falta para las atrasadas —las
+  abiertas se cargan siempre, tengan la fecha que tengan— pero no se separó; no se midió el peso.

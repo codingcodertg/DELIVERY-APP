@@ -432,6 +432,10 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
  * Y una orden VENCIDA que sigue abierta entra también, tenga la fecha que tenga (D-351). El dueño: «cuando una orden
  * no se entrega y pasa el día siguiente, antes salía como LATE y se arrastraba para reprogramar». D-350 la escondía
  * al segundo día: una vencida sin entregar es trabajo vivo, no historial, y esconderla es perderla.
+ *
+ * Desde D-384 la lista normal de Órdenes ya no le trae las anteriores a ayer (van a la pastilla «Outdated»,
+ * `vaAAtrasadas`), así que esa cláusula solo actúa dentro de esa pastilla con «Reciente» puesto. Se deja: quitarla
+ * no cambiaría la lista normal y haría que «Reciente» dentro de «Outdated» saliera vacío.
  */
 export function withinRecent(d: { delivery_date?: string | null; stage?: string | null }, today: string = todayISO()): boolean {
   if (!d.delivery_date) return true;

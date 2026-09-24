@@ -5,6 +5,7 @@ import { Ctx, type DataState } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition } from "@/lib/constants";
+import { borrarOrden, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { changedFieldsNote, orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
@@ -209,8 +210,19 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   const deleteDelivery = useCallback<DataState["deleteDelivery"]>(async (id) => {
     const s = storeRef.current;
-    persist({ ...s, deliveries: s.deliveries.filter((c) => c.id !== id) });
-  }, [persist]);
+    // Espejo de la política de borrar de la 142 (D-383): aquí no hay base que diga que no, así que la
+    // respuesta de cero filas se simula con `puedeBorrar`, y pasa por el mismo `borrarOrden` que el
+    // proveedor real. Sin esto, el demo borraba cualquier orden y nunca enseñaba el «no se borró».
+    // `me` y no la fila de `s.users`: es el mismo perfil con el que la ficha decide si pinta «Eliminar»
+    // (el selector «Ver como» del demo le pone una tienda que la lista de usuarios no tiene).
+    const orden = s.deliveries.find((c) => c.id === id);
+    return borrarOrden({
+      borrar: async () => ({ data: orden && puedeBorrar(me, orden, s.settings.stores) ? [{ id }] : [], error: null }),
+      quitarDeLaLista: () => persist({ ...s, deliveries: s.deliveries.filter((c) => c.id !== id) }),
+      avisar: notify,
+      lang: "en",
+    });
+  }, [me, persist, notify]);
 
   const setStage = useCallback<DataState["setStage"]>(async (id, stage, note, extra) => {
     const s = storeRef.current;

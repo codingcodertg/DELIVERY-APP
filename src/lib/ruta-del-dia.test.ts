@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { inicioDeVentana, rutaPorChofer, SIN_CHOFER, ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA } from "./ruta-del-dia";
 import { htmlDeLasHojasDeCarga } from "./slip";
-import { canTransition } from "./constants";
+import { canTransition, etapaAnterior, puedeDeshacer } from "./constants";
 import type { Delivery, Settings } from "./types";
 
 // Las siete quejas de almacén (D-287). Datos inventados: ni tiendas, ni choferes, ni cifras del
@@ -171,18 +171,18 @@ describe("volver de listo a preparando (queja 2)", () => {
     expect(plano(vigente)).toContain("(old_stage = 'ready' and new_stage = 'fulfilling')");
   });
 
-  it("el botón está, solo para quien prepara y solo en listo, y pregunta antes", () => {
+  it("la vuelta de almacén es el «Deshacer etapa» general, con motivo y en su tienda (D-383)", () => {
+    // Hasta D-383 era un botón propio, «↩ Volver a preparando», que preguntaba y escribía una nota fija.
+    // Ahora almacén deshace `ready` (y `delivered`, y `fulfilling`) con el diálogo de office: motivo
+    // obligatorio y solo en órdenes de sus tiendas. Lo que decide quién y dónde lo prueba
+    // `entregar-ya-y-deshacer.test.ts` contra la 142; aquí solo que la vuelta de listo sigue existiendo.
+    expect(puedeDeshacer("warehouse", "ready", true)).toBe(true);
+    expect(etapaAnterior("ready")).toBe("fulfilling");
     const modal = plano(leer("src/components/OrderModal.tsx"));
-    expect(modal).toContain('if (stage === "ready") { btns.push(');
-    expect(modal).toContain("onClick={onBackToPreparing}");
-    const vuelta = modal.slice(modal.indexOf("const volverAPreparar"), modal.indexOf("const volverAPreparar") + 900);
-    // La pregunta tiene que DECIDIR, no solo estar: se exige la forma exacta y que un «no» corte.
-    // Un `true || await confirmAction(...)` cumpliría un `toContain("await confirmAction(")` y no
-    // preguntaría nada; con esto, cae.
-    expect(vuelta).toMatch(/const ok = await confirmAction\(/);
-    expect(vuelta).toContain("if (!ok) return;");
-    // Va por setStage, así que queda registrada como cualquier cambio de etapa, con nota.
-    expect(vuelta).toMatch(/setStage\(existing\.id, "fulfilling", t\(/);
+    expect(modal).not.toContain("onClick={onBackToPreparing}");
+    // El aviso que daba la pregunta de D-287 —puede haber un chofer en camino— lo lleva ahora el diálogo.
+    expect(modal).toContain('showDeshacer && existing.stage === "ready"');
+    expect(modal).toContain("puede haber un chofer ya en camino a recogerla");
   });
 });
 

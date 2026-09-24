@@ -224,10 +224,15 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
 describe("los chips de etapa cuentan lo que el chip de fechas deja pasar (D-357)", () => {
   it("las cuentas y la lista usan el MISMO predicado del preset", () => {
     const tablero = leer("src/app/(app)/page.tsx");
-    expect(tablero).toContain("const enElPreset = visible.filter(pasaElPreset);");
-    expect(tablero).toContain("const c: Record<string, number> = { all: enElPreset.length };");
-    expect(tablero).toContain("for (const d of enElPreset) c[d.stage] = (c[d.stage] ?? 0) + 1;");
-    expect(tablero).toContain("return pasaElPreset(d);");
+    // D-384 sacó las cuentas y las filas a `filas-de-ordenes.ts`: allí se comprueba que usan el mismo
+    // predicado, y aquí que la pantalla les pasa el SUYO a las dos.
+    const filas = leer("src/lib/filas-de-ordenes.ts");
+    expect(filas).toContain("const enElPreset = listas.visibles.filter(pasaElPreset);");
+    expect(filas).toContain("const c: Record<string, number> = { [PASTILLA_TODAS]: enElPreset.length };");
+    expect(filas).toContain("for (const d of enElPreset) c[d.stage] = (c[d.stage] ?? 0) + 1;");
+    expect(filas).toContain("&& pasaElPreset(d));");
+    expect(tablero).toContain("cuentasDeOrdenes(listas, filter, pasaElPreset,");
+    expect(tablero).toContain("filasDeOrdenes(listas, view === \"board\" ? PASTILLA_TODAS : filter, pasaElPreset,");
     // El preset se escribe una vez: la lista ya no lo repite.
     expect(tablero.split('preset === "today" && !isToday(d.delivery_date)').length - 1).toBe(1);
   });

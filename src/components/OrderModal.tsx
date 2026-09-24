@@ -19,6 +19,7 @@ import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document
 import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
+import { ordenDeMisTiendas, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
 import { decisionAlConfirmar, hayQueAvisar, siguienteIndice, sugerenciasPara } from "@/lib/account-combobox";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -811,26 +812,11 @@ export function OrderModal({
     if (ok) { setShowAddMaterial(false); notify(t("Material added", "Material agregado")); }
   };
 
-  /**
-   * Volver de «listo» a «preparando» (D-287), que es lo que pidió almacén: *«si por accidente
-   * pongo listo, ¿cómo me regreso a no listo?»*.
-   *
-   * Se pregunta antes, porque deshace trabajo de otros: el chofer pudo ya estar en camino a
-   * recogerla. Y va por `setStage`, así que queda registrada como cualquier otro cambio de etapa,
-   * con su nota.
-   */
-  const volverAPreparar = async () => {
-    if (!existing) return;
-    const ok = await confirmAction(
-      t("Send this order back to Preparing? It will stop being ready to load.",
-        "¿Devolver esta orden a Preparando? Dejará de estar lista para cargar."),
-      { danger: true, confirmLabel: t("Back to preparing", "Volver a preparando") },
-    );
-    if (!ok) return;
-    setBusy(true);
-    await setStage(existing.id, "fulfilling", t("Back to preparing (marked ready by mistake)", "Vuelve a preparación (se marcó listo por error)"));
-    setBusy(false);
-  };
+  // Aquí vivía `volverAPreparar` (D-287): «Volver a preparando», el botón de almacén en `listo`, que
+  // preguntaba y escribía una nota fija. Desde D-383 almacén deshace con el diálogo general de
+  // «Deshacer etapa» (abajo, `deshacerEtapa`), con motivo obligatorio como office, y en tres pasos, no
+  // en uno. Lo que el diálogo de D-287 avisaba —que deja de estar lista para cargar— lo dice ahora la
+  // pista del diálogo en `ready`.
 
   /**
    * Entregar de inmediato (D-361): cierra la orden sin firma ni POD. No pide confirmación aparte
@@ -1114,10 +1100,18 @@ export function OrderModal({
       t(`Delete order #${orderLabel(existing)}? This cannot be undone.`, `¿Eliminar la orden #${orderLabel(existing)}? No se puede deshacer.`),
       { danger: true, confirmLabel: t("Delete", "Eliminar") },
     ))) return;
-    await deleteDelivery(existing.id);
+    // Solo se da por borrada si la base devolvió la fila (D-383): un DELETE que la política no deja
+    // pasar vuelve limpio con cero filas, y el proveedor ya avisó de por qué.
+    const borrada = await deleteDelivery(existing.id);
+    if (!borrada) return;
     notify(t("Order deleted", "Orden eliminada"));
     onClose();
   };
+
+  // Deshacer y borrar, espejo de la 142 (D-383). Almacén solo deshace en órdenes de sus tiendas, y
+  // borrar es del admin, del autor del borrador, y de office/gerente en los borradores de su tienda.
+  const deshaceAqui = !!existing && puedeDeshacer(me.role, existing.stage, ordenDeMisTiendas(existing, me.store, settings.stores));
+  const borraAqui = !!existing && puedeBorrar(me, existing, settings.stores);
 
   // Log a repeat delivery (warehouse error, damage, etc.) as a NEW order linked
   // to this one, re-entering the flow as "approved" for the warehouse to redo.
@@ -1311,7 +1305,6 @@ export function OrderModal({
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
-      onBackToPreparing={volverAPreparar}
       readyConfirmOpen={showReadyConfirm}
       onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
       onConfirmReady={confirmReady}
@@ -2372,8 +2365,11 @@ export function OrderModal({
         {/* Office y el gerente cierran una orden que se entregó sin marcarse (o que el cliente se llevó del
             mostrador), y deshacen la etapa que alguien adelantó por error. El motivo es obligatorio: sin él, en
             el historial queda un salto sin explicación. La base dice lo mismo (139), así que ningún botón de
-            aquí puede acabar en un error del guard. */}
-        {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || puedeDeshacer(me.role, existing.stage)) && (
+            aquí puede acabar en un error del guard.
+            D-383 (142): almacén también deshace aquí —`delivered`, `ready` y `fulfilling`, un paso— pero solo en
+            órdenes de sus tiendas (`deshaceAqui`), y con el mismo motivo obligatorio. Es el que sustituye al
+            «Volver a preparando» de D-287. */}
+        {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || deshaceAqui) && (
           showEntregarYa || showDeshacer ? (
             <div className="field" style={{ marginTop: 14 }}>
               <label>{showEntregarYa
@@ -2389,8 +2385,18 @@ export function OrderModal({
                         "No se registra firma ni GPS. La orden se cierra como entregada y sale de las colas de trabajo.")}
                 </div>
               )}
+              {showDeshacer && etapaAnterior(existing.stage) && (
+                <div className="hint">{t(`It goes back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`, `Vuelve a ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`)}</div>
+              )}
               {showDeshacer && existing.stage === "delivered" && (
                 <div className="hint">{t("What was signed is kept; only the stage goes back.", "Lo que se firmó se conserva; solo vuelve la etapa.")}</div>
+              )}
+              {/* Lo que avisaba el «Volver a preparando» de D-287: puede haber un chofer ya en camino. */}
+              {showDeshacer && existing.stage === "ready" && (
+                <div className="hint" style={{ color: "var(--amber-text)" }}>
+                  ⚠ {t("It stops being ready to load: a driver may already be on the way to pick it up.",
+                        "Deja de estar lista para cargar: puede haber un chofer ya en camino a recogerla.")}
+                </div>
               )}
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => { setShowEntregarYa(false); setShowDeshacer(false); setMotivoDeSalto(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
@@ -2406,7 +2412,7 @@ export function OrderModal({
                   title={t("Close it as delivered, without a signature", "Cerrarla como entregada, sin firma")}
                 >✓ {t("Mark delivered now", "Marcar entregada ya")}</button>
               )}
-              {puedeDeshacer(me.role, existing.stage) && (
+              {deshaceAqui && (
                 <button className="btn btn-ghost btn-sm" onClick={() => { setMotivoDeSalto(""); setShowDeshacer(true); }} disabled={busy}
                   title={t(`Back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}`, `Volver a ${stageLabel(etapaAnterior(existing.stage)!, lang)}`)}
                 >↩ {t("Undo stage", "Deshacer etapa")}</button>
@@ -2452,7 +2458,7 @@ export function OrderModal({
         {/* Hidden during the initial new-order step (which has its own Next). */}
         {paso === "completo" && (
         <div className="modal-actions">
-          {existing && me.role === "admin" && (
+          {existing && borraAqui && (
             <button className="btn btn-danger" onClick={remove} disabled={busy}>{t("Delete", "Eliminar")}</button>
           )}
           {existing && !editing && canCreate(me) && (
@@ -2881,7 +2887,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
-  onAddMaterial, onBackToPreparing, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onAddMaterial, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive,
 }: {
@@ -2899,8 +2905,6 @@ function StageActions({
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de «Agregar material» del vendedor dueño de la orden (D-339). */
   onAddMaterial: () => void;
-  /** Devuelve una orden lista a preparación, preguntando antes (D-287). */
-  onBackToPreparing: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
   /** Driver's one-tap pickup: takes the full load, no count prompt. */
@@ -2973,15 +2977,9 @@ function StageActions({
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);
     }
-    // El camino de vuelta (D-287): marcar listo por error tenía que poder deshacerse, y la base
-    // ya lo permitía. Va en almacén y no en el chofer: quien la marcó es quien la devuelve.
-    if (stage === "ready") {
-      btns.push(
-        <button key="unready" className="btn btn-ghost" onClick={onBackToPreparing} disabled={busy}
-          title={t("Marked ready by mistake? Send it back to Preparing", "¿Se marcó listo por error? Devolverla a Preparando")}
-        >↩ {t("Back to preparing", "Volver a preparando")}</button>,
-      );
-    }
+    // El camino de vuelta de `listo` (D-287) ya no se pinta aquí: desde D-383 es el «↩ Deshacer etapa»
+    // general de la ficha, con motivo, y solo en órdenes de sus tiendas (142). Dos botones para el mismo
+    // salto, uno con motivo y otro sin él, dejarían el historial a medias.
   }
 
   // Driver (and warehouse/admin): pick up a ready order, then mark it delivered.

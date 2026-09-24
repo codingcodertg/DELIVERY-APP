@@ -3,6 +3,7 @@ import { documentoPrincipal, type CampoDeDocumento, type DocumentoDeLaOrden } fr
 import type { OrderTypeRules } from "./required";
 import type { Delivery, Stage, UserRole } from "./types";
 import { orderOwner } from "./utils";
+import { PESTANA_ATRASADAS } from "./atrasadas";
 
 /**
  * El documento que a una orden le FALTA, y quién puede ponerlo desde la fila (D-310).
@@ -20,7 +21,8 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
 /**
  * A qué chip de fecha se mueve la pantalla al pulsar una pastilla (D-380).
  *
- * **Solo la de factura pendiente mueve nada, y solo hacia «Todas».** Lo demás se queda como esté.
+ * **Solo la de factura pendiente y la de «Outdated» mueven nada, y solo hacia «Todas».** Lo demás
+ * se queda como esté.
  *
  * El problema que arregla: la pestaña **cuenta** sobre `conPendientes` —lo pendiente aunque sea
  * viejo, que es lo que D-313 arregló para que a office no le saliera 0— pero la **lista** sigue
@@ -31,9 +33,14 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
  * Se mueve el chip en vez de ignorarlo dentro de la pestaña: así **se ve** por qué aparecen órdenes
  * viejas, y quien quiera volver a acotar por fecha lo hace y ve el chip que lo está haciendo. Un
  * filtro que se salta en silencio es el mismo problema al revés.
+ *
+ * **Y la de «Outdated» (D-384), por la misma razón y hacia el mismo sitio.** Todo lo que lista es
+ * de antes de ayer: con «Hoy» puesto enseñaría cero filas con la pastilla diciendo otro número, y
+ * con «Reciente» las enseñaría —`withinRecent` deja pasar la vencida abierta (D-351)— pero con
+ * «Reciente» encendido sobre órdenes de hace semanas, que es la confusión que D-380 quitó.
  */
 export function presetAlElegirPastilla<P extends string>(clave: string, presetActual: P, todas: P): P {
-  return clave === PESTANA_DOCUMENTO_PENDIENTE ? todas : presetActual;
+  return clave === PESTANA_DOCUMENTO_PENDIENTE || clave === PESTANA_ATRASADAS ? todas : presetActual;
 }
 
 /** Etapas en las que todavía no se espera el documento, o ya da igual. */
