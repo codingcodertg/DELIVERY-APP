@@ -27,10 +27,11 @@ import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lect
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, conColumnasNuevas, extrasDeParadas, fotoDelGestor, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
-import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CLAVE_ID, etiquetaDelGestor, valorDelGestor } from "@/lib/valores-del-gestor";
@@ -225,6 +226,9 @@ export default function RoutesPage() {
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
+  // Las plantillas (D-NEXT): la `ref` es lo leído (lo que se escribe); el estado, lo que pinta el menú.
+  const plantillasDelGestor = useRef<PlantillaDeColumnas[]>([]);
+  const [plantillasGestor, setPlantillasGestor] = useState<PlantillaDeColumnas[]>([]);
   // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
   // Y otra vez en «Sin asignar» (D-349): logística aterriza ahí y el único ⚙ estaba en «Programadas». Desde D-376, con
   // «Programadas» fuera, son los dos únicos.
@@ -237,12 +241,26 @@ export default function RoutesPage() {
     void leeColumnas(createClient() as unknown as ClienteDePrefs, me.id, CLAVE_DE_COLUMNAS_DEL_GESTOR).then((leido) => {
       if (!vivo || !leido.leida) return;
       prefsDelGestor.current = leido.columnas;
+      plantillasDelGestor.current = leido.plantillas;
+      setPlantillasGestor(leido.plantillas);
       const suyas = leido.columnas[rol];
       // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas).
       if (suyas) setColsGestor(conColumnasNuevas(suyas));
     });
     return () => { vivo = false; };
   }, [me?.id, me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Las PLANTILLAS del Gestor (D-NEXT), las mismas que en Órdenes: el dueño, «logistic manager needs to have the same
+  // template as in order view». Van en la misma fila (`routes_columns`), como cuarta mitad; aquí no hay orden ni anchos en
+  // la base, así que una plantilla del Gestor es solo QUÉ columnas se ven. Las dos ⚙ (Sin asignar y paradas) comparten la
+  // lista de columnas, así que comparten también las plantillas. (La `ref` y el estado, arriba, junto a `prefsDelGestor`.)
+  useEffect(() => {
+    // El demo no tiene base: sus plantillas viven en este navegador.
+    if (!SIN_BASE) return;
+    plantillasDelGestor.current = plantillasDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, CLAVE_DE_COLUMNAS_DEL_GESTOR);
+    setPlantillasGestor(plantillasDelGestor.current);
+  }, []);
+  // La fila se escribe ENTERA, por un solo sitio y con las plantillas leídas: marcar una casilla no las borra.
+  const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, {}, {}, plantillasDelGestor.current);
   const alternaColumnaDelGestor = (key: string) => {
     const next = alternaColumna(colsGestor, key);
     setColsGestor(next);
@@ -250,7 +268,44 @@ export default function RoutesPage() {
     if (!me || SIN_BASE || prefsDelGestor.current === null) return;
     const todas: ColumnasPorRol = { ...prefsDelGestor.current, [me.role]: next };
     prefsDelGestor.current = todas;
-    void guardaColumnas(createClient() as unknown as ClienteDePrefs, me.id, todas, CLAVE_DE_COLUMNAS_DEL_GESTOR);
+    void escribeElGestor();
+  };
+  // Aplicar: la foto, o «Por defecto» (`null`) — lo que trae la app.
+  const aplicaPlantillaDelGestor = (p: PlantillaDeColumnas | null) => {
+    const next = p ? columnasDePlantillaDelGestor(p.v) : [...COLUMNAS_DEL_GESTOR_POR_DEFECTO];
+    setColsGestor(next);
+    if (!me || SIN_BASE || prefsDelGestor.current === null) return;
+    prefsDelGestor.current = { ...prefsDelGestor.current, [me.role]: next };
+    void escribeElGestor();
+  };
+  const destinoDelGestor = {
+    sinBase: SIN_BASE,
+    guardaEnElNavegador: (lista: PlantillaDeColumnas[]) => localStorage.setItem(claveDePlantillasEnElNavegador(CLAVE_DE_COLUMNAS_DEL_GESTOR), JSON.stringify(lista)),
+    baseLeida: prefsDelGestor.current !== null,
+    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDelGestor.current ?? {}, orden: {}, plantillas: lista }),
+    escribe: async (lista: PlantillaDeColumnas[]) => {
+      const antes = plantillasDelGestor.current;
+      plantillasDelGestor.current = lista;
+      const ok = await escribeElGestor();
+      if (!ok) plantillasDelGestor.current = antes;
+      return ok;
+    },
+  };
+  const cambiaPlantillasDelGestor = async (lista: PlantillaDeColumnas[], crece: boolean): Promise<string | null> => {
+    const problema = await persistePlantillas(lista, crece, destinoDelGestor, t);
+    if (problema) return problema;
+    plantillasDelGestor.current = lista;
+    setPlantillasGestor(lista);
+    return null;
+  };
+  const propsDePlantillas = {
+    plantillas: plantillasGestor,
+    onAplicar: aplicaPlantillaDelGestor,
+    onGuardar: (nombre: string) => {
+      const r = guardaPlantilla(plantillasDelGestor.current, nombre, { v: fotoDelGestor(colsGestor) });
+      return r.ok ? cambiaPlantillasDelGestor(r.lista, true) : Promise.resolve(textoDelRechazo(r.motivo, t));
+    },
+    onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
   // La tabla de paradas guarda los anchos por puesto: lo que la persona quitó se esconde por su puesto (D-346).
@@ -1896,6 +1951,7 @@ export default function RoutesPage() {
             elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
             rotulo={(c) => (lang === "es" ? c.es : c.en)}
             titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
+            plantillas={propsDePlantillas}
           />
           {/* Chips de «Sin asignar» (D-NEXT): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
               lleva su número, que sale de la misma función que sus filas. */}
@@ -2259,6 +2315,7 @@ export default function RoutesPage() {
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
                   rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
                   titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
+                  plantillas={propsDePlantillas}
                 />
               </div>
             )}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
+import { PlantillasDeColumnas } from "@/components/PlantillasDeColumnas";
 
 /**
  * El ⚙ Columnas de las tablas del Gestor de Rutas (D-379), con el mismo aspecto que el de Órdenes (`.col-menu`, `.col-opt`).
@@ -17,7 +18,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
  * texto, «SO #» partido en dos renglones. `.col-opt` es el que ya los neutraliza en el menú de Órdenes.
  */
 export function SelectorDeColumnas<C extends { key: string }>({
-  columnas, elegidas, onAlterna, rotulo, titulo, nota, t, alLado = "derecha",
+  columnas, elegidas, onAlterna, rotulo, titulo, nota, t, alLado = "derecha", plantillas,
 }: {
   columnas: readonly C[];
   elegidas: readonly string[];
@@ -28,6 +29,8 @@ export function SelectorDeColumnas<C extends { key: string }>({
   t: (en: string, es: string) => string;
   /** Hacia dónde se abre: a la derecha del botón queda pegado a su borde derecho, y al revés. */
   alLado?: "derecha" | "izquierda";
+  /** Las plantillas (D-NEXT): el mismo bloque que en Órdenes, arriba del todo. Sin esto, el menú no las enseña. */
+  plantillas?: Omit<ComponentProps<typeof PlantillasDeColumnas>, "t">;
 }) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
@@ -38,6 +41,7 @@ export function SelectorDeColumnas<C extends { key: string }>({
       {abierto && (
         <div className="col-menu" style={alLado === "izquierda" ? { left: 0, right: "auto" } : undefined}>
           <div className="col-menu-head"><b>{titulo}</b></div>
+          {plantillas && <PlantillasDeColumnas {...plantillas} t={t} />}
           {columnas.map((c) => (
             <label key={c.key} className="col-opt">
               <input type="checkbox" checked={elegidas.includes(c.key)} onChange={() => onAlterna(c.key)} />

@@ -27496,3 +27496,159 @@ una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `e
 - **Otra computadora u otro navegador** nacen en «Todos»: es lo esperado por diseño, no se midió.
 - La búsqueda de «Sin asignar» **no mira la factura** (buscar «INV-3001» da 0 en todos los chips). Era así antes; no se
   tocó.
+
+## D-NEXT · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** el dueño, dos frases del mismo día, literales:
+*«ADD TEMPLATE IN COLUMNS THAT WILL BE LIKE RR(?) THE CURRENT ORDER SO IF THEY CHANGE IT AND THEN WANT TO GO BACK TO THE OLD ONE THEY CAN»* y
+*«LOGISTIC MANAGER NEEDS TO HAVE THE SAME TEMPLATE AS IN ORDER VIEW»*.
+Sigue a D-330/D-332/D-338 (columnas, orden y anchos de Órdenes por persona) y a D-331/D-346/D-376/D-379 (columnas del Gestor).
+No reemplaza ninguna: añade una cuarta mitad a la misma fila.
+
+### Lo que se entendió, y lo que queda por confirmar
+
+«RR(?)» se leyó como *guardar*: poder guardar la configuración de columnas de ahora con un nombre y volver a ella. La segunda
+frase se leyó como «lo mismo en el Gestor». **Otra lectura posible** de la segunda: que el Gestor tenga *las mismas columnas*
+que la vista de Órdenes; eso ya lo hizo D-376 («las mismas columnas que se miran en órdenes»), así que se tomó la primera.
+Si el dueño quería decir otra cosa, esto no le estorba: es un bloque dentro de ⚙ Columnas.
+
+### Qué hay ahora
+
+En **⚙ Columnas de Órdenes** y en **los dos ⚙ del Gestor** (Sin asignar y la tabla de paradas de cada chofer), arriba del todo,
+un bloque **«Plantillas / Templates N/10»**, el mismo componente en los tres sitios (`PlantillasDeColumnas`):
+
+- **«Por defecto / Default»**, siempre, fijo: devuelve lo que trae la app. En Órdenes, las columnas por defecto del rol, el
+  orden canónico (borra el orden propio, como «Restablecer orden» de D-332) y los anchos de partida. En el Gestor,
+  `COLUMNAS_DEL_GESTOR_POR_DEFECTO`.
+- **Cada plantilla guardada es una pastilla**: un clic la aplica. Aplicar pone **exactamente** la foto: si la plantilla no
+  traía orden propio o anchos arrastrados, se quitan los que hubiera ahora.
+- **Guardar**: un campo con el nombre y el botón. Guarda **lo que se ve ahora**. Si el nombre ya existe (sin distinguir
+  mayúsculas ni espacios de los lados), el botón dice **«Reemplazar»** y la reemplaza en su sitio.
+- **Borrar pide confirmar**: el ✕ no borra; cambia la pastilla por «¿Borrar «X»? **Sí, borrar** · No», en la misma línea.
+  Dentro del menú y no en un diálogo: un diálogo fuera de la caja cuenta como «clic fuera» para `useCierraAlSalir` y cerraría
+  el menú.
+- **Hasta 10 plantillas por pantalla** (`MAX_PLANTILLAS`). Con diez, «Guardar» se apaga y lo dice; reemplazar una sí se puede.
+  El nombre, hasta 40 caracteres. «Default» y «Por defecto» están reservados: no se distinguirían del fijo.
+
+**Qué guarda una plantilla.** En Órdenes: columnas visibles, orden (si la persona tiene uno propio) y anchos (los que se ven:
+`anchos` o, si es `null`, los del navegador que pinta la tabla). En el Gestor: **solo qué columnas se ven**, porque allí el orden
+lo fija el código por tabla y los anchos viven en el navegador, no en la base. Las dos ⚙ del Gestor comparten la lista de
+columnas (`routes_columns`), así que comparten las plantillas: una guardada en «Sin asignar» sale también en el ⚙ de paradas, y
+aplicarla cambia las dos tablas.
+
+**Ventas y chofer** no tienen ⚙ Columnas en Órdenes (su lista la pone un admin, D-330), así que tampoco plantillas.
+
+### Dónde vive: la cuarta mitad de la fila, sin migración
+
+En la misma fila de `user_prefs` (`order_columns` para Órdenes, `routes_columns` para el Gestor), bajo `_plantillas`, al lado de
+`_orden` y `_anchos`, como hizo D-385 con `_orden` en promos: `{ …, "_plantillas": [ { "n": nombre, "v": [...], "o": [...], "a": {...} } ] }`.
+Claves de una letra a propósito: esta mitad es la única que crece con lo que la persona decida.
+
+- **Son de la persona, no del rol**: una lista, no un mapa por rol. Una persona tiene un rol; un admin con «Ver como» ve la misma
+  lista en cualquier rol (el catálogo de columnas es uno). Y así el tamaño tiene techo: diez, no diez por rol.
+- **`_plantillas` no es un rol**: `columnasValidas` solo recorre `ROLES_QUE_ELIGEN`. Prueba con nombre.
+- **Lo leído se sanea** (`plantillasValidas`): nombre recortado y no vacío, sin repetidos, listas de textos cortos, anchos en su
+  rango, y nunca más de diez.
+
+**Guardar sin pisar.** La fila es un JSON y se escribe entera, así que «no reenviar lo leído» aquí quiere decir partir de lo
+leído y cambiar solo lo propio. Las dos páginas escriben por **un solo sitio** (`escribeLaFila` en Órdenes, `escribeElGestor`
+en el Gestor, nuevo), que manda las cuatro mitades tal como se leyeron: marcar una casilla no borra las plantillas, y guardar
+una plantilla no borra columnas, orden ni anchos de ningún rol. Pruebas con nombre en las dos direcciones, y una que muestra
+que quien NO pasa las plantillas las borra — por eso un solo sitio.
+
+**Antes de esto, el Gestor ya escribía con `guardaColumnas` de cuatro argumentos** (sin orden ni anchos, que allí no hay). Con
+`_plantillas` en la fila, esa escritura las habría borrado a cada casilla marcada. Ahora pasa por `escribeElGestor`.
+
+### El tope de tamaño, medido — y por qué la guarda no mira el texto
+
+La 136 pone `check (pg_column_size(value) < 8192)`. **Lo que mide es el `jsonb`, no el texto**, y aquí la diferencia importa.
+Medido el 2026-09-25 en un **Postgres 17 local** (un clúster de usar y tirar en la carpeta de trabajo, nada de producción),
+con `pg_column_size('<json>'::jsonb)` y un `insert` contra un `check` idéntico al de la 136:
+
+| Fila | Texto (bytes) | `jsonb` (bytes) | ¿La acepta la base? |
+|---|---:|---:|---|
+| Órdenes, un rol con todo lleno (14 visibles, 14 en orden, 15 anchos), sin plantillas | 478 | 697 | sí |
+| Órdenes, un rol lleno + **10 plantillas llenas** (nombre de 40, 14+14 columnas, 15 anchos a 800) | 5 294 | **7 561** | sí, por 631 |
+| Órdenes, los 6/7 roles llenos, sin plantillas | 2 916 | 4 241 | sí |
+| Órdenes, los 6/7 roles llenos + 10 plantillas llenas | 7 732 | **11 105** | **NO** |
+| Gestor, 6 roles con todas sus columnas + 10 plantillas de todas | 4 665 | 5 343 | sí |
+| Órdenes, lo normal: un rol, 10 plantillas de nombre corto y 2 anchos | 2 651 | 3 531 | sí |
+| Gestor, lo normal: un rol, 10 plantillas | 1 114 | 1 401 | sí |
+
+El `jsonb` llega a ocupar un **43 % más** que el texto: cada ancho pasa a `numeric` con cabecera, alineado a 4, y cada
+elemento lleva 4 bytes de índice. Una guarda sobre el largo del texto (lo que hicieron D-332 y D-338, que no tenían riesgo) aquí
+habría dejado pasar filas que la base rechaza — **y ese rechazo no se ve**: la pantalla daría la plantilla por guardada y al
+recargar no estaría.
+
+Así que `bytesEnLaBase` **reproduce el formato de `jsonb`** (`convertToJsonb` de `jsonb_util.c`: cabeceras, índices, claves
+ordenadas por largo, alineación de números y contenedores, grupos de 4 cifras de `numeric`). **Da exactamente lo que dio
+Postgres en los 8 casos medidos** (los 7 de la tabla y uno de números de 2 a 5 cifras con acentos, 190), y la prueba los fija
+uno a uno con el número de Postgres, no con el de la función.
+
+**La guarda** (`cabeEnLaFila`): antes de guardar una plantilla, la fila tal como quedaría —las otras mitades como se leyeron— más
+una **reserva de 800 bytes** tiene que quedar por debajo de 8 192. La reserva es lo que ocupan las tres mitades de un rol lleno
+(697): guardar una plantilla nunca deja la fila tan llena que la siguiente casilla, flecha o ancho —de este rol, o del siguiente
+que mire un admin con «Ver como»— ya no quepa y falle en silencio. **Borrar no se impide nunca**, aunque la fila esté llena.
+
+**Lo que eso da:** lo normal (nombres cortos, pocos anchos arrastrados) caben las **10 con holgura** (3 531 de 8 192). En el
+peor caso posible —un rol con todo arrastrado y diez plantillas de nombre de 40 caracteres, cada una con las 15 anchuras— caben
+**9**; la décima sale con «No cabe: borre una plantilla para hacer sitio». Un admin que tenga columnas guardadas en los siete
+roles tiene menos sitio (4 241 ya ocupados), y la guarda se lo dice igual.
+
+### Medido en el navegador (demo, 2026-09-25, 1440 y 1280, clics de persona con el elemento a la vista)
+
+**Órdenes, como office (`accounting`):**
+- De salida: `# | PO # | Type | Account | Stage | Store | Delivery Date | Pallets | Driver | Delivery Address | Windows`,
+  «Account» de 184 px.
+- Se cambió: «Fee» dentro, «Store» dos puestos arriba, «Account» arrastrada a 264 px. Se guardó como «Mía»: aviso «Saved “Mía”.»,
+  pastillas `Default · Mía`, el menú sigue abierto, y en el navegador la foto con `v`, `o` y `a: { account: 264 }`.
+- Se volvió a cambiar (fuera «PO #», dentro «Contact»). **Clic en «Mía» → las cabeceras, idénticas a las guardadas, y «Account»
+  otra vez a 264.**
+- **Clic en «Default» → las cabeceras, idénticas a las de salida, y «Account» a 184.**
+- **Recargar:** «Mía» sigue; aplicarla después de recargar da las cabeceras guardadas y los 264 px (el orden viene de la
+  plantilla: el demo no guarda el orden propio, ver abajo).
+- **Borrar:** el ✕ enseña «Delete “Mía”? Yes, delete · No» con el menú abierto; «No» la deja; «Yes, delete» la quita; tras
+  recargar sigue quitada y el navegador guarda `[]`.
+- La página no se desplaza de lado (0 px). El menú, 210 px, dentro de la ventana.
+
+**Gestor, como logística:**
+- En «Rutas», el ⚙ de la primera tarjeta: se marcó «Fee» → la tabla de paradas pasa a
+  `# | ID | Type | Pallets | Address | ETA | Windows | Fee`.
+- En «Sin asignar», fuera «Account» y «Pickup», y se guardó «Log A». Se quitó «Store»; **clic en «Log A» → las cabeceras
+  guardadas**; **clic en «Default» → las de salida** (con «Account» y «Pickup»).
+- De vuelta en «Rutas», el ⚙ de paradas **tiene «Log A»**, y aplicarla devuelve «Fee» a las paradas: es la misma plantilla.
+- **Recargar:** «Log A» sigue en el ⚙ de paradas y se aplica.
+- **Borrar** desde el ⚙ de paradas, con la pregunta; después tampoco está en el de «Sin asignar», ni tras recargar.
+- La página no se desplaza de lado (0 px).
+
+**Lo que el demo no mide:** el demo no tiene base, así que lo que sobrevivió a recargar es el **navegador**
+(`rtg_plantillas_order_columns`, `rtg_plantillas_routes_columns`). La base se prueba con la función y una base falsa
+(`guardaColumnas`/`leeColumnas`), no en vivo. Tampoco en el demo sobrevive a recargar el orden propio de Órdenes ni las columnas
+del Gestor (no los guardaba antes de esto; es de antes).
+
+### Un detalle que se arregló por el camino
+
+`guardaAnchos` de Órdenes no actualizaba `anchos` al arrastrar: la tabla lo llevaba por su cuenta. Con plantillas eso fallaba en
+un caso: aplicar una plantilla cuyos anchos coinciden con el `anchos` de antes no cambia nada que la tabla vea, así que lo
+arrastrado entre medias se quedaba. Ahora `guardaAnchos` pone `anchos` a lo arrastrado antes de nada. Prueba con nombre.
+
+### Mutantes
+
+**42, leídos por el nombre de la prueba que cae; caen los 42.** La fila: no escribir `_plantillas` (M1), leer más de diez (M2) o
+repetidas (M3), `leeColumnas`/`guardaColumnas` que las pierden (M4, M5). La lógica: duplicar en vez de reemplazar (M6), sin tope
+(M7), llamarse «Default» (M8), borrar distinguiendo mayúsculas (M9), aplicar columnas que ya no existen (M10) o un orden vacío en
+vez del canónico (M11). El tamaño: números sin alinear (M12), medir el texto (M13), sin reserva (M14), no mirar (M15), impedir
+borrar (M16). Dónde se guarda: sin base leída (M17), el demo contra la base (M18), un rechazo dado por bueno (M19), otra llave
+(M20). El Gestor: sin marcas al aplicar (M21), marcas en la foto (M22). Las pantallas: la fila de Órdenes o del Gestor sin
+plantillas (M23, M32), sin el bloque (M24, M33, M41), Default que deja el orden (M25), aplicar sin escribir (M26), la foto sin
+orden (M27), lo arrastrado fuera de `anchos` (M28), la guarda con una fila a medias (M29), no leerlas de la base (M30, M36),
+pintar lo no guardado (M31), aplicar o guardar la lista cruda (M34, M35). El bloque: ✕ que borra sin preguntar (M37), Guardar
+con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40), sin «Reemplazar» (M42).
+
+### Lo que no se hizo
+
+- **Guardar las plantillas del demo en la base**: el demo no tiene base.
+- **Compartir plantillas entre personas** («la plantilla de la oficina»): no se pidió. Cada quien las suyas.
+- **Plantillas en promos**: tiene su ⚙ con orden (D-385), pero no se pidió.
+- **Renombrar** una plantilla: se borra y se guarda con otro nombre.
