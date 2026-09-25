@@ -21,7 +21,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
-import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
+import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
@@ -263,8 +263,8 @@ export default function OrdersPage() {
   // further — the "All" count and every stage chip's count come from this,
   // not the full company-wide `deliveries`, so the numbers on the chips
   // always match what actually shows up in the table below them.
-  // A salesperson can only search 30 days back.
-  const salesSearchFloor = shiftDateISO(todayISO(), -30);
+  // Ventas tenía aquí un tope de búsqueda de 30 días: desde D-NEXT nadie fuera de admin y logística
+  // busca antes de ayer, así que ese tope ya no decidía nada y se fue.
   /**
    * Las dos listas de la pantalla (D-313). La decisión —quién ve qué, y qué corta la ventana de
    * fechas— vive en `ordenesVisibles`, no aquí: la pestaña de factura pendiente necesita una lista
@@ -279,13 +279,12 @@ export default function OrdersPage() {
       teaching,
       veTodoElHistorial,
       busqueda: q,
-      sueloDeVentas: salesSearchFloor,
       reglas: settings.order_type_rules ?? {},
       tiendas: settings.stores,
       // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
       tiendasDeAlmacen: me?.role === "warehouse" ? tiendasDeAlmacen(me.store, settings.stores) : [],
     }),
-    [deliveries, q, me, teaching, veTodoElHistorial, salesSearchFloor, settings.order_type_rules, settings.stores],
+    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores],
   );
 
   // ¿Pasa el chip de fechas («Todas / Reciente / Hoy») que está pulsado? Lo usan la lista Y las cuentas por etapa
@@ -547,6 +546,8 @@ export default function OrdersPage() {
               todasAprueban: autoApproveAll,
               cuentas: counts,
               filtro: filter,
+              // «Outdated» solo para quien ve lo anterior a ayer (D-NEXT): la misma pregunta que corta la lista.
+              veDiasViejos: veTodoElHistorial,
             }).map((p) => (
               <button
                 key={p.key}

@@ -1,5 +1,5 @@
 import type { Delivery, NamedLocation, Profile } from "@/lib/types";
-import { withinRetention } from "@/lib/utils";
+import { retentionFloorISO, todayISO } from "@/lib/utils";
 import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
@@ -40,8 +40,6 @@ export type ContextoDeLista = {
   veTodoElHistorial: boolean;
   /** Lo tecleado en el buscador, tal cual. */
   busqueda: string;
-  /** `YYYY-MM-DD`: lo más atrás que ventas puede *buscar*. */
-  sueloDeVentas: string;
   reglas: OrderTypeRules;
   tiendas: NamedLocation[];
   /** Las tiendas de almacén de quien mira (`tiendasDeAlmacen`), normalizadas. Vacío = sin acotar. */
@@ -72,23 +70,46 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
 }
 
 /**
+ * ¿Cae la orden dentro de lo que Órdenes enseña a quien no es admin ni logística (D-NEXT)?
+ * Ayer, hoy y todo lo futuro; sin fecha, siempre (se está programando).
+ *
+ * El dueño, 2026-09-25: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*. Es el suelo de
+ * la ventana de D-239 (`retentionFloorISO`) **sin las dos puertas que se le habían abierto**:
+ *
+ * - la **atrasada abierta**, que `withinRetention` deja pasar tenga la fecha que tenga (D-374), y que
+ *   D-384 mandaba a la pastilla «Outdated»;
+ * - la **búsqueda**, que desde D-239 no tenía ventana («buscar es cómo se llega al historial»).
+ *
+ * **No se toca `withinRetention`**: la usan la Cola de almacén (`warehouse/page.tsx`) y la pantalla
+ * del chofer (`driver/page.tsx`), y allí las atrasadas abiertas siguen saliendo. El pedido era de
+ * Órdenes.
+ */
+export function enLaVentanaDeOrdenes(
+  d: { delivery_date?: string | null },
+  hoy: string = todayISO(),
+): boolean {
+  if (!d.delivery_date) return true;
+  return d.delivery_date.slice(0, 10) >= retentionFloorISO(hoy);
+}
+
+/**
  * ¿Pasa el corte de fechas?
  *
- * Son dos cortes distintos y por eso no se mezclan: **navegando** manda la retención (de ayer en
- * adelante), y **buscando** no hay retención ninguna —buscar es cómo se llega al historial— salvo el
- * tope de 30 días de ventas.
+ * Admin y logística (y quien tenga `history` marcado a mano, D-350): sin corte. Los demás:
+ * `enLaVentanaDeOrdenes`, **navegando y buscando**, que desde D-NEXT es el mismo corte. Antes buscar
+ * no tenía ventana y ventas tenía un tope propio de 30 días; con el suelo en ayer ese tope ya no
+ * decidía nada y se quitó.
  *
- * `pendientesEntran` es la exención de D-313: con ella, una orden con documento pendiente pasa los
- * dos cortes. Es lo que hace que la pestaña enseñe una entregada de hace un mes a la que le falta la
- * factura, **y** que a ventas no le tape su propio tope al buscar dentro de ella.
+ * `pendientesEntran` es la exención de D-313: con ella, una orden con documento pendiente pasa el
+ * corte. Es lo que hace que la pestaña «Factura pendiente» enseñe a office una entregada de hace un
+ * mes a la que le falta la factura. **D-NEXT la deja en pie a sabiendas**, y solo dentro de esa
+ * pestaña: ver su entrada.
  */
 export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista, pendientesEntran: boolean): boolean {
-  const { teaching, veTodoElHistorial, me, busqueda, sueloDeVentas, reglas } = ctx;
+  const { teaching, veTodoElHistorial, reglas } = ctx;
   if (teaching || veTodoElHistorial) return true;
   if (pendientesEntran && facturaPendiente(d, reglas)) return true;
-  if (!busqueda.trim()) return withinRetention(d);
-  if (me?.role === "sales" && d.delivery_date && d.delivery_date < sueloDeVentas) return false;
-  return true;
+  return enLaVentanaDeOrdenes(d);
 }
 
 /** ¿Coincide con lo buscado? Sin búsqueda, todo coincide. */
@@ -134,6 +155,8 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // «Outdated» (D-384): la atrasada abierta anterior a ayer sale de la lista normal y va a la
     // suya. Buscando, se queda también en la normal: buscar es el camino a todo (D-374), y una
     // factura que no sale al teclearla se lee como que la orden no existe.
+    // Desde D-NEXT esto solo le pasa a admin y logística: a los demás `pasaLaVentana` ya les corta
+    // todo lo anterior a ayer, así que su `atrasadas` sale siempre vacía y buscar no abre nada viejo.
     const atrasada = vaAAtrasadas(d);
     if (normal && atrasada) atrasadas.push(d);
     if (normal && (!atrasada || buscando)) visibles.push(d);
