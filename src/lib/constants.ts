@@ -1056,13 +1056,17 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // llamaba para cancelar una orden ya aprobada no tenía camino.
   pending:    ["approved", "rejected", "canceled"],
   rejected:   ["pending", "approved", "canceled"],
-  approved:   ["fulfilling", "pending", "canceled"],   // pending = manager "unlock"
+  // `delivered` desde `approved`, `fulfilling` y `ready` es el «Marcar entregada ya» de office y el gerente
+  // (D-361, 139). Faltaba desde D-361: la base lo dejaba y los DOS proveedores lo rechazaban antes de salir
+  // («This order must be approved by a manager first.»), así que solo funcionaba desde `picked_up`. Medido en el
+  // demo como gerente el 2026-09-25 (D-397). Quién lo da lo sigue diciendo `puedeEntregarYa`.
+  approved:   ["fulfilling", "pending", "canceled", "delivered"],   // pending = manager "unlock"
   // `approved` es el paso atrás de office/gerente (D-361, 139); quién lo da lo dice `puedeDeshacer`.
-  fulfilling: ["ready", "approved", "canceled"],
+  fulfilling: ["ready", "approved", "canceled", "delivered"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
-  ready:      ["picked_up", "fulfilling", "canceled"], // el chofer la recoge, o almacén la devuelve a preparar
+  ready:      ["picked_up", "fulfilling", "canceled", "delivered"], // el chofer la recoge, o almacén la devuelve a preparar
   // `picked_up` NO lleva "canceled" aunque el admin pueda anular desde ahí: el admin se salta esta
   // lista entera en los dos proveedores, y nadie más anula con la carga en el camión (`puedeAnular`).
   picked_up:  ["delivered", "ready"],      // driver delivers (or reverts if not taken)
@@ -1153,6 +1157,40 @@ export function puedeDeshacer(r: UserRole, stage: Stage, deMiTienda = false): bo
   if (r === "admin" || ordersLikeOfficeManager(r)) return true;
   if (r === "warehouse") return deMiTienda && ETAPAS_QUE_ALMACEN_DESHACE.includes(stage);
   return false;
+}
+
+/**
+ * El gerente hace el proceso de bodega (D-397, migración 145): «Comenzar preparación», «Marcar listo» y
+ * «Recoger», paso a paso, como almacén.
+ *
+ * El dueño: «Como gerente quiero poder hacer el proceso de bodega cuando necesario. Ahorita solo permite
+ * brincar a Delivered pero no me deja poner Prepare, Ready, Pickup, etc. Esto es de office manager».
+ *
+ * - **Solo `manager`, no `accounting`.** El dueño lo pidió para el Office Manager. Office entrega ya y deshace
+ *   como el gerente (D-361), pero eso fue porque el dueño los nombró a los dos.
+ * - **En cualquier tienda que vea**, sin `ordenDeMisTiendas`: el gerente ya lleva una orden de `approved` a
+ *   `delivered` de un salto en cualquier tienda (139), y almacén avanza en cualquier tienda (142). Acotar los
+ *   pasos de en medio sería un límite que no limita.
+ * - **La entrega no cambia:** en `picked_up` el gerente usa «Marcar entregada ya» (139), con motivo y sin firma
+ *   ni GPS. «Marcar entregado» es el del chofer, con su prueba de entrega, y no se le ofrece.
+ *
+ * Es el espejo de la rama «145» del guard; `entregar-ya-y-deshacer.test.ts` los compara.
+ */
+export function gerenteHaceBodega(r: string | null | undefined): boolean {
+  return r === "manager";
+}
+
+/** ¿Pinta la ficha «Comenzar preparación» (`approved`) y «Marcar listo» (`fulfilling`)? Almacén, o el gerente. */
+export function preparaEnLaFicha(u: CapUser): boolean {
+  return canFulfill(u) || gerenteHaceBodega(u.role);
+}
+
+/**
+ * ¿Pinta la ficha «Recoger» en `ready`? Quien entrega (chofer, almacén), o el gerente. «Iniciar viaje» y
+ * «Llegué a la parada» siguen siendo solo de quien entrega: son tiempos del chofer, no de la oficina.
+ */
+export function recogeEnLaFicha(u: CapUser): boolean {
+  return canDeliver(u) || gerenteHaceBodega(u.role);
 }
 
 export function ordersLikeOfficeManager(r: string | null | undefined): boolean {

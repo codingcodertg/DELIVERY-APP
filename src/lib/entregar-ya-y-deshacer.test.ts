@@ -17,10 +17,14 @@ import type { Stage, UserRole } from "./types";
  * **Desde D-383 lee la 142**, que es la definición vigente del guard, y modela almacén de verdad. Hasta entonces
  * leía la 139 y trataba a almacén como «la base no le deja deshacer nada», lo cual ya era falso con la 139 (le
  * dejaba tres pasos en cualquier tienda): la prueba pasaba porque comparaba `false` con `false`.
+ *
+ * **Desde D-397 lee la 145**, que es la definición vigente: la 142 más la rama del gerente que hace bodega
+ * (avanzar hacia delante). Esa rama vive dentro del sub-bloque de gerente y office, así que se corta aquí para
+ * que sus pasos hacia delante no se lean como pasos atrás de office; se prueba en `gerente-hace-bodega.test.ts`.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
-const sql = leer("supabase/migrations/142_deshacer_almacen_y_borrar_borradores.sql");
+const sql = leer("supabase/migrations/145_gerente_hace_bodega.sql");
 const modal = leer("src/components/OrderModal.tsx");
 
 /** El tramo del guard que decide los cambios de etapa de ventas, chofer, gerente y office. */
@@ -28,8 +32,10 @@ const bloqueEtapas = sql.slice(
   sql.indexOf("if r in ('sales','driver','manager','accounting') then"),
   sql.indexOf("elsif r = 'warehouse' then"),
 );
-/** Dentro de ese tramo, el sub-bloque que la 139 añade para gerente y office. */
-const bloqueOffice = bloqueEtapas.slice(bloqueEtapas.indexOf("if r in ('manager','accounting') then"));
+/** Dentro de ese tramo, el sub-bloque que la 139 añade para gerente y office, hasta donde empieza la rama de la 145. */
+const inicioOffice = bloqueEtapas.indexOf("if r in ('manager','accounting') then");
+const inicio145 = bloqueEtapas.indexOf("-- 145:", inicioOffice);
+const bloqueOffice = bloqueEtapas.slice(inicioOffice, inicio145);
 
 /** ¿La base deja a este rol ENTREGAR YA desde esta etapa? Leído del `.sql`, no copiado. */
 function laBaseDejaEntregarYa(rol: UserRole, etapa: Stage): boolean {
@@ -84,6 +90,12 @@ describe("el tramo del guard se leyó de verdad (control)", () => {
     expect(pasosAtrasDelSql.length).toBeGreaterThanOrEqual(4);
     expect(pasosAtrasDelSql).toContainEqual({ de: "delivered", a: "picked_up" });
     expect(pasosAtrasDelSql).toContainEqual({ de: "fulfilling", a: "approved" });
+    // El corte de la 145 existe y va DESPUÉS del sub-bloque, y ningún paso hacia delante se leyó como paso atrás.
+    expect(inicioOffice).toBeGreaterThan(-1);
+    expect(inicio145).toBeGreaterThan(inicioOffice);
+    for (const adelante of [{ de: "approved", a: "fulfilling" }, { de: "fulfilling", a: "ready" }, { de: "ready", a: "picked_up" }]) {
+      expect(pasosAtrasDelSql).not.toContainEqual(adelante);
+    }
   });
 
   it("la rama de almacén se partió donde la 142 pone el límite de tienda", () => {
@@ -117,6 +129,22 @@ describe("entregar ya: la app y la base dicen lo mismo", () => {
     expect([...ETAPAS_QUE_ENTREGAN_YA].sort()).toEqual(["approved", "fulfilling", "picked_up", "ready"]);
     for (const s of ["draft", "pending", "rejected", "delivered", "canceled"] as Stage[]) {
       expect([s, puedeEntregarYa("accounting", s)]).toEqual([s, false]);
+    }
+  });
+
+  it("cada etapa desde la que la ficha ofrece «entregar ya» existe en la lista del cliente", () => {
+    // Faltaba desde D-361 y lo cazó el demo (D-397, 2026-09-25): `LEGAL_TRANSITIONS` no tenía `delivered` desde
+    // approved, fulfilling ni ready, y los dos proveedores rechazaban el salto antes de llegar a la base con
+    // «This order must be approved by a manager first.». La prueba de arriba comparaba la ficha con el `.sql` y
+    // pasaba: el hueco estaba en la tercera pieza, la que ninguna de las dos miraba.
+    for (const rol of ROLE_ORDER) {
+      for (const s of STAGES.map((x) => x.key)) {
+        if (puedeEntregarYa(rol, s)) expect([rol, s, canTransition(s, "delivered")]).toEqual([rol, s, true]);
+        for (const deMiTienda of [true, false]) {
+          const atras = etapaAnterior(s);
+          if (puedeDeshacer(rol, s, deMiTienda) && atras) expect([rol, s, atras, canTransition(s, atras)]).toEqual([rol, s, atras, true]);
+        }
+      }
     }
   });
 

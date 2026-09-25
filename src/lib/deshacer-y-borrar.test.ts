@@ -16,6 +16,13 @@ import type { NamedLocation, Stage, UserRole } from "./types";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sql = leer("supabase/migrations/142_deshacer_almacen_y_borrar_borradores.sql");
 const sinComentarios = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+/**
+ * El GUARD vigente ya no es el de la 142: la 145 (D-397) lo redefine entero para que el gerente haga bodega.
+ * La política de borrar y `orden_de_mis_tiendas` siguen siendo de la 142 (la 145 no las toca); lo que se lee
+ * del guard —el tramo de misma etapa, el candado de autor y la llamada con OLD— se lee de la vigente.
+ */
+const guardVigente = leer("supabase/migrations/145_gerente_hace_bodega.sql")
+  .split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ").trim();
 
 const TIENDAS: Pick<NamedLocation, "name" | "address" | "group">[] = [
@@ -186,7 +193,7 @@ describe("ordenDeMisTiendas mira lo mismo que la función de la 142", () => {
   });
 
   it("el guard y la política la llaman con las columnas en el mismo orden que la app", () => {
-    expect(sinComentarios).toContain("public.orden_de_mis_tiendas(OLD.store, OLD.pickup_name, OLD.delivery_name, OLD.pickup_address)");
+    expect(guardVigente).toContain("public.orden_de_mis_tiendas(OLD.store, OLD.pickup_name, OLD.delivery_name, OLD.pickup_address)");
     expect(politica).toContain("public.orden_de_mis_tiendas(store, pickup_name, delivery_name, pickup_address)");
   });
 
@@ -303,14 +310,14 @@ describe("los dos proveedores y la ficha usan lo probado", () => {
 // «Seguir editando» un borrador o un duplicado (D-286), contra el guard VIGENTE
 // ---------------------------------------------------------------------------------------------------
 
-describe("seguir editando un borrador: la 142 sigue dejando a quien la app se lo ofrece", () => {
-  const mismaEtapa = sinComentarios.slice(
-    sinComentarios.indexOf("if new_stage is not distinct from old_stage then"),
-    sinComentarios.indexOf("if r in ('sales','driver','manager','accounting') then"),
+describe("seguir editando un borrador: el guard vigente (145) sigue dejando a quien la app se lo ofrece", () => {
+  const mismaEtapa = guardVigente.slice(
+    guardVigente.indexOf("if new_stage is not distinct from old_stage then"),
+    guardVigente.indexOf("if r in ('sales','driver','manager','accounting') then"),
   );
 
   function laBaseDejaEditarBorrador(rol: UserRole): boolean {
-    if (rol === "admin") return sinComentarios.includes("if r = 'admin' then return NEW; end if;");
+    if (rol === "admin") return guardVigente.includes("if r = 'admin' then return NEW; end if;");
     const lineas = mismaEtapa.split("\n").filter((l) => l.includes("return NEW") && l.includes("old_stage"));
     return lineas.some((l) => l.includes(`'${rol}'`) && l.includes("'draft'"))
       || (["manager", "accounting"].includes(rol) && mismaEtapa.includes("if r in ('manager','accounting') then return NEW; end if;"));
@@ -324,7 +331,7 @@ describe("seguir editando un borrador: la 142 sigue dejando a quien la app se lo
   it("y el candado de autor de la 142 no lo toca: editar no reescribe `created_by`", () => {
     // La 142 rechaza un UPDATE que cambie `created_by`. La ficha guarda la orden con el autor que ya tenía;
     // si algún día lo pusiera a `me.id` al guardar, editar el borrador de otro fallaría en la base.
-    expect(sinComentarios).toContain("elsif NEW.created_by is distinct from OLD.created_by then");
+    expect(guardVigente).toContain("elsif NEW.created_by is distinct from OLD.created_by then");
     const modal = leer("src/components/OrderModal.tsx");
     expect(modal).not.toMatch(/created_by:\s*me\.id/);
   });

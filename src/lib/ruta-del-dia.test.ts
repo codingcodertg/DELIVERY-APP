@@ -235,7 +235,11 @@ describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-3
     // Se mira el bloque de almacén entero y no la línea del `onClick`: escribir el manejador
     // aparte —`const empezar = () => onMove("fulfilling")`— es la misma decisión, y una cita
     // literal del `onClick` lo daría por roto. Medido con ese gemelo.
-    const bloque = modal.slice(modal.indexOf("if (canFulfill(me)) {"), modal.indexOf('if (stage === "fulfilling") {'));
+    // Desde D-397 (145) el bloque se abre con `preparaEnLaFicha` (almacén, o el gerente que hace bodega).
+    // Se afirma primero que está: un `indexOf` de -1 cortaría desde el final y la prueba mediría otra cosa.
+    const inicio = modal.indexOf("if (preparaEnLaFicha(me)) {");
+    expect(inicio).toBeGreaterThan(-1);
+    const bloque = modal.slice(inicio, modal.indexOf('if (stage === "fulfilling") {', inicio));
     expect(bloque).toContain('if (stage === "approved") btns.push(<button key="start"');
     expect(bloque).toContain('onMove("fulfilling")');
   });

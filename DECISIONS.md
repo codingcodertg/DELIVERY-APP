@@ -24630,6 +24630,13 @@ revertir stages si fue un error»*; preguntado si incluía al gerente, *«si off
 > `picked_up->delivered`, `picked_up->ready` y `fulfilling->approved` estan en el guard y probados contra el `.sql`,
 > pero no se han ejercido contra la base. El respaldo del guard anterior quedo en `RESPALDO-guard-antes-de-139.sql`;
 > revertir es volver a aplicar la 138.
+>
+> **⚠ Corregida en parte por D-397 (2026-09-25): «Entregar ya» no salía del navegador desde `approved`, `fulfilling` ni
+> `ready`.** Esta entrada añadió a `LEGAL_TRANSITIONS` los pasos atrás, pero no `delivered` desde esas tres etapas, y los
+> dos proveedores rechazan antes de escribir lo que no está en esa lista (salvo al admin): *«This order must be approved
+> by a manager first.»*. Medido en el demo como gerente. Así que, fuera del admin, entregar ya solo funcionaba desde
+> `picked_up`. El «Verificado» de abajo es cierto para lo que medía —la ficha contra el `.sql`—; el hueco estaba en la
+> tercera pieza. Arreglado en D-397, con prueba.
 
 ### Lo que faltaba, y por qué no era un botón
 
@@ -27846,3 +27853,125 @@ su tienda y su grupo, como pidió el dueño, aunque la base le deje leer más.
 - **Contra la base de verdad.** En producción el gerente lee lo que la 131 le deje; aquí solo se midió el demo.
 - **«Tiempo inactivo» con turnos**: el demo no trae turnos del reloj, así que esa tabla salió vacía para todos. El corte
   lo cubren las pruebas y un mutante, no una pantalla.
+
+## D-397 · El gerente hace el proceso de bodega (Preparar, Listo, Recogida), y «Marcar entregada ya» sale por fin del navegador desde aprobada
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador al fusionar (Entregas) · **Migración: la 145**
+(`145_gerente_hace_bodega.sql`), **escrita y NO aplicada**: la aplica el orquestador después del merge, con respaldo y
+`migrate-status` antes y después. **Plan en papel:** `docs/PLAN-145-gerente-hace-bodega.md` (matriz de 26 casos con
+ROLLBACK, sin correr). **Corrige en parte a D-361** (lleva su nota).
+
+**Pedido por el dueño (2026-09-25)**, literal: *«Como gerente quiero poder hacer el proceso de bodega cuando necesario.
+Ahorita solo permite brincar a Delivered pero no me deja poner Prepare, Ready, Pickup, etc. Esto es de office manager,
+hazlo»*.
+
+### Qué había
+
+- **En la ficha**, «Comenzar preparación» y «Marcar listo» salían con `canFulfill` y «Recoger» con `canDeliver`. El
+  gerente (`manager`, «Office Manager / Gerente de Oficina») no tiene ninguna de las dos (`ROLE_CAPS.manager =
+  ["create", "approve", "dashboard"]`): solo veía «Marcar entregada ya» y «Deshacer etapa» (D-361).
+- **En la base** (la 142, última que define el guard), la rama del gerente no tiene ningún paso hacia delante: un
+  `approved → fulfilling` suyo cae en *«manager cannot move an order from approved to fulfilling»*.
+
+### Qué hay
+
+- **La base (145):** el gerente avanza `approved → fulfilling`, `fulfilling → ready` y `ready → picked_up`. Con
+  `picked_up → delivered`, que ya tenía (139), recorre la cadena entera. El resto del guard es el de la 142 letra por
+  letra (lo prueba el repo, y la autocomprobación del `.sql` al aplicar).
+- **La ficha:** `preparaEnLaFicha` (almacén o el gerente) pinta «Comenzar preparación» y «Marcar listo»;
+  `recogeEnLaFicha` (quien entrega o el gerente) pinta «Recoger». Los tres, en `src/lib/constants.ts` junto a
+  `gerenteHaceBodega`. **No se tocó `ROLE_CAPS`**: dar `fulfill`/`deliver` al gerente le habría abierto la pantalla de
+  Almacén, la de Chofer, «Mi ruta», «Dejar en tienda», las fotos de prueba y «Marcar entregado» con POD.
+- **Lo que pide cada paso:** «Marcar listo» pide los pallets reales, como a almacén. «Recoger» abre el recuento en dos
+  pasos de la oficina (si se cargan menos, parte la carga en #Na/#Nb), estampa la hora de recogida y, si el navegador la
+  da, la posición —**nunca bloquea**—, y no reclama chofer (eso solo lo hace un chofer). **«Iniciar viaje» y «En camino»
+  no se le ofrecen**: son tiempos del chofer. **Entregar** es «Marcar entregada ya» (139), con motivo y **sin firma, foto
+  ni GPS**; «Marcar entregado» con POD sigue siendo de quien entrega.
+
+### Dos decisiones mías, para validar
+
+1. **Solo `manager`, no `accounting` (Office).** El dueño lo pidió para el Office Manager. D-279 hizo a office igual que el
+   gerente para **crear y aprobar**, y D-361/D-383 los trataron igual porque el dueño los nombró a los dos. Aquí no. Si
+   office también debe hacer bodega, es añadir `'accounting'` a la rama 145 y a `gerenteHaceBodega`.
+2. **En cualquier tienda que vea**, sin `orden_de_mis_tiendas`. El gerente ya entrega de un salto en cualquier tienda
+   (139), así que acotar los pasos de en medio sería un límite que no limita; almacén también avanza en cualquier tienda
+   (lo que la 142 acotó fue su **deshacer**); y 2 gerentes no tienen tienda (medido el 2026-09-23, D-377), que se
+   quedarían sin poder hacer nada. Una prueba fija que ni la rama nueva ni el «entregar ya» miran la tienda.
+
+Y una tercera, menor: en `picked_up` el gerente entrega con «Marcar entregada ya», que **pide motivo**. No se añadió un
+«Marcar entregado» sin motivo para él: sería un segundo botón para el mismo salto (el criterio de D-383 con «Dejar en
+tienda»). Si el dueño lo quiere sin motivo, es pantalla sola.
+
+### «Marcar entregada ya» no salía del navegador desde aprobada, preparando ni lista (corrige a D-361)
+
+**Medido en el demo el 2026-09-25, como gerente, antes de arreglarlo:** «Marcar entregada ya» en #1021 (`approved`), con
+motivo, dejó la orden en `approved` y sacó *«This order must be approved by a manager first.»*. Los dos proveedores
+(`data-provider.tsx`, `local-data-provider.tsx`) rechazan antes de escribir cualquier salto que no esté en
+`LEGAL_TRANSITIONS`, salvo al admin; D-361 añadió los pasos atrás pero **no `delivered` desde `approved`, `fulfilling` ni
+`ready`**. Su prueba espejo comparaba la ficha con el `.sql` y pasaba: el hueco estaba en la tercera pieza. O sea que
+entregar ya **solo funcionaba desde `picked_up`** desde el 2026-09-22, y el dueño, que es admin, no podía verlo.
+
+Arreglado añadiendo `delivered` a esas tres etapas. Una prueba nueva recorre rol × etapa y exige que todo salto que la
+ficha ofrece con «entregar ya» o «deshacer» exista en la lista. Es solo pantalla: la base ya lo dejaba (139).
+
+### Pruebas
+
+- `gerente-hace-bodega.test.ts` (nuevo, 16): la 145 menos su rama **es** la 142; la rama va dentro del sub-bloque de
+  gerente y office; es solo del gerente y no mira la tienda; lo que busca la autocomprobación está en el código **sin
+  comentarios** (lección de la 144) y no en la 142; `approved→fulfilling` sale exactamente dos veces; sin
+  `begin/commit`, con reversión y registro; la ficha contra la base rol por rol, en los dos sentidos; y la ficha usa las
+  funciones probadas.
+- `entregar-ya-y-deshacer.test.ts` lee la **145**, corta el sub-bloque de office donde empieza la rama 145 (si no, sus
+  pasos hacia delante se leerían como pasos atrás), y gana la prueba de la lista del cliente.
+- El canario de `agregar-material.test.ts` pasa a «la 145 es la última que define el guard, y parte de la 142».
+- `deshacer-y-borrar.test.ts` lee el **guard** de la 145 (la política de borrar y `orden_de_mis_tiendas` siguen en la
+  142). `ruta-del-dia.test.ts` busca el bloque de almacén por `preparaEnLaFicha`, afirmando antes que está.
+
+**18 mutantes, los 18 caen con una prueba con nombre** (herramienta de mutantes, leída por nombre):
+
+| Mutante | Cae con |
+|---|---|
+| M1 la rama 145 pierde `ready→picked_up` | «trae los tres pasos», «la cadena que busca está en el código», «Recoger: la ficha no ofrece nada que la base rechace» |
+| M2 la rama es de office y no del gerente | las anteriores más «en concreto: el gerente sí, office no» y «y al revés» |
+| M3 la rama se acota a las tiendas del gerente | «no acota por tienda», «la cadena que busca está en el código» |
+| M4 la autocomprobación busca un texto que el código no tiene | «la cadena que busca está en el código» |
+| M5 la 145 pierde un paso de la 142 (office deshace `picked_up`) | «quitando la rama 145, el guard es el de la 142», «deshacer … contra el `.sql`» |
+| M6 la 145 lleva su propio `commit` | «sin begin/commit propios…» |
+| M7 la autocomprobación deja de contar «Preparar» | ««Preparar» sale exactamente dos veces» |
+| M8 `gerenteHaceBodega` incluye a office · M9 no deja a nadie | «la ficha no ofrece nada que la base rechace» / «y al revés», y «en concreto» |
+| M10 `preparaEnLaFicha` olvida al gerente · M11 `recogeEnLaFicha` también | «y al revés», «en concreto» |
+| M12 la ficha vuelve a `canFulfill` · M13 vuelve a `canDeliver` | «preparar y listo salen con `preparaEnLaFicha`…» (M12 también la de D-340 en `ruta-del-dia`) |
+| M14 el gerente ve «Iniciar viaje» | ««Iniciar viaje» y «En camino» siguen siendo de quien entrega» |
+| M15 el gerente ve «Marcar entregado» con POD | ««Marcar entregado» … sigue siendo solo de quien entrega» |
+| M16 `approved` pierde `delivered` · M17 `ready` también | «cada etapa desde la que la ficha ofrece «entregar ya» existe en la lista del cliente» |
+| M18 `ready` pierde `picked_up` | «los pasos de bodega existen en la lista del cliente», y dos de `demo-data`/`ruta-del-dia` |
+
+`node scripts/verify.mjs` en el worktree: **4307 pasadas y 3 saltadas** (las de siempre, de 4310), `tsc` y build en verde.
+
+### Medido en el navegador (demo, 2026-09-25): 27 de 27
+
+`next dev` en modo demo, Chrome headless por CDP, **clics de persona** (elemento traído a la vista, comprobado que es el
+que está debajo del ratón, `mousePressed`/`mouseReleased`; motivo con `Input.insertText`). El rol se puso con la
+identidad del «Ver como» del demo.
+
+- **Gerente, #1007 (aprobada, Pharr, tienda que no es suya: el gerente del demo no tiene tienda):** «Comenzar
+  preparación» → `fulfilling`; «Marcar listo» abre el diálogo de pallets → confirmar → `ready` con `actual_pallets = 8`;
+  «Recoger» (sin «Iniciar viaje») abre el recuento → «Confirmar carga y salir» → `picked_up`, con hora de recogida y el
+  chofer asignado intacto; en `picked_up` **no** ve «Marcar entregado» ni «Llegué a la parada»; «Marcar entregada ya»
+  deshabilitado sin motivo, y con motivo → `delivered`. Historial: preparando, «Pallets confirmadas: 8», «Cargadas: 8
+  pallets», «Entregada por oficina (sin firma): …».
+- **Entregar ya** desde `approved` (#1021) → `delivered` (con el arreglo; antes, el fallo de arriba).
+- **Deshacer**: #1007 `delivered → picked_up`; #1029 `fulfilling → approved`.
+- **Office**: en `approved` (#1031), `fulfilling` (#1011) y `ready` (#1030) **no** salen «Comenzar preparación», «Marcar
+  listo» ni «Recoger»; sí «Marcar entregada ya».
+- **Almacén** (control): en `approved` sigue «Comenzar preparación»; en `ready`, «Iniciar viaje» y «Recoger».
+
+### Lo NO verificado
+
+- **Nada contra la base.** La 145 no está aplicada ni ensayada; la matriz del plan (26 casos, 5 que cambian) es para el
+  orquestador. Hasta que se aplique, los tres botones nuevos del gerente **fallarán con el error del guard** en
+  producción: el orden de despliegue es migración primero, pantalla después.
+- **La autocomprobación no ha corrido en Postgres**; la prueba del repo la reconstruye, no la sustituye.
+- **Gerentes con `visible_stores`**: no medido (M2 del plan). Si su lectura los acota, no verán órdenes de otras tiendas,
+  y eso no es de esta rama.
+- **El aviso de ubicación del navegador** al recoger, en una sesión real de oficina: no visto (en headless no hay).

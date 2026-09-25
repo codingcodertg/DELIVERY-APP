@@ -187,10 +187,12 @@ describe("la 138 dice lo mismo que el código", () => {
     const conGuard = readdirSync(join(process.cwd(), dir))
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
       .sort();
-    // La 142 (D-377) es ahora la última que lo define; parte de la 139 (D-361), que partía de la 138.
-    expect(conGuard.at(-1)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
-    expect(conGuard.at(-2)).toBe("139_office_entrega_y_deshace.sql");
-    expect(conGuard.at(-3)).toBe("138_agregar_material.sql");
+    // La 145 (D-397, el gerente hace bodega) es ahora la última que lo define; parte de la 142 (D-377), que
+    // partía de la 139 (D-361), que partía de la 138.
+    expect(conGuard.at(-1)).toBe("145_gerente_hace_bodega.sql");
+    expect(conGuard.at(-2)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
+    expect(conGuard.at(-3)).toBe("139_office_entrega_y_deshace.sql");
+    expect(conGuard.at(-4)).toBe("138_agregar_material.sql");
     // Y la vigente sigue llevando el bloque de la 138, tal cual: `create or replace` reemplaza la función ENTERA.
     const vigente = plano(leer(`${dir}/${conGuard.at(-1)}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
     expect(vigente).toContain(`coalesce(array_length(NEW.invoices_extra, 1), 0) <= ${MAX_FACTURAS_EXTRA} and`);
