@@ -307,7 +307,9 @@ describe("137: la lista cerrada de la base es la del código", () => {
 describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () => {
   const plan = plano(sinComentarios(leer("src/components/PlanDelDia.tsx")));
   it("plegado por defecto, y plegado sigue diciendo cuántas órdenes no tienen plan", () => {
-    expect(plan).toContain("const [abierto, setAbierto] = useState(false);");
+    // Nace abierto solo si la página lo pide (D-NEXT: el botón «🧭 Armar rutas» de la cabecera, con la barra cerrada).
+    expect(plan).toContain("const [abierto, setAbierto] = useState(naceAbierto);");
+    expect(plan).toContain("naceAbierto = false }");
     const desde = plan.indexOf("if (!abierto) return ("), hasta = plan.indexOf("return ( <div className=\"card\"> <div style");
     expect(desde).toBeGreaterThan(-1); expect(hasta).toBeGreaterThan(desde);
     const plegado = plan.slice(desde, hasta);

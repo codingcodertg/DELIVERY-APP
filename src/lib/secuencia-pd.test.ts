@@ -134,7 +134,7 @@ describe("dónde se ve", () => {
     expect(hook).toContain("export function usePlanPublicadoDelGestor(date: string | null, publicaciones: number)");
     expect(hook.split("}, [date, publicaciones]);").length - 1).toBe(1);
     expect(gestor).toContain("const [publicaciones, setPublicaciones] = useState(0);");
-    expect(gestor).toContain("<PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />");
+    expect(gestor).toContain("<PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
     // …y el panel lo llama SOLO en la rama de éxito de publicar, una vez.
     expect(panel.split("onPublicado?.()").length - 1).toBe(1);
     const exito = panel.indexOf("setPublicado({ escritas:"), llamada = panel.indexOf("onPublicado?.();"), fin = panel.indexOf("notify(t(\"Route published\"");

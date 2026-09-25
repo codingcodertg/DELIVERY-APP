@@ -45,6 +45,8 @@ import { aLaDecima, sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
 import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
+import { CerrarAviso } from "@/components/CerrarAviso";
+import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -338,6 +340,28 @@ export default function RoutesPage() {
     // Lo marcado en el panel se suelta: un chofer escondido y marcado seguiría contando para «Unir» sin verse.
     setSelected(new Set());
     if (me?.id) guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);
+  };
+  // Los avisos que esta persona cerró con su ✕ (D-NEXT): cerrados para siempre en este navegador, hasta que pulse
+  // «Mostrar avisos ocultos». `null` = aún no se ha leído lo guardado: mientras, no se pinta ninguno, para que un aviso
+  // cerrado no parpadee al recargar.
+  const [avisosOcultos, setAvisosOcultos] = useState<Set<AvisoDelGestor> | null>(null);
+  useEffect(() => {
+    if (!me?.id) return;
+    setAvisosOcultos(leeAvisosOcultos((k) => window.localStorage.getItem(k), me.id));
+  }, [me?.id]);
+  const oculto = (id: AvisoDelGestor) => avisosOcultos == null || avisosOcultos.has(id);
+  const cierraAvisoDelGestor = (id: AvisoDelGestor) => {
+    const nuevos = cierraAviso(avisosOcultos ?? new Set(), id);
+    setAvisosOcultos(nuevos);
+    if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, nuevos);
+  };
+  // Con la barra «Armar las rutas» cerrada, la ACCIÓN no se pierde: el botón «🧭 Armar rutas» de la cabecera la trae,
+  // desplegada, para esta visita (sin volver a abrirla para siempre).
+  const [planTraidoAMano, setPlanTraidoAMano] = useState(false);
+  const muestraAvisosOcultos = () => {
+    setAvisosOcultos(new Set());
+    setPlanTraidoAMano(false);
+    if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, new Set());
   };
   // Sin «scheduled» desde D-376: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
@@ -1625,6 +1649,10 @@ export default function RoutesPage() {
   // Simulating an add targets a driver, so it needs exactly one selected.
   const singleSel = selected.size === 1 ? [...selected][0] : null;
   const scheduledCount = dayOrders.length - unassigned.length;
+  // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-NEXT), la cabecera
+  // lleva el botón que la trae.
+  const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
+  const barraDeArmarRutas = puedeArmarRutas && (!oculto(AVISOS_DEL_GESTOR.armarRutas) || planTraidoAMano);
 
   return (
     <>
@@ -1673,6 +1701,12 @@ export default function RoutesPage() {
           >
             {optimizingAll ? `… ${t("Optimizing", "Optimizando")} ${busyDriver ?? ""}` : `🧭 ${t("Optimize all routes", "Optimizar todas las rutas")}`}
           </button>
+          {puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && (
+            <button className="btn btn-ghost btn-sm" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}
+              title={t("Build today's routes automatically — you closed its bar; this brings it back for this visit", "Armar las rutas del día automáticamente — cerró su barra; esto la trae para esta visita")}>
+              🧭 {t("Build routes", "Armar rutas")}
+            </button>
+          )}
           {geocoding > 0 && <span className="hint">{t("Locating addresses…", "Ubicando direcciones…")}</span>}
           {/* Says plainly whether the distances/ETAs just computed account for
               traffic, so nobody trusts free-flow numbers thinking otherwise. */}
@@ -1695,18 +1729,24 @@ export default function RoutesPage() {
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
-      {!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}
+      {barraDeArmarRutas && (
+        <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano}
+          onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }} />
+      )}
 
       {/* ---------- Drivers who stopped reporting ----------
            No amount of Android hardening is bulletproof: a battery manager, a
            flat battery or no signal will still cut the feed. Surfacing it here
            means a truck goes "not reporting" instead of quietly vanishing. */}
-      {trackingIssues.length > 0 && (
+      {trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (
         <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <b style={{ color: "var(--amber-text)" }}>
             📡 {t(`${trackingIssues.length} driver(s) on shift aren't reporting their location`,
                   `${trackingIssues.length} chofer(es) en turno no están reportando su ubicación`)}
           </b>
+          <CerrarAviso aviso={AVISOS_DEL_GESTOR.choferesSinSenal} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.choferesSinSenal)} />
+          </div>
           <div className="hint" style={{ marginTop: 4 }}>
             {trackingIssues.map((g) => `${g.driver} (${g.quietForMin == null ? t("no fix yet", "sin señal aún") : t(`${g.quietForMin} min`, `${g.quietForMin} min`)})`).join(" · ")}
             {" — "}
@@ -1717,11 +1757,14 @@ export default function RoutesPage() {
       )}
 
       {/* ---------- Why-is-it-empty helper ---------- */}
-      {dayOrders.length === 0 && (() => {
+      {dayOrders.length === 0 && !oculto(AVISOS_DEL_GESTOR.diaVacio) && (() => {
         const otherDates = deliveries.filter((d) => ROUTE_STAGES.includes(d.stage) && d.delivery_date !== date).length;
         return (
           <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
             <b style={{ color: "var(--amber-text)" }}>⚠ {allDates ? t("No schedulable orders at all.", "No hay órdenes para programar.") : t("No schedulable orders for this date.", "No hay órdenes para programar en esta fecha.")}</b>
+            <CerrarAviso aviso={AVISOS_DEL_GESTOR.diaVacio} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.diaVacio)} />
+            </div>
             <div className="hint" style={{ marginTop: 4 }}>
               {allDates
                 ? t("Any order that isn't delivered or canceled can be scheduled here — even before it's approved or prepared.", "Cualquier orden que no esté entregada o cancelada se puede programar aquí — incluso antes de aprobarse o prepararse.")
@@ -1766,11 +1809,12 @@ export default function RoutesPage() {
           <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes atrasadas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
         </div>
-      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && (
-        <div className="hint" style={{ marginBottom: 8 }}>
-          {t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
-          {" — "}{t("not part of this day.", "no son de este día.")}{" "}
+      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
+        <div className="hint" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
+          {" — "}{t("not part of this day.", "no son de este día.")}</span>
           <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
+          <CerrarAviso aviso={AVISOS_DEL_GESTOR.atrasadas} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.atrasadas)} />
         </div>
       )}
 
@@ -1786,6 +1830,13 @@ export default function RoutesPage() {
           <button className="btn btn-ghost btn-sm" onClick={() => setWideRoutes((v) => !v)}
             title={t("Toggle full-width route cards vs a compact grid", "Alternar tarjetas de ruta a ancho completo o cuadrícula compacta")}>
             {wideRoutes ? "▦ " + t("Grid", "Cuadrícula") : "▭ " + t("Wide", "Ancho")}
+          </button>
+        )}
+        {/* Lo cerrado con las ✕ de los avisos (D-NEXT) se recupera aquí, todo junto. Solo sale si hay algo cerrado. */}
+        {avisosOcultos != null && avisosOcultos.size > 0 && (
+          <button className="btn btn-ghost btn-sm" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos}
+            title={t("Show again the notices you closed on this screen", "Volver a mostrar los avisos que cerró en esta pantalla")}>
+            👁 {t(`Show hidden notices (${avisosOcultos.size})`, `Mostrar avisos ocultos (${avisosOcultos.size})`)}
           </button>
         )}
       </div>
@@ -1889,12 +1940,15 @@ export default function RoutesPage() {
           }} />
         </div>
       </div>
-      <div className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+      {!oculto(AVISOS_DEL_GESTOR.ayudaDelMapa) && (
+      <div className="hint" style={{ marginTop: 4, marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 8 }}><span>
         {t(
           "Every route is on the map at once. Click a route or a driver to highlight it (the rest dim and the map zooms in); check drivers to compare several. Each route loops from the pickup point (P) out and back. A dashed line is an unsaved simulation.",
           "Todas las rutas están en el mapa a la vez. Haz clic en una ruta o un chofer para resaltarla (el resto se atenúa y el mapa hace zoom); marca varios choferes para comparar. Cada ruta hace un ciclo desde el punto de recolección (P) y regresa. Una línea punteada es una simulación sin guardar.",
-        )}
+        )}</span>
+        <CerrarAviso aviso={AVISOS_DEL_GESTOR.ayudaDelMapa} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.ayudaDelMapa)} />
       </div>
+      )}
       </>)}
 
       {/* ---------- Simulation banner ---------- */}

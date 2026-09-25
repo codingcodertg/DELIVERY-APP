@@ -24133,6 +24133,10 @@ por fichero) caen cada uno con su prueba.
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
 > además ofrece ahora las columnas de Órdenes (ocultas por defecto).
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): la barra plegada de «Armar las rutas» lleva ahora una ✕. Quien
+> la cierra no la vuelve a ver (en ese navegador); la acción sigue en el botón «🧭 Armar rutas» de la cabecera, que la
+> trae desplegada para esa visita. Sin cerrarla, todo sigue como dice esta entrada.
+
 **Fecha:** 2026-09-20 · **Versión:** Entregas 1.170.0, repo 1.234.0 · **Sin migración.**
 **Pedido por el dueño**, literal, en cuatro mensajes: *«in the routes planner where you can change order show the
 delivery adddres and also like orders let me configure it into columns»* · *«delivery address is missing in the
@@ -28259,3 +28263,92 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 - **Logística** ve el botón «Aprobar» en bloque; no se midió con ese rol (la guarda no mira el rol, y la base ya le
   rechazaba el salto).
 - **El orden de despliegue** da igual en este caso: la pantalla cierra por su cuenta y la base solo añade la misma regla.
+
+## D-NEXT · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
+
+**Fecha:** 2026-09-25 · **Sin migración.** · **Pedido por el dueño**, con una captura del Gestor de Rutas, literal:
+*«que estos mensajes tengan una X para que se cierren y así no aparezcan más»*. La captura enseñaba tres: la barra
+«🧭 Armar las rutas del día automáticamente ▸» con su pastilla «6 orden(es) de esta fecha sin plan», el recuadro naranja
+«1 chofer(es) en turno no están reportando su ubicación — Maximo Garza (sin señal aún)…» y la línea «28 orden(es)
+atrasadas · 0 sin fecha — no son de este día. [Verlas]».
+
+### Qué avisos llevan ✕
+
+Los tres de la captura y dos más del mismo estilo (informativos, a lo ancho, fuera de las tarjetas):
+
+| Id guardado | Aviso |
+|---|---|
+| `armar-rutas` | La barra «Armar las rutas del día automáticamente», plegada o desplegada (`PlanDelDia`) |
+| `choferes-sin-senal` | «N chofer(es) en turno no están reportando su ubicación» |
+| `atrasadas` | «N orden(es) atrasadas · N sin fecha — no son de este día. [Verlas]» |
+| `dia-vacio` | «No hay órdenes para programar en esta fecha» (el día sin órdenes) |
+| `ayuda-del-mapa` | La explicación fija bajo el mapa, «Todas las rutas están en el mapa a la vez…» |
+
+**Sin ✕, a propósito:** los avisos DENTRO de la tarjeta de cada ruta («N parada(s) no llegarán a tiempo», «N parada(s)
+aún no están en el mapa», «Aún no optimizada», «sin tienda asignada», «Supera la capacidad») y la fila «Esta ruta cambió
+desde que se publicó el plan»: hablan de UNA ruta y de un problema que hay que arreglar; cerrarlos para siempre
+escondería el de mañana en otra ruta. Tampoco el banner de simulación (ya tiene «Cancelar»), la línea «Viendo solo
+órdenes atrasadas» (dice en qué modo está la pantalla, con su «Volver al día»), el error en rojo, ni las frases de ayuda
+de cada pestaña (Horario, Tablero, Simular).
+
+### Cerrado para siempre, no «hasta que cambie lo que dice»
+
+Los de choferes sin señal y atrasadas cambian de texto casi cada día (otro chofer, otro número). Cerrarlos solo hasta
+que cambie el texto los haría volver al día siguiente, que es exactamente lo que el dueño pidió que no pasara. Así que
+una ✕ cierra ese aviso **siempre**, diga lo que diga. Para recuperarlos: el botón **«👁 Mostrar avisos ocultos (N)»** en
+la barra de herramientas del Gestor (junto a «Ocultar mapa y choferes»), que solo sale si hay algo cerrado y los
+devuelve todos a la vez. El riesgo, dicho: quien cierre el de choferes sin señal ya no se entera en el Gestor de que un
+camión dejó de reportar.
+
+Con «atrasadas» cerrado, su «Verlas» se va con él; las atrasadas siguen en el chip «Atrasadas» de «Sin asignar» (D-359).
+
+### La acción de «Armar las rutas» no se pierde
+
+Esa barra no es solo un aviso: es la entrada al motor de planificar (D-320, D-334, D-346). Cerrarla la quita de la
+pantalla, y en la cabecera aparece **«🧭 Armar rutas»** (junto a «Optimizar todas las rutas», solo para admin y
+logística y con un día concreto, igual que la barra). Pulsarlo trae la barra **desplegada** para esa visita, con
+«Planificar el día»; al recargar vuelve a estar cerrada. Se descartó cerrar solo la pastilla «N orden(es) sin plan»: la
+barra seguiría ocupando su fila entera, y lo que el dueño señaló era la barra.
+
+### Dónde se recuerda: este navegador, por persona
+
+`localStorage`, clave `rtg_routes_hidden_notices_<id de la persona>`, con la lista de ids cerrados; vacía, se borra la
+clave. Igual que el filtro de chofer de D-393 y por la misma razón: `user_prefs` tiene su lista de claves cerrada en la
+base (136/137/141) y una clave nueva es una migración; meterlo dentro del valor de otra clave (`routes_columns`) lo
+borraría quien guarda las columnas, que escribe la fila entera (D-385/D-394). **Consecuencia:** en otra computadora u
+otro navegador los avisos vuelven a salir. Dos personas en la misma computadora no se cierran los avisos la una a la otra.
+Mientras no se ha leído lo guardado, no se pinta ningún aviso con ✕, para que uno cerrado no parpadee al recargar.
+
+La ✕ lleva `aria-label` en los dos idiomas: «Close this notice — it won't show again» / «Cerrar este aviso — no volverá
+a salir».
+
+Código: `src/lib/avisos-ocultos.ts` (ids, leer, guardar, cerrar), `src/components/CerrarAviso.tsx` (la ✕),
+`src/components/PlanDelDia.tsx` (`onCerrar`, `naceAbierto`), `src/app/(app)/routes/page.tsx`.
+
+### Medido en el navegador (demo, 2026-09-25, 1280×900, logística)
+
+`next dev` en modo demo, Chrome headless por CDP, clics de persona por coordenadas con el elemento a la vista. Para que
+saliera el aviso de choferes sin señal se metió en el almacén del DEMO un turno abierto de «Diego Driver» de hace 2 h.
+
+- Al entrar: 4 ✕ (armar-rutas, choferes-sin-senal, atrasadas, ayuda-del-mapa). Cerradas una a una: quedan 3, 2, 1, 0, y
+  lo guardado crece con cada una.
+- Recargar: 0 avisos, ninguno de los cuatro textos en la página; «Show hidden notices (4)» y «🧭 Build routes» en la
+  cabecera.
+- «🧭 Build routes»: la barra vuelve con `aria-expanded=true` y «Plan the day»; al recargar, cerrada otra vez.
+- Otra persona en el mismo navegador (admin, cambiando de usuario en el demo): ve los 4, con su ✕.
+- De vuelta a logística: siguen cerrados; «Mostrar avisos ocultos» devuelve los 4, borra la clave, y recargado siguen ahí.
+- Un día sin órdenes (2027-09-25): sale `dia-vacio` con su ✕; cerrado, desaparece y se guarda.
+- En español, la etiqueta de la ✕ es «Cerrar este aviso — no volverá a salir».
+
+### Pruebas y mutantes
+
+`src/lib/avisos-ocultos.test.ts`: la lógica (por persona, cerrar no reabre, vaciar borra la clave, basura e ids viejos,
+navegador que niega) y que la pantalla la USA (cada aviso con su `!oculto(...)` y su ✕, leer con el id de la persona,
+guardar al cerrar, el botón de la cabecera, la ✕ de `PlanDelDia` en los dos estados, el `aria-label`). Se ajustaron
+cuatro pruebas que citaban la línea vieja de `<PlanDelDia …/>` (`ordenes-del-dia`, `route-plan/plan`, `secuencia-pd`,
+`routes-columns`): siguen exigiendo las mismas condiciones —admin y logística, con un día, fuera de «Todas» y de
+«atrasadas»— y que la barra nazca plegada.
+
+**28 de 28 mutantes caen con una prueba con nombre.** Uno sobrevivió en la primera tanda: quitar
+`if (!Array.isArray(v)) return new Set();` al leer. Era código de sobra (algo que no es lista no tiene `.filter` y cae
+en el mismo `catch`), y se quitó.
