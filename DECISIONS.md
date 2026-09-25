@@ -27460,7 +27460,7 @@ se calcula como `día − sin asignar`. Con un chip «Todas» de cualquier día,
 «Auto-asignar» habría repartido órdenes de otros días. Ahora esas cuentas y «Auto-asignar» son **siempre del día**; lo que
 se marca en la tabla (y «Asignar selección a…», «Auto-asignar selección») va con el chip, como antes.
 
-> **Nota (2026-09-25) — Reemplazada en parte por D-NEXT.** «Asignar selección a…» y «Auto-asignar selección» ya no están
+> **Nota (2026-09-25) — Reemplazada en parte por D-395.** «Asignar selección a…» y «Auto-asignar selección» ya no están
 > en la barra de «Sin asignar»: los sustituye el recuadro «Elige conductor para N órdenes», con «Nueva ruta» y «Auto-asignar
 > las marcadas» dentro. El alcance no cambia: lo marcado en la tabla, con su chip.
 
@@ -27657,7 +27657,7 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 - **Plantillas en promos**: tiene su ⚙ con orden (D-385), pero no se pidió.
 - **Renombrar** una plantilla: se borra y se guarda con otro nombre.
 
-## D-NEXT · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
+## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a D-393**
 (sección 2: los controles de bloque de la barra de «Sin asignar»), que lleva su nota.

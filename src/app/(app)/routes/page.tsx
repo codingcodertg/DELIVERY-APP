@@ -355,7 +355,7 @@ export default function RoutesPage() {
   const [autoAssigning, setAutoAssigning] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  // El chofer pulsado en «Elige conductor para N órdenes» (D-NEXT). `null`: nada pulsado (manda el filtro, si hay).
+  // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
   const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
   // Drag-and-drop in the Routes tab: which order is being dragged, and which
   // lane card is currently under the cursor (for the drop highlight).
@@ -818,7 +818,7 @@ export default function RoutesPage() {
     () => filasDelChip.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
     [filasDelChip, selectedOrders],
   );
-  // Sin nada marcado el recuadro se va, y lo que se pulsó en él se olvida: la próxima tanda vuelve a preguntar (D-NEXT).
+  // Sin nada marcado el recuadro se va, y lo que se pulsó en él se olvida: la próxima tanda vuelve a preguntar (D-395).
   useEffect(() => { if (poolSelectedCount === 0) setConductorPulsado(null); }, [poolSelectedCount]);
 
   // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-393).
@@ -848,7 +848,7 @@ export default function RoutesPage() {
     return map;
   }, [dayOrders]);
 
-  // «Elige conductor para N órdenes» (D-NEXT): todos los choferes y rutas temporales, con los números del panel
+  // «Elige conductor para N órdenes» (D-395): todos los choferes y rutas temporales, con los números del panel
   // «Choferes y rutas» (📦 paradas y pallets/capacidad); el del filtro de arriba, primero y ya elegido.
   const opcionesDelRecuadro = opcionesDeConductor({
     rutas: [
@@ -2108,7 +2108,7 @@ export default function RoutesPage() {
           <MenuDeColumnaAbierto estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
           </>
         )}
-        {/* «Elige conductor para N órdenes» (D-NEXT): sustituye al antiguo desplegable «Asignar selección a…» y al botón
+        {/* «Elige conductor para N órdenes» (D-395): sustituye al antiguo desplegable «Asignar selección a…» y al botón
             «Auto-asignar selección» de la barra de arriba. Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
             (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
             una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,

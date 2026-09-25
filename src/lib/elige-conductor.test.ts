@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { eleccionVigente, opcionesDeConductor, type RutaAsignable } from "./elige-conductor";
 
-/** «Elige conductor para N órdenes» en «Sin asignar» del Gestor de Rutas (D-NEXT). */
+/** «Elige conductor para N órdenes» en «Sin asignar» del Gestor de Rutas (D-395). */
 
 const RUTAS: RutaAsignable[] = [
   { clave: "Diego Driver", etiqueta: "Diego Driver", esRuta: false },
