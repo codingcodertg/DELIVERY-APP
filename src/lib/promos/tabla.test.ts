@@ -341,18 +341,22 @@ describe("la tabla es LA DE ÓRDENES, no una que se le parece", () => {
     expect(tabla).toContain("data-label={lang === \"es\" ? c.es : c.en}");
   });
 
-  it("NO se le pone alto propio: la de Órdenes tampoco lo tiene", () => {
-    // Medido en producción a 1280 y 1440: la de Órdenes no tiene desplazamiento vertical propio
-    // —quien baja es la página— y lo que da la sensación de «cabe en una pantalla» es que la caja
-    // no se salga de LADO más la cabecera pegada. Ponerle alto sería hacer más que la referencia.
+  it("el alto de la caja es el de Órdenes: la misma clase `tbl-caja` y ninguno propio (D-NEXT)", () => {
+    // Esta prueba decía «NO se le pone alto propio: la de Órdenes tampoco lo tiene» (D-370). La regla de
+    // fondo sigue: lo que tenga Órdenes, eso tiene esta. Lo que cambió es Órdenes: D-NEXT le dio alto
+    // (`tbl-caja`) porque la «cabecera pegada» de aquella medida en realidad se iba con la página.
     // Se mira la CAJA de la tabla, no el fichero entero: el menú de ⚙ Columnas sí lleva su
     // `maxHeight`, y prohibirlo en todo el fichero habría sido una prueba que no dice lo que cree.
-    const caja = tabla.split(SALTO).filter((l) => l.includes("tbl-scroll"));
+    const cajaDe = (src: string) => src.split(SALTO).filter((l) => l.includes('<div className="tbl-scroll'));
+    const caja = cajaDe(tabla);
     expect(caja).toHaveLength(1);
+    expect(caja[0]).toContain("tbl-caja");
     expect(caja[0]).not.toMatch(/style=|maxHeight|promos-alto/);
     expect(tabla).not.toContain("promos-alto");
-    // Y la referencia tampoco lo tiene, que es de donde sale la regla.
-    expect(ordenes.split(SALTO).filter((l) => l.includes("tbl-scroll"))[0]).not.toMatch(/maxHeight|style=/);
+    // Y la referencia lleva lo mismo, que es de donde sale la regla.
+    expect(cajaDe(ordenes)).toHaveLength(1);
+    expect(cajaDe(ordenes)[0]).toContain("tbl-caja");
+    expect(cajaDe(ordenes)[0]).not.toMatch(/maxHeight|style=/);
   });
 });
 

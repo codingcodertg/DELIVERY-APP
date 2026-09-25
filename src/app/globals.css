@@ -324,6 +324,30 @@ table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }
    una `tbl-resize` dentro— para no volver a tocar `.tbl-scroll`, que usan 12
    ficheros y cuyas sombras de desplazamiento dependen de su fondo. */
 .tbl-scroll.tbl-fit { width: auto; max-width: 100%; }
+
+/* Cabecera bloqueada y barra de arriba (D-NEXT). Pedido: «Need headers to be locked and have the scroll bar
+   on top of headers in the tables».
+   ---------------------------------------------------------------------------
+   El `th` ya era `sticky` con el borde de arriba en 0 (regla de abajo), pero NO se quedaba: un `sticky` se pega al
+   contenedor con desplazamiento más cercano, y `.tbl-scroll` lo es —`overflow-x: auto` hace que
+   `overflow-y` también compute `auto`—. Como la caja no tenía alto, no se desplazaba NUNCA en vertical:
+   quien bajaba era la página y la cabecera se iba con ella (medido: -1226 px tras bajar 1500 con 85
+   filas). D-370 dio por hecho que estaba «pegada»; no lo estaba.
+   El arreglo es darle a la caja un alto máximo: la caja se desplaza en las dos direcciones y la
+   cabecera se pega a SU borde de arriba. El alto es el de la ventana menos 150 px, lo que hace que
+   la caja entera —con su barra de abajo— quepa en pantalla, y que al llevar la página hasta el
+   final todavía se vean la barra de arriba y la cabecera (lo que hay debajo de las tablas, pie
+   incluido, mide menos que eso; medido en la entrada). La página sigue sin desplazarse de lado. */
+.tbl-scroll.tbl-caja { max-height: calc(100dvh - 150px); }
+.tbl-caja table.orders thead th { z-index: 2; }
+/* El carril de arriba: mismo recorrido que la caja (el relleno lo calcula `anchoDelRelleno`). Sin alto
+   fijo, porque la barra del sistema mide lo que mide; el mínimo es para las barras que se superponen
+   (macOS, teléfonos), que de otro modo dejarían un carril de un píxel. */
+.tbl-barra-superior { overflow-x: auto; overflow-y: hidden; min-height: 12px; }
+/* Barra y caja juntas, sin el `gap` de una rejilla entre ellas (Almacén). `min-width: 0` porque, dentro
+   de una rejilla o un flex, un envoltorio que no desplaza crecería hasta el ancho de la tabla y la PÁGINA
+   se desplazaría de lado; la caja, que sí desplaza, ya tenía ese mínimo en 0 por serlo. */
+.tbl-con-barra { min-width: 0; }
 table.tbl-resize th { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table.tbl-resize td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* El asa se tiene que VER (D-338): el dueño pidió poder cambiar el ancho cuando ya se podía. */
@@ -1073,6 +1097,11 @@ table.orders th { text-align: left; }
 /* ---- Orders table → stacked cards on phones (no horizontal scroll) ---- */
 @media (max-width: 640px) {
   .orders-scroll { overflow-x: visible; border: none; background: none; }
+  /* En el teléfono la caja NO lleva alto propio (D-NEXT): las tarjetas se apilan y baja la página,
+     como siempre. Un alto aquí metería una caja con desplazamiento dentro de otra en una pantalla
+     de 390 px, y las tarjetas no tienen cabecera que bloquear. `!important` porque el Gestor de Rutas
+     pone el alto en línea (lo acorta al hueco bajo su mapa, `altoMaximoDeCaja`), y aquí manda el teléfono. */
+  .tbl-scroll.tbl-caja { max-height: none !important; }
   /* En el teléfono la tabla se convierte en tarjetas al 100% de ancho. Desde D-281 el marco ya
      no se encoge en ningún tamaño, así que aquí no hay nada que devolver; se deja dicho para que
      nadie lo reponga. */
