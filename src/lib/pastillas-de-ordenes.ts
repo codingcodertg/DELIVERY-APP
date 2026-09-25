@@ -36,7 +36,7 @@ export function pastillasDeOrdenes(args: {
   filtro: string;
   /**
    * ¿Ve esta persona los días anteriores a ayer? (`seesAllHistory`: admin, logística y quien tenga
-   * `history` marcado.) Sin eso no hay pastilla «Outdated» (D-NEXT).
+   * `history` marcado.) Sin eso no hay pastilla «Outdated» (D-392).
    */
   veDiasViejos: boolean;
 }): PastillaDeOrdenes[] {
@@ -61,7 +61,7 @@ export function pastillasDeOrdenes(args: {
   // Va tras las etapas y antes de la de factura pendiente, que es la que aparece y desaparece: así
   // esta no cambia de sitio.
   //
-  // **Y solo para quien ve los días viejos (D-NEXT).** El dueño: *«ONLY LOGISTICS AND admin CAN SEE
+  // **Y solo para quien ve los días viejos (D-392).** El dueño: *«ONLY LOGISTICS AND admin CAN SEE
   // DAYS BEFORE YESTERDAY»*. Todo lo que hay dentro es anterior a ayer, así que para los demás sería
   // una pastilla que siempre dice 0 y nunca enseña nada: se va, no se queda vacía.
   if (veDiasViejos) salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));

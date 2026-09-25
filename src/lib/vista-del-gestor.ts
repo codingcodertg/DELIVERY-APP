@@ -1,5 +1,5 @@
 /**
- * Cómo se MIRA el Gestor de Rutas (D-NEXT): con qué chofer se trabaja, y qué nace plegado. No cambia ninguna orden.
+ * Cómo se MIRA el Gestor de Rutas (D-393): con qué chofer se trabaja, y qué nace plegado. No cambia ninguna orden.
  *
  * 1 · EL FILTRO DE CHOFER. El dueño, el 2026-09-25: *«WHEN WILL ASK YOU TO SELECT WHICH DRIVER YOU WANT TO WORK»*;
  * preguntado, eligió «Filtro de chofer». Un selector arriba: «Todos» (el defecto) o un chofer / ruta temporal. Con uno

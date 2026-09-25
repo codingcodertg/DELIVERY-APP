@@ -112,7 +112,7 @@ describe("«Sin asignar»: el día por defecto, y con el chip «Atrasadas» las 
   });
 });
 
-describe("«Sin asignar»: «Este día» y «Todas», y el número de cada chip es el de sus filas (D-NEXT)", () => {
+describe("«Sin asignar»: «Este día» y «Todas», y el número de cada chip es el de sus filas (D-393)", () => {
   type P = ReturnType<typeof o> & { order_no: number; delivery_windows: string | null; delivery_lat: number | null; account: string; delivery_address: string | null; delivery_phone: string | null; contact: string | null; store: string };
   const p = (x: ReturnType<typeof o>, order_no: number, extra: Partial<P> = {}): P => ({
     ...x, order_no, delivery_windows: null, delivery_lat: 26.2, account: "Cliente", delivery_address: null, delivery_phone: null, contact: null, store: "McAllen", ...extra,
@@ -162,7 +162,7 @@ describe("«Sin asignar»: «Este día» y «Todas», y el número de cada chip 
   });
 });
 
-describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D-NEXT)", () => {
+describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D-393)", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   it("las filas de la tabla salen de `filasSinAsignar` con el chip y la búsqueda", () => {
     expect(pagina).toContain("const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch)");

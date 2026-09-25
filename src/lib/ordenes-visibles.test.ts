@@ -139,9 +139,9 @@ describe("una factura pendiente no es una llave para ver órdenes de otro", () =
 });
 
 // Este bloque se llamaba «el suelo de 30 días de ventas»: buscando, ventas llegaba 30 días atrás y
-// los demás al historial entero. Desde D-NEXT buscar tiene el mismo suelo que navegar —ayer— para
+// los demás al historial entero. Desde D-392 buscar tiene el mismo suelo que navegar —ayer— para
 // todos menos admin y logística, así que el tope de ventas ya no decidía nada y se quitó.
-describe("buscando, el suelo es ayer para todos menos admin y logística (D-NEXT)", () => {
+describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)", () => {
   const vendedor = { id: "u-vend", role: "sales" as const, store: "Norte" };
   const suya = (over: Partial<Delivery> = {}) => pendienteVieja({ created_by: "u-vend", assigned_sales_rep: "u-vend", ...over });
 
@@ -155,7 +155,7 @@ describe("buscando, el suelo es ayer para todos menos admin y logística (D-NEXT
   });
 
   it("pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí dentro (D-313 sigue)", () => {
-    // Una factura pendiente es trabajo vivo; D-NEXT deja en pie esa exención, solo en su pestaña.
+    // Una factura pendiente es trabajo vivo; D-392 deja en pie esa exención, solo en su pestaña.
     const antigua = suya({ id: "antigua", delivery_date: HACE_CINCUENTA, account: "ACME" });
     const { visibles, conPendientes } = ordenesVisibles([antigua], ctx({ me: vendedor, busqueda: "acme" }));
     expect(ids(visibles)).toEqual([]);
@@ -263,7 +263,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
 
   it("no arma la lista a mano: la pide, con sus datos", () => {
     // D-384 añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
-    // D-NEXT quitó `sueloDeVentas`: con el suelo en ayer para todos, el tope de 30 días no decidía nada.
+    // D-392 quitó `sueloDeVentas`: con el suelo en ayer para todos, el tope de 30 días no decidía nada.
     expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);

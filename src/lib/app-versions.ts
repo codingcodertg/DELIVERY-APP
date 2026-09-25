@@ -21,7 +21,7 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.197.0",
+  deliveries: "1.198.0",
   recruiting: "0.35.0",
   timetracker: "0.91.0",
   clockin: "0.41.0",
@@ -31,7 +31,7 @@ export const APP_VERSIONS = {
   // continuar, y un 1.0.0 sería continuidad inventada.
   erp: "0.13.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
-  promos: "0.10.0",
+  promos: "0.11.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

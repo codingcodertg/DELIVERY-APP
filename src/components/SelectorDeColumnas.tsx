@@ -29,7 +29,7 @@ export function SelectorDeColumnas<C extends { key: string }>({
   t: (en: string, es: string) => string;
   /** Hacia dónde se abre: a la derecha del botón queda pegado a su borde derecho, y al revés. */
   alLado?: "derecha" | "izquierda";
-  /** Las plantillas (D-NEXT): el mismo bloque que en Órdenes, arriba del todo. Sin esto, el menú no las enseña. */
+  /** Las plantillas (D-394): el mismo bloque que en Órdenes, arriba del todo. Sin esto, el menú no las enseña. */
   plantillas?: Omit<ComponentProps<typeof PlantillasDeColumnas>, "t">;
 }) {
   const [abierto, setAbierto] = useState(false);

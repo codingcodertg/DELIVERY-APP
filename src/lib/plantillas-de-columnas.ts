@@ -1,5 +1,5 @@
 /**
- * Las PLANTILLAS de columnas (D-NEXT): guardar lo que se tiene puesto con un nombre, y volver a ello con un clic.
+ * Las PLANTILLAS de columnas (D-394): guardar lo que se tiene puesto con un nombre, y volver a ello con un clic.
  *
  * El dueño, literal: «add template in columns that will be like [save] the current order so if they change it and then want
  * to go back to the old one they can», y «logistic manager needs to have the same template as in order view». Así que es lo
@@ -20,7 +20,7 @@ export const NOMBRES_RESERVADOS: readonly string[] = ["default", "por defecto"];
 
 /**
  * Cuánto ocupa `valor` como `jsonb` en la base, en bytes: lo que mide `pg_column_size(value)` en el `check` de la 136
- * (`< 8192`). NO es el largo del texto. Medido en un Postgres 17 local (2026-09-25, D-NEXT): la fila de Órdenes con un rol y
+ * (`< 8192`). NO es el largo del texto. Medido en un Postgres 17 local (2026-09-25, D-394): la fila de Órdenes con un rol y
  * diez plantillas llenas son 5 294 bytes de texto y 7 561 de `jsonb` (×1,43), porque cada ancho pasa a `numeric` con su
  * cabecera, alineado a 4, y cada elemento lleva 4 bytes de índice. Una guarda sobre el texto habría dejado pasar filas que
  * la base rechaza — y ese rechazo no se ve: la pantalla da la plantilla por guardada y al recargar no está.

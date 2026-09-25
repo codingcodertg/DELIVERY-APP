@@ -17,7 +17,7 @@ import type { Delivery, NamedLocation } from "./types";
  * abiertas anteriores a ayer; fuera de la lista normal, que se queda con ayer, hoy y lo que viene.
  * Para todos los roles, cada uno con las órdenes que ya podía ver.
  *
- * **D-NEXT (2026-09-25) la dejó solo para admin y logística**: *«ONLY LOGISTICS AND admin CAN SEE DAYS
+ * **D-392 (2026-09-25) la dejó solo para admin y logística**: *«ONLY LOGISTICS AND admin CAN SEE DAYS
  * BEFORE YESTERDAY»*. Por eso la persona de partida de estas pruebas es logística, y lo que les pasa a
  * los demás roles está en su propio bloque, al final.
  */
@@ -117,7 +117,7 @@ describe("la lista normal ya no las lleva; «Outdated» sí", () => {
 });
 
 describe("cada rol ve en «Outdated» solo las atrasadas que ya podía ver (D-374)", () => {
-  // Desde D-NEXT, ventas y almacén solo llegan aquí con `history` marcado a mano en Usuarios (D-350):
+  // Desde D-392, ventas y almacén solo llegan aquí con `history` marcado a mano en Usuarios (D-350):
   // es lo que pone `veTodoElHistorial` a true sin ser admin ni logística. El corte por rol sigue.
   it("ventas: la suya sí, la de otro no", () => {
     const vendedor = { id: "u-vendedor", role: "sales" as const, store: "Norte" };

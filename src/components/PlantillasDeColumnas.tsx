@@ -5,7 +5,7 @@ import { MAX_PLANTILLAS, plantillaLlamada } from "@/lib/plantillas-de-columnas";
 import { MAX_NOMBRE_DE_PLANTILLA, type PlantillaDeColumnas } from "@/lib/user-prefs";
 
 /**
- * Las plantillas de ⚙ Columnas (D-NEXT), el mismo bloque en Órdenes y en los dos ⚙ del Gestor de Rutas. El dueño:
+ * Las plantillas de ⚙ Columnas (D-394), el mismo bloque en Órdenes y en los dos ⚙ del Gestor de Rutas. El dueño:
  * «add template in columns … so if they change it and then want to go back to the old one they can», y «logistic manager
  * needs to have the same template as in order view».
  *

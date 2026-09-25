@@ -13133,7 +13133,7 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
-> **⚠ Endurecida en Órdenes por D-NEXT** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
+> **⚠ Endurecida en Órdenes por D-392** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
 > entero (*«every one of these screens lets an invoice search reach into older history»*). En la pantalla de
 > **Órdenes** ya no: quien no es admin ni logística no encuentra buscando nada anterior a ayer. La Cola de almacén y
 > la pantalla del chofer no cambian.
@@ -23327,7 +23327,7 @@ El noveno —«first delivery in time window»— **no está aquí**: es ambiguo
 **Reemplaza en parte a D-316** (el tipo de cliente «se marca en cada orden» y la cuenta se marca como builder en Datos) **y afina
 D-305** (el campo Cuenta enseñaba la lista entera al enfocarlo). Las dos entradas llevan su nota dentro.
 
-> **Cumplida y extendida por D-NEXT (2026-09-25).** El dueño volvió a pedir las dos cosas: *«VENTA AL MOSTRADOR SON WALKINS
+> **Cumplida y extendida por D-391 (2026-09-25).** El dueño volvió a pedir las dos cosas: *«VENTA AL MOSTRADOR SON WALKINS
 > ENTONCES SI SELECCIONA SHOULD BE EMPTY»* y *«CUENTA SHOULDN'T SHOW ALL PEOPLE UNL…»*. §7: al elegir mostrador quedan siempre
 > vacíos, además de contacto y teléfono, el Nombre de destino y la dirección de entrega, con su pin y su ruta — aquí se quedaban
 > los de la cuenta anterior. §5 sigue igual (2 letras), medido. Esta nota se añade; el texto de abajo no se reescribe.
@@ -24353,7 +24353,7 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25), solo en **Órdenes** y solo para quien no es admin ni
+> **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en **Órdenes** y solo para quien no es admin ni
 > logística: la vencida abierta de antes de ayer ya **no la ven**, ni en la lista, ni en «Outdated», ni
 > buscándola. El dueño: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*. Para admin y logística sigue
 > como la dejó D-384. `withinRecent` no se tocó.
@@ -24537,7 +24537,7 @@ Suite entera local en verde. **No verificado:** nada abierto en un navegador.
 
 ## D-359 · En «Sin asignar», el día por defecto y las atrasadas por su chip
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): el chip que aquí se llama «Todas» enseñaba solo lo del día; se
+> **⚠ Reemplazada en parte por D-393** (2026-09-25): el chip que aquí se llama «Todas» enseñaba solo lo del día; se
 > renombra «Este día» (sigue siendo el defecto) y «Todas» pasa a ser lo sin chofer de cualquier día. Cada chip lleva su
 > número. «Atrasadas» sigue como se describe abajo.
 
@@ -25886,7 +25886,7 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25), solo en la pantalla de **Órdenes**: la ventana deja de
+> **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en la pantalla de **Órdenes**: la ventana deja de
 > dejar pasar la atrasada abierta, y buscar deja de llegar al historial, para todos menos admin y logística.
 > *«ayer, hoy, futuro y atrasadas»* pasa a ser, en Órdenes, *ayer, hoy y futuro*. `withinRetention` no se tocó: la
 > **Cola de almacén** y la **pantalla del chofer** siguen enseñando las atrasadas abiertas como aquí se decidió.
@@ -26749,7 +26749,7 @@ comportamiento de D-286.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): «vale **para todos los roles**» ya no. La pastilla
+> **⚠ Reemplazada en parte por D-392** (2026-09-25): «vale **para todos los roles**» ya no. La pastilla
 > «Outdated» es solo de admin y logística (y de quien tenga `history` marcado en Usuarios); a los demás no les
 > sale, ni con 0, porque ya no ven nada anterior a ayer. Tampoco la excepción de la búsqueda que abajo se
 > llama «decisión mía»: para esos roles, buscar tampoco trae nada anterior a ayer. Para admin y logística todo
@@ -27131,7 +27131,7 @@ que alguien vuelva a explicar la regla, la explicación no la rompe. Es la tramp
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
 
-## D-NEXT · Recepción del almacén estrena la barra de búsqueda y las pastillas de la Cola, cada una con su estado
+## D-390 · Recepción del almacén estrena la barra de búsqueda y las pastillas de la Cola, cada una con su estado
 
 **Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 
@@ -27193,7 +27193,7 @@ vistas.
 `reparto.cola`, que se quede sin barra, que la búsqueda vuelva a aplicarse antes del reparto, y que la
 búsqueda deje de saltarse la ventana.
 
-## D-NEXT · «Venta al mostrador» deja siempre vacíos contacto, teléfono, destino y dirección; y el campo Cuenta sigue sugiriendo solo al escribir
+## D-391 · «Venta al mostrador» deja siempre vacíos contacto, teléfono, destino y dirección; y el campo Cuenta sigue sugiriendo solo al escribir
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por el dueño**, dos mensajes: *«VENTA AL MOSTRADOR SON WALKINS ENTONCES SI SELECCIONA SHOULD BE EMPTY»* y *«CUENTA
@@ -27281,7 +27281,7 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 - La captura del dueño de «shows all people»: no la hay, y sin ella lo de la cuenta es lo medido arriba más una defensa sin medir.
 - Las órdenes ya guardadas con «Venta al mostrador» y la dirección de otro cliente dentro no se tocan: esto actúa al elegir.
 
-## D-NEXT · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
+## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
 
 **Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
@@ -27406,7 +27406,7 @@ y el rango de fechas del **Panel**.
   lo cubren en Órdenes, porque recorren todos los roles.
 - El calendario de office: ver arriba. Queda pendiente de saber cuál era.
 
-## D-NEXT · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
+## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Tres pedidos del dueño el mismo día**, literales:
@@ -27497,7 +27497,7 @@ una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `e
 - La búsqueda de «Sin asignar» **no mira la factura** (buscar «INV-3001» da 0 en todos los chips). Era así antes; no se
   tocó.
 
-## D-NEXT · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
+## D-394 · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, dos frases del mismo día, literales:

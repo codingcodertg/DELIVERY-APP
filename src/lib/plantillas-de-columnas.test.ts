@@ -12,7 +12,7 @@ import {
 import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
 
 /**
- * Las plantillas de ⚙ Columnas (D-NEXT), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
+ * Las plantillas de ⚙ Columnas (D-394), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
  * like [save] the current order so if they change it and then want to go back to the old one they can», y «logistic manager
  * needs to have the same template as in order view».
  */

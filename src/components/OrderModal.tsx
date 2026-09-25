@@ -1884,7 +1884,7 @@ export function OrderModal({
                       ...p,
                       account: v,
                       // Mostrador: vacíos, para teclear los del cliente de paso; nunca los de la última orden (D-337).
-                      // Desde D-NEXT también el destino y la dirección, con su pin y su ruta, aunque se hubieran tecleado.
+                      // Desde D-391 también el destino y la dirección, con su pin y su ruta, aunque se hubieran tecleado.
                       ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),
                       // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-337).
                       customer_type: tipoDeClientePorDefecto(v),
@@ -1894,7 +1894,7 @@ export function OrderModal({
                     };
                     // Order type: saved flag → Intertienda/Customer; otherwise the
                     // last order's own type; otherwise the branch/customer default.
-                    // Mostrador no trae tipo: el de «la última orden de mostrador» sería el de otro cliente (D-NEXT).
+                    // Mostrador no trae tipo: el de «la última orden de mostrador» sería el de otro cliente (D-391).
                     const wantType = !v.trim() || esCuentaDeMostrador(v) ? null
                       : rec ? (isIntertienda ? "Intertienda" : "Customer")
                       : (past?.order_type && settings.order_types.includes(past.order_type)
@@ -3595,7 +3595,7 @@ function AccountCombo({ val, on, options, fija, disabled, placeholder, t }: {
         aria-expanded={abierto}
         aria-autocomplete="list"
         aria-controls="cuentas-sugeridas"
-        // La lista la da SOLO `sugerenciasPara`, a partir de dos letras (D-337, D-NEXT). Sin esto el navegador puede
+        // La lista la da SOLO `sugerenciasPara`, a partir de dos letras (D-337, D-391). Sin esto el navegador puede
         // pintar debajo su propio desplegable de lo escrito antes en campos parecidos, que es una lista que no filtra nadie.
         autoComplete="off"
         value={texto}

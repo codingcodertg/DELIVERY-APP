@@ -94,7 +94,7 @@ export function anchosValidos(v: unknown, conocidas?: readonly string[]): Anchos
 }
 
 /**
- * Las PLANTILLAS de columnas (D-NEXT), la cuarta mitad del mismo `value`: `{ "_plantillas": [ { n, v, o?, a? } ] }`.
+ * Las PLANTILLAS de columnas (D-394), la cuarta mitad del mismo `value`: `{ "_plantillas": [ { n, v, o?, a? } ] }`.
  * El dueño: «add template in columns that will be like [save] the current order so if they change it and then want to go
  * back to the old one they can». Una plantilla es una FOTO con nombre de lo que la persona tenía puesto: qué columnas ve
  * (`v`), en qué orden (`o`, si la pantalla ordena) y con qué anchos (`a`, si la pantalla los guarda en la base).
@@ -215,7 +215,7 @@ export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clav
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
 /** `orden` y `anchos`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que
  *  quien no pase una mitad la borra — por eso la página de Órdenes escribe por un solo sitio, con las tres. */
-/** `plantillas` (D-NEXT), igual: quien escribe la fila de una pantalla que tiene plantillas pasa las leídas, o las borra. */
+/** `plantillas` (D-394), igual: quien escribe la fila de una pantalla que tiene plantillas pasa las leídas, o las borra. */
 export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}, plantillas: PlantillaDeColumnas[] = []): Promise<boolean> {
   try {
     const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos, plantillas }) }, { onConflict: "user_id,key" }).select("user_id");

@@ -139,7 +139,7 @@ describe("la tabla y la página", () => {
   });
   it("las dos mitades se guardan SIEMPRE juntas: al marcar una casilla va el orden, y al reordenar va la visibilidad", () => {
     // Desde D-338 (el ancho, la tercera mitad) la fila se escribe por UN solo sitio, con las tres mitades tal como están.
-    // Desde D-NEXT, con la cuarta mitad (las plantillas), tal como se leyó.
+    // Desde D-394, con la cuarta mitad (las plantillas), tal como se leyó.
     expect(pagina).toContain("const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current, plantillasDeLaBase.current);");
     expect(pagina.split("guardaColumnas(").length - 1).toBe(1);
     expect(pagina.split("escribeLaFila()").length - 1).toBe(6);                            // sembrar, marcar, reordenar, ensanchar, aplicar plantilla, guardar plantillas

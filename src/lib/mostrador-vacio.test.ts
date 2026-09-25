@@ -6,7 +6,7 @@ import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN } from "./customer-type";
 import { missingKeys } from "./required";
 
 /**
- * D-NEXT: «Venta al mostrador» deja SIEMPRE vacíos contacto, teléfono, Nombre de destino y dirección —con su pin y su
+ * D-391: «Venta al mostrador» deja SIEMPRE vacíos contacto, teléfono, Nombre de destino y dirección —con su pin y su
  * ruta—, y el campo de cuenta solo sugiere al escribir. Datos inventados.
  */
 
@@ -23,7 +23,7 @@ const TODO_VACIO = {
   route_miles: null, route_duration: null, route_provider: null, route_traffic: null,
 };
 
-describe("D-NEXT · al elegir mostrador, los cuatro campos del cliente quedan vacíos, siempre", () => {
+describe("D-391 · al elegir mostrador, los cuatro campos del cliente quedan vacíos, siempre", () => {
   it("una orden que tenía cliente: contacto, teléfono, destino y dirección vacíos, y el pin y la ruta también", () => {
     for (const cuenta of [CUENTA_DE_MOSTRADOR, ` ${CUENTA_DE_MOSTRADOR_EN.toUpperCase()} `]) {
       expect(contactoAlElegirCuenta({ cuenta, guardada: { contact: "A", phone: "1" }, ultimaOrden: undefined, actual: ORDEN_CON_CLIENTE }))
@@ -44,7 +44,7 @@ describe("D-NEXT · al elegir mostrador, los cuatro campos del cliente quedan va
   });
 });
 
-describe("D-NEXT · la pantalla usa la regla", () => {
+describe("D-391 · la pantalla usa la regla", () => {
   it("el autorrelleno de la cuenta pasa por contactoAlElegirCuenta", () => {
     expect(formulario).toContain("...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),");
   });

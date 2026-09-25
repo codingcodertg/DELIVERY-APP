@@ -185,7 +185,7 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
     // Se cita la expresión entera y no un trozo: `reparto.cola` a secas aparece en varios sitios de
     // este fichero, y una prueba que se cumple por otro renglón se queda verde para siempre.
     //
-    // Desde D-NEXT el orden, las cuentas y la pestaña los hace `filtraLaVistaDeAlmacen` (sus pruebas,
+    // Desde D-390 el orden, las cuentas y la pestaña los hace `filtraLaVistaDeAlmacen` (sus pruebas,
     // más abajo); aquí se fija que la Cola se la pide sobre `reparto.cola` y la pinta.
     expect(pagina).toContain("filtraLaVistaDeAlmacen(reparto.cola, filtroCola, dentroDeLaVentana)");
     expect(pagina).toContain('<OrdersTable rows={cola.filas} resizeKey="warehouse"');
@@ -237,7 +237,7 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
     const iRec = pagina.indexOf(') : vista === "recepcion" ? (');
     expect([iCola > 0, iRec > iCola]).toEqual([true, true]);
     const cola = pagina.slice(iCola, iRec);
-    // Desde D-NEXT cuenta `sinDestino`, las de `reparto.sinDestino` que la Cola enseña con SU
+    // Desde D-390 cuenta `sinDestino`, las de `reparto.sinDestino` que la Cola enseña con SU
     // búsqueda (la prueba de eso, en «cada vista con su búsqueda» más abajo).
     expect(cola).toContain("{sinDestino.length}");
     expect(cola).toContain("no se pueden mandar a Recepci");
@@ -245,7 +245,7 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
   });
 });
 
-describe("la búsqueda y las pastillas de una vista de almacén (D-NEXT)", () => {
+describe("la búsqueda y las pastillas de una vista de almacén (D-390)", () => {
   // El dueño, el 2026-09-25: «THE SAME FILTERS AND SEARCH BAR MOVE IT INTO RECEIVING WAREHOUSE».
   // Estas pruebas miden la función; las de abajo, que las dos vistas la usan.
   const o = (order_no: number, stage: string, invoice_num: string | null, dentro = true) =>

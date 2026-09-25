@@ -140,7 +140,7 @@ export function extrasDeParadas(elegidas: readonly string[]): ColumnaDelGestor[]
 }
 
 /**
- * Lo que se pone al aplicar una PLANTILLA del Gestor (D-NEXT): las columnas de la foto que aún existen, en el orden del
+ * Lo que se pone al aplicar una PLANTILLA del Gestor (D-394): las columnas de la foto que aún existen, en el orden del
  * catálogo, con las marcas. Las marcas van SIEMPRE: la foto se tomó con este código, que ya conoce las columnas de cada tanda,
  * y sin ellas `conColumnasNuevas` volvería a añadir al recargar las que la plantilla tenía quitadas.
  */

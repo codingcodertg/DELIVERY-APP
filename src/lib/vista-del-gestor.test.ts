@@ -5,7 +5,7 @@ import {
   PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, claveDelFiltroDeChofer, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, nacePlegada, pasaElFiltroDeChofer,
 } from "./vista-del-gestor";
 
-/** El filtro de chofer y el «todo nace plegado» del Gestor de Rutas (D-NEXT). */
+/** El filtro de chofer y el «todo nace plegado» del Gestor de Rutas (D-393). */
 
 const almacen = () => {
   const m = new Map<string, string>();
@@ -66,7 +66,7 @@ describe("las tarjetas de los choferes nacen plegadas", () => {
   });
 });
 
-describe("la pantalla del Gestor usa el filtro y el plegado (D-NEXT)", () => {
+describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   it("el plegado sale de `estaPlegada` y empieza sin nada pulsado; no se guarda en ningún sitio", () => {
     expect(pagina).toContain("const [alternadas, setAlternadas] = useState<Set<string>>(new Set());");

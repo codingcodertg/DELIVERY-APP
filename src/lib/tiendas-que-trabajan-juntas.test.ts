@@ -135,7 +135,7 @@ describe("dónde se comparte el trabajo", () => {
     // `atStore`.
     expect(almacen).toContain("const suyas = tiendasDeLaOrden(d, orderTypeRule(d.order_type, settings.order_type_rules)).map(normalizaLugar);");
     expect(almacen).toContain("if (colaNormalizada.some((c) => suyas.includes(c))) return true;");
-    // Desde D-NEXT el corte de tienda va solo —la búsqueda y la ventana las aplica cada vista después
+    // Desde D-390 el corte de tienda va solo —la búsqueda y la ventana las aplica cada vista después
     // del reparto—, pero sigue siendo `atStore` y sigue mirando `tiendasDeLaCola`.
     expect(almacen).toContain("(tiendasDeLaCola.length > 0 ? deliveries.filter((d) => atStore(d)) : deliveries)");
   });

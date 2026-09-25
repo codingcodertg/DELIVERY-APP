@@ -578,7 +578,7 @@ table.orders td.td-pastillas .sema {
 .col-menu-search { width: 100%; margin: 2px 0 4px; padding: 6px 8px; font-size: 12.5px; box-sizing: border-box; }
 .col-menu-actions { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 .col-menu-actions .btn { flex: 1; }
-/* Las plantillas de ⚙ Columnas (D-NEXT): el mismo bloque en Órdenes y en el Gestor. Arriba del todo, separado de las
+/* Las plantillas de ⚙ Columnas (D-394): el mismo bloque en Órdenes y en el Gestor. Arriba del todo, separado de las
    casillas por una raya; cada plantilla es una pastilla que se aplica con un clic, con su ✕ al lado. */
 .plantillas-cols { padding: 4px 4px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .plantillas-cols-titulo { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .04em; padding: 2px 4px 4px; }

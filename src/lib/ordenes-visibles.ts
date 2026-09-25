@@ -70,7 +70,7 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
 }
 
 /**
- * ¿Cae la orden dentro de lo que Órdenes enseña a quien no es admin ni logística (D-NEXT)?
+ * ¿Cae la orden dentro de lo que Órdenes enseña a quien no es admin ni logística (D-392)?
  * Ayer, hoy y todo lo futuro; sin fecha, siempre (se está programando).
  *
  * El dueño, 2026-09-25: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*. Es el suelo de
@@ -96,13 +96,13 @@ export function enLaVentanaDeOrdenes(
  * ¿Pasa el corte de fechas?
  *
  * Admin y logística (y quien tenga `history` marcado a mano, D-350): sin corte. Los demás:
- * `enLaVentanaDeOrdenes`, **navegando y buscando**, que desde D-NEXT es el mismo corte. Antes buscar
+ * `enLaVentanaDeOrdenes`, **navegando y buscando**, que desde D-392 es el mismo corte. Antes buscar
  * no tenía ventana y ventas tenía un tope propio de 30 días; con el suelo en ayer ese tope ya no
  * decidía nada y se quitó.
  *
  * `pendientesEntran` es la exención de D-313: con ella, una orden con documento pendiente pasa el
  * corte. Es lo que hace que la pestaña «Factura pendiente» enseñe a office una entregada de hace un
- * mes a la que le falta la factura. **D-NEXT la deja en pie a sabiendas**, y solo dentro de esa
+ * mes a la que le falta la factura. **D-392 la deja en pie a sabiendas**, y solo dentro de esa
  * pestaña: ver su entrada.
  */
 export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista, pendientesEntran: boolean): boolean {
@@ -155,7 +155,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // «Outdated» (D-384): la atrasada abierta anterior a ayer sale de la lista normal y va a la
     // suya. Buscando, se queda también en la normal: buscar es el camino a todo (D-374), y una
     // factura que no sale al teclearla se lee como que la orden no existe.
-    // Desde D-NEXT esto solo le pasa a admin y logística: a los demás `pasaLaVentana` ya les corta
+    // Desde D-392 esto solo le pasa a admin y logística: a los demás `pasaLaVentana` ya les corta
     // todo lo anterior a ayer, así que su `atrasadas` sale siempre vacía y buscar no abre nada viejo.
     const atrasada = vaAAtrasadas(d);
     if (normal && atrasada) atrasadas.push(d);

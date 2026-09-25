@@ -108,7 +108,7 @@ export default function OrdersPage() {
   // El ANCHO de las columnas (D-338), la tercera mitad de la misma fila. `null` = nada guardado: manda el navegador.
   const [anchos, setAnchos] = useState<Record<string, number> | null>(null);
   const anchosDeLaBase = useRef<AnchosPorRol>({});
-  // Las PLANTILLAS (D-NEXT), la cuarta mitad: de la persona, no del rol. La `ref` es lo leído (lo que se escribe); el estado,
+  // Las PLANTILLAS (D-394), la cuarta mitad: de la persona, no del rol. La `ref` es lo leído (lo que se escribe); el estado,
   // lo que pinta el menú, y solo cambia cuando la base aceptó la escritura.
   const plantillasDeLaBase = useRef<PlantillaDeColumnas[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDeColumnas[]>([]);
@@ -226,7 +226,7 @@ export default function OrdersPage() {
   // El ancho (D-338): la tabla avisa UNA vez, al soltar. Vale para todos los roles, también ventas. Sin base leída no se
   // escribe a ciegas: queda en el navegador, como siempre.
   const guardaAnchos = (next: Record<string, number>) => {
-    // Lo que se pinta sigue a lo arrastrado (D-NEXT): si no, aplicar una plantilla con los MISMOS anchos que ya había en
+    // Lo que se pinta sigue a lo arrastrado (D-394): si no, aplicar una plantilla con los MISMOS anchos que ya había en
     // `anchos` no cambiaría nada que la tabla viera, y lo arrastrado después se quedaría.
     setAnchos(next);
     if (!me || SIN_BASE || prefsDeLaBase.current === null) return;
@@ -240,7 +240,7 @@ export default function OrdersPage() {
   // La flecha se apaga cuando pulsarla no movería nada (el tope, contando que una visible salta sobre las ocultas).
   const seMueve = (clave: string, delta: -1 | 1) => mueveColumna(ordenDelSelector, clave, delta, cols).join() !== ordenDelSelector.join();
 
-  // PLANTILLAS (D-NEXT). El dueño: «add template in columns … so if they change it and then want to go back to the old one
+  // PLANTILLAS (D-394). El dueño: «add template in columns … so if they change it and then want to go back to the old one
   // they can». Una plantilla es la foto de lo que se ve: columnas, orden y anchos. Aplicarla pone EXACTAMENTE esa foto, y
   // «Por defecto» (`null`) pone lo que trae la app para el rol: sus columnas, el orden canónico y los anchos de partida.
   const claveDeAnchos = (rol: UserRole) => `rtg_colw_orders_${rol}`;
@@ -332,7 +332,7 @@ export default function OrdersPage() {
   // further — the "All" count and every stage chip's count come from this,
   // not the full company-wide `deliveries`, so the numbers on the chips
   // always match what actually shows up in the table below them.
-  // Ventas tenía aquí un tope de búsqueda de 30 días: desde D-NEXT nadie fuera de admin y logística
+  // Ventas tenía aquí un tope de búsqueda de 30 días: desde D-392 nadie fuera de admin y logística
   // busca antes de ayer, así que ese tope ya no decidía nada y se fue.
   /**
    * Las dos listas de la pantalla (D-313). La decisión —quién ve qué, y qué corta la ventana de
@@ -616,7 +616,7 @@ export default function OrdersPage() {
               todasAprueban: autoApproveAll,
               cuentas: counts,
               filtro: filter,
-              // «Outdated» solo para quien ve lo anterior a ayer (D-NEXT): la misma pregunta que corta la lista.
+              // «Outdated» solo para quien ve lo anterior a ayer (D-392): la misma pregunta que corta la lista.
               veDiasViejos: veTodoElHistorial,
             }).map((p) => (
               <button

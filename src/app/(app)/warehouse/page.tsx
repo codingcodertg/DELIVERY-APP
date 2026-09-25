@@ -35,7 +35,7 @@ export default function WarehousePage() {
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.
   //
-  // **Cada vista guarda su búsqueda y su pestaña** (D-NEXT): la Cola y Recepción tienen la misma
+  // **Cada vista guarda su búsqueda y su pestaña** (D-390): la Cola y Recepción tienen la misma
   // barra y las mismas pastillas —el mismo componente—, pero buscar una factura en una no deja la
   // otra filtrada al volver. Recepción arranca en «Todas» y no en «Aprobado»: es lo que enseñaba
   // antes de tener pastillas, y lo que entra de otra tienda suele venir ya preparado o en camino, así
@@ -106,7 +106,7 @@ export default function WarehousePage() {
   );
 
   // Lo de sus tiendas, SIN buscar y SIN ventana de fechas: eso lo aplica cada vista por su cuenta
-  // (D-NEXT), con su propio texto de búsqueda. Antes la búsqueda se aplicaba aquí, antes del
+  // (D-390), con su propio texto de búsqueda. Antes la búsqueda se aplicaba aquí, antes del
   // reparto, y por eso una sola barra filtraba la Cola y Recepción a la vez.
   const scoped = useMemo(
     () => (tiendasDeLaCola.length > 0 ? deliveries.filter((d) => atStore(d)) : deliveries),
@@ -170,7 +170,7 @@ export default function WarehousePage() {
     [scoped, colaNormalizada, settings.order_type_rules],
   );
 
-  // Cada lista con SU búsqueda y SU pestaña, por la misma función (D-NEXT). La de Recepción mira
+  // Cada lista con SU búsqueda y SU pestaña, por la misma función (D-390). La de Recepción mira
   // solo `reparto.recepcion`: buscar ahí una orden que está en la Cola no la encuentra, y al revés.
   const cola = useMemo(
     () => filtraLaVistaDeAlmacen(reparto.cola, filtroCola, dentroDeLaVentana),
@@ -243,7 +243,7 @@ export default function WarehousePage() {
         </div>
       </div>
 
-      {/* La misma barra y las mismas pastillas en las dos vistas (D-NEXT), cada una con su estado.
+      {/* La misma barra y las mismas pastillas en las dos vistas (D-390), cada una con su estado.
           El `key` hace que al cambiar de vista React monte otra barra en vez de reutilizar la
           misma caja de texto con el valor de la otra. En Recepción sin tienda elegida no sale:
           ahí no hay lista que filtrar, solo el aviso de que elija una. */}

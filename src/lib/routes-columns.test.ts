@@ -262,7 +262,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("leeColumnas(createClient() as unknown as ClienteDePrefs, me.id, CLAVE_DE_COLUMNAS_DEL_GESTOR)");
     expect(pagina).toContain("if (!me || SIN_BASE || prefsDelGestor.current === null) return;");
     expect(pagina).toContain("const todas: ColumnasPorRol = { ...prefsDelGestor.current, [me.role]: next };");
-    // Desde D-NEXT la fila lleva también las plantillas: se escribe por UN sitio, con las leídas, y marcar una casilla va por él.
+    // Desde D-394 la fila lleva también las plantillas: se escribe por UN sitio, con las leídas, y marcar una casilla va por él.
     expect(pagina).toContain("prefsDelGestor.current = todas; void escribeElGestor();");
     expect(pagina).toContain("const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, {}, {}, plantillasDelGestor.current);");
     expect(pagina.split("guardaColumnas(").length - 1).toBe(1);

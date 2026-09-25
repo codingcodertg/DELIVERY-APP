@@ -226,7 +226,7 @@ export default function RoutesPage() {
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
-  // Las plantillas (D-NEXT): la `ref` es lo leído (lo que se escribe); el estado, lo que pinta el menú.
+  // Las plantillas (D-394): la `ref` es lo leído (lo que se escribe); el estado, lo que pinta el menú.
   const plantillasDelGestor = useRef<PlantillaDeColumnas[]>([]);
   const [plantillasGestor, setPlantillasGestor] = useState<PlantillaDeColumnas[]>([]);
   // El selector, junto a la tabla de paradas y solo con SUS columnas (D-346).
@@ -249,7 +249,7 @@ export default function RoutesPage() {
     });
     return () => { vivo = false; };
   }, [me?.id, me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Las PLANTILLAS del Gestor (D-NEXT), las mismas que en Órdenes: el dueño, «logistic manager needs to have the same
+  // Las PLANTILLAS del Gestor (D-394), las mismas que en Órdenes: el dueño, «logistic manager needs to have the same
   // template as in order view». Van en la misma fila (`routes_columns`), como cuarta mitad; aquí no hay orden ni anchos en
   // la base, así que una plantilla del Gestor es solo QUÉ columnas se ven. Las dos ⚙ (Sin asignar y paradas) comparten la
   // lista de columnas, así que comparten también las plantillas. (La `ref` y el estado, arriba, junto a `prefsDelGestor`.)
@@ -322,7 +322,7 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // El FILTRO de chofer (D-NEXT), distinto de `selected`: aquel resalta y atenúa; este esconde a los demás en la lista de
+  // El FILTRO de chofer (D-393), distinto de `selected`: aquel resalta y atenúa; este esconde a los demás en la lista de
   // choferes, en las tarjetas de «Rutas» y en el mapa. «Todos» es el defecto. Se recuerda por persona en este navegador;
   // lo que manda en cada momento es `filtroChofer` (más abajo), que vuelve a «Todos» si ese chofer ya no está.
   const [filtroGuardado, setFiltroGuardado] = useState<string>(TODOS_LOS_CHOFERES);
@@ -359,7 +359,7 @@ export default function RoutesPage() {
   // (Row drag-and-drop was removed from the Routes tab — stops are reordered
   // with the ↑/↓ arrows, and orders are assigned from the "Assign to…" picker.)
   const [orderSearch, setOrderSearch] = useState("");
-  // «Este día» es el defecto (D-331/D-359); «Todas» es lo sin chofer de cualquier día (D-NEXT).
+  // «Este día» es el defecto (D-331/D-359); «Todas» es lo sin chofer de cualquier día (D-393).
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).
   const [selRouteCache, setSelRouteCache] = useState<Record<string, [number, number][]>>({});
@@ -374,7 +374,7 @@ export default function RoutesPage() {
   // Which panels are collapsed — the unassigned pool ("__unassigned__") and
   // each driver (by name), so a busy board can be folded down to just the
   // one being worked on.
-  // Desde D-NEXT las tarjetas de chofer NACEN plegadas, para todos y siempre (el dueño: «DEFAULT ALL COLLAPSE IN
+  // Desde D-393 las tarjetas de chofer NACEN plegadas, para todos y siempre (el dueño: «DEFAULT ALL COLLAPSE IN
   // ROUTES»). Lo que se guarda aquí son las que la persona ha pulsado en esta visita; nada de esto va al navegador ni a
   // la base. Qué nace cómo lo decide `estaPlegada`.
   const [alternadas, setAlternadas] = useState<Set<string>>(new Set());
@@ -528,7 +528,7 @@ export default function RoutesPage() {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drivers, dayOrders, bucketNames, t]);
-  // El filtro de chofer que manda ahora (D-NEXT): lo guardado si esa ruta sigue en la pantalla; si no, «Todos».
+  // El filtro de chofer que manda ahora (D-393): lo guardado si esa ruta sigue en la pantalla; si no, «Todos».
   const filtroChofer = filtroVigente(filtroGuardado, lanes.map((l) => l.key));
   const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltroDeChofer(filtroChofer, ruta);
   const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
@@ -758,10 +758,10 @@ export default function RoutesPage() {
   };
 
   // Lo del día sin chofer. Es lo que cuentan el resumen, la pestaña, el tablero y «Auto-asignar»: el DÍA, sea cual sea el
-  // chip de la tabla. Hasta D-NEXT el chip «Atrasadas» cambiaba también esta lista, y con él el «Sin programar» del
+  // chip de la tabla. Hasta D-393 el chip «Atrasadas» cambiaba también esta lista, y con él el «Sin programar» del
   // resumen y lo que «Auto-asignar» repartía; con un chip «Todas» de cualquier día, «Programadas» habría salido negativo.
   const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
-  // Las filas de la TABLA «Sin asignar», según su chip (D-359 «Atrasadas», D-NEXT «Todas»), y el número de cada chip,
+  // Las filas de la TABLA «Sin asignar», según su chip (D-359 «Atrasadas», D-393 «Todas»), y el número de cada chip,
   // que sale de la misma función: el número es el de las filas que enseña (patrón de D-380/D-384).
   const filasDelChip = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter), [deliveries, date, modo, poolFilter]);
   const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch), [deliveries, date, modo, orderSearch]);
@@ -816,7 +816,7 @@ export default function RoutesPage() {
     [filasDelChip, selectedOrders],
   );
 
-  // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-NEXT).
+  // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-393).
   const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch), [deliveries, date, modo, poolFilter, orderSearch]);
 
   // Each driver's stops for the day, in their current sequence (optimized
@@ -1208,7 +1208,7 @@ export default function RoutesPage() {
 
   // Assign every checked order to one driver.
   const bulkAssign = async (driver: string) => {
-    // Lo marcado en la TABLA, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-NEXT).
+    // Lo marcado en la TABLA, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-393).
     const ids = filasDelChip.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
     if (!ids.length || !driver) return;
     setAutoAssigning(true);
@@ -1364,7 +1364,7 @@ export default function RoutesPage() {
     // draws on top of the "P" instead of being hidden behind it.
     for (const u of lanes) {
       if (!(byDriver.get(u.key) ?? []).length) continue;
-      // Con un chofer elegido en el filtro (D-NEXT), el mapa enseña solo lo suyo: su base, sus P, sus paradas y sus líneas.
+      // Con un chofer elegido en el filtro (D-393), el mapa enseña solo lo suyo: su base, sus P, sus paradas y sus líneas.
       if (!pasaFiltro(u.key)) continue;
       const addr = (pickupAddressFor(u.key) ?? "").trim();
       const coords = addr ? depotCoords[addr] : undefined;
@@ -1462,7 +1462,7 @@ export default function RoutesPage() {
   // Every optimized driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
   const lines: MapLine[] = useMemo(() => {
-    // Con el filtro de chofer (D-NEXT), solo las líneas de ese chofer.
+    // Con el filtro de chofer (D-393), solo las líneas de ese chofer.
     const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver));
     // Fan the routes out with a small perpendicular offset each, so where two
     // run along the same road they sit side by side rather than on top of
@@ -1580,7 +1580,7 @@ export default function RoutesPage() {
   // Route cards always show every route that has stops, PLUS any lane you've
   // checked (even an empty one you're filling). Checking loads to merge, or
   // focusing a driver on the map, never makes the other routes disappear.
-  // Con el filtro de chofer (D-NEXT), solo la suya.
+  // Con el filtro de chofer (D-393), solo la suya.
   const shownDrivers = lanesDelFiltro.filter((u) => (byDriver.get(u.key) ?? []).length > 0 || selected.has(u.key));
   // Simulating an add targets a driver, so it needs exactly one selected.
   const singleSel = selected.size === 1 ? [...selected][0] : null;
@@ -1591,7 +1591,7 @@ export default function RoutesPage() {
       <div className="page-head">
         <h2>{t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Con qué chofer se trabaja (D-NEXT). «Todos» es el defecto; se recuerda por persona. */}
+          {/* Con qué chofer se trabaja (D-393). «Todos» es el defecto; se recuerda por persona. */}
           <select
             aria-label={t("Driver to work with", "Chofer con el que trabajar")}
             title={t("Show only this driver's card, routes and map — remembered for you", "Ver solo la tarjeta, las rutas y el mapa de este chofer — se recuerda para usted")}
@@ -1953,7 +1953,7 @@ export default function RoutesPage() {
             titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
             plantillas={propsDePlantillas}
           />
-          {/* Chips de «Sin asignar» (D-NEXT): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
+          {/* Chips de «Sin asignar» (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
               lleva su número, que sale de la misma función que sus filas. */}
           {(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (
             <button

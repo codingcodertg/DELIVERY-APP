@@ -51,7 +51,7 @@ export function paradasDelChofer<T extends Orden & Pick<Delivery, "assigned_driv
 }
 
 /**
- * Los chips de «Sin asignar» (D-NEXT). El dueño, el 2026-09-25: *«UNASSIGNED ALL also button in routes manager for that
+ * Los chips de «Sin asignar» (D-393). El dueño, el 2026-09-25: *«UNASSIGNED ALL also button in routes manager for that
  * day»*. Hasta aquí el chip «Todas» enseñaba lo del DÍA —era «todas las de este día», no «todas»—, y lo sin chofer de
  * otro día solo salía por «Atrasadas» (lo vencido) o saliendo del día con «🗓 Todas» arriba, que cambia TODA la pantalla.
  * Ahora hay dos: **«Este día»** (el defecto de D-331/D-359, que era el antiguo «Todas») y **«Todas»**, que enseña lo sin

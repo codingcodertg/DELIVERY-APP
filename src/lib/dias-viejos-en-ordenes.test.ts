@@ -10,7 +10,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation, UserRole } from "./types";
 
 /**
- * D-NEXT. El dueño, 2026-09-25: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
+ * D-392. El dueño, 2026-09-25: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
  *
  * En Órdenes, quien no es admin ni logística no ve **nada** con fecha anterior a ayer: ni la atrasada
  * abierta (que D-384 le daba en «Outdated»), ni lo que encuentre buscando. La pastilla «Outdated» no le
