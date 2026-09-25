@@ -28248,7 +28248,8 @@ aprobada: sus caminos son crear y enviar, que ya estaban cerrados. Capturas del 
 carpeta del worker (`despues-casoNN-aviso1.png`; las del código de `main`, `antes-<caso>-<rol>.png`, tomadas después
 de que el aviso se fuera).
 
-`node scripts/verify.mjs` en el worktree: ver el informe de la rama.
+`node scripts/verify.mjs` en el worktree, rebasado sobre `main` con D-398: **4387 pasadas y 3 saltadas** (las de
+siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 
 ### Lo NO verificado
 
