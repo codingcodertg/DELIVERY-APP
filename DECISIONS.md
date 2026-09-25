@@ -25477,9 +25477,9 @@ desplazamiento vertical propio** — quien baja es la página (2742 px con 86 fi
 pantalla» son otras dos cosas: que la **caja** se desplace de lado en vez de la página, y la **cabecera pegada**. Hacer más que
 la referencia habría sido darle otra cosa a quien pidió «el estilo de la tabla de Órdenes».
 
-> **Reemplazada en parte por D-NEXT (2026-09-25).** La **cabecera pegada** de este párrafo no lo estaba: el `th` era
+> **Reemplazada en parte por D-398 (2026-09-25).** La **cabecera pegada** de este párrafo no lo estaba: el `th` era
 > `sticky`, pero se pegaba a la caja, que sin alto nunca se desplazaba en vertical, así que al bajar la página se iba con
-> ella (medido en el demo a 1280 con 85 filas: la cabecera en **−1226 px** tras bajar 1500). D-NEXT le da alto a la caja
+> ella (medido en el demo a 1280 con 85 filas: la cabecera en **−1226 px** tras bajar 1500). D-398 le da alto a la caja
 > de Órdenes (`tbl-caja`) y una barra de desplazamiento encima de la cabecera; esta tabla las lleva porque las lleva
 > Órdenes, que es la regla de aquí y no cambia. Lo que cambia es «no se le pone alto propio».
 
@@ -27982,7 +27982,7 @@ identidad del «Ver como» del demo.
   y eso no es de esta rama.
 - **El aviso de ubicación del navegador** al recoger, en una sesión real de oficina: no visto (en headless no hay).
 
-## D-NEXT · Cabeceras bloqueadas y barra de desplazamiento encima de la cabecera, en las tablas de Órdenes, Almacén, Promos y el Gestor de Rutas
+## D-398 · Cabeceras bloqueadas y barra de desplazamiento encima de la cabecera, en las tablas de Órdenes, Almacén, Promos y el Gestor de Rutas
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas y Promos) · **Sin migración.**
 **Pedido por:** Juan Briseño (Office Manager), transmitido por el dueño, literal: *«Need headers to be locked and have the

@@ -341,9 +341,9 @@ describe("la tabla es LA DE ÓRDENES, no una que se le parece", () => {
     expect(tabla).toContain("data-label={lang === \"es\" ? c.es : c.en}");
   });
 
-  it("el alto de la caja es el de Órdenes: la misma clase `tbl-caja` y ninguno propio (D-NEXT)", () => {
+  it("el alto de la caja es el de Órdenes: la misma clase `tbl-caja` y ninguno propio (D-398)", () => {
     // Esta prueba decía «NO se le pone alto propio: la de Órdenes tampoco lo tiene» (D-370). La regla de
-    // fondo sigue: lo que tenga Órdenes, eso tiene esta. Lo que cambió es Órdenes: D-NEXT le dio alto
+    // fondo sigue: lo que tenga Órdenes, eso tiene esta. Lo que cambió es Órdenes: D-398 le dio alto
     // (`tbl-caja`) porque la «cabecera pegada» de aquella medida en realidad se iba con la página.
     // Se mira la CAJA de la tabla, no el fichero entero: el menú de ⚙ Columnas sí lleva su
     // `maxHeight`, y prohibirlo en todo el fichero habría sido una prueba que no dice lo que cree.

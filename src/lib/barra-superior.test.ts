@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { altoMaximoDeCaja, anchoDelRelleno, hayQueMostrarBarra, scrollQueToca, type Carril } from "./barra-superior";
 
 /**
- * Cabecera bloqueada y barra de arriba (D-NEXT). Pedido de Juan Briseño (Office Manager), 2026-09-25:
+ * Cabecera bloqueada y barra de arriba (D-398). Pedido de Juan Briseño (Office Manager), 2026-09-25:
  * «Need headers to be locked and have the scroll bar on top of headers in the tables».
  *
  * vitest corre sin DOM: la lógica va en funciones puras (arriba) y que las pantallas la usan se comprueba

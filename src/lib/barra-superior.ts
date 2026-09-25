@@ -1,5 +1,5 @@
 /**
- * La barra de desplazamiento de ARRIBA de las tablas (D-NEXT).
+ * La barra de desplazamiento de ARRIBA de las tablas (D-398).
  *
  * Pedido de Juan Briseño (Office Manager), 2026-09-25: «Need headers to be locked and have the scroll bar on
  * top of headers in the tables». La barra de abajo de la caja queda lejos —debajo de la última fila visible—, y

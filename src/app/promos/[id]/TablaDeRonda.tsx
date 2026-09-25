@@ -209,7 +209,7 @@ export function TablaDeRonda({
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275), como en Órdenes.
   const [showCols, setShowCols] = useState(false);
   const colsRef = useRef<HTMLDivElement>(null);
-  // La caja de la tabla, que mueve también la barra de arriba (D-NEXT), como en Órdenes.
+  // La caja de la tabla, que mueve también la barra de arriba (D-398), como en Órdenes.
   const cajaRef = useRef<HTMLDivElement>(null);
   useCierraAlSalir(showCols, () => setShowCols(false), () => [colsRef.current]);
 
@@ -453,7 +453,7 @@ export function TablaDeRonda({
           —quien baja es la pagina— y lo que da la sensacion de «cabe en una pantalla» es no
           salirse de LADO (la caja se desplaza sola) mas la cabecera pegada. Acotarle el alto seria
           hacer mas que la referencia, y el dueno pidio el estilo de Ordenes.
-          CAMBIADO por D-NEXT, y sigue siendo la misma regla: «como Ordenes». Esa medida decia que la
+          CAMBIADO por D-398, y sigue siendo la misma regla: «como Ordenes». Esa medida decia que la
           cabecera estaba pegada, y no lo estaba (se iba con la pagina). Ahora Ordenes lleva alto propio
           (`tbl-caja`) y la barra de arriba, y esta tabla las lleva porque las lleva la referencia. */}
       <BarraSuperior caja={cajaRef} />

@@ -325,7 +325,7 @@ table.tbl-resize { table-layout: fixed; min-width: 100%; width: auto; }
    ficheros y cuyas sombras de desplazamiento dependen de su fondo. */
 .tbl-scroll.tbl-fit { width: auto; max-width: 100%; }
 
-/* Cabecera bloqueada y barra de arriba (D-NEXT). Pedido: «Need headers to be locked and have the scroll bar
+/* Cabecera bloqueada y barra de arriba (D-398). Pedido: «Need headers to be locked and have the scroll bar
    on top of headers in the tables».
    ---------------------------------------------------------------------------
    El `th` ya era `sticky` con el borde de arriba en 0 (regla de abajo), pero NO se quedaba: un `sticky` se pega al
@@ -1097,7 +1097,7 @@ table.orders th { text-align: left; }
 /* ---- Orders table → stacked cards on phones (no horizontal scroll) ---- */
 @media (max-width: 640px) {
   .orders-scroll { overflow-x: visible; border: none; background: none; }
-  /* En el teléfono la caja NO lleva alto propio (D-NEXT): las tarjetas se apilan y baja la página,
+  /* En el teléfono la caja NO lleva alto propio (D-398): las tarjetas se apilan y baja la página,
      como siempre. Un alto aquí metería una caja con desplazamiento dentro de otra en una pantalla
      de 390 px, y las tarjetas no tienen cabecera que bloquear. `!important` porque el Gestor de Rutas
      pone el alto en línea (lo acorta al hueco bajo su mapa, `altoMaximoDeCaja`), y aquí manda el teléfono. */

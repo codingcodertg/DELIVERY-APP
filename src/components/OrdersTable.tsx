@@ -405,7 +405,7 @@ export function OrdersTable({
   // "inside" the open menu, so clicking it again closes the menu instead of reopening it.
   const celdaRefs = useRef(new Map<string, HTMLDivElement>());
   const menuRef = useRef<HTMLDivElement>(null);
-  // La caja de la tabla: la mueve también la barra de arriba (D-NEXT).
+  // La caja de la tabla: la mueve también la barra de arriba (D-398).
   const cajaRef = useRef<HTMLDivElement>(null);
 
   const cols = useMemo(() => {
@@ -523,7 +523,7 @@ export function OrdersTable({
         >✕ {t("Clear filters", "Limpiar filtros")}</button>
       </div>
     )}
-    {/* Cabecera bloqueada y barra de arriba (D-NEXT): la caja lleva alto propio (`tbl-caja`) para que el
+    {/* Cabecera bloqueada y barra de arriba (D-398): la caja lleva alto propio (`tbl-caja`) para que el
         `sticky` del `th` tenga contra qué pegarse, y la barra de encima la mueve a lo ancho. Las dos van
         en un envoltorio porque Almacén pone la tabla en una rejilla con `gap`, que las separaba 10 px. */}
     <div className="tbl-con-barra">

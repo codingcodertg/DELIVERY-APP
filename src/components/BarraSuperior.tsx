@@ -18,7 +18,7 @@ export function useCajasPorClave() {
 }
 
 /**
- * La barra de desplazamiento horizontal que va ENCIMA de la cabecera de una tabla (D-NEXT).
+ * La barra de desplazamiento horizontal que va ENCIMA de la cabecera de una tabla (D-398).
  *
  * Se pone justo antes de la caja (`<div className="tbl-scroll … tbl-caja" ref={caja}>`) y mueve esa caja a lo
  * ancho; la barra de abajo de la caja sigue ahí y las dos se siguen en los dos sentidos. Solo existe cuando la
