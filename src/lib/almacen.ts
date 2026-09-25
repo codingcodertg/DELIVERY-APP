@@ -107,3 +107,62 @@ export function reparteLaColaDeAlmacen<T extends Pick<Partial<Delivery>, "store"
   }
   return { cola, recepcion, sinDestino };
 }
+
+/**
+ * Lo que tiene cada vista de almacén: su texto de búsqueda y su pestaña de etapa.
+ *
+ * El dueño, el 2026-09-25: *«THE SAME FILTERS AND SEARCH BAR MOVE IT INTO RECEIVING WAREHOUSE»*.
+ * Recepción tiene los **mismos** filtros que la Cola, y por eso es la misma función y el mismo
+ * componente (`components/FiltrosDeAlmacen.tsx`), no una copia: si mañana la búsqueda mira otro
+ * campo, lo mira en las dos.
+ *
+ * **Cada vista guarda el suyo.** Buscar una factura en Recepción no debe dejar la Cola filtrada por
+ * esa factura al volver. Antes pasaba algo parecido al revés: la búsqueda de la Cola se aplicaba
+ * ANTES del reparto, así que vaciaba también Recepción —y su contador— sin que Recepción tuviera
+ * barra donde verlo.
+ */
+export interface FiltroDeVista {
+  /** Lo que se teclea en la barra: se busca en el número de factura. */
+  q: string;
+  /** La pestaña de etapa, o `all`. */
+  tab: string;
+}
+
+export interface VistaFiltrada<T> {
+  /** Las que pasan la búsqueda (o la ventana de fechas si no se busca), en todas las etapas. */
+  visibles: T[];
+  /** Cuántas de `visibles` hay en cada etapa: lo que dice cada pastilla. */
+  cuentas: Record<string, number>;
+  /** Las filas de la tabla: `visibles` en la pestaña elegida. */
+  filas: T[];
+}
+
+/**
+ * Busca y filtra UNA lista de almacén —la Cola o Recepción— sin mirar la otra.
+ *
+ * - **Buscando**, se compara con el número de factura y **se salta la ventana de fechas**: es el
+ *   único camino al historial en esta pantalla (D-239, D-374), y en Recepción vale lo mismo.
+ * - **Sin buscar**, pasa solo lo que está dentro de la ventana. Quién la tiene lo decide quien
+ *   llama (`dentroDeLaVentana`), porque depende del rol REAL y de los permisos.
+ * - **«Todas»** ordena de la más nueva a la más vieja; una etapa conserva el orden de llegada.
+ *   Es lo que la Cola hacía antes de salir de la pantalla, sin cambiar nada.
+ *
+ * Las cuentas y las filas salen de la misma `visibles`: la pastilla y la tabla no pueden decir
+ * cosas distintas.
+ */
+export function filtraLaVistaDeAlmacen<T extends Pick<Delivery, "stage" | "invoice_num" | "order_no">>(
+  lista: readonly T[],
+  filtro: FiltroDeVista,
+  dentroDeLaVentana: (d: T) => boolean,
+): VistaFiltrada<T> {
+  const needle = filtro.q.trim().toLowerCase();
+  const visibles = lista.filter((d) => (needle
+    ? (d.invoice_num || "").toLowerCase().includes(needle)
+    : dentroDeLaVentana(d)));
+  const cuentas: Record<string, number> = {};
+  for (const d of visibles) cuentas[d.stage] = (cuentas[d.stage] ?? 0) + 1;
+  const filas = filtro.tab === "all"
+    ? [...visibles].sort((a, b) => b.order_no - a.order_no)
+    : visibles.filter((d) => d.stage === filtro.tab);
+  return { visibles, cuentas, filas };
+}

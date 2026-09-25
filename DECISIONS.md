@@ -27099,3 +27099,65 @@ Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el com
 que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
+
+## D-NEXT · Recepción del almacén estrena la barra de búsqueda y las pastillas de la Cola, cada una con su estado
+
+**Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+
+El dueño, el 2026-09-25: *«THE SAME FILTERS AND SEARCH BAR MOVE IT INTO RECEIVING WAREHOUSE»*.
+
+**Qué había.** La vista «📥 Recepción» de almacén (D-374) era una tabla pelada: todas las Intertiendas
+que entran a sus tiendas, sin buscador y sin pastillas de etapa. La barra de búsqueda por factura y las
+pastillas (Aprobado, Preparando, Listo, En reparto, Entregado, Todas) solo existían en la Cola, escritas
+a mano dentro de `warehouse/page.tsx`.
+
+**Y un fallo escondido que esto destapó.** La búsqueda de la Cola se aplicaba **antes** del reparto
+Cola/Recepción, así que teclear una factura en la Cola vaciaba también Recepción —y su contador en la
+pestaña— sin que Recepción tuviera barra donde verlo. Medido en el demo con el código de `main`: con
+«INV-30» en la Cola, la pestaña pasaba de «Receiving 2» a «Receiving 0».
+
+### Qué cambia
+
+- **Una función y un componente, no una copia.** `filtraLaVistaDeAlmacen` (`lib/almacen.ts`) hace lo que
+  la Cola hacía en la página: buscando, compara con la factura sin distinguir mayúsculas y **se salta la
+  ventana de fechas** (el camino al historial, D-239); sin buscar, aplica la ventana; «Todas» ordena de la
+  más nueva a la más vieja; cuentas y filas salen de la misma lista. `components/FiltrosDeAlmacen.tsx`
+  pinta la barra y las pastillas, sin estado propio. La Cola y Recepción usan las dos piezas.
+- **Cada vista busca en sus órdenes.** Recepción filtra `reparto.recepcion` y la Cola `reparto.cola`:
+  buscar en Recepción una factura que está en la Cola no la encuentra, y al revés.
+- **Cada vista guarda su texto y su pestaña.** Lo prefería el dueño y es lo que evita el fallo de arriba
+  al revés: buscar en Recepción no deja la Cola filtrada al volver. Elegido por el orquestador en el
+  encargo («mi preferencia: cada una el suyo»); se descartó compartir el estado por eso mismo.
+- **Recepción arranca en «Todas», no en «Aprobado».** Decisión del worker, pendiente de validar: es lo
+  que Recepción enseñaba antes de tener pastillas, y lo que llega de otra tienda suele venir ya
+  preparado o en camino, así que arrancar en «Aprobado» la dejaría casi vacía a primera vista.
+- El **contador de la pestaña Recepción** cuenta lo que Recepción enseña con su búsqueda, en todas las
+  etapas (lo que dice su pastilla «Todas»). El **aviso de Intertiendas sin destino** de la Cola cuenta
+  las que la Cola enseña con su búsqueda, como antes.
+- En Recepción **sin tienda elegida** (un admin con «Todas las tiendas») la barra no sale: no hay lista
+  que filtrar, solo el aviso de que elija una.
+
+### Medido
+
+En el demo (2026-09-25, 1280×900, como almacén de McAllen, con tres Intertiendas sembradas que entran
+desde Edinburg: #1901 aprobada REC-7001, #1902 lista REC-7002, #1903 entregada el 2026-08-01 REC-6999,
+fuera de la ventana):
+
+| Recepción | filas | pastilla «Todas» / pestaña |
+|---|---|---|
+| búsqueda vacía | 2 (#1902, #1901) | 2 / 2 |
+| «REC-7002» (está en Recepción) | 1 (#1902) | 1 / 1 |
+| «rec-6999» (vieja, fuera de ventana) | 1 (#1903) | 1 / 1 |
+| «INV-3006» (la #1008, está en la Cola) | 0 | 0 / 0 |
+| Aprobado · Preparando · Listo · En reparto · Entregado | 1 · 0 · 1 · 0 · 0 | 2 |
+
+Cada vista con su estado: Recepción con «REC» + Listo, la Cola con «INV-3006» + Aprobado; al ir y volver
+cada una conserva lo suyo (1 fila cada una). **La Cola sigue igual**: los mismos nueve estados (entrar,
+las seis pastillas, dos búsquedas) medidos con `main` y con la rama dan cabecera, cuentas de las
+pastillas y órdenes idénticas, 0 diferencias. Sin desplazamiento lateral: `scrollWidth` 1280 en las tres
+vistas.
+
+**Mutantes: 20 de 20 caen con una prueba con nombre** (dos tandas, 17 + 3) (`almacen.test.ts`, más `history-window` y
+`tiendas-que-trabajan-juntas`): entre ellos, que Recepción use el filtro de la Cola, que busque sobre
+`reparto.cola`, que se quede sin barra, que la búsqueda vuelva a aplicarse antes del reparto, y que la
+búsqueda deje de saltarse la ventana.
