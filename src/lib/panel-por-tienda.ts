@@ -5,7 +5,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { tiendasDelGrupo } from "@/lib/store-group";
 
 /**
- * De qué tiendas son las cifras del Panel (D-NEXT).
+ * De qué tiendas son las cifras del Panel (D-396).
  *
  * El dueño, 2026-09-25: *«Juan Briseno (Office Manager) — the Dashboard tab should only contain data
  * of their own store, not all stores!!»*. El Panel pintaba **todas** las órdenes que traía el

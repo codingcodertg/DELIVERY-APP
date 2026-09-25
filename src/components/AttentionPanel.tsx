@@ -27,7 +27,7 @@ const STYLE: Record<AttentionKind, { icon: string; color: string; bg: string }> 
 };
 
 /**
- * `deliveries` lo pasa quien lo monta, ya acotado (D-NEXT): el Panel le da solo las órdenes de las tiendas
+ * `deliveries` lo pasa quien lo monta, ya acotado (D-396): el Panel le da solo las órdenes de las tiendas
  * de quien mira. Antes leía `useData().deliveries` por su cuenta y le enseñaba al gerente las de la empresa.
  */
 export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[]; onOpen?: (d: Delivery) => void }) {

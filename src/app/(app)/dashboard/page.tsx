@@ -72,7 +72,7 @@ export default function DashboardPage() {
     }
   };
 
-  // De qué tiendas son las cifras (D-NEXT): el gerente, las suyas y las de su grupo; admin y logística,
+  // De qué tiendas son las cifras (D-396): el gerente, las suyas y las de su grupo; admin y logística,
   // todas. TODO lo de abajo bebe de `delPanel`, nunca de `deliveries` a secas: una sola tarjeta que
   // leyera la lista entera volvería a enseñarle la empresa al gerente.
   const alcance = useMemo(() => alcanceDelPanel(me, settings.stores), [me, settings.stores]);

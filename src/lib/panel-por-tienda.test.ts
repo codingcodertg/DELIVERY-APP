@@ -5,7 +5,7 @@ import type { OrderTypeRules } from "./required";
 import type { NamedLocation } from "./types";
 
 /**
- * El Panel enseña solo las tiendas de quien mira (D-NEXT).
+ * El Panel enseña solo las tiendas de quien mira (D-396).
  *
  * El dueño: «the Dashboard tab should only contain data of their own store, not all stores!!». Las
  * tiendas se llaman Norte, Sur y Oeste: los nombres reales son datos del dueño y viven en Ajustes.

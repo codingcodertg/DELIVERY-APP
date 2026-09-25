@@ -27765,7 +27765,7 @@ está elegido: lo pulsado si sigue entre las opciones; si no, el del filtro; si 
 - **En el teléfono, el mapa `sticky` (de antes de este cambio) tapa casi toda la ventana** y hubo que pulsar «Ocultar mapa
   y choferes» para llegar a la tabla. No se tocó: es de la pantalla entera, no del recuadro, y no se pidió.
 
-## D-NEXT · El Panel del gerente enseña solo su tienda y las de su grupo
+## D-396 · El Panel del gerente enseña solo su tienda y las de su grupo
 
 **Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«Juan Briseno (Office Manager) — the Dashboard tab should only contain data of their
