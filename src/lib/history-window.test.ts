@@ -119,7 +119,9 @@ describe("las cinco pantallas preguntan lo mismo", () => {
     expect(tablero).toContain("const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);");
     expect(tablero).toContain("veTodoElHistorial,");
     expect(tablero).not.toMatch(/seesAllHistory\(me\?\.role\)/);
-    expect(sinComentarios(leer("src/lib/ordenes-visibles.ts"))).toContain("withinRetention(d)");
+    // D-NEXT: Órdenes dejó `withinRetention` por `enLaVentanaDeOrdenes` —el mismo suelo, sin la
+    // puerta de la atrasada abierta—; chofer y almacén, arriba, siguen con `withinRetention`.
+    expect(sinComentarios(leer("src/lib/ordenes-visibles.ts"))).toContain("return enLaVentanaDeOrdenes(d);");
   });
 
   it("el tablero ya no tiene una lista de roles «cercanos»", () => {

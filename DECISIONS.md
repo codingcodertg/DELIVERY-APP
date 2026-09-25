@@ -13133,6 +13133,11 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Endurecida en Órdenes por D-NEXT** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
+> entero (*«every one of these screens lets an invoice search reach into older history»*). En la pantalla de
+> **Órdenes** ya no: quien no es admin ni logística no encuentra buscando nada anterior a ayer. La Cola de almacén y
+> la pantalla del chofer no cambian.
+
 > **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
 > historial entero; la tienda la sigue cortando la 131.
 
@@ -24343,6 +24348,11 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25), solo en **Órdenes** y solo para quien no es admin ni
+> logística: la vencida abierta de antes de ayer ya **no la ven**, ni en la lista, ni en «Outdated», ni
+> buscándola. El dueño: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*. Para admin y logística sigue
+> como la dejó D-384. `withinRecent` no se tocó.
+
 > **⚠ Reemplazada en parte por D-384** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
 > ayer ya no sale en la lista normal sino en su propia pastilla, «Outdated / Atrasadas», con su número a la vista.
 > Lo pidió el dueño sabiendo que esto decía lo contrario. `withinRecent` no se tocó y sigue dejándola pasar; lo que
@@ -25867,6 +25877,12 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25), solo en la pantalla de **Órdenes**: la ventana deja de
+> dejar pasar la atrasada abierta, y buscar deja de llegar al historial, para todos menos admin y logística.
+> *«ayer, hoy, futuro y atrasadas»* pasa a ser, en Órdenes, *ayer, hoy y futuro*. `withinRetention` no se tocó: la
+> **Cola de almacén** y la **pantalla del chofer** siguen enseñando las atrasadas abiertas como aquí se decidió.
+> El calendario que se le quitó a almacén no cambia.
+
 > **⚠ Reemplazada en parte por D-384** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
 > ventana de abajo sigue dejándolas pasar (`withinRetention` no cambió), pero Órdenes las saca de su lista normal y
 > las pone en la pastilla «Outdated / Atrasadas». La Cola de almacén y la pantalla del chofer, que usan la misma
@@ -26724,6 +26740,12 @@ comportamiento de D-286.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): «vale **para todos los roles**» ya no. La pastilla
+> «Outdated» es solo de admin y logística (y de quien tenga `history` marcado en Usuarios); a los demás no les
+> sale, ni con 0, porque ya no ven nada anterior a ayer. Tampoco la excepción de la búsqueda que abajo se
+> llama «decisión mía»: para esos roles, buscar tampoco trae nada anterior a ayer. Para admin y logística todo
+> sigue como aquí se escribió.
+
 **Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«make a filter name outdated and put the old order there»*. Preguntado, precisó:
 dentro van las órdenes **atrasadas y abiertas** —fecha de entrega anterior a ayer, ni entregadas ni anuladas—; **salen
@@ -27099,3 +27121,128 @@ Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el com
 que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
+
+## D-NEXT · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
+
+**Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido por el dueño**, literal: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
+
+**Revierte en parte D-384, D-351 y D-374, y endurece D-239**, solo en la pantalla de **Órdenes**. Las cuatro llevan
+su nota. D-384 le había dado a **todos** los roles la pastilla «Outdated / Atrasadas» (las atrasadas abiertas de
+anteayer para atrás), y la búsqueda dejaba ver lo viejo a todos. Las tres anteriores tenían la misma idea: una vencida
+abierta es trabajo vivo y esconderla es perderla. El dueño ahora quiere lo contrario para todos menos admin y logística.
+
+### Qué cambia
+
+Para `manager`, `accounting` (office), `sales`, `warehouse` y `driver`, en Órdenes:
+
+- **Nada con fecha anterior a ayer**, ni en la lista, ni con el chip «Todas», ni en el tablero. La regla es una
+  función nueva, `enLaVentanaDeOrdenes` (`src/lib/ordenes-visibles.ts`): fecha ≥ ayer (`retentionFloorISO`), y sin
+  fecha siempre, porque se está programando.
+- **Buscar tampoco trae nada anterior a ayer.** Desde D-239, buscar era «el camino al historial». Ya no, para estos
+  roles. El tope de 30 días que tenía ventas (`sueloDeVentas`) ya no decidía nada con el suelo en ayer, y **se quitó**
+  de `ContextoDeLista` y de la pantalla, para que nadie crea que sigue mirándose.
+- **No les sale la pastilla «Outdated»**, tampoco con 0. D-384 la dejaba siempre visible «para saber dónde buscar»;
+  para quien no puede ver nada de lo que tendría dentro, sería una pastilla que siempre dice 0. Lo decide
+  `pastillasDeOrdenes` con un argumento nuevo, `veDiasViejos`, que la pantalla llena con **la misma pregunta que corta
+  la lista**: `veTodoElHistorial = seesAllHistory(realRole, me?.permissions)`.
+
+Admin y logística quedan **exactamente como en D-384**: lista con las entregadas viejas, atrasadas abiertas en
+«Outdated», búsqueda en todo el historial.
+
+**Quién cuenta como «ve días viejos».** Es `seesAllHistory`, igual que desde D-239: admin y logística de fábrica,
+**más quien tenga la casilla `history` marcada a mano en Usuarios** (D-350). No se quitó esa capacidad suelta. El
+dueño dijo «solo logística y admin», pero la casilla es la forma en que un admin se lo da a una persona concreta a
+propósito. Hoy nadie fuera de esos dos roles la tiene de fábrica. Y cuenta el rol **real**: un admin que mira «como»
+office sigue viéndolo todo (D-239).
+
+### Qué se quedó en pie a sabiendas: la pestaña «Factura pendiente» (D-313)
+
+Office sigue viendo en **«Factura pendiente»** una orden entregada hace un mes a la que le falta la factura. Es la
+exención de D-313, que pidió el propio dueño: *«invoice pending must be visible for office too»*. Esas órdenes están
+casi todas entregadas y son viejas, así que quitar la exención dejaría la pestaña a 0 para office, que es el fallo que
+D-313 arregló. **Choca con la letra del pedido de hoy** («nada anterior a ayer»), y por eso se escribe aquí y no se
+decide en silencio. Si el dueño quiere quitarla también, es la línea
+`if (pendientesEntran && facturaPendiente(d, reglas)) return true;` de `pasaLaVentana`, y el mutante que la borra
+tumba cinco pruebas con nombre.
+
+### Qué pantallas siguen viendo días viejos (no se tocaron)
+
+`withinRetention` **no cambió**: sigue dejando pasar la atrasada abierta, tenga la fecha que tenga. La usan:
+
+- la **Cola de almacén** (`warehouse/page.tsx`), y
+- la **pantalla del chofer** (`driver/page.tsx`).
+
+Las dos siguen enseñando atrasadas abiertas de cualquier día, como decidió D-374. Tampoco cambian el **Gestor de
+rutas** (su chip «Atrasadas», D-359), la **Ruta del día** y las hojas de carga, **Cuentas** (libro por cliente, D-239),
+el **Panel**, ni **Mapa** y **Recorrido**, que ya tenían el selector acotado a ayer para quien no está exento.
+Tampoco se tocó el enlace `/?order=<id>` de un aviso: abre la ficha de esa orden aunque sea vieja. Eso es abrir una
+orden concreta desde una notificación, no listar.
+
+### El segundo pedido del mismo día, sin hacer: el calendario de office
+
+*«OFFICE CAN SEE CALENDAR AND THAT DOESN'T WORK»*. Preguntado, el dueño dijo «Quitárselo». **No se quitó nada**,
+porque no apareció un calendario de office que se pudiera quitar sin romper otra cosa. Medido en el demo el
+2026-09-25, como office:
+
+- En la pantalla de Órdenes, **0** `input[type=date]` y ningún 📅 visible. La barra de selección, que es donde
+  gerente, admin y logística tienen «📅 Fijar fecha» en bloque, no le sale a office: no tiene casillas.
+  El menú de la columna «Fecha entrega» es una lista de valores, no un calendario.
+- Office solo tiene la pestaña Órdenes. Mapa, Panel, Recorrido, Almacén y Gestor no son suyos.
+- **El único calendario al que llega es el campo «Fecha de entrega» de la ficha**, al crear o editar una orden.
+  Es un campo obligatorio para crear, y office crea órdenes desde D-279/D-295. Quitárselo impediría que office
+  creara órdenes. La base sí le deja cambiar la fecha (`guard_delivery_stage`, 142: `manager` y `accounting`
+  editan en la misma etapa), así que «no funciona» no se explica por un rechazo de la base.
+
+Hace falta saber **cuál** vio el dueño, idealmente con una captura. Hay dos candidatos que no se pueden medir desde
+aquí: la pantalla de Almacén con su 📅, si a alguien de office se le marcó `fulfill` a mano (el calendario solo se le
+quita a quien es de rol almacén, D-374), y el Calendario de Recruiting, que es otra app.
+
+El gerente, para comparar (no se le quitó nada): el mismo campo de la ficha; «📅 Fijar fecha» en la barra de
+selección de Órdenes (medido: **1** calendario al marcar una fila); el selector de día del **Mapa**, con suelo en ayer;
+y el rango de fechas del **Panel**.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4193 pasados | 3 saltados** (los 3 de
+  `pdf.test.ts`).
+- Prueba nueva, `dias-viejos-en-ordenes.test.ts`. Recorre `ROLE_INFO`, así que un rol nuevo cae del lado que no ve días
+  viejos. Por cada rol sin días viejos comprueba: la lista, «Outdated» vacía, la búsqueda de una orden de hace 10 días,
+  y un control con la de ayer. Comprueba también admin y logística como en D-384, el rol real frente a «ver como», la
+  pastilla, y que la pantalla llama a todo esto. `atrasadas.test.ts` pasa a tener logística como persona de partida.
+  `ordenes-visibles.test.ts` rehízo el bloque del tope de 30 días de ventas, con la nota de por qué.
+- **Mutantes: 9, los 9 caen**, leídos por nombre:
+  - Órdenes vuelve a dejar pasar la atrasada abierta vieja: caen las de cada rol, *«…: ni en la lista, ni en «Outdated»»*.
+  - Buscando vuelve a abrir el historial: caen las cinco *«…: buscando la factura de una orden de hace 10 días, no la
+    encuentra»* y *«ventas no encuentra ni lo de hace 50 días ni lo de hace 20…»*.
+  - El suelo baja a anteayer: cae *«anteayer no, ayer sí»*.
+  - Sin fecha deja de salir: cae *«hoy, mañana y sin fecha, sí»*.
+  - Admin y logística pierden los días viejos: caen quince, entre ellas *«admin: buscando, encuentra la de hace 10
+    días»*.
+  - Se cae la exención de D-313: caen cinco, entre ellas *«…pero no tapa la pestaña… (D-313 sigue)»*.
+  - La pastilla vuelve a salir para todos: cae *«y NO para los demás: no una pastilla con 0, ninguna»*.
+  - La pantalla pasa `veDiasViejos: true`: cae *«le dice a la fila de pastillas si la persona ve días viejos…»*.
+  - La pantalla usa el rol de «ver como»: caen dos de texto.
+- **En el navegador, 2026-09-25, demo local** (`next dev`, sin base). Se sembraron dos órdenes de hace 10 días en
+  McAllen, de ventas: una **Programada** y una **Entregada**. El demo trae además otras cuatro anteriores a ayer.
+  Con los dos chips abiertos (pastilla «Todas» y fecha «Todas»):
+
+  | rol | filas | anteriores a ayer en la lista | «Outdated» | buscar la de hace 10 días | calendarios en la página / con una fila marcada |
+  |---|---|---|---|---|---|
+  | Admin | 89 | 4 (entregadas viejas) | 2 (2 filas dentro) | la encuentra | 0 / 1 |
+  | Logística | 89 | 4 | 2 (2 filas dentro) | la encuentra | 0 / 1 |
+  | Office | 85 | 0 | no sale | 0 filas | 0 / sin casillas |
+  | Gerente | 85 | 0 | no sale | 0 filas | 0 / 1 |
+  | Ventas | 83 | 0 | no sale | 0 filas | 0 / sin casillas |
+  | Almacén (McAllen) | 14 | 0 | no sale | 0 filas | 0 / sin casillas |
+
+  **Control del buscador:** la misma búsqueda con la factura de una orden de mañana da 1 fila en los seis roles, así que
+  el 0 es la fecha y no un buscador roto. Ninguna página se desplaza de lado. Para comparar, D-384 midió el
+  2026-09-24 «Outdated» 2/2 para office y ventas y 1/1 para almacén, y la búsqueda sí la encontraba.
+
+### Lo no verificado
+
+- **Nada contra producción.** No se contó cuántas órdenes anteriores a ayer dejan de ver hoy office, ventas y gerente.
+- El chofer no se midió en el navegador: no tiene pestaña de Órdenes y su pantalla (`/driver`) no cambia. Las pruebas
+  lo cubren en Órdenes, porque recorren todos los roles.
+- El calendario de office: ver arriba. Queda pendiente de saber cuál era.
