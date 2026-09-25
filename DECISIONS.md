@@ -27460,6 +27460,10 @@ se calcula como `día − sin asignar`. Con un chip «Todas» de cualquier día,
 «Auto-asignar» habría repartido órdenes de otros días. Ahora esas cuentas y «Auto-asignar» son **siempre del día**; lo que
 se marca en la tabla (y «Asignar selección a…», «Auto-asignar selección») va con el chip, como antes.
 
+> **Nota (2026-09-25) — Reemplazada en parte por D-395.** «Asignar selección a…» y «Auto-asignar selección» ya no están
+> en la barra de «Sin asignar»: los sustituye el recuadro «Elige conductor para N órdenes», con «Nueva ruta» y «Auto-asignar
+> las marcadas» dentro. El alcance no cambia: lo marcado en la tabla, con su chip.
+
 ### 3 · Las tarjetas de los choferes nacen plegadas
 
 En «Rutas», toda tarjeta de chofer o ruta temporal nace plegada, **para todo el que entra, siempre**. Lo abierto o cerrado
@@ -27652,3 +27656,111 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 - **Compartir plantillas entre personas** («la plantilla de la oficina»): no se pidió. Cada quien las suyas.
 - **Plantillas en promos**: tiene su ⚙ con orden (D-385), pero no se pidió.
 - **Renombrar** una plantilla: se borra y se guarda con otro nombre.
+
+## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a D-393**
+(sección 2: los controles de bloque de la barra de «Sin asignar»), que lleva su nota.
+
+**Qué pidió el dueño.** Esta mañana: *«WHEN WILL ASK YOU TO SELECT WHICH DRIVER YOU WANT TO WORK»*. Se le hizo el filtro
+de chofer (D-393) y, al verlo, dijo: *«aún no me dice elige conductores para asignar conductores»*. O sea: el filtro dice
+con quién se trabaja, pero lo que él esperaba era que la pantalla **le preguntara** a quién asignar en cuanto marca
+órdenes. Se le enseñaron tres opciones y eligió **«Preguntar al asignar»**, con esta maqueta:
+
+```
+Sin asignar  [☑ #1012] [☑ #1013]
+┌ Elige conductor para 2 órdenes ──┐
+│  ○ Diego Driver   (4 paradas)    │
+│  ○ Carlos R.      (2 paradas)    │
+│  ○ Maximo Garza   (0 paradas)    │
+│            [ Asignar ]           │
+└──────────────────────────────────┘
+```
+
+### Qué hace
+
+- **En cuanto hay una o más órdenes marcadas** en «Sin asignar» (las de la tabla, con el chip puesto: el mismo alcance que
+  ya tenía `bulkAssign`, D-393), aparece un recuadro con borde azul: **«Elige conductor para N órdenes»** (*«Choose a
+  driver for N orders»*; con una, «para 1 orden»). Sin nada marcado no hay recuadro.
+- **Las opciones son radios**: todos los choferes y las rutas temporales (🧭), en el orden del panel «Choferes y rutas».
+  Cada una lleva entre paréntesis **sus paradas del día y su carga**: «(4 paradas · 25/12 pallets)». Son **los mismos dos
+  números del panel** (el 📦 y el «pallets/capacidad» de su barra), calculados igual (`byDriver` y `sumaPallets`).
+  Se decidió poner los dos y no elegir uno: las paradas dicen cuánto trabajo tiene, los pallets si le cabe; el panel ya
+  los enseña juntos. Un chofer marcado de vacaciones/baja ese día (`unavailableDriverNames`, el mismo que usa
+  «Auto-asignar») **sale igual**, con la etiqueta «no disponible»: asignarle a mano sigue siendo decisión de quien asigna,
+  como en el desplegable de cada fila.
+- **«Asignar» nace apagado** y se enciende al elegir un chofer. Usa el `bulkAssign` de siempre, que al terminar limpia la
+  selección: el recuadro se va solo.
+- **«＋ Nueva ruta» y «✨ Auto-asignar las marcadas»** viven dentro del recuadro (los mismos `bulkAssign(addBucket())` y
+  `bulkAutoAssign` de antes). «Auto-asignar» se apaga si no hay choferes de verdad (no tendría a quién repartir).
+- **Sin choferes ni rutas**: el recuadro lo dice («No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una
+  sin chofer.») y deja «Nueva ruta» encendida. Las rutas «huérfanas» (un nombre que ya no es chofer ni ruta temporal)
+  **no** salen como opción, igual que no salían en el selector viejo ni salen en el de cada fila.
+- **Con el filtro de chofer de D-393 puesto**: el recuadro enseña **todos** los choferes (el filtro dice con quién se
+  trabaja, no a quién se puede asignar), pero **el del filtro va primero, con la etiqueta «filtro», y ya elegido**: así
+  «trabajo con Diego» + «asigna a Diego» es un clic. Pulsar otro manda sobre el filtro. Al desmarcar todas las órdenes lo
+  pulsado se olvida: la tanda siguiente vuelve a preguntar (o vuelve al del filtro).
+
+### Lo que se quitó, y lo que se quedó
+
+- **Se quitó el selector de bloque viejo** de la barra de «Sin asignar» (el desplegable «Asignar selección a…» y el botón
+  «Auto-asignar selección»): hacía lo mismo que el recuadro, y dejar los dos era tener dos sitios para la misma acción.
+  En la barra quedan «N seleccionadas» y «Limpiar», porque también cuentan lo marcado desde el mapa.
+- **Se queda el desplegable «Asignar a…» de cada fila**, sin cambios (con varias marcadas, sigue asignando la selección
+  entera, como antes).
+
+### Dónde va el recuadro, y por qué no donde la maqueta
+
+La maqueta lo pone arriba, junto a los chips. **Se probó ahí y no sirve**: el panel de choferes y el mapa son `sticky`
+arriba (tapan ~440 px de la ventana), así que en cuanto se baja a marcar una fila, un recuadro puesto encima de la tabla
+queda **debajo del mapa**, invisible — justo lo contrario de «aviso visible». Va **después de la tabla, pegado al borde de
+abajo de la ventana** (`position: sticky; bottom: 8px`): se ve siempre mientras se recorre la tabla, y al llegar al final
+vuelve a su sitio debajo de la última fila, así que **ninguna fila queda tapada para siempre** (mientras se baja, cubre
+las ~120 px de filas que pasan por detrás; se ven al seguir bajando). La lista de radios tiene un alto máximo de 132 px
+con su propio desplazamiento, para que con muchos choferes el recuadro no se coma la pantalla.
+
+### Dónde está
+
+`src/lib/elige-conductor.ts`: `opcionesDeConductor` (quién sale, en qué orden, con qué números) y `eleccionVigente` (cuál
+está elegido: lo pulsado si sigue entre las opciones; si no, el del filtro; si no, ninguno). La pantalla
+(`routes/page.tsx`) solo lo pinta. Pruebas: `src/lib/elige-conductor.test.ts` (la librería y la pantalla).
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4290 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 24, los 24 caen**, leídos por nombre de prueba. Entre ellos: el del filtro deja de ir primero; ninguna se
+  marca como del filtro; paradas o pallets que no son los del chofer; el no disponible sin marcar; lo pulsado deja de
+  mandar, o cuenta aunque ya no esté; sin pulsar no se elige el del filtro, o se elige el primero (Asignar nacería
+  encendido); la pantalla no pasa el filtro, cuenta las paradas con otra cosa que `byDriver`, deja fuera las rutas
+  temporales, no usa `eleccionVigente`; el recuadro sale sin nada marcado; «Asignar» no se apaga, o asigna al del filtro
+  en vez del elegido; «Nueva ruta» crea la ruta sin asignar; «Auto-asignar» no hace nada; el radio no sigue a la elección;
+  sin choferes, recuadro vacío; lo pulsado no se olvida; el recuadro deja de ser `sticky`; el número no se pinta;
+  `bulkAssign` deja de limpiar la selección.
+- **En el demo** (2026-09-25, logística, en español, a **1280 y a 1440**, mismos resultados en los dos; clics de persona con
+  el ratón y el elemento a la vista y sin nada encima; los `<select>` con el setter nativo y su `change`, como en D-393):
+  - Sin nada marcado: **0** recuadros. Marcar 1: «Elige conductor para 1 orden»; marcar 2: «… para 2 órdenes».
+  - Opciones: Diego Driver (4 paradas · 25/12), Carlos R. (4 · 17/12), Miguel A. (4 · 25/12), Fleet Truck 3 (3 · 13/12);
+    **las 4 cifras de paradas iguales al 📦 del panel**.
+  - Clic en «Asignar» sin elegir: apagado, sigue el recuadro y siguen 2 marcadas. Elegir Carlos R.: se enciende.
+    Asignar: **#1003 y #1004 salen de «Sin asignar» (42 → 40)**, Carlos en el panel **📦 4 → 6**, 0 marcadas, 0 recuadros.
+  - «Nueva ruta» con 1 marcada: #1005 sale (40 → 39) y aparece «🧭 Route 1», que el recuadro siguiente ya ofrece
+    (1 parada · 2/12). «Auto-asignar las marcadas» con 2: #1008 y #1022 salen (39 → 37), 0 recuadros.
+  - Marcar la fila 35 de 37 (página bajada ~2200 px): el recuadro **se ve entero** en la ventana.
+  - Al final de la tabla el recuadro queda **10 px por debajo de la última fila** (no tapa ninguna).
+  - Filtro «Miguel A.»: 5 opciones, la primera «(x) Miguel A. … filtro», «Asignar» encendido. Pulsar Diego → elegido Diego.
+    Desmarcar → 0 recuadros; volver a marcar → elegido otra vez Miguel.
+  - Página sin desplazamiento lateral (**0 px**) en todos los pasos; recuadro de 121 px de alto (1146 px de ancho a 1280,
+    1298 a 1440).
+  - **Teléfono (390 px)**: recuadro de 336 px dentro de la ventana (27..363), 244 px de alto, a la vista, 0 px de
+    desplazamiento lateral.
+  - **Sin choferes** (quitados de los datos del demo en el navegador desechable): el recuadro dice el aviso; «Asignar» y
+    «Auto-asignar» apagados, «Nueva ruta» encendida.
+
+### Lo no verificado
+
+- **Con una base de verdad**: el demo no tiene servidor; la asignación se midió contra el almacén del navegador. `bulkAssign`
+  no cambió, así que lo que escribe en la base es lo de antes.
+- **Un chofer «no disponible»** en el recuadro: el demo no trae ausencias, así que la etiqueta solo la cubre la prueba de la
+  librería, no se vio en pantalla.
+- **En el teléfono, el mapa `sticky` (de antes de este cambio) tapa casi toda la ventana** y hubo que pulsar «Ocultar mapa
+  y choferes» para llegar a la tabla. No se tocó: es de la pantalla entera, no del recuadro, y no se pidió.
