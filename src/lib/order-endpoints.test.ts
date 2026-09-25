@@ -175,7 +175,7 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
   });
 
   it("y el mensaje separa lo que falta de lo que se contradice", () => {
-    // Desde D-NEXT el texto lo arma `textoDeBloqueo` (required.ts), compartido con la guarda de factura de los
+    // Desde D-399 el texto lo arma `textoDeBloqueo` (required.ts), compartido con la guarda de factura de los
     // proveedores: la prueba se muda a donde se decide, sin aflojar lo que fija, y exige que el modal lo use.
     expect(modal).toContain("textoDeBloqueo(blockers, lang)");
     const texto = textoDeBloqueo([

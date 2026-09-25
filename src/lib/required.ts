@@ -155,7 +155,7 @@ export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tien
 
 /**
  * The body of the refusal the submit button shows (D-049, D-267): what contradicts itself first, then what is
- * still missing. Lives here since D-NEXT so the invoice guard on every write (`factura-obligatoria.ts`) says
+ * still missing. Lives here since D-399 so the invoice guard on every write (`factura-obligatoria.ts`) says
  * the SAME «Still missing: • Invoice #» as the submit button, not a second wording of it.
  */
 export function textoDeBloqueo(blockers: MissingField[], lang: "en" | "es"): string {

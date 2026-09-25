@@ -457,7 +457,7 @@ export default function OrdersPage() {
   const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>) => {
     if (!chosen.length) return;
     setBulkBusy(true);
-    // Las que se quedan por la factura, nombradas en el resumen (D-NEXT): el aviso de cada una lo pisa este.
+    // Las que se quedan por la factura, nombradas en el resumen (D-399): el aviso de cada una lo pisa este.
     const sinFactura = resumenSinFactura(chosen, to, settings.order_type_rules, orderLabel, lang);
     let ok = 0;
     for (const d of chosen) { if (await setStage(d.id, to, undefined, extra)) ok++; }

@@ -5,7 +5,7 @@ import { submitBlockers, textoDeBloqueo, type OrderTypeRules } from "./required"
 import type { Delivery, Stage } from "./types";
 
 /**
- * Una orden cuyo tipo pide factura (Customer) no sale de borrador ni se entrega sin ella (D-NEXT, migración 146).
+ * Una orden cuyo tipo pide factura (Customer) no sale de borrador ni se entrega sin ella (D-399, migración 146).
  *
  * El dueño (2026-09-25): «el pending invoice no debería aparecer para customer porque el customer siempre debe
  * llevar invoice». La factura solo se exigía en el botón de enviar del modal; estas pruebas fijan la guarda que

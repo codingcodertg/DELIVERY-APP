@@ -445,7 +445,7 @@ export function OrderModal({
     if (!blockers.length) return false;
     // What is MISSING and what CONTRADICTS itself read differently (D-267): «still missing: the
     // origin and destination are the same» would make no sense. The wording lives in `textoDeBloqueo`
-    // (D-NEXT), shared with the invoice guard of the data providers.
+    // (D-399), shared with the invoice guard of the data providers.
     notify(t("Can't submit for approval — ", "No se puede enviar a aprobación — ") + textoDeBloqueo(blockers, lang));
     return true;
   };

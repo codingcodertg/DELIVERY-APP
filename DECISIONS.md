@@ -1436,7 +1436,7 @@ dashboard. Cerrado.
 
 ## D-049 · Pallets y documento bloquean de verdad al enviar a aprobación
 
-> **Reemplazada en parte por D-NEXT** (2026-09-25): la factura de un tipo que la pide (Customer) ya no se exige solo
+> **Reemplazada en parte por D-399** (2026-09-25): la factura de un tipo que la pide (Customer) ya no se exige solo
 > al enviar, sino en **toda** escritura que saque la orden de borrador o la mueva de etapa —«Marcar entregada ya», los
 > botones en bloque, «Forzar estado», la re-entrega—, en los dos proveedores de datos y en la base (migración 146).
 > Pallets y el resto del documento siguen como dice esta entrada. El texto de abajo se conserva tal cual.
@@ -24619,7 +24619,7 @@ paradas.
 
 ## D-361 · Office y el gerente entregan de inmediato y deshacen un paso
 
-> **Reemplazada en parte por D-NEXT** (2026-09-25): «Marcar entregada ya» y «Deshacer etapa» ya **no** mueven una
+> **Reemplazada en parte por D-399** (2026-09-25): «Marcar entregada ya» y «Deshacer etapa» ya **no** mueven una
 > orden cuyo tipo pide factura (Customer) si no la tiene: sale el aviso del envío («Todavía falta: • Factura #») y la
 > orden se queda. La base lo exige también (146). Con factura, todo sigue como dice esta entrada. El texto de abajo se
 > conserva tal cual.
@@ -27872,7 +27872,7 @@ su tienda y su grupo, como pidió el dueño, aunque la base le deje leer más.
 
 ## D-397 · El gerente hace el proceso de bodega (Preparar, Listo, Recogida), y «Marcar entregada ya» sale por fin del navegador desde aprobada
 
-> **Reemplazada en parte por D-NEXT** (2026-09-25): «Marcar entregada ya» desde aprobada, preparando, lista o recogida
+> **Reemplazada en parte por D-399** (2026-09-25): «Marcar entregada ya» desde aprobada, preparando, lista o recogida
 > sigue saliendo del navegador, **salvo** en una Customer sin factura: ahí la para la guarda de los proveedores de datos
 > con el aviso del envío, y la base con la 146. El texto de abajo se conserva tal cual.
 
@@ -28092,7 +28092,7 @@ le pone alto propio» pasa a «el alto de la caja es el de Órdenes: la misma cl
 destino también sincroniza»— y era **código de sobra**: sin recorrido en el destino el objetivo sale 0, donde ya está, y el corte
 de eco devuelve `null` solo. Se quitó la condición y el mutante se cambió por quitar la del origen (división entre cero), que cae.
 
-## D-NEXT · Una Customer no sale de borrador ni se entrega sin factura: la guarda va en toda escritura, y en la base
+## D-399 · Una Customer no sale de borrador ni se entrega sin factura: la guarda va en toda escritura, y en la base
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador al fusionar (Entregas) · **Migración: la 146**
 (`146_customer_siempre_con_factura.sql`), **escrita y NO aplicada**: la aplica el orquestador después del merge, con

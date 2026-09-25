@@ -128,7 +128,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, "en")); return null; }
-    // Same invoice guard as the real provider (D-NEXT).
+    // Same invoice guard as the real provider (D-399).
     const sinFacturaAlCrear = escrituraSinFactura(undefined, d, s.settings.order_type_rules);
     if (sinFacturaAlCrear.length) { notify(avisoSinFactura(sinFacturaAlCrear, "en")); return null; }
     const nextNo = s.deliveries.reduce((m, x) => Math.max(m, x.order_no), 1000) + 1;

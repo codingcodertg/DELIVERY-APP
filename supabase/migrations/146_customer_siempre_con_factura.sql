@@ -147,7 +147,7 @@ begin
                                                '^[ \t]*--.*$', '', 'gn'), '\s+', ' ', 'g')) = 0 then
     raise exception '146: guard_delivery_stage no es el de la 145; revisar el orden de migraciones';
   end if;
-  -- Para el orquestador: cuantas quedan sin factura (no se tocan, D-NEXT).
+  -- Para el orquestador: cuantas quedan sin factura (no se tocan, D-399).
   select count(*) filter (where d.stage not in ('delivered')), count(*)
     into vivas, todas
     from public.deliveries d
@@ -173,7 +173,7 @@ end $chk$;
 --   -- Comprobacion: ninguna fila.
 --   select tgname from pg_trigger where tgrelid = 'public.deliveries'::regclass and tgname = 'deliveries_guard_invoice';
 -- La pantalla sigue exigiendo la factura por su cuenta (factura-obligatoria.ts); revertir la base no la
--- afloja. Para aflojar tambien la pantalla, revertir el commit de D-NEXT.
+-- afloja. Para aflojar tambien la pantalla, revertir el commit de D-399.
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('146_customer_siempre_con_factura.sql', '767b15dee3cb40e9ad3c3ef4961f9f32f85bc002321f1d47829040ac58ec7b63') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('146_customer_siempre_con_factura.sql', 'eff119f8870b08295a0428d4b17baeb53ce8a1d9bd28a64fde373de0c952153f') on conflict (name) do nothing;

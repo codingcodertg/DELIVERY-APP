@@ -914,7 +914,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, settings.order_type_rules, settings.stores);
       if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return null; }
-      // Una orden cuyo tipo pide factura no nace fuera de borrador sin ella (D-NEXT, 146). El admin tambien.
+      // Una orden cuyo tipo pide factura no nace fuera de borrador sin ella (D-399, 146). El admin tambien.
       const sinFacturaAlCrear = escrituraSinFactura(undefined, d, settings.order_type_rules);
       if (sinFacturaAlCrear.length) { notify(avisoSinFactura(sinFacturaAlCrear, lang)); return null; }
       // Teaching mode: build the order entirely client-side and keep it in the
@@ -991,7 +991,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlEditar = escrituraQueNoVaANingunSitio(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules, settings.stores);
       if (choqueAlEditar.length) { if (!opts?.quiet) notify(avisoNoVaANingunSitio(choqueAlEditar, lang)); return false; }
-      // Ni se le vacia la factura, ni se cambia a un tipo que la pide sin ponerla (D-NEXT, 146).
+      // Ni se le vacia la factura, ni se cambia a un tipo que la pide sin ponerla (D-399, 146).
       const sinFacturaAlEditar = escrituraSinFactura(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules);
       if (sinFacturaAlEditar.length) { if (!opts?.quiet) notify(avisoSinFactura(sinFacturaAlEditar, lang)); return false; }
       let patch = patchIn;
@@ -1318,7 +1318,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const choqueAlMover = escrituraQueNoVaANingunSitio(current, { stage, ...extra }, settings.order_type_rules, settings.stores);
       if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return false; }
       // Sin factura no se envia, aprueba ni entrega: «Marcar entregada ya», los botones en bloque y el
-      // «Forzar estado» del admin pasan por aqui (D-NEXT, 146). El admin tambien: el dueno dijo «siempre».
+      // «Forzar estado» del admin pasan por aqui (D-399, 146). El admin tambien: el dueno dijo «siempre».
       const sinFacturaAlMover = escrituraSinFactura(current, { stage, ...extra }, settings.order_type_rules);
       if (sinFacturaAlMover.length) { notify(avisoSinFactura(sinFacturaAlMover, lang)); return false; }
       // Anular deja motivo, siempre y desde donde sea (D-291, 122). Es el espejo del guard: la base

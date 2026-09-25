@@ -2,7 +2,7 @@ import type { Delivery, Stage } from "./types";
 import { missingFields, textoDeBloqueo, type MissingField, type OrderTypeRules } from "./required";
 
 /**
- * Una orden cuyo tipo pide factura (hoy, Customer) no sale de borrador ni se entrega sin ella (D-NEXT).
+ * Una orden cuyo tipo pide factura (hoy, Customer) no sale de borrador ni se entrega sin ella (D-399).
  *
  * El dueño (2026-09-25): *«Invoice pending shouldn't show customers, that shouldn't be possible anyway»*, y
  * aclarado: *«el pending invoice no debería aparecer para customer porque el customer siempre debe llevar
