@@ -45,7 +45,7 @@ import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/li
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
-import { contactoAlElegirCuenta, esCampoDelCliente, laCuentaRecuerda, type Tecleado } from "@/lib/cuenta-elegida";
+import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
@@ -243,13 +243,7 @@ export function OrderModal({
     );
   };
 
-  // Lo que la persona teclea o elige a mano en los campos del cliente: al pasar a «Venta al mostrador» eso se queda y lo
-  // precargado se va (D-NEXT). Todo `set` de esos cuatro campos es un gesto de la persona; los autorrellenos van por `setD`.
-  const tecleado = useRef<Tecleado>({});
-  const set = (k: keyof Delivery, v: unknown) => {
-    if (esCampoDelCliente(k)) tecleado.current[k] = String(v ?? "");
-    setD((p) => ({ ...p, [k]: v }));
-  };
+  const set = (k: keyof Delivery, v: unknown) => setD((p) => ({ ...p, [k]: v }));
 
   // A non-sales creator (office, admin, driver) is placing the order on behalf
   // of a sales rep, so it needs to be assigned to one — that's who the order
@@ -1890,8 +1884,8 @@ export function OrderModal({
                       ...p,
                       account: v,
                       // Mostrador: vacíos, para teclear los del cliente de paso; nunca los de la última orden (D-337).
-                      // Desde D-NEXT también el destino y la dirección, y lo tecleado a mano se queda.
-                      ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p, tecleado: tecleado.current }),
+                      // Desde D-NEXT también el destino y la dirección, con su pin y su ruta, aunque se hubieran tecleado.
+                      ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),
                       // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-337).
                       customer_type: tipoDeClientePorDefecto(v),
                       // Do NOT auto-fill the delivery address — the rep picks the

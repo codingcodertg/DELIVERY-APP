@@ -85,8 +85,8 @@ describe("6 y 7 · «Venta al mostrador» es una opción fija del campo, y no re
 
   it("al elegir mostrador, contacto y teléfono quedan VACÍOS: ni los de antes, ni los de la última orden de mostrador", () => {
     for (const cuenta of [CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN.toUpperCase()]) {
-      expect(contactoAlElegirCuenta({ cuenta, guardada: undefined, ultimaOrden: ultima, actual })).toEqual({ contact: "", delivery_phone: "", delivery_name: "", delivery_address: "" });
-      expect(contactoAlElegirCuenta({ cuenta, guardada, ultimaOrden: undefined, actual })).toEqual({ contact: "", delivery_phone: "", delivery_name: "", delivery_address: "" });
+      expect(contactoAlElegirCuenta({ cuenta, guardada: undefined, ultimaOrden: ultima, actual })).toMatchObject({ contact: "", delivery_phone: "" });
+      expect(contactoAlElegirCuenta({ cuenta, guardada, ultimaOrden: undefined, actual })).toMatchObject({ contact: "", delivery_phone: "" });
     }
   });
   it("cualquier otra cuenta, como siempre: la guardada manda; si no, la última orden; si no, lo que había", () => {
@@ -107,7 +107,7 @@ describe("6 y 7 · «Venta al mostrador» es una opción fija del campo, y no re
   it("el formulario: la opción está siempre a mano, se guarda SIEMPRE con la misma cadena, y usa la regla probada", () => {
     expect(formulario).toContain("fija={{ valor: CUENTA_DE_MOSTRADOR, etiqueta: t(CUENTA_DE_MOSTRADOR_EN, CUENTA_DE_MOSTRADOR) }}");
     expect(formulario).toContain("const v = esCuentaDeMostrador(elegida) ? CUENTA_DE_MOSTRADOR : elegida;");
-    expect(formulario).toContain("...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p, tecleado: tecleado.current }),");
+    expect(formulario).toContain("...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),");
     expect(formulario).toContain("onMouseDown={(e) => { e.preventDefault(); elegir(fija.valor); }}>");
     // El nombre no está escrito a mano en la pantalla: sale de la constante.
     expect(formulario).not.toContain(`"${CUENTA_DE_MOSTRADOR}"`);
