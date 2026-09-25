@@ -14,15 +14,19 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"];
+/** «Sin asignar» en el orden de Órdenes (D-NEXT), escrito a mano para que se lea: `status` es la «Etapa» y va donde
+ *  `stage`; la recogida, que Órdenes no tiene, delante de la dirección de entrega. */
+const ORDEN_DE_VENTAS_EN_EL_GESTOR = ["po", "so", "invoice", "type", "account", "contact", "status", "store", "date", "pallets", "fee", "pickup", "address", "windows"];
 
 describe("las columnas del Gestor", () => {
   it("la FACTURA está en «Sin asignar» y se ve por defecto — que es lo que el dueño pidió y no aparecía", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "invoice")).toMatchObject({ en: "Invoice #", es: "Factura #", tablas: ["sinAsignar"] });
     expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain("invoice");
-    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0].key).toBe("invoice");
+    // Hasta D-NEXT salía la primera (D-331); ahora, donde la pone Órdenes: tras PO y SO.
+    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).slice(0, 3)).toEqual(["po", "so", "invoice"]);
   });
-  it("por defecto «Sin asignar» enseña lo que ya enseñaba, en el mismo orden, y DETRÁS las de Órdenes (D-376)", () => {
-    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["invoice", "account", "pickup", "address", "store", "pallets", "date", "windows", "status", ...NUEVAS_DE_ORDENES]);
+  it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-NEXT)", () => {
+    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR);
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
   });
@@ -33,7 +37,7 @@ describe("las columnas del Gestor", () => {
   it("D-376: lo guardado cuando existía «Programadas» —chofer, carga, parada— se ignora sin romper, y al marcar se limpia", () => {
     for (const k of ["driver", "load", "stop"]) expect(COLUMNAS_DEL_GESTOR.some((c) => c.key === k), k).toBe(false);
     const guardada = ["invoice", "driver", "load", "stop", "pallets", MARCA_V2, MARCA_V3];
-    expect(columnasDeLaTabla("sinAsignar", conColumnasNuevas(guardada)).map((c) => c.key)).toEqual(["invoice", "pallets", ...NUEVAS_DE_ORDENES]);
+    expect(columnasDeLaTabla("sinAsignar", conColumnasNuevas(guardada)).map((c) => c.key)).toEqual(["po", "so", "invoice", "type", "contact", "pallets", "fee"]);
     expect(alternaColumna(guardada, "account")).toEqual(["invoice", "account", "pallets", ...MARCAS]);
   });
   it("todas las columnas del catálogo salen en alguna tabla, y toda la que sale en una tabla está en el catálogo", () => {
@@ -55,7 +59,7 @@ describe("las columnas del Gestor", () => {
   it("a quien guardó sus columnas ANTES de cada tanda le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
     const deAntes = conColumnasNuevas(["invoice", "pallets"]);
     expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
-    expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["invoice", "pickup", "address", "pallets", ...NUEVAS_DE_ORDENES]);
+    expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["po", "so", "invoice", "type", "contact", "pallets", "fee", "pickup", "address"]);
     // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
     expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
     // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.

@@ -22960,6 +22960,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): en «Sin asignar» la factura ya no va la primera tras el código; las
+> columnas salen en el orden de Órdenes vista por ventas, y la factura va tercera, tras PO # y SO #.
+
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
 > factura y el selector de columnas siguen, en «Sin asignar» y en la tabla de paradas.
 
@@ -26195,6 +26198,9 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 > persona en la primera tarjeta), y el menú heredaba el estilo de formulario. Lo que abajo se da por «visto al medir» y de aspecto era el
 > fallo: se marcó con `.click()` por código, que no dispara `mousedown`. El resto sigue vigente.
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): las cinco de Órdenes ya no van «DETRÁS» de lo que «Sin asignar»
+> enseñaba; toda la tabla sale en el orden de Órdenes vista por ventas. La tabla de paradas no cambia.
+
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** dos peticiones del dueño, literales, el mismo día:
 «las mismas columnas que se miran en órdenes quiero que se miren en el logistic manager, así que agrega eso», y
@@ -28478,3 +28484,81 @@ producción ni con llaves.**
 - **A 1440 y en el teléfono**: solo se midió a 1280. El diálogo usa la `.modal` de siempre, que en el teléfono ocupa la
   pantalla entera (CSS de antes).
 - Con **muchos** choferes la lista tiene su propio desplazamiento (260 px); no se midió con más de 4.
+
+## D-NEXT · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale.** El dueño, literal: *«quiero que la tabla que se hizo en logistic manager tenga el mismo orden que en
+order view de sales»*. La tabla es **«Sin asignar»** del Gestor de Rutas, la que recibió las columnas de Órdenes en D-376.
+**Reemplaza en parte** a D-331 (la factura, la primera) y a D-376 (las de Órdenes, detrás); las dos llevan su nota.
+
+### De dónde sale el orden de ventas
+
+Ventas no elige columnas ni las ordena (D-330, D-332): Órdenes le pasa `orden = null`, y entonces pinta sus columnas en el
+orden del catálogo `ORDER_COLUMNS`, que se ordena al cargar con **`ORDEN_DE_PARTIDA`** (D-347):
+PO · SO · Factura · Tipo · Cuenta · Contacto · Etapa · Tienda · Fecha · Pallets · Costo · Chofer · Dirección · Ventanas.
+
+**Ajustes no cambia el orden.** `settings.sales_columns` decide **qué** columnas ve ventas, no en qué orden: se pintan
+siempre en el de partida. Así que en producción el orden es este aunque Ajustes le quite o le ponga columnas. Qué columnas
+tiene puestas hoy `sales_columns` en producción **no se midió** (no hace falta para el orden).
+
+### Qué cambia
+
+«Sin asignar» pasa de *Factura · Cuenta · Recogida · Dirección · Tienda · Pallets · Fecha · Ventanas · Etapa · Tipo · SO ·
+PO · Costo · Contacto* a:
+
+**PO · SO · Factura · Tipo · Cuenta · Contacto · Etapa · Tienda · Fecha · Pallets · Costo · Recogida · Dirección · Ventanas**
+
+- El orden **se lee** de `ORDEN_DE_PARTIDA`, no se copia: si Órdenes cambia su orden de partida, el Gestor lo sigue. Cada
+  columna del Gestor toma el puesto de su pareja en Órdenes (`claveEnOrdenes`: la de `deOrdenes`, o la de su misma clave).
+  La «Etapa» del Gestor (clave `status`) va donde `stage`.
+- **Recogida**, que Órdenes no tiene, va **justo delante de la dirección de entrega** (`antesDe: "address"`): de dónde
+  sale a dónde va, que es como estaba antes (recogida, dirección). Una columna futura sin pareja y sin `antesDe` va al final.
+- **Chofer** no está en «Sin asignar» (son las que aún no lo tienen), y la columna fija `ID` sigue la primera, como el `#`
+  de Órdenes. Diferencia que queda: el `#` de Órdenes enseña la factura; el `ID` del Gestor, el código de la orden, con la
+  factura en su propia columna. Eso ya era así y no se tocó.
+- Se ordena **el catálogo** (`enOrdenDeVentas`), como hizo D-347 en Órdenes, y no cada pantalla: así la tabla y la lista
+  del ⚙ salen en el mismo orden **sin tocar `routes/page.tsx`**, que tenía otras dos ramas abiertas encima.
+
+### Lo guardado
+
+El Gestor **nunca ha guardado un orden**: `routes_columns` guarda qué columnas se ven, y el orden lo pone el código
+(D-331; D-332 dejó el Gestor fuera de las flechas). Por eso:
+
+- **A quien tenía su lista guardada se le aplica el orden nuevo**, y se le respetan las columnas que eligió: una lista con
+  factura, etapa, recogida y dirección sale *Factura · Etapa · Recogida · Dirección*.
+- **Las plantillas de D-394 no se tocan**: su foto es un conjunto de columnas, sin orden; al aplicarlas salen en el nuevo.
+- **«Default»** pone `COLUMNAS_DEL_GESTOR_POR_DEFECTO`, que se pinta en el orden nuevo.
+- Los anchos van por clave (`rtg_routes_pool4`, `g_<clave>`): mover columnas no mezcla los de nadie.
+
+### Las tablas de paradas no se tocan
+
+Tienen puestos fijos (`indice`, anchos por posición en `rtg_routes_stops7`) y las flechas de reordenar a la derecha.
+Cambiarles el orden **no era trivial**: movía los anchos que cada quien ya ajustó. Su orden y su ⚙ quedan como estaban,
+con prueba.
+
+### Medido (2026-09-25, demo, 1280×900, clics de persona)
+
+- **Órdenes como ventas** (`/`, «Ver como» puesto por `localStorage`): `# | PO # | TYPE | ACCOUNT | STAGE | STORE |
+  DELIVERY DATE | PALLETS | DRIVER | DELIVERY ADDRESS | WINDOWS`.
+- **Gestor como logística**, pestaña «Unassigned (42)»: `ID | PO # | SO # | INVOICE # | TYPE | ACCOUNT | CONTACT | STAGE |
+  STORE | DELIVERY DATE | PALLETS | FEE | PICKUP | DELIVERY ADDRESS | WINDOWS | ASSIGN TO`.
+- **Una por una**, las 9 que tienen las dos (PO, Tipo, Cuenta, Etapa, Tienda, Fecha, Pallets, Dirección, Ventanas) salen
+  en el mismo orden relativo; las que solo tiene el Gestor (SO, Factura, Contacto, Costo) caen donde las pondría Órdenes,
+  y Recogida delante de Dirección.
+- El ⚙ de «Sin asignar» lista las 14 en el mismo orden que la tabla. Quitar Factura y Recogida y volver a marcar Factura
+  la devuelve a **su** sitio (tercera), no al final; «Default» devuelve las 14 en el orden nuevo. La página no se desplaza
+  de lado (0 px).
+
+### Mutantes
+
+8, leídos por el nombre de la prueba que cae; **caen los 8**: la etapa que ignora `deOrdenes` (M1), la recogida detrás
+de la dirección (M2) o sin vecina (M3), el catálogo sin ordenar (M4), la tabla con el orden viejo escrito a mano (M5), las
+de paradas ordenadas también (M6 — sobrevivió la primera vez: nada miraba el ⚙ de paradas; se añadió), Órdenes pasando
+a ventas un orden propio (M7), y Órdenes cambiando su orden de partida (M8, el Gestor lo sigue).
+
+### Lo que no se verificó
+
+- **Con `user_prefs` real.** El demo no tiene base: que una lista guardada de producción salga en el orden nuevo está
+  probado con funciones, no en un navegador con sesión.
+- **Qué columnas tiene hoy ventas en Ajustes** en producción: no cambia el orden, solo cuáles se comparan.
