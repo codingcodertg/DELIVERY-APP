@@ -49,3 +49,48 @@ export function paradasDelChofer<T extends Orden & Pick<Delivery, "assigned_driv
   const suyas = deliveries.filter((d) => d.assigned_driver === chofer && d.stage !== "canceled" && d.stage !== "rejected");
   return modo === "atrasadas" ? suyas.filter((d) => isOverdue(d as unknown as Delivery)) : suyas.filter((d) => d.delivery_date === hoy);
 }
+
+/**
+ * Los chips de «Sin asignar» (D-NEXT). El dueño, el 2026-09-25: *«UNASSIGNED ALL also button in routes manager for that
+ * day»*. Hasta aquí el chip «Todas» enseñaba lo del DÍA —era «todas las de este día», no «todas»—, y lo sin chofer de
+ * otro día solo salía por «Atrasadas» (lo vencido) o saliendo del día con «🗓 Todas» arriba, que cambia TODA la pantalla.
+ * Ahora hay dos: **«Este día»** (el defecto de D-331/D-359, que era el antiguo «Todas») y **«Todas»**, que enseña lo sin
+ * chofer de cualquier día —pasado, futuro o sin fecha— sin mover el día del resto de la pantalla.
+ *
+ * El número de cada chip SALE de la misma función que pinta sus filas (`filasSinAsignar`), como en Órdenes (D-380/D-384):
+ * contar por un lado y listar por otro es el fallo que ya pasó dos veces. La búsqueda entra en los dos.
+ */
+export const CHIPS_SIN_ASIGNAR = ["dia", "todas", "overdue", "windowed", "noloc"] as const;
+export type ChipSinAsignar = typeof CHIPS_SIN_ASIGNAR[number];
+
+type OrdenDelPool = Orden & Pick<Delivery, "assigned_driver" | "order_no" | "delivery_windows" | "delivery_lat" | "account" | "delivery_address" | "delivery_phone" | "contact" | "store">;
+
+/** La búsqueda de «Sin asignar»: número, cuenta, dirección, teléfono, contacto o tienda. Vacía, deja pasar todo. */
+export function coincideConLaBusqueda(d: OrdenDelPool, busqueda: string): boolean {
+  const q = busqueda.trim().toLowerCase();
+  if (!q) return true;
+  return String(d.order_no).includes(q) || [d.account, d.delivery_address, d.delivery_phone, d.contact, d.store].some((v) => (v || "").toLowerCase().includes(q));
+}
+
+/** Las filas que enseña un chip de «Sin asignar», antes de los filtros por columna (que dicen lo suyo en su barra, D-360). */
+export function filasSinAsignar<T extends OrdenDelPool>(
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], chip: ChipSinAsignar, busqueda = "",
+): T[] {
+  const base = chip === "overdue" ? sinAsignarDelGestor(deliveries, fecha, modo, etapas, true)
+    : chip === "todas" ? sinAsignarDelGestor(deliveries, fecha, "todas", etapas)
+    : sinAsignarDelGestor(deliveries, fecha, modo, etapas);
+  return base.filter((d) => {
+    if (chip === "windowed" && !d.delivery_windows) return false;
+    if (chip === "noloc" && d.delivery_lat != null) return false;
+    return coincideConLaBusqueda(d, busqueda);
+  });
+}
+
+/** El número de cada chip: el largo de SUS filas, con la misma búsqueda. Nunca otra cuenta. */
+export function cuentasSinAsignar<T extends OrdenDelPool>(
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], busqueda = "",
+): Record<ChipSinAsignar, number> {
+  const r = {} as Record<ChipSinAsignar, number>;
+  for (const chip of CHIPS_SIN_ASIGNAR) r[chip] = filasSinAsignar(deliveries, fecha, modo, etapas, chip, busqueda).length;
+  return r;
+}

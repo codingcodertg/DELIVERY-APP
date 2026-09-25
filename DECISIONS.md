@@ -24522,6 +24522,10 @@ Suite entera local en verde. **No verificado:** nada abierto en un navegador.
 
 ## D-359 · En «Sin asignar», el día por defecto y las atrasadas por su chip
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): el chip que aquí se llama «Todas» enseñaba solo lo del día; se
+> renombra «Este día» (sigue siendo el defecto) y «Todas» pasa a ser lo sin chofer de cualquier día. Cada chip lleva su
+> número. «Atrasadas» sigue como se describe abajo.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.183.0, repo 1.247.0 · **Sin migración.**
 **Corrección del dueño a D-358**, literal: *«no, pero lo que pasa es que para eso tienes filtros: hoy y todas y
 atrasadas»*.
@@ -27099,3 +27103,94 @@ Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el com
 que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
+
+## D-NEXT · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Tres pedidos del dueño el mismo día**, literales:
+*«WHEN WILL ASK YOU TO SELECT WHICH DRIVER YOU WANT TO WORK»* (preguntado, eligió «Filtro de chofer»),
+*«UNASSIGNED ALL also button in routes manager for that day»* y
+*«DEFAULT ALL COLLAPSE IN ROUTES for route manager»*.
+Van juntos porque tocan el mismo fichero (`routes/page.tsx`). **Reemplaza en parte a D-359** (el chip «Todas»), que
+lleva su nota.
+
+### 1 · Filtro de chofer
+
+Un selector arriba, junto a la fecha: «Todos los choferes» (el defecto) o un chofer / ruta temporal. Con uno elegido:
+
+- **El panel «Choferes y rutas»** enseña solo su fila, y **«Rutas»** solo su tarjeta (el número de la pestaña «Rutas (N)»
+  cuenta las que se ven). El resumen de arriba (Programadas, Sin programar, Total, Rutas) **sigue siendo del día entero**:
+  es un resumen, no la lista.
+- **El mapa, lo mismo:** su base y sus P, sus paradas, sus líneas y su camión en vivo. Las órdenes sin chofer **no** salen
+  (no son de él), salvo las que se marcan a propósito en «Sin asignar», que siguen pintándose con su recogida. El mapa se
+  encuadra sobre lo que queda.
+- **No es lo mismo que marcar choferes en el panel** (eso resalta y atenúa el resto, y sirve para «Unir»). Cambiar el
+  filtro suelta lo marcado: un chofer escondido y marcado seguiría contando para «Unir» sin verse.
+- **Lo que NO filtra:** «Auto-asignar», «Optimizar todas las rutas», «Armar las rutas del día», el tablero y el horario
+  siguen trabajando sobre todos. Son acciones del día, y filtrarlas en silencio sería peor que no filtrarlas.
+
+**Cómo se recuerda.** Por persona, en **este navegador**: `localStorage`, clave `rtg_routes_driver_filter_<id de la
+persona>`, como los anchos de las tablas de esta misma pantalla. **No** va a `user_prefs` como las columnas: la lista de
+claves de esa tabla está cerrada en la base (136/137/141) y una clave nueva es una migración; y meterlo dentro del
+`value` de `routes_columns` lo borraría quien guarde las columnas, que escribe la fila entera. Consecuencia que el dueño
+debe saber: **en otra computadora o en el teléfono nace en «Todos»**. Si lo quiere en todos lados, es una migración
+que añade una clave. Volver a «Todos» borra la clave. Si el chofer guardado ya no está (se fue, se renombró), manda
+«Todos» sin borrar lo guardado: una pantalla vacía sin razón a la vista es peor. Todo en `src/lib/vista-del-gestor.ts`.
+
+### 2 · «Todas» en «Sin asignar», y cada chip con su número
+
+**Qué había:** los chips eran «Todas · Atrasadas · Con ventana · Sin ubicación», y **«Todas» enseñaba solo lo del día**
+(D-331/D-359). Lo sin chofer de otro día solo salía por «Atrasadas» (lo vencido) o con «🗓 Todas» arriba, que cambia la
+pantalla entera.
+
+**Ahora:** «**Este día**» (el antiguo «Todas», sigue siendo el defecto) · «**Todas**» (lo sin chofer de **cualquier día**:
+pasado, futuro o sin fecha, de las etapas que se rutean) · «Atrasadas» (D-359, sin cambio) · «Con ventana» · «Sin
+ubicación» (estos dos acotan lo del día, como antes). Viendo «🗓 Todas» o las pendientes, «Este día» se rotula «Todas las
+fechas» / «Atrasadas y sin fecha», que es lo que enseña.
+
+**El número de cada chip es el de sus filas.** `cuentasSinAsignar` cuenta con la **misma** función que pinta
+(`filasSinAsignar`, en `ordenes-del-dia.ts`) y con la misma búsqueda — el patrón de D-380/D-384. Los filtros por columna
+(D-360) van aparte y dicen lo suyo en su barra «Filtrado por…»; el número del chip es antes de ellos.
+
+**Un cambio de paso, a propósito.** Hasta hoy el chip «Atrasadas» cambiaba también la lista con la que se calculan el
+«Sin programar» del resumen, la pestaña «Sin asignar (N)», el tablero y lo que «Auto-asignar» repartía; y «Programadas»
+se calcula como `día − sin asignar`. Con un chip «Todas» de cualquier día, «Programadas» habría salido **negativo** y
+«Auto-asignar» habría repartido órdenes de otros días. Ahora esas cuentas y «Auto-asignar» son **siempre del día**; lo que
+se marca en la tabla (y «Asignar selección a…», «Auto-asignar selección») va con el chip, como antes.
+
+### 3 · Las tarjetas de los choferes nacen plegadas
+
+En «Rutas», toda tarjeta de chofer o ruta temporal nace plegada, **para todo el que entra, siempre**. Lo abierto o cerrado
+**nunca se guardó** (era estado de la pantalla), así que no hay nada guardado que decida si manda sobre el defecto: cada
+entrada nace plegada, y lo que se abre vale hasta salir. «Sin asignar» (su propia pestaña) sigue naciendo abierta: no es
+una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `estaPlegada` / `nacePlegada`, en
+`vista-del-gestor.ts`. Con un chofer en el filtro su tarjeta **también** nace plegada — «sin excepción», como se pidió.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4188 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 26, los 26 caen**, leídos por nombre. Entre ellos: «Todas» con el modo del día; la cuenta sin la búsqueda
+  (en la librería y en la pantalla); el chip sin su número; falta el chip «Todas»; el resumen y «Auto-asignar» vuelven a
+  seguir el chip; asignar lo marcado mira el día; las tarjetas nacen abiertas; la pantalla no usa `estaPlegada`; la clave
+  no es por persona; «Todos» guarda un vacío; un chofer que ya no está sigue filtrando; el panel, las tarjetas, las
+  paradas del mapa, las líneas, el camión en vivo y lo sin chofer del mapa no siguen el filtro; al entrar no se lee lo
+  guardado.
+- **En el demo** (2026-09-25, logística, a **1280 y a 1440**, mismos números en los dos anchos; clics de persona con el
+  ratón y el elemento a la vista; el `<select>` se eligió con el setter nativo y su `change`, porque el desplegable nativo
+  no se abre en headless):
+  - Al entrar: **4 tarjetas, las 4 plegadas** (▸), 0 tablas de paradas a la vista. Un clic en la primera: esa abierta, las
+    otras 3 plegadas, 1 tabla.
+  - Filtro «Diego Driver»: panel **4 → 1** fila, tarjetas **4 → 1**, marcas del mapa **54 → 4** (sus 4 paradas).
+    Guardado `rtg_routes_driver_filter_u-log = "Diego Driver"`; **tras recargar sigue en Diego** con 1 tarjeta y 4 marcas.
+    Volver a «Todos»: 4 filas, 4 tarjetas, 54 marcas, y la clave **borrada**.
+  - Chips, número = filas: Este día **42 = 42**, Todas **57 = 57**, Atrasadas **1 = 1**, Con ventana **42 = 42**, Sin
+    ubicación **3 = 3**. Buscando «Rio Tile Co.»: **6 = 6, 7 = 7, 0 = 0, 6 = 6, 1 = 1**.
+  - La página no se desplaza de lado (0 px) en ningún paso.
+
+### Lo no verificado
+
+- **Con una base de verdad:** el demo no tiene usuarios reales ni plan publicado; no se vio el filtro con una línea de
+  plan publicado ni con un camión en vivo (están en el código y en la prueba de texto, no medidos).
+- **Otra computadora u otro navegador** nacen en «Todos»: es lo esperado por diseño, no se midió.
+- La búsqueda de «Sin asignar» **no mira la factura** (buscar «INV-3001» da 0 en todos los chips). Era así antes; no se
+  tocó.
