@@ -818,7 +818,7 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
   { key: "approve",   en: "Approve orders",   es: "Aprobar órdenes",     desc_en: "Approve or reject pending orders",            desc_es: "Aprobar o rechazar órdenes pendientes" },
   { key: "fulfill",   en: "Fulfill orders",   es: "Preparar órdenes",    desc_en: "Warehouse queue: prepare and mark ready",     desc_es: "Cola de almacén: preparar y marcar listo" },
   { key: "deliver",   en: "Deliver orders",   es: "Entregar órdenes",    desc_en: "Pick up, deliver and capture signatures",     desc_es: "Recoger, entregar y capturar firmas" },
-  { key: "dashboard", en: "View dashboard",   es: "Ver panel",           desc_en: "See company-wide KPIs and reports",           desc_es: "Ver KPIs y reportes de la empresa" },
+  { key: "dashboard", en: "View dashboard",   es: "Ver panel",           desc_en: "KPIs and reports of their store(s); admin and logistics see all", desc_es: "KPIs y reportes de su(s) tienda(s); admin y logística ven todas" },
   { key: "settings",  en: "Change settings",  es: "Cambiar ajustes",     desc_en: "Edit workspace settings and pick-lists",      desc_es: "Editar ajustes y listas del espacio" },
   { key: "route_plan", en: "Plan routes",     es: "Planificar rutas",    desc_en: "Assign orders to drivers and optimize their route", desc_es: "Asignar órdenes a choferes y optimizar su ruta" },
   // D-350: sin esto, la pantalla corta a «de ayer en adelante» (D-239). Con esto, todo el historial — de las tiendas que la 131 le deja ver.

@@ -26,8 +26,12 @@ const STYLE: Record<AttentionKind, { icon: string; color: string; bg: string }> 
   no_proof:           { icon: "📋", color: "var(--gray)", bg: "var(--card-hover)" },
 };
 
-export function AttentionPanel({ onOpen }: { onOpen?: (d: Delivery) => void }) {
-  const { deliveries, settings } = useData();
+/**
+ * `deliveries` lo pasa quien lo monta, ya acotado (D-396): el Panel le da solo las órdenes de las tiendas
+ * de quien mira. Antes leía `useData().deliveries` por su cuenta y le enseñaba al gerente las de la empresa.
+ */
+export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[]; onOpen?: (d: Delivery) => void }) {
+  const { settings } = useData();
   const { t } = usePrefs();
   const [dismissed, setDismissed] = useState(false);
 

@@ -20,6 +20,7 @@ import {
 } from "@/lib/utils";
 import type { Stage } from "@/lib/types";
 import { redondeaDinero, sumaDinero, sumaMillas } from "@/lib/totales";
+import { alcanceDelPanel, choferesDelPanel, ordenesDelPanel } from "@/lib/panel-por-tienda";
 
 // Default the date-range to the last 30 days.
 function daysAgoISO(n: number): string {
@@ -71,8 +72,18 @@ export default function DashboardPage() {
     }
   };
 
+  // De qué tiendas son las cifras (D-396): el gerente, las suyas y las de su grupo; admin y logística,
+  // todas. TODO lo de abajo bebe de `delPanel`, nunca de `deliveries` a secas: una sola tarjeta que
+  // leyera la lista entera volvería a enseñarle la empresa al gerente.
+  const alcance = useMemo(() => alcanceDelPanel(me, settings.stores), [me, settings.stores]);
+  const delPanel = useMemo(
+    () => ordenesDelPanel(deliveries, alcance, settings.order_type_rules),
+    [deliveries, alcance, settings.order_type_rules],
+  );
+  const misChoferes = useMemo(() => choferesDelPanel(alcance, users), [alcance, users]);
+
   // Everything below is scoped to the selected delivery-date range.
-  const scoped = useMemo(() => inDateRange(deliveries, from, to), [deliveries, from, to]);
+  const scoped = useMemo(() => inDateRange(delPanel, from, to), [delPanel, from, to]);
 
   const kpis = useMemo(() => computeKpis(scoped), [scoped]);
   const stageCounts = useMemo(() => countByStage(scoped, STAGES.map((s) => s.key) as Stage[]), [scoped]);
@@ -90,10 +101,14 @@ export default function DashboardPage() {
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
     const shiftScoped = shifts.filter((s) => {
       const day = s.started_at.slice(0, 10);
-      return day >= from && day <= to;
+      return day >= from && day <= to && (!misChoferes || misChoferes.ids.has(s.driver_id));
     });
-    return driverShiftKpis(shiftScoped, scoped, (id) => nameById.get(id));
-  }, [shifts, users, scoped, from, to]);
+    // Con corte, el tiempo activo de SUS choferes sale de todas sus entregas del rango (ver `choferesDelPanel`).
+    const activas = misChoferes
+      ? inDateRange(deliveries, from, to).filter((d) => !!d.assigned_driver && misChoferes.nombres.has(d.assigned_driver))
+      : scoped;
+    return driverShiftKpis(shiftScoped, activas, (id) => nameById.get(id));
+  }, [shifts, users, scoped, deliveries, misChoferes, from, to]);
 
   // Timing + quality KPIs (Tier 1) over the scoped deliveries.
   const quality = useMemo(() => driverQualityKpis(scoped), [scoped]);
@@ -153,7 +168,7 @@ export default function DashboardPage() {
   const overdue = useMemo(() => overdueOrders(scoped), [scoped]);
   // Not scoped to the from/to range picker above — this is always "this
   // calendar month", regardless of what range is selected elsewhere on the page.
-  const repStats = useMemo(() => salesRepStatsThisMonth(deliveries, users), [deliveries, users]);
+  const repStats = useMemo(() => salesRepStatsThisMonth(delPanel, users), [delPanel, users]);
 
   if (!me) return null;
 
@@ -200,7 +215,7 @@ export default function DashboardPage() {
     <>
       {/* Above the KPIs on purpose: these are the things nothing else would
           have told anyone about. Renders nothing when the board is healthy. */}
-      <AttentionPanel onOpen={(d) => openOrder(d.id)} />
+      <AttentionPanel deliveries={delPanel} onOpen={(d) => openOrder(d.id)} />
       <div className="page-head">
         <h2>{t("Dashboard", "Panel")}</h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -226,8 +241,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {alcance.tipo === "tiendas" && (
+        <p className="hint" data-panel-tiendas style={{ marginTop: -6, marginBottom: 12 }}>
+          🏬 {t("Showing only", "Solo se muestra")}: <b>{alcance.nombres.join(" + ")}</b>
+        </p>
+      )}
+
       {!ready ? (
         <div className="empty">{t("Loading…", "Cargando…")}</div>
+      ) : alcance.tipo === "sin-tienda" ? (
+        // Sin tienda no se le enseña la empresa (D-237): un campo vacío no amplía lo que se ve.
+        <div className="card" data-panel-sin-tienda>
+          <h2>🏬 {t("No store assigned", "Sin tienda asignada")}</h2>
+          <p className="hint" style={{ margin: 0 }}>
+            {t(
+              "The dashboard shows the figures of your store. Your profile has no store yet — ask an admin to assign one in Users.",
+              "El panel enseña las cifras de su tienda. Su perfil todavía no tiene tienda: pida a un admin que se la asigne en Usuarios.",
+            )}
+          </p>
+        </div>
       ) : (
         <>
           {/* ---------- KPI tiles ---------- */}
