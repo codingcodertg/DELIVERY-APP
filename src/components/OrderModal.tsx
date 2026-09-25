@@ -36,7 +36,7 @@ import { tiendasParaElMapa } from "@/lib/store-pins";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
-import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, type MissingField } from "@/lib/required";
+import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, textoDeBloqueo, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
@@ -444,14 +444,9 @@ export function OrderModal({
     const blockers = submitBlockers(draft, settings.order_type_rules, settings.stores);
     if (!blockers.length) return false;
     // What is MISSING and what CONTRADICTS itself read differently (D-267): «still missing: the
-    // origin and destination are the same» would make no sense.
-    const lista = (ms: typeof blockers) => ms.map((m) => `• ${t(m.en, m.es)}`).join("\n");
-    const faltan = blockers.filter((m) => !m.conflict);
-    const choques = blockers.filter((m) => m.conflict);
-    const partes: string[] = [];
-    if (choques.length) partes.push(t(`It goes nowhere:\n\n${lista(choques)}`, `No va a ningún sitio:\n\n${lista(choques)}`));
-    if (faltan.length) partes.push(t(`Still missing:\n\n${lista(faltan)}`, `Todavía falta:\n\n${lista(faltan)}`));
-    notify(t("Can't submit for approval — ", "No se puede enviar a aprobación — ") + partes.join("\n\n"));
+    // origin and destination are the same» would make no sense. The wording lives in `textoDeBloqueo`
+    // (D-NEXT), shared with the invoice guard of the data providers.
+    notify(t("Can't submit for approval — ", "No se puede enviar a aprobación — ") + textoDeBloqueo(blockers, lang));
     return true;
   };
 

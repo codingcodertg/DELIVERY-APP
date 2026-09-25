@@ -154,6 +154,21 @@ export function submitBlockers(d: Partial<Delivery>, rules: OrderTypeRules, tien
 }
 
 /**
+ * The body of the refusal the submit button shows (D-049, D-267): what contradicts itself first, then what is
+ * still missing. Lives here since D-NEXT so the invoice guard on every write (`factura-obligatoria.ts`) says
+ * the SAME «Still missing: • Invoice #» as the submit button, not a second wording of it.
+ */
+export function textoDeBloqueo(blockers: MissingField[], lang: "en" | "es"): string {
+  const lista = (ms: MissingField[]) => ms.map((m) => `• ${lang === "es" ? m.es : m.en}`).join("\n");
+  const faltan = blockers.filter((m) => !m.conflict);
+  const choques = blockers.filter((m) => m.conflict);
+  const partes: string[] = [];
+  if (choques.length) partes.push(lang === "es" ? `No va a ningún sitio:\n\n${lista(choques)}` : `It goes nowhere:\n\n${lista(choques)}`);
+  if (faltan.length) partes.push(lang === "es" ? `Todavía falta:\n\n${lista(faltan)}` : `Still missing:\n\n${lista(faltan)}`);
+  return partes.join("\n\n");
+}
+
+/**
  * An order that goes nowhere (D-267): «a store can't sell to itself, nor pick up and deliver at
  * itself». These also refuse, not warn — same mechanism as pallets and the document. Living here,
  * and not only in the modal's save, is what makes them apply to BOTH submit paths: the old

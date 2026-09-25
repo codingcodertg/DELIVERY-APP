@@ -9,6 +9,7 @@ import { borrarOrden, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { changedFieldsNote, orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
+import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
@@ -127,6 +128,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, "en")); return null; }
+    // Same invoice guard as the real provider (D-NEXT).
+    const sinFacturaAlCrear = escrituraSinFactura(undefined, d, s.settings.order_type_rules);
+    if (sinFacturaAlCrear.length) { notify(avisoSinFactura(sinFacturaAlCrear, "en")); return null; }
     const nextNo = s.deliveries.reduce((m, x) => Math.max(m, x.order_no), 1000) + 1;
     const now = new Date().toISOString();
     const row: Delivery = {
@@ -156,6 +160,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlEditar.length) { notify(avisoNoVaANingunSitio(choqueAlEditar, "en")); return false; }
+    const sinFacturaAlEditar = escrituraSinFactura(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules);
+    if (sinFacturaAlEditar.length) { notify(avisoSinFactura(sinFacturaAlEditar, "en")); return false; }
     // La MISMA nota que el proveedor de verdad (D-372): «Delivery Date: 2026-09-20 → 2026-12-25». El demo la escribía
     // vacía, así que el historial del incidente no se podía ni mirar aquí — y esta pantalla existe justo para mirarla.
     const antes = s.deliveries.find((c) => c.id === id) as unknown as Record<string, unknown> | undefined;
@@ -236,6 +242,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Same write guard as the real provider (D-276).
     const choqueAlMover = escrituraQueNoVaANingunSitio(cur, { stage, ...extra }, s.settings.order_type_rules, s.settings.stores);
     if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, "en")); return false; }
+    const sinFacturaAlMover = escrituraSinFactura(cur, { stage, ...extra }, s.settings.order_type_rules);
+    if (sinFacturaAlMover.length) { notify(avisoSinFactura(sinFacturaAlMover, "en")); return false; }
     // Mismo espejo del guard que el proveedor real (D-291, 122).
     const entrandoEnAnulada = stage === "canceled" && (!cur || cur.stage !== "canceled");
     if (entrandoEnAnulada) {

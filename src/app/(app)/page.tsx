@@ -28,6 +28,7 @@ import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
+import { resumenSinFactura } from "@/lib/factura-obligatoria";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
@@ -456,10 +457,12 @@ export default function OrdersPage() {
   const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>) => {
     if (!chosen.length) return;
     setBulkBusy(true);
+    // Las que se quedan por la factura, nombradas en el resumen (D-NEXT): el aviso de cada una lo pisa este.
+    const sinFactura = resumenSinFactura(chosen, to, settings.order_type_rules, orderLabel, lang);
     let ok = 0;
     for (const d of chosen) { if (await setStage(d.id, to, undefined, extra)) ok++; }
     setBulkBusy(false);
-    notify(t(`${ok} of ${chosen.length} order(s) updated`, `${ok} de ${chosen.length} orden(es) actualizadas`));
+    notify(t(`${ok} of ${chosen.length} order(s) updated`, `${ok} de ${chosen.length} orden(es) actualizadas`) + sinFactura);
     setSelected(new Set());
   };
 
@@ -476,6 +479,7 @@ export default function OrdersPage() {
     ), { danger: false, confirmLabel: t("Mark delivered", "Marcar entregadas") });
     if (!ok) return;
     setBulkBusy(true);
+    const sinFactura = resumenSinFactura(chosen, "delivered", settings.order_type_rules, orderLabel, lang);
     let done = 0;
     for (const d of chosen) {
       const note = t(
@@ -485,7 +489,7 @@ export default function OrdersPage() {
       if (await setStage(d.id, "delivered", note)) done++;
     }
     setBulkBusy(false);
-    notify(t(`${done} of ${chosen.length} order(s) marked delivered`, `${done} de ${chosen.length} orden(es) marcadas como entregadas`));
+    notify(t(`${done} of ${chosen.length} order(s) marked delivered`, `${done} de ${chosen.length} orden(es) marcadas como entregadas`) + sinFactura);
     setSelected(new Set());
   };
 
@@ -502,6 +506,7 @@ export default function OrdersPage() {
     ), { danger: true, confirmLabel: t("Override", "Forzar") });
     if (!ok) return;
     setBulkBusy(true);
+    const sinFactura = resumenSinFactura(chosen, to, settings.order_type_rules, orderLabel, lang);
     let done = 0;
     for (const d of chosen) {
       const note = t(
@@ -511,7 +516,7 @@ export default function OrdersPage() {
       if (await setStage(d.id, to, note)) done++;
     }
     setBulkBusy(false);
-    notify(t(`${done} of ${chosen.length} order(s) set to ${label}`, `${done} de ${chosen.length} orden(es) a ${label}`));
+    notify(t(`${done} of ${chosen.length} order(s) set to ${label}`, `${done} de ${chosen.length} orden(es) a ${label}`) + sinFactura);
     setSelected(new Set());
   };
 

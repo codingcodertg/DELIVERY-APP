@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { submitBlockers } from "./required";
+import { submitBlockers, textoDeBloqueo } from "./required";
 import { eligeOrigen, eligeRecogida, mismaDireccion, normalizaLugar, opcionesDeOrigen, opcionesDeRecogida, origenEsDestino, recogidaAparte } from "./order-endpoints";
 import type { Delivery, OrderTypeRule, NamedLocation } from "./types";
 
@@ -175,7 +175,14 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
   });
 
   it("y el mensaje separa lo que falta de lo que se contradice", () => {
-    expect(modal).toContain("const choques = blockers.filter((m) => m.conflict);");
+    // Desde D-NEXT el texto lo arma `textoDeBloqueo` (required.ts), compartido con la guarda de factura de los
+    // proveedores: la prueba se muda a donde se decide, sin aflojar lo que fija, y exige que el modal lo use.
+    expect(modal).toContain("textoDeBloqueo(blockers, lang)");
+    const texto = textoDeBloqueo([
+      { key: "invoice_num", en: "Invoice #", es: "Factura #" },
+      { key: "store", conflict: true, en: "Same store", es: "Misma tienda" },
+    ], "es");
+    expect(texto).toBe("No va a ningún sitio:\n\n• Misma tienda\n\nTodavía falta:\n\n• Factura #");
   });
 });
 
