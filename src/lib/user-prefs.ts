@@ -93,8 +93,49 @@ export function anchosValidos(v: unknown, conocidas?: readonly string[]): Anchos
   return r;
 }
 
-/** `anchos` es opcional al ESCRIBIR el tipo —las columnas del Gestor no lo usan—, pero `prefsDeValor` lo devuelve siempre. */
-export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol; anchos?: AnchosPorRol }
+/**
+ * Las PLANTILLAS de columnas (D-394), la cuarta mitad del mismo `value`: `{ "_plantillas": [ { n, v, o?, a? } ] }`.
+ * El dueño: «add template in columns that will be like [save] the current order so if they change it and then want to go
+ * back to the old one they can». Una plantilla es una FOTO con nombre de lo que la persona tenía puesto: qué columnas ve
+ * (`v`), en qué orden (`o`, si la pantalla ordena) y con qué anchos (`a`, si la pantalla los guarda en la base).
+ *
+ * Son de la PERSONA, no del rol: una lista sola, no un mapa por rol como las otras mitades. Una persona tiene un rol; solo
+ * un admin con «Ver como» ve varios, y a ese le sirve la misma plantilla en cualquiera (el catálogo de columnas es uno).
+ * Además así el tamaño tiene techo: diez plantillas y no diez por rol (ver `MAX_PLANTILLAS` y la prueba del tope).
+ *
+ * Claves de una letra a propósito: la fila tiene un tope de 8 192 bytes en la base (136) y esta mitad es la única que crece
+ * con lo que la persona decida guardar.
+ */
+export const CLAVE_DE_PLANTILLAS = "_plantillas";
+export const MAX_PLANTILLAS = 10;
+export const MAX_NOMBRE_DE_PLANTILLA = 40;
+export interface PlantillaDeColumnas { n: string; v: string[]; o?: string[]; a?: Record<string, number> }
+
+/** Lo que venga de la base o del navegador, saneado: una lista de a lo sumo `MAX_PLANTILLAS`, con nombre (recortado, no
+ *  vacío, sin repetir sin distinguir mayúsculas) y columnas que sean listas de textos cortos. Lo que no vale se cae entero. */
+export function plantillasValidas(v: unknown): PlantillaDeColumnas[] {
+  if (!Array.isArray(v)) return [];
+  const r: PlantillaDeColumnas[] = [];
+  const vistos = new Set<string>();
+  for (const x of v) {
+    if (r.length >= MAX_PLANTILLAS) break;
+    if (!x || typeof x !== "object" || Array.isArray(x)) continue;
+    const { n, v: vis, o, a } = x as Record<string, unknown>;
+    const nombre = typeof n === "string" ? n.trim().slice(0, MAX_NOMBRE_DE_PLANTILLA) : "";
+    if (!nombre || vistos.has(nombre.toLowerCase()) || !esLista(vis)) continue;
+    vistos.add(nombre.toLowerCase());
+    const p: PlantillaDeColumnas = { n: nombre, v: [...vis] };
+    if (esLista(o)) p.o = [...o];
+    const anchos = anchosDeUnRol(a);
+    if (Object.keys(anchos).length) p.a = anchos;
+    r.push(p);
+  }
+  return r;
+}
+
+/** `anchos` y `plantillas` son opcionales al ESCRIBIR el tipo —no todas las pantallas los usan—, pero `prefsDeValor`
+ *  devuelve siempre `anchos`. Las plantillas se leen aparte (`plantillasDeValor`). */
+export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol; anchos?: AnchosPorRol; plantillas?: PlantillaDeColumnas[] }
 
 /** Del `value` de la base a sus dos mitades, saneadas. */
 export function prefsDeValor(v: unknown): PrefsDeColumnas {
@@ -103,13 +144,19 @@ export function prefsDeValor(v: unknown): PrefsDeColumnas {
   return { visibles: columnasValidas(v), orden: columnasValidas(orden), anchos: anchosValidos(anchos) };
 }
 
+/** Las plantillas del `value` de la base, saneadas. */
+export function plantillasDeValor(v: unknown): PlantillaDeColumnas[] {
+  return v && typeof v === "object" && !Array.isArray(v) ? plantillasValidas((v as Record<string, unknown>)[CLAVE_DE_PLANTILLAS]) : [];
+}
+
 /** De las dos mitades al `value` que se guarda. Sin orden elegido no se escribe `_orden`: el canónico no se guarda. */
 export function valorDeColumnas(p: PrefsDeColumnas): Record<string, unknown> {
-  const orden = columnasValidas(p.orden), anchos = anchosValidos(p.anchos);
+  const orden = columnasValidas(p.orden), anchos = anchosValidos(p.anchos), plantillas = plantillasValidas(p.plantillas);
   return {
     ...columnasValidas(p.visibles),
     ...(Object.keys(orden).length ? { [CLAVE_DEL_ORDEN]: orden } : {}),
     ...(Object.keys(anchos).length ? { [CLAVE_DE_ANCHOS]: anchos } : {}),
+    ...(plantillas.length ? { [CLAVE_DE_PLANTILLAS]: plantillas } : {}),
   };
 }
 
@@ -156,21 +203,22 @@ export interface ClienteDePrefs {
 }
 
 /** `leida: false` = no se pudo leer (sin red, o la tabla aún no existe): se sigue con el navegador y NO se siembra. */
-export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol; anchos: AnchosPorRol }> {
+export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol; anchos: AnchosPorRol; plantillas: PlantillaDeColumnas[] }> {
   try {
     const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", clave).maybeSingle();
-    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} };
+    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [] };
     const p = prefsDeValor(data?.value);
-    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden, anchos: p.anchos ?? {} };
-  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {} }; }
+    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden, anchos: p.anchos ?? {}, plantillas: plantillasDeValor(data?.value) };
+  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [] }; }
 }
 
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
 /** `orden` y `anchos`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que
  *  quien no pase una mitad la borra — por eso la página de Órdenes escribe por un solo sitio, con las tres. */
-export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}): Promise<boolean> {
+/** `plantillas` (D-394), igual: quien escribe la fila de una pantalla que tiene plantillas pasa las leídas, o las borra. */
+export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}, plantillas: PlantillaDeColumnas[] = []): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos }) }, { onConflict: "user_id,key" }).select("user_id");
+    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos, plantillas }) }, { onConflict: "user_id,key" }).select("user_id");
     return !error && !!data && data.length === 1;
   } catch { return false; }
 }

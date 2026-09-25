@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Stage } from "@/lib/types";
-import { ordenesDelDia, paradasDelChofer, pendientesDeOtrosDias, sinAsignarDelGestor } from "./ordenes-del-dia";
+import { CHIPS_SIN_ASIGNAR, cuentasSinAsignar, filasSinAsignar, ordenesDelDia, paradasDelChofer, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "./ordenes-del-dia";
 
 /** El Gestor de Rutas: cada día es aparte (D-331). «Hoy» se fija en el 19 para que las fechas de abajo signifiquen algo. */
 
@@ -109,5 +109,76 @@ describe("«Sin asignar»: el día por defecto, y con el chip «Atrasadas» las 
   it("en «todas» y «pendientes» nada cambia", () => {
     expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "todas", ETAPAS))).toEqual(["de-ayer", "de-hoy", "sin-fecha", "de-manana", "de-hace-un-mes"]);
     expect(ids(sinAsignarDelGestor(POOL, "2026-09-19", "pendientes", ETAPAS))).toEqual(["de-ayer", "sin-fecha", "de-hace-un-mes"]);
+  });
+});
+
+describe("«Sin asignar»: «Este día» y «Todas», y el número de cada chip es el de sus filas (D-393)", () => {
+  type P = ReturnType<typeof o> & { order_no: number; delivery_windows: string | null; delivery_lat: number | null; account: string; delivery_address: string | null; delivery_phone: string | null; contact: string | null; store: string };
+  const p = (x: ReturnType<typeof o>, order_no: number, extra: Partial<P> = {}): P => ({
+    ...x, order_no, delivery_windows: null, delivery_lat: 26.2, account: "Cliente", delivery_address: null, delivery_phone: null, contact: null, store: "McAllen", ...extra,
+  });
+  // Los números NO van en el orden de la lista: si la función dejara de ordenar por número, se notaría.
+  const POOL = [
+    p(o("hoy-con-ventana", "2026-09-19"), 5, { delivery_windows: "09:00-12:00", account: "Casa Bella" }),
+    p(o("hoy-sin-ubicacion", "2026-09-19"), 3, { delivery_lat: null }),
+    p(o("ayer", "2026-09-18"), 2, { delivery_windows: "08:00-10:00" }),
+    p(o("manana", "2026-09-20"), 8),
+    p(o("sin-fecha", null), 1),
+    p(o("hoy-con-chofer", "2026-09-19", "approved", "Chofer"), 4),
+    p(o("ayer-entregada", "2026-09-18", "delivered"), 6),
+    p(o("hace-un-mes", "2026-08-19"), 9, { account: "Casa Bella" }),
+  ];
+  const filas = (chip: ChipSinAsignar, busqueda = "", fecha = "2026-09-19", modo: ModoDelGestor = "dia") => ids(filasSinAsignar(POOL, fecha, modo, ETAPAS, chip, busqueda));
+
+  it("«Este día» es el defecto de siempre: solo lo del día sin chofer, por número", () => {
+    expect(filas("dia")).toEqual(["hoy-sin-ubicacion", "hoy-con-ventana"]);
+  });
+  it("«Todas» es lo sin chofer de CUALQUIER día —pasado, futuro y sin fecha—, por número; nunca con chofer ni entregada", () => {
+    expect(filas("todas")).toEqual(["sin-fecha", "ayer", "hoy-sin-ubicacion", "hoy-con-ventana", "manana", "hace-un-mes"]);
+  });
+  it("«Todas» no depende del día que se mira", () => {
+    expect(filas("todas", "", "2026-09-20")).toEqual(filas("todas"));
+    expect(filas("todas", "", "2026-09-19", "pendientes")).toEqual(filas("todas"));
+  });
+  it("«Atrasadas» sigue siendo D-359: las vencidas de cualquier día", () => {
+    expect(filas("overdue")).toEqual(["ayer", "hace-un-mes"]);
+  });
+  it("«Con ventana» y «Sin ubicación» acotan lo del día, no lo de otros días", () => {
+    expect(filas("windowed")).toEqual(["hoy-con-ventana"]);
+    expect(filas("noloc")).toEqual(["hoy-sin-ubicacion"]);
+  });
+  it("la búsqueda acota cada chip", () => {
+    expect(filas("dia", "casa")).toEqual(["hoy-con-ventana"]);
+    expect(filas("todas", "  CASA ")).toEqual(["hoy-con-ventana", "hace-un-mes"]);
+    expect(filas("todas", "8")).toEqual(["manana"]);
+  });
+  it("el número de cada chip es EXACTAMENTE el de las filas que enseña, con y sin búsqueda", () => {
+    for (const busqueda of ["", "casa", "8", "nadie"]) {
+      const cuentas = cuentasSinAsignar(POOL, "2026-09-19", "dia", ETAPAS, busqueda);
+      for (const chip of CHIPS_SIN_ASIGNAR) expect(cuentas[chip], `${chip} «${busqueda}»`).toBe(filas(chip, busqueda).length);
+    }
+    // Y no es un cero por todas partes: los números de verdad, sin búsqueda.
+    expect(cuentasSinAsignar(POOL, "2026-09-19", "dia", ETAPAS)).toEqual({ dia: 2, todas: 6, overdue: 2, windowed: 1, noloc: 1 });
+  });
+});
+
+describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D-393)", () => {
+  const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
+  it("las filas de la tabla salen de `filasSinAsignar` con el chip y la búsqueda", () => {
+    expect(pagina).toContain("const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch)");
+  });
+  it("el número de cada chip sale de `cuentasSinAsignar` con la MISMA búsqueda, y se pinta en el chip", () => {
+    expect(pagina).toContain("const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch)");
+    expect(pagina).toContain("({cuentasDeChips[f]})");
+  });
+  it("los cinco chips, con «Todas» detrás de «Este día», y «Este día» por defecto", () => {
+    expect(pagina).toContain('{(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
+    expect(pagina).toContain('useState<ChipSinAsignar>("dia")');
+  });
+  it("el resumen, la pestaña y «Auto-asignar» cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
+    expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
+    expect(pagina).toContain("const res = autoAssign(unassigned, driverNames,");
+    expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
+    expect(pagina).toContain("const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));");
   });
 });

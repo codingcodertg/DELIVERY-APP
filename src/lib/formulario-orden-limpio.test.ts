@@ -85,8 +85,8 @@ describe("6 y 7 · «Venta al mostrador» es una opción fija del campo, y no re
 
   it("al elegir mostrador, contacto y teléfono quedan VACÍOS: ni los de antes, ni los de la última orden de mostrador", () => {
     for (const cuenta of [CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN.toUpperCase()]) {
-      expect(contactoAlElegirCuenta({ cuenta, guardada: undefined, ultimaOrden: ultima, actual })).toEqual({ contact: "", delivery_phone: "" });
-      expect(contactoAlElegirCuenta({ cuenta, guardada, ultimaOrden: undefined, actual })).toEqual({ contact: "", delivery_phone: "" });
+      expect(contactoAlElegirCuenta({ cuenta, guardada: undefined, ultimaOrden: ultima, actual })).toMatchObject({ contact: "", delivery_phone: "" });
+      expect(contactoAlElegirCuenta({ cuenta, guardada, ultimaOrden: undefined, actual })).toMatchObject({ contact: "", delivery_phone: "" });
     }
   });
   it("cualquier otra cuenta, como siempre: la guardada manda; si no, la última orden; si no, lo que había", () => {

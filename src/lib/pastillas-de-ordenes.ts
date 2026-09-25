@@ -34,8 +34,13 @@ export function pastillasDeOrdenes(args: {
   /** Las cuentas ya calculadas sobre lo que la persona ve. */
   cuentas: Record<string, number>;
   filtro: string;
+  /**
+   * ¿Ve esta persona los días anteriores a ayer? (`seesAllHistory`: admin, logística y quien tenga
+   * `history` marcado.) Sin eso no hay pastilla «Outdated» (D-392).
+   */
+  veDiasViejos: boolean;
 }): PastillaDeOrdenes[] {
-  const { etapas, todasAprueban, cuentas, filtro } = args;
+  const { etapas, todasAprueban, cuentas, filtro, veDiasViejos } = args;
   const n = (k: string) => cuentas[k] ?? 0;
   const pastilla = (key: string, clase?: string): PastillaDeOrdenes =>
     ({ key, cuenta: n(key), activa: filtro === key, ...(clase ? { clase } : {}) });
@@ -55,7 +60,11 @@ export function pastillasDeOrdenes(args: {
   // que hubiera no habría dónde buscarlas, y un 0 dice «no hay nada atrasado», que también es saberlo.
   // Va tras las etapas y antes de la de factura pendiente, que es la que aparece y desaparece: así
   // esta no cambia de sitio.
-  salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
+  //
+  // **Y solo para quien ve los días viejos (D-392).** El dueño: *«ONLY LOGISTICS AND admin CAN SEE
+  // DAYS BEFORE YESTERDAY»*. Todo lo que hay dentro es anterior a ayer, así que para los demás sería
+  // una pastilla que siempre dice 0 y nunca enseña nada: se va, no se queda vacía.
+  if (veDiasViejos) salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
 
   // La del documento pendiente (D-310) solo sale si hay algo pendiente **o** si se está dentro de
   // ella: si no, al vaciarse desaparecería bajo el dedo y la lista se quedaría en un filtro invisible.

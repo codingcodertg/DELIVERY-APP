@@ -16,6 +16,10 @@ import type { Delivery, NamedLocation } from "./types";
  * El dueño: *«make a filter name outdated and put the old order there»*. Dentro, las atrasadas
  * abiertas anteriores a ayer; fuera de la lista normal, que se queda con ayer, hoy y lo que viene.
  * Para todos los roles, cada uno con las órdenes que ya podía ver.
+ *
+ * **D-392 (2026-09-25) la dejó solo para admin y logística**: *«ONLY LOGISTICS AND admin CAN SEE DAYS
+ * BEFORE YESTERDAY»*. Por eso la persona de partida de estas pruebas es logística, y lo que les pasa a
+ * los demás roles está en su propio bloque, al final.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -32,11 +36,10 @@ const REGLAS: OrderTypeRules = { ConFactura: { docRef: "invoice" }, SinDocumento
 const TIENDAS: NamedLocation[] = [{ name: "Norte" }, { name: "Sur" }] as NamedLocation[];
 
 const ctx = (over: Partial<ContextoDeLista> = {}): ContextoDeLista => ({
-  me: { id: "u-office", role: "accounting", store: null },
+  me: { id: "u-log", role: "logistics", store: null },
   teaching: false,
-  veTodoElHistorial: false,
+  veTodoElHistorial: seesAllHistory("logistics"),
   busqueda: "",
-  sueloDeVentas: shiftDateISO(HOY, -30),
   reglas: REGLAS,
   tiendas: TIENDAS,
   tiendasDeAlmacen: [],
@@ -87,9 +90,9 @@ describe("qué es una atrasada para «Outdated»: `isOverdue` más el suelo de a
 });
 
 describe("la lista normal ya no las lleva; «Outdated» sí", () => {
-  it("office: normal = ayer, hoy, futuro y sin fecha; Outdated = las dos abiertas viejas; la entregada vieja en ninguna", () => {
+  it("logística: la entregada vieja sigue en la normal, pero la abierta vieja SOLO en Outdated", () => {
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx());
-    expect(ids(visibles)).toEqual(["ayer-abierta", "hoy", "manana", "sin-fecha"]);
+    expect(ids(visibles)).toEqual(["ayer-abierta", "hoy", "manana", "sin-fecha", "vieja-anulada", "vieja-entregada"]);
     expect(ids(atrasadas)).toEqual(["anteayer-lista", "vieja-abierta"]);
   });
 
@@ -114,16 +117,18 @@ describe("la lista normal ya no las lleva; «Outdated» sí", () => {
 });
 
 describe("cada rol ve en «Outdated» solo las atrasadas que ya podía ver (D-374)", () => {
+  // Desde D-392, ventas y almacén solo llegan aquí con `history` marcado a mano en Usuarios (D-350):
+  // es lo que pone `veTodoElHistorial` a true sin ser admin ni logística. El corte por rol sigue.
   it("ventas: la suya sí, la de otro no", () => {
     const vendedor = { id: "u-vendedor", role: "sales" as const, store: "Norte" };
     const suya = orden("suya", "approved", HACE_DIEZ);
     const ajena = orden("ajena", "approved", HACE_DIEZ, { created_by: "u-otro" });
-    const { atrasadas } = ordenesVisibles([suya, ajena], ctx({ me: vendedor }));
+    const { atrasadas } = ordenesVisibles([suya, ajena], ctx({ me: vendedor, veTodoElHistorial: seesAllHistory("sales", ["history"]) }));
     expect(ids(atrasadas)).toEqual(["suya"]);
   });
 
   it("almacén: su tienda sí, otra tienda no, y lo anterior a la aprobación tampoco", () => {
-    const almacen = ctx({ me: { id: "u-alm", role: "warehouse", store: "Norte" }, tiendasDeAlmacen: ["norte"] });
+    const almacen = ctx({ me: { id: "u-alm", role: "warehouse", store: "Norte" }, tiendasDeAlmacen: ["norte"], veTodoElHistorial: seesAllHistory("warehouse", ["history"]) });
     const mia = orden("mia", "ready", HACE_DIEZ);
     const ajena = orden("ajena", "ready", HACE_DIEZ, { store: "Sur" });
     const pendiente = orden("pendiente", "pending", HACE_DIEZ);
@@ -141,7 +146,11 @@ describe("el número de cada pastilla es el de filas que enseña al pulsarla", (
   };
   const filtros = [PASTILLA_TODAS, "approved", "ready", "fulfilling", "delivered", PESTANA_DOCUMENTO_PENDIENTE, PESTANA_ATRASADAS];
 
-  for (const [nombreRol, c] of [["office", ctx()], ["admin", ctx({ veTodoElHistorial: true })]] as const) {
+  for (const [nombreRol, c] of [
+    ["office", ctx({ me: { id: "u-office", role: "accounting", store: null }, veTodoElHistorial: seesAllHistory("accounting") })],
+    ["logística", ctx()],
+    ["admin", ctx({ me: { id: "u-admin", role: "admin", store: null }, veTodoElHistorial: seesAllHistory("admin") })],
+  ] as const) {
     for (const [nombrePreset, pasa] of Object.entries(presets)) {
       it(`${nombreRol}, chip «${nombrePreset}»: cuenta = filas, para cada pastilla`, () => {
         const listas = listasDe(c);
@@ -171,7 +180,7 @@ describe("el número de cada pastilla es el de filas que enseña al pulsarla", (
 
 describe("la pastilla en la fila", () => {
   const fila = (cuentas: Record<string, number>, filtro: string) =>
-    pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas, filtro });
+    pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas, filtro, veDiasViejos: true });
 
   it("sale siempre, también con 0: la lista normal ya no las enseña y hay que saber dónde buscarlas", () => {
     const p = fila({}, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS);

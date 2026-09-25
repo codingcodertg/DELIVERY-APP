@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { esDeMisTiendas, esParaRecibir, intertiendaSinDestino, reparteLaColaDeAlmacen, tiendasDeAlmacen } from "./almacen";
-import type { NamedLocation } from "./types";
+import { esDeMisTiendas, esParaRecibir, filtraLaVistaDeAlmacen, intertiendaSinDestino, reparteLaColaDeAlmacen, tiendasDeAlmacen } from "./almacen";
+import type { NamedLocation, Stage } from "./types";
 
 /**
  * El reparto de la cola de almacén (D-374).
@@ -184,8 +184,11 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
   it("la Cola se pinta con `reparto.cola`, que es la lista ya sin lo de Recepción", () => {
     // Se cita la expresión entera y no un trozo: `reparto.cola` a secas aparece en varios sitios de
     // este fichero, y una prueba que se cumple por otro renglón se queda verde para siempre.
-    expect(pagina).toContain("? [...reparto.cola].sort((a, b) => b.order_no - a.order_no)");
-    expect(pagina).toContain(': reparto.cola.filter((d) => d.stage === tab)');
+    //
+    // Desde D-390 el orden, las cuentas y la pestaña los hace `filtraLaVistaDeAlmacen` (sus pruebas,
+    // más abajo); aquí se fija que la Cola se la pide sobre `reparto.cola` y la pinta.
+    expect(pagina).toContain("filtraLaVistaDeAlmacen(reparto.cola, filtroCola, dentroDeLaVentana)");
+    expect(pagina).toContain('<OrdersTable rows={cola.filas} resizeKey="warehouse"');
     // Y la de antes ya no está: si vuelve, las dos listas discrepan sin avisar.
     expect(pagina).not.toContain("[...scoped].sort((a, b) => b.order_no - a.order_no)");
     expect(pagina).not.toContain("scoped.filter((d) => d.stage === tab)");
@@ -193,9 +196,9 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
 
   it("los contadores de las pestañas cuentan sobre la cola repartida, no sobre `scoped`", () => {
     // Si contaran sobre `scoped`, la pestaña diría un número y la tabla enseñaría otro: justo el
-    // fallo que el reparto en un solo sitio existe para evitar.
-    expect(pagina).toContain("for (const d of reparto.cola) c[d.stage] = (c[d.stage] ?? 0) + 1;");
-    expect(pagina).toContain('{tb.key === "all" ? reparto.cola.length : (counts[tb.key] ?? 0)}');
+    // fallo que el reparto en un solo sitio existe para evitar. Las cuentas salen de la misma
+    // llamada que las filas (`vista={cola}`).
+    expect(pagina).toContain('<FiltrosDeAlmacen key="cola" pestanas={TABS} filtro={filtroCola} onCambio={setFiltroCola} vista={cola} />');
   });
 
   it("la vista de Recepción existe", () => {
@@ -234,8 +237,95 @@ describe("la pantalla de almacén usa el reparto, y no la lista de antes", () =>
     const iRec = pagina.indexOf(') : vista === "recepcion" ? (');
     expect([iCola > 0, iRec > iCola]).toEqual([true, true]);
     const cola = pagina.slice(iCola, iRec);
-    expect(cola).toContain("{reparto.sinDestino.length}");
+    // Desde D-390 cuenta `sinDestino`, las de `reparto.sinDestino` que la Cola enseña con SU
+    // búsqueda (la prueba de eso, en «cada vista con su búsqueda» más abajo).
+    expect(cola).toContain("{sinDestino.length}");
     expect(cola).toContain("no se pueden mandar a Recepci");
-    expect(pagina.slice(iRec)).not.toContain("{reparto.sinDestino.length}");
+    expect(pagina.slice(iRec)).not.toContain("{sinDestino.length}");
+  });
+});
+
+describe("la búsqueda y las pastillas de una vista de almacén (D-390)", () => {
+  // El dueño, el 2026-09-25: «THE SAME FILTERS AND SEARCH BAR MOVE IT INTO RECEIVING WAREHOUSE».
+  // Estas pruebas miden la función; las de abajo, que las dos vistas la usan.
+  const o = (order_no: number, stage: string, invoice_num: string | null, dentro = true) =>
+    ({ id: `o${order_no}`, order_no, stage, invoice_num, dentro }) as { id: string; order_no: number; stage: Stage; invoice_num: string | null; dentro: boolean };
+  // Desordenadas a propósito: una prueba de orden con datos ya ordenados pasa con cualquier orden.
+  const LISTA = [
+    o(12, "ready", "INV-500"),
+    o(30, "approved", "INV-777"),
+    o(5, "approved", "inv-501"),
+    o(21, "delivered", "INV-900", false), // vieja y cerrada: fuera de la ventana
+  ];
+  const ventana = (d: { dentro: boolean }) => d.dentro;
+  const nums = (l: { order_no: number }[]) => l.map((d) => d.order_no);
+
+  it("sin buscar, la ventana decide qué entra, y las cuentas son por etapa", () => {
+    const v = filtraLaVistaDeAlmacen(LISTA, { q: "", tab: "all" }, ventana);
+    expect(nums(v.visibles).sort((a, b) => a - b)).toEqual([5, 12, 30]);
+    expect(v.cuentas).toEqual({ ready: 1, approved: 2 });
+  });
+
+  it("buscando, se busca en la factura sin distinguir mayúsculas, y SE SALTA la ventana", () => {
+    // La de la ventana es la 21: buscarla la trae, que es el camino al historial (D-239).
+    expect(nums(filtraLaVistaDeAlmacen(LISTA, { q: " inv-9 ", tab: "all" }, ventana).filas)).toEqual([21]);
+    expect(nums(filtraLaVistaDeAlmacen(LISTA, { q: "INV-50", tab: "all" }, ventana).filas)).toEqual([12, 5]);
+    // Y lo que no casa no sale, aunque esté dentro de la ventana.
+    expect(filtraLaVistaDeAlmacen(LISTA, { q: "nada", tab: "all" }, ventana).visibles).toEqual([]);
+  });
+
+  it("«Todas» ordena de la más nueva a la más vieja; una etapa deja solo las suyas", () => {
+    expect(nums(filtraLaVistaDeAlmacen(LISTA, { q: "", tab: "all" }, ventana).filas)).toEqual([30, 12, 5]);
+    expect(nums(filtraLaVistaDeAlmacen(LISTA, { q: "", tab: "approved" }, ventana).filas)).toEqual([30, 5]);
+    expect(nums(filtraLaVistaDeAlmacen(LISTA, { q: "", tab: "ready" }, ventana).filas)).toEqual([12]);
+  });
+
+  it("la pestaña no cambia las cuentas: las pastillas cuentan todas las etapas de lo buscado", () => {
+    const v = filtraLaVistaDeAlmacen(LISTA, { q: "", tab: "ready" }, ventana);
+    expect(v.cuentas).toEqual({ ready: 1, approved: 2 });
+    expect(v.visibles.length).toBe(3);
+  });
+});
+
+describe("Recepción tiene la misma barra y las mismas pastillas que la Cola, con su propio estado", () => {
+  const pagina = leer("src/app/(app)/warehouse/page.tsx");
+  const barra = leer("src/components/FiltrosDeAlmacen.tsx");
+
+  it("Recepción se filtra con la misma función, sobre `reparto.recepcion` y con SU filtro", () => {
+    expect(pagina).toContain("filtraLaVistaDeAlmacen(reparto.recepcion, filtroRecepcion, dentroDeLaVentana)");
+    expect(pagina).toContain("rows={recepcion.filas}");
+  });
+
+  it("y pinta el MISMO componente de filtros, con el estado de Recepción", () => {
+    expect(pagina).toContain('<FiltrosDeAlmacen key="recepcion" pestanas={TABS} filtro={filtroRecepcion} onCambio={setFiltroRecepcion} vista={recepcion} />');
+    // Ninguna barra escrita a mano en la página: si vuelve una copia, las dos se separan.
+    expect(pagina).not.toContain("<input\n            style={{ maxWidth: 260 }}");
+    expect(pagina).not.toContain('placeholder={t("Search invoice #');
+  });
+
+  it("cada vista guarda su búsqueda y su pestaña; la búsqueda ya no se aplica antes del reparto", () => {
+    expect(pagina).toContain('useState<FiltroDeVista>({ q: "", tab: "approved" })');
+    expect(pagina).toContain('useState<FiltroDeVista>({ q: "", tab: "all" })');
+    // Lo que se reparte es lo de sus tiendas sin buscar: si la búsqueda volviera a `scoped`, una
+    // barra filtraría las dos listas a la vez.
+    expect(pagina).toContain("deliveries.filter((d) => atStore(d))");
+    expect(pagina).not.toMatch(/const \[q, setQ\]/);
+  });
+
+  it("el aviso de sin destino cuenta solo las que la Cola enseña con su búsqueda", () => {
+    expect(pagina).toContain("const enLaCola = new Set(cola.visibles);");
+    expect(pagina).toContain("return reparto.sinDestino.filter((d) => enLaCola.has(d));");
+  });
+
+  it("el contador de la pestaña Recepción cuenta lo que Recepción enseña en todas sus etapas", () => {
+    expect(pagina).toContain('{t("Receiving", "Recepción")} <span className="cnt">{recepcion.visibles.length}</span>');
+  });
+
+  it("la barra busca, cambia de pestaña y cuenta con lo que le llega, sin estado propio", () => {
+    expect(barra).toContain("onChange={(e) => onCambio({ ...filtro, q: e.target.value })}");
+    expect(barra).toContain("onClick={() => onCambio({ ...filtro, tab: tb.key })}");
+    expect(barra).toContain('{tb.key === "all" ? vista.visibles.length : (vista.cuentas[tb.key] ?? 0)}');
+    expect(barra).toContain('className={"chip " + (filtro.tab === tb.key ? "on" : "")}');
+    expect(barra).not.toContain("useState");
   });
 });

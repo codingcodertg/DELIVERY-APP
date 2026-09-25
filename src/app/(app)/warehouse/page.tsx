@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { tiendasDelGrupo } from "@/lib/store-group";
 import { normalizaLugar, tiendasDeLaOrden } from "@/lib/order-endpoints";
-import { reparteLaColaDeAlmacen } from "@/lib/almacen";
+import { filtraLaVistaDeAlmacen, reparteLaColaDeAlmacen, type FiltroDeVista } from "@/lib/almacen";
+import { FiltrosDeAlmacen } from "@/components/FiltrosDeAlmacen";
 import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS, stageInfo, stageLabel } from "@/lib/constants";
@@ -33,8 +34,14 @@ export default function WarehousePage() {
   const [open, setOpen] = useState<Delivery | null>(null);
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("approved");
-  const [q, setQ] = useState("");
+  //
+  // **Cada vista guarda su búsqueda y su pestaña** (D-390): la Cola y Recepción tienen la misma
+  // barra y las mismas pastillas —el mismo componente—, pero buscar una factura en una no deja la
+  // otra filtrada al volver. Recepción arranca en «Todas» y no en «Aprobado»: es lo que enseñaba
+  // antes de tener pastillas, y lo que entra de otra tienda suele venir ya preparado o en camino, así
+  // que arrancar en «Aprobado» la dejaría casi vacía a primera vista.
+  const [filtroCola, setFiltroCola] = useState<FiltroDeVista>({ q: "", tab: "approved" });
+  const [filtroRecepcion, setFiltroRecepcion] = useState<FiltroDeVista>({ q: "", tab: "all" });
   // Admin can browse any store; a warehouse worker is locked to their own
   // (PU = pickup store). Falls back to "every store" only if unassigned.
   const [storeFilter, setStoreFilter] = useState<string>("");
@@ -98,21 +105,20 @@ export default function WarehousePage() {
     [colaNormalizada, direccionesDeLaCola, settings.order_type_rules],
   );
 
-  const scoped = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return deliveries.filter((d) => {
-      if (tiendasDeLaCola.length > 0 && !atStore(d)) return false;
-      // Searching matches by invoice # specifically and bypasses the date
-      // window below — that's the one way to reach older history here.
-      if (needle) return (d.invoice_num || "").toLowerCase().includes(needle);
-      // Near-term work only: two days back through tomorrow. Older history is
-      // reachable by the invoice search above.
-      // Quien ve todo el historial (admin y logística, D-239) no se filtra, y se
-      // mira el rol REAL: un admin previsualizando almacén sigue viendo todo.
-      if (!seesAllHistory(realRole, me?.permissions) && !withinRetention(d)) return false;
-      return true;
-    });
-  }, [deliveries, effectiveStore, atStore, q, realRole]);
+  // Lo de sus tiendas, SIN buscar y SIN ventana de fechas: eso lo aplica cada vista por su cuenta
+  // (D-390), con su propio texto de búsqueda. Antes la búsqueda se aplicaba aquí, antes del
+  // reparto, y por eso una sola barra filtraba la Cola y Recepción a la vez.
+  const scoped = useMemo(
+    () => (tiendasDeLaCola.length > 0 ? deliveries.filter((d) => atStore(d)) : deliveries),
+    [deliveries, tiendasDeLaCola, atStore],
+  );
+
+  // Near-term work only: ayer en adelante, más lo atrasado y abierto. Older history is reachable by
+  // the invoice search, que se salta esta ventana dentro de `filtraLaVistaDeAlmacen`.
+  // Quien ve todo el historial (admin y logística, D-239) no se filtra, y se mira el rol REAL: un
+  // admin previsualizando almacén sigue viendo todo.
+  const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
+  const dentroDeLaVentana = useCallback((d: Delivery) => veTodoElHistorial || withinRetention(d), [veTodoElHistorial]);
 
   // El día elegido, en las tiendas que toquen. **Dos listas y no una** (D-380): qué etapas lleva
   // cada una lo decide `lib/ruta-del-dia`, con el porqué escrito allí. En corto: la hoja de carga
@@ -164,20 +170,24 @@ export default function WarehousePage() {
     [scoped, colaNormalizada, settings.order_type_rules],
   );
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const d of reparto.cola) c[d.stage] = (c[d.stage] ?? 0) + 1;
-    return c;
-  }, [reparto]);
-
-  const rows = useMemo(
-    () => (tab === "all"
-      ? [...reparto.cola].sort((a, b) => b.order_no - a.order_no)
-      : reparto.cola.filter((d) => d.stage === tab)),
-    [reparto, tab],
+  // Cada lista con SU búsqueda y SU pestaña, por la misma función (D-390). La de Recepción mira
+  // solo `reparto.recepcion`: buscar ahí una orden que está en la Cola no la encuentra, y al revés.
+  const cola = useMemo(
+    () => filtraLaVistaDeAlmacen(reparto.cola, filtroCola, dentroDeLaVentana),
+    [reparto, filtroCola, dentroDeLaVentana],
+  );
+  const recepcion = useMemo(
+    () => filtraLaVistaDeAlmacen(reparto.recepcion, filtroRecepcion, dentroDeLaVentana),
+    [reparto, filtroRecepcion, dentroDeLaVentana],
   );
 
-  const recepcion = useMemo(() => [...reparto.recepcion].sort((a, b) => b.order_no - a.order_no), [reparto]);
+  // El aviso de las Intertiendas sin destino cuenta las que la Cola enseña con SU búsqueda y SU
+  // ventana, en cualquier pestaña: lo mismo que contaba cuando el reparto se hacía sobre la lista
+  // ya buscada.
+  const sinDestino = useMemo(() => {
+    const enLaCola = new Set(cola.visibles);
+    return reparto.sinDestino.filter((d) => enLaCola.has(d));
+  }, [reparto, cola]);
 
   if (!me) return null;
   if (!canFulfill(me)) return <div className="empty">{t("You don’t have access to the warehouse queue.", "No tienes acceso a la cola del almacén.")}</div>;
@@ -185,7 +195,7 @@ export default function WarehousePage() {
   return (
     <>
       <div className="page-head">
-        <h2>{t("Warehouse", "Almacén")} <span className="count-tag">{vista === "recepcion" ? recepcion.length : rows.length}</span></h2>
+        <h2>{t("Warehouse", "Almacén")} <span className="count-tag">{vista === "recepcion" ? recepcion.filas.length : cola.filas.length}</span></h2>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {!lockedToOwnStore && (
             <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -227,26 +237,21 @@ export default function WarehousePage() {
           {/* El contador va en la pestaña a propósito: lo que llega de otra tienda no se ve en la
               cola, así que sin número no habría forma de enterarse de que hay algo esperando. */}
           <button className={"vt " + (vista === "recepcion" ? "on" : "")} onClick={() => setVista("recepcion")}>
-            📥 {t("Receiving", "Recepción")} <span className="cnt">{recepcion.length}</span>
+            📥 {t("Receiving", "Recepción")} <span className="cnt">{recepcion.visibles.length}</span>
           </button>
           <button className={"vt " + (vista === "ruta" ? "on" : "")} onClick={() => setVista("ruta")}>🧭 {t("Day's route", "Ruta del día")}</button>
         </div>
       </div>
 
+      {/* La misma barra y las mismas pastillas en las dos vistas (D-390), cada una con su estado.
+          El `key` hace que al cambiar de vista React monte otra barra en vez de reutilizar la
+          misma caja de texto con el valor de la otra. En Recepción sin tienda elegida no sale:
+          ahí no hay lista que filtrar, solo el aviso de que elija una. */}
       {vista === "cola" && (
-        <div className="filters">
-          <input
-            style={{ maxWidth: 260 }}
-            placeholder={t("Search invoice #…", "Buscar factura #…")}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {TABS.map((tb) => (
-            <button key={tb.key} className={"chip " + (tab === tb.key ? "on" : "")} onClick={() => setTab(tb.key)}>
-              {lang === "es" ? tb.label_es : tb.label} <span className="cnt">{tb.key === "all" ? reparto.cola.length : (counts[tb.key] ?? 0)}</span>
-            </button>
-          ))}
-        </div>
+        <FiltrosDeAlmacen key="cola" pestanas={TABS} filtro={filtroCola} onCambio={setFiltroCola} vista={cola} />
+      )}
+      {vista === "recepcion" && colaNormalizada.length > 0 && (
+        <FiltrosDeAlmacen key="recepcion" pestanas={TABS} filtro={filtroRecepcion} onCambio={setFiltroRecepcion} vista={recepcion} />
       )}
 
       {!ready ? (
@@ -258,15 +263,15 @@ export default function WarehousePage() {
               Recepcion no las tiene delante, y quien trabaja la Cola —que si las tiene— no se
               enteraba de que esas dos no estan clasificadas. Un aviso que no ve quien puede actuar
               no es un aviso, es una nota al pie. */}
-          {reparto.sinDestino.length > 0 && (
+          {sinDestino.length > 0 && (
             <div className="hint" style={{ margin: 0 }}>
-              ⚠️ {reparto.sinDestino.length} {t(
+              ⚠️ {sinDestino.length} {t(
                 "store-to-store order(s) in this queue have no destination, so they can't be sorted into Receiving — check them.",
                 "orden(es) de tienda a tienda de esta cola no tienen destino, así que no se pueden mandar a Recepción — revíselas.",
               )}
             </div>
           )}
-          <OrdersTable rows={rows} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+          <OrdersTable rows={cola.filas} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
         </div>
       ) : vista === "recepcion" ? (
         /* Recepción: las Intertiendas cuyo DESTINO es una de sus tiendas y que no salen de ellas.
@@ -280,7 +285,7 @@ export default function WarehousePage() {
             </div>
           ) : (
             <OrdersTable
-              rows={recepcion}
+              rows={recepcion.filas}
               resizeKey="warehouse-recepcion"
               onOpen={setOpen}
               visible={ROLE_DEFAULT_COLUMNS.warehouse}

@@ -9,7 +9,9 @@ import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
-import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
+import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
+import { aplicaEnOrdenes, borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
+import { PlantillasDeColumnas } from "@/components/PlantillasDeColumnas";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
@@ -21,7 +23,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
-import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, shiftDateISO, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
+import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
@@ -106,8 +108,12 @@ export default function OrdersPage() {
   // El ANCHO de las columnas (D-338), la tercera mitad de la misma fila. `null` = nada guardado: manda el navegador.
   const [anchos, setAnchos] = useState<Record<string, number> | null>(null);
   const anchosDeLaBase = useRef<AnchosPorRol>({});
-  // La fila se escribe ENTERA y por UN solo sitio, con las tres mitades tal como están: así guardar una no borra las otras.
-  const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current);
+  // Las PLANTILLAS (D-394), la cuarta mitad: de la persona, no del rol. La `ref` es lo leído (lo que se escribe); el estado,
+  // lo que pinta el menú, y solo cambia cuando la base aceptó la escritura.
+  const plantillasDeLaBase = useRef<PlantillaDeColumnas[]>([]);
+  const [plantillas, setPlantillas] = useState<PlantillaDeColumnas[]>([]);
+  // La fila se escribe ENTERA y por UN solo sitio, con las cuatro mitades tal como están: así guardar una no borra las otras.
+  const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current, plantillasDeLaBase.current);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   // Elegir y aplicar son DOS pasos (D-372): aquí vive lo elegido hasta que se pulsa el botón y se confirma.
@@ -159,6 +165,9 @@ export default function OrdersPage() {
     anchosDeLaBase.current = {};
     setOrden(null);
     setAnchos(null);
+    // Las plantillas: en el demo, las de este navegador; con base, nada hasta leerla.
+    plantillasDeLaBase.current = SIN_BASE ? plantillasDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, CLAVE_DE_COLUMNAS) : [];
+    setPlantillas(plantillasDeLaBase.current);
     if (SIN_BASE) return;
     // Y después la base, que es la que manda (D-330): la elección es de la persona, no del navegador.
     let vivo = true;
@@ -172,6 +181,8 @@ export default function OrdersPage() {
       anchosDeLaBase.current = leido.anchos;
       setOrden(leido.orden[rol] ?? null);
       setAnchos(leido.anchos[rol] ?? null);
+      plantillasDeLaBase.current = leido.plantillas;
+      setPlantillas(leido.plantillas);
       // Ventas lee la base solo por el ANCHO de sus columnas: cuáles ve sigue saliendo de Ajustes.
       if (leido.hayFila) { if (!esVentas) setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
       // Sin fila: se siembra UNA vez desde este navegador — nunca durante una suplantación (el navegador es del
@@ -215,6 +226,9 @@ export default function OrdersPage() {
   // El ancho (D-338): la tabla avisa UNA vez, al soltar. Vale para todos los roles, también ventas. Sin base leída no se
   // escribe a ciegas: queda en el navegador, como siempre.
   const guardaAnchos = (next: Record<string, number>) => {
+    // Lo que se pinta sigue a lo arrastrado (D-394): si no, aplicar una plantilla con los MISMOS anchos que ya había en
+    // `anchos` no cambiaría nada que la tabla viera, y lo arrastrado después se quedaría.
+    setAnchos(next);
     if (!me || SIN_BASE || prefsDeLaBase.current === null) return;
     const todos: AnchosPorRol = { ...anchosDeLaBase.current };
     const suyos = anchosDeUnRol(next, ["__id", ...ORDER_COLUMNS.map((c) => c.key)]);
@@ -225,6 +239,61 @@ export default function OrdersPage() {
   const ordenDelSelector = ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden);
   // La flecha se apaga cuando pulsarla no movería nada (el tope, contando que una visible salta sobre las ocultas).
   const seMueve = (clave: string, delta: -1 | 1) => mueveColumna(ordenDelSelector, clave, delta, cols).join() !== ordenDelSelector.join();
+
+  // PLANTILLAS (D-394). El dueño: «add template in columns … so if they change it and then want to go back to the old one
+  // they can». Una plantilla es la foto de lo que se ve: columnas, orden y anchos. Aplicarla pone EXACTAMENTE esa foto, y
+  // «Por defecto» (`null`) pone lo que trae la app para el rol: sus columnas, el orden canónico y los anchos de partida.
+  const claveDeAnchos = (rol: UserRole) => `rtg_colw_orders_${rol}`;
+  const aplicaPlantilla = (p: PlantillaDeColumnas | null) => {
+    if (!me || me.role === "sales") return;
+    const r = p ? aplicaEnOrdenes(p, ORDER_COLUMNS.map((c) => c.key)) : { visibles: defaultColsFor(me.role), orden: null, anchos: {} };
+    setCols(r.visibles);
+    setOrden(r.orden);
+    setAnchos(r.anchos);
+    // El navegador, como siempre (la red de D-330 y los anchos de `useColWidthMap`): el demo lo lee al recargar.
+    try { localStorage.setItem(colsKey(me.role), JSON.stringify(r.visibles)); localStorage.setItem(claveDeAnchos(me.role), JSON.stringify(r.anchos)); } catch { /* ignore */ }
+    if (SIN_BASE || prefsDeLaBase.current === null) return;
+    // Las tres mitades de ESTE rol, en una escritura; los otros roles y las plantillas, tal como se leyeron.
+    prefsDeLaBase.current = { ...prefsDeLaBase.current, [me.role]: r.visibles };
+    const ordenes: ColumnasPorRol = { ...ordenDeLaBase.current };
+    if (r.orden) ordenes[me.role] = r.orden; else delete ordenes[me.role];
+    ordenDeLaBase.current = ordenes;
+    const anchosTodos: AnchosPorRol = { ...anchosDeLaBase.current };
+    if (Object.keys(r.anchos).length) anchosTodos[me.role] = r.anchos; else delete anchosTodos[me.role];
+    anchosDeLaBase.current = anchosTodos;
+    void escribeLaFila();
+  };
+  // Dónde van las plantillas de Órdenes: la cuarta mitad de la misma fila, o el navegador en el demo.
+  const destinoDePlantillas = {
+    sinBase: SIN_BASE,
+    guardaEnElNavegador: (lista: PlantillaDeColumnas[]) => localStorage.setItem(claveDePlantillasEnElNavegador(CLAVE_DE_COLUMNAS), JSON.stringify(lista)),
+    baseLeida: prefsDeLaBase.current !== null,
+    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDeLaBase.current ?? {}, orden: ordenDeLaBase.current, anchos: anchosDeLaBase.current, plantillas: lista }),
+    escribe: async (lista: PlantillaDeColumnas[]) => {
+      const antes = plantillasDeLaBase.current;
+      plantillasDeLaBase.current = lista;
+      const ok = await escribeLaFila();
+      if (!ok) plantillasDeLaBase.current = antes;
+      return ok;
+    },
+  };
+  const cambiaPlantillas = async (lista: PlantillaDeColumnas[], crece: boolean): Promise<string | null> => {
+    const problema = await persistePlantillas(lista, crece, destinoDePlantillas, t);
+    if (problema) return problema;
+    plantillasDeLaBase.current = lista;
+    setPlantillas(lista);
+    return null;
+  };
+  const guardaPlantillaActual = (nombre: string) => {
+    if (!me) return Promise.resolve(null);
+    // Los anchos que se VEN: `anchos` si hay (la base, una plantilla o lo último arrastrado); si no, lo que la tabla lee del
+    // navegador, que es lo que pinta con `anchos` a `null`.
+    let anchosQueSeVen: Record<string, number> = anchos ?? {};
+    if (!anchos) { try { anchosQueSeVen = anchosDeUnRol(JSON.parse(localStorage.getItem(claveDeAnchos(me.role)) ?? "null")); } catch { /* ninguno */ } }
+    const r = guardaPlantilla(plantillasDeLaBase.current, nombre, { v: cols, o: orden ?? undefined, a: anchosQueSeVen });
+    return r.ok ? cambiaPlantillas(r.lista, true) : Promise.resolve(textoDelRechazo(r.motivo, t));
+  };
+  const borraPlantillaGuardada = (nombre: string) => cambiaPlantillas(borraPlantilla(plantillasDeLaBase.current, nombre), false);
 
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275); antes solo con su botón.
   // El contenedor envuelve botón y menú: pulsar el botón con el menú abierto lo cierra, y marcar
@@ -263,8 +332,8 @@ export default function OrdersPage() {
   // further — the "All" count and every stage chip's count come from this,
   // not the full company-wide `deliveries`, so the numbers on the chips
   // always match what actually shows up in the table below them.
-  // A salesperson can only search 30 days back.
-  const salesSearchFloor = shiftDateISO(todayISO(), -30);
+  // Ventas tenía aquí un tope de búsqueda de 30 días: desde D-392 nadie fuera de admin y logística
+  // busca antes de ayer, así que ese tope ya no decidía nada y se fue.
   /**
    * Las dos listas de la pantalla (D-313). La decisión —quién ve qué, y qué corta la ventana de
    * fechas— vive en `ordenesVisibles`, no aquí: la pestaña de factura pendiente necesita una lista
@@ -279,13 +348,12 @@ export default function OrdersPage() {
       teaching,
       veTodoElHistorial,
       busqueda: q,
-      sueloDeVentas: salesSearchFloor,
       reglas: settings.order_type_rules ?? {},
       tiendas: settings.stores,
       // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
       tiendasDeAlmacen: me?.role === "warehouse" ? tiendasDeAlmacen(me.store, settings.stores) : [],
     }),
-    [deliveries, q, me, teaching, veTodoElHistorial, salesSearchFloor, settings.order_type_rules, settings.stores],
+    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores],
   );
 
   // ¿Pasa el chip de fechas («Todas / Reciente / Hoy») que está pulsado? Lo usan la lista Y las cuentas por etapa
@@ -498,6 +566,7 @@ export default function OrdersPage() {
                     <button className="notif-clear" onClick={() => saveCols(defaultColsFor(me.role))}>{t("Reset", "Restablecer")}</button>
                     {orden && <button className="notif-clear" onClick={() => guardaOrden(null)}>{t("Reset order", "Restablecer orden")}</button>}
                   </div>
+                  <PlantillasDeColumnas plantillas={plantillas} onAplicar={aplicaPlantilla} onGuardar={guardaPlantillaActual} onBorrar={borraPlantillaGuardada} t={t} />
                   {ordenDelSelector.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!).map((c) => (
                     <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <label className="col-opt" style={{ flex: 1 }}>
@@ -547,6 +616,8 @@ export default function OrdersPage() {
               todasAprueban: autoApproveAll,
               cuentas: counts,
               filtro: filter,
+              // «Outdated» solo para quien ve lo anterior a ayer (D-392): la misma pregunta que corta la lista.
+              veDiasViejos: veTodoElHistorial,
             }).map((p) => (
               <button
                 key={p.key}

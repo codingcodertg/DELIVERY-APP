@@ -36,7 +36,6 @@ const ctx = (over: Partial<ContextoDeLista> = {}): ContextoDeLista => ({
   teaching: false,
   veTodoElHistorial: false,
   busqueda: "",
-  sueloDeVentas: shiftDateISO(HOY, -30),
   reglas: REGLAS,
   tiendas: TIENDAS,
   // Vacío por defecto: estas pruebas son de oficina, y con la lista vacía el corte de almacén no
@@ -139,29 +138,36 @@ describe("una factura pendiente no es una llave para ver órdenes de otro", () =
   });
 });
 
-describe("el suelo de 30 días de ventas", () => {
+// Este bloque se llamaba «el suelo de 30 días de ventas»: buscando, ventas llegaba 30 días atrás y
+// los demás al historial entero. Desde D-392 buscar tiene el mismo suelo que navegar —ayer— para
+// todos menos admin y logística, así que el tope de ventas ya no decidía nada y se quitó.
+describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)", () => {
   const vendedor = { id: "u-vend", role: "sales" as const, store: "Norte" };
   const suya = (over: Partial<Delivery> = {}) => pendienteVieja({ created_by: "u-vend", assigned_sales_rep: "u-vend", ...over });
 
-  it("buscando, corta lo anterior a 30 días", () => {
+  it("ventas no encuentra ni lo de hace 50 días ni lo de hace 20, que antes sí encontraba", () => {
     const antigua = suya({ id: "antigua", delivery_date: HACE_CINCUENTA, invoice_num: "F-9", account: "ACME" });
-    const { visibles } = ordenesVisibles([antigua], ctx({ me: vendedor, busqueda: "acme" }));
-    expect(ids(visibles)).toEqual([]);
+    const reciente = suya({ id: "de-hace-20", delivery_date: ANTIER, invoice_num: "F-8", account: "ACME" });
+    const deAyer = suya({ id: "de-ayer", delivery_date: AYER, invoice_num: "F-7", account: "ACME" });
+    const { visibles } = ordenesVisibles([antigua, reciente, deAyer], ctx({ me: vendedor, busqueda: "acme" }));
+    // Control: la de ayer sí sale, así que la búsqueda casa y lo que corta es la fecha.
+    expect(ids(visibles)).toEqual(["de-ayer"]);
   });
 
-  it("pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí dentro", () => {
-    // El suelo es del historial; una factura pendiente es trabajo vivo, y el trabajo vivo no
-    // caduca a los 30 días.
+  it("pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí dentro (D-313 sigue)", () => {
+    // Una factura pendiente es trabajo vivo; D-392 deja en pie esa exención, solo en su pestaña.
     const antigua = suya({ id: "antigua", delivery_date: HACE_CINCUENTA, account: "ACME" });
     const { visibles, conPendientes } = ordenesVisibles([antigua], ctx({ me: vendedor, busqueda: "acme" }));
     expect(ids(visibles)).toEqual([]);
     expect(ids(conPendientes)).toEqual(["antigua"]);
   });
 
-  it("a office el suelo no le aplica: busca su historial entero", () => {
+  it("office buscando tampoco llega a una entregada vieja; logística sí", () => {
     const antigua = pendienteVieja({ id: "antigua", delivery_date: HACE_CINCUENTA, invoice_num: "F-9", account: "ACME" });
-    const { visibles } = ordenesVisibles([antigua], ctx({ busqueda: "acme" }));
-    expect(ids(visibles)).toEqual(["antigua"]);
+    expect(seesAllHistory("accounting")).toBe(false);
+    expect(ids(ordenesVisibles([antigua], ctx({ busqueda: "acme", veTodoElHistorial: seesAllHistory("accounting") })).visibles)).toEqual([]);
+    const logistica = ctx({ me: { id: "u-log", role: "logistics", store: null }, busqueda: "acme", veTodoElHistorial: seesAllHistory("logistics") });
+    expect(ids(ordenesVisibles([antigua], logistica).visibles)).toEqual(["antigua"]);
   });
 });
 
@@ -255,13 +261,14 @@ describe("la pantalla le pide las dos listas a la función", () => {
   const pagina = leer("src/app/(app)/page.tsx");
   const llano = plano(pagina);
 
-  it("no arma la lista a mano: la pide, con sus siete datos", () => {
+  it("no arma la lista a mano: la pide, con sus datos", () => {
     // D-384 añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
+    // D-392 quitó `sueloDeVentas`: con el suelo en ayer para todos, el tope de 30 días no decidía nada.
     expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);
     const args = llano.slice(i, llano.indexOf("})", i));
-    for (const dato of ["me,", "teaching,", "veTodoElHistorial,", "busqueda: q,", "sueloDeVentas: salesSearchFloor,",
+    for (const dato of ["me,", "teaching,", "veTodoElHistorial,", "busqueda: q,",
       "reglas: settings.order_type_rules ?? {},", "tiendas: settings.stores,"]) {
       expect(args, dato).toContain(dato);
     }

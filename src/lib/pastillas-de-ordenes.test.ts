@@ -19,7 +19,7 @@ const CUENTAS = { all: 42, draft: 3, pending: 5, approved: 10, ready: 4, deliver
 const claves = (p: { key: string }[]) => p.map((x) => x.key);
 
 describe("qué pastillas salen y en qué orden", () => {
-  const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
+  const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
 
   it("«Todas» va la primera, antes de cualquier etapa", () => {
     expect(claves(fila)[0]).toBe(PASTILLA_TODAS);
@@ -31,13 +31,13 @@ describe("qué pastillas salen y en qué orden", () => {
   });
 
   it("y si este rol ve menos etapas, salen menos: la fila es la suya", () => {
-    const corta = pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
+    const corta = pastillasDeOrdenes({ veDiasViejos: true, etapas: ["approved", "ready"], todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(claves(corta)).toEqual([PASTILLA_TODAS, "approved", "ready", PESTANA_ATRASADAS, PESTANA_DOCUMENTO_PENDIENTE]);
   });
 });
 
 describe("cuándo está encendida «Todas»", () => {
-  const con = (filtro: string) => pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro });
+  const con = (filtro: string) => pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro });
 
   it("sin etapa elegida, sí", () => {
     expect(con(PASTILLA_TODAS).find((p) => p.key === PASTILLA_TODAS)?.activa).toBe(true);
@@ -65,12 +65,12 @@ describe("cuándo está encendida «Todas»", () => {
 describe("la cuenta de «Todas»", () => {
   it("es la de todo lo que la persona ve, con sus demás filtros ya aplicados", () => {
     // Mismo criterio que las de etapa: las dos salen de `counts`, que se calcula sobre `visible`.
-    const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
+    const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(fila.find((p) => p.key === PASTILLA_TODAS)?.cuenta).toBe(42);
   });
 
   it("y sin cuenta ninguna es cero, no un hueco", () => {
-    const fila = pastillasDeOrdenes({ etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
+    const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
     // «Todas», la etapa y «Outdated», que sale siempre (D-384).
     expect(fila.map((p) => p.cuenta)).toEqual([0, 0, 0]);
   });
@@ -78,26 +78,26 @@ describe("la cuenta de «Todas»", () => {
 
 describe("lo que ya decidía esta fila y no cambia", () => {
   it("si todas las tiendas aprueban solas, la pastilla de «pendiente» no sale", () => {
-    const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: true, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
+    const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: true, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(claves(fila)).not.toContain("pending");
     expect(claves(fila)[0]).toBe(PASTILLA_TODAS);
   });
 
   it("la de «Factura pendiente» solo sale si hay algo pendiente (D-310)", () => {
     const sinNada = { ...CUENTAS, [PESTANA_DOCUMENTO_PENDIENTE]: 0 };
-    expect(claves(pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PASTILLA_TODAS })))
+    expect(claves(pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PASTILLA_TODAS })))
       .not.toContain(PESTANA_DOCUMENTO_PENDIENTE);
   });
 
   it("…o si se está dentro de ella, para que no desaparezca bajo el dedo al vaciarse", () => {
     const sinNada = { ...CUENTAS, [PESTANA_DOCUMENTO_PENDIENTE]: 0 };
-    const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PESTANA_DOCUMENTO_PENDIENTE });
+    const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PESTANA_DOCUMENTO_PENDIENTE });
     expect(claves(fila)).toContain(PESTANA_DOCUMENTO_PENDIENTE);
     expect(fila.find((p) => p.key === PESTANA_DOCUMENTO_PENDIENTE)?.cuenta).toBe(0);
   });
 
   it("y se sigue pintando distinta de las demás", () => {
-    const fila = pastillasDeOrdenes({ etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
+    const fila = pastillasDeOrdenes({ veDiasViejos: true, etapas: ETAPAS, todasAprueban: false, cuentas: CUENTAS, filtro: PASTILLA_TODAS });
     expect(fila.find((p) => p.key === PESTANA_DOCUMENTO_PENDIENTE)?.clase).toBe("chip-pend");
     // Y desde D-384 hay otra pintada distinta, «Outdated», en rojo; son dos y ninguna más.
     expect(fila.find((p) => p.key === PESTANA_ATRASADAS)?.clase).toBe("chip-late");

@@ -13133,6 +13133,11 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Endurecida en Órdenes por D-392** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
+> entero (*«every one of these screens lets an invoice search reach into older history»*). En la pantalla de
+> **Órdenes** ya no: quien no es admin ni logística no encuentra buscando nada anterior a ayer. La Cola de almacén y
+> la pantalla del chofer no cambian.
+
 > **⚠ Reemplazada por D-356** (2026-09-22) en lo de «solo admin y logística»: desde entonces todos los roles ven el
 > historial entero; la tienda la sigue cortando la 131.
 
@@ -23322,6 +23327,11 @@ El noveno —«first delivery in time window»— **no está aquí**: es ambiguo
 **Reemplaza en parte a D-316** (el tipo de cliente «se marca en cada orden» y la cuenta se marca como builder en Datos) **y afina
 D-305** (el campo Cuenta enseñaba la lista entera al enfocarlo). Las dos entradas llevan su nota dentro.
 
+> **Cumplida y extendida por D-391 (2026-09-25).** El dueño volvió a pedir las dos cosas: *«VENTA AL MOSTRADOR SON WALKINS
+> ENTONCES SI SELECCIONA SHOULD BE EMPTY»* y *«CUENTA SHOULDN'T SHOW ALL PEOPLE UNL…»*. §7: al elegir mostrador quedan siempre
+> vacíos, además de contacto y teléfono, el Nombre de destino y la dirección de entrega, con su pin y su ruta — aquí se quedaban
+> los de la cuenta anterior. §5 sigue igual (2 letras), medido. Esta nota se añade; el texto de abajo no se reescribe.
+
 ### 1 · Fuera «Buscar dirección en el mapa»
 
 El botón geocodificaba lo tecleado y abría el mapa en ese punto. No era el único camino a unas coordenadas: **al guardar, toda
@@ -24343,6 +24353,11 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
+> **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en **Órdenes** y solo para quien no es admin ni
+> logística: la vencida abierta de antes de ayer ya **no la ven**, ni en la lista, ni en «Outdated», ni
+> buscándola. El dueño: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*. Para admin y logística sigue
+> como la dejó D-384. `withinRecent` no se tocó.
+
 > **⚠ Reemplazada en parte por D-384** (2026-09-24): en la pantalla de **Órdenes**, la vencida abierta de antes de
 > ayer ya no sale en la lista normal sino en su propia pastilla, «Outdated / Atrasadas», con su número a la vista.
 > Lo pidió el dueño sabiendo que esto decía lo contrario. `withinRecent` no se tocó y sigue dejándola pasar; lo que
@@ -24521,6 +24536,10 @@ no entran; viendo ayer, la de ayer no sale dos veces); el mutante «atrasadas co
 Suite entera local en verde. **No verificado:** nada abierto en un navegador.
 
 ## D-359 · En «Sin asignar», el día por defecto y las atrasadas por su chip
+
+> **⚠ Reemplazada en parte por D-393** (2026-09-25): el chip que aquí se llama «Todas» enseñaba solo lo del día; se
+> renombra «Este día» (sigue siendo el defecto) y «Todas» pasa a ser lo sin chofer de cualquier día. Cada chip lleva su
+> número. «Atrasadas» sigue como se describe abajo.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.183.0, repo 1.247.0 · **Sin migración.**
 **Corrección del dueño a D-358**, literal: *«no, pero lo que pasa es que para eso tienes filtros: hoy y todas y
@@ -25867,6 +25886,12 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en la pantalla de **Órdenes**: la ventana deja de
+> dejar pasar la atrasada abierta, y buscar deja de llegar al historial, para todos menos admin y logística.
+> *«ayer, hoy, futuro y atrasadas»* pasa a ser, en Órdenes, *ayer, hoy y futuro*. `withinRetention` no se tocó: la
+> **Cola de almacén** y la **pantalla del chofer** siguen enseñando las atrasadas abiertas como aquí se decidió.
+> El calendario que se le quitó a almacén no cambia.
+
 > **⚠ Reemplazada en parte por D-384** (2026-09-24), solo en lo de las **atrasadas en la lista de Órdenes**: la
 > ventana de abajo sigue dejándolas pasar (`withinRetention` no cambió), pero Órdenes las saca de su lista normal y
 > las pone en la pastilla «Outdated / Atrasadas». La Cola de almacén y la pantalla del chofer, que usan la misma
@@ -26724,6 +26749,12 @@ comportamiento de D-286.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
+> **⚠ Reemplazada en parte por D-392** (2026-09-25): «vale **para todos los roles**» ya no. La pastilla
+> «Outdated» es solo de admin y logística (y de quien tenga `history` marcado en Usuarios); a los demás no les
+> sale, ni con 0, porque ya no ven nada anterior a ayer. Tampoco la excepción de la búsqueda que abajo se
+> llama «decisión mía»: para esos roles, buscar tampoco trae nada anterior a ayer. Para admin y logística todo
+> sigue como aquí se escribió.
+
 **Fecha:** 2026-09-24 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«make a filter name outdated and put the old order there»*. Preguntado, precisó:
 dentro van las órdenes **atrasadas y abiertas** —fecha de entrega anterior a ayer, ni entregadas ni anuladas—; **salen
@@ -27099,3 +27130,525 @@ Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el com
 que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
+
+## D-390 · Recepción del almacén estrena la barra de búsqueda y las pastillas de la Cola, cada una con su estado
+
+**Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+
+El dueño, el 2026-09-25: *«THE SAME FILTERS AND SEARCH BAR MOVE IT INTO RECEIVING WAREHOUSE»*.
+
+**Qué había.** La vista «📥 Recepción» de almacén (D-374) era una tabla pelada: todas las Intertiendas
+que entran a sus tiendas, sin buscador y sin pastillas de etapa. La barra de búsqueda por factura y las
+pastillas (Aprobado, Preparando, Listo, En reparto, Entregado, Todas) solo existían en la Cola, escritas
+a mano dentro de `warehouse/page.tsx`.
+
+**Y un fallo escondido que esto destapó.** La búsqueda de la Cola se aplicaba **antes** del reparto
+Cola/Recepción, así que teclear una factura en la Cola vaciaba también Recepción —y su contador en la
+pestaña— sin que Recepción tuviera barra donde verlo. Medido en el demo con el código de `main`: con
+«INV-30» en la Cola, la pestaña pasaba de «Receiving 2» a «Receiving 0».
+
+### Qué cambia
+
+- **Una función y un componente, no una copia.** `filtraLaVistaDeAlmacen` (`lib/almacen.ts`) hace lo que
+  la Cola hacía en la página: buscando, compara con la factura sin distinguir mayúsculas y **se salta la
+  ventana de fechas** (el camino al historial, D-239); sin buscar, aplica la ventana; «Todas» ordena de la
+  más nueva a la más vieja; cuentas y filas salen de la misma lista. `components/FiltrosDeAlmacen.tsx`
+  pinta la barra y las pastillas, sin estado propio. La Cola y Recepción usan las dos piezas.
+- **Cada vista busca en sus órdenes.** Recepción filtra `reparto.recepcion` y la Cola `reparto.cola`:
+  buscar en Recepción una factura que está en la Cola no la encuentra, y al revés.
+- **Cada vista guarda su texto y su pestaña.** Lo prefería el dueño y es lo que evita el fallo de arriba
+  al revés: buscar en Recepción no deja la Cola filtrada al volver. Elegido por el orquestador en el
+  encargo («mi preferencia: cada una el suyo»); se descartó compartir el estado por eso mismo.
+- **Recepción arranca en «Todas», no en «Aprobado».** Decisión del worker, pendiente de validar: es lo
+  que Recepción enseñaba antes de tener pastillas, y lo que llega de otra tienda suele venir ya
+  preparado o en camino, así que arrancar en «Aprobado» la dejaría casi vacía a primera vista.
+- El **contador de la pestaña Recepción** cuenta lo que Recepción enseña con su búsqueda, en todas las
+  etapas (lo que dice su pastilla «Todas»). El **aviso de Intertiendas sin destino** de la Cola cuenta
+  las que la Cola enseña con su búsqueda, como antes.
+- En Recepción **sin tienda elegida** (un admin con «Todas las tiendas») la barra no sale: no hay lista
+  que filtrar, solo el aviso de que elija una.
+
+### Medido
+
+En el demo (2026-09-25, 1280×900, como almacén de McAllen, con tres Intertiendas sembradas que entran
+desde Edinburg: #1901 aprobada REC-7001, #1902 lista REC-7002, #1903 entregada el 2026-08-01 REC-6999,
+fuera de la ventana):
+
+| Recepción | filas | pastilla «Todas» / pestaña |
+|---|---|---|
+| búsqueda vacía | 2 (#1902, #1901) | 2 / 2 |
+| «REC-7002» (está en Recepción) | 1 (#1902) | 1 / 1 |
+| «rec-6999» (vieja, fuera de ventana) | 1 (#1903) | 1 / 1 |
+| «INV-3006» (la #1008, está en la Cola) | 0 | 0 / 0 |
+| Aprobado · Preparando · Listo · En reparto · Entregado | 1 · 0 · 1 · 0 · 0 | 2 |
+
+Cada vista con su estado: Recepción con «REC» + Listo, la Cola con «INV-3006» + Aprobado; al ir y volver
+cada una conserva lo suyo (1 fila cada una). **La Cola sigue igual**: los mismos nueve estados (entrar,
+las seis pastillas, dos búsquedas) medidos con `main` y con la rama dan cabecera, cuentas de las
+pastillas y órdenes idénticas, 0 diferencias. Sin desplazamiento lateral: `scrollWidth` 1280 en las tres
+vistas.
+
+**Mutantes: 20 de 20 caen con una prueba con nombre** (dos tandas, 17 + 3) (`almacen.test.ts`, más `history-window` y
+`tiendas-que-trabajan-juntas`): entre ellos, que Recepción use el filtro de la Cola, que busque sobre
+`reparto.cola`, que se quede sin barra, que la búsqueda vuelva a aplicarse antes del reparto, y que la
+búsqueda deje de saltarse la ventana.
+
+## D-391 · «Venta al mostrador» deja siempre vacíos contacto, teléfono, destino y dirección; y el campo Cuenta sigue sugiriendo solo al escribir
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por el dueño**, dos mensajes: *«VENTA AL MOSTRADOR SON WALKINS ENTONCES SI SELECCIONA SHOULD BE EMPTY»* y *«CUENTA
+SHOULDN'T SHOW ALL PEOPLE UNL…»* (el segundo llegó cortado). Preguntado por el orquestador, eligió: al elegir «Venta al
+mostrador» quedan vacíos **la cuenta/cliente, la dirección de entrega, el teléfono y el contacto**; y para la cuenta, **«Solo al
+escribir»**.
+
+**Cumple D-337 §7 y lo extiende** al Nombre de destino y a la dirección; D-337 lleva su nota dentro. Es la **segunda vez** que se
+piden las dos cosas: D-337 (2026-09-19, tarea T-0080) las había hecho a medias, y eso es lo que se midió antes de tocar nada.
+
+### Lo que había, medido en el demo el 2026-09-25 (ventas, código de `main` en `e0de42e7`)
+
+| Caso | Contacto | Teléfono | Nombre de destino | Dirección |
+|---|---|---|---|---|
+| Orden nueva, «Rio Tile Co.» y luego mostrador | vacío | vacío | vacío | vacío |
+| Orden nueva, contacto y dirección tecleados, luego mostrador | vacío | vacío | vacío | **se quedó** «100 Calle Falsa» |
+| Orden ya guardada #1073 (Delta Construction), editar, mostrador | vacío | vacío | **«Delta Construction»** | **«300 E Ferguson Ave, Pharr TX»** |
+
+D-337 vaciaba contacto y teléfono, pero **el destino y la dirección que hubiera se quedaban dentro de la orden de mostrador** —la
+#1073 salía con la obra y la calle de Delta Construction—. La dirección de una orden nueva no venía precargada al elegir cuenta
+(el modal no la rellena a propósito: lo dice el comentario del sitio de llamada), así que el agujero grande era la orden que ya
+tenía cliente.
+
+### Qué hace ahora — `vaciarParaMostrador`, en `src/lib/cuenta-elegida.ts`
+
+Al elegir «Venta al mostrador» quedan **siempre** vacíos los cuatro campos del cliente —`contact`, `delivery_phone`,
+`delivery_name` (Nombre de destino) y `delivery_address`—, **vengan de donde vengan**: de la cuenta anterior, de la orden ya
+guardada que se edita **o tecleados a mano**. Con ellos se van el pin (`delivery_lat/lng`, `delivery_pin_source`) y la ruta
+calculada (`route_*`): eran de esa dirección y llevarían al chofer al cliente anterior.
+
+- **Por qué también lo tecleado.** La primera versión de esta rama conservaba lo tecleado a mano en el formulario (apuntaba los
+  gestos de la persona en `set(...)`). **El orquestador lo rechazó antes de publicar**, con las palabras del dueño, dichas dos
+  veces con «siempre»: D-337, *«nombre de contacto y teléfono siempre será vacío porque no es una cuenta»*, y hoy *«si selecciona,
+  should be empty»*. Se quitó la excepción y, con ella, el registro de gestos, que ya no servía para nada más. El orden de uso es:
+  primero se elige mostrador, después se teclean los datos del cliente de paso. Contacto y teléfono ya se vaciaban así en D-337.
+- **La cuenta no se vacía**: queda «Venta al mostrador», que es lo que se eligió. «Cuenta/cliente» del encargo se leyó como el
+  cliente de la orden, que en el formulario es el **Nombre de destino**.
+- **Mostrador ya no trae tipo de orden** de «la última orden de mostrador»: sería el de otro cliente. El tipo se queda el que
+  estaba (el campo Cuenta solo existe en tipos de cliente).
+- **La tarifa de entrega no se toca**, aunque la hubiera sugerido la zona de la dirección que se va: puede estar tecleada, y el
+  orquestador estuvo de acuerdo.
+
+### Validación: la misma que antes
+
+No se tocó `required.ts`. Para **enviar** una orden de mostrador siguen haciendo falta contacto, teléfono (7 dígitos) y
+dirección —el chofer tiene que saber a dónde va y a quién llamar—; el Nombre de destino nunca fue obligatorio en una orden a
+cliente. Un **borrador** se guarda sin ellos, como siempre. En la base esas columnas son `text` sin `not null` ni `check`
+(migración 014), así que el `""` que escribe el formulario no lo rechaza nadie. Nada bloquea lo que antes no bloqueaba.
+
+### Cuenta: «solo al escribir» ya era así — 2 letras
+
+Medido en el demo, ventas y office, con el código de `main`: **0 sugerencias** con el campo enfocado, **0** con la flecha abajo,
+**0** con una letra («r»), **3** con dos («ri»: Hidalgo Interiors, Rio Tile Co., Sunrise Flooring). Es D-337 §5
+(`LETRAS_PARA_SUGERIR = 2`), sin cambios. **Se queda en 2**: con una sola letra y búsqueda por «contiene», casi cualquier letra
+casa con casi todas las cuentas, que es enseñar la lista entera con un paso más. Las sugerencias son las mismas de antes (misma
+función `cuentasQueCoinciden`, mismas cuentas).
+
+Lo único que se añade es `autoComplete="off"` en el campo. **No medido:** el navegador del demo arranca sin historial, así que no
+se puede ver si Chrome pintaba debajo su propio desplegable de cosas tecleadas antes — es una posible explicación de «shows all
+people» con el código ya cumpliendo, no una comprobada. Si el dueño lo sigue viendo, hace falta **una captura suya**: puede ser
+otro campo (el «Nombre de destino» es un desplegable con todos los sitios guardados) o el filtro de la columna Cuenta de la tabla.
+
+### Medido después, en el demo (2026-09-25, ventas y office, clics de persona)
+
+| Caso | Ventas | Office |
+|---|---|---|
+| Cuenta vacía / enfocada con flecha / 1 letra / 2 letras | 0 / 0 / 0 / 3 | 0 / 0 / 0 / 3 |
+| Orden nueva, «Rio Tile Co.» → mostrador | los cuatro vacíos | los cuatro vacíos |
+| Orden nueva, «Pepe Walkin» y «100 Calle Falsa» tecleados → mostrador | los cuatro vacíos | los cuatro vacíos |
+| Orden guardada con cliente → mostrador | #1073 (Delta Construction): los cuatro vacíos, millas «—» | #1089 (Hidalgo Interiors): los cuatro vacíos |
+
+Office nace en Intertienda y el campo Cuenta no existe ahí (D-338); se cambió a Customer con el teclado antes de medir. Las rutas
+de direcciones y de rutas estaban bloqueadas en el navegador: el demo no llamó a ningún proveedor.
+
+### Mutantes
+
+10, leídos por nombre de prueba, caen los 10: vuelven a vaciarse solo contacto y teléfono; el pin se queda; la ruta se queda;
+mostrador deja de vaciar; vuelve a respetarse lo tecleado; la pantalla deja de usar `contactoAlElegirCuenta`; mostrador trae el
+tipo de la última orden; se cae `autoComplete`; una letra basta; campo vacío sugiere todas. (La primera versión, con la
+excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el código.)
+
+### Lo que NO está
+
+- Ninguna migración ni cambio de validación.
+- La captura del dueño de «shows all people»: no la hay, y sin ella lo de la cuenta es lo medido arriba más una defensa sin medir.
+- Las órdenes ya guardadas con «Venta al mostrador» y la dirección de otro cliente dentro no se tocan: esto actúa al elegir.
+
+## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
+
+**Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido por el dueño**, literal: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
+
+**Revierte en parte D-384, D-351 y D-374, y endurece D-239**, solo en la pantalla de **Órdenes**. Las cuatro llevan
+su nota. D-384 le había dado a **todos** los roles la pastilla «Outdated / Atrasadas» (las atrasadas abiertas de
+anteayer para atrás), y la búsqueda dejaba ver lo viejo a todos. Las tres anteriores tenían la misma idea: una vencida
+abierta es trabajo vivo y esconderla es perderla. El dueño ahora quiere lo contrario para todos menos admin y logística.
+
+### Qué cambia
+
+Para `manager`, `accounting` (office), `sales`, `warehouse` y `driver`, en Órdenes:
+
+- **Nada con fecha anterior a ayer**, ni en la lista, ni con el chip «Todas», ni en el tablero. La regla es una
+  función nueva, `enLaVentanaDeOrdenes` (`src/lib/ordenes-visibles.ts`): fecha ≥ ayer (`retentionFloorISO`), y sin
+  fecha siempre, porque se está programando.
+- **Buscar tampoco trae nada anterior a ayer.** Desde D-239, buscar era «el camino al historial». Ya no, para estos
+  roles. El tope de 30 días que tenía ventas (`sueloDeVentas`) ya no decidía nada con el suelo en ayer, y **se quitó**
+  de `ContextoDeLista` y de la pantalla, para que nadie crea que sigue mirándose.
+- **No les sale la pastilla «Outdated»**, tampoco con 0. D-384 la dejaba siempre visible «para saber dónde buscar»;
+  para quien no puede ver nada de lo que tendría dentro, sería una pastilla que siempre dice 0. Lo decide
+  `pastillasDeOrdenes` con un argumento nuevo, `veDiasViejos`, que la pantalla llena con **la misma pregunta que corta
+  la lista**: `veTodoElHistorial = seesAllHistory(realRole, me?.permissions)`.
+
+Admin y logística quedan **exactamente como en D-384**: lista con las entregadas viejas, atrasadas abiertas en
+«Outdated», búsqueda en todo el historial.
+
+**Quién cuenta como «ve días viejos».** Es `seesAllHistory`, igual que desde D-239: admin y logística de fábrica,
+**más quien tenga la casilla `history` marcada a mano en Usuarios** (D-350). No se quitó esa capacidad suelta. El
+dueño dijo «solo logística y admin», pero la casilla es la forma en que un admin se lo da a una persona concreta a
+propósito. Hoy nadie fuera de esos dos roles la tiene de fábrica. Y cuenta el rol **real**: un admin que mira «como»
+office sigue viéndolo todo (D-239).
+
+### Qué se quedó en pie a sabiendas: la pestaña «Factura pendiente» (D-313)
+
+Office sigue viendo en **«Factura pendiente»** una orden entregada hace un mes a la que le falta la factura. Es la
+exención de D-313, que pidió el propio dueño: *«invoice pending must be visible for office too»*. Esas órdenes están
+casi todas entregadas y son viejas, así que quitar la exención dejaría la pestaña a 0 para office, que es el fallo que
+D-313 arregló. **Choca con la letra del pedido de hoy** («nada anterior a ayer»), y por eso se escribe aquí y no se
+decide en silencio. Si el dueño quiere quitarla también, es la línea
+`if (pendientesEntran && facturaPendiente(d, reglas)) return true;` de `pasaLaVentana`, y el mutante que la borra
+tumba cinco pruebas con nombre.
+
+### Qué pantallas siguen viendo días viejos (no se tocaron)
+
+`withinRetention` **no cambió**: sigue dejando pasar la atrasada abierta, tenga la fecha que tenga. La usan:
+
+- la **Cola de almacén** (`warehouse/page.tsx`), y
+- la **pantalla del chofer** (`driver/page.tsx`).
+
+Las dos siguen enseñando atrasadas abiertas de cualquier día, como decidió D-374. Tampoco cambian el **Gestor de
+rutas** (su chip «Atrasadas», D-359), la **Ruta del día** y las hojas de carga, **Cuentas** (libro por cliente, D-239),
+el **Panel**, ni **Mapa** y **Recorrido**, que ya tenían el selector acotado a ayer para quien no está exento.
+Tampoco se tocó el enlace `/?order=<id>` de un aviso: abre la ficha de esa orden aunque sea vieja. Eso es abrir una
+orden concreta desde una notificación, no listar.
+
+### El segundo pedido del mismo día, sin hacer: el calendario de office
+
+*«OFFICE CAN SEE CALENDAR AND THAT DOESN'T WORK»*. Preguntado, el dueño dijo «Quitárselo». **No se quitó nada**,
+porque no apareció un calendario de office que se pudiera quitar sin romper otra cosa. Medido en el demo el
+2026-09-25, como office:
+
+- En la pantalla de Órdenes, **0** `input[type=date]` y ningún 📅 visible. La barra de selección, que es donde
+  gerente, admin y logística tienen «📅 Fijar fecha» en bloque, no le sale a office: no tiene casillas.
+  El menú de la columna «Fecha entrega» es una lista de valores, no un calendario.
+- Office solo tiene la pestaña Órdenes. Mapa, Panel, Recorrido, Almacén y Gestor no son suyos.
+- **El único calendario al que llega es el campo «Fecha de entrega» de la ficha**, al crear o editar una orden.
+  Es un campo obligatorio para crear, y office crea órdenes desde D-279/D-295. Quitárselo impediría que office
+  creara órdenes. La base sí le deja cambiar la fecha (`guard_delivery_stage`, 142: `manager` y `accounting`
+  editan en la misma etapa), así que «no funciona» no se explica por un rechazo de la base.
+
+Hace falta saber **cuál** vio el dueño, idealmente con una captura. Hay dos candidatos que no se pueden medir desde
+aquí: la pantalla de Almacén con su 📅, si a alguien de office se le marcó `fulfill` a mano (el calendario solo se le
+quita a quien es de rol almacén, D-374), y el Calendario de Recruiting, que es otra app.
+
+El gerente, para comparar (no se le quitó nada): el mismo campo de la ficha; «📅 Fijar fecha» en la barra de
+selección de Órdenes (medido: **1** calendario al marcar una fila); el selector de día del **Mapa**, con suelo en ayer;
+y el rango de fechas del **Panel**.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4193 pasados | 3 saltados** (los 3 de
+  `pdf.test.ts`).
+- Prueba nueva, `dias-viejos-en-ordenes.test.ts`. Recorre `ROLE_INFO`, así que un rol nuevo cae del lado que no ve días
+  viejos. Por cada rol sin días viejos comprueba: la lista, «Outdated» vacía, la búsqueda de una orden de hace 10 días,
+  y un control con la de ayer. Comprueba también admin y logística como en D-384, el rol real frente a «ver como», la
+  pastilla, y que la pantalla llama a todo esto. `atrasadas.test.ts` pasa a tener logística como persona de partida.
+  `ordenes-visibles.test.ts` rehízo el bloque del tope de 30 días de ventas, con la nota de por qué.
+- **Mutantes: 9, los 9 caen**, leídos por nombre:
+  - Órdenes vuelve a dejar pasar la atrasada abierta vieja: caen las de cada rol, *«…: ni en la lista, ni en «Outdated»»*.
+  - Buscando vuelve a abrir el historial: caen las cinco *«…: buscando la factura de una orden de hace 10 días, no la
+    encuentra»* y *«ventas no encuentra ni lo de hace 50 días ni lo de hace 20…»*.
+  - El suelo baja a anteayer: cae *«anteayer no, ayer sí»*.
+  - Sin fecha deja de salir: cae *«hoy, mañana y sin fecha, sí»*.
+  - Admin y logística pierden los días viejos: caen quince, entre ellas *«admin: buscando, encuentra la de hace 10
+    días»*.
+  - Se cae la exención de D-313: caen cinco, entre ellas *«…pero no tapa la pestaña… (D-313 sigue)»*.
+  - La pastilla vuelve a salir para todos: cae *«y NO para los demás: no una pastilla con 0, ninguna»*.
+  - La pantalla pasa `veDiasViejos: true`: cae *«le dice a la fila de pastillas si la persona ve días viejos…»*.
+  - La pantalla usa el rol de «ver como»: caen dos de texto.
+- **En el navegador, 2026-09-25, demo local** (`next dev`, sin base). Se sembraron dos órdenes de hace 10 días en
+  McAllen, de ventas: una **Programada** y una **Entregada**. El demo trae además otras cuatro anteriores a ayer.
+  Con los dos chips abiertos (pastilla «Todas» y fecha «Todas»):
+
+  | rol | filas | anteriores a ayer en la lista | «Outdated» | buscar la de hace 10 días | calendarios en la página / con una fila marcada |
+  |---|---|---|---|---|---|
+  | Admin | 89 | 4 (entregadas viejas) | 2 (2 filas dentro) | la encuentra | 0 / 1 |
+  | Logística | 89 | 4 | 2 (2 filas dentro) | la encuentra | 0 / 1 |
+  | Office | 85 | 0 | no sale | 0 filas | 0 / sin casillas |
+  | Gerente | 85 | 0 | no sale | 0 filas | 0 / 1 |
+  | Ventas | 83 | 0 | no sale | 0 filas | 0 / sin casillas |
+  | Almacén (McAllen) | 14 | 0 | no sale | 0 filas | 0 / sin casillas |
+
+  **Control del buscador:** la misma búsqueda con la factura de una orden de mañana da 1 fila en los seis roles, así que
+  el 0 es la fecha y no un buscador roto. Ninguna página se desplaza de lado. Para comparar, D-384 midió el
+  2026-09-24 «Outdated» 2/2 para office y ventas y 1/1 para almacén, y la búsqueda sí la encontraba.
+
+### Lo no verificado
+
+- **Nada contra producción.** No se contó cuántas órdenes anteriores a ayer dejan de ver hoy office, ventas y gerente.
+- El chofer no se midió en el navegador: no tiene pestaña de Órdenes y su pantalla (`/driver`) no cambia. Las pruebas
+  lo cubren en Órdenes, porque recorren todos los roles.
+- El calendario de office: ver arriba. Queda pendiente de saber cuál era.
+
+## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Tres pedidos del dueño el mismo día**, literales:
+*«WHEN WILL ASK YOU TO SELECT WHICH DRIVER YOU WANT TO WORK»* (preguntado, eligió «Filtro de chofer»),
+*«UNASSIGNED ALL also button in routes manager for that day»* y
+*«DEFAULT ALL COLLAPSE IN ROUTES for route manager»*.
+Van juntos porque tocan el mismo fichero (`routes/page.tsx`). **Reemplaza en parte a D-359** (el chip «Todas»), que
+lleva su nota.
+
+### 1 · Filtro de chofer
+
+Un selector arriba, junto a la fecha: «Todos los choferes» (el defecto) o un chofer / ruta temporal. Con uno elegido:
+
+- **El panel «Choferes y rutas»** enseña solo su fila, y **«Rutas»** solo su tarjeta (el número de la pestaña «Rutas (N)»
+  cuenta las que se ven). El resumen de arriba (Programadas, Sin programar, Total, Rutas) **sigue siendo del día entero**:
+  es un resumen, no la lista.
+- **El mapa, lo mismo:** su base y sus P, sus paradas, sus líneas y su camión en vivo. Las órdenes sin chofer **no** salen
+  (no son de él), salvo las que se marcan a propósito en «Sin asignar», que siguen pintándose con su recogida. El mapa se
+  encuadra sobre lo que queda.
+- **No es lo mismo que marcar choferes en el panel** (eso resalta y atenúa el resto, y sirve para «Unir»). Cambiar el
+  filtro suelta lo marcado: un chofer escondido y marcado seguiría contando para «Unir» sin verse.
+- **Lo que NO filtra:** «Auto-asignar», «Optimizar todas las rutas», «Armar las rutas del día», el tablero y el horario
+  siguen trabajando sobre todos. Son acciones del día, y filtrarlas en silencio sería peor que no filtrarlas.
+
+**Cómo se recuerda.** Por persona, en **este navegador**: `localStorage`, clave `rtg_routes_driver_filter_<id de la
+persona>`, como los anchos de las tablas de esta misma pantalla. **No** va a `user_prefs` como las columnas: la lista de
+claves de esa tabla está cerrada en la base (136/137/141) y una clave nueva es una migración; y meterlo dentro del
+`value` de `routes_columns` lo borraría quien guarde las columnas, que escribe la fila entera. Consecuencia que el dueño
+debe saber: **en otra computadora o en el teléfono nace en «Todos»**. Si lo quiere en todos lados, es una migración
+que añade una clave. Volver a «Todos» borra la clave. Si el chofer guardado ya no está (se fue, se renombró), manda
+«Todos» sin borrar lo guardado: una pantalla vacía sin razón a la vista es peor. Todo en `src/lib/vista-del-gestor.ts`.
+
+### 2 · «Todas» en «Sin asignar», y cada chip con su número
+
+**Qué había:** los chips eran «Todas · Atrasadas · Con ventana · Sin ubicación», y **«Todas» enseñaba solo lo del día**
+(D-331/D-359). Lo sin chofer de otro día solo salía por «Atrasadas» (lo vencido) o con «🗓 Todas» arriba, que cambia la
+pantalla entera.
+
+**Ahora:** «**Este día**» (el antiguo «Todas», sigue siendo el defecto) · «**Todas**» (lo sin chofer de **cualquier día**:
+pasado, futuro o sin fecha, de las etapas que se rutean) · «Atrasadas» (D-359, sin cambio) · «Con ventana» · «Sin
+ubicación» (estos dos acotan lo del día, como antes). Viendo «🗓 Todas» o las pendientes, «Este día» se rotula «Todas las
+fechas» / «Atrasadas y sin fecha», que es lo que enseña.
+
+**El número de cada chip es el de sus filas.** `cuentasSinAsignar` cuenta con la **misma** función que pinta
+(`filasSinAsignar`, en `ordenes-del-dia.ts`) y con la misma búsqueda — el patrón de D-380/D-384. Los filtros por columna
+(D-360) van aparte y dicen lo suyo en su barra «Filtrado por…»; el número del chip es antes de ellos.
+
+**Un cambio de paso, a propósito.** Hasta hoy el chip «Atrasadas» cambiaba también la lista con la que se calculan el
+«Sin programar» del resumen, la pestaña «Sin asignar (N)», el tablero y lo que «Auto-asignar» repartía; y «Programadas»
+se calcula como `día − sin asignar`. Con un chip «Todas» de cualquier día, «Programadas» habría salido **negativo** y
+«Auto-asignar» habría repartido órdenes de otros días. Ahora esas cuentas y «Auto-asignar» son **siempre del día**; lo que
+se marca en la tabla (y «Asignar selección a…», «Auto-asignar selección») va con el chip, como antes.
+
+### 3 · Las tarjetas de los choferes nacen plegadas
+
+En «Rutas», toda tarjeta de chofer o ruta temporal nace plegada, **para todo el que entra, siempre**. Lo abierto o cerrado
+**nunca se guardó** (era estado de la pantalla), así que no hay nada guardado que decida si manda sobre el defecto: cada
+entrada nace plegada, y lo que se abre vale hasta salir. «Sin asignar» (su propia pestaña) sigue naciendo abierta: no es
+una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `estaPlegada` / `nacePlegada`, en
+`vista-del-gestor.ts`. Con un chofer en el filtro su tarjeta **también** nace plegada — «sin excepción», como se pidió.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4188 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 26, los 26 caen**, leídos por nombre. Entre ellos: «Todas» con el modo del día; la cuenta sin la búsqueda
+  (en la librería y en la pantalla); el chip sin su número; falta el chip «Todas»; el resumen y «Auto-asignar» vuelven a
+  seguir el chip; asignar lo marcado mira el día; las tarjetas nacen abiertas; la pantalla no usa `estaPlegada`; la clave
+  no es por persona; «Todos» guarda un vacío; un chofer que ya no está sigue filtrando; el panel, las tarjetas, las
+  paradas del mapa, las líneas, el camión en vivo y lo sin chofer del mapa no siguen el filtro; al entrar no se lee lo
+  guardado.
+- **En el demo** (2026-09-25, logística, a **1280 y a 1440**, mismos números en los dos anchos; clics de persona con el
+  ratón y el elemento a la vista; el `<select>` se eligió con el setter nativo y su `change`, porque el desplegable nativo
+  no se abre en headless):
+  - Al entrar: **4 tarjetas, las 4 plegadas** (▸), 0 tablas de paradas a la vista. Un clic en la primera: esa abierta, las
+    otras 3 plegadas, 1 tabla.
+  - Filtro «Diego Driver»: panel **4 → 1** fila, tarjetas **4 → 1**, marcas del mapa **54 → 4** (sus 4 paradas).
+    Guardado `rtg_routes_driver_filter_u-log = "Diego Driver"`; **tras recargar sigue en Diego** con 1 tarjeta y 4 marcas.
+    Volver a «Todos»: 4 filas, 4 tarjetas, 54 marcas, y la clave **borrada**.
+  - Chips, número = filas: Este día **42 = 42**, Todas **57 = 57**, Atrasadas **1 = 1**, Con ventana **42 = 42**, Sin
+    ubicación **3 = 3**. Buscando «Rio Tile Co.»: **6 = 6, 7 = 7, 0 = 0, 6 = 6, 1 = 1**.
+  - La página no se desplaza de lado (0 px) en ningún paso.
+
+### Lo no verificado
+
+- **Con una base de verdad:** el demo no tiene usuarios reales ni plan publicado; no se vio el filtro con una línea de
+  plan publicado ni con un camión en vivo (están en el código y en la prueba de texto, no medidos).
+- **Otra computadora u otro navegador** nacen en «Todos»: es lo esperado por diseño, no se midió.
+- La búsqueda de «Sin asignar» **no mira la factura** (buscar «INV-3001» da 0 en todos los chips). Era así antes; no se
+  tocó.
+
+## D-394 · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** el dueño, dos frases del mismo día, literales:
+*«ADD TEMPLATE IN COLUMNS THAT WILL BE LIKE RR(?) THE CURRENT ORDER SO IF THEY CHANGE IT AND THEN WANT TO GO BACK TO THE OLD ONE THEY CAN»* y
+*«LOGISTIC MANAGER NEEDS TO HAVE THE SAME TEMPLATE AS IN ORDER VIEW»*.
+Sigue a D-330/D-332/D-338 (columnas, orden y anchos de Órdenes por persona) y a D-331/D-346/D-376/D-379 (columnas del Gestor).
+No reemplaza ninguna: añade una cuarta mitad a la misma fila.
+
+### Lo que se entendió, y lo que queda por confirmar
+
+«RR(?)» se leyó como *guardar*: poder guardar la configuración de columnas de ahora con un nombre y volver a ella. La segunda
+frase se leyó como «lo mismo en el Gestor». **Otra lectura posible** de la segunda: que el Gestor tenga *las mismas columnas*
+que la vista de Órdenes; eso ya lo hizo D-376 («las mismas columnas que se miran en órdenes»), así que se tomó la primera.
+Si el dueño quería decir otra cosa, esto no le estorba: es un bloque dentro de ⚙ Columnas.
+
+### Qué hay ahora
+
+En **⚙ Columnas de Órdenes** y en **los dos ⚙ del Gestor** (Sin asignar y la tabla de paradas de cada chofer), arriba del todo,
+un bloque **«Plantillas / Templates N/10»**, el mismo componente en los tres sitios (`PlantillasDeColumnas`):
+
+- **«Por defecto / Default»**, siempre, fijo: devuelve lo que trae la app. En Órdenes, las columnas por defecto del rol, el
+  orden canónico (borra el orden propio, como «Restablecer orden» de D-332) y los anchos de partida. En el Gestor,
+  `COLUMNAS_DEL_GESTOR_POR_DEFECTO`.
+- **Cada plantilla guardada es una pastilla**: un clic la aplica. Aplicar pone **exactamente** la foto: si la plantilla no
+  traía orden propio o anchos arrastrados, se quitan los que hubiera ahora.
+- **Guardar**: un campo con el nombre y el botón. Guarda **lo que se ve ahora**. Si el nombre ya existe (sin distinguir
+  mayúsculas ni espacios de los lados), el botón dice **«Reemplazar»** y la reemplaza en su sitio.
+- **Borrar pide confirmar**: el ✕ no borra; cambia la pastilla por «¿Borrar «X»? **Sí, borrar** · No», en la misma línea.
+  Dentro del menú y no en un diálogo: un diálogo fuera de la caja cuenta como «clic fuera» para `useCierraAlSalir` y cerraría
+  el menú.
+- **Hasta 10 plantillas por pantalla** (`MAX_PLANTILLAS`). Con diez, «Guardar» se apaga y lo dice; reemplazar una sí se puede.
+  El nombre, hasta 40 caracteres. «Default» y «Por defecto» están reservados: no se distinguirían del fijo.
+
+**Qué guarda una plantilla.** En Órdenes: columnas visibles, orden (si la persona tiene uno propio) y anchos (los que se ven:
+`anchos` o, si es `null`, los del navegador que pinta la tabla). En el Gestor: **solo qué columnas se ven**, porque allí el orden
+lo fija el código por tabla y los anchos viven en el navegador, no en la base. Las dos ⚙ del Gestor comparten la lista de
+columnas (`routes_columns`), así que comparten las plantillas: una guardada en «Sin asignar» sale también en el ⚙ de paradas, y
+aplicarla cambia las dos tablas.
+
+**Ventas y chofer** no tienen ⚙ Columnas en Órdenes (su lista la pone un admin, D-330), así que tampoco plantillas.
+
+### Dónde vive: la cuarta mitad de la fila, sin migración
+
+En la misma fila de `user_prefs` (`order_columns` para Órdenes, `routes_columns` para el Gestor), bajo `_plantillas`, al lado de
+`_orden` y `_anchos`, como hizo D-385 con `_orden` en promos: `{ …, "_plantillas": [ { "n": nombre, "v": [...], "o": [...], "a": {...} } ] }`.
+Claves de una letra a propósito: esta mitad es la única que crece con lo que la persona decida.
+
+- **Son de la persona, no del rol**: una lista, no un mapa por rol. Una persona tiene un rol; un admin con «Ver como» ve la misma
+  lista en cualquier rol (el catálogo de columnas es uno). Y así el tamaño tiene techo: diez, no diez por rol.
+- **`_plantillas` no es un rol**: `columnasValidas` solo recorre `ROLES_QUE_ELIGEN`. Prueba con nombre.
+- **Lo leído se sanea** (`plantillasValidas`): nombre recortado y no vacío, sin repetidos, listas de textos cortos, anchos en su
+  rango, y nunca más de diez.
+
+**Guardar sin pisar.** La fila es un JSON y se escribe entera, así que «no reenviar lo leído» aquí quiere decir partir de lo
+leído y cambiar solo lo propio. Las dos páginas escriben por **un solo sitio** (`escribeLaFila` en Órdenes, `escribeElGestor`
+en el Gestor, nuevo), que manda las cuatro mitades tal como se leyeron: marcar una casilla no borra las plantillas, y guardar
+una plantilla no borra columnas, orden ni anchos de ningún rol. Pruebas con nombre en las dos direcciones, y una que muestra
+que quien NO pasa las plantillas las borra — por eso un solo sitio.
+
+**Antes de esto, el Gestor ya escribía con `guardaColumnas` de cuatro argumentos** (sin orden ni anchos, que allí no hay). Con
+`_plantillas` en la fila, esa escritura las habría borrado a cada casilla marcada. Ahora pasa por `escribeElGestor`.
+
+### El tope de tamaño, medido — y por qué la guarda no mira el texto
+
+La 136 pone `check (pg_column_size(value) < 8192)`. **Lo que mide es el `jsonb`, no el texto**, y aquí la diferencia importa.
+Medido el 2026-09-25 en un **Postgres 17 local** (un clúster de usar y tirar en la carpeta de trabajo, nada de producción),
+con `pg_column_size('<json>'::jsonb)` y un `insert` contra un `check` idéntico al de la 136:
+
+| Fila | Texto (bytes) | `jsonb` (bytes) | ¿La acepta la base? |
+|---|---:|---:|---|
+| Órdenes, un rol con todo lleno (14 visibles, 14 en orden, 15 anchos), sin plantillas | 478 | 697 | sí |
+| Órdenes, un rol lleno + **10 plantillas llenas** (nombre de 40, 14+14 columnas, 15 anchos a 800) | 5 294 | **7 561** | sí, por 631 |
+| Órdenes, los 6/7 roles llenos, sin plantillas | 2 916 | 4 241 | sí |
+| Órdenes, los 6/7 roles llenos + 10 plantillas llenas | 7 732 | **11 105** | **NO** |
+| Gestor, 6 roles con todas sus columnas + 10 plantillas de todas | 4 665 | 5 343 | sí |
+| Órdenes, lo normal: un rol, 10 plantillas de nombre corto y 2 anchos | 2 651 | 3 531 | sí |
+| Gestor, lo normal: un rol, 10 plantillas | 1 114 | 1 401 | sí |
+
+El `jsonb` llega a ocupar un **43 % más** que el texto: cada ancho pasa a `numeric` con cabecera, alineado a 4, y cada
+elemento lleva 4 bytes de índice. Una guarda sobre el largo del texto (lo que hicieron D-332 y D-338, que no tenían riesgo) aquí
+habría dejado pasar filas que la base rechaza — **y ese rechazo no se ve**: la pantalla daría la plantilla por guardada y al
+recargar no estaría.
+
+Así que `bytesEnLaBase` **reproduce el formato de `jsonb`** (`convertToJsonb` de `jsonb_util.c`: cabeceras, índices, claves
+ordenadas por largo, alineación de números y contenedores, grupos de 4 cifras de `numeric`). **Da exactamente lo que dio
+Postgres en los 8 casos medidos** (los 7 de la tabla y uno de números de 2 a 5 cifras con acentos, 190), y la prueba los fija
+uno a uno con el número de Postgres, no con el de la función.
+
+**La guarda** (`cabeEnLaFila`): antes de guardar una plantilla, la fila tal como quedaría —las otras mitades como se leyeron— más
+una **reserva de 800 bytes** tiene que quedar por debajo de 8 192. La reserva es lo que ocupan las tres mitades de un rol lleno
+(697): guardar una plantilla nunca deja la fila tan llena que la siguiente casilla, flecha o ancho —de este rol, o del siguiente
+que mire un admin con «Ver como»— ya no quepa y falle en silencio. **Borrar no se impide nunca**, aunque la fila esté llena.
+
+**Lo que eso da:** lo normal (nombres cortos, pocos anchos arrastrados) caben las **10 con holgura** (3 531 de 8 192). En el
+peor caso posible —un rol con todo arrastrado y diez plantillas de nombre de 40 caracteres, cada una con las 15 anchuras— caben
+**9**; la décima sale con «No cabe: borre una plantilla para hacer sitio». Un admin que tenga columnas guardadas en los siete
+roles tiene menos sitio (4 241 ya ocupados), y la guarda se lo dice igual.
+
+### Medido en el navegador (demo, 2026-09-25, 1440 y 1280, clics de persona con el elemento a la vista)
+
+**Órdenes, como office (`accounting`):**
+- De salida: `# | PO # | Type | Account | Stage | Store | Delivery Date | Pallets | Driver | Delivery Address | Windows`,
+  «Account» de 184 px.
+- Se cambió: «Fee» dentro, «Store» dos puestos arriba, «Account» arrastrada a 264 px. Se guardó como «Mía»: aviso «Saved “Mía”.»,
+  pastillas `Default · Mía`, el menú sigue abierto, y en el navegador la foto con `v`, `o` y `a: { account: 264 }`.
+- Se volvió a cambiar (fuera «PO #», dentro «Contact»). **Clic en «Mía» → las cabeceras, idénticas a las guardadas, y «Account»
+  otra vez a 264.**
+- **Clic en «Default» → las cabeceras, idénticas a las de salida, y «Account» a 184.**
+- **Recargar:** «Mía» sigue; aplicarla después de recargar da las cabeceras guardadas y los 264 px (el orden viene de la
+  plantilla: el demo no guarda el orden propio, ver abajo).
+- **Borrar:** el ✕ enseña «Delete “Mía”? Yes, delete · No» con el menú abierto; «No» la deja; «Yes, delete» la quita; tras
+  recargar sigue quitada y el navegador guarda `[]`.
+- La página no se desplaza de lado (0 px). El menú, 210 px, dentro de la ventana.
+
+**Gestor, como logística:**
+- En «Rutas», el ⚙ de la primera tarjeta: se marcó «Fee» → la tabla de paradas pasa a
+  `# | ID | Type | Pallets | Address | ETA | Windows | Fee`.
+- En «Sin asignar», fuera «Account» y «Pickup», y se guardó «Log A». Se quitó «Store»; **clic en «Log A» → las cabeceras
+  guardadas**; **clic en «Default» → las de salida** (con «Account» y «Pickup»).
+- De vuelta en «Rutas», el ⚙ de paradas **tiene «Log A»**, y aplicarla devuelve «Fee» a las paradas: es la misma plantilla.
+- **Recargar:** «Log A» sigue en el ⚙ de paradas y se aplica.
+- **Borrar** desde el ⚙ de paradas, con la pregunta; después tampoco está en el de «Sin asignar», ni tras recargar.
+- La página no se desplaza de lado (0 px).
+
+**Lo que el demo no mide:** el demo no tiene base, así que lo que sobrevivió a recargar es el **navegador**
+(`rtg_plantillas_order_columns`, `rtg_plantillas_routes_columns`). La base se prueba con la función y una base falsa
+(`guardaColumnas`/`leeColumnas`), no en vivo. Tampoco en el demo sobrevive a recargar el orden propio de Órdenes ni las columnas
+del Gestor (no los guardaba antes de esto; es de antes).
+
+### Un detalle que se arregló por el camino
+
+`guardaAnchos` de Órdenes no actualizaba `anchos` al arrastrar: la tabla lo llevaba por su cuenta. Con plantillas eso fallaba en
+un caso: aplicar una plantilla cuyos anchos coinciden con el `anchos` de antes no cambia nada que la tabla vea, así que lo
+arrastrado entre medias se quedaba. Ahora `guardaAnchos` pone `anchos` a lo arrastrado antes de nada. Prueba con nombre.
+
+### Mutantes
+
+**42, leídos por el nombre de la prueba que cae; caen los 42.** La fila: no escribir `_plantillas` (M1), leer más de diez (M2) o
+repetidas (M3), `leeColumnas`/`guardaColumnas` que las pierden (M4, M5). La lógica: duplicar en vez de reemplazar (M6), sin tope
+(M7), llamarse «Default» (M8), borrar distinguiendo mayúsculas (M9), aplicar columnas que ya no existen (M10) o un orden vacío en
+vez del canónico (M11). El tamaño: números sin alinear (M12), medir el texto (M13), sin reserva (M14), no mirar (M15), impedir
+borrar (M16). Dónde se guarda: sin base leída (M17), el demo contra la base (M18), un rechazo dado por bueno (M19), otra llave
+(M20). El Gestor: sin marcas al aplicar (M21), marcas en la foto (M22). Las pantallas: la fila de Órdenes o del Gestor sin
+plantillas (M23, M32), sin el bloque (M24, M33, M41), Default que deja el orden (M25), aplicar sin escribir (M26), la foto sin
+orden (M27), lo arrastrado fuera de `anchos` (M28), la guarda con una fila a medias (M29), no leerlas de la base (M30, M36),
+pintar lo no guardado (M31), aplicar o guardar la lista cruda (M34, M35). El bloque: ✕ que borra sin preguntar (M37), Guardar
+con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40), sin «Reemplazar» (M42).
+
+### Lo que no se hizo
+
+- **Guardar las plantillas del demo en la base**: el demo no tiene base.
+- **Compartir plantillas entre personas** («la plantilla de la oficina»): no se pidió. Cada quien las suyas.
+- **Plantillas en promos**: tiene su ⚙ con orden (D-385), pero no se pidió.
+- **Renombrar** una plantilla: se borra y se guarda con otro nombre.
