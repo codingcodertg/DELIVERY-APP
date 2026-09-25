@@ -27764,3 +27764,85 @@ está elegido: lo pulsado si sigue entre las opciones; si no, el del filtro; si 
   librería, no se vio en pantalla.
 - **En el teléfono, el mapa `sticky` (de antes de este cambio) tapa casi toda la ventana** y hubo que pulsar «Ocultar mapa
   y choferes» para llegar a la tabla. No se tocó: es de la pantalla entera, no del recuadro, y no se pidió.
+
+## D-NEXT · El Panel del gerente enseña solo su tienda y las de su grupo
+
+**Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
+**Pedido por el dueño**, literal: *«Juan Briseno (Office Manager) — the Dashboard tab should only contain data of their
+own store, not all stores!!»*. `manager` es «Office Manager / Gerente de Oficina» (`ROLE_INFO`).
+
+### Qué fallaba
+
+El Panel (`src/app/(app)/dashboard/page.tsx`) pintaba **todas** las órdenes que traía el proveedor. Para un gerente,
+eso son las de la empresa entera: D-315 (migración 131) acota en la base **solo** a quien tiene casillas marcadas en
+«Tiendas que ve», y vacío = ve todas. D-293 dejó escrito que el Panel no cortaba por tienda, y D-315 que sus totales
+cambiarían «cuando se le marcan tiendas a un gerente». Nadie las había marcado, así que el gerente veía cifras, choferes,
+vendedores y atrasadas de todas las tiendas.
+
+### Cómo queda
+
+`src/lib/panel-por-tienda.ts`, puro, con tres funciones:
+
+- **`alcanceDelPanel(me, tiendas)`**: admin y logística → **todas**; el resto → **su tienda y las de su grupo**
+  (D-293); sin tienda → **ninguna, con aviso**.
+- **`ordenesDelPanel`**: la regla de tiendas es **la de almacén, no una nueva**: `tiendasDeAlmacen` (que es
+  `tiendasDelGrupo` normalizado) y `esDeMisTiendas` por orden, lo mismo que la cola de almacén y el tablero de Órdenes
+  (D-374). Por eso una Intertienda cuenta para las dos tiendas que toca (D-309): en «Volumen por tienda» puede salir la
+  barra de la otra tienda por una orden que también es suya.
+- **`choferesDelPanel`**: «Tiempo inactivo» sale del reloj de turnos, y un turno es de un chofer, no de una orden. Se
+  corta por la tienda del chofer (`profiles.store`), y su tiempo activo se mide con **todas** sus entregas del rango: si
+  se midiera solo con las de las tiendas del gerente, el rato que repartió para otra tienda contaría como inactivo.
+
+**Todo** el Panel bebe de la lista acotada: KPIs, «Órdenes por etapa», «Volumen por tienda», tendencias, KPIs de
+choferes y flota, tiempos y calidad, «Vendedores — este mes», «Cuentas principales», «Órdenes atrasadas», el export y
+«Requiere atención». Este último leía `useData().deliveries` por su cuenta; ahora recibe la lista por prop y no puede
+volver a leerla entera sin que caiga una prueba. Encima de las cifras sale «Solo se muestra: McAllen + Mission».
+
+**No hay selector de tienda en el Panel**, así que no había nada que recortar ahí.
+
+### Quién más ve el Panel, y qué se hizo con cada uno
+
+Por rol, solo `admin` y `manager` (`TABS` y `ROLE_CAPS`). Office (`accounting`) **no** lo ve de serie, ni logística.
+Además lo ve **quien tenga la capacidad `dashboard` marcada a mano** en Usuarios. A esos se les aplica la misma regla
+(su tienda y su grupo; sin tienda, el aviso). Decisión mía, que el orquestador debe validar: el pedido nombra al
+gerente, pero su razón —que alguien de una tienda no vea las cifras de las otras— vale igual para una vendedora con la
+casilla, y dejarla ver más que su gerente sería absurdo. El texto de la capacidad decía «KPIs y reportes de la empresa»;
+pasa a decir «de su(s) tienda(s); admin y logística ven todas». **Logística**, si entra (por URL o con la casilla), ve
+todas, igual que en la ventana de D-374.
+
+### El gerente sin tienda ve un aviso, no la empresa
+
+Es lo que D-237 decidió para fichaje: **un campo sin rellenar no amplía lo que se ve**, y la objeción de D-127 (una
+lista vacía parece una app rota) se atiende diciéndole por qué. Aquí: tarjeta «Sin tienda asignada — pida a un admin
+que se la asigne en Usuarios», y ninguna cifra. El orquestador cuenta 2 gerentes sin tienda en producción: esos dos
+dejan de ver el Panel hasta que se les ponga tienda.
+
+### Lo que esto NO es
+
+**Es de pantalla.** La base le sigue mandando al gerente sin casillas las órdenes de todas las tiendas (política de la
+131: vacío = todas), y las sigue viendo en Órdenes y en el mapa. El Panel ya no las enseña, pero cualquiera que lea la
+API las tiene. Cerrarlo de verdad sería marcarle las casillas de D-315, o cambiar la 131 para que un gerente sin casillas
+vea su tienda: eso es migración y va aparte. **No se tocó.**
+
+Tampoco se tienen en cuenta aquí las tiendas marcadas en «Tiendas que ve» (`visible_stores`): el Panel del gerente es
+su tienda y su grupo, como pidió el dueño, aunque la base le deje leer más.
+
+### Verificado
+
+- `panel-por-tienda.test.ts`: 16 pruebas, con datos desordenados y una Intertienda en cada sentido. Incluye un barrido
+  que lista **todas** las líneas del Panel que nombran la lista sin acotar: una tarjeta nueva que lea `deliveries` a
+  secas la tumba.
+- **12 mutantes, los 12 caen con una prueba con nombre**, entre ellos: el Panel con `inDateRange(deliveries…)`, los
+  vendedores sin acotar, «Requiere atención» leyendo `useData`, los turnos sin filtrar, el gerente entre los que ven
+  todo, el sin tienda viendo todo, sin grupo, y mirar solo `store` en una Intertienda.
+- **En el demo** (navegador de verdad, «Ver como» del banner, pestaña Panel pulsada), rango de 30 días, 69 órdenes:
+  admin **69** en seis tiendas; gerente sin tienda **aviso y ninguna cifra**; gerente de McAllen con McAllen y Mission
+  en un grupo **25** (McAllen 14 + Mission 11), vendedores 33 órdenes en vez de 87, 5 avisos de atención en vez de 10;
+  gerente de Pharr **13**, solo Pharr; logística 69. Cada total coincide con el recuento hecho aparte sobre los datos
+  del demo. El grupo y la tienda del gerente se pusieron en el `localStorage` del demo, que no los trae.
+
+### Lo no verificado
+
+- **Contra la base de verdad.** En producción el gerente lee lo que la 131 le deje; aquí solo se midió el demo.
+- **«Tiempo inactivo» con turnos**: el demo no trae turnos del reloj, así que esa tabla salió vacía para todos. El corte
+  lo cubren las pruebas y un mutante, no una pantalla.
