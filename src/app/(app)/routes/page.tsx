@@ -7,7 +7,9 @@ import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
-import { autoAssign, parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
+import { parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
+import { ordenesDelReparto, repartirYOptimizar, resumenDelReparto, type RutaQueOptimizar } from "@/lib/auto-asignar";
+import { AutoAsignarDialogo, type EleccionDelReparto } from "@/components/AutoAsignarDialogo";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
@@ -355,6 +357,8 @@ export default function RoutesPage() {
   const [previewBusy, setPreviewBusy] = useState<string | null>(null);
   const [optimizingAll, setOptimizingAll] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
+  // El diálogo de «✨ Auto-asignar» (D-NEXT): abierto o no. Lo que se elige dentro vive en el diálogo.
+  const [dialogoAutoAsignar, setDialogoAutoAsignar] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
@@ -882,6 +886,16 @@ export default function RoutesPage() {
     filtro: filtroChofer,
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
+  // Los choferes del diálogo de «✨ Auto-asignar» (D-NEXT): los mismos números que el recuadro, pero solo choferes de
+  // verdad — el reparto nunca fue a rutas temporales (`autoAssign` recibe `drivers`).
+  const opcionesDelReparto = opcionesDeConductor({
+    rutas: drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
+    paradasDe: (k) => (byDriver.get(k) ?? []).length,
+    palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []),
+    capacidadDe: (k) => capacityFor(k),
+    noDisponibles: unavailableToday,
+    filtro: filtroChofer,
+  });
 
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
   // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
@@ -1197,49 +1211,67 @@ export default function RoutesPage() {
   // Solve every driver's route in one go so the whole board lights up at
   // once. Sequential + gently throttled — the free OSRM server asks for no
   // more than ~1 request/second.
-  const optimizeAll = async () => {
-    const withStops = lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0);
-    if (!withStops.length) return;
+  const optimizeAll = () =>
+    optimizaEstas(lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => ({ clave: u.key, paradas: byDriver.get(u.key) ?? [] })));
+  // El bucle de «Optimizar todas las rutas», para la lista que se le dé: todas las rutas con paradas, o (desde el diálogo
+  // de «Auto-asignar», D-NEXT) solo las de los choferes que acaban de recibir órdenes, con sus paradas ya puestas.
+  const optimizaEstas = async (rutas: RutaQueOptimizar[]): Promise<string[]> => {
+    // Las que salieron bien: el resumen del diálogo no llama «optimizada» a una ruta que falló (D-NEXT).
+    const bien: string[] = [];
+    if (!rutas.length) return bien;
     setOptimizingAll(true);
     setPreview(null);
     setErr(null);
-    for (const u of withStops) {
-      setBusyDriver(u.key);
+    for (const r of rutas) {
+      setBusyDriver(r.clave);
       try {
-        await applyPlan(u.key, await computeRoute(u.key, byDriver.get(u.key) ?? []));
+        await applyPlan(r.clave, await computeRoute(r.clave, r.paradas));
+        bien.push(r.clave);
       } catch (e) {
         setErr((e as Error).message);
       }
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((res) => setTimeout(res, 400));
     }
     setBusyDriver(null);
     setOptimizingAll(false);
     setRouterInfo(lastProviderRef.current);
+    return bien;
   };
 
-  // Auto-assign every unassigned order across the drivers (capacity + window +
-  // proximity aware), then leave the "Optimize all routes" button to sequence
-  // each driver's day into real OSRM routes.
-  const runAutoAssign = async () => {
+  // «✨ Auto-asignar» (D-NEXT): ya no reparte al instante. Abre un diálogo que pregunta qué órdenes (todas las del día o
+  // las marcadas), a qué choferes y si se optimiza al terminar; aquí se reparte con lo elegido. El reparto es el
+  // `autoAssign` de siempre, solo entre los marcados; la optimización, el bucle de «Optimizar todas las rutas» solo para
+  // los que recibieron algo. Lo decide `repartirYOptimizar`.
+  const repartirConElDialogo = async (e: EleccionDelReparto) => {
     if (autoAssigning || optimizingAll || busyDriver != null) return;
-    const driverNames = drivers.map((u) => u.full_name);
-    if (!driverNames.length) { notify(t("Add drivers first (give someone the Driver role).", "Agregue choferes primero (asigne el rol de Chofer).")); return; }
-    const res = autoAssign(unassigned, driverNames, capacityFor, { maxTripsPerDay: 2, unavailable: unavailableToday });
-    if (!res.assignments.length) {
-      notify(t("Nothing could be auto-assigned (no coordinates or no capacity).", "No se pudo auto-asignar nada (sin coordenadas o sin capacidad)."));
-      return;
-    }
+    setDialogoAutoAsignar(false);
+    const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));
+    const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);
+    const delDia = new Set(dayOrders.map((d) => d.id));
     setAutoAssigning(true);
+    let r: Awaited<ReturnType<typeof repartirYOptimizar>> | null = null;
     try {
-      for (const a of res.assignments) await assignTo(a.orderId, a.driver);
+      r = await repartirYOptimizar({
+        ordenes,
+        choferes: e.choferes,
+        capacidadDe: capacityFor,
+        noDisponibles: unavailableToday,
+        optimizar: e.optimizar,
+        paradasDe: (k) => byDriver.get(k) ?? [],
+        esDelDia: (d) => delDia.has(d.id),
+        asigna: (id, chofer) => assignTo(id, chofer),
+        optimiza: optimizaEstas,
+      });
     } finally {
       setAutoAssigning(false);
     }
-    const nDrivers = new Set(res.assignments.map((a) => a.driver)).size;
-    notify(t(
-      `Auto-assigned ${res.assignments.length} order(s) to ${nDrivers} driver(s)${res.unassigned.length ? ` · ${res.unassigned.length} left (no location/capacity)` : ""}. Now tap “Optimize all routes”.`,
-      `Auto-asignadas ${res.assignments.length} orden(es) a ${nDrivers} chofer(es)${res.unassigned.length ? ` · ${res.unassigned.length} sin colocar (sin ubicación/capacidad)` : ""}. Ahora toque “Optimizar todas las rutas”.`,
-    ));
+    if (!r.reparto.assignments.length) {
+      notify(t("Nothing could be auto-assigned (no coordinates or no capacity).", "No se pudo auto-asignar nada (sin coordenadas o sin capacidad)."));
+      return;
+    }
+    if (e.alcance === "marcadas") clearSelection();
+    const resumen = resumenDelReparto(r, orderLabel, e.optimizar);
+    notify(t(resumen.en, resumen.es));
   };
 
   const toggleOrder = (id: string) =>
@@ -1255,22 +1287,6 @@ export default function RoutesPage() {
     try { for (const id of ids) await assignTo(id, driver); } finally { setAutoAssigning(false); }
     clearSelection();
     notify(t(`Assigned ${ids.length} order(s) to ${driver}`, `Asignadas ${ids.length} orden(es) a ${driver}`));
-  };
-
-  // Auto-assign only the checked orders across the drivers.
-  const bulkAutoAssign = async () => {
-    const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));
-    if (!chosen.length) return;
-    const res = autoAssign(chosen, drivers.map((u) => u.full_name), capacityFor, { maxTripsPerDay: 2, unavailable: unavailableToday });
-    if (!res.assignments.length) { notify(t("Couldn't place the selected orders.", "No se pudieron colocar las órdenes seleccionadas.")); return; }
-    setAutoAssigning(true);
-    try { for (const a of res.assignments) await assignTo(a.orderId, a.driver); } finally { setAutoAssigning(false); }
-    clearSelection();
-    const nDrivers = new Set(res.assignments.map((a) => a.driver)).size;
-    notify(t(
-      `Auto-assigned ${res.assignments.length} order(s) to ${nDrivers} driver(s)${res.unassigned.length ? ` · ${res.unassigned.length} left` : ""}.`,
-      `Auto-asignadas ${res.assignments.length} orden(es) a ${nDrivers} chofer(es)${res.unassigned.length ? ` · ${res.unassigned.length} sin colocar` : ""}.`,
-    ));
   };
 
   /** Simulate adding an unassigned order to the selected driver's day —
@@ -1660,9 +1676,10 @@ export default function RoutesPage() {
           </button>
           <button
             className="btn btn-amber btn-sm"
-            disabled={autoAssigning || optimizingAll || busyDriver != null || unassigned.length === 0 || drivers.length === 0}
-            onClick={runAutoAssign}
-            title={t("Distribute all unassigned orders across drivers", "Repartir todas las órdenes sin asignar entre los choferes")}
+            data-auto-asignar
+            disabled={autoAssigning || optimizingAll || busyDriver != null || (unassigned.length === 0 && poolSelectedCount === 0) || drivers.length === 0}
+            onClick={() => setDialogoAutoAsignar(true)}
+            title={t("Choose which orders and which drivers, then distribute and optimize", "Elegir qué órdenes y a qué choferes, y repartir y optimizar")}
           >
             {autoAssigning ? `… ${t("Assigning", "Asignando")}` : `✨ ${t("Auto-assign", "Auto-asignar")} (${unassigned.length})`}
           </button>
@@ -2169,7 +2186,7 @@ export default function RoutesPage() {
                 {t("Assign", "Asignar")}
               </button>
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={autoAssigning} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
-              <button className="btn btn-amber btn-sm" data-auto-asignar-del-recuadro onClick={bulkAutoAssign} disabled={autoAssigning || drivers.length === 0}>✨ {t("Auto-assign the checked ones", "Auto-asignar las marcadas")}</button>
+              <button className="btn btn-amber btn-sm" data-auto-asignar-del-recuadro onClick={() => setDialogoAutoAsignar(true)} disabled={autoAssigning || optimizingAll || busyDriver != null || drivers.length === 0}>✨ {t("Auto-assign the checked ones", "Auto-asignar las marcadas")}</button>
             </div>
           </div>
         )}
@@ -2626,6 +2643,18 @@ export default function RoutesPage() {
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 
       {openOrder && <OrderModal me={me} existing={openOrder} startEditing={false} onClose={() => setOpenOrder(null)} />}
+      {/* «✨ Auto-asignar» (D-NEXT): el botón de arriba y «Auto-asignar las marcadas» del recuadro abren el mismo diálogo. */}
+      {dialogoAutoAsignar && (
+        <AutoAsignarDialogo
+          opciones={opcionesDelReparto}
+          delDia={unassigned.length}
+          marcadas={poolSelectedCount}
+          colorDe={colorFor}
+          t={t}
+          onCancelar={() => setDialogoAutoAsignar(false)}
+          onConfirmar={repartirConElDialogo}
+        />
+      )}
     </>
   );
 }

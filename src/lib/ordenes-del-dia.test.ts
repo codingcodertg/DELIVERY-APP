@@ -177,8 +177,9 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   });
   it("el resumen, la pestaña y «Auto-asignar» cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
-    expect(pagina).toContain("const res = autoAssign(unassigned, driverNames,");
+    // Desde D-NEXT «Auto-asignar» reparte desde su diálogo: «Todas» es `unassigned` (el día), «Solo las marcadas» va con el chip.
+    expect(pagina).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
     expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
-    expect(pagina).toContain("const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));");
+    expect(pagina).toContain("const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));");
   });
 });

@@ -27454,6 +27454,11 @@ Un selector arriba, junto a la fecha: «Todos los choferes» (el defecto) o un c
 - **Lo que NO filtra:** «Auto-asignar», «Optimizar todas las rutas», «Armar las rutas del día», el tablero y el horario
   siguen trabajando sobre todos. Son acciones del día, y filtrarlas en silencio sería peor que no filtrarlas.
 
+> **Nota (2026-09-25) — Reemplazada en parte por D-NEXT.** «Auto-asignar» ya no reparte al instante: abre un diálogo
+> con una casilla por chofer. Con el filtro puesto en un chofer disponible, **ese nace marcado y los demás no**. No es
+> filtrar en silencio (la razón de arriba): el diálogo enseña a todos los choferes y quién está marcado, y «Todos» los
+> marca con un clic. «Optimizar todas las rutas» y lo demás siguen sin filtrar.
+
 **Cómo se recuerda.** Por persona, en **este navegador**: `localStorage`, clave `rtg_routes_driver_filter_<id de la
 persona>`, como los anchos de las tablas de esta misma pantalla. **No** va a `user_prefs` como las columnas: la lista de
 claves de esa tabla está cerrada en la base (136/137/141) y una clave nueva es una migración; y meterlo dentro del
@@ -27716,6 +27721,9 @@ Sin asignar  [☑ #1012] [☑ #1013]
   selección: el recuadro se va solo.
 - **«＋ Nueva ruta» y «✨ Auto-asignar las marcadas»** viven dentro del recuadro (los mismos `bulkAssign(addBucket())` y
   `bulkAutoAssign` de antes). «Auto-asignar» se apaga si no hay choferes de verdad (no tendría a quién repartir).
+
+  > **Nota (2026-09-25) — Reemplazada en parte por D-NEXT.** «✨ Auto-asignar las marcadas» ya no reparte al instante:
+  > abre el mismo diálogo que el «✨ Auto-asignar» de arriba, nacido en «Solo las marcadas». `bulkAutoAssign` se quitó.
 - **Sin choferes ni rutas**: el recuadro lo dice («No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una
   sin chofer.») y deja «Nueva ruta» encendida. Las rutas «huérfanas» (un nombre que ya no es chofer ni ruta temporal)
   **no** salen como opción, igual que no salían en el selector viejo ni salen en el de cada fila.
@@ -28259,3 +28267,121 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 - **Logística** ve el botón «Aprobar» en bloque; no se midió con ese rol (la guarda no mira el rol, y la base ya le
   rechazaba el salto).
 - **El orden de despliegue** da igual en este caso: la pantalla cierra por su cuenta y la base solo añade la misma regla.
+
+## D-NEXT · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Reemplaza en parte a D-393** (sección 1, «Lo que NO filtra»: con el filtro puesto, el diálogo nace con ese chofer marcado)
+**y a D-395** («Auto-asignar las marcadas» del recuadro ya no reparte al instante). Las dos llevan su nota.
+
+**Qué pidió el dueño**, literal: *«cuando le apreto autoasignar se debe abrir un dialog para seleccionar a qué conductores
+les quiero asignar todas las órdenes, o seleccionar algunas, y que se auto-asignen optimizando la ruta»*.
+
+### Qué había
+
+«✨ Auto-asignar (N)», en la cabecera del Gestor, repartía **al instante** lo sin chofer del día entre **todos** los
+choferes disponibles (`autoAssign` de `lib/dispatch.ts`: capacidad × 2 viajes, ventanas que no chocan, cercanía) y
+terminaba con «Ahora toque “Optimizar todas las rutas”»: optimizar era un segundo botón, y optimizaba **todas** las rutas
+con paradas. «✨ Auto-asignar las marcadas», en el recuadro de D-395, hacía lo mismo con las marcadas.
+
+### Qué hay ahora
+
+Los dos botones abren **el mismo diálogo** (`components/AutoAsignarDialogo.tsx`). Un solo camino: se decidió así porque
+dejar «Auto-asignar las marcadas» repartiendo al instante sería tener dos comportamientos con el mismo nombre.
+
+- **Qué órdenes.** «Todas las sin asignar de este día (N)» (lo mismo que contaba el botón, `unassigned`, sin el chip) o
+  «Solo las marcadas (M)» (lo marcado en la tabla, con su chip, el alcance de siempre de D-393/D-395). La segunda solo
+  sale si hay marcadas. **Defecto: las marcadas si las hay; si no, todas** (si alguien marcó, es que quiere esas).
+- **A qué conductores.** Una casilla por chofer **de verdad** (las rutas temporales 🧭 no entran: el reparto nunca fue a
+  ellas), con sus paradas y pallets del día, los mismos números y la misma función que el recuadro de D-395
+  (`opcionesDeConductor`). «Todos» y «Ninguno». Un chofer no disponible ese día (vacaciones, baja, taller) sale
+  **desactivado** con «no disponible», y ni «Todos» ni el defecto lo marcan.
+  - **Defecto sin filtro de chofer: todos los disponibles** (lo que hacía el botón hasta hoy).
+  - **Con el filtro de D-393 en un chofer disponible: solo ese**, con la etiqueta «filtro» y primero de la lista. Los
+    demás, sin marcar. La razón: el filtro dice «trabajo con Diego», y lo esperable es repartirle a él. D-393 decía que
+    «Auto-asignar» no debía seguir al filtro porque «filtrarlas en silencio sería peor»; aquí no es en silencio: el
+    diálogo enseña a todos, quién está marcado, y «Todos» los marca con un clic. Con el filtro en un no disponible o en
+    una ruta temporal, se vuelve a «todos los disponibles».
+- **«Optimizar las rutas al terminar»**, marcada por defecto. Al terminar el reparto optimiza **solo las rutas de los
+  choferes que recibieron alguna orden**, con el mismo bucle que «Optimizar todas las rutas» (`computeRoute` +
+  `applyPlan`, uno detrás de otro con 400 ms de pausa). Ese bucle ahora se llama `optimizaEstas` y lo usan los dos:
+  «Optimizar todas las rutas» le pasa todas las rutas con paradas, el diálogo le pasa las de quienes recibieron, **con sus
+  paradas de antes más las nuevas** (el estado de la pantalla aún no las tiene cuando se optimiza). Una orden marcada de
+  **otro día** (chip «Todas») se asigna, pero no entra en la ruta de este día.
+- **«Asignar y optimizar (N)»** (o «Asignar (N)» sin optimizar): apagado sin choferes marcados o sin órdenes.
+- **Cancelar** (el botón, la ✕ o un clic fuera) cierra sin tocar nada; lo marcado en la tabla sigue marcado.
+- **Al terminar**, el aviso: cuántas se asignaron y a cuántos choferes, **cuántas no se pudieron colocar y cuáles** (los
+  seis primeros números y «+N»), y cuántas rutas se optimizaron. Si alguna **falló** al optimizar, dice «X de Y
+  ruta(s) optimizada(s) (Z con error)» — `optimizaEstas` devuelve las que salieron bien. Se añadió al medir: la primera
+  versión decía «4 ruta(s) optimizada(s)» con las cuatro llamadas contestadas 401. Tras repartir las marcadas, la
+  selección se limpia (como antes `bulkAutoAssign`).
+
+**El reparto no cambia**: es `autoAssign`, con `maxTripsPerDay: 2` y los no disponibles, pero recibe **solo los choferes
+marcados**. Sigue empezando a cada chofer en 0 pallets (no cuenta lo que ya tiene) — era así antes, no se tocó. «Sin
+colocar» es: sin ubicación, sin capacidad o **con la ventana ya ocupada** en todos los marcados (el aviso lo dice así; el
+de antes decía solo «sin ubicación/capacidad», y en el demo la mayoría de las sueltas son por ventana).
+
+### Dónde está
+
+`src/lib/auto-asignar.ts`: `alcanceInicial`, `ordenesDelReparto`, `choferesIniciales`, `todosLosChoferes`, `seMarca`,
+`puedeRepartir`, `repartirYOptimizar` (reparte y optimiza, con `asigna` y `optimiza` que pone quien llama) y
+`resumenDelReparto`. El diálogo solo pinta; la pantalla (`routes/page.tsx`) le pasa `assignTo` y `optimizaEstas`. Se
+quitaron `runAutoAssign` y `bulkAutoAssign`.
+
+### Efectos en terceros
+
+Optimizar llama a `/api/optimize-route`, que usa la API de rutas de Google (de pago) y, sin llave, OSRM. **En las pruebas
+el optimizador es un stub** que cuenta las llamadas. **En el demo no sale nada**: la ruta pide sesión (`requireUser`, D-172)
+antes de mirar el proveedor, y el demo no la tiene — medido: las 4 llamadas sin stub contestaron **401**, y el registro del
+servidor no tiene ninguna salida a Google ni a OSRM. Para medir el reparto entero en el demo, el navegador llevaba un
+stub de `fetch` para `/api/optimize-route` (contesta en la página, cuenta las llamadas). **No se probó optimizar contra
+producción ni con llaves.**
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4417 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 39, los 39 caen**, leídos por nombre. La librería (17): el alcance nace en «Todas» con marcadas; «Solo las
+  marcadas» reparte todo; el filtro no decide; el filtro en un no disponible lo marca; el no disponible se puede marcar;
+  el botón se enciende sin choferes o sin órdenes; el reparto ignora a los no disponibles; se optimiza a todos los
+  marcados aunque no reciban nada; lo de otro día entra en la ruta; la ruta pierde sus paradas de antes; optimiza con la
+  casilla desmarcada; una ruta fallida cuenta como optimizada; las nuevas van sin chofer; el resumen sin las sueltas o sin
+  los fallos; no se asigna. La pantalla (11): el botón de arriba se apaga con marcadas; el recuadro no abre el diálogo; el
+  diálogo ofrece rutas temporales; se reparte a todos y no a los marcados; no se optimiza con el bucle; lo de otro día
+  pasa por del día; el bucle no dice cuáles salieron; no se limpia la selección; el diálogo no se cierra; no recibe las
+  marcadas; «Optimizar todas las rutas» deja el bucle compartido. El diálogo (11): «Optimizar» nace desmarcado;
+  «Ninguno» no hace nada; «Todos» marca al no disponible; el botón no se apaga; el número no sigue al alcance; «Solo las
+  marcadas» sin marcadas; el no disponible activo; nacen todos marcados; «Cancelar» asigna; se confirma con todos; el
+  alcance no mira las marcadas.
+- **En el demo** (2026-09-25, logística, en español, a **1280**; clics de persona con el ratón, el elemento a la vista y
+  sin nada encima; el `<select>` del filtro, con el setter nativo y su `change`, como en D-393):
+  - **Sin marcadas:** «✨ Auto-asignar (42)» abre el diálogo con **una** opción de alcance, «Todas las sin asignar de este
+    día (42)», marcada; los 4 choferes marcados — Diego Driver (4 paradas · 25/12), Carlos R. (4 · 17/12), Miguel A.
+    (4 · 25/12), Fleet Truck 3 (3 · 13/12), los números de D-395 —; «Optimizar» marcada; «Asignar y optimizar (42)»
+    encendido. Diálogo de 520 × 401 px, centrado; la página no se desplaza de lado (0 px).
+  - **«Ninguno»:** 0 marcados, botón **apagado**. «Todos»: 4, encendido.
+  - **Cancelar** con el botón, con un clic fuera y con la ✕: diálogo cerrado y el almacén del demo **idéntico** al de
+    antes las tres veces.
+  - **Con 3 marcadas** en «Sin asignar»: desde arriba **y** desde el recuadro, dos opciones, «Solo las marcadas (3)»
+    elegida, botón «Asignar y optimizar (3)». Cancelar: nada cambia y siguen las 3 marcadas.
+  - **2 de 4** («Ninguno», luego Carlos R. y Fleet Truck 3), «Todas» (42), con optimizar y el stub: **7 asignadas, 4 a
+    Carlos y 3 a Fleet Truck 3, 0 a los otros dos**, 0 órdenes con chofer cambiadas; **2 llamadas al optimizador, una con
+    solo paradas de Carlos y otra con solo las de Fleet Truck 3**. Aviso: «Auto-asignadas 7 orden(es) a 2 chofer(es) · 35
+    sin colocar (…): #1003, #1046, #1052, #1058, #1064, #1008 +29 · 2 ruta(s) optimizada(s).» En el panel, solo Carlos y
+    Fleet enseñan millas y tiempo (los del stub).
+  - **Control con los 4, sin stub:** 13 asignadas (4 · 3 · 3 · 3), 4 llamadas, **las 4 contestadas 401**, y el aviso
+    «0 de 4 ruta(s) optimizada(s) (4 con error)». De las 42 del día, 7 no tienen punto; el resto de las sueltas es por
+    ventana ocupada (con 4 choferes caben 13, con 2 caben 7).
+  - **Filtro «Miguel A.»:** Miguel primero, con «filtro», **el único marcado**; los otros 3 sin marcar.
+  - **Miguel no disponible** (una ausencia puesta en el almacén del demo para ese día): su casilla desactivada, sin
+    marcar, con «no disponible»; «Ninguno» y luego «Todos» marcan a los otros 3 y a él no.
+  - **Red:** fuera de 127.0.0.1 solo salen las fuentes de Google Fonts y los mosaicos de OpenStreetMap del mapa (de antes,
+    gratuitos). A `/api/`: `geocode-point` (401, de antes), `route-plan`, `version`, `impersonate/state`. Ninguna a Google
+    Routes ni a OSRM.
+
+### Lo no verificado
+
+- **Con una base de verdad y con llaves**: por regla, no. Que la optimización de verdad devuelva el orden y lo guarde es el
+  bucle de «Optimizar todas las rutas», que no cambió salvo en devolver las que salieron bien.
+- **A 1440 y en el teléfono**: solo se midió a 1280. El diálogo usa la `.modal` de siempre, que en el teléfono ocupa la
+  pantalla entera (CSS de antes).
+- Con **muchos** choferes la lista tiene su propio desplazamiento (260 px); no se midió con más de 4.
