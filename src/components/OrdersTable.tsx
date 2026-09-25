@@ -15,6 +15,7 @@ import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
+import { BarraSuperior } from "@/components/BarraSuperior";
 import type { CancelReason, Delivery } from "@/lib/types";
 
 type Ctx = {
@@ -404,6 +405,8 @@ export function OrdersTable({
   // "inside" the open menu, so clicking it again closes the menu instead of reopening it.
   const celdaRefs = useRef(new Map<string, HTMLDivElement>());
   const menuRef = useRef<HTMLDivElement>(null);
+  // La caja de la tabla: la mueve también la barra de arriba (D-398).
+  const cajaRef = useRef<HTMLDivElement>(null);
 
   const cols = useMemo(() => {
     // Relabel the first column when it holds an invoice — a header reading
@@ -520,7 +523,12 @@ export function OrdersTable({
         >✕ {t("Clear filters", "Limpiar filtros")}</button>
       </div>
     )}
-    <div className="tbl-scroll tbl-fit orders-scroll">
+    {/* Cabecera bloqueada y barra de arriba (D-398): la caja lleva alto propio (`tbl-caja`) para que el
+        `sticky` del `th` tenga contra qué pegarse, y la barra de encima la mueve a lo ancho. Las dos van
+        en un envoltorio porque Almacén pone la tabla en una rejilla con `gap`, que las separaba 10 px. */}
+    <div className="tbl-con-barra">
+    <BarraSuperior caja={cajaRef} />
+    <div className="tbl-scroll tbl-fit orders-scroll tbl-caja" ref={cajaRef}>
       <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key))])}>
         <colgroup>
           {selectable && <col style={{ width: 34 }} />}
@@ -620,6 +628,7 @@ export function OrdersTable({
           ])}
         </tbody>
       </table>
+    </div>
     </div>
     {openFilter && menuAnchor && createPortal(
       (() => {

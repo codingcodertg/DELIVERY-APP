@@ -43,6 +43,8 @@ import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
 import { aLaDecima, sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
+import { altoMaximoDeCaja } from "@/lib/barra-superior";
+import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -373,6 +375,24 @@ export default function RoutesPage() {
   // Which router actually answered last — so the page can say whether the
   // mileage/ETAs account for traffic (Google) or are free-flow (OSRM fallback).
   const lastProviderRef = useRef<{ provider: string; traffic: boolean } | null>(null);
+  // Las cajas de «Sin asignar» y de las paradas de cada chofer, que mueve también su barra de arriba (D-398).
+  // Las de paradas van una por chofer (se pintan dentro del `.map`), por eso van por clave.
+  const cajaSinAsignarRef = useRef<HTMLDivElement>(null);
+  const cajaDeParadas = useCajasPorClave();
+  // El mapa y los choferes son `sticky` arriba; una caja de alto normal quedaría con su cabecera debajo de
+  // ellos. Se mide el panel y las cajas se acortan a lo que queda libre (`altoMaximoDeCaja`).
+  const panelFijoRef = useRef<HTMLDivElement>(null);
+  const [altoPanelFijo, setAltoPanelFijo] = useState(0);
+  useEffect(() => {
+    const el = panelFijoRef.current;
+    if (!showTop || !el) { setAltoPanelFijo(0); return; }
+    const mide = () => setAltoPanelFijo(Math.round(el.getBoundingClientRect().height));
+    mide();
+    const ro = new ResizeObserver(mide);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showTop]);
+  const estiloDeCaja = { border: "none", maxHeight: altoMaximoDeCaja(altoPanelFijo) } as const;
   const [routerInfo, setRouterInfo] = useState<{ provider: string; traffic: boolean } | null>(null);
   // Which panels are collapsed — the unassigned pool ("__unassigned__") and
   // each driver (by name), so a busy board can be folded down to just the
@@ -1775,7 +1795,7 @@ export default function RoutesPage() {
       {/* Sticky so the driver pool (and map) stay visible while you scroll the
           route cards below and build routes. Capped height + own scroll so it
           never takes over the screen. */}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8, position: "sticky", top: 6, zIndex: 5, background: "var(--paper)", paddingBottom: 6 }}>
+      <div ref={panelFijoRef} style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8, position: "sticky", top: 6, zIndex: 5, background: "var(--paper)", paddingBottom: 6 }}>
         <div className="card" style={{ flex: "1 1 250px", maxWidth: 340, margin: 0, padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "min(60vh, 520px)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
             <b style={{ flex: 1 }}>🚚 {t("Drivers & routes", "Choferes y rutas")}</b>
@@ -2006,7 +2026,8 @@ export default function RoutesPage() {
         ) : (
           <>
           <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
-          <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
+          <BarraSuperior caja={cajaSinAsignarRef} />
+          <div className="tbl-scroll tbl-fit tbl-caja" ref={cajaSinAsignarRef} style={estiloDeCaja}>
             <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
               <colgroup>
                 <col style={{ width: 28 }} />
@@ -2366,7 +2387,9 @@ export default function RoutesPage() {
               </div>
             )}
             {stops.length > 0 && (
-              <div className="tbl-scroll tbl-fit" style={{ border: "none" }}>
+              <>
+              <BarraSuperior caja={cajaDeParadas(u.key)} />
+              <div className="tbl-scroll tbl-fit tbl-caja" ref={cajaDeParadas(u.key)} style={estiloDeCaja}>
                 {/* Address stays on one line (narrow by default) with an
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
@@ -2591,6 +2614,7 @@ export default function RoutesPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
             </>}
           </div>
