@@ -5,7 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
-import { canApprove, canCreate, canDeliver, canEditFields, canFulfill, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa } from "@/lib/constants";
+import { canApprove, canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa, preparaEnLaFicha, recogeEnLaFicha } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
@@ -2969,8 +2969,9 @@ function StageActions({
     btns.push(<button key="material" className="btn btn-ghost" onClick={onAddMaterial} disabled={busy}>➕ {t("Add material", "Agregar material")}</button>);
   }
 
-  // Warehouse
-  if (canFulfill(me)) {
+  // Warehouse — y el gerente, que hace el proceso de bodega cuando hace falta (D-NEXT, 145). Quién lo decide
+  // `preparaEnLaFicha`, espejo del guard; no se vuelve a decidir aquí con una lista de roles.
+  if (preparaEnLaFicha(me)) {
     // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
     // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
     // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
@@ -2985,12 +2986,15 @@ function StageActions({
   }
 
   // Driver (and warehouse/admin): pick up a ready order, then mark it delivered.
-  if (canDeliver(me) && stage === "ready") {
+  // El gerente también recoge (D-NEXT, 145) —`recogeEnLaFicha`—, con el recuento en dos pasos de la oficina,
+  // pero sin «Iniciar viaje»: es un tiempo del chofer, y estamparlo desde la oficina falsearía el KPI.
+  if (recogeEnLaFicha(me) && stage === "ready") {
     if (!pickupConfirmOpen) {
-      // Drive-to-pickup: stamp "on my way" so the drive counts as active time.
-      if (!departedAt) {
+      // Drive-to-pickup: stamp "on my way" so the drive counts as active time. Solo quien entrega: el
+      // gerente que recoge desde la oficina no conduce hasta la recogida.
+      if (canDeliver(me) && !departedAt) {
         btns.push(<button key="depart" className="btn btn-ghost" onClick={onDepart} disabled={busy} title={t("Start the drive to the pickup point", "Iniciar el viaje al punto de recolección")}>🚗 {t("Start drive", "Iniciar viaje")}</button>);
-      } else {
+      } else if (canDeliver(me) && departedAt) {
         btns.push(
           <span key="enroute" className="hint" style={{ alignSelf: "center" }}>
             🚗 {t("En route since", "En camino desde")} {new Date(departedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
