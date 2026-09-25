@@ -1435,6 +1435,11 @@ dashboard. Cerrado.
 ---
 
 ## D-049 · Pallets y documento bloquean de verdad al enviar a aprobación
+
+> **Reemplazada en parte por D-399** (2026-09-25): la factura de un tipo que la pide (Customer) ya no se exige solo
+> al enviar, sino en **toda** escritura que saque la orden de borrador o la mueva de etapa —«Marcar entregada ya», los
+> botones en bloque, «Forzar estado», la re-entrega—, en los dos proveedores de datos y en la base (migración 146).
+> Pallets y el resto del documento siguen como dice esta entrada. El texto de abajo se conserva tal cual.
 **Fecha:** 2026-08-18 · **Versión:** v1.9.5 · **Pedido por:** Andrés
 
 **Cambio:** una orden ya no puede pasar de `draft` a `pending` (ni de
@@ -24614,6 +24619,11 @@ paradas.
 
 ## D-361 · Office y el gerente entregan de inmediato y deshacen un paso
 
+> **Reemplazada en parte por D-399** (2026-09-25): «Marcar entregada ya» y «Deshacer etapa» ya **no** mueven una
+> orden cuyo tipo pide factura (Customer) si no la tiene: sale el aviso del envío («Todavía falta: • Factura #») y la
+> orden se queda. La base lo exige también (146). Con factura, todo sigue como dice esta entrada. El texto de abajo se
+> conserva tal cual.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.185.0, repo 1.249.0 · **Migración: 139, SIN APLICAR.**
 **Pedido por el dueño**, literal: *«quiero que office people puedan darle deliver a una orden de inmediato y
 revertir stages si fue un error»*; preguntado si incluía al gerente, *«si office incluye al gerente»*.
@@ -27862,6 +27872,10 @@ su tienda y su grupo, como pidió el dueño, aunque la base le deje leer más.
 
 ## D-397 · El gerente hace el proceso de bodega (Preparar, Listo, Recogida), y «Marcar entregada ya» sale por fin del navegador desde aprobada
 
+> **Reemplazada en parte por D-399** (2026-09-25): «Marcar entregada ya» desde aprobada, preparando, lista o recogida
+> sigue saliendo del navegador, **salvo** en una Customer sin factura: ahí la para la guarda de los proveedores de datos
+> con el aviso del envío, y la base con la 146. El texto de abajo se conserva tal cual.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador al fusionar (Entregas) · **Migración: la 145**
 (`145_gerente_hace_bodega.sql`), **escrita y NO aplicada**: la aplica el orquestador después del merge, con respaldo y
 `migrate-status` antes y después. **Plan en papel:** `docs/PLAN-145-gerente-hace-bodega.md` (matriz de 26 casos con
@@ -28077,3 +28091,171 @@ le pone alto propio» pasa a «el alto de la caja es el de Órdenes: la misma cl
 **Mutantes: 31, caen los 31**, cada uno con una prueba con nombre. Uno sobrevivió a la primera pasada —«sin recorrido en el
 destino también sincroniza»— y era **código de sobra**: sin recorrido en el destino el objetivo sale 0, donde ya está, y el corte
 de eco devuelve `null` solo. Se quitó la condición y el mutante se cambió por quitar la del origen (división entre cero), que cae.
+
+## D-399 · Una Customer no sale de borrador ni se entrega sin factura: la guarda va en toda escritura, y en la base
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador al fusionar (Entregas) · **Migración: la 146**
+(`146_customer_siempre_con_factura.sql`), **escrita y NO aplicada**: la aplica el orquestador después del merge, con
+respaldo y `migrate-status` antes y después. **Plan en papel:** `docs/PLAN-146-customer-siempre-con-factura.md`
+(matriz de 26 casos con ROLLBACK, sin correr). **Reemplaza en parte a D-049, D-361 y D-397** (llevan su nota).
+
+**Pedido por el dueño (2026-09-25)**, literal: *«Invoice pending shouldn't show customers, that shouldn't be possible
+anyway»*. Aclarado: *«me refiero que el pending invoice no debería aparecer para customer porque el customer siempre
+debe llevar invoice, revisa eso»*.
+
+### Qué fallaba
+
+El orquestador midió en producción (solo lectura, 2026-09-25) **5 Customer entregadas sin factura**: #93, #163, #197
+(Brownsville), #223, #243 (McAllen). Historial `created>delivered…` o `created>edited>delivered…`: se crearon y se
+entregaron **sin pasar nunca por el envío a aprobación**, que era el único sitio donde se exigía la factura
+(`submitBlockers`, D-049). La base no la miraba en ningún sitio.
+
+Medido en el demo con el código de `main` (clics de persona, Chrome headless), con una Customer aprobada sin factura
+(#1021) y un borrador Customer sin factura (#1001). **Lo que dejaba pasar:**
+
+| Camino | Dónde (`main`) | Resultado |
+|---|---|---|
+| «Marcar entregada ya» — office, gerente, admin | `OrderModal.tsx:825-828` | `approved → delivered` |
+| Enviar a aprobación en bloque — gerente | `page.tsx:456-464` | `draft → pending` |
+| Aprobar en bloque — gerente, admin | `page.tsx:456-464` | `draft → approved` |
+| «Marcar entregadas» en bloque — admin | `page.tsx:470-490` | `approved → delivered` |
+| «Forzar estado» — admin | `page.tsx:495-516` | `draft → delivered` |
+| Re-entrega de una entregada sin factura — office, admin | `OrderModal.tsx:1119-1125` | **crea** una aprobada sin factura |
+| Deshacer un paso de una vieja sin factura — office | `OrderModal.tsx:834` | `delivered → picked_up` |
+
+**Lo que ya estaba cerrado** (el mismo guion, mismo resultado antes y después): crear aprobada o pendiente desde
+«+ Nueva orden» como ventas, office, gerente y admin (`OrderModal.tsx:2497`, `passesChecks`); editar una aprobada y
+borrarle la factura, y pasar a Customer una Intertienda viva (`OrderModal.tsx:565`); ventas enviando su borrador
+(`OrderModal.tsx:731`). **No aplica:** Duplicar e Importar CSV nacen borrador (`order-duplicate.ts`, `csv-import.ts:113`);
+la ruta del ERP (`src/lib/erp/actions.ts`) **no escribe `deliveries`**; publicar la ruta (135) no cambia etapa ni
+factura; poner la factura desde la fila (D-310) solo escribe un valor no vacío; agregar material (138) no toca
+`invoice_num`. El resto de una carga partida (`OrderModal.tsx:915`) y lo que hace el chofer solo pueden llevar una
+Customer sin factura si ya lo era.
+
+### Qué hay
+
+- **`src/lib/factura-obligatoria.ts`**, `escrituraSinFactura(antes, cambio, reglas)`: la llaman **los dos proveedores de
+  datos** en `addDelivery`, `updateDelivery` y `setStage`, junto a la guarda de sitio de D-276 y antes de escribir.
+  Por ahí pasa toda escritura de una orden desde el cliente, así que cierra de una vez todos los caminos de arriba —y
+  los que se abran después— sin tocar cada botón. Bloquea si la orden **queda** fuera de borrador/rechazada/anulada,
+  su tipo pide factura, no la tiene, y la escritura **crea**, **cambia la etapa**, **cambia el tipo** o **vacía** la
+  factura.
+- **El aviso es el del envío**: *«No se guardó — Todavía falta: • Factura #»*. El cuerpo lo arma `textoDeBloqueo`
+  (`required.ts`), sacado de `blockSubmit` para que el botón de enviar y la guarda digan lo mismo, no dos redacciones.
+- **En bloque**, el aviso de cada orden lo pisaba el resumen «0 de 1 orden(es) actualizadas» en el mismo instante
+  (medido): se veía que no se movió y no por qué. `resumenSinFactura` añade al resumen *«Sin factura, no se movieron:
+  #1001. Todavía falta: • Factura #»*, en enviar/aprobar en bloque, «Marcar entregadas» y «Forzar estado».
+- **La base (146)**: `public.guard_factura_obligatoria()`, disparador `deliveries_guard_invoice` `BEFORE INSERT OR
+  UPDATE`. La misma regla, con `INVOICE_REQUIRED`. **No redefine `guard_delivery_stage`**: un disparador aparte es un
+  cambio que se lee entero y se revierte con dos `drop`, sin volver a copiar las 300 líneas del guard.
+
+### Decisiones mías, para validar
+
+1. **Las 5 viejas no revientan.** Una escritura que no cambia etapa, tipo ni factura, sobre una orden que ya estaba sin
+   factura, pasa (una nota, asignar chofer, la publicación de la ruta). Bloquearla haría fallar cualquier pantalla que
+   la toque por algo que la persona no hizo. Lo que sí se les pide es la factura **antes de moverlas de etapa**,
+   también para deshacer: el dueño dijo «siempre».
+2. **Lo decide la regla del tipo, no el nombre.** En la pantalla, `missingFields` y su clave `invoice_num` (lo mismo
+   que ya bloqueaba el envío). En la base, `settings.order_type_rules -> tipo ->> 'docRef'`, con `invoice` por defecto
+   si la regla existe sin `docRef`. **Diferencia conocida:** un tipo **sin regla explícita** la app lo resuelve por
+   palabras clave (`fallbackRule`) y la base no lo exige; copiar ese respaldo al SQL sería una segunda definición (el
+   motivo que dio la 125). La autocomprobación de la 146 **exige** que Customer tenga hoy regla con `invoice`, o no se
+   aplica. La regla solo se lee cuando la escritura ya iba a violar lo demás, no por fila (la 131).
+3. **El admin también**, en la pantalla y en la base. El dueño dijo «siempre», y la 122 ya puso invariantes de la
+   orden antes de la salida de admin. Sin sesión (postgres, el SQL a mano del orquestador) pasa, como en el guard.
+4. **La re-entrega y el resto de una carga partida de una Customer sin factura se bloquean.** Solo pueden venir de una
+   vieja. Si hubiera alguna **viva** sin factura (M1 del plan, sin medir), el chofer no podría recogerla ni entregarla
+   hasta que se la pongan: por eso M1 va antes de aplicar.
+
+### La pestaña «Factura pendiente»
+
+**No se tocó.** Con todo cerrado, una Customer nueva ya no puede quedar pendiente de factura; la pestaña solo se pinta
+con algo dentro (D-313), así que desaparecerá sola **cuando las 5 viejas tengan factura**. **No se esconden las
+Customer de la pestaña** aunque existan: sería esconder justo las 5 que hay que arreglar, y el problema seguiría ahí sin
+que nadie lo viera.
+
+**Cómo se arreglan las 5:** desde la propia pestaña, escribiendo el número en la fila (D-310/D-380) — office o el
+gerente en cualquiera, ventas en las suyas (125). La 146 lo deja pasar (casos F9 y V3 del plan). No se tocaron datos de
+producción.
+
+### Pruebas
+
+`factura-obligatoria.test.ts` (nuevo, 36): crear, mover y editar, con las reglas de producción; que las viejas no
+revientan y que una clave `undefined` no cuenta; que decide la regla y no el nombre; el texto del aviso contra el del
+envío; el resumen en bloque; **quien llama**: los dos proveedores llaman a la guarda en `addDelivery`, `updateDelivery`
+y `setStage` con la orden de antes, avisan y salen antes de escribir, sin mirar el rol; los tres botones en bloque
+añaden el resumen; y la 146: sus etapas libres son las de la pantalla, la excepción de las viejas, la regla con
+`invoice` por defecto, sin salida de admin, que la autocomprobación busca cadenas que están en el código **sin
+comentarios**, que no redefine el guard de etapas, sin `begin/commit`, con reversión y registro.
+
+`order-endpoints.test.ts`: «y el mensaje separa lo que falta de lo que se contradice» buscaba en el modal la línea que
+separaba; esa separación vive ahora en `textoDeBloqueo`. La prueba se mudó a donde se decide —la llama con un choque y
+una falta y mira el texto— y exige además que el modal la use. No afloja lo que fijaba (M24 y M25 la tumban).
+
+**25 mutantes, los 25 caen con una prueba con nombre:**
+
+| Mutante | Cae con |
+|---|---|
+| M1 rechazada deja de ser etapa libre | «un borrador sin factura se guarda…», «anular, rechazar o volver a borrador pasa», «las etapas libres son…» (2) |
+| M2 cambiar la etapa no cuenta | «Marcar entregada ya … se bloquea», «enviar o aprobar un borrador…», «moverla de etapa sin ponerla no», «nombra solo las Customer sin factura» |
+| M3 cambiar el tipo no cuenta | «pasar una Intertienda viva a Customer sin factura se bloquea» |
+| M4 vaciar la factura no cuenta | «borrar la factura de una aprobada se bloquea» |
+| M5 las viejas revientan con cualquier edición | «una edición que no cambia etapa, tipo ni factura pasa», «una clave con `undefined`…» |
+| M6 crear sin factura deja de bloquear | «crear aprobada, pendiente o entregada…», «la re-entrega y el resto de una carga partida…», «otro tipo con docRef = invoice…», «dice «Todavía falta…»» |
+| M7 decide el nombre «Customer» | «si Ajustes dice que Customer no pide documento…», «otro tipo con docRef = invoice…» |
+| M8 una clave `undefined` cuenta como cambio | «una clave con `undefined` no cuenta…» |
+| M9 `setStage` del proveedor real sin guarda | «data-provider: setStage llama a la guarda…», «el admin también» |
+| M10 `addDelivery` del demo calcula y no usa | «local-data-provider: addDelivery llama a la guarda…» |
+| M11 `updateDelivery` sin la orden de antes | «data-provider: updateDelivery llama a la guarda…» |
+| M12 el admin se salta la guarda al mover | «en setStage la guarda no depende del rol» |
+| M13 «Marcar entregadas» pierde el resumen | «los tres botones en bloque … añaden el resumen» |
+| M14 el resumen no dice nada nunca | «nombra solo las Customer sin factura» |
+| M15 el aviso cambia de texto | «dice «Todavía falta: • Factura #»…» |
+| M16 el envío del modal deja de usar el texto compartido | «el botón de enviar del modal arma su aviso con `textoDeBloqueo`» |
+| M17 SQL: las viejas revientan con cualquier UPDATE | «las viejas sin factura pasan…», «la autocomprobación busca cadenas…» |
+| M18 SQL: el admin se salta la regla | «sin salida de admin ni mirada al rol» |
+| M19 SQL: rechazada deja de ser libre | «las etapas libres son las mismas que las de la pantalla», «la autocomprobación…» |
+| M20 SQL: regla sin docRef deja de ser invoice | «lee la regla del tipo, con `invoice` por defecto…», «la autocomprobación…» |
+| M21 SQL: clava «Customer» | «lee la regla del tipo…» |
+| M22 SQL: lleva su propio `commit` | «sin begin/commit propios…» |
+| M23 SQL: la autocomprobación busca algo que el código no tiene | «la autocomprobación busca cadenas que están en el código sin comentarios» |
+| M24 `textoDeBloqueo` mete los choques en lo que falta · M25 pierde el apartado de choques | «y el mensaje separa lo que falta de lo que se contradice» (`order-endpoints.test.ts`) |
+
+### Medido en el navegador (demo, 2026-09-25): 23 casos, el mismo guion antes y después
+
+`next dev` en modo demo, Chrome headless por CDP, clics de persona (elemento a la vista, comprobado bajo el ratón). Las
+listas nativas (`<select>`: tipo, tienda, «Forzar estado») se eligen por valor: en headless no hay clic de persona sobre
+sus opciones. Las órdenes sin factura se prepararon quitándole la factura en el almacén del demo (una «vieja» simulada).
+
+| Caso | Roles | Antes | Después |
+|---|---|---|---|
+| «Marcar entregada ya» sin factura (#1021) | office, gerente, admin | → `delivered` | se queda `approved`, «Not saved — Still missing: • Invoice #» |
+| Control: «Marcar entregada ya» **con** factura (#1007) | office | → `delivered` | → `delivered` |
+| Enviar en bloque (#1001) | gerente | → `pending` | se queda `draft`, «0 of 1 … No invoice, not moved: #1001. Still missing: • Invoice #» |
+| Aprobar en bloque (#1001) | gerente, admin | → `approved` | se queda `draft`, mismo aviso |
+| «Marcar entregadas» en bloque (#1021) | admin | → `delivered` | se queda `approved`, mismo aviso |
+| «Forzar estado» a entregada (#1001) | admin | → `delivered` | se queda `draft`, mismo aviso |
+| Re-entrega de una entregada sin factura (#1019) | office, admin | **crea** #FT100 aprobada | no se crea, «Not saved — Still missing: • Invoice #» |
+| Deshacer un paso en una vieja sin factura (#1019) | office | → `picked_up` | se queda `delivered`, mismo aviso |
+| Control: nota en una vieja sin factura (#1019) | office | se guarda | se guarda |
+| Crear sin factura desde «+ Nueva orden» | ventas, office, gerente, admin | no se crea | no se crea («Can't submit for approval — Still missing: • Invoice #») |
+| Borrar la factura de una aprobada (#1007) | office, gerente, admin | se queda INV-3005 | igual |
+| Intertienda aprobada → Customer sin factura (#1009) | office, admin | se queda Intertienda | igual |
+| Ventas envía su borrador sin factura (#1001) | ventas | se queda `draft` | igual |
+
+Ventas **no ve** «Marcar entregada ya» ni la selección en bloque (solo admin, gerente y logística), y no edita una
+aprobada: sus caminos son crear y enviar, que ya estaban cerrados. Capturas del aviso en pantalla, una por caso, en la
+carpeta del worker (`despues-casoNN-aviso1.png`; las del código de `main`, `antes-<caso>-<rol>.png`, tomadas después
+de que el aviso se fuera).
+
+`node scripts/verify.mjs` en el worktree, rebasado sobre `main` con D-398: **4387 pasadas y 3 saltadas** (las de
+siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
+
+### Lo NO verificado
+
+- **Nada contra la base.** La 146 no está aplicada ni ensayada; la matriz del plan (26 casos, 13 que cambian) es para
+  el orquestador. La autocomprobación no ha corrido en Postgres; la prueba del repo la reconstruye, no la sustituye.
+- **Si hay Customer vivas sin factura** en producción (M1 del plan): el orquestador midió 5 entregadas, no las vivas.
+- **Logística** ve el botón «Aprobar» en bloque; no se midió con ese rol (la guarda no mira el rol, y la base ya le
+  rechazaba el salto).
+- **El orden de despliegue** da igual en este caso: la pantalla cierra por su cuenta y la base solo añade la misma regla.
