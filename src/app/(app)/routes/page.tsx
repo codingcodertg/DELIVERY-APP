@@ -343,7 +343,7 @@ export default function RoutesPage() {
     setSelected(new Set());
     if (me?.id) guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);
   };
-  // Los avisos que esta persona cerró con su ✕ (D-NEXT): cerrados para siempre en este navegador, hasta que pulse
+  // Los avisos que esta persona cerró con su ✕ (D-400): cerrados para siempre en este navegador, hasta que pulse
   // «Mostrar avisos ocultos». `null` = aún no se ha leído lo guardado: mientras, no se pinta ninguno, para que un aviso
   // cerrado no parpadee al recargar.
   const [avisosOcultos, setAvisosOcultos] = useState<Set<AvisoDelGestor> | null>(null);
@@ -381,7 +381,7 @@ export default function RoutesPage() {
   const [previewBusy, setPreviewBusy] = useState<string | null>(null);
   const [optimizingAll, setOptimizingAll] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
-  // El diálogo de «✨ Auto-asignar» (D-NEXT): abierto o no. Lo que se elige dentro vive en el diálogo.
+  // El diálogo de «✨ Auto-asignar» (D-401): abierto o no. Lo que se elige dentro vive en el diálogo.
   const [dialogoAutoAsignar, setDialogoAutoAsignar] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
@@ -910,7 +910,7 @@ export default function RoutesPage() {
     filtro: filtroChofer,
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
-  // Los choferes del diálogo de «✨ Auto-asignar» (D-NEXT): los mismos números que el recuadro, pero solo choferes de
+  // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de
   // verdad — el reparto nunca fue a rutas temporales (`autoAssign` recibe `drivers`).
   const opcionesDelReparto = opcionesDeConductor({
     rutas: drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
@@ -1238,9 +1238,9 @@ export default function RoutesPage() {
   const optimizeAll = () =>
     optimizaEstas(lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => ({ clave: u.key, paradas: byDriver.get(u.key) ?? [] })));
   // El bucle de «Optimizar todas las rutas», para la lista que se le dé: todas las rutas con paradas, o (desde el diálogo
-  // de «Auto-asignar», D-NEXT) solo las de los choferes que acaban de recibir órdenes, con sus paradas ya puestas.
+  // de «Auto-asignar», D-401) solo las de los choferes que acaban de recibir órdenes, con sus paradas ya puestas.
   const optimizaEstas = async (rutas: RutaQueOptimizar[]): Promise<string[]> => {
-    // Las que salieron bien: el resumen del diálogo no llama «optimizada» a una ruta que falló (D-NEXT).
+    // Las que salieron bien: el resumen del diálogo no llama «optimizada» a una ruta que falló (D-401).
     const bien: string[] = [];
     if (!rutas.length) return bien;
     setOptimizingAll(true);
@@ -1262,7 +1262,7 @@ export default function RoutesPage() {
     return bien;
   };
 
-  // «✨ Auto-asignar» (D-NEXT): ya no reparte al instante. Abre un diálogo que pregunta qué órdenes (todas las del día o
+  // «✨ Auto-asignar» (D-401): ya no reparte al instante. Abre un diálogo que pregunta qué órdenes (todas las del día o
   // las marcadas), a qué choferes y si se optimiza al terminar; aquí se reparte con lo elegido. El reparto es el
   // `autoAssign` de siempre, solo entre los marcados; la optimización, el bucle de «Optimizar todas las rutas» solo para
   // los que recibieron algo. Lo decide `repartirYOptimizar`.
@@ -1665,7 +1665,7 @@ export default function RoutesPage() {
   // Simulating an add targets a driver, so it needs exactly one selected.
   const singleSel = selected.size === 1 ? [...selected][0] : null;
   const scheduledCount = dayOrders.length - unassigned.length;
-  // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-NEXT), la cabecera
+  // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
   // lleva el botón que la trae.
   const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
   const barraDeArmarRutas = puedeArmarRutas && (!oculto(AVISOS_DEL_GESTOR.armarRutas) || planTraidoAMano);
@@ -1849,7 +1849,7 @@ export default function RoutesPage() {
             {wideRoutes ? "▦ " + t("Grid", "Cuadrícula") : "▭ " + t("Wide", "Ancho")}
           </button>
         )}
-        {/* Lo cerrado con las ✕ de los avisos (D-NEXT) se recupera aquí, todo junto. Solo sale si hay algo cerrado. */}
+        {/* Lo cerrado con las ✕ de los avisos (D-400) se recupera aquí, todo junto. Solo sale si hay algo cerrado. */}
         {avisosOcultos != null && avisosOcultos.size > 0 && (
           <button className="btn btn-ghost btn-sm" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos}
             title={t("Show again the notices you closed on this screen", "Volver a mostrar los avisos que cerró en esta pantalla")}>
@@ -2697,7 +2697,7 @@ export default function RoutesPage() {
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 
       {openOrder && <OrderModal me={me} existing={openOrder} startEditing={false} onClose={() => setOpenOrder(null)} />}
-      {/* «✨ Auto-asignar» (D-NEXT): el botón de arriba y «Auto-asignar las marcadas» del recuadro abren el mismo diálogo. */}
+      {/* «✨ Auto-asignar» (D-401): el botón de arriba y «Auto-asignar las marcadas» del recuadro abren el mismo diálogo. */}
       {dialogoAutoAsignar && (
         <AutoAsignarDialogo
           opciones={opcionesDelReparto}

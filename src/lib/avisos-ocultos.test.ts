@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AVISOS_DEL_GESTOR, cierraAviso, claveDeAvisosOcultos, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "./avisos-ocultos";
 
-/** Las ✕ de los avisos del Gestor de Rutas (D-NEXT): cerrados para siempre, por persona, y recuperables. */
+/** Las ✕ de los avisos del Gestor de Rutas (D-400): cerrados para siempre, por persona, y recuperables. */
 
 const almacen = () => {
   const m = new Map<string, string>();

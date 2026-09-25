@@ -14,7 +14,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"];
-/** «Sin asignar» en el orden de Órdenes (D-NEXT), escrito a mano para que se lea: `status` es la «Etapa» y va donde
+/** «Sin asignar» en el orden de Órdenes (D-402), escrito a mano para que se lea: `status` es la «Etapa» y va donde
  *  `stage`; la recogida, que Órdenes no tiene, delante de la dirección de entrega. */
 const ORDEN_DE_VENTAS_EN_EL_GESTOR = ["po", "so", "invoice", "type", "account", "contact", "status", "store", "date", "pallets", "fee", "pickup", "address", "windows"];
 
@@ -22,10 +22,10 @@ describe("las columnas del Gestor", () => {
   it("la FACTURA está en «Sin asignar» y se ve por defecto — que es lo que el dueño pidió y no aparecía", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "invoice")).toMatchObject({ en: "Invoice #", es: "Factura #", tablas: ["sinAsignar"] });
     expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain("invoice");
-    // Hasta D-NEXT salía la primera (D-331); ahora, donde la pone Órdenes: tras PO y SO.
+    // Hasta D-402 salía la primera (D-331); ahora, donde la pone Órdenes: tras PO y SO.
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).slice(0, 3)).toEqual(["po", "so", "invoice"]);
   });
-  it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-NEXT)", () => {
+  it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-402)", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR);
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
@@ -311,7 +311,7 @@ describe("137: la lista cerrada de la base es la del código", () => {
 describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () => {
   const plan = plano(sinComentarios(leer("src/components/PlanDelDia.tsx")));
   it("plegado por defecto, y plegado sigue diciendo cuántas órdenes no tienen plan", () => {
-    // Nace abierto solo si la página lo pide (D-NEXT: el botón «🧭 Armar rutas» de la cabecera, con la barra cerrada).
+    // Nace abierto solo si la página lo pide (D-400: el botón «🧭 Armar rutas» de la cabecera, con la barra cerrada).
     expect(plan).toContain("const [abierto, setAbierto] = useState(naceAbierto);");
     expect(plan).toContain("naceAbierto = false }");
     const desde = plan.indexOf("if (!abierto) return ("), hasta = plan.indexOf("return ( <div className=\"card\"> <div style");

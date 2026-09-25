@@ -15,7 +15,7 @@ import {
   type RutaQueOptimizar,
 } from "./auto-asignar";
 
-/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-NEXT). */
+/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401). */
 
 const CHOFERES = ["Diego Driver", "Carlos R.", "Miguel A.", "Fleet Truck 3"];
 const opciones = (filtro = "", noDisponibles: string[] = []) => opcionesDeConductor({

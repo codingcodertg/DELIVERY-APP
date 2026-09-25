@@ -22960,7 +22960,7 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): en «Sin asignar» la factura ya no va la primera tras el código; las
+> **⚠ Reemplazada en parte por D-402** (2026-09-25): en «Sin asignar» la factura ya no va la primera tras el código; las
 > columnas salen en el orden de Órdenes vista por ventas, y la factura va tercera, tras PO # y SO #.
 
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): la pestaña «Programadas» se quitó, y con ella su tabla y sus columnas chofer, carga y parada. La
@@ -24136,7 +24136,7 @@ por fichero) caen cada uno con su prueba.
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): «Programadas» ya no existe. La dirección sigue en «Sin asignar» y en la tabla de paradas, que
 > además ofrece ahora las columnas de Órdenes (ocultas por defecto).
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): la barra plegada de «Armar las rutas» lleva ahora una ✕. Quien
+> **⚠ Reemplazada en parte por D-400** (2026-09-25): la barra plegada de «Armar las rutas» lleva ahora una ✕. Quien
 > la cierra no la vuelve a ver (en ese navegador); la acción sigue en el botón «🧭 Armar rutas» de la cabecera, que la
 > trae desplegada para esa visita. Sin cerrarla, todo sigue como dice esta entrada.
 
@@ -26198,7 +26198,7 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 > persona en la primera tarjeta), y el menú heredaba el estilo de formulario. Lo que abajo se da por «visto al medir» y de aspecto era el
 > fallo: se marcó con `.click()` por código, que no dispara `mousedown`. El resto sigue vigente.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-25): las cinco de Órdenes ya no van «DETRÁS» de lo que «Sin asignar»
+> **⚠ Reemplazada en parte por D-402** (2026-09-25): las cinco de Órdenes ya no van «DETRÁS» de lo que «Sin asignar»
 > enseñaba; toda la tabla sale en el orden de Órdenes vista por ventas. La tabla de paradas no cambia.
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
@@ -27464,7 +27464,7 @@ Un selector arriba, junto a la fecha: «Todos los choferes» (el defecto) o un c
 - **Lo que NO filtra:** «Auto-asignar», «Optimizar todas las rutas», «Armar las rutas del día», el tablero y el horario
   siguen trabajando sobre todos. Son acciones del día, y filtrarlas en silencio sería peor que no filtrarlas.
 
-> **Nota (2026-09-25) — Reemplazada en parte por D-NEXT.** «Auto-asignar» ya no reparte al instante: abre un diálogo
+> **Nota (2026-09-25) — Reemplazada en parte por D-401.** «Auto-asignar» ya no reparte al instante: abre un diálogo
 > con una casilla por chofer. Con el filtro puesto en un chofer disponible, **ese nace marcado y los demás no**. No es
 > filtrar en silencio (la razón de arriba): el diálogo enseña a todos los choferes y quién está marcado, y «Todos» los
 > marca con un clic. «Optimizar todas las rutas» y lo demás siguen sin filtrar.
@@ -27732,7 +27732,7 @@ Sin asignar  [☑ #1012] [☑ #1013]
 - **«＋ Nueva ruta» y «✨ Auto-asignar las marcadas»** viven dentro del recuadro (los mismos `bulkAssign(addBucket())` y
   `bulkAutoAssign` de antes). «Auto-asignar» se apaga si no hay choferes de verdad (no tendría a quién repartir).
 
-  > **Nota (2026-09-25) — Reemplazada en parte por D-NEXT.** «✨ Auto-asignar las marcadas» ya no reparte al instante:
+  > **Nota (2026-09-25) — Reemplazada en parte por D-401.** «✨ Auto-asignar las marcadas» ya no reparte al instante:
   > abre el mismo diálogo que el «✨ Auto-asignar» de arriba, nacido en «Solo las marcadas». `bulkAutoAssign` se quitó.
 - **Sin choferes ni rutas**: el recuadro lo dice («No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una
   sin chofer.») y deja «Nueva ruta» encendida. Las rutas «huérfanas» (un nombre que ya no es chofer ni ruta temporal)
@@ -28278,7 +28278,7 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
   rechazaba el salto).
 - **El orden de despliegue** da igual en este caso: la pantalla cierra por su cuenta y la base solo añade la misma regla.
 
-## D-NEXT · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
+## D-400 · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
 
 **Fecha:** 2026-09-25 · **Sin migración.** · **Pedido por el dueño**, con una captura del Gestor de Rutas, literal:
 *«que estos mensajes tengan una X para que se cierren y así no aparezcan más»*. La captura enseñaba tres: la barra
@@ -28367,7 +28367,7 @@ cuatro pruebas que citaban la línea vieja de `<PlanDelDia …/>` (`ordenes-del-
 `if (!Array.isArray(v)) return new Set();` al leer. Era código de sobra (algo que no es lista no tiene `.filter` y cae
 en el mismo `catch`), y se quitó.
 
-## D-NEXT · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
+## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte a D-393** (sección 1, «Lo que NO filtra»: con el filtro puesto, el diálogo nace con ese chofer marcado)
@@ -28485,7 +28485,7 @@ producción ni con llaves.**
   pantalla entera (CSS de antes).
 - Con **muchos** choferes la lista tiene su propio desplazamiento (260 px); no se midió con más de 4.
 
-## D-NEXT · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
+## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** El dueño, literal: *«quiero que la tabla que se hizo en logistic manager tenga el mismo orden que en

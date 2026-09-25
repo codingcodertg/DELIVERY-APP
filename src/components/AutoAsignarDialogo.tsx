@@ -12,7 +12,7 @@ import {
 } from "@/lib/auto-asignar";
 
 // ============================================================
-// El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-NEXT): qué órdenes, a qué choferes y si se optimiza al
+// El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401): qué órdenes, a qué choferes y si se optimiza al
 // terminar. Lo que decide (qué nace marcado, cuándo se enciende el botón) vive en `lib/auto-asignar.ts`; aquí solo se
 // pinta. Cancelar (✕, «Cancelar» o un clic fuera) no toca nada.
 // ============================================================

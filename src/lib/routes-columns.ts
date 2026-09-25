@@ -11,7 +11,7 @@
  * las tres columnas que solo salían ahí (chofer, carga, parada). Quedan dos tablas: «Sin asignar» y la de paradas de
  * cada chofer. Una lista guardada que aún las nombre no rompe nada: una clave que ya no está en el catálogo se ignora.
  *
- * D-NEXT: «Sin asignar» sale en el MISMO orden que Órdenes vista por ventas. El dueño: «quiero que la tabla que se hizo en
+ * D-402: «Sin asignar» sale en el MISMO orden que Órdenes vista por ventas. El dueño: «quiero que la tabla que se hizo en
  * logistic manager tenga el mismo orden que en order view de sales». Ese orden es el de partida de Órdenes
  * (`ORDEN_DE_PARTIDA`, D-347), que se LEE de allí, no se copia: si Órdenes cambia su orden, el Gestor lo sigue.
  */
@@ -30,11 +30,11 @@ export interface ColumnaDelGestor {
   deOrdenes?: string;
   /** No sale por defecto: se elige en ⚙ Columnas. */
   oculta?: true;
-  /** Para una columna de «Sin asignar» que Órdenes no tiene (D-NEXT): la columna del Gestor delante de la cual va. */
+  /** Para una columna de «Sin asignar» que Órdenes no tiene (D-402): la columna del Gestor delante de la cual va. */
   antesDe?: string;
 }
 
-/** La columna de Órdenes que ocupa el puesto de esta en el orden de ventas (D-NEXT): la de `deOrdenes`, o la de su misma
+/** La columna de Órdenes que ocupa el puesto de esta en el orden de ventas (D-402): la de `deOrdenes`, o la de su misma
  *  clave —«Factura», «Cuenta», «Dirección», «Tienda», «Pallets», «Fecha» y «Ventanas» se llaman igual en las dos tablas
  *  y enseñan el mismo dato—. Nada si Órdenes no la tiene (la recogida). */
 export function claveEnOrdenes(c: ColumnaDelGestor): string | undefined {
@@ -43,7 +43,7 @@ export function claveEnOrdenes(c: ColumnaDelGestor): string | undefined {
 }
 
 /**
- * El catálogo, con las de «Sin asignar» en el orden de Órdenes (D-NEXT). Se ordena el CATÁLOGO, no cada pantalla —como
+ * El catálogo, con las de «Sin asignar» en el orden de Órdenes (D-402). Se ordena el CATÁLOGO, no cada pantalla —como
  * hizo D-347 en Órdenes—, para que la tabla, la lista del ⚙ y las plantillas salgan en el mismo orden sin tocar la
  * página. Una columna sin equivalente en Órdenes va justo delante de su `antesDe`, y si no tiene, al final. Las de
  * paradas no se mueven: van detrás, en el orden en que están escritas.
@@ -65,7 +65,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // La dirección de entrega (D-346). El dueño: «delivery address is missing in the logistic manager schedule table».
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", tablas: ["sinAsignar"], ancho: 220 },
   // Dónde recoge (D-353). El dueño: «en logistic manager table también quiero ver dónde recoge». Órdenes no la tiene: va
-  // justo delante de la dirección de entrega, de dónde sale a dónde va (D-NEXT).
+  // justo delante de la dirección de entrega, de dónde sale a dónde va (D-402).
   { key: "pickup", en: "Pickup", es: "Recogida", tablas: ["sinAsignar"], ancho: 160, antesDe: "address" },
   { key: "store", en: "Store", es: "Tienda", tablas: ["sinAsignar"], ancho: 92 },
   { key: "pallets", en: "Pallets", es: "Pallets", tablas: ["sinAsignar"], ancho: 60 },
@@ -106,7 +106,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
  *  columnas es una elección, no el punto de partida. */
 export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4"];
 
-/** El orden de cada tabla. «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-NEXT; antes, desde
+/** El orden de cada tabla. «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde
  *  D-331, la factura la primera y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega
  *  después va al final. */
 const ORDEN: Record<TablaDelGestor, readonly string[]> = {

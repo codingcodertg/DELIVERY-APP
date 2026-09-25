@@ -1,5 +1,5 @@
 /**
- * «Auto-asignar» del Gestor de Rutas con diálogo (D-NEXT).
+ * «Auto-asignar» del Gestor de Rutas con diálogo (D-401).
  *
  * El dueño, el 2026-09-25: *«cuando le apreto autoasignar se debe abrir un dialog para seleccionar a qué conductores les
  * quiero asignar todas las órdenes, o seleccionar algunas, y que se auto-asignen optimizando la ruta»*.

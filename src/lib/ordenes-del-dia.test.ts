@@ -61,7 +61,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha");
     expect(pagina).toContain("onClick={() => { setAllDates(false); setSoloPendientes(true); }}");
     expect(pagina).toContain("onClick={() => setSoloPendientes(false)}");
-    // Desde D-NEXT la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
+    // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
     expect(pagina).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
     expect(pagina).toContain("const barraDeArmarRutas = puedeArmarRutas && (");
     expect(pagina).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
@@ -180,7 +180,7 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   });
   it("el resumen, la pestaña y «Auto-asignar» cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
-    // Desde D-NEXT «Auto-asignar» reparte desde su diálogo: «Todas» es `unassigned` (el día), «Solo las marcadas» va con el chip.
+    // Desde D-401 «Auto-asignar» reparte desde su diálogo: «Todas» es `unassigned` (el día), «Solo las marcadas» va con el chip.
     expect(pagina).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
     expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
     expect(pagina).toContain("const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));");

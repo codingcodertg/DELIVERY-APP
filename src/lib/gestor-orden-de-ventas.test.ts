@@ -9,7 +9,7 @@ import {
 } from "./routes-columns";
 
 /**
- * D-NEXT: «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas. El dueño: «quiero que la
+ * D-402: «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas. El dueño: «quiero que la
  * tabla que se hizo en logistic manager tenga el mismo orden que en order view de sales».
  */
 
@@ -23,7 +23,7 @@ const ordenDeVentas = (visibles: readonly string[]) => columnasEnOrden(visibles,
 const sinAsignarEnClavesDeOrdenes = (elegidas: readonly string[]) =>
   columnasDeLaTabla("sinAsignar", elegidas).map((c) => claveEnOrdenes(c)).filter((k): k is string => !!k);
 
-describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-NEXT)", () => {
+describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () => {
   it("cabecera por cabecera, las que tienen las dos tablas salen en el orden de ventas con sus columnas por defecto", () => {
     const ventas = ordenDeVentas(ROLE_DEFAULT_COLUMNS.sales!);
     expect(ventas).toEqual(["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"]);

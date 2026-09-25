@@ -1,5 +1,5 @@
 /**
- * Los avisos del Gestor de Rutas que la persona cerró con su ✕ (D-NEXT). El dueño, el 2026-09-25, con una captura del
+ * Los avisos del Gestor de Rutas que la persona cerró con su ✕ (D-400). El dueño, el 2026-09-25, con una captura del
  * Gestor: *«que estos mensajes tengan una X para que se cierren y así no aparezcan más»*.
  *
  * CERRADO PARA SIEMPRE, no «hasta que cambie lo que dice». Los avisos de choferes sin señal y de atrasadas cambian de

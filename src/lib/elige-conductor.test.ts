@@ -86,7 +86,7 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
   it("«Asignar» se apaga sin elegido y usa `bulkAssign`; «Nueva ruta» y «Auto-asignar» siguen dentro", () => {
     expect(pagina).toContain("data-asignar-al-elegido disabled={!conductorElegido || autoAssigning} onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}");
     expect(pagina).toContain("data-nueva-ruta-del-recuadro disabled={autoAssigning} onClick={() => bulkAssign(addBucket())}");
-    // Desde D-NEXT «Auto-asignar las marcadas» abre el diálogo de «✨ Auto-asignar» (un solo camino), ya en «Solo las marcadas».
+    // Desde D-401 «Auto-asignar las marcadas» abre el diálogo de «✨ Auto-asignar» (un solo camino), ya en «Solo las marcadas».
     expect(pagina).toContain("data-auto-asignar-del-recuadro onClick={() => setDialogoAutoAsignar(true)}");
   });
   it("al quedarse sin marcadas, lo pulsado se olvida; y el selector de bloque viejo ya no está", () => {
@@ -95,7 +95,7 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
     expect(pagina).not.toContain("Auto-assign selected");
     // bulkAssign limpia la selección al terminar: eso es lo que hace irse al recuadro.
     expect(pagina.indexOf("const bulkAssign = async")).toBeGreaterThan(-1);
-    // `bulkAutoAssign` se fue con D-NEXT (lo sustituye el diálogo); el cuerpo de `bulkAssign` acaba donde empieza `previewAdd`.
+    // `bulkAutoAssign` se fue con D-401 (lo sustituye el diálogo); el cuerpo de `bulkAssign` acaba donde empieza `previewAdd`.
     expect(pagina.indexOf("const previewAdd = async")).toBeGreaterThan(pagina.indexOf("const bulkAssign = async"));
     const cuerpo = pagina.slice(pagina.indexOf("const bulkAssign = async"), pagina.indexOf("const previewAdd = async"));
     expect(cuerpo).toContain("clearSelection();");

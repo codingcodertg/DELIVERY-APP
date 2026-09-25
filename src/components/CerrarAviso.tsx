@@ -2,7 +2,7 @@
 
 import { usePrefs } from "@/lib/prefs";
 
-/** La ✕ que cierra un aviso del Gestor de Rutas para esta persona (D-NEXT). Va arriba a la derecha del aviso. */
+/** La ✕ que cierra un aviso del Gestor de Rutas para esta persona (D-400). Va arriba a la derecha del aviso. */
 export function CerrarAviso({ aviso, onCerrar }: { aviso: string; onCerrar: () => void }) {
   const { t } = usePrefs();
   const etiqueta = t("Close this notice — it won't show again", "Cerrar este aviso — no volverá a salir");
