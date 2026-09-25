@@ -21,7 +21,8 @@ import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap, useColWidths } from "@/lib
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
 import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
@@ -266,6 +267,20 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // El FILTRO de chofer (D-NEXT), distinto de `selected`: aquel resalta y atenúa; este esconde a los demás en la lista de
+  // choferes, en las tarjetas de «Rutas» y en el mapa. «Todos» es el defecto. Se recuerda por persona en este navegador;
+  // lo que manda en cada momento es `filtroChofer` (más abajo), que vuelve a «Todos» si ese chofer ya no está.
+  const [filtroGuardado, setFiltroGuardado] = useState<string>(TODOS_LOS_CHOFERES);
+  useEffect(() => {
+    if (!me?.id) return;
+    setFiltroGuardado(leeFiltroDeChofer((k) => window.localStorage.getItem(k), me.id));
+  }, [me?.id]);
+  const eligeFiltroDeChofer = (chofer: string) => {
+    setFiltroGuardado(chofer);
+    // Lo marcado en el panel se suelta: un chofer escondido y marcado seguiría contando para «Unir» sin verse.
+    setSelected(new Set());
+    if (me?.id) guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);
+  };
   // Sin «scheduled» desde D-376: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
   const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");
@@ -289,7 +304,8 @@ export default function RoutesPage() {
   // (Row drag-and-drop was removed from the Routes tab — stops are reordered
   // with the ↑/↓ arrows, and orders are assigned from the "Assign to…" picker.)
   const [orderSearch, setOrderSearch] = useState("");
-  const [poolFilter, setPoolFilter] = useState<"all" | "overdue" | "noloc" | "windowed">("all");
+  // «Este día» es el defecto (D-331/D-359); «Todas» es lo sin chofer de cualquier día (D-NEXT).
+  const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).
   const [selRouteCache, setSelRouteCache] = useState<Record<string, [number, number][]>>({});
   // Geocoded pickup coords per selected load — lets us show a pickup "P" pin and
@@ -303,10 +319,13 @@ export default function RoutesPage() {
   // Which panels are collapsed — the unassigned pool ("__unassigned__") and
   // each driver (by name), so a busy board can be folded down to just the
   // one being worked on.
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const isCollapsed = (id: string) => collapsed.has(id);
+  // Desde D-NEXT las tarjetas de chofer NACEN plegadas, para todos y siempre (el dueño: «DEFAULT ALL COLLAPSE IN
+  // ROUTES»). Lo que se guarda aquí son las que la persona ha pulsado en esta visita; nada de esto va al navegador ni a
+  // la base. Qué nace cómo lo decide `estaPlegada`.
+  const [alternadas, setAlternadas] = useState<Set<string>>(new Set());
+  const isCollapsed = (id: string) => estaPlegada(id, alternadas);
   const toggleCollapse = (id: string) =>
-    setCollapsed((prev) => {
+    setAlternadas((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -454,6 +473,10 @@ export default function RoutesPage() {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drivers, dayOrders, bucketNames, t]);
+  // El filtro de chofer que manda ahora (D-NEXT): lo guardado si esa ruta sigue en la pantalla; si no, «Todos».
+  const filtroChofer = filtroVigente(filtroGuardado, lanes.map((l) => l.key));
+  const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltroDeChofer(filtroChofer, ruta);
+  const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
 
   // The next free load number for a driver (1 if they have no work yet).
   const nextLoadFor = (driver: string) => nextLoadForPure(dayOrders, driver);
@@ -679,8 +702,14 @@ export default function RoutesPage() {
     }
   };
 
-  // Lo del día sin chofer; con el chip «Atrasadas», las vencidas sin chofer de cualquier día (D-359).
-  const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES, poolFilter === "overdue"), [deliveries, date, modo, poolFilter]);
+  // Lo del día sin chofer. Es lo que cuentan el resumen, la pestaña, el tablero y «Auto-asignar»: el DÍA, sea cual sea el
+  // chip de la tabla. Hasta D-NEXT el chip «Atrasadas» cambiaba también esta lista, y con él el «Sin programar» del
+  // resumen y lo que «Auto-asignar» repartía; con un chip «Todas» de cualquier día, «Programadas» habría salido negativo.
+  const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
+  // Las filas de la TABLA «Sin asignar», según su chip (D-359 «Atrasadas», D-NEXT «Todas»), y el número de cada chip,
+  // que sale de la misma función: el número es el de las filas que enseña (patrón de D-380/D-384).
+  const filasDelChip = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter), [deliveries, date, modo, poolFilter]);
+  const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch), [deliveries, date, modo, orderSearch]);
 
   // Draw each selected unassigned load's pickup→dropoff route on the map
   // (throttled, cached), so pressing loads shows where they go.
@@ -728,28 +757,12 @@ export default function RoutesPage() {
   // How many of the selected loads are still in the pool — the bulk-assign
   // controls act on these only (a selected assigned load is just a map view).
   const poolSelectedCount = useMemo(
-    () => unassigned.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
-    [unassigned, selectedOrders],
+    () => filasDelChip.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
+    [filasDelChip, selectedOrders],
   );
 
-  // Search + saved filter over the unassigned pool.
-  const unassignedShown = useMemo(() => {
-    const q = orderSearch.trim().toLowerCase();
-    return unassigned.filter((d) => {
-      if (poolFilter === "overdue" && !isOverdue(d)) return false;
-      if (poolFilter === "noloc" && d.delivery_lat != null) return false;
-      if (poolFilter === "windowed" && !d.delivery_windows) return false;
-      if (!q) return true;
-      return (
-        String(d.order_no).includes(q) ||
-        (d.account || "").toLowerCase().includes(q) ||
-        (d.delivery_address || "").toLowerCase().includes(q) ||
-        (d.delivery_phone || "").toLowerCase().includes(q) ||
-        (d.contact || "").toLowerCase().includes(q) ||
-        (d.store || "").toLowerCase().includes(q)
-      );
-    });
-  }, [unassigned, orderSearch, poolFilter]);
+  // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-NEXT).
+  const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch), [deliveries, date, modo, poolFilter, orderSearch]);
 
   // Each driver's stops for the day, in their current sequence (optimized
   // order first, unsequenced ones after — same rule as the Driver page).
@@ -1140,7 +1153,8 @@ export default function RoutesPage() {
 
   // Assign every checked order to one driver.
   const bulkAssign = async (driver: string) => {
-    const ids = unassigned.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
+    // Lo marcado en la TABLA, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-NEXT).
+    const ids = filasDelChip.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
     if (!ids.length || !driver) return;
     setAutoAssigning(true);
     try { for (const id of ids) await assignTo(id, driver); } finally { setAutoAssigning(false); }
@@ -1150,7 +1164,7 @@ export default function RoutesPage() {
 
   // Auto-assign only the checked orders across the drivers.
   const bulkAutoAssign = async () => {
-    const chosen = unassigned.filter((d) => selectedOrders.has(d.id));
+    const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));
     if (!chosen.length) return;
     const res = autoAssign(chosen, drivers.map((u) => u.full_name), capacityFor, { maxTripsPerDay: 2, unavailable: unavailableToday });
     if (!res.assignments.length) { notify(t("Couldn't place the selected orders.", "No se pudieron colocar las órdenes seleccionadas.")); return; }
@@ -1295,6 +1309,8 @@ export default function RoutesPage() {
     // draws on top of the "P" instead of being hidden behind it.
     for (const u of lanes) {
       if (!(byDriver.get(u.key) ?? []).length) continue;
+      // Con un chofer elegido en el filtro (D-NEXT), el mapa enseña solo lo suyo: su base, sus P, sus paradas y sus líneas.
+      if (!pasaFiltro(u.key)) continue;
       const addr = (pickupAddressFor(u.key) ?? "").trim();
       const coords = addr ? depotCoords[addr] : undefined;
       if (!coords) continue;
@@ -1314,6 +1330,7 @@ export default function RoutesPage() {
     const dDeTodas = new Map<string, string>();
     for (const [laneKey, list] of byDriver) {
       if (!list.some((d) => d.route_seq != null)) continue;
+      if (!pasaFiltro(laneKey)) continue;
       const lectura = lecturaDeLaRuta(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver));
       for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
       for (const p of [...lectura.previas.values()].flat()) {
@@ -1331,6 +1348,8 @@ export default function RoutesPage() {
       if (d.delivery_lat == null || d.delivery_lng == null) continue;
       if (!d.assigned_driver) {
         const sel = selectedOrders.has(d.id);
+        // Lo sin chofer tampoco es de ese chofer: con el filtro puesto no sale, salvo que se haya marcado a propósito.
+        if (!sel && filtroChofer !== TODOS_LOS_CHOFERES) continue;
         pts.push({
           id: d.id,
           lat: d.delivery_lat,
@@ -1344,6 +1363,7 @@ export default function RoutesPage() {
       }
       const sel = selectedOrders.has(d.id);
       const laneKey = orderLaneKey(d)!;
+      if (!sel && !pasaFiltro(laneKey)) continue;
       const list = byDriver.get(laneKey) ?? [];
       const idx = list.findIndex((x) => x.id === d.id);
       const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;
@@ -1382,12 +1402,13 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, depotCoords, lanes, rutasPublicadas]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas]);
 
   // Every optimized driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
   const lines: MapLine[] = useMemo(() => {
-    const entries = Object.entries(routeLines);
+    // Con el filtro de chofer (D-NEXT), solo las líneas de ese chofer.
+    const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver));
     // Fan the routes out with a small perpendicular offset each, so where two
     // run along the same road they sit side by side rather than on top of
     // each other. Centered so the spread stays close to the actual road.
@@ -1398,7 +1419,7 @@ export default function RoutesPage() {
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la del optimizador viejo.
     for (const [driver, geom] of Object.entries(trazosDelPlan)) {
-      if (geom.length < 2) continue;
+      if (geom.length < 2 || !pasaFiltro(driver)) continue;
       out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: geom, dimmed: isDim(driver), offset: 0 });
     }
     for (const [driver, trips] of entries) {
@@ -1444,7 +1465,7 @@ export default function RoutesPage() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeLines, trazosDelPlan, selected, preview, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders]);
+  }, [routeLines, trazosDelPlan, selected, preview, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer]);
 
   const onLineClick = (id: string) => {
     const m = id.match(/^(?:line|ret):(.+)#\d+$/);
@@ -1504,7 +1525,8 @@ export default function RoutesPage() {
   // Route cards always show every route that has stops, PLUS any lane you've
   // checked (even an empty one you're filling). Checking loads to merge, or
   // focusing a driver on the map, never makes the other routes disappear.
-  const shownDrivers = lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0 || selected.has(u.key));
+  // Con el filtro de chofer (D-NEXT), solo la suya.
+  const shownDrivers = lanesDelFiltro.filter((u) => (byDriver.get(u.key) ?? []).length > 0 || selected.has(u.key));
   // Simulating an add targets a driver, so it needs exactly one selected.
   const singleSel = selected.size === 1 ? [...selected][0] : null;
   const scheduledCount = dayOrders.length - unassigned.length;
@@ -1514,6 +1536,18 @@ export default function RoutesPage() {
       <div className="page-head">
         <h2>{t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Con qué chofer se trabaja (D-NEXT). «Todos» es el defecto; se recuerda por persona. */}
+          <select
+            aria-label={t("Driver to work with", "Chofer con el que trabajar")}
+            title={t("Show only this driver's card, routes and map — remembered for you", "Ver solo la tarjeta, las rutas y el mapa de este chofer — se recuerda para usted")}
+            value={filtroChofer}
+            onChange={(e) => eligeFiltroDeChofer(e.target.value)}
+            data-filtro-de-chofer
+            style={{ width: "auto", fontWeight: filtroChofer !== TODOS_LOS_CHOFERES ? 700 : undefined }}
+          >
+            <option value={TODOS_LOS_CHOFERES}>🚚 {t("All drivers", "Todos los choferes")}</option>
+            {lanes.map((l) => <option key={l.key} value={l.key}>{l.isBucket ? "🧭 " : ""}{l.label}</option>)}
+          </select>
           <div className="viewtoggle">
             <button className="vt" disabled={allDates} onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
             <input type="date" value={date} disabled={allDates} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
@@ -1683,7 +1717,7 @@ export default function RoutesPage() {
             <div className="empty">{t("No drivers yet — tap “＋ Route” to build a route without one.", "Aún sin choferes — toca “＋ Ruta” para armar una ruta sin uno.")}</div>
           ) : (
             <div style={{ maxHeight: 470, overflowY: "auto" }}>
-              {lanes.map((u) => {
+              {lanesDelFiltro.map((u) => {
                 const stops = byDriver.get(u.key) ?? [];
                 const info = routeInfo[u.key];
                 const on = selected.has(u.key);
@@ -1753,7 +1787,7 @@ export default function RoutesPage() {
           )}
         </div>
         <div className="card" style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden" }}>
-          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers} onLineClick={onLineClick} fitTo={fitTo} height={430} onPointClick={(id) => {
+          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={430} onPointClick={(id) => {
             // Click any order pin (assigned or pool) to toggle its PU→DEL view.
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
@@ -1802,7 +1836,7 @@ export default function RoutesPage() {
 
       {/* ---------- Tabs ---------- */}
       <div className="viewtoggle" style={{ marginBottom: 12 }}>
-        <button className={"vt " + (tab === "routes" ? "on" : "")} onClick={() => setTab("routes")}>🧭 {t("Routes", "Rutas")} ({withStops.length})</button>
+        <button className={"vt " + (tab === "routes" ? "on" : "")} onClick={() => setTab("routes")}>🧭 {t("Routes", "Rutas")} ({withStops.filter((u) => pasaFiltro(u.key)).length})</button>
         <button className={"vt " + (tab === "orders" ? "on" : "")} onClick={() => setTab("orders")}>📦 {t("Unassigned", "Sin asignar")} ({unassigned.length})</button>
         <button className={"vt " + (tab === "board" ? "on" : "")} onClick={() => setTab("board")}>🗂 {t("Board", "Tablero")}</button>
         <button className={"vt " + (tab === "timeline" ? "on" : "")} onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
@@ -1836,12 +1870,12 @@ export default function RoutesPage() {
       {/* ---------- Unassigned pool ---------- */}
       {tab === "orders" && (
       <div className="card" style={{ margin: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => toggleCollapse("__unassigned__")}>
-          <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Collapse", "Contraer")}>{isCollapsed("__unassigned__") ? "▸" : "▾"}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => toggleCollapse(PANEL_SIN_ASIGNAR)}>
+          <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Collapse", "Contraer")}>{isCollapsed(PANEL_SIN_ASIGNAR) ? "▸" : "▾"}</button>
           <h2 style={{ margin: 0 }}>📦 {t("Unassigned orders", "Órdenes sin asignar")}</h2>
           <span className="count-tag">{unassigned.length}</span>
         </div>
-        {!isCollapsed("__unassigned__") && <>
+        {!isCollapsed(PANEL_SIN_ASIGNAR) && <>
         {singleSel && unassigned.length > 0 && (
           <p className="hint" style={{ marginTop: 8, marginBottom: 10 }}>
             {t(
@@ -1863,16 +1897,21 @@ export default function RoutesPage() {
             rotulo={(c) => (lang === "es" ? c.es : c.en)}
             titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
           />
-          {(["all", "overdue", "windowed", "noloc"] as const).map((f) => (
+          {/* Chips de «Sin asignar» (D-NEXT): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
+              lleva su número, que sale de la misma función que sus filas. */}
+          {(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (
             <button
               key={f}
               className={"btn btn-sm " + (poolFilter === f ? "btn-primary" : "btn-ghost")}
               onClick={() => setPoolFilter(f)}
+              data-chip-sin-asignar={f}
+              title={f === "todas" ? t("Unassigned orders from any day — past, future or undated", "Órdenes sin asignar de cualquier día — pasadas, futuras o sin fecha") : undefined}
             >
-              {f === "all" ? t("All", "Todas")
+              {f === "dia" ? (modo === "dia" ? t("This day", "Este día") : modo === "todas" ? t("All dates", "Todas las fechas") : t("Overdue & undated", "Atrasadas y sin fecha"))
+                : f === "todas" ? t("All", "Todas")
                 : f === "overdue" ? t("Overdue", "Atrasadas")
                 : f === "windowed" ? t("Windowed", "Con ventana")
-                : t("No location", "Sin ubicación")}
+                : t("No location", "Sin ubicación")} ({cuentasDeChips[f]})
             </button>
           ))}
           {selectedOrders.size > 0 && (
@@ -1900,8 +1939,10 @@ export default function RoutesPage() {
             </>
           )}
         </div>
-        {unassigned.length === 0 ? (
-          <div className="empty">{t("Everything on this date has a driver.", "Todo en esta fecha ya tiene chofer.")}</div>
+        {filasDelChip.length === 0 ? (
+          <div className="empty">{poolFilter === "dia"
+            ? t("Everything on this date has a driver.", "Todo en esta fecha ya tiene chofer.")
+            : t("No unassigned orders with this filter.", "Ninguna orden sin asignar con este filtro.")}</div>
         ) : unassignedShown.length === 0 ? (
           <div className="empty">{t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda.")}</div>
         ) : (
