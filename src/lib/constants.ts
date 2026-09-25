@@ -1059,7 +1059,7 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // `delivered` desde `approved`, `fulfilling` y `ready` es el «Marcar entregada ya» de office y el gerente
   // (D-361, 139). Faltaba desde D-361: la base lo dejaba y los DOS proveedores lo rechazaban antes de salir
   // («This order must be approved by a manager first.»), así que solo funcionaba desde `picked_up`. Medido en el
-  // demo como gerente el 2026-09-25 (D-NEXT). Quién lo da lo sigue diciendo `puedeEntregarYa`.
+  // demo como gerente el 2026-09-25 (D-397). Quién lo da lo sigue diciendo `puedeEntregarYa`.
   approved:   ["fulfilling", "pending", "canceled", "delivered"],   // pending = manager "unlock"
   // `approved` es el paso atrás de office/gerente (D-361, 139); quién lo da lo dice `puedeDeshacer`.
   fulfilling: ["ready", "approved", "canceled", "delivered"],
@@ -1160,7 +1160,7 @@ export function puedeDeshacer(r: UserRole, stage: Stage, deMiTienda = false): bo
 }
 
 /**
- * El gerente hace el proceso de bodega (D-NEXT, migración 145): «Comenzar preparación», «Marcar listo» y
+ * El gerente hace el proceso de bodega (D-397, migración 145): «Comenzar preparación», «Marcar listo» y
  * «Recoger», paso a paso, como almacén.
  *
  * El dueño: «Como gerente quiero poder hacer el proceso de bodega cuando necesario. Ahorita solo permite

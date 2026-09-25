@@ -24631,12 +24631,12 @@ revertir stages si fue un error»*; preguntado si incluía al gerente, *«si off
 > pero no se han ejercido contra la base. El respaldo del guard anterior quedo en `RESPALDO-guard-antes-de-139.sql`;
 > revertir es volver a aplicar la 138.
 >
-> **⚠ Corregida en parte por D-NEXT (2026-09-25): «Entregar ya» no salía del navegador desde `approved`, `fulfilling` ni
+> **⚠ Corregida en parte por D-397 (2026-09-25): «Entregar ya» no salía del navegador desde `approved`, `fulfilling` ni
 > `ready`.** Esta entrada añadió a `LEGAL_TRANSITIONS` los pasos atrás, pero no `delivered` desde esas tres etapas, y los
 > dos proveedores rechazan antes de escribir lo que no está en esa lista (salvo al admin): *«This order must be approved
 > by a manager first.»*. Medido en el demo como gerente. Así que, fuera del admin, entregar ya solo funcionaba desde
 > `picked_up`. El «Verificado» de abajo es cierto para lo que medía —la ficha contra el `.sql`—; el hueco estaba en la
-> tercera pieza. Arreglado en D-NEXT, con prueba.
+> tercera pieza. Arreglado en D-397, con prueba.
 
 ### Lo que faltaba, y por qué no era un botón
 
@@ -27854,7 +27854,7 @@ su tienda y su grupo, como pidió el dueño, aunque la base le deje leer más.
 - **«Tiempo inactivo» con turnos**: el demo no trae turnos del reloj, así que esa tabla salió vacía para todos. El corte
   lo cubren las pruebas y un mutante, no una pantalla.
 
-## D-NEXT · El gerente hace el proceso de bodega (Preparar, Listo, Recogida), y «Marcar entregada ya» sale por fin del navegador desde aprobada
+## D-397 · El gerente hace el proceso de bodega (Preparar, Listo, Recogida), y «Marcar entregada ya» sale por fin del navegador desde aprobada
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador al fusionar (Entregas) · **Migración: la 145**
 (`145_gerente_hace_bodega.sql`), **escrita y NO aplicada**: la aplica el orquestador después del merge, con respaldo y

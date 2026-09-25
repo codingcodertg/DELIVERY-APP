@@ -4,7 +4,7 @@ import { canTransition, gerenteHaceBodega, preparaEnLaFicha, puedeEntregarYa, re
 import type { Stage, UserRole } from "./types";
 
 /**
- * El gerente hace el proceso de bodega (D-NEXT, migración 145).
+ * El gerente hace el proceso de bodega (D-397, migración 145).
  *
  * El dueño (2026-09-25): «Como gerente quiero poder hacer el proceso de bodega cuando necesario. Ahorita solo
  * permite brincar a Delivered pero no me deja poner Prepare, Ready, Pickup, etc. Esto es de office manager».
@@ -97,7 +97,7 @@ describe("la 145 parte de la definición VIGENTE (la 142) y solo añade su rama"
   });
 
   it("no acota por tienda: ni la rama nueva ni el «entregar ya» que ya tenía el gerente miran `orden_de_mis_tiendas`", () => {
-    // La decisión (D-NEXT): el gerente ya lleva una orden de `approved` a `delivered` en cualquier tienda (139).
+    // La decisión (D-397): el gerente ya lleva una orden de `approved` a `delivered` en cualquier tienda (139).
     // Acotar los pasos de en medio sería un límite que no limita. Si un día se acota, esta prueba lo dice.
     expect(sinComentarios(rama145)).not.toContain("orden_de_mis_tiendas");
     const entregarYa = sinComentarios(guard145).split("\n").find((l) => l.includes("new_stage = 'delivered' and old_stage in ("));

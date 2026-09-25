@@ -17,7 +17,7 @@ const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sql = leer("supabase/migrations/142_deshacer_almacen_y_borrar_borradores.sql");
 const sinComentarios = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 /**
- * El GUARD vigente ya no es el de la 142: la 145 (D-NEXT) lo redefine entero para que el gerente haga bodega.
+ * El GUARD vigente ya no es el de la 142: la 145 (D-397) lo redefine entero para que el gerente haga bodega.
  * La política de borrar y `orden_de_mis_tiendas` siguen siendo de la 142 (la 145 no las toca); lo que se lee
  * del guard —el tramo de misma etapa, el candado de autor y la llamada con OLD— se lee de la vigente.
  */

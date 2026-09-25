@@ -187,7 +187,7 @@ describe("la 138 dice lo mismo que el código", () => {
     const conGuard = readdirSync(join(process.cwd(), dir))
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
       .sort();
-    // La 145 (D-NEXT, el gerente hace bodega) es ahora la última que lo define; parte de la 142 (D-377), que
+    // La 145 (D-397, el gerente hace bodega) es ahora la última que lo define; parte de la 142 (D-377), que
     // partía de la 139 (D-361), que partía de la 138.
     expect(conGuard.at(-1)).toBe("145_gerente_hace_bodega.sql");
     expect(conGuard.at(-2)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");

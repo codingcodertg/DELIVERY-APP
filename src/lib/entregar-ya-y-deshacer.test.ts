@@ -18,7 +18,7 @@ import type { Stage, UserRole } from "./types";
  * leía la 139 y trataba a almacén como «la base no le deja deshacer nada», lo cual ya era falso con la 139 (le
  * dejaba tres pasos en cualquier tienda): la prueba pasaba porque comparaba `false` con `false`.
  *
- * **Desde D-NEXT lee la 145**, que es la definición vigente: la 142 más la rama del gerente que hace bodega
+ * **Desde D-397 lee la 145**, que es la definición vigente: la 142 más la rama del gerente que hace bodega
  * (avanzar hacia delante). Esa rama vive dentro del sub-bloque de gerente y office, así que se corta aquí para
  * que sus pasos hacia delante no se lean como pasos atrás de office; se prueba en `gerente-hace-bodega.test.ts`.
  */
@@ -133,7 +133,7 @@ describe("entregar ya: la app y la base dicen lo mismo", () => {
   });
 
   it("cada etapa desde la que la ficha ofrece «entregar ya» existe en la lista del cliente", () => {
-    // Faltaba desde D-361 y lo cazó el demo (D-NEXT, 2026-09-25): `LEGAL_TRANSITIONS` no tenía `delivered` desde
+    // Faltaba desde D-361 y lo cazó el demo (D-397, 2026-09-25): `LEGAL_TRANSITIONS` no tenía `delivered` desde
     // approved, fulfilling ni ready, y los dos proveedores rechazaban el salto antes de llegar a la base con
     // «This order must be approved by a manager first.». La prueba de arriba comparaba la ficha con el `.sql` y
     // pasaba: el hueco estaba en la tercera pieza, la que ninguna de las dos miraba.

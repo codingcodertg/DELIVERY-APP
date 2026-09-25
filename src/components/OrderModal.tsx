@@ -2969,7 +2969,7 @@ function StageActions({
     btns.push(<button key="material" className="btn btn-ghost" onClick={onAddMaterial} disabled={busy}>➕ {t("Add material", "Agregar material")}</button>);
   }
 
-  // Warehouse — y el gerente, que hace el proceso de bodega cuando hace falta (D-NEXT, 145). Quién lo decide
+  // Warehouse — y el gerente, que hace el proceso de bodega cuando hace falta (D-397, 145). Quién lo decide
   // `preparaEnLaFicha`, espejo del guard; no se vuelve a decidir aquí con una lista de roles.
   if (preparaEnLaFicha(me)) {
     // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
@@ -2986,7 +2986,7 @@ function StageActions({
   }
 
   // Driver (and warehouse/admin): pick up a ready order, then mark it delivered.
-  // El gerente también recoge (D-NEXT, 145) —`recogeEnLaFicha`—, con el recuento en dos pasos de la oficina,
+  // El gerente también recoge (D-397, 145) —`recogeEnLaFicha`—, con el recuento en dos pasos de la oficina,
   // pero sin «Iniciar viaje»: es un tiempo del chofer, y estamparlo desde la oficina falsearía el KPI.
   if (recogeEnLaFicha(me) && stage === "ready") {
     if (!pickupConfirmOpen) {
