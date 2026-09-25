@@ -8,6 +8,7 @@ import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import { BarraSuperior } from "@/components/BarraSuperior";
 import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, hayQueSembrar, leeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import type { UserRole } from "@/lib/types";
 import {
@@ -208,6 +209,8 @@ export function TablaDeRonda({
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275), como en Órdenes.
   const [showCols, setShowCols] = useState(false);
   const colsRef = useRef<HTMLDivElement>(null);
+  // La caja de la tabla, que mueve también la barra de arriba (D-NEXT), como en Órdenes.
+  const cajaRef = useRef<HTMLDivElement>(null);
   useCierraAlSalir(showCols, () => setShowCols(false), () => [colsRef.current]);
 
   // El ancho, al SOLTAR: la misma fila, la otra mitad, y por el mismo escritor.
@@ -449,8 +452,12 @@ export function TablaDeRonda({
           SIN alto propio, y eso se midio: la de Ordenes NO tiene desplazamiento vertical propio
           —quien baja es la pagina— y lo que da la sensacion de «cabe en una pantalla» es no
           salirse de LADO (la caja se desplaza sola) mas la cabecera pegada. Acotarle el alto seria
-          hacer mas que la referencia, y el dueno pidio el estilo de Ordenes. */}
-      <div className="tbl-scroll tbl-fit orders-scroll">
+          hacer mas que la referencia, y el dueno pidio el estilo de Ordenes.
+          CAMBIADO por D-NEXT, y sigue siendo la misma regla: «como Ordenes». Esa medida decia que la
+          cabecera estaba pegada, y no lo estaba (se iba con la pagina). Ahora Ordenes lleva alto propio
+          (`tbl-caja`) y la barra de arriba, y esta tabla las lleva porque las lleva la referencia. */}
+      <BarraSuperior caja={cajaRef} />
+      <div className="tbl-scroll tbl-fit orders-scroll tbl-caja" ref={cajaRef}>
         <table
           className="orders tbl-resize orders-responsive"
           style={anchoDeTabla([sePuede ? 34 : 0, ...columnasPintadas.map((c) => anchos.widthOf(c.key)), sePuede ? 92 : 0])}

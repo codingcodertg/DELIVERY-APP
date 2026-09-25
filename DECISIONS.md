@@ -25477,6 +25477,12 @@ desplazamiento vertical propio** — quien baja es la página (2742 px con 86 fi
 pantalla» son otras dos cosas: que la **caja** se desplace de lado en vez de la página, y la **cabecera pegada**. Hacer más que
 la referencia habría sido darle otra cosa a quien pidió «el estilo de la tabla de Órdenes».
 
+> **Reemplazada en parte por D-NEXT (2026-09-25).** La **cabecera pegada** de este párrafo no lo estaba: el `th` era
+> `sticky`, pero se pegaba a la caja, que sin alto nunca se desplazaba en vertical, así que al bajar la página se iba con
+> ella (medido en el demo a 1280 con 85 filas: la cabecera en **−1226 px** tras bajar 1500). D-NEXT le da alto a la caja
+> de Órdenes (`tbl-caja`) y una barra de desplazamiento encima de la cabecera; esta tabla las lleva porque las lleva
+> Órdenes, que es la regla de aquí y no cambia. Lo que cambia es «no se le pone alto propio».
+
 ### Pocas columnas al entrar, y por qué aquí sí
 
 Se parte de **siete**: código, descripción, tamaño, existencias, precio, decisión y nota. Las de tienda y las cinco privadas
@@ -27975,3 +27981,99 @@ identidad del «Ver como» del demo.
 - **Gerentes con `visible_stores`**: no medido (M2 del plan). Si su lectura los acota, no verán órdenes de otras tiendas,
   y eso no es de esta rama.
 - **El aviso de ubicación del navegador** al recoger, en una sesión real de oficina: no visto (en headless no hay).
+
+## D-NEXT · Cabeceras bloqueadas y barra de desplazamiento encima de la cabecera, en las tablas de Órdenes, Almacén, Promos y el Gestor de Rutas
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas y Promos) · **Sin migración.**
+**Pedido por:** Juan Briseño (Office Manager), transmitido por el dueño, literal: *«Need headers to be locked and have the
+scroll bar on top of headers in the tables»*.
+**Reemplaza en parte a D-370** («Y NO se le pone alto propio»), que lleva su nota dentro.
+
+### Lo que pasaba, medido antes de tocar nada
+
+El `th` de `table.orders` ya era `position: sticky; top: 0`. **No servía**: un `sticky` se pega al contenedor con
+desplazamiento más cercano, y `.tbl-scroll` lo es —su `overflow-x: auto` hace que `overflow-y` compute `auto`—. Como la caja
+no tenía alto, nunca se desplazaba en vertical: bajaba la página y la cabecera se iba con ella.
+
+Demo, admin, 1280×900, antes del cambio: Órdenes (85 filas) con la cabecera en **274 px**; tras bajar la página 1500 px, en
+**−1226 px**. Almacén (30 filas): de 284 a **−404**. D-370 había escrito que la cabecera estaba «pegada»; no lo estaba, y nadie
+lo había medido bajando.
+
+### Lo que se hizo
+
+1. **La caja tiene alto máximo** (`.tbl-scroll.tbl-caja { max-height: calc(100dvh - 150px) }`): se desplaza en las dos
+   direcciones y la cabecera se pega a su borde de arriba. 150 px porque así la caja entera —con su barra de abajo— cabe en la
+   ventana, y al llevar la página hasta el final siguen a la vista la barra de arriba y la cabecera: lo que hay debajo de estas
+   tablas (el pie incluido) mide menos que eso. `z-index: 2` en la cabecera para que ninguna celda posicionada la pise.
+2. **La barra de arriba** (`components/BarraSuperior.tsx`): un carril `overflow-x: auto` justo encima de la cabecera, con un
+   relleno que le da **el mismo recorrido** que la caja (`anchoDelRelleno`), de modo que un píxel de una es un píxel de la otra.
+   Se sincronizan **en los dos sentidos** (`scrollQueToca`, con corte de eco: si ya coinciden, no se mueve nada). La barra de
+   abajo sigue. **Solo existe si la tabla desborda** (`hayQueMostrarBarra`); un `ResizeObserver` sobre la caja y sobre la tabla
+   la hace aparecer o desaparecer al cambiar la ventana o arrastrar columnas. La lógica está en `lib/barra-superior.ts`, sin DOM.
+3. **Dónde:** `OrdersTable` (Órdenes, las dos vistas de Almacén que la usan y la del chofer), `TablaDeRonda` (Promos, que usa la
+   de Órdenes por D-370) y las dos tablas del Gestor de Rutas: «Sin asignar» y las paradas de cada chofer (una barra por chofer,
+   con `useCajasPorClave`, porque se pintan dentro de un `.map`).
+4. **El Gestor tiene el mapa y los choferes `sticky` arriba** (~444 px a 1280×900): una caja de alto normal quedaría con la
+   cabecera tapada por el mapa. La página mide ese panel y acorta sus cajas a lo que queda debajo
+   (`altoMaximoDeCaja`: `max(240px, calc(100dvh - panel - 60px))`, 402 px medidos). Con «Ocultar mapa y choferes», manda el CSS.
+5. En `OrdersTable` barra y caja van en un envoltorio (`tbl-con-barra`, `min-width: 0`): Almacén pone la tabla en una rejilla con
+   `gap` y las separaba 10 px.
+
+**Descartado:** `overflow: clip` en la caja con una barra falsa que mueva la tabla con `transform` (la cabecera sí se pegaría a la
+ventana): se pierde el desplazamiento nativo con el trackpad y la rueda lateral, y el arrastre de columnas trabaja sobre
+coordenadas que se moverían. Y hacer la caja `sticky` en la ventana: taparía lo que viene después dentro del mismo padre.
+
+### En el teléfono no cambia nada
+
+Por debajo de 640 px la caja **no lleva alto** (`max-height: none !important`; el `!important` gana al alto en línea del Gestor):
+las tablas de Órdenes, Almacén y Promos ya son tarjetas y baja la página, como antes.
+
+### Medido en el navegador (demo, 2026-09-25, Chrome sin cabeza con barras de desplazamiento visibles)
+
+Admin y gerente, **1280 y 1440**. «A la vista» es `elementFromPoint` en el centro de la cabecera: la cabecera y no otra cosa encima.
+
+| | cabecera tras bajar la PÁGINA 1500 | cabecera tras 15 golpes de rueda sobre la tabla | barra arriba | recorrido barra = caja |
+|---|---|---|---|---|
+| Órdenes admin 1280 (85 filas) | 17 px, a la vista (antes −1226) | caja en 1500, cabecera a 1 px de su borde, a la vista | sí | 263 = 263 |
+| Órdenes admin 1440 | 17 px, a la vista | caja en 1500, a la vista | sí | 111 = 111 |
+| Almacén admin 1280 / 1440 | 17 px, a la vista (antes −404) | caja en 421 (su final), a la vista | sí | 301 / 149 |
+| Promos admin y gerente 1280 / 1440 | la página no baja (12 filas) | — | sí | 440 / 320 |
+| Gestor «Sin asignar» 1280 / 1440 (42 filas) | **bajo el mapa** (ver abajo) | con la tabla bajo el mapa: caja en 1500, cabecera a la vista | sí | 521 / 369 |
+| Órdenes gerente 1280 / 1440 (10 filas) | la página no baja | — | sí | 248 / 96 |
+
+- **Sincronización:** arrastrar con el ratón el pulgar de la barra de arriba 200 px mueve la caja lo mismo (Órdenes 1280: 226 y
+  226); la rueda lateral sobre la tabla mueve la barra (126 y 126); llevar la barra al final deja la caja en su máximo (263 de
+  263) y la caja al principio devuelve la barra a 0. Igual en todas las pantallas con barra.
+- **Sin desborde no hay barra:** con la ventana a 2600 px la tabla de Órdenes cabe (1551 de 1551) y hay **0** barras; al volver a
+  1280, vuelve a haber 1. Las paradas de un chofer (11, 1146 de 1146) no desbordan y no llevan barra.
+- **La página no se desplaza de lado: 0 px** en todas las medidas.
+- **Teléfono (390×844, `mobile: true`)**, gerente y admin: Órdenes, Almacén y Promos con la caja sin alto (`none`), `thead`
+  oculto y filas en bloque (tarjetas), 0 barras, 0 px de lado, y la página baja 1500 como antes.
+- **D-395 sigue bien:** en «Sin asignar», con la tabla bajo el mapa, marcar la fila 31 deja el recuadro «Elige conductor» entero
+  a la vista (771–892 de 900), sin tapar la cabecera ni la fila marcada. Sí tapa, como antes, la parte de abajo de la tabla
+  —incluida su barra de abajo—; la de arriba queda libre.
+- El gerente del demo no tiene Almacén ni Gestor: esas dos solo se midieron como admin.
+
+### Lo que no queda resuelto
+
+- **En el Gestor, bajar la PÁGINA mete la tabla debajo del mapa `sticky`**, con su cabecera: la caja está acortada para caber
+  bajo el mapa, pero si se sigue bajando la página pasa por detrás. Con la tabla colocada bajo el mapa, la rueda sobre ella baja
+  las filas con la cabecera fija. Las tablas de paradas cortas (sin desplazamiento propio) pasan enteras por debajo del mapa.
+  «Ocultar mapa y choferes» lo quita.
+- **En las páginas con mucho contenido debajo** de la tabla, llevar la página al final puede subir la cabecera fuera de la
+  ventana (la tabla entera se va, como cualquier bloque). En las pantallas medidas no pasa.
+- **Cuentas** (`accounts`) y la «Ruta del día» de Almacén (una tabla corta por chofer) usan el mismo marco pero **no se tocaron**:
+  no estaban en el pedido. Añadirlas es poner `tbl-caja`, la ref y la barra.
+- **Solo en el demo**, sin base: con datos de producción cambia el número de filas, no el mecanismo. En macOS las barras se
+  superponen; el carril tiene 12 px mínimos para que se pueda agarrar, sin verlo en un Mac.
+- En el teléfono no se llegó a abrir «Sin asignar» del Gestor: el mapa `sticky` tapa el botón (ya anotado en D-395).
+
+### Pruebas
+
+`barra-superior.test.ts` (nuevo): la lógica pura con los números medidos, el CSS que lo hace funcionar, que el componente usa la
+lógica, y que cada pantalla pone su barra **justo encima de SU caja, con la misma ref**. En `promos/tabla.test.ts` la prueba «NO se
+le pone alto propio» pasa a «el alto de la caja es el de Órdenes: la misma clase `tbl-caja`».
+
+**Mutantes: 31, caen los 31**, cada uno con una prueba con nombre. Uno sobrevivió a la primera pasada —«sin recorrido en el
+destino también sincroniza»— y era **código de sobra**: sin recorrido en el destino el objetivo sale 0, donde ya está, y el corte
+de eco devuelve `null` solo. Se quitó la condición y el mutante se cambió por quitar la del origen (división entre cero), que cae.
