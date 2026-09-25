@@ -22,6 +22,7 @@ import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
 import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
@@ -354,6 +355,8 @@ export default function RoutesPage() {
   const [autoAssigning, setAutoAssigning] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  // El chofer pulsado en «Elige conductor para N órdenes» (D-NEXT). `null`: nada pulsado (manda el filtro, si hay).
+  const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
   // Drag-and-drop in the Routes tab: which order is being dragged, and which
   // lane card is currently under the cursor (for the drop highlight).
   // (Row drag-and-drop was removed from the Routes tab — stops are reordered
@@ -815,6 +818,8 @@ export default function RoutesPage() {
     () => filasDelChip.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
     [filasDelChip, selectedOrders],
   );
+  // Sin nada marcado el recuadro se va, y lo que se pulsó en él se olvida: la próxima tanda vuelve a preguntar (D-NEXT).
+  useEffect(() => { if (poolSelectedCount === 0) setConductorPulsado(null); }, [poolSelectedCount]);
 
   // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-393).
   const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch), [deliveries, date, modo, poolFilter, orderSearch]);
@@ -842,6 +847,21 @@ export default function RoutesPage() {
     }
     return map;
   }, [dayOrders]);
+
+  // «Elige conductor para N órdenes» (D-NEXT): todos los choferes y rutas temporales, con los números del panel
+  // «Choferes y rutas» (📦 paradas y pallets/capacidad); el del filtro de arriba, primero y ya elegido.
+  const opcionesDelRecuadro = opcionesDeConductor({
+    rutas: [
+      ...drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
+      ...bucketNames.map((n) => ({ clave: n, etiqueta: n, esRuta: true })),
+    ],
+    paradasDe: (k) => (byDriver.get(k) ?? []).length,
+    palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []),
+    capacidadDe: (k) => capacityFor(k),
+    noDisponibles: unavailableToday,
+    filtro: filtroChofer,
+  });
+  const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
 
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
   // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
@@ -1973,24 +1993,6 @@ export default function RoutesPage() {
           {selectedOrders.size > 0 && (
             <>
               <span className="count-tag">{selectedOrders.size} {t("selected", "seleccionadas")}</span>
-              {poolSelectedCount > 0 && (
-                <>
-                  <select defaultValue="" disabled={autoAssigning} style={{ width: "auto" }}
-                    onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v === "__newroute__") { bulkAssign(addBucket()); } else if (v) bulkAssign(v); }}>
-                    <option value="">{t("Assign selected to…", "Asignar selección a…")}</option>
-                    {drivers.length > 0 && (
-                      <optgroup label={t("Drivers", "Choferes")}>
-                        {drivers.map((u) => <option key={u.id} value={u.full_name}>{u.full_name}</option>)}
-                      </optgroup>
-                    )}
-                    <optgroup label={t("Temp drivers / routes", "Choferes temp / rutas")}>
-                      {bucketNames.map((n) => <option key={n} value={n}>🧭 {n}</option>)}
-                      <option value="__newroute__">＋ {t("New route…", "Nueva ruta…")}</option>
-                    </optgroup>
-                  </select>
-                  <button className="btn btn-amber btn-sm" onClick={bulkAutoAssign} disabled={autoAssigning}>✨ {t("Auto-assign selected", "Auto-asignar selección")}</button>
-                </>
-              )}
               <button className="btn btn-ghost btn-sm" onClick={clearSelection}>{t("Clear", "Limpiar")}</button>
             </>
           )}
@@ -2105,6 +2107,50 @@ export default function RoutesPage() {
           </div>
           <MenuDeColumnaAbierto estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
           </>
+        )}
+        {/* «Elige conductor para N órdenes» (D-NEXT): sustituye al antiguo desplegable «Asignar selección a…» y al botón
+            «Auto-asignar selección» de la barra de arriba. Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
+            (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
+            una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
+            así que ninguna fila queda tapada para siempre. */}
+        {poolSelectedCount > 0 && (
+          <div className="card" data-elige-conductor role="group" aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
+            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
+            <b style={{ display: "block", fontSize: 15, marginBottom: 8 }}>
+              👉 {poolSelectedCount === 1
+                ? t("Choose a driver for 1 order", "Elige conductor para 1 orden")
+                : t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
+            </b>
+            {opcionesDelRecuadro.length === 0 ? (
+              <div className="hint" data-sin-choferes style={{ marginBottom: 8 }}>
+                {t("No drivers or routes available. Use “New route” to build one without a driver.", "No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una sin chofer.")}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginBottom: 10, maxHeight: 132, overflowY: "auto" }}>
+                {opcionesDelRecuadro.map((o) => (
+                  <label key={o.clave} style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, cursor: "pointer", fontSize: 14, fontWeight: o.clave === conductorElegido ? 700 : 500, color: "var(--text)", textTransform: "none", letterSpacing: "normal", minWidth: 0 }}>
+                    <input type="radio" name="elige-conductor" value={o.clave} checked={o.clave === conductorElegido}
+                      onChange={() => setConductorPulsado(o.clave)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: colorFor(o.clave), flex: "0 0 auto", boxShadow: "0 0 0 1px var(--line)" }} />
+                    <span>{o.esRuta ? "🧭 " : ""}{o.etiqueta}</span>
+                    <span className="hint" data-carga-del-conductor>
+                      ({o.paradas === 1 ? t("1 stop", "1 parada") : t(`${o.paradas} stops`, `${o.paradas} paradas`)} · {o.pallets}/{o.capacidad} {t("pallets", "pallets")})
+                    </span>
+                    {o.delFiltro && <span className="sema" style={{ fontSize: 10, background: "var(--card)", color: "var(--accent)", border: "1px solid var(--accent)" }}>{t("filter", "filtro")}</span>}
+                    {o.noDisponible && <span className="sema" style={{ fontSize: 10, background: "var(--red-chip-bg)", color: "var(--red-chip-text)" }}>{t("off today", "no disponible")}</span>}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="btn btn-primary" data-asignar-al-elegido disabled={!conductorElegido || autoAssigning}
+                onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}>
+                {t("Assign", "Asignar")}
+              </button>
+              <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={autoAssigning} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
+              <button className="btn btn-amber btn-sm" data-auto-asignar-del-recuadro onClick={bulkAutoAssign} disabled={autoAssigning || drivers.length === 0}>✨ {t("Auto-assign the checked ones", "Auto-asignar las marcadas")}</button>
+            </div>
+          </div>
         )}
         </>}
       </div>
