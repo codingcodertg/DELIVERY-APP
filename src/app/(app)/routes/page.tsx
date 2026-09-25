@@ -7,7 +7,9 @@ import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
-import { autoAssign, parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
+import { parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
+import { ordenesDelReparto, repartirYOptimizar, resumenDelReparto, type RutaQueOptimizar } from "@/lib/auto-asignar";
+import { AutoAsignarDialogo, type EleccionDelReparto } from "@/components/AutoAsignarDialogo";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
@@ -45,6 +47,8 @@ import { aLaDecima, sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
 import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
+import { CerrarAviso } from "@/components/CerrarAviso";
+import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -339,6 +343,28 @@ export default function RoutesPage() {
     setSelected(new Set());
     if (me?.id) guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);
   };
+  // Los avisos que esta persona cerró con su ✕ (D-400): cerrados para siempre en este navegador, hasta que pulse
+  // «Mostrar avisos ocultos». `null` = aún no se ha leído lo guardado: mientras, no se pinta ninguno, para que un aviso
+  // cerrado no parpadee al recargar.
+  const [avisosOcultos, setAvisosOcultos] = useState<Set<AvisoDelGestor> | null>(null);
+  useEffect(() => {
+    if (!me?.id) return;
+    setAvisosOcultos(leeAvisosOcultos((k) => window.localStorage.getItem(k), me.id));
+  }, [me?.id]);
+  const oculto = (id: AvisoDelGestor) => avisosOcultos == null || avisosOcultos.has(id);
+  const cierraAvisoDelGestor = (id: AvisoDelGestor) => {
+    const nuevos = cierraAviso(avisosOcultos ?? new Set(), id);
+    setAvisosOcultos(nuevos);
+    if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, nuevos);
+  };
+  // Con la barra «Armar las rutas» cerrada, la ACCIÓN no se pierde: el botón «🧭 Armar rutas» de la cabecera la trae,
+  // desplegada, para esta visita (sin volver a abrirla para siempre).
+  const [planTraidoAMano, setPlanTraidoAMano] = useState(false);
+  const muestraAvisosOcultos = () => {
+    setAvisosOcultos(new Set());
+    setPlanTraidoAMano(false);
+    if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, new Set());
+  };
   // Sin «scheduled» desde D-376: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
   const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");
@@ -355,6 +381,8 @@ export default function RoutesPage() {
   const [previewBusy, setPreviewBusy] = useState<string | null>(null);
   const [optimizingAll, setOptimizingAll] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
+  // El diálogo de «✨ Auto-asignar» (D-401): abierto o no. Lo que se elige dentro vive en el diálogo.
+  const [dialogoAutoAsignar, setDialogoAutoAsignar] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
@@ -882,6 +910,16 @@ export default function RoutesPage() {
     filtro: filtroChofer,
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
+  // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de
+  // verdad — el reparto nunca fue a rutas temporales (`autoAssign` recibe `drivers`).
+  const opcionesDelReparto = opcionesDeConductor({
+    rutas: drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
+    paradasDe: (k) => (byDriver.get(k) ?? []).length,
+    palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []),
+    capacidadDe: (k) => capacityFor(k),
+    noDisponibles: unavailableToday,
+    filtro: filtroChofer,
+  });
 
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
   // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
@@ -1197,49 +1235,67 @@ export default function RoutesPage() {
   // Solve every driver's route in one go so the whole board lights up at
   // once. Sequential + gently throttled — the free OSRM server asks for no
   // more than ~1 request/second.
-  const optimizeAll = async () => {
-    const withStops = lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0);
-    if (!withStops.length) return;
+  const optimizeAll = () =>
+    optimizaEstas(lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => ({ clave: u.key, paradas: byDriver.get(u.key) ?? [] })));
+  // El bucle de «Optimizar todas las rutas», para la lista que se le dé: todas las rutas con paradas, o (desde el diálogo
+  // de «Auto-asignar», D-401) solo las de los choferes que acaban de recibir órdenes, con sus paradas ya puestas.
+  const optimizaEstas = async (rutas: RutaQueOptimizar[]): Promise<string[]> => {
+    // Las que salieron bien: el resumen del diálogo no llama «optimizada» a una ruta que falló (D-401).
+    const bien: string[] = [];
+    if (!rutas.length) return bien;
     setOptimizingAll(true);
     setPreview(null);
     setErr(null);
-    for (const u of withStops) {
-      setBusyDriver(u.key);
+    for (const r of rutas) {
+      setBusyDriver(r.clave);
       try {
-        await applyPlan(u.key, await computeRoute(u.key, byDriver.get(u.key) ?? []));
+        await applyPlan(r.clave, await computeRoute(r.clave, r.paradas));
+        bien.push(r.clave);
       } catch (e) {
         setErr((e as Error).message);
       }
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((res) => setTimeout(res, 400));
     }
     setBusyDriver(null);
     setOptimizingAll(false);
     setRouterInfo(lastProviderRef.current);
+    return bien;
   };
 
-  // Auto-assign every unassigned order across the drivers (capacity + window +
-  // proximity aware), then leave the "Optimize all routes" button to sequence
-  // each driver's day into real OSRM routes.
-  const runAutoAssign = async () => {
+  // «✨ Auto-asignar» (D-401): ya no reparte al instante. Abre un diálogo que pregunta qué órdenes (todas las del día o
+  // las marcadas), a qué choferes y si se optimiza al terminar; aquí se reparte con lo elegido. El reparto es el
+  // `autoAssign` de siempre, solo entre los marcados; la optimización, el bucle de «Optimizar todas las rutas» solo para
+  // los que recibieron algo. Lo decide `repartirYOptimizar`.
+  const repartirConElDialogo = async (e: EleccionDelReparto) => {
     if (autoAssigning || optimizingAll || busyDriver != null) return;
-    const driverNames = drivers.map((u) => u.full_name);
-    if (!driverNames.length) { notify(t("Add drivers first (give someone the Driver role).", "Agregue choferes primero (asigne el rol de Chofer).")); return; }
-    const res = autoAssign(unassigned, driverNames, capacityFor, { maxTripsPerDay: 2, unavailable: unavailableToday });
-    if (!res.assignments.length) {
-      notify(t("Nothing could be auto-assigned (no coordinates or no capacity).", "No se pudo auto-asignar nada (sin coordenadas o sin capacidad)."));
-      return;
-    }
+    setDialogoAutoAsignar(false);
+    const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));
+    const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);
+    const delDia = new Set(dayOrders.map((d) => d.id));
     setAutoAssigning(true);
+    let r: Awaited<ReturnType<typeof repartirYOptimizar>> | null = null;
     try {
-      for (const a of res.assignments) await assignTo(a.orderId, a.driver);
+      r = await repartirYOptimizar({
+        ordenes,
+        choferes: e.choferes,
+        capacidadDe: capacityFor,
+        noDisponibles: unavailableToday,
+        optimizar: e.optimizar,
+        paradasDe: (k) => byDriver.get(k) ?? [],
+        esDelDia: (d) => delDia.has(d.id),
+        asigna: (id, chofer) => assignTo(id, chofer),
+        optimiza: optimizaEstas,
+      });
     } finally {
       setAutoAssigning(false);
     }
-    const nDrivers = new Set(res.assignments.map((a) => a.driver)).size;
-    notify(t(
-      `Auto-assigned ${res.assignments.length} order(s) to ${nDrivers} driver(s)${res.unassigned.length ? ` · ${res.unassigned.length} left (no location/capacity)` : ""}. Now tap “Optimize all routes”.`,
-      `Auto-asignadas ${res.assignments.length} orden(es) a ${nDrivers} chofer(es)${res.unassigned.length ? ` · ${res.unassigned.length} sin colocar (sin ubicación/capacidad)` : ""}. Ahora toque “Optimizar todas las rutas”.`,
-    ));
+    if (!r.reparto.assignments.length) {
+      notify(t("Nothing could be auto-assigned (no coordinates or no capacity).", "No se pudo auto-asignar nada (sin coordenadas o sin capacidad)."));
+      return;
+    }
+    if (e.alcance === "marcadas") clearSelection();
+    const resumen = resumenDelReparto(r, orderLabel, e.optimizar);
+    notify(t(resumen.en, resumen.es));
   };
 
   const toggleOrder = (id: string) =>
@@ -1255,22 +1311,6 @@ export default function RoutesPage() {
     try { for (const id of ids) await assignTo(id, driver); } finally { setAutoAssigning(false); }
     clearSelection();
     notify(t(`Assigned ${ids.length} order(s) to ${driver}`, `Asignadas ${ids.length} orden(es) a ${driver}`));
-  };
-
-  // Auto-assign only the checked orders across the drivers.
-  const bulkAutoAssign = async () => {
-    const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));
-    if (!chosen.length) return;
-    const res = autoAssign(chosen, drivers.map((u) => u.full_name), capacityFor, { maxTripsPerDay: 2, unavailable: unavailableToday });
-    if (!res.assignments.length) { notify(t("Couldn't place the selected orders.", "No se pudieron colocar las órdenes seleccionadas.")); return; }
-    setAutoAssigning(true);
-    try { for (const a of res.assignments) await assignTo(a.orderId, a.driver); } finally { setAutoAssigning(false); }
-    clearSelection();
-    const nDrivers = new Set(res.assignments.map((a) => a.driver)).size;
-    notify(t(
-      `Auto-assigned ${res.assignments.length} order(s) to ${nDrivers} driver(s)${res.unassigned.length ? ` · ${res.unassigned.length} left` : ""}.`,
-      `Auto-asignadas ${res.assignments.length} orden(es) a ${nDrivers} chofer(es)${res.unassigned.length ? ` · ${res.unassigned.length} sin colocar` : ""}.`,
-    ));
   };
 
   /** Simulate adding an unassigned order to the selected driver's day —
@@ -1625,6 +1665,10 @@ export default function RoutesPage() {
   // Simulating an add targets a driver, so it needs exactly one selected.
   const singleSel = selected.size === 1 ? [...selected][0] : null;
   const scheduledCount = dayOrders.length - unassigned.length;
+  // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
+  // lleva el botón que la trae.
+  const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
+  const barraDeArmarRutas = puedeArmarRutas && (!oculto(AVISOS_DEL_GESTOR.armarRutas) || planTraidoAMano);
 
   return (
     <>
@@ -1660,9 +1704,10 @@ export default function RoutesPage() {
           </button>
           <button
             className="btn btn-amber btn-sm"
-            disabled={autoAssigning || optimizingAll || busyDriver != null || unassigned.length === 0 || drivers.length === 0}
-            onClick={runAutoAssign}
-            title={t("Distribute all unassigned orders across drivers", "Repartir todas las órdenes sin asignar entre los choferes")}
+            data-auto-asignar
+            disabled={autoAssigning || optimizingAll || busyDriver != null || (unassigned.length === 0 && poolSelectedCount === 0) || drivers.length === 0}
+            onClick={() => setDialogoAutoAsignar(true)}
+            title={t("Choose which orders and which drivers, then distribute and optimize", "Elegir qué órdenes y a qué choferes, y repartir y optimizar")}
           >
             {autoAssigning ? `… ${t("Assigning", "Asignando")}` : `✨ ${t("Auto-assign", "Auto-asignar")} (${unassigned.length})`}
           </button>
@@ -1673,6 +1718,12 @@ export default function RoutesPage() {
           >
             {optimizingAll ? `… ${t("Optimizing", "Optimizando")} ${busyDriver ?? ""}` : `🧭 ${t("Optimize all routes", "Optimizar todas las rutas")}`}
           </button>
+          {puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && (
+            <button className="btn btn-ghost btn-sm" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}
+              title={t("Build today's routes automatically — you closed its bar; this brings it back for this visit", "Armar las rutas del día automáticamente — cerró su barra; esto la trae para esta visita")}>
+              🧭 {t("Build routes", "Armar rutas")}
+            </button>
+          )}
           {geocoding > 0 && <span className="hint">{t("Locating addresses…", "Ubicando direcciones…")}</span>}
           {/* Says plainly whether the distances/ETAs just computed account for
               traffic, so nobody trusts free-flow numbers thinking otherwise. */}
@@ -1695,18 +1746,24 @@ export default function RoutesPage() {
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
-      {!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}
+      {barraDeArmarRutas && (
+        <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano}
+          onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }} />
+      )}
 
       {/* ---------- Drivers who stopped reporting ----------
            No amount of Android hardening is bulletproof: a battery manager, a
            flat battery or no signal will still cut the feed. Surfacing it here
            means a truck goes "not reporting" instead of quietly vanishing. */}
-      {trackingIssues.length > 0 && (
+      {trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (
         <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <b style={{ color: "var(--amber-text)" }}>
             📡 {t(`${trackingIssues.length} driver(s) on shift aren't reporting their location`,
                   `${trackingIssues.length} chofer(es) en turno no están reportando su ubicación`)}
           </b>
+          <CerrarAviso aviso={AVISOS_DEL_GESTOR.choferesSinSenal} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.choferesSinSenal)} />
+          </div>
           <div className="hint" style={{ marginTop: 4 }}>
             {trackingIssues.map((g) => `${g.driver} (${g.quietForMin == null ? t("no fix yet", "sin señal aún") : t(`${g.quietForMin} min`, `${g.quietForMin} min`)})`).join(" · ")}
             {" — "}
@@ -1717,11 +1774,14 @@ export default function RoutesPage() {
       )}
 
       {/* ---------- Why-is-it-empty helper ---------- */}
-      {dayOrders.length === 0 && (() => {
+      {dayOrders.length === 0 && !oculto(AVISOS_DEL_GESTOR.diaVacio) && (() => {
         const otherDates = deliveries.filter((d) => ROUTE_STAGES.includes(d.stage) && d.delivery_date !== date).length;
         return (
           <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
             <b style={{ color: "var(--amber-text)" }}>⚠ {allDates ? t("No schedulable orders at all.", "No hay órdenes para programar.") : t("No schedulable orders for this date.", "No hay órdenes para programar en esta fecha.")}</b>
+            <CerrarAviso aviso={AVISOS_DEL_GESTOR.diaVacio} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.diaVacio)} />
+            </div>
             <div className="hint" style={{ marginTop: 4 }}>
               {allDates
                 ? t("Any order that isn't delivered or canceled can be scheduled here — even before it's approved or prepared.", "Cualquier orden que no esté entregada o cancelada se puede programar aquí — incluso antes de aprobarse o prepararse.")
@@ -1766,11 +1826,12 @@ export default function RoutesPage() {
           <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes atrasadas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
         </div>
-      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && (
-        <div className="hint" style={{ marginBottom: 8 }}>
-          {t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
-          {" — "}{t("not part of this day.", "no son de este día.")}{" "}
+      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
+        <div className="hint" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
+          {" — "}{t("not part of this day.", "no son de este día.")}</span>
           <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
+          <CerrarAviso aviso={AVISOS_DEL_GESTOR.atrasadas} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.atrasadas)} />
         </div>
       )}
 
@@ -1786,6 +1847,13 @@ export default function RoutesPage() {
           <button className="btn btn-ghost btn-sm" onClick={() => setWideRoutes((v) => !v)}
             title={t("Toggle full-width route cards vs a compact grid", "Alternar tarjetas de ruta a ancho completo o cuadrícula compacta")}>
             {wideRoutes ? "▦ " + t("Grid", "Cuadrícula") : "▭ " + t("Wide", "Ancho")}
+          </button>
+        )}
+        {/* Lo cerrado con las ✕ de los avisos (D-400) se recupera aquí, todo junto. Solo sale si hay algo cerrado. */}
+        {avisosOcultos != null && avisosOcultos.size > 0 && (
+          <button className="btn btn-ghost btn-sm" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos}
+            title={t("Show again the notices you closed on this screen", "Volver a mostrar los avisos que cerró en esta pantalla")}>
+            👁 {t(`Show hidden notices (${avisosOcultos.size})`, `Mostrar avisos ocultos (${avisosOcultos.size})`)}
           </button>
         )}
       </div>
@@ -1889,12 +1957,15 @@ export default function RoutesPage() {
           }} />
         </div>
       </div>
-      <div className="hint" style={{ marginTop: 4, marginBottom: 14 }}>
+      {!oculto(AVISOS_DEL_GESTOR.ayudaDelMapa) && (
+      <div className="hint" style={{ marginTop: 4, marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 8 }}><span>
         {t(
           "Every route is on the map at once. Click a route or a driver to highlight it (the rest dim and the map zooms in); check drivers to compare several. Each route loops from the pickup point (P) out and back. A dashed line is an unsaved simulation.",
           "Todas las rutas están en el mapa a la vez. Haz clic en una ruta o un chofer para resaltarla (el resto se atenúa y el mapa hace zoom); marca varios choferes para comparar. Cada ruta hace un ciclo desde el punto de recolección (P) y regresa. Una línea punteada es una simulación sin guardar.",
-        )}
+        )}</span>
+        <CerrarAviso aviso={AVISOS_DEL_GESTOR.ayudaDelMapa} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.ayudaDelMapa)} />
       </div>
+      )}
       </>)}
 
       {/* ---------- Simulation banner ---------- */}
@@ -2169,7 +2240,7 @@ export default function RoutesPage() {
                 {t("Assign", "Asignar")}
               </button>
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={autoAssigning} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
-              <button className="btn btn-amber btn-sm" data-auto-asignar-del-recuadro onClick={bulkAutoAssign} disabled={autoAssigning || drivers.length === 0}>✨ {t("Auto-assign the checked ones", "Auto-asignar las marcadas")}</button>
+              <button className="btn btn-amber btn-sm" data-auto-asignar-del-recuadro onClick={() => setDialogoAutoAsignar(true)} disabled={autoAssigning || optimizingAll || busyDriver != null || drivers.length === 0}>✨ {t("Auto-assign the checked ones", "Auto-asignar las marcadas")}</button>
             </div>
           </div>
         )}
@@ -2626,6 +2697,18 @@ export default function RoutesPage() {
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 
       {openOrder && <OrderModal me={me} existing={openOrder} startEditing={false} onClose={() => setOpenOrder(null)} />}
+      {/* «✨ Auto-asignar» (D-401): el botón de arriba y «Auto-asignar las marcadas» del recuadro abren el mismo diálogo. */}
+      {dialogoAutoAsignar && (
+        <AutoAsignarDialogo
+          opciones={opcionesDelReparto}
+          delDia={unassigned.length}
+          marcadas={poolSelectedCount}
+          colorDe={colorFor}
+          t={t}
+          onCancelar={() => setDialogoAutoAsignar(false)}
+          onConfirmar={repartirConElDialogo}
+        />
+      )}
     </>
   );
 }

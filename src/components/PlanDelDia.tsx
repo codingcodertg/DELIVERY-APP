@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { CerrarAviso } from "@/components/CerrarAviso";
+import { AVISOS_DEL_GESTOR } from "@/lib/avisos-ocultos";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -76,13 +78,15 @@ const MOTIVOS: Record<string, [string, string]> = {
   no_disponible: ["off today", "hoy no está"],
 };
 
-/** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla). */
-export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: () => void }) {
+/** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
+ *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
+ *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
+export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
   const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(naceAbierto);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
@@ -186,6 +190,7 @@ export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: 
       <button className="btn btn-ghost btn-sm" aria-expanded={false} onClick={() => setAbierto(true)}>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")} ▸</button>
       {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
       {borrador && <span className="hint" style={{ margin: 0 }}>{borrador.status === "published" ? t(`Published v${borrador.version}`, `Publicado v${borrador.version}`) : t(`Draft v${borrador.version}`, `Borrador v${borrador.version}`)}</span>}
+      {onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}
     </div>
   );
   return (
@@ -194,6 +199,7 @@ export function PlanDelDia({ date, onPublicado }: { date: string; onPublicado?: 
         {/* Que no se pueda no ver (D-334): el dueño buscaba P1, P2… D1, D2… y no había pulsado esto nunca. El título dice
             lo que HACE, la frase lo que DA, y sin plan el botón es el primario de la pantalla. «Motor nuevo» era jerga nuestra. */}
         <button className="btn btn-ghost btn-sm" aria-expanded onClick={() => setAbierto(false)} title={t("Hide", "Ocultar")}><b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b> ▾</button>
+        {onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}
         {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
         <span className="hint" style={{ margin: 0, flexBasis: "100%" }}>
           {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",

@@ -367,7 +367,10 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("el panel sale solo para admin y logística y con una fecha; no decide nada; y el push va con el id que devuelve publicar", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
-    expect(gestor).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}');
+    // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
+    expect(gestor).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
+    expect(gestor).toContain("const barraDeArmarRutas = puedeArmarRutas && (");
+    expect(gestor).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);
     expect(plano(panel)).toContain('body: JSON.stringify({ notification_id: a.notification_id })');
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");

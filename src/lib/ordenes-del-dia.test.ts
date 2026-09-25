@@ -61,7 +61,10 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha");
     expect(pagina).toContain("onClick={() => { setAllDates(false); setSoloPendientes(true); }}");
     expect(pagina).toContain("onClick={() => setSoloPendientes(false)}");
-    expect(pagina).toContain('{!allDates && !soloPendientes && me && ["admin", "logistics"].includes(me.role) && <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} />}');
+    // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
+    expect(pagina).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
+    expect(pagina).toContain("const barraDeArmarRutas = puedeArmarRutas && (");
+    expect(pagina).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
   });
   it("«Planificar el día» tampoco arrastra: el motor lee SOLO las órdenes de esa fecha", () => {
     expect(leer("src/app/api/route-plan/route.ts").replace(/\s+/g, " ")).toContain('.eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])');
@@ -177,8 +180,9 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   });
   it("el resumen, la pestaña y «Auto-asignar» cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
-    expect(pagina).toContain("const res = autoAssign(unassigned, driverNames,");
+    // Desde D-401 «Auto-asignar» reparte desde su diálogo: «Todas» es `unassigned` (el día), «Solo las marcadas» va con el chip.
+    expect(pagina).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
     expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
-    expect(pagina).toContain("const chosen = filasDelChip.filter((d) => selectedOrders.has(d.id));");
+    expect(pagina).toContain("const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));");
   });
 });

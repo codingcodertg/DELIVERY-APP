@@ -10,7 +10,13 @@
  * D-376: la pestaña «Programadas» ya no existe —el dueño: «el view programados es innecesario»—, y con ella se fueron
  * las tres columnas que solo salían ahí (chofer, carga, parada). Quedan dos tablas: «Sin asignar» y la de paradas de
  * cada chofer. Una lista guardada que aún las nombre no rompe nada: una clave que ya no está en el catálogo se ignora.
+ *
+ * D-402: «Sin asignar» sale en el MISMO orden que Órdenes vista por ventas. El dueño: «quiero que la tabla que se hizo en
+ * logistic manager tenga el mismo orden que en order view de sales». Ese orden es el de partida de Órdenes
+ * (`ORDEN_DE_PARTIDA`, D-347), que se LEE de allí, no se copia: si Órdenes cambia su orden, el Gestor lo sigue.
  */
+
+import { ORDEN_DE_PARTIDA } from "./orden-de-columnas";
 
 export type TablaDelGestor = "sinAsignar" | "paradas";
 
@@ -24,15 +30,43 @@ export interface ColumnaDelGestor {
   deOrdenes?: string;
   /** No sale por defecto: se elige en ⚙ Columnas. */
   oculta?: true;
+  /** Para una columna de «Sin asignar» que Órdenes no tiene (D-402): la columna del Gestor delante de la cual va. */
+  antesDe?: string;
 }
 
-export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
+/** La columna de Órdenes que ocupa el puesto de esta en el orden de ventas (D-402): la de `deOrdenes`, o la de su misma
+ *  clave —«Factura», «Cuenta», «Dirección», «Tienda», «Pallets», «Fecha» y «Ventanas» se llaman igual en las dos tablas
+ *  y enseñan el mismo dato—. Nada si Órdenes no la tiene (la recogida). */
+export function claveEnOrdenes(c: ColumnaDelGestor): string | undefined {
+  const k = c.deOrdenes ?? c.key;
+  return ORDEN_DE_PARTIDA.includes(k) ? k : undefined;
+}
+
+/**
+ * El catálogo, con las de «Sin asignar» en el orden de Órdenes (D-402). Se ordena el CATÁLOGO, no cada pantalla —como
+ * hizo D-347 en Órdenes—, para que la tabla, la lista del ⚙ y las plantillas salgan en el mismo orden sin tocar la
+ * página. Una columna sin equivalente en Órdenes va justo delante de su `antesDe`, y si no tiene, al final. Las de
+ * paradas no se mueven: van detrás, en el orden en que están escritas.
+ */
+export function enOrdenDeVentas(catalogo: readonly ColumnaDelGestor[]): ColumnaDelGestor[] {
+  const puesto = (c: ColumnaDelGestor): number => {
+    const k = claveEnOrdenes(c);
+    if (k) return ORDEN_DE_PARTIDA.indexOf(k);
+    const vecina = c.antesDe ? catalogo.find((x) => x.key === c.antesDe) : undefined;
+    return vecina ? puesto(vecina) - 0.5 : ORDEN_DE_PARTIDA.length;
+  };
+  const sinAsignar = catalogo.filter((c) => c.tablas.includes("sinAsignar")).sort((a, b) => puesto(a) - puesto(b));
+  return [...sinAsignar, ...catalogo.filter((c) => !c.tablas.includes("sinAsignar"))];
+}
+
+export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas([
   { key: "invoice", en: "Invoice #", es: "Factura #", tablas: ["sinAsignar"], ancho: 110 },
   { key: "account", en: "Account", es: "Cuenta", tablas: ["sinAsignar"], ancho: 140 },
   // La dirección de entrega (D-346). El dueño: «delivery address is missing in the logistic manager schedule table».
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", tablas: ["sinAsignar"], ancho: 220 },
-  // Dónde recoge (D-353). El dueño: «en logistic manager table también quiero ver dónde recoge».
-  { key: "pickup", en: "Pickup", es: "Recogida", tablas: ["sinAsignar"], ancho: 160 },
+  // Dónde recoge (D-353). El dueño: «en logistic manager table también quiero ver dónde recoge». Órdenes no la tiene: va
+  // justo delante de la dirección de entrega, de dónde sale a dónde va (D-402).
+  { key: "pickup", en: "Pickup", es: "Recogida", tablas: ["sinAsignar"], ancho: 160, antesDe: "address" },
   { key: "store", en: "Store", es: "Tienda", tablas: ["sinAsignar"], ancho: 92 },
   { key: "pallets", en: "Pallets", es: "Pallets", tablas: ["sinAsignar"], ancho: 60 },
   { key: "date", en: "Delivery Date", es: "Fecha de Entrega", tablas: ["sinAsignar"], ancho: 100 },
@@ -66,16 +100,17 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = [
   { key: "p_date", en: "Stops: Delivery Date", es: "Paradas: Fecha entrega", tablas: ["paradas"], ancho: 112, deOrdenes: "date", oculta: true },
   { key: "p_fee", en: "Stops: Fee", es: "Paradas: Costo", tablas: ["paradas"], ancho: 72, deOrdenes: "fee", oculta: true },
   { key: "p_contact", en: "Stops: Contact", es: "Paradas: Contacto", tablas: ["paradas"], ancho: 116, deOrdenes: "contact", oculta: true },
-];
+]);
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
  *  columnas es una elección, no el punto de partida. */
 export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4"];
 
-/** El orden de cada tabla es el que ya tenía antes de poder elegir: la factura entra la primera y nada más se mueve.
- *  Lo que llega después va al final. */
+/** El orden de cada tabla. «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde
+ *  D-331, la factura la primera y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega
+ *  después va al final. */
 const ORDEN: Record<TablaDelGestor, readonly string[]> = {
-  sinAsignar: ["invoice", "account", "pickup", "address", "store", "pallets", "date", "windows", "status", "type", "so", "po", "fee", "contact"],
+  sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
   paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"],
 };
 
