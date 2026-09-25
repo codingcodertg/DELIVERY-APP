@@ -578,6 +578,23 @@ table.orders td.td-pastillas .sema {
 .col-menu-search { width: 100%; margin: 2px 0 4px; padding: 6px 8px; font-size: 12.5px; box-sizing: border-box; }
 .col-menu-actions { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 .col-menu-actions .btn { flex: 1; }
+/* Las plantillas de ⚙ Columnas (D-NEXT): el mismo bloque en Órdenes y en el Gestor. Arriba del todo, separado de las
+   casillas por una raya; cada plantilla es una pastilla que se aplica con un clic, con su ✕ al lado. */
+.plantillas-cols { padding: 4px 4px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.plantillas-cols-titulo { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .04em; padding: 2px 4px 4px; }
+.plantillas-cols-cuenta { font-weight: 500; text-transform: none; letter-spacing: 0; }
+.plantillas-cols-lista { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 2px 4px; }
+.plantilla-col-par { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; max-width: 100%; }
+.plantilla-col, .plantilla-col-x { border: none; background: var(--card); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; padding: 3px 8px; }
+.plantilla-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.plantilla-col:hover, .plantilla-col-x:hover { background: var(--card-hover); }
+.plantilla-col-x { padding: 3px 6px; color: var(--gray); border-left: 1px solid var(--line); }
+.plantilla-col-defecto { border: 1px solid var(--line); border-radius: 999px; font-weight: 600; }
+.plantilla-col-borrar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; width: 100%; font-size: 12px; padding: 2px; }
+.plantillas-cols-guardar { display: flex; gap: 4px; align-items: center; padding: 0 2px; }
+.plantillas-cols-guardar .col-menu-search { margin: 0; min-width: 0; flex: 1; }
+.plantillas-cols-aviso { margin: 0; padding: 4px 4px 0; }
+.plantillas-cols-mal { color: var(--red); }
 /* Ordenar, encima del filtro, en el menú de cada cabecera de Órdenes (D-275). */
 .col-menu-orden { border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 4px; }
 .col-orden { width: 100%; background: none; border: none; text-align: left; font-family: inherit; }

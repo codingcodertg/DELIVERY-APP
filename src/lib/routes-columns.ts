@@ -139,6 +139,22 @@ export function extrasDeParadas(elegidas: readonly string[]): ColumnaDelGestor[]
   return columnasDeLaTabla("paradas", elegidas).filter((c) => c.indice == null);
 }
 
+/**
+ * Lo que se pone al aplicar una PLANTILLA del Gestor (D-NEXT): las columnas de la foto que aún existen, en el orden del
+ * catálogo, con las marcas. Las marcas van SIEMPRE: la foto se tomó con este código, que ya conoce las columnas de cada tanda,
+ * y sin ellas `conColumnasNuevas` volvería a añadir al recargar las que la plantilla tenía quitadas.
+ */
+export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
+  const si = new Set(v);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4);
+}
+
+/** La foto que guarda una plantilla del Gestor: solo las columnas del catálogo que se ven, sin marcas ni claves retiradas. */
+export function fotoDelGestor(elegidas: readonly string[]): string[] {
+  const si = new Set(elegidas);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k));
+}
+
 /** Marcar o desmarcar una columna. Devuelve la lista en el orden canónico, sin repetidas y sin claves desconocidas. */
 export function alternaColumna(elegidas: readonly string[], key: string): string[] {
   const si = new Set(elegidas);
