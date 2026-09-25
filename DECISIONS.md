@@ -23322,6 +23322,12 @@ El noveno —«first delivery in time window»— **no está aquí**: es ambiguo
 **Reemplaza en parte a D-316** (el tipo de cliente «se marca en cada orden» y la cuenta se marca como builder en Datos) **y afina
 D-305** (el campo Cuenta enseñaba la lista entera al enfocarlo). Las dos entradas llevan su nota dentro.
 
+> **Afinada por D-NEXT (2026-09-25).** El dueño volvió a pedir las dos cosas: *«VENTA AL MOSTRADOR SON WALKINS ENTONCES SI
+> SELECCIONA SHOULD BE EMPTY»* y *«CUENTA SHOULDN'T SHOW ALL PEOPLE UNL…»*. §7: al elegir mostrador se vacían también el Nombre de
+> destino y la dirección de entrega (con su punto y su ruta), y lo que la persona tecleó a mano en el formulario ya **no** se
+> borra — aquí se vaciaban contacto y teléfono también si se habían tecleado. §5 sigue igual (2 letras), medido. Esta nota se
+> añade; el texto de abajo no se reescribe.
+
 ### 1 · Fuera «Buscar dirección en el mapa»
 
 El botón geocodificaba lo tecleado y abría el mapa en ese punto. No era el único camino a unas coordenadas: **al guardar, toda
@@ -27099,3 +27105,97 @@ Se arregló quitando las líneas `--` antes de buscar, y no reescribiendo el com
 que alguien vuelva a explicar la regla, la explicación no la rompe. Es la trampa de «una prueba que
 lee el fuente» una capa más adentro — dentro de PostgreSQL, donde las pruebas del repo no llegaban
 porque leen el `.sql` en vez de ejecutarlo.
+
+## D-NEXT · «Venta al mostrador» vacía también el destino y la dirección (lo precargado, no lo tecleado), y el campo Cuenta sigue sugiriendo solo al escribir
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por el dueño**, dos mensajes: *«VENTA AL MOSTRADOR SON WALKINS ENTONCES SI SELECCIONA SHOULD BE EMPTY»* y *«CUENTA
+SHOULDN'T SHOW ALL PEOPLE UNL…»* (el segundo llegó cortado). Preguntado por el orquestador, eligió: al elegir «Venta al
+mostrador» quedan vacíos **la cuenta/cliente, la dirección de entrega, el teléfono y el contacto**; y para la cuenta, **«Solo al
+escribir»**.
+
+**Afina D-337** (§5 y §7), que ya llevaba su nota dentro. Es la **segunda vez** que se piden las dos cosas: D-337 (2026-09-19,
+tarea T-0080) ya las había hecho a medias, y eso es lo que medí antes de tocar nada.
+
+### Lo que había, medido en el demo el 2026-09-25 (ventas, código de `main` en `e0de42e7`)
+
+| Caso | Contacto | Teléfono | Nombre de destino | Dirección |
+|---|---|---|---|---|
+| Orden nueva, «Rio Tile Co.» y luego mostrador | vacío | vacío | vacío | vacío |
+| Orden nueva, contacto y dirección **tecleados**, luego mostrador | **se borró** «Pepe Walkin» | vacío | vacío | se quedó |
+| Orden ya guardada #1073 (Delta Construction), editar, mostrador | vacío | vacío | **«Delta Construction»** | **«300 E Ferguson Ave, Pharr TX»** |
+
+O sea: D-337 vaciaba contacto y teléfono, **pero el destino y la dirección de la cuenta anterior se quedaban dentro de la orden
+de mostrador** —el caso de la #1073—, y además **borraba en silencio lo que la persona acababa de teclear** en contacto. La
+dirección de una orden nueva nunca venía precargada al elegir cuenta (el modal no la rellena a propósito: lo dice el comentario del sitio de llamada),
+así que el agujero era la orden que ya tenía cuenta.
+
+### Qué hace ahora — `vaciarParaMostrador`, en `src/lib/cuenta-elegida.ts`
+
+Los **campos del cliente** son cuatro: `contact`, `delivery_phone`, `delivery_name` (Nombre de destino) y `delivery_address`.
+Al elegir «Venta al mostrador»:
+
+- **Lo precargado se va**: lo que vino de la cuenta anterior, de su última orden o de la orden ya guardada que se edita.
+- **Lo tecleado a mano en este formulario se queda.** Es la decisión que pidió el orquestador («no prellenar nada, y vaciar solo
+  lo que vino precargado») y la mía: quien escribe primero el nombre del cliente de paso y después pulsa «Venta al mostrador» no
+  debe perderlo. **Esto cambia una línea de D-337 §7**, que vaciaba contacto y teléfono «aunque vinieran de otra cuenta» — eso
+  sigue igual — pero también si se habían tecleado.
+- Cómo se sabe qué es tecleado: todo `set(...)` del modal sobre esos cuatro campos es un gesto de la persona (teclear, elegir una
+  sugerencia de dirección, elegir un sitio guardado, soltar un pin que rellena la dirección), y se apunta. Los autorrellenos van
+  por `setD` y no se apuntan. Un campo cuenta como tecleado **solo si todavía tiene exactamente lo que se tecleó**: si un
+  autorrelleno lo pisó después (elegir una cuenta guardada rellena el contacto), ya no es de la persona y se va.
+- **Si la dirección se va, se van con ella el punto del mapa y la ruta** (`delivery_lat/lng`, `delivery_pin_source`,
+  `route_*`): eran de esa dirección y llevarían al chofer al cliente anterior. Si no había dirección, el pin no se toca.
+- **La cuenta no se vacía**: queda «Venta al mostrador», que es lo que se eligió. Leí «cuenta/cliente» del encargo como el
+  cliente de la orden, que en el formulario es el **Nombre de destino**; si el dueño quería otra cosa, hay que preguntárselo.
+- **Mostrador ya no trae tipo de orden** de «la última orden de mostrador»: sería el de otro cliente. El tipo se queda el que
+  estaba (el campo Cuenta solo existe en tipos de cliente).
+- La tarifa de entrega **no se toca**, aunque la hubiera sugerido la zona de la dirección que se va: puede estar tecleada y no
+  hay forma de distinguirlo sin otra marca. Queda dicho.
+
+### Validación: la misma que antes
+
+No se tocó `required.ts`. Para **enviar** una orden de mostrador siguen haciendo falta contacto, teléfono (7 dígitos) y
+dirección — el chofer tiene que saber a dónde va y a quién llamar —; el Nombre de destino nunca fue obligatorio en una orden a
+cliente. Un **borrador** se guarda sin ellos, como siempre. En la base esas columnas son `text` sin `not null` ni `check`
+(migración 014), así que el `""` que escribe el formulario no lo rechaza nadie. Nada bloquea lo que antes no bloqueaba.
+
+### Cuenta: «solo al escribir» ya era así — 2 letras
+
+Medido en el demo, ventas y office, con el código de `main`: **0 sugerencias** con el campo enfocado, **0** con la flecha abajo,
+**0** con una letra («r»), **3** con dos («ri»: Hidalgo Interiors, Rio Tile Co., Sunrise Flooring). Es D-337 §5
+(`LETRAS_PARA_SUGERIR = 2`), sin cambios. **Me quedo con 2**: con una sola letra y búsqueda por «contiene», casi cualquier letra
+casa con casi todas las cuentas, que es enseñar la lista entera con un paso más. Las sugerencias son las mismas de antes (misma
+función `cuentasQueCoinciden`, mismas cuentas).
+
+Lo único que se añade es `autoComplete="off"` en el campo. **No medido:** el navegador del demo arranca sin historial, así que no
+puedo ver si Chrome pintaba debajo su propio desplegable de cosas tecleadas antes — es una posible explicación de «shows all
+people» con el código ya cumpliendo, no una comprobada. Si el dueño lo sigue viendo, hace falta **una captura suya**: puede ser
+otro campo (el «Nombre de destino» es un desplegable con todos los sitios guardados de todas las cuentas) o el filtro de la
+columna Cuenta de la tabla.
+
+### Medido después, en el demo (2026-09-25, ventas y office, clics de persona)
+
+| Caso | Ventas | Office |
+|---|---|---|
+| Cuenta vacía / enfocada / 1 letra / 2 letras | 0 / 0 / 0 / 3 | 0 / 0 / 0 / 3 |
+| Orden nueva, «Rio Tile Co.» → mostrador | los cuatro vacíos | los cuatro vacíos |
+| Orden nueva, contacto y dirección tecleados → mostrador | «Pepe Walkin» y «100 Calle Falsa» **se quedan**; teléfono vacío | igual |
+| Orden guardada con cuenta → mostrador | #1073: los cuatro vacíos, millas «—» | #1089 (Hidalgo Interiors): los cuatro vacíos |
+
+Office nace en Intertienda y el campo Cuenta no existe ahí (D-338); se cambió a Customer con el teclado antes de medir.
+
+### Mutantes
+
+16, leídos por nombre de prueba, caen los 16. Uno sobrevivió en la primera tanda —«la dirección del paso inicial se escribe sin
+pasar por `set`»— porque la prueba buscaba `set("delivery_address", v)` y hay tres; se añadió la que prohíbe escribir un campo
+del cliente por fuera de `set`, y cae. Los demás: lo tecleado también se borra; tecleado aunque lo pise un autorrelleno; vuelven
+a vaciarse solo contacto y teléfono; el punto y la ruta se quedan; el pin se quita sin dirección; la pantalla no apunta lo
+tecleado; no se lo pasa a la regla; mostrador trae el tipo de la última orden; se cae `autoComplete`; una letra basta; campo
+vacío sugiere todas.
+
+### Lo que NO está
+
+- Ninguna migración ni cambio de validación.
+- La captura del dueño de «shows all people»: no la hay, y sin ella lo de la cuenta es lo medido arriba más una defensa sin medir.
+- Las órdenes ya guardadas con «Venta al mostrador» y la dirección de otro cliente dentro no se tocan: esto actúa al elegir.

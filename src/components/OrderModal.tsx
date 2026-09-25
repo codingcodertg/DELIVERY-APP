@@ -45,7 +45,7 @@ import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/li
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
-import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
+import { contactoAlElegirCuenta, esCampoDelCliente, laCuentaRecuerda, type Tecleado } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
@@ -243,7 +243,13 @@ export function OrderModal({
     );
   };
 
-  const set = (k: keyof Delivery, v: unknown) => setD((p) => ({ ...p, [k]: v }));
+  // Lo que la persona teclea o elige a mano en los campos del cliente: al pasar a «Venta al mostrador» eso se queda y lo
+  // precargado se va (D-NEXT). Todo `set` de esos cuatro campos es un gesto de la persona; los autorrellenos van por `setD`.
+  const tecleado = useRef<Tecleado>({});
+  const set = (k: keyof Delivery, v: unknown) => {
+    if (esCampoDelCliente(k)) tecleado.current[k] = String(v ?? "");
+    setD((p) => ({ ...p, [k]: v }));
+  };
 
   // A non-sales creator (office, admin, driver) is placing the order on behalf
   // of a sales rep, so it needs to be assigned to one — that's who the order
@@ -1884,7 +1890,8 @@ export function OrderModal({
                       ...p,
                       account: v,
                       // Mostrador: vacíos, para teclear los del cliente de paso; nunca los de la última orden (D-337).
-                      ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),
+                      // Desde D-NEXT también el destino y la dirección, y lo tecleado a mano se queda.
+                      ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p, tecleado: tecleado.current }),
                       // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-337).
                       customer_type: tipoDeClientePorDefecto(v),
                       // Do NOT auto-fill the delivery address — the rep picks the
@@ -1893,7 +1900,8 @@ export function OrderModal({
                     };
                     // Order type: saved flag → Intertienda/Customer; otherwise the
                     // last order's own type; otherwise the branch/customer default.
-                    const wantType = !v.trim() ? null
+                    // Mostrador no trae tipo: el de «la última orden de mostrador» sería el de otro cliente (D-NEXT).
+                    const wantType = !v.trim() || esCuentaDeMostrador(v) ? null
                       : rec ? (isIntertienda ? "Intertienda" : "Customer")
                       : (past?.order_type && settings.order_types.includes(past.order_type)
                           ? past.order_type
@@ -3593,6 +3601,9 @@ function AccountCombo({ val, on, options, fija, disabled, placeholder, t }: {
         aria-expanded={abierto}
         aria-autocomplete="list"
         aria-controls="cuentas-sugeridas"
+        // La lista la da SOLO `sugerenciasPara`, a partir de dos letras (D-337, D-NEXT). Sin esto el navegador puede
+        // pintar debajo su propio desplegable de lo escrito antes en campos parecidos, que es una lista que no filtra nadie.
+        autoComplete="off"
         value={texto}
         disabled={disabled}
         placeholder={placeholder ?? t("Type to search or add…", "Escriba para buscar o agregar…")}
