@@ -115,7 +115,7 @@ export function TeamDiary() {
       {employees.length === 0 ? (
         <p className="muted" style={{ marginTop: 12 }}>{t("mgr.shots.empty")}</p>
       ) : (
-        <WorkDiary key={activeUid} shots={empShots} sessions={empSessions} onDelete={deleteShot} />
+        <WorkDiary key={activeUid} shots={empShots} sessions={empSessions} onDelete={deleteShot} summary />
       )}
       <p className="small muted" style={{ marginTop: 14 }}>
         {t("mgr.shots.foot", { d: fmtHM((Number(APP_SETTINGS.screenshotIntervalMin) || 10) * 60) })}
