@@ -343,7 +343,7 @@ export default function OrdersPage() {
    * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa; `conPendientes` es
    * esa más las que solo se caían por la ventana y tienen documento pendiente.
    */
-  const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo(
+  const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(
     () => ordenesVisibles(deliveries, {
       me,
       teaching,
@@ -732,6 +732,19 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {/* Gerente y ventas ven solo su tienda y su grupo; los demás, solo al buscar (D-405). Sin tienda,
+          ninguna, y se dice por qué con el MISMO alcance que cortó la lista (D-237, D-396, D-404). */}
+      {alcanceLista.tipo === "sin-tienda" && (
+        <div className="card" data-ordenes-sin-tienda style={{ marginBottom: 8 }}>
+          <p className="hint" style={{ margin: 0 }}>
+            🏬 {q.trim()
+              ? t("No store assigned: the search finds only your store's orders. Ask an admin to assign your store in Users.",
+                "Sin tienda asignada: la búsqueda encuentra solo órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")
+              : t("No store assigned: Orders shows only your store's orders. Ask an admin to assign your store in Users.",
+                "Sin tienda asignada: Órdenes enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")}
+          </p>
+        </div>
+      )}
       {ready ? (
         view === "board" ? (
           <OrdersBoard rows={rows} onOpen={setOpen} />

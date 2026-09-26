@@ -25930,6 +25930,12 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-405** (2026-09-26), en la pantalla de **Órdenes**: ventas ya **no** ve sus órdenes
+> «en cualquier tienda», sino **solo las suyas en su tienda y las de su grupo**, sin buscar y buscando (*«y office
+> manager, sales solo pueden ver su propia tienda»*). Los borradores de otros (D-286) los sigue viendo, pero solo los de
+> su tienda. `ventasVeLaOrden` no cambió: sigue decidiendo solo «es suya»; la tienda la corta `alcanceDeLaLista`. Lo de
+> almacén no cambia, salvo que **almacén sin tienda, buscando, ya no encuentra nada** (sin buscar sigue sin corte).
+
 > **⚠ Reemplazada en parte por D-404** (2026-09-26), solo en la pestaña «Factura pendiente» de Órdenes: ventas sigue
 > viendo sus órdenes de cualquier tienda en la lista, pero en esa pestaña **solo las de su tienda y su grupo**
 > (*«estrictamente solo … de tu tienda»*). Lo demás de esta entrada no cambia.
@@ -28715,6 +28721,11 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 
 ## D-404 · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
 
+> **⚠ Reemplazada en parte por D-405** (2026-09-26): la atrasada que aquí sale **también en la lista normal al
+> buscar** sigue saliendo, pero ahora pasa por el corte de tienda de la búsqueda: quien no es admin ni logística solo la
+> encuentra si es de su tienda o de su grupo. Y la frase *«En la lista normal sigue como estaba»* de ventas ya no vale:
+> gerente y ventas ven toda la lista cortada por su tienda. «Factura pendiente» no cambia.
+
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño el mismo día**, literales:
 
@@ -28833,4 +28844,136 @@ casillas, y la lista normal de Órdenes sigue enseñándolas; el corte es solo d
 
 - **Nada contra producción.** No se contó cuántas atrasadas de ayer hay hoy, ni cuántas facturas pendientes deja de ver
   cada office. D-396 contó 2 gerentes sin tienda: esos dos ven «Factura pendiente» con 0 y el aviso.
+- El chofer no se midió: no tiene la pestaña de Órdenes.
+
+## D-405 · Órdenes por tienda: gerente y ventas solo ven su tienda y su grupo, y la búsqueda de todos (menos admin y logística) solo encuentra órdenes de su tienda
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+**Dos pedidos del dueño el mismo día**, literales:
+
+1. *«solo pueden buscar en el search bar, solo puede buscar órdenes de ellos mismos de su propia tienda»*. Preguntado
+   entre opciones, eligió **«Solo su tienda»**.
+2. Mientras se hacía el primero: *«y office manager, sales solo pueden ver su propia tienda»*.
+
+Van en una sola entrada porque son la misma regla de tiendas aplicada a dos alcances distintos, en la misma función
+(`ordenesVisibles`), y separarlas obligaría a explicar cada una con la otra. **Reemplaza en parte a D-374 y a D-404**;
+las dos llevan su nota dentro.
+
+### Qué queda, rol por rol
+
+| rol | lista sin buscar | buscando |
+|---|---|---|
+| **admin, logística** | todas las tiendas (sin cambio) | todas |
+| **gerente** (`manager`, «Office Manager») | **su tienda y su grupo** | su tienda y su grupo |
+| **ventas** (`sales`) | **solo las suyas, y solo en su tienda y su grupo** | lo mismo |
+| **office** (`accounting`) | todas las tiendas (sin cambio) | **su tienda y su grupo** |
+| **almacén** (`warehouse`) | sus tiendas (D-374, sin cambio) | sus tiendas (no cambia nada: es el mismo corte) |
+| **sin tienda** donde hay corte | gerente y ventas: **ninguna**, con aviso | todos los de arriba salvo admin y logística: **ninguna**, con aviso |
+
+«Su tienda y su grupo» es **exactamente la regla de D-404** (y la del Panel, D-396): `alcanceDelPanel` para decidir el
+alcance y `esDelAlcance` para cada orden, sacadas de `panel-por-tienda.ts`. No hay regla nueva de tiendas. Por eso:
+
+- Una **Intertienda es de las dos tiendas que toca** (D-309): la ven el gerente del origen y el del destino, y los de
+  sus grupos. Una orden de **cliente** cuenta solo por su `store`, aunque su destino se llame como otra tienda.
+- **Sin tienda asignada, ninguna**, como D-237/D-396/D-404: un campo sin rellenar no amplía lo que se ve. La pantalla lo
+  dice encima de la tabla (vale para tabla y tablero): *«Sin tienda asignada: Órdenes enseña solo las órdenes de su
+  tienda. Pida a un admin que se la asigne en Usuarios.»* — o, buscando, *«…la búsqueda encuentra solo órdenes de su
+  tienda…»*. El aviso sale del **mismo valor** que cortó la lista (`alcanceLista`, que devuelve `ordenesVisibles`), no de
+  otra cuenta.
+- El **sandbox de enseñanza** no tiene cortes, tampoco este.
+
+### Cómo está hecho
+
+Una función nueva en `ordenes-visibles.ts`, `alcanceDeLaLista(ctx)`: admin y logística, todas; `manager` y `sales`
+(`ROLES_LISTA_DE_SU_TIENDA`), `alcanceDelPanel` siempre; los demás, `alcanceDelPanel` **solo si hay algo tecleado**
+(una búsqueda de solo espacios no es buscar), y si no, todas. `ordenesVisibles` la aplica **a cada orden antes de
+repartirla** entre la lista normal, «Outdated» y «Factura pendiente», así que el corte vale igual para «Todas», cada
+etapa, «Outdated», «Factura pendiente», sus números y el tablero: número = filas por construcción, como en D-384/D-404.
+«Factura pendiente» sigue además con su propio corte de D-404, que para quien no es admin ni logística ya era este.
+
+### Lo que revierte, dicho claro
+
+- **D-374 decía que ventas ve sus órdenes «en cualquier tienda».** Ya no: **solo las suyas y solo en su tienda y su
+  grupo**, con y sin buscar. Un vendedor de McAllen que tenga una orden suya en Pharr deja de verla en Órdenes. Lo pidió
+  el dueño en el segundo mensaje. `ventasVeLaOrden` no se tocó: sigue decidiendo solo «es suya» (creada por él o
+  asignada a él, más los borradores de D-286); la tienda la corta `alcanceDeLaLista`, aparte.
+- **Los borradores de otros** (D-286: *«para borrador, deja que cualquiera pueda volver y editarlo»*) ventas los sigue
+  viendo, **pero ya solo los de su tienda y su grupo**. Es consecuencia de «solo su tienda»; si el dueño quiere que el
+  borrador de otra tienda siga saliendo, es una excepción que hay que pedir.
+- **D-404 dejaba salir buscando la atrasada en la lista normal.** Sigue saliendo, pero **pasa por este corte**: office
+  de McAllen buscando la factura de una atrasada de Pharr no la encuentra.
+
+### Lo raro, y el dueño lo pidió así
+
+**Office** (y almacén sin tienda) ve **sin buscar** las órdenes de todas las tiendas, como antes. Si office de McAllen
+tiene en su lista normal una orden de Pharr y **teclea su factura**, **no la encuentra**: la tiene delante y buscándola
+desaparece. Es lo que sale de *«solo pueden buscar… de su propia tienda»* con la lista sin tocar, que es lo que se
+eligió. Para gerente y ventas no pasa, porque su lista ya está cortada igual. **Office no lo nombró el dueño en el
+segundo mensaje**, así que para él queda solo lo de la búsqueda; si pide que su lista también sea de su tienda, es
+añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
+
+### Decisiones mías, que el orquestador debe validar
+
+- **Almacén sin tienda, buscando, ya no encuentra nada** (con el aviso). D-374 decidió que almacén sin tienda **no** se
+  corta (*«vería CERO órdenes, y eso se lee como una app rota»*) y su lista sin buscar sigue así; pero el pedido es
+  «todos menos admin y logística» y D-404 ya le quitó «Factura pendiente» en el mismo caso. Con tienda no cambia nada
+  (medido).
+- **Rol efectivo** (`me`), como D-404 y el Panel: un admin que mira «como» gerente ve el corte del perfil que mira.
+- **No se cuentan las tiendas de «Tiendas que ve»** (`visible_stores`, D-315), igual que D-404 y el Panel.
+- **Es de pantalla**, como D-396 y D-404: la base (la 131) sigue mandando a gerente, ventas y office las órdenes de
+  todas las tiendas (a quien no tiene casillas marcadas). Órdenes ya no las enseña; quien lea la base por otra vía, sí.
+  Bajarlo a la base es otra decisión, con plan en papel.
+- **Solo Órdenes.** El Gestor de rutas, el mapa, la Cola de almacén y el Panel no se tocaron (el Panel ya era así por
+  D-396).
+
+### Verificado
+
+- Tipos, suite y build en verde (2026-09-26), a mano: `node scripts/verify.mjs` no arranca en este worktree porque busca
+  `node_modules/typescript/bin/tsc` y no está; `npx tsc --noEmit`, `npx vitest run` y `npx next build` con placeholders,
+  que es lo que corre. Suite: **4520 pasados | 3 saltados**.
+- Prueba nueva, `ordenes-por-tienda.test.ts` (28): gerente y ventas de una tienda con grupo y de una que va sola, sin
+  buscar y buscando por factura; que las pastillas cuentan lo que enseñan («Todas», etapa, «Outdated», «Factura
+  pendiente»); ventas: la suya de otra tienda no sale (control: por rol le toca), solo lo suyo dentro de su tienda, y el
+  borrador de otro solo en su tienda; gerente ve la de otro vendedor de su tienda; Intertienda vista desde origen,
+  destino y grupo, con el control de una de cliente; office sin buscar sin cambio y buscando cortado, también la atrasada;
+  almacén igual buscando que sin buscar; admin y logística con y sin tienda; sandbox; sin tienda para gerente, ventas y
+  office; y que la pantalla pinta el aviso con `alcanceLista`. Tres pruebas de texto existentes se actualizaron solo
+  porque la línea que desestructura `ordenesVisibles` ganó `alcanceLista`.
+- **Mutantes: 10, caen los 10**, leídos por nombre: ventas deja de ir cortada (caen 7, entre ellas *«ventas: la suya de
+  otra tienda ya no sale…»*); el gerente deja de ir cortado (7, *«manager de Norte, sin buscar: Norte y Oeste…»*); buscar
+  deja de cortar a office (*«office de Norte, buscando por factura: Norte y Oeste, no Sur»* y 2 más); office cortado
+  también sin buscar (*«office de Norte sigue viendo en «Todas» una orden de Sur de hoy»*, de D-404, y 4 más); el
+  sandbox se corta (*«el sandbox de enseñanza no tiene cortes, tampoco este»*); `ordenesVisibles` no aplica el corte (18);
+  la lista se corta con el alcance de «Factura pendiente» (5); devuelve otro alcance del que cortó (4); la pantalla pinta
+  el aviso con `alcancePendientes` y el aviso con los textos cambiados (*«la pantalla pinta el aviso con `alcanceLista`…»*).
+- **En el navegador, 2026-09-26, demo local** (`next dev`, sin base; Chrome sin perfil; clics de persona; chips de
+  fecha «Todas» y pastilla «Todas»). McAllen y Mission en el mismo grupo. Sembradas, todas «Programada» de hoy salvo la
+  última: **McAllen** (de ventas, `INVQMCA01`), **Mission** (de ventas, `INVQMIS01`), **Pharr** (de ventas, `INVQPHA01`),
+  **McAllen de otro vendedor** (`INVQOTR01`), **Intertienda Pharr→McAllen** de otro (`INVQINT01`) y una **atrasada de
+  ayer en Pharr** de ventas (`INVQAYR01`). Cada factura se tecleó por separado:
+
+  | rol | lista sin buscar (filas = «Todas») | sembradas en la lista | encuentra buscando |
+  |---|---|---|---|
+  | Admin | 92 | las 5 de hoy | las 6 |
+  | Logística | 92 | las 5 de hoy | las 6 |
+  | Gerente de McAllen | 36 (McAllen, Mission, y Pharr solo en tienda a tienda) | McAllen, Mission, otro, Intertienda | esas 4; no Pharr ni la atrasada de Pharr |
+  | Gerente de Pharr | 17 (Pharr) | Pharr, Intertienda | Pharr, Intertienda, atrasada de Pharr |
+  | Office de McAllen | 89 (6 tiendas, sin cambio) | las 5 de hoy | McAllen, Mission, otro, Intertienda; **no Pharr** (la tiene en la lista) ni la atrasada |
+  | Ventas de McAllen | 33 (McAllen, Mission) | McAllen, Mission | McAllen, Mission; **no su Pharr**, ni la de otro, ni la Intertienda de otro |
+  | Almacén de McAllen | 30 | McAllen, Mission, otro, Intertienda | las mismas 4 (no cambia) |
+  | Office sin tienda | 89, sin aviso | las 5 de hoy | ninguna, con el aviso de búsqueda |
+  | Gerente sin tienda | 0, con el aviso | — | ninguna, con el aviso |
+  | Ventas sin tienda | 0, con el aviso | — | ninguna, con el aviso |
+
+  La Intertienda Pharr→McAllen la ven **los dos lados** (gerente de McAllen y de Pharr). Ninguna página se desplaza de
+  lado. Capturas en el scratchpad del orquestador (`agente-P/tiros/`, 40).
+
+### Lo no verificado
+
+- **Nada contra producción.** No se contó cuántas órdenes deja de ver cada gerente o vendedor, ni cuántos vendedores
+  tienen órdenes suyas en otra tienda (esas son las que desaparecen). D-396 contó 2 gerentes sin tienda: esos dos ven
+  Órdenes vacía con el aviso desde esta versión — **hay que asignarles tienda en Usuarios antes de publicar**, o dejan de
+  trabajar.
+- **El tablero no se abrió en el navegador**: pinta las mismas filas (`filasDeOrdenes` sobre las mismas listas); lo
+  cubre la prueba de las pastillas, no una captura.
 - El chofer no se midió: no tiene la pestaña de Órdenes.

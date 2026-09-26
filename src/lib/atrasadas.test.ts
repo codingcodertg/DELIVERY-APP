@@ -218,7 +218,7 @@ describe("la pantalla usa todo esto, y no una copia", () => {
   const pagina = plano(leer("src/app/(app)/page.tsx"));
 
   it("pide las tres listas a `ordenesVisibles` y se las pasa enteras a las cuentas y a las filas", () => {
-    expect(pagina).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo( () => ordenesVisibles(deliveries, {");
+    expect(pagina).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo( () => ordenesVisibles(deliveries, {");
     expect(pagina).toContain("const listas = useMemo(() => ({ visibles: visible, conPendientes, atrasadas }), [visible, conPendientes, atrasadas]);");
   });
 
