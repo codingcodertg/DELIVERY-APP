@@ -6,6 +6,9 @@
  * quien elige qué columnas ve; la elección se guarda por persona (`user_prefs`, clave `routes_columns`).
  *
  * La primera columna (`#`, el código de la orden) y la de acciones son FIJAS: no se pueden quitar.
+ * D-NEXT: la del código de orden ya no está. El dueño: «routes manager doesn't need to see id». Lo FIJO ahora es la
+ * factura (`fija`), que es la que abre la orden en las dos tablas; y la «Dirección de entrega» enseña solo la ciudad
+ * («Ciudad de entrega»; el dueño: «que salga delivery city y solo salga la city donde se entrega»).
  *
  * D-376: la pestaña «Programadas» ya no existe —el dueño: «el view programados es innecesario»—, y con ella se fueron
  * las tres columnas que solo salían ahí (chofer, carga, parada). Quedan dos tablas: «Sin asignar» y la de paradas de
@@ -32,6 +35,8 @@ export interface ColumnaDelGestor {
   oculta?: true;
   /** Para una columna de «Sin asignar» que Órdenes no tiene (D-402): la columna del Gestor delante de la cual va. */
   antesDe?: string;
+  /** Sale SIEMPRE y no está en el ⚙ (D-NEXT): la factura, que abre la orden. Una lista guardada sin ella no la esconde. */
+  fija?: true;
 }
 
 /** La columna de Órdenes que ocupa el puesto de esta en el orden de ventas (D-402): la de `deOrdenes`, o la de su misma
@@ -60,10 +65,13 @@ export function enOrdenDeVentas(catalogo: readonly ColumnaDelGestor[]): ColumnaD
 }
 
 export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas([
-  { key: "invoice", en: "Invoice #", es: "Factura #", tablas: ["sinAsignar"], ancho: 110 },
+  // Fija desde D-NEXT: sin la columna del ID es lo que abre la orden, y esconderla dejaría la fila sin nada que pulsar.
+  { key: "invoice", en: "Invoice #", es: "Factura #", tablas: ["sinAsignar"], ancho: 110, fija: true },
   { key: "account", en: "Account", es: "Cuenta", tablas: ["sinAsignar"], ancho: 140 },
   // La dirección de entrega (D-346). El dueño: «delivery address is missing in the logistic manager schedule table».
-  { key: "address", en: "Delivery Address", es: "Dirección de entrega", tablas: ["sinAsignar"], ancho: 220 },
+  // Desde D-NEXT enseña solo la CIUDAD (`ciudadDeEntrega`); la dirección entera, al pasar el ratón. La clave sigue siendo
+  // `address`, como `status` más abajo: es la que está guardada en las listas y en las plantillas, y así no se mapea nada.
+  { key: "address", en: "Delivery City", es: "Ciudad de entrega", tablas: ["sinAsignar"], ancho: 120 },
   // Dónde recoge (D-353). El dueño: «en logistic manager table también quiero ver dónde recoge». Órdenes no la tiene: va
   // justo delante de la dirección de entrega, de dónde sale a dónde va (D-402).
   { key: "pickup", en: "Pickup", es: "Recogida", tablas: ["sinAsignar"], ancho: 160, antesDe: "address" },
@@ -82,16 +90,17 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "fee", en: "Fee", es: "Costo", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "fee" },
   { key: "contact", en: "Contact", es: "Contacto", tablas: ["sinAsignar"], ancho: 116, deOrdenes: "contact" },
   // La tabla de PARADAS de un chofer, donde se cambia el orden (D-346): «let me configure it into columns». Sus columnas
-  // eran fijas. El número de parada, el ID y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
+  // eran fijas. El número de parada, el ID (desde D-NEXT, la factura) y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
   // puesto que la columna ya tenía en esa tabla, que guarda su ancho por posición (`useColWidths`).
   { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 140, indice: 2 },
   { key: "p_pallets", en: "Stops: Pallets", es: "Paradas: Pallets", tablas: ["paradas"], ancho: 70, indice: 3 },
-  { key: "p_address", en: "Stops: Address", es: "Paradas: Dirección", tablas: ["paradas"], ancho: 240, indice: 4 },
+  // La ciudad también aquí desde D-NEXT, con la misma clave por la misma razón.
+  { key: "p_address", en: "Stops: City", es: "Paradas: Ciudad", tablas: ["paradas"], ancho: 120, indice: 4 },
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
   { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 110, indice: 6 },
   // Las de Órdenes que la tabla de paradas no tenía (D-376). NO salen por defecto: esta tabla es donde se cambia el orden
   // con las flechas de la derecha, y ocho columnas más las sacarían de la pantalla (medido: ver la decisión). Se eligen
-  // en su ⚙. Ni el chofer —la tabla ES la de un chofer— ni la factura —ya sale bajo el ID—.
+  // en su ⚙. Ni el chofer —la tabla ES la de un chofer— ni la factura —ya sale bajo el ID; desde D-NEXT, en su lugar—.
   { key: "p_stage", en: "Stops: Stage", es: "Paradas: Etapa", tablas: ["paradas"], ancho: 108, deOrdenes: "stage", oculta: true },
   { key: "p_store", en: "Stops: Store", es: "Paradas: Tienda", tablas: ["paradas"], ancho: 128, deOrdenes: "store", oculta: true },
   { key: "p_account", en: "Stops: Account", es: "Paradas: Cuenta", tablas: ["paradas"], ancho: 184, deOrdenes: "account", oculta: true },
@@ -118,7 +127,12 @@ const ORDEN: Record<TablaDelGestor, readonly string[]> = {
  *  no existe (una columna retirada) se ignora sin romper nada. */
 export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly string[]): ColumnaDelGestor[] {
   const si = new Set(elegidas);
-  return ORDEN[tabla].filter((k) => si.has(k)).map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!);
+  return ORDEN[tabla].map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!).filter((c) => si.has(c.key) || c.fija);
+}
+
+/** Las que ofrece el ⚙ de una tabla: las suyas menos las fijas (D-NEXT), que salen siempre y no se desmarcan. */
+export function columnasElegibles(tabla: TablaDelGestor): ColumnaDelGestor[] {
+  return COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes(tabla) && !c.fija);
 }
 
 /**
