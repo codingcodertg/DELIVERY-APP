@@ -20,6 +20,11 @@ import type { Delivery, NamedLocation } from "./types";
  * **D-392 (2026-09-25) la dejó solo para admin y logística**: *«ONLY LOGISTICS AND admin CAN SEE DAYS
  * BEFORE YESTERDAY»*. Por eso la persona de partida de estas pruebas es logística, y lo que les pasa a
  * los demás roles está en su propio bloque, al final.
+ *
+ * **D-NEXT (2026-09-26)**: *«all late delivery orders need to go in a similar filter like invoice
+ * pending pero en rojo, entonces las late ya no se verán en all sino que se van directo a outdated»*.
+ * Entra TODA atrasada abierta, también la de ayer; la pastilla sale solo con algo dentro (o estando
+ * en ella), y vuelve a ser de todos los roles: los que no ven días viejos, con las de ayer.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -51,8 +56,8 @@ const orden = (id: string, stage: Delivery["stage"], delivery_date: string | nul
 
 /**
  * Un día de trabajo que CONTRADICE: una abierta vieja (va a «Outdated»), una entregada y una anulada
- * del mismo día viejo (no van a ningún sitio para quien no ve historial), una abierta de ayer (está
- * atrasada según `isOverdue` pero se queda en la lista normal), y hoy y mañana.
+ * del mismo día viejo (no van a ningún sitio para quien no ve historial), una abierta de ayer (desde
+ * D-NEXT va también a «Outdated»), y hoy y mañana.
  */
 const DIA = [
   orden("vieja-abierta", "approved", HACE_DIEZ),
@@ -65,7 +70,7 @@ const DIA = [
   orden("sin-fecha", "approved", null),
 ];
 
-describe("qué es una atrasada para «Outdated»: `isOverdue` más el suelo de ayer", () => {
+describe("qué es una atrasada para «Outdated»: `isOverdue`, sin suelo (D-NEXT)", () => {
   it("abierta y anterior a ayer, sí", () => {
     expect(vaAAtrasadas({ stage: "approved", delivery_date: HACE_DIEZ })).toBe(true);
     expect(vaAAtrasadas({ stage: "ready", delivery_date: ANTEAYER })).toBe(true);
@@ -74,32 +79,40 @@ describe("qué es una atrasada para «Outdated»: `isOverdue` más el suelo de a
     expect(vaAAtrasadas({ stage: "delivered", delivery_date: HACE_DIEZ })).toBe(false);
     expect(vaAAtrasadas({ stage: "canceled", delivery_date: HACE_DIEZ })).toBe(false);
   });
-  it("la de AYER abierta no: `isOverdue` la cuenta atrasada, pero el dueño dejó ayer en la lista normal", () => {
-    // Esta es la única discrepancia entre las dos piezas, y es a propósito: sin el suelo, la de
-    // ayer saldría en las dos listas.
+  it("la de AYER abierta también (D-NEXT): «all late delivery orders», y `isOverdue` ya la cuenta", () => {
+    // Hasta D-NEXT esta era la única discrepancia con `isOverdue`: un suelo en ayer la dejaba en la
+    // lista normal (D-384). El dueño la quiere en «Outdated» como todas.
     expect(isOverdue({ stage: "fulfilling", delivery_date: AYER })).toBe(true);
-    expect(vaAAtrasadas({ stage: "fulfilling", delivery_date: AYER })).toBe(false);
+    expect(vaAAtrasadas({ stage: "fulfilling", delivery_date: AYER })).toBe(true);
   });
   it("hoy, mañana y sin fecha, no", () => {
     for (const f of [HOY, MANANA, null]) expect(vaAAtrasadas({ stage: "approved", delivery_date: f }), String(f)).toBe(false);
   });
-  it("con el día fijado, el suelo se mueve con él", () => {
+  it("con el día fijado: ayer respecto a ese día, sí; ese mismo día, no", () => {
     expect(vaAAtrasadas({ stage: "approved", delivery_date: "2026-09-21" }, "2026-09-23")).toBe(true);
-    expect(vaAAtrasadas({ stage: "approved", delivery_date: "2026-09-22" }, "2026-09-23")).toBe(false);
+    expect(vaAAtrasadas({ stage: "approved", delivery_date: "2026-09-22" }, "2026-09-23")).toBe(true);
+    expect(vaAAtrasadas({ stage: "approved", delivery_date: "2026-09-23" }, "2026-09-23")).toBe(false);
   });
 });
 
 describe("la lista normal ya no las lleva; «Outdated» sí", () => {
-  it("logística: la entregada vieja sigue en la normal, pero la abierta vieja SOLO en Outdated", () => {
+  it("logística: la entregada vieja sigue en la normal, pero las abiertas atrasadas —ayer incluida— SOLO en Outdated", () => {
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx());
-    expect(ids(visibles)).toEqual(["ayer-abierta", "hoy", "manana", "sin-fecha", "vieja-anulada", "vieja-entregada"]);
-    expect(ids(atrasadas)).toEqual(["anteayer-lista", "vieja-abierta"]);
+    expect(ids(visibles)).toEqual(["hoy", "manana", "sin-fecha", "vieja-anulada", "vieja-entregada"]);
+    expect(ids(atrasadas)).toEqual(["anteayer-lista", "ayer-abierta", "vieja-abierta"]);
   });
 
-  it("admin (historial entero): la entregada vieja sigue en la normal, pero la abierta vieja SOLO en Outdated", () => {
+  it("admin (historial entero): la entregada vieja sigue en la normal, pero las abiertas atrasadas —ayer incluida— SOLO en Outdated", () => {
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx({ me: { id: "u-admin", role: "admin", store: null }, veTodoElHistorial: seesAllHistory("admin") }));
-    expect(ids(visibles)).toEqual(["ayer-abierta", "hoy", "manana", "sin-fecha", "vieja-anulada", "vieja-entregada"]);
-    expect(ids(atrasadas)).toEqual(["anteayer-lista", "vieja-abierta"]);
+    expect(ids(visibles)).toEqual(["hoy", "manana", "sin-fecha", "vieja-anulada", "vieja-entregada"]);
+    expect(ids(atrasadas)).toEqual(["anteayer-lista", "ayer-abierta", "vieja-abierta"]);
+  });
+
+  it("la lista normal no lleva NINGUNA orden que `isOverdue` dé por atrasada (D-NEXT)", () => {
+    // La comprobación va contra `isOverdue` y no contra `vaAAtrasadas`: si esta volviera a tener un
+    // suelo, la de ayer se quedaría en la normal y esto caería.
+    const { visibles } = ordenesVisibles(DIA, ctx());
+    expect(visibles.filter((d) => isOverdue(d)).map((d) => d.id)).toEqual([]);
   });
 
   it("las dos listas no se solapan y, juntas, son lo que antes era la lista normal", () => {
@@ -112,7 +125,8 @@ describe("la lista normal ya no las lleva; «Outdated» sí", () => {
   it("buscando, la atrasada sale TAMBIÉN en la normal: buscar es el camino a todo (D-374)", () => {
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx({ busqueda: "F-1" }));
     expect(ids(visibles)).toContain("vieja-abierta");
-    expect(ids(atrasadas)).toEqual(["anteayer-lista", "vieja-abierta"]);
+    expect(ids(visibles)).toContain("ayer-abierta");
+    expect(ids(atrasadas)).toEqual(["anteayer-lista", "ayer-abierta", "vieja-abierta"]);
   });
 });
 
@@ -163,28 +177,30 @@ describe("el número de cada pastilla es el de filas que enseña al pulsarla", (
 
   it("dentro de «Outdated» las filas son las atrasadas, de TODAS las etapas abiertas", () => {
     const listas = listasDe(ctx());
-    expect(ids(filasDeOrdenes(listas, PESTANA_ATRASADAS, () => true, REGLAS))).toEqual(["anteayer-lista", "vieja-abierta"]);
+    expect(ids(filasDeOrdenes(listas, PESTANA_ATRASADAS, () => true, REGLAS))).toEqual(["anteayer-lista", "ayer-abierta", "vieja-abierta"]);
   });
 
   it("fuera de «Outdated» su número avisa: cuenta todas aunque el chip esté en «Hoy»", () => {
     const listas = listasDe(ctx());
-    expect(cuentasDeOrdenes(listas, PASTILLA_TODAS, presets.hoy, REGLAS)[PESTANA_ATRASADAS]).toBe(2);
+    expect(cuentasDeOrdenes(listas, PASTILLA_TODAS, presets.hoy, REGLAS)[PESTANA_ATRASADAS]).toBe(3);
   });
 
-  it("«Todas» con el chip en «Todas» NO enseña atrasadas, ni para el admin", () => {
+  it("«Todas» con el chip en «Todas» NO enseña atrasadas, ni para el admin, ni la de ayer", () => {
     const filas = filasDeOrdenes(listasDe(ctx({ veTodoElHistorial: true })), PASTILLA_TODAS, () => true, REGLAS);
     expect(ids(filas)).not.toContain("vieja-abierta");
     expect(ids(filas)).not.toContain("anteayer-lista");
+    expect(ids(filas)).not.toContain("ayer-abierta");
   });
 });
 
 describe("la pastilla en la fila", () => {
   const fila = (cuentas: Record<string, number>, filtro: string) =>
-    pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas, filtro, veDiasViejos: true });
+    pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas, filtro, pendientesSinTienda: false });
 
-  it("sale siempre, también con 0: la lista normal ya no las enseña y hay que saber dónde buscarlas", () => {
-    const p = fila({}, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS);
-    expect(p).toMatchObject({ cuenta: 0, activa: false, clase: "chip-late" });
+  it("con 0 no sale, como la de factura pendiente (D-NEXT; antes salía siempre, D-384)", () => {
+    expect(fila({}, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS)).toBeUndefined();
+    expect(fila({ [PESTANA_ATRASADAS]: 1 }, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS))
+      .toMatchObject({ cuenta: 1, activa: false, clase: "chip-late" });
   });
 
   it("encendida cuando es el filtro, y sola", () => {
@@ -202,7 +218,7 @@ describe("la pantalla usa todo esto, y no una copia", () => {
   const pagina = plano(leer("src/app/(app)/page.tsx"));
 
   it("pide las tres listas a `ordenesVisibles` y se las pasa enteras a las cuentas y a las filas", () => {
-    expect(pagina).toContain("const { visibles: visible, conPendientes, atrasadas } = useMemo( () => ordenesVisibles(deliveries, {");
+    expect(pagina).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo( () => ordenesVisibles(deliveries, {");
     expect(pagina).toContain("const listas = useMemo(() => ({ visibles: visible, conPendientes, atrasadas }), [visible, conPendientes, atrasadas]);");
   });
 

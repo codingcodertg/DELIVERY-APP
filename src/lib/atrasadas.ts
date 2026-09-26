@@ -1,4 +1,4 @@
-import { isOverdue, retentionFloorISO, todayISO } from "@/lib/utils";
+import { isOverdue, todayISO } from "@/lib/utils";
 
 /**
  * La pastilla «Outdated / Atrasadas» de Órdenes (D-384).
@@ -11,6 +11,9 @@ import { isOverdue, retentionFloorISO, todayISO } from "@/lib/utils";
  * se viera siempre en la lista porque es trabajo vivo—. Lo que no se revierte es que se vea: sigue
  * a un clic, con su número en la pastilla aunque no se esté dentro, que es el aviso.
  *
+ * Desde D-NEXT (2026-09-26) entra **toda** atrasada abierta, también la de ayer, y la pastilla es
+ * para todos los roles, cada uno con los días que ya ve (D-392): ver `vaAAtrasadas`.
+ *
  * Solo para la pantalla de Órdenes. La ventana compartida (`withinRetention`) **no se toca**: la
  * usan también la Cola de almacén y la pantalla del chofer, y allí las atrasadas siguen saliendo.
  */
@@ -21,20 +24,22 @@ export const PESTANA_ATRASADAS = "outdated";
 /**
  * ¿Va esta orden a «Outdated» (y por tanto NO a la lista normal)?
  *
- * **No es una definición nueva de «atrasada»**: es `isOverdue` —fecha pasada, ni entregada ni
- * anulada, la de D-351/D-354/D-374— más el suelo de la ventana, `retentionFloorISO` (ayer). Las
- * dos piezas ya existían; esto solo las junta.
+ * **Es `isOverdue`, sin más** —fecha pasada, ni entregada ni anulada, la de D-351/D-354/D-374—,
+ * **incluida la de ayer** (D-NEXT). El dueño, 2026-09-26: *«all late delivery orders need to go in a
+ * similar filter like invoice pending pero en rojo, entonces las late ya no se verán en all sino que
+ * se van directo a outdated»*.
  *
- * El suelo hace falta porque `isOverdue` cuenta **ayer** como atrasada (su día ya pasó), y el dueño
- * dejó ayer en la lista normal —«ayer, hoy y lo que viene», que es la ventana de D-239—. Sin el
- * suelo, una orden de ayer sin entregar saldría en las dos listas, o en ninguna. Con él, la lista
- * normal y «Outdated» se reparten las órdenes sin solaparse. La de ayer sigue llevando su etiqueta
- * roja «Tarde» en la lista normal: está atrasada, solo que todavía dentro de la ventana.
+ * Hasta D-NEXT llevaba además el suelo de la ventana (`retentionFloorISO`, ayer): la de ayer se
+ * quedaba en la lista normal con su «Tarde» y solo iba aquí la de anteayer hacia atrás (D-384). Ese
+ * suelo se quitó; la de ayer también sale de «Todas».
+ *
+ * **Quién ve qué días no lo decide esto**, lo decide la ventana (`pasaLaVentana`, D-392) antes de
+ * llegar aquí: admin y logística ven todas las atrasadas; los demás solo las de ayer, porque no ven
+ * nada anterior. Así que esta función no tiene rol ni suelo, y no debe volver a tenerlos.
  */
 export function vaAAtrasadas(
   d: { delivery_date?: string | null; stage?: string | null },
   hoy: string = todayISO(),
 ): boolean {
-  if (!isOverdue(d, hoy)) return false;
-  return (d.delivery_date ?? "").slice(0, 10) < retentionFloorISO(hoy);
+  return isOverdue(d, hoy);
 }

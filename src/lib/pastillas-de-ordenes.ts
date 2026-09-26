@@ -35,12 +35,13 @@ export function pastillasDeOrdenes(args: {
   cuentas: Record<string, number>;
   filtro: string;
   /**
-   * ¿Ve esta persona los días anteriores a ayer? (`seesAllHistory`: admin, logística y quien tenga
-   * `history` marcado.) Sin eso no hay pastilla «Outdated» (D-392).
+   * ¿Es alguien a quien «Factura pendiente» corta por tienda y no tiene tienda? (D-NEXT) Entonces la
+   * pastilla sale aunque diga 0, para que al pulsarla lea por qué no hay nada, en vez de no saber que
+   * existe. Lo decide `alcancePendientes` de `ordenesVisibles`, el mismo valor que cortó la lista.
    */
-  veDiasViejos: boolean;
+  pendientesSinTienda: boolean;
 }): PastillaDeOrdenes[] {
-  const { etapas, todasAprueban, cuentas, filtro, veDiasViejos } = args;
+  const { etapas, todasAprueban, cuentas, filtro, pendientesSinTienda } = args;
   const n = (k: string) => cuentas[k] ?? 0;
   const pastilla = (key: string, clase?: string): PastillaDeOrdenes =>
     ({ key, cuenta: n(key), activa: filtro === key, ...(clase ? { clase } : {}) });
@@ -55,20 +56,20 @@ export function pastillasDeOrdenes(args: {
     salida.push(pastilla(key));
   }
 
-  // «Outdated» (D-384) sale SIEMPRE, también con 0, a diferencia de la de factura pendiente. Las
-  // atrasadas ya no están en la lista normal: si la pastilla se escondiera al no haber ninguna, el día
-  // que hubiera no habría dónde buscarlas, y un 0 dice «no hay nada atrasado», que también es saberlo.
-  // Va tras las etapas y antes de la de factura pendiente, que es la que aparece y desaparece: así
-  // esta no cambia de sitio.
-  //
-  // **Y solo para quien ve los días viejos (D-392).** El dueño: *«ONLY LOGISTICS AND admin CAN SEE
-  // DAYS BEFORE YESTERDAY»*. Todo lo que hay dentro es anterior a ayer, así que para los demás sería
-  // una pastilla que siempre dice 0 y nunca enseña nada: se va, no se queda vacía.
-  if (veDiasViejos) salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
+  // «Outdated» (D-384), en rojo. Desde D-NEXT funciona **como la de factura pendiente**, que es lo que
+  // pidió el dueño (*«a similar filter like invoice pending pero en rojo»*): sale si tiene algo dentro
+  // o si se está en ella —si no, al vaciarse desaparecería bajo el dedo—, y **para todos los roles**,
+  // cada uno con las atrasadas que ve (admin y logística, todas; los demás, las de ayer, D-392).
+  // Antes salía siempre, también con 0 (D-384), y solo para admin y logística (D-392).
+  // Va tras las etapas y antes de la de factura pendiente.
+  if (n(PESTANA_ATRASADAS) > 0 || filtro === PESTANA_ATRASADAS) {
+    salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
+  }
 
   // La del documento pendiente (D-310) solo sale si hay algo pendiente **o** si se está dentro de
   // ella: si no, al vaciarse desaparecería bajo el dedo y la lista se quedaría en un filtro invisible.
-  if (n(PESTANA_DOCUMENTO_PENDIENTE) > 0 || filtro === PESTANA_DOCUMENTO_PENDIENTE) {
+  // Y a quien no tiene tienda le sale siempre, con 0 (D-NEXT): dentro se le dice por qué.
+  if (n(PESTANA_DOCUMENTO_PENDIENTE) > 0 || filtro === PESTANA_DOCUMENTO_PENDIENTE || pendientesSinTienda) {
     salida.push(pastilla(PESTANA_DOCUMENTO_PENDIENTE, "chip-pend"));
   }
 

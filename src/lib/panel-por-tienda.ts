@@ -56,9 +56,22 @@ export function ordenesDelPanel<T extends Pick<Delivery, "store" | "pickup_name"
   alcance: AlcanceDelPanel,
   reglas: OrderTypeRules | undefined,
 ): T[] {
-  if (alcance.tipo === "todas") return [...deliveries];
-  if (alcance.tipo === "sin-tienda") return [];
-  return deliveries.filter((d) => esDeMisTiendas(d, orderTypeRule(d.order_type, reglas), alcance.normalizadas));
+  return deliveries.filter((d) => esDelAlcance(d, alcance, reglas));
+}
+
+/**
+ * ¿Es esta orden de las tiendas del alcance? La pregunta de una sola orden, que usan el Panel
+ * (`ordenesDelPanel`) y la pestaña «Factura pendiente» de Órdenes (D-NEXT): la misma regla de tiendas
+ * en los dos sitios, no una copia.
+ */
+export function esDelAlcance(
+  d: Pick<Delivery, "store" | "pickup_name" | "delivery_name" | "order_type">,
+  alcance: AlcanceDelPanel,
+  reglas: OrderTypeRules | undefined,
+): boolean {
+  if (alcance.tipo === "todas") return true;
+  if (alcance.tipo === "sin-tienda") return false;
+  return esDeMisTiendas(d, orderTypeRule(d.order_type, reglas), alcance.normalizadas);
 }
 
 /**

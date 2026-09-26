@@ -343,7 +343,7 @@ export default function OrdersPage() {
    * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa; `conPendientes` es
    * esa más las que solo se caían por la ventana y tienen documento pendiente.
    */
-  const { visibles: visible, conPendientes, atrasadas } = useMemo(
+  const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo(
     () => ordenesVisibles(deliveries, {
       me,
       teaching,
@@ -621,8 +621,9 @@ export default function OrdersPage() {
               todasAprueban: autoApproveAll,
               cuentas: counts,
               filtro: filter,
-              // «Outdated» solo para quien ve lo anterior a ayer (D-392): la misma pregunta que corta la lista.
-              veDiasViejos: veTodoElHistorial,
+              // «Outdated» sale para todos desde D-NEXT, con lo que cada uno ve. «Factura pendiente»
+              // sale con 0 a quien no tiene tienda, para que dentro lea por qué (D-NEXT).
+              pendientesSinTienda: alcancePendientes.tipo === "sin-tienda",
             }).map((p) => (
               <button
                 key={p.key}
@@ -630,7 +631,7 @@ export default function OrdersPage() {
                 onClick={() => {
                   // Pulsar la encendida vuelve a «Todas» (D-313), y de ahí sale la clave que de
                   // verdad queda puesta. El chip de FECHA lo decide `presetAlElegirPastilla`
-                  // (D-380): solo la pestaña de factura pendiente lo mueve, y solo a «Todas».
+                  // (D-380): solo las pestañas de factura pendiente y «Outdated» lo mueven, y solo a «Todas».
                   const queda = p.activa ? PASTILLA_TODAS : p.key;
                   setFilter(queda);
                   setPreset((antes) => presetAlElegirPastilla(queda, antes, "all"));
@@ -741,7 +742,12 @@ export default function OrdersPage() {
             anchos={anchos}
             onAnchos={guardaAnchos}
             onOpen={setOpen}
-            empty={t("No orders match this view.", "No hay órdenes en esta vista.")}
+            // «Factura pendiente» es solo de la tienda propia y su grupo (D-NEXT): sin tienda, ninguna, y
+            // se dice por qué, como el Panel (D-396). Un campo vacío no amplía lo que se ve (D-237).
+            empty={filter === PESTANA_DOCUMENTO_PENDIENTE && alcancePendientes.tipo === "sin-tienda"
+              ? t("🏬 No store assigned: Invoice pending shows only your store's orders. Ask an admin to assign your store in Users.",
+                "🏬 Sin tienda asignada: Factura pendiente enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")
+              : t("No orders match this view.", "No hay órdenes en esta vista.")}
             visible={cols}
             orden={me?.role === "sales" ? null : orden}
             // The checkbox column only earns its space for roles that have a
