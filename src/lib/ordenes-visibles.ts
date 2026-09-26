@@ -6,6 +6,7 @@ import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { vaAAtrasadas } from "@/lib/atrasadas";
+import { alcanceDelPanel, esDelAlcance, type AlcanceDelPanel } from "@/lib/panel-por-tienda";
 
 /**
  * Qué órdenes salen en la pantalla de Órdenes, y cuáles además en la pestaña de factura pendiente
@@ -134,33 +135,51 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
  *
  * `atrasadas` (D-384) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
- * ella. Es lo que `visibles` ya no lleva —las abiertas con fecha anterior a ayer, `vaAAtrasadas`—,
- * con los mismos cortes por rol y la misma ventana, así que cada persona ve en «Outdated» solo las
- * atrasadas que ya podía ver.
+ * ella. Es lo que `visibles` ya no lleva —**toda** atrasada abierta, ayer incluida desde D-NEXT,
+ * `vaAAtrasadas`—, con los mismos cortes por rol y la misma ventana, así que cada persona ve en
+ * «Outdated» solo las atrasadas que ya podía ver: admin y logística, todas; los demás, las de ayer.
+ *
+ * **`conPendientes` va además cortada por tienda (D-NEXT).** El dueño, 2026-09-26: *«en invoice
+ * pending estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. Admin y logística,
+ * todas; el resto, su tienda y las de su grupo (D-293); sin tienda, ninguna. La regla de tiendas es
+ * la del Panel (`alcanceDelPanel` / `esDelAlcance`, D-396), no una nueva. Se devuelve el alcance
+ * para que la pantalla avise a quien no tiene tienda con el MISMO valor que ha cortado la lista.
  */
 export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDeLista): {
   visibles: Delivery[];
   conPendientes: Delivery[];
   atrasadas: Delivery[];
+  alcancePendientes: AlcanceDelPanel;
 } {
   const visibles: Delivery[] = [];
   const conPendientes: Delivery[] = [];
   const atrasadas: Delivery[] = [];
   const buscando = !!ctx.busqueda.trim();
+  const alcancePendientes = alcanceDePendientes(ctx);
   for (const d of deliveries) {
     // Los cortes por ROL y la búsqueda valen igual para las tres listas: «Outdated» enseña las
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
     const normal = pasaLaVentana(d, ctx, false);
-    // «Outdated» (D-384): la atrasada abierta anterior a ayer sale de la lista normal y va a la
-    // suya. Buscando, se queda también en la normal: buscar es el camino a todo (D-374), y una
-    // factura que no sale al teclearla se lee como que la orden no existe.
-    // Desde D-392 esto solo le pasa a admin y logística: a los demás `pasaLaVentana` ya les corta
-    // todo lo anterior a ayer, así que su `atrasadas` sale siempre vacía y buscar no abre nada viejo.
+    // «Outdated» (D-384, D-NEXT): TODA atrasada abierta —también la de ayer— sale de la lista normal
+    // y va a la suya. Los días que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni
+    // logística ya le ha cortado lo anterior a ayer, así que su «Outdated» son las de ayer.
+    // Buscando, se queda también en la normal: una factura que no sale al teclearla se lee como que
+    // la orden no existe. Con la misma ventana: buscar no abre nada que la persona no vea ya.
     const atrasada = vaAAtrasadas(d);
     if (normal && atrasada) atrasadas.push(d);
     if (normal && (!atrasada || buscando)) visibles.push(d);
-    if (normal || pasaLaVentana(d, ctx, true)) conPendientes.push(d);
+    if ((normal || pasaLaVentana(d, ctx, true)) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
   }
-  return { visibles, conPendientes, atrasadas };
+  return { visibles, conPendientes, atrasadas, alcancePendientes };
+}
+
+/**
+ * De qué tiendas es la pestaña «Factura pendiente» para esta persona (D-NEXT). Es `alcanceDelPanel`:
+ * admin y logística, todas; el resto, su tienda y las de su grupo; sin tienda, ninguna. El sandbox de
+ * enseñanza no tiene cortes de ningún tipo, tampoco este.
+ */
+export function alcanceDePendientes(ctx: Pick<ContextoDeLista, "me" | "teaching" | "tiendas">): AlcanceDelPanel {
+  if (ctx.teaching) return { tipo: "todas" };
+  return alcanceDelPanel(ctx.me, ctx.tiendas);
 }

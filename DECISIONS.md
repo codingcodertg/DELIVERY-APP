@@ -21215,6 +21215,10 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 
 ## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), en el punto 2: office sigue viendo «Factura pendiente», y la
+> exención de la ventana sigue, pero **solo de su tienda y las de su grupo**; una office sin tienda asignada ve la
+> pestaña con 0 y un aviso de por qué. Admin y logística, todas.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:**
 `127_borrador_enviado_nace_aprobado.sql` (solo el punto 3); la escribió y la aplicó el orquestador
 **antes** que este código, que es el orden que pide un guard que se abre.
@@ -23442,6 +23446,12 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 
 ## D-338 · El ancho de las columnas es de la persona; «Factura pendiente» es solo de facturas y empieza por la tienda propia; y la cuenta de una Intertienda deja de pintarse
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), solo el punto **h**. El dueño: *«en invoice pending
+> estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. La pestaña ya no **empieza** por la tienda
+> propia con las demás detrás: enseña **solo** la propia y las de su grupo (D-293) — admin y logística, todas; sin
+> tienda, ninguna, con un aviso. El agrupado por tienda y su orden (`tiendasDeQuienMira`) siguen, ahora solo entre las
+> tiendas del grupo.
+
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** Andrés, literal: «in sales view invoice is duplicated as its already visible with the id number» · «make it
 possible to resize columns and however it keeps that way it saves for ever» · «account in intertienda is extra so remove it because
@@ -24364,6 +24374,10 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
   Admin y logística ya lo hacían al buscar; para una tienda grande no se midió.
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): en **Órdenes**, la vencida abierta de **ayer** tampoco sigue ya
+> en la lista normal (la nota de D-384 de aquí debajo decía que sí): va a «Outdated» como todas. `withinRecent` sigue
+> sin tocarse.
 
 > **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en **Órdenes** y solo para quien no es admin ni
 > logística: la vencida abierta de antes de ayer ya **no la ven**, ni en la lista, ni en «Outdated», ni
@@ -25916,6 +25930,10 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), solo en la pestaña «Factura pendiente» de Órdenes: ventas sigue
+> viendo sus órdenes de cualquier tienda en la lista, pero en esa pestaña **solo las de su tienda y su grupo**
+> (*«estrictamente solo … de tu tienda»*). Lo demás de esta entrada no cambia.
+
 > **⚠ Reemplazada en parte por D-392** (2026-09-25), solo en la pantalla de **Órdenes**: la ventana deja de
 > dejar pasar la atrasada abierta, y buscar deja de llegar al historial, para todos menos admin y logística.
 > *«ayer, hoy, futuro y atrasadas»* pasa a ser, en Órdenes, *ayer, hoy y futuro*. `withinRetention` no se tocó: la
@@ -26782,6 +26800,16 @@ comportamiento de D-286.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26). El dueño: *«all late delivery orders need to go in a similar
+> filter like invoice pending pero en rojo, entonces las late ya no se verán en all sino que se van directo a
+> outdated»*. Tres cosas de abajo ya no valen: (1) **la de ayer** abierta y sin entregar **también** va a «Outdated»
+> —se quitó el suelo de `vaAAtrasadas`, que ahora es `isOverdue` a secas—, así que la lista normal no lleva ninguna
+> atrasada y la «discrepancia» de abajo desaparece; (2) la pastilla **ya no sale siempre con 0**: como la de factura
+> pendiente, sale si tiene algo o si se está dentro; (3) vuelve a ser **de todos los roles** (la nota de D-392 de
+> aquí debajo decía lo contrario): admin y logística con todas, los demás con las de ayer. Lo demás sigue: entrar
+> mueve el chip de fecha a «Todas», buscando la atrasada sale también en la lista normal (con la ventana de D-392),
+> el tablero pinta la lista normal, y Almacén, chofer, Gestor y Ruta del día no cambian.
+
 > **⚠ Reemplazada en parte por D-392** (2026-09-25): «vale **para todos los roles**» ya no. La pastilla
 > «Outdated» es solo de admin y logística (y de quien tenga `history` marcado en Usuarios); a los demás no les
 > sale, ni con 0, porque ya no ven nada anterior a ayer. Tampoco la excepción de la búsqueda que abajo se
@@ -27315,6 +27343,12 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 - Las órdenes ya guardadas con «Venta al mostrador» y la dirección de otro cliente dentro no se tocan: esto actúa al elegir.
 
 ## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la mitad del título entre paréntesis ya no vale. La pastilla
+> «Outdated» **vuelve a salir a todos los roles**, porque desde D-NEXT lleva también la atrasada de **ayer**, que
+> todos ven: para los que no son admin ni logística es la pastilla de las atrasadas de ayer. El argumento
+> `veDiasViejos` de `pastillasDeOrdenes` se quitó. **La regla principal sigue entera**: solo admin y logística (y
+> quien tenga `history`) ven días anteriores a ayer, en la lista, en «Outdated» y buscando.
 
 **Fecha:** 2026-09-25 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.**
 **Pedido por el dueño**, literal: *«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*.
@@ -28678,3 +28712,125 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 - **Con capturas reales de producción**: no se abrió `/timetracker/audit` con sesión (producción estaba caída por cuota
   el 2026-09-25, y además no se toca). Lo que la vista real pasa al resumen está atado por pruebas del fuente, no visto.
 - La lista desplegable no se cierra al pulsar fuera; se cierra con la misma pastilla o al cambiar de día.
+
+## D-NEXT · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+**Dos pedidos del dueño el mismo día**, literales:
+
+1. *«all late delivery orders need to go in a similar filter like invoice pending pero en rojo, entonces las late ya
+   no se verán en all sino que se van directo a outdated; ese será el nuevo filtro»*
+2. *«en invoice pending estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*
+
+Van juntos porque tocan los mismos ficheros (`ordenes-visibles.ts`, `pastillas-de-ordenes.ts`, la página de Órdenes).
+**Reemplaza en parte a D-384, D-392, D-351, D-338, D-313 y D-374**; las seis llevan su nota dentro.
+
+### 1 · «Outdated» lleva TODA atrasada abierta
+
+**Qué había.** D-384 mandaba a «Outdated» solo las atrasadas abiertas **de anteayer hacia atrás**: `vaAAtrasadas` era
+`isOverdue` más un suelo en ayer (`retentionFloorISO`). La de ayer sin entregar se quedaba en la lista normal con su
+etiqueta roja «Tarde». Y D-392 le quitó la pastilla a todos menos admin y logística, porque para los demás ya no había
+nada anterior a ayer que enseñar dentro.
+
+**Qué cambia.**
+
+- **`vaAAtrasadas` es `isOverdue` a secas** (fecha pasada, ni entregada ni anulada). Se quitó el suelo. La lista normal
+  («Todas» y las pastillas de etapa) ya no lleva **ninguna** atrasada abierta, con ningún chip de fecha.
+- **Quién ve qué días lo sigue decidiendo D-392**, antes de llegar a esa función: `pasaLaVentana` corta lo anterior a
+  ayer a quien no es admin ni logística (ni tiene `history`). Así que **admin y logística** ven en «Outdated» todas las
+  atrasadas; **los demás, solo las de ayer**. No hizo falta una regla por rol nueva: es la ventana de siempre aplicada a
+  una lista que ahora incluye ayer.
+- **La pastilla funciona como «Factura pendiente»**, que es lo que pidió: roja (`chip-late`), con su número, **sale si
+  tiene algo dentro o si se está en ella**, y al entrar pone el chip de fecha en «Todas» para que número = filas
+  (`presetAlElegirPastilla`, D-380/D-384, sin cambios). Antes salía siempre, también con 0 (D-384). Y **vuelve a salir a
+  todos los roles**: se quitó el argumento `veDiasViejos` de `pastillasDeOrdenes`, porque ahora hay algo que enseñar a
+  todos (lo de ayer). Esto revierte la parte de D-392 que la quitaba, y la de D-384 que dejaba ayer en la lista.
+
+**Decisiones mías, que el orquestador debe validar:**
+
+- **Buscando**, la atrasada sale **también** en la lista normal, como decidió D-384: una factura que no aparece al
+  teclearla se lee como que la orden no existe. Con la ventana de D-392: los demás roles encuentran buscando la de ayer,
+  no la de hace 10 días. Es la condición `buscando` de `ordenesVisibles`, y la tumba una prueba con nombre.
+- **La etiqueta roja «Tarde»** de la fila se queda: dentro de «Outdated» la llevan todas las filas, y fuera solo sale
+  ya buscando. No se quitó porque dice lo mismo en la ficha, en el tablero y en las otras pantallas que la usan.
+- **El tablero** («Board») pinta la lista normal, así que desde hoy tampoco lleva la atrasada de ayer (ya no llevaba las
+  anteriores, D-384). No tiene pastillas: para verlas hay que volver a la tabla. No se cambió porque el pedido era «que
+  no se vean en all», y el tablero es «all» por columnas; si el dueño quiere verlas ahí, es otra decisión.
+
+**Qué NO cambia:** la **Cola de almacén**, el **Gestor de rutas** (su chip «Atrasadas», D-359), la **Ruta del día** y
+`/driver`. `withinRetention` y `withinRecent` no se tocaron. El pedido es de Órdenes.
+
+### 2 · «Factura pendiente» es solo de la tienda propia
+
+**Qué había.** D-338 hacía que la pestaña **empezara** por la tienda de quien mira (`tiendasDeQuienMira`), pero
+enseñaba las de todas las tiendas detrás.
+
+**Qué cambia.** `conPendientes` —la lista de la que la pestaña cuenta **y** lista— se corta por tienda dentro de
+`ordenesVisibles`, así que número = filas por construcción. **La regla de tiendas no es nueva: es la del Panel**
+(`alcanceDelPanel`, D-396), y de ella se sacó `esDelAlcance(d, alcance, reglas)` en `panel-por-tienda.ts`, que ahora
+usan los dos (`ordenesDelPanel` la llama). Por tanto:
+
+- **admin y logística**: todas las tiendas;
+- **office, gerente, ventas, almacén** (y cualquier otro rol): **su tienda y las de su grupo** (D-293:
+  `tiendasDeAlmacen` / `esDeMisTiendas`). Una Intertienda cuenta para las dos tiendas que toca, como en el Panel;
+- **sin tienda asignada: ninguna**, y la pastilla sale igual, con 0, para que al pulsarla se lea *«Sin tienda asignada:
+  Factura pendiente enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.»* Es lo que
+  D-237 y D-396 decidieron: un campo sin rellenar no amplía lo que se ve, y se dice por qué. `ordenesVisibles` devuelve
+  el alcance (`alcancePendientes`) y la pantalla usa **ese** valor para el aviso, no otra cuenta.
+- **Ventas**: D-374 le deja ver sus órdenes en cualquier tienda. En esta pestaña, **solo las de su tienda y su grupo**,
+  porque el dueño dijo «estrictamente». En la lista normal sigue como estaba.
+- **El sandbox de enseñanza** no tiene cortes, tampoco este.
+
+**Decisiones mías a validar:** (a) el corte usa el rol **efectivo** (`me`), como el Panel: un admin que mira «como»
+office ve la pestaña de la tienda de su propio perfil (en el demo el admin no tiene tienda, así que ve el aviso). La
+ventana de fechas usa el rol real (D-239); aquí se siguió al Panel porque la pregunta es «de qué tienda soy», no «qué
+historial me toca». (b) **No se cuentan las tiendas marcadas en «Tiendas que ve»** (`visible_stores`, D-315), igual que
+el Panel. (c) Es **de pantalla**: la base (131) sigue mandando las órdenes de todas las tiendas a quien no tiene
+casillas, y la lista normal de Órdenes sigue enseñándolas; el corte es solo de la pestaña.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite (2026-09-26): **4492 pasados | 3 saltados**.
+- Prueba nueva, `factura-pendiente-por-tienda.test.ts` (office, gerente y ventas de una tienda con grupo y de una que va
+  sola, almacén, admin y logística con y sin tienda, sin tienda, el sandbox, y que la lista normal no se corta).
+  Reescritas con su nota: `atrasadas.test.ts` (ayer entra; ninguna fila de la normal pasa `isOverdue`; la pastilla con 0
+  no sale), `dias-viejos-en-ordenes.test.ts` (los que no ven días viejos tienen «Outdated» con la de ayer, y la pastilla
+  les sale), `pastillas-de-ordenes.test.ts` y `ordenes-visibles.test.ts` (office con tienda; almacén con fecha de hoy).
+- **Mutantes: 13, caen los 13**, leídos por nombre: el suelo de ayer vuelve (caen ~40, entre ellas *«la lista normal no
+  lleva NINGUNA orden que `isOverdue` dé por atrasada»* y *«…: ni en la lista, ni en «Outdated»; allí, solo la de
+  ayer»*); buscando deja de salir en la normal (*«buscando, la atrasada sale TAMBIÉN en la normal…»*); la pestaña deja de
+  cortar por tienda (*«accounting de Norte: Norte y Oeste (su grupo), nunca Sur…»* y 11 más); el sandbox corta
+  (*«el sandbox de enseñanza no tiene cortes…»*); sin tienda ve todas (*«accounting sin tienda: 0 filas…»* y
+  *«ordenesDelPanel: … sin tienda: ninguna»*); el corte olvida el grupo (*«…Norte y Oeste (su grupo)…»*); «Outdated» sale
+  siempre (*«con 0 no sale…»*); desaparece bajo el dedo (*«…salvo si se está dentro…»*); vuelve a ser solo de quien ve
+  días viejos (*«manager: le sale, con la de ayer (1)»*); la pestaña no sale a quien no tiene tienda, la pantalla no se
+  lo pasa, o no pinta el aviso (*«sin tienda sale con 0…»* y *«la pantalla se lo dice con el alcance que devolvió
+  `ordenesVisibles`…»*); entrar en «Outdated» no mueve el chip de fecha (*«entrar mueve el chip de fecha a «Todas»…»*).
+- **En el navegador, 2026-09-26, demo local** (`next dev`, sin base; Chrome sin perfil; clics de persona). Sembradas en
+  McAllen, de ventas: una **Programada de ayer**, una **Programada de hace 10 días** y una **Entregada de hace 10 días**;
+  y tres **entregadas de hoy sin factura** en McAllen, Mission y Pharr. McAllen y Mission, en el mismo grupo. Quien mira
+  es de McAllen salvo admin y logística. Con los dos chips abiertos (pastilla «Todas» y fecha «Todas»):
+
+  | rol | lista normal | con «Tarde» en ella | «Outdated» (pastilla / filas) | sembradas dentro | «Factura pendiente» (pastilla / filas, tiendas) |
+  |---|---|---|---|---|---|
+  | Admin | 91 | 0 | 4 / 4 | ayer y hace 10 | 3 / 3, McAllen · Mission · Pharr |
+  | Logística | 91 | 0 | 4 / 4 | ayer y hace 10 | 3 / 3, McAllen · Mission · Pharr |
+  | Gerente | 87 | 0 | 2 / 2 | solo ayer | 2 / 2, McAllen · Mission |
+  | Office | 87 | 0 | 2 / 2 | solo ayer | 2 / 2, McAllen · Mission |
+  | Ventas | 85 | 0 | 2 / 2 | solo ayer | 2 / 2, McAllen · Mission |
+  | Almacén | 28 | 0 | 1 / 1 | solo ayer | 2 / 2, McAllen · Mission |
+  | Office sin tienda | 87 | 0 | 2 / 2 | solo ayer | 0 / 0, con el aviso |
+  | Gerente sin tienda | 87 | 0 | 2 / 2 | solo ayer | 0 / 0, con el aviso |
+
+  La entregada vieja **no** está en «Outdated» en ningún rol (admin y logística la tienen en la lista normal). La otra
+  fila de «Outdated» de los roles sin días viejos es una orden del demo con fecha de ayer; las otras dos de admin, del
+  demo, de hace 2 y 10 días. Se entró en «Outdated» desde «Reciente» y el chip de fecha pasó solo a «Todas» en los ocho.
+  **Control del detector:** buscando `INVAYER01` como admin y como office, la lista normal enseña 1 fila con «Tarde», así
+  que el 0 de la columna «con «Tarde»» no es un detector ciego. Ninguna página se desplaza de lado. Capturas en el
+  scratchpad del orquestador (`agente-O/tiros/`).
+
+### Lo no verificado
+
+- **Nada contra producción.** No se contó cuántas atrasadas de ayer hay hoy, ni cuántas facturas pendientes deja de ver
+  cada office. D-396 contó 2 gerentes sin tienda: esos dos ven «Factura pendiente» con 0 y el aviso.
+- El chofer no se midió: no tiene la pestaña de Órdenes.
