@@ -230,7 +230,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     });
   }, [me, persist, notify]);
 
-  const setStage = useCallback<DataState["setStage"]>(async (id, stage, note, extra) => {
+  const setStage = useCallback<DataState["setStage"]>(async (id, stage, note, extra, kind) => {
     const s = storeRef.current;
     // Hard guard: an order can't reach the warehouse without manager approval.
     // Admins may override to any status.
@@ -263,7 +263,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     const base: Store = {
       ...s,
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-      events: addEvent(s, id, stage as Stage, note),
+      // `kind` por defecto es la etapa, como en el proveedor real; «Recibir» (D-NEXT) y «Dejar en tienda»
+      // pasan el suyo. Antes el demo lo ignoraba y los dos salían como una etapa más.
+      events: addEvent(s, id, kind ?? (stage as Stage), note),
     };
     persist({
       ...base,

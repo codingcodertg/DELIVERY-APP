@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { stageInfo, stageLabel } from "@/lib/constants";
+import { stageLabel } from "@/lib/constants";
+import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
 import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
@@ -26,6 +27,8 @@ type Ctx = {
   byInvoice?: boolean;
   /** Los motivos de anulación vigentes, para traducir la clave que guarda la orden (122). */
   motivos?: CancelReason[];
+  /** Las entregadas que recibió almacén (D-NEXT): su pastilla dice «Received» y no «Delivered». */
+  recibidas?: ReadonlySet<string>;
 };
 type CellValue = ValorDeCelda;
 
@@ -49,14 +52,16 @@ export interface OrderColumn {
 }
 
 export const ORDER_COLUMNS: OrderColumn[] = [
-  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos }) => {
-      const s = stageInfo(d.stage);
+  // El VALOR (orden y filtro de columna) sigue siendo la etapa: «Received» va dentro de «Delivered» también
+  // en el filtro de la columna, porque es lo mismo (D-NEXT). Solo la pastilla cambia.
+  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas }) => {
+      const p = pastillaDeEtapa(d, recibidas, lang);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
       const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
       return (
         <>
-          <span className="sema" title={stageLabel(d.stage, lang)} style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
+          <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}</span>
           {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
         </>
       );
@@ -134,8 +139,8 @@ const ID_COLUMN: OrderColumn = {
   en: "ID",
   es: "ID",
   value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num || orderLabel(d)) : orderLabel(d)),
-  cell: (d, { lang, byInvoice }) => {
-    const s = stageInfo(d.stage);
+  cell: (d, { lang, byInvoice, recibidas }) => {
+    const s = pastillaDeEtapa(d, recibidas, lang);
     const tag = storeTag(d.store);
     const late = isOverdue(d);
     // An order can carry several invoices ("177987, 177986") or none at all.
@@ -163,7 +168,7 @@ const ID_COLUMN: OrderColumn = {
           // branch / which order.
           <span className="drv-head">
             <span className="drv-l">
-              <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
+              <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}</span>
             </span>
             {/* An order can carry several invoices ("177966, 177987"). A driver
                 matches paperwork against this, so it wraps rather than
@@ -211,7 +216,7 @@ const ID_COLUMN: OrderColumn = {
                 columns. */}
             <span className="row-badges">
               <span className="row-badge-line">
-                <span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
+                <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}</span>
               </span>
               <span className="row-badge-line">
                 {d.delivery_date && (
@@ -344,6 +349,7 @@ export function OrdersTable({
   tiendasPrimero,
   anchos,
   onAnchos,
+  accionDeFila,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
@@ -375,9 +381,11 @@ export function OrdersTable({
   /** El ancho de las columnas de ESTA persona, leído de la base, y el aviso al soltar para guardarlo (D-338). */
   anchos?: Record<string, number> | null;
   onAnchos?: (anchos: Record<string, number>) => void;
+  /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-NEXT). No abre la orden al pulsarlo. */
+  accionDeFila?: (d: Delivery) => React.ReactNode;
 }) {
   const { lang, t } = usePrefs();
-  const { me, settings } = useData();
+  const { me, settings, events } = useData();
   // Which rows the driver has opened. Collapsed is the default, so this only
   // ever holds the handful they're actively looking at.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -391,7 +399,9 @@ export function OrdersTable({
   // the warehouse on the paperwork, the driver at the tailgate. The order code
   // is still shown, just as the second line rather than the headline.
   const byInvoice = true;
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings) };
+  // Qué entregadas recibió almacén (D-NEXT): un índice sobre los eventos que el proveedor ya tiene cargados.
+  const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
@@ -604,6 +614,10 @@ export function OrdersTable({
               {cols.map((c) => (
                 <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.cell(d, ctx)}
+                  {c.key === "__id" && accionDeFila && (() => {
+                    const accion = accionDeFila(d);
+                    return accion ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accion}</span> : null;
+                  })()}
                   {/* The chevron is only offered where the extra rows are
                       worth unfolding. On the invoice-led card the header
                       already carries stage, type, store, date, invoice and

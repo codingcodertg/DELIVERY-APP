@@ -33,6 +33,7 @@ import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasElegibles, conColumnasNuevas, extrasDeParadas, fotoDelGestor, indicesOcultosDeParadas } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
+import { idsRecibidasPorAlmacen } from "@/lib/recibir";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -199,7 +200,7 @@ interface RoutePlan {
 }
 
 export default function RoutesPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [date, setDate] = useState(todayISO());
@@ -922,7 +923,9 @@ export default function RoutesPage() {
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
   // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
-  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings) }), [lang, t, settings]);
+  // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-NEXT), como en Órdenes.
+  const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
   const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);

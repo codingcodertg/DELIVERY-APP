@@ -50,6 +50,7 @@ import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
+import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
@@ -825,6 +826,21 @@ export function OrderModal({
     if (ok) { setShowEntregarYa(false); setMotivoDeSalto(""); notify(t("Marked delivered", "Marcada entregada")); }
   };
 
+  /**
+   * «Recibir» (D-NEXT): almacén cierra la Intertienda que llega a SU tienda. Es `delivered` en la base y
+   * solo cambia el evento (`received`), que es lo que la pinta «Received». Quién y cuándo lo decide
+   * `puedeRecibir`; la escritura, `recibirOrden`, la misma que usa la fila de Recepción.
+   */
+  const puedeRecibirla = !!existing && puedeRecibir(me, { ...existing, stage }, orderTypeRule(existing.order_type, settings.order_type_rules), settings.stores);
+  const recibir = async () => {
+    if (!existing) return;
+    if (!(await confirmAction(t("Mark this order as received at your store?", "¿Marcar esta orden como recibida en su tienda?"), { confirmLabel: t("Receive", "Recibir") }))) return;
+    setBusy(true);
+    const ok = await recibirOrden(setStage, existing.id);
+    setBusy(false);
+    if (ok) notify(t("Received", "Recibida"));
+  };
+
   /** Deshacer UN paso (D-361): a la etapa inmediatamente anterior, con su motivo. Lo firmado no se borra. */
   const deshacerEtapa = async () => {
     const atras = existing ? etapaAnterior(existing.stage) : null;
@@ -1210,7 +1226,8 @@ export function OrderModal({
     notify(t(`Saved "${loc.name}" as a dropoff site`, `"${loc.name}" guardado como sitio de entrega`));
   };
 
-  const info = stageInfo(stage);
+  // La pastilla de la cabecera: «Received» si la recibió almacén (D-NEXT), con los eventos de ESTA orden.
+  const info = existing ? pastillaDeEtapa({ id: existing.id, stage }, idsRecibidasPorAlmacen(events), lang) : { texto: stageLabel(stage, lang), color: stageInfo(stage).color };
 
   // ---- Unsaved-changes lock ----
   // The form must never vanish mid-typing. Any edit makes it "dirty", and the
@@ -1313,6 +1330,8 @@ export function OrderModal({
       onDepart={depart}
       arrivedAt={arrivedAt}
       onArrive={arrive}
+      puedeRecibirla={puedeRecibirla}
+      onReceive={() => void recibir()}
     />
   ) : null;
 
@@ -1345,7 +1364,7 @@ export function OrderModal({
             <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               {isNew ? t("Fill in the order details, then save as draft or submit for approval.", "Complete los datos de la orden, luego guárdela como borrador o envíela a aprobación.") : (
                 <>
-                  <span className="sema" style={{ background: info.color, color: "#fff" }}>{stageLabel(stage, lang)}</span>
+                  <span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}</span>
                   {/* The two things a driver reads off the paperwork, right at
                       the top instead of buried in the detail rows below. Both
                       wrap fully — an order can carry several invoices, and a
@@ -2886,7 +2905,7 @@ function StageActions({
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
   onAddMaterial, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
-  departedAt, onDepart, arrivedAt, onArrive,
+  departedAt, onDepart, arrivedAt, onArrive, puedeRecibirla, onReceive,
 }: {
   me: Profile; stage: Stage; busy: boolean;
   /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
@@ -2908,6 +2927,8 @@ function StageActions({
   onQuickPickup: () => void;
   departedAt: string | null; onDepart: () => void;
   arrivedAt: string | null; onArrive: () => void;
+  /** Almacén, en `picked_up`, y la orden va a su tienda (`puedeRecibir`, D-NEXT). */
+  puedeRecibirla: boolean; onReceive: () => void;
 }) {
   const { t } = usePrefs();
   const btns: React.ReactNode[] = [];
@@ -3015,7 +3036,12 @@ function StageActions({
       btns.push(<button key="dopickup" className="btn btn-primary" onClick={onConfirmPickup} disabled={busy}>🚚 {t("Confirm load & go", "Confirmar carga y salir")}</button>);
     }
   }
-  if (canDeliver(me) && stage === "picked_up" && !podOpen) {
+  // Almacén RECIBE la Intertienda que llega a su tienda (D-NEXT): «Recibir» ocupa el sitio de «Marcar
+  // entregado». Si almacén la cerrara con el POD de chofer se pintaría «Delivered», y el dueño quiere
+  // distinguir quién la cerró. Una que NO va a su tienda sigue como antes (hallazgo en la entrada).
+  if (puedeRecibirla && stage === "picked_up" && !podOpen) {
+    btns.push(<button key="receive" className="btn btn-green" onClick={onReceive} disabled={busy}>📥 {t("Receive", "Recibir")}</button>);
+  } else if (canDeliver(me) && stage === "picked_up" && !podOpen) {
     // Arrival: stamp when the driver reaches the stop, so transit splits into
     // driving vs dwell/service time. Optional — delivery works without it.
     if (!arrivedAt) {
@@ -3526,6 +3552,7 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "created") return lang === "es" ? "Creada" : "Created";
   if (kind === "edited") return lang === "es" ? "Editada" : "Edited";
   if (kind === "note") return lang === "es" ? "💬 Nota" : "💬 Note";
+  if (kind === KIND_RECIBIDA) return lang === "es" ? "📥 Recibida por almacén" : "📥 Received by warehouse";
   const s = stageInfo(kind);
   if (s.key === kind) return stageLabel(kind, lang);
   return kind.charAt(0).toUpperCase() + kind.slice(1);

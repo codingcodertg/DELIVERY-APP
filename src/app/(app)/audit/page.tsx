@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
+import { KIND_RECIBIDA, RECIBIDO_COLOR } from "@/lib/recibir";
 import { fmtDateTime, orderLabel } from "@/lib/utils";
 
 // ============================================================
@@ -18,6 +19,8 @@ function actionLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "created") return lang === "es" ? "Creada" : "Created";
   if (kind === "edited") return lang === "es" ? "Editada" : "Edited";
   if (kind === "note") return lang === "es" ? "Nota" : "Note";
+  // «Recibir» de almacén (D-NEXT): es una entrega, y se dice quién la cerró.
+  if (kind === KIND_RECIBIDA) return lang === "es" ? "Recibida por almacén" : "Received by warehouse";
   const s = stageInfo(kind);
   return s.key === kind ? stageLabel(kind, lang) : kind;
 }
@@ -116,7 +119,7 @@ export default function AuditPage() {
                   >
                     <td style={{ whiteSpace: "nowrap" }}>{fmtDateTime(r.at)}</td>
                     <td className="ordno">{r.label ? `#${r.label}` : "—"}</td>
-                    <td><span className="sema" style={{ background: stageInfo(r.kind).color, color: "#fff" }}>{actionLabel(r.kind, lang)}</span></td>
+                    <td><span className="sema" style={{ background: r.kind === KIND_RECIBIDA ? RECIBIDO_COLOR : stageInfo(r.kind).color, color: "#fff" }}>{actionLabel(r.kind, lang)}</span></td>
                     <td>{r.by}</td>
                     <td style={{ color: "var(--gray)" }}>{r.note || "—"}</td>
                   </tr>
