@@ -29368,3 +29368,141 @@ parada).
 - **Nada contra producción.** No se midió qué formatos de dirección tiene la base de verdad; `ciudadDeEntrega` se probó
   con las del demo, las de las pruebas del repo y formatos de Google y Nominatim escritos a mano. Una dirección sin comas
   («123 Main St McAllen TX») sale «—», con la dirección en el `title`.
+
+## D-409 · Almacén «recibe» la Intertienda que llega a su tienda: es `delivered` en la base y se pinta «Received»
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+
+**Pedido por el dueño (2026-09-26)**, literal: *«warehouse puede darle delivery a una carga que vaya donde ellos, pero si
+ellos lo hacen no aparecerá como delivered sino como received; y received es lo mismo que delivered, solo que esto es
+para diferenciar si fue el driver o el warehouse»*.
+
+### Qué hay
+
+- **Un botón «📥 Recibir / Receive»** para almacén, en la **ficha** y en la **fila de Recepción** (D-374), con pregunta
+  antes. Sale solo si se cumplen las tres cosas de `puedeRecibir` (`src/lib/recibir.ts`):
+  1. quien mira es **almacén** (el rol, no la capacidad `deliver`);
+  2. la orden está en **`picked_up`** (el chofer la trae);
+  3. la orden **entra a su tienda**: exactamente la regla de Recepción (`esParaRecibir`: Intertienda cuyo `delivery_name` es
+     su tienda o una de su grupo, y que **no sale** de ellas). Sin tienda asignada, nunca.
+- **En la ficha, «Recibir» ocupa el sitio de «Marcar entregado»** en esas órdenes. Si almacén pudiera cerrar su propia
+  carga con el POD del chofer, se pintaría «Delivered» y el dueño quiere justo distinguir eso. «Llegué a la parada» y
+  «Dejar en tienda» tampoco salen ahí: son del viaje, y la carga ya llegó a su destino.
+- **La escritura es `delivered`, la etapa de siempre.** Informes, Cuentas, Outdated, Factura pendiente, el filtro por etapa,
+  la 146 y los avisos la ven como cualquier entregada. Sin firma, sin POD y sin GPS, como «Marcar entregada ya» (D-361).
+- **Lo único distinto es el evento**: `order_events.kind = 'received'` en vez de `'delivered'`. De ahí sale la pastilla
+  **«Recibido / Received»** en verde oliva (`#5f9a2a`), de la familia de «Entregado» (`#1f9d61`) pero distinta a simple vista.
+  Se pinta «Received» una orden **en `delivered`** cuyo **último** paso a entregada (el evento más nuevo de tipo
+  `delivered` o `received`, por hora) fue un `received`. Recibida, deshecha y entregada después por el chofer: «Delivered».
+
+**Dónde se ve «Received»:** la columna Etapa y la tarjeta del teléfono de **Órdenes** (y de todo lo que usa esa tabla:
+Recepción, la Cola, la vista del chofer), la cabecera de la **ficha**, el **historial** de la ficha («📥 Recibida por
+almacén», con quién y cuándo), la **Ruta del día** de almacén, la columna Etapa del **Gestor** si se añade (usa la celda de
+Órdenes), y **Auditoría**.
+
+### Por qué el evento y no una columna (opción A del encargo)
+
+- **`kind` es texto libre.** No tiene `check` en ninguna migración (`schema.sql:130`; la única `insert` es la política de la
+  100, que solo exige `created_by = auth.uid()`). `dropped_at_store` (D-224) ya lo usaba igual. **Sin migración 147.**
+- **Leerlo cuesta cero consultas.** El proveedor ya baja los últimos 1000 eventos (`EVENTS_WINDOW`) al abrir la app, para
+  todos los roles, y los recarga por tiempo real. Pintar la lista es un `Set` construido una vez por lista de eventos
+  (`idsRecibidasPorAlmacen`) y un `has` por fila.
+- **Una columna** habría pedido la 147, desplegarla antes que el código (si no, el `update` falla por columna inexistente),
+  y limpiarla en cada deshacer y en cada entrega posterior.
+- **El precio, dicho:** una orden recibida hace más de 1000 eventos se pinta «Delivered», porque su evento ya no está en
+  memoria. Solo afecta al color y la palabra, nunca a la etapa ni a lo que cuenta. Lo que se ve a diario (ayer, hoy y
+  futuro) está siempre dentro. **Cuántos eventos se escriben al día en producción no se midió** desde esta rama.
+- **Se descartó deducirlo del rol de `created_by`**: el rol de una persona cambia, un admin «viendo como» almacén escribe
+  con su propio id, y un almacenista con `deliver` que entrega con POD no es un «recibir».
+
+Dos arreglos que esto necesitó y que valen también para «Dejar en tienda»:
+
+- **El demo ignoraba el `kind`** (`local-data-provider.tsx`): apuntaba siempre la etapa. Ahora lo guarda como el proveedor
+  real.
+- **La cola de salida sin señal** (`outbox.ts`) guardaba la etapa y no el `kind`: al reenviarse, un «Recibir» offline
+  habría quedado como `delivered`. Ahora guarda y reenvía el `kind`.
+- Y **el evento entra en la lista en cuanto se escribe** (`logEvent` pide `.select().single()` y lo añade), sin esperar la
+  recarga por tiempo real. Sin eso, la orden recién recibida se pintaba «Delivered» unos segundos.
+
+### Decisiones mías, para validar
+
+1. **Solo desde `picked_up`, sin migración.** La 145 no le deja a almacén `ready → delivered` (su rama es `approved →
+   fulfilling → ready → picked_up → delivered`, más `picked_up → ready`). Si la carga llega sin que nadie marcara la
+   recogida, almacén pulsa **«Recoger»** —que la base ya le deja en cualquier tienda y la ficha ya le ofrece— y luego
+   «Recibir». Dos clics y ninguna migración. Si el dueño lo quiere de un clic desde `ready`, es un salto nuevo en el guard
+   (`ready → delivered` para almacén, acotado a `orden_de_mis_tiendas`): migración 147 con su plan.
+2. **Office y gerente con «Marcar entregada ya» se pintan «Delivered»**: el pedido es de almacén, y su nota ya dice
+   «Entregada por oficina (sin firma)».
+3. **En el filtro por etapa, «Received» va dentro de «Entregado»**, sin pastilla propia: «es lo mismo». La pastilla
+   «Delivered N» cuenta las dos, y el filtro de la columna Etapa (el de tipo Excel) sigue agrupando por la etapa.
+4. **Solo el rol almacén**, no el admin ni quien tenga `fulfill` a mano: es el pedido literal. Un admin que elige tienda en
+   la pantalla de Almacén ve Recepción pero no «Recibir».
+5. **Un movimiento entre dos tiendas del mismo grupo no se «recibe»**: no está en Recepción (D-374 lo deja en la Cola, porque
+   sale de una tienda propia). Se entrega como hasta hoy.
+
+### Hallazgo: almacén puede entregar cualquier orden recogida, de cualquier tienda
+
+- **En la base:** la rama de almacén de la 145 tiene `picked_up → delivered` **sin límite de tienda** (la 142 solo acotó sus
+  pasos atrás).
+- **En la pantalla:** `ROLE_CAPS.warehouse` incluye `deliver`, así que la ficha le ofrece **«Marcar entregado» con POD,
+  «Llegué a la parada» y «Dejar en tienda»** en cualquier orden recogida que vea. Medido en el demo: almacén de McAllen en
+  la McAllen→Edinburg #1954, y almacén de Pharr en la Pharr→Edinburg #1952, ven «Mark delivered».
+
+Esta rama **no lo cierra**: quitarle `deliver` a almacén le cambiaría la pantalla de Chofer, «Dejar en tienda» (D-224) y
+las fotos, y acotar la base es migración. Si el dueño quiere que almacén solo cierre lo que llega a su tienda, son dos
+cambios: la ficha (que «Marcar entregado» no salga a almacén) y la 147 (acotar su `picked_up → delivered` a
+`orden_de_mis_tiendas`, o al destino).
+
+### Pruebas
+
+`src/lib/recibir.test.ts` (nuevo, 32): quién ve «Recibir» (rol, etapa, destino propio, grupo, sale de la suya, mismo grupo,
+sin tienda, orden de cliente); qué escribe (`delivered` + `received`, el salto está en `LEGAL_TRANSITIONS` y en la rama de
+almacén de la 145, y la 145 sigue siendo la última que define el guard); cómo se pinta (último evento por **hora** y no por
+posición, con los eventos en los dos órdenes; notas y ediciones no cuentan; deshecha no es Received; texto y color); y
+que las pantallas usan lo probado (Órdenes en sus dos pastillas y el contexto, la acción de la fila sin abrir la orden,
+Recepción, la ficha con «Recibir» en lugar de «Marcar entregado», la cabecera y el historial, Auditoría, el demo, la cola
+de salida y `logEvent`). Cuatro canarios de otras decisiones fijaban la línea literal de la pastilla y se reescribieron a
+la nueva, sin aflojarlos: `routes-columns` (D-376), `ruta-del-dia` (D-380), `tarjeta-orden` (D-298) y
+`arreglos-vistos-en-navegador`.
+
+**Mutantes: 30 de 30 caen con una prueba con nombre** (herramienta de mutantes, leída por nombre). Entre ellos: «Recibir»
+para cualquier rol, en cualquier etapa, sin mirar la tienda, sin el grupo; quedarse con el primer o el último evento en vez
+del más nuevo; contar cualquier evento; Received aunque ya no esté entregada; el mismo verde; escribir una entrega normal;
+cada pantalla dejando de mirar las recibidas (tabla ×3, Ruta del día, cabecera de la ficha, Gestor); Recepción y la ficha
+sin `puedeRecibir` o escribiendo por su cuenta; «Recibir» y «Marcar entregado» a la vez; el demo y la cola de salida
+perdiendo el `kind`; y la 145 sin el `picked_up → delivered` de almacén.
+
+### Medido en el navegador (demo, 2026-09-26, 1280×900)
+
+`next dev` en modo demo, Chrome headless por CDP, clics de persona (elemento a la vista y comprobado bajo el ratón). Se
+sembraron cuatro Intertiendas recogidas hoy: #1951 y #1953 Pharr→McAllen, #1952 Pharr→Edinburg, #1954 McAllen→Edinburg.
+
+- **Almacén de McAllen, Recepción:** #1951 y #1953, las dos con «📥 Receive». #1952 no sale en ninguna de sus listas; #1954
+  sale en su Cola y su ficha **no** tiene «Receive» (tiene «Mark delivered»: el hallazgo).
+- **Recibir #1953 desde la fila:** pregunta «Mark #1953 as received at your store?» → «Receive». La orden queda
+  `delivered` con un evento `received` de `u-wh`. En Recepción la pastilla dice **Received** (`rgb(95,154,42)`); #1951
+  sigue «Picked Up» con su botón. La ficha de #1953: **Received** en la cabecera.
+- **Ficha de #1951 (Pharr→McAllen, recogida) como almacén de McAllen:** «📥 Receive», y **sin** «Mark delivered», «Arrived
+  at stop» ni «Leave at store».
+- **Almacén de Pharr:** la Pharr→Edinburg #1952 sale en su Cola y su ficha **no** ofrece «Receive». Su Recepción no tiene
+  ninguna de las cuatro.
+- **Chofer (Diego Driver) entrega #1951** con «Mark delivered»: `delivered` con evento `delivered` de `u-drv`. En Recepción
+  de McAllen: #1953 **Received**, #1951 **Delivered** (`rgb(31,157,97)`); la pastilla «Delivered» de Recepción dice **2**.
+- **Ruta del día de McAllen:** #1953 Received, #1954 Picked Up, #1951 Delivered.
+- **Admin en Órdenes:** la pastilla «Delivered 3» (las dos y una del demo); al pulsarla, 3 filas, #1953 **Received** y
+  #1951 **Delivered**. La ficha de #1953, como admin: cabecera Received y en el historial «📥 Received by warehouse — Wade
+  Warehouse (Warehouse)». La de #1951: Delivered, sin esa línea.
+- Sin desplazamiento lateral: `scrollWidth` 1280 = `clientWidth` 1280.
+
+El historial de la ficha **solo lo ve admin, gerente o quien creó la orden** (regla vieja de la ficha): almacén no ve la
+línea «Recibida por almacén», solo la pastilla.
+
+### Lo no verificado
+
+- **Nada contra producción.** Que la base acepte el `update` de almacén `picked_up → delivered` se lee en la 145 (y la
+  prueba lo fija); no se ejecutó.
+- **Cuántos eventos entran al día** en producción, o sea cuánto tarda una recibida en caer fuera de la ventana de 1000 y
+  pintarse «Delivered». No hay llaves de producción en este worktree, a propósito.
+- **El `logEvent` con `.select().single()`** en el proveedor real no se ejecutó (el demo no lo usa): la política de lectura
+  de `order_events` (100) deja leer a cualquiera con acceso a Entregas, así que el `select` de vuelta debería llegar; si no
+  llegara, no se rompe nada: la recarga por tiempo real lo trae como antes.

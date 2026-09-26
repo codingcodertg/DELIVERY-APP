@@ -58,7 +58,8 @@ describe("2 · una celda de pastillas no las parte", () => {
     expect(regla).not.toContain("width: 140px");                                    // no se arregla ensanchando a mano
   });
   it("una pastilla recortada dice su texto entero al pasar el ratón", () => {
-    expect(tabla).toContain('<span className="sema" title={stageLabel(d.stage, lang)}');
+    // D-409: el texto sale de `pastillaDeEtapa` («Received» incluido); el title sigue siendo el mismo texto que se pinta.
+    expect(tabla).toContain('<span className="sema" title={p.texto}');
   });
   it("y los anchos por defecto siguen siendo los compactos de D-344", () => {
     const anchos = leer("src/lib/use-col-widths.ts");

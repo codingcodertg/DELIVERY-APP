@@ -8,7 +8,9 @@ import { filtraLaVistaDeAlmacen, reparteLaColaDeAlmacen, type FiltroDeVista } fr
 import { FiltrosDeAlmacen } from "@/components/FiltrosDeAlmacen";
 import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
-import { canFulfill, ROLE_DEFAULT_COLUMNS, stageInfo, stageLabel } from "@/lib/constants";
+import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
+import { idsRecibidasPorAlmacen, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
+import { useConfirm } from "@/lib/confirm";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { printLoadSheets } from "@/lib/slip";
@@ -29,8 +31,20 @@ const TABS = [
 ] as const;
 
 export default function WarehousePage() {
-  const { me, users, deliveries, settings, driverLocations, ready, realRole } = useData();
+  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify } = useData();
   const { lang, t } = usePrefs();
+  const confirmAction = useConfirm();
+  // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.
+  const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  const [recibiendo, setRecibiendo] = useState<string | null>(null);
+  /** «Recibir» desde la fila de Recepción: la misma escritura que la ficha (`recibirOrden`), con pregunta antes. */
+  const recibir = async (d: Delivery) => {
+    if (!(await confirmAction(t(`Mark #${orderLabel(d)} as received at your store?`, `¿Marcar #${orderLabel(d)} como recibida en su tienda?`), { confirmLabel: t("Receive", "Recibir") }))) return;
+    setRecibiendo(d.id);
+    const ok = await recibirOrden(setStage, d.id);
+    setRecibiendo(null);
+    if (ok) notify(t("Received", "Recibida"));
+  };
   const [open, setOpen] = useState<Delivery | null>(null);
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.
@@ -290,6 +304,12 @@ export default function WarehousePage() {
               onOpen={setOpen}
               visible={ROLE_DEFAULT_COLUMNS.warehouse}
               empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
+              // «Recibir» en la propia fila (D-409), solo donde `puedeRecibir` dice que sí: almacén, en
+              // `picked_up`, y la orden va a su tienda. Recepción ya es esa lista, pero la regla se pregunta
+              // igual: un admin eligiendo tienda aquí no recibe, y una lista y un permiso no son lo mismo.
+              accionDeFila={(d) => puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores) ? (
+                <button className="btn btn-green btn-sm" disabled={recibiendo === d.id} onClick={() => void recibir(d)}>📥 {t("Receive", "Recibir")}</button>
+              ) : null}
             />
           )}
         </div>
@@ -348,9 +368,11 @@ export default function WarehousePage() {
                             Sin ella, ahora que las entregadas se quedan, una parada terminada se
                             leería igual que una que sigue esperando camión. */}
                         <td className="td-pastillas">
-                          <span className="sema" style={{ background: stageInfo(d.stage).color, color: "#fff" }}>
-                            {stageLabel(d.stage, lang)}
-                          </span>
+                          {(() => {
+                            // «Received» si la recibió almacén (D-409); si no, su etapa, como siempre.
+                            const p = pastillaDeEtapa(d, recibidas, lang);
+                            return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
+                          })()}
                         </td>
                       </tr>
                     ))}

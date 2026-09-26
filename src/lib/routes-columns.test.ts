@@ -234,7 +234,9 @@ describe("la página del Gestor", () => {
   });
   it("D-376: «Sin asignar» pinta, ordena y filtra las de Órdenes con las funciones de Órdenes", () => {
     expect(pagina).toContain('import { ORDER_COLUMNS } from "@/components/OrdersTable";');
-    expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings) }), [lang, t, settings]);");
+    // D-409: el contexto lleva además `recibidas`, para que la columna de Etapa pinte «Received» como en Órdenes.
+    expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);");
+    expect(pagina).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
     expect(pagina).toContain("const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);");
     expect(pagina).toContain("etiqueta: etiquetaDelGestor(c.key, deOrdenes)");

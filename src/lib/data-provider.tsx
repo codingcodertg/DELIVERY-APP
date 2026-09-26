@@ -418,7 +418,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
               ? `No se pudo enviar un cambio: ${error.message}`
               : `A queued change was rejected: ${error.message}`);
           } else {
-            void logEventRef.current?.(it.deliveryId, it.stage, it.note);
+            void logEventRef.current?.(it.deliveryId, it.kind ?? it.stage, it.note);
           }
           remaining = remaining.filter((r) => r.id !== it.id);
           saveOutbox(remaining);
@@ -807,12 +807,15 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Event log helper ----------------
   const logEvent = useCallback(
     async (deliveryId: string, kind: string, note?: string) => {
-      await supabase.from("order_events").insert({
+      const { data } = await supabase.from("order_events").insert({
         delivery_id: deliveryId,
         kind,
         note: note ?? null,
         created_by: me?.id ?? null,
-      });
+      }).select().single();
+      // En la lista en cuanto se escribe, sin esperar la recarga por tiempo real: la pastilla
+      // «Received» (D-409) sale del evento, y sin esto la orden se pintaba «Delivered» unos segundos.
+      if (data) setEvents((prev) => (prev.some((e) => e.id === (data as OrderEvent).id) ? prev : [data as OrderEvent, ...prev]));
     },
     [supabase, me],
   );
@@ -1365,7 +1368,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         if (queueable && isOfflineError(error)) {
           enqueue({
             id: `q${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            deliveryId: id, stage, patch, note, at: new Date().toISOString(), tries: 0,
+            deliveryId: id, stage, patch, note, kind, at: new Date().toISOString(), tries: 0,
           });
           notify(t_offlineSaved());
           return true;   // as far as the driver is concerned, it's done
