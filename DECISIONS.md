@@ -22976,6 +22976,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la columna fija del código de orden (`#`/ID) ya no está en ninguna
+> tabla del Gestor. La factura deja de ser elegible: es **fija** (no sale en el ⚙) porque ahora es lo que abre la orden.
+
 > **⚠ Reemplazada en parte por D-402** (2026-09-25): en «Sin asignar» la factura ya no va la primera tras el código; las
 > columnas salen en el orden de Órdenes vista por ventas, y la factura va tercera, tras PO # y SO #.
 
@@ -24152,6 +24155,10 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la columna de la dirección de entrega enseña **solo la ciudad**
+> («Ciudad de entrega» en «Sin asignar», «Ciudad» en las paradas), con la dirección entera al pasar el ratón. El botón
+> ⤢/⤡ de abrir y cerrar la dirección en las paradas se quitó. Las claves guardadas (`address`, `p_address`) no cambian.
+
 > **⚠ Corregida en parte por D-379** (2026-09-23): el ⚙ de paradas colgaba de un solo estado y una sola `ref` para
 > todas las tarjetas; abría todos a la vez y no dejaba marcar (medido en la primera tarjeta). Ahora cada una tiene el suyo.
 
@@ -24594,6 +24601,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **No verificado:** nada abierto en un navegador.
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): el ID ya no está (el dueño: «routes manager doesn't need to see
+> id»). La orden se abre desde la **factura**, en «Sin asignar» y en las paradas; sin factura, desde el código en gris.
 
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
 > vigente.
@@ -26432,6 +26442,9 @@ quería decir: ningún `href="/promos"`. Y `volver-al-hub.test.ts` exige el enla
 Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
 
 ## D-379 · El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la celda que juntaba el código (arriba, subrayado) y la factura
+> (debajo) enseña **solo la factura**, subrayada, y es la que abre la orden. `.parada-id` y `.parada-factura` se quitaron.
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** el dueño, en producción, con captura de la tabla de paradas de un chofer, tras publicarse D-376:
@@ -28555,6 +28568,10 @@ producción ni con llaves.**
 
 ## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la columna fija `ID` que iba la primera ya no está, y la factura
+> pasa a fija en su puesto de ventas (tras PO y SO). La «Dirección» ahora es la «Ciudad de entrega»: misma clave y mismo
+> puesto (tras la recogida). El orden de ventas no cambia.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** El dueño, literal: *«quiero que la tabla que se hizo en logistic manager tenga el mismo orden que en
 order view de sales»*. La tabla es **«Sin asignar»** del Gestor de Rutas, la que recibió las columnas de Órdenes en D-376.
@@ -29258,3 +29275,96 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 - **Nada contra producción.** Las cinco órdenes #93, #163, #197, #223, #243 las dio el orquestador; no las conté.
 - El tablero no se abrió en el navegador: pinta `filasDeOrdenes(listas, «Todas»)`, la misma lista medida arriba.
 - Logística no se midió en el navegador (lo cubren las pruebas, con admin).
+
+
+## D-NEXT · El Gestor de Rutas deja de enseñar el ID: la factura abre la orden, y la dirección de entrega pasa a ser la ciudad
+
+**Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale.** Dos pedidos del dueño el mismo día, literales:
+*«routes manager doesn't need to see id»* y
+*«instead of delivery address column que salga delivery city y solo salga la city donde se entrega en routes manager»*.
+**Reemplaza en parte** a D-331, D-346, D-360, D-379 y D-402; las cinco llevan su nota. Nada de Órdenes cambia.
+
+### 1 · Sin la columna del ID
+
+El «ID» era el código de la orden (`#1234`, `orderLabel`). En el Gestor salía en dos sitios:
+
+- **«Sin asignar»**: una columna **fija** (no estaba en el ⚙; clave `__id` en el menú de ordenar y filtrar de D-360),
+  la primera tras la casilla. Se quitó **del todo** — cabecera, `col`, celda, su ancho en la tabla, su valor en
+  `valorDelGestor` y el `colSpan` de la fila vacía (+3 → +2).
+- **Paradas de cada chofer**: el puesto 1 de la tabla (anchos por posición), con el código arriba, subrayado, y la factura
+  debajo en pequeño (D-379). Ahora ese puesto es **«Factura #»** y enseña **solo la factura**, subrayada.
+
+Como era fija, no había nada que dejar «desmarcado por defecto»: se quitó, que es lo que el dueño pidió.
+
+### 2 · Lo que abre la orden: la factura
+
+En **paradas**, el ID era **lo único** que abría la orden (pulsar la fila aísla la parada en el mapa, D-346). En «Sin
+asignar» abrían el ID y la factura (D-360). Desde esta decisión, en **las dos tablas**, abre la **factura**:
+`enlaceALaOrden` en la página, con el mismo gesto de D-360 (`abreLaOrden`: para el clic, así no marca la fila ni aísla la
+parada).
+
+- **Una orden sin factura** (una Intertienda, un Transfer, un borrador) enseña su **código en gris** (`#1009`), que abre
+  la orden igual. Es la misma regla que el `#` de Órdenes (`invoice_num || orderLabel`), y sin ella esa fila no tendría
+  nada que pulsar. `textoQueAbreLaOrden` lo decide; una factura de solo espacios cuenta como sin factura.
+- **La factura pasa a ser FIJA en «Sin asignar»** (`fija: true` en el catálogo): sale siempre y el ⚙ ya no la ofrece
+  (`columnasElegibles`). Si se pudiera desmarcar, la tabla se quedaría sin nada que abra la orden. Va en su puesto de
+  ventas (D-402: tras PO # y SO #). Decisión del worker, **a validar**: la alternativa era dejarla elegible y aceptar que
+  quien la quita pierde el enlace.
+- En **paradas** la factura ya no depende de tener marcada la columna «Factura #»: el puesto 1 la enseña siempre.
+
+### 3 · «Ciudad de entrega» en vez de la dirección
+
+- **De dónde sale la ciudad.** La orden no tiene un campo de ciudad (`Delivery` solo trae `delivery_address`, texto
+  libre), así que se saca de la dirección con **`ciudadDeEntrega`** (`src/lib/ciudad-de-entrega.ts`), una función pura:
+  parte por comas, quita desde el final el país, el código postal, el estado (sigla en mayúsculas o nombre: Texas,
+  Tamaulipas, N.L.…) y el condado, y del último trozo quita el código postal y el estado pegados. Si lo que queda empieza
+  con un número, es la calle: devuelve «» y la celda pinta «—». No busca nombres conocidos dentro del texto: «2 McAllen
+  Ave, Pharr TX» es Pharr.
+- **No se usó `cityFromAddress`** (`utils.ts`): con «4500 N 23rd St, McAllen TX» devuelve la calle y con la de Nominatim
+  «…, Pharr, Hidalgo County, Texas, 78577, United States» devuelve «78577». Y la usa el cálculo del costo (`pricing.ts`):
+  cambiarla habría movido precios. Se deja como está.
+- **Qué cambia:** solo lo que se pinta en la columna y su valor para ordenar y filtrar (`valorDelGestor("address")` →
+  la ciudad). La dirección entera va en el `title` de la celda. **La búsqueda de «Sin asignar» sigue encontrando por
+  dirección** (`coincideConLaBusqueda`, sin tocar), el mapa, la optimización y el aviso de «sin dirección de entrega»
+  siguen con la dirección completa.
+- **Rótulos:** «Delivery City / Ciudad de entrega» en «Sin asignar»; «City / Ciudad» en paradas (en el ⚙, «Paradas:
+  Ciudad»). El botón ⤢/⤡ de abrir y cerrar la dirección en paradas se quitó con ella.
+- **Lo guardado:** las claves siguen siendo `address` y `p_address` (como `status`, que se llama «Etapa»). Las listas de
+  columnas y las plantillas guardadas no se mapean: siguen valiendo tal cual. Una lista o plantilla sin `invoice` enseña
+  la factura igual (es fija), y ninguna clave desaparece del catálogo.
+- **D-402:** la ciudad ocupa el mismo puesto que la dirección (tras la recogida, donde Órdenes pone la dirección).
+- **Anchos de paradas:** la llave pasa de `rtg_routes_stops7` a `rtg_routes_stops8`, con defecto `[40, 110, 140, 70, 120,
+  56, 110, 150]` (factura 110 en vez de ID 96; ciudad 120 en vez de dirección 240). Quien había arrastrado anchos en esa
+  tabla vuelve una vez al defecto: un ancho de dirección no vale para una ciudad. «Sin asignar» guarda por clave y no
+  cambia (la ciudad usa el ancho que tuviera `g_address`, 100 por defecto).
+
+### Qué se midió (2026-09-26, demo en 127.0.0.1, «Ver como» logística, ventana 1280×900)
+
+- **«Sin asignar»** (chip «Todas», 57 filas): 16 cabeceras, ninguna «ID»: casilla · PO # · SO # · Invoice # · Type ·
+  Account · Contact · Stage · Store · Delivery Date · Pallets · Fee · Pickup · Delivery City · Windows · Assign to.
+  «Delivery City» enseña solo la ciudad — McAllen, Pharr, Mission, Brownsville, Edinburg, Weslaco en las filas medidas —
+  con la dirección entera en el `title` («123 Main St, McAllen TX»). Un Transfer sin factura enseña «#1023» en gris.
+- Pulsar **INV-3001** abre la ficha («Order #1003 … INV INV-3001») y la fila **no** se marca (0 filas marcadas).
+- El ⚙ de «Sin asignar» ofrece 13 columnas, sin «Invoice #», con «Delivery City».
+- El menú de la columna «Delivery City» filtra por ciudad: Brownsville, Edinburg, McAllen, Mission, Pharr, Weslaco.
+- **Paradas** (Diego Driver, 4 paradas): cabeceras # · Invoice # · Type · Pallets · City · ETA · Windows; ninguna «ID».
+  La celda de la factura: «#1009» (Intertienda sin factura, gris `rgb(107,118,134)`), INV-3009, INV-3010, INV-3028
+  (color de texto normal), subrayadas. Ciudades: Edinburg, McAllen, Mission, McAllen. Pulsar «#1009» abre «Order #1009»;
+  pulsar INV-3009 abre «Order #1012 … INV INV-3009».
+- **La página no se desplaza de lado:** `scrollWidth` 1280 = `clientWidth` 1280, en las dos pestañas.
+
+### Lo que no cambió, a propósito
+
+- El código de orden sigue saliendo **fuera de las columnas**: en las filas informativas de las paradas («Pick up at
+  McAllen — #1013 · Inv. INV-3010», `nombraLaOrden`), en los avisos de paradas sin pin o tarde, en las etiquetas del
+  mapa, en el resumen de «Auto-asignar» y en Incidencias. El pedido hablaba de la columna; si el dueño lo quiere fuera
+  también de ahí, es otro cambio.
+- La búsqueda de «Sin asignar» sigue buscando por número de orden, y **no** busca por factura (nunca lo hizo).
+- Órdenes: su `#` ya enseña la factura (`byInvoice = true`, con el código si no hay factura). No se tocó.
+
+### Lo no verificado
+
+- **Nada contra producción.** No se midió qué formatos de dirección tiene la base de verdad; `ciudadDeEntrega` se probó
+  con las del demo, las de las pruebas del repo y formatos de Google y Nominatim escritos a mano. Una dirección sin comas
+  («123 Main St McAllen TX») sale «—», con la dirección en el `title`.
