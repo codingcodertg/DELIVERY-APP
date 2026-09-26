@@ -1413,6 +1413,6 @@ table.orders th { text-align: left; }
 }
 @media (max-width: 640px) { .lb-nav { width: 36px; height: 52px; font-size: 24px; } }
 
-/* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-NEXT: «Recibir» en Recepción). */
+/* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */
 .accion-de-fila { display: block; margin-top: 4px; }
 .accion-de-fila .btn { padding: 2px 8px; min-height: 0; }

@@ -311,7 +311,7 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
   it("cada parada dice su etapa, con la pastilla de Órdenes", () => {
     const vista = pagina.slice(pagina.indexOf("ruta.map((g)"), pagina.indexOf("</tbody>"));
     expect(vista).toContain("Etapa");                            // la columna nueva
-    // D-NEXT: la pastilla sale de `pastillaDeEtapa` —la de Órdenes—, que dice «Received» si la recibió almacén.
+    // D-409: la pastilla sale de `pastillaDeEtapa` —la de Órdenes—, que dice «Received» si la recibió almacén.
     expect(vista).toContain("const p = pastillaDeEtapa(d, recibidas, lang);");
     expect(vista).toContain("style={{ background: p.color, color: \"#fff\" }}>{p.texto}</span>");
   });

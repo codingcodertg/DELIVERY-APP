@@ -27,7 +27,7 @@ type Ctx = {
   byInvoice?: boolean;
   /** Los motivos de anulación vigentes, para traducir la clave que guarda la orden (122). */
   motivos?: CancelReason[];
-  /** Las entregadas que recibió almacén (D-NEXT): su pastilla dice «Received» y no «Delivered». */
+  /** Las entregadas que recibió almacén (D-409): su pastilla dice «Received» y no «Delivered». */
   recibidas?: ReadonlySet<string>;
 };
 type CellValue = ValorDeCelda;
@@ -53,7 +53,7 @@ export interface OrderColumn {
 
 export const ORDER_COLUMNS: OrderColumn[] = [
   // El VALOR (orden y filtro de columna) sigue siendo la etapa: «Received» va dentro de «Delivered» también
-  // en el filtro de la columna, porque es lo mismo (D-NEXT). Solo la pastilla cambia.
+  // en el filtro de la columna, porque es lo mismo (D-409). Solo la pastilla cambia.
   { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas }) => {
       const p = pastillaDeEtapa(d, recibidas, lang);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
@@ -381,7 +381,7 @@ export function OrdersTable({
   /** El ancho de las columnas de ESTA persona, leído de la base, y el aviso al soltar para guardarlo (D-338). */
   anchos?: Record<string, number> | null;
   onAnchos?: (anchos: Record<string, number>) => void;
-  /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-NEXT). No abre la orden al pulsarlo. */
+  /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
 }) {
   const { lang, t } = usePrefs();
@@ -399,7 +399,7 @@ export function OrdersTable({
   // the warehouse on the paperwork, the driver at the tailgate. The order code
   // is still shown, just as the second line rather than the headline.
   const byInvoice = true;
-  // Qué entregadas recibió almacén (D-NEXT): un índice sobre los eventos que el proveedor ya tiene cargados.
+  // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };
   const [sortKey, setSortKey] = useState<string | null>(null);

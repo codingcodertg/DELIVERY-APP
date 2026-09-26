@@ -923,7 +923,7 @@ export default function RoutesPage() {
   // Ordenar y filtrar por columna en «Sin asignar» (D-360), con el menú de Órdenes. El valor de cada columna lo decide
   // `valorDelGestor`; las que vienen de Órdenes (D-376) toman el valor, la celda y la etiqueta de la columna de Órdenes,
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
-  // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-NEXT), como en Órdenes.
+  // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-409), como en Órdenes.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);

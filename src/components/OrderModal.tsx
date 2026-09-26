@@ -827,7 +827,7 @@ export function OrderModal({
   };
 
   /**
-   * «Recibir» (D-NEXT): almacén cierra la Intertienda que llega a SU tienda. Es `delivered` en la base y
+   * «Recibir» (D-409): almacén cierra la Intertienda que llega a SU tienda. Es `delivered` en la base y
    * solo cambia el evento (`received`), que es lo que la pinta «Received». Quién y cuándo lo decide
    * `puedeRecibir`; la escritura, `recibirOrden`, la misma que usa la fila de Recepción.
    */
@@ -1226,7 +1226,7 @@ export function OrderModal({
     notify(t(`Saved "${loc.name}" as a dropoff site`, `"${loc.name}" guardado como sitio de entrega`));
   };
 
-  // La pastilla de la cabecera: «Received» si la recibió almacén (D-NEXT), con los eventos de ESTA orden.
+  // La pastilla de la cabecera: «Received» si la recibió almacén (D-409), con los eventos de ESTA orden.
   const info = existing ? pastillaDeEtapa({ id: existing.id, stage }, idsRecibidasPorAlmacen(events), lang) : { texto: stageLabel(stage, lang), color: stageInfo(stage).color };
 
   // ---- Unsaved-changes lock ----
@@ -2927,7 +2927,7 @@ function StageActions({
   onQuickPickup: () => void;
   departedAt: string | null; onDepart: () => void;
   arrivedAt: string | null; onArrive: () => void;
-  /** Almacén, en `picked_up`, y la orden va a su tienda (`puedeRecibir`, D-NEXT). */
+  /** Almacén, en `picked_up`, y la orden va a su tienda (`puedeRecibir`, D-409). */
   puedeRecibirla: boolean; onReceive: () => void;
 }) {
   const { t } = usePrefs();
@@ -3036,7 +3036,7 @@ function StageActions({
       btns.push(<button key="dopickup" className="btn btn-primary" onClick={onConfirmPickup} disabled={busy}>🚚 {t("Confirm load & go", "Confirmar carga y salir")}</button>);
     }
   }
-  // Almacén RECIBE la Intertienda que llega a su tienda (D-NEXT): «Recibir» ocupa el sitio de «Marcar
+  // Almacén RECIBE la Intertienda que llega a su tienda (D-409): «Recibir» ocupa el sitio de «Marcar
   // entregado». Si almacén la cerrara con el POD de chofer se pintaría «Delivered», y el dueño quiere
   // distinguir quién la cerró. Una que NO va a su tienda sigue como antes (hallazgo en la entrada).
   if (puedeRecibirla && stage === "picked_up" && !podOpen) {

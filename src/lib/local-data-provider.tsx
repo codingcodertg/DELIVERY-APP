@@ -263,7 +263,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     const base: Store = {
       ...s,
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-      // `kind` por defecto es la etapa, como en el proveedor real; «Recibir» (D-NEXT) y «Dejar en tienda»
+      // `kind` por defecto es la etapa, como en el proveedor real; «Recibir» (D-409) y «Dejar en tienda»
       // pasan el suyo. Antes el demo lo ignoraba y los dos salían como una etapa más.
       events: addEvent(s, id, kind ?? (stage as Stage), note),
     };

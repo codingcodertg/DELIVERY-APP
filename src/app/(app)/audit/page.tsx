@@ -19,7 +19,7 @@ function actionLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "created") return lang === "es" ? "Creada" : "Created";
   if (kind === "edited") return lang === "es" ? "Editada" : "Edited";
   if (kind === "note") return lang === "es" ? "Nota" : "Note";
-  // «Recibir» de almacén (D-NEXT): es una entrega, y se dice quién la cerró.
+  // «Recibir» de almacén (D-409): es una entrega, y se dice quién la cerró.
   if (kind === KIND_RECIBIDA) return lang === "es" ? "Recibida por almacén" : "Received by warehouse";
   const s = stageInfo(kind);
   return s.key === kind ? stageLabel(kind, lang) : kind;

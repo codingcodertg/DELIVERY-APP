@@ -4,7 +4,7 @@ import { stageInfo, stageLabel } from "@/lib/constants";
 import { esParaRecibir, tiendasDeAlmacen, type ReglaDeTipo } from "@/lib/almacen";
 
 /**
- * **«Recibir»: almacén cierra la Intertienda que llega a su tienda** (D-NEXT).
+ * **«Recibir»: almacén cierra la Intertienda que llega a su tienda** (D-409).
  *
  * El dueño, el 2026-09-26: *«warehouse puede darle delivery a una carga que vaya donde ellos, pero si
  * ellos lo hacen no aparecerá como delivered sino como received; y received es lo mismo que delivered,

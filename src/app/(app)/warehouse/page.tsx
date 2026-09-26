@@ -34,7 +34,7 @@ export default function WarehousePage() {
   const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
-  // Las entregadas que recibió almacén (D-NEXT), para la pastilla de la Ruta del día.
+  // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const [recibiendo, setRecibiendo] = useState<string | null>(null);
   /** «Recibir» desde la fila de Recepción: la misma escritura que la ficha (`recibirOrden`), con pregunta antes. */
@@ -304,7 +304,7 @@ export default function WarehousePage() {
               onOpen={setOpen}
               visible={ROLE_DEFAULT_COLUMNS.warehouse}
               empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
-              // «Recibir» en la propia fila (D-NEXT), solo donde `puedeRecibir` dice que sí: almacén, en
+              // «Recibir» en la propia fila (D-409), solo donde `puedeRecibir` dice que sí: almacén, en
               // `picked_up`, y la orden va a su tienda. Recepción ya es esa lista, pero la regla se pregunta
               // igual: un admin eligiendo tienda aquí no recibe, y una lista y un permiso no son lo mismo.
               accionDeFila={(d) => puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores) ? (
@@ -369,7 +369,7 @@ export default function WarehousePage() {
                             leería igual que una que sigue esperando camión. */}
                         <td className="td-pastillas">
                           {(() => {
-                            // «Received» si la recibió almacén (D-NEXT); si no, su etapa, como siempre.
+                            // «Received» si la recibió almacén (D-409); si no, su etapa, como siempre.
                             const p = pastillaDeEtapa(d, recibidas, lang);
                             return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
                           })()}

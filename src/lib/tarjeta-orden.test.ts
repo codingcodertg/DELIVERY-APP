@@ -49,7 +49,7 @@ describe("no desaparece nada de la tarjeta", () => {
   const cabecera = plano(tabla.slice(tabla.indexOf('<span className="drv-head">'), tabla.indexOf("</span>\n        ) : (")));
 
   it("las tres líneas siguen llevando sus seis piezas", () => {
-    expect(cabecera).toContain("{s.texto}");                    // etapa (D-NEXT: `pastillaDeEtapa`, «Received» incluido)
+    expect(cabecera).toContain("{s.texto}");                    // etapa (D-409: `pastillaDeEtapa`, «Received» incluido)
     expect(cabecera).toContain("INV {invoice}");                // documento
     expect(cabecera).toContain('className="row-type"');         // tipo
     expect(cabecera).toContain("fmtDateShort(d.delivery_date, lang)"); // fecha

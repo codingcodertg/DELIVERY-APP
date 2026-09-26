@@ -29369,7 +29369,7 @@ parada).
   con las del demo, las de las pruebas del repo y formatos de Google y Nominatim escritos a mano. Una dirección sin comas
   («123 Main St McAllen TX») sale «—», con la dirección en el `title`.
 
-## D-NEXT · Almacén «recibe» la Intertienda que llega a su tienda: es `delivered` en la base y se pinta «Received»
+## D-409 · Almacén «recibe» la Intertienda que llega a su tienda: es `delivered` en la base y se pinta «Received»
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 

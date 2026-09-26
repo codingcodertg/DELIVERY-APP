@@ -814,7 +814,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         created_by: me?.id ?? null,
       }).select().single();
       // En la lista en cuanto se escribe, sin esperar la recarga por tiempo real: la pastilla
-      // «Received» (D-NEXT) sale del evento, y sin esto la orden se pintaba «Delivered» unos segundos.
+      // «Received» (D-409) sale del evento, y sin esto la orden se pintaba «Delivered» unos segundos.
       if (data) setEvents((prev) => (prev.some((e) => e.id === (data as OrderEvent).id) ? prev : [data as OrderEvent, ...prev]));
     },
     [supabase, me],

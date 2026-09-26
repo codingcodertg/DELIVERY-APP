@@ -5,7 +5,7 @@ import { canTransition, stageInfo } from "./constants";
 import type { NamedLocation, Stage, UserRole } from "./types";
 
 /**
- * «Recibir» de almacén (D-NEXT). El dueño, el 2026-09-26: *«warehouse puede darle delivery a una carga que
+ * «Recibir» de almacén (D-409). El dueño, el 2026-09-26: *«warehouse puede darle delivery a una carga que
  * vaya donde ellos, pero si ellos lo hacen no aparecerá como delivered sino como received; y received es
  * lo mismo que delivered, solo que esto es para diferenciar si fue el driver o el warehouse»*.
  *
