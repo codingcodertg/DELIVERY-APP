@@ -30,6 +30,8 @@ export interface OutboxItem {
   patch: Partial<Delivery>;
   /** Audit note, replayed with the stage change. */
   note?: string;
+  /** The event kind when it is not the stage itself («received», «dropped_at_store»). Replayed as-is. */
+  kind?: string;
   /** When the driver actually did it — NOT when it reached the server. */
   at: string;
   /** Failed replays, so a permanently broken item can be spotted. */
