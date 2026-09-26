@@ -30,14 +30,15 @@ import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lect
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, conColumnasNuevas, extrasDeParadas, fotoDelGestor, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import { COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasElegibles, conColumnasNuevas, extrasDeParadas, fotoDelGestor, indicesOcultosDeParadas } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
-import { CLAVE_ID, etiquetaDelGestor, valorDelGestor } from "@/lib/valores-del-gestor";
+import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
+import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -212,11 +213,8 @@ export default function RoutesPage() {
   // panel so the route detail can use the whole screen.
   const [wideRoutes, setWideRoutes] = useState(true);
   const [showTop, setShowTop] = useState(true);
-  // Stops table Address on a single line; a toggle expands it when the full
-  // address is needed. Kept narrow by default so Windows + the row-action
-  // arrows never get pushed off the right edge.
-  // Nace ABIERTA desde D-346: el dueño pidió ver la dirección de entrega donde se cambia el orden.
-  const [addrWide, setAddrWide] = useState(true);
+  // La tabla de paradas tenía un botón para abrir y cerrar la dirección (D-346 la hizo nacer abierta). Desde D-408 esa
+  // columna enseña solo la ciudad, que cabe siempre: el botón se fue con la dirección.
   // Excel-style resizable columns, remembered per table. Tighter defaults (and
   // bumped keys, so they replace older wide ones) so the route + truckload
   // tables fit the screen without horizontal scrolling. Columns are still
@@ -227,7 +225,7 @@ export default function RoutesPage() {
   // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-376): con 100 px la etapa salía «Program…», y allí entera.
   const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
   // Las columnas de Órdenes en la tabla de paradas (D-376) no tienen puesto: su ancho va por clave, en su propia llave,
-  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7`.
+  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7` (desde D-408, `stops8`).
   const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
@@ -321,10 +319,10 @@ export default function RoutesPage() {
   const paradasExtra = extrasDeParadas(colsGestor);
   // Cuántas columnas pinta la tabla de paradas: las 8 de siempre, menos las quitadas, más las de Órdenes elegidas.
   const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;
-  // [#, ID, Account, Address(expanded), ETA, Windows, actions]. Address is
-  // forced to 92px when collapsed; everything else is sized to show its value
-  // in full so Windows and the ↑↓ action arrows never get clipped.
-  const stopCols = useColWidths("rtg_routes_stops7", [40, 96, 140, 70, 240, 56, 110, 150]);
+  // Por puesto: [parada, factura, tipo, pallets, ciudad, llegada, ventanas, acciones]. Hasta D-408 el puesto 1 era el ID
+  // (con la factura debajo) y el 4 la dirección entera (240). La llave pasa de `rtg_routes_stops7` a `stops8`: un ancho
+  // arrastrado para una dirección no vale para una ciudad, y se empieza de nuevo con el defecto.
+  const stopCols = useColWidths("rtg_routes_stops8", [40, 110, 140, 70, 120, 56, 110, 150]);
   // Which drivers are highlighted on the map / focused in the tables. Empty
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
@@ -928,9 +926,9 @@ export default function RoutesPage() {
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
   const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
-  // El ID es fijo y ordena y filtra igual que las del catálogo; la fecha se lista formateada, y el costo como dinero.
-  const COL_ID: ColumnaConMenu = { key: CLAVE_ID, en: "ID", es: "ID" };
-  const menuSinAsignar: ColumnaConMenu[] = [COL_ID, ...colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }))];
+  // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
+  // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
+  const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
   /** Las pastillas (la etapa, «Tarde») bajan de línea en vez de cortarse, como en Órdenes (D-364). */
@@ -942,6 +940,13 @@ export default function RoutesPage() {
     style: { cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 } as const,
     title: t("Open this order", "Abrir esta orden"),
   });
+  // Sin la columna del ID (D-408), el enlace que abre la orden es la FACTURA, en «Sin asignar» y en las paradas. Una orden
+  // sin factura enseña su código en gris (`textoQueAbreLaOrden`), para que ninguna fila se quede sin nada que pulsar.
+  const enlaceALaOrden = (d: Delivery) => {
+    const { texto, esFactura } = textoQueAbreLaOrden(d);
+    const gesto = abreLaOrden(d);
+    return <span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>;
+  };
 
   // Columns for the drag-and-drop board: the unassigned pool, then one per driver.
   const boardColumns: BoardColumn[] = useMemo(() => {
@@ -2058,7 +2063,7 @@ export default function RoutesPage() {
             style={{ maxWidth: 300 }}
           />
           <SelectorDeColumnas
-            columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar"))}
+            columnas={columnasElegibles("sinAsignar")}
             elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
             rotulo={(c) => (lang === "es" ? c.es : c.en)}
             titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
@@ -2099,10 +2104,9 @@ export default function RoutesPage() {
           <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
           <BarraSuperior caja={cajaSinAsignarRef} />
           <div className="tbl-scroll tbl-fit tbl-caja" ref={cajaSinAsignarRef} style={estiloDeCaja}>
-            <table className="orders tbl-resize" style={anchoDeTabla([28, poolCols.widthOf("__id"), ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
+            <table className="orders tbl-resize" style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
               <colgroup>
                 <col style={{ width: 28 }} />
-                <col style={{ width: poolCols.widthOf("__id") }} />
                 {colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}
                 <col style={{ width: 116 }} />
               </colgroup>
@@ -2123,14 +2127,13 @@ export default function RoutesPage() {
                     />
                   </th>
                   {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
-                  <th><CabeceraConMenu estado={ordenSinAsignar} col={COL_ID} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize("__id")} /></th>
-                  {menuSinAsignar.slice(1).map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
+                  {menuSinAsignar.map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
                   <th>{singleSel ? t("Add to", "Agregar a") : t("Assign to", "Asignar a")}</th>
                 </tr>
               </thead>
               <tbody>
                 {ordenSinAsignar.visibles.length === 0 && (
-                  <tr><td colSpan={colsSinAsignar.length + 3} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+                  <tr><td colSpan={colsSinAsignar.length + 2} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
                 )}
                 {ordenSinAsignar.visibles.map((d) => {
                   return (
@@ -2139,15 +2142,14 @@ export default function RoutesPage() {
                         <input type="checkbox" checked={selectedOrders.has(d.id)} readOnly aria-label={`#${orderLabel(d)}`} />
                         {selectedOrders.has(d.id) && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
                       </td>
-                      {/* El ID abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
-                      <td className="ordno" {...abreLaOrden(d)}>#{orderLabel(d)}</td>
+                      {/* La factura abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
                       {colsSinAsignar.map((c) => (
                         <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
                           {/* Las que vienen de Órdenes (D-376) —etapa, tipo, SO, PO, costo, contacto— con la celda de Órdenes. */}
                           {c.deOrdenes ? celdaDeOrdenes(c.key, d)
-                            : c.key === "invoice" ? (d.invoice_num ? <span {...abreLaOrden(d)}>{d.invoice_num}</span> : "—")
+                            : c.key === "invoice" ? enlaceALaOrden(d)
                             : c.key === "account" ? (d.account || "—")
-                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{d.delivery_address || "—"}</span>
+                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</span>
                             : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
                             : c.key === "store" ? (d.store || "—")
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
@@ -2449,7 +2451,7 @@ export default function RoutesPage() {
             {stops.length > 0 && (
               <div style={{ textAlign: "right" }}>
                 <SelectorDeColumnas
-                  columnas={COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas"))}
+                  columnas={columnasElegibles("paradas")}
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
                   rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
                   titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
@@ -2465,29 +2467,20 @@ export default function RoutesPage() {
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : i === 4 ? (addrWide ? w : 112) : w), 0) + paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>
+                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : w), 0) + paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>
                   {/* Los puestos 0-6, luego las columnas de Órdenes elegidas (D-376), y el 7 —las acciones— siempre al final. */}
                   <colgroup>
-                    {stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: i === 4 ? (addrWide ? w : 112) : w }} />)}
+                    {stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: w }} />)}
                     {paradasExtra.map((c) => <col key={c.key} style={{ width: stopExtraCols.widthOf(c.deOrdenes!) }} />)}
                     <col style={{ width: stopCols.widths[7] }} />
                   </colgroup>
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={stopCols.startResize(0)} /></th>
-                      <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={stopCols.startResize(1)} /></th>
+                      <th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={stopCols.startResize(1)} /></th>
                       {!paradasOcultas.has(2) && <th>{t("Type", "Tipo")}<span className="col-resizer" onMouseDown={stopCols.startResize(2)} /></th>}
                       {!paradasOcultas.has(3) && <th title={t("Pallets on this stop", "Pallets de esta parada")}>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={stopCols.startResize(3)} /></th>}
-                      {!paradasOcultas.has(4) && <th>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "0 5px", minHeight: 0, marginRight: 4 }}
-                          title={addrWide ? t("Contract address", "Contraer dirección") : t("Expand address", "Expandir dirección")}
-                          onClick={() => setAddrWide((v) => !v)}
-                        >{addrWide ? "⤡" : "⤢"}</button>
-                        {t("Address", "Dirección")}
-                        {addrWide && <span className="col-resizer" onMouseDown={stopCols.startResize(4)} />}
-                      </th>}
+                      {!paradasOcultas.has(4) && <th>{t("City", "Ciudad")}<span className="col-resizer" onMouseDown={stopCols.startResize(4)} /></th>}
                       {!paradasOcultas.has(5) && <th>{t("ETA", "Llegada")}<span className="col-resizer" onMouseDown={stopCols.startResize(5)} /></th>}
                       {!paradasOcultas.has(6) && <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={stopCols.startResize(6)} /></th>}
                       {/* El rótulo es el de Órdenes: el del catálogo sin su «Paradas: ». */}
@@ -2592,7 +2585,7 @@ export default function RoutesPage() {
                             // row dragging was removed on request.
                             //
                             // Three levels of detail, by where you tap:
-                            //   the ID   → open the order itself
+                            //   the invoice → open the order itself (the ID until D-408)
                             //   the row  → isolate this stop on the map, with its route
                             //   outside  → back to the driver's whole day
                             const isolated = selectedOrders.has(d.id) && selectedOrders.size === 1;
@@ -2619,20 +2612,9 @@ export default function RoutesPage() {
                                     >{e.texto}</td>
                                   );
                                 })()}
-                                <td
-                                  className="ordno"
-                                  onClick={(e) => { e.stopPropagation(); setOpenOrder(d); }}
-                                  style={{ cursor: "pointer" }}
-                                  title={t("Open this order", "Abrir esta orden")}
-                                >
-                                  {/* Un renglón por dato (D-379): el código, subrayado porque abre la orden, y la factura debajo, en
-                                      pequeño y sin subrayar. El subrayado iba en la celda entera y bajaba también a la factura —un
-                                      subrayado heredado no se quita en el hijo—: dos renglones subrayados, uno encima del otro. */}
-                                  <span className="parada-id">#{orderLabel(d)}</span>
-                                  {/* La factura, debajo del código: esta tabla tiene los anchos por posición y no admite una
-                                      columna que aparece y desaparece. Sale si la columna «Factura #» está elegida. */}
-                                  {colsGestor.includes("invoice") && d.invoice_num && <span className="parada-factura" title={d.invoice_num}>{t("Inv.", "Fact.")} {d.invoice_num}</span>}
-                                </td>
+                                {/* Solo la factura, subrayada: abre la orden (D-408). Antes (D-379) el código de la orden iba
+                                    arriba, subrayado, y la factura debajo en pequeño; el código era lo que se pulsaba. */}
+                                <td className="ordno">{enlaceALaOrden(d)}</td>
                                 {!paradasOcultas.has(2) && <td title={d.order_type || undefined}>{d.order_type || "—"}</td>}
                                 {/* Where the truckload's pallet total comes
                                     from. An estimate is marked so nobody plans
@@ -2646,7 +2628,7 @@ export default function RoutesPage() {
                                     <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the load total", "Sin conteo de pallets — esta parada no suma al total del viaje")}>—</span>
                                   )}
                                 </td>}
-                                {!paradasOcultas.has(4) && <td title={d.delivery_address || undefined}>{d.delivery_address || "—"}</td>}
+                                {!paradasOcultas.has(4) && <td title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>}
                                 {!paradasOcultas.has(5) && <td style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
                                   {eta ?? "—"}{late ? " ⚠️" : ""}
                                 </td>}

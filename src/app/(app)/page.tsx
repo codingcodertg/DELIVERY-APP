@@ -340,8 +340,8 @@ export default function OrdersPage() {
    * fechas— vive en `ordenesVisibles`, no aquí: la pestaña de factura pendiente necesita una lista
    * distinta de la normal, y dos listas parecidas escritas en dos sitios acaban discrepando.
    *
-   * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa; `conPendientes` es
-   * esa más las que solo se caían por la ventana y tienen documento pendiente.
+   * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa (con las atrasadas
+   * dentro, D-407); `conPendientes` es la de «Factura pendiente», de ayer en adelante para todos.
    */
   const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(
     () => ordenesVisibles(deliveries, {

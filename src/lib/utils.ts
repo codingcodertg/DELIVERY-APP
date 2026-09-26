@@ -28,7 +28,9 @@ export function localISO(d: Date): string {
 // is exactly what triggers React hydration errors. It's also what the RGV
 // operation means by "today", regardless of a device's own clock/timezone.
 export const BUSINESS_TZ = "America/Chicago";
-const isoInTZ = (d: Date) =>
+/** El día (YYYY-MM-DD) en Texas de un instante cualquiera. Exportada para quien necesita fijar «ahora»
+ * en una prueba (el cron de reprogramar intertiendas, cerca de medianoche). */
+export const isoInTZ = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 export const todayISO = () => isoInTZ(new Date());
 

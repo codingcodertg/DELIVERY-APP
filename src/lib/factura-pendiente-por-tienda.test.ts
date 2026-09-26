@@ -21,6 +21,7 @@ import type { Delivery, NamedLocation, UserRole } from "./types";
 
 const HOY = todayISO();
 const HACE_VEINTE = shiftDateISO(HOY, -20);
+const AYER = shiftDateISO(HOY, -1);
 
 const REGLAS: OrderTypeRules = { ConFactura: { docRef: "invoice" } };
 // «Norte» y «Oeste» trabajan juntas (mismo grupo); «Sur» va sola.
@@ -33,9 +34,17 @@ const TIENDAS: NamedLocation[] = [
 const YO = "u-yo";
 const ids = (l: readonly Delivery[]) => l.map((d) => d.id).sort();
 
-/** Entregada hace 20 días sin factura: lo que llena la pestaña. Todas de quien mira, para que a ventas solo la separe la tienda. */
+/**
+ * Entregada AYER sin factura: lo que llena la pestaña. Todas de quien mira, para que a ventas solo la
+ * separe la tienda.
+ *
+ * Hasta D-407 eran de hace 20 días (la exención de D-313 las dejaba entrar). Desde D-407 la pestaña
+ * lleva solo de ayer en adelante —*«invoice pending solo muestra yesterday, today y tomorrow y
+ * future»*, 2026-09-26—, así que con esa fecha no saldrían en ningún rol y estas pruebas de TIENDA
+ * medirían la fecha. Lo de 20 días tiene su propia prueba abajo.
+ */
 const pendiente = (id: string, store: string, over: Partial<Delivery> = {}) => mkDelivery({
-  id, stage: "delivered", order_type: "ConFactura", invoice_num: null, delivery_date: HACE_VEINTE,
+  id, stage: "delivered", order_type: "ConFactura", invoice_num: null, delivery_date: AYER,
   store, created_by: YO, assigned_sales_rep: YO, ...over,
 });
 
@@ -116,6 +125,46 @@ describe("quien queda fuera de la regla", () => {
 
   it("el sandbox de enseñanza no tiene cortes, tampoco este", () => {
     expect(ids(filasDePendiente(ctxDe("accounting", null, { teaching: true })))).toEqual(["norte-1", "oeste-1", "sur-1", "sur-2"]);
+  });
+});
+
+/**
+ * D-407. El dueño, 2026-09-26: *«invoice pending solo muestra yesterday, today y tomorrow y future»*.
+ * Para TODOS los roles: el pedido no hace excepción con admin y logística.
+ */
+describe("«Factura pendiente» solo de ayer en adelante, para todos (D-407)", () => {
+  const HACE_TRES = shiftDateISO(HOY, -3);
+  const MANANA = shiftDateISO(HOY, 1);
+  const DATOS = [
+    pendiente("hace-tres", "Norte", { delivery_date: HACE_TRES }),
+    pendiente("hace-veinte", "Norte", { delivery_date: HACE_VEINTE }),
+    pendiente("anteayer", "Norte", { delivery_date: shiftDateISO(HOY, -2) }),
+    pendiente("ayer", "Norte"),
+    pendiente("hoy", "Norte", { delivery_date: HOY }),
+    pendiente("manana", "Norte", { delivery_date: MANANA, stage: "approved" }),
+    pendiente("sin-fecha", "Norte", { delivery_date: null, stage: "approved" }),
+  ];
+  const DENTRO = ["ayer", "hoy", "manana", "sin-fecha"];
+
+  for (const role of ["admin", "logistics", "accounting", "manager", "sales"] as const) {
+    it(`${role}: una pendiente de hace 3 días NO sale; ayer, hoy, mañana y sin fecha sí; y el número = filas`, () => {
+      const c = ctxDe(role, "Norte");
+      expect(ids(filasDePendiente(c, DATOS))).toEqual(DENTRO);
+      expect(cuentaDePendiente(c, DATOS)).toBe(DENTRO.length);
+    });
+  }
+
+  it("con el chip de fecha puesto y estando dentro, el número sigue siendo el de filas", () => {
+    const listas = ordenesVisibles(DATOS, ctxDe("admin", null));
+    const soloHoy = (d: Delivery) => d.delivery_date === HOY;
+    expect(cuentasDeOrdenes(listas, PESTANA_DOCUMENTO_PENDIENTE, soloHoy, REGLAS)[PESTANA_DOCUMENTO_PENDIENTE])
+      .toBe(filasDeOrdenes(listas, PESTANA_DOCUMENTO_PENDIENTE, soloHoy, REGLAS).length);
+  });
+
+  it("admin sigue viendo la de hace 3 días en la lista normal: el corte es solo de la pestaña", () => {
+    const { visibles, conPendientes } = ordenesVisibles(DATOS, ctxDe("admin", null));
+    expect(ids(visibles)).toContain("hace-tres");
+    expect(ids(conPendientes)).not.toContain("hace-tres");
   });
 });
 

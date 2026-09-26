@@ -7647,6 +7647,11 @@ aplicadas por separado a cada mitad.
 
 ## D-182 · Los crons que no se programaban (C-6): roll-schedules activado; cron y cleanup pendientes
 
+> **⚠ Nota del 2026-09-26 (D-406): el límite de «máximo 2 crons» en Hobby ya no es el de Vercel.** Su página
+> *Usage & Pricing for Cron Jobs* (actualizada el 2026-07-15) dice **100 por proyecto en todos los planes**. Hobby sigue
+> con **una vez al día** y precisión de una hora. Lo de abajo era cierto cuando se escribió y se deja tal cual. D-406
+> añade un tercer cron diario a `vercel.json`. El de fichaje sigue sin caber en Hobby, porque corre cada pocos minutos.
+
 **Fecha:** 2026-09-03 · **Versión:** package.json 1.108.1 (config, sin bundle) · **Origen:** auditoría `docs/AUDIT-2026-09.md` C-6 · **Pedido por:** Andrés
 
 `vercel.json` programaba **una sola** ruta (`/api/notion-summary`, 01:00). Existían cuatro
@@ -21215,6 +21220,13 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 
 ## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
+> **⚠ Revertida en parte por D-407** (2026-09-26), en el punto 2: **la exención de ventana se quitó**. El dueño:
+> *«invoice pending solo muestra yesterday, today y tomorrow y future»*. La pestaña «Factura pendiente» lleva solo
+> órdenes de ayer en adelante (y las que no tienen fecha), **para todos los roles, admin y logística incluidos**. Las
+> pendientes viejas —casi todas entregadas, que eran justo las que esta entrada hizo visibles a office— dejan de
+> salir en la pestaña; siguen sin factura en la base. Lo que office ve de ayer en adelante sigue saliendo, con el
+> corte por tienda de D-404.
+
 > **⚠ Reemplazada en parte por D-404** (2026-09-26), en el punto 2: office sigue viendo «Factura pendiente», y la
 > exención de la ventana sigue, pero **solo de su tienda y las de su grupo**; una office sin tienda asignada ve la
 > pestaña con 0 y un aviso de por qué. Admin y logística, todas.
@@ -22964,6 +22976,9 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
+> **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna fija del código de orden (`#`/ID) ya no está en ninguna
+> tabla del Gestor. La factura deja de ser elegible: es **fija** (no sale en el ⚙) porque ahora es lo que abre la orden.
+
 > **⚠ Reemplazada en parte por D-402** (2026-09-25): en «Sin asignar» la factura ya no va la primera tras el código; las
 > columnas salen en el orden de Órdenes vista por ventas, y la factura va tercera, tras PO # y SO #.
 
@@ -24140,6 +24155,10 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna de la dirección de entrega enseña **solo la ciudad**
+> («Ciudad de entrega» en «Sin asignar», «Ciudad» en las paradas), con la dirección entera al pasar el ratón. El botón
+> ⤢/⤡ de abrir y cerrar la dirección en las paradas se quitó. Las claves guardadas (`address`, `p_address`) no cambian.
+
 > **⚠ Corregida en parte por D-379** (2026-09-23): el ⚙ de paradas colgaba de un solo estado y una sola `ref` para
 > todas las tarjetas; abría todos a la vez y no dejaba marcar (medido en la primera tarjeta). Ahora cada una tiene el suyo.
 
@@ -24582,6 +24601,9 @@ con su etiqueta y su selector para reprogramar. D-358 y la nota de D-331 llevan 
 **No verificado:** nada abierto en un navegador.
 
 ## D-360 · Las tablas del Gestor de Rutas ordenan y filtran por columna, y el ID y la factura abren la orden
+
+> **⚠ Reemplazada en parte por D-408** (2026-09-26): el ID ya no está (el dueño: «routes manager doesn't need to see
+> id»). La orden se abre desde la **factura**, en «Sin asignar» y en las paradas; sin factura, desde el código en gris.
 
 > **⚠ Reemplazada en parte por D-376** (2026-09-23): ordenar y filtrar queda solo en «Sin asignar», porque «Programadas» se quitó. El resto sigue
 > vigente.
@@ -26421,6 +26443,9 @@ Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
 
 ## D-379 · El ⚙ de paradas se deja marcar, la celda del ID se lee limpia, y un chofer sin optimizar enseña su P/D provisional
 
+> **⚠ Reemplazada en parte por D-408** (2026-09-26): la celda que juntaba el código (arriba, subrayado) y la factura
+> (debajo) enseña **solo la factura**, subrayada, y es la que abre la orden. `.parada-id` y `.parada-factura` se quitaron.
+
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** el dueño, en producción, con captura de la tabla de paradas de un chofer, tras publicarse D-376:
 «no me deja seleccionar la columna y se mira un solo relajo, también donde está el id y el invoice qué feo se mira,
@@ -26503,6 +26528,11 @@ tiendas intercaladas), sin filas de recogida (M12), y la página sin usar la eti
   Subir el valor por defecto no alcanza a quien ya guardó sus anchos.
 
 ## D-380 · La pestaña de factura pendiente abre la ventana, y la Ruta del día deja de encoger
+
+> **⚠ Reemplazada en parte por D-407** (2026-09-26), en el punto 1: `conPendientes` ya no es «lo pendiente aunque
+> sea viejo». Desde D-407 la pestaña lleva solo de ayer en adelante, para todos (*«invoice pending solo muestra
+> yesterday, today y tomorrow y future»*). El arreglo de aquí —entrar mueve el chip de fecha a «Todas» y número =
+> filas— **sigue**: con «Hoy» o «Reciente» puestos seguiría quedando fuera parte de lo que la pastilla cuenta.
 
 **Fecha:** 2026-09-23 · **Sin migración.**
 Dos quejas de pantalla del dueño, las dos de la misma forma: **una lista que dice un número y enseña
@@ -26805,6 +26835,12 @@ comportamiento de D-286.
   dejaría su propio borrador si lo tuviera.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
+
+> **⚠ Revertida en parte por D-407** (2026-09-26, por la tarde): la mitad del título «salen de la lista normal» ya
+> no vale. El dueño: *«outdated que también salga en all»*. Toda atrasada abierta que la persona ve sale **en la
+> lista normal («Todas» y su etapa) y en «Outdated»**, sin buscar. La nota de D-404 de aquí debajo dice que *«la
+> lista normal no lleva ninguna atrasada»*: eso es lo que D-407 revierte. La pastilla, lo que lleva (toda atrasada
+> abierta, ayer incluida), quién ve qué días (D-392) y el chip de fecha al entrar siguen igual.
 
 > **⚠ Reemplazada en parte por D-404** (2026-09-26). El dueño: *«all late delivery orders need to go in a similar
 > filter like invoice pending pero en rojo, entonces las late ya no se verán en all sino que se van directo a
@@ -27349,6 +27385,11 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 - Las órdenes ya guardadas con «Venta al mostrador» y la dirección de otro cliente dentro no se tocan: esto actúa al elegir.
 
 ## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
+
+> **⚠ Reemplazada en parte por D-407** (2026-09-26): lo que abajo «se quedó en pie a sabiendas» —la exención de
+> D-313 en «Factura pendiente»— **se quitó**. El dueño: *«invoice pending solo muestra yesterday, today y tomorrow y
+> future»*. La pestaña ya cumple la letra de esta entrada («nada anterior a ayer») y va más allá: tampoco admin y
+> logística ven ahí pendientes anteriores a ayer. La regla principal de esta entrada sigue igual.
 
 > **⚠ Reemplazada en parte por D-404** (2026-09-26): la mitad del título entre paréntesis ya no vale. La pastilla
 > «Outdated» **vuelve a salir a todos los roles**, porque desde D-404 lleva también la atrasada de **ayer**, que
@@ -28527,6 +28568,10 @@ producción ni con llaves.**
 
 ## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
 
+> **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna fija `ID` que iba la primera ya no está, y la factura
+> pasa a fija en su puesto de ventas (tras PO y SO). La «Dirección» ahora es la «Ciudad de entrega»: misma clave y mismo
+> puesto (tras la recogida). El orden de ventas no cambia.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** El dueño, literal: *«quiero que la tabla que se hizo en logistic manager tenga el mismo orden que en
 order view de sales»*. La tabla es **«Sin asignar»** del Gestor de Rutas, la que recibió las columnas de Órdenes en D-376.
@@ -28721,10 +28766,23 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 
 ## D-404 · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
 
+> **⚠ Revertida en parte por D-407** (2026-09-26, por la tarde). Dos cosas de abajo ya no valen:
+> (1) en la parte 1, *«la lista normal ya no lleva ninguna atrasada abierta»*: el dueño pidió *«outdated que también
+> salga en all»*, y la atrasada sale **en «Todas» (y su etapa) y en «Outdated»**, sin buscar. Lo demás de la parte 1
+> sigue: qué es atrasada (`isOverdue`, ayer incluida), la pastilla roja que sale con algo dentro, para todos los
+> roles, cada uno con sus días (D-392), y la etiqueta «Tarde» en la fila. El tablero vuelve a pintarlas.
+> (2) en la parte 2, *«la exención de la ventana sigue»*: el dueño pidió *«invoice pending solo muestra yesterday,
+> today y tomorrow y future»*; «Factura pendiente» lleva de ayer en adelante para todos los roles, admin y logística
+> incluidos. **El corte por tienda de la parte 2 no cambia.** La tabla de «Verificado» de abajo midió el
+> comportamiento de entonces.
+
 > **⚠ Reemplazada en parte por D-405** (2026-09-26): la atrasada que aquí sale **también en la lista normal al
 > buscar** sigue saliendo, pero ahora pasa por el corte de tienda de la búsqueda: quien no es admin ni logística solo la
 > encuentra si es de su tienda o de su grupo. Y la frase *«En la lista normal sigue como estaba»* de ventas ya no vale:
 > gerente y ventas ven toda la lista cortada por su tienda. «Factura pendiente» no cambia.
+>
+> **Nota del 2026-09-26 (D-406):** una **Intertienda** atrasada ya no se queda en «Outdated». Cada madrugada un cron
+> la pasa a hoy y deja en su historial la fecha de la que venía. Las demás atrasadas siguen como dice esta entrada.
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño el mismo día**, literales:
@@ -28977,3 +29035,336 @@ añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
 - **El tablero no se abrió en el navegador**: pinta las mismas filas (`filasDeOrdenes` sobre las mismas listas); lo
   cubre la prueba de las pastillas, no una captura.
 - El chofer no se midió: no tiene la pestaña de Órdenes.
+---
+
+## D-406 · Una Intertienda que no se entregó pasa sola a hoy: un cron de madrugada, con ensayo y con el día de antes en el historial
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas; es código de servidor y
+`vercel.json`, sin bundle nuevo) · **Sin migración.**
+**Pedido por el dueño**, literal: *«si intertienda no se entregó ese día se reprograma automáticamente para el día
+siguiente»*.
+
+### Qué hace
+
+Cada madrugada, `GET /api/cron/reprogramar-intertiendas` mueve a **hoy** (día de Texas, America/Chicago) toda
+Intertienda abierta cuya fecha de entrega ya pasó. Por cada una escribe `delivery_date` y un evento en `order_events`
+(`kind: "edited"`, `created_by: null`) con la nota
+**«Reprogramada automáticamente: 2026-09-25 → 2026-09-26 (no se entregó)»**. La fecha anterior queda escrita en la
+ficha, así que siempre se puede deshacer. Es la lección del 2026-09-23 (D-372): aquel día se cambiaron 162 fechas y de 52
+no se supo de qué día venían.
+
+### La regla (`src/lib/reprogramar-intertiendas.ts`, pura)
+
+- **Qué es una Intertienda:** el tipo cuya regla de Ajustes (`settings.order_type_rules`, leída con `orderTypeRule`,
+  como en la app) es tienda-a-tienda **y** «que recibe» (`storeToStore && homeIsDestination`). No se compara el nombre.
+  **Transfer no entra:** es tienda-a-tienda pero no «que recibe». Un tipo sin regla explícita tampoco entra: el respaldo
+  por palabras clave de `required.ts` nunca pone `homeIsDestination`.
+- **Solo abiertas:** no se mueven `delivered`, `canceled`, `draft` ni `rejected`. **`pending` sí se mueve** (decisión
+  mía, era la preferencia del orquestador): sigue sin entregarse, que es lo único que dice la frase. `picked_up` también:
+  cargada pero sin entregar.
+- **Fecha anterior a hoy → hoy.** El día siguiente del que no se entregó, o hoy si faltó varios días. No se reparte por
+  días intermedios que ya pasaron. La de hoy y las futuras no se tocan. **Sin fecha, no se toca.** Las de enseñanza
+  (`is_training`) tampoco.
+- **«Hoy» es el de Texas**, del reloj que se le pasa (`hoyEnTexas`, sobre `isoInTZ` de `utils.ts`, que ahora se
+  exporta). A las 04:30 UTC todavía es ayer en Texas.
+
+### La escritura: tres pasos por orden, y ninguno miente
+
+1. `update deliveries set delivery_date = hoy where id = … and delivery_date = <la leída>`, pidiendo la fila de vuelta.
+   Si alguien la movió o la cerró entre la lectura y la escritura, el UPDATE toca **cero filas**, que en PostgREST no da
+   error. Eso se detecta: la orden no cuenta como movida y va a `fallos`.
+2. El evento con la nota «antes → después».
+3. **Si el evento no se pudo escribir, la fecha vuelve a la anterior.** Es una fecha cambiada sin rastro, y eso es
+   justo lo que no puede volver a pasar.
+
+La ruta también saca la lista (id, antes, después) por `console.log`: es una segunda copia, en los logs de Vercel.
+
+### La ruta
+
+- Protegida con `cronAuthorized` (la de las demás): `Authorization: Bearer <CRON_SECRET>` (lo que manda Vercel Cron) o
+  `?key=`. Sin `CRON_SECRET` configurado no pasa nadie.
+- `?verify=1` confirma el secreto sin leer ni escribir. **`?ensayo=1` lee, aplica la regla y NO escribe**; devuelve
+  `hoy`, `tipos` (qué tipos cuentan como Intertienda según Ajustes), `revisadas`, `movidas` y la lista con `antes` y
+  `despues`. **Si `tipos` sale vacío, es que en producción la Intertienda no tiene `homeIsDestination` y no se va a mover
+  nada.** El ensayo sirve para ver eso antes de activarla.
+- Usa la llave de servicio (`createAdminClient`). Responde 200, o 207 si alguna orden falló, o 502 si no pudo leer.
+- `/api/*` ya se sirve sin sesión en el middleware; hay una fila nueva en la tabla de `route-guard.test.ts`.
+
+### Programada: `vercel.json`, `5 7 * * *` (07:05 UTC)
+
+Son las 02:05 en Texas en verano (CDT) y las 01:05 en invierno (CST). Vercel Hobby dispara un cron diario **en
+cualquier momento de su hora** (±59 min), así que corre entre 07:05 y 08:04 UTC. Eso cae siempre después de la
+medianoche de Texas. Con las 06:05 que se proponía, en invierno podría caer a las 00:05 CST, demasiado pegado a la
+medianoche. Da igual en qué orden corra respecto a `roll-schedules` (08:00): no comparten datos.
+
+**Sobre el límite de crons: la premisa del repo había caducado.** D-182, D-183, `tt-cron.yml` y los comentarios de
+`roll-schedules` y `prune-driver-locations` dicen que Hobby admite **2 crons**. La página de Vercel *Usage & Pricing
+for Cron Jobs* (actualizada el 2026-07-15, leída el 2026-09-26) dice ahora **100 crons por proyecto en todos los
+planes**. Hobby sigue limitado a **una vez al día** y a precisión de una hora. Un cron que corra más de una vez al día
+hace fallar el despliegue. Por eso este va como tercera entrada y no colgado de `roll-schedules`, como se hizo con D-195
+y D-200. **No se midió el plan del proyecto** (no hay token de Vercel). En Pro también vale, así que el plan no cambia la
+respuesta. Una prueba exige que todas las entradas de `vercel.json` sean diarias.
+
+**El secreto no hay que recrearlo:** `CRON_SECRET` ya existe en Vercel, porque lo usan `notion-summary` y
+`roll-schedules`. Vercel Cron lo manda solo como `Bearer`.
+
+### La base: el cambio pasa, y no dispara nada
+
+- **`guard_delivery_stage` (145) y `guard_factura_obligatoria` (146)** empiezan con
+  `if auth.uid() is null then return NEW;`. Con la llave de servicio no hay sesión, así que salen en la primera línea.
+  Y aunque hubiera sesión, la 146 no lo dispararía: el cambio no toca etapa, tipo ni factura, y una Intertienda tiene
+  `docRef: "any"`, no `"invoice"`. Se leyó el SQL de la 146 (`supabase/migrations/146_customer_siempre_con_factura.sql`):
+  no se ensayó contra la base.
+- **Avisos a terceros: ninguno por la app.** El único SMS automático (`autoSendTracking`, `OrderModal.tsx`) sale al
+  **crear** una orden, desde el navegador. Las `notifications` las escribe el cliente en sus acciones (`notify`,
+  `emitStageNotifs`), y la de asignación solo cuando cambia el chofer. Esta ruta no llama a ninguno. En los
+  disparadores de `deliveries` que están en el repo (guard de etapa, guard de factura, archivo de borradas) no hay nada
+  que avise. **Lo que no se puede ver desde el repo:** los disparadores anteriores a la carpeta de migraciones
+  (`order_events` ya existía antes de ella, D-372). Se comprueba con una lectura en producción:
+  `select tgname, tgfoid::regproc from pg_trigger where tgrelid in ('public.deliveries'::regclass, 'public.order_events'::regclass) and not tgisinternal;`
+- Los navegadores abiertos reciben el cambio por realtime (`deliveries` y `order_events`) y recargan. Eso no sale de la
+  app.
+
+### Consecuencias en otras decisiones
+
+- **D-404 / D-384 («Outdated»):** una Intertienda atrasada deja de estar atrasada cada madrugada, así que ya no se
+  acumula en «Outdated». Durante el día sigue siendo «de hoy». Se deja una nota dentro de D-404.
+- **D-351:** «una vencida sin entregar entra en Reciente hasta que se reprograme». Para las Intertiendas, ahora las
+  reprograma el cron.
+- **El chofer y la ruta:** solo se escribe `delivery_date`. El chofer asignado y lo que hubiera en el plan de ruta del
+  día anterior no se tocan: reasignar sería decidir por logística. No se midió cómo pinta el Gestor de rutas una orden
+  cuyo plan es de ayer y su fecha es hoy.
+
+### Pruebas y mutantes
+
+- `reprogramar-intertiendas.test.ts`: la regla (ayer, hoy, mañana, varios días, las nueve etapas, Customer, Transfer,
+  tipo renombrado en Ajustes, sin fecha, enseñanza), «hoy» en Texas cerca de medianoche en verano y en invierno, y la
+  ejecución con un cliente falso: ensayo sin escrituras, los filtros de la lectura, la escritura exacta (UPDATE con la
+  fecha leída, evento con la nota), UPDATE de cero filas y evento que falla (con vuelta atrás).
+- `reprogramar-intertiendas-ruta.test.ts`: la ruta de verdad (`GET`) con `createAdminClient` falso. Sin cabecera,
+  secreto equivocado o sin `CRON_SECRET`: 401 sin crear el cliente. `verify=1` no lee. `ensayo=1` no escribe. Sin ensayo
+  escribe fecha y evento. Y `vercel.json` la lleva a `5 7 * * *`, con todas sus entradas diarias.
+- **Mutantes: 21, caen los 21**, leídos por nombre. **Uno sobrevivió a la primera tanda:** «la ejecución ignora el
+  reloj que le pasan». Las pruebas usaban fechas de 2026-09 y se corrieron el 2026-09-26, así que el reloj real daba el
+  mismo día. Se añadió una prueba en 2030 (*«usa el reloj que se le pasa y no el de la máquina»*), y ahora cae.
+
+### Lo no verificado
+
+- **Nada contra producción.** El orquestador corre el ensayo antes de activarlo:
+  `curl -H "Authorization: Bearer $CRON_SECRET" "https://rtg-hub.vercel.app/api/cron/reprogramar-intertiendas?ensayo=1"`.
+- No se midió qué dice `settings.order_type_rules` en producción para Intertienda. El campo `tipos` del ensayo lo dice.
+- No se midió el plan de Vercel del proyecto. Según la documentación actual, el tercer cron cabe en cualquiera.
+- No se abrió en el navegador: no tiene pantalla. La nota sale en el historial de la ficha tal cual, porque
+  `OrderModal` pinta `note` sin analizarla (D-372).
+
+
+## D-407 · Órdenes: las atrasadas vuelven a salir en «Todas» (y siguen en «Outdated»), y «Factura pendiente» solo de ayer en adelante
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+**Dos pedidos del dueño la misma tarde**, literales:
+
+1. *«outdated que también salga en all»*
+2. *«invoice pending solo muestra yesterday, today y tomorrow y future»*
+
+Van juntos porque viven en la misma función (`ordenesVisibles`, en `src/lib/ordenes-visibles.ts`) y en las mismas
+pruebas. **Revierte en parte D-404 y D-384** (el primero) **y D-313, D-380, D-392 y D-404** (el segundo); las cinco
+llevan su nota dentro.
+
+### 1 · La atrasada sale en los dos sitios
+
+**Qué había.** Esa misma mañana, D-404 (pedido: *«las late ya no se verán en all sino que se van directo a
+outdated»*) sacó **toda** atrasada abierta de la lista normal: `visibles.push` llevaba la condición
+`!atrasada || buscando`, así que una atrasada solo salía en «Todas» si se estaba buscando. Por la tarde el dueño pidió lo
+contrario para «Todas», sin quitar la pastilla.
+
+**Qué cambia.** La lista normal **no mira si la orden está atrasada**: `if (normal) visibles.push(d)`. Una atrasada
+abierta que la persona ve sale en «Todas», en la pastilla de su etapa (y se cuenta en su número) y en el tablero, **y
+además** en «Outdated». Lo demás de D-404 sigue igual:
+
+- qué es atrasada: `vaAAtrasadas` = `isOverdue` (fecha pasada, ni entregada ni anulada), ayer incluida;
+- la pastilla roja «Outdated», que sale con algo dentro o estando en ella, para todos los roles;
+- **quién ve qué días** (D-392): admin y logística, todas las atrasadas, en la lista y en «Outdated»; los demás, solo
+  las de ayer, porque no ven nada anterior;
+- la etiqueta roja **«Tarde»** en la fila;
+- el corte por tienda de D-405.
+
+**Número = filas** en todas las pastillas sigue por construcción: «Todas» y cada etapa cuentan y listan la misma lista
+(`visibles`, en `filas-de-ordenes.ts`), y ahora las atrasadas están dentro de las dos cosas a la vez.
+
+### 2 · «Factura pendiente» solo de ayer en adelante
+
+**Qué había.** D-313 (2026-09-18, *«invoice pending must be visible for office too»*) eximió la pestaña de la ventana
+de fechas: una orden con factura pendiente entraba aunque fuera de hace un mes, porque casi todas las pendientes están
+ya entregadas y sin la exención office veía 0. D-392 la dejó en pie a sabiendas; D-404 la cortó por tienda.
+
+**Qué cambia.** La exención se quitó y la pestaña tiene su propio corte de fechas, `pasaLaVentanaDePendientes`: la
+ventana de Órdenes (`enLaVentanaDeOrdenes`), o sea **ayer, hoy, mañana y lo que viene**, **para todos los roles —admin
+y logística incluidos—**. Ellos siguen viendo lo viejo en la lista normal; en la pestaña, no. `pasaLaVentana` perdió su
+tercer argumento (`pendientesEntran`), que solo servía para la exención.
+
+**El corte por tienda de D-404/D-405 no cambia.** Entrar en la pestaña sigue moviendo el chip de fecha a «Todas»
+(D-380).
+
+**Consecuencia sabida, y es la que el dueño pidió:** las pendientes viejas dejan de salir en la pestaña. Según el
+orquestador (no lo medí yo), hoy son al menos **5 Customer entregadas en agosto y septiembre sin factura: #93, #163,
+#197, #223 y #243**. **Siguen sin factura en la base**; nada se borra. Se llega a ellas abriéndolas, o buscando: admin
+y logística las encuentran con el buscador; los demás roles no, porque buscar tampoco pasa de ayer (D-392).
+
+### Decisiones mías, que el orquestador debe validar
+
+- **Sin fecha, dentro.** Una orden sin `delivery_date` entra en «Factura pendiente»: es la regla de siempre de la
+  ventana (`enLaVentanaDeOrdenes`: sin fecha se está programando, es trabajo de ahora). El pedido no las nombra.
+- **Admin y logística, sin excepción**, como pidió el orquestador: el pedido no la hace. Si el dueño quiere seguir
+  viendo las viejas en la pestaña, es volver a poner `veTodoElHistorial` en `pasaLaVentanaDePendientes`.
+- **El sandbox de enseñanza se salta el corte**, como se salta todos los de esta pantalla (sus datos no son de nadie,
+  y las pruebas de D-404/D-405 ya exigen «el sandbox no tiene cortes»).
+- **Buscando**, la pestaña tampoco pasa de ayer, ni para admin: la ventana es de la pestaña, no de la búsqueda.
+
+### Qué NO cambia
+
+La Cola de almacén, el Gestor de rutas, la Ruta del día y `/driver`: el pedido es de Órdenes. `withinRetention`,
+`withinRecent` e `isOverdue` no se tocaron.
+
+### Pruebas
+
+Se **cambiaron, no se borraron**, las que exigían lo de antes, cada una con una nota del pedido y la fecha:
+`atrasadas.test.ts` (la normal no llevaba ninguna atrasada → las lleva todas; «las dos listas no se solapan» → la
+atrasada está en las dos), `dias-viejos-en-ordenes.test.ts` (la de ayer, en las dos), `ordenes-por-tienda.test.ts`
+(«Todas» y «Programadas» cuentan la atrasada de ayer), `ordenes-visibles.test.ts` (la pendiente de hace 20 días ya no
+sale en la pestaña, tampoco buscando; `pasaLaVentana` sin exención), `factura-pendiente-por-tienda.test.ts` (las de la
+tienda, ahora de ayer) e `intertienda-y-columnas.test.ts` (la exención ya no existe). Nuevas: **«cada atrasada de
+«Outdated» está TAMBIÉN en la lista normal, sin buscar»**, **««Todas» con el chip en «Todas» enseña las atrasadas, y
+«Outdated» también»**, y el bloque **««Factura pendiente» solo de ayer en adelante, para todos»** (cinco roles: la de
+hace 3 días no sale; ayer, hoy, mañana y sin fecha sí; número = filas; admin la sigue viendo en la lista normal).
+
+**Mutantes: 7, caen los 7**, leídos por nombre:
+
+- la atrasada vuelve a salir de la normal → *«cada atrasada de «Outdated» está TAMBIÉN en la lista normal, sin
+  buscar»* y 18 más;
+- la línea exacta de D-404 (`!atrasada || buscando`) → la misma y 10 más;
+- la pestaña con la ventana normal (admin vuelve a ver lo viejo) → *«admin: una pendiente de hace 3 días NO sale…»*,
+  *«logistics: …»*, *«admin sigue viendo la de hace 3 días en la lista normal…»*;
+- vuelve la exención de D-313 → las cinco *«…: una pendiente de hace 3 días NO sale…»* y 8 más;
+- el sandbox pasa por el corte → *«`pasaLaVentanaDePendientes`: de ayer en adelante y sin fecha, para TODOS; solo el
+  sandbox se la salta»*;
+- la pantalla quita por su cuenta las atrasadas de la lista → *«pide las tres listas a `ordenesVisibles` y se las pasa
+  enteras…»* y *«la cuenta de la pestaña y sus filas salen de `conPendientes`…»*;
+- las pastillas de etapa no cuentan las atrasadas → las seis *«…: cuenta = filas, para cada pastilla»* y 3 más.
+
+### Verificado en el navegador
+
+2026-09-26, demo local (`next dev`, sin base; Chrome sin perfil; clics de persona). Sembradas en McAllen, de ventas,
+tipo Customer: una **Programada de ayer** (`INVAYER01`) y una **de hace 10 días** (`INVDIEZ01`), atrasadas; una
+**entregada de hace 3 días sin factura** (`PEND3D`) y una **Programada de mañana sin factura** (`PENDMAN`). Chip de
+fecha «Todas» y pastilla «Todas»:
+
+| rol | «Todas» (pastilla / filas) | sembradas en «Todas» | «Programadas» (pastilla / filas) | «Outdated» (pastilla / filas) | sembradas en «Outdated» | «Factura pendiente» (pastilla / filas) |
+|---|---|---|---|---|---|---|
+| Admin | 93 / 93 | ayer y hace 10 (con «Tarde»), hace 3, mañana | 33 / 33, con las dos atrasadas | 4 / 4 | ayer y hace 10 | 1 / 1: mañana, **no** la de hace 3 |
+| Gerente de McAllen | 19 / 19 | ayer (con «Tarde»), mañana | 11 / 11, con la de ayer | 1 / 1 | ayer | 1 / 1: mañana |
+| Ventas de McAllen | 19 / 19 | ayer (con «Tarde»), mañana | 11 / 11, con la de ayer | 1 / 1 | ayer | 1 / 1: mañana |
+| Office de McAllen | 87 / 87 | ayer (con «Tarde»), mañana | 32 / 32, con la de ayer | 2 / 2 | ayer | 1 / 1: mañana, **no** la de hace 3 |
+
+El detector no es ciego: la de hace 3 días **sí** sale en «Todas» del admin, y no en su «Factura pendiente». En D-404 la
+columna «con «Tarde» en la lista normal» medía 0 en todos los roles; hoy mide 4 (admin), 1 (gerente, ventas) y 2
+(office; la otra es del demo, de ayer). Entrar en «Outdated» desde «Reciente» movió el chip a «Todas». Ninguna página se
+desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
+
+### Lo no verificado
+
+- **Nada contra producción.** Las cinco órdenes #93, #163, #197, #223, #243 las dio el orquestador; no las conté.
+- El tablero no se abrió en el navegador: pinta `filasDeOrdenes(listas, «Todas»)`, la misma lista medida arriba.
+- Logística no se midió en el navegador (lo cubren las pruebas, con admin).
+
+
+## D-408 · El Gestor de Rutas deja de enseñar el ID: la factura abre la orden, y la dirección de entrega pasa a ser la ciudad
+
+**Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**De dónde sale.** Dos pedidos del dueño el mismo día, literales:
+*«routes manager doesn't need to see id»* y
+*«instead of delivery address column que salga delivery city y solo salga la city donde se entrega en routes manager»*.
+**Reemplaza en parte** a D-331, D-346, D-360, D-379 y D-402; las cinco llevan su nota. Nada de Órdenes cambia.
+
+### 1 · Sin la columna del ID
+
+El «ID» era el código de la orden (`#1234`, `orderLabel`). En el Gestor salía en dos sitios:
+
+- **«Sin asignar»**: una columna **fija** (no estaba en el ⚙; clave `__id` en el menú de ordenar y filtrar de D-360),
+  la primera tras la casilla. Se quitó **del todo** — cabecera, `col`, celda, su ancho en la tabla, su valor en
+  `valorDelGestor` y el `colSpan` de la fila vacía (+3 → +2).
+- **Paradas de cada chofer**: el puesto 1 de la tabla (anchos por posición), con el código arriba, subrayado, y la factura
+  debajo en pequeño (D-379). Ahora ese puesto es **«Factura #»** y enseña **solo la factura**, subrayada.
+
+Como era fija, no había nada que dejar «desmarcado por defecto»: se quitó, que es lo que el dueño pidió.
+
+### 2 · Lo que abre la orden: la factura
+
+En **paradas**, el ID era **lo único** que abría la orden (pulsar la fila aísla la parada en el mapa, D-346). En «Sin
+asignar» abrían el ID y la factura (D-360). Desde esta decisión, en **las dos tablas**, abre la **factura**:
+`enlaceALaOrden` en la página, con el mismo gesto de D-360 (`abreLaOrden`: para el clic, así no marca la fila ni aísla la
+parada).
+
+- **Una orden sin factura** (una Intertienda, un Transfer, un borrador) enseña su **código en gris** (`#1009`), que abre
+  la orden igual. Es la misma regla que el `#` de Órdenes (`invoice_num || orderLabel`), y sin ella esa fila no tendría
+  nada que pulsar. `textoQueAbreLaOrden` lo decide; una factura de solo espacios cuenta como sin factura.
+- **La factura pasa a ser FIJA en «Sin asignar»** (`fija: true` en el catálogo): sale siempre y el ⚙ ya no la ofrece
+  (`columnasElegibles`). Si se pudiera desmarcar, la tabla se quedaría sin nada que abra la orden. Va en su puesto de
+  ventas (D-402: tras PO # y SO #). Decisión del worker, **a validar**: la alternativa era dejarla elegible y aceptar que
+  quien la quita pierde el enlace.
+- En **paradas** la factura ya no depende de tener marcada la columna «Factura #»: el puesto 1 la enseña siempre.
+
+### 3 · «Ciudad de entrega» en vez de la dirección
+
+- **De dónde sale la ciudad.** La orden no tiene un campo de ciudad (`Delivery` solo trae `delivery_address`, texto
+  libre), así que se saca de la dirección con **`ciudadDeEntrega`** (`src/lib/ciudad-de-entrega.ts`), una función pura:
+  parte por comas, quita desde el final el país, el código postal, el estado (sigla en mayúsculas o nombre: Texas,
+  Tamaulipas, N.L.…) y el condado, y del último trozo quita el código postal y el estado pegados. Si lo que queda empieza
+  con un número, es la calle: devuelve «» y la celda pinta «—». No busca nombres conocidos dentro del texto: «2 McAllen
+  Ave, Pharr TX» es Pharr.
+- **No se usó `cityFromAddress`** (`utils.ts`): con «4500 N 23rd St, McAllen TX» devuelve la calle y con la de Nominatim
+  «…, Pharr, Hidalgo County, Texas, 78577, United States» devuelve «78577». Y la usa el cálculo del costo (`pricing.ts`):
+  cambiarla habría movido precios. Se deja como está.
+- **Qué cambia:** solo lo que se pinta en la columna y su valor para ordenar y filtrar (`valorDelGestor("address")` →
+  la ciudad). La dirección entera va en el `title` de la celda. **La búsqueda de «Sin asignar» sigue encontrando por
+  dirección** (`coincideConLaBusqueda`, sin tocar), el mapa, la optimización y el aviso de «sin dirección de entrega»
+  siguen con la dirección completa.
+- **Rótulos:** «Delivery City / Ciudad de entrega» en «Sin asignar»; «City / Ciudad» en paradas (en el ⚙, «Paradas:
+  Ciudad»). El botón ⤢/⤡ de abrir y cerrar la dirección en paradas se quitó con ella.
+- **Lo guardado:** las claves siguen siendo `address` y `p_address` (como `status`, que se llama «Etapa»). Las listas de
+  columnas y las plantillas guardadas no se mapean: siguen valiendo tal cual. Una lista o plantilla sin `invoice` enseña
+  la factura igual (es fija), y ninguna clave desaparece del catálogo.
+- **D-402:** la ciudad ocupa el mismo puesto que la dirección (tras la recogida, donde Órdenes pone la dirección).
+- **Anchos de paradas:** la llave pasa de `rtg_routes_stops7` a `rtg_routes_stops8`, con defecto `[40, 110, 140, 70, 120,
+  56, 110, 150]` (factura 110 en vez de ID 96; ciudad 120 en vez de dirección 240). Quien había arrastrado anchos en esa
+  tabla vuelve una vez al defecto: un ancho de dirección no vale para una ciudad. «Sin asignar» guarda por clave y no
+  cambia (la ciudad usa el ancho que tuviera `g_address`, 100 por defecto).
+
+### Qué se midió (2026-09-26, demo en 127.0.0.1, «Ver como» logística, ventana 1280×900)
+
+- **«Sin asignar»** (chip «Todas», 57 filas): 16 cabeceras, ninguna «ID»: casilla · PO # · SO # · Invoice # · Type ·
+  Account · Contact · Stage · Store · Delivery Date · Pallets · Fee · Pickup · Delivery City · Windows · Assign to.
+  «Delivery City» enseña solo la ciudad — McAllen, Pharr, Mission, Brownsville, Edinburg, Weslaco en las filas medidas —
+  con la dirección entera en el `title` («123 Main St, McAllen TX»). Un Transfer sin factura enseña «#1023» en gris.
+- Pulsar **INV-3001** abre la ficha («Order #1003 … INV INV-3001») y la fila **no** se marca (0 filas marcadas).
+- El ⚙ de «Sin asignar» ofrece 13 columnas, sin «Invoice #», con «Delivery City».
+- El menú de la columna «Delivery City» filtra por ciudad: Brownsville, Edinburg, McAllen, Mission, Pharr, Weslaco.
+- **Paradas** (Diego Driver, 4 paradas): cabeceras # · Invoice # · Type · Pallets · City · ETA · Windows; ninguna «ID».
+  La celda de la factura: «#1009» (Intertienda sin factura, gris `rgb(107,118,134)`), INV-3009, INV-3010, INV-3028
+  (color de texto normal), subrayadas. Ciudades: Edinburg, McAllen, Mission, McAllen. Pulsar «#1009» abre «Order #1009»;
+  pulsar INV-3009 abre «Order #1012 … INV INV-3009».
+- **La página no se desplaza de lado:** `scrollWidth` 1280 = `clientWidth` 1280, en las dos pestañas.
+
+### Lo que no cambió, a propósito
+
+- El código de orden sigue saliendo **fuera de las columnas**: en las filas informativas de las paradas («Pick up at
+  McAllen — #1013 · Inv. INV-3010», `nombraLaOrden`), en los avisos de paradas sin pin o tarde, en las etiquetas del
+  mapa, en el resumen de «Auto-asignar» y en Incidencias. El pedido hablaba de la columna; si el dueño lo quiere fuera
+  también de ahí, es otro cambio.
+- La búsqueda de «Sin asignar» sigue buscando por número de orden, y **no** busca por factura (nunca lo hizo).
+- Órdenes: su `#` ya enseña la factura (`byInvoice = true`, con el código si no hay factura). No se tocó.
+
+### Lo no verificado
+
+- **Nada contra producción.** No se midió qué formatos de dirección tiene la base de verdad; `ciudadDeEntrega` se probó
+  con las del demo, las de las pruebas del repo y formatos de Google y Nominatim escritos a mano. Una dirección sin comas
+  («123 Main St McAllen TX») sale «—», con la dirección en el `title`.
