@@ -28562,3 +28562,119 @@ a ventas un orden propio (M7), y Órdenes cambiando su orden de partida (M8, el 
 - **Con `user_prefs` real.** El demo no tiene base: que una lista guardada de producción salga en el orden nuevo está
   probado con funciones, no en un navegador con sesión.
 - **Qué columnas tiene hoy ventas en Ajustes** en producción: no cambia el orden, solo cuáles se comparan.
+
+## D-403 · Time Tracker, Auditoría → Capturas de escritorio: resumen del día y «horas bajas» (<10 % de actividad) junto al selector de fecha
+
+**Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Time Tracker) · **Sin migración.**
+
+**Qué pidió el dueño**, literal: *«have an overall summary of the day's activity when seen the audit for the employee on
+that day, and also a quick statistic of low hours <10% of activity in the tracker app; put this in the header right
+besides the calendar change date»*.
+
+**Dónde.** La vista de auditoría de un empleado en un día es la cuarta de Auditoría, «🖥 Capturas de escritorio»
+(`TeamDiary`, D-194), que pinta con `WorkDiary` (D-069, D-071) las capturas del bucket `timetracker-screenshots` agrupadas
+por hora en seis ranuras de 10 minutos. El «calendario, cambiar día» es la barra ← fecha → de `WorkDiary`. Ahí, a la
+derecha de las flechas (y del «Hoy»), va ahora `DayActivitySummary`.
+
+### Qué se enseña, y de qué dato sale
+
+Una fila de pastillas:
+
+- **⏱ horas del día**: el `totalSec` que `WorkDiary` ya calculaba (suma de `duration_seconds` de las sesiones de ese día).
+  No se recalcula. El «Total: … hrs» suelto de la derecha se quita **solo en Auditoría**, porque ahora va dentro del
+  resumen y saldría dos veces.
+- **⚡ actividad media del día**, en %.
+- **📷 capturas**: las filas con imagen (`path` no nulo), el mismo criterio con el que `WorkDiary` las cuenta.
+- **🕘 primera – última**: la hora de la primera y la última captura real.
+- **«N h con <10 % de actividad»**, en ámbar si hay alguna. Al pasar el ratón, el `title` las lista; al pulsar, se abre
+  una lista con cada hora («08:00 – 09:00 · 5 % (2)», el número entre paréntesis son las muestras) y, si las hay, «N h sin
+  datos entre medias». Con cero horas bajas la pastilla queda gris y no se pulsa.
+
+**Lo que NO entra: «lo más usado» (app o sitio).** El dato no se guarda. La app de escritorio sí conoce la ventana activa
+(`getContext()` → `{ app, title }`, D-074), pero solo se usa en vivo en el cronómetro para el «smart-idle»; ni
+`timetracker.screenshots` ni `timetracker.sessions` tienen columna para ello (migración 059). Enseñarlo exige guardar el
+dato primero: columna nueva, cambio en la subida y en la app de escritorio. Queda fuera, dicho.
+
+### El modelo de datos, y por qué «hora» y «media» son lo que son
+
+Medido en el código, no supuesto:
+
+- **Cada fila de `timetracker.screenshots` es un intervalo de captura** (`screenshotIntervalMin`, 10 min por defecto). El
+  escritorio dispara un `onShot` por intervalo: o trae la imagen con su `activity_percent` (entero 0-100), o trae
+  `blank`, y entonces se inserta una fila **marcador** con `path = null`, `no_activity = true`, `activity_percent = 0`
+  (`insertBlankScreenshot`; comentario de la 059: *«a 10-min segment with no keyboard/mouse activity gets a marker
+  row»*).
+- Por eso **la media simple de las filas ya es una media ponderada por tiempo**: todas cubren lo mismo.
+- **«Hora» es la ventana de reloj de 60 min** de `taken_at`, en la hora local del navegador (`getHours()`), **exactamente
+  como `WorkDiary` agrupa los bloques** que el auditor ve debajo. Si se agrupara distinto, «08:00 fue baja» no casaría
+  con el bloque 08:00 de la pantalla. La actividad de esa hora es la media de las filas que caen en ella.
+
+Decisiones mías, que el dueño puede cambiar:
+
+1. **Un marcador sin actividad cuenta como muestra al 0 %.** El cronómetro corría y nadie tocó nada: es exactamente lo
+   que la estadística quiere enseñar. (`WorkDiary` oculta las horas que solo tienen marcadores, porque no hay nada que
+   mirar; el resumen no, porque son las más bajas.) Entran también en la media del día.
+2. **Una hora parcial se promedia con lo que tiene.** Empezar a las 08:40 da dos muestras en la hora 8; las ranuras en que
+   el cronómetro no corría no son 0 %, son «no trabajaba».
+3. **Una hora sin ninguna fila no es baja: es «sin datos».** Solo se cuentan las que quedan **entre** la primera y la
+   última hora con datos (el hueco de la comida), no las 24 del día.
+4. **El umbral es estricto**: `UMBRAL_HORA_BAJA_PCT = 10` (`src/lib/timetracker/resumen-dia.ts`); exactamente 10 % **no**
+   es hora baja.
+5. **Se compara la media sin redondear y lo que se enseña se redondea hacia abajo** (`pctEntero` = `Math.floor`). Así
+   9,6 % es baja y se enseña «9 %», nunca «10 %» al lado de «<10 %». La media del día usa el mismo redondeo.
+6. **Primera y última** son de capturas reales, no de marcadores: un día con solo marcadores no tiene «primera
+   actividad», aunque sí horas bajas.
+7. **Solo en Auditoría.** `WorkDiary` recibe `summary` (por defecto `false`) y solo `TeamDiary` lo pasa. El diario propio
+   del empleado (`/timetracker/diary`) no cambia: la estadística es una herramienta de gerente.
+8. **Se recalcula al cambiar de día o de empleado**: el resumen se calcula con `useMemo` sobre los `dayShots` que
+   `WorkDiary` ya filtraba; al cambiar de empleado `TeamDiary` remonta `WorkDiary` (`key={activeUid}`, ya estaba), y al
+   cambiar de día el resumen lleva `key={date}`, que además cierra la lista si estaba abierta.
+
+Un detalle heredado, no tocado: la hora se agrupa con la zona del navegador y se rotula con `fmtTime` en la zona de
+`APP_SETTINGS.timeZone`. Si un gerente abre Auditoría desde otra zona, bloques y rótulos ya se desfasaban antes de esto;
+el resumen usa el mismo `hourLabel` que los bloques, así que se desfasa igual que ellos, no distinto.
+
+### Piezas
+
+- `src/lib/timetracker/resumen-dia.ts` (nuevo, puro): `UMBRAL_HORA_BAJA_PCT`, `pctDeMuestra`, `pctEntero`, `esHoraBaja`,
+  `actividadPorHora`, `horasSinDatosEntre`, `resumenDelDia`.
+- `src/components/timetracker/DayActivitySummary.tsx` (nuevo): solo pinta.
+- `WorkDiary.tsx`: prop `summary`; monta el resumen junto a las flechas y quita el total suelto cuando lo lleva.
+- `TeamDiary.tsx`: pasa `summary`.
+- `i18n.ts`: 8 claves `mgr.diary.sum.*`, en y es. `WorkDiary.tsx` y `DayActivitySummary.tsx` entran en la prueba de
+  claves de D-187 (WorkDiary no estaba).
+
+### Pruebas y mutantes
+
+`src/lib/timetracker/resumen-dia.test.ts`, 20 pruebas: umbral y borde del 10 exacto, redondeo, acotado 0-100 y NaN, orden
+por hora con datos desordenados, marcador al 0 %, hora parcial, «sin datos» solo entre medias, día vacío, día con solo
+marcadores, y — porque la prueba se alimenta de quien llama — cuatro que leen el fuente: que `DayActivitySummary` calcula
+con `resumenDelDia(shots, totalSec)` y pinta el umbral por nombre, que `WorkDiary` lo monta **después** de la flecha de día
+con `dayShots`, `totalSec`, `hourLabel` y `key={date}`, que el total suelto se quita solo con `summary`, y que solo
+`TeamDiary` lo pide.
+
+Tanda de 23 mutantes, **caen los 23**, cada uno con una prueba con nombre. Dos sobrevivieron en la primera pasada y eran
+pruebas flojas, no código de sobra: el umbral escrito a mano en la etiqueta (la prueba buscaba `pct: UMBRAL…` y otra
+línea del fichero la cumplía; ahora se exige la llamada exacta y ningún `pct:` con número) y «WorkDiary no lo monta»
+(la prueba miraba las props de la etiqueta, no la condición que la monta).
+
+### Medido (2026-09-25)
+
+La app de tiempo **no tiene modo demo**: `audit/page.tsx` pide sesión al servidor y redirige sin ella, y el proveedor de
+Time Tracker no tiene datos locales. Se midió el componente en un banco temporal (una página suelta, **no commiteada**)
+con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de persona:
+
+- Día inventado con horas 8 (parcial, 0 y 10 → 5 %), 9 (buena), 10 (tres marcadores → 0 %), 11 (nada), 12 (10 y 10 →
+  exactamente 10 %), 13 (9,2 %), 14 (buena): **«3 h <10% activity»**, lista *08:00–09:00 · 5 % (2)*, *10:00–11:00 · 0 %
+  (3)*, *01:00–02:00 PM · 9 % (5)* y «1 h without data in between»; media **29 %** (611/21), **18** capturas,
+  **08:40 AM – 02:50 PM**. Todo lo que se predijo a mano antes de abrirlo.
+- Pulsar ← (otro día, 4 capturas buenas): 58 %, 4 capturas, «0 h», pastilla deshabilitada, la lista abierta se cerró.
+  Volver → devuelve los números del primer día.
+- A 390 px la fila parte en dos líneas sin desplazamiento lateral. Las pastillas miden 36 px de alto en móvil por la
+  regla global de toque de `globals.css` (`.chip { min-height: 36px }`), igual que el resto de pastillas de la app.
+
+### Lo que no se verificó
+
+- **Con capturas reales de producción**: no se abrió `/timetracker/audit` con sesión (producción estaba caída por cuota
+  el 2026-09-25, y además no se toca). Lo que la vista real pasa al resumen está atado por pruebas del fuente, no visto.
+- La lista desplegable no se cierra al pulsar fuera; se cierra con la misma pastilla o al cambiar de día.

@@ -5,6 +5,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { addDaysISO, dateISO, fmtClock, fmtDayLong, fmtTime } from "@/lib/timetracker/helpers";
 import type { Screenshot, Session } from "@/lib/timetracker/types";
+import { DayActivitySummary } from "./DayActivitySummary";
 
 // Ported (D-069) from timetracker-clean's WorkDiary.jsx — shared between the
 // employee's own diary and (later) the manager's per-employee view. Upwork-
@@ -12,7 +13,11 @@ import type { Screenshot, Session } from "@/lib/timetracker/types";
 // grouped by hour (6 fixed 10-minute slots/hour), each with a segmented
 // activity bar. Will stay empty until the desktop app exists (see
 // ARCHITECTURE.md) — there is nothing to show yet, not a bug.
-export function WorkDiary({ shots, sessions = [], onDelete }: { shots: Screenshot[]; sessions?: Session[]; onDelete?: (s: Screenshot) => void }) {
+//
+// D-403: con `summary` (solo desde Auditoría → Capturas de escritorio, `TeamDiary`) la cabecera
+// enseña a la derecha del selector de fecha el resumen del día y las «horas bajas»
+// (`DayActivitySummary`), que incluye el total de horas; el diario del propio empleado no cambia.
+export function WorkDiary({ shots, sessions = [], onDelete, summary = false }: { shots: Screenshot[]; sessions?: Session[]; onDelete?: (s: Screenshot) => void; summary?: boolean }) {
   const t = useT();
   const { screenshotSignedUrl } = useData();
   const today = dateISO(new Date());
@@ -64,8 +69,9 @@ export function WorkDiary({ shots, sessions = [], onDelete }: { shots: Screensho
           <b className="nowrap">{fmtDayLong(date)}</b>
           <button className="btn-ghost btn-sm" disabled={date >= today} onClick={() => setDate((d) => addDaysISO(d, 1))}>→</button>
           {date !== today && <button className="link" onClick={() => setDate(today)}>{t("mgr.diary.today")}</button>}
+          {summary && <DayActivitySummary key={date} shots={dayShots} totalSec={totalSec} hourLabel={hourLabel} />}
         </div>
-        <div><b>{t("mgr.diary.total")} {fmtClock(totalSec)}</b> <span className="small muted">{t("mgr.diary.hrs")}</span></div>
+        {!summary && <div><b>{t("mgr.diary.total")} {fmtClock(totalSec)}</b> <span className="small muted">{t("mgr.diary.hrs")}</span></div>}
       </div>
 
       {dayShots.length === 0 ? (
