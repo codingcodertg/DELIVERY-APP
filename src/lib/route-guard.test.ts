@@ -31,6 +31,7 @@ const tabla: Fila[] = [
   // rutas de datos: nunca rebotan (se autentican solas; una llamada sin sesión debe dar 401)
   ["/api/notion-summary",                           sirve,                                       sirve],
   ["/api/version",                                  sirve,                                       sirve],
+  ["/api/cron/reprogramar-intertiendas?ensayo=1",   sirve,                                       sirve],
   ["/api/track/abc",                                sirve,                                       sirve],
   ["/timetracker/api/close-orphan-sessions",        sirve,                                       sirve],
   ["/timetracker/clock-in/api/roll-schedules",      sirve,                                       sirve],

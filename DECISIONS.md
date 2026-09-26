@@ -7647,6 +7647,11 @@ aplicadas por separado a cada mitad.
 
 ## D-182 · Los crons que no se programaban (C-6): roll-schedules activado; cron y cleanup pendientes
 
+> **⚠ Nota del 2026-09-26 (D-NEXT): el límite de «máximo 2 crons» en Hobby ya no es el de Vercel.** Su página
+> *Usage & Pricing for Cron Jobs* (actualizada el 2026-07-15) dice **100 por proyecto en todos los planes**. Hobby sigue
+> con **una vez al día** y precisión de una hora. Lo de abajo era cierto cuando se escribió y se deja tal cual. D-NEXT
+> añade un tercer cron diario a `vercel.json`. El de fichaje sigue sin caber en Hobby, porque corre cada pocos minutos.
+
 **Fecha:** 2026-09-03 · **Versión:** package.json 1.108.1 (config, sin bundle) · **Origen:** auditoría `docs/AUDIT-2026-09.md` C-6 · **Pedido por:** Andrés
 
 `vercel.json` programaba **una sola** ruta (`/api/notion-summary`, 01:00). Existían cuatro
@@ -28725,6 +28730,9 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 > buscar** sigue saliendo, pero ahora pasa por el corte de tienda de la búsqueda: quien no es admin ni logística solo la
 > encuentra si es de su tienda o de su grupo. Y la frase *«En la lista normal sigue como estaba»* de ventas ya no vale:
 > gerente y ventas ven toda la lista cortada por su tienda. «Factura pendiente» no cambia.
+>
+> **Nota del 2026-09-26 (D-NEXT):** una **Intertienda** atrasada ya no se queda en «Outdated». Cada madrugada un cron
+> la pasa a hoy y deja en su historial la fecha de la que venía. Las demás atrasadas siguen como dice esta entrada.
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño el mismo día**, literales:
@@ -28977,3 +28985,124 @@ añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
 - **El tablero no se abrió en el navegador**: pinta las mismas filas (`filasDeOrdenes` sobre las mismas listas); lo
   cubre la prueba de las pastillas, no una captura.
 - El chofer no se midió: no tiene la pestaña de Órdenes.
+---
+
+## D-NEXT · Una Intertienda que no se entregó pasa sola a hoy: un cron de madrugada, con ensayo y con el día de antes en el historial
+
+**Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas; es código de servidor y
+`vercel.json`, sin bundle nuevo) · **Sin migración.**
+**Pedido por el dueño**, literal: *«si intertienda no se entregó ese día se reprograma automáticamente para el día
+siguiente»*.
+
+### Qué hace
+
+Cada madrugada, `GET /api/cron/reprogramar-intertiendas` mueve a **hoy** (día de Texas, America/Chicago) toda
+Intertienda abierta cuya fecha de entrega ya pasó. Por cada una escribe `delivery_date` y un evento en `order_events`
+(`kind: "edited"`, `created_by: null`) con la nota
+**«Reprogramada automáticamente: 2026-09-25 → 2026-09-26 (no se entregó)»**. La fecha anterior queda escrita en la
+ficha, así que siempre se puede deshacer. Es la lección del 2026-09-23 (D-372): aquel día se cambiaron 162 fechas y de 52
+no se supo de qué día venían.
+
+### La regla (`src/lib/reprogramar-intertiendas.ts`, pura)
+
+- **Qué es una Intertienda:** el tipo cuya regla de Ajustes (`settings.order_type_rules`, leída con `orderTypeRule`,
+  como en la app) es tienda-a-tienda **y** «que recibe» (`storeToStore && homeIsDestination`). No se compara el nombre.
+  **Transfer no entra:** es tienda-a-tienda pero no «que recibe». Un tipo sin regla explícita tampoco entra: el respaldo
+  por palabras clave de `required.ts` nunca pone `homeIsDestination`.
+- **Solo abiertas:** no se mueven `delivered`, `canceled`, `draft` ni `rejected`. **`pending` sí se mueve** (decisión
+  mía, era la preferencia del orquestador): sigue sin entregarse, que es lo único que dice la frase. `picked_up` también:
+  cargada pero sin entregar.
+- **Fecha anterior a hoy → hoy.** El día siguiente del que no se entregó, o hoy si faltó varios días. No se reparte por
+  días intermedios que ya pasaron. La de hoy y las futuras no se tocan. **Sin fecha, no se toca.** Las de enseñanza
+  (`is_training`) tampoco.
+- **«Hoy» es el de Texas**, del reloj que se le pasa (`hoyEnTexas`, sobre `isoInTZ` de `utils.ts`, que ahora se
+  exporta). A las 04:30 UTC todavía es ayer en Texas.
+
+### La escritura: tres pasos por orden, y ninguno miente
+
+1. `update deliveries set delivery_date = hoy where id = … and delivery_date = <la leída>`, pidiendo la fila de vuelta.
+   Si alguien la movió o la cerró entre la lectura y la escritura, el UPDATE toca **cero filas**, que en PostgREST no da
+   error. Eso se detecta: la orden no cuenta como movida y va a `fallos`.
+2. El evento con la nota «antes → después».
+3. **Si el evento no se pudo escribir, la fecha vuelve a la anterior.** Es una fecha cambiada sin rastro, y eso es
+   justo lo que no puede volver a pasar.
+
+La ruta también saca la lista (id, antes, después) por `console.log`: es una segunda copia, en los logs de Vercel.
+
+### La ruta
+
+- Protegida con `cronAuthorized` (la de las demás): `Authorization: Bearer <CRON_SECRET>` (lo que manda Vercel Cron) o
+  `?key=`. Sin `CRON_SECRET` configurado no pasa nadie.
+- `?verify=1` confirma el secreto sin leer ni escribir. **`?ensayo=1` lee, aplica la regla y NO escribe**; devuelve
+  `hoy`, `tipos` (qué tipos cuentan como Intertienda según Ajustes), `revisadas`, `movidas` y la lista con `antes` y
+  `despues`. **Si `tipos` sale vacío, es que en producción la Intertienda no tiene `homeIsDestination` y no se va a mover
+  nada.** El ensayo sirve para ver eso antes de activarla.
+- Usa la llave de servicio (`createAdminClient`). Responde 200, o 207 si alguna orden falló, o 502 si no pudo leer.
+- `/api/*` ya se sirve sin sesión en el middleware; hay una fila nueva en la tabla de `route-guard.test.ts`.
+
+### Programada: `vercel.json`, `5 7 * * *` (07:05 UTC)
+
+Son las 02:05 en Texas en verano (CDT) y las 01:05 en invierno (CST). Vercel Hobby dispara un cron diario **en
+cualquier momento de su hora** (±59 min), así que corre entre 07:05 y 08:04 UTC. Eso cae siempre después de la
+medianoche de Texas. Con las 06:05 que se proponía, en invierno podría caer a las 00:05 CST, demasiado pegado a la
+medianoche. Da igual en qué orden corra respecto a `roll-schedules` (08:00): no comparten datos.
+
+**Sobre el límite de crons: la premisa del repo había caducado.** D-182, D-183, `tt-cron.yml` y los comentarios de
+`roll-schedules` y `prune-driver-locations` dicen que Hobby admite **2 crons**. La página de Vercel *Usage & Pricing
+for Cron Jobs* (actualizada el 2026-07-15, leída el 2026-09-26) dice ahora **100 crons por proyecto en todos los
+planes**. Hobby sigue limitado a **una vez al día** y a precisión de una hora. Un cron que corra más de una vez al día
+hace fallar el despliegue. Por eso este va como tercera entrada y no colgado de `roll-schedules`, como se hizo con D-195
+y D-200. **No se midió el plan del proyecto** (no hay token de Vercel). En Pro también vale, así que el plan no cambia la
+respuesta. Una prueba exige que todas las entradas de `vercel.json` sean diarias.
+
+**El secreto no hay que recrearlo:** `CRON_SECRET` ya existe en Vercel, porque lo usan `notion-summary` y
+`roll-schedules`. Vercel Cron lo manda solo como `Bearer`.
+
+### La base: el cambio pasa, y no dispara nada
+
+- **`guard_delivery_stage` (145) y `guard_factura_obligatoria` (146)** empiezan con
+  `if auth.uid() is null then return NEW;`. Con la llave de servicio no hay sesión, así que salen en la primera línea.
+  Y aunque hubiera sesión, la 146 no lo dispararía: el cambio no toca etapa, tipo ni factura, y una Intertienda tiene
+  `docRef: "any"`, no `"invoice"`. Se leyó el SQL de la 146 (`supabase/migrations/146_customer_siempre_con_factura.sql`):
+  no se ensayó contra la base.
+- **Avisos a terceros: ninguno por la app.** El único SMS automático (`autoSendTracking`, `OrderModal.tsx`) sale al
+  **crear** una orden, desde el navegador. Las `notifications` las escribe el cliente en sus acciones (`notify`,
+  `emitStageNotifs`), y la de asignación solo cuando cambia el chofer. Esta ruta no llama a ninguno. En los
+  disparadores de `deliveries` que están en el repo (guard de etapa, guard de factura, archivo de borradas) no hay nada
+  que avise. **Lo que no se puede ver desde el repo:** los disparadores anteriores a la carpeta de migraciones
+  (`order_events` ya existía antes de ella, D-372). Se comprueba con una lectura en producción:
+  `select tgname, tgfoid::regproc from pg_trigger where tgrelid in ('public.deliveries'::regclass, 'public.order_events'::regclass) and not tgisinternal;`
+- Los navegadores abiertos reciben el cambio por realtime (`deliveries` y `order_events`) y recargan. Eso no sale de la
+  app.
+
+### Consecuencias en otras decisiones
+
+- **D-404 / D-384 («Outdated»):** una Intertienda atrasada deja de estar atrasada cada madrugada, así que ya no se
+  acumula en «Outdated». Durante el día sigue siendo «de hoy». Se deja una nota dentro de D-404.
+- **D-351:** «una vencida sin entregar entra en Reciente hasta que se reprograme». Para las Intertiendas, ahora las
+  reprograma el cron.
+- **El chofer y la ruta:** solo se escribe `delivery_date`. El chofer asignado y lo que hubiera en el plan de ruta del
+  día anterior no se tocan: reasignar sería decidir por logística. No se midió cómo pinta el Gestor de rutas una orden
+  cuyo plan es de ayer y su fecha es hoy.
+
+### Pruebas y mutantes
+
+- `reprogramar-intertiendas.test.ts`: la regla (ayer, hoy, mañana, varios días, las nueve etapas, Customer, Transfer,
+  tipo renombrado en Ajustes, sin fecha, enseñanza), «hoy» en Texas cerca de medianoche en verano y en invierno, y la
+  ejecución con un cliente falso: ensayo sin escrituras, los filtros de la lectura, la escritura exacta (UPDATE con la
+  fecha leída, evento con la nota), UPDATE de cero filas y evento que falla (con vuelta atrás).
+- `reprogramar-intertiendas-ruta.test.ts`: la ruta de verdad (`GET`) con `createAdminClient` falso. Sin cabecera,
+  secreto equivocado o sin `CRON_SECRET`: 401 sin crear el cliente. `verify=1` no lee. `ensayo=1` no escribe. Sin ensayo
+  escribe fecha y evento. Y `vercel.json` la lleva a `5 7 * * *`, con todas sus entradas diarias.
+- **Mutantes: 21, caen los 21**, leídos por nombre. **Uno sobrevivió a la primera tanda:** «la ejecución ignora el
+  reloj que le pasan». Las pruebas usaban fechas de 2026-09 y se corrieron el 2026-09-26, así que el reloj real daba el
+  mismo día. Se añadió una prueba en 2030 (*«usa el reloj que se le pasa y no el de la máquina»*), y ahora cae.
+
+### Lo no verificado
+
+- **Nada contra producción.** El orquestador corre el ensayo antes de activarlo:
+  `curl -H "Authorization: Bearer $CRON_SECRET" "https://rtg-hub.vercel.app/api/cron/reprogramar-intertiendas?ensayo=1"`.
+- No se midió qué dice `settings.order_type_rules` en producción para Intertienda. El campo `tipos` del ensayo lo dice.
+- No se midió el plan de Vercel del proyecto. Según la documentación actual, el tercer cron cabe en cualquiera.
+- No se abrió en el navegador: no tiene pantalla. La nota sale en el historial de la ficha tal cual, porque
+  `OrderModal` pinta `note` sin analizarla (D-372).
