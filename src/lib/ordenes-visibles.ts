@@ -56,7 +56,7 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
   if (teaching) return true;
   if (me?.role === "sales") {
     // Esto no mira la tienda (D-374): decide solo «es suya». La tienda la corta aparte
-    // `alcanceDeLaLista` (D-NEXT): ventas ve lo suyo, y desde entonces solo en su tienda y su grupo.
+    // `alcanceDeLaLista` (D-405): ventas ve lo suyo, y desde entonces solo en su tienda y su grupo.
     if (!ventasVeLaOrden({ miId: me.id, orden: d })) return false;
     // Una anulada desaparece para ventas, y eso no lo abre ninguna pestaña.
     if (d.stage === "canceled") return false;
@@ -163,7 +163,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // Los cortes por ROL y la búsqueda valen igual para las tres listas: «Outdated» enseña las
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
-    // Y el corte por TIENDA de la lista (D-NEXT), antes de repartir: vale para las tres listas, así
+    // Y el corte por TIENDA de la lista (D-405), antes de repartir: vale para las tres listas, así
     // que número = filas en «Todas», en cada etapa, en «Outdated» y en «Factura pendiente».
     if (!esDelAlcance(d, alcanceLista, ctx.reglas)) continue;
     const normal = pasaLaVentana(d, ctx, false);
@@ -181,7 +181,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
 }
 
 /**
- * Los roles cuya lista ENTERA de Órdenes va cortada por su tienda (D-NEXT): sin buscar, buscando, en
+ * Los roles cuya lista ENTERA de Órdenes va cortada por su tienda (D-405): sin buscar, buscando, en
  * el tablero, en las pastillas y en sus números. El dueño, 2026-09-26: *«y office manager, sales solo
  * pueden ver su propia tienda»*. Office (`accounting`) no está: no lo nombró, y a él solo se le
  * corta la búsqueda (ver `alcanceDeLaLista`).
@@ -189,7 +189,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
 export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales"];
 
 /**
- * De qué tiendas es la lista de Órdenes para esta persona, AHORA (D-NEXT).
+ * De qué tiendas es la lista de Órdenes para esta persona, AHORA (D-405).
  *
  * El dueño, 2026-09-26: *«solo pueden buscar en el search bar, solo puede buscar órdenes de ellos
  * mismos de su propia tienda»*, y el mismo día *«y office manager, sales solo pueden ver su propia

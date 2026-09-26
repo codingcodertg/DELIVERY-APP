@@ -25930,7 +25930,7 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), en la pantalla de **Órdenes**: ventas ya **no** ve sus órdenes
+> **⚠ Reemplazada en parte por D-405** (2026-09-26), en la pantalla de **Órdenes**: ventas ya **no** ve sus órdenes
 > «en cualquier tienda», sino **solo las suyas en su tienda y las de su grupo**, sin buscar y buscando (*«y office
 > manager, sales solo pueden ver su propia tienda»*). Los borradores de otros (D-286) los sigue viendo, pero solo los de
 > su tienda. `ventasVeLaOrden` no cambió: sigue decidiendo solo «es suya»; la tienda la corta `alcanceDeLaLista`. Lo de
@@ -28721,7 +28721,7 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 
 ## D-404 · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la atrasada que aquí sale **también en la lista normal al
+> **⚠ Reemplazada en parte por D-405** (2026-09-26): la atrasada que aquí sale **también en la lista normal al
 > buscar** sigue saliendo, pero ahora pasa por el corte de tienda de la búsqueda: quien no es admin ni logística solo la
 > encuentra si es de su tienda o de su grupo. Y la frase *«En la lista normal sigue como estaba»* de ventas ya no vale:
 > gerente y ventas ven toda la lista cortada por su tienda. «Factura pendiente» no cambia.
@@ -28846,7 +28846,7 @@ casillas, y la lista normal de Órdenes sigue enseñándolas; el corte es solo d
   cada office. D-396 contó 2 gerentes sin tienda: esos dos ven «Factura pendiente» con 0 y el aviso.
 - El chofer no se midió: no tiene la pestaña de Órdenes.
 
-## D-NEXT · Órdenes por tienda: gerente y ventas solo ven su tienda y su grupo, y la búsqueda de todos (menos admin y logística) solo encuentra órdenes de su tienda
+## D-405 · Órdenes por tienda: gerente y ventas solo ven su tienda y su grupo, y la búsqueda de todos (menos admin y logística) solo encuentra órdenes de su tienda
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño el mismo día**, literales:

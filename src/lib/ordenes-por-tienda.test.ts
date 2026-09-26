@@ -11,7 +11,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation, UserRole } from "./types";
 
 /**
- * Órdenes cortada por la tienda de quien mira (D-NEXT).
+ * Órdenes cortada por la tienda de quien mira (D-405).
  *
  * El dueño, 2026-09-26: *«solo pueden buscar en el search bar, solo puede buscar órdenes de ellos
  * mismos de su propia tienda»* (eligió «Solo su tienda»), y el mismo día *«y office manager, sales solo

@@ -732,7 +732,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Gerente y ventas ven solo su tienda y su grupo; los demás, solo al buscar (D-NEXT). Sin tienda,
+      {/* Gerente y ventas ven solo su tienda y su grupo; los demás, solo al buscar (D-405). Sin tienda,
           ninguna, y se dice por qué con el MISMO alcance que cortó la lista (D-237, D-396, D-404). */}
       {alcanceLista.tipo === "sin-tienda" && (
         <div className="card" data-ordenes-sin-tienda style={{ marginBottom: 8 }}>
