@@ -20,12 +20,12 @@ import { PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 
 export type ListasDeOrdenes = {
   /**
-   * La lista normal. **Lleva también las atrasadas abiertas** (D-NEXT, *«outdated que también salga
+   * La lista normal. **Lleva también las atrasadas abiertas** (D-407, *«outdated que también salga
    * en all»*); D-384/D-404 las sacaban de aquí. Por eso cada pastilla de etapa cuenta sus atrasadas.
    */
   visibles: readonly Delivery[];
   /**
-   * Lo que ve la pestaña «Factura pendiente»: de ayer en adelante para todos los roles (D-NEXT; antes
+   * Lo que ve la pestaña «Factura pendiente»: de ayer en adelante para todos los roles (D-407; antes
    * entraba lo viejo con factura pendiente, D-313), **cortado a las tiendas de quien mira** (D-404).
    */
   conPendientes: readonly Delivery[];

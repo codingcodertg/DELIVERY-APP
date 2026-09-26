@@ -55,12 +55,12 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)[0]).toBe("po");
     const foto = ["address", "po", "fee"];
     expect(new Set(fotoDelGestor(columnasDePlantillaDelGestor(foto)))).toEqual(new Set(foto));
-    // Desde D-NEXT la factura es fija: sale aunque la foto no la tenga, en su puesto de ventas (tras PO y SO).
+    // Desde D-408 la factura es fija: sale aunque la foto no la tenga, en su puesto de ventas (tras PO y SO).
     expect(columnasDeLaTabla("sinAsignar", columnasDePlantillaDelGestor(foto)).map((c) => c.key)).toEqual(["po", "invoice", "fee", "address"]);
   });
   it("el ⚙ de «Sin asignar» lista las columnas en el mismo orden que la tabla: la página le pasa el catálogo", () => {
     const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
-    // Desde D-NEXT, `columnasElegibles`: el catálogo de la tabla menos la factura, que es fija y no se ofrece.
+    // Desde D-408, `columnasElegibles`: el catálogo de la tabla menos la factura, que es fija y no se ofrece.
     expect(pagina).toContain('columnas={columnasElegibles("sinAsignar")}');
     expect(columnasElegibles("sinAsignar").map((c) => c.key))
       .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key).filter((k) => k !== "invoice"));

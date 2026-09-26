@@ -10,7 +10,7 @@
  *
  * D-376 también quitó la pestaña «Programadas», y con ella el chofer, la carga y la parada, que solo salían ahí.
  *
- * D-NEXT quitó la columna fija del ID (el código de orden): su valor (`__id`) ya no existe. La factura es la que abre la
+ * D-408 quitó la columna fija del ID (el código de orden): su valor (`__id`) ya no existe. La factura es la que abre la
  * orden (`textoQueAbreLaOrden`).
  */
 
@@ -27,7 +27,7 @@ export interface DeOrdenes<C> {
 }
 
 /**
- * Lo que se lee en el enlace que ABRE la orden en las dos tablas del Gestor (D-NEXT): la factura. El dueño, el 2026-09-26:
+ * Lo que se lee en el enlace que ABRE la orden en las dos tablas del Gestor (D-408): la factura. El dueño, el 2026-09-26:
  * «routes manager doesn't need to see id», y la columna del código de orden (`#1234`, antes `__id`) se quitó. Una orden sin
  * factura (una Intertienda, un borrador) enseña su código, en gris (`esFactura: false`): es la misma regla que el «#» de
  * Órdenes (`invoice_num || orderLabel`), y sin ella esa fila no tendría nada que pulsar para abrirla.
@@ -47,7 +47,7 @@ export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdene
   switch (clave) {
     case "invoice": return d.invoice_num ?? null;
     case "account": return d.account ?? null;
-    // La columna enseña solo la CIUDAD desde D-NEXT («Ciudad de entrega»): ordena y filtra por ella, no por la calle.
+    // La columna enseña solo la CIUDAD desde D-408 («Ciudad de entrega»): ordena y filtra por ella, no por la calle.
     case "address": return ciudadDeEntrega(d.delivery_address) || null;
     // La celda pinta el nombre del punto de recogida y, si no lo hay, la dirección: se ordena por lo que se ve.
     case "pickup": return d.pickup_name || d.pickup_address || null;

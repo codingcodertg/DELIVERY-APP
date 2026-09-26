@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron: las Intertiendas que no se entregaron pasan solas a hoy (D-NEXT).
+ * Cron: las Intertiendas que no se entregaron pasan solas a hoy (D-406).
  *
  * Programada en vercel.json a las 07:05 UTC (02:05 en Texas en verano, 01:05 en invierno). Vercel
  * Hobby la dispara dentro de esa hora, así que corre siempre ya pasada la medianoche de Texas.

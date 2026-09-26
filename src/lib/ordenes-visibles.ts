@@ -22,7 +22,7 @@ import { alcanceDelPanel, esDelAlcance, type AlcanceDelPanel } from "@/lib/panel
  * valiera para toda la tabla, a office se le llenaría la lista de entregadas de agosto, que es
  * justo lo que D-239 vino a quitar.
  *
- * > **Revertido por D-NEXT (2026-09-26).** El dueño: *«invoice pending solo muestra yesterday, today y
+ * > **Revertido por D-407 (2026-09-26).** El dueño: *«invoice pending solo muestra yesterday, today y
  * > tomorrow y future»*. La pestaña ya no se exime de la ventana: lleva ayer, hoy, lo que viene y lo
  * > que no tiene fecha, **para todos los roles, admin y logística incluidos**
  * > (`pasaLaVentanaDePendientes`). Lo de arriba queda como historia de por qué existió la exención.
@@ -107,7 +107,7 @@ export function enLaVentanaDeOrdenes(
  * decidía nada y se quitó.
  *
  * Aquí vivía también la exención de D-313 (`pendientesEntran`: una orden con documento pendiente
- * pasaba el corte, dentro de su pestaña). **D-NEXT la quitó**: «Factura pendiente» tiene ahora su
+ * pasaba el corte, dentro de su pestaña). **D-407 la quitó**: «Factura pendiente» tiene ahora su
  * propio corte, `pasaLaVentanaDePendientes`, más estrecho que este y no más ancho.
  */
 export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista): boolean {
@@ -117,7 +117,7 @@ export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista): boolean {
 }
 
 /**
- * ¿Entra la orden en la pestaña «Factura pendiente» por su FECHA (D-NEXT)?
+ * ¿Entra la orden en la pestaña «Factura pendiente» por su FECHA (D-407)?
  *
  * El dueño, 2026-09-26: *«invoice pending solo muestra yesterday, today y tomorrow y future»*. Es la
  * ventana de Órdenes (`enLaVentanaDeOrdenes`: ayer, hoy, lo que viene, y **sin fecha, siempre**,
@@ -153,7 +153,7 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * Las dos listas de la pantalla.
  *
  * `visibles` es la de siempre —y de ella salen «Todas» y las cuentas por etapa—; `conPendientes` es
- * la que cuenta y llena la pestaña «Factura pendiente»: desde D-NEXT, lo que la persona ve **de ayer
+ * la que cuenta y llena la pestaña «Factura pendiente»: desde D-407, lo que la persona ve **de ayer
  * en adelante** (`pasaLaVentanaDePendientes`), para todos los roles; hasta entonces era la normal más
  * lo viejo con documento pendiente (la exención de D-313). Se devuelven juntas para que **nadie las calcule por su cuenta**: dos listas
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
@@ -161,7 +161,7 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * `atrasadas` (D-384) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
  * ella. Es **toda** atrasada abierta (`vaAAtrasadas`, ayer incluida desde D-404), con los mismos
  * cortes por rol y la misma ventana, así que cada persona ve en «Outdated» solo las atrasadas que ya
- * podía ver: admin y logística, todas; los demás, las de ayer. **Y desde D-NEXT están también en
+ * podía ver: admin y logística, todas; los demás, las de ayer. **Y desde D-407 están también en
  * `visibles`**: el dueño, 2026-09-26 por la tarde, *«outdated que también salga en all»*. D-404 las
  * había sacado de la lista normal esa misma mañana; ahora salen en los dos sitios.
  *
@@ -194,11 +194,11 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— va a la suya. Los días
     // que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni logística ya le ha
     // cortado lo anterior a ayer, así que su «Outdated» son las de ayer.
-    // Y se queda TAMBIÉN en la normal (D-NEXT, *«outdated que también salga en all»*): la lista
+    // Y se queda TAMBIÉN en la normal (D-407, *«outdated que también salga en all»*): la lista
     // normal no mira si está atrasada. D-404 la sacaba de ahí, salvo buscando.
     if (normal && vaAAtrasadas(d)) atrasadas.push(d);
     if (normal) visibles.push(d);
-    // «Factura pendiente» (D-NEXT): de ayer en adelante para TODOS, admin y logística incluidos —no
+    // «Factura pendiente» (D-407): de ayer en adelante para TODOS, admin y logística incluidos —no
     // `normal`, que a ellos no les corta nada—. Y su corte por tienda (D-404).
     if (pasaLaVentanaDePendientes(d, ctx) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
   }

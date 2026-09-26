@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-// D-NEXT: la ruta de cron que reprograma las Intertiendas. Exige el secreto, `ensayo` no escribe, y
+// D-406: la ruta de cron que reprograma las Intertiendas. Exige el secreto, `ensayo` no escribe, y
 // sin ensayo escribe fecha + evento. El cliente de Supabase es falso: nada sale de esta máquina.
 
 const falso = vi.hoisted(() => ({ creados: 0, ops: [] as { tabla: string; op: string; valor?: unknown }[] }));

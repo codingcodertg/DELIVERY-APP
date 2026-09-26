@@ -14,7 +14,7 @@ import type { Delivery, NamedLocation } from "./types";
  * sobre lo que la persona ve, y lo que office ve lo corta la ventana de D-239. Las pendientes están
  * todas entregadas —o sea, viejas—, así que la cuenta era 0 y la pestaña ni se pintaba.
  *
- * **D-NEXT (2026-09-26) quitó esa exención.** El dueño: *«invoice pending solo muestra yesterday,
+ * **D-407 (2026-09-26) quitó esa exención.** El dueño: *«invoice pending solo muestra yesterday,
  * today y tomorrow y future»*. La pestaña lleva de ayer en adelante (y lo que no tiene fecha), para
  * todos los roles, admin y logística incluidos. Las pruebas que exigían que una pendiente vieja
  * saliera en la pestaña se cambiaron para exigir lo contrario, con su nota; no se borraron.
@@ -60,9 +60,9 @@ const pendienteVieja = (over: Partial<Delivery> = {}) => mkDelivery({
 const ids = (l: Delivery[]) => l.map((d) => d.id).sort();
 
 describe("lo que el dueño pidió: office ve sus facturas pendientes", () => {
-  // Hasta D-NEXT: «… sale en la pestaña y NO en «Todas»» (la exención de D-313). Desde D-NEXT no
+  // Hasta D-407: «… sale en la pestaña y NO en «Todas»» (la exención de D-313). Desde D-407 no
   // sale en ninguna de las dos: *«invoice pending solo muestra yesterday, today y tomorrow y future»*.
-  it("una entregada de hace 20 días sin factura ya NO sale en la pestaña (D-NEXT), ni en «Todas»", () => {
+  it("una entregada de hace 20 días sin factura ya NO sale en la pestaña (D-407), ni en «Todas»", () => {
     const d = pendienteVieja();
     // Control: le falta la factura, así que lo único que la deja fuera es la fecha.
     expect(documentoPendiente(d, REGLAS)).not.toBeNull();
@@ -121,8 +121,8 @@ describe("una factura pendiente no es una llave para ver órdenes de otro", () =
     expect(ids(conPendientes)).toEqual([]);
   });
 
-  // Hasta D-NEXT la suya VIEJA salía en la pestaña (exención de D-313). Ahora solo la de ayer en adelante.
-  it("la suya sin factura sale en la pestaña si es de ayer; vieja, ya no (D-NEXT)", () => {
+  // Hasta D-407 la suya VIEJA salía en la pestaña (exención de D-313). Ahora solo la de ayer en adelante.
+  it("la suya sin factura sale en la pestaña si es de ayer; vieja, ya no (D-407)", () => {
     const suya = pendienteVieja({ id: "suya", created_by: "u-vend", assigned_sales_rep: "u-vend" });
     const deAyer = pendienteVieja({ id: "suya-ayer", delivery_date: AYER, created_by: "u-vend", assigned_sales_rep: "u-vend" });
     const { visibles, conPendientes } = ordenesVisibles([suya, deAyer], ctx({ me: vendedor }));
@@ -167,9 +167,9 @@ describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)
     expect(ids(visibles)).toEqual(["de-ayer"]);
   });
 
-  // Hasta D-NEXT se llamaba «pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí
-  // dentro (D-313 sigue)» y exigía que saliera. D-NEXT quitó la exención: tampoco ahí.
-  it("y la pestaña tampoco: su pendiente de hace 50 días no sale buscando (D-NEXT)", () => {
+  // Hasta D-407 se llamaba «pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí
+  // dentro (D-313 sigue)» y exigía que saliera. D-407 quitó la exención: tampoco ahí.
+  it("y la pestaña tampoco: su pendiente de hace 50 días no sale buscando (D-407)", () => {
     const antigua = suya({ id: "antigua", delivery_date: HACE_CINCUENTA, account: "ACME" });
     const deAyer = suya({ id: "de-ayer", delivery_date: AYER, account: "ACME" });
     const { visibles, conPendientes } = ordenesVisibles([antigua, deAyer], ctx({ me: vendedor, busqueda: "acme" }));
@@ -188,7 +188,7 @@ describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)
 });
 
 describe("las piezas por separado", () => {
-  // Hasta D-NEXT `pasaLaVentana` tenía un tercer argumento, la exención de D-313, y esta prueba
+  // Hasta D-407 `pasaLaVentana` tenía un tercer argumento, la exención de D-313, y esta prueba
   // exigía que con él una pendiente vieja pasara. La exención se quitó; su sitio lo ocupa
   // `pasaLaVentanaDePendientes`, que es más estrecha que la ventana normal, no más ancha.
   it("`pasaLaVentana` es la retención de siempre, también con documento pendiente", () => {
@@ -196,7 +196,7 @@ describe("las piezas por separado", () => {
     expect(pasaLaVentana(pendienteVieja({ delivery_date: AYER }), ctx())).toBe(true);
   });
 
-  it("`pasaLaVentanaDePendientes`: de ayer en adelante y sin fecha, para TODOS; solo el sandbox se la salta (D-NEXT)", () => {
+  it("`pasaLaVentanaDePendientes`: de ayer en adelante y sin fecha, para TODOS; solo el sandbox se la salta (D-407)", () => {
     const vieja = pendienteVieja();
     // El historial entero (admin, logística, `history`) NO la abre: el pedido no hace excepción.
     expect(pasaLaVentana(vieja, ctx({ veTodoElHistorial: true }))).toBe(true);
@@ -225,7 +225,7 @@ describe("las piezas por separado", () => {
   });
 
   it("la búsqueda vale también en la pestaña: no ignora lo tecleado", () => {
-    // Desde D-NEXT con una pendiente de AYER: con la vieja, la ventana ya la tiraba y la prueba
+    // Desde D-407 con una pendiente de AYER: con la vieja, la ventana ya la tiraba y la prueba
     // pasaría igual sin mirar la búsqueda. El control demuestra que, sin búsqueda, sí sale.
     const deAyer = pendienteVieja({ account: "ACME", delivery_date: AYER });
     expect(ids(ordenesVisibles([deAyer], ctx()).conPendientes)).toEqual(["vieja"]);

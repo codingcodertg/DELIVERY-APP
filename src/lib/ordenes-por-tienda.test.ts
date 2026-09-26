@@ -86,7 +86,7 @@ describe("gerente y ventas: toda la lista, su tienda y su grupo", () => {
         ...TRES,
         orden("sur-ayer", "Sur", { delivery_date: AYER }),
         orden("norte-ayer", "Norte", { delivery_date: AYER }),
-        // De AYER desde D-NEXT (antes, de hace 20 días): «Factura pendiente» ya solo lleva de ayer en adelante.
+        // De AYER desde D-407 (antes, de hace 20 días): «Factura pendiente» ya solo lleva de ayer en adelante.
         orden("sur-pend", "Sur", { stage: "delivered", invoice_num: null, delivery_date: AYER }),
         orden("norte-pend", "Norte", { stage: "delivered", invoice_num: null, delivery_date: AYER }),
         // Y una de hace 20 días, para que lo de arriba no pase por no tener nada viejo delante.
@@ -95,7 +95,7 @@ describe("gerente y ventas: toda la lista, su tienda y su grupo", () => {
       const listas = ordenesVisibles(datos, ctxDe(role, "Norte"));
       const cuentas = cuentasDeOrdenes(listas, PASTILLA_TODAS, () => true, REGLAS);
       const filas = (p: string) => ids(filasDeOrdenes(listas, p, () => true, REGLAS));
-      // Hasta D-NEXT «Todas» era ["norte", "oeste"]: la atrasada de ayer solo estaba en «Outdated»
+      // Hasta D-407 «Todas» era ["norte", "oeste"]: la atrasada de ayer solo estaba en «Outdated»
       // (D-404). El dueño, 2026-09-26 por la tarde: *«outdated que también salga en all»*.
       expect(filas(PASTILLA_TODAS)).toEqual(["norte", "norte-ayer", "norte-pend", "oeste"]);
       expect(cuentas[PASTILLA_TODAS]).toBe(4);

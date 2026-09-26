@@ -5,7 +5,7 @@ import {
 } from "@/lib/reprogramar-intertiendas";
 import type { OrderTypeRules } from "@/lib/required";
 
-// D-NEXT. El dueño, 2026-09-26: «si intertienda no se entregó ese día se reprograma automáticamente
+// D-406. El dueño, 2026-09-26: «si intertienda no se entregó ese día se reprograma automáticamente
 // para el día siguiente».
 
 const REGLAS: OrderTypeRules = {

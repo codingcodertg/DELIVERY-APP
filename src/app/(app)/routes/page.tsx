@@ -213,7 +213,7 @@ export default function RoutesPage() {
   // panel so the route detail can use the whole screen.
   const [wideRoutes, setWideRoutes] = useState(true);
   const [showTop, setShowTop] = useState(true);
-  // La tabla de paradas tenía un botón para abrir y cerrar la dirección (D-346 la hizo nacer abierta). Desde D-NEXT esa
+  // La tabla de paradas tenía un botón para abrir y cerrar la dirección (D-346 la hizo nacer abierta). Desde D-408 esa
   // columna enseña solo la ciudad, que cabe siempre: el botón se fue con la dirección.
   // Excel-style resizable columns, remembered per table. Tighter defaults (and
   // bumped keys, so they replace older wide ones) so the route + truckload
@@ -225,7 +225,7 @@ export default function RoutesPage() {
   // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-376): con 100 px la etapa salía «Program…», y allí entera.
   const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
   // Las columnas de Órdenes en la tabla de paradas (D-376) no tienen puesto: su ancho va por clave, en su propia llave,
-  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7` (desde D-NEXT, `stops8`).
+  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7` (desde D-408, `stops8`).
   const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
@@ -319,7 +319,7 @@ export default function RoutesPage() {
   const paradasExtra = extrasDeParadas(colsGestor);
   // Cuántas columnas pinta la tabla de paradas: las 8 de siempre, menos las quitadas, más las de Órdenes elegidas.
   const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;
-  // Por puesto: [parada, factura, tipo, pallets, ciudad, llegada, ventanas, acciones]. Hasta D-NEXT el puesto 1 era el ID
+  // Por puesto: [parada, factura, tipo, pallets, ciudad, llegada, ventanas, acciones]. Hasta D-408 el puesto 1 era el ID
   // (con la factura debajo) y el 4 la dirección entera (240). La llave pasa de `rtg_routes_stops7` a `stops8`: un ancho
   // arrastrado para una dirección no vale para una ciudad, y se empieza de nuevo con el defecto.
   const stopCols = useColWidths("rtg_routes_stops8", [40, 110, 140, 70, 120, 56, 110, 150]);
@@ -927,7 +927,7 @@ export default function RoutesPage() {
   const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
   // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
-  // delante se quitó (D-NEXT): el dueño, «routes manager doesn't need to see id».
+  // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
   const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
@@ -940,7 +940,7 @@ export default function RoutesPage() {
     style: { cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 } as const,
     title: t("Open this order", "Abrir esta orden"),
   });
-  // Sin la columna del ID (D-NEXT), el enlace que abre la orden es la FACTURA, en «Sin asignar» y en las paradas. Una orden
+  // Sin la columna del ID (D-408), el enlace que abre la orden es la FACTURA, en «Sin asignar» y en las paradas. Una orden
   // sin factura enseña su código en gris (`textoQueAbreLaOrden`), para que ninguna fila se quede sin nada que pulsar.
   const enlaceALaOrden = (d: Delivery) => {
     const { texto, esFactura } = textoQueAbreLaOrden(d);
@@ -2585,7 +2585,7 @@ export default function RoutesPage() {
                             // row dragging was removed on request.
                             //
                             // Three levels of detail, by where you tap:
-                            //   the invoice → open the order itself (the ID until D-NEXT)
+                            //   the invoice → open the order itself (the ID until D-408)
                             //   the row  → isolate this stop on the map, with its route
                             //   outside  → back to the driver's whole day
                             const isolated = selectedOrders.has(d.id) && selectedOrders.size === 1;
@@ -2612,7 +2612,7 @@ export default function RoutesPage() {
                                     >{e.texto}</td>
                                   );
                                 })()}
-                                {/* Solo la factura, subrayada: abre la orden (D-NEXT). Antes (D-379) el código de la orden iba
+                                {/* Solo la factura, subrayada: abre la orden (D-408). Antes (D-379) el código de la orden iba
                                     arriba, subrayado, y la factura debajo en pequeño; el código era lo que se pulsaba. */}
                                 <td className="ordno">{enlaceALaOrden(d)}</td>
                                 {!paradasOcultas.has(2) && <td title={d.order_type || undefined}>{d.order_type || "—"}</td>}

@@ -1,5 +1,5 @@
 /**
- * La CIUDAD de una dirección de entrega, para la columna «Ciudad de entrega» del Gestor de Rutas (D-NEXT).
+ * La CIUDAD de una dirección de entrega, para la columna «Ciudad de entrega» del Gestor de Rutas (D-408).
  *
  * El dueño, el 2026-09-26: «instead of delivery address column que salga delivery city y solo salga la city donde se
  * entrega en routes manager». La orden no tiene un campo de ciudad (`Delivery` solo trae `delivery_address`, texto

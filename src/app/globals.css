@@ -386,7 +386,7 @@ table.orders tr.row-done:hover td { background: #d8f0e4; }
 :root[data-theme="dark"] table.orders tr.row-done:hover td { background: #1c4535; }
 .ordno { font-weight: 800; font-family: 'Archivo'; }
 /* `.parada-id` y `.parada-factura` (D-379, el código arriba y la factura debajo en la celda del ID de las paradas) se
-   quitaron en D-NEXT: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */
+   quitaron en D-408: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */
 /* Una etiqueta P/D provisional (D-379): la de una ruta que nadie ha ordenado todavía. Mismo texto que la definitiva, en
    gris y cursiva, para que no se confunda con una secuencia optimizada. */
 .etiqueta-provisional { color: var(--gray); font-style: italic; }

@@ -98,11 +98,11 @@ describe("`enLaVentanaDeOrdenes`: ayer, hoy, futuro y sin fecha; nada más", () 
 
 describe("en Órdenes, quien no es admin ni logística no ve nada anterior a ayer", () => {
   for (const role of SIN_DIAS_VIEJOS) {
-    it(`${role}: ni en la lista, ni en «Outdated»; la de ayer, en las dos (D-NEXT)`, () => {
+    it(`${role}: ni en la lista, ni en «Outdated»; la de ayer, en las dos (D-407)`, () => {
       const { visibles, atrasadas } = ordenesVisibles(DIA, ctxDe(role));
       for (const v of VIEJAS) expect(ids(visibles), v).not.toContain(v);
       // Control: la de ayer sí le sale y la de hoy en la lista, así que el corte es de fecha y no de
-      // rol. La de ayer, en «Outdated» Y en la lista: hasta D-NEXT se exigía que NO estuviera en la
+      // rol. La de ayer, en «Outdated» Y en la lista: hasta D-407 se exigía que NO estuviera en la
       // lista (D-404); el dueño, 2026-09-26 por la tarde, *«outdated que también salga en all»*.
       expect(ids(atrasadas)).toEqual(["ayer-abierta"]);
       expect(ids(visibles)).toContain("ayer-abierta");
@@ -172,7 +172,7 @@ describe("la pantalla usa todo esto", () => {
 
   it("`pasaLaVentana` corta con `enLaVentanaDeOrdenes`, navegando y buscando", () => {
     const lib = plano(leer("src/lib/ordenes-visibles.ts"));
-    // Hasta D-NEXT llevaba delante la exención de D-313 (`pendientesEntran`); ya no existe.
+    // Hasta D-407 llevaba delante la exención de D-313 (`pendientesEntran`); ya no existe.
     expect(lib).toContain("if (teaching || veTodoElHistorial) return true; return enLaVentanaDeOrdenes(d); }");
     expect(lib).not.toContain("pendientesEntran &&");
   });

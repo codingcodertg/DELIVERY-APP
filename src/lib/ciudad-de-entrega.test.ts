@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ciudadDeEntrega } from "./ciudad-de-entrega";
 import { cityFromAddress } from "./utils";
 
-/** La ciudad de una dirección de entrega, para la columna «Ciudad de entrega» del Gestor de Rutas (D-NEXT). */
+/** La ciudad de una dirección de entrega, para la columna «Ciudad de entrega» del Gestor de Rutas (D-408). */
 
 describe("ciudadDeEntrega", () => {
   it("las del demo y las escritas a mano: «calle, Ciudad TX»", () => {

@@ -96,12 +96,12 @@ describe("qué es una atrasada para «Outdated»: `isOverdue`, sin suelo (D-404)
 });
 
 /*
- * **D-NEXT (2026-09-26, por la tarde) revierte la mitad «fuera de la lista normal» de D-404.** El
+ * **D-407 (2026-09-26, por la tarde) revierte la mitad «fuera de la lista normal» de D-404.** El
  * dueño: *«outdated que también salga en all»*. La atrasada abierta sale en «Todas» (y en su etapa)
  * **y** en «Outdated». Estas pruebas exigían lo contrario —que la normal no llevara ninguna, y que las
  * dos listas no se solaparan— y se cambiaron, no se borraron: ahora exigen que esté en los dos sitios.
  */
-describe("la atrasada sale en la lista normal Y en «Outdated» (D-NEXT)", () => {
+describe("la atrasada sale en la lista normal Y en «Outdated» (D-407)", () => {
   it("logística: las abiertas atrasadas —ayer incluida— en las DOS listas; la entregada vieja, solo en la normal", () => {
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx());
     expect(ids(visibles)).toEqual(["anteayer-lista", "ayer-abierta", "hoy", "manana", "sin-fecha", "vieja-abierta", "vieja-anulada", "vieja-entregada"]);
@@ -114,8 +114,8 @@ describe("la atrasada sale en la lista normal Y en «Outdated» (D-NEXT)", () =>
     expect(ids(atrasadas)).toEqual(["anteayer-lista", "ayer-abierta", "vieja-abierta"]);
   });
 
-  it("cada atrasada de «Outdated» está TAMBIÉN en la lista normal, sin buscar (D-NEXT)", () => {
-    // Hasta D-NEXT era lo contrario: «la lista normal no lleva NINGUNA orden que `isOverdue` dé por
+  it("cada atrasada de «Outdated» está TAMBIÉN en la lista normal, sin buscar (D-407)", () => {
+    // Hasta D-407 era lo contrario: «la lista normal no lleva NINGUNA orden que `isOverdue` dé por
     // atrasada» (D-404). Se compara contra `isOverdue` y no contra `vaAAtrasadas`, y sobre una lista
     // que no está vacía: un «todas están» sobre cero atrasadas pasaría con cualquier código.
     const { visibles, atrasadas } = ordenesVisibles(DIA, ctx());
@@ -192,9 +192,9 @@ describe("el número de cada pastilla es el de filas que enseña al pulsarla", (
     expect(cuentasDeOrdenes(listas, PASTILLA_TODAS, presets.hoy, REGLAS)[PESTANA_ATRASADAS]).toBe(3);
   });
 
-  // Hasta D-NEXT esta prueba exigía lo contrario («“Todas” … NO enseña atrasadas», D-404). El dueño,
+  // Hasta D-407 esta prueba exigía lo contrario («“Todas” … NO enseña atrasadas», D-404). El dueño,
   // 2026-09-26 por la tarde: *«outdated que también salga en all»*.
-  it("«Todas» con el chip en «Todas» enseña las atrasadas, y «Outdated» también: la misma orden en las dos pastillas (D-NEXT)", () => {
+  it("«Todas» con el chip en «Todas» enseña las atrasadas, y «Outdated» también: la misma orden en las dos pastillas (D-407)", () => {
     const listas = listasDe(ctx({ veTodoElHistorial: true }));
     const todas = ids(filasDeOrdenes(listas, PASTILLA_TODAS, () => true, REGLAS));
     const outdated = ids(filasDeOrdenes(listas, PESTANA_ATRASADAS, () => true, REGLAS));

@@ -2,7 +2,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { isoInTZ } from "@/lib/utils";
 
 /**
- * Reprogramar solas las Intertiendas que no se entregaron (D-NEXT).
+ * Reprogramar solas las Intertiendas que no se entregaron (D-406).
  *
  * El dueño, 2026-09-26: «si intertienda no se entregó ese día se reprograma automáticamente para el
  * día siguiente». Un cron de madrugada (vercel.json) llama a `/api/cron/reprogramar-intertiendas`, que

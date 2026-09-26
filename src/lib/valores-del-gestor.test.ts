@@ -34,7 +34,7 @@ const ordenes: DeOrdenes<Ctx> = {
 };
 
 describe("valorDelGestor", () => {
-  it("cada columna de «Sin asignar» saca un valor de la orden (el ID ya no es columna desde D-NEXT)", () => {
+  it("cada columna de «Sin asignar» saca un valor de la orden (el ID ya no es columna desde D-408)", () => {
     const d = mk({
       order_no: 501, invoice_num: "88123", account: "Cuenta A", delivery_address: "1 Calle, Pharr TX", pickup_name: "Bodega N", pickup_address: "Calle 2",
       store: "T1", actual_pallets: 3, est_pallets: 5, delivery_date: "2026-09-22", delivery_windows: "9-12", stage: "approved",
@@ -43,7 +43,7 @@ describe("valorDelGestor", () => {
     const claves = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key);
     for (const k of claves) expect(valorDelGestor(k, d, ordenes), k).not.toBeNull();
     expect(valorDelGestor("__id", d)).toBeNull();
-    // La ciudad (D-NEXT): ordena y filtra por lo que se ve, no por la calle.
+    // La ciudad (D-408): ordena y filtra por lo que se ve, no por la calle.
     expect(valorDelGestor("address", d)).toBe("Pharr");
     expect(valorDelGestor("address", mk({ delivery_address: "123 Main St" }))).toBeNull();
     expect(valorDelGestor("address", mk({ delivery_address: null }))).toBeNull();
@@ -110,7 +110,7 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
     expect(tramo).toContain("<FiltrosPuestos estado={ordenSinAsignar}");
     expect(tramo).not.toContain("{unassignedShown.map((d) => {");
   });
-  it("la factura abre la orden con el mismo gesto que la tabla de paradas, parando el clic (y el ID, hasta D-NEXT)", () => {
+  it("la factura abre la orden con el mismo gesto que la tabla de paradas, parando el clic (y el ID, hasta D-408)", () => {
     const gesto = entre("const abreLaOrden = (d: Delivery) => ({", "});");
     expect(gesto).toContain("onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(d); }");
     expect(gesto).toContain('textDecorationStyle: "dotted"');
@@ -126,7 +126,7 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
   });
 });
 
-describe("D-NEXT: lo que se lee en el enlace que abre la orden", () => {
+describe("D-408: lo que se lee en el enlace que abre la orden", () => {
   it("la factura, tal cual; sin factura (o solo espacios), el código de la orden, marcado como no-factura", () => {
     expect(textoQueAbreLaOrden(mk({ order_no: 501, invoice_num: "INV-3013" }))).toEqual({ texto: "INV-3013", esFactura: true });
     expect(textoQueAbreLaOrden(mk({ order_no: 501, invoice_num: " 177987, 177986 " }))).toEqual({ texto: "177987, 177986", esFactura: true });

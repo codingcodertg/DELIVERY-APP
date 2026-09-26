@@ -38,7 +38,7 @@ const ids = (l: readonly Delivery[]) => l.map((d) => d.id).sort();
  * Entregada AYER sin factura: lo que llena la pestaña. Todas de quien mira, para que a ventas solo la
  * separe la tienda.
  *
- * Hasta D-NEXT eran de hace 20 días (la exención de D-313 las dejaba entrar). Desde D-NEXT la pestaña
+ * Hasta D-407 eran de hace 20 días (la exención de D-313 las dejaba entrar). Desde D-407 la pestaña
  * lleva solo de ayer en adelante —*«invoice pending solo muestra yesterday, today y tomorrow y
  * future»*, 2026-09-26—, así que con esa fecha no saldrían en ningún rol y estas pruebas de TIENDA
  * medirían la fecha. Lo de 20 días tiene su propia prueba abajo.
@@ -129,10 +129,10 @@ describe("quien queda fuera de la regla", () => {
 });
 
 /**
- * D-NEXT. El dueño, 2026-09-26: *«invoice pending solo muestra yesterday, today y tomorrow y future»*.
+ * D-407. El dueño, 2026-09-26: *«invoice pending solo muestra yesterday, today y tomorrow y future»*.
  * Para TODOS los roles: el pedido no hace excepción con admin y logística.
  */
-describe("«Factura pendiente» solo de ayer en adelante, para todos (D-NEXT)", () => {
+describe("«Factura pendiente» solo de ayer en adelante, para todos (D-407)", () => {
   const HACE_TRES = shiftDateISO(HOY, -3);
   const MANANA = shiftDateISO(HOY, 1);
   const DATOS = [
