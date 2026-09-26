@@ -19,11 +19,11 @@ import { PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
  */
 
 export type ListasDeOrdenes = {
-  /** La lista normal: sin ninguna atrasada abierta (salvo buscando), D-384/D-NEXT. */
+  /** La lista normal: sin ninguna atrasada abierta (salvo buscando), D-384/D-404. */
   visibles: readonly Delivery[];
   /**
    * La normal más lo que solo entra por tener factura pendiente (D-313), **cortada a las tiendas de
-   * quien mira** (D-NEXT). Solo la usa la pestaña «Factura pendiente».
+   * quien mira** (D-404). Solo la usa la pestaña «Factura pendiente».
    */
   conPendientes: readonly Delivery[];
   /** Todas las atrasadas abiertas que la persona ve (`vaAAtrasadas`): ayer incluida. */

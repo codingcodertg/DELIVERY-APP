@@ -621,8 +621,8 @@ export default function OrdersPage() {
               todasAprueban: autoApproveAll,
               cuentas: counts,
               filtro: filter,
-              // «Outdated» sale para todos desde D-NEXT, con lo que cada uno ve. «Factura pendiente»
-              // sale con 0 a quien no tiene tienda, para que dentro lea por qué (D-NEXT).
+              // «Outdated» sale para todos desde D-404, con lo que cada uno ve. «Factura pendiente»
+              // sale con 0 a quien no tiene tienda, para que dentro lea por qué (D-404).
               pendientesSinTienda: alcancePendientes.tipo === "sin-tienda",
             }).map((p) => (
               <button
@@ -742,7 +742,7 @@ export default function OrdersPage() {
             anchos={anchos}
             onAnchos={guardaAnchos}
             onOpen={setOpen}
-            // «Factura pendiente» es solo de la tienda propia y su grupo (D-NEXT): sin tienda, ninguna, y
+            // «Factura pendiente» es solo de la tienda propia y su grupo (D-404): sin tienda, ninguna, y
             // se dice por qué, como el Panel (D-396). Un campo vacío no amplía lo que se ve (D-237).
             empty={filter === PESTANA_DOCUMENTO_PENDIENTE && alcancePendientes.tipo === "sin-tienda"
               ? t("🏬 No store assigned: Invoice pending shows only your store's orders. Ask an admin to assign your store in Users.",

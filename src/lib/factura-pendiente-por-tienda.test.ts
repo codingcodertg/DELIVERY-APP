@@ -9,7 +9,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation, UserRole } from "./types";
 
 /**
- * «Factura pendiente» es solo de la tienda propia (D-NEXT).
+ * «Factura pendiente» es solo de la tienda propia (D-404).
  *
  * El dueño, 2026-09-26: *«en invoice pending estrictamente solo se pueden ver órdenes de tu tienda, no
  * de otras»*. Hasta aquí D-338 hacía que la pestaña EMPEZARA por la tienda propia, pero enseñaba las

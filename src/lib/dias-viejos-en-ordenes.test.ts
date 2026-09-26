@@ -16,7 +16,7 @@ import type { Delivery, NamedLocation, UserRole } from "./types";
  * abierta (que D-384 le daba en «Outdated»), ni lo que encuentre buscando. La pastilla «Outdated» no le
  * sale. Admin y logística siguen como en D-384.
  *
- * **D-NEXT (2026-09-26)** mueve TODA atrasada abierta a «Outdated», también la de ayer, y la pastilla
+ * **D-404 (2026-09-26)** mueve TODA atrasada abierta a «Outdated», también la de ayer, y la pastilla
  * vuelve a salir a todos: la ventana de arriba no cambia, así que quien no es admin ni logística
  * encuentra allí solo las de ayer.
  */
@@ -98,7 +98,7 @@ describe("`enLaVentanaDeOrdenes`: ayer, hoy, futuro y sin fecha; nada más", () 
 
 describe("en Órdenes, quien no es admin ni logística no ve nada anterior a ayer", () => {
   for (const role of SIN_DIAS_VIEJOS) {
-    it(`${role}: ni en la lista, ni en «Outdated»; allí, solo la de ayer (D-NEXT)`, () => {
+    it(`${role}: ni en la lista, ni en «Outdated»; allí, solo la de ayer (D-404)`, () => {
       const { visibles, atrasadas } = ordenesVisibles(DIA, ctxDe(role));
       for (const v of VIEJAS) expect(ids(visibles), v).not.toContain(v);
       // Control: la de ayer sí le sale —en «Outdated», no en la lista— y la de hoy en la lista, así
@@ -113,7 +113,7 @@ describe("en Órdenes, quien no es admin ni logística no ve nada anterior a aye
       expect(ids(visibles)).toEqual([]);
       expect(ids(atrasadas)).toEqual([]);
       // Control: la misma búsqueda de la de ayer sí encuentra, en la lista normal (buscando, la
-      // atrasada sale también ahí, D-384/D-NEXT) y en «Outdated».
+      // atrasada sale también ahí, D-384/D-404) y en «Outdated».
       const deAyer = ordenesVisibles(DIA, ctxDe(role, { busqueda: "F-ayer-abierta" }));
       expect(ids(deAyer.visibles)).toEqual(["ayer-abierta"]);
       expect(ids(deAyer.atrasadas)).toEqual(["ayer-abierta"]);
@@ -141,7 +141,7 @@ describe("admin y logística, como en D-384", () => {
   });
 });
 
-describe("la pastilla «Outdated» (D-NEXT: para todos, como «Factura pendiente»)", () => {
+describe("la pastilla «Outdated» (D-404: para todos, como «Factura pendiente»)", () => {
   // Las cuentas salen de la lista real de cada rol, no de un número inventado.
   const filaDe = (role: UserRole) => {
     const { atrasadas } = ordenesVisibles(DIA, ctxDe(role));
@@ -165,7 +165,7 @@ describe("la pantalla usa todo esto", () => {
 
   it("la ventana de fechas se decide con el rol REAL y la capacidad `history`, la misma pregunta de D-392", () => {
     expect(pagina).toContain("const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);");
-    // Y la fila de pastillas ya no la recibe: «Outdated» sale para todos (D-NEXT).
+    // Y la fila de pastillas ya no la recibe: «Outdated» sale para todos (D-404).
     expect(pagina).not.toContain("veDiasViejos");
   });
 

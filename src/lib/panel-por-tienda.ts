@@ -61,7 +61,7 @@ export function ordenesDelPanel<T extends Pick<Delivery, "store" | "pickup_name"
 
 /**
  * ¿Es esta orden de las tiendas del alcance? La pregunta de una sola orden, que usan el Panel
- * (`ordenesDelPanel`) y la pestaña «Factura pendiente» de Órdenes (D-NEXT): la misma regla de tiendas
+ * (`ordenesDelPanel`) y la pestaña «Factura pendiente» de Órdenes (D-404): la misma regla de tiendas
  * en los dos sitios, no una copia.
  */
 export function esDelAlcance(

@@ -21215,7 +21215,7 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 
 ## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), en el punto 2: office sigue viendo «Factura pendiente», y la
+> **⚠ Reemplazada en parte por D-404** (2026-09-26), en el punto 2: office sigue viendo «Factura pendiente», y la
 > exención de la ventana sigue, pero **solo de su tienda y las de su grupo**; una office sin tienda asignada ve la
 > pestaña con 0 y un aviso de por qué. Admin y logística, todas.
 
@@ -23446,7 +23446,7 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 
 ## D-338 · El ancho de las columnas es de la persona; «Factura pendiente» es solo de facturas y empieza por la tienda propia; y la cuenta de una Intertienda deja de pintarse
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), solo el punto **h**. El dueño: *«en invoice pending
+> **⚠ Reemplazada en parte por D-404** (2026-09-26), solo el punto **h**. El dueño: *«en invoice pending
 > estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. La pestaña ya no **empieza** por la tienda
 > propia con las demás detrás: enseña **solo** la propia y las de su grupo (D-293) — admin y logística, todas; sin
 > tienda, ninguna, con un aviso. El agrupado por tienda y su orden (`tiendasDeQuienMira`) siguen, ahora solo entre las
@@ -24375,7 +24375,7 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): en **Órdenes**, la vencida abierta de **ayer** tampoco sigue ya
+> **⚠ Reemplazada en parte por D-404** (2026-09-26): en **Órdenes**, la vencida abierta de **ayer** tampoco sigue ya
 > en la lista normal (la nota de D-384 de aquí debajo decía que sí): va a «Outdated» como todas. `withinRecent` sigue
 > sin tocarse.
 
@@ -25930,7 +25930,7 @@ así que va atribuido: es un dato de otra sesión.
 
 ## D-374 · Almacén ve solo sus tiendas y recibe en su propia vista, ventas solo sus órdenes, y vuelve la ventana de fechas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26), solo en la pestaña «Factura pendiente» de Órdenes: ventas sigue
+> **⚠ Reemplazada en parte por D-404** (2026-09-26), solo en la pestaña «Factura pendiente» de Órdenes: ventas sigue
 > viendo sus órdenes de cualquier tienda en la lista, pero en esa pestaña **solo las de su tienda y su grupo**
 > (*«estrictamente solo … de tu tienda»*). Lo demás de esta entrada no cambia.
 
@@ -26800,7 +26800,7 @@ comportamiento de D-286.
 
 ## D-384 · Órdenes: las atrasadas salen de la lista normal y van a la pastilla «Outdated / Atrasadas»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26). El dueño: *«all late delivery orders need to go in a similar
+> **⚠ Reemplazada en parte por D-404** (2026-09-26). El dueño: *«all late delivery orders need to go in a similar
 > filter like invoice pending pero en rojo, entonces las late ya no se verán en all sino que se van directo a
 > outdated»*. Tres cosas de abajo ya no valen: (1) **la de ayer** abierta y sin entregar **también** va a «Outdated»
 > —se quitó el suelo de `vaAAtrasadas`, que ahora es `isOverdue` a secas—, así que la lista normal no lleva ninguna
@@ -27344,8 +27344,8 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 
 ## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): la mitad del título entre paréntesis ya no vale. La pastilla
-> «Outdated» **vuelve a salir a todos los roles**, porque desde D-NEXT lleva también la atrasada de **ayer**, que
+> **⚠ Reemplazada en parte por D-404** (2026-09-26): la mitad del título entre paréntesis ya no vale. La pastilla
+> «Outdated» **vuelve a salir a todos los roles**, porque desde D-404 lleva también la atrasada de **ayer**, que
 > todos ven: para los que no son admin ni logística es la pastilla de las atrasadas de ayer. El argumento
 > `veDiasViejos` de `pastillasDeOrdenes` se quitó. **La regla principal sigue entera**: solo admin y logística (y
 > quien tenga `history`) ven días anteriores a ayer, en la lista, en «Outdated» y buscando.
@@ -28713,7 +28713,7 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
   el 2026-09-25, y además no se toca). Lo que la vista real pasa al resumen está atado por pruebas del fuente, no visto.
 - La lista desplegable no se cierra al pulsar fuera; se cierra con la misma pastilla o al cambiar de día.
 
-## D-NEXT · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
+## D-404 · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño el mismo día**, literales:

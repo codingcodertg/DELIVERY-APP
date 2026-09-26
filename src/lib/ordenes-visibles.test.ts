@@ -32,7 +32,7 @@ const REGLAS: OrderTypeRules = {
 const TIENDAS: NamedLocation[] = [{ name: "Norte" }, { name: "Sur" }] as NamedLocation[];
 
 const ctx = (over: Partial<ContextoDeLista> = {}): ContextoDeLista => ({
-  // Con tienda desde D-NEXT: «Factura pendiente» es solo de la tienda propia, y sin tienda no sale nada.
+  // Con tienda desde D-404: «Factura pendiente» es solo de la tienda propia, y sin tienda no sale nada.
   me: { id: "u-office", role: "accounting", store: "Norte" },
   teaching: false,
   veTodoElHistorial: false,
@@ -88,7 +88,7 @@ describe("lo que el dueño pidió: office ve sus facturas pendientes", () => {
     expect(ids(conPendientes)).toEqual(["reciente"]);
   });
 
-  // Desde D-NEXT esto vale solo para las órdenes de la tienda de quien mira: la lista normal sigue
+  // Desde D-404 esto vale solo para las órdenes de la tienda de quien mira: la lista normal sigue
   // enseñando las de otras tiendas, y la pestaña ya no. Aquí todas son de «Norte», su tienda.
   it("`conPendientes` contiene a `visibles` de su tienda: la pestaña nunca enseña menos que la lista", () => {
     const lista = [
@@ -133,7 +133,7 @@ describe("una factura pendiente no es una llave para ver órdenes de otro", () =
 
   it("almacén sigue sin ver lo anterior a la aprobación aunque le falte el documento", () => {
     const almacen = { id: "u-alm", role: "warehouse" as const, store: "Norte" };
-    // Con fecha de HOY desde D-NEXT: una aprobada de ayer ya es atrasada y se va a «Outdated».
+    // Con fecha de HOY desde D-404: una aprobada de ayer ya es atrasada y se va a «Outdated».
     const pendiente = pendienteVieja({ id: "pend", stage: "pending", delivery_date: HOY });
     const aprobada = pendienteVieja({ id: "apr", stage: "approved", delivery_date: HOY });
     const { visibles, conPendientes } = ordenesVisibles([pendiente, aprobada], ctx({ me: almacen }));
@@ -268,7 +268,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
   it("no arma la lista a mano: la pide, con sus datos", () => {
     // D-384 añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
     // D-392 quitó `sueloDeVentas`: con el suelo en ayer para todos, el tope de 30 días no decidía nada.
-    // D-NEXT: devuelve además el alcance por tienda de «Factura pendiente», para el aviso de sin tienda.
+    // D-404: devuelve además el alcance por tienda de «Factura pendiente», para el aviso de sin tienda.
     expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);

@@ -135,11 +135,11 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
  *
  * `atrasadas` (D-384) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
- * ella. Es lo que `visibles` ya no lleva —**toda** atrasada abierta, ayer incluida desde D-NEXT,
+ * ella. Es lo que `visibles` ya no lleva —**toda** atrasada abierta, ayer incluida desde D-404,
  * `vaAAtrasadas`—, con los mismos cortes por rol y la misma ventana, así que cada persona ve en
  * «Outdated» solo las atrasadas que ya podía ver: admin y logística, todas; los demás, las de ayer.
  *
- * **`conPendientes` va además cortada por tienda (D-NEXT).** El dueño, 2026-09-26: *«en invoice
+ * **`conPendientes` va además cortada por tienda (D-404).** El dueño, 2026-09-26: *«en invoice
  * pending estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. Admin y logística,
  * todas; el resto, su tienda y las de su grupo (D-293); sin tienda, ninguna. La regla de tiendas es
  * la del Panel (`alcanceDelPanel` / `esDelAlcance`, D-396), no una nueva. Se devuelve el alcance
@@ -161,7 +161,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
     const normal = pasaLaVentana(d, ctx, false);
-    // «Outdated» (D-384, D-NEXT): TODA atrasada abierta —también la de ayer— sale de la lista normal
+    // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— sale de la lista normal
     // y va a la suya. Los días que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni
     // logística ya le ha cortado lo anterior a ayer, así que su «Outdated» son las de ayer.
     // Buscando, se queda también en la normal: una factura que no sale al teclearla se lee como que
@@ -175,7 +175,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
 }
 
 /**
- * De qué tiendas es la pestaña «Factura pendiente» para esta persona (D-NEXT). Es `alcanceDelPanel`:
+ * De qué tiendas es la pestaña «Factura pendiente» para esta persona (D-404). Es `alcanceDelPanel`:
  * admin y logística, todas; el resto, su tienda y las de su grupo; sin tienda, ninguna. El sandbox de
  * enseñanza no tiene cortes de ningún tipo, tampoco este.
  */

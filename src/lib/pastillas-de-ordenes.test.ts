@@ -71,13 +71,13 @@ describe("la cuenta de «Todas»", () => {
 
   it("y sin cuenta ninguna es cero, no un hueco", () => {
     const fila = pastillasDeOrdenes({ pendientesSinTienda: false, etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
-    // «Todas» y la etapa. «Outdated» salía siempre (D-384); desde D-NEXT, como la de factura
+    // «Todas» y la etapa. «Outdated» salía siempre (D-384); desde D-404, como la de factura
     // pendiente, con 0 no sale.
     expect(fila.map((p) => p.cuenta)).toEqual([0, 0]);
   });
 });
 
-describe("«Outdated» funciona como «Factura pendiente» (D-NEXT)", () => {
+describe("«Outdated» funciona como «Factura pendiente» (D-404)", () => {
   // El dueño, 2026-09-26: «all late delivery orders need to go in a similar filter like invoice
   // pending pero en rojo».
   const sinAtrasadas = { ...CUENTAS, [PESTANA_ATRASADAS]: 0 };
@@ -98,7 +98,7 @@ describe("«Outdated» funciona como «Factura pendiente» (D-NEXT)", () => {
   });
 });
 
-describe("«Factura pendiente» a quien no tiene tienda (D-NEXT)", () => {
+describe("«Factura pendiente» a quien no tiene tienda (D-404)", () => {
   const sinNada = { ...CUENTAS, [PESTANA_DOCUMENTO_PENDIENTE]: 0 };
 
   it("sin tienda sale con 0, para que al pulsarla lea por qué no hay nada", () => {

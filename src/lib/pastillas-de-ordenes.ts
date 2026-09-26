@@ -35,7 +35,7 @@ export function pastillasDeOrdenes(args: {
   cuentas: Record<string, number>;
   filtro: string;
   /**
-   * ¿Es alguien a quien «Factura pendiente» corta por tienda y no tiene tienda? (D-NEXT) Entonces la
+   * ¿Es alguien a quien «Factura pendiente» corta por tienda y no tiene tienda? (D-404) Entonces la
    * pastilla sale aunque diga 0, para que al pulsarla lea por qué no hay nada, en vez de no saber que
    * existe. Lo decide `alcancePendientes` de `ordenesVisibles`, el mismo valor que cortó la lista.
    */
@@ -56,7 +56,7 @@ export function pastillasDeOrdenes(args: {
     salida.push(pastilla(key));
   }
 
-  // «Outdated» (D-384), en rojo. Desde D-NEXT funciona **como la de factura pendiente**, que es lo que
+  // «Outdated» (D-384), en rojo. Desde D-404 funciona **como la de factura pendiente**, que es lo que
   // pidió el dueño (*«a similar filter like invoice pending pero en rojo»*): sale si tiene algo dentro
   // o si se está en ella —si no, al vaciarse desaparecería bajo el dedo—, y **para todos los roles**,
   // cada uno con las atrasadas que ve (admin y logística, todas; los demás, las de ayer, D-392).
@@ -68,7 +68,7 @@ export function pastillasDeOrdenes(args: {
 
   // La del documento pendiente (D-310) solo sale si hay algo pendiente **o** si se está dentro de
   // ella: si no, al vaciarse desaparecería bajo el dedo y la lista se quedaría en un filtro invisible.
-  // Y a quien no tiene tienda le sale siempre, con 0 (D-NEXT): dentro se le dice por qué.
+  // Y a quien no tiene tienda le sale siempre, con 0 (D-404): dentro se le dice por qué.
   if (n(PESTANA_DOCUMENTO_PENDIENTE) > 0 || filtro === PESTANA_DOCUMENTO_PENDIENTE || pendientesSinTienda) {
     salida.push(pastilla(PESTANA_DOCUMENTO_PENDIENTE, "chip-pend"));
   }
