@@ -1,6 +1,5 @@
 import type { Delivery, NamedLocation, Profile, UserRole } from "@/lib/types";
 import { retentionFloorISO, todayISO } from "@/lib/utils";
-import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
@@ -22,6 +21,11 @@ import { alcanceDelPanel, esDelAlcance, type AlcanceDelPanel } from "@/lib/panel
  * solo **dentro de su pestaña**. La vista normal sigue con la retención de siempre: si la exención
  * valiera para toda la tabla, a office se le llenaría la lista de entregadas de agosto, que es
  * justo lo que D-239 vino a quitar.
+ *
+ * > **Revertido por D-NEXT (2026-09-26).** El dueño: *«invoice pending solo muestra yesterday, today y
+ * > tomorrow y future»*. La pestaña ya no se exime de la ventana: lleva ayer, hoy, lo que viene y lo
+ * > que no tiene fecha, **para todos los roles, admin y logística incluidos**
+ * > (`pasaLaVentanaDePendientes`). Lo de arriba queda como historia de por qué existió la exención.
  *
  * Los cortes por **rol** no se relajan: ventas sigue viendo lo suyo (`ventasVeLaOrden`) y nunca una
  * anulada, y almacén sigue sin ver lo anterior a la aprobación. Una factura pendiente no es una
@@ -102,15 +106,33 @@ export function enLaVentanaDeOrdenes(
  * no tenía ventana y ventas tenía un tope propio de 30 días; con el suelo en ayer ese tope ya no
  * decidía nada y se quitó.
  *
- * `pendientesEntran` es la exención de D-313: con ella, una orden con documento pendiente pasa el
- * corte. Es lo que hace que la pestaña «Factura pendiente» enseñe a office una entregada de hace un
- * mes a la que le falta la factura. **D-392 la deja en pie a sabiendas**, y solo dentro de esa
- * pestaña: ver su entrada.
+ * Aquí vivía también la exención de D-313 (`pendientesEntran`: una orden con documento pendiente
+ * pasaba el corte, dentro de su pestaña). **D-NEXT la quitó**: «Factura pendiente» tiene ahora su
+ * propio corte, `pasaLaVentanaDePendientes`, más estrecho que este y no más ancho.
  */
-export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista, pendientesEntran: boolean): boolean {
-  const { teaching, veTodoElHistorial, reglas } = ctx;
+export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista): boolean {
+  const { teaching, veTodoElHistorial } = ctx;
   if (teaching || veTodoElHistorial) return true;
-  if (pendientesEntran && facturaPendiente(d, reglas)) return true;
+  return enLaVentanaDeOrdenes(d);
+}
+
+/**
+ * ¿Entra la orden en la pestaña «Factura pendiente» por su FECHA (D-NEXT)?
+ *
+ * El dueño, 2026-09-26: *«invoice pending solo muestra yesterday, today y tomorrow y future»*. Es la
+ * ventana de Órdenes (`enLaVentanaDeOrdenes`: ayer, hoy, lo que viene, y **sin fecha, siempre**,
+ * porque una orden sin fecha se está programando y es trabajo de ahora) **para todos los roles**:
+ * el pedido no hace excepción, así que admin, logística y quien tenga `history` (D-350) tampoco ven
+ * aquí pendientes de anteayer hacia atrás. En la lista normal ellos siguen viéndolas.
+ *
+ * Solo el **sandbox de enseñanza** se salta el corte, como se salta todos (sus datos no son de
+ * nadie).
+ *
+ * Consecuencia sabida: las órdenes entregadas hace semanas sin factura dejan de salir en la pestaña.
+ * Siguen sin factura en la base; se llega a ellas abriéndolas o buscando (con la ventana de cada uno).
+ */
+export function pasaLaVentanaDePendientes(d: Delivery, ctx: Pick<ContextoDeLista, "teaching">): boolean {
+  if (ctx.teaching) return true;
   return enLaVentanaDeOrdenes(d);
 }
 
@@ -131,14 +153,17 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
  * Las dos listas de la pantalla.
  *
  * `visibles` es la de siempre —y de ella salen «Todas» y las cuentas por etapa—; `conPendientes` es
- * la misma más las que solo se caían por la ventana y tienen documento pendiente, y es la que cuenta
- * y llena la pestaña. Se devuelven juntas para que **nadie las calcule por su cuenta**: dos listas
+ * la que cuenta y llena la pestaña «Factura pendiente»: desde D-NEXT, lo que la persona ve **de ayer
+ * en adelante** (`pasaLaVentanaDePendientes`), para todos los roles; hasta entonces era la normal más
+ * lo viejo con documento pendiente (la exención de D-313). Se devuelven juntas para que **nadie las calcule por su cuenta**: dos listas
  * parecidas escritas en dos sitios acaban discrepando, y la pestaña diría un número y enseñaría otro.
  *
  * `atrasadas` (D-384) es la tercera, por la misma razón: la pastilla «Outdated» cuenta y lista de
- * ella. Es lo que `visibles` ya no lleva —**toda** atrasada abierta, ayer incluida desde D-404,
- * `vaAAtrasadas`—, con los mismos cortes por rol y la misma ventana, así que cada persona ve en
- * «Outdated» solo las atrasadas que ya podía ver: admin y logística, todas; los demás, las de ayer.
+ * ella. Es **toda** atrasada abierta (`vaAAtrasadas`, ayer incluida desde D-404), con los mismos
+ * cortes por rol y la misma ventana, así que cada persona ve en «Outdated» solo las atrasadas que ya
+ * podía ver: admin y logística, todas; los demás, las de ayer. **Y desde D-NEXT están también en
+ * `visibles`**: el dueño, 2026-09-26 por la tarde, *«outdated que también salga en all»*. D-404 las
+ * había sacado de la lista normal esa misma mañana; ahora salen en los dos sitios.
  *
  * **`conPendientes` va además cortada por tienda (D-404).** El dueño, 2026-09-26: *«en invoice
  * pending estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. Admin y logística,
@@ -156,7 +181,6 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
   const visibles: Delivery[] = [];
   const conPendientes: Delivery[] = [];
   const atrasadas: Delivery[] = [];
-  const buscando = !!ctx.busqueda.trim();
   const alcancePendientes = alcanceDePendientes(ctx);
   const alcanceLista = alcanceDeLaLista(ctx);
   for (const d of deliveries) {
@@ -166,16 +190,17 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     // Y el corte por TIENDA de la lista (D-405), antes de repartir: vale para las tres listas, así
     // que número = filas en «Todas», en cada etapa, en «Outdated» y en «Factura pendiente».
     if (!esDelAlcance(d, alcanceLista, ctx.reglas)) continue;
-    const normal = pasaLaVentana(d, ctx, false);
-    // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— sale de la lista normal
-    // y va a la suya. Los días que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni
-    // logística ya le ha cortado lo anterior a ayer, así que su «Outdated» son las de ayer.
-    // Buscando, se queda también en la normal: una factura que no sale al teclearla se lee como que
-    // la orden no existe. Con la misma ventana: buscar no abre nada que la persona no vea ya.
-    const atrasada = vaAAtrasadas(d);
-    if (normal && atrasada) atrasadas.push(d);
-    if (normal && (!atrasada || buscando)) visibles.push(d);
-    if ((normal || pasaLaVentana(d, ctx, true)) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
+    const normal = pasaLaVentana(d, ctx);
+    // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— va a la suya. Los días
+    // que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni logística ya le ha
+    // cortado lo anterior a ayer, así que su «Outdated» son las de ayer.
+    // Y se queda TAMBIÉN en la normal (D-NEXT, *«outdated que también salga en all»*): la lista
+    // normal no mira si está atrasada. D-404 la sacaba de ahí, salvo buscando.
+    if (normal && vaAAtrasadas(d)) atrasadas.push(d);
+    if (normal) visibles.push(d);
+    // «Factura pendiente» (D-NEXT): de ayer en adelante para TODOS, admin y logística incluidos —no
+    // `normal`, que a ellos no les corta nada—. Y su corte por tienda (D-404).
+    if (pasaLaVentanaDePendientes(d, ctx) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
   }
   return { visibles, conPendientes, atrasadas, alcancePendientes, alcanceLista };
 }

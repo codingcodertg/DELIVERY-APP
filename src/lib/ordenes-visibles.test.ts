@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { coincideConLaBusqueda, leTocaPorRol, ordenesVisibles, pasaLaVentana, type ContextoDeLista } from "./ordenes-visibles";
+import { coincideConLaBusqueda, leTocaPorRol, ordenesVisibles, pasaLaVentana, pasaLaVentanaDePendientes, type ContextoDeLista } from "./ordenes-visibles";
 import { documentoPendiente } from "./documento-pendiente";
 import { mkDelivery } from "./__fixtures";
 import { seesAllHistory, shiftDateISO, todayISO } from "./utils";
@@ -13,6 +13,11 @@ import type { Delivery, NamedLocation } from "./types";
  * El dueño: *«invoice pending must be visible for office too»*. No era permiso: la pestaña cuenta
  * sobre lo que la persona ve, y lo que office ve lo corta la ventana de D-239. Las pendientes están
  * todas entregadas —o sea, viejas—, así que la cuenta era 0 y la pestaña ni se pintaba.
+ *
+ * **D-NEXT (2026-09-26) quitó esa exención.** El dueño: *«invoice pending solo muestra yesterday,
+ * today y tomorrow y future»*. La pestaña lleva de ayer en adelante (y lo que no tiene fecha), para
+ * todos los roles, admin y logística incluidos. Las pruebas que exigían que una pendiente vieja
+ * saliera en la pestaña se cambiaron para exigir lo contrario, con su nota; no se borraron.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -55,13 +60,15 @@ const pendienteVieja = (over: Partial<Delivery> = {}) => mkDelivery({
 const ids = (l: Delivery[]) => l.map((d) => d.id).sort();
 
 describe("lo que el dueño pidió: office ve sus facturas pendientes", () => {
-  it("una entregada de hace 20 días sin factura sale en la pestaña y NO en «Todas»", () => {
+  // Hasta D-NEXT: «… sale en la pestaña y NO en «Todas»» (la exención de D-313). Desde D-NEXT no
+  // sale en ninguna de las dos: *«invoice pending solo muestra yesterday, today y tomorrow y future»*.
+  it("una entregada de hace 20 días sin factura ya NO sale en la pestaña (D-NEXT), ni en «Todas»", () => {
     const d = pendienteVieja();
-    // Control: sin la exención se caería por la ventana, que es lo que pasaba.
+    // Control: le falta la factura, así que lo único que la deja fuera es la fecha.
     expect(documentoPendiente(d, REGLAS)).not.toBeNull();
     const { visibles, conPendientes } = ordenesVisibles([d], ctx());
     expect(ids(visibles)).toEqual([]);
-    expect(ids(conPendientes)).toEqual(["vieja"]);
+    expect(ids(conPendientes)).toEqual([]);
   });
 
   it("con la factura puesta no sale en ninguna de las dos: ya no es trabajo vivo", () => {
@@ -114,18 +121,20 @@ describe("una factura pendiente no es una llave para ver órdenes de otro", () =
     expect(ids(conPendientes)).toEqual([]);
   });
 
-  it("la suya, vieja y sin factura, sí sale en la pestaña", () => {
+  // Hasta D-NEXT la suya VIEJA salía en la pestaña (exención de D-313). Ahora solo la de ayer en adelante.
+  it("la suya sin factura sale en la pestaña si es de ayer; vieja, ya no (D-NEXT)", () => {
     const suya = pendienteVieja({ id: "suya", created_by: "u-vend", assigned_sales_rep: "u-vend" });
-    const { visibles, conPendientes } = ordenesVisibles([suya], ctx({ me: vendedor }));
-    expect(ids(visibles)).toEqual([]);
-    expect(ids(conPendientes)).toEqual(["suya"]);
+    const deAyer = pendienteVieja({ id: "suya-ayer", delivery_date: AYER, created_by: "u-vend", assigned_sales_rep: "u-vend" });
+    const { visibles, conPendientes } = ordenesVisibles([suya, deAyer], ctx({ me: vendedor }));
+    expect(ids(visibles)).toEqual(["suya-ayer"]);
+    expect(ids(conPendientes)).toEqual(["suya-ayer"]);
   });
 
   it("una anulada suya sigue sin salir, y es el corte por rol quien la quita", () => {
     // Dentro de la ventana A PROPÓSITO: con una anulada vieja la prueba pasaría igual sin el corte
     // —la ventana ya la tiraba— y no mediría nada. Medido: con el corte quitado, esta cae.
     const anulada = pendienteVieja({ id: "anulada", stage: "canceled", delivery_date: AYER, created_by: "u-vend" });
-    expect(pasaLaVentana(anulada, ctx({ me: vendedor }), false)).toBe(true);
+    expect(pasaLaVentana(anulada, ctx({ me: vendedor }))).toBe(true);
     const { visibles, conPendientes } = ordenesVisibles([anulada], ctx({ me: vendedor }));
     expect(ids(visibles)).toEqual([]);
     expect(ids(conPendientes)).toEqual([]);
@@ -158,12 +167,15 @@ describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)
     expect(ids(visibles)).toEqual(["de-ayer"]);
   });
 
-  it("pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí dentro (D-313 sigue)", () => {
-    // Una factura pendiente es trabajo vivo; D-392 deja en pie esa exención, solo en su pestaña.
+  // Hasta D-NEXT se llamaba «pero no tapa la pestaña: su pendiente de hace 50 días se busca igual ahí
+  // dentro (D-313 sigue)» y exigía que saliera. D-NEXT quitó la exención: tampoco ahí.
+  it("y la pestaña tampoco: su pendiente de hace 50 días no sale buscando (D-NEXT)", () => {
     const antigua = suya({ id: "antigua", delivery_date: HACE_CINCUENTA, account: "ACME" });
-    const { visibles, conPendientes } = ordenesVisibles([antigua], ctx({ me: vendedor, busqueda: "acme" }));
-    expect(ids(visibles)).toEqual([]);
-    expect(ids(conPendientes)).toEqual(["antigua"]);
+    const deAyer = suya({ id: "de-ayer", delivery_date: AYER, account: "ACME" });
+    const { visibles, conPendientes } = ordenesVisibles([antigua, deAyer], ctx({ me: vendedor, busqueda: "acme" }));
+    // Control: la de ayer, igual de pendiente y con la misma cuenta, sí sale en las dos.
+    expect(ids(visibles)).toEqual(["de-ayer"]);
+    expect(ids(conPendientes)).toEqual(["de-ayer"]);
   });
 
   it("office buscando tampoco llega a una entregada vieja; logística sí", () => {
@@ -176,18 +188,30 @@ describe("buscando, el suelo es ayer para todos menos admin y logística (D-392)
 });
 
 describe("las piezas por separado", () => {
-  it("`pasaLaVentana` sin la exención es la retención de siempre", () => {
-    const vieja = pendienteVieja();
-    expect(pasaLaVentana(vieja, ctx(), false)).toBe(false);
-    expect(pasaLaVentana(vieja, ctx(), true)).toBe(true);
-    // Y la exención no inventa nada donde no hay documento pendiente.
-    expect(pasaLaVentana(pendienteVieja({ invoice_num: "F-1" }), ctx(), true)).toBe(false);
+  // Hasta D-NEXT `pasaLaVentana` tenía un tercer argumento, la exención de D-313, y esta prueba
+  // exigía que con él una pendiente vieja pasara. La exención se quitó; su sitio lo ocupa
+  // `pasaLaVentanaDePendientes`, que es más estrecha que la ventana normal, no más ancha.
+  it("`pasaLaVentana` es la retención de siempre, también con documento pendiente", () => {
+    expect(pasaLaVentana(pendienteVieja(), ctx())).toBe(false);
+    expect(pasaLaVentana(pendienteVieja({ delivery_date: AYER }), ctx())).toBe(true);
   });
 
-  it("quien ve el historial entero pasa las dos, y el sandbox de enseñanza también", () => {
+  it("`pasaLaVentanaDePendientes`: de ayer en adelante y sin fecha, para TODOS; solo el sandbox se la salta (D-NEXT)", () => {
+    const vieja = pendienteVieja();
+    // El historial entero (admin, logística, `history`) NO la abre: el pedido no hace excepción.
+    expect(pasaLaVentana(vieja, ctx({ veTodoElHistorial: true }))).toBe(true);
+    expect(pasaLaVentanaDePendientes(vieja, ctx({ veTodoElHistorial: true }))).toBe(false);
+    expect(pasaLaVentanaDePendientes(pendienteVieja({ delivery_date: shiftDateISO(HOY, -2) }), ctx({ veTodoElHistorial: true }))).toBe(false);
+    for (const f of [AYER, HOY, shiftDateISO(HOY, 1), shiftDateISO(HOY, 30), null]) {
+      expect(pasaLaVentanaDePendientes(pendienteVieja({ delivery_date: f }), ctx({ veTodoElHistorial: true })), String(f)).toBe(true);
+    }
+    expect(pasaLaVentanaDePendientes(vieja, ctx({ teaching: true }))).toBe(true);
+  });
+
+  it("quien ve el historial entero pasa la ventana normal, y el sandbox de enseñanza también", () => {
     const vieja = pendienteVieja({ invoice_num: "F-1" });
-    expect(pasaLaVentana(vieja, ctx({ veTodoElHistorial: true }), false)).toBe(true);
-    expect(pasaLaVentana(vieja, ctx({ teaching: true }), false)).toBe(true);
+    expect(pasaLaVentana(vieja, ctx({ veTodoElHistorial: true }))).toBe(true);
+    expect(pasaLaVentana(vieja, ctx({ teaching: true }))).toBe(true);
     expect(leTocaPorRol(vieja, ctx({ me: { id: "x", role: "sales", store: "Sur" }, teaching: true }))).toBe(true);
   });
 
@@ -200,9 +224,12 @@ describe("las piezas por separado", () => {
     expect(coincideConLaBusqueda(d, "norte")).toBe(false);
   });
 
-  it("la búsqueda se aplica ANTES de la exención: la pestaña no ignora lo tecleado", () => {
-    const vieja = pendienteVieja({ account: "ACME" });
-    const { conPendientes } = ordenesVisibles([vieja], ctx({ busqueda: "otra cosa" }));
+  it("la búsqueda vale también en la pestaña: no ignora lo tecleado", () => {
+    // Desde D-NEXT con una pendiente de AYER: con la vieja, la ventana ya la tiraba y la prueba
+    // pasaría igual sin mirar la búsqueda. El control demuestra que, sin búsqueda, sí sale.
+    const deAyer = pendienteVieja({ account: "ACME", delivery_date: AYER });
+    expect(ids(ordenesVisibles([deAyer], ctx()).conPendientes)).toEqual(["vieja"]);
+    const { conPendientes } = ordenesVisibles([deAyer], ctx({ busqueda: "otra cosa" }));
     expect(ids(conPendientes)).toEqual([]);
   });
 });

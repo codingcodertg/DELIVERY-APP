@@ -29,6 +29,8 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
  * pasando por el chip de fecha, que arranca en «Reciente». Casi todo lo que tiene factura pendiente
  * está entregado hace semanas, así que la pastilla decía «52» y debajo salían tres filas o ninguna.
  * Un número que no es el de la lista es exactamente lo que D-357 vino a quitar de esta pantalla.
+ * (Desde D-NEXT la pestaña ya no lleva lo viejo —de ayer en adelante, para todos—, pero el chip
+ * sigue moviéndose a «Todas»: «Hoy» o «Reciente» seguirían dejando fuera parte de lo que cuenta.)
  *
  * Se mueve el chip en vez de ignorarlo dentro de la pestaña: así **se ve** por qué aparecen órdenes
  * viejas, y quien quiera volver a acotar por fecha lo hace y ve el chip que lo está haciendo. Un

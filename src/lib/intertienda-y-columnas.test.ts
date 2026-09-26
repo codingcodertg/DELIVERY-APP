@@ -170,8 +170,13 @@ describe("g y h · la pestaña «Factura pendiente»", () => {
     expect(todas.map((d) => facturaPendiente(d, reglas))).toEqual(pendientes.map((c) => c === "invoice_num"));
     expect(todas.map((d) => facturaPendiente(d, reglas))).toEqual([true, false, false, false]);
   });
-  it("la exención de ventana de D-313 usa la misma regla: lo que no está en la pestaña no pasa por ella", () => {
-    expect(leer("src/lib/ordenes-visibles.ts")).toContain("if (pendientesEntran && facturaPendiente(d, reglas)) return true;");
+  // Hasta D-NEXT: «la exención de ventana de D-313 usa la misma regla…», y exigía la línea de la
+  // exención. D-NEXT la quitó (*«invoice pending solo muestra yesterday, today y tomorrow y future»*):
+  // ahora nada entra en la lista por tener la factura pendiente, así que lo que se exige es que no vuelva.
+  it("ya no hay exención de ventana por factura pendiente (D-NEXT): ninguna orden entra por eso", () => {
+    const lib = leer("src/lib/ordenes-visibles.ts");
+    expect(lib).not.toContain("pendientesEntran &&");
+    expect(lib).not.toContain("facturaPendiente(");
   });
 
   // La tienda propia NO es la primera por nombre: si lo fuera, el orden de siempre ya la pondría delante.
