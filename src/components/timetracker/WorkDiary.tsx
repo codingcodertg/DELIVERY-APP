@@ -14,7 +14,7 @@ import { DayActivitySummary } from "./DayActivitySummary";
 // activity bar. Will stay empty until the desktop app exists (see
 // ARCHITECTURE.md) — there is nothing to show yet, not a bug.
 //
-// D-NEXT: con `summary` (solo desde Auditoría → Capturas de escritorio, `TeamDiary`) la cabecera
+// D-403: con `summary` (solo desde Auditoría → Capturas de escritorio, `TeamDiary`) la cabecera
 // enseña a la derecha del selector de fecha el resumen del día y las «horas bajas»
 // (`DayActivitySummary`), que incluye el total de horas; el diario del propio empleado no cambia.
 export function WorkDiary({ shots, sessions = [], onDelete, summary = false }: { shots: Screenshot[]; sessions?: Session[]; onDelete?: (s: Screenshot) => void; summary?: boolean }) {

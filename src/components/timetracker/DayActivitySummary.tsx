@@ -5,7 +5,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import { fmtClock, fmtTime } from "@/lib/timetracker/helpers";
 import { UMBRAL_HORA_BAJA_PCT, pctEntero, resumenDelDia, type MuestraActividad } from "@/lib/timetracker/resumen-dia";
 
-// D-NEXT. Resumen del día del empleado y «horas bajas», en la cabecera de Auditoría → Capturas de
+// D-403. Resumen del día del empleado y «horas bajas», en la cabecera de Auditoría → Capturas de
 // escritorio, a la derecha del selector de fecha. Toda la cuenta está en `resumen-dia.ts` (pura,
 // con pruebas); aquí solo se pinta. `shots` son los `dayShots` que `WorkDiary` ya filtró por
 // empleado y día, y `totalSec` el total de sesiones que ya enseñaba: al cambiar de día cambia

@@ -1,7 +1,7 @@
 import type { Screenshot } from "./types";
 
 /**
- * Resumen del día y «horas bajas» de la vista Auditoría → Capturas de escritorio (D-NEXT).
+ * Resumen del día y «horas bajas» de la vista Auditoría → Capturas de escritorio (D-403).
  *
  * El modelo de datos que hay detrás (medido en el código, no supuesto):
  *

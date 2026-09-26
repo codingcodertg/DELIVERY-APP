@@ -100,7 +100,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
     "src/components/timetracker/AuditTabs.tsx",
     "src/components/timetracker/TeamDiary.tsx",
-    // D-NEXT: la cabecera de las capturas (selector de fecha) y su resumen del día.
+    // D-403: la cabecera de las capturas (selector de fecha) y su resumen del día.
     "src/components/timetracker/WorkDiary.tsx",
     "src/components/timetracker/DayActivitySummary.tsx",
     // G-9 (D-202): las pantallas de empleado y los componentes de Time Tracker que quedaban en inglés.

@@ -28563,7 +28563,7 @@ a ventas un orden propio (M7), y Órdenes cambiando su orden de partida (M8, el 
   probado con funciones, no en un navegador con sesión.
 - **Qué columnas tiene hoy ventas en Ajustes** en producción: no cambia el orden, solo cuáles se comparan.
 
-## D-NEXT · Time Tracker, Auditoría → Capturas de escritorio: resumen del día y «horas bajas» (<10 % de actividad) junto al selector de fecha
+## D-403 · Time Tracker, Auditoría → Capturas de escritorio: resumen del día y «horas bajas» (<10 % de actividad) junto al selector de fecha
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Time Tracker) · **Sin migración.**
 

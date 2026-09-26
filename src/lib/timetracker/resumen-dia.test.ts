@@ -6,7 +6,7 @@ import {
   type MuestraActividad,
 } from "./resumen-dia";
 
-// D-NEXT. Datos inventados: la app de tiempo no tiene modo demo y producción no se toca. Las horas
+// D-403. Datos inventados: la app de tiempo no tiene modo demo y producción no se toca. Las horas
 // se construyen con el constructor LOCAL de Date, así que `getHours()` las devuelve tal cual en
 // cualquier zona horaria de la máquina que corra la prueba.
 const en = (h: number, m: number) => new Date(2026, 8, 25, h, m).toISOString();
