@@ -269,7 +269,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
     // D-384 añadió la tercera lista, `atrasadas`, para la pastilla «Outdated».
     // D-392 quitó `sueloDeVentas`: con el suelo en ayer para todos, el tope de 30 días no decidía nada.
     // D-404: devuelve además el alcance por tienda de «Factura pendiente», para el aviso de sin tienda.
-    expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo(");
+    expect(llano).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(");
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);
     const args = llano.slice(i, llano.indexOf("})", i));

@@ -114,7 +114,7 @@ describe("«Factura pendiente» a quien no tiene tienda (D-404)", () => {
   it("la pantalla se lo dice con el alcance que devolvió `ordenesVisibles`, no con otra cuenta", () => {
     const plana = pagina.replace(/\s+/g, " ");
     expect(plana).toContain('pendientesSinTienda: alcancePendientes.tipo === "sin-tienda"');
-    expect(plana).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes } = useMemo(");
+    expect(plana).toContain("const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(");
     expect(plana).toContain('empty={filter === PESTANA_DOCUMENTO_PENDIENTE && alcancePendientes.tipo === "sin-tienda"');
   });
 });

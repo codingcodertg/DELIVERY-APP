@@ -1,4 +1,4 @@
-import type { Delivery, NamedLocation, Profile } from "@/lib/types";
+import type { Delivery, NamedLocation, Profile, UserRole } from "@/lib/types";
 import { retentionFloorISO, todayISO } from "@/lib/utils";
 import { facturaPendiente } from "@/lib/documento-pendiente";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
@@ -55,7 +55,8 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
   // este corte, y era indiferente porque solo lo tenían admin y logística, que no tienen corte.
   if (teaching) return true;
   if (me?.role === "sales") {
-    // Desde el cambio de hoy, esto ya no mira la tienda: ventas ve LO SUYO en cualquier tienda.
+    // Esto no mira la tienda (D-374): decide solo «es suya». La tienda la corta aparte
+    // `alcanceDeLaLista` (D-NEXT): ventas ve lo suyo, y desde entonces solo en su tienda y su grupo.
     if (!ventasVeLaOrden({ miId: me.id, orden: d })) return false;
     // Una anulada desaparece para ventas, y eso no lo abre ninguna pestaña.
     if (d.stage === "canceled") return false;
@@ -150,16 +151,21 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
   conPendientes: Delivery[];
   atrasadas: Delivery[];
   alcancePendientes: AlcanceDelPanel;
+  alcanceLista: AlcanceDelPanel;
 } {
   const visibles: Delivery[] = [];
   const conPendientes: Delivery[] = [];
   const atrasadas: Delivery[] = [];
   const buscando = !!ctx.busqueda.trim();
   const alcancePendientes = alcanceDePendientes(ctx);
+  const alcanceLista = alcanceDeLaLista(ctx);
   for (const d of deliveries) {
     // Los cortes por ROL y la búsqueda valen igual para las tres listas: «Outdated» enseña las
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
+    // Y el corte por TIENDA de la lista (D-NEXT), antes de repartir: vale para las tres listas, así
+    // que número = filas en «Todas», en cada etapa, en «Outdated» y en «Factura pendiente».
+    if (!esDelAlcance(d, alcanceLista, ctx.reglas)) continue;
     const normal = pasaLaVentana(d, ctx, false);
     // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— sale de la lista normal
     // y va a la suya. Los días que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni
@@ -171,7 +177,39 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     if (normal && (!atrasada || buscando)) visibles.push(d);
     if ((normal || pasaLaVentana(d, ctx, true)) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
   }
-  return { visibles, conPendientes, atrasadas, alcancePendientes };
+  return { visibles, conPendientes, atrasadas, alcancePendientes, alcanceLista };
+}
+
+/**
+ * Los roles cuya lista ENTERA de Órdenes va cortada por su tienda (D-NEXT): sin buscar, buscando, en
+ * el tablero, en las pastillas y en sus números. El dueño, 2026-09-26: *«y office manager, sales solo
+ * pueden ver su propia tienda»*. Office (`accounting`) no está: no lo nombró, y a él solo se le
+ * corta la búsqueda (ver `alcanceDeLaLista`).
+ */
+export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales"];
+
+/**
+ * De qué tiendas es la lista de Órdenes para esta persona, AHORA (D-NEXT).
+ *
+ * El dueño, 2026-09-26: *«solo pueden buscar en el search bar, solo puede buscar órdenes de ellos
+ * mismos de su propia tienda»*, y el mismo día *«y office manager, sales solo pueden ver su propia
+ * tienda»*. Por tanto:
+ *
+ * - **admin y logística**: todas, siempre (`alcanceDelPanel` ya lo dice así);
+ * - **gerente y ventas**: su tienda y las de su grupo, siempre — busquen o no;
+ * - **los demás** (office, almacén, cualquier otro rol): **solo buscando**. Sin buscar, su lista se
+ *   queda como estaba (D-374, D-392, D-404);
+ * - **sin tienda**, donde hay corte: ninguna, y la pantalla lo avisa con este valor (D-237, D-396).
+ *
+ * La regla de tiendas es la del Panel y la de «Factura pendiente» (`alcanceDelPanel` /
+ * `esDelAlcance`, D-396/D-404), no una nueva: una Intertienda es de las dos tiendas que toca. El
+ * sandbox de enseñanza no tiene cortes. Es **de pantalla**: la base (131) sigue mandando las demás.
+ */
+export function alcanceDeLaLista(ctx: Pick<ContextoDeLista, "me" | "teaching" | "tiendas" | "busqueda">): AlcanceDelPanel {
+  if (ctx.teaching) return { tipo: "todas" };
+  const siempre = !!ctx.me && ROLES_LISTA_DE_SU_TIENDA.includes(ctx.me.role);
+  if (!siempre && !ctx.busqueda.trim()) return { tipo: "todas" };
+  return alcanceDelPanel(ctx.me, ctx.tiendas);
 }
 
 /**
