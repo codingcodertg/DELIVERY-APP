@@ -15,7 +15,7 @@ function teclea(teclas: string, inicial: number | null = null): { pintado: strin
   return { pintado: textoAPintar(tecleado, valor), valor };
 }
 
-describe("campo decimal (D-NEXT): el punto no se pierde al teclear", () => {
+describe("campo decimal (D-420): el punto no se pierde al teclear", () => {
   it("se teclea 23.80 tecla a tecla y queda 23.8, pintado tal cual", () => {
     expect(teclea("23.80")).toEqual({ pintado: "23.80", valor: 23.8 });
   });

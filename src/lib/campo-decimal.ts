@@ -1,5 +1,5 @@
 /**
- * Un campo de número que deja escribir decimales (D-NEXT).
+ * Un campo de número que deja escribir decimales (D-420).
  *
  * El fallo: el Estimador guardaba el número ya leído y lo volvía a pintar con `String(n)`. Al teclear «23.» se leía
  * 23 y se pintaba «23»: el punto desaparecía antes de poder escribir el 8, y no había forma de meter 23.80 ni 1.89.

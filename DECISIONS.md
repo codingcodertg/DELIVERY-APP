@@ -30915,3 +30915,29 @@ dicen «hoy no queda sitio». **En dos tandas** (la mitad por número y luego el
 - **Órdenes ya recogidas** (`picked_up`) del chofer no entran en lo que ya lleva (la etapa no se rutea): planificar el mismo
   día con carga en el camión no las cuenta.
 - **«Optimizar»** (`computeRoute`, Google) no se tocó.
+
+## D-420 · Los campos de número dejan escribir decimales: el Estimador se comía el punto
+
+**Fecha:** 2026-09-27. **Pedido del dueño**, literal: *«Fields dont allow for decimal place numbers»*.
+
+**Qué fallaba.** En el Estimador (D-413) cada campo de número guardaba el número ya leído y lo volvía a pintar con
+`String(n)` en cada tecla. Al teclear «23.» se leía 23 y se pintaba «23»: el punto desaparecía antes de poder escribir el
+8. **Medido en un Chrome de verdad, tecla a tecla, en el demo**: con el código de antes, «23.80» quedaba en **2380**,
+«1.89» en **189** y «1250.5» en **12505** (un precio 100 veces más caro, sin aviso). Con el arreglo quedan 23.80, 1.89 y
+1250.5, y «SF real» da 1,261.40 (53 cajas × 23.80).
+
+**Qué se hizo.**
+- `src/lib/campo-decimal.ts` + `src/components/CampoDecimal.tsx`: el campo pinta **lo tecleado** mientras diga el mismo
+  número que el valor guardado, y solo pinta el valor cuando cambia desde fuera (el catálogo rellena el precio). Admite un
+  punto, comas de miles («1,250» = 1250) y descarta lo que no es número. Los 7 campos de número del Estimador (SF pedidos,
+  SF/caja, cajas, $/SF, cantidad, precio unitario y cargo de entrega) lo usan.
+- `step="any"` en los `type="number"` de dinero y pallets, que el navegador trataba como enteros (las flechas redondeaban
+  y marcaba 42.5 como no válido): cargo de entrega y pallets de la ficha (vía `Txt`), pallets de recogida y de «lista», y
+  tarifas, horas extra, límites y ajustes de dinero de Time Tracker. Los que son enteros por naturaleza (días, vacantes,
+  minutos, capacidad del camión) se quedan como estaban.
+
+**Pruebas.** `src/lib/campo-decimal.test.ts` teclea tecla a tecla con las funciones reales. 5 mutantes, caen los 5 con
+prueba con nombre (el primero repone el fallo: «pinta siempre el valor»).
+
+**No hecho.** No se barrieron los `<input>` de texto de otras apps que conviertan a número en cada tecla fuera del
+Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `select` y campos de enteros.

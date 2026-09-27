@@ -243,7 +243,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
   }
 
   // ---- pintado --------------------------------------------------------------------------------------
-  // Los campos de número van por `CampoDecimal`: pintar `String(n)` en cada tecla se comía el punto (D-NEXT).
+  // Los campos de número van por `CampoDecimal`: pintar `String(n)` en cada tecla se comía el punto (D-420).
   const inv = (vacio: boolean) => (vacio ? "invalid" : undefined);
 
   return (
