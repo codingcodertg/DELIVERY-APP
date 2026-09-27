@@ -28478,6 +28478,11 @@ en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): el reparto ya no es `autoAssign` (se quitó) sino el motor de
+> «Planificar el día» (`/api/route-plan/reparto`), un día por petición y contando lo que cada chofer ya lleva. **El diálogo
+> ya no tiene «Optimizar las rutas al terminar»**: el motor deja chofer, viaje y puesto, y `computeRoute` lo desharía. El
+> aviso dice el porqué de cada orden que no se colocó. «Qué órdenes» y «a qué choferes» siguen como aquí.
+
 > **⚠ Reemplazada en parte por D-412** (2026-09-26): «El reparto no cambia» ya no es cierto. `autoAssign` ordena ahora
 > **primero por prioridad** (crítica, alta, normal, baja) y solo dentro de cada nivel por la ventana y el número, como aquí.
 > Con capacidad o ventanas justas, lo que se queda sin colocar es lo de menos prioridad; el aviso dice aparte las altas y
@@ -29681,6 +29686,10 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): el diálogo de «✨ Auto-asignar» ya no optimiza, así que no pasa por
+> `optimizaEstas` (lo sigue usando «Optimizar todas las rutas»). Un chofer 🔒 sigue sin recibir nada: el diálogo no lo
+> ofrece, la pantalla lo quita, y ahora también el servidor lee los candados de cada día (`route_locks`).
+
 > **⚠ Reemplazada en parte por D-414** (2026-09-27): el candado ya no vive solo en el navegador. Con la migración 149
 > (`route_locks`) aplicada, se guarda en la base, lo ve todo logística y lo respetan «Planificar el día» y «Publicar ruta»;
 > sin ella, sigue en `localStorage` como aquí, y el botón lo dice. Lo de «Dónde vive el candado» de abajo describe el
@@ -29835,6 +29844,10 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
   contra `main`.
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
+
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «`autoAssign` ordena primero por prioridad» ya no aplica — `autoAssign`
+> se quitó y Auto-asignar reparte con el motor, que coloca por prioridad desde D-415. El aviso sigue diciendo aparte las
+> altas y críticas sin colocar.
 
 > **⚠ Reemplazada en parte por D-415** (2026-09-27): «El motor propio de “Planificar el día” … meterle la prioridad **no se
 > hizo**» ya no es cierto. El motor coloca primero lo de más prioridad, una de fuera puede quitarle el sitio a una de menos, y a
@@ -30199,6 +30212,10 @@ la verdad, no un fallo: el hueco es de captura.
 - En el demo solo se midió como admin, en inglés.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar y “Optimizar” no cambian» ya no es cierto para
+> Auto-asignar: reparte con este mismo motor (en «modo reparto»), así que la prioridad y las opciones de reparto también
+> valen para él. «Optimizar» sigue igual.
 > **Reemplazada en parte por D-418** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
 > `leeOrdenesDelDia` pide también `requirements` (151), así que su prueba de la consulta espera ahora dos columnas
 > opcionales en vez de una. Sin requisitos, el plan sigue siendo el de `motor-1` byte a byte (la misma huella). El texto de
@@ -30613,6 +30630,10 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 
 ## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
+> (Gestor y mapa) reparte con el motor, que lee `requirements` y `features` como «Planificar el día»; una orden que nadie puede
+> llevar sale con «ningún camión que rutea tiene lo que pide».
+
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 151** (escrita, **no aplicada**; plan en
 `docs/PLAN-151-requisitos-y-encuesta.md`). Es 151 y no 150 porque otra rama (avisos al cliente) escribe la 150.
 **Reemplaza en parte** a D-043 (la satisfacción vuelve, de otra forma) y a D-415 (`motor-3`, y la consulta pide una columna
@@ -30749,3 +30770,148 @@ ni de Auto-asignar.
   no puede leer lo que tiene cada camión. Los dos se prueban con sus funciones (el motor de punta a punta con
   `planificaElDia`) y con pruebas de que la pantalla las usa.
 - La encuesta con la base de verdad (la ruta POST contra PostgREST, el `23505` real): probada solo con un cliente falso.
+
+## D-419 · «✨ Auto-asignar» reparte con el motor de «Planificar el día»: cuenta lo que cada chofer ya lleva, no mezcla días, y dice por qué no coloca
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** Tarea **T-0410**.
+**Reemplaza en parte** a D-401 (el reparto ya no es `autoAssign`, y el diálogo ya no optimiza al terminar), D-411 (el diálogo
+ya no pasa por `optimizaEstas`), D-412 (el orden por prioridad de `autoAssign`: lo hace el motor), D-415 («Auto-asignar no
+cambia») y D-418 (Auto-asignar ya respeta los requisitos del camión, porque es el motor). Las cinco llevan su nota.
+
+**Qué pidió el dueño**, 2026-09-27, literal (tal como lo pasó el orquestador): *«quioero que hagamos mucho emfasis porque
+todo funciona bien pero estmaos teniendo probemas en el autoassign investiga como lo hace para hacerlo mejro y que funcione
+perfectamente»*. Lo que hacer lo decidió el orquestador (el dueño delegó): la propuesta P1 de la investigación, **que
+Auto-asignar use el motor**.
+
+### Qué fallaba (medido con los días reales)
+
+La investigación (solo lectura, 18–28 sep, 178 órdenes, 4 choferes) y el fichero congelado de esta rama dan lo mismo con
+el `autoAssign` de `lib/dispatch.ts`:
+
+1. **Cualquier solape de ventanas era choque.** El 77 % de las órdenes llevan 08:30–17:30, así que dos órdenes del mismo
+   día casi siempre «chocaban»: **un clic colocaba una orden por chofer — 40 de 178** en los diez días. La prueba
+   `dispatch.test.ts` «splits window-overlapping orders across drivers» fijaba el fallo como si fuera la regla.
+2. **Cada chofer empezaba en 0 pallets** (no se le pasaba lo que ya llevaba). Pulsando otra vez hasta vaciar (38 clics en
+   los diez días), un chofer llegaba a **42,5 pallets con tope 20**, y 7 choferes-día pasaban del tope.
+3. **Sin nada asignado, todos puntuaban 0**: el reparto era alfabético, no por cercanía; no miraba la tienda de recogida
+   ni la base del chofer.
+4. **Repartía a quien no rutea**: «Chofer D» (`routable = false`, sin base) recibió **41 de 178**. La capacidad salía de
+   `settings.driver_capacity` (10) y no de `driver_settings.capacity_pallets` (12); el turno no contaba.
+5. **Mezclaba días**: con el chip «Todas», una orden del martes ocupaba sitio del lunes (pasó en producción).
+6. **El aviso adivinaba**: «sin ubicación, sin capacidad o con la ventana ya ocupada», sin decir cuál.
+7. **Optimizar después** (`computeRoute`) usaba una sola base, reloj fijo a las 08:00 y reagrupaba sin ventanas.
+8. **El mapa** (`/map`) llamaba a `autoAssign` sin ausencias ni 🔒, contra D-411/D-414.
+9. **Órdenes más grandes que el camión** no se partían; una Intertienda sin pin quedaba fuera (el motor usa la tienda que
+   recibe).
+
+### Qué hay ahora
+
+**Un solo camino** para el Gestor y el mapa: `repartirConElMotor` (`lib/auto-asignar.ts`) parte la selección **por fecha
+de entrega** y, por cada día, pide un reparto a **`POST /api/route-plan/reparto`** (hermana de `/api/route-plan`, en «modo
+reparto»). La lógica, pura, en `lib/route-plan/reparto.ts`:
+
+- **Entran solo las marcadas** (libres) **y los choferes elegidos** en el diálogo. Nada más del día: ni otros choferes ni
+  sin asignar no marcadas.
+- **Lo que cada elegido ya lleva ese día entra con su chofer fijado** (`choferFijado`): cuenta para capacidad, turno,
+  ventanas y base, y **ninguna orden cambia de chofer**. El **orden** de su ruta sí lo rehace el motor con lo nuevo dentro,
+  como hacía «Optimizar al terminar» con las rutas que recibían (D-401).
+- **Si con lo nuevo al chofer se le quedara fuera algo de lo suyo** (el motor coloca antes una nueva de más prioridad o un
+  builder), **se congela su ruta**: el motor planifica primero solo lo suyo (una secuencia P/D que sí cabe) y en la vuelta
+  siguiente lo nuevo entra alrededor sin quitarle nada (`secuenciaFijada`). **Si ni lo suyo solo le cabe**, no recibe nada,
+  no se le toca nada y el aviso dice «lleno».
+- **Choferes fuera, dichos**: los que no rutean, sin base o con base sin punto, no disponibles ese día y con la ruta 🔒 los
+  deja fuera `entradaDelDia` (lo mismo que «Planificar el día»); la ruta lee ausencias y `route_locks` de esa fecha.
+- **Capacidad, turno y base** de `choferParaElMotor` (`driver_settings`, con su cadena de respaldo), y **los requisitos
+  del camión** (D-418): la ruta lee `requirements`, `features` y el catálogo con las mismas lecturas opcionales que
+  «Planificar el día».
+- **Lo que se escribe** sale de la secuencia P/D del motor con la cuenta de publicar (`escriturasAlPublicar`): chofer,
+  viaje (`load_no`, viaje 1 = `null` como el Gestor) y puesto (`route_seq`), `load_auto = true`. **Solo en las rutas que
+  reciben algo**, y a lo que ya llevaban **solo se le reescribe lo que cambió** (puesto o viaje; nunca el chofer).
+- **La ruta no escribe nada** (ni órdenes ni planes). Escribe la pantalla, orden a orden, con
+  **`updateDelivery(…, { siNoCambioDesde: updated_at })`**: `.eq("updated_at", …).select("id")`, y cero filas = no escrito
+  (la lección de D-310). Así pasa por lo de siempre: el guard de D-276/D-399, el aviso al chofer (D-308) y el registro.
+- **Sin «Optimizar al terminar»**: el diálogo lo pierde y dice que ordena el motor. Pasar la ruta por `computeRoute`
+  después **desharía** el orden que dejó el motor. «Optimizar ruta» y «Optimizar todas las rutas» siguen como estaban
+  (fuera de esta tarea).
+- **El aviso** dice cuántas y a cuántos choferes (y en cuántos días), **cada suelta con su porqué** — el del motor (`hoy no
+  queda sitio`, `sin punto en el mapa`, `no se llega a su ventana dura`…) o el de antes de llegar a él (`ya tiene chofer`,
+  `sin fecha de entrega`, `no está en ese día`, `error del servidor`) —, las altas y críticas sin colocar aparte (D-412),
+  qué choferes quedaron fuera y por qué, y cuántas no se escribieron porque cambiaron entretanto.
+- **Lo colocado sale de la selección**; lo que no, sigue marcado para decidir a mano.
+- **El mapa** («Auto-asignar selección») va por el mismo camino, con todos los choferes: ausencias y 🔒 los lee el servidor.
+- **`autoAssign` se quitó** de `lib/dispatch.ts`: ya nadie lo usaba. Sus pruebas se fueron con él; la de «splits
+  window-overlapping orders» fijaba el fallo 1.
+
+**Un día por petición**, y se decidió **repartir por día en vez de rechazar** la selección mezclada: cada orden tiene su
+fecha, y lo que se reparte es cada día con lo que los choferes llevan ESE día. Una orden sin fecha no se reparte y se dice.
+
+### Tiempos de viaje y dinero
+
+La ruta usa **la caché que ya llenó «Planificar el día», solo para leer** (`cacheSoloLectura`), y lo que falte, **OSRM y la
+estimación en línea recta. Sin Google y sin tráfico: Auto-asignar no hace ninguna llamada de pago.** Con Google delante, un
+día de 47 órdenes son ~52 puntos (~2.650 pares de matriz); el tope por corrida (400 elementos) lo cortaría, pero cada clic
+gastaría de un tope diario que ahora solo usa «Planificar el día». La caché no se escribe: `matrizBase` guarda la respuesta
+del primer proveedor de la lista, y sin Google delante guardaría OSRM 90 días como si fuera la buena. Dentro de una misma
+petición, lo que contestó el proveedor se guarda en memoria para las vueltas de congelar.
+
+### Decisiones tomadas por el worker (a validar)
+
+1. **Choferes fijados, orden de ruta rehecho.** Se probó fijar también la secuencia de lo que ya llevan y **se descartó
+   midiendo**: la ruta guardada no dice dónde iban las recogidas, y rehacerla «recoger todo el viaje y luego entregar»
+   pasaba de la capacidad (**15,6 pallets con tope 12** el 09-27) y disparaba las millas (**288 → 714** en dos tandas).
+2. **Congelar antes que sacar.** Sacar al chofer entero en cuanto se le caía algo dejaba **18 de 24** en dos tandas el 09-19;
+   congelando, **24 de 24**.
+3. **Roles**: la ruta acepta admin, logística y gerente (los que asignan desde el Gestor y el mapa). La base vuelve a decidir
+   al escribir.
+4. **Demo**: sin base ni servidor con sesión, el mismo `repartoDelDia` corre en el navegador con la estimación en línea
+   recta, la tienda del perfil como base (`ajustesDelDemo`) y el centro de cada ciudad para las tiendas del demo, que no
+   traen punto (`PUNTOS_DEL_DEMO`).
+
+### Números (fichero congelado, 2026-09-27, tiempos estimados en línea recta)
+
+`src/lib/route-plan/dias-reales-anon.json`: los 10 días de producción del 18 al 28 de septiembre, **anonimizados** por el
+orquestador (tiendas «Tienda A…G», choferes «Chofer A…D», órdenes `o-N`, pins a 2 decimales, sin clientes, cuentas,
+direcciones ni facturas). 178 órdenes que repartir.
+
+| | antes (`autoAssign`) | ahora (motor) |
+|---|---|---|
+| Un clic, colocadas | **40 / 178** | **153 / 178** (= «Planificar el día») |
+| Días al 100 % con un clic | 0 de 10 | **8 de 10** (18, 21, 22, 23, 25, 26, 27, 28) |
+| Al chofer que no rutea | 41 (clicando hasta vaciar) | **0** |
+| Máximo de pallets de un chofer en el día | 42,5 con tope 20 | ningún viaje pasa de su camión (≤ 12) |
+| Millas del reparto de un clic | — | 2.559 = la línea base del motor (+0 %) |
+| Ventanas estrechas rotas | — | 0 |
+
+Los días 19 y 24 son de verdad pesados: 47 y 32 órdenes con 3 choferes que rutean; el motor coloca 24 y 30, y las demás
+dicen «hoy no queda sitio». **En dos tandas** (la mitad por número y luego el resto): 151 de 178 y 2.456 millas.
+
+### Verificado
+
+- `node scripts/verify.mjs` (2026-09-27): tipos, **5066 pasadas | 3 saltadas** y `next build` en verde (ya rebasado sobre D-416..D-418).
+- **Pruebas con nombre** en `src/lib/route-plan/reparto.test.ts` (38), contra el fichero congelado: 1 clic al 100 % en los
+  días ligeros; nadie pasa de su camión contando lo que ya llevaba (dos tandas, los diez días); nada a quien no rutea, no
+  está o tiene 🔒; no se mezclan días; mismo resultado con los choferes en otro orden; un segundo clic no cambia nada;
+  millas ≤ motor + 10 %; 0 ventanas estrechas rotas; la crítica entra y la normal no; lo suyo no se cae (congelar / lleno).
+- **Mutantes: 38 en dos tandas (la segunda tras rebasar sobre D-418), caen 37 con prueba con nombre**, incluido **reponer el choque de ventanas** (cae «1 clic coloca el 100 %
+  en los días ligeros»), el chofer que empieza en 0, mezclar días, escribir sin `updated_at`, optimizar después con
+  `computeRoute`, pedir Google, no leer los candados ni lo que tiene cada camión, y el diálogo con «Optimizar al terminar». **Vivió uno**: marcar «lleno»
+  en cuanto lo suyo solo no cabe. Era un atajo: la vuelta siguiente llega al mismo «lleno». Se quitó.
+- **Demo** (2026-09-27, admin, 1280 × 900 y 390 × 844, Chrome headless con clics de persona): Gestor → día siguiente →
+  «✨ Auto-assign (14)» → el diálogo (4 choferes marcados, sin «Optimizar», con la explicación; 0 px de desplazamiento
+  lateral; a 390 ocupa el ancho) → «Assign (14)» → aviso *«Auto-assigned 14 order(s) to 4 driver(s).»* y el botón pasa a
+  «(0)». Sin llamadas a `/api/optimize-route` ni a `/api/route-plan` (bloqueadas en el navegador, y no se pidió ninguna);
+  Google y Mapbox bloqueados. Capturas `dialogo-*`, `aviso-*`, `tras-*`.
+
+### Lo que no se hizo / no se verificó
+
+- **No se probó contra producción ni con la llave de servicio**: la ruta `/api/route-plan/reparto` se probó por su lógica
+  (`repartoDelDia`, con los días reales) y por su texto (qué proveedores, qué lee), no llamándola con sesión.
+- **OSRM de verdad no se llamó**: las pruebas usan la estimación en línea recta. En producción, OSRM contesta lo que falte
+  en la caché (una petición por origen, sin coste).
+- **El diálogo no sabe antes de repartir** quién no rutea o no tiene base (la página no carga `driver_settings`): los
+  ofrece, y el aviso dice después que quedaron fuera y por qué. Los números «pallets/capacidad» del diálogo siguen saliendo
+  de `settings.driver_capacity`.
+- **Deshacer**: Auto-asignar no tenía deshacer y sigue sin tenerlo.
+- **Órdenes ya recogidas** (`picked_up`) del chofer no entran en lo que ya lleva (la etapa no se rutea): planificar el mismo
+  día con carga en el camión no las cuenta.
+- **«Optimizar»** (`computeRoute`, Google) no se tocó.

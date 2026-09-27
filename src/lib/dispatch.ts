@@ -1,6 +1,5 @@
 import type { Delivery, Stage } from "@/lib/types";
 import { aLaDecima, palletsDeLaOrden } from "./pallets";
-import { rangoDePrioridad } from "./prioridad";
 
 // ============================================================
 // Dispatch helpers: driver auto-assignment (#6), delivery-window conflict
@@ -141,21 +140,11 @@ export function recommendDriver(
   return scored[0];
 }
 
-// ---- Auto-assign optimizer (Epic A) ---------------------------------------
-// A greedy constructive heuristic that distributes UNASSIGNED orders across
-// drivers by straight-line proximity + load balancing, respecting each
-// driver's pallet capacity (× allowed daily trips), delivery-window overlaps,
-// and availability. Distance here is haversine (fast, no API) — the Routes
-// Manager then runs OSRM on each driver's resulting stops for the real route.
-
-const EARTH_MILES = 3958.8;
-function haversineMiles(a: [number, number], b: [number, number]): number {
-  const toRad = (x: number) => (x * Math.PI) / 180;
-  const dLat = toRad(b[0] - a[0]);
-  const dLng = toRad(b[1] - a[1]);
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_MILES * Math.asin(Math.min(1, Math.sqrt(s)));
-}
+// ---- Auto-assign (Epic A) — quitado en D-419 -------------------------------------------------------
+// Aquí vivía `autoAssign`: un reparto voraz en línea recta que trataba cualquier solape de ventanas como choque (con el
+// 77 % de las órdenes en 08:30–17:30, un clic colocaba una orden por chofer), empezaba a cada chofer en 0 pallets aunque
+// ya llevara carga, y no miraba base, turno ni si el chofer rutea. «✨ Auto-asignar» (Gestor y mapa) reparte ahora con el
+// motor de «Planificar el día»: `lib/route-plan/reparto.ts`.
 
 /** Driver full-names that are unavailable on a given date, from availability
  * rows (vacation/sick/maintenance). `nameById` maps a driver's user id to their
@@ -173,76 +162,6 @@ export function unavailableDriverNames(
     }
   }
   return out;
-}
-
-export interface AutoAssignResult {
-  assignments: { orderId: string; driver: string }[];
-  /** Orders that couldn't be placed — no coordinates, or no driver with room
-   * and a free window. */
-  unassigned: Delivery[];
-}
-
-/** Assign `orders` to `driverNames`. `capacityOf` is a driver's per-trip pallet
- * capacity; maxTripsPerDay (default 2) caps a driver's day at capacity × trips.
- * `unavailable` excludes drivers off that day. Pure + deterministic. */
-export function autoAssign(
-  orders: Delivery[],
-  driverNames: string[],
-  capacityOf: (driver: string) => number,
-  opts: { maxTripsPerDay?: number; unavailable?: Set<string> } = {},
-): AutoAssignResult {
-  const maxTrips = opts.maxTripsPerDay ?? 2;
-  const unavailable = opts.unavailable ?? new Set<string>();
-  const pool = driverNames.filter((d) => !unavailable.has(d));
-  if (!pool.length) return { assignments: [], unassigned: [...orders] };
-
-  interface DState { pallets: number; sumLat: number; sumLng: number; n: number; windows: [number, number][]; }
-  const state = new Map<string, DState>();
-  for (const d of pool) state.set(d, { pallets: 0, sumLat: 0, sumLng: 0, n: 0, windows: [] });
-
-  const LOAD_WEIGHT = 2; // miles-equivalent nudge per already-loaded pallet, to balance
-
-  // Priority first (D-412, 147): critical, then high, normal, low. The greedy loop hands out capacity and windows in
-  // this order, so when they run out, what is left unplaced is the low-priority work, never a critical order that
-  // happened to have a later window. Within the same priority: earliest delivery window first (then order_no) so
-  // tight windows place first.
-  const sorted = [...orders].sort((a, b) => {
-    const pa = rangoDePrioridad(a), pb = rangoDePrioridad(b);
-    if (pa !== pb) return pa - pb;
-    const wa = parseWindow(a.delivery_windows);
-    const wb = parseWindow(b.delivery_windows);
-    const sa = wa ? wa[0] : Number.MAX_SAFE_INTEGER;
-    const sb = wb ? wb[0] : Number.MAX_SAFE_INTEGER;
-    return sa - sb || a.order_no - b.order_no;
-  });
-
-  const assignments: { orderId: string; driver: string }[] = [];
-  const unplaced: Delivery[] = [];
-
-  for (const o of sorted) {
-    if (o.delivery_lat == null || o.delivery_lng == null) { unplaced.push(o); continue; }
-    const oc: [number, number] = [o.delivery_lat, o.delivery_lng];
-    const pallets = palletsDeLaOrden(o);
-    const ow = parseWindow(o.delivery_windows);
-
-    let best: string | null = null;
-    let bestScore = Infinity;
-    for (const d of pool) {
-      const s = state.get(d)!;
-      const cap = capacityOf(d) * maxTrips;
-      if (cap > 0 && s.pallets + pallets > cap) continue;                        // capacity
-      if (ow && s.windows.some((w) => w[0] < ow[1] && ow[0] < w[1])) continue;   // window clash
-      const centroid: [number, number] = s.n ? [s.sumLat / s.n, s.sumLng / s.n] : oc;
-      const score = haversineMiles(oc, centroid) + LOAD_WEIGHT * s.pallets;
-      if (score < bestScore) { bestScore = score; best = d; }
-    }
-    if (!best) { unplaced.push(o); continue; }
-    assignments.push({ orderId: o.id, driver: best });
-    const s = state.get(best)!;
-    s.pallets += pallets; s.sumLat += oc[0]; s.sumLng += oc[1]; s.n++;
-    if (ow) s.windows.push(ow);
-  }
-  return { assignments, unassigned: unplaced };
 }
 
 /** Order a driver's stops for display. A Logistics Manager's optimized

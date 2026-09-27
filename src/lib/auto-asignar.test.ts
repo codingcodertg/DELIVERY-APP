@@ -9,13 +9,13 @@ import {
   choferesIniciales,
   ordenesDelReparto,
   puedeRepartir,
-  repartirYOptimizar,
   resumenDelReparto,
   todosLosChoferes,
-  type RutaQueOptimizar,
+  type ResultadoDelReparto,
 } from "./auto-asignar";
 
-/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401). */
+/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401). Desde D-419 reparte el motor: sus pruebas, con días
+ *  reales, en `route-plan/reparto.test.ts`. */
 
 const CHOFERES = ["Diego Driver", "Carlos R.", "Miguel A.", "Fleet Truck 3"];
 const opciones = (filtro = "", noDisponibles: string[] = []) => opcionesDeConductor({
@@ -27,35 +27,8 @@ const opciones = (filtro = "", noDisponibles: string[] = []) => opcionesDeConduc
   filtro,
 });
 
-// Órdenes repartidas por el valle, sin ventana, 2 pallets: con cuatro choferes libres el reparto las extiende.
 const orden = (n: number, over: Partial<Delivery> = {}) =>
   mkDelivery({ id: `o${n}`, order_no: 1000 + n, delivery_lat: 26.1 + n * 0.03, delivery_lng: -98.3 + (n % 3) * 0.05, est_pallets: 2, delivery_date: "2026-09-25", ...over });
-const ORDENES = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => orden(n));
-
-/** Un stub de asignar y de optimizar: no sale nada de la máquina, y se cuentan las llamadas. */
-function stubs() {
-  const asignadas: { id: string; chofer: string }[] = [];
-  const optimizaciones: RutaQueOptimizar[][] = [];
-  return {
-    asignadas,
-    optimizaciones,
-    asigna: async (id: string, chofer: string) => { asignadas.push({ id, chofer }); },
-    optimiza: async (rutas: RutaQueOptimizar[]) => { optimizaciones.push(rutas); return rutas.map((r) => r.clave); },
-  };
-}
-const PREVIAS: Record<string, Delivery[]> = { "Carlos R.": [orden(50, { assigned_driver: "Carlos R." })] };
-const base = (s: ReturnType<typeof stubs>, over: Partial<Parameters<typeof repartirYOptimizar>[0]> = {}) => ({
-  ordenes: ORDENES,
-  choferes: CHOFERES,
-  capacidadDe: () => 12,
-  noDisponibles: new Set<string>(),
-  optimizar: true,
-  paradasDe: (k: string) => PREVIAS[k] ?? [],
-  esDelDia: (d: Delivery) => d.delivery_date === "2026-09-25",
-  asigna: s.asigna,
-  optimiza: s.optimiza,
-  ...over,
-});
 
 describe("qué órdenes", () => {
   it("con marcadas nace en «Solo las marcadas»; sin ninguna, en «Todas»", () => {
@@ -89,88 +62,25 @@ describe("qué choferes nacen marcados", () => {
   });
 });
 
-describe("repartir y optimizar (con el optimizador stubbeado)", () => {
-  it("control: con los cuatro choferes el reparto usa más de dos", async () => {
-    const s = stubs();
-    await repartirYOptimizar(base(s));
-    expect(new Set(s.asignadas.map((a) => a.chofer)).size).toBeGreaterThan(2);
-  });
-  it("con 2 de 4 marcados, las órdenes van SOLO a esos 2, y se optimiza una vez con SOLO esas 2 rutas", async () => {
-    const s = stubs();
-    const r = await repartirYOptimizar(base(s, { choferes: ["Carlos R.", "Fleet Truck 3"] }));
-    expect(s.asignadas).toHaveLength(8);
-    expect(new Set(s.asignadas.map((a) => a.chofer))).toEqual(new Set(["Carlos R.", "Fleet Truck 3"]));
-    expect(s.optimizaciones).toHaveLength(1);
-    expect(s.optimizaciones[0].map((x) => x.clave).sort()).toEqual(["Carlos R.", "Fleet Truck 3"]);
-    expect(r.optimizadas.sort()).toEqual(["Carlos R.", "Fleet Truck 3"]);
-  });
-  it("una ruta cuyo optimizar falla queda pedida pero NO optimizada (lo que devuelve el optimizador manda)", async () => {
-    const s = stubs();
-    const r = await repartirYOptimizar(base(s, { choferes: ["Carlos R.", "Fleet Truck 3"], optimiza: async (rutas) => { s.optimizaciones.push(rutas); return ["Carlos R."]; } }));
-    expect(r.pedidas.sort()).toEqual(["Carlos R.", "Fleet Truck 3"]);
-    expect(r.optimizadas).toEqual(["Carlos R."]);
-  });
-  it("cada ruta que se optimiza lleva sus paradas de antes MÁS las que acaba de recibir, ya con su chofer", async () => {
-    const s = stubs();
-    await repartirYOptimizar(base(s, { choferes: ["Carlos R.", "Fleet Truck 3"] }));
-    const carlos = s.optimizaciones[0].find((x) => x.clave === "Carlos R.")!;
-    const recibidas = s.asignadas.filter((a) => a.chofer === "Carlos R.").map((a) => a.id);
-    expect(carlos.paradas.map((d) => d.id)).toEqual(["o50", ...recibidas]);
-    expect(carlos.paradas.every((d) => d.assigned_driver === "Carlos R.")).toBe(true);
-  });
-  it("solo optimiza a quien recibió algo: un marcado que no recibe nada no se optimiza", async () => {
-    const s = stubs();
-    // Una sola orden: la recibe uno de los dos.
-    await repartirYOptimizar(base(s, { ordenes: [orden(1)], choferes: ["Carlos R.", "Fleet Truck 3"] }));
-    expect(s.asignadas).toHaveLength(1);
-    expect(s.optimizaciones[0].map((x) => x.clave)).toEqual([s.asignadas[0].chofer]);
-  });
-  it("una orden de otro día (marcada con el chip «Todas») se asigna, pero no entra en la ruta de este día", async () => {
-    const s = stubs();
-    await repartirYOptimizar(base(s, { ordenes: [orden(1, { delivery_date: "2026-09-30" })], choferes: ["Carlos R."] }));
-    expect(s.asignadas).toEqual([{ id: "o1", chofer: "Carlos R." }]);
-    expect(s.optimizaciones).toHaveLength(0);
-  });
-  it("sin «Optimizar las rutas al terminar», asigna y no llama al optimizador", async () => {
-    const s = stubs();
-    const r = await repartirYOptimizar(base(s, { optimizar: false, choferes: ["Diego Driver"] }));
-    expect(s.asignadas.length).toBeGreaterThan(0);
-    expect(s.optimizaciones).toHaveLength(0);
-    expect(r.optimizadas).toEqual([]);
-  });
-  it("un marcado que ese día no está disponible no recibe nada", async () => {
-    const s = stubs();
-    await repartirYOptimizar(base(s, { choferes: ["Diego Driver", "Carlos R."], noDisponibles: new Set(["Diego Driver"]) }));
-    expect(new Set(s.asignadas.map((a) => a.chofer))).toEqual(new Set(["Carlos R."]));
-  });
-  it("lo que no cabe o no tiene ubicación queda sin colocar, y no se llama al optimizador si no se asignó nada", async () => {
-    const s = stubs();
-    const r = await repartirYOptimizar(base(s, { ordenes: [orden(1, { delivery_lat: null, delivery_lng: null })] }));
-    expect(r.reparto.unassigned.map((d) => d.id)).toEqual(["o1"]);
-    expect(s.asignadas).toHaveLength(0);
-    expect(s.optimizaciones).toHaveLength(0);
-  });
-});
-
 describe("el resumen al terminar", () => {
-  const sueltas = [orden(1), orden(2)];
-  const r = { reparto: { assignments: [{ orderId: "o3", driver: "A" }, { orderId: "o4", driver: "B" }, { orderId: "o5", driver: "A" }], unassigned: sueltas }, pedidas: ["A", "B"], optimizadas: ["A", "B"] };
+  const porId = new Map([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`o${n}`, orden(n)]));
   const et = (d: Delivery) => String(d.order_no);
-  it("dice cuántas, a cuántos choferes, qué no se colocó (con sus números) y cuántas rutas se optimizaron", () => {
-    expect(resumenDelReparto(r, et, true).es).toBe("Auto-asignadas 3 orden(es) a 2 chofer(es) · 2 sin colocar (sin ubicación, sin capacidad o con la ventana ya ocupada): #1001, #1002 · 2 ruta(s) optimizada(s).");
-    expect(resumenDelReparto(r, et, true).en).toBe("Auto-assigned 3 order(s) to 2 driver(s) · 2 not placed (no location, no room or window already taken): #1001, #1002 · 2 route(s) optimized.");
+  const r: ResultadoDelReparto = {
+    colocadas: [{ id: "o3", chofer: "A" }, { id: "o4", chofer: "B" }, { id: "o5", chofer: "A" }],
+    sinColocar: [{ id: "o1", motivo: "no_cabe_con_el_resto" }, { id: "o2", motivo: "sin_punto" }],
+    noEscritas: [], reordenadas: 0, choferesFuera: [], dias: ["2026-09-25"],
+  };
+  it("dice cuántas, a cuántos choferes, y cada una que no se colocó CON SU PORQUÉ (el del motor)", () => {
+    expect(resumenDelReparto(r, (id) => porId.get(id), et).es).toBe("Auto-asignadas 3 orden(es) a 2 chofer(es) · 2 sin colocar: #1001 (hoy no queda sitio), #1002 (sin punto en el mapa).");
+    expect(resumenDelReparto(r, (id) => porId.get(id), et).en).toBe("Auto-assigned 3 order(s) to 2 driver(s) · 2 not placed: #1001 (no room left today), #1002 (no map point).");
   });
-  it("sin optimizar lo dice; y sin sueltas no las menciona", () => {
-    expect(resumenDelReparto({ ...r, reparto: { ...r.reparto, unassigned: [] }, pedidas: [], optimizadas: [] }, et, false).es).toBe("Auto-asignadas 3 orden(es) a 2 chofer(es). Rutas sin optimizar.");
+  it("dice qué choferes quedaron fuera y por qué, y en cuántos días se repartió", () => {
+    const x = { ...r, sinColocar: [], choferesFuera: [{ nombre: "Chofer D", motivo: "no_rutea" }, { nombre: "Ana", motivo: "no_disponible" }], dias: ["2026-09-25", "2026-09-26"] };
+    expect(resumenDelReparto(x, (id) => porId.get(id), et).es).toBe("Auto-asignadas 3 orden(es) a 2 chofer(es) en 2 días · Quedaron fuera: Chofer D (no rutea), Ana (hoy no está).");
   });
-  it("si una ruta falló al optimizar, dice cuántas de cuántas (medido en el demo: sin sesión, las 4 contestan 401)", () => {
-    const fallo = { ...r, reparto: { ...r.reparto, unassigned: [] }, optimizadas: ["A"] };
-    expect(resumenDelReparto(fallo, et, true).es).toBe("Auto-asignadas 3 orden(es) a 2 chofer(es) · 1 de 2 ruta(s) optimizada(s) (1 con error).");
-    expect(resumenDelReparto(fallo, et, true).en).toBe("Auto-assigned 3 order(s) to 2 driver(s) · 1 of 2 route(s) optimized (1 failed).");
-  });
-  it("con muchas sueltas enseña seis números y cuántas más", () => {
-    const muchas = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => orden(n));
-    expect(resumenDelReparto({ ...r, reparto: { ...r.reparto, unassigned: muchas } }, et, true).es).toContain(": #1001, #1002, #1003, #1004, #1005, #1006 +2 ·");
+  it("con muchas sueltas enseña seis y cuántas más", () => {
+    const x = { ...r, sinColocar: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ id: `o${n}`, motivo: "no_cabe_con_el_resto" as const })) };
+    expect(resumenDelReparto(x, (id) => porId.get(id), et).es).toContain("#1006 (hoy no queda sitio) +2.");
   });
 });
 
@@ -192,14 +102,16 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(pagina).toContain("{dialogoAutoAsignar && ( <AutoAsignarDialogo opciones={opcionesDelReparto} delDia={unassigned.length} marcadas={poolSelectedCount}");
     expect(pagina).toContain("onCancelar={() => setDialogoAutoAsignar(false)} onConfirmar={repartirConElDialogo}");
   });
-  it("reparte con `repartirYOptimizar`, solo entre los elegidos, y optimiza con el bucle de «Optimizar todas las rutas»", () => {
+  it("reparte con el MOTOR (`repartirConElMotor`), solo entre los elegidos, y escribe solo si la orden no cambió (D-419)", () => {
     const cuerpo = pagina.slice(pagina.indexOf("const repartirConElDialogo = async"), pagina.indexOf("const toggleOrder ="));
     expect(cuerpo).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
-    expect(cuerpo).toContain("r = await repartirYOptimizar({ ordenes, choferes: e.choferes.filter((c) => !bloqueada(c)), capacidadDe: capacityFor, noDisponibles: unavailableToday, optimizar: e.optimizar, paradasDe: (k) => byDriver.get(k) ?? [], esDelDia: (d) => delDia.has(d.id), asigna: (id, chofer) => assignTo(id, chofer), optimiza: optimizaEstas, });");
-    expect(cuerpo).toContain("const delDia = new Set(dayOrders.map((d) => d.id));");
+    expect(cuerpo).toContain("r = await repartirConElMotor({ ordenes, choferes: e.choferes.filter((c) => !bloqueada(c)), pide: pideElReparto(SIN_BASE, () => ({ deliveries, users, settings, availability, bloqueadas: (f) => bloqueos[f] ?? [] })), escribe: (w) => { clearRouteFor(w.chofer); return updateDelivery(w.id, w.patch, { quiet: true, siNoCambioDesde: w.updated_at || undefined }); }, });");
     expect(cuerpo).toContain("setDialogoAutoAsignar(false);");
-    expect(cuerpo).toContain("const resumen = resumenDelReparto(r, orderLabel, e.optimizar); notify(t(resumen.en, resumen.es));");
-    expect(cuerpo).toContain("if (e.alcance === \"marcadas\") clearSelection();");
+    expect(cuerpo).toContain("const resumen = resumenDelReparto(r, (id) => porId.get(id), orderLabel); notify(t(resumen.en, resumen.es));");
+    // Lo colocado sale de la selección; lo que no, sigue marcado.
+    expect(cuerpo).toContain("if (colocadas.size) setSelectedOrders((s) => new Set([...s].filter((id) => !colocadas.has(id))));");
+    // Y NO pasa después por «Optimizar ruta»: desharía el orden que dejó el motor.
+    expect(cuerpo).not.toMatch(/computeRoute|optimizaEstas|applyPlan|assignTo\(/);
   });
   it("«Optimizar todas las rutas» y el diálogo optimizan por el mismo bucle, con las paradas que se le dan", () => {
     expect(pagina).toContain("const optimizeAll = () => optimizaEstas(lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => ({ clave: u.key, paradas: byDriver.get(u.key) ?? [] })));");
@@ -207,10 +119,11 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(pagina).toContain("if (aviso) notify(t(`${aviso.en} Optimized ${bien.length}.`, `${aviso.es} Optimizadas ${bien.length}.`)); return bien; };");
   });
 
-  it("el diálogo nace con `alcanceInicial`, `choferesIniciales` y «Optimizar» marcado", () => {
+  it("el diálogo nace con `alcanceInicial` y `choferesIniciales`, y ya no ofrece «Optimizar al terminar» (D-419)", () => {
     expect(dialogo).toContain("useState<AlcanceDelReparto>(() => alcanceInicial(marcadas))");
     expect(dialogo).toContain("useState<Set<string>>(() => choferesIniciales(opciones))");
-    expect(dialogo).toContain("const [optimizar, setOptimizar] = useState(true);");
+    expect(dialogo).not.toMatch(/data-optimizar-al-terminar|setOptimizar|data-asignar-y-optimizar/);
+    expect(dialogo).toContain("data-como-reparte");
   });
   it("«Solo las marcadas» sale solo con marcadas; los no disponibles, desactivados", () => {
     expect(dialogo).toContain("{marcadas > 0 && ( <label style={radio}> <input type=\"radio\" name=\"alcance-del-reparto\" data-alcance=\"marcadas\"");
@@ -221,8 +134,8 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(dialogo).toContain("data-ningun-chofer onClick={() => setElegidos(new Set())}");
     expect(dialogo).toContain("const puede = puedeRepartir(elegidos, cuantas);");
     expect(dialogo).toContain("const cuantas = alcance === \"marcadas\" ? marcadas : delDia;");
-    expect(dialogo).toContain("data-asignar-y-optimizar disabled={!puede}");
-    expect(dialogo).toContain("onConfirmar({ alcance, choferes: opciones.filter((o) => elegidos.has(o.clave)).map((o) => o.clave), optimizar })");
+    expect(dialogo).toContain("data-asignar-del-dialogo disabled={!puede}");
+    expect(dialogo).toContain("onConfirmar({ alcance, choferes: opciones.filter((o) => elegidos.has(o.clave)).map((o) => o.clave) })");
   });
   it("cancelar (✕, «Cancelar» o clic fuera) solo cierra", () => {
     expect(dialogo).toContain("data-cancelar-dialogo onClick={onCancelar}");

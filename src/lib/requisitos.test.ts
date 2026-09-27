@@ -92,10 +92,11 @@ describe("«Mejor lugar»: el filtro de chofer válido", () => {
 });
 
 describe("las pantallas usan todo esto", () => {
-  it("el Gestor: «Mejor lugar» filtra ANTES de colocar o asignar al final; Auto-asignar no se toca", () => {
+  it("el Gestor: «Mejor lugar» filtra ANTES de colocar o asignar al final; Auto-asignar va por el motor", () => {
     const p = plano(leer("src/app/(app)/routes/page.tsx"));
     expect(p).toContain("const { faltanA } = useRequisitosDelCamion();");
-    expect(p).toContain("noDisponibles: unavailableToday, optimizar: e.optimizar,");
+    // Auto-asignar reparte con el motor desde D-419, que ya respeta los requisitos (`entradaDelDia`): pasa por `repartirConElMotor`.
+    expect(p).toContain("r = await repartirConElMotor({ ordenes, choferes: e.choferes.filter((c) => !bloqueada(c)),");
     expect(p).toContain("const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
     // El bucle que coloca (y el que asigna al final) recorre `marcadas`, que ya es SOLO lo que puede ir.
     const cuerpo = p.slice(p.indexOf("const colocaEnElMejorLugar"), p.indexOf("const previewAdd"));

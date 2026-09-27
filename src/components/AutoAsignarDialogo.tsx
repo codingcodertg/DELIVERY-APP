@@ -12,15 +12,17 @@ import {
 } from "@/lib/auto-asignar";
 
 // ============================================================
-// El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401): qué órdenes, a qué choferes y si se optimiza al
-// terminar. Lo que decide (qué nace marcado, cuándo se enciende el botón) vive en `lib/auto-asignar.ts`; aquí solo se
-// pinta. Cancelar (✕, «Cancelar» o un clic fuera) no toca nada.
+// El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401): qué órdenes y a qué choferes. Lo que decide (qué nace
+// marcado, cuándo se enciende el botón) vive en `lib/auto-asignar.ts`; aquí solo se pinta. Cancelar (✕, «Cancelar» o un
+// clic fuera) no toca nada.
+//
+// Desde D-419 reparte el motor de «Planificar el día» y ya no hay «Optimizar las rutas al terminar»: el motor deja cada
+// ruta ordenada, y optimizarla después con «Optimizar ruta» la desharía.
 // ============================================================
 
 export interface EleccionDelReparto {
   alcance: AlcanceDelReparto;
   choferes: string[];
-  optimizar: boolean;
 }
 
 export function AutoAsignarDialogo({
@@ -45,7 +47,6 @@ export function AutoAsignarDialogo({
 }) {
   const [alcance, setAlcance] = useState<AlcanceDelReparto>(() => alcanceInicial(marcadas));
   const [elegidos, setElegidos] = useState<Set<string>>(() => choferesIniciales(opciones));
-  const [optimizar, setOptimizar] = useState(true);
   const abajoEnElFondo = useRef(false);
 
   const cuantas = alcance === "marcadas" ? marcadas : delDia;
@@ -105,19 +106,16 @@ export function AutoAsignarDialogo({
           </div>
         )}
 
-        <label style={{ ...radio, marginTop: 14 }}>
-          <input type="checkbox" data-optimizar-al-terminar checked={optimizar} onChange={(e) => setOptimizar(e.target.checked)} style={{ width: 15, height: 15 }} />
-          {t("Optimize the routes when done", "Optimizar las rutas al terminar")}
-          <span className="hint">{t("(only the drivers who get orders)", "(solo los choferes que reciban órdenes)")}</span>
-        </label>
+        <div className="hint" data-como-reparte style={{ marginTop: 14 }}>
+          {t("The route engine places them (the same one as “Plan the day”): it counts what each driver already carries that day, their truck, shift and base, and sets the stop order. What they already have doesn't move.",
+            "Las coloca el motor de rutas (el mismo de «Planificar el día»): cuenta lo que cada chofer ya lleva ese día, su camión, su turno y su base, y deja puesto el orden de las paradas. Lo que ya tenían no se mueve.")}
+        </div>
 
         <div className="modal-actions">
           <button className="btn" data-cancelar-dialogo onClick={onCancelar}>{t("Cancel", "Cancelar")}</button>
-          <button className="btn btn-primary" data-asignar-y-optimizar disabled={!puede}
-            onClick={() => { if (puede) onConfirmar({ alcance, choferes: opciones.filter((o) => elegidos.has(o.clave)).map((o) => o.clave), optimizar }); }}>
-            {optimizar
-              ? t(`Assign and optimize (${cuantas})`, `Asignar y optimizar (${cuantas})`)
-              : t(`Assign (${cuantas})`, `Asignar (${cuantas})`)}
+          <button className="btn btn-primary" data-asignar-del-dialogo disabled={!puede}
+            onClick={() => { if (puede) onConfirmar({ alcance, choferes: opciones.filter((o) => elegidos.has(o.clave)).map((o) => o.clave) }); }}>
+            {t(`Assign (${cuantas})`, `Asignar (${cuantas})`)}
           </button>
         </div>
       </div>

@@ -106,7 +106,13 @@ export interface DataState {
   /** `quiet` suppresses the error toast, for background patches the user
    * never asked for and can do nothing about — a failure there must not look
    * like a failure of whatever they just did. */
-  updateDelivery: (id: string, patch: Partial<Delivery>, opts?: { quiet?: boolean }) => Promise<boolean>;
+  updateDelivery: (id: string, patch: Partial<Delivery>, opts?: {
+    quiet?: boolean;
+    /** Escribe SOLO si la fila sigue con esta `updated_at` (la que tenía al planificar): si alguien la cambió entretanto,
+     *  no la pisa y devuelve `false`. Lo usa «✨ Auto-asignar» con el motor (D-419). Con `.select("id")`, porque un
+     *  UPDATE que no casa vuelve sin error y parecería guardado (D-310). */
+    siNoCambioDesde?: string;
+  }) => Promise<boolean>;
   /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-310). */
   ponerDocumento: (id: string, campo: CampoDeDocumento, valor: string) => Promise<boolean>;
   /**
@@ -1035,10 +1041,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         patch = { ...patch, photo_meta: meta };
       }
 
-      const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
-      if (error) {
-        if (!opts?.quiet) notify("Error: " + error.message);
-        return false;
+      if (opts?.siNoCambioDesde) {
+        const { data, error } = await supabase.from("deliveries").update(patch).eq("id", id).eq("updated_at", opts.siNoCambioDesde).select("id");
+        if (error) { if (!opts.quiet) notify("Error: " + error.message); return false; }
+        if (!data?.length) return false;
+      } else {
+        const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
+        if (error) {
+          if (!opts?.quiet) notify("Error: " + error.message);
+          return false;
+        }
       }
       setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
       // Being handed the work is its own event. Every way an order gets a

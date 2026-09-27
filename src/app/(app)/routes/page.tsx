@@ -8,7 +8,8 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
 import { parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
-import { ordenesDelReparto, repartirYOptimizar, resumenDelReparto, type RutaQueOptimizar } from "@/lib/auto-asignar";
+import { ordenesDelReparto, repartirConElMotor, resumenDelReparto, type ResultadoDelReparto, type RutaQueOptimizar } from "@/lib/auto-asignar";
+import { pideElReparto } from "@/lib/route-plan/reparto-cliente";
 import { AutoAsignarDialogo, type EleccionDelReparto } from "@/components/AutoAsignarDialogo";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -994,7 +995,7 @@ export default function RoutesPage() {
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
   // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de
-  // verdad — el reparto nunca fue a rutas temporales (`autoAssign` recibe `drivers`).
+  // verdad — el reparto nunca fue a rutas temporales (recibe `drivers`).
   // Sin los que tienen la ruta bloqueada 🔒 ese día (D-411): Auto-asignar no les mete órdenes.
   const opcionesDelReparto = opcionesDeConductor({
     rutas: drivers.filter((u) => !bloqueada(u.full_name)).map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
@@ -1387,41 +1388,34 @@ export default function RoutesPage() {
     return bien;
   };
 
-  // «✨ Auto-asignar» (D-401): ya no reparte al instante. Abre un diálogo que pregunta qué órdenes (todas las del día o
-  // las marcadas), a qué choferes y si se optimiza al terminar; aquí se reparte con lo elegido. El reparto es el
-  // `autoAssign` de siempre, solo entre los marcados; la optimización, el bucle de «Optimizar todas las rutas» solo para
-  // los que recibieron algo. Lo decide `repartirYOptimizar`.
+  // «✨ Auto-asignar» (D-401, D-419): el diálogo dice qué órdenes y a qué choferes; reparte el motor de «Planificar el
+  // día» (`repartirConElMotor`: un día por petición, lo que cada chofer ya lleva cuenta y no se mueve), y cada orden se
+  // escribe solo si no cambió desde que se planificó. No se optimiza después: el motor ya deja chofer, viaje y puesto, y
+  // `computeRoute` lo desharía. En el demo reparte el mismo motor en el navegador (`pideElReparto`).
   const repartirConElDialogo = async (e: EleccionDelReparto) => {
     if (autoAssigning || optimizingAll || busyDriver != null) return;
     setDialogoAutoAsignar(false);
     const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));
     const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);
-    const delDia = new Set(dayOrders.map((d) => d.id));
     setAutoAssigning(true);
-    let r: Awaited<ReturnType<typeof repartirYOptimizar>> | null = null;
+    let r: ResultadoDelReparto;
     // Un chofer con la ruta bloqueada 🔒 no recibe nada (D-411). El diálogo ya no lo ofrece; el filtro de `choferes`
-    // cubre al que se bloqueó con el diálogo abierto.
+    // cubre al que se bloqueó con el diálogo abierto (el servidor, además, lee los candados de cada día).
     try {
-      r = await repartirYOptimizar({
+      r = await repartirConElMotor({
         ordenes,
         choferes: e.choferes.filter((c) => !bloqueada(c)),
-        capacidadDe: capacityFor,
-        noDisponibles: unavailableToday,
-        optimizar: e.optimizar,
-        paradasDe: (k) => byDriver.get(k) ?? [],
-        esDelDia: (d) => delDia.has(d.id),
-        asigna: (id, chofer) => assignTo(id, chofer),
-        optimiza: optimizaEstas,
+        pide: pideElReparto(SIN_BASE, () => ({ deliveries, users, settings, availability, bloqueadas: (f) => bloqueos[f] ?? [] })),
+        escribe: (w) => { clearRouteFor(w.chofer); return updateDelivery(w.id, w.patch, { quiet: true, siNoCambioDesde: w.updated_at || undefined }); },
       });
     } finally {
       setAutoAssigning(false);
     }
-    if (!r.reparto.assignments.length) {
-      notify(t("Nothing could be auto-assigned (no coordinates or no capacity).", "No se pudo auto-asignar nada (sin coordenadas o sin capacidad)."));
-      return;
-    }
-    if (e.alcance === "marcadas") clearSelection();
-    const resumen = resumenDelReparto(r, orderLabel, e.optimizar);
+    // Lo colocado sale de la selección; lo que no, sigue marcado para decidir a mano.
+    const colocadas = new Set(r.colocadas.map((c) => c.id));
+    if (colocadas.size) setSelectedOrders((s) => new Set([...s].filter((id) => !colocadas.has(id))));
+    const porId = new Map(ordenes.map((d) => [d.id, d]));
+    const resumen = resumenDelReparto(r, (id) => porId.get(id), orderLabel);
     notify(t(resumen.en, resumen.es));
   };
 
