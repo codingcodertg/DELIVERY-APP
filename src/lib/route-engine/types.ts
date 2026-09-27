@@ -54,7 +54,16 @@ export interface OrdenEntrada {
   /** La recogida ya ocurrió: la carga va en el camión de `choferFijado` desde el principio, y solo queda
    *  la entrega. */
   recogidaHecha?: boolean;
+  /** La prioridad de la orden (D-412), como OptimoRoute. Sin ella —una base sin la 147, un plan guardado de
+   *  antes—, normal: el motor planifica exactamente como antes de que existiera. */
+  prioridad?: PrioridadDeOrden | null;
 }
+
+/** Los cuatro niveles de la 147. El motor no importa `lib/prioridad`: se queda sin nada de fuera. */
+export type PrioridadDeOrden = "low" | "normal" | "high" | "critical";
+
+/** Qué mide el balance entre choferes (OptimoRoute `balanceBy`): los minutos de jornada, o las entregas. */
+export type BalancePor = "tiempo" | "ordenes";
 
 export interface ChoferEntrada {
   id: string;
@@ -94,6 +103,12 @@ export interface Parametros {
   /** Cuántos movimientos de mejora se aplican como mucho. Se corta por CUENTA, nunca por reloj: un
    *  límite de tiempo haría que el plan dependiera de lo rápida que sea la máquina. */
   maxMovimientos: number;
+  /** Qué reparte el peso `balance`. Ausente = `"tiempo"`, lo de siempre: un plan guardado antes de que
+   *  existiera se revalida igual. */
+  balancePor?: BalancePor;
+  /** «Usar todos los choferes disponibles» (OptimoRoute): a cada chofer que rutea se le da al menos una
+   *  orden si hay con qué, aunque cueste más manejo. Nunca a costa de dejar una orden fuera. Ausente = no. */
+  usarTodos?: boolean;
 }
 
 export interface Entrada {
@@ -114,6 +129,8 @@ export interface Desglose {
   manejoMin: number;
   millas: number;
   tardeMin: number;
+  /** Diferencia entre el chofer más cargado y el menos, en minutos. Con `balancePor: "ordenes"`, las
+   *  entregas de diferencia pasadas a minutos (`MINUTOS_POR_ORDEN_EN_BALANCE` cada una). */
   balanceMin: number;
   /** La suma ponderada, en unidades internas enteras. Solo sirve para comparar dos planes. */
   total: number;

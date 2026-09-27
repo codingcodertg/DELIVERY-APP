@@ -5,11 +5,12 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { DELIVERY_WINDOW_PRESETS } from "@/lib/constants";
+import { MINUTOS_POR_ORDEN_EN_BALANCE } from "@/lib/route-engine";
 import {
-  TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta, pesosDeRuta, topeDeRetrasoMin,
-  ventanasDuras,
+  TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta, opcionesDeReparto, pesosDeRuta,
+  routeWeightsAlGuardar, topeDeRetrasoMin, ventanasDuras,
 } from "@/lib/route-settings";
-import type { DriverSettings, RouteWeights, Settings } from "@/lib/types";
+import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings } from "@/lib/types";
 
 /**
  * Los ajustes del motor de rutas, solo para el admin (D-316): los pesos, qué ventanas son duras, el tope de
@@ -48,8 +49,15 @@ export function RouteEngineSettings() {
   // editar: guardar fallaría, y el «Guardado» de después taparía el aviso del fallo.
   const hayColumnas = laBaseTieneAjustesDeRuta(settings);
 
+  const reparto = opcionesDeReparto(settings);
+  // `route_weights` se guarda ENTERO: pesos y opciones de reparto viven en el mismo jsonb, y mandar solo una parte
+  // borraría la otra (`routeWeightsAlGuardar`).
   const guardaPeso = (k: keyof RouteWeights, v: number) => {
-    saveSettings({ route_weights: { ...pesos, [k]: v } } as Partial<Settings>);
+    saveSettings({ route_weights: routeWeightsAlGuardar(settings, { [k]: v }) } as Partial<Settings>);
+    notify(t("Saved", "Guardado"));
+  };
+  const guardaReparto = (cambio: RouteBalanceOptions) => {
+    saveSettings({ route_weights: routeWeightsAlGuardar(settings, cambio) } as Partial<Settings>);
     notify(t("Saved", "Guardado"));
   };
   const alternaDura = (valor: string) => {
@@ -124,6 +132,28 @@ export function RouteEngineSettings() {
           value={tope} paso="5" disabled={!hayColumnas}
           onSave={(v) => { saveSettings({ route_late_cap_min: Math.round(v) } as Partial<Settings>); notify(t("Saved", "Guardado")); }}
         />
+      </div>
+
+      <div className="field" style={{ marginTop: 6 }}>
+        <label>{t("Balance drivers by", "Repartir entre choferes por")}</label>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {([["tiempo", "Working time", "Tiempo de jornada"], ["ordenes", "Number of orders", "Número de órdenes"]] as const).map(([v, en, es]) => (
+            <label key={v} className="col-opt" style={{ margin: 0 }}>
+              <input type="radio" name="balance_por" checked={reparto.balancePor === v} disabled={!hayColumnas} onChange={() => guardaReparto({ balance_por: v })} />
+              {lang === "es" ? es : en}
+            </label>
+          ))}
+        </div>
+        <label className="col-opt" style={{ margin: "8px 0 0" }}>
+          <input type="checkbox" checked={reparto.usarTodos} disabled={!hayColumnas} onChange={() => guardaReparto({ usar_todos: !reparto.usarTodos })} />
+          {t("Use all available drivers", "Usar todos los choferes disponibles")}
+        </label>
+        <div className="hint">
+          {t(
+            `What the balance weight evens out: minutes of each driver's day, or how many deliveries each one gets (one delivery of difference counts as ${MINUTOS_POR_ORDEN_EN_BALANCE} minutes). «Use all» gives every routed driver at least one order when there is enough work, even if it costs more driving — never by leaving an order out.`,
+            `Qué iguala el peso de balance: los minutos de jornada de cada chofer, o cuántas entregas lleva cada uno (una entrega de diferencia cuenta como ${MINUTOS_POR_ORDEN_EN_BALANCE} minutos). «Usar todos» le da al menos una orden a cada chofer que rutea cuando hay trabajo para todos, aunque cueste más manejo — nunca dejando una orden fuera.`,
+          )}
+        </div>
       </div>
 
       <div className="field" style={{ marginTop: 6 }}>
