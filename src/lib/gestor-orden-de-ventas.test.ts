@@ -5,7 +5,7 @@ import { ROLE_DEFAULT_COLUMNS } from "./constants";
 import { ORDEN_DE_PARTIDA, columnasEnOrden, ordenEfectivo } from "./orden-de-columnas";
 import {
   COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, claveEnOrdenes, columnasDeLaTabla,
-  columnasDePlantillaDelGestor, columnasElegibles, conColumnasNuevas, fotoDelGestor, indicesOcultosDeParadas,
+  columnasDePlantillaDelGestor, columnasDelSelector, conColumnasNuevas, fotoDelGestor,
 } from "./routes-columns";
 
 /**
@@ -58,21 +58,20 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
     // Desde D-408 la factura es fija: sale aunque la foto no la tenga, en su puesto de ventas (tras PO y SO).
     expect(columnasDeLaTabla("sinAsignar", columnasDePlantillaDelGestor(foto)).map((c) => c.key)).toEqual(["po", "invoice", "fee", "address"]);
   });
-  it("el ⚙ de «Sin asignar» lista las columnas en el mismo orden que la tabla: la página le pasa el catálogo", () => {
+  it("el ⚙ de «Sin asignar» lista las columnas en el mismo orden que la tabla: la página le pasa el orden de la persona", () => {
     const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
-    // Desde D-408, `columnasElegibles`: el catálogo de la tabla menos la factura, que es fija y no se ofrece.
-    expect(pagina).toContain('columnas={columnasElegibles("sinAsignar")}');
-    expect(columnasElegibles("sinAsignar").map((c) => c.key))
-      .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key).filter((k) => k !== "invoice"));
+    // Hasta D-NEXT, `columnasElegibles` (sin la factura, D-408). Ahora sale TODA la tabla, factura incluida —se mueve,
+    // no se quita—, en el orden de la persona; sin orden propio, el de ventas.
+    expect(pagina).toContain('columnas={columnasDelSelector("sinAsignar", ordenGestor)}');
+    expect(columnasDelSelector("sinAsignar", null).map((c) => c.key))
+      .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key));
   });
-  it("las tablas de PARADAS no se mueven: mismo orden y mismos puestos que antes", () => {
-    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key))
-      .toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"]);
-    expect([...indicesOcultosDeParadas([])].sort()).toEqual([2, 3, 4, 5, 6]);
-    // Y su ⚙, que la página llena con el catálogo filtrado, tampoco: la lista de paradas sale como estaba.
-    expect(plano(leer("src/app/(app)/routes/page.tsx"))).toContain('columnas={columnasElegibles("paradas")}');
-    expect(columnasElegibles("paradas").map((c) => c.key))
-      .toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"]);
+  it("sin orden propio, las tablas de PARADAS salen como antes de poder moverlas: el orden de partida no cambió", () => {
+    // D-402 las dejó quietas; D-NEXT las deja mover, pero quien no mueve nada las ve igual que antes.
+    const DE_SIEMPRE = ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"];
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key)).toEqual(DE_SIEMPRE);
+    expect(plano(leer("src/app/(app)/routes/page.tsx"))).toContain('columnas={columnasDelSelector("paradas", ordenGestor)}');
+    expect(columnasDelSelector("paradas", null).map((c) => c.key)).toEqual(DE_SIEMPRE);
   });
   it("el lado de ventas es el orden de partida: `OrdersTable` ordena su catálogo con él y Órdenes no le pasa orden propio a ventas", () => {
     expect(plano(leer("src/components/OrdersTable.tsx"))).toContain("enOrdenDePartida(ORDER_COLUMNS);");
