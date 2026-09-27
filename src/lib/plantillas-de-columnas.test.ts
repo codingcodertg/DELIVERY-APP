@@ -123,21 +123,27 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   // Los casos, construidos aquí igual que se construyeron para medirlos en un Postgres 17 local el 2026-09-25
   // (`select pg_column_size('<json>'::jsonb)`, y el `insert` contra un `check` igual al de la 136). Los números de la derecha
   // son los que dio Postgres, no los de esta función: si alguien la cambia, tiene que seguir dándolos.
-  const ANCH = Object.fromEntries(["__id", ...ORD].map((k) => [k, 800]));
-  const nombre = (i: number) => (`Plantilla número ${i} `).padEnd(40, "x");
-  const llenas = (n: number) => Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: ORD, o: ORD, a: ANCH }));
-  const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
-  const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: ORD }, orden: { logistics: ORD }, anchos: { logistics: ANCH }, plantillas: pl });
+  //
+  // Se midió con las 14 columnas que Órdenes tenía ese día (`O14`). D-NEXT añadió «priority» (15): los casos siguen
+  // construidos con las 14, porque son los que Postgres midió; lo que pasa con las 15 va en su propia prueba, abajo, y con
+  // el modelo (`bytesEnLaBase`), no con una medida.
   const O14 = ["po", "so", "invoice", "type", "account", "contact", "stage", "store", "date", "pallets", "fee", "driver", "address", "windows"];
+  const ANCH = Object.fromEntries(["__id", ...O14].map((k) => [k, 800]));
+  const nombre = (i: number) => (`Plantilla número ${i} `).padEnd(40, "x");
+  const llenas = (n: number) => Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: O14, o: O14, a: ANCH }));
+  const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
+  // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-NEXT) llegaron después.
+  const GESTOR_MEDIDO = COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority");
+  const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: O14 }, orden: { logistics: O14 }, anchos: { logistics: ANCH }, plantillas: pl });
   const GEST = ["invoice", "account", "address", "pickup", "store", "pallets", "date", "windows", "status", "p_type", "p_eta", "p_fee"];
   const casos: [string, unknown, number][] = [
     ["Órdenes, un rol lleno, 10 plantillas llenas", unRol(llenas(10)), 7561],
     ["Órdenes, un rol lleno, sin plantillas", unRol([]), 697],
-    ["Órdenes, todos los roles llenos, sin plantillas", valorDeColumnas({ visibles: roles(ROLES_QUE_ELIGEN, ORD), orden: roles(ROLES_QUE_ELIGEN, ORD), anchos: roles(TODOS_LOS_ROLES, ANCH) }), 4241],
-    ["Órdenes, todos los roles llenos, 10 plantillas llenas (la base la RECHAZA)", valorDeColumnas({ visibles: roles(ROLES_QUE_ELIGEN, ORD), orden: roles(ROLES_QUE_ELIGEN, ORD), anchos: roles(TODOS_LOS_ROLES, ANCH), plantillas: llenas(10) }), 11105],
+    ["Órdenes, todos los roles llenos, sin plantillas", valorDeColumnas({ visibles: roles(ROLES_QUE_ELIGEN, O14), orden: roles(ROLES_QUE_ELIGEN, O14), anchos: roles(TODOS_LOS_ROLES, ANCH) }), 4241],
+    ["Órdenes, todos los roles llenos, 10 plantillas llenas (la base la RECHAZA)", valorDeColumnas({ visibles: roles(ROLES_QUE_ELIGEN, O14), orden: roles(ROLES_QUE_ELIGEN, O14), anchos: roles(TODOS_LOS_ROLES, ANCH), plantillas: llenas(10) }), 11105],
     ["Gestor, todos los roles, 10 plantillas de todas sus columnas", valorDeColumnas({
-      visibles: roles(ROLES_QUE_ELIGEN, [...COLUMNAS_DEL_GESTOR.map((c) => c.key), MARCA_V2, MARCA_V3, MARCA_V4]), orden: {},
-      plantillas: Array.from({ length: 10 }, (_, i) => ({ n: nombre(i), v: COLUMNAS_DEL_GESTOR.map((c) => c.key) })),
+      visibles: roles(ROLES_QUE_ELIGEN, [...GESTOR_MEDIDO, MARCA_V2, MARCA_V3, MARCA_V4]), orden: {},
+      plantillas: Array.from({ length: 10 }, (_, i) => ({ n: nombre(i), v: GESTOR_MEDIDO })),
     }), 5343],
     ["Órdenes, lo normal: un rol, 10 plantillas con nombres cortos y 2 anchos", valorDeColumnas({
       visibles: { accounting: O14.slice(0, 8) }, orden: { accounting: [...O14].reverse() }, anchos: { accounting: { po: 90, date: 120, __id: 64 } },
@@ -151,7 +157,8 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   ];
   for (const [nombreDelCaso, valor, medido] of casos) {
     it(`da lo que midió Postgres: ${nombreDelCaso} → ${medido}`, () => {
-      expect(ORD).toHaveLength(14);                                                              // si el regex perdiera columnas, el caso mentiría
+      expect(ORD).toHaveLength(15);                                                              // si el regex perdiera columnas, el caso mentiría
+      expect(O14.every((k) => ORD.includes(k))).toBe(true);
       expect(bytesEnLaBase(valor)).toBe(medido);
     });
   }
@@ -159,6 +166,16 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
     const v = unRol(llenas(10));
     expect(new TextEncoder().encode(JSON.stringify(v)).length).toBe(5294);
     expect(bytesEnLaBase(v)).toBe(7561);
+  });
+  it("D-NEXT, con las 15 columnas de hoy (modelo, no medida): un rol lleno sigue cabiendo en la reserva, y siguen cabiendo 9 plantillas llenas y la décima no", () => {
+    const A15 = Object.fromEntries(["__id", ...ORD].map((k) => [k, 800]));
+    const rol15 = (n: number) => valorDeColumnas({ visibles: { logistics: ORD }, orden: { logistics: ORD }, anchos: { logistics: A15 },
+      plantillas: Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: ORD, o: ORD, a: A15 })) });
+    expect(bytesEnLaBase(rol15(0))).toBe(745);
+    expect(RESERVA_PARA_LO_DEMAS).toBeGreaterThan(bytesEnLaBase(rol15(0)));
+    expect(bytesEnLaBase(rol15(9))).toBe(7357);                 // 7357 + 800 = 8157: cabe, con 35 bytes de sobra
+    expect(cabeEnLaFila(rol15(9))).toBe(true);
+    expect(cabeEnLaFila(rol15(10))).toBe(false);
   });
   it("la guarda deja sitio para lo demás: en el peor caso caben 9 plantillas llenas, la décima no; lo normal, las 10 con holgura", () => {
     expect(TOPE_DE_LA_BASE).toBe(8192);

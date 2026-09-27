@@ -7,6 +7,7 @@ import { COLUMNAS_DEL_GESTOR } from "./routes-columns";
 import { ordenaFilas, filtraFilas } from "./orden-y-filtro";
 import { fmtDate, fmtMoney } from "./utils";
 import type { Delivery } from "./types";
+import { valorDePrioridad } from "./prioridad";
 
 /** Ordenar, filtrar y abrir la orden en las tablas del Gestor de Rutas (D-360). */
 
@@ -27,6 +28,7 @@ const ordenes: DeOrdenes<Ctx> = {
     { key: "po", value: (d) => d.po2 },
     { key: "fee", value: (d) => d.delivery_fee, filterLabel: (v) => (v == null ? "—" : fmtMoney(Number(v))) },
     { key: "contact", value: (d) => d.contact },
+    { key: "priority", value: (d) => valorDePrioridad(d, "es") },
     // Columnas de Órdenes que el Gestor pinta a su manera: su valor NO debe usarse aunque el catálogo lo tenga.
     { key: "invoice", value: () => "de-ordenes" },
     { key: "account", value: () => "de-ordenes" },

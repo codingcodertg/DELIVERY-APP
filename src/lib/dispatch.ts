@@ -1,5 +1,6 @@
 import type { Delivery, Stage } from "@/lib/types";
 import { aLaDecima, palletsDeLaOrden } from "./pallets";
+import { rangoDePrioridad } from "./prioridad";
 
 // ============================================================
 // Dispatch helpers: driver auto-assignment (#6), delivery-window conflict
@@ -201,8 +202,13 @@ export function autoAssign(
 
   const LOAD_WEIGHT = 2; // miles-equivalent nudge per already-loaded pallet, to balance
 
-  // Earliest delivery window first (then order_no) so tight windows place first.
+  // Priority first (D-NEXT, 147): critical, then high, normal, low. The greedy loop hands out capacity and windows in
+  // this order, so when they run out, what is left unplaced is the low-priority work, never a critical order that
+  // happened to have a later window. Within the same priority: earliest delivery window first (then order_no) so
+  // tight windows place first.
   const sorted = [...orders].sort((a, b) => {
+    const pa = rangoDePrioridad(a), pb = rangoDePrioridad(b);
+    if (pa !== pb) return pa - pb;
     const wa = parseWindow(a.delivery_windows);
     const wb = parseWindow(b.delivery_windows);
     const sa = wa ? wa[0] : Number.MAX_SAFE_INTEGER;
