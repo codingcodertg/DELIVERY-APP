@@ -458,6 +458,16 @@ describe("quién reparte para la pantalla", () => {
   });
 });
 
+describe("la ruta del reparto: quién puede pedirlo", () => {
+  // Mutante del orquestador: añadir `sales` a la lista sobrevivía a todas las pruebas. La ruta no escribe, pero el plan
+  // que devuelve dice de TODAS las tiendas qué chofer lleva qué: la puerta es la misma que la del Gestor y el mapa.
+  it("solo admin, logística y gerente; nadie más", () => {
+    const ruta = readFileSync(join(process.cwd(), "src/app/api/route-plan/reparto/route.ts"), "utf8").replace(/\s+/g, " ");
+    expect(ruta).toContain('if (!yo || !["admin", "logistics", "manager"].includes(String(yo.role))) return NextResponse.json(');
+    expect(ruta).toContain("{ status: 403 }");
+  });
+});
+
 describe("un solo camino: el Gestor y el mapa reparten con el motor", () => {
   const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
   it("`autoAssign` ya no existe (nada de dos lógicas vivas)", () => {
