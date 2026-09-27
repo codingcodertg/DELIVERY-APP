@@ -6,6 +6,10 @@ const root = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
 // Unit tests for the pure business logic (scheduling rules, dispatch,
 // analytics, formatting). These are mode-agnostic — no React, no Supabase.
 export default defineConfig({
+  // tsconfig dice `jsx: "preserve"` porque la compila Next; sin esto, una prueba que importe un .tsx
+  // no se puede ni leer. La primera en necesitarlo: la hoja impresa del Estimador, que se RENDERIZA en
+  // su prueba para comprobar que no lleva nada interno (T-0408).
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     tsconfigPaths: true,
     // The ERP's server-only modules (D-090) import `server-only`, which throws outside a server

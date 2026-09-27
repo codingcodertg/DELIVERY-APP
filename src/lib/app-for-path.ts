@@ -21,6 +21,8 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   ["/erp", "erp"],
   // Sin esta linea /promos caeria en deliveries y el sello enseñaria el numero de otra app (D-366).
   ["/promos", "promos"],
+  // Igual con el Estimador (T-0408): sin esta linea /estimator enseñaria la version de deliveries.
+  ["/estimator", "estimator"],
 ];
 
 export function appForPath(pathname: string | null): AppKey {

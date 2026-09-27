@@ -1,0 +1,70 @@
+/* El Estimador (T-0408). La pantalla usa las clases de siempre (card, grid, btn, field); aquí solo
+   va lo propio: las líneas de producto y la hoja del cliente, en pantalla y al imprimir. */
+
+.est-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+.est-wrap h1 { margin: 0 0 4px; font-size: 22px; }
+.est-wrap label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 4px; }
+.est-wrap input, .est-wrap select, .est-wrap textarea { width: 100%; }
+.est-aviso { border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; border: 1px solid var(--line); background: var(--paper); }
+.est-aviso.ambar { background: var(--amber-soft, #fbf1df); border-color: var(--amber, #d8a33a); }
+.est-aviso.rojo { background: #fdeaea; border-color: var(--red, #d64545); }
+.est-aviso.verde { background: #e5f6ee; border-color: var(--green, #1f9d6b); }
+:root[data-theme="dark"] .est-aviso.rojo { background: #3a1f21; }
+:root[data-theme="dark"] .est-aviso.verde { background: #173a2c; }
+:root[data-theme="dark"] .est-aviso.ambar { background: #3a2f1a; }
+.est-ve-cliente { font-size: 12px; color: var(--gray); margin-top: 4px; }
+.est-ve-cliente b { color: var(--ink); }
+
+.est-linea { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; background: var(--paper); }
+.est-linea-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-weight: 700; font-size: 13px; }
+.est-calc { font-size: 13px; padding: 6px 0 0; display: flex; gap: 16px; flex-wrap: wrap; }
+.est-calc b { font-family: 'Archivo', sans-serif; }
+.est-radios { display: flex; gap: 8px; flex-wrap: wrap; }
+.est-radios label { text-transform: none; letter-spacing: normal; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; margin: 0; }
+.est-radios input { width: auto; }
+.est-total { font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 800; }
+.est-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.est-faltas { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--red, #d64545); }
+.est-politica p { font-size: 13.5px; margin: 0 0 10px; }
+.est-politica .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 700; font-size: 13.5px; }
+.est-politica .check input { width: auto; margin-top: 3px; }
+
+/* ---- La hoja del cliente: aspecto tecleado, a propósito poco oficial ---- */
+.hoja-cliente {
+  background: #fff; color: #111; max-width: 760px; margin: 0 auto; padding: 36px 40px;
+  font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.45;
+  border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+.hc-encabezado { margin-bottom: 18px; }
+.hc-empresa { font-size: 18px; font-weight: 700; letter-spacing: .08em; }
+.hc-subtitulo { font-size: 13px; }
+.hc-datos { margin-bottom: 16px; }
+.hc-datos span { font-weight: 700; }
+.hc-resumen { margin-bottom: 16px; }
+.hc-titulo-seccion { font-weight: 700; letter-spacing: .05em; }
+.hc-tabla { width: 100%; border-collapse: collapse; margin: 8px 0 12px; }
+.hc-tabla th { text-align: left; border-bottom: 1px dashed #555; padding: 4px 6px; font-weight: 700; }
+.hc-tabla td { border-bottom: 1px dotted #bbb; padding: 6px; vertical-align: top; }
+.hc-num { text-align: right; white-space: nowrap; }
+.hc-total { text-align: right; font-weight: 700; font-size: 15px; margin: 6px 0 12px; }
+.hc-validez { border: 2px solid #111; padding: 8px 10px; margin-bottom: 12px; }
+.hc-validez-fecha { font-weight: 700; font-size: 14px; letter-spacing: .03em; margin-bottom: 4px; }
+.hc-entrega { margin: 0 0 12px; }
+.hc-notas p { font-size: 11.5px; margin: 0 0 6px; }
+@media (max-width: 640px) {
+  .hoja-cliente { padding: 18px 14px; font-size: 12px; }
+}
+
+.est-vista-previa { position: fixed; inset: 0; z-index: 60; overflow-y: auto; background: rgba(15,23,42,.72); padding: 16px; }
+.est-vista-previa .est-barra { max-width: 760px; margin: 0 auto 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Al imprimir, SOLO la hoja. Con `visibility` y no con `display`: esconde también lo que cuelga del
+   layout raíz (el sello de versión, el aviso del cierre, el de «entraste como»), que esta pantalla no
+   controla, sin tener que conocerlo uno por uno. */
+@media print {
+  body * { visibility: hidden !important; }
+  .hoja-cliente, .hoja-cliente * { visibility: visible !important; }
+  .est-vista-previa { position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
+  .hoja-cliente { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: none; box-shadow: none; padding: 0; }
+  @page { margin: 16mm; }
+}

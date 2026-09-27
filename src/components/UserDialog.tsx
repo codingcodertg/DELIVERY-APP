@@ -29,7 +29,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -103,6 +103,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         // exigiendo que `promos` no tenga `roleColumn`. Si alguien le da uno, esa prueba cae y
         // apunta aquí.
         return;
+      case "estimator":
+        // Igual que promos: sin `roleColumn`, inalcanzable. Lo fija `estimator/modulo.test.ts`.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -120,6 +123,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "promos":
         // Solo la casilla: la 140 no creó ninguna columna de rol para este módulo.
         updateUserPromosAccess(u.id, { granted });
+        return;
+      case "estimator":
+        // Solo la casilla: la 148 no crea columna de rol.
+        updateUserEstimatorAccess(u.id, { granted });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

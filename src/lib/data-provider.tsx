@@ -186,6 +186,7 @@ export interface DataState {
   /** RTG PROMOS (migración 140): solo la casilla. No hay columna de rol que escribir — quién aprueba
    *  sale de `role` y de la tienda, y eso ya se edita en Identidad. */
   updateUserPromosAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
+  updateUserEstimatorAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
@@ -1690,6 +1691,23 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
+  // El Estimador (148): la misma forma que promos, solo la casilla.
+  const updateUserEstimatorAccess = useCallback<DataState["updateUserEstimatorAccess"]>(
+    async (userId, { granted }) => {
+      const target = users.find((u) => u.id === userId);
+      const before = (target?.module_access ?? []).includes("estimator");
+      const actuales = knownModules(target?.module_access);
+      const nextModules = granted
+        ? Array.from(new Set([...actuales, "estimator"]))
+        : actuales.filter((m) => m !== "estimator");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
+      if (before !== granted) void logSecurityClient(userId, "estimator_access_changed", change(String(before), String(granted)));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
+  );
+
   const updateUserTimetrackerAccess = useCallback<DataState["updateUserTimetrackerAccess"]>(
     async (userId, { granted, timetracker_role }) => {
       const target = users.find((u) => u.id === userId);
@@ -1862,7 +1880,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,
     incidents, addIncident, removeIncident,
