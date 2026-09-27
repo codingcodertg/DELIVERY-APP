@@ -407,7 +407,7 @@ export interface RouteWeights {
 }
 
 /**
- * Las opciones de reparto del motor (D-NEXT, OptimoRoute `balanceBy` y «use all drivers»). Se guardan DENTRO de
+ * Las opciones de reparto del motor (D-415, OptimoRoute `balanceBy` y «use all drivers»). Se guardan DENTRO de
  * `settings.route_weights`, junto a los pesos, porque cambian cómo se mide el peso `balance`: así no hace falta
  * columna nueva. Ausentes = por tiempo, y sin forzar a usar todos.
  */

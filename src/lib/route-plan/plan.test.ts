@@ -341,7 +341,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("cada orden se nombra por su código Y su factura, leída en vivo; y la foto de los planes nuevos la lleva", () => {
     expect(plano(panel)).toContain('const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");');
-    // Las columnas viven en `entrada.ts` desde D-NEXT (con `priority` añadida solo si la base la tiene), y la ruta las lee por ahí.
+    // Las columnas viven en `entrada.ts` desde D-415 (con `priority` añadida solo si la base la tiene), y la ruta las lee por ahí.
     expect(plano(leer("src/lib/route-plan/entrada.ts"))).toContain("is_training, updated_at, invoice_num\";");
     expect(plano(ruta)).toContain("leeOrdenesDelDia((columnas) => supabase.from(\"deliveries\").select(columnas)");
     // La función de publicar solo mira `id` y `updated_at` de cada foto: un campo más no la cambia.

@@ -12,7 +12,7 @@ import { COLUMNAS_DE_ORDEN, entradaDelDia, leeOrdenesDelDia, type DatosDelDia } 
 import { fraseDePrioridadEnRuta, fraseDePrioridadFuera, fueraConPorque, porQueDelPlan, porQueEstaAqui } from "./porque";
 
 /**
- * La prioridad y las opciones de reparto, de la base a la pantalla (D-NEXT): la consulta que sobrevive a una base sin la
+ * La prioridad y las opciones de reparto, de la base a la pantalla (D-415): la consulta que sobrevive a una base sin la
  * 147, lo que entra al motor, lo que guarda Ajustes, y lo que dice «Por qué». Tiendas y choferes inventados.
  */
 

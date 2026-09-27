@@ -31,7 +31,7 @@ export interface PorQue {
   aporta: { manejoMin: number; millas: number; tardeMin: number } | null;
   /** Los otros choferes, del que menos empeoraría al que más; al final, con los que no se puede. */
   otras: OtraOpcion[];
-  /** La prioridad con la que la planificó el motor (D-NEXT), solo si no era normal. Es la del momento de planificar:
+  /** La prioridad con la que la planificó el motor (D-415), solo si no era normal. Es la del momento de planificar:
    *  lo que explica la decisión, aunque alguien la haya cambiado después. */
   prioridad?: PrioridadDeOrden;
 }
@@ -113,7 +113,7 @@ const SIN_SITIO = new Set(["no_cabe_con_el_resto", "chofer_fijado_sin_hueco"]);
 
 export interface FueraConPorque {
   id: string; orden: string; motivo: string; remedio: Remedio; laDejoFuera: "motor" | "entrada";
-  /** Su prioridad en el plan (D-NEXT), solo si no era normal. */
+  /** Su prioridad en el plan (D-415), solo si no era normal. */
   prioridad?: PrioridadDeOrden;
   /** Cuando se quedó sin sitio: cuántas órdenes de MÁS prioridad sí van en ruta. El motor coloca antes lo de más
    *  prioridad, así que son las que cogieron el sitio. Solo si hay alguna. */
@@ -146,7 +146,7 @@ export function fueraConPorque(
   return [...filas.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-// ---- Las frases de la prioridad (D-NEXT): aquí, para que la pantalla solo las pinte y una prueba las fije ----
+// ---- Las frases de la prioridad (D-415): aquí, para que la pantalla solo las pinte y una prueba las fije ----
 
 /** Lo que se dice de la prioridad de una orden que va en ruta. `null` = normal, o la puso una persona: nada que decir. */
 export function fraseDePrioridadEnRuta(q: Pick<PorQue, "quien" | "prioridad">, lang: "en" | "es"): string | null {

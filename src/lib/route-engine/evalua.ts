@@ -24,7 +24,7 @@ export const PARAMETROS_POR_DEFECTO: Parametros = {
   topeTardeAnchaMin: 60,
   recargaMinimaMin: 20,
   maxMovimientos: 2000,
-  // Opciones de reparto (D-NEXT): lo de siempre. Balance por minutos, y un chofer puede quedarse sin nada.
+  // Opciones de reparto (D-415): lo de siempre. Balance por minutos, y un chofer puede quedarse sin nada.
   balancePor: "tiempo",
   usarTodos: false,
 };

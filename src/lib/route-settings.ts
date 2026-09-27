@@ -35,7 +35,7 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   return r;
 }
 
-// ---- Opciones de reparto (D-NEXT) ----------------------------------------------------------------
+// ---- Opciones de reparto (D-415) ----------------------------------------------------------------
 
 export type OpcionesDeReparto = { balancePor: BalancePor; usarTodos: boolean };
 

@@ -6,7 +6,7 @@ import {
 } from "./index";
 
 /**
- * Prioridad por orden y opciones de reparto en el motor (D-NEXT). El dueño, con los enlaces de OptimoRoute (2026-09-26/27):
+ * Prioridad por orden y opciones de reparto en el motor (D-415). El dueño, con los enlaces de OptimoRoute (2026-09-26/27):
  * «quiero que mires como funciona y lo copies». El mapa es la misma cuadrícula que `route-engine.test.ts`: de «x,y» a
  * «x',y'» se tarda |dx|+|dy| minutos, a 0,6 millas por minuto. Nada es real.
  */

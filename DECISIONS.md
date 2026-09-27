@@ -21419,7 +21419,7 @@ de pantalla—, pero las notas de esta entrada sí se escribieron en **las dos**
 
 ## D-314 · Motor de rutas, incremento 2: el núcleo puro (planificar y evaluar), sin pantalla ni red
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el motor pasa a `motor-2`. Construye **por prioridad** y, dentro de
+> **⚠ Reemplazada en parte por D-415** (2026-09-27): el motor pasa a `motor-2`. Construye **por prioridad** y, dentro de
 > cada una, como aquí (builder, luego arrepentimiento); la mejora tiene un movimiento más, «ceder el sitio»; y el balance
 > puede medir órdenes en vez de minutos, con la opción de usar todos los choferes. Sin prioridades y con las opciones por
 > defecto, el plan es el mismo byte a byte (lo fija una prueba).
@@ -29825,7 +29825,7 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): «El motor propio de “Planificar el día” … meterle la prioridad **no se
+> **⚠ Reemplazada en parte por D-415** (2026-09-27): «El motor propio de “Planificar el día” … meterle la prioridad **no se
 > hizo**» ya no es cierto. El motor coloca primero lo de más prioridad, una de fuera puede quitarle el sitio a una de menos, y a
 > igual coste las críticas y altas van antes en su ruta. «Por qué» lo dice.
 
@@ -30187,7 +30187,7 @@ la verdad, no un fallo: el hueco es de captura.
   que nadie pulsó ese botón sale con toque o sin dato, aunque haya posiciones.
 - En el demo solo se midió como admin, en inglés.
 
-## D-NEXT · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte** a D-412 (el motor ya usa la prioridad) y a D-314 (qué compara el motor y el orden de construir). Las

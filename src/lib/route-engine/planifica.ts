@@ -17,10 +17,10 @@ import type {
  * choferes sin nada, (3) menor coste ponderado, (4) menos minutos de jornada. Lo primero no es un peso: ningún ahorro de minutos justifica
  * dejar una orden sin ruta. QUÉ orden se queda fuera cuando no cabe todo lo deciden la construcción, que coloca
  * por prioridad (crítica, alta, normal, baja) y dentro de cada una a los builders antes que a nadie, y «ceder el
- * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-NEXT, como OptimoRoute).
+ * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-2` (D-NEXT): prioridad por orden y opciones de reparto. Con todo en normal y las opciones sin tocar,
+/** `motor-2` (D-415): prioridad por orden y opciones de reparto. Con todo en normal y las opciones sin tocar,
  *  planifica exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
 export const VERSION_DEL_MOTOR = "motor-2";
 
@@ -161,7 +161,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
         return;
       }
       const total = costeCon(c.id, ruta);
-      // A igual coste, las críticas y altas antes (D-NEXT); luego gana la ruta que acaba antes (cargar dos órdenes
+      // A igual coste, las críticas y altas antes (D-415); luego gana la ruta que acaba antes (cargar dos órdenes
       // en la misma visita a la tienda no cambia el manejo, pero sí el día). Y si aun así empatan, se queda la
       // primera que se probó. Una ventana nunca se rompe por esto: una secuencia que la rompe ni llega aquí.
       const a = adelanto(ruta);
@@ -294,7 +294,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
       if (fuera.length < antes) { movimientos++; mejoro = true; }
     }
 
-    // Ceder el sitio (D-NEXT, como OptimoRoute): una de fuera entra quitando una de MENOS prioridad, que pasa a fuera
+    // Ceder el sitio (D-415, como OptimoRoute): una de fuera entra quitando una de MENOS prioridad, que pasa a fuera
     // (y la vuelta siguiente la reintenta en otro sitio). La construcción ya coloca primero lo de más prioridad, pero
     // la mejora reordena las rutas y puede abrir un hueco que ya ocupó una de menos: una búsqueda sobre 400 días
     // inventados encontró 2 así. Con todo en normal nunca hay una de menos prioridad, y esto no hace nada.
