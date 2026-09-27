@@ -1,5 +1,5 @@
 /**
- * 🔒 Rutas bloqueadas del Gestor de Rutas (D-NEXT): una ruta (un chofer o una ruta temporal) en un DÍA que las
+ * 🔒 Rutas bloqueadas del Gestor de Rutas (D-411): una ruta (un chofer o una ruta temporal) en un DÍA que las
  * herramientas automáticas no tocan — «Optimizar todas las rutas», su «Optimizar ruta», «Simular», el dibujo automático
  * al elegir un chofer, «✨ Auto-asignar» y «📍 Mejor lugar». Es el `lockType: ROUTES` de OptimoRoute
  * (docs/research-route-optimization.md §1.3). A mano sigue editable: flechas, «Asignar», quitar, mover de viaje.

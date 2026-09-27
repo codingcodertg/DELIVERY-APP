@@ -27839,7 +27839,7 @@ Sin asignar  [☑ #1012] [☑ #1013]
 - **Se queda el desplegable «Asignar a…» de cada fila**, sin cambios (con varias marcadas, sigue asignando la selección
   entera, como antes).
 
-  > **Nota (2026-09-26) — Reemplazada en parte por D-NEXT.** El recuadro lleva un botón más, «📍 Mejor lugar», al lado de
+  > **Nota (2026-09-26) — Reemplazada en parte por D-411.** El recuadro lleva un botón más, «📍 Mejor lugar», al lado de
   > «Asignar»: mete cada orden marcada en el hueco más barato de la ruta del elegido, sin reoptimizar. Y las opciones de
   > una ruta bloqueada llevan 🔒.
 
@@ -28466,7 +28466,7 @@ en el mismo `catch`), y se quitó.
 **Reemplaza en parte a D-393** (sección 1, «Lo que NO filtra»: con el filtro puesto, el diálogo nace con ese chofer marcado)
 **y a D-395** («Auto-asignar las marcadas» del recuadro ya no reparte al instante). Las dos llevan su nota.
 
-> **Nota (2026-09-26) — Reemplazada en parte por D-NEXT.** Una ruta bloqueada 🔒 ese día queda fuera: el diálogo no ofrece
+> **Nota (2026-09-26) — Reemplazada en parte por D-411.** Una ruta bloqueada 🔒 ese día queda fuera: el diálogo no ofrece
 > a ese chofer, el reparto lo quita aunque llegue marcado, y `optimizaEstas` (el bucle de «Optimizar todas las rutas» y del
 > diálogo) se la salta sin pedirla y dice cuántas se saltó.
 
@@ -29646,7 +29646,7 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 - **Mover el número de parada, la factura o las acciones de paradas**: son fijos, como el `#` de Órdenes.
 - **Guardar las columnas visibles del Gestor en el demo**: ya no se guardaban; no se pidió.
 
-## D-NEXT · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
+## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Sin migración** (y el bloqueo compartido la
 necesitará: ver «Dónde vive el candado»). **Reemplaza en parte a D-401** («Optimizar todas las rutas» y el diálogo ya no

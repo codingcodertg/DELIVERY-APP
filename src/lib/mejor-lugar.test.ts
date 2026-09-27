@@ -7,7 +7,7 @@ import { secuenciaPD } from "./secuencia-pd";
 import { FACTOR_DE_RODEO, millasEnLineaRecta } from "./route-times/proveedores";
 import type { Delivery } from "./types";
 
-/** «📍 Mejor lugar» del Gestor de Rutas (D-NEXT): una orden entra sola en el hueco más barato, sin reoptimizar el resto. */
+/** «📍 Mejor lugar» del Gestor de Rutas (D-411): una orden entra sola en el hueco más barato, sin reoptimizar el resto. */
 
 const BASE = { lat: 29.7, lng: -95.4 };
 const p = (id: string, lat: number, lng: number, ventana: [number, number] | null = null, pallets = 2): ParadaDeRuta & { lat: number; lng: number } =>

@@ -2,7 +2,7 @@ import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "
 import { RELOAD_MIN } from "@/lib/trip-timing";
 
 /**
- * «📍 Mejor lugar» del Gestor de Rutas (D-NEXT): meter UNA orden en la ruta de un chofer, en el hueco más barato, sin
+ * «📍 Mejor lugar» del Gestor de Rutas (D-411): meter UNA orden en la ruta de un chofer, en el hueco más barato, sin
  * reoptimizar nada más. Es el «best fit» de OptimoRoute (docs/research-route-optimization.md §1.3 y §4 «Copiar») y la
  * «inserción más barata del par» de docs/route-algorithm-design.md §2.6.
  *

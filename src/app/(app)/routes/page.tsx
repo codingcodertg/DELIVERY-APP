@@ -424,11 +424,11 @@ export default function RoutesPage() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
   const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
-  // 🔒 Rutas bloqueadas (D-NEXT): por día y por ruta, en ESTE navegador (`rutas-bloqueadas.ts` dice por qué no en la base).
+  // 🔒 Rutas bloqueadas (D-411): por día y por ruta, en ESTE navegador (`rutas-bloqueadas.ts` dice por qué no en la base).
   // Se lee tras montar (no en el inicializador), para que el HTML del servidor y el primer pintado del navegador coincidan.
   const [bloqueos, setBloqueos] = useState<Bloqueos>({});
   useEffect(() => { setBloqueos(leeBloqueos(window.localStorage)); }, []);
-  // Las líneas de lo último que colocó «📍 Mejor lugar» (D-NEXT), hasta que se cierran.
+  // Las líneas de lo último que colocó «📍 Mejor lugar» (D-411), hasta que se cierran.
   const [avisoMejorLugar, setAvisoMejorLugar] = useState<string[] | null>(null);
   // Drag-and-drop in the Routes tab: which order is being dragged, and which
   // lane card is currently under the cursor (for the drop highlight).
@@ -678,7 +678,7 @@ export default function RoutesPage() {
   // area grouping again, and the Optimize button would look broken.
   const regroupByArea = async (laneKey: string) => {
     const stops = byDriver.get(laneKey) ?? [];
-    // Reagrupar borra los viajes y luego optimiza: con la ruta bloqueada 🔒 no se empieza (D-NEXT).
+    // Reagrupar borra los viajes y luego optimiza: con la ruta bloqueada 🔒 no se empieza (D-411).
     if (!stops.length || bloqueada(laneKey)) return;
     setBusyDriver(laneKey);
     try {
@@ -703,7 +703,7 @@ export default function RoutesPage() {
   };
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
-  // 🔒 (D-NEXT): ¿esta ruta está bloqueada en el día que se mira? Lo miran «Optimizar» (todas y una), «Simular», el dibujo
+  // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Lo miran «Optimizar» (todas y una), «Simular», el dibujo
   // automático al elegir chofer, «✨ Auto-asignar» y «📍 Mejor lugar». A mano (flechas, «Asignar») no se mira.
   const bloqueada = (laneKey: string) => estaBloqueada(bloqueos, date, laneKey);
   const alternaCandado = (laneKey: string) => {
@@ -967,7 +967,7 @@ export default function RoutesPage() {
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
   // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de
   // verdad — el reparto nunca fue a rutas temporales (`autoAssign` recibe `drivers`).
-  // Sin los que tienen la ruta bloqueada 🔒 ese día (D-NEXT): Auto-asignar no les mete órdenes.
+  // Sin los que tienen la ruta bloqueada 🔒 ese día (D-411): Auto-asignar no les mete órdenes.
   const opcionesDelReparto = opcionesDeConductor({
     rutas: drivers.filter((u) => !bloqueada(u.full_name)).map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),
     paradasDe: (k) => (byDriver.get(k) ?? []).length,
@@ -1269,7 +1269,7 @@ export default function RoutesPage() {
   const optimize = async (driver: string) => {
     const stops = byDriver.get(driver) ?? [];
     if (stops.length < 1) return;
-    // Una ruta bloqueada no se reoptimiza (D-NEXT): ni con su botón, ni desde «Reagrupar por zona».
+    // Una ruta bloqueada no se reoptimiza (D-411): ni con su botón, ni desde «Reagrupar por zona».
     if (bloqueada(driver)) {
       notify(t(`🔒 ${laneLabel(driver)} is locked — unlock it to optimize.`, `🔒 ${laneLabel(driver)} está bloqueada — desbloquéela para optimizar.`));
       return;
@@ -1311,7 +1311,7 @@ export default function RoutesPage() {
   // de «Auto-asignar», D-401) solo las de los choferes que acaban de recibir órdenes, con sus paradas ya puestas.
   const optimizaEstas = async (rutas: RutaQueOptimizar[]): Promise<string[]> => {
     // Las que salieron bien: el resumen del diálogo no llama «optimizada» a una ruta que falló (D-401).
-    // Las bloqueadas 🔒 se saltan sin pedirlas —ni una llamada al optimizador— y el aviso dice cuántas (D-NEXT).
+    // Las bloqueadas 🔒 se saltan sin pedirlas —ni una llamada al optimizador— y el aviso dice cuántas (D-411).
     if (!rutas.length) return [];
     setOptimizingAll(true);
     setPreview(null);
@@ -1346,7 +1346,7 @@ export default function RoutesPage() {
     const delDia = new Set(dayOrders.map((d) => d.id));
     setAutoAssigning(true);
     let r: Awaited<ReturnType<typeof repartirYOptimizar>> | null = null;
-    // Un chofer con la ruta bloqueada 🔒 no recibe nada (D-NEXT). El diálogo ya no lo ofrece; el filtro de `choferes`
+    // Un chofer con la ruta bloqueada 🔒 no recibe nada (D-411). El diálogo ya no lo ofrece; el filtro de `choferes`
     // cubre al que se bloqueó con el diálogo abierto.
     try {
       r = await repartirYOptimizar({
@@ -1387,7 +1387,7 @@ export default function RoutesPage() {
     notify(t(`Assigned ${ids.length} order(s) to ${driver}`, `Asignadas ${ids.length} orden(es) a ${driver}`));
   };
 
-  // «📍 Mejor lugar» (D-NEXT): cada orden marcada entra SOLA en el hueco más barato de la ruta del elegido, sin
+  // «📍 Mejor lugar» (D-411): cada orden marcada entra SOLA en el hueco más barato de la ruta del elegido, sin
   // reoptimizar nada más. Una detrás de otra: la segunda ya ve a la primera dentro. El hueco lo decide `mejorLugar`
   // (estimación en línea recta, sin llamar a Google ni a OSRM); lo que se escribe, `escrituraDelHueco`.
   const colocaEnElMejorLugar = async (laneKey: string) => {
@@ -1459,7 +1459,7 @@ export default function RoutesPage() {
   /** Simulate adding an unassigned order to the selected driver's day —
    * shows the would-be route (dashed) and totals without saving anything. */
   const previewAdd = async (d: Delivery, driver: string) => {
-    // «Simular» reoptimiza la ruta entera con la orden dentro, y al confirmarlo la escribe: con candado, no (D-NEXT).
+    // «Simular» reoptimiza la ruta entera con la orden dentro, y al confirmarlo la escribe: con candado, no (D-411).
     if (bloqueada(driver)) {
       setErr(t(`🔒 ${laneLabel(driver)} is locked — Simulate would reoptimize it. Unlock it, or assign by hand.`, `🔒 ${laneLabel(driver)} está bloqueada — Simular la reoptimizaría. Desbloquéela, o asigne a mano.`));
       return;
@@ -1568,7 +1568,7 @@ export default function RoutesPage() {
   useEffect(() => {
     if (busyDriver != null || optimizingAll) return;
     for (const name of selected) {
-      // Dibujar es optimizar y escribir el orden: una ruta bloqueada 🔒 se queda como está (D-NEXT).
+      // Dibujar es optimizar y escribir el orden: una ruta bloqueada 🔒 se queda como está (D-411).
       if ((byDriver.get(name)?.length ?? 0) >= 1 && !routeInfo[name] && !bloqueada(name)) { optimize(name); return; }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2353,7 +2353,7 @@ export default function RoutesPage() {
             (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
             una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
             así que ninguna fila queda tapada para siempre. */}
-        {/* Lo que hizo «📍 Mejor lugar» (D-NEXT): dónde entró cada orden y por qué. Se queda hasta cerrarlo o marcar otra
+        {/* Lo que hizo «📍 Mejor lugar» (D-411): dónde entró cada orden y por qué. Se queda hasta cerrarlo o marcar otra
             cosa —el aviso de abajo dura 2,6 s y esto es lo que hay que leer—, en el sitio del recuadro, que ya se fue. */}
         {avisoMejorLugar && poolSelectedCount === 0 && (
           <div className="card" data-aviso-mejor-lugar role="status"
@@ -2398,7 +2398,7 @@ export default function RoutesPage() {
                 onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}>
                 {t("Assign", "Asignar")}
               </button>
-              {/* «📍 Mejor lugar» (D-NEXT): la orden entra sola en el hueco más barato de esa ruta, sin reoptimizar el
+              {/* «📍 Mejor lugar» (D-411): la orden entra sola en el hueco más barato de esa ruta, sin reoptimizar el
                   resto. Con la ruta bloqueada 🔒 se apaga, y la línea de al lado dice por qué. */}
               <button className="btn btn-primary" data-mejor-lugar disabled={!conductorElegido || autoAssigning || (!!conductorElegido && bloqueada(conductorElegido))}
                 title={t("Put each checked order in the cheapest slot of this driver's route, without reoptimizing the rest", "Poner cada orden marcada en el hueco más barato de la ruta de este chofer, sin reoptimizar lo demás")}
@@ -2525,7 +2525,7 @@ export default function RoutesPage() {
                 />
                 {t("plt", "trm")}
               </label>
-              {/* 🔒 (D-NEXT): por ruta y por día. Bloqueada, ni «Optimizar» (esta y todas), ni «Auto-asignar», ni «Mejor
+              {/* 🔒 (D-411): por ruta y por día. Bloqueada, ni «Optimizar» (esta y todas), ni «Auto-asignar», ni «Mejor
                   lugar», ni «Simular» la tocan; las flechas y «Asignar» sí. */}
               <button className={bloqueada(u.key) ? "btn btn-amber btn-sm" : "btn btn-ghost btn-sm"} data-candado={u.key}
                 aria-pressed={bloqueada(u.key)}

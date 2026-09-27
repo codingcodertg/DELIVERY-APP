@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { alternaBloqueo, avisoDeSaltadas, estaBloqueada, guardaBloqueos, leeBloqueos, LLAVE_DE_BLOQUEOS, optimizaSinLasBloqueadas } from "./rutas-bloqueadas";
 
-/** 🔒 Rutas bloqueadas del Gestor de Rutas (D-NEXT). */
+/** 🔒 Rutas bloqueadas del Gestor de Rutas (D-411). */
 
 const almacen = (inicial: Record<string, string> = {}) => {
   const m = new Map(Object.entries(inicial));
