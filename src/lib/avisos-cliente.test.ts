@@ -329,6 +329,13 @@ describe("ejecutarNocheAntes", () => {
     expect(db.lecturas).toEqual(["settings"]);
     expect(proveedor.envios).toEqual([]);
   });
+  // Solo `true` enciende: un valor nulo o ausente (columna recién creada, fila rara) es APAGADO. Es la puerta que
+  // separa esto de un SMS real a un cliente; un `=== false` la dejaría abierta con null (mutante del orquestador).
+  it.each([null, undefined])("interruptor %s en Ajustes: cuenta como apagado y no manda nada", async (valor) => {
+    const { proveedor, ctx } = montar(ordenes, ajustes({ notify_night_before_enabled: valor as unknown as boolean }));
+    expect(await ejecutarNocheAntes(ctx, { ahora: AHORA_1830 })).toEqual({ ok: true, apagado: true });
+    expect(proveedor.envios).toEqual([]);
+  });
   it("antes de la hora elegida: nada", async () => {
     const { proveedor, ctx } = montar(ordenes, ajustes({ notify_night_before_hour: 20 }));
     expect(await ejecutarNocheAntes(ctx, { ahora: AHORA_1830 })).toEqual({ ok: true, fueraDeHora: true });
