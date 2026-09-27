@@ -23057,6 +23057,9 @@ del 2026-08-11): no hay decisión anterior que marcar como reemplazada, y se dic
 
 ## D-332 · Las columnas de la tabla de Órdenes se pueden reordenar, con flechas, y el orden es de cada persona
 
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): «El Gestor de Rutas queda fuera» deja de valer. El Gestor mueve sus
+> columnas con este mismo mecanismo (`mueveColumna`, `ordenEfectivo`, `_orden` en la fila). Órdenes no cambia.
+
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** Andrés, literal: «in order let me rearrange the columns». Sigue a D-330 (columnas por persona).
 
@@ -27622,6 +27625,11 @@ una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `e
 
 ## D-394 · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
 
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): en el Gestor las columnas ya se mueven, y sus plantillas guardan
+> también el ORDEN (`o`), como las de Órdenes. Lo de abajo —«en el Gestor, solo qué columnas se ven, porque allí el orden lo
+> fija el código»— deja de valer; una plantilla del Gestor guardada antes, sin `o`, se aplica con el orden de partida. El
+> escritor único `escribeElGestor` manda ahora también la mitad `_orden`, y los anchos de paradas ya no van por posición.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, dos frases del mismo día, literales:
 *«ADD TEMPLATE IN COLUMNS THAT WILL BE LIKE RR(?) THE CURRENT ORDER SO IF THEY CHANGE IT AND THEN WANT TO GO BACK TO THE OLD ONE THEY CAN»* y
@@ -28572,6 +28580,11 @@ producción ni con llaves.**
 > pasa a fija en su puesto de ventas (tras PO y SO). La «Dirección» ahora es la «Ciudad de entrega»: misma clave y mismo
 > puesto (tras la recogida). El orden de ventas no cambia.
 
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): el orden de ventas de aquí pasa a ser el orden **de partida** de
+> «Sin asignar» —el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden»—; cada persona puede
+> mover sus columnas con flechas. Las tablas de paradas, que aquí «no se tocan», también se mueven ya, con los anchos por
+> clave. Lo de «el Gestor nunca ha guardado un orden» deja de ser cierto: lo guarda en `_orden`.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** El dueño, literal: *«quiero que la tabla que se hizo en logistic manager tenga el mismo orden que en
 order view de sales»*. La tabla es **«Sin asignar»** del Gestor de Rutas, la que recibió las columnas de Órdenes en D-376.
@@ -29279,6 +29292,10 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 
 ## D-408 · El Gestor de Rutas deja de enseñar el ID: la factura abre la orden, y la dirección de entrega pasa a ser la ciudad
 
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
+> marcada y apagada** —sigue sin poder quitarse—, porque ahora las columnas se mueven y la factura también. Y los anchos de
+> paradas pasan de `rtg_routes_stops8` (por posición) a `rtg_routes_stops9` (por clave), heredando los guardados.
+
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** Dos pedidos del dueño el mismo día, literales:
 *«routes manager doesn't need to see id»* y
@@ -29506,3 +29523,117 @@ línea «Recibida por almacén», solo la pastilla.
 - **El `logEvent` con `.select().single()`** en el proveedor real no se ejecutó (el demo no lo usa): la política de lectura
   de `order_events` (100) deja leer a cualquiera con acceso a Entregas, así que el `select` de vuelta debería llegar; si no
   llegara, no se rompe nada: la recarga por tiempo real lo trae como antes.
+
+## D-410 · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
+
+**Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** el dueño, literal: *«Route manager view to be able to move columns and save template IN THE COLUMNS»*.
+**Reemplaza en parte** a D-332 («el Gestor queda fuera»), D-394 (plantillas del Gestor sin orden), D-402 (el orden de ventas
+como orden fijo, y las paradas quietas) y D-408 (el ⚙ sin la factura, y los anchos de paradas por posición). Las cuatro llevan
+su nota.
+
+### Qué hay ahora
+
+En **los dos ⚙ Columnas del Gestor** —«Sin asignar» y la tabla de paradas de cada chofer— cada columna lleva sus flechas
+**↑ ↓**, la lista sale en el orden de la persona, y la cabecera enseña **«Restablecer orden»** cuando esa tabla tiene un orden
+propio. Es **el mecanismo de Órdenes (D-332) y Promos (D-385)**, no uno nuevo: `mueveColumna` y `ordenEfectivo` de
+`orden-de-columnas.ts`, el mismo marcado de las flechas (`.col-opt` con `flex: 1` y dos `btn btn-ghost btn-sm`, mismos
+`aria-label`), y el orden guardado APARTE de qué columnas se ven. El componente es el ⚙ que ya usaba el Gestor
+(`SelectorDeColumnas`, D-379), que recibe una prop `mover`; Órdenes y Promos pintan su menú en línea, sin componente propio,
+así que no había uno de ellos que reusar tal cual.
+
+- **Una flecha mueve un puesto entre las que se ven** (salta por encima de las escondidas) y se apaga en el tope. Mover en una
+  tabla no toca la otra, y la última de «Sin asignar» no «se cae» a la tabla de paradas.
+- **El orden de D-402 (el de Órdenes vista por ventas) pasa a ser el de PARTIDA**: el de quien no ha movido nada, el que
+  devuelve «Restablecer orden», y el que pone «Default».
+- **La factura de «Sin asignar» (fija, D-408) se mueve pero no se quita.** Ahora sale en el ⚙ —hasta hoy no salía— con la
+  casilla **marcada y apagada** («Always shown»), como `estado` en Promos. **Decisión del worker, a validar:** puede dejar de
+  ir tras PO y SO, **y puede ser la primera** si la persona la sube. Nada la ata a un puesto: lo que la hace fija es que abre
+  la orden, y eso no depende de dónde esté. (Hoy, de partida, NO es la primera: va tercera, tras PO # y SO #.)
+- **En paradas**, el número de parada y la factura siguen **fijos delante** y las acciones **fijas al final**, como el `#` de
+  Órdenes (D-332). Se mueven las 13 de su ⚙ —las cinco de siempre y las ocho de Órdenes (D-376)—, que hasta hoy tenían puestos
+  fijos: las cinco por posición y las de Órdenes siempre detrás de «Ventanas».
+
+### Dónde se guarda: la mitad `_orden` de la misma fila, sin migración
+
+En `user_prefs`, clave `routes_columns`, al lado de las columnas y de `_plantillas`, como en Órdenes:
+`{ "<rol>": [visibles], "_orden": { "<rol>": [claves en su orden] }, "_plantillas": [...] }`. La forma ya lo admitía
+(`prefsDeValor`/`valorDeColumnas` leen y escriben `_orden` desde D-332): **sin migración**.
+
+- **Una lista por rol para las dos tablas** (sus claves no se cruzan), y en ella **solo la tabla que la persona movió**: una
+  tabla que vuelve a su orden de partida sale de la lista, y una lista vacía no se guarda. Así una columna futura de una tabla
+  que nadie tocó entra donde diga el código, y no al final (`componeOrdenDelGestor`).
+- **Un solo escritor, `escribeElGestor` (D-394), manda las tres mitades tal como se leyeron.** Hasta hoy mandaba `{}` en el
+  hueco del orden —no borraba nada porque nadie lo escribía—; con esto, marcar una casilla habría borrado el orden. Ahora manda
+  el leído (`ordenDelGestor`), y mover una columna manda las columnas y las plantillas leídas. Pruebas con nombre para las dos
+  direcciones, y una que muestra que con `{}` el orden se pierde.
+- **En el demo** (sin base) el orden vive en este navegador, `rtg_routes_orden_<rol>`, como Promos (`rtg_promos_orden_<rol>`).
+  Las columnas visibles del Gestor siguen sin sobrevivir a recargar en el demo, como antes (D-394).
+
+### Las plantillas guardan también el orden
+
+La foto de una plantilla del Gestor lleva ahora `o` (el orden de la persona) si movió algo, como en Órdenes; sin orden propio
+no lleva `o`. Aplicarla pone qué columnas se ven **y en qué orden**, en UNA escritura. **Las plantillas viejas, sin `o`,
+siguen valiendo**: se aplican con el orden de partida. «Default» pone las columnas por defecto y el orden de partida. Como
+antes, las dos ⚙ comparten plantillas: una plantilla guarda el orden de las DOS tablas.
+
+### El tope de tamaño, medido (2026-09-26, con `bytesEnLaBase`, que reproduce `pg_column_size` de `jsonb`, D-394)
+
+| Fila | `jsonb` (bytes) | ¿Cabe con la reserva de 800? |
+|---|---:|---|
+| Un rol, el orden de las dos tablas entero movido | 323 | — |
+| Un rol lleno (todas visibles + todo movido) + **10 plantillas llenas** (nombre de 40, todas las columnas, orden entero) | **6 939** | **sí** (7 739 de 8 192) |
+| Los 6 roles llenos, sin plantillas | 3 648 | sí |
+| Los 6 roles llenos + 5 plantillas llenas | 6 811 | sí |
+| Los 6 roles llenos + 6 plantillas llenas | 7 439 | **no** (8 239) |
+| Los 6 roles llenos + 10 plantillas llenas | 9 951 | **no** |
+
+**El límite se queda en 10.** Una persona tiene un rol, y con su rol lleno caben las diez en el peor caso. Solo un admin que haya
+guardado columnas **y movido** en los seis roles con «Ver como» y nombres de 40 caracteres se queda en **5**; la sexta sale con
+«No cabe: borre una plantilla para hacer sitio» (la guarda `cabeEnLaFila` de D-394, que ahora mide la fila con el orden
+dentro). Antes de esto ese mismo caso eran 5 343 bytes con diez. No se bajó el límite para todos por un caso que solo tiene un
+admin a propósito.
+
+### Los anchos de paradas: por clave, y heredados
+
+Mover columnas en una tabla con los anchos por posición habría dejado el ancho en el puesto mientras la columna se va. Así que
+la tabla de paradas pasa a **anchos por clave** (`useColWidthMap`, llave nueva `rtg_routes_stops9`), con tres claves para las
+fijas (`_n`, `_factura`, `_acciones`). **Nadie pierde lo que arrastró**: `siembraAnchosDeParadas` hereda UNA vez lo guardado en
+`rtg_routes_stops8` (por posición, de D-408) y en `rtg_routes_stops_extra1` (las de Órdenes, D-376), antes de que el hook lea
+la llave nueva. Las viejas no se borran. Los anchos de partida son **los mismos números** ([40, 110, 140, 70, 120, 56, 110,
+150] y los de Órdenes para las de Órdenes), con prueba columna a columna. Esto va más allá de lo que se pedía (el encargo
+aceptaba que volvieran al defecto, como en D-408); heredarlos costó una función pura con su prueba.
+
+### Medido en el navegador (demo, 2026-09-26, «Ver como» logística, 1280×900, clics de persona con el elemento a la vista)
+
+**«Sin asignar»:**
+- De partida: `PO # | SO # | Invoice # | Type | Account | Contact | Stage | Store | Delivery Date | Pallets | Fee | Pickup |
+  Delivery City | Windows | Assign to`. El ⚙ lista las 14, la factura con la casilla apagada.
+- ↑ ↑ en «Store»: `… Account | Store | Contact | Stage | Delivery Date …`; sale «Reset order»; el navegador guarda el orden.
+- **Recargar:** las cabeceras, idénticas a las movidas.
+- Guardar «Log A»: «Saved “Log A”.», y la foto lleva `o` con Store movida.
+- **«Default»:** las cabeceras, idénticas a las de partida (el orden de D-402).
+- **Aplicar «Log A»:** otra vez las movidas.
+
+**Paradas** (primera tarjeta abierta):
+- De partida: `# | Invoice # | Type | Pallets | City | ETA | Windows`, anchos 40,110,140,70,120,56,110,150.
+- ↑ ↑ en «ETA»: `# | Invoice # | Type | ETA | Pallets | City | Windows`, anchos 40,110,140,**56**,70,120,110,150: el ancho
+  viaja con la columna.
+- **Recargar:** igual. Guardar «Log B» → «Default» vuelve al de partida → «Log B» devuelve ETA movida, y «Sin asignar» con Store
+  movida (la plantilla guarda las dos tablas).
+- La página no se desplaza de lado: `scrollWidth` 1280 = `clientWidth` 1280.
+
+**Lo que el demo no mide:** no tiene base, así que lo que sobrevivió a recargar es el navegador. La fila de `user_prefs` se
+prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
+
+### Mutantes
+
+**31, leídos por el nombre de la prueba que cae; caen los 31.** La lógica (`routes-columns.ts`): mover sin saltar las escondidas (M1), guardar el orden de partida (M2), mover una tabla y devolver la otra a su partida (M3), pintar sin el orden guardado (M4), la factura fija que no cuenta como vista (M5), la foto sin `o` (M6), aplicar sin el orden de la plantilla (M7), la flecha que no se apaga (M8), «Restablecer orden» que borra las dos tablas (M9) o que no sale (M10), heredar el ancho de la casilla equivocada (M11), no heredar los de Órdenes (M12), sembrar encima de la llave nueva (M13), las fijas de paradas sin su ancho (M14), el ⚙ en el orden de partida (M15). Las pantallas: el escritor único con `{}` en el orden (P1), las dos tablas y el ⚙ sin el orden de la persona (P2, P3, P4), la flecha que mueve desde la partida (P5), aplicar y guardar la plantilla sin orden (P6, P7), lo leído que no llega a la `ref` (P8), la guarda de tamaño sin el orden (P9), el ⚙ de paradas sin flechas (P10), la factura desmarcable (P11), el ancho que no viaja (P12), sin sembrar (P13), el demo que no lee su orden (P14), volver a la partida sin borrar el del rol (P15), sin «Restablecer orden» (P16).
+
+**Lo que no tiene mutante:** en `ordenDelGestorEnElNavegador`, la comprobación de que lo leído es una lista de textos. Quitarla no cambia nada que se vea: lo que no es una lista revienta dentro del `try` y sale `null` igual. Se deja por claridad, sabiendo que es redundante con el `catch`.
+
+### Lo que no se hizo
+
+- **Arrastrar cabeceras**: no, como en Órdenes y Promos (D-332: en la cabecera el arrastre es del asa del ancho).
+- **Mover el número de parada, la factura o las acciones de paradas**: son fijos, como el `#` de Órdenes.
+- **Guardar las columnas visibles del Gestor en el demo**: ya no se guardaban; no se pidió.

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasElegibles, conColumnasNuevas, extrasDeParadas, indicesOcultosDeParadas } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -37,10 +37,12 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", ["pallets", "address"]).map((c) => c.key)).toEqual(["invoice", "pallets", "address"]);
     expect(columnasDeLaTabla("paradas", [])).toEqual([]);
   });
-  it("D-408: el ⚙ no ofrece la factura —no se puede desmarcar— y ofrece todas las demás de su tabla", () => {
+  it("D-408 → D-410: la factura es fija —no se puede desmarcar—, pero el ⚙ la lista para poder MOVERLA, con la casilla apagada", () => {
     expect(COLUMNAS_DEL_GESTOR.filter((c) => c.fija).map((c) => c.key)).toEqual(["invoice"]);
-    expect(columnasElegibles("sinAsignar").map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "invoice"));
-    expect(columnasElegibles("paradas").map((c) => c.key)).toEqual(COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => c.key));
+    expect(columnasDelSelector("sinAsignar", null).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR);
+    expect(columnasDelSelector("paradas", null).map((c) => c.key)).toEqual(COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas")).map((c) => c.key));
+    const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
+    expect(selector).toContain('<input type="checkbox" checked={!!c.fija || elegidas.includes(c.key)} disabled={!!c.fija} onChange={() => onAlterna(c.key)} />');
   });
   it("D-408: la dirección de entrega se llama «Ciudad de entrega» en las dos tablas, con la MISMA clave guardada", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "address")).toMatchObject({ en: "Delivery City", es: "Ciudad de entrega" });
@@ -89,20 +91,18 @@ describe("las columnas del Gestor", () => {
       expect(conColumnasNuevas(["invoice"]), k).not.toContain(k);
     }
   });
-  it("la tabla de paradas: lo que se quita se esconde por su puesto; por defecto no se esconde nada", () => {
-    expect([...indicesOcultosDeParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)]).toEqual([]);
-    expect([...indicesOcultosDeParadas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))]).toEqual([5]);
-    expect([...indicesOcultosDeParadas(["invoice", MARCA_V2])].sort()).toEqual([2, 3, 4, 5, 6]);
-    // Las que no tienen puesto no se cuelan como «undefined» entre los ocultos, estén o no elegidas.
-    expect([...indicesOcultosDeParadas([...COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_fee"])]).toEqual([]);
-    // Los puestos son los de la tabla, sin repetir y sin pisar los fijos (0 número, 1 ID, 7 acciones).
+  it("la tabla de paradas: lo que se quita no se pinta; por defecto salen las cinco de siempre", () => {
+    const paradas = (elegidas: readonly string[]) => columnasDeLaTabla("paradas", elegidas).map((c) => c.key);
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
+    expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_type", "p_pallets", "p_address", "p_windows"]);
+    expect(paradas(["invoice", MARCA_V2])).toEqual([]);
+    // Los puestos viejos (`indice`) ya no pintan: solo dicen de qué casilla de `rtg_routes_stops8` se hereda el ancho.
     const puestos = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.indice != null).map((c) => c.indice);
     expect(puestos).toEqual([2, 3, 4, 5, 6]);
   });
-  it("las columnas de Órdenes en paradas: solo las elegidas, en el orden de la tabla, y ninguna con puesto", () => {
-    expect(extrasDeParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual([]);
-    expect(extrasDeParadas(["p_fee", "p_type", "p_stage", "fee"]).map((c) => c.key)).toEqual(["p_stage", "p_fee"]);
-    expect(extrasDeParadas(COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key)).toEqual(EXTRAS_DE_PARADAS);
+  it("las columnas de Órdenes en paradas: solo las elegidas, de partida detrás de las cinco de siempre, y ninguna con puesto", () => {
+    expect(columnasDeLaTabla("paradas", ["p_fee", "p_type", "p_stage", "fee"]).map((c) => c.key)).toEqual(["p_type", "p_stage", "p_fee"]);
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).filter((c) => c.indice == null).map((c) => c.key)).toEqual(EXTRAS_DE_PARADAS);
   });
 });
 
@@ -165,7 +165,8 @@ describe("se guarda por persona, en su propia clave", () => {
 describe("la página del Gestor", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("«Sin asignar» se pinta desde el catálogo, con la factura leída de la orden", () => {
-    expect(pagina).toContain('const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);');
+    // Desde D-410, en el orden de la persona (`ordenGestor`; sin orden propio, el de ventas de D-402).
+    expect(pagina).toContain('const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);');
     // Desde D-360 la factura es un enlace que abre la orden. Desde D-408 las cabeceras con menú son SOLO las del
     // catálogo: el ID fijo que iba delante ya no está.
     expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
@@ -179,7 +180,7 @@ describe("la página del Gestor", () => {
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain("style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}");
     expect(pagina).toContain("<td colSpan={colsSinAsignar.length + 2} className=\"empty\">");
-    expect(pagina).toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={stopCols.startResize(1)} /></th>');
+    expect(pagina).toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
   });
   it("D-408: el enlace pinta el texto de `textoQueAbreLaOrden`, abre con el gesto de siempre, y va gris sin factura", () => {
     const i = pagina.indexOf("const enlaceALaOrden = (d: Delivery) => {");
@@ -191,8 +192,9 @@ describe("la página del Gestor", () => {
   });
   it("D-408: la columna de la ciudad pinta `ciudadDeEntrega`, con la dirección entera en el title, en las dos tablas", () => {
     expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</span>').length - 1).toBe(1);
-    expect(pagina.split('{!paradasOcultas.has(4) && <td title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>}').length - 1).toBe(1);
-    expect(pagina).toContain('{!paradasOcultas.has(4) && <th>{t("City", "Ciudad")}<span className="col-resizer" onMouseDown={stopCols.startResize(4)} /></th>}');
+    // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»).
+    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>;').length - 1).toBe(1);
+    expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: City", es: "Paradas: Ciudad" });
     // El botón de abrir y cerrar la dirección se fue con ella.
     expect(pagina).not.toMatch(/addrWide|Expand address|Contraer dirección/);
     // Lo que no es la columna sigue con la dirección entera: el aviso de paradas sin pin la nombra.
@@ -205,32 +207,40 @@ describe("la página del Gestor", () => {
     expect(pagina).not.toContain("suggestDriverFor");
     expect(pagina).not.toContain("same store, has room");
   });
-  it("D-346: la tabla de paradas esconde por su puesto lo que la persona quitó — columna, cabecera y celda", () => {
-    expect(pagina).toContain("const paradasOcultas = indicesOcultosDeParadas(colsGestor);");
-    expect(pagina).toContain("{stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: w }} />)}");
-    for (const n of [2, 3, 4, 5, 6]) expect(pagina.split(`{!paradasOcultas.has(${n}) && <t`).length - 1, `puesto ${n}`).toBe(2);
-    // «La dirección nace abierta» (D-346) ya no aplica: desde D-408 es la ciudad, sin botón.
+  it("D-346 → D-410: la tabla de paradas pinta SOLO las elegidas, en el orden de la persona — col, cabecera y celda por la misma lista", () => {
+    // Hasta D-410: puestos fijos (`indicesOcultosDeParadas`) y las de Órdenes detrás (`extrasDeParadas`). Ahora, una lista.
+    expect(pagina).toContain('const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);');
+    for (const muerto of ["paradasOcultas", "paradasExtra", "indicesOcultosDeParadas", "extrasDeParadas", "stopExtraCols", "useColWidths(", "stopCols.widths"])
+      expect(pagina, muerto).not.toContain(muerto);
+    const col = pagina.indexOf("{colsParadas.map((c) => <col key={c.key} style={{ width: anchoDeParada(c.key) }} />)}");
+    const th = pagina.indexOf("{colsParadas.map((c) => <th key={c.key}");
+    const td = pagina.indexOf("{colsParadas.map((c) => { switch (c.key) {");
+    expect(col).toBeGreaterThan(-1);
+    expect(th).toBeGreaterThan(col);
+    expect(td).toBeGreaterThan(th);
+    // Número de parada y factura delante de las elegidas; las acciones, detrás.
+    expect(pagina.indexOf('<col style={{ width: anchoDeParada("_factura") }} />')).toBeLessThan(col);
+    expect(pagina.indexOf('<col style={{ width: anchoDeParada("_acciones") }} />')).toBeGreaterThan(col);
+    expect(pagina.indexOf('<td className="ordno">{enlaceALaOrden(d)}</td>')).toBeLessThan(td);
+    // Las cinco de siempre, cada una por su clave; y las de Órdenes con la celda de Órdenes.
+    for (const k of ["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
+    expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
   });
-  it("D-376: las columnas de Órdenes en paradas — col, cabecera y celda — entre «Ventanas» y las acciones, y los colSpan las cuentan", () => {
-    expect(pagina).toContain("const paradasExtra = extrasDeParadas(colsGestor);");
-    expect(pagina).toContain("const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;");
+  it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
+    expect(pagina).toContain("const columnasDeParadas = 3 + colsParadas.length;");
     // Los tres colSpan de las filas que ocupan la tabla entera (el viaje, el aviso, la fila informativa).
     expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(2);
     expect(pagina.split("<td colSpan={columnasDeParadas - 1}>").length - 1).toBe(1);
-    expect(pagina).not.toMatch(/colSpan=\{[78] - paradasOcultas\.size\}/);
-    const col = pagina.indexOf("{paradasExtra.map((c) => <col key={c.key} style={{ width: stopExtraCols.widthOf(c.deOrdenes!) }} />)}");
-    expect(col).toBeGreaterThan(pagina.indexOf("{stopCols.widths.slice(0, 7).map("));
-    expect(pagina.indexOf("<col style={{ width: stopCols.widths[7] }} />")).toBeGreaterThan(col);
-    const th = pagina.indexOf("{paradasExtra.map((c) => <th key={c.key}>");
-    expect(th).toBeGreaterThan(pagina.indexOf("{!paradasOcultas.has(6) && <th>"));
-    const td = pagina.indexOf("{paradasExtra.map((c) => <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>)}");
-    expect(td).toBeGreaterThan(pagina.indexOf("{!paradasOcultas.has(6) && <td>{fmtWindows(d.delivery_windows)}</td>}"));
-    // El ancho suma las elegidas: sin esto, la tabla se queda con el ancho de antes y las columnas se aplastan.
-    expect(pagina).toContain("+ paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>");
-    expect(pagina).toContain('const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);');
-    // D-408: llave nueva, porque el puesto 1 pasó del ID a la factura y el 4 de la dirección a la ciudad.
-    expect(pagina).toContain('const stopCols = useColWidths("rtg_routes_stops8", [40, 110, 140, 70, 120, 56, 110, 150]);');
-    expect(pagina).toContain("width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : w), 0)");
+    expect(pagina).toContain('width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
+  });
+  it("D-410: los anchos de paradas van por CLAVE, en la llave nueva, sembrada antes de que el hook la lea", () => {
+    expect(pagina).toContain("const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS, 100);");
+    const siembra = pagina.indexOf('useState(() => { if (typeof window !== "undefined") siembraAnchosDeParadas(window.localStorage); return 0; });');
+    expect(siembra).toBeGreaterThan(-1);
+    expect(siembra).toBeLessThan(pagina.indexOf("const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS"));
+    expect(pagina).toContain("const anchoDeParada = (clave: string) => stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));");
+    expect(pagina).toContain("const asaDeParada = (clave: string) => stopCols.startResize(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));");
+    expect(pagina).toContain('<span className="col-resizer" onMouseDown={asaDeParada(c.key)} />');
   });
   it("D-376: «Sin asignar» pinta, ordena y filtra las de Órdenes con las funciones de Órdenes", () => {
     expect(pagina).toContain('import { ORDER_COLUMNS } from "@/components/OrdersTable";');
@@ -267,9 +277,10 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);");
     expect(pagina).toContain("const next = alternaColumna(colsGestor, key);");
     // Cada ⚙ ofrece las de SU tabla, nuevas incluidas, y marca con la función probada.
-    // Desde D-408 con `columnasElegibles`: las de SU tabla menos la factura, que es fija.
-    expect(pagina).toContain('columnas={columnasElegibles("paradas")} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
-    expect(pagina).toContain('columnas={columnasElegibles("sinAsignar")} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
+    // Desde D-408 con `columnasElegibles` (sin la factura); desde D-410 con `columnasDelSelector`: toda SU tabla, en el
+    // orden de la persona, con la factura fija de casilla apagada.
+    expect(pagina).toContain('columnas={columnasDelSelector("paradas", ordenGestor)} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
+    expect(pagina).toContain('columnas={columnasDelSelector("sinAsignar", ordenGestor)} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
   });
   it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
     // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
@@ -308,7 +319,8 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const todas: ColumnasPorRol = { ...prefsDelGestor.current, [me.role]: next };");
     // Desde D-394 la fila lleva también las plantillas: se escribe por UN sitio, con las leídas, y marcar una casilla va por él.
     expect(pagina).toContain("prefsDelGestor.current = todas; void escribeElGestor();");
-    expect(pagina).toContain("const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, {}, {}, plantillasDelGestor.current);");
+    // Desde D-410 manda también el ORDEN leído (`ordenDelGestor`): mover y marcar van por el mismo escritor.
+    expect(pagina).toContain("const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, ordenDelGestor.current, {}, plantillasDelGestor.current);");
     expect(pagina.split("guardaColumnas(").length - 1).toBe(1);
     expect(pagina).not.toMatch(/hayQueSembrar|semillaDelNavegador|rtg_routes_columns/);
   });
@@ -367,7 +379,7 @@ describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("el selector está junto al buscador, con las columnas de ESA tabla, y usa la misma función que los otros dos", () => {
     // Desde D-379 es un `SelectorDeColumnas`, con su propio estado (lo fija la prueba de «una vez por chofer»).
-    const i = pagina.indexOf('columnas={columnasElegibles("sinAsignar")}');
+    const i = pagina.indexOf('columnas={columnasDelSelector("sinAsignar", ordenGestor)}');
     expect(i).toBeGreaterThan(-1);
     expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
     expect(pagina.slice(pagina.lastIndexOf("<input", i), i)).toContain("value={orderSearch}");
