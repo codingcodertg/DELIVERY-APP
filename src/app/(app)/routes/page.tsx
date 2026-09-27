@@ -55,12 +55,14 @@ import { sumaDinero } from "@/lib/totales";
 import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
-import { avisoDelHueco, escrituraDelHueco, mejorLugar, type ParadaDeRuta } from "@/lib/mejor-lugar";
+import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
 import {
   anota, barrasDeLaRuta, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
+import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
+import { fraseDeFaltan } from "@/lib/requisitos";
 import { avisoDeSaltadas, CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, optimizaSinLasBloqueadas, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 
@@ -834,6 +836,8 @@ export default function RoutesPage() {
   const colorFor = (driver: string | null) => (driver ? settings.driver_colors?.[driver] || fallbackDriverColor(driver) : UNASSIGNED_COLOR);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
+  // Requisitos del camión (D-NEXT): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
+  const { faltanA } = useRequisitosDelCamion();
   const setCapacity = (driver: string, capacity: number) => {
     clearRouteFor(driver);
     saveSettings({ driver_capacity: { ...(settings.driver_capacity ?? {}), [driver]: capacity } });
@@ -1444,8 +1448,14 @@ export default function RoutesPage() {
       notify(t(`🔒 ${laneLabel(laneKey)} is locked — Best fit leaves it alone. Unlock it, or use “Assign”.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Mejor lugar no la toca. Desbloquéela, o use «Asignar».`));
       return;
     }
-    const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));
-    if (!marcadas.length) return;
+    // El filtro de chofer válido (D-NEXT): lo que su camión no puede llevar ni se coloca ni se asigna al final.
+    const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));
+    const noEnEn = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "en")}`).join(", ");
+    const noEnEs = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "es")}`).join(", ");
+    if (!marcadas.length) {
+      if (sinCamion.length) notify(t(`Not placed — ${laneLabel(laneKey)}'s truck lacks what they need: ${noEnEn}.`, `Sin colocar — el camión de ${laneLabel(laneKey)} no tiene lo que piden: ${noEnEs}.`));
+      return;
+    }
     const delDia = new Set(dayOrders.map((d) => d.id));
     const capacidad = capacityFor(driverOf(laneKey));
     // La base: la de la ruta; con la ruta vacía, la recogida de la primera orden. Las coordenadas de la tienda de
@@ -1499,10 +1509,10 @@ export default function RoutesPage() {
       setAutoAssigning(false);
     }
     clearSelection();
-    const extraEn = aMano.length ? ` Assigned at the end (no pin or another day): #${aMano.join(", #")}.` : "";
-    const extraEs = aMano.length ? ` Asignadas al final (sin pin o de otro día): #${aMano.join(", #")}.` : "";
+    const extraEn = (aMano.length ? ` Assigned at the end (no pin or another day): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Not placed — the truck lacks what they need: ${noEnEn}.` : "");
+    const extraEs = (aMano.length ? ` Asignadas al final (sin pin o de otro día): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Sin colocar — el camión no tiene lo que piden: ${noEnEs}.` : "");
     notify(t(colocadas.map((a) => a.en).join(" · ") + extraEn, colocadas.map((a) => a.es).join(" · ") + extraEs));
-    setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
+    setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
 
   /** Simulate adding an unassigned order to the selected driver's day —

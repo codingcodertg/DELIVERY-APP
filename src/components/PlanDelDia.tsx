@@ -14,7 +14,7 @@ import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
 import type { RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
-import { fraseDePrioridadFuera, type FueraConPorque, type PorQue } from "@/lib/route-plan/porque";
+import { fraseDePrioridadFuera, fraseDeRequisitoFuera, type FueraConPorque, type PorQue } from "@/lib/route-plan/porque";
 
 /**
  * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
@@ -40,6 +40,8 @@ type Resumen = {
 
 /** Qué se puede hacer con una orden que quedó fuera: el siguiente paso, no el motivo. */
 const REMEDIO: Record<string, [string, string]> = {
+  // Requisitos del camión (D-NEXT): lo que pide la orden no lo tiene ningún chofer que rutea hoy.
+  dar_requisito: ["Mark it on a driver's truck (Settings → Route engine → Drivers), or take it off the order.", "Márquelo en el camión de un chofer (Ajustes → Motor de rutas → Choferes), o quíteselo a la orden."],
   poner_pin: ["Open the order and set its map pin.", "Abra la orden y póngale el pin en el mapa."],
   revisar_choferes: ["Check who routes today (Settings → drivers) and who is off.", "Revise quién rutea hoy (Ajustes → choferes) y quién no está."],
   partir_o_camion_mayor: ["It doesn't fit any truck: raise a truck's capacity or split the order.", "No cabe en ningún camión: suba la capacidad de uno o parta la orden."],
@@ -248,7 +250,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
               <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
                 {r.fueraConPorque!.map((x) => (
                   <li key={x.id}>
-                    <b>{nombreDeOrden(x.id)}</b> — {motivo(x.motivo)}.
+                    <b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.
                     {fraseDePrioridadFuera(x, lang) && <> {fraseDePrioridadFuera(x, lang)}</>}
                     {REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}
                   </li>

@@ -47,6 +47,7 @@ import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNot
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
 import { conPrioridadSiCabe, laBaseTienePrioridad, PRIORIDADES, prioridadDe } from "@/lib/prioridad";
 import { conAvisosSiCabe, idiomaDe, laBaseTieneAvisos, preferenciaDe } from "@/lib/avisos-cliente";
+import { alternaRequisito, catalogoDeRequisitos, conRequisitosSiCabe, laBaseTieneRequisitosEnOrdenes, requisitosDeLaOrden } from "@/lib/requisitos";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
@@ -545,8 +546,9 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
-    // La prioridad (D-412, 147) solo viaja si la base ya tiene la columna: mandarla antes haría fallar la orden entera.
-    const payload = conAvisosSiCabe(conPrioridadSiCabe({
+    // La prioridad (D-412, 147), los avisos (D-416, 150) y los requisitos del camión (D-NEXT, 151) solo viajan si la base
+    // ya tiene la columna: mandarlos antes haría fallar la orden entera.
+    const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({
       ...withDurations(d),
       // Builder o mostrador (D-316; desde D-337 lo decide la cuenta). Solo si la base ya tiene la columna: las migraciones se aplican
       // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
@@ -554,7 +556,7 @@ export function OrderModal({
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
       // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
       ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
-    }, deliveries), deliveries);
+    }, deliveries), deliveries), deliveries);
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
@@ -1868,6 +1870,24 @@ export function OrderModal({
                     {PRIORIDADES.map((p) => <option key={p.key} value={p.key}>{t(p.en, p.es)}</option>)}
                   </select>
                 </div>
+              </div>
+            )}
+            {/* Requisitos del camión (D-NEXT, 151; OptimoRoute `skills`): lo que la entrega necesita del camión. Solo sale si la
+                base ya tiene la columna y el admin puso algo en el catálogo (Ajustes → Motor de rutas). «Planificar el día» y
+                «Mejor lugar» no se la dan a un chofer cuyo camión no lo tiene. */}
+            {laBaseTieneRequisitosEnOrdenes(deliveries) && catalogoDeRequisitos(settings).length > 0 && (
+              <div className="field" style={{ marginTop: 8 }} data-campo="requisitos">
+                <label>{t("Truck needs", "Requisitos del camión")}</label>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {catalogoDeRequisitos(settings).map((r) => (
+                    <label key={r} className="col-opt" style={{ margin: 0 }}>
+                      <input type="checkbox" data-requisito={r} checked={requisitosDeLaOrden(d, catalogoDeRequisitos(settings)).includes(r)} disabled={!salesFields}
+                        onChange={() => set("requirements", alternaRequisito(d.requirements, r, catalogoDeRequisitos(settings)))} />
+                      {r}
+                    </label>
+                  ))}
+                </div>
+                <div className="hint">{t("Only a driver whose truck has all of these gets it automatically.", "Solo se le da en automático a un chofer cuyo camión lo tenga todo.")}</div>
               </div>
             )}
             {scheduleWarnings.length > 0 && (

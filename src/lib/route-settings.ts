@@ -2,6 +2,10 @@ import { DELIVERY_WINDOW_PRESETS } from "./constants";
 import { PARAMETROS_POR_DEFECTO, PESOS_POR_DEFECTO, type BalancePor } from "./route-engine";
 import type { DriverSettings, NamedLocation, RouteBalanceOptions, RouteWeights, Settings } from "./types";
 
+/** Las columnas de `driver_settings` (128) que leen Ajustes y «Planificar el día». Lo que tiene cada camión (`features`,
+ *  151) se pide aparte, como opcional (`leeConOpcionales`): una base sin la 151 no la tiene. */
+export const COLUMNAS_DE_CHOFER = "profile_id, base_store, capacity_pallets, shift_start, shift_end, returns_to_base, routable";
+
 /**
  * Los ajustes del motor de rutas: pesos, ventanas duras, tope de retraso, y lo de cada chofer (D-316).
  *

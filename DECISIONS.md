@@ -1285,6 +1285,10 @@ exótico ahí produce una cuenta que se ve bien y **no puede entrar**.
 ---
 
 ## D-043 · Fuera la satisfacción del cliente
+> **Reemplazada en parte por D-NEXT** (2026-09-27): la satisfacción vuelve, pero **no** como estaba. La da el **cliente**, en
+> una encuesta de la página de seguimiento (tabla nueva `delivery_surveys`, migración 151), y se ve en una tarjeta del
+> **Panel**. La ficha de la orden y la vista del chofer siguen sin enseñarla, y `csat_rating`/`csat_comment` siguen sin
+> usarse. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-08-16 · **Versión:** v1.7.7 · **Pedido por:** Andrés
 
@@ -30195,6 +30199,10 @@ la verdad, no un fallo: el hueco es de captura.
 - En el demo solo se midió como admin, en inglés.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+> **Reemplazada en parte por D-NEXT** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
+> `leeOrdenesDelDia` pide también `requirements` (151), así que su prueba de la consulta espera ahora dos columnas
+> opcionales en vez de una. Sin requisitos, el plan sigue siendo el de `motor-1` byte a byte (la misma huella). El texto de
+> abajo se conserva tal cual.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte** a D-412 (el motor ya usa la prioridad) y a D-314 (qué compara el motor y el orden de construir). Las
@@ -30602,3 +30610,142 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 - **El arrastre desde «Sin asignar» a la línea de tiempo**: las filas son de rutas; lo sin chofer sigue en su pestaña.
 - **Teclado sobre las barras**: no se enfocan; con teclado, las flechas de «Rutas».
 - **Tiempo real del candado**: como D-414, se relee al volver a la pestaña; el plan mira el candado que la pantalla tiene.
+
+## D-NEXT · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 151** (escrita, **no aplicada**; plan en
+`docs/PLAN-151-requisitos-y-encuesta.md`). Es 151 y no 150 porque otra rama (avisos al cliente) escribe la 150.
+**Reemplaza en parte** a D-043 (la satisfacción vuelve, de otra forma) y a D-415 (`motor-3`, y la consulta pide una columna
+opcional más). Las dos llevan su nota.
+
+**Qué pidió el dueño**, 2026-09-27, tras explicarle cómo funciona OptimoRoute: *«solos haz 1 3 y 4»*. El 4 eran dos cosas
+menores de OptimoRoute: (A) que una orden pueda pedir algo del camión y cada chofer declare lo que tiene (`skills` /
+`vehicleFeatures`), y (B) la encuesta de satisfacción de su página de seguimiento.
+
+### Qué había
+
+- Nada que dijera qué necesita una entrega del camión. «Planificar el día», «Mejor lugar» y Auto-asignar podían darle una
+  entrega que necesita liftgate a un camión sin liftgate, y nadie se enteraba hasta la puerta del cliente.
+- La satisfacción del cliente se quitó en D-043 porque la tenía que rellenar la oficina y nunca se usó (0 de 53). Las columnas
+  `csat_rating`/`csat_comment` (021) se quedaron en la base, sin uso.
+- `/track/<id>` era de solo lectura. El id es el `uuid` de la orden (`gen_random_uuid()`, 122 bits al azar): **no se
+  adivina**. El GET público ya enseñaba —antes de este cambio— la cuenta, la dirección y el chofer.
+
+### Qué hay ahora
+
+**A. Requisitos del camión.**
+
+- **El catálogo es de Ajustes, no del código** (`settings.delivery_requirements`): Ajustes → Motor de rutas → «Requisitos
+  del camión», añadir y quitar. En la misma tarjeta, la tabla de choferes gana «Su camión tiene», una casilla por requisito
+  (`driver_settings.features`, junto a base, capacidad y turno de la 128).
+- **La ficha de la orden** (al editar, bajo la prioridad): «Requisitos del camión», una casilla por requisito. La edita quien
+  edita el resto de la orden (`salesFields`), y la base no añade ninguna regla: el guard de la 145 no mira columnas.
+- **Solo cuenta lo que está en el catálogo, y se compara sin mayúsculas.** Quitar «Liftgate» del catálogo lo apaga en todas
+  las órdenes y camiones a la vez (`lib/requisitos.ts`).
+- **«Planificar el día»** (`motor-3`): una orden con requisitos solo va con un chofer cuyo camión lo tiene todo. Si ninguno
+  que rutea hoy lo tiene, queda fuera con `falta_requisito`, y «Fuera de este plan» dice *«falta Montacargas: ningún chofer
+  que rutea hoy lo tiene todo»* con su remedio (*«Márquelo en el camión de un chofer… o quíteselo a la orden»*). «¿Por qué
+  aquí?» dice de cada otro chofer *«Chofer X: no — falta Liftgate»*. Una orden grande se parte por el camión más grande **de
+  los que lo tienen**.
+- **«Mejor lugar»**: antes de buscar hueco (y antes del «se asigna al final» de las que no tienen pin o son de otro día),
+  separa lo que el camión de la ruta elegida no puede llevar: eso ni se coloca ni se asigna, y el aviso dice
+  *«Sin colocar — el camión de X no tiene lo que piden: #123: falta Liftgate»*. El cálculo del hueco no cambia.
+- **Sin requisitos, todo igual que antes, byte a byte**: la huella sha256 del día grabado con `motor-1` (la de D-415) sale
+  igual sin requisitos, con camiones que declaran cosas y órdenes que no piden nada, y con órdenes que piden algo que TODOS
+  tienen. La entrada que se guarda con el plan no lleva `requisitos` ni `habilidades` si están vacíos.
+
+**B. Encuesta de satisfacción.**
+
+- En `/track/<id>`, **solo con la orden entregada**: *«How was your delivery?»*, 5 estrellas y un comentario opcional
+  (≤ 500). Una vez respondida, *«Thank you for your feedback!»*, también al volver a abrir el enlace. **No se manda por SMS
+  ni correo**: vive en la página que el cliente ya tiene.
+- **La escribe una ruta del servidor**, `POST /api/track/<id>/survey`, con la llave de servicio, después de comprobar el id
+  (forma de uuid), el tamaño (≤ 2 KB), las estrellas (entero 1-5), el comentario (sin caracteres de control) y que la orden
+  esté entregada. **No devuelve nada de la orden.** `delivery_surveys` no tiene ninguna política de escritura: ni `anon` ni
+  `authenticated` pueden insertar. La base vuelve a exigir estrellas y comentario (`check`), «solo entregada» (disparador) y
+  **una por orden** (la clave primaria es la orden: la segunda choca y la ruta la cuenta como «ya estaba»).
+- **El GET público** solo añade `survey: { answered }`, nunca la respuesta.
+- **Resultados: tarjeta «Satisfacción del cliente» en el Panel**, con media, reparto por estrellas y los últimos comentarios,
+  de las **mismas órdenes que el resto del Panel** (sus tiendas, D-396, y su rango). La ven admin, logística y gerentes; la
+  política de la 151 dice lo mismo y además solo deja leer respuestas de órdenes que esa persona ya ve (la 131 vale sola).
+- **No vuelve a la ficha ni a la vista del chofer** (D-043, D-026): una prueba lo fija.
+
+**Sin la 151 aplicada, nada falla**: «Planificar el día» pide `requirements`, `delivery_requirements` y `features` solo si
+existen (`leeConOpcionales`, que generaliza lo que D-415 hizo con `priority`: si PostgREST contesta `42703`/`PGRST204`
+nombrando ESA columna, se vuelve a leer sin ella); la ficha no la manda (`conRequisitosSiCabe`); Ajustes dice «falta la
+actualización de la base»; la página de seguimiento no enseña la encuesta y el Panel no enseña la tarjeta (`PGRST205`).
+
+### Decisiones (para validar)
+
+1. **Un chofer fijado por una persona se respeta aunque su camión no lo tenga.** El motor no deshace lo que decidió alguien
+   (D-320); con los demás choferes, la orden sigue «atada a su chofer», no «falta X». Si el dueño prefiere que el motor la
+   saque, es cambiar `permitidos`.
+2. **Las rutas temporales («Route 1»…) no se filtran** en «Mejor lugar»: son carriles que arma una persona, no camiones que
+   declaren nada.
+3. **Si no se puede leer lo que tiene cada camión, cuenta como que no tiene nada** («Mejor lugar» no coloca lo que pide algo
+   y dice qué falta). Es el lado seguro: un viaje perdido a la puerta del cliente cuesta más que un clic de una persona.
+4. **Requisitos como nombres (`text[]`) y no como tabla con FK**, y «solo cuenta lo del catálogo»: quitar uno lo apaga en
+   todas partes sin cascadas. Renombrar = quitar y volver a marcar.
+5. **Office (`accounting`) no ve la encuesta**: el pedido nombraba «admin/logística/gerentes».
+6. **Borrar una orden borra su respuesta** (`on delete cascade`); `deliveries_borradas` (142) no la guarda.
+7. **Estrellas y textos de la encuesta en inglés**, como el resto de la página pública de seguimiento.
+
+### Lo que NO se hizo
+
+- **Auto-asignar no respeta los requisitos en esta rama.** Se escribió (en `dispatch.ts` y `auto-asignar.ts`, con su aviso, y
+  en el Auto-asignar del Mapa) y **se revirtió** por orden del orquestador (2026-09-27): otra rama reescribe Auto-asignar sobre
+  el motor de «Planificar el día», que ya los respeta. `dispatch.ts`, `auto-asignar.ts` y `map/page.tsx` quedan como en `main`.
+- La ficha no enseña los requisitos en **modo lectura** (tampoco la prioridad): solo al editar.
+- Ajustar a mano un plan del motor (`ajuste.ts`) no avisa si se pasa una orden a un camión sin el requisito: es una persona
+  decidiendo, como con el chofer fijado.
+
+### Dónde está
+
+`src/lib/requisitos.ts` (catálogo, comparar, frases, guardar sin la columna) y su gancho `src/lib/usa-requisitos.ts`;
+`src/lib/columnas-opcionales.ts` (`leeConOpcionales`); `src/lib/route-engine/planifica.ts` (`faltanEnElCamion`,
+`permitidos`, el intercambio, `falta_requisito`, `motor-3`) y `types.ts`; `src/lib/route-plan/entrada.ts` (lo del catálogo al
+motor, la consulta), `porque.ts` (`faltan`, `dar_requisito`, `fraseDeRequisitoFuera`, `fraseDeRequisitoConOtro`);
+`src/lib/mejor-lugar.ts` (`separaPorRequisitos`); `src/lib/route-settings.ts` (`COLUMNAS_DE_CHOFER`);
+`src/components/RouteEngineSettings.tsx`, `OrderModal.tsx`, `PlanDelDia.tsx`, `RutaDelPlan.tsx`;
+`src/app/api/route-plan/route.ts`. Encuesta: `src/lib/encuesta.ts`, `src/app/api/track/[id]/survey/route.ts`,
+`src/app/api/track/[id]/route.ts`, `src/app/track/[id]/page.tsx`, `src/components/EncuestaDelPanel.tsx` y
+`dashboard/page.tsx`. **`routes/page.tsx`, lo mínimo**: el gancho y el filtro de «Mejor lugar»; nada de la línea de tiempo
+ni de Auto-asignar.
+
+### Verificado
+
+- Pruebas nuevas: `route-engine/requisitos-en-el-motor.test.ts` (la huella de `motor-1` con y sin requisitos; con quién va;
+  fuera y lo que falta; «¿por qué aquí?»; chofer fijado; partir; **300 días inventados** sin ninguna orden en un camión que no
+  lo tiene), `route-plan/requisitos-en-el-plan.test.ts` (catálogo → motor, la consulta con y sin la 151, «Por qué» de punta a
+  punta con `planificaElDia`, las pantallas), `requisitos.test.ts` (librería, «Mejor lugar», que Gestor, ficha y Ajustes usan
+  las funciones), `encuesta.test.ts` (validación, la ruta POST y el GET con un Supabase falso, el Panel, la página, la
+  migración y su checksum).
+- **La prueba de los 300 días encontró un fallo real antes de darlo por hecho**: el movimiento «intercambiar» de la mejora
+  metía cada orden en el camión de la otra **sin pasar por `permitidos`**; se añadió la comprobación.
+- Pruebas que cambiaron: `plan.test.ts` (`motor-3`; 8 remedios), `prioridad-en-el-plan.test.ts` (la consulta pide también
+  `requirements`), `prioridad.test.ts` (el guardado envuelve `conRequisitosSiCabe`), `almacen-escribe-la-tarifa.test.ts`
+  (23 controles de `salesFields`, uno más).
+- **Mutantes** (`~/.claude/herramientas/mutantes`, tanda en la carpeta del worker): **41 de 41 caen con una prueba con nombre** (47 de 47 en la primera tanda, que incluía 6 de Auto-asignar y del Mapa, ya revertidos). Una pieza de código
+  se quitó antes porque no decidía nada: `!o.choferFijado &&` al descartar por requisito (un fijado ya tiene su chofer en
+  `permitidos`).
+- `node scripts/verify.mjs` (2026-09-27): tipos, **4914 pasadas | 3 saltadas** y `next build` en verde.
+- **Demo** (2026-09-27, admin, 1280 × 900 y 390 × 844, clics de persona): sin las claves, Ajustes dice *«Not available yet
+  (the database update is pending)»*; con ellas, se añadieron «Liftgate» y «Montacargas» y «liftgate» se rechazó como repetido
+  (*«That one is already in the list.»*); en la ficha de una aprobada, al editar, salen las dos casillas, se marcó Liftgate y
+  quedó guardado `["Liftgate"]`; en `/track/<id>` de una entregada, «Send» nace desactivado, 4 estrellas + comentario →
+  *«Thank you for your feedback!»*, y al recargar sigue el agradecimiento sin formulario; una sin entregar no enseña nada; el
+  Panel enseña **4.0 / 5, 1 answer(s)** y el comentario con su número de orden. **0 px** de desplazamiento lateral en Ajustes,
+  seguimiento y Panel a 1280 y a 390 (el formulario de la encuesta a 390: 290 px de ancho, 50 px a cada lado). Capturas
+  `A-ajustes-sin-151`, `B-ajustes-catalogo-1280/390`, `C-ficha-requisitos-1280`, `D-seguimiento-encuesta-1280/390`,
+  `E-panel-encuesta-1280/390`.
+
+### Lo que no se verificó
+
+- **Nada contra la base**: ni la migración, ni su autocomprobación, ni la matriz de 27 casos del plan.
+- **Lo del camión de cada chofer no se vio en el demo**: la tabla de choferes de Ajustes lee `driver_settings` de la base, y
+  el demo no la tiene (dice *«Driver settings aren't available yet»*, como antes). Se prueba por texto que la pantalla lee
+  `features` solo si existe y marca con `alternaRequisito`.
+- **«Planificar el día» y «Mejor lugar» no se abrieron en el demo**: el primero necesita el servidor; el segundo, en el demo,
+  no puede leer lo que tiene cada camión. Los dos se prueban con sus funciones (el motor de punta a punta con
+  `planificaElDia`) y con pruebas de que la pantalla las usa.
+- La encuesta con la base de verdad (la ruta POST contra PostgREST, el `23505` real): probada solo con un cliente falso.

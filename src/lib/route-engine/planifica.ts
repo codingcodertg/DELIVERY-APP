@@ -20,15 +20,26 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-2` (D-415): prioridad por orden y opciones de reparto. Con todo en normal y las opciones sin tocar,
- *  planifica exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-2";
+/** `motor-3` (D-NEXT): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
+ *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
+ *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
+export const VERSION_DEL_MOTOR = "motor-3";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 const rangoDe = (o: OrdenEntrada): number => RANGO[o.prioridad ?? "normal"] ?? RANGO.normal;
 /** Cuánto empuja cada prioridad a ir antes en su ruta, a igual coste. Normal y baja, nada: su orden es el de siempre. */
 const ADELANTO: Record<string, number> = { critical: 2, high: 1 };
+
+/** Requisitos del camión (D-NEXT, OptimoRoute `skills`): lo que pide la orden y el camión de ese chofer no tiene. Vacío =
+ *  puede llevarla. Se compara sin mayúsculas ni espacios de más. Una orden que no pide nada va con cualquiera. */
+const claveDeRequisito = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+const NADA: readonly string[] = [];
+export function faltanEnElCamion(c: ChoferEntrada, o: OrdenEntrada): readonly string[] {
+  if (!o.requisitos?.length) return NADA;
+  const tiene = new Set((c.habilidades ?? []).map(claveDeRequisito));
+  return o.requisitos.filter((r) => !tiene.has(claveDeRequisito(r)));
+}
 
 /** Compara dos textos; el que falta va DETRÁS. Campo a campo y no pegándolos en una sola clave: pegados,
  *  «sin fecha va detrás» dependía de qué carácter hiciera de separador, y lo cazó un mutante. */
@@ -51,7 +62,9 @@ export function parteOrdenesGrandes(ordenes: readonly OrdenEntrada[], choferes: 
   const partes: Record<string, string[]> = {};
   const grupoDe = new Map<string, string>();
   for (const o of ordenes) {
-    const posibles = o.choferFijado ? choferes.filter((c) => c.id === o.choferFijado) : choferes;
+    // Con requisitos, el tope es el camión MÁS GRANDE DE LOS QUE LO TIENEN: partir por uno que no puede llevarla dejaría
+    // cargas que no caben en ninguno de los que sí.
+    const posibles = o.choferFijado ? choferes.filter((c) => c.id === o.choferFijado) : choferes.filter((c) => !faltanEnElCamion(c, o).length);
     const tope = Math.max(0, ...posibles.map((c) => aCentesimas(c.capacidad)));
     const total = aCentesimas(o.pallets);
     // Lo ya recogido va entero en un camión: partirlo ahora sería negar lo que ya pasó.
@@ -145,7 +158,10 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
         if (c) return choferes.filter((x) => x.id === c);
       }
     }
-    return choferes;
+    // Requisitos del camión (D-NEXT): solo los que lo tienen todo. El chofer que fijó una persona (arriba) se respeta
+    // aunque no lo tenga: el motor no deshace lo que decidió alguien.
+    if (!o.requisitos?.length) return choferes;
+    return choferes.filter((c) => !faltanEnElCamion(c, o).length);
   };
 
   type Hueco = { chofer: string; secuencia: ParadaRef[]; ruta: RutaEvaluada; coste: Desglose; adelanto: number };
@@ -195,12 +211,17 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
 
   // ---- Lo que no se puede ni intentar -------------------------------------------------------------
   const descartadas = new Map<string, MotivoSinAsignar>();
+  /** Con `falta_requisito`: lo que le falta al chofer que menos le falta (el primero por nombre, a igualdad). */
+  const faltanDe = new Map<string, readonly string[]>();
+  const loQueMenosFalta = (o: OrdenEntrada): readonly string[] =>
+    choferes.map((c) => faltanEnElCamion(c, o)).reduce((a, b) => (b.length < a.length ? b : a));
   const pendientes: OrdenEntrada[] = [];
   for (const o of ordenes) {
     if (ordenesFijadas.has(o.id)) continue;
     if (choferes.length === 0) descartadas.set(o.id, "sin_chofer_disponible");
     else if (o.choferFijado && !idsDeChofer.has(o.choferFijado)) descartadas.set(o.id, "chofer_fijado_sin_hueco");
     else if (o.recogidaHecha && !o.choferFijado) descartadas.set(o.id, "chofer_fijado_sin_hueco");
+    else if (!permitidos(o).length) { descartadas.set(o.id, "falta_requisito"); faltanDe.set(o.id, loQueMenosFalta(o)); }
     else pendientes.push(o);
   }
 
@@ -275,6 +296,9 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
       for (let b = a + 1; b < lista.length && convergio; b++) {
         const ca = choferDe(lista[a].id), cb = choferDe(lista[b].id);
         if (!ca || !cb || ca === cb) continue;
+        // Requisitos del camión (D-NEXT): el intercambio mete cada una en el camión de la otra sin pasar por `permitidos`;
+        // si alguno de los dos no tiene lo que pide la que le llega, no se intenta. Lo cazó la prueba de los 300 días.
+        if (faltanEnElCamion(choferes.find((c) => c.id === cb)!, lista[a]).length || faltanEnElCamion(choferes.find((c) => c.id === ca)!, lista[b]).length) continue;
         const antes = copia(), notaAntes = nota();
         quita(lista[a].id, ca); quita(lista[b].id, cb);
         const ha = mejorHuecoEn(lista[a], choferes.find((c) => c.id === cb)!, estado.secuencias.get(cb)!);
@@ -344,7 +368,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     return (cuenta.get(tipo) ? A_MOTIVO[tipo] : undefined) ?? (o.choferFijado ? "chofer_fijado_sin_hueco" : "no_cabe_con_el_resto");
   };
   const sinAsignar: SinAsignar[] = [
-    ...[...descartadas].map(([orden, motivo]) => ({ orden, motivo })),
+    ...[...descartadas].map(([orden, motivo]) => ({ orden, motivo, ...(faltanDe.has(orden) ? { faltan: [...faltanDe.get(orden)!] } : {}) })),
     ...fuera.map((o) => ({ orden: o.id, motivo: motivoDe(o) })),
   ].sort((a, b) => porClave(porId.get(a.orden)!, porId.get(b.orden)!));
 
@@ -361,7 +385,11 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     const alternativas: Alternativa[] = [];
     for (const otro of choferes) {
       if (otro.id === c) continue;
-      if (!mias.has(otro.id) || ordenesFijadas.has(o.id)) { alternativas.push({ chofer: otro.id, diferencia: null, motivo: "no_permitido" }); continue; }
+      // Si con ese no puede porque su camión no tiene lo que pide (D-NEXT), se dice eso, y qué le falta. Un chofer fijado
+      // por una persona, o una parte que va con sus hermanas, siguen siendo «no permitido».
+      const noTiene = o.choferFijado ? NADA : faltanEnElCamion(otro, o);
+      if (ordenesFijadas.has(o.id) || (!mias.has(otro.id) && !noTiene.length)) { alternativas.push({ chofer: otro.id, diferencia: null, motivo: "no_permitido" }); continue; }
+      if (noTiene.length) { alternativas.push({ chofer: otro.id, diferencia: null, motivo: "falta_requisito", faltan: [...noTiene] }); continue; }
       const rechazo: { tipo?: TipoDeViolacion; n: number } = { n: Infinity };
       const h = mejorHuecoEn(o, otro, estado.secuencias.get(otro.id)!, rechazo);
       alternativas.push(h ? { chofer: otro.id, diferencia: restaDesglose(h.coste, final) } : { chofer: otro.id, diferencia: null, motivo: rechazo.tipo });
