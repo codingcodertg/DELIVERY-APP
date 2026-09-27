@@ -12,6 +12,7 @@ import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
 import type { DatosDelDia } from "@/lib/route-plan/entrada";
+import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
 // «Planificar el día» (D-320): calcula un plan de ruta y lo deja en BORRADOR.
@@ -64,6 +65,11 @@ export async function POST(req: Request) {
     ? await supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", borradorVigente.id).eq("pinned", true)
     : { data: null };
 
+  // Las rutas bloqueadas 🔒 de ese día (149, D-NEXT): el motor no las toca. Sin la tabla, planifica como antes y lo dice;
+  // con otro fallo, NO sigue: planificar sin saber qué está bloqueado movería rutas que alguien bloqueó.
+  const candados = await rutasBloqueadasDelDia(supabase as unknown as ClienteDeCandados, fecha);
+  if (candados.fuente === "error") return NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 });
+
   const nombrePorId = new Map((choferes.data ?? []).map((c) => [c.id as string, String(c.full_name ?? "")]));
   const datos: DatosDelDia = {
     ordenes: (ordenes.data ?? []) as unknown as DatosDelDia["ordenes"],
@@ -73,6 +79,7 @@ export async function POST(req: Request) {
     publicadoAntes: ((publicado.data?.writes ?? []) as DatosDelDia["publicadoAntes"]) ?? [],
     fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias,
     noDisponibles: [...unavailableDriverNames((ausencias.data ?? []) as { driver_id: string; start_date: string; end_date: string }[], nombrePorId, fecha)],
+    bloqueadas: candados.fuente === "base" ? candados.rutas : [],
   };
 
   // Tiempos de viaje: Google si hay llave, y siempre los dos respaldos detrás.
@@ -107,6 +114,8 @@ export async function POST(req: Request) {
     // A quien publica no se le marcan tiendas (131): no vería órdenes que tendría que escribir.
     warnTiendasMarcadas: Array.isArray(yo.visible_stores) && yo.visible_stores.length > 0,
     status: "draft",
+    // «base»: el plan respetó los candados compartidos; «sin_tabla»: la 149 no está y el motor no los conoce.
+    candados: candados.fuente,
     resumen: resumenDelPlan(borrador.plan, borrador.paradas.length),
     rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes),
     choferes: choferesDelPlan(borrador.plan.input.entrada.choferes),

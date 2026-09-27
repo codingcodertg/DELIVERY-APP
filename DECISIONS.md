@@ -29665,6 +29665,11 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el candado ya no vive solo en el navegador. Con la migración 149
+> (`route_locks`) aplicada, se guarda en la base, lo ve todo logística y lo respetan «Planificar el día» y «Publicar ruta»;
+> sin ella, sigue en `localStorage` como aquí, y el botón lo dice. Lo de «Dónde vive el candado» de abajo describe el
+> estado hasta D-NEXT.
+
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Sin migración** (y el bloqueo compartido la
 necesitará: ver «Dónde vive el candado»). **Reemplaza en parte a D-401** («Optimizar todas las rutas» y el diálogo ya no
 optimizan ni reparten a una ruta bloqueada) **y a D-395** (el recuadro lleva un botón más). Las dos llevan su nota.
@@ -30031,3 +30036,144 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
 - `window.print()` de verdad (el diálogo del sistema) no se puede pulsar en headless: se midió con `media: print` y
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
+
+## D-NEXT · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
+NO aplicada** (plan en papel: `docs/PLAN-149-candado-compartido.md`, con la matriz por rol para correr con `ROLLBACK`).
+**Reemplaza en parte a D-411** (dónde vive el candado; lleva su nota). No toca `src/lib/route-engine/*` ni `/estimator`.
+
+**Qué pidió el dueño** (2026-09-26/27, con los enlaces de OptimoRoute): *«quiero que mires como funciona y lo copies y dime
+como funciona para implementarlo en lo de nosotros»* (cita tal como la pasó el orquestador, no extraída del fichero de
+sesión). Frente a OptimoRoute quedaban dos huecos: el candado de ruta que ve todo el equipo y respeta el planificador, y el
+informe de puntualidad («On-time performance»). Son las dos partes de esta entrada.
+
+### 1. El candado de ruta, compartido
+
+**Qué fallaba.** D-411 guardaba el 🔒 en el `localStorage` de quien lo ponía. Otra persona de logística no lo veía y
+pulsaba «Optimizar todas» sobre esa ruta; y «Planificar el día» (el motor, en el servidor) no lo conocía y repartía sus
+órdenes. D-411 lo dejó dicho y pidió la tabla; esto la escribe.
+
+**La base (149).** `public.route_locks (plan_date, lane, locked_by, locked_at)`, clave `(plan_date, lane)`. `lane` es la
+clave de ruta del Gestor: el NOMBRE del chofer o de la ruta temporal. Bloquear = insertar la fila; desbloquear = borrarla;
+sin UPDATE. `locked_by`/`locked_at` los pone un disparador (la base firma, no el navegador). Leen admin, logística, gerente,
+office y almacén (como `driver_settings`, 128); escriben admin y logística. Número 149 y no 148: otra rama (`/estimator`)
+puede estar escribiendo la 148.
+
+**La pantalla, con y sin la tabla.** Todo pasa por `src/lib/rutas-bloqueadas.ts`, que decide de dónde se lee:
+- `cargaCandados`: con la tabla, la base (los últimos 14 días, y quién puso cada uno); **sin ella** (`PGRST205`/`42P01`,
+  `faltaLaTabla`) o con la lectura fallida, el navegador, como en D-411 — y dice por qué. En el demo, el navegador sin
+  preguntar.
+- `pulsaCandado`: con la base escribe y **vuelve a leer** (así se ve también lo que puso otra persona entre tanto); si la
+  escritura falla (p. ej. un rol sin permiso), **no cambia nada** y el aviso dice el error; si la tabla desapareció (149
+  revertida), pasa al navegador.
+- El botón y el aviso dicen dónde vive: *«Compartido: lo ve todo logística, y «Planificar el día» lo respeta.»* o *«Solo en
+  este navegador: la base aún no tiene la tabla de candados (migración 149). Los demás no lo ven.»*; con la base, el título
+  dice además **quién** la bloqueó.
+- **Recarga al enfocar, no tiempo real** (decisión del worker, a validar): se relee al volver a la pestaña (`focus` y
+  `visibilitychange`) y tras cada clic. El tiempo real pediría meter la tabla en la publicación de Realtime y un canal más en
+  cada Gestor, para un dato que cambia pocas veces al día. Lo que no cubre: dos personas con el Gestor a la vista a la vez no
+  ven el candado de la otra hasta cambiar de pestaña o pulsar uno. El servidor, en cambio, lee la base en el momento.
+
+**«Planificar el día» lo respeta** (`POST /api/route-plan` → `entradaDelDia`, `bloqueadas`). El chofer con la ruta
+bloqueada no entra al motor (sale en «Hoy no rutean: X (ruta bloqueada 🔒)»); sus órdenes quedan fuera del plan **tal como
+están**, las pusiera una persona o el motor (`en_ruta_bloqueada`), y publicar no escribe lo que está fuera. Sin la tabla,
+planifica como antes y el panel lo dice en ámbar. **Con otra lectura fallida, 500**: planificar sin saber qué está
+bloqueado movería una ruta bloqueada.
+
+**«Publicar ruta» también** (`choquesAlPublicar`): si alguien bloqueó una ruta **después** de planificar y el plan asignaría
+a ella o movería/reordenaría una orden que HOY está en ella, **409 `ROUTE_LOCKED`** con las órdenes, y el panel pide
+planificar de nuevo. Y al chofer bloqueado **no** se le manda «Your route … changed: you have no stops now»
+(`avisosAlPublicar`, `sinAviso`): no entró al plan, pero sus órdenes siguen siendo suyas. Sin este arreglo el aviso habría
+mentido.
+
+**Lo del navegador no se sube a la base** (decisión, a validar): al aplicar la 149, los candados que cada uno tenía en su
+navegador dejan de verse. Son de un día; se vuelven a poner. Subirlos solos sería escribir en nombre de alguien sin que lo
+pida.
+
+### 2. Puntualidad por chofer, en el Panel
+
+**Dónde:** en el Panel (`/dashboard`), justo debajo de «KPIs de choferes y flota». Se decidió ahí y no en el Gestor porque
+el Panel ya tiene el **rango de fechas** (el Gestor trabaja por día), ya tiene la tabla por chofer y su «A tiempo» — que mide
+**otra cosa** (entregada antes del fin de la ventana o del día, la marcara quien la marcara) y conviene leer al lado — y ya
+acota por tiendas al gerente (D-396). **Consecuencia:** logística no lo ve salvo que tenga el permiso «Panel»; la ruta del
+servidor sí se lo permite (a validar si se quiere también en el Gestor).
+
+**Qué dice**, por chofer y en este orden (el de la honestidad, D-328): entregadas; con **hora real** (GPS · toque); **sin
+hora real** (la marcó otra persona · sin ninguna hora); **a tiempo** «x / n (%)» sobre las que tienen hora real Y ventana
+(y aparte «+N sin ventana»); **tarde**; **retraso** medio y peor, **solo de las tarde**; **millas del plan** y **millas GPS**,
+cada una con sus días. Arriba, el total del rango en una línea. Se calcula **al pulsar** «Calcular para este rango» (lee
+paradas y posiciones de todo el rango; no en cada visita), con un rango de **62 días como mucho**.
+
+**Las reglas** (`src/lib/puntualidad.ts`, puro, `puntualidadPorChofer`):
+- **Hora real** = la llegada por GPS que «¿Se cumplió el plan?» guardó en el plan publicado (`actual_arrival_at`, parada D,
+  y solo si la parada es de ese chofer); si no, el toque «entregado» (`pod_delivered_at`) **solo si lo pulsó ese chofer**
+  (último evento `delivered`, `order_events.created_by`). Marcada por otra persona no cuenta: dice cuándo se cerró la orden,
+  no dónde estaba el camión (D-328: tres de cuatro choferes no pulsan).
+- **A tiempo** = la hora real no pasa del FIN de la ventana (`parseWindow`, la primera), en la zona del negocio y **contando
+  el día** (entregar al día siguiente son 1440 min más). Llegar antes de que abra cuenta como a tiempo y se cuenta aparte.
+  Con toque, es la hora de cerrar (incluye la descarga): la medida conservadora, y por eso cada fila dice cuántas son de GPS.
+- **Millas del plan** = suma de `leg_miles` de sus paradas en los planes publicados; sin plan, «—», no 0. **Millas GPS** =
+  el rastro de `driver_locations`: posiciones peor que 100 m fuera; un salto de más de 20 min es un hueco y no se cuenta la
+  recta; y el temblor del GPS parado no suma (solo se avanza al alejarse 50 m del último punto contado). Si el rango pasa de
+  50 000 posiciones, **no se da cifra** (un rastro a medias contaría de menos) y se dice.
+
+**El servidor** (`GET /api/puntualidad?from&to`): solo lectura, con la sesión (sin llave de servicio, sin escrituras);
+admin, logística y gerente (los roles que leen posiciones, 121); acota con `alcanceDelPanel`/`ordenesDelPanel`, las mismas
+funciones del Panel; pagina de 1000 en 1000 (el tope de PostgREST). **Sin migración.** En el demo no hay base: la tarjeta
+calcula con la misma función y lo que el demo tiene en memoria, y dice que ahí solo cuenta el toque.
+
+**Lo que hoy va a enseñar en producción, dicho antes:** con lo medido en D-328 (tres de cuatro choferes sin haber entrado
+nunca, casi sin GPS), la mayoría de las entregas saldrán «sin hora real: la marcó otra persona». Eso es el informe diciendo
+la verdad, no un fallo: el hueco es de captura.
+
+### Medido en el demo (2026-09-27, admin, en inglés, 1280 × 900; clics de persona con el ratón y el elemento a la vista)
+
+- **Gestor:** 4 botones de candado, todos con `data-candado-fuente="navegador"` y título «… Only in this browser.». Clic en
+  el de Diego Driver → «🔒 Locked», `aria-pressed=true`, aviso «🔒 Diego Driver locked: … (arrows still work). Only in this
+  browser.», guardado `{"2026-09-27":["Diego Driver"]}`. Tras recargar, sigue bloqueada; tras `focus` +
+  `visibilitychange`, igual. Desbloquear: «🔓 Diego Driver unlocked. Only in this browser.», guardado `{}`. **0** peticiones
+  a `route_locks` (el demo no pregunta a la base). Desborde lateral: 0 px.
+- **Panel, sin tocar nada:** «4 delivered · real time for 0 (GPS 0, driver's tap 0) · no real time for 4 (marked by someone
+  else 4, no time 0) · 0 with a window to judge, 0 on time.» — el demo no trae ningún evento «delivered», así que ninguna
+  entrega tiene quién la marcó: todas «la marcó otra persona». Cuatro filas, una por chofer.
+- **Panel, con toques** (se metieron en el almacén del demo, en el navegador, eventos «delivered» con la hora del POD: Diego
+  en #1017, Carlos en #1018, y el vendedor en #1016): «real time for 2 (… driver's tap 2) · no real time for 2 (marked by
+  someone else 2 …) · 2 with a window to judge, 0 on time (0%)». Carlos R.: #1018 del 22-sep, ventana hasta 10:30, POD el
+  24-sep a las 12:06 (Texas) → **49h 36m** tarde; Diego Driver: #1017 del 24-sep, hasta 15:00, POD el 25-sep a las 11:26 →
+  **20h 26m**. Recalculado a mano: 2·1440 + 726 − 630 = 2976 min; 1440 + 686 − 900 = 1226 min. Fleet Truck 3 (#1016, marcada
+  por el vendedor) sale «sin hora real». Millas «—» (el demo no tiene planes ni GPS). **0** peticiones a `/api/puntualidad`.
+  Desborde lateral: 0 px a 1280 y a **390** (la tabla se desplaza en su caja).
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4739 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 48, los 48 caen**, leídos por nombre de prueba (dos salieron vivos en la primera vuelta y se reforzó la
+  prueba, no el código: «pulsar con base no vuelve a leer» no se notaba porque la otra persona ya estaba en la lectura
+  inicial; «el rastro suma el temblor» no se notaba porque el temblor de la prueba era de 3 m). Candado, librería (16):
+  PGRST205 por código; cualquier fallo como «sin tabla»; solo los de hoy; 23505 como fallo; desbloquear borra el día
+  entero; el servidor trata un fallo como «sin tabla»; el demo pregunta a la base; sin tabla pierde lo del navegador; no
+  relee tras escribir; con fallo cambia la pantalla; con base escribe también en el navegador; con la tabla perdida no pasa
+  al navegador; el texto dice «solo aquí» siendo compartido; publicar no mira lo asignado hoy; sin normalizar; no pregunta
+  por las órdenes. Plan, publicar y pantalla (13): el motor mete al chofer bloqueado; sus órdenes entran; nombre sin
+  normalizar; «Planificar» no pasa los candados; sigue si la lectura falla; «Publicar» publica chocando; avisa «sin paradas»
+  al bloqueado; `sinAviso` ignorado; cualquier motivo cuenta como bloqueado; la pantalla no pasa por `pulsaCandado`; no
+  relee al enfocar; el botón no dice dónde vive; el panel no avisa de «sin tabla». Puntualidad (19): el toque de otra
+  persona; el GPS de otro camión; la llegada a la recogida; el día; el fin en punto; el retraso repartido entre todas; sin
+  ventana como a tiempo; entrenamiento; la recta sobre un hueco; el temblor; posiciones imprecisas; millas GPS 0 en vez de
+  «no se sabe»; millas del plan 0 en vez de «no hay»; paginación de una página; rango sin tope; sin acotar al gerente; rastro
+  cortado; el demo con 0 millas; el Panel sin el informe.
+
+### Lo no verificado, y lo que no se hizo
+
+- **Nada contra la base**: ni la 149, ni su matriz, ni `/api/puntualidad` con datos reales (ni cuánto tarda con un mes de
+  posiciones). El camino «con tabla» del Gestor solo está probado con un doble del cliente.
+- **Entre fusionar y aplicar la 149**, «Planificar el día» depende de que PostgREST conteste `PGRST205` (o el mensaje «Could
+  not find the table … in the schema cache», que el repo ya ve en otros sitios) para la tabla que falta. Si contestara otra
+  cosa, **devolvería 500** en vez de planificar sin candados. Comprobarlo con un «Planificar el día» (no escribe órdenes ni
+  avisa) justo después de fusionar.
+- Un rol de otro tipo con el permiso extra «Planificar rutas» ve el Gestor, pero la 149 no le deja escribir el candado: le
+  sale el error. No se amplió la política: es la de la 128.
+- El informe **no** recalcula el GPS de las paradas: usa lo que guardó «¿Se cumplió el plan?» (D-328). Un día publicado en el
+  que nadie pulsó ese botón sale con toque o sin dato, aunque haya posiciones.
+- En el demo solo se midió como admin, en inglés.

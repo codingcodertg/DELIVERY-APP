@@ -86,7 +86,7 @@ export type AvisoDeRuta = { chofer: string; motivo: "nueva" | "cambio" | "sin_ru
  * paradas. Al re-publicar, solo a quien le cambió la lista o el orden, y a quien se quedó sin ninguna. A
  * quien no le cambió nada, silencio.
  */
-export function avisosAlPublicar(nuevo: PlanParaAvisar, anterior: PlanParaAvisar | null): AvisoDeRuta[] {
+export function avisosAlPublicar(nuevo: PlanParaAvisar, anterior: PlanParaAvisar | null, sinAviso: ReadonlySet<string> = new Set()): AvisoDeRuta[] {
   const antes = new Map((anterior?.rutas ?? []).map((r) => [r.chofer, r]));
   const avisos: AvisoDeRuta[] = [];
   const vistos = new Set<string>();
@@ -98,11 +98,18 @@ export function avisosAlPublicar(nuevo: PlanParaAvisar, anterior: PlanParaAvisar
     const motivo: AvisoDeRuta["motivo"] | null = !tiene ? "sin_ruta" : !tenia ? "nueva" : firmaDeRuta(previa!) !== firmaDeRuta(r) ? "cambio" : null;
     if (motivo) avisos.push({ chofer: r.chofer, motivo, paradas: r.paradas.length, primeraSalida: r.paradas[0]?.llegada ?? null });
   }
-  // Un chofer que estaba en el plan anterior y ya ni aparece en el nuevo también se queda sin ruta.
+  // Un chofer que estaba en el plan anterior y ya ni aparece en el nuevo también se queda sin ruta — salvo que no entrara
+  // porque su ruta está bloqueada 🔒 (`sinAviso`): sus órdenes siguen siendo suyas, y el aviso le mentiría (D-NEXT).
   for (const [chofer, previa] of antes) {
-    if (!vistos.has(chofer) && previa.paradas.length > 0) avisos.push({ chofer, motivo: "sin_ruta", paradas: 0, primeraSalida: null });
+    if (!vistos.has(chofer) && !sinAviso.has(chofer) && previa.paradas.length > 0) avisos.push({ chofer, motivo: "sin_ruta", paradas: 0, primeraSalida: null });
   }
   return avisos.sort((a, b) => (a.chofer < b.chofer ? -1 : a.chofer > b.chofer ? 1 : 0));
+}
+
+/** Los choferes que el plan dejó fuera por tener la ruta bloqueada 🔒 (`result.choferesFuera`, motivo `ruta_bloqueada`). */
+export function choferesConRutaBloqueada(choferesFuera: unknown): Set<string> {
+  if (!Array.isArray(choferesFuera)) return new Set();
+  return new Set(choferesFuera.filter((c): c is { id: string; motivo: string } => !!c && typeof c === "object" && typeof (c as { id?: unknown }).id === "string" && (c as { motivo?: unknown }).motivo === "ruta_bloqueada").map((c) => c.id));
 }
 
 export const ROUTE_PUBLISHED_KIND = "route_published";
