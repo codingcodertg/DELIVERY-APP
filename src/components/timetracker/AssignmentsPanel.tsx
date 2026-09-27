@@ -100,10 +100,10 @@ export function AssignmentsPanel() {
             </div>
           </div>
           <div className="grid g2" style={{ marginTop: 4 }}>
-            <div><label>{t("mgr.asn.rate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.hourlyRate} onChange={(e) => upd("hourlyRate", e.target.value)} placeholder="10" /></div>
-            <div><label>{t("mgr.asn.otRate", { cur: APP_SETTINGS.currency })}</label><input type="number" value={f.overtimeRate} onChange={(e) => upd("overtimeRate", e.target.value)} placeholder="15" /></div>
-            <div><label>{t("mgr.asn.otAfter")}</label><input type="number" value={f.overtimeThreshold} onChange={(e) => upd("overtimeThreshold", e.target.value)} placeholder="44" /></div>
-            <div><label>{t("mgr.asn.weeklyLimit")}</label><input type="number" value={f.weeklyLimit} onChange={(e) => upd("weeklyLimit", e.target.value)} placeholder={t("mgr.asn.optional")} /></div>
+            <div><label>{t("mgr.asn.rate", { cur: APP_SETTINGS.currency })}</label><input type="number" step="any" value={f.hourlyRate} onChange={(e) => upd("hourlyRate", e.target.value)} placeholder="10" /></div>
+            <div><label>{t("mgr.asn.otRate", { cur: APP_SETTINGS.currency })}</label><input type="number" step="any" value={f.overtimeRate} onChange={(e) => upd("overtimeRate", e.target.value)} placeholder="15" /></div>
+            <div><label>{t("mgr.asn.otAfter")}</label><input type="number" step="any" value={f.overtimeThreshold} onChange={(e) => upd("overtimeThreshold", e.target.value)} placeholder="44" /></div>
+            <div><label>{t("mgr.asn.weeklyLimit")}</label><input type="number" step="any" value={f.weeklyLimit} onChange={(e) => upd("weeklyLimit", e.target.value)} placeholder={t("mgr.asn.optional")} /></div>
           </div>
           <label style={{ marginTop: 4 }}>{t("mgr.asn.payMethod")}</label>
           <select value={f.paymentMethod} onChange={(e) => upd("paymentMethod", e.target.value)}>

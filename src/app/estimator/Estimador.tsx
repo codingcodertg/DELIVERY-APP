@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { CampoDecimal } from "@/components/CampoDecimal";
 import { createClient } from "@/lib/supabase/client";
 import { createClient as createErpClient } from "@/lib/erp/supabase/client";
 import {
@@ -242,11 +243,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
   }
 
   // ---- pintado --------------------------------------------------------------------------------------
-  const num = (v: number | null) => (v === null ? "" : String(v));
-  const leeNum = (s: string): number | null => {
-    const n = parseFloat(s.replace(/,/g, ""));
-    return Number.isFinite(n) ? n : null;
-  };
+  // Los campos de número van por `CampoDecimal`: pintar `String(n)` en cada tecla se comía el punto (D-NEXT).
   const inv = (vacio: boolean) => (vacio ? "invalid" : undefined);
 
   return (
@@ -431,31 +428,31 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
                   <>
                     <div className="field">
                       <label>{t("Requested SF", "SF pedidos")}</label>
-                      <input inputMode="decimal" value={num(l.requested_sf)} data-requested
-                        onChange={(e) => setLinea(l.id, { requested_sf: leeNum(e.target.value) })} />
+                      <CampoDecimal value={l.requested_sf} data-requested
+                        onValor={(n) => setLinea(l.id, { requested_sf: n })} />
                     </div>
                     <div className="field">
                       <label>{t("SF / box", "SF / caja")}</label>
-                      <input inputMode="decimal" value={num(l.sf_per_box)} data-sfcaja
-                        onChange={(e) => setLinea(l.id, { sf_per_box: leeNum(e.target.value) })} />
+                      <CampoDecimal value={l.sf_per_box} data-sfcaja
+                        onValor={(n) => setLinea(l.id, { sf_per_box: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Boxes", "Cajas")}</label>
-                      <input inputMode="numeric" value={num(l.boxes)} data-cajas
+                      <CampoDecimal inputMode="numeric" value={l.boxes} data-cajas
                         placeholder={String(cajasPorDefecto(l.requested_sf, l.sf_per_box) ?? "")}
-                        onChange={(e) => setLinea(l.id, { boxes: leeNum(e.target.value) })} />
+                        onValor={(n) => setLinea(l.id, { boxes: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Internal $/SF", "$/SF interno")}</label>
-                      <input inputMode="decimal" value={num(l.price_per_sf)} data-precio
-                        onChange={(e) => setLinea(l.id, { price_per_sf: leeNum(e.target.value) })} />
+                      <CampoDecimal value={l.price_per_sf} data-precio
+                        onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="field">
                       <label>{t("Quantity", "Cantidad")}</label>
-                      <input inputMode="decimal" value={num(l.quantity)} onChange={(e) => setLinea(l.id, { quantity: leeNum(e.target.value) })} />
+                      <CampoDecimal value={l.quantity} onValor={(n) => setLinea(l.id, { quantity: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Unit", "Unidad")}</label>
@@ -463,7 +460,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
                     </div>
                     <div className="field">
                       <label>{t("Unit price", "Precio unitario")}</label>
-                      <input inputMode="decimal" value={num(l.unit_price)} onChange={(e) => setLinea(l.id, { unit_price: leeNum(e.target.value) })} />
+                      <CampoDecimal value={l.unit_price} onValor={(n) => setLinea(l.id, { unit_price: n })} />
                     </div>
                   </>
                 )}
@@ -519,7 +516,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
               </div>
               <div className="field">
                 <label>{t("Delivery charge (internal)", "Cargo de entrega (interno)")}</label>
-                <input inputMode="decimal" value={num(draft.delivery.charge)} data-cargo onChange={(e) => setEntrega({ charge: leeNum(e.target.value) })} />
+                <CampoDecimal value={draft.delivery.charge} data-cargo onValor={(n) => setEntrega({ charge: n })} />
               </div>
             </div>
             <p className="hint" style={{ margin: 0 }}>
