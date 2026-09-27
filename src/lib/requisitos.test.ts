@@ -113,7 +113,7 @@ describe("las pantallas usan todo esto", () => {
 
   it("la ficha: marca con `alternaRequisito` y guarda con `conRequisitosSiCabe`", () => {
     const f = plano(leer("src/components/OrderModal.tsx"));
-    expect(f).toContain("const payload = conRequisitosSiCabe(conPrioridadSiCabe({");
+    expect(f).toContain("const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({");
     expect(f).toContain("}, deliveries), deliveries);");
     expect(f).toContain('{laBaseTieneRequisitosEnOrdenes(deliveries) && catalogoDeRequisitos(settings).length > 0 && (');
     expect(f).toContain('onChange={() => set("requirements", alternaRequisito(d.requirements, r, catalogoDeRequisitos(settings)))}');
