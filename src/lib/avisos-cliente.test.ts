@@ -13,7 +13,7 @@ import { proveedorDelEntorno, proveedorReal, proveedorStub } from "@/lib/mensaje
 import { baseFalsa } from "@/lib/avisos-cliente.fake-db";
 
 /**
- * Avisos al cliente, como OptimoRoute (D-NEXT, migración 150). El dueño, 2026-09-27: «solos haz 1 3 y 4» — el 1, un
+ * Avisos al cliente, como OptimoRoute (D-416, migración 150). El dueño, 2026-09-27: «solos haz 1 3 y 4» — el 1, un
  * aviso la noche antes y otro cuando el chofer va en camino, por SMS o correo, con seguimiento y baja.
  *
  * NADA de aquí sale de la máquina: el proveedor es `proveedorStub()` (cuenta lo que se le pide) y la base es
@@ -470,9 +470,9 @@ describe("darDeBaja", () => {
 describe("la 150", () => {
   const sql = leer("supabase/migrations/150_avisos_al_cliente.sql");
   const [cuerpo, registro] = sql.replace(/\r\n/g, "\n").split("-- @ledger-below\n");
-  it("sin begin/commit propios, sin D-NEXT (numerar cambiaría el checksum), con reversión y su fila del registro al día", () => {
+  it("sin begin/commit propios, sin D-416 (numerar cambiaría el checksum), con reversión y su fila del registro al día", () => {
     expect(cuerpo).not.toMatch(/^\s*(begin|commit)\s*;/im);
-    expect(sql).not.toMatch(/D-NEXT|D-\d{3}/);
+    expect(sql).not.toMatch(/D-416|D-\d{3}/);
     expect(cuerpo).toMatch(/Reversion/);
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
     expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('150_avisos_al_cliente.sql', '${sha}') on conflict (name) do nothing;`);

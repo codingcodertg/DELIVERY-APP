@@ -248,7 +248,7 @@ export interface Delivery {
   /** Prioridad de la orden (D-412, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
    *  tipo porque una base sin la 147 no la trae; se lee siempre con `prioridadDe` (lib/prioridad.ts). */
   priority?: OrderPriority | null;
-  /** Avisos al cliente (D-NEXT, migración 150): su correo, cómo quiere los avisos y su idioma. Opcionales en el tipo
+  /** Avisos al cliente (D-416, migración 150): su correo, cómo quiere los avisos y su idioma. Opcionales en el tipo
    *  porque una base sin la 150 no los trae; se leen con `preferenciaDe` / `idiomaDe` (lib/avisos-cliente.ts). */
   customer_email?: string | null;
   notify_pref?: "both" | "sms" | "email" | "none" | null;
@@ -528,7 +528,7 @@ export interface Settings {
   /** Automatically text the customer their tracking link when an order is created. */
   rc_auto_sms_enabled: boolean;
 
-  // ---- Avisos al cliente, como OptimoRoute (D-NEXT, migración 150). APAGADOS por defecto. ----
+  // ---- Avisos al cliente, como OptimoRoute (D-416, migración 150). APAGADOS por defecto. ----
   // Opcionales: una base sin la 150 no los trae, y Ajustes no enseña los interruptores hasta que existan.
   /** El aviso de la noche antes de la entrega. */
   notify_night_before_enabled?: boolean;

@@ -487,7 +487,7 @@ function PermissionEditor({
 
 /** On/off switch for an opt-in integration. */
 /**
- * Avisos al cliente, como OptimoRoute (D-NEXT, migración 150): la noche antes y «en camino». APAGADOS hasta que el
+ * Avisos al cliente, como OptimoRoute (D-416, migración 150): la noche antes y «en camino». APAGADOS hasta que el
  * admin los encienda aquí. Sin la 150 en la base no hay dónde guardarlos: se dice, y no se enseñan los interruptores
  * (guardar una columna que no existe fallaría).
  */

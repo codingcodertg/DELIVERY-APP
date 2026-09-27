@@ -312,7 +312,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // doesn't have to be declared before it.
   const reloadAllRef = useRef<(() => Promise<void>) | null>(null);
   const logEventRef = useRef<((id: string, kind: string, note?: string) => Promise<void>) | null>(null);
-  // El interruptor del aviso «en camino» (D-NEXT, 150), para la cola offline, que se declara antes que los ajustes.
+  // El interruptor del aviso «en camino» (D-416, 150), para la cola offline, que se declara antes que los ajustes.
   const avisoEnCaminoRef = useRef<boolean | undefined>(undefined);
   avisoEnCaminoRef.current = settings.notify_on_the_way_enabled;
   // Each driver's CURRENT position (one row per driver), for the live map.
@@ -424,7 +424,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
               : `A queued change was rejected: ${error.message}`);
           } else {
             void logEventRef.current?.(it.deliveryId, it.kind ?? it.stage, it.note);
-            // Una parada cerrada sin señal también mueve la ruta: el aviso «en camino» se pide al llegar (D-NEXT).
+            // Una parada cerrada sin señal también mueve la ruta: el aviso «en camino» se pide al llegar (D-416).
             pedirAvisoEnCamino(it.deliveryId, it.stage, avisoEnCaminoRef.current);
           }
           remaining = remaining.filter((r) => r.id !== it.id);
@@ -1393,7 +1393,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // tienda»— lo pasa, para que en el historial no se confunda con una reversión cualquiera.
       void logEvent(id, kind ?? stage, note);
       void emitStageNotifs({ stage, order_no: order?.order_no ?? null, order_code: order?.order_code ?? null, delivery_id: id, creatorId: order ? orderOwner(order) : null, reason: note });
-      // Aviso «en camino» al cliente de la parada que ahora es la siguiente (D-NEXT, 150). Solo si está encendido en
+      // Aviso «en camino» al cliente de la parada que ahora es la siguiente (D-416, 150). Solo si está encendido en
       // Ajustes; el servidor rehace la ruta y decide. En modo enseñanza no se llega aquí (sale arriba).
       pedirAvisoEnCamino(id, stage, settings.notify_on_the_way_enabled);
       return true;

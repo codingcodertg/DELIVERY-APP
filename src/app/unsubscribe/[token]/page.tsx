@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { TOKEN_DE_BAJA_RE } from "@/lib/avisos-cliente";
 
 // ============================================================
-// Baja de los avisos al cliente (D-NEXT, migración 150). Pública, sin login: el enlace va al final de cada aviso
+// Baja de los avisos al cliente (D-416, migración 150). Pública, sin login: el enlace va al final de cada aviso
 // (SMS o correo). Abrirla NO da de baja: hay que pulsar el botón. Los antivirus de correo y las vistas previas de los
 // mensajes abren los enlaces solos, y una baja por abrir la página daría de baja a quien no lo pidió.
 //

@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * La baja de los avisos al cliente (D-NEXT, 150). Pública, sin sesión: la pide la página /unsubscribe/<token> al
+ * La baja de los avisos al cliente (D-416, 150). Pública, sin sesión: la pide la página /unsubscribe/<token> al
  * pulsar el botón. Es POST y no GET a propósito: los antivirus de correo y las vistas previas de los mensajes abren
  * los enlaces solos, y un GET que da de baja daría de baja a quien no lo pidió.
  *

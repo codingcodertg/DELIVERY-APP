@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "channel, to and message are required" }, { status: 400 });
   }
 
-  // El envío vive en lib/mensajeria.ts (D-NEXT): el mismo que usan los avisos automáticos al cliente.
+  // El envío vive en lib/mensajeria.ts (D-416): el mismo que usan los avisos automáticos al cliente.
   if (body.channel !== "email" && body.channel !== "sms") {
     return NextResponse.json({ error: "Unknown channel" }, { status: 400 });
   }

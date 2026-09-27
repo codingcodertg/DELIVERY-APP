@@ -2,7 +2,7 @@ import { ringcentralConfigured, ringcentralSms } from "@/lib/ringcentral";
 import { emailConfigured, resendFrom } from "@/lib/email";
 
 // ============================================================
-// Quien ENVÍA un SMS o un correo, detrás de una interfaz (D-NEXT, avisos al cliente).
+// Quien ENVÍA un SMS o un correo, detrás de una interfaz (D-416, avisos al cliente).
 //
 // Es el mismo camino que ya usaba /api/notify, sacado de la ruta para que los avisos automáticos lo reutilicen y
 // para que se pueda INYECTAR: las pruebas pasan un stub que cuenta llamadas y ninguna llega a RingCentral, Twilio ni

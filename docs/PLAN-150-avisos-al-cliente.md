@@ -105,7 +105,7 @@ puesta, exactamente una política y de `SELECT`, `anon` sin `SELECT`/`INSERT`, `
 `INSERT/UPDATE/DELETE/TRUNCATE` y con `SELECT`; y que ni `guard_delivery_stage` ni (si existe)
 `guard_factura_obligatoria` mencionen las columnas nuevas, mirando el código **sin comentarios** (lección de la 144).
 
-Sin `begin`/`commit` propios. **Sin `D-NEXT` ni `D-4xx` dentro del `.sql`**: numerar la decisión no cambia el checksum.
+Sin `begin`/`commit` propios. **Sin `D-416` ni `D-4xx` dentro del `.sql`**: numerar la decisión no cambia el checksum.
 
 ## 6 · Matriz de pruebas por rol, con ROLLBACK (la corre el orquestador)
 

@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron: el aviso al cliente de la NOCHE ANTES (D-NEXT, migración 150).
+ * Cron: el aviso al cliente de la NOCHE ANTES (D-416, migración 150).
  *
  * `vercel.json` la programa una vez al día por cada hora UTC de 17 a 02 (`/api/cron/avisos-noche-antes/17` …
  * `/02`): Vercel Hobby solo admite crons diarios, así que «a la hora que elija el dueño» se consigue con una entrada

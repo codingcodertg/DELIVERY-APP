@@ -1,5 +1,5 @@
 /**
- * Una base en memoria con lo poco de la API de supabase-js que usan los avisos al cliente (D-NEXT): select con eq/in,
+ * Una base en memoria con lo poco de la API de supabase-js que usan los avisos al cliente (D-416): select con eq/in,
  * maybeSingle, upsert con onConflict + ignoreDuplicates (el reclamo idempotente), update().eq(). SOLO para pruebas:
  * nada sale de la máquina. Las restricciones únicas se imitan con `unicas`.
  */

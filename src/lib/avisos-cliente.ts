@@ -3,7 +3,7 @@ import { BUSINESS_TZ, fmtDateShort, isoInTZ, orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
- * Avisos al cliente, como OptimoRoute (D-NEXT, migración 150). LA REGLA, sin red ni base.
+ * Avisos al cliente, como OptimoRoute (D-416, migración 150). LA REGLA, sin red ni base.
  *
  * El dueño, 2026-09-27, tras explicarle OptimoRoute (optimoroute.com/customer-notifications): eligió «solos haz 1 3 y
  * 4»; el 1 son estos avisos. Dos:

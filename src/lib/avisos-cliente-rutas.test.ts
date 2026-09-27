@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
-// Las rutas de los avisos al cliente (D-NEXT, 150): el cron de la noche antes exige el secreto, «en camino» exige
+// Las rutas de los avisos al cliente (D-416, 150): el cron de la noche antes exige el secreto, «en camino» exige
 // sesión, y la baja es pública pero solo con un token con forma. La base es falsa, el proveedor un stub que cuenta, y
 // `fetch` revienta: si algo se saltara el stub, la prueba fallaría en vez de mandar un SMS.
 

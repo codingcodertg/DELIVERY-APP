@@ -40,7 +40,7 @@ describe("no se abre de rebote ningún otro campo de ventas", () => {
   it("los demás controles siguen colgando de `salesFields`, uno por uno", () => {
     // Si alguien «arregla» esto cambiando `salesFields` en vez de usar el gate, este número se mueve y la prueba cae.
     // 22 desde D-412: el selector de «Prioridad» también cuelga de `salesFields` (lo edita quien edita la orden).
-    // 25 desde D-NEXT (avisos al cliente, 150): correo, preferencia e idioma del cliente, los tres de `salesFields`.
+    // 25 desde D-416 (avisos al cliente, 150): correo, preferencia e idioma del cliente, los tres de `salesFields`.
     expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(25);
     expect((ficha.match(/disabled=\{!tarifaEditable\}/g) ?? []).length).toBe(1);
   });

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Aviso «en camino» (D-NEXT, 150). La app lo pide, sin esperar respuesta, justo después de que el chofer recoge o
+ * Aviso «en camino» (D-416, 150). La app lo pide, sin esperar respuesta, justo después de que el chofer recoge o
  * entrega una orden (`setStage` y la cola offline de data-provider). La ruta NO se fía de lo que diga el navegador:
  * solo recibe el id, y `ejecutarEnCamino` rehace la ruta del chofer desde la base y decide si la siguiente parada se
  * avisa. Pedirlo dos veces no manda dos avisos (registro con clave orden+tipo+día).

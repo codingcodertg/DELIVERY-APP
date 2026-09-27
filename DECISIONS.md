@@ -30316,7 +30316,7 @@ qué» en POST, GET y PATCH); `src/components/RouteEngineSettings.tsx` (las dos 
 
 ---
 
-## D-NEXT · Avisos al cliente como OptimoRoute: la noche antes y «en camino», por SMS o correo, APAGADOS hasta que el admin los encienda (migración 150)
+## D-416 · Avisos al cliente como OptimoRoute: la noche antes y «en camino», por SMS o correo, APAGADOS hasta que el admin los encienda (migración 150)
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (las tres apps: toca `src/lib`, `src/app/api` y `data-provider`)
 · **Migración 150, escrita y NO aplicada** (plan: `docs/PLAN-150-avisos-al-cliente.md`).
@@ -30398,6 +30398,11 @@ al numerar.)
   10DLC (marca y campaña A2P), que los operadores exigen para SMS de empresa y que no medí.
 - **Correo:** Resend gratis hasta **3.000 al mes y 100 al día** (su página de precios, leída hoy); el máximo aquí serían 28
   al día. **$0.**
+
+> **⚠ Nota del orquestador al fusionar (2026-09-27): el volumen de arriba es viejo.** La investigación de Auto-asignar
+> (T-0410, solo lectura) contó **178 órdenes entre el 18 y el 28 de septiembre de 2026** (≈18 por día de reparto), no 3.
+> No todas son Customer, así que es un techo: ≈18 × 26 ≈ 470 órdenes/mes × 4 segmentos × $0.0128 ≈ **$24 al mes** con
+> Twilio si todas fueran Customer con SMS. El correo seguiría en el plan gratis de Resend salvo que se pase de 100 al día.
 
 ### Medido
 

@@ -10,7 +10,7 @@ import type { Delivery } from "@/lib/types";
 import type { OrderTypeRules } from "@/lib/required";
 
 /**
- * Avisos al cliente: LA EJECUCIÓN (D-NEXT, migración 150). Lee la base, decide con `avisos-cliente.ts`, envía por el
+ * Avisos al cliente: LA EJECUCIÓN (D-416, migración 150). Lee la base, decide con `avisos-cliente.ts`, envía por el
  * proveedor que se le INYECTA y lo deja en el registro. Las rutas (/api/cron/avisos-noche-antes, /api/avisos-cliente/*)
  * solo autorizan y crean el cliente de servicio.
  *

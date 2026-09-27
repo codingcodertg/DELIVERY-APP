@@ -125,7 +125,7 @@ export default function MyRoutePage() {
 
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
-  // aviso «en camino» en el servidor (D-NEXT): lo que el chofer ve como siguiente es lo que se avisa.
+  // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
   const next = siguienteParada(stops);
 
   const storeMarkers = useStoreMarkers(settings.stores);

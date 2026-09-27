@@ -1960,7 +1960,7 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
-            {/* Avisos al cliente (D-NEXT, 150): su correo, cómo quiere los avisos (la noche antes y «en camino») y su
+            {/* Avisos al cliente (D-416, 150): su correo, cómo quiere los avisos (la noche antes y «en camino») y su
                 idioma. Solo en órdenes a cliente (este bloque ya no sale en tienda-a-tienda) y solo si la base ya tiene
                 las columnas. Sin idioma, el aviso va en inglés y español a la vez. */}
             {laBaseTieneAvisos(deliveries) && (
