@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { ringcentralConfigured, ringcentralSms } from "@/lib/ringcentral";
-import { emailConfigured, resendFrom } from "@/lib/email";
+import { emailConfigured } from "@/lib/email";
+import { proveedorReal } from "@/lib/mensajeria";
 
 import { requireUser } from "@/lib/api-auth";
 
@@ -62,42 +62,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "channel, to and message are required" }, { status: 400 });
   }
 
-  try {
-    if (body.channel === "email") {
-      const key = process.env.RESEND_API_KEY;
-      const from = resendFrom();
-      if (!key || !from) return NextResponse.json({ ok: false, dryRun: true, reason: "email provider not configured" });
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: body.to, subject: body.subject || "Delivery update", text: body.message }),
-      });
-      if (!res.ok) return NextResponse.json({ error: `email send failed (${res.status})` }, { status: 502 });
-      return NextResponse.json({ ok: true, channel: "email" });
-    }
-
-    if (body.channel === "sms") {
-      // Prefer RingCentral when configured.
-      if (ringcentralConfigured() && process.env.RINGCENTRAL_FROM) {
-        await ringcentralSms(body.to, body.message);
-        return NextResponse.json({ ok: true, channel: "sms", provider: "ringcentral" });
-      }
-      // Fall back to Twilio.
-      const sid = process.env.TWILIO_ACCOUNT_SID;
-      const token = process.env.TWILIO_AUTH_TOKEN;
-      const from = process.env.TWILIO_FROM;
-      if (!sid || !token || !from) return NextResponse.json({ ok: false, dryRun: true, reason: "sms provider not configured (set RingCentral or Twilio env vars)" });
-      const form = new URLSearchParams({ To: body.to, From: from, Body: body.message });
-      const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-        method: "POST",
-        headers: { Authorization: "Basic " + Buffer.from(`${sid}:${token}`).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString(),
-      });
-      if (!res.ok) return NextResponse.json({ error: `sms send failed (${res.status})` }, { status: 502 });
-      return NextResponse.json({ ok: true, channel: "sms", provider: "twilio" });
-    }
-
+  // El envío vive en lib/mensajeria.ts (D-416): el mismo que usan los avisos automáticos al cliente.
+  if (body.channel !== "email" && body.channel !== "sms") {
     return NextResponse.json({ error: "Unknown channel" }, { status: 400 });
+  }
+  try {
+    const r = body.channel === "email"
+      ? await proveedorReal.correo(body.to, body.subject || "Delivery update", body.message)
+      : await proveedorReal.sms(body.to, body.message);
+    if (r.ok) return NextResponse.json(body.channel === "email" ? { ok: true, channel: "email" } : { ok: true, channel: "sms", provider: r.proveedor });
+    if (r.dryRun) return NextResponse.json({ ok: false, dryRun: true, reason: r.motivo });
+    return NextResponse.json({ error: r.error }, { status: 502 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

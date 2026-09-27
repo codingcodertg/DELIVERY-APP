@@ -46,6 +46,7 @@ import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, prueba
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
 import { conPrioridadSiCabe, laBaseTienePrioridad, PRIORIDADES, prioridadDe } from "@/lib/prioridad";
+import { conAvisosSiCabe, idiomaDe, laBaseTieneAvisos, preferenciaDe } from "@/lib/avisos-cliente";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
@@ -545,7 +546,7 @@ export function OrderModal({
   // le pasa el estado de la ficha.
   const save = async () => {
     // La prioridad (D-412, 147) solo viaja si la base ya tiene la columna: mandarla antes haría fallar la orden entera.
-    const payload = conPrioridadSiCabe({
+    const payload = conAvisosSiCabe(conPrioridadSiCabe({
       ...withDurations(d),
       // Builder o mostrador (D-316; desde D-337 lo decide la cuenta). Solo si la base ya tiene la columna: las migraciones se aplican
       // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
@@ -553,7 +554,7 @@ export function OrderModal({
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
       // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
       ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
-    }, deliveries);
+    }, deliveries), deliveries);
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
@@ -1959,6 +1960,31 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
+            {/* Avisos al cliente (D-416, 150): su correo, cómo quiere los avisos (la noche antes y «en camino») y su
+                idioma. Solo en órdenes a cliente (este bloque ya no sale en tienda-a-tienda) y solo si la base ya tiene
+                las columnas. Sin idioma, el aviso va en inglés y español a la vez. */}
+            {laBaseTieneAvisos(deliveries) && (
+              <div className="grid g3" data-campo="avisos-cliente">
+                <Txt label={t("Customer email (optional)", "Correo del cliente (opcional)")} type="email" val={d.customer_email} on={(v) => set("customer_email", v)} disabled={!salesFields} placeholder="cliente@correo.com" />
+                <div className="field">
+                  <label>{t("Customer updates", "Avisos al cliente")}</label>
+                  <select data-campo="notify_pref" value={preferenciaDe(d)} disabled={!salesFields} onChange={(e) => set("notify_pref", e.target.value)}>
+                    <option value="both">{t("SMS and email", "SMS y correo")}</option>
+                    <option value="sms">{t("SMS only", "Solo SMS")}</option>
+                    <option value="email">{t("Email only", "Solo correo")}</option>
+                    <option value="none">{t("Don’t notify", "No avisar")}</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{t("Customer language", "Idioma del cliente")}</label>
+                  <select data-campo="customer_lang" value={idiomaDe(d) ?? ""} disabled={!salesFields} onChange={(e) => set("customer_lang", e.target.value || null)}>
+                    <option value="">{t("English + Spanish", "Inglés + español")}</option>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                  </select>
+                </div>
+              </div>
+            )}
             {salesFields && laCuentaRecuerda(d.account) && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
               !savedAccounts.some((a) => a.name.toLowerCase() === d.account!.trim().toLowerCase() && a.contact === d.contact && a.phone === d.delivery_phone
                 && (a.address ?? "") === (storeToStore ? (a.address ?? "") : (d.delivery_address ?? ""))) && (

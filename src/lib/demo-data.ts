@@ -85,6 +85,10 @@ export function demoSettings(): Settings {
     // RingCentral calling / auto-SMS start switched OFF — an admin opts in.
     rc_calls_enabled: false,
     rc_auto_sms_enabled: false,
+    // Avisos al cliente (D-416, 150): apagados, como en una base recién migrada. En el demo el proveedor es un stub.
+    notify_night_before_enabled: false,
+    notify_night_before_hour: 18,
+    notify_on_the_way_enabled: false,
     manager_pending_cutoff: "16:00",
     sales_pending_cutoff: "16:15",
     driver_colors: {
@@ -188,6 +192,10 @@ export function demoDeliveries(settings: Settings): Delivery[] {
     // La 147 (D-412): toda orden trae su prioridad, como las de una base con la columna. Sin la clave, la ficha no
     // enseñaría el selector (`laBaseTienePrioridad`).
     priority: "normal",
+    // La 150 (D-416): avisos al cliente. Sin la clave, la ficha no enseñaría los campos (`laBaseTieneAvisos`).
+    customer_email: null,
+    notify_pref: "both",
+    customer_lang: null,
     created_at: stamp(60 * 24),
     updated_at: stamp(30),
     ...over,
