@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
-import type { PorQue } from "@/lib/route-plan/porque";
+import { fraseDePrioridadEnRuta, type PorQue } from "@/lib/route-plan/porque";
 
 /**
  * La ruta de cada chofer, parada a parada (D-322): recogidas (P) y entregas (D) con su etiqueta, a qué hora
@@ -47,6 +47,7 @@ export function RutaDelPlan({ rutas, nombreDeOrden, ajuste, porque }: { rutas: R
         {t(`With ${chofer} it adds ${q.aporta!.manejoMin} min of driving and ${q.aporta!.millas} mi to the day${q.aporta!.tardeMin ? `, and ${q.aporta!.tardeMin} min late` : ""}.`,
            `Con ${chofer} le suma al día ${q.aporta!.manejoMin} min de manejo y ${q.aporta!.millas} mi${q.aporta!.tardeMin ? `, y ${q.aporta!.tardeMin} min tarde` : ""}.`)}
         {otras.length > 0 && <> {t("With the others, the whole plan would change by", "Con los demás, el plan entero cambiaría en")}: {otras.join(" · ")}.</>}
+        {fraseDePrioridadEnRuta(q, lang) && <> {fraseDePrioridadEnRuta(q, lang)}</>}
       </>
     );
   };

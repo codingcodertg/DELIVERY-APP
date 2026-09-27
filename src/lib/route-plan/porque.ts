@@ -1,4 +1,5 @@
-import type { Desglose, Explicacion, TipoDeViolacion } from "@/lib/route-engine";
+import type { Desglose, Explicacion, PrioridadDeOrden, TipoDeViolacion } from "@/lib/route-engine";
+import { etiquetaDePrioridad } from "@/lib/prioridad";
 import { ordenDeLaParte } from "./publicar";
 
 /**
@@ -30,7 +31,19 @@ export interface PorQue {
   aporta: { manejoMin: number; millas: number; tardeMin: number } | null;
   /** Los otros choferes, del que menos empeoraría al que más; al final, con los que no se puede. */
   otras: OtraOpcion[];
+  /** La prioridad con la que la planificó el motor (D-NEXT), solo si no era normal. Es la del momento de planificar:
+   *  lo que explica la decisión, aunque alguien la haya cambiado después. */
+  prioridad?: PrioridadDeOrden;
 }
+
+/** Las órdenes tal como entraron al motor: de ellas sale la prioridad con que se planificó. */
+type OrdenDelPlan = { id: string; prioridad?: PrioridadDeOrden | null };
+const prioridadEnElPlan = (ordenes: readonly OrdenDelPlan[] | null | undefined) => {
+  const m = new Map<string, PrioridadDeOrden>();
+  for (const o of ordenes ?? []) if (o.prioridad && o.prioridad !== "normal") m.set(o.id, o.prioridad);
+  return m;
+};
+const RANGO: Record<PrioridadDeOrden, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
 const centesimas = (n: number) => Math.round(n * 100) / 100;
 
@@ -39,9 +52,11 @@ export function porQueEstaAqui(
   choferes: readonly { id: string; nombre: string }[],
   ahora: Readonly<Record<string, string>>,
   fijadas: readonly string[] = [],
+  ordenes: readonly OrdenDelPlan[] | null = null,
 ): Record<string, PorQue> {
   const nombreDe = new Map(choferes.map((c) => [c.id, c.nombre]));
   const aMano = new Set(fijadas);
+  const prioridadDe = prioridadEnElPlan(ordenes);
   const r: Record<string, PorQue> = {};
   for (const e of explicaciones ?? []) {
     const donde = ahora[e.orden];
@@ -60,22 +75,28 @@ export function porQueEstaAqui(
       if (!!x.noPuede !== !!y.noPuede) return x.noPuede ? 1 : -1;
       return (peor.get(x.choferId) ?? 0) - (peor.get(y.choferId) ?? 0) || (x.choferId < y.choferId ? -1 : 1);
     });
-    r[e.orden] = { orden: e.orden, quien: "motor", aporta: { manejoMin: e.aporta.manejoMin, millas: centesimas(e.aporta.millas), tardeMin: e.aporta.tardeMin }, otras };
+    const prioridad = prioridadDe.get(ordenDeLaParte(e.orden));
+    r[e.orden] = {
+      orden: e.orden, quien: "motor", aporta: { manejoMin: e.aporta.manejoMin, millas: centesimas(e.aporta.millas), tardeMin: e.aporta.tardeMin }, otras,
+      ...(prioridad ? { prioridad } : {}),
+    };
   }
   // Una orden que está en una ruta y de la que el motor no dijo nada (la metió una persona): también se dice.
   for (const orden of Object.keys(ahora)) if (!r[orden]) r[orden] = { orden, quien: "persona", aporta: null, otras: [] };
   return r;
 }
 
-/** Lo mismo, desde lo que se guarda: el resultado del plan, sus choferes y sus paradas. Es lo que llaman las rutas. */
+/** Lo mismo, desde lo que se guarda: el resultado del plan, sus choferes y sus paradas. Es lo que llaman las rutas.
+ *  `ordenes`: las del plan tal como entraron al motor (`input.entrada.ordenes`), para decir su prioridad. */
 export function porQueDelPlan(
   result: { explicaciones?: readonly Explicacion[] | null; fijadas?: readonly string[] | null } | null | undefined,
   choferes: readonly { id: string; nombre: string }[] | null | undefined,
   paradas: readonly { driver_id: string | null; order_ref: string }[],
+  ordenes: readonly OrdenDelPlan[] | null = null,
 ): Record<string, PorQue> {
   const ahora: Record<string, string> = {};
   for (const p of paradas) if (p.driver_id) ahora[p.order_ref] = p.driver_id;
-  return porQueEstaAqui(result?.explicaciones, choferes ?? [], ahora, result?.fijadas ?? []);
+  return porQueEstaAqui(result?.explicaciones, choferes ?? [], ahora, result?.fijadas ?? [], ordenes);
 }
 
 /** Qué se puede HACER con una orden que quedó fuera. No es el motivo (ese ya lo dice el motor): es el siguiente paso. */
@@ -87,16 +108,67 @@ const REMEDIOS: Record<string, Remedio> = {
   chofer_fijado_sin_hueco: "cambiar_chofer_fijado", chofer_no_rutea: "cambiar_chofer_fijado", en_un_carril_manual: "quitar_del_carril",
 };
 
-export interface FueraConPorque { id: string; orden: string; motivo: string; remedio: Remedio; laDejoFuera: "motor" | "entrada" }
+/** Los motivos en los que la orden cabía SOLA y se quedó sin sitio por las demás: ahí la prioridad pudo decidir. */
+const SIN_SITIO = new Set(["no_cabe_con_el_resto", "chofer_fijado_sin_hueco"]);
+
+export interface FueraConPorque {
+  id: string; orden: string; motivo: string; remedio: Remedio; laDejoFuera: "motor" | "entrada";
+  /** Su prioridad en el plan (D-NEXT), solo si no era normal. */
+  prioridad?: PrioridadDeOrden;
+  /** Cuando se quedó sin sitio: cuántas órdenes de MÁS prioridad sí van en ruta. El motor coloca antes lo de más
+   *  prioridad, así que son las que cogieron el sitio. Solo si hay alguna. */
+  masPrioritariasDentro?: number;
+}
 
 /** Todo lo que no va en ninguna ruta, junto: lo que el motor no pudo asignar y lo que ni le llegó. Una fila por
- *  ORDEN (no por parte), en un orden estable. */
-export function fueraConPorque(sinAsignar: readonly { orden: string; motivo: string }[] | null | undefined, fuera: readonly { id: string; motivo: string }[] | null | undefined): FueraConPorque[] {
+ *  ORDEN (no por parte), en un orden estable. `ordenes`: las del plan como entraron al motor, para la prioridad. */
+export function fueraConPorque(
+  sinAsignar: readonly { orden: string; motivo: string }[] | null | undefined,
+  fuera: readonly { id: string; motivo: string }[] | null | undefined,
+  ordenes: readonly OrdenDelPlan[] | null = null,
+): FueraConPorque[] {
+  const prioridadDe = prioridadEnElPlan(ordenes);
   const filas = new Map<string, FueraConPorque>();
   for (const f of fuera ?? []) filas.set(f.id, { id: f.id, orden: f.id, motivo: f.motivo, remedio: REMEDIOS[f.motivo] ?? "ninguno", laDejoFuera: "entrada" });
   for (const s of sinAsignar ?? []) {
     const id = ordenDeLaParte(s.orden);
     if (!filas.has(id)) filas.set(id, { id, orden: s.orden, motivo: s.motivo, remedio: REMEDIOS[s.motivo] ?? "ninguno", laDejoFuera: "motor" });
   }
+  const dentro = (ordenes ?? []).filter((o) => !filas.has(o.id));
+  for (const f of filas.values()) {
+    const p = prioridadDe.get(f.id);
+    if (p) f.prioridad = p;
+    if (f.laDejoFuera !== "motor" || !SIN_SITIO.has(f.motivo)) continue;
+    const mio = RANGO[p ?? "normal"];
+    const mas = dentro.filter((o) => RANGO[prioridadDe.get(o.id) ?? "normal"] < mio).length;
+    if (mas > 0) f.masPrioritariasDentro = mas;
+  }
   return [...filas.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+// ---- Las frases de la prioridad (D-NEXT): aquí, para que la pantalla solo las pinte y una prueba las fije ----
+
+/** Lo que se dice de la prioridad de una orden que va en ruta. `null` = normal, o la puso una persona: nada que decir. */
+export function fraseDePrioridadEnRuta(q: Pick<PorQue, "quien" | "prioridad">, lang: "en" | "es"): string | null {
+  if (q.quien !== "motor" || !q.prioridad) return null;
+  const nombre = etiquetaDePrioridad(q.prioridad, lang);
+  if (q.prioridad === "low") {
+    return lang === "es" ? `Prioridad ${nombre}: es de lo primero en quedarse fuera si no cabe todo.` : `${nombre} priority: among the first to be left out if not everything fits.`;
+  }
+  return lang === "es"
+    ? `Prioridad ${nombre}: se colocó antes que las de menos prioridad, y a igual coste va antes en su ruta.`
+    : `${nombre} priority: placed before lower-priority orders, and at equal cost it goes earlier in its route.`;
+}
+
+/** Lo que se dice de la prioridad de una orden que se quedó fuera. `null` = nada que añadir al motivo. */
+export function fraseDePrioridadFuera(f: Pick<FueraConPorque, "prioridad" | "masPrioritariasDentro">, lang: "en" | "es"): string | null {
+  const partes: string[] = [];
+  if (f.prioridad) partes.push(lang === "es" ? `Prioridad ${etiquetaDePrioridad(f.prioridad, lang)}.` : `${etiquetaDePrioridad(f.prioridad, lang)} priority.`);
+  const n = f.masPrioritariasDentro ?? 0;
+  if (n > 0) {
+    partes.push(lang === "es"
+      ? `El sitio se le dio antes a ${n} ${n === 1 ? "orden" : "órdenes"} de más prioridad.`
+      : `The room went first to ${n} higher-priority ${n === 1 ? "order" : "orders"}.`);
+  }
+  return partes.length ? partes.join(" ") : null;
 }

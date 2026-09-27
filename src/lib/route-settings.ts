@@ -1,6 +1,6 @@
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
-import { PARAMETROS_POR_DEFECTO, PESOS_POR_DEFECTO } from "./route-engine";
-import type { DriverSettings, NamedLocation, RouteWeights, Settings } from "./types";
+import { PARAMETROS_POR_DEFECTO, PESOS_POR_DEFECTO, type BalancePor } from "./route-engine";
+import type { DriverSettings, NamedLocation, RouteBalanceOptions, RouteWeights, Settings } from "./types";
 
 /**
  * Los ajustes del motor de rutas: pesos, ventanas duras, tope de retraso, y lo de cada chofer (D-316).
@@ -33,6 +33,35 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   const r = { ...PESOS_DE_RUTA_POR_DEFECTO };
   for (const k of CLAVES_DE_PESO) if (numeroValido(guardados[k])) r[k] = guardados[k] as number;
   return r;
+}
+
+// ---- Opciones de reparto (D-NEXT) ----------------------------------------------------------------
+
+export type OpcionesDeReparto = { balancePor: BalancePor; usarTodos: boolean };
+
+/** Lo de siempre: el balance mide minutos de jornada, y un chofer puede quedarse sin nada si no compensa. */
+export const OPCIONES_DE_REPARTO_POR_DEFECTO: OpcionesDeReparto = {
+  balancePor: PARAMETROS_POR_DEFECTO.balancePor ?? "tiempo", usarTodos: PARAMETROS_POR_DEFECTO.usarTodos ?? false,
+};
+
+/** Las opciones vigentes, leídas de `route_weights`. Un valor que no es de los que hay cae al de por defecto. */
+export function opcionesDeReparto(settings: Pick<Settings, "route_weights">): OpcionesDeReparto {
+  const g = settings.route_weights ?? {};
+  return {
+    balancePor: g.balance_por === "ordenes" ? "ordenes" : OPCIONES_DE_REPARTO_POR_DEFECTO.balancePor,
+    usarTodos: typeof g.usar_todos === "boolean" ? g.usar_todos : OPCIONES_DE_REPARTO_POR_DEFECTO.usarTodos,
+  };
+}
+
+/**
+ * El `route_weights` ENTERO que se guarda al cambiar un peso o una opción. La columna es un `jsonb` y se guarda
+ * de una vez: mandar solo los cinco pesos borraría las opciones, y mandar solo una opción, los pesos. Por eso se
+ * parte de lo guardado, con los pesos vigentes encima, y el cambio encima de todo.
+ */
+export function routeWeightsAlGuardar(
+  settings: Pick<Settings, "route_weights">, cambio: Partial<RouteWeights> & RouteBalanceOptions,
+): Partial<RouteWeights> & RouteBalanceOptions {
+  return { ...(settings.route_weights ?? {}), ...pesosDeRuta(settings), ...cambio };
 }
 
 /** Las ventanas duras vigentes. Una lista VACÍA guardada a propósito es «ninguna es dura», no «las de

@@ -14,7 +14,7 @@ import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
 import type { RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
-import type { FueraConPorque, PorQue } from "@/lib/route-plan/porque";
+import { fraseDePrioridadFuera, type FueraConPorque, type PorQue } from "@/lib/route-plan/porque";
 
 /**
  * «Planificar el día» con el motor nuevo, y «Publicar ruta» (D-320). Solo admin y logística.
@@ -249,6 +249,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
                 {r.fueraConPorque!.map((x) => (
                   <li key={x.id}>
                     <b>{nombreDeOrden(x.id)}</b> — {motivo(x.motivo)}.
+                    {fraseDePrioridadFuera(x, lang) && <> {fraseDePrioridadFuera(x, lang)}</>}
                     {REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}
                   </li>
                 ))}

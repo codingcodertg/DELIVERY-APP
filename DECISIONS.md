@@ -21419,6 +21419,11 @@ de pantalla—, pero las notas de esta entrada sí se escribieron en **las dos**
 
 ## D-314 · Motor de rutas, incremento 2: el núcleo puro (planificar y evaluar), sin pantalla ni red
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el motor pasa a `motor-2`. Construye **por prioridad** y, dentro de
+> cada una, como aquí (builder, luego arrepentimiento); la mejora tiene un movimiento más, «ceder el sitio»; y el balance
+> puede medir órdenes en vez de minutos, con la opción de usar todos los choferes. Sin prioridades y con las opciones por
+> defecto, el plan es el mismo byte a byte (lo fija una prueba).
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador · **Sin migración. Nada cambia en la app:**
 es una librería nueva, `src/lib/route-engine/`, que todavía no llama nadie.
 **Diseño:** `docs/route-algorithm-design.md` (aprobado por el dueño ese día, §11). Esto es su incremento 2.
@@ -29820,6 +29825,10 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): «El motor propio de “Planificar el día” … meterle la prioridad **no se
+> hizo**» ya no es cierto. El motor coloca primero lo de más prioridad, una de fuera puede quitarle el sitio a una de menos, y a
+> igual coste las críticas y altas van antes en su ruta. «Por qué» lo dice.
+
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `147_prioridad_de_la_orden.sql`,
 **escrita y NO aplicada** (plan en papel: `docs/PLAN-147-prioridad.md`, con la matriz por rol para correr con `ROLLBACK`).
 **Reemplaza en parte** a D-401 (el reparto ya no es «el de siempre»), D-402 (la prioridad no toma el puesto de Órdenes en
@@ -30177,3 +30186,130 @@ la verdad, no un fallo: el hueco es de captura.
 - El informe **no** recalcula el GPS de las paradas: usa lo que guardó «¿Se cumplió el plan?» (D-328). Un día publicado en el
   que nadie pulsó ese botón sale con toque o sin dato, aunque haya posiciones.
 - En el demo solo se midió como admin, en inglés.
+
+## D-NEXT · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Reemplaza en parte** a D-412 (el motor ya usa la prioridad) y a D-314 (qué compara el motor y el orden de construir). Las
+dos llevan su nota.
+
+**Qué pidió el dueño**, con los enlaces de OptimoRoute, 2026-09-26/27: *«quiero que mires como funciona y lo copies y dime
+como funciona para implementarlo en lo de nosotros»*. De comparar su motor con el nuestro salieron dos huecos: nuestro motor no
+miraba la prioridad (D-412 la dejó en la ficha, en las tablas y en Auto-asignar, y dijo expresamente que el motor no), y el
+reparto entre choferes solo tenía un peso (`balance`, por minutos). OptimoRoute tiene prioridad L/M/H/C que decide qué se
+queda sin asignar, `balanceBy` (tiempo de trabajo o número de órdenes) y «use all drivers».
+
+### Qué había
+
+- El motor (`route-engine/planifica.ts`, `motor-1`) colocaba primero a los builders y, entre iguales, la que más perdería si
+  esperaba (arrepentimiento). `grep prioridad src/lib/route-engine` daba 0. Con capacidad justa, lo que quedaba fuera lo decidía
+  el orden de entrada y la geografía, no la urgencia.
+- El balance medía siempre la diferencia de **minutos de jornada** entre el chofer más cargado y el menos.
+- Un chofer podía quedarse sin nada si no compensaba en manejo.
+
+### Qué hay ahora
+
+**1. Prioridad** (crítica, alta, normal, baja; la de D-412):
+
+- **Qué se queda fuera.** La construcción coloca **por prioridad** (crítica, alta, normal, baja) y, dentro de cada una, como
+  antes: el builder primero, luego el arrepentimiento. Como coge sitio antes, **si no cabe todo, lo que se queda fuera es lo de
+  menos prioridad**. Una crítica que necesita el sitio de dos normales entra y salen las dos.
+- **Ceder el sitio**, un movimiento nuevo de la mejora: si una de fuera cabe quitando una de **menos** prioridad, entra ella y
+  la otra pasa a fuera (y se reintenta en otro sitio). Hace falta porque la mejora reordena las rutas y puede abrir un hueco que
+  ya ocupó una de menos: una búsqueda sobre 400 días inventados encontró 2 así (días 295 y 297 de las pruebas). Con el
+  movimiento, **en esos 400 días ninguna orden de fuera cabría quitando una de menos prioridad**, comprobado probando a mano
+  todas las posiciones con la evaluación, no con lo que dice el motor.
+- **El orden dentro de la ruta.** A **igual coste**, las críticas y altas van antes (la crítica empuja el doble que la alta).
+  **Solo desempata**: si adelantar la crítica cuesta un minuto de manejo, no se adelanta; y una ventana dura nunca se rompe
+  por esto (una secuencia que la rompe ni se considera). Pasa también cuando la otra la fijó el despachador.
+- **Sin la columna, todo igual.** La 147 puede no estar aplicada: la consulta de «Planificar el día» pide `priority` y, si la
+  base contesta que la columna no existe (`42703` o `PGRST204` nombrando `priority`), vuelve a leer sin ella
+  (`leeOrdenesDelDia`); cualquier otro error se devuelve tal cual. Sin la columna, todas son normales (`prioridadDe`), y la
+  entrada que se guarda con el plan **no lleva** el campo si la orden es normal: el plan es el de antes, byte a byte.
+- **«Por qué» lo dice.** En «¿Por qué aquí?» de una orden con prioridad: *«Prioridad Crítica: se colocó antes que las de menos
+  prioridad, y a igual coste va antes en su ruta»* (la baja: *«es de lo primero en quedarse fuera si no cabe todo»*). En «Fuera
+  de este plan»: su prioridad, y si se quedó sin sitio (`no_cabe_con_el_resto`, `chofer_fijado_sin_hueco`), *«El sitio se le dio
+  antes a N órdenes de más prioridad»*. Es la prioridad **con la que se planificó** (la de `input.entrada.ordenes`), no la de
+  ahora: explica la decisión. Lo que movió una persona no la lleva, como no lleva las cuentas del motor (D-325).
+
+**2. Opciones de reparto**, en Ajustes → Motor de rutas, junto a los pesos:
+
+- **«Repartir entre choferes por»: Tiempo de jornada / Número de órdenes** (OptimoRoute `balanceBy`). Por órdenes, el balance
+  mide la diferencia de **entregas** entre el chofer que más lleva y el que menos, y cada entrega de diferencia cuenta como
+  **30 minutos** (`MINUTOS_POR_ORDEN_EN_BALANCE`), para que el mismo peso `balance` sirva en los dos modos. Medido en las
+  pruebas: el mismo día (una lejos, cuatro cerca, balance 3) sale 1 + 4 por tiempo y 2 + 3 por órdenes.
+- **«Usar todos los choferes disponibles»** (OptimoRoute *use all drivers*): la mejora mueve trabajo a un chofer que no lleva
+  nada cuando puede, aunque cueste más manejo; la comparación de planes cuenta los choferes vacíos justo después de las órdenes
+  fuera. **Nunca a costa de dejar una orden fuera**: con la opción, el motor planifica con ella y sin ella y se queda la de
+  menos fuera. Hizo falta: sin esa red, en 3.000 días inventados al menos 10 perdían una orden (el día 1794 de las pruebas).
+  Medido en 400 días variados: la opción usa más choferes en 80, en ninguno menos, y en ninguno deja más fuera.
+
+**3. Se guardan dentro de `settings.route_weights`**, el `jsonb` de los pesos (130), como `balance_por` y `usar_todos`. **Sin
+columna nueva y sin migración**: la 130 solo exige que sea un objeto (`jsonb_typeof = 'object'`), y su autocomprobación mira el
+valor por defecto de la columna, no la fila. Guardar un peso ahora manda el `route_weights` **entero** (lo guardado, los pesos
+vigentes y el cambio: `routeWeightsAlGuardar`); antes mandaba solo los cinco pesos, y eso habría borrado las opciones.
+Viajan al plan en `params` (`balancePor`, `usarTodos`), así que el ajuste a mano y la hoja importada evalúan con el mismo
+modo. Un plan guardado antes, sin ellas, se evalúa como siempre (por tiempo).
+
+**4. `VERSION_DEL_MOTOR` pasa a `motor-2`.** Es lo que se guarda en `route_plans.algorithm_version`. Con todo en normal y las
+opciones sin tocar, planifica **exactamente** lo mismo que `motor-1`: lo fija una prueba con la huella sha256 de un plan de 30
+órdenes y 4 choferes grabado con el motor de `origin/main` (aa6e3d85) antes de tocar nada.
+
+### Decisiones (para validar)
+
+1. **La prioridad manda sobre el builder.** Una crítica de mostrador se coloca antes que un builder normal. El dueño dio el
+   orden «builder temprano» (D-314) antes de que existiera la prioridad; la prioridad es una marca explícita y OptimoRoute la
+   pone por encima de todo. Entre iguales de prioridad, el builder sigue primero.
+2. **Dentro de la ruta, la prioridad solo desempata.** No es un peso contra minutos de manejo. Si el dueño quiere que una
+   crítica vaya antes aunque cueste manejo, es un peso nuevo en Ajustes (como el del builder).
+3. **Ceder el sitio no exceptúa nada**: una orden a la que una persona le puso chofer puede ceder (se respeta su chofer, no que
+   vaya hoy), y una carga de una orden partida también, como `motor-1` ya dejaba fuera una carga sola cuando no cabía. Se buscó:
+   en 1.500 días, excluir las de chofer puesto no cambió ningún plan; por eso no se dejó código que no decide nada.
+4. **30 minutos por entrega de diferencia.** Un valor de arranque (del orden de lo que dura una entrega con su tramo); no es
+   editable. Lo que se afina es el peso `balance`.
+5. **Por defecto, lo de siempre:** por tiempo y sin forzar a usar todos.
+
+### Dónde está
+
+`src/lib/route-engine/planifica.ts` (el orden de construir, `adelanto`, ceder el sitio, `eligeHueco`, la red de «usar todos»,
+`motor-2`); `route-engine/evalua.ts` (`costeDeRutas` con `balancePor`, `MINUTOS_POR_ORDEN_EN_BALANCE`, los valores por
+defecto en `PARAMETROS_POR_DEFECTO`); `route-engine/types.ts` (`OrdenEntrada.prioridad`, `Parametros.balancePor/usarTodos`);
+`src/lib/route-plan/entrada.ts` (`COLUMNAS_DE_ORDEN` y `leeOrdenesDelDia`, que salen de la ruta; la prioridad y las opciones
+al motor); `route-plan/porque.ts` (`prioridad`, `masPrioritariasDentro` y las dos frases); `route-plan/borrador.ts`
+(`resumenDelPlan` recibe las órdenes); `src/lib/route-settings.ts` (`opcionesDeReparto`, `routeWeightsAlGuardar`);
+`src/lib/types.ts` (`RouteBalanceOptions`); `src/app/api/route-plan/route.ts` (la lectura, y las órdenes del plan al «Por
+qué» en POST, GET y PATCH); `src/components/RouteEngineSettings.tsx` (las dos opciones); `PlanDelDia.tsx` y `RutaDelPlan.tsx`
+(pintan las frases). **No se tocó `routes/page.tsx` ni nada de `/estimator`.**
+
+### Verificado
+
+- Pruebas nuevas: `route-engine/prioridad-y-reparto.test.ts` (la huella de `motor-1`, qué se queda fuera, ceder el sitio en
+  400 días, el orden en la ruta, los dos modos de balance, «usar todos» en 400 días y el día 1794, determinismo con las
+  opciones) y `route-plan/prioridad-en-el-plan.test.ts` (la consulta con y sin la 147, la entrada, Ajustes, «Por qué» de
+  punta a punta con `planificaElDia`, y que las pantallas y la ruta usan las funciones).
+- Pruebas que cambiaron: `plan.test.ts` (`motor-1` → `motor-2`; las columnas se leen de `entrada.ts`) y
+  `motor-rutas-modelo.test.ts` (5 controles desactivados sin la 130, no 3: las dos opciones nuevas).
+- **Mutantes** (`~/.claude/herramientas/mutantes`, tanda en la carpeta del worker): **40 de 42 caen con una prueba con
+  nombre**. De los dos que no: «ceder el sitio deja que ceda una de IGUAL prioridad» **se colgó** en la prueba de 400 días
+  (da vueltas hasta el tope de 2.000 movimientos por día) y se abortó; en la tanda anterior había caído con la huella de
+  `motor-1`. Y **sobrevive** «ceder el sitio: cede primero la de MÁS prioridad de las candidatas»: en 3.000 días
+  inventados, elegir la de menos o la de más prioridad para ceder no cambió ningún plan. Se dejó (ceder la menos importante
+  es la regla de OptimoRoute), sin prueba que la fije: **para validar**.
+- **Código que se quitó porque un mutante sobrevivía**: el adelanto de las críticas en la nota de la mejora (lo decide el
+  hueco al insertar), la comparación de notas al ceder el sitio (el cambio siempre es a mejor), contar lo de fuera por
+  prioridad en la nota (solo lo usaba ceder el sitio), y las excepciones de «ceder» para órdenes con chofer puesto o partidas
+  (ver la decisión 3).
+- `node scripts/verify.mjs` (2026-09-27): tipos, **4728 pasadas | 3 saltadas** y `next build` en verde.
+- **Demo** (2026-09-27, admin, 1440 × 900 y 390 × 844): Ajustes → Motor de rutas enseña «Balance drivers by: Working time
+  (marcada) · Number of orders» y «Use all available drivers» (sin marcar), con su explicación; **desactivadas**, porque el
+  demo no trae `route_weights` y la tarjeta dice «These are the default values…», como los pesos. 0 px de desplazamiento
+  lateral en los dos anchos. Capturas `ajustes-reparto` y `ajustes-reparto-movil`.
+
+### Lo que no se hizo / no se verificó
+
+- **No se midió contra datos reales** ni con la 147 aplicada: todo lo de arriba es con días inventados.
+- **Auto-asignar y «Optimizar»** no cambian (D-401/D-412): esto es solo el motor de «Planificar el día».
+- **«Planificar el día» no se abrió en el demo**: necesita el servidor (`/api/route-plan`), y el demo no lo tiene. El
+  «Por qué» con prioridad se probó de punta a punta con `planificaElDia` y un proveedor de tiempos falso, no en pantalla.
+- **Guardar las opciones no se probó en el navegador** (el demo las desactiva); se prueba `routeWeightsAlGuardar` y que la
+  pantalla guarda por ahí.

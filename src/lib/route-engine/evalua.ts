@@ -1,6 +1,6 @@
 import {
   MINUTOS_POR_BLOQUE,
-  type ChoferEntrada, type Desglose, type Matriz, type OrdenEntrada, type ParadaEvaluada, type ParadaRef, type Parametros,
+  type BalancePor, type ChoferEntrada, type Desglose, type Matriz, type OrdenEntrada, type ParadaEvaluada, type ParadaRef, type Parametros,
   type Pesos, type PlanEvaluado, type RutaEvaluada, type TiemposPorHora, type Violacion,
 } from "./types";
 
@@ -24,6 +24,9 @@ export const PARAMETROS_POR_DEFECTO: Parametros = {
   topeTardeAnchaMin: 60,
   recargaMinimaMin: 20,
   maxMovimientos: 2000,
+  // Opciones de reparto (D-NEXT): lo de siempre. Balance por minutos, y un chofer puede quedarse sin nada.
+  balancePor: "tiempo",
+  usarTodos: false,
 };
 
 /** Pallets → centésimas enteras. 0.15 + 0.25 + 0.6 tiene que dar 1 justo, no 0.9999999999999999. */
@@ -185,13 +188,26 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
   };
 }
 
+/**
+ * Con `balancePor: "ordenes"`, cuánto pesa UNA entrega de diferencia entre dos choferes, en minutos de diferencia.
+ * Hace falta un cambio de unidad para que el mismo peso `balance` de Ajustes sirva en los dos modos: sin él, una
+ * orden de diferencia pesaría lo que un minuto y repartir por órdenes no repartiría nada. 30 es del orden de lo que
+ * dura una entrega con su tramo en un día de la app (servicio de 10-20 min más el manejo hasta ella); es un valor de
+ * arranque, y lo que se afina es el peso.
+ */
+export const MINUTOS_POR_ORDEN_EN_BALANCE = 30;
+
+/** Cuántas entregas hace una ruta. Cada carga de una orden partida cuenta: es un viaje con su entrega. */
+const entregasDe = (r: RutaEvaluada): number => r.paradas.filter((p) => p.tipo === "D").length;
+
 /** El coste de un conjunto de rutas ya evaluadas. El balance mira a TODOS los choferes: uno sin paradas
- *  cuenta como cero minutos, que es justo lo que «repartir» quiere corregir. */
-export function costeDeRutas(rutas: readonly RutaEvaluada[], pesos: Pesos): Desglose {
+ *  cuenta como cero minutos (o cero entregas), que es justo lo que «repartir» quiere corregir. */
+export function costeDeRutas(rutas: readonly RutaEvaluada[], pesos: Pesos, balancePor: BalancePor = "tiempo"): Desglose {
   let builder = 0, manejoMin = 0, centiMi = 0, tardeMin = 0, max = 0, min = Infinity;
   for (const r of rutas) {
     builder += r.builderMin; manejoMin += r.manejoMin; centiMi += aCentesimas(r.millas); tardeMin += r.tardeMin;
-    max = Math.max(max, r.duracionMin); min = Math.min(min, r.duracionMin);
+    const carga = balancePor === "ordenes" ? entregasDe(r) * MINUTOS_POR_ORDEN_EN_BALANCE : r.duracionMin;
+    max = Math.max(max, carga); min = Math.min(min, carga);
   }
   const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0 };
   return { ...d, total: costeTotal(d, pesos) };
@@ -213,7 +229,7 @@ export function evaluaPlan(args: {
   const parametros = args.parametros ?? PARAMETROS_POR_DEFECTO;
   const ctx: Contexto = { ordenes: new Map(args.ordenes.map((o) => [o.id, o])), matriz: args.matriz, porHora: args.porHora, parametros, fijadas: args.fijadas };
   const rutas = args.choferes.map((c) => evaluaRuta(c, args.secuencias[c.id] ?? [], ctx));
-  return { rutas, coste: costeDeRutas(rutas, parametros.pesos), violaciones: rutas.flatMap((r) => r.violaciones) };
+  return { rutas, coste: costeDeRutas(rutas, parametros.pesos, parametros.balancePor), violaciones: rutas.flatMap((r) => r.violaciones) };
 }
 
 export { claveDeParada };

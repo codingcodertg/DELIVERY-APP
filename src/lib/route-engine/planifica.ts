@@ -13,12 +13,22 @@ import type {
  * entero. Determinista: sin azar, con los empates resueltos por una clave estable (la que entró primero,
  * va primero) y cortando por número de movimientos, nunca por reloj.
  *
- * Qué compara dos planes, en este orden: (1) menos órdenes fuera, (2) menor coste ponderado. Lo primero no
- * es un peso: ningún ahorro de minutos justifica dejar una orden sin ruta. Y un builder es el último
- * candidato a quedarse fuera porque la construcción coloca a los builders antes que a nadie.
+ * Qué compara dos planes, en este orden: (1) menos órdenes fuera, (2) con «usar todos los choferes», menos
+ * choferes sin nada, (3) menor coste ponderado, (4) menos minutos de jornada. Lo primero no es un peso: ningún ahorro de minutos justifica
+ * dejar una orden sin ruta. QUÉ orden se queda fuera cuando no cabe todo lo deciden la construcción, que coloca
+ * por prioridad (crítica, alta, normal, baja) y dentro de cada una a los builders antes que a nadie, y «ceder el
+ * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-NEXT, como OptimoRoute).
  */
 
-export const VERSION_DEL_MOTOR = "motor-1";
+/** `motor-2` (D-NEXT): prioridad por orden y opciones de reparto. Con todo en normal y las opciones sin tocar,
+ *  planifica exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
+export const VERSION_DEL_MOTOR = "motor-2";
+
+/** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
+const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
+const rangoDe = (o: OrdenEntrada): number => RANGO[o.prioridad ?? "normal"] ?? RANGO.normal;
+/** Cuánto empuja cada prioridad a ir antes en su ruta, a igual coste. Normal y baja, nada: su orden es el de siempre. */
+const ADELANTO: Record<string, number> = { critical: 2, high: 1 };
 
 /** Compara dos textos; el que falta va DETRÁS. Campo a campo y no pegándolos en una sola clave: pegados,
  *  «sin fecha va detrás» dependía de qué carácter hiciera de separador, y lo cazó un mutante. */
@@ -65,14 +75,29 @@ export function parteOrdenesGrandes(ordenes: readonly OrdenEntrada[], choferes: 
 
 type Estado = { secuencias: Map<string, ParadaRef[]>; rutas: Map<string, RutaEvaluada> };
 
-/** Qué se compara, en orden: órdenes fuera, coste y, a igual coste, minutos de jornada. Menor es mejor.
+/** Qué se compara, en orden: órdenes fuera, choferes sin nada (solo con «usar todos»; si no, cero),
+ *  coste y, a igual coste, minutos de jornada. Menor es mejor.
  *  «Los builders, los últimos en quedarse fuera» no está aquí sino en la construcción, que los coloca
  *  primero: ningún movimiento de la mejora cambia un builder por un mostrador, así que un criterio para
  *  eso nunca decidiría nada (lo dijo un mutante que sobrevivía). */
-type Nota = [number, number, number];
+type Nota = [number, number, number, number];
 const mejorQue = (a: Nota, b: Nota) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k]; return false; };
 
+/**
+ * Con «usar todos los choferes», se planifica con la opción y sin ella, y se queda la de menos órdenes fuera; a
+ * igualdad, la de la opción. Así la opción **nunca** deja fuera una orden que sin ella tenía ruta: mover trabajo a un
+ * chofer vacío cambia lo que la mejora prueba después, y a veces cierra un hueco que otra orden necesitaba (una
+ * búsqueda sobre 3.000 días inventados encontró al menos 10 así; es el día 1794 de las pruebas). Cuesta planificar dos
+ * veces, solo con la opción puesta.
+ */
 export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_POR_DEFECTO): Plan {
+  if (!parametros.usarTodos) return planificaUnaVez(entrada, parametros);
+  const con = planificaUnaVez(entrada, parametros);
+  const sin = planificaUnaVez(entrada, { ...parametros, usarTodos: false });
+  return sin.sinAsignar.length < con.sinAsignar.length ? sin : con;
+}
+
+function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   const choferes = [...entrada.choferes].sort(porChofer);
   const partido = parteOrdenesGrandes([...entrada.ordenes].sort(porClave), choferes);
   const ordenes = partido.ordenes;
@@ -90,9 +115,19 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
   const ctx: Contexto = { ordenes: porId, matriz: entrada.matriz, porHora: entrada.porHora, parametros, fijadas };
   for (const c of choferes) estado.rutas.set(c.id, evaluaRuta(c, estado.secuencias.get(c.id)!, ctx));
 
-  const coste = (rutas: ReadonlyMap<string, RutaEvaluada>): Desglose => costeDeRutas(choferes.map((c) => rutas.get(c.id)!), parametros.pesos);
+  // Un solo sitio que pone pesos y modo de balance: el coste del plan y el de probar un hueco no pueden medir distinto.
+  const costeDe = (rutas: readonly RutaEvaluada[]): Desglose => costeDeRutas(rutas, parametros.pesos, parametros.balancePor);
+  const coste = (rutas: ReadonlyMap<string, RutaEvaluada>): Desglose => costeDe(choferes.map((c) => rutas.get(c.id)!));
   const costeCon = (chofer: string, ruta: RutaEvaluada): Desglose =>
-    costeDeRutas(choferes.map((c) => (c.id === chofer ? ruta : estado.rutas.get(c.id)!)), parametros.pesos);
+    costeDe(choferes.map((c) => (c.id === chofer ? ruta : estado.rutas.get(c.id)!)));
+
+  /** Lo que mide «las críticas y altas, antes»: su hora de entrega, pesada por su prioridad. Menor es mejor. Con
+   *  todo en normal vale cero, y entonces no decide nada. No es un término del coste: solo desempata. */
+  const adelanto = (ruta: RutaEvaluada): number => {
+    let s = 0;
+    for (const p of ruta.paradas) if (p.tipo === "D") s += (ADELANTO[porId.get(p.orden)?.prioridad ?? ""] ?? 0) * p.inicioServicio;
+    return s;
+  };
 
   const choferDe = (id: string): string | null => {
     for (const [c, sec] of estado.secuencias) if (sec.some((p) => p.orden === id)) return c;
@@ -113,7 +148,7 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
     return choferes;
   };
 
-  type Hueco = { chofer: string; secuencia: ParadaRef[]; ruta: RutaEvaluada; coste: Desglose };
+  type Hueco = { chofer: string; secuencia: ParadaRef[]; ruta: RutaEvaluada; coste: Desglose; adelanto: number };
 
   /** El mejor sitio para una orden en la ruta de un chofer: todas las posiciones de su P y de su D. */
   const mejorHuecoEn = (o: OrdenEntrada, c: ChoferEntrada, base: readonly ParadaRef[], rechazo?: { tipo?: TipoDeViolacion; n: number }): Hueco | null => {
@@ -126,10 +161,13 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
         return;
       }
       const total = costeCon(c.id, ruta);
-      // A igual coste gana la ruta que acaba antes (cargar dos órdenes en la misma visita a la tienda no
-      // cambia el manejo, pero sí el día). Y si aun así empatan, se queda la primera que se probó.
-      if (!mejor || total.total < mejor.coste.total || (total.total === mejor.coste.total && ruta.fin < mejor.ruta.fin)) {
-        mejor = { chofer: c.id, secuencia, ruta, coste: total };
+      // A igual coste, las críticas y altas antes (D-NEXT); luego gana la ruta que acaba antes (cargar dos órdenes
+      // en la misma visita a la tienda no cambia el manejo, pero sí el día). Y si aun así empatan, se queda la
+      // primera que se probó. Una ventana nunca se rompe por esto: una secuencia que la rompe ni llega aquí.
+      const a = adelanto(ruta);
+      if (!mejor || total.total < mejor.coste.total
+        || (total.total === mejor.coste.total && (a < mejor.adelanto || (a === mejor.adelanto && ruta.fin < mejor.ruta.fin)))) {
+        mejor = { chofer: c.id, secuencia, ruta, coste: total, adelanto: a };
       }
     };
     // Se prueba DE ATRÁS HACIA DELANTE: así, entre huecos que empatan en todo, gana el más tardío, y una
@@ -168,6 +206,14 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
 
   // ---- Construcción: primero la que más perdería si espera ---------------------------------------
   const GRANDE = Number.MAX_SAFE_INTEGER;
+  /** De los mejores huecos de cada chofer (ya ordenados por coste), el que usa la MEJORA al recolocar. Con «usar
+   *  todos los choferes», el más barato de los choferes que aún no llevan nada, si alguno puede; si no, el más
+   *  barato. La construcción no lo usa: construye como siempre, y así reparte lo mismo que sin la opción; la
+   *  mejora solo mueve a un chofer vacío lo que no deja nada fuera (la nota compara primero lo que queda fuera). */
+  const vacio = (chofer: string) => estado.secuencias.get(chofer)!.length === 0;
+  const eligeHueco = (huecos: readonly Hueco[]): Hueco =>
+    (parametros.usarTodos ? huecos.find((h) => vacio(h.chofer)) : undefined) ?? huecos[0];
+
   const coloca = (candidatas: OrdenEntrada[]): OrdenEntrada[] => {
     let quedan = [...candidatas];
     for (;;) {
@@ -177,8 +223,11 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
           .sort((a, b) => a.coste.total - b.coste.total);
         if (!huecos.length) continue;
         const arrepentimiento = huecos.length > 1 ? huecos[1].coste.total - huecos[0].coste.total : GRANDE;
+        // Primero la de más prioridad: coge sitio antes, así que si no cabe todo, lo que queda fuera es lo de menos.
+        // Dentro de la misma prioridad, el builder; y entre iguales, la que más perdería si espera.
         const gana = !elegida
-          || (!!o.builder !== !!elegida.o.builder ? !!o.builder : arrepentimiento > elegida.arrepentimiento);
+          || (rangoDe(o) !== rangoDe(elegida.o) ? rangoDe(o) < rangoDe(elegida.o)
+            : !!o.builder !== !!elegida.o.builder ? !!o.builder : arrepentimiento > elegida.arrepentimiento);
         if (gana) elegida = { o, hueco: huecos[0], arrepentimiento };
       }
       if (!elegida) return quedan;
@@ -190,7 +239,11 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
 
   // ---- Mejora: mover el par entero ----------------------------------------------------------------
   const nota = (): Nota => [
-    fuera.length, coste(estado.rutas).total,
+    fuera.length,
+    parametros.usarTodos ? choferes.filter((c) => vacio(c.id)).length : 0,
+    coste(estado.rutas).total,
+    // «Las críticas antes» NO está aquí: lo decide el hueco al insertar (`mejorHuecoEn`), y la mejora mete cada orden
+    // en su mejor hueco. Estuvo, y un mutante que lo quitaba sobrevivía: no decidía nada.
     choferes.reduce((s, c) => s + estado.rutas.get(c.id)!.duracionMin, 0),
   ];
   const movibles = () => ordenes.filter((o) => !ordenesFijadas.has(o.id) && choferDe(o.id) !== null);
@@ -210,7 +263,7 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
       quita(o.id, choferDe(o.id)!);
       const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
         .sort((a, b) => a.coste.total - b.coste.total);
-      if (huecos.length) aplica(huecos[0]);
+      if (huecos.length) aplica(eligeHueco(huecos));
       const mejora = huecos.length > 0 && mejorQue(nota(), notaAntes);
       if (mejora && movimientos < parametros.maxMovimientos) { movimientos++; mejoro = true; }
       else { restaura(antes); if (mejora) convergio = false; }
@@ -239,6 +292,35 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
       const antes = fuera.length;
       fuera = coloca(fuera);
       if (fuera.length < antes) { movimientos++; mejoro = true; }
+    }
+
+    // Ceder el sitio (D-NEXT, como OptimoRoute): una de fuera entra quitando una de MENOS prioridad, que pasa a fuera
+    // (y la vuelta siguiente la reintenta en otro sitio). La construcción ya coloca primero lo de más prioridad, pero
+    // la mejora reordena las rutas y puede abrir un hueco que ya ocupó una de menos: una búsqueda sobre 400 días
+    // inventados encontró 2 así. Con todo en normal nunca hay una de menos prioridad, y esto no hace nada.
+    for (const o of [...fuera].sort((a, b) => rangoDe(a) - rangoDe(b))) {
+      if (!convergio) break;
+      // Cede la de menos prioridad y, entre iguales, la que entró la última. Sin excepciones, a propósito: una orden a
+      // la que una persona le puso chofer puede ceder (se respeta su chofer, no que vaya hoy), y una carga de una orden
+      // partida también, como ya puede quedarse fuera una carga sola cuando no cabe (motor-1 lo hacía). Se buscó: en
+      // 1.500 días inventados, excluir las de chofer puesto no cambió ningún plan.
+      const candidatas = movibles().filter((q) => rangoDe(q) > rangoDe(o))
+        .sort((a, b) => rangoDe(b) - rangoDe(a) || porClave(b, a));
+      // Si entra, el cambio siempre es a mejor: sale de fuera una de más prioridad y entra una de menos. No hace falta
+      // comparar notas (se comparaba, y un mutante que no lo hacía sobrevivía), y no puede dar vueltas: cada cambio
+      // baja lo de fuera en ese orden, que no puede bajar sin fin.
+      for (const q of candidatas) {
+        const antes = copia();
+        quita(q.id, choferDe(q.id)!);
+        const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
+          .sort((a, b) => a.coste.total - b.coste.total);
+        if (!huecos.length) { restaura(antes); continue; }
+        if (movimientos >= parametros.maxMovimientos) { restaura(antes); convergio = false; break; }
+        aplica(huecos[0]);
+        fuera = [...fuera.filter((x) => x.id !== o.id), q];
+        movimientos++; mejoro = true;
+        break;
+      }
     }
     if (!convergio) break;
   }

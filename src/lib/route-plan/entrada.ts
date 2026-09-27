@@ -2,7 +2,8 @@ import { parseWindow } from "@/lib/dispatch";
 import { serviceMin } from "@/lib/trip-timing";
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
-import { choferParaElMotor, esVentanaDura, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
+import { choferParaElMotor, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
+import { prioridadDe } from "@/lib/prioridad";
 import {
   PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
 } from "@/lib/route-engine";
@@ -32,7 +33,9 @@ export const puntoDeOrden = (id: string): Punto => `orden:${id}`;
 type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
-  "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null };
+  "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
+  /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
+  priority?: Delivery["priority"] };
 
 export interface DatosDelDia {
   ordenes: readonly OrdenDeLaBase[];
@@ -50,6 +53,26 @@ export interface DatosDelDia {
   /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-414), por la clave del Gestor: el NOMBRE del chofer o de la
    *  ruta temporal. El motor no las toca: el chofer no entra, y sus órdenes quedan fuera del plan tal como están. */
   bloqueadas?: readonly string[];
+}
+
+/** Las columnas de una orden que lee «Planificar el día». `priority` (147) no está: la añade `leeOrdenesDelDia`
+ *  solo si la base la tiene. */
+export const COLUMNAS_DE_ORDEN =
+  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
+
+type Lectura = { data: unknown[] | null; error: { code?: string; message: string } | null };
+
+/**
+ * Lee las órdenes del día pidiendo también `priority`. Si la base todavía no tiene la columna —la 147 se aplica
+ * DESPUÉS de fusionar—, PostgREST no devuelve las demás columnas sin ella: rechaza la consulta entera, y
+ * «Planificar el día» se quedaría sin órdenes. Entonces se vuelve a leer sin ella, y todas son normales
+ * (`prioridadDe`). Cualquier otro error se devuelve tal cual: no es cosa de la columna.
+ */
+export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Lectura>): Promise<Lectura> {
+  const conPrioridad = await lee(`${COLUMNAS_DE_ORDEN}, priority`);
+  const e = conPrioridad.error;
+  if (e && (e.code === "42703" || e.code === "PGRST204") && /priority/.test(e.message)) return lee(COLUMNAS_DE_ORDEN);
+  return conPrioridad;
 }
 
 export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" | "en_ruta_bloqueada" };
@@ -134,6 +157,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       builder: tipoDeClienteDeLaOrden(d, reglas) === "builder",
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
       choferFijado,
+      // Solo si no es normal: sin la 147, o con todo en normal, la entrada que se guarda es la de siempre.
+      ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }
@@ -145,7 +170,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const validas = ruteables.has(chofer) ? paradas.filter((p) => enElPlan.has(ordenDeLaParte(p.orden))) : [];
     if (validas.length) secuenciaFijada[chofer] = validas.map((p) => ({ orden: p.orden, tipo: p.tipo }));
   }
-  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings) };
+  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings) };
   return { entrada: { ordenes, choferes, matriz: {}, ...(Object.keys(secuenciaFijada).length ? { secuenciaFijada } : {}) }, parametros, puntos, fotos, fuera, choferesFuera };
 }
 
