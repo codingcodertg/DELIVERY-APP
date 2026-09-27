@@ -20,7 +20,7 @@ import {
 export const PESOS_POR_DEFECTO: Pesos = { builder: 2, manejo: 1, millas: 0.5, tarde: 0.75, balance: 0.1 };
 
 /**
- * Zonas preferidas (D-NEXT): cuánto cuesta que un chofer con zonas lleve UNA entrega de una zona que prefiere otro, en
+ * Zonas preferidas (D-421): cuánto cuesta que un chofer con zonas lleve UNA entrega de una zona que prefiere otro, en
  * minutos equivalentes (con `manejo` en 1, lo que ese número de minutos de manejo). No es uno de los cinco pesos de la 130:
  * vive aparte para que un `route_weights` guardado sin él siga leyéndose igual, y un plan sin zonas no lo mira nunca. Lo
  * que vale y por qué, medido con los días reales, en la entrada de DECISIONS.md.

@@ -217,7 +217,7 @@ describe("el chofer para el motor", () => {
     expect(c).toContain("if (error || !data || data.length !== 1) {");
     expect(c).toContain("const errores = erroresDeAjustesDeChofer(f, settings.stores ?? []);");
     expect(c).toContain("const hayColumnas = laBaseTieneAjustesDeRuta(settings);");
-    // Pesos, tope, ventanas duras y, desde D-415, las dos opciones de reparto (que van en el mismo `route_weights`), y desde D-NEXT el peso de las zonas.
+    // Pesos, tope, ventanas duras y, desde D-415, las dos opciones de reparto (que van en el mismo `route_weights`), y desde D-421 el peso de las zonas.
     expect(c.match(/disabled=\{!hayColumnas\}/g)?.length).toBe(6);
     expect(plano(leer("src/app/(app)/settings/page.tsx"))).toContain("<RouteEngineSettings />");
   });

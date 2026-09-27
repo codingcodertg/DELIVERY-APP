@@ -37,7 +37,7 @@ type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
-  /** D-NEXT: de ella sale la zona (la ciudad). Opcional para quien construye la fila a mano; la consulta la pide siempre. */
+  /** D-421: de ella sale la zona (la ciudad). Opcional para quien construye la fila a mano; la consulta la pide siempre. */
   delivery_address?: Delivery["delivery_address"];
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
   priority?: Delivery["priority"];
@@ -134,7 +134,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (motivo || !base) { choferesFuera.push({ id: c.id, nombre: c.nombre, motivo: motivo ?? "no_rutea" }); continue; }
     // Lo que tiene su camión (D-418, 151), solo si tiene algo: sin requisitos, la entrada que se guarda es la de siempre.
     const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
-    // Sus zonas preferidas (D-NEXT, 152), también solo si tiene alguna.
+    // Sus zonas preferidas (D-421, 152), también solo si tiene alguna.
     const zonas = zonasDelChofer(filaDe.get(c.id));
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
       ...(habilidades.length ? { habilidades } : {}), ...(zonas.length ? { zonas } : {}) });
@@ -143,7 +143,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const ruteables = new Set(choferes.map((c) => c.id));
   const puestoPorElMotor = new Map((datos.publicadoAntes ?? []).map((w) => [w.id, w.assigned_driver]));
   const carriles = settings.route_buckets ?? [];
-  // La zona de cada entrega (D-NEXT) solo se apunta si algún chofer que rutea tiene zonas: sin ellas, la entrada que se
+  // La zona de cada entrega (D-421) solo se apunta si algún chofer que rutea tiene zonas: sin ellas, la entrada que se
   // guarda con el plan es la de siempre, byte a byte.
   const hayZonas = choferes.some((c) => c.zonas?.length);
 

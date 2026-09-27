@@ -1,5 +1,5 @@
 /**
- * Zonas preferidas por chofer (D-NEXT, migración 152).
+ * Zonas preferidas por chofer (D-421, migración 152).
  *
  * El dueño, 2026-09-27, literal: *«ernesto is mcallen mission and julio is phar thats their preferences as well as maximo
  * is brownsville only if possible»*. Preguntado si es regla o preferencia: *«Preferencia, no regla»* — el motor le da

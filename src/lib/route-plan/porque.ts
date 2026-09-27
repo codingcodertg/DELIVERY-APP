@@ -37,12 +37,12 @@ export interface PorQue {
   /** La prioridad con la que la planificó el motor (D-415), solo si no era normal. Es la del momento de planificar:
    *  lo que explica la decisión, aunque alguien la haya cambiado después. */
   prioridad?: PrioridadDeOrden;
-  /** Zonas preferidas (D-NEXT): solo si algún chofer del plan tiene zonas y la entrega tiene ciudad. */
+  /** Zonas preferidas (D-421): solo si algún chofer del plan tiene zonas y la entrega tiene ciudad. */
   zona?: ZonaDelPorQue;
 }
 
 /**
- * Lo que se dice de la zona de una entrega (D-NEXT). `en_su_zona`: va con un chofer que la tiene de zona. `fuera`: su zona
+ * Lo que se dice de la zona de una entrega (D-421). `en_su_zona`: va con un chofer que la tiene de zona. `fuera`: su zona
  * es de otro chofer y va con este, y `por` dice por qué no con aquel (el primero, por nombre). `sin_chofer`: ningún chofer
  * la tiene de zona, así que va por millas.
  */
@@ -53,7 +53,7 @@ export type ZonaDelPorQue =
 
 /** Las órdenes tal como entraron al motor: de ellas sale la prioridad con que se planificó, y su zona. */
 type OrdenDelPlan = { id: string; prioridad?: PrioridadDeOrden | null; zona?: string | null };
-/** Los choferes del plan como entraron al motor. `zonas`, las suyas (D-NEXT). */
+/** Los choferes del plan como entraron al motor. `zonas`, las suyas (D-421). */
 type ChoferDelPlan = { id: string; nombre: string; zonas?: string[] | null };
 const prioridadEnElPlan = (ordenes: readonly OrdenDelPlan[] | null | undefined) => {
   const m = new Map<string, PrioridadDeOrden>();
@@ -107,7 +107,7 @@ export function porQueEstaAqui(
 }
 
 /**
- * La zona de cada entrega, dicha (D-NEXT). Con la del motor: en su zona si su chofer la tiene; si no, el chofer que la
+ * La zona de cada entrega, dicha (D-421). Con la del motor: en su zona si su chofer la tiene; si no, el chofer que la
  * tiene de zona (el primero por nombre) y por qué no fue con él — lo que el motor apuntó en `alternativas`: no cabía
  * (capacidad), no tenía tiempo, no llegaba a la ventana…, o cabía pero el plan entero salía más caro. Si ese chofer no
  * estaba en el plan (no rutea ese día), eso.

@@ -17,7 +17,7 @@ import { ordenDeLaParte } from "./publicar";
 import { repartoConDetalle, type DiaParaElReparto, type FilaDelReparto } from "./reparto";
 
 /**
- * Zonas preferidas por chofer (D-NEXT, T-0412), de la base a la pantalla. El dueño, 2026-09-27: *«ernesto is mcallen
+ * Zonas preferidas por chofer (D-421, T-0412), de la base a la pantalla. El dueño, 2026-09-27: *«ernesto is mcallen
  * mission and julio is phar thats their preferences as well as maximo is brownsville only if possible»*; y *«Preferencia,
  * no regla»*. Ninguna ciudad ni nombre de aquí es del dueño: las zonas de los días reales son «Zona A…G», la tienda más
  * cercana a cada pin del fichero anonimizado, porque el fichero no trae direcciones.
@@ -389,9 +389,9 @@ describe("la migración 152", () => {
     expect(MAX_LARGO_DE_ZONA).toBe(60);
   });
 
-  it("sin begin/commit propios, sin D-NEXT dentro (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
+  it("sin begin/commit propios, sin D-421 dentro (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
     expect(codigo).not.toMatch(/(^|;)\s*(begin|commit|rollback)\s*;/im);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-421");
     expect(sql).toContain("--   alter table public.driver_settings drop column if exists preferred_zones;");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");

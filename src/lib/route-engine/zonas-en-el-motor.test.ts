@@ -6,7 +6,7 @@ import {
 } from "./index";
 
 /**
- * Zonas preferidas por chofer en «Planificar el día» (D-NEXT, T-0412). El dueño, 2026-09-27: *«ernesto is mcallen mission
+ * Zonas preferidas por chofer en «Planificar el día» (D-421, T-0412). El dueño, 2026-09-27: *«ernesto is mcallen mission
  * and julio is phar thats their preferences as well as maximo is brownsville only if possible»*, y después: *«Preferencia,
  * no regla»*. Cuadrícula como `requisitos-en-el-motor.test.ts`: de «x,y» a «x',y'» se tarda |dx|+|dy| minutos. Las zonas
  * se llaman Norte, Sur…: nada es real.

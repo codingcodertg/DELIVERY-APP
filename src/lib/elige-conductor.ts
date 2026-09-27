@@ -23,7 +23,7 @@ export interface OpcionDeConductor extends RutaAsignable {
   noDisponible: boolean;
   /** Es el chofer del filtro de arriba (D-393): va primero. */
   delFiltro: boolean;
-  /** Alguna de las órdenes marcadas es de su zona preferida (D-NEXT): va detrás del del filtro y delante del resto. Solo
+  /** Alguna de las órdenes marcadas es de su zona preferida (D-421): va detrás del del filtro y delante del resto. Solo
    *  sugerencia: no lo elige. */
   enSuZona: boolean;
 }
@@ -39,7 +39,7 @@ export function opcionesDeConductor(e: {
   capacidadDe: (clave: string) => number;
   noDisponibles: ReadonlySet<string>;
   filtro: string;
-  /** ¿Es lo marcado de la zona de este chofer? (D-NEXT). Sin ella, nadie. */
+  /** ¿Es lo marcado de la zona de este chofer? (D-421). Sin ella, nadie. */
   enSuZona?: (clave: string) => boolean;
 }): OpcionDeConductor[] {
   const opciones = e.rutas.map((r) => ({

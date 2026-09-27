@@ -21,7 +21,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-4` (D-NEXT): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
+/** `motor-4` (D-421): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
  *  cuesta el peso `zona`, y nunca deja una orden fuera. Sin zonas, planifica exactamente lo mismo que `motor-3` (y que
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
@@ -108,7 +108,7 @@ const mejorQue = (a: Nota, b: Nota) => { for (let k = 0; k < a.length; k++) if (
  */
 export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_POR_DEFECTO): Plan {
   const plan = planificaConOpciones(entrada, parametros);
-  // Zonas preferidas (D-NEXT): «Preferencia, no regla», dijo el dueño. El peso ya hace que una entrega vaya a otro chofer
+  // Zonas preferidas (D-421): «Preferencia, no regla», dijo el dueño. El peso ya hace que una entrega vaya a otro chofer
   // cuando el suyo no puede; pero repartir por zonas cambia lo que la construcción coloca primero y lo que la mejora prueba
   // después, y eso podría cerrar un hueco que otra orden necesitaba (como con «usar todos», arriba). Así que, con zonas, se
   // planifica también sin ellas y se queda la de menos órdenes fuera; a igualdad, la de las zonas. Nunca queda una orden

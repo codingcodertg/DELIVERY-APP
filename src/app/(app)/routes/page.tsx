@@ -841,7 +841,7 @@ export default function RoutesPage() {
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
   // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
   const { faltanA } = useRequisitosDelCamion();
-  // Zonas preferidas (D-NEXT): en «Elige conductor», los de la zona de lo marcado salen primero. Solo sugerencia.
+  // Zonas preferidas (D-421): en «Elige conductor», los de la zona de lo marcado salen primero. Solo sugerencia.
   const zonasDeChofer = useZonasDeChofer();
   const setCapacity = (driver: string, capacity: number) => {
     clearRouteFor(driver);

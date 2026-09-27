@@ -7,7 +7,7 @@ import { zonasPorNombre } from "@/lib/zonas";
 import type { DriverSettings } from "@/lib/types";
 
 /**
- * Las zonas preferidas de cada chofer, por NOMBRE, para «📍 Mejor lugar» en el Gestor (D-NEXT, 152): los choferes de la
+ * Las zonas preferidas de cada chofer, por NOMBRE, para «📍 Mejor lugar» en el Gestor (D-421, 152): los choferes de la
  * zona de lo marcado salen primero en «Elige conductor», con su marca. **Solo sugerencia**: no elige a nadie ni cambia el
  * cálculo del hueco.
  *

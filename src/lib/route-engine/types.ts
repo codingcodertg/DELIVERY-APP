@@ -60,7 +60,7 @@ export interface OrdenEntrada {
   /** Lo que pide del camión (D-418, 151; OptimoRoute `skills`): solo va con un chofer que lo tenga todo. Sin ella, o
    *  vacía, va con cualquiera, como antes. Un chofer fijado por una persona se respeta aunque no lo tenga. */
   requisitos?: string[] | null;
-  /** La zona de la entrega (D-NEXT, 152): la CIUDAD de su dirección, como la columna «Ciudad de entrega» del Gestor. Sin
+  /** La zona de la entrega (D-421, 152): la CIUDAD de su dirección, como la columna «Ciudad de entrega» del Gestor. Sin
    *  ella —sin ciudad, o sin ningún chofer con zonas—, ninguna preferencia la toca. Se compara sin mayúsculas. */
   zona?: string | null;
 }
@@ -82,7 +82,7 @@ export interface ChoferEntrada {
   vuelveABase: boolean;
   /** Lo que tiene su camión (D-418, 151; OptimoRoute `vehicleFeatures`). Se compara sin mayúsculas. */
   habilidades?: string[] | null;
-  /** Sus zonas preferidas (D-NEXT, 152): ciudades de entrega. Es PREFERENCIA, no regla: llevar una entrega de una zona que
+  /** Sus zonas preferidas (D-421, 152): ciudades de entrega. Es PREFERENCIA, no regla: llevar una entrega de una zona que
    *  prefiere OTRO chofer le cuesta el peso `zona`; nunca la prohíbe. Sin zonas, no paga nada por ninguna. */
   zonas?: string[] | null;
 }
@@ -103,7 +103,7 @@ export interface Pesos {
   tarde: number;
   /** Por minuto de diferencia entre el chofer más cargado y el menos. */
   balance: number;
-  /** Por entrega que un chofer con zonas lleva FUERA de ellas, siendo de una zona que prefiere otro chofer (D-NEXT). En
+  /** Por entrega que un chofer con zonas lleva FUERA de ellas, siendo de una zona que prefiere otro chofer (D-421). En
    *  minutos equivalentes, como `manejo`. Ausente = el de por defecto; 0 = las zonas no deciden nada. */
   zona?: number;
 }
@@ -146,7 +146,7 @@ export interface Desglose {
   /** Diferencia entre el chofer más cargado y el menos, en minutos. Con `balancePor: "ordenes"`, las
    *  entregas de diferencia pasadas a minutos (`MINUTOS_POR_ORDEN_EN_BALANCE` cada una). */
   balanceMin: number;
-  /** Entregas fuera de la zona de su chofer (D-NEXT). SOLO está si algún chofer tiene zonas: sin zonas, el desglose es
+  /** Entregas fuera de la zona de su chofer (D-421). SOLO está si algún chofer tiene zonas: sin zonas, el desglose es
    *  exactamente el de antes, byte a byte. */
   fueraDeZona?: number;
   /** La suma ponderada, en unidades internas enteras. Solo sirve para comparar dos planes. */
@@ -198,7 +198,7 @@ export interface RutaEvaluada {
   millas: number;
   tardeMin: number;
   builderMin: number;
-  /** Entregas de esta ruta fuera de las zonas de su chofer (D-NEXT). Solo si el chofer tiene zonas. */
+  /** Entregas de esta ruta fuera de las zonas de su chofer (D-421). Solo si el chofer tiene zonas. */
   fueraDeZona?: number;
   violaciones: Violacion[];
 }

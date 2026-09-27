@@ -76,7 +76,7 @@ export function RouteEngineSettings() {
   const [ocupado, setOcupado] = useState<string | null>(null);
   // ¿La base ya tiene `driver_settings.features` (151)? Sin ella, la columna «Su camión tiene» no sale y no se manda.
   const [hayFeatures, setHayFeatures] = useState(false);
-  // ¿Y `driver_settings.preferred_zones` (152, D-NEXT)? Sin ella, la columna «Zonas preferidas» no sale y no se manda.
+  // ¿Y `driver_settings.preferred_zones` (152, D-421)? Sin ella, la columna «Zonas preferidas» no sale y no se manda.
   const [hayZonas, setHayZonas] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -117,7 +117,7 @@ export function RouteEngineSettings() {
     setNuevoRequisito("");
   };
 
-  // ---- Zonas preferidas (D-NEXT, 152): qué ciudades se ofrecen. Salen de los datos —las direcciones de las órdenes que
+  // ---- Zonas preferidas (D-421, 152): qué ciudades se ofrecen. Salen de los datos —las direcciones de las órdenes que
   // tiene la app y las de las tiendas—, más las que ya tenga guardadas algún chofer; ninguna escrita en el código.
   const ciudades = useMemo(
     () => ciudadesElegibles(deliveries, settings.stores ?? [], Object.values(filas ?? {}).flatMap((f) => zonasDelChofer(f))),

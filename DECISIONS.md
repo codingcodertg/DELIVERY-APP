@@ -27802,7 +27802,7 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 
 ## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
 
-> **Reemplazada en parte por D-NEXT** (2026-09-27): «el resto, en el orden de siempre» ya no es del todo cierto. Detrás del
+> **Reemplazada en parte por D-421** (2026-09-27): «el resto, en el orden de siempre» ya no es del todo cierto. Detrás del
 > chofer del filtro van ahora los choferes cuya **zona preferida** es la ciudad de alguna orden marcada, con la marca «su
 > zona»; después, el resto como siempre. Sigue sin elegir a nadie solo: es una sugerencia de orden.
 
@@ -30637,7 +30637,7 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
 > (Gestor y mapa) reparte con el motor, que lee `requirements` y `features` como «Planificar el día»; una orden que nadie puede
 > llevar sale con «ningún camión que rutea tiene lo que pide».
-> **Reemplazada en parte por D-NEXT** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-4` (zonas preferidas), y de
+> **Reemplazada en parte por D-421** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-4` (zonas preferidas), y de
 > `driver_settings` se piden como opcionales `features` **y** `preferred_zones` (152), con una sola lista
 > (`COLUMNAS_OPCIONALES_DE_CHOFER`). Sin zonas, el plan sigue siendo el de `motor-3` byte a byte.
 
@@ -30949,7 +30949,7 @@ prueba con nombre (el primero repone el fallo: «pinta siempre el valor»).
 **No hecho.** No se barrieron los `<input>` de texto de otras apps que conviertan a número en cada tecla fuera del
 Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `select` y campos de enteros.
 
-## D-NEXT · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
+## D-421 · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 152** (escrita, **no aplicada**; plan en
 `docs/PLAN-152-zonas-preferidas.md`). Tarea **T-0412**. **Reemplaza en parte** a D-418 (`motor-4`; una lista de columnas
