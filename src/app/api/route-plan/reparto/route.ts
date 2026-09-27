@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BUSINESS_TZ } from "@/lib/utils";
 import { unavailableDriverNames } from "@/lib/dispatch";
-import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, leeConOpcionales, leeOrdenesDelDia } from "@/lib/route-plan/entrada";
+import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, leeConOpcionales, leeOrdenesDelDia } from "@/lib/route-plan/entrada";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheSoloLectura, repartoDelDia, type DiaParaElReparto } from "@/lib/route-plan/reparto";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     // Como «Planificar el día»: el catálogo de requisitos y lo que tiene cada camión (151, D-418), si la base ya los tiene.
     leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"]),
     supabase.from("profiles").select("id, full_name, role").eq("role", "driver"),
-    leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, ["features"]),
+    leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER),
     supabase.from("driver_availability").select("driver_id, start_date, end_date"),
   ]);
   const fallo = filas.error ?? ajustes.error ?? perfiles.error ?? deChofer.error ?? ausencias.error;

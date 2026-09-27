@@ -1,10 +1,14 @@
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
-import { PARAMETROS_POR_DEFECTO, PESOS_POR_DEFECTO, type BalancePor } from "./route-engine";
+import { PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, PESOS_POR_DEFECTO, type BalancePor } from "./route-engine";
 import type { DriverSettings, NamedLocation, RouteBalanceOptions, RouteWeights, Settings } from "./types";
 
 /** Las columnas de `driver_settings` (128) que leen Ajustes y «Planificar el día». Lo que tiene cada camión (`features`,
  *  151) se pide aparte, como opcional (`leeConOpcionales`): una base sin la 151 no la tiene. */
 export const COLUMNAS_DE_CHOFER = "profile_id, base_store, capacity_pallets, shift_start, shift_end, returns_to_base, routable";
+
+/** Las de `driver_settings` que la base puede no tener todavía, en este orden: lo que tiene su camión (151, D-418) y sus
+ *  zonas preferidas (152, D-NEXT). Una sola lista para Ajustes, «Planificar el día» y Auto-asignar. */
+export const COLUMNAS_OPCIONALES_DE_CHOFER = ["features", "preferred_zones"] as const;
 
 /**
  * Los ajustes del motor de rutas: pesos, ventanas duras, tope de retraso, y lo de cada chofer (D-316).
@@ -36,7 +40,15 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   const guardados = settings.route_weights ?? {};
   const r = { ...PESOS_DE_RUTA_POR_DEFECTO };
   for (const k of CLAVES_DE_PESO) if (numeroValido(guardados[k])) r[k] = guardados[k] as number;
+  // El de las zonas (D-NEXT) solo si está guardado y es válido: sin él, el motor usa el de por defecto, y los cinco de la
+  // 130 salen como siempre (las pruebas que comparan con la siembra de la 130 no ven una clave de más).
+  if (numeroValido(guardados.zona)) r.zona = guardados.zona;
   return r;
+}
+
+/** El peso de las zonas vigente (D-NEXT): el guardado en `route_weights.zona`, o el de por defecto. */
+export function pesoDeZona(settings: Pick<Settings, "route_weights">): number {
+  return pesosDeRuta(settings).zona ?? PESO_DE_ZONA_POR_DEFECTO;
 }
 
 // ---- Opciones de reparto (D-415) ----------------------------------------------------------------

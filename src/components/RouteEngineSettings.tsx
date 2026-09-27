@@ -7,9 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { DELIVERY_WINDOW_PRESETS } from "@/lib/constants";
 import { MINUTOS_POR_ORDEN_EN_BALANCE } from "@/lib/route-engine";
 import {
-  COLUMNAS_DE_CHOFER, TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta, opcionesDeReparto, pesosDeRuta,
-  routeWeightsAlGuardar, topeDeRetrasoMin, ventanasDuras,
+  COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta,
+  opcionesDeReparto, pesoDeZona, pesosDeRuta, routeWeightsAlGuardar, topeDeRetrasoMin, ventanasDuras,
 } from "@/lib/route-settings";
+import { alternaZona, ciudadesElegibles, claveDeZona, zonasDelChofer } from "@/lib/zonas";
 import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings } from "@/lib/types";
 import { leeConOpcionales } from "@/lib/columnas-opcionales";
 import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDelChofer, laBaseTieneRequisitos, MAX_LARGO_DE_REQUISITO } from "@/lib/requisitos";
@@ -27,7 +28,7 @@ import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDel
  * no hace falta que cada pantalla de Entregas cargue una tabla que solo mira Ajustes.
  */
 
-const PESOS: { key: keyof RouteWeights; en: string; es: string }[] = [
+const PESOS: { key: Exclude<keyof RouteWeights, "zona">; en: string; es: string }[] = [
   { key: "builder", en: "1 · Builder early (per minute until a builder is delivered)", es: "1 · Builder temprano (por minuto hasta entregar a un builder)" },
   { key: "manejo", en: "2 · Short route — per driving minute", es: "2 · Ruta corta — por minuto de manejo" },
   { key: "millas", en: "2 · Short route — per mile", es: "2 · Ruta corta — por milla" },
@@ -35,12 +36,12 @@ const PESOS: { key: keyof RouteWeights; en: string; es: string }[] = [
   { key: "balance", en: "4 · Balance between drivers (per minute of difference)", es: "4 · Balance entre choferes (por minuto de diferencia)" },
 ];
 
-type Fila = Pick<DriverSettings, "base_store" | "capacity_pallets" | "shift_start" | "shift_end" | "returns_to_base" | "routable" | "features">;
+type Fila = Pick<DriverSettings, "base_store" | "capacity_pallets" | "shift_start" | "shift_end" | "returns_to_base" | "routable" | "features" | "preferred_zones">;
 
 const horaCorta = (h: string | null | undefined) => (h ?? "").slice(0, 5);
 
 export function RouteEngineSettings() {
-  const { settings, users, saveSettings, notify } = useData();
+  const { settings, users, deliveries, saveSettings, notify } = useData();
   const { lang, t } = usePrefs();
   const supabase = useMemo(() => createClient(), []);
 
@@ -75,14 +76,17 @@ export function RouteEngineSettings() {
   const [ocupado, setOcupado] = useState<string | null>(null);
   // ¿La base ya tiene `driver_settings.features` (151)? Sin ella, la columna «Su camión tiene» no sale y no se manda.
   const [hayFeatures, setHayFeatures] = useState(false);
+  // ¿Y `driver_settings.preferred_zones` (152, D-NEXT)? Sin ella, la columna «Zonas preferidas» no sale y no se manda.
+  const [hayZonas, setHayZonas] = useState(false);
 
   const cargar = useCallback(async () => {
     // Con `features` si la base la tiene; si no, sin ella (una columna que falta rechaza la consulta ENTERA).
     let pedidas = "";
-    const { data, error } = await leeConOpcionales((columnas) => { pedidas = columnas; return supabase.from("driver_settings").select(columnas); }, COLUMNAS_DE_CHOFER, ["features"]);
+    const { data, error } = await leeConOpcionales((columnas) => { pedidas = columnas; return supabase.from("driver_settings").select(columnas); }, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER);
     if (error) { setSinTabla(error.message); setFilas({}); return; }
     setSinTabla(null);
     setHayFeatures(pedidas.split(", ").includes("features"));
+    setHayZonas(pedidas.split(", ").includes("preferred_zones"));
     setFilas(Object.fromEntries(((data ?? []) as unknown as DriverSettings[]).map((f) => [f.profile_id, f])));
   }, [supabase]);
   useEffect(() => { void cargar(); }, [cargar]);
@@ -112,6 +116,14 @@ export function RouteEngineSettings() {
     guardaCatalogo(r.catalogo);
     setNuevoRequisito("");
   };
+
+  // ---- Zonas preferidas (D-NEXT, 152): qué ciudades se ofrecen. Salen de los datos —las direcciones de las órdenes que
+  // tiene la app y las de las tiendas—, más las que ya tenga guardadas algún chofer; ninguna escrita en el código.
+  const ciudades = useMemo(
+    () => ciudadesElegibles(deliveries, settings.stores ?? [], Object.values(filas ?? {}).flatMap((f) => zonasDelChofer(f))),
+    [deliveries, settings.stores, filas],
+  );
+  const zona = pesoDeZona(settings);
 
   const guardaChofer = async (id: string) => {
     const f = filaDe(id);
@@ -153,6 +165,9 @@ export function RouteEngineSettings() {
         {PESOS.map((p) => (
           <NumeroConGuardado key={p.key} label={lang === "es" ? p.es : p.en} value={pesos[p.key]} paso="0.05" disabled={!hayColumnas} onSave={(v) => guardaPeso(p.key, v)} />
         ))}
+        <NumeroConGuardado
+          label={t("5 · Preferred zone (per delivery outside it)", "5 · Zona preferida (por entrega fuera de ella)")}
+          value={zona} paso="5" disabled={!hayColumnas} onSave={(v) => guardaPeso("zona", v)} />
         <NumeroConGuardado
           label={t("Latest a wide window may run (minutes)", "Retraso máximo en una ventana ancha (minutos)")}
           value={tope} paso="5" disabled={!hayColumnas}
@@ -244,6 +259,7 @@ export function RouteEngineSettings() {
                 <th style={{ textAlign: "center" }}>{t("Returns to base", "Vuelve a la base")}</th>
                 <th style={{ textAlign: "center" }}>{t("Routes", "Rutea")}</th>
                 {hayFeatures && catalogo.length > 0 && <th>{t("Truck has", "Su camión tiene")}</th>}
+                {hayZonas && <th>{t("Preferred zones", "Zonas preferidas")}</th>}
                 <th></th>
               </tr>
             </thead>
@@ -290,13 +306,43 @@ export function RouteEngineSettings() {
                         </div>
                       </td>
                     )}
+                    {hayZonas && (
+                      <td data-zonas-de={u.full_name ?? ""} style={{ minWidth: 130 }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                          {zonasDelChofer(f).map((z) => (
+                            <span key={z} className="sema" style={{ background: "var(--line)", color: "inherit", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                              {z}
+                              <button type="button" className="btn btn-ghost btn-sm" aria-label={t(`Remove ${z}`, `Quitar ${z}`)} style={{ padding: "0 4px" }}
+                                onClick={() => edita(u.id, { preferred_zones: alternaZona(f.preferred_zones, z) })}>✕</button>
+                            </span>
+                          ))}
+                        </div>
+                        <select value="" style={{ maxWidth: 130 }} aria-label={t(`Add a zone for ${u.full_name ?? ""}`, `Añadir una zona a ${u.full_name ?? ""}`)}
+                          onChange={(e) => { if (e.target.value) edita(u.id, { preferred_zones: alternaZona(f.preferred_zones, e.target.value) }); }}>
+                          <option value="">{t("+ zone", "+ zona")}</option>
+                          {ciudades.filter((c) => !zonasDelChofer(f).some((z) => claveDeZona(z) === claveDeZona(c.nombre))).map((c) => (
+                            <option key={c.nombre} value={c.nombre}>{c.nombre}{c.n ? ` (${c.n})` : ""}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td><button className="btn btn-primary btn-sm" disabled={ocupado === u.id} onClick={() => void guardaChofer(u.id)}>{t("Save", "Guardar")}</button></td>
                   </tr>
                 );
               })}
-              {choferes.length === 0 && <tr><td colSpan={hayFeatures && catalogo.length > 0 ? 9 : 8} className="empty">{t("No drivers yet.", "Todavía no hay choferes.")}</td></tr>}
+              {choferes.length === 0 && <tr><td colSpan={8 + (hayFeatures && catalogo.length > 0 ? 1 : 0) + (hayZonas ? 1 : 0)} className="empty">{t("No drivers yet.", "Todavía no hay choferes.")}</td></tr>}
             </tbody>
           </table>
+        </div>
+      )}
+      {!sinTabla && filas !== null && (
+        <div className="hint" data-zonas-ayuda>
+          {hayZonas
+            ? t(
+              "Preferred zones are the delivery cities (as in the Routes Manager's «Delivery city» column) each driver should get first. A preference, not a rule: when a driver's zone has more than fits, or another city has no driver, the engine still gives them work elsewhere, and it never leaves an order out because of a zone. Weight 5 says how much it weighs, in minutes of driving per delivery outside the zone; 0 turns it off. A driver with no zones takes anything at no extra cost.",
+              "Las zonas preferidas son las ciudades de entrega (como la columna «Ciudad de entrega» del Gestor de Rutas) que cada chofer recibe primero. Preferencia, no regla: si la zona de un chofer tiene más de lo que cabe, u otra ciudad no tiene chofer, el motor le da trabajo de otra zona, y nunca deja una orden fuera por la zona. El peso 5 dice cuánto pesa, en minutos de manejo por entrega fuera de su zona; 0 lo apaga. Un chofer sin zonas lleva cualquier cosa sin coste de más.",
+            )
+            : t("Preferred zones per driver aren't available yet (the database update is pending).", "Las zonas preferidas por chofer todavía no están disponibles (falta la actualización de la base).")}
         </div>
       )}
     </div>
