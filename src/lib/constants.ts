@@ -395,6 +395,17 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Promo rounds: approve or reject by store",
     desc_es: "Rondas de promoción: aprobar o rechazar por tienda",
   },
+  {
+    // El Estimador (T-0408, migración 148): el «Quote Builder» del documento del dueño. La clave es
+    // "estimator", la palabra que la 148 añade a `profiles_module_access_known`.
+    key: "estimator",
+    href: "/estimator",
+    emoji: "🧮",
+    label_en: "Estimator",
+    label_es: "Estimador",
+    desc_en: "Customer quote summaries to print",
+    desc_es: "Resúmenes de cotización para el cliente",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -879,7 +890,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1014,6 +1025,20 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleNote: {
       en: "No role of its own: who approves is the Office Manager or Office of the store, from the Deliveries role above. The store's promo group is set in Data → Stores.",
       es: "Sin rol propio: aprueba el Gerente de Oficina o la Oficina de la tienda, según el rol de Entregas de arriba. El grupo de promociones de cada tienda se pone en Datos → Tiendas.",
+    },
+  },
+  {
+    key: "estimator", label_en: "Estimator", label_es: "Estimador",
+    alwaysOn: false,
+    // Sin escalafón propio, como promos. Quién edita una cotización lo decide la propia cotización
+    // (su dueño, o quien tenga su aprobación; el admin todo — migración 148), no un rol. Quién la
+    // VE sale de la tienda del perfil (`profiles.store`), que se pone arriba.
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own: each quote belongs to the rep who created it; others need that rep's approval to edit it. Reps see the quotes of their own store (set above).",
+      es: "Sin rol propio: cada cotización es del vendedor que la creó; los demás necesitan su aprobación para editarla. Cada vendedor ve las de su tienda (se pone arriba).",
     },
   },
 ];
