@@ -41,7 +41,8 @@ export function isStaticFile(path: string): boolean {
  * Lo que se sirve sin sesión (D-156, ampliado): el login, el intercambio de OAuth y la salida
  * (`/auth/*`), el restablecimiento de contraseña (se llega desde un correo, sin sesión),
  * `/no-access` (donde aterriza quien SÍ entró pero no tiene módulo: mandarlo al login sería un
- * bucle), `/track/:id` (el enlace que se manda al cliente por SMS: no tiene cuenta), los
+ * bucle), `/track/:id` (el enlace que se manda al cliente por SMS: no tiene cuenta), `/unsubscribe/:token`
+ * (la baja de los avisos al cliente, D-NEXT: tampoco tiene cuenta), los
  * internos de Next, el túnel de Sentry, los ficheros estáticos y las rutas de datos.
  */
 export function isPublicPath(path: string): boolean {
@@ -50,6 +51,7 @@ export function isPublicPath(path: string): boolean {
     || path === "/reset-password" || path.startsWith("/reset-password/")
     || path === "/no-access"
     || path === "/track" || path.startsWith("/track/")
+    || path === "/unsubscribe" || path.startsWith("/unsubscribe/")
     || path.startsWith("/_next")
     || path === "/monitoring" || path.startsWith("/monitoring/")
     || isStaticFile(path)
