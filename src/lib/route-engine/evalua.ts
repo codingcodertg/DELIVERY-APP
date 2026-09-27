@@ -19,6 +19,33 @@ import {
  *  temprano > ruta corta > ventana ancha > balance— y los fijan las pruebas de `pesos`. */
 export const PESOS_POR_DEFECTO: Pesos = { builder: 2, manejo: 1, millas: 0.5, tarde: 0.75, balance: 0.1 };
 
+/**
+ * Zonas preferidas (D-421): cuánto cuesta que un chofer con zonas lleve UNA entrega de una zona que prefiere otro, en
+ * minutos equivalentes (con `manejo` en 1, lo que ese número de minutos de manejo). No es uno de los cinco pesos de la 130:
+ * vive aparte para que un `route_weights` guardado sin él siga leyéndose igual, y un plan sin zonas no lo mira nunca. Lo
+ * que vale y por qué, medido con los días reales, en la entrada de DECISIONS.md.
+ */
+export const PESO_DE_ZONA_POR_DEFECTO = 60;
+
+/** Una zona se compara sin mayúsculas ni espacios de más: «McAllen», « mcallen» y «MCALLEN» son la misma. */
+export const claveDeZona = (s: string | null | undefined): string => String(s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Las zonas que prefiere ALGÚN chofer. Una entrega de una ciudad que no está aquí no tiene dueño: va por millas, y nadie
+ *  paga por llevarla. */
+export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[]): Set<string> {
+  const s = new Set<string>();
+  for (const c of choferes) for (const z of c.zonas ?? []) if (claveDeZona(z)) s.add(claveDeZona(z));
+  return s;
+}
+
+/** ¿Lleva este chofer esta entrega fuera de su zona? Solo si él tiene zonas, la entrega tiene zona, esa zona la prefiere
+ *  alguien, y no es suya. Un chofer sin zonas nunca está «fuera». */
+export function fueraDeSuZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona">, reclamadas: ReadonlySet<string>): boolean {
+  const z = claveDeZona(o.zona);
+  if (!z || !reclamadas.has(z) || !c.zonas?.length) return false;
+  return !c.zonas.some((x) => claveDeZona(x) === z);
+}
+
 export const PARAMETROS_POR_DEFECTO: Parametros = {
   pesos: PESOS_POR_DEFECTO,
   topeTardeAnchaMin: 60,
@@ -46,7 +73,8 @@ export function costeTotal(d: Omit<Desglose, "total">, pesos: Pesos): number {
     + 100 * enMilesimas(pesos.manejo) * d.manejoMin
     + enMilesimas(pesos.millas) * aCentesimas(d.millas)
     + 100 * enMilesimas(pesos.tarde) * d.tardeMin
-    + 100 * enMilesimas(pesos.balance) * d.balanceMin;
+    + 100 * enMilesimas(pesos.balance) * d.balanceMin
+    + 100 * enMilesimas(pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) * (d.fueraDeZona ?? 0);
 }
 
 export function restaDesglose(a: Desglose, b: Desglose): Desglose {
@@ -56,11 +84,14 @@ export function restaDesglose(a: Desglose, b: Desglose): Desglose {
     millas: deCentesimas(aCentesimas(a.millas) - aCentesimas(b.millas)),
     tardeMin: a.tardeMin - b.tardeMin,
     balanceMin: a.balanceMin - b.balanceMin,
+    // Solo si alguno de los dos lo trae: sin zonas, la diferencia es la de antes, sin la clave.
+    ...(a.fueraDeZona !== undefined || b.fueraDeZona !== undefined ? { fueraDeZona: (a.fueraDeZona ?? 0) - (b.fueraDeZona ?? 0) } : {}),
     total: a.total - b.total,
   };
 }
 
-type Contexto = { ordenes: ReadonlyMap<string, OrdenEntrada>; matriz: Matriz; porHora?: TiemposPorHora; parametros: Parametros; fijadas?: ReadonlySet<string> };
+/** `zonasReclamadas`: las de TODOS los choferes del plan (`zonasReclamadas()`). Sin ella, ninguna entrega está fuera de zona. */
+type Contexto = { ordenes: ReadonlyMap<string, OrdenEntrada>; matriz: Matriz; porHora?: TiemposPorHora; parametros: Parametros; fijadas?: ReadonlySet<string>; zonasReclamadas?: ReadonlySet<string> };
 
 /** La media hora en la que cae un minuto del día: 480 (08:00) → 16. */
 export const bloqueDe = (minuto: number): number => Math.floor(minuto / MINUTOS_POR_BLOQUE);
@@ -95,7 +126,8 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 
   let reloj = chofer.entrada;
   let sitio = chofer.base;
-  let manejo = 0, centiMi = 0, tarde = 0, builder = 0;
+  let manejo = 0, centiMi = 0, tarde = 0, builder = 0, fueraDeZona = 0;
+  const conZonas = !!chofer.zonas?.length;
   let visita = 0;
   let etiquetaSiguiente = 1;
   const numeroDe = new Map<string, number>();
@@ -151,6 +183,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
       servicio = Math.max(0, Math.round(o.servicioEntregaMin));
       tarde += tardeAqui;
       if (o.builder) builder += inicio - chofer.entrada;
+      if (conZonas && ctx.zonasReclamadas && fueraDeSuZona(chofer, o, ctx.zonasReclamadas)) fueraDeZona++;
       carga -= aCentesimas(o.pallets);
       entregadas.add(o.id);
       // Una orden recogida antes de hoy no tuvo su P aquí: se numera al entregarla.
@@ -184,7 +217,9 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
   return {
     chofer: chofer.id, paradas: evaluadas, inicio: chofer.entrada, fin,
     duracionMin: evaluadas.length > 0 ? fin - chofer.entrada : 0,
-    manejoMin: manejo, millas: deCentesimas(centiMi), tardeMin: tarde, builderMin: builder, violaciones,
+    manejoMin: manejo, millas: deCentesimas(centiMi), tardeMin: tarde, builderMin: builder,
+    ...(conZonas ? { fueraDeZona } : {}),
+    violaciones,
   };
 }
 
@@ -204,12 +239,15 @@ const entregasDe = (r: RutaEvaluada): number => r.paradas.filter((p) => p.tipo =
  *  cuenta como cero minutos (o cero entregas), que es justo lo que «repartir» quiere corregir. */
 export function costeDeRutas(rutas: readonly RutaEvaluada[], pesos: Pesos, balancePor: BalancePor = "tiempo"): Desglose {
   let builder = 0, manejoMin = 0, centiMi = 0, tardeMin = 0, max = 0, min = Infinity;
+  // Las entregas fuera de zona, solo si alguna ruta las cuenta (algún chofer con zonas): sin eso, el desglose de antes.
+  let fueraDeZona: number | undefined;
   for (const r of rutas) {
+    if (r.fueraDeZona !== undefined) fueraDeZona = (fueraDeZona ?? 0) + r.fueraDeZona;
     builder += r.builderMin; manejoMin += r.manejoMin; centiMi += aCentesimas(r.millas); tardeMin += r.tardeMin;
     const carga = balancePor === "ordenes" ? entregasDe(r) * MINUTOS_POR_ORDEN_EN_BALANCE : r.duracionMin;
     max = Math.max(max, carga); min = Math.min(min, carga);
   }
-  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0 };
+  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0, ...(fueraDeZona !== undefined ? { fueraDeZona } : {}) };
   return { ...d, total: costeTotal(d, pesos) };
 }
 
@@ -227,7 +265,7 @@ export function evaluaPlan(args: {
   fijadas?: ReadonlySet<string>;
 }): PlanEvaluado {
   const parametros = args.parametros ?? PARAMETROS_POR_DEFECTO;
-  const ctx: Contexto = { ordenes: new Map(args.ordenes.map((o) => [o.id, o])), matriz: args.matriz, porHora: args.porHora, parametros, fijadas: args.fijadas };
+  const ctx: Contexto = { ordenes: new Map(args.ordenes.map((o) => [o.id, o])), matriz: args.matriz, porHora: args.porHora, parametros, fijadas: args.fijadas, zonasReclamadas: zonasReclamadas(args.choferes) };
   const rutas = args.choferes.map((c) => evaluaRuta(c, args.secuencias[c.id] ?? [], ctx));
   return { rutas, coste: costeDeRutas(rutas, parametros.pesos, parametros.balancePor), violaciones: rutas.flatMap((r) => r.violaciones) };
 }

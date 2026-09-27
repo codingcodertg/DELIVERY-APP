@@ -2,9 +2,10 @@ import { parseWindow } from "@/lib/dispatch";
 import { serviceMin } from "@/lib/trip-timing";
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
-import { choferParaElMotor, COLUMNAS_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
+import { choferParaElMotor, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
 import { prioridadDe } from "@/lib/prioridad";
 import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from "@/lib/requisitos";
+import { zonaDeLaOrden, zonasDelChofer } from "@/lib/zonas";
 import { leeConOpcionales, type LecturaConError } from "@/lib/columnas-opcionales";
 import {
   PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
@@ -36,6 +37,8 @@ type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
+  /** D-421: de ella sale la zona (la ciudad). Opcional para quien construye la fila a mano; la consulta la pide siempre. */
+  delivery_address?: Delivery["delivery_address"];
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
   priority?: Delivery["priority"];
   /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
@@ -62,7 +65,7 @@ export interface DatosDelDia {
 /** Las columnas de una orden que lee «Planificar el día». `priority` (147) y `requirements` (151) no están: las añade
  *  `leeOrdenesDelDia` solo si la base las tiene. */
 export const COLUMNAS_DE_ORDEN =
-  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
+  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_address, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
 /** Las que se piden si la base las tiene, en este orden. */
 export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements"] as const;
@@ -82,7 +85,7 @@ export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Le
  *  Las de `driver_settings` (`COLUMNAS_DE_CHOFER`) viven en `route-settings`, porque las lee también Ajustes. */
 export const COLUMNAS_DE_AJUSTES =
   "stores, accounts, order_type_rules, route_buckets, driver_capacity, default_truck_capacity, route_weights, route_hard_windows, route_late_cap_min";
-export { COLUMNAS_DE_CHOFER };
+export { COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER };
 
 export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" | "en_ruta_bloqueada" };
 
@@ -131,13 +134,18 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (motivo || !base) { choferesFuera.push({ id: c.id, nombre: c.nombre, motivo: motivo ?? "no_rutea" }); continue; }
     // Lo que tiene su camión (D-418, 151), solo si tiene algo: sin requisitos, la entrada que se guarda es la de siempre.
     const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
+    // Sus zonas preferidas (D-421, 152), también solo si tiene alguna.
+    const zonas = zonasDelChofer(filaDe.get(c.id));
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
-      ...(habilidades.length ? { habilidades } : {}) });
+      ...(habilidades.length ? { habilidades } : {}), ...(zonas.length ? { zonas } : {}) });
   }
   const idPorNombre = new Map(paraElMotor.map((c) => [c.nombre.trim().toLowerCase(), c.id]));
   const ruteables = new Set(choferes.map((c) => c.id));
   const puestoPorElMotor = new Map((datos.publicadoAntes ?? []).map((w) => [w.id, w.assigned_driver]));
   const carriles = settings.route_buckets ?? [];
+  // La zona de cada entrega (D-421) solo se apunta si algún chofer que rutea tiene zonas: sin ellas, la entrada que se
+  // guarda con el plan es la de siempre, byte a byte.
+  const hayZonas = choferes.some((c) => c.zonas?.length);
 
   // ---- Órdenes ----
   const ordenes: OrdenEntrada[] = [];
@@ -176,6 +184,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),
       // Lo mismo con los requisitos (D-418): solo si pide algo del catálogo.
       ...(requisitosDeLaOrden(d, catalogo).length ? { requisitos: requisitosDeLaOrden(d, catalogo) } : {}),
+      // Y la zona: la ciudad de la dirección de entrega, la misma de la columna «Ciudad de entrega» (D-408).
+      ...(hayZonas && zonaDeLaOrden(d) ? { zona: zonaDeLaOrden(d) } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }

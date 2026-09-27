@@ -63,6 +63,8 @@ import {
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
+import { useZonasDeChofer } from "@/lib/usa-zonas";
+import { esDeSuZona } from "@/lib/zonas";
 import { fraseDeFaltan } from "@/lib/requisitos";
 import { avisoDeSaltadas, CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, optimizaSinLasBloqueadas, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
@@ -839,6 +841,8 @@ export default function RoutesPage() {
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
   // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
   const { faltanA } = useRequisitosDelCamion();
+  // Zonas preferidas (D-421): en «Elige conductor», los de la zona de lo marcado salen primero. Solo sugerencia.
+  const zonasDeChofer = useZonasDeChofer();
   const setCapacity = (driver: string, capacity: number) => {
     clearRouteFor(driver);
     saveSettings({ driver_capacity: { ...(settings.driver_capacity ?? {}), [driver]: capacity } });
@@ -992,6 +996,7 @@ export default function RoutesPage() {
     capacidadDe: (k) => capacityFor(k),
     noDisponibles: unavailableToday,
     filtro: filtroChofer,
+    enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer),
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
   // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de
@@ -2576,6 +2581,7 @@ export default function RoutesPage() {
                       ({o.paradas === 1 ? t("1 stop", "1 parada") : t(`${o.paradas} stops`, `${o.paradas} paradas`)} · {o.pallets}/{o.capacidad} {t("pallets", "pallets")})
                     </span>
                     {o.delFiltro && <span className="sema" style={{ fontSize: 10, background: "var(--card)", color: "var(--accent)", border: "1px solid var(--accent)" }}>{t("filter", "filtro")}</span>}
+                    {o.enSuZona && <span className="sema" data-su-zona title={t("Some checked order is in this driver's preferred zone", "Alguna orden marcada es de la zona preferida de este chofer")} style={{ fontSize: 10, background: "var(--card)", color: "var(--green, var(--accent))", border: "1px solid var(--green, var(--accent))" }}>{t("their zone", "su zona")}</span>}
                     {o.noDisponible && <span className="sema" style={{ fontSize: 10, background: "var(--red-chip-bg)", color: "var(--red-chip-text)" }}>{t("off today", "no disponible")}</span>}
                   </label>
                 ))}

@@ -124,7 +124,7 @@ describe("las pantallas usan todo esto", () => {
     const s = plano(leer("src/components/RouteEngineSettings.tsx"));
     expect(s).toContain("const r = anadeAlCatalogo(catalogo, nuevoRequisito);");
     expect(s).toContain("saveSettings({ delivery_requirements: siguiente } as Partial<Settings>);");
-    expect(s).toContain('leeConOpcionales((columnas) => { pedidas = columnas; return supabase.from("driver_settings").select(columnas); }, COLUMNAS_DE_CHOFER, ["features"]);');
+    expect(s).toContain('leeConOpcionales((columnas) => { pedidas = columnas; return supabase.from("driver_settings").select(columnas); }, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER);');
     expect(s).toContain('setHayFeatures(pedidas.split(", ").includes("features"));');
     expect(s).toContain("onChange={() => edita(u.id, { features: alternaRequisito(f.features, r, catalogo) })}");
   });

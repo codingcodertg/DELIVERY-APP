@@ -413,6 +413,10 @@ export interface RouteWeights {
   millas: number;
   tarde: number;
   balance: number;
+  /** Zonas preferidas (D-421): por entrega que un chofer lleva fuera de su zona siendo de la zona de otro. Opcional: un
+   *  `route_weights` guardado antes no lo trae, y entonces vale el de por defecto (`PESO_DE_ZONA_POR_DEFECTO`). Vive
+   *  dentro del mismo jsonb que los otros cinco: no hace falta columna. */
+  zona?: number;
 }
 
 /**
@@ -444,6 +448,9 @@ export interface DriverSettings {
   /** Lo que tiene el camión de este chofer (D-418, migración 151): nombres del catálogo de Ajustes. Una orden que
    *  pide algo que no está aquí no se le da en automático. Opcional: una base sin la 151 no lo trae. */
   features?: string[] | null;
+  /** Sus zonas preferidas (D-421, migración 152): ciudades de entrega, como las enseña «Ciudad de entrega». Preferencia,
+   *  no regla. Opcional: una base sin la 152 no lo trae. */
+  preferred_zones?: string[] | null;
   updated_at?: string;
   updated_by?: string | null;
 }

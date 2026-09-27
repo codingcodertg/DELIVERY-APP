@@ -342,7 +342,7 @@ describe("tiempos de viaje: nada de pago, nada guardado", () => {
     expect(ruta).toContain("if (candados.fuente === \"error\") return NextResponse.json(");
     // Y los requisitos del camión (D-418), con las mismas lecturas opcionales que «Planificar el día».
     expect(ruta).toContain("COLUMNAS_DE_AJUSTES, [\"delivery_requirements\"])");
-    expect(ruta).toContain("COLUMNAS_DE_CHOFER, [\"features\"])");
+    expect(ruta).toContain("COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER)");
     expect(ruta).toContain("leeOrdenesDelDia((columnas) => supabase.from(\"deliveries\").select(`${columnas}, ${COLUMNAS_EXTRA}`)");
   });
 });

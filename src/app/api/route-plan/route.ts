@@ -12,7 +12,7 @@ import { porQueDelPlan } from "@/lib/route-plan/porque";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
-import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, leeConOpcionales, leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
+import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, leeConOpcionales, leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     // El catálogo de requisitos y lo que tiene cada camión (151, D-418), si la base ya los tiene; si no, sin ellos.
     leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"]),
     supabase.from("profiles").select("id, full_name, role").eq("role", "driver"),
-    leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, ["features"]),
+    leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER),
     supabase.from("driver_availability").select("driver_id, start_date, end_date"),
     supabase.from("route_plans").select("writes").eq("plan_date", fecha).eq("status", "published").maybeSingle(),
   ]);
