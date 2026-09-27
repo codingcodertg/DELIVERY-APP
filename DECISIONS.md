@@ -27839,6 +27839,10 @@ Sin asignar  [☑ #1012] [☑ #1013]
 - **Se queda el desplegable «Asignar a…» de cada fila**, sin cambios (con varias marcadas, sigue asignando la selección
   entera, como antes).
 
+  > **Nota (2026-09-26) — Reemplazada en parte por D-NEXT.** El recuadro lleva un botón más, «📍 Mejor lugar», al lado de
+  > «Asignar»: mete cada orden marcada en el hueco más barato de la ruta del elegido, sin reoptimizar. Y las opciones de
+  > una ruta bloqueada llevan 🔒.
+
 ### Dónde va el recuadro, y por qué no donde la maqueta
 
 La maqueta lo pone arriba, junto a los chips. **Se probó ahí y no sirve**: el panel de choferes y el mapa son `sticky`
@@ -28461,6 +28465,10 @@ en el mismo `catch`), y se quitó.
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte a D-393** (sección 1, «Lo que NO filtra»: con el filtro puesto, el diálogo nace con ese chofer marcado)
 **y a D-395** («Auto-asignar las marcadas» del recuadro ya no reparte al instante). Las dos llevan su nota.
+
+> **Nota (2026-09-26) — Reemplazada en parte por D-NEXT.** Una ruta bloqueada 🔒 ese día queda fuera: el diálogo no ofrece
+> a ese chofer, el reparto lo quita aunque llegue marcado, y `optimizaEstas` (el bucle de «Optimizar todas las rutas» y del
+> diálogo) se la salta sin pedirla y dice cuántas se saltó.
 
 **Qué pidió el dueño**, literal: *«cuando le apreto autoasignar se debe abrir un dialog para seleccionar a qué conductores
 les quiero asignar todas las órdenes, o seleccionar algunas, y que se auto-asignen optimizando la ruta»*.
@@ -29637,3 +29645,153 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 - **Arrastrar cabeceras**: no, como en Órdenes y Promos (D-332: en la cabecera el arrastre es del asa del ancho).
 - **Mover el número de parada, la factura o las acciones de paradas**: son fijos, como el `#` de Órdenes.
 - **Guardar las columnas visibles del Gestor en el demo**: ya no se guardaban; no se pidió.
+
+## D-NEXT · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
+
+**Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Sin migración** (y el bloqueo compartido la
+necesitará: ver «Dónde vive el candado»). **Reemplaza en parte a D-401** («Optimizar todas las rutas» y el diálogo ya no
+optimizan ni reparten a una ruta bloqueada) **y a D-395** (el recuadro lleva un botón más). Las dos llevan su nota.
+
+**Qué pidió el dueño.** Se comparó el Gestor con OptimoRoute (`docs/research-route-optimization.md` §1.3 y §4 «Copiar»)
+y, de las tres ideas que salieron, dijo *«las 3 haz»* (2026-09-26; cita tal como la pasó el orquestador, no extraída del
+fichero de sesión). Esta entrada son dos de las tres: el **«best fit»** y **bloquear una ruta y reoptimizar el resto**. La
+tercera (prioridad por orden) va en otra rama.
+
+### 1. «📍 Mejor lugar»
+
+**Dónde está el botón.** En el recuadro «Elige conductor para N órdenes» (D-395), al lado de «Asignar»: se marca una o
+varias órdenes en «Sin asignar», se elige el chofer y se pulsa **📍 Mejor lugar**. Un clic, sin arrastrar (D-007). Se
+decidió ahí y no en el «Asignar a…» de cada fila porque el recuadro ya es «elige chofer y haz algo», y porque así
+«Asignar» (al final) y «Mejor lugar» (en su hueco) quedan uno al lado del otro: la diferencia se ve. El «Asignar a…» de
+cada fila no cambia.
+
+**Qué hace.** Cada orden marcada entra en la ruta de ese chofer **en el hueco más barato, sin mover el orden de las demás
+paradas** (no reoptimiza). Con varias, una detrás de otra: la segunda ya ve a la primera dentro.
+
+- **El par recogida → entrega.** En el Gestor cada viaje es un lazo que sale de la recogida (la base de la ruta), reparte y
+  vuelve; así lo calcula «Optimizar» (`computeRoute`) y así lo lee la etiqueta P/D (`secuenciaPD`, D-334: las recogidas de
+  un viaje van delante de sus entregas). Meter la orden en un viaje es meter su recogida al principio de ese viaje y su
+  entrega en el puesto elegido: la recogida va antes que la entrega **por construcción**. Por eso el hueco es (viaje,
+  puesto de la entrega). Prueba con nombre: la lectura P/D de lo escrito tiene la P de la nueva delante de su D, y en su
+  viaje.
+- **Capacidad.** Solo se miran los viajes donde caben sus pallets. Si no cabe en ninguno, **viaje nuevo al final**. Nunca
+  se abre un viaje nuevo si cabe en uno que ya existe: así, en una ruta que parte la capacidad sola (`splitIntoTrips`), lo
+  que se escribe es lo que la pantalla vuelve a partir, sin mover ningún corte (prueba con nombre que lo comprueba con
+  `splitIntoTrips` de verdad). En una ruta con viajes puestos a mano se escribe también el `load_no` de cada parada.
+- **Ventanas, si se puede.** Primero el hueco que añade **menos minutos tarde** a la ruta entera (meter una parada retrasa las
+  de detrás); a igualdad, el de **menos millas**; a igualdad, el primero. Llegar antes de que abra una ventana espera a que
+  abra (como `twFrom` de OptimoRoute). Reloj: sale a las 08:00 (`DAY_START_MIN`), descarga de cada orden
+  (`serviceMin`), vuelta a la base y 20 min de recarga entre viajes (`RELOAD_MIN`) — lo mismo que `computeRoute`.
+- **Coste sin llamar a nadie.** No se llama a Google (de pago) por cada hueco: serían decenas de peticiones por clic. Se usa
+  el escalón «estimado» que ya existía para los tiempos (D-318, `route-times/proveedores.ts`): millas en línea recta ×
+  `FACTOR_DE_RODEO` (1,3) y 30 mph. Para **elegir** entre huecos basta; las millas y la hora que enseña el aviso son esa
+  estimación, y el aviso lo dice («estimación en línea recta»). La base sale de las coordenadas de la tienda en Ajustes si
+  las tiene, y si no de `getDepotCoords` (la geocodificación que la pantalla ya hace para pintar la «P», con su caché).
+- **Qué dice.** Dónde entró y por qué: *«#1064 → Fleet Truck 3, viaje 1, parada 2 de 3 (entre #1010 y #1032): +1.8 mi,
+  ~09:14, sin retrasos nuevos. El mejor de 5 hueco(s), estimación en línea recta. El más corto (viaje 1, parada 3, +1.6 mi)
+  sumaba 105 min de retraso en las ventanas. El siguiente mejor: viaje 1, parada 1, +3.3 mi.»* Sale en el aviso de abajo
+  (2,6 s) **y en una tarjeta que se queda** en el sitio del recuadro hasta cerrarla (✕), porque en 2,6 s no se lee. Queda
+  además como nota en el historial de la orden («Best fit: …»).
+- **Lo que no coloca.** Una orden sin pin, o de otro día (chip «Todas»), se asigna como «Asignar» (al final) y se dice.
+- **Con la ruta bloqueada** (punto 2): el botón se apaga y al lado sale *«🔒 La ruta de X está bloqueada: Mejor lugar no la
+  toca («Asignar» sí la añade al final).»* La función también lo comprueba antes de escribir nada.
+
+**Dónde está:** `src/lib/mejor-lugar.ts` (`mejorLugar`, `costeDeLaRuta`, `escrituraDelHueco`, `avisoDelHueco`); la
+pantalla (`routes/page.tsx`, `colocaEnElMejorLugar`) le pasa los viajes que ella misma pinta (`buildTrips`).
+
+### 2. 🔒 Bloquear una ruta
+
+**Por chofer (por ruta), y por día.** Un botón **🔓 Bloquear / 🔒 Bloqueada** en la cabecera de la tarjeta de cada ruta
+(choferes y rutas temporales), y un 🔒 al lado del nombre en el panel «Choferes y rutas» y en las opciones del recuadro. Se
+decidió por ruta y no por viaje: todo lo que reoptimiza (`computeRoute`) trabaja con la ruta entera de un chofer, así que un
+candado por viaje no tendría nada que lo respete sin rehacer el optimizador. Es el `lockType: ROUTES` de OptimoRoute.
+
+**Qué no la toca:** «🧭 Optimizar todas las rutas» (se la salta **sin pedirla**: cero llamadas al optimizador, y el aviso
+dice *«Se saltó 1 ruta(s) bloqueada(s) 🔒: Fleet Truck 3. Optimizadas 3.»*), el «Optimizar ruta» de su tarjeta (apagado),
+«Reagrupar por zona» (apagado; empezaba borrando los viajes), «✨ Auto-asignar» (el diálogo no ofrece a ese chofer, y el
+reparto lo quita aunque llegue marcado), «Simular» (reoptimiza la ruta con la orden dentro, y al confirmar la escribe) y
+el dibujo automático al elegir un chofer (que también optimiza y escribe el orden).
+
+**Qué sí la toca: la persona.** Decisión del worker, a validar: una ruta bloqueada **sigue editable a mano** — flechas ↑ ↓,
+mover de viaje, «Asignar» (al final), quitar. El candado protege de lo automático, no de quien despacha; es el mismo
+criterio de D-335 («las flechas de mover NO se bloquean cuando hay plan»).
+
+**Dónde vive el candado: en ESTE navegador, por persona (`localStorage`, `rtg_rutas_bloqueadas`).** Se buscó un sitio en la
+base y no lo hay sin migración:
+- `settings` la escribe solo el admin (política de la 100), y logística es quien bloquea.
+- `user_prefs` solo admite las claves de su lista (`user_prefs_key_permitida`, 136) y es de cada persona.
+- `route_plans` / `route_plan_stops` son fotos de un plan con su guarda (133); `route_plan_stops.pinned` es «fijada» del
+  motor dentro de un plan, no un candado del día en el Gestor.
+- `driver_availability` (022) no tiene restricción en `kind`, y una fila por día cabría; **se descartó**: significa «no
+  disponible», y el chofer saldría «no disponible» en el recuadro y en Auto-asignar, y en su gestión de ausencias.
+
+**Consecuencia, dicha claro:** hoy el candado **solo lo ve y lo respeta quien lo puso, en ese navegador**. Otra persona de
+logística que pulse «Optimizar todas» sí optimiza esa ruta. Y «Armar rutas» / «Planificar el día» (el motor, que corre en
+el servidor) no lo conoce. Para que lo vea todo el equipo hace falta **una migración** (una tabla `route_locks (plan_date,
+lane, locked_by, locked_at)` con RLS de logística/admin como `driver_settings` en la 128, o una columna nueva): **queda
+pedida, no escrita** — había otra migración en curso (la 147) y el encargo decía parar ahí. `rutas-bloqueadas.ts` es el único
+sitio que lee y escribe el candado, para que cambiar el almacén no toque la pantalla. Lo de más de 14 días se olvida.
+
+**Dónde está:** `src/lib/rutas-bloqueadas.ts` (`alternaBloqueo`, `estaBloqueada`, `leeBloqueos`/`guardaBloqueos`,
+`optimizaSinLasBloqueadas`, `avisoDeSaltadas`). `optimizaEstas` (D-401) pasa a usar `optimizaSinLasBloqueadas`: el mismo
+bucle (una detrás de otra, 400 ms de pausa, devuelve las que salieron bien), que se salta las bloqueadas.
+
+### Efectos en terceros
+
+Optimizar llama a `/api/optimize-route` (Google, de pago). En las pruebas, `optimizaUna` es un doble que cuenta llamadas:
+la bloqueada, **cero**. En el demo, un stub de `fetch` en el navegador para `/api/optimize-route` que cuenta y contesta en la
+página. «Mejor lugar» no llama a nada (prueba con `fetch` que revienta si se llama; y en el demo, 0 llamadas).
+
+### Medido en el navegador (demo, 2026-09-26, «Ver como» logística, en español, 1280×900, clics de persona)
+
+El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a Brownsville se le pusieron las suyas
+(25.9017, −97.4975) en el almacén de ese navegador, para que la ruta tenga base.
+
+- **Mejor lugar, #1064** (INV-3124, 2 pallets, 08:00-10:00) a **Fleet Truck 3** (3 paradas: #1010 09:00-11:00, #1032
+  11:00-13:00, #1033 13:00-15:00; 13 pallets con capacidad 12 → dos viajes, [#1010, #1032] y [#1033]). Entró en el
+  **viaje 1, parada 2 (entre #1010 y #1032)**, +1.8 mi, ~09:14, sin retrasos. De los 5 huecos (3 en el viaje 1, que con 2
+  pallets llega justo a 12, y 2 en el viaje 2), el más corto era el de detrás de #1032 (+1.6 mi), que obliga a esperar a las
+  11:00 y deja #1064 fuera de su ventana. Recalculado aparte con la misma fórmula: 3.34 / **1.80** / 1.62 / 3.28 / 3.28 mi.
+  La ruta pasó de `1010, 1032, 1033` (sin secuencia) a `1010, 1064, 1032, 1033`: **el orden de las otras tres no cambió**.
+  **0** llamadas al optimizador.
+- **Bloquear Fleet Truck 3 y «Optimizar todas»:** botón «🔒 Bloqueada», su «Optimizar ruta» apagado, 🔒 en el panel,
+  guardado `{"2026-09-26":["Fleet Truck 3"]}`. Optimizar todas: **3 llamadas, ninguna con una parada de Fleet Truck 3**;
+  aviso «Se saltó 1 ruta(s) bloqueada(s) 🔒: Fleet Truck 3. Optimizadas 3.»; su ruta, idéntica antes y después.
+- **Auto-asignar:** el diálogo ofrece a Diego Driver, Carlos R. y Miguel A. — **no a Fleet Truck 3**. «Asignar y optimizar
+  (41)»: 10 asignadas a 3 choferes, **0 a Fleet Truck 3** (sigue con 4 paradas), 3 llamadas al optimizador y ninguna suya.
+- **Mejor lugar sobre la bloqueada:** su opción sale «Fleet Truck 3 🔒»; al elegirla, «📍 Mejor lugar» **apagado** y el
+  aviso al lado. Un clic de persona sobre el botón apagado: la ruta, igual.
+- **Desbloquear:** «🔓 Fleet Truck 3 desbloqueada.», guardado `{}`, «Optimizar ruta» encendido otra vez, y «Mejor lugar»
+  encendido para ella, sin aviso.
+- La página no se desplaza de lado (0 px) en ningún paso.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4668 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 47, los 47 caen**, leídos por nombre de prueba. La librería de «Mejor lugar» (14): sin capacidad; viaje nuevo
+  siempre; el orden sin las ventanas; no espera a que abra; sin descarga; sin recarga; sin vuelta a la base; sin rodeo;
+  ignora los viajes a mano; `load_no` corrido; sin el más corto; el siguiente es el mismo; el aviso sin el más corto; la
+  nueva en el viaje equivocado. La pantalla de «Mejor lugar» (10): el botón sin candado; la función sin mirar el candado;
+  sin `buildTrips`; capacidad fija; sin `reorderStops`; la siguiente no ve a la anterior; sin ventanas; sin el más corto; sin
+  la tarjeta que se queda; reoptimizar al colocar. La librería del candado (8): nunca bloqueada; no se desbloquea; no olvida
+  lo viejo; no salta las bloqueadas; una fallida cuenta como bien; pausa por las saltadas; lee lo que no es texto; el aviso
+  nunca. La pantalla del candado (15): `optimizaEstas` sin candado; sin aviso de saltadas; el diálogo ofrece la bloqueada; el
+  reparto le da órdenes; «Optimizar ruta» sin mirar el candado; el dibujo automático la optimiza; «Simular» la acepta;
+  «Reagrupar» la acepta; los dos botones encendidos; el candado no se guarda; no se lee al montar; el candado de hoy y no
+  del día que se mira; el panel sin 🔒; alternar el de otro día.
+
+### Lo no verificado, y lo que no se hizo
+
+- **Con una base de verdad y con llaves**: por regla, no. Lo que escribe «Mejor lugar» son `updateDelivery` y `reorderStops`,
+  los de siempre (los de las flechas).
+- **El candado para todo el equipo**: necesita migración (arriba). Tampoco lo respeta «Armar rutas» (el motor del servidor).
+- **Un candado por viaje**: no (arriba, por qué).
+- **Las ventanas se miran con la primera** de `delivery_windows` (`parseWindow`), como en el resto del Gestor.
+- **La recogida en una tienda distinta de la base** no suma el desvío: en el Gestor, cada viaje sale de la base de la ruta
+  (lo mismo que hace «Optimizar»). El «best fit» completo del motor (§2.6 del diseño: recogida y entrega como dos paradas
+  sueltas del plan) no se hizo: el Gestor no guarda la recogida como parada.
+- **A 1440 y en el teléfono**: solo se midió a 1280. A 1280, con millas y jornada ya calculadas, el botón nuevo empuja
+  «Optimizar ruta» a una segunda línea de la cabecera de la tarjeta (ya envolvía antes; no tapa nada).
+- En el demo, `/api/geocode-point` se llamó ~97 veces en la sesión (todas 401): es la geocodificación de las «P» que la
+  pantalla ya hacía y no guarda los fallos; «Mejor lugar» no añadió ninguna (usó las coordenadas de la tienda). No se midió
+  contra `main`.
