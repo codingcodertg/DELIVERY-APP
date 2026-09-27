@@ -129,6 +129,13 @@ idioma."*
 ---
 
 ## D-007 · Sin arrastrar en el Gestor de Rutas: solo flechas
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el título dice «en el Gestor» y ya no es cierto entero. Por pedido
+> del dueño («solos haz 1 3 y 4», tras explicarle el «drag and drop» de OptimoRoute), las paradas **se arrastran en la
+> pestaña «📅 Horario»** (la línea de tiempo). Lo que decidió esta entrada sigue igual: **las filas de la pestaña «Rutas» no
+> se arrastran**, se mueven con las flechas ↑/↓, y el fallo que la motivó (pulsar una flecha arrancaba el arrastre de la
+> fila) no puede volver porque en «Horario» no hay flechas ni botones sobre lo que se arrastra. (El «Tablero» ya arrastraba
+> tarjetas para asignar desde antes de D-NEXT.)
 **Fecha:** 2026-08-12 · **Versión:** v0.9.77 · **Pedido por:** Andrés
 
 **Cambio:** Se eliminó arrastrar y soltar filas en la pestaña Rutas. Las paradas
@@ -30313,3 +30320,162 @@ qué» en POST, GET y PATCH); `src/components/RouteEngineSettings.tsx` (las dos 
   «Por qué» con prioridad se probó de punta a punta con `planificaElDia` y un proveedor de tiempos falso, no en pantalla.
 - **Guardar las opciones no se probó en el navegador** (el demo las desactiva); se prueba `routeWeightsAlGuardar` y que la
   pantalla guarda por ahí.
+
+## D-NEXT · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Reemplaza en parte a D-007** («Sin arrastrar en el Gestor de Rutas: solo flechas»; lleva su nota). No toca Ajustes, los
+crons, `/unsubscribe`, `OrderModal`, `route-engine` ni `/track` (van en otras ramas).
+
+**Qué pidió el dueño.** Tras explicarle OptimoRoute (https://optimoroute.com/drag-and-drop/), de las opciones que salieron
+eligió *«solos haz 1 3 y 4»* (2026-09-27; cita tal como la pasó el orquestador, no extraída del fichero de sesión). El 3 es
+esto: **arrastrar paradas en la línea de tiempo del Gestor, con recálculo al instante y deshacer/rehacer.**
+
+### Esto revierte en parte D-007, y se dice
+
+D-007 (2026-08-12) quitó arrastrar filas en la pestaña Rutas: *«no ocupo arrastrar, elimina eso, solo con las flechas»*, y
+porque el arrastre se comía el clic de las flechas. Ahora el dueño pide arrastrar, con su pedido literal, **en la línea de
+tiempo**. El diseño respeta lo que D-007 decidió de verdad:
+- **Las filas de «Rutas» siguen sin arrastrarse** y con sus flechas ↑ ↓: no se tocó esa tabla.
+- **El arrastre vive solo en «📅 Horario»**, donde sobre las barras no hay flechas ni botones: el fallo de D-007 no puede volver.
+- Con teclado siguen las flechas de «Rutas»; en el teléfono, solo las flechas (abajo).
+
+### Qué hay ahora
+
+**La línea de tiempo cambia de qué pinta.** Hasta hoy cada orden era una barra sobre su **ventana** (solo pintaba). Ahora
+cada parada va **a su hora de llegada estimada, en el orden y los viajes de su ruta** (`buildTrips`, lo mismo que la tabla
+de paradas), con el ancho de su descarga; su ventana es la **raya fina de abajo**, y la que llega tarde sale con **⚠ y
+borde rojo**. El reloj es el de «📍 Mejor lugar» (D-411, `costeDeLaRuta`): sale a las 08:00, línea recta × 1,3 a 30 mph,
+espera a que abra la ventana, recarga de 20 min entre viajes. **Sin llamar a Google.** El eje va de 07:00 a 19:00 o más
+tarde si una ruta acaba más tarde. Salen **todas las rutas, también las vacías**, para poder soltar en un chofer sin nada.
+Sin la base de la ruta (el demo no geocodifica) la ruta es abierta, como en «Mejor lugar».
+
+**Arrastrar** (ratón o dedo, *pointer events*; un movimiento de más de 5 px para que un toque no sea un arrastre; Escape
+cancela):
+- **Dentro de una fila**: el hueco es el más cercano al puntero (antes de la primera de un viaje, entre dos, o detrás de la
+  última), contado **sin** la parada arrastrada. Sirve para cambiar el orden **y para pasar de un viaje a otro si cabe**:
+  un viaje que pasaría de la capacidad no acepta («No cabe», en rojo).
+- **A la fila de otro chofer**: igual, en el hueco elegido.
+- **Sobre el NOMBRE de un chofer**: «📍 Mejor lugar» elige el hueco (`mejorLugar` de D-411, sobre la ruta sin ella).
+- **Mientras se arrastra**: una etiqueta junto al puntero con dónde quedaría (viaje, parada) y **millas y minutos tarde de
+  más** de la ruta (o de las dos rutas, si cambia de chofer), y **qué ventana rompe**: «⚠ rompe la ventana de #1010», en
+  rojo, con la marca del hueco en rojo, **antes de soltar**. Lo que no se puede (candado, no cabe, sin pin) sale en rojo y
+  al soltar no escribe nada.
+- **Al soltar**: el aviso de abajo y una nota en el historial de la orden («Timeline: …», como «Best fit: …» de D-411).
+
+**Qué se escribe: lo mismo que las flechas** (`planDeSoltar`, `src/lib/arrastre-de-paradas.ts`). La secuencia entera de la
+ruta de llegada con `reorderStops` (`route_seq` 0..n-1) y, si hace falta, el viaje de cada parada (`load_no`). Si cambia de
+chofer, antes `updateDelivery` le escribe a ella `assigned_driver`, `route_seq` y `load_no`, como «Mejor lugar». La ruta de
+salida no se reescribe. **Cuándo se escriben viajes:** en una ruta con viajes puestos, siempre; en una que parte la
+capacidad sola, solo si partirla de nuevo no daría los viajes que se acaban de dibujar (p. ej. pasar la primera parada al
+viaje 2): entonces se fijan, como «mover de viaje» (`moveStopToLoad`). La vista previa y lo que se escribe salen **del mismo
+plan**. No se reoptimiza nada. Solo viendo **un día** (no en «Todas» ni en «Pendientes», donde las rutas mezclan días).
+
+### El candado 🔒 (decisión del worker, a validar)
+
+**Arrastrar a mano se deja con candado; soltar sobre el nombre, no.** D-411 dejó la ruta bloqueada editable a mano
+(flechas, mover de viaje, «Asignar», quitar): *«el candado protege de lo automático, no de quien despacha»*. Soltar una
+parada **en un hueco que la persona elige** es eso mismo, así que se trata como las flechas: se puede arrastrar desde una
+ruta bloqueada y soltar en ella. Soltar **sobre el nombre** es «Mejor lugar», que elige solo y que D-411 ya apaga con
+candado: se niega («🔒 Ruta bloqueada: Mejor lugar no la toca — suéltela en un hueco»). El pedido del orquestador decía «no
+acepta soltar ni se puede arrastrar desde ella» y a la vez recomendaba tratarlo como manual; se eligió lo segundo por
+coherencia con D-411. **Cambiarlo es una línea** (`candadoDeja`), con sus pruebas.
+
+### Deshacer / rehacer
+
+Botones **↶ Deshacer / ↷ Rehacer** junto a las pestañas (en «Horario» siempre; en las demás cuando hay algo que deshacer) y
+**Ctrl+Z / Ctrl+Y** (también Ctrl+Mayús+Z y ⌘), salvo escribiendo en un campo o con una orden abierta. Guarda **los
+movimientos a mano de esta sesión y de este día**: los arrastres **y las flechas ↑ ↓ de parada** (si no, Ctrl+Z tras una
+flecha desharía el arrastre anterior pisando la flecha). Cambiar de día lo vacía; 50 como mucho.
+
+**Deshacer es otra escritura, no un paso atrás en la pantalla.** Cada movimiento guarda la foto de antes y la de después
+(`assigned_driver`, `route_seq`, `load_no` de todas las paradas de las rutas tocadas) y el `updated_at` de cada una justo
+después de escribir. Al deshacer, **primero se lee lo que hay ahora** (con base: de la base en ese momento, no de la
+pantalla, que puede ir por detrás del tiempo real) y **no se escribe nada** si: una parada ya no está; sus campos de ruta no
+son los que dejó el movimiento; su `updated_at` cambió (alguien la editó, aunque fuera otra cosa: se prefiere no pisar); o
+entró otra parada en una de esas rutas. Entonces avisa *«No se deshizo: alguien cambió #1009 después de este movimiento. No
+se escribió nada, así que su cambio se queda.»* y ese movimiento sale de la pila (los de debajo se quedan: cada uno se
+comprueba igual al pulsar). Si todo cuadra, escribe con `updateDelivery` **solo las paradas y los campos que difieren** —así
+una secuencia que era `null` vuelve a `null`, cosa que `reorderStops` no puede— y relee los sellos. Rehacer, al revés.
+
+### El teléfono: solo flechas
+
+Por debajo de 760 px la línea de tiempo **solo se mira** y lo dice: *«En el teléfono la línea de tiempo solo se mira:
+reordene con las flechas ↑ ↓ de «Rutas».»* Dos razones: a 390 px la línea (620 px de ancho mínimo) se desplaza de lado y su pista tiene ~460 px para 12
+horas: una descarga de 15 min son ~10 px, y se ve solo un trozo (no se atina con el dedo), y hacer arrastrables las barras obliga a `touch-action: none`, que se come el
+desplazamiento lateral de la línea justo donde hace falta. En tableta (≥ 761 px) se arrastra con el dedo. Deshacer/rehacer
+funcionan igual en el teléfono.
+
+### Dónde está
+
+`src/lib/arrastre-de-paradas.ts` (puro: `planDeSoltar`, `candadoDeja`, `partePorCapacidad` —el mismo corte que
+`splitIntoTrips`, con prueba de que coinciden en 300 rutas—, `barrasDeLaRuta`, `huecosDeLaFila`, `huecoMasCercano`, el
+historial `anota`/`choquesAlVolver`/`escriturasHacia`/`trasVolver`/`descartaElDeArriba`, y los textos);
+`src/components/GanttTimeline.tsx` (el puntero, la etiqueta y la marca); `routes/page.tsx` (`rutasDelGantt`,
+`sueltaEnLaLinea`, `vuelve`, `leeFilasFrescas`, las teclas, los botones, y las flechas `move` que ahora apuntan en el
+historial); `globals.css` (`.gantt-*`).
+
+### Medido en el demo (2026-09-27, admin, en inglés, puerto propio, arrastres de persona con el ratón y la barra a la vista)
+
+A 1280 × 900, Fleet Truck 3 de partida: `#1010 (v1) · #1032 (v1) · #1033 (v2)`, `route_seq` todas `null`.
+- **Arrastrar #1010 detrás de #1033:** a mitad, la etiqueta dice *«truckload 2, stop 2 · +0.0 mi · +140 min late · ⚠ breaks
+  the window of #1010»* en rojo y la marca del hueco en rojo (captura `s1-arrastrando-1010`). Al soltar, la base del demo
+  queda `1032:seq 0 · 1033:seq 1, viaje 2 · 1010:seq 2, viaje 2` (se fijaron los viajes: la ruta partía sola), y la barra
+  #1010 sale con ⚠ a las ~13:20.
+- **Ctrl+Z:** `1010:null · 1032:null · 1033:null`, **idéntico** a la partida (también los `null`). **Ctrl+Y:** otra vez lo
+  de arriba. **Botón Deshacer:** idéntico a la partida otra vez.
+- **#1026 (Carlos R.) sobre el NOMBRE de Diego Driver:** etiqueta *«📍 Best fit: truckload 3, stop 1 · +13.5 mi · -2 min late
+  · ⚠ breaks the window of #1034»*; al soltar, Diego queda `1009, 1012, 1013, 1026, 1034` y Carlos sin #1026.
+- **Otra persona entre medias:** otra pestaña del mismo navegador (mismo almacén del demo) pone `route_seq` 42 a #1009 con
+  su `updated_at`. **Ctrl+Z** en la primera: *«Not undone: someone changed #1009 after this move. Nothing was written, so
+  their change stays.»*; la ruta de Diego, **idéntica** antes y después del intento; #1026 sigue con Diego; los dos botones
+  quedan apagados.
+- **Candado en Fleet Truck 3** (clic en su 🔓): la fila dice «Fleet Truck 3 🔒». #1011 sobre su nombre: *«🔒 Locked route:
+  Best fit doesn't touch it — drop it in a slot instead»*, en rojo; al soltar, la ruta **no cambia**. #1011 en el hueco de
+  detrás de #1033 (a mano): se escribe (`1010, 1032, 1033, 1011`), y **Ctrl+Z** lo deshace a la partida.
+- **Desplazamiento lateral: 0 px** en todos los pasos.
+- **Tableta, 1024 × 768, con el DEDO** (eventos táctiles de CDP): #1032 delante de #1010, etiqueta *«truckload 1, stop 1 ·
+  +0.0 mi · +45 min late · ⚠ breaks the window of #1010»*, y al soltar `1032:0 · 1010:1 · 1033:2`. 0 px de lado.
+- **Teléfono, 390 × 844:** 15 barras, **0 arrastrables**, sale el aviso de «solo flechas», 0 px de lado; un arrastre de
+  ratón sobre #1033 (encima de todo, comprobado con `elementFromPoint`) **no cambia nada** ni saca etiqueta.
+
+**Lo que el demo no mide:** no tiene base, así que «lo de ahora» se lee de la pantalla y el `updated_at` lo pone el demo. El
+camino con base (`select … updated_at` en `deliveries`, en el momento) está probado leyendo el código y con la función pura,
+**no contra Supabase**. Nada contra producción, ni SMS, ni llamadas.
+
+**Visto de paso, sin tocarlo:** a 390 y a 1024 el mapa pegajoso (`position: sticky`, z 5) **tapa las pestañas** cuando
+quedan en el centro de la pantalla: un toque ahí cae en el mapa. En el teléfono se llegó a la pestaña con el teclado, y en
+la tableta bajándola al borde inferior. No se midió contra `main`, pero el mapa no es de este cambio.
+
+### Verificado
+
+- `node scripts/verify.mjs` (2026-09-27): tipos, suite y `next build` en verde. Suite: **4924 pasadas | 3 saltadas** (un fichero
+  saltado entero).
+- Pruebas: `src/lib/arrastre-de-paradas.test.ts` (58, con nombre): soltar en la misma ruta, en otra y sobre el nombre;
+  capacidad; cuándo se fijan viajes (con `splitIntoTrips` de verdad); el candado; la vista previa (millas de una y de dos
+  rutas, la ventana que rompe); las barras y los huecos; el historial (choques por campo, por `updated_at`, por parada que
+  falta y por parada que entró; volver a `null`; ida y vuelta exacta); y que la pantalla usa esas funciones.
+- **Mutantes: 49, caen los 49**, leídos por nombre de prueba. En la primera vuelta **sobrevivió uno** (L25, «la foto de
+  después ignora los viajes escritos»): ninguna prueba miraba la foto de `load_no` con la que deshacer compara. Era una
+  prueba floja, no código de sobra (sin esa foto, deshacer tras fijar viajes chocaría siempre); se reforzó la prueba y cae.
+  Librería (27): el candado prohíbe arrastrar a mano; deja «Mejor lugar»; sin capacidad; nunca fija viajes; siempre los
+  fija; la que cambia de chofer conserva su `load_no`; el nombre sin `mejorLugar`; el mismo sitio como movimiento; la
+  previa sin la ruta de salida; la previa sin ventanas rotas; el viaje vacío que no desaparece; partir al llegar justo; los
+  huecos con la arrastrada; el empate al último; el hueco del medio mal puesto; deshacer sin `updated_at`, sin la parada que
+  entró, sin los campos; rehacer contra la foto equivocada; el movimiento nuevo que no vacía rehacer; sin tope; escribir lo
+  que no cambió; no devolver el chofer; sin sellos nuevos; la foto sin viajes; las barras nunca tarde; el choque que tira la
+  pila entera. Pantalla (14): sin escribir el chofer; sin los viajes; solo la ruta de llegada en el historial; deshacer con
+  choque; sin mirar quién hay en la ruta; la lectura sin `updated_at`; las flechas con foto vacía; sin Ctrl+Z; el historial
+  que sobrevive al cambio de día; sin candado; sin `buildTrips`; arrastrar en «Todas»; escribir otra cosa que la previa; sin
+  barras. Línea de tiempo (8): huecos con la arrastrada; soltar aunque el plan diga que no; arrastrar en el teléfono; sin
+  umbral; la previa sin rojo; sin Escape; el nombre como un hueco; sin capturar el puntero.
+
+### Lo que no se hizo
+
+- **Soltar para abrir un viaje nuevo**: arrastrando solo se entra en los viajes que hay (si no cabe, no se suelta). «Mejor
+  lugar» por el nombre sí abre uno al final si no cabe en ninguno, como en D-411.
+- **Deshacer de todo lo demás** (mover viajes enteros, «mover de viaje», «Asignar», «Mejor lugar» del recuadro, Optimizar):
+  solo arrastres y flechas de parada. Lo automático no tiene foto de antes.
+- **El arrastre desde «Sin asignar» a la línea de tiempo**: las filas son de rutas; lo sin chofer sigue en su pestaña.
+- **Teclado sobre las barras**: no se enfocan; con teclado, las flechas de «Rutas».
+- **Tiempo real del candado**: como D-414, se relee al volver a la pestaña; el plan mira el candado que la pantalla tiene.
