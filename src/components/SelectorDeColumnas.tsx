@@ -32,7 +32,7 @@ export function SelectorDeColumnas<C extends { key: string; en: string; es: stri
   /** Las plantillas (D-394): el mismo bloque que en Órdenes, arriba del todo. Sin esto, el menú no las enseña. */
   plantillas?: Omit<ComponentProps<typeof PlantillasDeColumnas>, "t">;
   /**
-   * MOVER columnas (D-NEXT): las flechas ↑ ↓ de Órdenes (D-332) y Promos (D-385), con el mismo marcado —`.col-opt` con
+   * MOVER columnas (D-410): las flechas ↑ ↓ de Órdenes (D-332) y Promos (D-385), con el mismo marcado —`.col-opt` con
    * `flex: 1` y dos `btn btn-ghost btn-sm`—, y «Restablecer orden» en la cabecera cuando hay orden propio. Lo que mueve lo
    * decide la página (`mueveEnElGestor`): aquí solo se pinta. `columnas` llega ya en el orden de la persona. Una columna
    * `fija` sale con la casilla marcada y apagada: se mueve, no se quita.

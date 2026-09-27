@@ -60,14 +60,14 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
   });
   it("el ⚙ de «Sin asignar» lista las columnas en el mismo orden que la tabla: la página le pasa el orden de la persona", () => {
     const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
-    // Hasta D-NEXT, `columnasElegibles` (sin la factura, D-408). Ahora sale TODA la tabla, factura incluida —se mueve,
+    // Hasta D-410, `columnasElegibles` (sin la factura, D-408). Ahora sale TODA la tabla, factura incluida —se mueve,
     // no se quita—, en el orden de la persona; sin orden propio, el de ventas.
     expect(pagina).toContain('columnas={columnasDelSelector("sinAsignar", ordenGestor)}');
     expect(columnasDelSelector("sinAsignar", null).map((c) => c.key))
       .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key));
   });
   it("sin orden propio, las tablas de PARADAS salen como antes de poder moverlas: el orden de partida no cambió", () => {
-    // D-402 las dejó quietas; D-NEXT las deja mover, pero quien no mueve nada las ve igual que antes.
+    // D-402 las dejó quietas; D-410 las deja mover, pero quien no mueve nada las ve igual que antes.
     const DE_SIEMPRE = ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"];
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key)).toEqual(DE_SIEMPRE);
     expect(plano(leer("src/app/(app)/routes/page.tsx"))).toContain('columnas={columnasDelSelector("paradas", ordenGestor)}');

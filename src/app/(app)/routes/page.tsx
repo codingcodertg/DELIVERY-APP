@@ -230,7 +230,7 @@ export default function RoutesPage() {
   const poolCols = useColWidthMap("rtg_routes_pool4", 100);
   // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-376): con 100 px la etapa salía «Program…», y allí entera.
   const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
-  // Los anchos de la tabla de PARADAS, por CLAVE desde D-NEXT: sus columnas ahora se mueven, y un ancho por posición se
+  // Los anchos de la tabla de PARADAS, por CLAVE desde D-410: sus columnas ahora se mueven, y un ancho por posición se
   // quedaría en el puesto mientras la columna se va. Antes vivían en `rtg_routes_stops8` (por posición) y en
   // `rtg_routes_stops_extra1` (las de Órdenes, D-376); `siembraAnchosDeParadas` los hereda UNA vez, antes de que el hook
   // lea la llave nueva — por eso va en un inicializador de estado justo delante, que corre antes en el primer render.
@@ -242,7 +242,7 @@ export default function RoutesPage() {
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
-  // El ORDEN de las columnas (D-NEXT), la mitad `_orden` de la misma fila, como en Órdenes: la `ref` es lo leído de todos
+  // El ORDEN de las columnas (D-410), la mitad `_orden` de la misma fila, como en Órdenes: la `ref` es lo leído de todos
   // los roles (lo que se escribe); el estado, la lista de ESTE rol (`null` = las dos tablas en su orden de partida).
   const ordenDelGestor = useRef<ColumnasPorRol>({});
   const [ordenGestor, setOrdenGestor] = useState<string[] | null>(null);
@@ -281,13 +281,13 @@ export default function RoutesPage() {
     plantillasDelGestor.current = plantillasDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, CLAVE_DE_COLUMNAS_DEL_GESTOR);
     setPlantillasGestor(plantillasDelGestor.current);
   }, []);
-  // Y su orden (D-NEXT), también en este navegador y por rol, como hace Promos (`rtg_promos_orden_<rol>`, D-385).
+  // Y su orden (D-410), también en este navegador y por rol, como hace Promos (`rtg_promos_orden_<rol>`, D-385).
   useEffect(() => {
     if (!SIN_BASE || !me) return;
     try { setOrdenGestor(ordenDelGestorEnElNavegador(localStorage.getItem(claveDelOrdenEnElNavegador(me.role)))); } catch { setOrdenGestor(null); }
   }, [me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
   // La fila se escribe ENTERA, por un solo sitio y con las mitades leídas: marcar una casilla no borra las plantillas ni
-  // el orden, y mover una columna no borra las columnas ni las plantillas (D-394, D-NEXT).
+  // el orden, y mover una columna no borra las columnas ni las plantillas (D-394, D-410).
   const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, ordenDelGestor.current, {}, plantillasDelGestor.current);
   // El orden de ESTE rol cambia: se pinta, y se guarda en la base (si se pudo leer) o, en el demo, en este navegador.
   // `null` borra el del rol: sin orden propio manda el de partida, y una columna futura entra donde diga el código.
@@ -301,7 +301,7 @@ export default function RoutesPage() {
     ordenDelGestor.current = todos;
     void escribeElGestor();
   };
-  // Las flechas de cada ⚙ (D-NEXT): el mismo `mueveColumna` de Órdenes, dentro de SU tabla.
+  // Las flechas de cada ⚙ (D-410): el mismo `mueveColumna` de Órdenes, dentro de SU tabla.
   const moverEn = (tabla: TablaDelGestor) => ({
     seMueve: (clave: string, delta: -1 | 1) => seMueveEnElGestor(tabla, ordenGestor, clave, delta, colsGestor),
     onMueve: (clave: string, delta: -1 | 1) => ponOrdenDelGestor(mueveEnElGestor(tabla, ordenGestor, clave, delta, colsGestor)),
@@ -317,7 +317,7 @@ export default function RoutesPage() {
     prefsDelGestor.current = todas;
     void escribeElGestor();
   };
-  // Aplicar: la foto, o «Por defecto» (`null`) — lo que trae la app. Desde D-NEXT también el ORDEN: el de la foto, o el
+  // Aplicar: la foto, o «Por defecto» (`null`) — lo que trae la app. Desde D-410 también el ORDEN: el de la foto, o el
   // de partida si la plantilla no traía (las de antes) o si es «Default». Columnas y orden van en UNA escritura.
   const aplicaPlantillaDelGestor = (p: PlantillaDeColumnas | null) => {
     const next = p ? columnasDePlantillaDelGestor(p.v) : [...COLUMNAS_DEL_GESTOR_POR_DEFECTO];
@@ -356,7 +356,7 @@ export default function RoutesPage() {
     onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);
-  // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-NEXT;
+  // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
   // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
   const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
   const columnasDeParadas = 3 + colsParadas.length;
@@ -2509,7 +2509,7 @@ export default function RoutesPage() {
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
                 <table className="orders tbl-resize" style={{ width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
-                  {/* Número de parada y factura, las elegidas en el orden de la persona (D-NEXT), y las acciones al final.
+                  {/* Número de parada y factura, las elegidas en el orden de la persona (D-410), y las acciones al final.
                       Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
                   <colgroup>
                     <col style={{ width: anchoDeParada("_n") }} />
@@ -2653,7 +2653,7 @@ export default function RoutesPage() {
                                 {/* Solo la factura, subrayada: abre la orden (D-408). Antes (D-379) el código de la orden iba
                                     arriba, subrayado, y la factura debajo en pequeño; el código era lo que se pulsaba. */}
                                 <td className="ordno">{enlaceALaOrden(d)}</td>
-                                {/* Cada celda por su CLAVE, en el orden de la persona (D-NEXT). Las cinco de siempre se pintan
+                                {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan
                                     a su manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
                                 {colsParadas.map((c) => {
                                   switch (c.key) {

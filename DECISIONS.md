@@ -23057,7 +23057,7 @@ del 2026-08-11): no hay decisión anterior que marcar como reemplazada, y se dic
 
 ## D-332 · Las columnas de la tabla de Órdenes se pueden reordenar, con flechas, y el orden es de cada persona
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): «El Gestor de Rutas queda fuera» deja de valer. El Gestor mueve sus
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): «El Gestor de Rutas queda fuera» deja de valer. El Gestor mueve sus
 > columnas con este mismo mecanismo (`mueveColumna`, `ordenEfectivo`, `_orden` en la fila). Órdenes no cambia.
 
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
@@ -27625,7 +27625,7 @@ una tarjeta de chofer, y plegarla dejaría la pestaña en blanco al pulsarla. `e
 
 ## D-394 · Plantillas de columnas en Órdenes y en el Gestor de Rutas: guardar lo que se ve y volver a ello con un clic
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): en el Gestor las columnas ya se mueven, y sus plantillas guardan
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): en el Gestor las columnas ya se mueven, y sus plantillas guardan
 > también el ORDEN (`o`), como las de Órdenes. Lo de abajo —«en el Gestor, solo qué columnas se ven, porque allí el orden lo
 > fija el código»— deja de valer; una plantilla del Gestor guardada antes, sin `o`, se aplica con el orden de partida. El
 > escritor único `escribeElGestor` manda ahora también la mitad `_orden`, y los anchos de paradas ya no van por posición.
@@ -28580,7 +28580,7 @@ producción ni con llaves.**
 > pasa a fija en su puesto de ventas (tras PO y SO). La «Dirección» ahora es la «Ciudad de entrega»: misma clave y mismo
 > puesto (tras la recogida). El orden de ventas no cambia.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): el orden de ventas de aquí pasa a ser el orden **de partida** de
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): el orden de ventas de aquí pasa a ser el orden **de partida** de
 > «Sin asignar» —el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden»—; cada persona puede
 > mover sus columnas con flechas. Las tablas de paradas, que aquí «no se tocan», también se mueven ya, con los anchos por
 > clave. Lo de «el Gestor nunca ha guardado un orden» deja de ser cierto: lo guarda en `_orden`.
@@ -29292,7 +29292,7 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 
 ## D-408 · El Gestor de Rutas deja de enseñar el ID: la factura abre la orden, y la dirección de entrega pasa a ser la ciudad
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
+> **⚠ Reemplazada en parte por D-410** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
 > marcada y apagada** —sigue sin poder quitarse—, porque ahora las columnas se mueven y la factura también. Y los anchos de
 > paradas pasan de `rtg_routes_stops8` (por posición) a `rtg_routes_stops9` (por clave), heredando los guardados.
 
@@ -29524,7 +29524,7 @@ línea «Recibida por almacén», solo la pastilla.
   de `order_events` (100) deja leer a cualquiera con acceso a Entregas, así que el `select` de vuelta debería llegar; si no
   llegara, no se rompe nada: la recarga por tiempo real lo trae como antes.
 
-## D-NEXT · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
+## D-410 · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, literal: *«Route manager view to be able to move columns and save template IN THE COLUMNS»*.

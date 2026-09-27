@@ -285,7 +285,7 @@ describe("el Gestor usa las MISMAS plantillas", () => {
   });
   it("aplicar, guardar y borrar usan las funciones probadas", () => {
     expect(p).toContain("const next = p ? columnasDePlantillaDelGestor(p.v) : [...COLUMNAS_DEL_GESTOR_POR_DEFECTO];");
-    // Desde D-NEXT la foto lleva también el orden (`o`), y la fila que se mide para la guarda de tamaño, el orden leído.
+    // Desde D-410 la foto lleva también el orden (`o`), y la fila que se mide para la guarda de tamaño, el orden leído.
     expect(p).toContain("const r = guardaPlantilla(plantillasDelGestor.current, nombre, fotoDePlantillaDelGestor(colsGestor, ordenGestor));");
     expect(p).toContain("onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),");
     expect(p).toContain("const problema = await persistePlantillas(lista, crece, destinoDelGestor, t);");
@@ -301,7 +301,7 @@ describe("el bloque", () => {
   const c = leer("src/components/PlantillasDeColumnas.tsx");
   const s = leer("src/components/SelectorDeColumnas.tsx");
   it("el ⚙ del Gestor lo pinta arriba, bajo el título, si le llegan plantillas", () => {
-    // Desde D-NEXT la cabecera lleva también «Restablecer orden» cuando hay orden propio.
+    // Desde D-410 la cabecera lleva también «Restablecer orden» cuando hay orden propio.
     expect(s).toContain('<div className="col-menu-head"> <b>{titulo}</b> {mover?.ordenPropio && <button className="notif-clear" onClick={mover.onRestablece}>{t("Reset order", "Restablecer orden")}</button>} </div> {plantillas && <PlantillasDeColumnas {...plantillas} t={t} />}');
   });
   it("«Por defecto» está siempre y aplica `null`", () => {

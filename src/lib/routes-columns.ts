@@ -26,7 +26,7 @@ export type TablaDelGestor = "sinAsignar" | "paradas";
 export interface ColumnaDelGestor {
   key: string; en: string; es: string; tablas: readonly TablaDelGestor[]; ancho: number;
   /** El puesto que la columna tenía en la tabla de paradas cuando esa tabla guardaba los anchos por posición
-   *  (`rtg_routes_stops8`). Solo las cinco de D-346. Desde D-NEXT las columnas de paradas se mueven y los anchos van por
+   *  (`rtg_routes_stops8`). Solo las cinco de D-346. Desde D-410 las columnas de paradas se mueven y los anchos van por
    *  clave: el puesto ya no pinta nada, solo dice de qué casilla del ancho viejo se hereda (`anchosDeParadasHeredados`). */
   indice?: number;
   /** La columna de Órdenes (`ORDER_COLUMNS`) de la que esta toma la celda, el valor para ordenar y filtrar, y la
@@ -126,7 +126,7 @@ export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readon
 const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas"];
 
 /**
- * MOVER COLUMNAS en el Gestor (D-NEXT). El dueño: «Route manager view to be able to move columns and save template IN THE
+ * MOVER COLUMNAS en el Gestor (D-410). El dueño: «Route manager view to be able to move columns and save template IN THE
  * COLUMNS». Es el mecanismo de Órdenes (D-332) y Promos (D-385): flechas ↑ ↓ en ⚙ Columnas, `mueveColumna` y
  * `ordenEfectivo`, y el orden guardado APARTE de qué columnas se ven, en la mitad `_orden` de la misma fila.
  *
@@ -197,12 +197,12 @@ export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly stri
 }
 
 /** Lo que lista el ⚙ de una tabla: TODAS las suyas, en el orden de la persona, fijas incluidas (con la casilla apagada:
- *  se mueven, no se quitan). Hasta D-NEXT el ⚙ no enseñaba la factura (D-408); ahora sale para poder moverla. */
+ *  se mueven, no se quitan). Hasta D-410 el ⚙ no enseñaba la factura (D-408); ahora sale para poder moverla. */
 export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined): ColumnaDelGestor[] {
   return ordenDeLaTabla(tabla, guardado).map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!);
 }
 
-/** El orden que trae una plantilla del Gestor, o `null` si se guardó sin orden propio (las de antes de D-NEXT): entonces
+/** El orden que trae una plantilla del Gestor, o `null` si se guardó sin orden propio (las de antes de D-410): entonces
  *  se aplica el de partida. Solo claves que aún existen; lo que quede en su orden de partida no se guarda. */
 export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): string[] | null {
   return o ? componeOrdenDelGestor({ sinAsignar: ordenDeLaTabla("sinAsignar", o), paradas: ordenDeLaTabla("paradas", o) }) : null;
@@ -251,7 +251,7 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
 }
 
 /**
- * Los ANCHOS de la tabla de paradas van por CLAVE desde D-NEXT (`rtg_routes_stops9`): una columna que se mueve se lleva
+ * Los ANCHOS de la tabla de paradas van por CLAVE desde D-410 (`rtg_routes_stops9`): una columna que se mueve se lleva
  * su ancho. Hasta aquí vivían en dos sitios: `rtg_routes_stops8`, por POSICIÓN —[parada, factura, tipo, pallets, ciudad,
  * llegada, ventanas, acciones]—, y `rtg_routes_stops_extra1`, por la clave de Órdenes de las columnas sin puesto (D-376).
  * Esto los traduce a las claves nuevas, una vez, para que nadie pierda lo que arrastró. Lo que no sea un número se ignora.
@@ -312,7 +312,7 @@ export function fotoDelGestor(elegidas: readonly string[]): string[] {
   return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k));
 }
 
-/** La foto entera de una plantilla del Gestor desde D-NEXT: qué columnas se ven (`v`) y, si la persona movió alguna, su
+/** La foto entera de una plantilla del Gestor desde D-410: qué columnas se ven (`v`) y, si la persona movió alguna, su
  *  orden (`o`), como en Órdenes. Sin orden propio la plantilla no lleva `o`, y al aplicarla sale el de partida. */
 export function fotoDePlantillaDelGestor(elegidas: readonly string[], orden: readonly string[] | null | undefined): { v: string[]; o?: string[] } {
   const o = orden ? ordenDePlantillaDelGestor(orden) : null;

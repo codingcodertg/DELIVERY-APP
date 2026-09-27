@@ -15,7 +15,7 @@ import {
 } from "./user-prefs";
 
 /**
- * D-NEXT: mover columnas en el Gestor de Rutas, y que las plantillas guarden el orden. El dueño, literal: «Route manager
+ * D-410: mover columnas en el Gestor de Rutas, y que las plantillas guarden el orden. El dueño, literal: «Route manager
  * view to be able to move columns and save template IN THE COLUMNS». Mismo mecanismo que Órdenes (D-332) y Promos (D-385).
  */
 
@@ -128,7 +128,7 @@ describe("un solo escritor: mover no borra columnas ni plantillas, y al revés",
     await guardaColumnas(cliente(escrito), "yo", { logistics: ["po"] }, CLAVE_DE_COLUMNAS_DEL_GESTOR, orden, {}, plantillas);
     expect(prefsDeValor(escrito[0]).orden).toEqual(orden);
     expect(plantillasDeValor(escrito[0])).toEqual(plantillas);
-    // Lo que hacía el Gestor hasta D-NEXT (`{}` en el hueco del orden): marcar una casilla le habría borrado el orden.
+    // Lo que hacía el Gestor hasta D-410 (`{}` en el hueco del orden): marcar una casilla le habría borrado el orden.
     await guardaColumnas(cliente(escrito), "yo", { logistics: ["po"] }, CLAVE_DE_COLUMNAS_DEL_GESTOR, {}, {}, plantillas);
     expect(prefsDeValor(escrito[1]).orden).toEqual({});
   });
@@ -143,7 +143,7 @@ describe("las plantillas guardan también el orden", () => {
     const r = guardaPlantilla([], "Log A", fotoDePlantillaDelGestor(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden));
     expect(r.ok && r.lista[0].o).toEqual(orden);
   });
-  it("aplicar: la de D-NEXT devuelve su orden; una VIEJA, sin orden, da el de partida; y lo que ya no existe se cae", () => {
+  it("aplicar: la de D-410 devuelve su orden; una VIEJA, sin orden, da el de partida; y lo que ya no existe se cae", () => {
     const orden = mueve("sinAsignar", null, "store", -2)!;
     expect(ordenDePlantillaDelGestor(orden)).toEqual(orden);
     expect(ordenDePlantillaDelGestor(undefined)).toBeNull();
