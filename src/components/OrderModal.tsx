@@ -2361,7 +2361,7 @@ export function OrderModal({
           <ChoferYPallets pedido={existing} />
           <div className="field">
             <label>{t("How many pallets did you load?", "¿Cuántas pallets cargó?")}</label>
-            <input type="number" min={1} value={pickupPallets} onChange={(e) => setPickupPallets(e.target.value)} />
+            <input type="number" min={1} step="any" value={pickupPallets} onChange={(e) => setPickupPallets(e.target.value)} />
             <div className="hint">
               {t(`Total on this order: ${existing.actual_pallets ?? existing.est_pallets ?? "—"}. Loading fewer splits the order into #${orderLabel({ ...existing, order_suffix: existing.order_suffix ?? "a" })} (this trip) and a new staged trip with the rest.`,
                  `Total de la orden: ${existing.actual_pallets ?? existing.est_pallets ?? "—"}. Cargar menos divide la orden en #${orderLabel({ ...existing, order_suffix: existing.order_suffix ?? "a" })} (este viaje) y un nuevo viaje preparado con el resto.`)}
@@ -2824,7 +2824,7 @@ export function OrderModal({
                 era, y el campo se rellenaba con él sin distinguirlos. Los dos números se guardan
                 aparte —`est_pallets` y `actual_pallets`—, así que esto solo los nombra. */}
             <label>{t("Real pallets (warehouse)", "Pallets reales (almacén)")}</label>
-            <input type="number" min={1} autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
+            <input type="number" min={1} step="any" autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
               placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
           </div>
 
@@ -3627,7 +3627,7 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid }: 
   return (
     <div className="field">
       <label>{label}{invalid && <span className="req-star"> *</span>}</label>
-      <input className={invalid ? "invalid" : ""} type={type} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder}
+      <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder}
         onChange={(e) => on(e.target.value)} />
     </div>
   );

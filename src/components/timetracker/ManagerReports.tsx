@@ -336,7 +336,7 @@ export function ManagerReports({ period }: { period: string }) {
               <select value={adjType} onChange={(e) => setAdjType(e.target.value)} style={{ flex: 1, minWidth: 110 }}>
                 {adjTypes.map((ty) => <option key={ty} value={ty}>{tipoLabel(ty)}</option>)}
               </select>
-              <input type="number" placeholder={t("mgr.rep.amountPh")} value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ flex: 1, minWidth: 90 }} />
+              <input type="number" step="any" placeholder={t("mgr.rep.amountPh")} value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ flex: 1, minWidth: 90 }} />
               <button className="btn-ghost btn-sm" onClick={() => { addAdjustment(uid, adjType, adjAmount); setAdjAmount(""); }}>{t("common.add")}</button>
             </div>
           )}
@@ -452,7 +452,7 @@ export function ManagerReports({ period }: { period: string }) {
             <select value={sa.type} onChange={(e) => setSa((p) => ({ ...p, type: e.target.value }))} style={{ flex: 1, minWidth: 110 }}>
               {adjTypes.map((ty) => <option key={ty} value={ty}>{tipoLabel(ty)}</option>)}
             </select>
-            <input type="number" placeholder={t("mgr.rep.amountPh")} value={sa.amount} onChange={(e) => setSa((p) => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: 90 }} />
+            <input type="number" step="any" placeholder={t("mgr.rep.amountPh")} value={sa.amount} onChange={(e) => setSa((p) => ({ ...p, amount: e.target.value }))} style={{ flex: 1, minWidth: 90 }} />
           </div>
           <div className="small muted" style={{ marginTop: 8 }}>{t("mgr.rep.adjNote")}</div>
           <div className="modal-actions">
