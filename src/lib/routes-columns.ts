@@ -19,14 +19,15 @@
  * (`ORDEN_DE_PARTIDA`, D-347), que se LEE de allí, no se copia: si Órdenes cambia su orden, el Gestor lo sigue.
  */
 
-import { ORDEN_DE_PARTIDA } from "./orden-de-columnas";
+import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
 
 export type TablaDelGestor = "sinAsignar" | "paradas";
 
 export interface ColumnaDelGestor {
   key: string; en: string; es: string; tablas: readonly TablaDelGestor[]; ancho: number;
-  /** El puesto que la columna ya tenía en la tabla de paradas, que guarda su ancho por posición (`useColWidths`). Solo
-   *  las cinco de D-346; las que llegaron después se guardan por clave y no llevan puesto. */
+  /** El puesto que la columna tenía en la tabla de paradas cuando esa tabla guardaba los anchos por posición
+   *  (`rtg_routes_stops8`). Solo las cinco de D-346. Desde D-NEXT las columnas de paradas se mueven y los anchos van por
+   *  clave: el puesto ya no pinta nada, solo dice de qué casilla del ancho viejo se hereda (`anchosDeParadasHeredados`). */
   indice?: number;
   /** La columna de Órdenes (`ORDER_COLUMNS`) de la que esta toma la celda, el valor para ordenar y filtrar, y la
    *  etiqueta del filtro (D-376). Así «Costo» se pinta aquí exactamente como en Órdenes, con su bandera roja. */
@@ -115,25 +116,98 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
  *  columnas es una elección, no el punto de partida. */
 export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4"];
 
-/** El orden de cada tabla. «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde
- *  D-331, la factura la primera y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega
- *  después va al final. */
-const ORDEN: Record<TablaDelGestor, readonly string[]> = {
+/** El orden DE PARTIDA de cada tabla: el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden».
+ *  «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde D-331, la factura la primera
+ *  y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega después va al final. */
+export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
   paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"],
 };
+const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas"];
 
-/** Las columnas de UNA tabla, en SU orden —no en el que las marcó la persona—, y solo las elegidas. Una clave que ya
- *  no existe (una columna retirada) se ignora sin romper nada. */
-export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly string[]): ColumnaDelGestor[] {
+/**
+ * MOVER COLUMNAS en el Gestor (D-NEXT). El dueño: «Route manager view to be able to move columns and save template IN THE
+ * COLUMNS». Es el mecanismo de Órdenes (D-332) y Promos (D-385): flechas ↑ ↓ en ⚙ Columnas, `mueveColumna` y
+ * `ordenEfectivo`, y el orden guardado APARTE de qué columnas se ven, en la mitad `_orden` de la misma fila.
+ *
+ * `guardado` es la lista del rol en `_orden`: UNA lista para las dos tablas —sus claves no se cruzan—, y en ella solo
+ * está la tabla que la persona movió. Una tabla que vuelve a su orden de partida sale de la lista, y una lista vacía es
+ * `null` (no se guarda nada): así una columna futura de una tabla que nadie tocó entra donde diga el código, no al final.
+ */
+export function ordenDeLaTabla(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined): string[] {
+  return ordenEfectivo(ORDEN_DE_PARTIDA_DEL_GESTOR[tabla], guardado);
+}
+
+/** La lista que se guarda con el orden de cada tabla. `null` = las dos en su orden de partida. */
+export function componeOrdenDelGestor(porTabla: Readonly<Record<TablaDelGestor, readonly string[]>>): string[] | null {
+  const r = TABLAS.flatMap((tb) => {
+    const suyo = ordenDeLaTabla(tb, porTabla[tb]);
+    return suyo.join() === ORDEN_DE_PARTIDA_DEL_GESTOR[tb].join() ? [] : suyo;
+  });
+  return r.length ? r : null;
+}
+
+/** Cambia el orden de UNA tabla y deja el de la otra como estaba. */
+function conOrdenDe(tabla: TablaDelGestor, suyo: readonly string[] | null, guardado: readonly string[] | null | undefined): string[] | null {
+  const porTabla = { sinAsignar: ordenDeLaTabla("sinAsignar", guardado), paradas: ordenDeLaTabla("paradas", guardado) };
+  porTabla[tabla] = suyo ? [...suyo] : [...ORDEN_DE_PARTIDA_DEL_GESTOR[tabla]];
+  return componeOrdenDelGestor(porTabla);
+}
+
+/**
+ * Sube (-1) o baja (+1) una columna de una tabla, un puesto ENTRE LAS QUE SE VEN (`mueveColumna` de Órdenes: salta por
+ * encima de las escondidas). Las fijas cuentan como vistas: la factura de «Sin asignar» se mueve como las demás, solo que
+ * no se puede quitar. Devuelve la lista entera que se guarda.
+ */
+export function mueveEnElGestor(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined, clave: string, delta: -1 | 1, elegidas: readonly string[]): string[] | null {
+  const orden = ordenDeLaTabla(tabla, guardado);
+  const vistas = columnasDeLaTabla(tabla, elegidas, guardado).map((c) => c.key);
+  return conOrdenDe(tabla, mueveColumna(orden, clave, delta, vistas), guardado);
+}
+
+/** Si la flecha haría algo: la flecha se apaga en el tope, contando que una visible salta sobre las escondidas (D-332). */
+export function seMueveEnElGestor(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined, clave: string, delta: -1 | 1, elegidas: readonly string[]): boolean {
+  return ordenDeLaTabla(tabla, mueveEnElGestor(tabla, guardado, clave, delta, elegidas)).join() !== ordenDeLaTabla(tabla, guardado).join();
+}
+
+/** Dónde guarda el DEMO el orden (no tiene base): en este navegador, por rol, como Promos (`rtg_promos_orden_<rol>`). */
+export const claveDelOrdenEnElNavegador = (rol: string): string => `rtg_routes_orden_${rol}`;
+/** El orden guardado en el navegador, saneado. Un JSON roto, o algo que no sea una lista de textos, no es ningún orden. */
+export function ordenDelGestorEnElNavegador(texto: string | null): string[] | null {
+  try {
+    const v: unknown = JSON.parse(texto ?? "null");
+    return Array.isArray(v) && v.every((k) => typeof k === "string") ? ordenDePlantillaDelGestor(v) : null;
+  } catch { return null; }
+}
+
+/** «Restablecer orden» de una tabla: vuelve a su orden de partida, y la otra se queda como estaba. */
+export function restableceOrdenDelGestor(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined): string[] | null {
+  return conOrdenDe(tabla, null, guardado);
+}
+
+/** Si esta tabla tiene un orden propio (para enseñar «Restablecer orden» solo cuando hace algo). */
+export const tieneOrdenPropio = (tabla: TablaDelGestor, guardado: readonly string[] | null | undefined): boolean =>
+  ordenDeLaTabla(tabla, guardado).join() !== ORDEN_DE_PARTIDA_DEL_GESTOR[tabla].join();
+
+/** Las columnas de UNA tabla, en el orden de la persona (`guardado`, o el de partida si no movió nada) —nunca en el que
+ *  las marcó—, y solo las elegidas y las fijas. Una clave que ya no existe (una columna retirada) se ignora sin romper. */
+export function columnasDeLaTabla(tabla: TablaDelGestor, elegidas: readonly string[], guardado?: readonly string[] | null): ColumnaDelGestor[] {
   const si = new Set(elegidas);
-  return ORDEN[tabla].map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!).filter((c) => si.has(c.key) || c.fija);
+  return ordenDeLaTabla(tabla, guardado).map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!).filter((c) => si.has(c.key) || c.fija);
 }
 
-/** Las que ofrece el ⚙ de una tabla: las suyas menos las fijas (D-408), que salen siempre y no se desmarcan. */
-export function columnasElegibles(tabla: TablaDelGestor): ColumnaDelGestor[] {
-  return COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes(tabla) && !c.fija);
+/** Lo que lista el ⚙ de una tabla: TODAS las suyas, en el orden de la persona, fijas incluidas (con la casilla apagada:
+ *  se mueven, no se quitan). Hasta D-NEXT el ⚙ no enseñaba la factura (D-408); ahora sale para poder moverla. */
+export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly string[] | null | undefined): ColumnaDelGestor[] {
+  return ordenDeLaTabla(tabla, guardado).map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!);
 }
+
+/** El orden que trae una plantilla del Gestor, o `null` si se guardó sin orden propio (las de antes de D-NEXT): entonces
+ *  se aplica el de partida. Solo claves que aún existen; lo que quede en su orden de partida no se guarda. */
+export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): string[] | null {
+  return o ? componeOrdenDelGestor({ sinAsignar: ordenDeLaTabla("sinAsignar", o), paradas: ordenDeLaTabla("paradas", o) }) : null;
+}
+
 
 /**
  * La columna de Órdenes que pinta la columna `clave` del Gestor, o nada si el Gestor la pinta a su manera (D-376).
@@ -176,16 +250,50 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   return lista;
 }
 
-/** Los índices (puestos) de la tabla de paradas que NO se pintan: las columnas de `paradas` CON puesto que la persona
- *  quitó. Las que no tienen puesto van por `extrasDeParadas`. */
-export function indicesOcultosDeParadas(elegidas: readonly string[]): Set<number> {
-  const si = new Set(elegidas);
-  return new Set(COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.indice != null && !si.has(c.key)).map((c) => c.indice!));
+/**
+ * Los ANCHOS de la tabla de paradas van por CLAVE desde D-NEXT (`rtg_routes_stops9`): una columna que se mueve se lleva
+ * su ancho. Hasta aquí vivían en dos sitios: `rtg_routes_stops8`, por POSICIÓN —[parada, factura, tipo, pallets, ciudad,
+ * llegada, ventanas, acciones]—, y `rtg_routes_stops_extra1`, por la clave de Órdenes de las columnas sin puesto (D-376).
+ * Esto los traduce a las claves nuevas, una vez, para que nadie pierda lo que arrastró. Lo que no sea un número se ignora.
+ * Las tres fijas de la tabla —número de parada, factura y acciones— llevan su propia clave.
+ */
+export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 40, _factura: 110, _acciones: 150 };
+
+/** El ancho de partida de una columna de paradas, por su clave: el de las tres fijas; el de Órdenes para las que vienen de
+ *  allí (D-376); y si no, el del catálogo. Son los mismos números que tenía la tabla por posición ([40, 110, 140, 70, 120,
+ *  56, 110, 150], D-408): la prueba los compara uno a uno. */
+export function anchoDePartidaDeParada(clave: string, anchosDeOrdenes: Readonly<Record<string, number>>): number | undefined {
+  return ANCHO_FIJO_DE_PARADAS[clave] ?? anchoDePartida(clave, anchosDeOrdenes) ?? COLUMNAS_DEL_GESTOR.find((c) => c.key === clave)?.ancho;
+}
+export function anchosDeParadasHeredados(porPosicion: unknown, extras: unknown): Record<string, number> {
+  const r: Record<string, number> = {};
+  const vale = (w: unknown): w is number => typeof w === "number" && Number.isFinite(w) && w > 0;
+  if (Array.isArray(porPosicion) && porPosicion.length === 8) {
+    if (vale(porPosicion[0])) r._n = porPosicion[0];
+    if (vale(porPosicion[1])) r._factura = porPosicion[1];
+    if (vale(porPosicion[7])) r._acciones = porPosicion[7];
+    for (const c of COLUMNAS_DEL_GESTOR) if (c.indice != null && vale(porPosicion[c.indice])) r[c.key] = porPosicion[c.indice];
+  }
+  if (extras && typeof extras === "object" && !Array.isArray(extras)) {
+    const e = extras as Record<string, unknown>;
+    for (const c of COLUMNAS_DEL_GESTOR) if (c.tablas.includes("paradas") && c.indice == null && c.deOrdenes && vale(e[c.deOrdenes])) r[c.key] = e[c.deOrdenes] as number;
+  }
+  return r;
 }
 
-/** Las columnas de paradas SIN puesto que la persona eligió (D-376), en su orden: van entre «Ventanas» y las acciones. */
-export function extrasDeParadas(elegidas: readonly string[]): ColumnaDelGestor[] {
-  return columnasDeLaTabla("paradas", elegidas).filter((c) => c.indice == null);
+/**
+ * Siembra, UNA vez, la llave nueva de anchos de paradas con lo heredado de las dos viejas. Si la nueva ya existe no toca
+ * nada (lo de después manda); si no hay nada que heredar, tampoco escribe. Las viejas no se borran: son de antes y no
+ * estorban. Recibe el `localStorage` (o lo que se le parezca) para poder probarse sin navegador.
+ */
+export const LLAVE_DE_ANCHOS_DE_PARADAS = "rtg_routes_stops9";
+export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | null; setItem(k: string, v: string): void }): void {
+  try {
+    if (almacen.getItem(LLAVE_DE_ANCHOS_DE_PARADAS) != null) return;
+    const lee = (k: string) => { try { return JSON.parse(almacen.getItem(k) ?? "null"); } catch { return null; } };
+    const r = anchosDeParadasHeredados(lee("rtg_routes_stops8"), lee("rtg_routes_stops_extra1"));
+    if (Object.keys(r).length) almacen.setItem(LLAVE_DE_ANCHOS_DE_PARADAS, JSON.stringify(r));
+  } catch { /* sin navegador, o sin permiso: se empieza con el defecto */ }
 }
 
 /**
@@ -202,6 +310,13 @@ export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
 export function fotoDelGestor(elegidas: readonly string[]): string[] {
   const si = new Set(elegidas);
   return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k));
+}
+
+/** La foto entera de una plantilla del Gestor desde D-NEXT: qué columnas se ven (`v`) y, si la persona movió alguna, su
+ *  orden (`o`), como en Órdenes. Sin orden propio la plantilla no lleva `o`, y al aplicarla sale el de partida. */
+export function fotoDePlantillaDelGestor(elegidas: readonly string[], orden: readonly string[] | null | undefined): { v: string[]; o?: string[] } {
+  const o = orden ? ordenDePlantillaDelGestor(orden) : null;
+  return o ? { v: fotoDelGestor(elegidas), o } : { v: fotoDelGestor(elegidas) };
 }
 
 /** Marcar o desmarcar una columna. Devuelve la lista en el orden canónico, sin repetidas y sin claves desconocidas. */

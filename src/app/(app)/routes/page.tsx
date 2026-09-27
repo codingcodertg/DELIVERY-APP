@@ -19,7 +19,7 @@ import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLab
 import { serviceMin, tripTiming, dayMinutes, RELOAD_MIN } from "@/lib/trip-timing";
 import { buildGeoLoads, fillByCapacity, planCostMi } from "@/lib/route-batching";
 import { driverOf, groupIntoLoads, hasManualLoads, loadNoOf, nextLoadFor as nextLoadForPure, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
-import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap, useColWidths } from "@/lib/use-col-widths";
+import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
@@ -30,7 +30,12 @@ import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lect
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR_POR_DEFECTO, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasElegibles, conColumnasNuevas, extrasDeParadas, fotoDelGestor, indicesOcultosDeParadas } from "@/lib/routes-columns";
+import {
+  COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
+  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, conColumnasNuevas, fotoDePlantillaDelGestor,
+  mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
+  tieneOrdenPropio, type TablaDelGestor,
+} from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { idsRecibidasPorAlmacen } from "@/lib/recibir";
@@ -225,13 +230,22 @@ export default function RoutesPage() {
   const poolCols = useColWidthMap("rtg_routes_pool4", 100);
   // Las que vienen de Órdenes nacen con el ancho de Órdenes (D-376): con 100 px la etapa salía «Program…», y allí entera.
   const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));
-  // Las columnas de Órdenes en la tabla de paradas (D-376) no tienen puesto: su ancho va por clave, en su propia llave,
-  // para no tocar los anchos por posición que cada quien ya guardó en `rtg_routes_stops7` (desde D-408, `stops8`).
-  const stopExtraCols = useColWidthMap("rtg_routes_stops_extra1", 100);
+  // Los anchos de la tabla de PARADAS, por CLAVE desde D-NEXT: sus columnas ahora se mueven, y un ancho por posición se
+  // quedaría en el puesto mientras la columna se va. Antes vivían en `rtg_routes_stops8` (por posición) y en
+  // `rtg_routes_stops_extra1` (las de Órdenes, D-376); `siembraAnchosDeParadas` los hereda UNA vez, antes de que el hook
+  // lea la llave nueva — por eso va en un inicializador de estado justo delante, que corre antes en el primer render.
+  useState(() => { if (typeof window !== "undefined") siembraAnchosDeParadas(window.localStorage); return 0; });
+  const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS, 100);
+  const anchoDeParada = (clave: string) => stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));
+  const asaDeParada = (clave: string) => stopCols.startResize(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
   const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);
   const prefsDelGestor = useRef<ColumnasPorRol | null>(null);
+  // El ORDEN de las columnas (D-NEXT), la mitad `_orden` de la misma fila, como en Órdenes: la `ref` es lo leído de todos
+  // los roles (lo que se escribe); el estado, la lista de ESTE rol (`null` = las dos tablas en su orden de partida).
+  const ordenDelGestor = useRef<ColumnasPorRol>({});
+  const [ordenGestor, setOrdenGestor] = useState<string[] | null>(null);
   // Las plantillas (D-394): la `ref` es lo leído (lo que se escribe); el estado, lo que pinta el menú.
   const plantillasDelGestor = useRef<PlantillaDeColumnas[]>([]);
   const [plantillasGestor, setPlantillasGestor] = useState<PlantillaDeColumnas[]>([]);
@@ -247,6 +261,8 @@ export default function RoutesPage() {
     void leeColumnas(createClient() as unknown as ClienteDePrefs, me.id, CLAVE_DE_COLUMNAS_DEL_GESTOR).then((leido) => {
       if (!vivo || !leido.leida) return;
       prefsDelGestor.current = leido.columnas;
+      ordenDelGestor.current = leido.orden;
+      setOrdenGestor(leido.orden[rol] ?? null);
       plantillasDelGestor.current = leido.plantillas;
       setPlantillasGestor(leido.plantillas);
       const suyas = leido.columnas[rol];
@@ -265,8 +281,33 @@ export default function RoutesPage() {
     plantillasDelGestor.current = plantillasDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, CLAVE_DE_COLUMNAS_DEL_GESTOR);
     setPlantillasGestor(plantillasDelGestor.current);
   }, []);
-  // La fila se escribe ENTERA, por un solo sitio y con las plantillas leídas: marcar una casilla no las borra.
-  const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, {}, {}, plantillasDelGestor.current);
+  // Y su orden (D-NEXT), también en este navegador y por rol, como hace Promos (`rtg_promos_orden_<rol>`, D-385).
+  useEffect(() => {
+    if (!SIN_BASE || !me) return;
+    try { setOrdenGestor(ordenDelGestorEnElNavegador(localStorage.getItem(claveDelOrdenEnElNavegador(me.role)))); } catch { setOrdenGestor(null); }
+  }, [me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  // La fila se escribe ENTERA, por un solo sitio y con las mitades leídas: marcar una casilla no borra las plantillas ni
+  // el orden, y mover una columna no borra las columnas ni las plantillas (D-394, D-NEXT).
+  const escribeElGestor = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDelGestor.current ?? {}, CLAVE_DE_COLUMNAS_DEL_GESTOR, ordenDelGestor.current, {}, plantillasDelGestor.current);
+  // El orden de ESTE rol cambia: se pinta, y se guarda en la base (si se pudo leer) o, en el demo, en este navegador.
+  // `null` borra el del rol: sin orden propio manda el de partida, y una columna futura entra donde diga el código.
+  const ponOrdenDelGestor = (next: string[] | null) => {
+    setOrdenGestor(next);
+    if (!me) return;
+    if (SIN_BASE) { try { if (next) localStorage.setItem(claveDelOrdenEnElNavegador(me.role), JSON.stringify(next)); else localStorage.removeItem(claveDelOrdenEnElNavegador(me.role)); } catch { /* sin navegador */ } return; }
+    if (prefsDelGestor.current === null) return;
+    const todos: ColumnasPorRol = { ...ordenDelGestor.current };
+    if (next) todos[me.role] = next; else delete todos[me.role];
+    ordenDelGestor.current = todos;
+    void escribeElGestor();
+  };
+  // Las flechas de cada ⚙ (D-NEXT): el mismo `mueveColumna` de Órdenes, dentro de SU tabla.
+  const moverEn = (tabla: TablaDelGestor) => ({
+    seMueve: (clave: string, delta: -1 | 1) => seMueveEnElGestor(tabla, ordenGestor, clave, delta, colsGestor),
+    onMueve: (clave: string, delta: -1 | 1) => ponOrdenDelGestor(mueveEnElGestor(tabla, ordenGestor, clave, delta, colsGestor)),
+    ordenPropio: tieneOrdenPropio(tabla, ordenGestor),
+    onRestablece: () => ponOrdenDelGestor(restableceOrdenDelGestor(tabla, ordenGestor)),
+  });
   const alternaColumnaDelGestor = (key: string) => {
     const next = alternaColumna(colsGestor, key);
     setColsGestor(next);
@@ -276,19 +317,20 @@ export default function RoutesPage() {
     prefsDelGestor.current = todas;
     void escribeElGestor();
   };
-  // Aplicar: la foto, o «Por defecto» (`null`) — lo que trae la app.
+  // Aplicar: la foto, o «Por defecto» (`null`) — lo que trae la app. Desde D-NEXT también el ORDEN: el de la foto, o el
+  // de partida si la plantilla no traía (las de antes) o si es «Default». Columnas y orden van en UNA escritura.
   const aplicaPlantillaDelGestor = (p: PlantillaDeColumnas | null) => {
     const next = p ? columnasDePlantillaDelGestor(p.v) : [...COLUMNAS_DEL_GESTOR_POR_DEFECTO];
+    const orden = p ? ordenDePlantillaDelGestor(p.o) : null;
     setColsGestor(next);
-    if (!me || SIN_BASE || prefsDelGestor.current === null) return;
-    prefsDelGestor.current = { ...prefsDelGestor.current, [me.role]: next };
-    void escribeElGestor();
+    if (me && !SIN_BASE && prefsDelGestor.current !== null) prefsDelGestor.current = { ...prefsDelGestor.current, [me.role]: next };
+    ponOrdenDelGestor(orden);
   };
   const destinoDelGestor = {
     sinBase: SIN_BASE,
     guardaEnElNavegador: (lista: PlantillaDeColumnas[]) => localStorage.setItem(claveDePlantillasEnElNavegador(CLAVE_DE_COLUMNAS_DEL_GESTOR), JSON.stringify(lista)),
     baseLeida: prefsDelGestor.current !== null,
-    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDelGestor.current ?? {}, orden: {}, plantillas: lista }),
+    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDelGestor.current ?? {}, orden: ordenDelGestor.current, plantillas: lista }),
     escribe: async (lista: PlantillaDeColumnas[]) => {
       const antes = plantillasDelGestor.current;
       plantillasDelGestor.current = lista;
@@ -308,22 +350,16 @@ export default function RoutesPage() {
     plantillas: plantillasGestor,
     onAplicar: aplicaPlantillaDelGestor,
     onGuardar: (nombre: string) => {
-      const r = guardaPlantilla(plantillasDelGestor.current, nombre, { v: fotoDelGestor(colsGestor) });
+      const r = guardaPlantilla(plantillasDelGestor.current, nombre, fotoDePlantillaDelGestor(colsGestor, ordenGestor));
       return r.ok ? cambiaPlantillasDelGestor(r.lista, true) : Promise.resolve(textoDelRechazo(r.motivo, t));
     },
     onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
-  const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor);
-  // La tabla de paradas guarda los anchos por puesto: lo que la persona quitó se esconde por su puesto (D-346).
-  const paradasOcultas = indicesOcultosDeParadas(colsGestor);
-  // Y las columnas de Órdenes que la persona eligió para ella (D-376), entre «Ventanas» y las acciones.
-  const paradasExtra = extrasDeParadas(colsGestor);
-  // Cuántas columnas pinta la tabla de paradas: las 8 de siempre, menos las quitadas, más las de Órdenes elegidas.
-  const columnasDeParadas = 8 - paradasOcultas.size + paradasExtra.length;
-  // Por puesto: [parada, factura, tipo, pallets, ciudad, llegada, ventanas, acciones]. Hasta D-408 el puesto 1 era el ID
-  // (con la factura debajo) y el 4 la dirección entera (240). La llave pasa de `rtg_routes_stops7` a `stops8`: un ancho
-  // arrastrado para una dirección no vale para una ciudad, y se empieza de nuevo con el defecto.
-  const stopCols = useColWidths("rtg_routes_stops8", [40, 110, 140, 70, 120, 56, 110, 150]);
+  const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);
+  // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-NEXT;
+  // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
+  const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
+  const columnasDeParadas = 3 + colsParadas.length;
   // Which drivers are highlighted on the map / focused in the tables. Empty
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
@@ -2066,11 +2102,12 @@ export default function RoutesPage() {
             style={{ maxWidth: 300 }}
           />
           <SelectorDeColumnas
-            columnas={columnasElegibles("sinAsignar")}
+            columnas={columnasDelSelector("sinAsignar", ordenGestor)}
             elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
             rotulo={(c) => (lang === "es" ? c.es : c.en)}
-            titulo={t("Show columns", "Mostrar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
+            titulo={t("Show and order columns", "Mostrar y ordenar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
             plantillas={propsDePlantillas}
+            mover={moverEn("sinAsignar")}
           />
           {/* Chips de «Sin asignar» (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
               lleva su número, que sale de la misma función que sus filas. */}
@@ -2454,11 +2491,12 @@ export default function RoutesPage() {
             {stops.length > 0 && (
               <div style={{ textAlign: "right" }}>
                 <SelectorDeColumnas
-                  columnas={columnasElegibles("paradas")}
+                  columnas={columnasDelSelector("paradas", ordenGestor)}
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
                   rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
                   titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
                   plantillas={propsDePlantillas}
+                  mover={moverEn("paradas")}
                 />
               </div>
             )}
@@ -2470,24 +2508,21 @@ export default function RoutesPage() {
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize" style={{ width: stopCols.widths.reduce((sum, w, i) => sum + (paradasOcultas.has(i) ? 0 : w), 0) + paradasExtra.reduce((sum, c) => sum + stopExtraCols.widthOf(c.deOrdenes!), 0) }}>
-                  {/* Los puestos 0-6, luego las columnas de Órdenes elegidas (D-376), y el 7 —las acciones— siempre al final. */}
+                <table className="orders tbl-resize" style={{ width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
+                  {/* Número de parada y factura, las elegidas en el orden de la persona (D-NEXT), y las acciones al final.
+                      Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
                   <colgroup>
-                    {stopCols.widths.slice(0, 7).map((w, i) => paradasOcultas.has(i) ? null : <col key={i} style={{ width: w }} />)}
-                    {paradasExtra.map((c) => <col key={c.key} style={{ width: stopExtraCols.widthOf(c.deOrdenes!) }} />)}
-                    <col style={{ width: stopCols.widths[7] }} />
+                    <col style={{ width: anchoDeParada("_n") }} />
+                    <col style={{ width: anchoDeParada("_factura") }} />
+                    {colsParadas.map((c) => <col key={c.key} style={{ width: anchoDeParada(c.key) }} />)}
+                    <col style={{ width: anchoDeParada("_acciones") }} />
                   </colgroup>
                   <thead>
                     <tr>
-                      <th>#<span className="col-resizer" onMouseDown={stopCols.startResize(0)} /></th>
-                      <th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={stopCols.startResize(1)} /></th>
-                      {!paradasOcultas.has(2) && <th>{t("Type", "Tipo")}<span className="col-resizer" onMouseDown={stopCols.startResize(2)} /></th>}
-                      {!paradasOcultas.has(3) && <th title={t("Pallets on this stop", "Pallets de esta parada")}>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={stopCols.startResize(3)} /></th>}
-                      {!paradasOcultas.has(4) && <th>{t("City", "Ciudad")}<span className="col-resizer" onMouseDown={stopCols.startResize(4)} /></th>}
-                      {!paradasOcultas.has(5) && <th>{t("ETA", "Llegada")}<span className="col-resizer" onMouseDown={stopCols.startResize(5)} /></th>}
-                      {!paradasOcultas.has(6) && <th>{t("Windows", "Ventanas")}<span className="col-resizer" onMouseDown={stopCols.startResize(6)} /></th>}
-                      {/* El rótulo es el de Órdenes: el del catálogo sin su «Paradas: ». */}
-                      {paradasExtra.map((c) => <th key={c.key}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={stopExtraCols.startResize(c.deOrdenes!)} /></th>)}
+                      <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
+                      <th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
+                      {/* El rótulo es el del catálogo sin su «Paradas: » (el de Órdenes, para las que vienen de allí). */}
+                      {colsParadas.map((c) => <th key={c.key} title={c.key === "p_pallets" ? t("Pallets on this stop", "Pallets de esta parada") : undefined}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
@@ -2618,25 +2653,34 @@ export default function RoutesPage() {
                                 {/* Solo la factura, subrayada: abre la orden (D-408). Antes (D-379) el código de la orden iba
                                     arriba, subrayado, y la factura debajo en pequeño; el código era lo que se pulsaba. */}
                                 <td className="ordno">{enlaceALaOrden(d)}</td>
-                                {!paradasOcultas.has(2) && <td title={d.order_type || undefined}>{d.order_type || "—"}</td>}
-                                {/* Where the truckload's pallet total comes
-                                    from. An estimate is marked so nobody plans
-                                    capacity on a guess thinking it's counted. */}
-                                {!paradasOcultas.has(3) && <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                  {d.actual_pallets != null ? (
-                                    <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
-                                  ) : d.est_pallets != null ? (
-                                    <span style={{ color: "var(--gray)" }} title={t("Estimate — not counted yet", "Estimado — aún sin contar")}>~{d.est_pallets}</span>
-                                  ) : (
-                                    <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the load total", "Sin conteo de pallets — esta parada no suma al total del viaje")}>—</span>
-                                  )}
-                                </td>}
-                                {!paradasOcultas.has(4) && <td title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>}
-                                {!paradasOcultas.has(5) && <td style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
-                                  {eta ?? "—"}{late ? " ⚠️" : ""}
-                                </td>}
-                                {!paradasOcultas.has(6) && <td>{fmtWindows(d.delivery_windows)}</td>}
-                                {paradasExtra.map((c) => <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>)}
+                                {/* Cada celda por su CLAVE, en el orden de la persona (D-NEXT). Las cinco de siempre se pintan
+                                    a su manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
+                                {colsParadas.map((c) => {
+                                  switch (c.key) {
+                                    case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
+                                    // Where the truckload's pallet total comes from. An estimate is marked so nobody
+                                    // plans capacity on a guess thinking it's counted.
+                                    case "p_pallets": return (
+                                      <td key={c.key} style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                        {d.actual_pallets != null ? (
+                                          <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
+                                        ) : d.est_pallets != null ? (
+                                          <span style={{ color: "var(--gray)" }} title={t("Estimate — not counted yet", "Estimado — aún sin contar")}>~{d.est_pallets}</span>
+                                        ) : (
+                                          <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the load total", "Sin conteo de pallets — esta parada no suma al total del viaje")}>—</span>
+                                        )}
+                                      </td>
+                                    );
+                                    case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>;
+                                    case "p_eta": return (
+                                      <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
+                                        {eta ?? "—"}{late ? " ⚠️" : ""}
+                                      </td>
+                                    );
+                                    case "p_windows": return <td key={c.key}>{fmtWindows(d.delivery_windows)}</td>;
+                                    default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+                                  }
+                                })}
                                 {/* Reordering and moving loads are edits, not
                                     "show me this" — they must not also hijack
                                     the map to this one stop. */}
