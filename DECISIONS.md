@@ -28458,6 +28458,11 @@ en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): «El reparto no cambia» ya no es cierto. `autoAssign` ordena ahora
+> **primero por prioridad** (crítica, alta, normal, baja) y solo dentro de cada nivel por la ventana y el número, como aquí.
+> Con capacidad o ventanas justas, lo que se queda sin colocar es lo de menos prioridad; el aviso dice aparte las altas y
+> críticas que no se colocaron.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte a D-393** (sección 1, «Lo que NO filtra»: con el filtro puesto, el diálogo nace con ese chofer marcado)
 **y a D-395** («Auto-asignar las marcadas» del recuadro ya no reparte al instante). Las dos llevan su nota.
@@ -28575,6 +28580,11 @@ producción ni con llaves.**
 - Con **muchos** choferes la lista tiene su propio desplazamiento (260 px); no se midió con más de 4.
 
 ## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): una excepción al «cada columna toma el puesto de su pareja en
+> Órdenes»: la «Prioridad» de «Sin asignar» va **la última** de partida (`alFinal`), aunque en Órdenes vaya tras la etapa.
+> Es la única columna de esa tabla que nace escondida, y en medio de las que se ven dejaba «Restablecer orden» encendido
+> tras mover una vecina arriba y abajo.
 
 > **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna fija `ID` que iba la primera ya no está, y la factura
 > pasa a fija en su puesto de ventas (tras PO y SO). La «Dirección» ahora es la «Ciudad de entrega»: misma clave y mismo
@@ -29526,6 +29536,13 @@ línea «Recibida por almacén», solo la pastilla.
 
 ## D-410 · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): los números de «El tope de tamaño» son los de 14 columnas en
+> «Sin asignar» y 13 en paradas. D-NEXT añadió «Prioridad» a las dos, y con el mismo modelo (`bytesEnLaBase`): un rol lleno
+> + 10 plantillas llenas pasa de 6 939 a **7 553** bytes y **ya no cabe** con la reserva (8 353 de 8 192) — **caben 9**, la
+> décima sale con «No cabe»; los 6 roles llenos pasan de 3 648 a 3 982 sin plantillas y de 9 951 a 10 845 con diez, y
+> **caben 4** en vez de 5. «Una persona con su rol lleno caben las diez» deja de ser cierto en ese peor caso (nombres de 40
+> caracteres, todas las columnas, todo movido). El límite de 10 no se tocó.
+
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, literal: *«Route manager view to be able to move columns and save template IN THE COLUMNS»*.
 **Reemplaza en parte** a D-332 («el Gestor queda fuera»), D-394 (plantillas del Gestor sin orden), D-402 (el orden de ventas
@@ -29637,3 +29654,118 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 - **Arrastrar cabeceras**: no, como en Órdenes y Promos (D-332: en la cabecera el arrastre es del asa del ancho).
 - **Mover el número de parada, la factura o las acciones de paradas**: son fijos, como el `#` de Órdenes.
 - **Guardar las columnas visibles del Gestor en el demo**: ya no se guardaban; no se pidió.
+
+## D-NEXT · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
+
+**Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `147_prioridad_de_la_orden.sql`,
+**escrita y NO aplicada** (plan en papel: `docs/PLAN-147-prioridad.md`, con la matriz por rol para correr con `ROLLBACK`).
+**Reemplaza en parte** a D-401 (el reparto ya no es «el de siempre»), D-402 (la prioridad no toma el puesto de Órdenes en
+«Sin asignar») y D-410 (los números del tope de tamaño). Las tres llevan su nota.
+
+**Qué pidió el dueño.** Comparando con OptimoRoute, prioridad por orden: *«las 3 haz»* — la base, la pantalla y el uso.
+OptimoRoute tiene cuatro niveles, L / M / H / C (`docs/research-route-optimization.md`).
+
+### Qué había
+
+Nada. La única «prioridad» era `morning_priority` (⏰ AM): una casilla que solo sale al reprogramar una orden a
+otro día, para que salga a primera hora. **No se tocó**: es otra cosa (cuándo sale, no qué tan importante es), y las dos
+conviven.
+
+### Qué hay ahora
+
+- **Base (147):** `deliveries.priority`, `text not null default 'normal'`, con `check` en `low / normal / high / critical`.
+  No reescribe filas: las que ya estaban leen `normal` por el defecto.
+- **Ficha:** selector **«Prioridad»** (Crítica, Alta, Normal, Baja) bajo la fecha y la ventana, en crear y en editar. Nace en
+  **Normal**. Lo edita quien edita el resto de la orden (`salesFields`).
+- **Órdenes:** columna **«Prioridad»**, elegible en ⚙ (nadie la tiene por defecto), junto a la Etapa. **Solo destaca Alta y
+  Crítica**: pastilla roja «‼ Crítica», ámbar «↑ Alta». La Baja, en gris sin pastilla; la Normal, nada. **Ordena y filtra**:
+  el valor es «1 · Crítica», «2 · Alta», «3 · Normal», «4 · Baja», así que ascendente es crítica primero y el menú de filtro
+  sale en ese orden en los dos idiomas (sin el número, «Alta» iría antes que «Crítica»).
+- **Gestor:** la misma celda en **«Sin asignar»** (`priority`) y en **paradas** (`p_priority`), las dos escondidas por defecto
+  y elegibles en su ⚙. En «Sin asignar» va **la última** de partida (ver D-402 y la decisión 3).
+- **Auto-asignar (D-401):** `autoAssign` ordena **primero por prioridad** y, dentro de cada nivel, como siempre (ventana más
+  temprana, número). Como el reparto es voraz, lo urgente coge capacidad y ventana antes: **con capacidad justa, lo que se queda
+  fuera es lo de menos prioridad**. El aviso dice aparte «‼ N alta(s)/crítica(s) sin colocar» si aun así alguna no cupo.
+- **Optimizar la ruta:** **no usa la prioridad, porque su API no la admite.** «Optimizar» llama a `/api/optimize-route`: Google
+  `computeRoutes` con `optimizeWaypointOrder` y, sin llave, OSRM `trip`. Los dos resuelven el orden de **todas** las paradas
+  que se les dan; ninguno tiene prioridad ni penalización (eso es de la Route Optimization API de Google, `penaltyCost`, que la
+  app no usa). El motor propio de «Planificar el día» (`route-engine`, D-320) sí tiene pesos; meterle la prioridad **no se hizo**.
+
+### Decisiones (para validar)
+
+1. **Texto con `check`, no un entero.** Lo leen personas (el SQL a mano, un `pg_dump`, el rastro `jsonb` de
+   `deliveries_borradas`); `'critical'` se entiende solo. El orden vive en un sitio, `src/lib/prioridad.ts`.
+2. **Quién la cambia: las mismas reglas que cualquier otro campo, sin tocar el guard.** El guard (145) no mira columnas en
+   «misma etapa»: ventas y chofer en borrador/pendiente/rechazada; office y gerente en cualquier etapa; almacén de aprobada a
+   entregada; logística de borrador a lista; el admin todo. Los dos permisos estrechos de ventas en una orden ya hecha (125
+   poner la factura, 138 agregar material) comparan la fila entera con una copia: cambiar la prioridad ahí **no** pasa. Y el
+   disparador de la 146 no se entera (mira etapa, tipo y factura). La autocomprobación de la 147 exige que ni el guard ni la
+   función de la 146 mencionen `priority`.
+3. **Escondida por defecto en las tres tablas.** El dueño dijo «elegible en ⚙». Una columna nueva visible por defecto en el
+   Gestor pediría una marca de tanda (`_v5`) para llegar a las listas ya guardadas; no se puso. En «Sin asignar» va la última
+   (`alFinal`): es la única escondida de esa tabla, y en medio de las que se ven, subir y bajar una vecina la dejaba a otro lado
+   y «Restablecer orden» se quedaba encendido sin que se viera nada movido.
+4. **La app no manda el campo hasta que la base lo tiene** (`laBaseTienePrioridad`, el patrón de `customer_type`, D-316): las
+   migraciones se aplican después de fusionar, y mandar una columna que no existe hace fallar **el guardado de la orden
+   entera**. Sin la columna, el selector no sale y todas se leen Normal.
+5. **El tope de tamaño de `user_prefs`** (D-394/D-410): con dos columnas más, el peor caso de una persona (su rol lleno, todo
+   movido, 10 plantillas con nombres de 40) ya no cabe: caben **9**. Se aceptó: es un caso extremo y la guarda lo dice («No
+   cabe») en vez de fallar. Los números, en la nota de D-410.
+
+### Dónde está
+
+`src/lib/prioridad.ts` (niveles, orden, `seDestaca`, `valorDePrioridad`, `laBaseTienePrioridad`, `conPrioridadSiCabe`);
+`src/lib/types.ts` (`OrderPriority`, `Delivery.priority`); `src/components/OrderModal.tsx` (el selector, y el guardado por
+`conPrioridadSiCabe`); `src/components/OrdersTable.tsx` (la columna); `src/lib/orden-de-columnas.ts` (su puesto tras la
+etapa); `src/lib/routes-columns.ts` (`priority`, `p_priority`, `alFinal`); `src/lib/dispatch.ts` (el orden de `autoAssign`);
+`src/lib/auto-asignar.ts` (el aviso); `src/lib/demo-data.ts` (toda orden con `priority`, #1008 Crítica, #1022 Alta).
+**No se tocó `routes/page.tsx`**: el Gestor pinta las columnas que vienen de Órdenes con su celda, sin nada propio.
+
+### Medido en el demo (2026-09-26, admin, en inglés, 1440 × 900; clics de persona con el ratón y el elemento a la vista)
+
+- **Órdenes**, ⚙ → «Priority»: la cabecera pasa a `# | PO # | TYPE | ACCOUNT | STAGE | PRIORITY | STORE | …`. De 86 filas, dos
+  llevan pastilla: #1008 «‼ Critical» y #1022 «↑ High». **Ascendente:** #1008 critical, #1022 high, y detrás las normales.
+  **Descendente:** las dos al final. **Filtro** «1 · Critical» (Seleccionar todo → desmarcar → marcar → Aplicar): **1 fila,
+  #1008**. El menú ofrece «1 · Critical | 2 · High | 3 · Normal». La página no se desplaza de lado (0 px).
+- **Poner Crítica desde la ficha:** #1063 (Ready, Normal) → Edit → «Priority» (Critical / High / Normal / Low, en Normal) →
+  Critical → Save changes. En el almacén del demo queda `priority: "critical"`; en Órdenes, su fila lleva «‼ Critical» con fondo
+  `rgb(214, 69, 69)`; en el Gestor, «Sin asignar» → ⚙ → Priority: tres pastillas, INV-3006 (#1008) critical, INV-3034 (#1022)
+  high e INV-3123 (#1063) critical. La columna sale la última, tras «Windows».
+- **Paradas:** #1011 (INV-3008, ruta de Carlos R.) → Alta desde su ficha → ⚙ de paradas → Priority: su parada lleva «↑ High».
+- **Auto-asignar con capacidad justa** — tres marcadas del día, 9 pallets cada una y ventanas que no chocan: #1047 (09-11),
+  #1055 (11-13), #1063 (14-16); solo **Carlos R.** marcado (12 × 2 viajes = 24 pallets; caben dos de tres), sin optimizar.
+  - **Control, las tres Normal:** «Auto-assigned 2 order(s) to 1 driver(s) · 1 not placed (…): **#1063**». #1047 y #1055 a
+    Carlos: gana la ventana más temprana, como siempre.
+  - **Con #1063 en Crítica** (puesta desde su ficha, arriba): «Auto-assigned 2 order(s) to 1 driver(s) · 1 not placed (…):
+    **#1055**». #1047 y **#1063** a Carlos; la que se queda fuera es una **Normal**, no la Crítica.
+- **Red:** nada salió a terceros; el demo no tiene base, y no se optimizó (la casilla, desmarcada).
+
+Capturas en la carpeta del worker: `04-ordenes-orden-asc`, `05-ordenes-filtro-critica`, `10-ficha-ordenes-critica`,
+`11-ordenes-1063-critica`, `12-gestor-1063-critica`, `13-paradas-alta`, `c-08/c-09` (control) y `t-06…t-09` (con Crítica).
+
+### Verificado
+
+- Tipos (`tsc --noEmit`), suite y `next build` con los placeholders de CI, en verde. La suite: **4650 pasados | 3 saltados**,
+  con 25 nuevas en `prioridad.test.ts`. (`scripts/verify.mjs` no arrancó: el worktree tiene un `node_modules` vacío y busca
+  `tsc` ahí; los tres pasos se corrieron a mano con `npx`, que resuelve el del checkout.)
+- **Mutantes: 23, los 23 caen**, leídos por el nombre de la prueba que cae. La librería: sin ordenar por prioridad (M1), el
+  puesto al revés (M2), sin valor = baja (M3), la alta sin destacar (M4), el valor sin el número (M5), «la base siempre la
+  tiene» (M6), el guardado con la clave sin la columna (M7). Las pantallas: la ficha guarda sin `conPrioridadSiCabe` (M8), el
+  selector sin la guarda de la base (M9) o editable para todos (M10), la tabla destaca la baja (M11) u ordena por la clave
+  inglesa (M12), la del Gestor visible por defecto (M13), paradas sin ella (M14), `alFinal` ignorado (M15), el aviso sin las
+  urgentes (M16), el demo sin la columna (M17) o sin la crítica (M18), Órdenes sin ella en su orden (M19). La 147: tres
+  valores (M20), admite NULL (M21), la autocomprobación que no mira el guard (M22), un UPDATE de filas (M23).
+- **Pruebas que cambiaron, y por qué:** las del tope de tamaño (`plantillas-de-columnas`, `gestor-mover-columnas`) medían con
+  el catálogo de hoy; los casos que **midió Postgres** se quedan con las 14 columnas de ese día, y lo de 15 va en pruebas
+  nuevas con el modelo. Las que contaban columnas (14 → 15, pastillas, `salesFields` 21 → 22, el orden de paradas) se
+  actualizaron con una línea que dice qué llegó.
+
+### Lo que no se hizo / no se verificó
+
+- **La 147 no se aplicó ni se ensayó** contra ninguna base (regla del worker). La matriz de §6 del plan es para el orquestador.
+- **El optimizador no usa la prioridad** (su API no la admite; ver arriba). El motor de «Planificar el día» tampoco.
+- **Logística no cambia la prioridad desde el Gestor**: la ficha solo la deja a quien edita la orden (`salesFields`). La base
+  sí se lo permitiría hasta `ready`; si el dueño lo quiere, es pantalla sola.
+- **Duplicar y re-entregar nacen Normal**: copian una lista cerrada de campos (`borradorDuplicado`, `borradorDeReentrega`) que no
+  lleva la prioridad. Se dejó así: una copia no hereda la urgencia de la original sin que alguien lo decida.
+- En el demo solo se midió a 1440 y como admin.

@@ -15,6 +15,7 @@ import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
+import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import type { CancelReason, Delivery } from "@/lib/types";
@@ -65,6 +66,22 @@ export const ORDER_COLUMNS: OrderColumn[] = [
           {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
         </>
       );
+    } },
+  // Prioridad (D-NEXT, 147). Solo alta y crítica llevan pastilla; la baja, en gris y sin pastilla; la normal, nada: es
+  // la de casi todas, y una tabla con «Normal» en cada fila no deja ver las que importan. Ordena y filtra por «1 · Crítica»
+  // (`valorDePrioridad`): ascendente es crítica primero.
+  { key: "priority", en: "Priority", es: "Prioridad", pastillas: true, value: (d, { lang }) => valorDePrioridad(d, lang), cell: (d, { lang }) => {
+      const p = prioridadDe(d);
+      const texto = etiquetaDePrioridad(p, lang);
+      if (seDestaca(p)) {
+        return (
+          <span className="sema" data-prioridad={p} title={texto}
+            style={p === "critical" ? { background: "var(--red)", color: "#fff" } : { background: "var(--amber)", color: "#3a2a00" }}>
+            {p === "critical" ? "‼ " : "↑ "}{texto}
+          </span>
+        );
+      }
+      return p === "low" ? <span data-prioridad={p} style={{ color: "var(--gray)", fontSize: 12 }}>{texto}</span> : null;
     } },
   { key: "type", en: "Type", es: "Tipo", value: (d) => d.order_type, cell: (d) => d.order_type || "—" },
   { key: "store", en: "Store", es: "Tienda", value: (d) => d.store, cell: (d) => d.store || "—" },
