@@ -188,14 +188,14 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(pagina).not.toContain("bulkAutoAssign");
   });
   it("el diálogo recibe los choferes de verdad (sin rutas temporales), el día sin asignar y las marcadas", () => {
-    expect(pagina).toContain("const opcionesDelReparto = opcionesDeConductor({ rutas: drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })), paradasDe: (k) => (byDriver.get(k) ?? []).length, palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []), capacidadDe: (k) => capacityFor(k), noDisponibles: unavailableToday, filtro: filtroChofer, });");
+    expect(pagina).toContain("const opcionesDelReparto = opcionesDeConductor({ rutas: drivers.filter((u) => !bloqueada(u.full_name)).map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })), paradasDe: (k) => (byDriver.get(k) ?? []).length, palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []), capacidadDe: (k) => capacityFor(k), noDisponibles: unavailableToday, filtro: filtroChofer, });");
     expect(pagina).toContain("{dialogoAutoAsignar && ( <AutoAsignarDialogo opciones={opcionesDelReparto} delDia={unassigned.length} marcadas={poolSelectedCount}");
     expect(pagina).toContain("onCancelar={() => setDialogoAutoAsignar(false)} onConfirmar={repartirConElDialogo}");
   });
   it("reparte con `repartirYOptimizar`, solo entre los elegidos, y optimiza con el bucle de «Optimizar todas las rutas»", () => {
     const cuerpo = pagina.slice(pagina.indexOf("const repartirConElDialogo = async"), pagina.indexOf("const toggleOrder ="));
     expect(cuerpo).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
-    expect(cuerpo).toContain("r = await repartirYOptimizar({ ordenes, choferes: e.choferes, capacidadDe: capacityFor, noDisponibles: unavailableToday, optimizar: e.optimizar, paradasDe: (k) => byDriver.get(k) ?? [], esDelDia: (d) => delDia.has(d.id), asigna: (id, chofer) => assignTo(id, chofer), optimiza: optimizaEstas, });");
+    expect(cuerpo).toContain("r = await repartirYOptimizar({ ordenes, choferes: e.choferes.filter((c) => !bloqueada(c)), capacidadDe: capacityFor, noDisponibles: unavailableToday, optimizar: e.optimizar, paradasDe: (k) => byDriver.get(k) ?? [], esDelDia: (d) => delDia.has(d.id), asigna: (id, chofer) => assignTo(id, chofer), optimiza: optimizaEstas, });");
     expect(cuerpo).toContain("const delDia = new Set(dayOrders.map((d) => d.id));");
     expect(cuerpo).toContain("setDialogoAutoAsignar(false);");
     expect(cuerpo).toContain("const resumen = resumenDelReparto(r, orderLabel, e.optimizar); notify(t(resumen.en, resumen.es));");
@@ -203,8 +203,8 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
   });
   it("«Optimizar todas las rutas» y el diálogo optimizan por el mismo bucle, con las paradas que se le dan", () => {
     expect(pagina).toContain("const optimizeAll = () => optimizaEstas(lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => ({ clave: u.key, paradas: byDriver.get(u.key) ?? [] })));");
-    expect(pagina).toContain("await applyPlan(r.clave, await computeRoute(r.clave, r.paradas)); bien.push(r.clave); } catch (e) {");
-    expect(pagina).toContain("setRouterInfo(lastProviderRef.current); return bien; };");
+    expect(pagina).toContain("optimizaUna: async (r) => { setBusyDriver(r.clave); await applyPlan(r.clave, await computeRoute(r.clave, r.paradas)); },");
+    expect(pagina).toContain("if (aviso) notify(t(`${aviso.en} Optimized ${bien.length}.`, `${aviso.es} Optimizadas ${bien.length}.`)); return bien; };");
   });
 
   it("el diálogo nace con `alcanceInicial`, `choferesIniciales` y «Optimizar» marcado", () => {
