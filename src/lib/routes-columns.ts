@@ -38,6 +38,11 @@ export interface ColumnaDelGestor {
   antesDe?: string;
   /** Sale SIEMPRE y no está en el ⚙ (D-408): la factura, que abre la orden. Una lista guardada sin ella no la esconde. */
   fija?: true;
+  /** Va la ÚLTIMA de «Sin asignar» aunque Órdenes la tenga en otro puesto (D-412, la prioridad). Es para una columna que
+   *  nace escondida: en medio de las que se ven, mover una vecina arriba y abajo la dejaría a un lado distinto del de
+   *  partida, y «Restablecer orden» saldría sin que se viera nada movido (`mueveColumna` salta las escondidas hacia un
+   *  lado). Al final no estorba, como las escondidas de paradas. */
+  alFinal?: true;
 }
 
 /** La columna de Órdenes que ocupa el puesto de esta en el orden de ventas (D-402): la de `deOrdenes`, o la de su misma
@@ -56,6 +61,7 @@ export function claveEnOrdenes(c: ColumnaDelGestor): string | undefined {
  */
 export function enOrdenDeVentas(catalogo: readonly ColumnaDelGestor[]): ColumnaDelGestor[] {
   const puesto = (c: ColumnaDelGestor): number => {
+    if (c.alFinal) return ORDEN_DE_PARTIDA.length + 1;
     const k = claveEnOrdenes(c);
     if (k) return ORDEN_DE_PARTIDA.indexOf(k);
     const vecina = c.antesDe ? catalogo.find((x) => x.key === c.antesDe) : undefined;
@@ -90,6 +96,10 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "po", en: "PO #", es: "PO #", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "po" },
   { key: "fee", en: "Fee", es: "Costo", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "fee" },
   { key: "contact", en: "Contact", es: "Contacto", tablas: ["sinAsignar"], ancho: 116, deOrdenes: "contact" },
+  // Prioridad (D-412, 147): la celda de Órdenes, que solo destaca alta y crítica. NO sale por defecto —se elige en ⚙,
+  // como pidió el dueño— y por eso no lleva marca de tanda: una lista guardada no la recibe sola. De partida va la
+  // última (`alFinal`), no tras la etapa como en Órdenes: es la única escondida de esta tabla (ver `alFinal`).
+  { key: "priority", en: "Priority", es: "Prioridad", tablas: ["sinAsignar"], ancho: 96, deOrdenes: "priority", oculta: true, alFinal: true },
   // La tabla de PARADAS de un chofer, donde se cambia el orden (D-346): «let me configure it into columns». Sus columnas
   // eran fijas. El número de parada, el ID (desde D-408, la factura) y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
   // puesto que la columna ya tenía en esa tabla, que guarda su ancho por posición (`useColWidths`).
@@ -110,6 +120,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "p_date", en: "Stops: Delivery Date", es: "Paradas: Fecha entrega", tablas: ["paradas"], ancho: 112, deOrdenes: "date", oculta: true },
   { key: "p_fee", en: "Stops: Fee", es: "Paradas: Costo", tablas: ["paradas"], ancho: 72, deOrdenes: "fee", oculta: true },
   { key: "p_contact", en: "Stops: Contact", es: "Paradas: Contacto", tablas: ["paradas"], ancho: 116, deOrdenes: "contact", oculta: true },
+  { key: "p_priority", en: "Stops: Priority", es: "Paradas: Prioridad", tablas: ["paradas"], ancho: 96, deOrdenes: "priority", oculta: true },
 ]);
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
@@ -121,7 +132,7 @@ export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_D
  *  y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega después va al final. */
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
-  paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"],
+  paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
 };
 const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas"];
 

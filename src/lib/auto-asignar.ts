@@ -13,6 +13,7 @@
 import type { Delivery } from "@/lib/types";
 import { autoAssign, type AutoAssignResult } from "@/lib/dispatch";
 import type { OpcionDeConductor } from "@/lib/elige-conductor";
+import { prioridadDe, seDestaca } from "@/lib/prioridad";
 
 /** Qué órdenes reparte: todas las sin chofer del día, o solo las marcadas en la tabla «Sin asignar». */
 export type AlcanceDelReparto = "todas" | "marcadas";
@@ -111,6 +112,11 @@ export function resumenDelReparto(
   const lista = sueltas.slice(0, 6).map((d) => `#${etiqueta(d)}`).join(", ") + (sueltas.length > 6 ? ` +${sueltas.length - 6}` : "");
   const enSueltas = sueltas.length ? ` · ${sueltas.length} not placed (no location, no room or window already taken): ${lista}` : "";
   const esSueltas = sueltas.length ? ` · ${sueltas.length} sin colocar (sin ubicación, sin capacidad o con la ventana ya ocupada): ${lista}` : "";
+  // Prioridad (D-412): el reparto coloca primero las críticas y las altas. Si aun así alguna se queda fuera, se dice
+  // aparte: es la que alguien tiene que mirar a mano, y perdida entre «+29» no se ve.
+  const urgentes = sueltas.filter((d) => seDestaca(prioridadDe(d))).length;
+  const enUrg = urgentes ? ` · ‼ ${urgentes} high/critical not placed` : "";
+  const esUrg = urgentes ? ` · ‼ ${urgentes} alta(s)/crítica(s) sin colocar` : "";
   // Lo que se optimizó de verdad: si alguna falló, se dice cuántas de cuántas, no «optimizadas» a secas.
   const fallaron = r.pedidas.length - r.optimizadas.length;
   const enOpt = !optimizar ? ". Routes not optimized"
@@ -120,7 +126,7 @@ export function resumenDelReparto(
     : fallaron > 0 ? ` · ${r.optimizadas.length} de ${r.pedidas.length} ruta(s) optimizada(s) (${fallaron} con error)`
     : ` · ${r.optimizadas.length} ruta(s) optimizada(s)`;
   return {
-    en: `Auto-assigned ${n} order(s) to ${choferes} driver(s)${enSueltas}${enOpt}.`,
-    es: `Auto-asignadas ${n} orden(es) a ${choferes} chofer(es)${esSueltas}${esOpt}.`,
+    en: `Auto-assigned ${n} order(s) to ${choferes} driver(s)${enSueltas}${enUrg}${enOpt}.`,
+    es: `Auto-asignadas ${n} orden(es) a ${choferes} chofer(es)${esSueltas}${esUrg}${esOpt}.`,
   };
 }

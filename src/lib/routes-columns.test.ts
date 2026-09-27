@@ -13,10 +13,13 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
-const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact"];
+const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
+/** La prioridad (D-412) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
+ *  guardado (no tiene marca de tanda): se elige en ⚙. */
+const PRIORIDAD_EN_SIN_ASIGNAR = ["priority"];
 /** «Sin asignar» en el orden de Órdenes (D-402), escrito a mano para que se lea: `status` es la «Etapa» y va donde
  *  `stage`; la recogida, que Órdenes no tiene, delante de la dirección de entrega. */
-const ORDEN_DE_VENTAS_EN_EL_GESTOR = ["po", "so", "invoice", "type", "account", "contact", "status", "store", "date", "pallets", "fee", "pickup", "address", "windows"];
+const ORDEN_DE_VENTAS_EN_EL_GESTOR = ["po", "so", "invoice", "type", "account", "contact", "status", "store", "date", "pallets", "fee", "pickup", "address", "windows", "priority"];
 
 describe("las columnas del Gestor", () => {
   it("la FACTURA está en «Sin asignar» y se ve por defecto — que es lo que el dueño pidió y no aparecía", () => {
@@ -26,7 +29,8 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).slice(0, 3)).toEqual(["po", "so", "invoice"]);
   });
   it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-402)", () => {
-    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR);
+    // Todas menos la prioridad (D-412), que nace escondida y se elige en ⚙.
+    expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "priority"));
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
   });
@@ -86,7 +90,7 @@ describe("las columnas del Gestor", () => {
     expect(conColumnasNuevas(["address", "fee"]).filter((k) => k === "address" || k === "fee")).toEqual(["address", "fee"]);
   });
   it("las de Órdenes en paradas NO llegan a lo guardado ni al defecto: se eligen", () => {
-    for (const k of EXTRAS_DE_PARADAS) {
+    for (const k of [...EXTRAS_DE_PARADAS, ...PRIORIDAD_EN_SIN_ASIGNAR]) {
       expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO, k).not.toContain(k);
       expect(conColumnasNuevas(["invoice"]), k).not.toContain(k);
     }
@@ -119,6 +123,7 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
 
   it("en «Sin asignar» están tipo, SO, PO, costo y contacto; y en paradas, las ocho, todas elegibles en su ⚙", () => {
     for (const k of NUEVAS_DE_ORDENES) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["sinAsignar"], deOrdenes: k });
+    for (const k of PRIORIDAD_EN_SIN_ASIGNAR) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["sinAsignar"], deOrdenes: k, oculta: true });
     for (const k of EXTRAS_DE_PARADAS) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["paradas"], deOrdenes: k.slice(2), oculta: true });
   });
   it("el `status` del Gestor ES la etapa de Órdenes: se llama igual y se pinta con su celda, sin columna duplicada", () => {
@@ -127,7 +132,7 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
   });
   it("cada columna que viene de Órdenes lleva EXACTAMENTE su rótulo en los dos idiomas", () => {
     const deOrdenes = COLUMNAS_DEL_GESTOR.filter((c) => c.deOrdenes);
-    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + EXTRAS_DE_PARADAS.length);
+    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length);
     for (const c of deOrdenes) {
       const r = rotuloEnOrdenes(c.deOrdenes!);
       expect({ en: quitaPrefijo(c.en), es: quitaPrefijo(c.es) }, c.key).toEqual(r);

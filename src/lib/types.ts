@@ -245,6 +245,9 @@ export interface Delivery {
   /** Builder o mostrador (D-316, migración 129). `null` en lo que no va a un cliente, y en lo anterior
    *  a este campo. Opcional en el tipo porque una base sin la 129 no lo trae. */
   customer_type?: CustomerType | null;
+  /** Prioridad de la orden (D-412, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
+   *  tipo porque una base sin la 147 no la trae; se lee siempre con `prioridadDe` (lib/prioridad.ts). */
+  priority?: OrderPriority | null;
   created_at: string;
   updated_at: string;
 }
@@ -390,6 +393,9 @@ export interface AccountRecord {
 
 /** Builder o venta al mostrador. El motor de rutas da prioridad a los builders. */
 export type CustomerType = "builder" | "counter_sale";
+
+/** Los cuatro niveles de la 147, como OptimoRoute (baja, media, alta, crítica). */
+export type OrderPriority = "low" | "normal" | "high" | "critical";
 
 /** Los pesos de los objetivos suaves del motor de rutas, en el orden que dio el dueño (D-316). */
 export interface RouteWeights {

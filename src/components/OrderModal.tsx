@@ -45,6 +45,7 @@ import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/li
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
+import { conPrioridadSiCabe, laBaseTienePrioridad, PRIORIDADES, prioridadDe } from "@/lib/prioridad";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
@@ -543,7 +544,8 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
-    const payload = {
+    // La prioridad (D-412, 147) solo viaja si la base ya tiene la columna: mandarla antes haría fallar la orden entera.
+    const payload = conPrioridadSiCabe({
       ...withDurations(d),
       // Builder o mostrador (D-316; desde D-337 lo decide la cuenta). Solo si la base ya tiene la columna: las migraciones se aplican
       // después de fusionar, y mandarla antes no fallaría este campo sino el guardado de la orden entera.
@@ -551,7 +553,7 @@ export function OrderModal({
       // `pinVisible` es EL MISMO valor que decide la zona unas líneas más arriba: lo que se
       // enseña y lo que se guarda salen del mismo dato, no de dos expresiones que hoy coinciden.
       ...(pinDraftParaGuardar({ visible: pinVisible, fuente: pinDraftSource, pedido: d }) ?? {}),
-    };
+    }, deliveries);
     // Hard rule: pickup and delivery address may never be identical.
     if (pickupEqualsDropoff) {
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
@@ -1852,6 +1854,20 @@ export function OrderModal({
                 />
                 <span>⏰ {t("Priority — deliver first thing in the morning", "Prioridad — entregar a primera hora de la mañana")}</span>
               </label>
+            )}
+            {/* Prioridad (D-412, 147): baja, normal, alta o crítica, como OptimoRoute. Nace en Normal. Solo sale si la base
+                ya tiene la columna (se aplica tras fusionar); la edita quien edita el resto de la orden (`salesFields`), que
+                es lo mismo que deja la base: el guard no mira columnas en «misma etapa». */}
+            {laBaseTienePrioridad(deliveries) && (
+              <div className="grid g2" style={{ marginTop: 8 }}>
+                <div className="field">
+                  <label>{t("Priority", "Prioridad")}</label>
+                  <select data-campo="prioridad" value={prioridadDe(d)} disabled={!salesFields}
+                    onChange={(e) => set("priority", e.target.value)}>
+                    {PRIORIDADES.map((p) => <option key={p.key} value={p.key}>{t(p.en, p.es)}</option>)}
+                  </select>
+                </div>
+              </div>
             )}
             {scheduleWarnings.length > 0 && (
               <div className="card" style={{ marginTop: 10, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
