@@ -32,6 +32,8 @@ export type SecurityKind =
   // Subir una ronda es la ÚNICA escritura del módulo que va con la llave de servicio, o sea la
   // única que se salta la RLS. Que quede línea es lo que permite preguntar después quién subió qué.
   | "promo_round_uploaded"
+  // El Estimador (148). Solo el acceso, como promos: no tiene columna de rol.
+  | "estimator_access_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed"
   // D-243: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
@@ -66,6 +68,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     erp_role_changed: "ERP tier changed",
     promos_access_changed: "RTG PROMOS access changed",
     promo_round_uploaded: "Promo round uploaded",
+    estimator_access_changed: "Estimator access changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
     impersonation_start: "Signed in as this user",
@@ -88,6 +91,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     erp_role_changed: "Nivel de ERP cambiado",
     promos_access_changed: "Acceso a RTG PROMOS cambiado",
     promo_round_uploaded: "Ronda de promociones subida",
+    estimator_access_changed: "Acceso al Estimador cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
     // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
     // porque es el mismo mapa que estoy tocando y dejar el hueco al lado de las líneas nuevas

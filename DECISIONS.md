@@ -29665,6 +29665,11 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
+> **⚠ Reemplazada en parte por D-414** (2026-09-27): el candado ya no vive solo en el navegador. Con la migración 149
+> (`route_locks`) aplicada, se guarda en la base, lo ve todo logística y lo respetan «Planificar el día» y «Publicar ruta»;
+> sin ella, sigue en `localStorage` como aquí, y el botón lo dice. Lo de «Dónde vive el candado» de abajo describe el
+> estado hasta D-414.
+
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Sin migración** (y el bloqueo compartido la
 necesitará: ver «Dónde vive el candado»). **Reemplaza en parte a D-401** («Optimizar todas las rutas» y el diálogo ya no
 optimizan ni reparten a una ruta bloqueada) **y a D-395** (el recuadro lleva un botón más). Las dos llevan su nota.
@@ -29927,3 +29932,248 @@ Capturas en la carpeta del worker: `04-ordenes-orden-asc`, `05-ordenes-filtro-cr
 - **Duplicar y re-entregar nacen Normal**: copian una lista cerrada de campos (`borradorDuplicado`, `borradorDeReentrega`) que no
   lleva la prioridad. Se dejó así: una copia no hereda la urgencia de la original sin que alguien lo decida.
 - En el demo solo se midió a 1440 y como admin.
+
+## D-413 · El Estimador («Quote Builder»): una app propia que arma la hoja del CLIENTE sin enseñar lo interno, una cotización por estimado y la aprobación del dueño del estimado
+
+**Fecha:** 2026-09-27 · **Tarea:** T-0408 · **Versión:** la pone el orquestador (`estimator` es app nueva y entra en
+`APP_VERSIONS` con 0.1.0; el cableado del módulo toca también código compartido: `constants.ts`, `UserDialog`, los dos
+proveedores) · **Migración:** `148_estimator.sql`, **escrita y NO aplicada** (plan en papel: `docs/PLAN-148-estimator.md`, con
+la matriz por rol de 23 casos para correr con `ROLLBACK`).
+
+**Qué pidió el dueño**, literal: *«"C:\Users\andre\Downloads\Estimate print outs app copy.docx" quiero que hagas una estimator
+app asi como la de promo»*. El documento describe un «Quote Builder» interno cuya salida es **una hoja para el cliente**: la
+clave, dice, es separar *Internal Inputs → Customer Output*. Siete puntos: identidad del cliente (dentro el nombre, empresa,
+teléfono y dirección; fuera solo «Ms. Gonzalez»), estimado y vendedor (buscar el estimado, vendedor original, aprobación si es
+de otro, «Prepared by»; fuera «Quote Reference» y «Sales Representative: Ext. 214»), productos con tres plantillas
+(Basic / **Standard** / Detailed, siempre «Requested Area», nunca «Square Feet»), entrega (dirección obligatoria que no se
+imprime, cargo fuera del total), validez del mismo día y aviso de Final Sale junto al total, una ventana de política con casilla
+obligatoria, y una hoja que **a propósito no parece un documento oficial**.
+
+### Qué hay ahora
+
+- **Una app propia en `/estimator`, igual que promos:** módulo `estimator` en `MODULES` y `MODULE_ACCESS` (tarjeta
+  «Estimator / Estimador» 🧮, casilla sin escalafón y con su `roleNote`), puerta de servidor en `src/app/estimator/layout.tsx`
+  calcada de la de promos (admin siempre; fallo de lectura del perfil sin redirigir, D-234), `appForPath` → `estimator`,
+  `updateUserEstimatorAccess` (pasa por `knownModules`, D-217) con su línea en el registro de seguridad, y el demo.
+- **Lo que decide vive en `src/lib/estimator/`**, probado sin navegador:
+  - `modelo.ts` — cajas por defecto `ceil(pedido / SF por caja)` (redondeando el cociente a 6 decimales para que una división
+    exacta no pida una caja de más), Actual SF = cajas × SF/caja, total de línea = **cajas × SF/caja × $/SF** (el SF real: el
+    cliente paga cajas completas), líneas sin SF («1 Lot, $385»), y `totalDeMateriales(lineas)` — **solo recibe las líneas**:
+    el cargo de entrega no puede entrar por la firma.
+  - `hoja.ts` — `hojaDelCliente(borrador)` construye **lo único que se imprime**. `HojaCliente.tsx` recibe solo ese objeto,
+    que no lleva teléfono, empresa, dirección, código, descripción interna, $/SF, SF real ni cargo. Los textos (encabezado,
+    «Estimated Material Total», «QUOTE VALID THROUGH …», el aviso de Final Sale, «Delivery: Available upon request…», la nota
+    de caja completa y el descargo final) son **literales del documento, en inglés**.
+  - `validar.ts` — de quién es el estimado (`sin-buscar / nueva / propia / admin / aprobada / pendiente / denegada / sin-pedir
+    / sin-base`) y qué falta para generar: buscar el estimado, el permiso si es de otro, extensión, nombre y apellido, líneas
+    completas con su categoría, la dirección completa si es entrega, y una validez que no haya pasado.
+  - `politica.ts` — el texto literal de *CUSTOMER QUOTE POLICY* y las dos puertas: el botón abre la ventana solo sin nada
+    pendiente, y «Continue» solo con la casilla marcada (que nace desmarcada cada vez).
+  - `almacen.ts` / `demo.ts` — dónde se guarda: la base (148) o un demo en memoria que imita sus reglas.
+- **Imprimir** es `window.print()` con `@media print` que esconde con `visibility` todo lo que no sea la hoja — también lo que
+  cuelga del layout raíz (sello de versión, aviso del cierre) sin tener que conocerlo.
+- **La base (148):** `estimator_quotes` (una por estimado: índice único `lower(btrim(estimate_num))`) y `estimator_approvals`.
+  El dueño, quien prepara y la tienda los pone un disparador con `auth.uid()`; ven el dueño, los de su tienda, el aprobado y el
+  admin; **editan** el dueño, el aprobado y el admin (la tienda no basta); nadie borra. Buscar un estimado
+  (`estimator_find_estimate`) cruza tiendas pero **no devuelve nada del cliente**: dice que existe y de quién es.
+- **Sin la 148 aplicada** la pantalla arma e imprime, esconde «Guardar», desactiva «Buscar» y lo dice en un aviso ámbar
+  (`faltaLaTabla`: PGRST205/PGRST202/42P01/42883 **y solo esos**; cualquier otro error se enseña como error). Mientras tanto
+  solo el admin entra: nadie más puede tener la palabra `estimator` (la restricción la rechaza).
+- **Autocompletar por código** desde `erp.app_products` (nombre, SF/caja, precio pasado a $/SF si `sell_unit` es `sqft` o
+  `box`). Quien no tiene el módulo ERP recibe cero filas por la puerta restrictiva de la 066 y lo escribe a mano: no se abrió
+  el catálogo a nadie.
+
+### Decisiones mías, para validar
+
+1. **La hoja NO imprime el $/SF.** El ejemplo del apartado 7 del documento pone una columna *Price* con «$1.89», pero todo el
+   apartado 3 existe para no dar ese número («without the quote handing them an easy competitor-comparison price»). Se siguió
+   el apartado 3: columnas *Description / Quantity / Amount*. Si lo quiere, es una columna.
+2. **El total es cajas × SF/caja × $/SF, y el ejemplo del documento no cuadra con sus propios datos:** 53 × 23.80 × 1.89 =
+   **$2,384.05**, no $2,383.57 (su total supone $1.8896/SF). Se prueba la cuenta, no el ejemplo.
+3. **«Estimate #» se escribe a mano.** `deliveries.estimate_num` (029) es el número de las Intertiendas, no el estimado de
+   venta, y no hay otra tabla de estimados en el repo. «Buscar» busca en las cotizaciones guardadas del Estimador; el
+   «vendedor original» es quien guardó la primera.
+4. **La extensión la escribe el vendedor** (no hay columna de extensión en `profiles`); se recuerda por persona en su navegador.
+5. **El admin no necesita la aprobación del dueño.** Un Gerente de Oficina sí la necesita hoy.
+6. **La hoja va siempre en inglés**, porque sus textos son los descargos que escribió el dueño; la pantalla es bilingüe y la
+   ventana de política enseña en español una traducción debajo de cada párrafo, pero la casilla firma el texto inglés.
+7. **Tratamientos:** Ms., Mr. y Mrs. El apellido sale solo de la última palabra del nombre y se puede corregir (con dos
+   apellidos acierta el último).
+8. **Validez de ayer no se imprime**; la de hoy o después, sí.
+9. `vitest.config.ts` compila JSX (`oxc.jsx.runtime: "automatic"`): la prueba de privacidad **renderiza** la hoja impresa, y
+   con `jsx: "preserve"` del tsconfig no podía ni leer un `.tsx`. No cambia nada para las pruebas que ya había.
+10. Dos contadores de otras pruebas suben a conciencia: las escrituras de módulo filtradas por `knownModules` (5 → 6) y las
+    etiquetas «Phone / Teléfono» (11 → 12: el teléfono interno del cliente; no hay número de orden con el que confundirlo).
+
+### Verificado
+
+- Tipos, suite y `next build` con `node scripts/verify.mjs`.
+- **Mutantes: 33, los 33 caen**, leídos por el nombre de la prueba que cae. Cálculos: `floor` en vez de `ceil` (M1), sin el
+  redondeo previo (M2), cajas escritas ignoradas (M3), Actual SF con lo pedido (M4), total con lo pedido (M5), el total del
+  cliente (M6) y el de la pantalla (M7) sumando la entrega. Privacidad: nombre completo en vez de «Ms. Apellido» (M8), código y
+  descripción interna en la descripción (M9), $/SF en la cantidad (M10), el componente pidiéndole el teléfono al borrador
+  (M11 — **sobrevivió la primera vez**: la prueba buscaba `customer.` y el mutante escribía `customer?.phone`; se endureció),
+  Actual SF en la hoja (M12), la vista previa con el borrador (M23), la impresión sin esconder el resto (M24). Plantillas:
+  Basic con cajas (M13), Detailed sin cobertura (M14), el texto de entrega recogiendo (M15). Reglas: sin dirección (M16), sin
+  buscar (M17), ajeno pendiente que deja trabajar (M18), admin con permiso (M19), sin casilla (M20, M21), la casilla que no se
+  desmarca (M22), estimado sin dueño leído como mío (M33). Base y cableado: el navegador mandando el dueño (M25), cualquier
+  error leído como «falta la tabla» (M26), el demo con dos cotizaciones (M27), la 148 dejando editar a la tienda (M28),
+  perdiendo `promos` (M29), buscando con el cliente (M30), la puerta abierta (M31), `/estimator` en la versión de Entregas (M32).
+- **En el navegador** (demo, clics de persona, a 1280 y a 390 de ancho): el flujo entero — buscar un estimado nuevo, el
+  apellido automático, el código `DEMO-24` → catálogo → SF/caja 23.8 y $1.89, 1,250 SF → **53 cajas, 1,261.40 SF,
+  $2,384.05**, la línea «1 Lot $385», entrega sin dirección bloquea, con cargo de $150 el total sigue en **$2,769.05**, la
+  política con «Continue» desactivado hasta la casilla, la hoja sin ninguno de los 11 datos internos buscados, en
+  `media: print` solo la hoja visible (y un PDF), el estimado ajeno bloqueado → «Request approval» → la dueña (otra persona en
+  «Ver como») lo ve y aprueba → el primero lo abre; y con `?sinTabla=1` el aviso, «Buscar» desactivado, sin «Guardar», y la
+  hoja se genera igual. Sin desplazamiento horizontal en ninguno de los dos anchos.
+
+### Lo que no se hizo / no se verificó
+
+- **La 148 no se aplicó ni se ensayó** contra ninguna base. La matriz de §6 del plan es para el orquestador.
+- La base de verdad: el orden disparador `BEFORE` → `WITH CHECK`, y el `returning` del aprobado de otra tienda; los cubre la
+  matriz (A1, A2, C6), no una prueba del repo.
+- El diálogo de Usuarios con la casilla nueva no se abrió en el navegador (en demo no se conceden módulos).
+- `window.print()` de verdad (el diálogo del sistema) no se puede pulsar en headless: se midió con `media: print` y
+  `printToPDF`.
+- No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
+
+## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
+NO aplicada** (plan en papel: `docs/PLAN-149-candado-compartido.md`, con la matriz por rol para correr con `ROLLBACK`).
+**Reemplaza en parte a D-411** (dónde vive el candado; lleva su nota). No toca `src/lib/route-engine/*` ni `/estimator`.
+
+**Qué pidió el dueño** (2026-09-26/27, con los enlaces de OptimoRoute): *«quiero que mires como funciona y lo copies y dime
+como funciona para implementarlo en lo de nosotros»* (cita tal como la pasó el orquestador, no extraída del fichero de
+sesión). Frente a OptimoRoute quedaban dos huecos: el candado de ruta que ve todo el equipo y respeta el planificador, y el
+informe de puntualidad («On-time performance»). Son las dos partes de esta entrada.
+
+### 1. El candado de ruta, compartido
+
+**Qué fallaba.** D-411 guardaba el 🔒 en el `localStorage` de quien lo ponía. Otra persona de logística no lo veía y
+pulsaba «Optimizar todas» sobre esa ruta; y «Planificar el día» (el motor, en el servidor) no lo conocía y repartía sus
+órdenes. D-411 lo dejó dicho y pidió la tabla; esto la escribe.
+
+**La base (149).** `public.route_locks (plan_date, lane, locked_by, locked_at)`, clave `(plan_date, lane)`. `lane` es la
+clave de ruta del Gestor: el NOMBRE del chofer o de la ruta temporal. Bloquear = insertar la fila; desbloquear = borrarla;
+sin UPDATE. `locked_by`/`locked_at` los pone un disparador (la base firma, no el navegador). Leen admin, logística, gerente,
+office y almacén (como `driver_settings`, 128); escriben admin y logística. Número 149 y no 148: otra rama (`/estimator`)
+puede estar escribiendo la 148.
+
+**La pantalla, con y sin la tabla.** Todo pasa por `src/lib/rutas-bloqueadas.ts`, que decide de dónde se lee:
+- `cargaCandados`: con la tabla, la base (los últimos 14 días, y quién puso cada uno); **sin ella** (`PGRST205`/`42P01`,
+  `faltaLaTabla`) o con la lectura fallida, el navegador, como en D-411 — y dice por qué. En el demo, el navegador sin
+  preguntar.
+- `pulsaCandado`: con la base escribe y **vuelve a leer** (así se ve también lo que puso otra persona entre tanto); si la
+  escritura falla (p. ej. un rol sin permiso), **no cambia nada** y el aviso dice el error; si la tabla desapareció (149
+  revertida), pasa al navegador.
+- El botón y el aviso dicen dónde vive: *«Compartido: lo ve todo logística, y «Planificar el día» lo respeta.»* o *«Solo en
+  este navegador: la base aún no tiene la tabla de candados (migración 149). Los demás no lo ven.»*; con la base, el título
+  dice además **quién** la bloqueó.
+- **Recarga al enfocar, no tiempo real** (decisión del worker, a validar): se relee al volver a la pestaña (`focus` y
+  `visibilitychange`) y tras cada clic. El tiempo real pediría meter la tabla en la publicación de Realtime y un canal más en
+  cada Gestor, para un dato que cambia pocas veces al día. Lo que no cubre: dos personas con el Gestor a la vista a la vez no
+  ven el candado de la otra hasta cambiar de pestaña o pulsar uno. El servidor, en cambio, lee la base en el momento.
+
+**«Planificar el día» lo respeta** (`POST /api/route-plan` → `entradaDelDia`, `bloqueadas`). El chofer con la ruta
+bloqueada no entra al motor (sale en «Hoy no rutean: X (ruta bloqueada 🔒)»); sus órdenes quedan fuera del plan **tal como
+están**, las pusiera una persona o el motor (`en_ruta_bloqueada`), y publicar no escribe lo que está fuera. Sin la tabla,
+planifica como antes y el panel lo dice en ámbar. **Con otra lectura fallida, 500**: planificar sin saber qué está
+bloqueado movería una ruta bloqueada.
+
+**«Publicar ruta» también** (`choquesAlPublicar`): si alguien bloqueó una ruta **después** de planificar y el plan asignaría
+a ella o movería/reordenaría una orden que HOY está en ella, **409 `ROUTE_LOCKED`** con las órdenes, y el panel pide
+planificar de nuevo. Y al chofer bloqueado **no** se le manda «Your route … changed: you have no stops now»
+(`avisosAlPublicar`, `sinAviso`): no entró al plan, pero sus órdenes siguen siendo suyas. Sin este arreglo el aviso habría
+mentido.
+
+**Lo del navegador no se sube a la base** (decisión, a validar): al aplicar la 149, los candados que cada uno tenía en su
+navegador dejan de verse. Son de un día; se vuelven a poner. Subirlos solos sería escribir en nombre de alguien sin que lo
+pida.
+
+### 2. Puntualidad por chofer, en el Panel
+
+**Dónde:** en el Panel (`/dashboard`), justo debajo de «KPIs de choferes y flota». Se decidió ahí y no en el Gestor porque
+el Panel ya tiene el **rango de fechas** (el Gestor trabaja por día), ya tiene la tabla por chofer y su «A tiempo» — que mide
+**otra cosa** (entregada antes del fin de la ventana o del día, la marcara quien la marcara) y conviene leer al lado — y ya
+acota por tiendas al gerente (D-396). **Consecuencia:** logística no lo ve salvo que tenga el permiso «Panel»; la ruta del
+servidor sí se lo permite (a validar si se quiere también en el Gestor).
+
+**Qué dice**, por chofer y en este orden (el de la honestidad, D-328): entregadas; con **hora real** (GPS · toque); **sin
+hora real** (la marcó otra persona · sin ninguna hora); **a tiempo** «x / n (%)» sobre las que tienen hora real Y ventana
+(y aparte «+N sin ventana»); **tarde**; **retraso** medio y peor, **solo de las tarde**; **millas del plan** y **millas GPS**,
+cada una con sus días. Arriba, el total del rango en una línea. Se calcula **al pulsar** «Calcular para este rango» (lee
+paradas y posiciones de todo el rango; no en cada visita), con un rango de **62 días como mucho**.
+
+**Las reglas** (`src/lib/puntualidad.ts`, puro, `puntualidadPorChofer`):
+- **Hora real** = la llegada por GPS que «¿Se cumplió el plan?» guardó en el plan publicado (`actual_arrival_at`, parada D,
+  y solo si la parada es de ese chofer); si no, el toque «entregado» (`pod_delivered_at`) **solo si lo pulsó ese chofer**
+  (último evento `delivered`, `order_events.created_by`). Marcada por otra persona no cuenta: dice cuándo se cerró la orden,
+  no dónde estaba el camión (D-328: tres de cuatro choferes no pulsan).
+- **A tiempo** = la hora real no pasa del FIN de la ventana (`parseWindow`, la primera), en la zona del negocio y **contando
+  el día** (entregar al día siguiente son 1440 min más). Llegar antes de que abra cuenta como a tiempo y se cuenta aparte.
+  Con toque, es la hora de cerrar (incluye la descarga): la medida conservadora, y por eso cada fila dice cuántas son de GPS.
+- **Millas del plan** = suma de `leg_miles` de sus paradas en los planes publicados; sin plan, «—», no 0. **Millas GPS** =
+  el rastro de `driver_locations`: posiciones peor que 100 m fuera; un salto de más de 20 min es un hueco y no se cuenta la
+  recta; y el temblor del GPS parado no suma (solo se avanza al alejarse 50 m del último punto contado). Si el rango pasa de
+  50 000 posiciones, **no se da cifra** (un rastro a medias contaría de menos) y se dice.
+
+**El servidor** (`GET /api/puntualidad?from&to`): solo lectura, con la sesión (sin llave de servicio, sin escrituras);
+admin, logística y gerente (los roles que leen posiciones, 121); acota con `alcanceDelPanel`/`ordenesDelPanel`, las mismas
+funciones del Panel; pagina de 1000 en 1000 (el tope de PostgREST). **Sin migración.** En el demo no hay base: la tarjeta
+calcula con la misma función y lo que el demo tiene en memoria, y dice que ahí solo cuenta el toque.
+
+**Lo que hoy va a enseñar en producción, dicho antes:** con lo medido en D-328 (tres de cuatro choferes sin haber entrado
+nunca, casi sin GPS), la mayoría de las entregas saldrán «sin hora real: la marcó otra persona». Eso es el informe diciendo
+la verdad, no un fallo: el hueco es de captura.
+
+### Medido en el demo (2026-09-27, admin, en inglés, 1280 × 900; clics de persona con el ratón y el elemento a la vista)
+
+- **Gestor:** 4 botones de candado, todos con `data-candado-fuente="navegador"` y título «… Only in this browser.». Clic en
+  el de Diego Driver → «🔒 Locked», `aria-pressed=true`, aviso «🔒 Diego Driver locked: … (arrows still work). Only in this
+  browser.», guardado `{"2026-09-27":["Diego Driver"]}`. Tras recargar, sigue bloqueada; tras `focus` +
+  `visibilitychange`, igual. Desbloquear: «🔓 Diego Driver unlocked. Only in this browser.», guardado `{}`. **0** peticiones
+  a `route_locks` (el demo no pregunta a la base). Desborde lateral: 0 px.
+- **Panel, sin tocar nada:** «4 delivered · real time for 0 (GPS 0, driver's tap 0) · no real time for 4 (marked by someone
+  else 4, no time 0) · 0 with a window to judge, 0 on time.» — el demo no trae ningún evento «delivered», así que ninguna
+  entrega tiene quién la marcó: todas «la marcó otra persona». Cuatro filas, una por chofer.
+- **Panel, con toques** (se metieron en el almacén del demo, en el navegador, eventos «delivered» con la hora del POD: Diego
+  en #1017, Carlos en #1018, y el vendedor en #1016): «real time for 2 (… driver's tap 2) · no real time for 2 (marked by
+  someone else 2 …) · 2 with a window to judge, 0 on time (0%)». Carlos R.: #1018 del 22-sep, ventana hasta 10:30, POD el
+  24-sep a las 12:06 (Texas) → **49h 36m** tarde; Diego Driver: #1017 del 24-sep, hasta 15:00, POD el 25-sep a las 11:26 →
+  **20h 26m**. Recalculado a mano: 2·1440 + 726 − 630 = 2976 min; 1440 + 686 − 900 = 1226 min. Fleet Truck 3 (#1016, marcada
+  por el vendedor) sale «sin hora real». Millas «—» (el demo no tiene planes ni GPS). **0** peticiones a `/api/puntualidad`.
+  Desborde lateral: 0 px a 1280 y a **390** (la tabla se desplaza en su caja).
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build en verde. Suite: **4739 pasados | 3 saltados** (los 3 de `pdf.test.ts`).
+- **Mutantes: 48, los 48 caen**, leídos por nombre de prueba (dos salieron vivos en la primera vuelta y se reforzó la
+  prueba, no el código: «pulsar con base no vuelve a leer» no se notaba porque la otra persona ya estaba en la lectura
+  inicial; «el rastro suma el temblor» no se notaba porque el temblor de la prueba era de 3 m). Candado, librería (16):
+  PGRST205 por código; cualquier fallo como «sin tabla»; solo los de hoy; 23505 como fallo; desbloquear borra el día
+  entero; el servidor trata un fallo como «sin tabla»; el demo pregunta a la base; sin tabla pierde lo del navegador; no
+  relee tras escribir; con fallo cambia la pantalla; con base escribe también en el navegador; con la tabla perdida no pasa
+  al navegador; el texto dice «solo aquí» siendo compartido; publicar no mira lo asignado hoy; sin normalizar; no pregunta
+  por las órdenes. Plan, publicar y pantalla (13): el motor mete al chofer bloqueado; sus órdenes entran; nombre sin
+  normalizar; «Planificar» no pasa los candados; sigue si la lectura falla; «Publicar» publica chocando; avisa «sin paradas»
+  al bloqueado; `sinAviso` ignorado; cualquier motivo cuenta como bloqueado; la pantalla no pasa por `pulsaCandado`; no
+  relee al enfocar; el botón no dice dónde vive; el panel no avisa de «sin tabla». Puntualidad (19): el toque de otra
+  persona; el GPS de otro camión; la llegada a la recogida; el día; el fin en punto; el retraso repartido entre todas; sin
+  ventana como a tiempo; entrenamiento; la recta sobre un hueco; el temblor; posiciones imprecisas; millas GPS 0 en vez de
+  «no se sabe»; millas del plan 0 en vez de «no hay»; paginación de una página; rango sin tope; sin acotar al gerente; rastro
+  cortado; el demo con 0 millas; el Panel sin el informe.
+
+### Lo no verificado, y lo que no se hizo
+
+- **Nada contra la base**: ni la 149, ni su matriz, ni `/api/puntualidad` con datos reales (ni cuánto tarda con un mes de
+  posiciones). El camino «con tabla» del Gestor solo está probado con un doble del cliente.
+- **Entre fusionar y aplicar la 149**, «Planificar el día» depende de que PostgREST conteste `PGRST205` (o el mensaje «Could
+  not find the table … in the schema cache», que el repo ya ve en otros sitios) para la tabla que falta. Si contestara otra
+  cosa, **devolvería 500** en vez de planificar sin candados. Comprobarlo con un «Planificar el día» (no escribe órdenes ni
+  avisa) justo después de fusionar.
+- Un rol de otro tipo con el permiso extra «Planificar rutas» ve el Gestor, pero la 149 no le deja escribir el candado: le
+  sale el error. No se amplió la política: es la de la 128.
+- El informe **no** recalcula el GPS de las paradas: usa lo que guardó «¿Se cumplió el plan?» (D-328). Un día publicado en el
+  que nadie pulsó ese botón sale con toque o sin dato, aunque haya posiciones.
+- En el demo solo se midió como admin, en inglés.

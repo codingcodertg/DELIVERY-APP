@@ -11,6 +11,7 @@ import {
   groupVolume, inDateRange, overdueOrders, salesRepStatsThisMonth,
 } from "@/lib/analytics";
 import { Sparkline } from "@/components/Sparkline";
+import { PuntualidadPorChofer } from "@/components/PuntualidadPorChofer";
 
 // Matches the Routes Manager / Map default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -420,6 +421,10 @@ export default function DashboardPage() {
               </>
             )}
           </div>
+
+          {/* ---------- Puntualidad por chofer, contra la ventana (D-414) ---------- */}
+          {/* Justo debajo de los KPIs de choferes: mismo rango, y su «A tiempo» mide otra cosa, así que se leen juntos. */}
+          <PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />
 
           {/* ---------- Driver idle time (shift clock) ---------- */}
           <div className="card">

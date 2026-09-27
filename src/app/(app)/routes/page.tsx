@@ -56,7 +56,7 @@ import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, type ParadaDeRuta } from "@/lib/mejor-lugar";
-import { alternaBloqueo, avisoDeSaltadas, estaBloqueada, guardaBloqueos, leeBloqueos, optimizaSinLasBloqueadas, type Bloqueos } from "@/lib/rutas-bloqueadas";
+import { avisoDeSaltadas, CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, optimizaSinLasBloqueadas, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 
 // ============================================================
@@ -424,10 +424,26 @@ export default function RoutesPage() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
   const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
-  // 🔒 Rutas bloqueadas (D-411): por día y por ruta, en ESTE navegador (`rutas-bloqueadas.ts` dice por qué no en la base).
+  // 🔒 Rutas bloqueadas (D-411): por día y por ruta. Desde D-414, en la base (`route_locks`, 149) si tiene la tabla —lo ve
+  // todo logística y lo respeta «Planificar el día»—; si no, en ESTE navegador, como antes, y el botón lo dice. De dónde se
+  // lee y dónde se escribe lo decide `rutas-bloqueadas.ts`, no la pantalla.
   // Se lee tras montar (no en el inicializador), para que el HTML del servidor y el primer pintado del navegador coincidan.
-  const [bloqueos, setBloqueos] = useState<Bloqueos>({});
-  useEffect(() => { setBloqueos(leeBloqueos(window.localStorage)); }, []);
+  // Y otra vez al volver a la pestaña (foco o visibilidad): sin tiempo real, lo que puso otra persona se ve al volver.
+  const [candados, setCandados] = useState<EstadoDeCandados>(CANDADOS_SIN_LEER);
+  const bloqueos = candados.bloqueos;
+  const opcionesDeCandados = (): OpcionesDeCandados => ({
+    sinBase: SIN_BASE, cliente: () => createClient() as unknown as ClienteDeCandados,
+    navegador: (() => { try { return window.localStorage; } catch { return null; } })(), hoy: todayISO(),
+  });
+  useEffect(() => {
+    let vivo = true;
+    const lee = () => { void cargaCandados(opcionesDeCandados()).then((e) => { if (vivo) setCandados(e); }); };
+    lee();
+    const alVolver = () => { if (document.visibilityState === "visible") lee(); };
+    window.addEventListener("focus", alVolver);
+    document.addEventListener("visibilitychange", alVolver);
+    return () => { vivo = false; window.removeEventListener("focus", alVolver); document.removeEventListener("visibilitychange", alVolver); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Las líneas de lo último que colocó «📍 Mejor lugar» (D-411), hasta que se cierran.
   const [avisoMejorLugar, setAvisoMejorLugar] = useState<string[] | null>(null);
   // Drag-and-drop in the Routes tab: which order is being dragged, and which
@@ -706,14 +722,17 @@ export default function RoutesPage() {
   // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Lo miran «Optimizar» (todas y una), «Simular», el dibujo
   // automático al elegir chofer, «✨ Auto-asignar» y «📍 Mejor lugar». A mano (flechas, «Asignar») no se mira.
   const bloqueada = (laneKey: string) => estaBloqueada(bloqueos, date, laneKey);
-  const alternaCandado = (laneKey: string) => {
-    const nuevos = alternaBloqueo(bloqueos, date, laneKey, todayISO());
-    setBloqueos(nuevos);
-    guardaBloqueos(window.localStorage, nuevos);
-    notify(estaBloqueada(nuevos, date, laneKey)
-      ? t(`🔒 ${laneLabel(laneKey)} locked: Optimize, Auto-assign and Best fit leave this route alone (arrows still work).`, `🔒 ${laneLabel(laneKey)} bloqueada: Optimizar, Auto-asignar y Mejor lugar no tocan esta ruta (las flechas sí).`)
-      : t(`🔓 ${laneLabel(laneKey)} unlocked.`, `🔓 ${laneLabel(laneKey)} desbloqueada.`));
+  const alternaCandado = async (laneKey: string) => {
+    const r = await pulsaCandado(candados, date, laneKey, opcionesDeCandados());
+    setCandados(r.estado);
+    if (r.error) { notify(t(`🔒 Couldn't save the lock for ${laneLabel(laneKey)}: ${r.error}`, `🔒 No se pudo guardar el candado de ${laneLabel(laneKey)}: ${r.error}`)); return; }
+    const donde = dondeViveElCandado(r.estado);
+    notify(r.bloqueada
+      ? t(`🔒 ${laneLabel(laneKey)} locked: Optimize, Auto-assign and Best fit leave this route alone (arrows still work). ${donde.en}`, `🔒 ${laneLabel(laneKey)} bloqueada: Optimizar, Auto-asignar y Mejor lugar no tocan esta ruta (las flechas sí). ${donde.es}`)
+      : t(`🔓 ${laneLabel(laneKey)} unlocked. ${donde.en}`, `🔓 ${laneLabel(laneKey)} desbloqueada. ${donde.es}`));
   };
+  // Quién la bloqueó (solo con el candado compartido), para el título del botón.
+  const bloqueadaPor = (laneKey: string) => { const id = quienBloqueo(candados.quien, date, laneKey); return id ? users.find((u) => u.id === id)?.full_name ?? null : null; };
 
   // Merge every checked lane's stops into ONE route (the first checked lane, in
   // panel order). The other lanes' orders take on the target's identity
@@ -2528,11 +2547,11 @@ export default function RoutesPage() {
               {/* 🔒 (D-411): por ruta y por día. Bloqueada, ni «Optimizar» (esta y todas), ni «Auto-asignar», ni «Mejor
                   lugar», ni «Simular» la tocan; las flechas y «Asignar» sí. */}
               <button className={bloqueada(u.key) ? "btn btn-amber btn-sm" : "btn btn-ghost btn-sm"} data-candado={u.key}
-                aria-pressed={bloqueada(u.key)}
-                title={bloqueada(u.key)
-                  ? t("Locked for this day: Optimize, Auto-assign and Best fit leave it alone. Click to unlock.", "Bloqueada este día: Optimizar, Auto-asignar y Mejor lugar no la tocan. Pulse para desbloquear.")
-                  : t("Lock this route for this day, so Optimize, Auto-assign and Best fit leave it alone (arrows still work). Saved in this browser.", "Bloquear esta ruta este día, para que Optimizar, Auto-asignar y Mejor lugar no la toquen (las flechas sí). Se guarda en este navegador.")}
-                onClick={(e) => { e.stopPropagation(); alternaCandado(u.key); }}>
+                data-candado-fuente={candados.fuente} aria-pressed={bloqueada(u.key)}
+                title={`${bloqueada(u.key)
+                  ? t(`Locked for this day${bloqueadaPor(u.key) ? ` by ${bloqueadaPor(u.key)}` : ""}: Optimize, Auto-assign and Best fit leave it alone. Click to unlock.`, `Bloqueada este día${bloqueadaPor(u.key) ? ` por ${bloqueadaPor(u.key)}` : ""}: Optimizar, Auto-asignar y Mejor lugar no la tocan. Pulse para desbloquear.`)
+                  : t("Lock this route for this day, so Optimize, Auto-assign and Best fit leave it alone (arrows still work).", "Bloquear esta ruta este día, para que Optimizar, Auto-asignar y Mejor lugar no la toquen (las flechas sí).")} ${t(dondeViveElCandado(candados).en, dondeViveElCandado(candados).es)}`}
+                onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
               <button className="btn btn-primary btn-sm" data-optimizar-ruta disabled={stops.length < 2 || busyDriver === u.key || bloqueada(u.key)} onClick={() => optimize(u.key)}>

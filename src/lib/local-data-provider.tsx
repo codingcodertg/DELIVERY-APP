@@ -388,6 +388,11 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
+  // El Estimador tampoco se concede en demo: en demo se entra directo a /estimator.
+  const updateUserEstimatorAccess = useCallback<DataState["updateUserEstimatorAccess"]>(async () => {
+    notify("Not available in demo mode");
+  }, [notify]);
+
   // En demo todo el mundo tiene Entregas — es lo único que hay — así que quitarla no
   // significaría nada aquí. Se responde como los demás módulos en vez de callarse.
   const updateUserDeliveriesAccess = useCallback<DataState["updateUserDeliveriesAccess"]>(async () => {
@@ -449,7 +454,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
     incidents: store.incidents ?? [], addIncident, removeIncident,

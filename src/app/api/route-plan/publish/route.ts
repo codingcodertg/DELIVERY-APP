@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { errorDePublicar, rutasDeParadas } from "@/lib/route-plan/borrador";
-import { avisosAlPublicar, textoDelAviso } from "@/lib/route-plan/publicar";
+import { avisosAlPublicar, choferesConRutaBloqueada, textoDelAviso } from "@/lib/route-plan/publicar";
+import { choquesAlPublicar, type ClienteDeCandados, type ClienteDeOrdenes } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
 // «Publicar ruta» (D-320): escribe el borrador en las órdenes y avisa a cada chofer UNA vez.
@@ -31,11 +32,17 @@ export async function POST(req: Request) {
   try { planId = String(((await req.json()) as { plan_id?: unknown }).plan_id ?? ""); } catch { /* cae en la validación */ }
   if (!/^[0-9a-f-]{36}$/i.test(planId)) return NextResponse.json({ error: "A plan_id is required." }, { status: 400 });
 
-  const { data: plan, error: alLeer } = await supabase.from("route_plans").select("id, plan_date, status, source").eq("id", planId).maybeSingle();
+  const { data: plan, error: alLeer } = await supabase.from("route_plans").select("id, plan_date, status, source, writes, choferesFuera:result->choferesFuera").eq("id", planId).maybeSingle();
   if (alLeer) return NextResponse.json({ error: "Could not read the plan.", detail: alLeer.message }, { status: 500 });
   if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   // La hoja importada del despachador es para COMPARAR. No se publica: ni escribe órdenes ni avisa a nadie.
   if (plan.source === "manual_import") return NextResponse.json({ error: "IMPORTED_PLAN" }, { status: 409 });
+
+  // 🔒 Un candado puesto DESPUÉS de planificar (149, D-414): si el plan asigna a una ruta bloqueada, o mueve una orden que
+  // hoy está en una, no se publica — se dice cuáles, y se vuelve a planificar. Sin la tabla, como antes.
+  const candados = await choquesAlPublicar(supabase as unknown as ClienteDeCandados, supabase as unknown as ClienteDeOrdenes, String(plan.plan_date), (plan.writes ?? []) as { id: string; assigned_driver: string }[]);
+  if (candados.fuente === "error") return NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 });
+  if (candados.fuente === "base" && candados.choques.length) return NextResponse.json({ error: "ROUTE_LOCKED", detail: candados.choques }, { status: 409 });
 
   // A quién se avisa: se compara parada a parada con el plan publicado que este va a sustituir.
   const { data: vigente } = await supabase.from("route_plans").select("id").eq("plan_date", plan.plan_date).eq("status", "published").maybeSingle();
@@ -47,7 +54,8 @@ export async function POST(req: Request) {
 
   type Parada = Parameters<typeof rutasDeParadas>[0][number];
   const conChofer = (ps: unknown) => ((ps ?? []) as Parada[]).filter((p) => !!p.driver_id);
-  const avisos = avisosAlPublicar(rutasDeParadas(conChofer(nuevas.data)), viejas.data ? rutasDeParadas(conChofer(viejas.data)) : null);
+  // Al chofer con la ruta bloqueada no se le dice «te quedaste sin paradas»: no entró al plan, y sus órdenes siguen suyas.
+  const avisos = avisosAlPublicar(rutasDeParadas(conChofer(nuevas.data)), viejas.data ? rutasDeParadas(conChofer(viejas.data)) : null, choferesConRutaBloqueada(plan.choferesFuera));
   const p_avisos = avisos.map((a) => ({ driver_id: a.chofer, message: textoDelAviso(a, String(plan.plan_date)) }));
 
   const { data, error } = await supabase.rpc("publish_route_plan", { p_plan: planId, p_avisos });

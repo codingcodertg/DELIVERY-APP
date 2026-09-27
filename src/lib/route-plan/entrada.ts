@@ -47,9 +47,12 @@ export interface DatosDelDia {
   /** Lo que una persona fijó en el borrador anterior de esa fecha (ver `./ajuste`): por chofer, sus paradas en
    *  orden. «Planificar de nuevo» lo respeta: el motor arranca con eso puesto y reparte el resto alrededor. */
   fijadas?: Readonly<Record<string, readonly { orden: string; tipo: "P" | "D" }[]>>;
+  /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-414), por la clave del Gestor: el NOMBRE del chofer o de la
+   *  ruta temporal. El motor no las toca: el chofer no entra, y sus órdenes quedan fuera del plan tal como están. */
+  bloqueadas?: readonly string[];
 }
 
-export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" };
+export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" | "en_ruta_bloqueada" };
 
 export interface EntradaDelDia {
   entrada: Entrada;
@@ -61,7 +64,7 @@ export interface EntradaDelDia {
   /** Órdenes que ni entran al motor, con su porqué. */
   fuera: FueraDelPlan[];
   /** Choferes que no rutean, y qué les falta: para que la pantalla lo diga en vez de callarlo. */
-  choferesFuera: { id: string; nombre: string; motivo: "no_rutea" | "base" | "base_sin_punto" | "no_disponible" }[];
+  choferesFuera: { id: string; nombre: string; motivo: "no_rutea" | "base" | "base_sin_punto" | "no_disponible" | "ruta_bloqueada" }[];
 }
 
 const igual = (a: string | null | undefined, b: string | null | undefined) => (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
@@ -83,9 +86,12 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const paraElMotor: ChoferParaElMotor[] = datos.choferes.filter((p) => p.role === "driver").map((p) => choferParaElMotor(p, filaDe.get(p.id), settings));
   const choferes: ChoferEntrada[] = [];
   const choferesFuera: EntradaDelDia["choferesFuera"] = [];
+  const bloqueada = (nombre: string | null | undefined) => !!(nombre ?? "").trim() && (datos.bloqueadas ?? []).some((b) => igual(b, nombre));
   for (const c of paraElMotor) {
     const base = c.rutea ? tiendaConPunto(c.base) : null;
-    const motivo = (datos.noDisponibles ?? []).some((n) => igual(n, c.nombre)) ? "no_disponible" as const
+    // Con la ruta bloqueada 🔒, el chofer no entra al motor: ni se le quita ni se le da nada (D-414).
+    const motivo = bloqueada(c.nombre) ? "ruta_bloqueada" as const
+      : (datos.noDisponibles ?? []).some((n) => igual(n, c.nombre)) ? "no_disponible" as const
       : c.falta[0] ?? (!c.rutea || !base ? "no_rutea" as const : null);
     if (motivo || !base) { choferesFuera.push({ id: c.id, nombre: c.nombre, motivo: motivo ?? "no_rutea" }); continue; }
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase });
@@ -103,6 +109,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (d.is_training || !ETAPAS_RUTEABLES.includes(d.stage)) continue;
     const asignado = (d.assigned_driver ?? "").trim();
     if (asignado && carriles.some((b) => igual(b, asignado))) { fuera.push({ id: d.id, motivo: "en_un_carril_manual" }); continue; }
+    // En una ruta bloqueada 🔒: fuera del plan, lo pusiera quien lo pusiera. Publicar no escribe lo que está fuera.
+    if (bloqueada(asignado)) { fuera.push({ id: d.id, motivo: "en_ruta_bloqueada" }); continue; }
 
     // ¿Lo puso una persona? Solo si NO es lo que escribió el último plan publicado.
     const loPusoUnaPersona = !!asignado && !igual(puestoPorElMotor.get(d.id), asignado);
