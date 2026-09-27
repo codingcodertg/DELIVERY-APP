@@ -48,7 +48,9 @@ const REMEDIO: Record<string, [string, string]> = {
   cambiar_chofer_fijado: ["Its assigned driver can't take it: clear the driver on the order and plan again.", "Su chofer asignado no puede llevarla: quítele el chofer a la orden y planifique de nuevo."],
   quitar_del_carril: ["It's in a manual lane on purpose. Clear its lane to let the engine route it.", "Está en un carril manual a propósito. Quítela del carril para que el motor la rutee."],
 };
-type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue> };
+type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue>;
+  /** Solo al planificar (D-NEXT): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
+  candados?: "base" | "sin_tabla" };
 
 /** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
 const INCUMPLE: Record<string, [string, string]> = {
@@ -76,6 +78,8 @@ const MOTIVOS: Record<string, [string, string]> = {
   en_un_carril_manual: ["in a manual lane", "en un carril manual"], chofer_no_rutea: ["its driver isn't routed today", "su chofer hoy no rutea"],
   no_rutea: ["not routed", "no rutea"], base: ["no base store", "sin tienda base"], base_sin_punto: ["base store has no map point", "su tienda base no tiene punto"],
   no_disponible: ["off today", "hoy no está"],
+  // 🔒 (149, D-NEXT): la ruta está bloqueada ese día; el motor no la toca.
+  ruta_bloqueada: ["route locked 🔒", "ruta bloqueada 🔒"], en_ruta_bloqueada: ["on a locked route 🔒, left as it is", "en una ruta bloqueada 🔒, se queda como está"],
 };
 
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
@@ -167,6 +171,8 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
         const cuales = viejas.map((v) => `${nombreDeOrden(v.id)}: ${VIEJO[v.motivo] ? VIEJO[v.motivo][lang === "es" ? 1 : 0] : v.motivo}`).join(" · ");
         setError(b.error === "STALE" ? `${t("This plan is out of date, so it wasn't published. Plan the day again.", "Este plan quedó viejo, así que no se publicó. Planifique el día de nuevo.")}${cuales ? ` (${cuales})` : ""}`
           : b.error === "UNSEEN" ? t("You can't see some of this plan's orders, so it wasn't published.", "No ve algunas órdenes de este plan, así que no se publicó.")
+          // 🔒 Alguien bloqueó una ruta después de planificar (D-NEXT): el plan la tocaría. Se dice cuáles y se replanifica.
+          : b.error === "ROUTE_LOCKED" && Array.isArray(b.detail) ? `${t("A route in this plan was locked 🔒 after planning, so it wasn't published. Plan the day again.", "Una ruta de este plan se bloqueó 🔒 después de planificar, así que no se publicó. Planifique el día de nuevo.")} (${(b.detail as { id: string; ruta: string }[]).map((c) => `${nombreDeOrden(c.id)} → ${c.ruta}`).join(" · ")})`
           : String(b.error ?? res.status));
       } else {
         const avisos = (b.notifications ?? []) as { notification_id: string }[];
@@ -252,6 +258,11 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
           {Object.keys(r.partes).length > 0 && (
             <div className="hint" style={{ margin: 0 }}>
               {Object.entries(r.partes).map(([id, partes]) => t(`${nombreDeOrden(id)} is split into ${partes.length} loads; in Orders it stays a single order.`, `${nombreDeOrden(id)} se reparte en ${partes.length} cargas; en Órdenes figura una sola.`)).join(" ")}
+            </div>
+          )}
+          {borrador?.candados === "sin_tabla" && (
+            <div className="hint" data-plan-sin-candados style={{ margin: 0, color: "var(--amber-text)" }}>
+              🔒 {t("This plan doesn't know about locked routes: locks are only kept in each browser until the database gets its table (migration 149).", "Este plan no conoce las rutas bloqueadas: los candados solo viven en cada navegador hasta que la base tenga su tabla (migración 149).")}
             </div>
           )}
           {r.choferesFuera.length > 0 && (
