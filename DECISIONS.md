@@ -28478,7 +28478,7 @@ en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el reparto ya no es `autoAssign` (se quitó) sino el motor de
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): el reparto ya no es `autoAssign` (se quitó) sino el motor de
 > «Planificar el día» (`/api/route-plan/reparto`), un día por petición y contando lo que cada chofer ya lleva. **El diálogo
 > ya no tiene «Optimizar las rutas al terminar»**: el motor deja chofer, viaje y puesto, y `computeRoute` lo desharía. El
 > aviso dice el porqué de cada orden que no se colocó. «Qué órdenes» y «a qué choferes» siguen como aquí.
@@ -29686,7 +29686,7 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el diálogo de «✨ Auto-asignar» ya no optimiza, así que no pasa por
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): el diálogo de «✨ Auto-asignar» ya no optimiza, así que no pasa por
 > `optimizaEstas` (lo sigue usando «Optimizar todas las rutas»). Un chofer 🔒 sigue sin recibir nada: el diálogo no lo
 > ofrece, la pantalla lo quita, y ahora también el servidor lee los candados de cada día (`route_locks`).
 
@@ -29845,7 +29845,7 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): «`autoAssign` ordena primero por prioridad» ya no aplica — `autoAssign`
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «`autoAssign` ordena primero por prioridad» ya no aplica — `autoAssign`
 > se quitó y Auto-asignar reparte con el motor, que coloca por prioridad desde D-415. El aviso sigue diciendo aparte las
 > altas y críticas sin colocar.
 
@@ -30213,7 +30213,7 @@ la verdad, no un fallo: el hueco es de captura.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): «Auto-asignar y “Optimizar” no cambian» ya no es cierto para
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar y “Optimizar” no cambian» ya no es cierto para
 > Auto-asignar: reparte con este mismo motor (en «modo reparto»), así que la prioridad y las opciones de reparto también
 > valen para él. «Optimizar» sigue igual.
 > **Reemplazada en parte por D-418** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
@@ -30630,7 +30630,7 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 
 ## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
+> **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
 > (Gestor y mapa) reparte con el motor, que lee `requirements` y `features` como «Planificar el día»; una orden que nadie puede
 > llevar sale con «ningún camión que rutea tiene lo que pide».
 
@@ -30771,7 +30771,7 @@ ni de Auto-asignar.
   `planificaElDia`) y con pruebas de que la pantalla las usa.
 - La encuesta con la base de verdad (la ruta POST contra PostgREST, el `23505` real): probada solo con un cliente falso.
 
-## D-NEXT · «✨ Auto-asignar» reparte con el motor de «Planificar el día»: cuenta lo que cada chofer ya lleva, no mezcla días, y dice por qué no coloca
+## D-419 · «✨ Auto-asignar» reparte con el motor de «Planificar el día»: cuenta lo que cada chofer ya lleva, no mezcla días, y dice por qué no coloca
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** Tarea **T-0410**.
 **Reemplaza en parte** a D-401 (el reparto ya no es `autoAssign`, y el diálogo ya no optimiza al terminar), D-411 (el diálogo

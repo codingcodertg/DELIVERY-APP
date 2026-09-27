@@ -16,7 +16,7 @@ import {
 } from "./reparto";
 
 /**
- * «✨ Auto-asignar» con el motor (D-NEXT), contra DÍAS REALES congelados: 2026-09-18..28 de producción, anonimizados
+ * «✨ Auto-asignar» con el motor (D-419), contra DÍAS REALES congelados: 2026-09-18..28 de producción, anonimizados
  * (`dias-reales-anon.json`: tiendas «Tienda A…G», choferes «Chofer A…D», órdenes `o-N`, pins a 2 decimales, sin
  * clientes, cuentas, direcciones ni facturas). Tiempos con la estimación en línea recta: sin red.
  *

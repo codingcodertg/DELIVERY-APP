@@ -14,7 +14,7 @@ import {
   type ResultadoDelReparto,
 } from "./auto-asignar";
 
-/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401). Desde D-NEXT reparte el motor: sus pruebas, con días
+/** El diálogo de «✨ Auto-asignar» del Gestor de Rutas (D-401). Desde D-419 reparte el motor: sus pruebas, con días
  *  reales, en `route-plan/reparto.test.ts`. */
 
 const CHOFERES = ["Diego Driver", "Carlos R.", "Miguel A.", "Fleet Truck 3"];
@@ -102,7 +102,7 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(pagina).toContain("{dialogoAutoAsignar && ( <AutoAsignarDialogo opciones={opcionesDelReparto} delDia={unassigned.length} marcadas={poolSelectedCount}");
     expect(pagina).toContain("onCancelar={() => setDialogoAutoAsignar(false)} onConfirmar={repartirConElDialogo}");
   });
-  it("reparte con el MOTOR (`repartirConElMotor`), solo entre los elegidos, y escribe solo si la orden no cambió (D-NEXT)", () => {
+  it("reparte con el MOTOR (`repartirConElMotor`), solo entre los elegidos, y escribe solo si la orden no cambió (D-419)", () => {
     const cuerpo = pagina.slice(pagina.indexOf("const repartirConElDialogo = async"), pagina.indexOf("const toggleOrder ="));
     expect(cuerpo).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
     expect(cuerpo).toContain("r = await repartirConElMotor({ ordenes, choferes: e.choferes.filter((c) => !bloqueada(c)), pide: pideElReparto(SIN_BASE, () => ({ deliveries, users, settings, availability, bloqueadas: (f) => bloqueos[f] ?? [] })), escribe: (w) => { clearRouteFor(w.chofer); return updateDelivery(w.id, w.patch, { quiet: true, siNoCambioDesde: w.updated_at || undefined }); }, });");
@@ -119,7 +119,7 @@ describe("la pantalla del Gestor usa el diálogo y estas funciones", () => {
     expect(pagina).toContain("if (aviso) notify(t(`${aviso.en} Optimized ${bien.length}.`, `${aviso.es} Optimizadas ${bien.length}.`)); return bien; };");
   });
 
-  it("el diálogo nace con `alcanceInicial` y `choferesIniciales`, y ya no ofrece «Optimizar al terminar» (D-NEXT)", () => {
+  it("el diálogo nace con `alcanceInicial` y `choferesIniciales`, y ya no ofrece «Optimizar al terminar» (D-419)", () => {
     expect(dialogo).toContain("useState<AlcanceDelReparto>(() => alcanceInicial(marcadas))");
     expect(dialogo).toContain("useState<Set<string>>(() => choferesIniciales(opciones))");
     expect(dialogo).not.toMatch(/data-optimizar-al-terminar|setOptimizar|data-asignar-y-optimizar/);

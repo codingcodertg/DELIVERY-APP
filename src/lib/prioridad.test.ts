@@ -71,7 +71,7 @@ describe("¿la base ya tiene la columna? (se aplica DESPUÉS de fusionar)", () =
   });
 });
 
-// «Auto-asignar reparte primero lo urgente» (D-412) probaba el orden de `autoAssign`, que se quitó en D-NEXT: Auto-asignar
+// «Auto-asignar reparte primero lo urgente» (D-412) probaba el orden de `autoAssign`, que se quitó en D-419: Auto-asignar
 // reparte ahora con el motor, que ya coloca por prioridad (D-415). Sus pruebas, con la crítica que entra y la normal que
 // no, y el aviso de las urgentes sin colocar, están en `route-plan/reparto.test.ts`.
 

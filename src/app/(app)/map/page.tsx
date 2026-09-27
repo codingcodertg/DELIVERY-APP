@@ -22,7 +22,7 @@ import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
-// El demo (sin base): «Auto-asignar selección» reparte con el motor en el navegador (D-NEXT).
+// El demo (sin base): «Auto-asignar selección» reparte con el motor en el navegador (D-419).
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default function MapPage() {
@@ -204,7 +204,7 @@ export default function MapPage() {
   };
   const assignDriver = (driver: string | null) => assignOrders(selectedList, driver);
 
-  // Auto-assign only the selected (unassigned) loads across the drivers — con el MISMO camino que el Gestor (D-NEXT): el
+  // Auto-assign only the selected (unassigned) loads across the drivers — con el MISMO camino que el Gestor (D-419): el
   // motor de «Planificar el día», un día por petición, sin los choferes que no están, no rutean o tienen la ruta 🔒 (el
   // servidor lee ausencias y candados de ese día), y cada orden escrita solo si no cambió desde que se planificó.
   const autoAssignSelected = async () => {

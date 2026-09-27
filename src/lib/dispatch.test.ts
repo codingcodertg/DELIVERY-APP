@@ -184,7 +184,7 @@ describe("recommendDriver", () => {
   });
 });
 
-// `autoAssign` se quitó en D-NEXT: «✨ Auto-asignar» reparte con el motor. Sus pruebas viven en
+// `autoAssign` se quitó en D-419: «✨ Auto-asignar» reparte con el motor. Sus pruebas viven en
 // `route-plan/reparto.test.ts` (con días reales anonimizados), incluida la de que dos órdenes con ventanas que se solapan
 // pueden ir con el MISMO chofer — la que aquí fijaba lo contrario («splits window-overlapping orders across drivers»)
 // fijaba el fallo.

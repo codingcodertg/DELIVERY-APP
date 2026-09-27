@@ -109,7 +109,7 @@ export interface DataState {
   updateDelivery: (id: string, patch: Partial<Delivery>, opts?: {
     quiet?: boolean;
     /** Escribe SOLO si la fila sigue con esta `updated_at` (la que tenía al planificar): si alguien la cambió entretanto,
-     *  no la pisa y devuelve `false`. Lo usa «✨ Auto-asignar» con el motor (D-NEXT). Con `.select("id")`, porque un
+     *  no la pisa y devuelve `false`. Lo usa «✨ Auto-asignar» con el motor (D-419). Con `.select("id")`, porque un
      *  UPDATE que no casa vuelve sin error y parecería guardado (D-310). */
     siNoCambioDesde?: string;
   }) => Promise<boolean>;

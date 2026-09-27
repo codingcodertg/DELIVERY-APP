@@ -16,7 +16,7 @@ import {
 // marcado, cuándo se enciende el botón) vive en `lib/auto-asignar.ts`; aquí solo se pinta. Cancelar (✕, «Cancelar» o un
 // clic fuera) no toca nada.
 //
-// Desde D-NEXT reparte el motor de «Planificar el día» y ya no hay «Optimizar las rutas al terminar»: el motor deja cada
+// Desde D-419 reparte el motor de «Planificar el día» y ya no hay «Optimizar las rutas al terminar»: el motor deja cada
 // ruta ordenada, y optimizarla después con «Optimizar ruta» la desharía.
 // ============================================================
 

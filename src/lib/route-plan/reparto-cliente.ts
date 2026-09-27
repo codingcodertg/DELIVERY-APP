@@ -6,7 +6,7 @@ import { BUSINESS_TZ } from "@/lib/utils";
 import { ajustesDelDemo, repartoDelDia, type DiaParaElReparto, type PeticionDeReparto, type RespuestaDelReparto } from "./reparto";
 
 /**
- * Quién reparte para la pantalla (D-NEXT): el servidor (`/api/route-plan/reparto`), o —en el demo, que no tiene base ni
+ * Quién reparte para la pantalla (D-419): el servidor (`/api/route-plan/reparto`), o —en el demo, que no tiene base ni
  * servidor con sesión— el MISMO `repartoDelDia` en el navegador, con los datos que la pantalla ya tiene, la tienda del
  * perfil como base (`ajustesDelDemo`) y la estimación en línea recta. En el demo no sale nada de la máquina.
  */

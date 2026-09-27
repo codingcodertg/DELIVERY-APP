@@ -11,7 +11,7 @@ import { proveedorEstimado, proveedorOSRM, type FetchFn } from "@/lib/route-time
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
-// «✨ Auto-asignar» con el motor (D-NEXT): la hermana de `/api/route-plan` en «modo reparto».
+// «✨ Auto-asignar» con el motor (D-419): la hermana de `/api/route-plan` en «modo reparto».
 //
 // POST { date, order_ids, drivers } → qué escribir en cada orden (chofer, viaje y puesto), qué no se colocó y por
 // qué, y qué choferes elegidos quedaron fuera. **No escribe nada**: ni órdenes ni planes. Escribe quien llama, orden

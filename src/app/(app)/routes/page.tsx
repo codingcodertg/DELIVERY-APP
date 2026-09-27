@@ -1388,7 +1388,7 @@ export default function RoutesPage() {
     return bien;
   };
 
-  // «✨ Auto-asignar» (D-401, D-NEXT): el diálogo dice qué órdenes y a qué choferes; reparte el motor de «Planificar el
+  // «✨ Auto-asignar» (D-401, D-419): el diálogo dice qué órdenes y a qué choferes; reparte el motor de «Planificar el
   // día» (`repartirConElMotor`: un día por petición, lo que cada chofer ya lleva cuenta y no se mueve), y cada orden se
   // escribe solo si no cambió desde que se planificó. No se optimiza después: el motor ya deja chofer, viaje y puesto, y
   // `computeRoute` lo desharía. En el demo reparte el mismo motor en el navegador (`pideElReparto`).

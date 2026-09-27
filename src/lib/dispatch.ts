@@ -140,7 +140,7 @@ export function recommendDriver(
   return scored[0];
 }
 
-// ---- Auto-assign (Epic A) — quitado en D-NEXT -------------------------------------------------------
+// ---- Auto-assign (Epic A) — quitado en D-419 -------------------------------------------------------
 // Aquí vivía `autoAssign`: un reparto voraz en línea recta que trataba cualquier solape de ventanas como choque (con el
 // 77 % de las órdenes en 08:30–17:30, un clic colocaba una orden por chofer), empezaba a cada chofer en 0 pallets aunque
 // ya llevara carga, y no miraba base, turno ni si el chofer rutea. «✨ Auto-asignar» (Gestor y mapa) reparte ahora con el

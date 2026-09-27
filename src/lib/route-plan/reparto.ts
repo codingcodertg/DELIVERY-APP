@@ -7,7 +7,7 @@ import { entradaDelDia, type DatosDelDia, type EntradaDelDia } from "./entrada";
 import { ETAPAS_RUTEABLES, ordenDeLaParte } from "./publicar";
 
 /**
- * «✨ Auto-asignar» con el motor de «Planificar el día» (D-NEXT). Puro: sin base ni red; la caché y los proveedores
+ * «✨ Auto-asignar» con el motor de «Planificar el día» (D-419). Puro: sin base ni red; la caché y los proveedores
  * de tiempos llegan inyectados, como en `planificaElDia`.
  *
  * El dueño, 2026-09-27: *«quioero que hagamos mucho emfasis porque todo funciona bien pero estmaos teniendo probemas en

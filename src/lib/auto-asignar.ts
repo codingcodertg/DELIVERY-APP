@@ -10,7 +10,7 @@
  * pantalla (`routes/page.tsx` y `components/AutoAsignarDialogo.tsx`) solo lo pinta y le pasa con qué asignar y con qué
  * optimizar.
  *
- * **Desde D-NEXT el reparto es el motor de «Planificar el día»** (`route-plan/reparto.ts`, `/api/route-plan/reparto`), y
+ * **Desde D-419 el reparto es el motor de «Planificar el día»** (`route-plan/reparto.ts`, `/api/route-plan/reparto`), y
  * ya no hay «optimizar al terminar»: el motor deja cada ruta ordenada (chofer, viaje y puesto), y pasarla después por
  * «Optimizar ruta» (`computeRoute`) la desharía. El dueño, 2026-09-27: *«quioero que hagamos mucho emfasis porque todo
  * funciona bien pero estmaos teniendo probemas en el autoassign investiga como lo hace para hacerlo mejro y que funcione
@@ -60,7 +60,7 @@ export function puedeRepartir(choferes: ReadonlySet<string>, ordenes: number): b
 }
 
 /** Una ruta que optimizar: el chofer y sus paradas del día. La usa el bucle de «Optimizar todas las rutas» del Gestor
- *  (`optimizaEstas`); desde D-NEXT el diálogo ya no optimiza. */
+ *  (`optimizaEstas`); desde D-419 el diálogo ya no optimiza. */
 export interface RutaQueOptimizar { clave: string; paradas: Delivery[] }
 
 /** Lo que queda tras repartir, juntando todos los días de la selección. */
