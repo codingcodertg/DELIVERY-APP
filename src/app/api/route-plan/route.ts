@@ -7,11 +7,12 @@ import { choferesDelPlan, planificaElDia, resumenDelPlan, type FilaDePlan } from
 import { vistaDelPlan, type ParadaGuardada } from "@/lib/route-plan/vista";
 import { aplicaMovimiento, estadoDeParadas, movimientoValido, revalida, type PlanGuardado } from "@/lib/route-plan/ajuste";
 import type { NamedLocation } from "@/lib/types";
+import type { PrioridadDeOrden } from "@/lib/route-engine";
 import { porQueDelPlan } from "@/lib/route-plan/porque";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
-import type { DatosDelDia } from "@/lib/route-plan/entrada";
+import { leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
@@ -32,9 +33,6 @@ import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqu
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const COLUMNAS_DE_ORDEN =
-  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
-
 export async function POST(req: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
@@ -49,7 +47,8 @@ export async function POST(req: Request) {
   if (!yo || !["admin", "logistics"].includes(String(yo.role))) return NextResponse.json({ error: "Only admin or logistics can plan routes." }, { status: 403 });
 
   const [ordenes, ajustes, choferes, deChofer, ausencias, publicado] = await Promise.all([
-    supabase.from("deliveries").select(COLUMNAS_DE_ORDEN).eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES]),
+    // Con `priority` (147) si la base la tiene; si aún no, sin ella y todas normales (`leeOrdenesDelDia`).
+    leeOrdenesDelDia((columnas) => supabase.from("deliveries").select(columnas).eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])),
     supabase.from("settings").select("stores, accounts, order_type_rules, route_buckets, driver_capacity, default_truck_capacity, route_weights, route_hard_windows, route_late_cap_min").eq("id", 1).maybeSingle(),
     supabase.from("profiles").select("id, full_name, role").eq("role", "driver"),
     supabase.from("driver_settings").select("profile_id, base_store, capacity_pallets, shift_start, shift_end, returns_to_base, routable"),
@@ -116,10 +115,10 @@ export async function POST(req: Request) {
     status: "draft",
     // «base»: el plan respetó los candados compartidos; «sin_tabla»: la 149 no está y el motor no los conoce.
     candados: candados.fuente,
-    resumen: resumenDelPlan(borrador.plan, borrador.paradas.length),
+    resumen: resumenDelPlan(borrador.plan, borrador.paradas.length, borrador.plan.input.entrada.ordenes),
     rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes),
     choferes: choferesDelPlan(borrador.plan.input.entrada.choferes),
-    porque: porQueDelPlan(borrador.plan.result, borrador.plan.input.entrada.choferes, borrador.paradas),
+    porque: porQueDelPlan(borrador.plan.result, borrador.plan.input.entrada.choferes, borrador.paradas, borrador.plan.input.entrada.ordenes),
   });
 }
 
@@ -152,17 +151,17 @@ export async function GET(req: Request) {
   if (alLeerParadas) return NextResponse.json({ error: "Could not read the stops.", detail: alLeerParadas.message }, { status: 500 });
 
   const { data: yo } = await supabase.from("profiles").select("visible_stores").eq("id", user.id).maybeSingle();
-  const plan = fila as unknown as FilaDePlan & { ordenes: { id: string; builder?: boolean }[] | null; choferes: { id: string; nombre: string }[] | null; id: string; version: number; status: string; published_at: string | null };
+  const plan = fila as unknown as FilaDePlan & { ordenes: { id: string; builder?: boolean; prioridad?: PrioridadDeOrden | null }[] | null; choferes: { id: string; nombre: string }[] | null; id: string; version: number; status: string; published_at: string | null };
   const filas = (paradas ?? []) as unknown as ParadaGuardada[];
   return NextResponse.json({
     ok: true,
     plan: {
       plan_id: plan.id, version: plan.version, status: plan.status, published_at: plan.published_at,
       warnTiendasMarcadas: Array.isArray(yo?.visible_stores) && yo.visible_stores.length > 0,
-      resumen: resumenDelPlan(plan, filas.length),
+      resumen: resumenDelPlan(plan, filas.length, plan.ordenes),
       rutas: vistaDelPlan(filas, plan.ordenes ?? [], plan.result?.partes ?? {}),
       choferes: choferesDelPlan(plan.choferes),
-      porque: porQueDelPlan(plan.result, plan.choferes, filas),
+      porque: porQueDelPlan(plan.result, plan.choferes, filas, plan.ordenes),
     },
   });
 }
@@ -226,9 +225,9 @@ export async function PATCH(req: Request) {
   return NextResponse.json({
     ok: true, plan_id: nueva.id, version: nueva.version, status: "draft",
     warnTiendasMarcadas: Array.isArray(yo.visible_stores) && yo.visible_stores.length > 0,
-    resumen: resumenDelPlan(ajustado.plan, ajustado.paradas.length),
+    resumen: resumenDelPlan(ajustado.plan, ajustado.paradas.length, ajustado.plan.input.entrada.ordenes),
     rutas: vistaDelPlan(ajustado.paradas, ajustado.plan.input.entrada.ordenes, ajustado.plan.result.partes),
     choferes: choferesDelPlan(ajustado.plan.input.entrada.choferes),
-    porque: porQueDelPlan(ajustado.plan.result, ajustado.plan.input.entrada.choferes, ajustado.paradas),
+    porque: porQueDelPlan(ajustado.plan.result, ajustado.plan.input.entrada.choferes, ajustado.paradas, ajustado.plan.input.entrada.ordenes),
   });
 }

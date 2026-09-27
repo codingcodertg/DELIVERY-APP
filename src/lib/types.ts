@@ -407,6 +407,16 @@ export interface RouteWeights {
 }
 
 /**
+ * Las opciones de reparto del motor (D-415, OptimoRoute `balanceBy` y «use all drivers»). Se guardan DENTRO de
+ * `settings.route_weights`, junto a los pesos, porque cambian cómo se mide el peso `balance`: así no hace falta
+ * columna nueva. Ausentes = por tiempo, y sin forzar a usar todos.
+ */
+export interface RouteBalanceOptions {
+  balance_por?: "tiempo" | "ordenes";
+  usar_todos?: boolean;
+}
+
+/**
  * Lo que el motor de rutas necesita saber de un chofer y no estaba en ningún sitio: su base, su camión y
  * su turno (D-316, tabla `driver_settings`, migración 128). Por `profile_id`, no por nombre: el nombre
  * sigue siendo lo que se escribe en `deliveries.assigned_driver`, y esto no lo toca.
@@ -546,7 +556,7 @@ export interface Settings {
   route_buckets?: string[];
 
   /** Motor de rutas (D-316, migración 130). Ausentes = los valores por defecto de `route-settings.ts`. */
-  route_weights?: Partial<RouteWeights> | null;
+  route_weights?: (Partial<RouteWeights> & RouteBalanceOptions) | null;
   /** Las ventanas que son DURAS («estrechas»): a esas no se llega tarde nunca. Valores `"HHMM-HHMM"`. */
   route_hard_windows?: string[] | null;
   /** Cuántos minutos de retraso admite, como mucho, una ventana que no es dura. */

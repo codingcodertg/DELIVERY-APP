@@ -1,4 +1,4 @@
-import { VERSION_DEL_MOTOR, type Plan, type Violacion } from "@/lib/route-engine";
+import { VERSION_DEL_MOTOR, type Plan, type PrioridadDeOrden, type Violacion } from "@/lib/route-engine";
 import { matrizBase, planificaConTrafico, type Dependencias, type InformeDeTiempos } from "@/lib/route-times/tiempos";
 import type { NamedLocation } from "@/lib/types";
 import { entradaDelDia, filasDeParadas, type DatosDelDia, type EntradaDelDia, type FilaDeParada } from "./entrada";
@@ -79,10 +79,12 @@ export const choferesDelPlan = (choferes: readonly { id: string; nombre: string 
   (choferes ?? []).map((c) => ({ id: c.id, nombre: c.nombre })).sort((a, b) => (a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0));
 
 /** Lo que la pantalla necesita saber de un plan, recién hecho o leído de la base: es la MISMA forma. */
-export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "total_minutes" | "total_miles" | "late_minutes" | "provider" | "traffic" | "converged">, paradas: number) {
+export function resumenDelPlan(plan: Pick<FilaDePlan, "writes" | "result" | "total_minutes" | "total_miles" | "late_minutes" | "provider" | "traffic" | "converged">, paradas: number,
+  /** Las órdenes como entraron al motor (`input.entrada.ordenes`): para decir la prioridad de lo que quedó fuera. */
+  ordenes: readonly { id: string; prioridad?: PrioridadDeOrden | null }[] | null = null) {
   return {
     paradas, ordenes: plan.writes.length, sinAsignar: plan.result.sinAsignar, fuera: plan.result.fuera,
-    fueraConPorque: fueraConPorque(plan.result.sinAsignar, plan.result.fuera), choferesFuera: plan.result.choferesFuera,
+    fueraConPorque: fueraConPorque(plan.result.sinAsignar, plan.result.fuera, ordenes), choferesFuera: plan.result.choferesFuera,
     partes: plan.result.partes, minutos: plan.total_minutes, millas: Number(plan.total_miles), tarde: plan.late_minutes,
     proveedor: plan.provider, trafico: plan.traffic, convergio: plan.converged, tiempos: plan.result.tiempos,
     traficoSinResolver: !!plan.result.traficoSinResolver,
