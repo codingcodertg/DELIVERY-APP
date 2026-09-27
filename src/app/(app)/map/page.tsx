@@ -12,16 +12,21 @@ import { COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA, COLOR_SIN_ASIGNAR, colorDeChofer, l
 import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { assignmentWarnings, autoAssign, recommendDriver, type AssignWarning } from "@/lib/dispatch";
+import { assignmentWarnings, recommendDriver, type AssignWarning } from "@/lib/dispatch";
+import { repartirConElMotor, resumenDelReparto } from "@/lib/auto-asignar";
+import { pideElReparto } from "@/lib/route-plan/reparto-cliente";
+import { leeBloqueos } from "@/lib/rutas-bloqueadas";
 import type { Delivery } from "@/lib/types";
 import { sumaPallets } from "@/lib/pallets";
 import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
+// El demo (sin base): «Auto-asignar selección» reparte con el motor en el navegador (D-NEXT).
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default function MapPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole, availability } = useData();
   const { lang, t } = usePrefs();
   const [date, setDate] = useState(todayISO());
   const [open, setOpen] = useState<Delivery | null>(null);
@@ -199,21 +204,34 @@ export default function MapPage() {
   };
   const assignDriver = (driver: string | null) => assignOrders(selectedList, driver);
 
-  // Auto-assign only the selected (unassigned) loads across the drivers.
+  // Auto-assign only the selected (unassigned) loads across the drivers — con el MISMO camino que el Gestor (D-NEXT): el
+  // motor de «Planificar el día», un día por petición, sin los choferes que no están, no rutean o tienen la ruta 🔒 (el
+  // servidor lee ausencias y candados de ese día), y cada orden escrita solo si no cambió desde que se planificó.
   const autoAssignSelected = async () => {
-    const pool = selectedList.filter((d) => !d.assigned_driver && d.delivery_lat != null);
+    const pool = selectedList.filter((d) => !d.assigned_driver);
     if (!pool.length) { notify(t("Select unassigned loads to auto-assign.", "Seleccione cargas sin asignar.")); return; }
-    const res = autoAssign(pool, drivers, capacityOf, { maxTripsPerDay: 2 });
-    if (!res.assignments.length) { notify(t("Couldn't place the selected loads.", "No se pudieron colocar las cargas.")); return; }
     setAssignBusy(true);
-    for (const a of res.assignments) {
-      const ok = await updateDelivery(a.orderId, { assigned_driver: a.driver });
-      if (!ok) continue;
-      addNote(a.orderId, `Assigned to ${a.driver}`);
+    try {
+      const r = await repartirConElMotor({
+        ordenes: pool,
+        choferes: drivers,
+        pide: pideElReparto(SIN_BASE, () => ({
+          deliveries, users, settings, availability,
+          bloqueadas: (f) => leeBloqueos((() => { try { return window.localStorage; } catch { return null; } })())[f] ?? [],
+        })),
+        escribe: async (w) => {
+          const ok = await updateDelivery(w.id, w.patch, { quiet: true, siNoCambioDesde: w.updated_at || undefined });
+          if (ok && w.nueva) addNote(w.id, `Assigned to ${w.chofer} (auto-assign)`);
+          return ok;
+        },
+      });
+      const porId = new Map(pool.map((d) => [d.id, d]));
+      const resumen = resumenDelReparto(r, (id) => porId.get(id), orderLabel);
+      notify(t(resumen.en, resumen.es));
+    } finally {
+      setAssignBusy(false);
+      clearSelection();
     }
-    setAssignBusy(false);
-    clearSelection();
-    notify(t(`Auto-assigned ${res.assignments.length} load(s)`, `Auto-asignadas ${res.assignments.length} carga(s)`));
   };
 
   // Las órdenes que tienen punto: las que se pintan, y de las que sale la leyenda.

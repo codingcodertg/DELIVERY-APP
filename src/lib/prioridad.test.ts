@@ -7,8 +7,6 @@ import {
   PRIORIDADES, conPrioridadSiCabe, etiquetaDePrioridad, laBaseTienePrioridad, prioridadDe, rangoDePrioridad, seDestaca, valorDePrioridad,
 } from "./prioridad";
 import { comparaCeldas, opcionesDeFiltro, ordenaFilas } from "./orden-y-filtro";
-import { autoAssign } from "./dispatch";
-import { repartirYOptimizar, resumenDelReparto } from "./auto-asignar";
 import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, columnasDeLaTabla } from "./routes-columns";
 import { ORDEN_DE_PARTIDA } from "./orden-de-columnas";
 import { demoDeliveries, demoSettings } from "./demo-data";
@@ -73,51 +71,9 @@ describe("¿la base ya tiene la columna? (se aplica DESPUÉS de fusionar)", () =
   });
 });
 
-describe("Auto-asignar reparte primero lo urgente (D-401 + D-412)", () => {
-  // Un chofer, capacidad justa para UNA orden de 6 pallets en un viaje: la segunda no cabe.
-  const at = (id: string, priority: OrderPriority, over: Partial<Delivery> = {}) =>
-    mkDelivery({ id, order_no: Number(id), priority, est_pallets: 6, delivery_lat: 26.2, delivery_lng: -98.2, ...over });
-  it("con capacidad justa, se queda fuera la NORMAL y entra la CRÍTICA, aunque la normal tenga la ventana antes y el número menor", () => {
-    const normal = at("1", "normal", { delivery_windows: "0800-0900" });
-    const critica = at("2", "critical", { delivery_windows: "1500-1600" });
-    const r = autoAssign([normal, critica], ["Ana"], () => 6, { maxTripsPerDay: 1 });
-    expect(r.assignments.map((a) => a.orderId)).toEqual(["2"]);
-    expect(r.unassigned.map((d) => d.id)).toEqual(["1"]);
-  });
-  it("el orden entero: crítica, alta, normal, baja — lo que se queda fuera es lo de menos prioridad", () => {
-    const ordenes = [at("1", "low"), at("2", "normal"), at("3", "high"), at("4", "critical")];
-    const r = autoAssign(ordenes, ["Ana"], () => 12, { maxTripsPerDay: 1 });
-    expect(r.assignments.map((a) => a.orderId)).toEqual(["4", "3"]);
-    expect(r.unassigned.map((d) => d.id)).toEqual(["2", "1"]);
-  });
-  it("entre iguales, lo de siempre: la ventana más temprana primero", () => {
-    const r = autoAssign([at("1", "high", { delivery_windows: "1300-1400" }), at("2", "high", { delivery_windows: "0800-0900" })], ["Ana"], () => 6, { maxTripsPerDay: 1 });
-    expect(r.assignments.map((a) => a.orderId)).toEqual(["2"]);
-  });
-  it("la ventana también se la queda la urgente: dos que chocan, entra la alta", () => {
-    const r = autoAssign([at("1", "normal", { delivery_windows: "0900-1100", est_pallets: 1 }), at("2", "high", { delivery_windows: "0900-1100", est_pallets: 1 })], ["Ana"], () => 12);
-    expect(r.assignments.map((a) => a.orderId)).toEqual(["2"]);
-  });
-  it("el diálogo le pasa a `autoAssign` las órdenes enteras, con su prioridad: la crítica recibe chofer y la normal no", async () => {
-    const asignadas: string[] = [];
-    const r = await repartirYOptimizar({
-      ordenes: [at("1", "normal", { delivery_windows: "0800-0900" }), at("2", "critical", { delivery_windows: "1500-1600" })],
-      choferes: ["Ana"], capacidadDe: () => 3, noDisponibles: new Set(), optimizar: false,
-      paradasDe: () => [], esDelDia: () => true,
-      asigna: async (id) => { asignadas.push(id); }, optimiza: async () => [],
-    });
-    expect(asignadas).toEqual(["2"]);
-    expect(r.reparto.unassigned.map((d) => d.id)).toEqual(["1"]);
-  });
-  it("el aviso dice aparte si alguna ALTA o CRÍTICA se quedó sin colocar; si solo quedan normales, no", () => {
-    const etiqueta = (d: Delivery) => d.id;
-    const sinUrgentes = resumenDelReparto({ reparto: { assignments: [], unassigned: [at("1", "normal"), at("2", "low")] }, pedidas: [], optimizadas: [] }, etiqueta, false);
-    expect(sinUrgentes.es).not.toContain("‼");
-    const conUrgentes = resumenDelReparto({ reparto: { assignments: [], unassigned: [at("1", "critical"), at("2", "high"), at("3", "normal")] }, pedidas: [], optimizadas: [] }, etiqueta, false);
-    expect(conUrgentes.es).toContain("‼ 2 alta(s)/crítica(s) sin colocar");
-    expect(conUrgentes.en).toContain("‼ 2 high/critical not placed");
-  });
-});
+// «Auto-asignar reparte primero lo urgente» (D-412) probaba el orden de `autoAssign`, que se quitó en D-NEXT: Auto-asignar
+// reparte ahora con el motor, que ya coloca por prioridad (D-415). Sus pruebas, con la crítica que entra y la normal que
+// no, y el aviso de las urgentes sin colocar, están en `route-plan/reparto.test.ts`.
 
 describe("la pantalla usa lo de arriba", () => {
   const ficha = leer("src/components/OrderModal.tsx");
