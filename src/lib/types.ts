@@ -248,6 +248,10 @@ export interface Delivery {
   /** Prioridad de la orden (D-412, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
    *  tipo porque una base sin la 147 no la trae; se lee siempre con `prioridadDe` (lib/prioridad.ts). */
   priority?: OrderPriority | null;
+  /** Lo que la orden pide del camión (D-NEXT, migración 151): nombres del catálogo de Ajustes (`delivery_requirements`),
+   *  p. ej. «Liftgate». Vacío = nada. Opcional en el tipo porque una base sin la 151 no lo trae; se lee con
+   *  `requisitosDeLaOrden` (lib/requisitos.ts), que ignora lo que ya no está en el catálogo. */
+  requirements?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -432,6 +436,9 @@ export interface DriverSettings {
   returns_to_base: boolean;
   /** `false` = el motor no le da trabajo. No lo borra ni lo esconde de ningún otro sitio. */
   routable: boolean;
+  /** Lo que tiene el camión de este chofer (D-NEXT, migración 151): nombres del catálogo de Ajustes. Una orden que
+   *  pide algo que no está aquí no se le da en automático. Opcional: una base sin la 151 no lo trae. */
+  features?: string[] | null;
   updated_at?: string;
   updated_by?: string | null;
 }
@@ -561,6 +568,9 @@ export interface Settings {
   route_hard_windows?: string[] | null;
   /** Cuántos minutos de retraso admite, como mucho, una ventana que no es dura. */
   route_late_cap_min?: number | null;
+  /** El catálogo de requisitos del camión (D-NEXT, migración 151): «Liftgate», «Montacargas»… Lo edita el admin en
+   *  Ajustes → Motor de rutas. Ausente = la base no tiene la columna todavía. */
+  delivery_requirements?: string[] | null;
 
   /** Fixed Orders-table columns for the Sales role, set by an admin in Settings.
    * Sales reps get no "Columns" picker of their own — this is the one list

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sePuedeCalificar } from "@/lib/encuesta";
 
 // ============================================================
 // Public delivery-tracking endpoint. A customer opens /track/<id> (no login)
@@ -34,8 +35,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (error) return NextResponse.json({ error: "Lookup failed" }, { status: 502 });
   if (!data) return NextResponse.json({ order: null }, { status: 404 });
 
+  // La encuesta (D-NEXT, 151): solo con la orden entregada, y solo SI ya se respondió — nunca la respuesta. Sin la tabla
+  // (la 151 sin aplicar) o con cualquier error, `null`: la página no la enseña, y el seguimiento sigue igual.
+  let survey: { answered: boolean } | null = null;
+  if (sePuedeCalificar((data as { stage?: string }).stage)) {
+    const r = await admin.from("delivery_surveys").select("delivery_id").eq("delivery_id", id).maybeSingle();
+    survey = r.error ? null : { answered: !!r.data };
+  }
+
   return NextResponse.json(
-    { order: data },
+    { order: data, survey },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

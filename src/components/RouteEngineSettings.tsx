@@ -7,10 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import { DELIVERY_WINDOW_PRESETS } from "@/lib/constants";
 import { MINUTOS_POR_ORDEN_EN_BALANCE } from "@/lib/route-engine";
 import {
-  TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta, opcionesDeReparto, pesosDeRuta,
+  COLUMNAS_DE_CHOFER, TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta, opcionesDeReparto, pesosDeRuta,
   routeWeightsAlGuardar, topeDeRetrasoMin, ventanasDuras,
 } from "@/lib/route-settings";
 import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings } from "@/lib/types";
+import { leeConOpcionales } from "@/lib/columnas-opcionales";
+import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDelChofer, laBaseTieneRequisitos, MAX_LARGO_DE_REQUISITO } from "@/lib/requisitos";
 
 /**
  * Los ajustes del motor de rutas, solo para el admin (D-316): los pesos, qué ventanas son duras, el tope de
@@ -33,7 +35,7 @@ const PESOS: { key: keyof RouteWeights; en: string; es: string }[] = [
   { key: "balance", en: "4 · Balance between drivers (per minute of difference)", es: "4 · Balance entre choferes (por minuto de diferencia)" },
 ];
 
-type Fila = Pick<DriverSettings, "base_store" | "capacity_pallets" | "shift_start" | "shift_end" | "returns_to_base" | "routable">;
+type Fila = Pick<DriverSettings, "base_store" | "capacity_pallets" | "shift_start" | "shift_end" | "returns_to_base" | "routable" | "features">;
 
 const horaCorta = (h: string | null | undefined) => (h ?? "").slice(0, 5);
 
@@ -71,13 +73,17 @@ export function RouteEngineSettings() {
   const [filas, setFilas] = useState<Record<string, Fila> | null>(null);
   const [sinTabla, setSinTabla] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  // ¿La base ya tiene `driver_settings.features` (151)? Sin ella, la columna «Su camión tiene» no sale y no se manda.
+  const [hayFeatures, setHayFeatures] = useState(false);
 
   const cargar = useCallback(async () => {
-    const { data, error } = await supabase.from("driver_settings")
-      .select("profile_id, base_store, capacity_pallets, shift_start, shift_end, returns_to_base, routable");
+    // Con `features` si la base la tiene; si no, sin ella (una columna que falta rechaza la consulta ENTERA).
+    let pedidas = "";
+    const { data, error } = await leeConOpcionales((columnas) => { pedidas = columnas; return supabase.from("driver_settings").select(columnas); }, COLUMNAS_DE_CHOFER, ["features"]);
     if (error) { setSinTabla(error.message); setFilas({}); return; }
     setSinTabla(null);
-    setFilas(Object.fromEntries(((data ?? []) as DriverSettings[]).map((f) => [f.profile_id, f])));
+    setHayFeatures(pedidas.split(", ").includes("features"));
+    setFilas(Object.fromEntries(((data ?? []) as unknown as DriverSettings[]).map((f) => [f.profile_id, f])));
   }, [supabase]);
   useEffect(() => { void cargar(); }, [cargar]);
 
@@ -86,6 +92,26 @@ export function RouteEngineSettings() {
     returns_to_base: true, routable: true,
   };
   const edita = (id: string, patch: Partial<Fila>) => setFilas((f) => ({ ...(f ?? {}), [id]: { ...filaDe(id), ...patch } }));
+
+  // ---- Requisitos del camión (D-NEXT, 151): el catálogo, y qué tiene cada camión ----
+  const catalogo = catalogoDeRequisitos(settings);
+  const hayCatalogo = laBaseTieneRequisitos(settings);
+  const [nuevoRequisito, setNuevoRequisito] = useState("");
+  const guardaCatalogo = (siguiente: string[]) => {
+    saveSettings({ delivery_requirements: siguiente } as Partial<Settings>);
+    notify(t("Saved", "Guardado"));
+  };
+  const anadeRequisito = () => {
+    const r = anadeAlCatalogo(catalogo, nuevoRequisito);
+    if (!r.ok) {
+      notify(r.motivo === "repetido" ? t("That one is already in the list.", "Ese ya está en la lista.")
+        : r.motivo === "largo" ? t(`At most ${MAX_LARGO_DE_REQUISITO} characters.`, `Como mucho ${MAX_LARGO_DE_REQUISITO} caracteres.`)
+        : r.motivo === "lleno" ? t("The list is full.", "La lista está llena.") : t("Write a name first.", "Escriba un nombre primero."));
+      return;
+    }
+    guardaCatalogo(r.catalogo);
+    setNuevoRequisito("");
+  };
 
   const guardaChofer = async (id: string) => {
     const f = filaDe(id);
@@ -169,6 +195,37 @@ export function RouteEngineSettings() {
         <div className="hint">{t("The five windows themselves don't change; this only says which ones are hard.", "Las cinco ventanas no cambian; esto solo dice cuáles son duras.")}</div>
       </div>
 
+      <div className="field" style={{ marginTop: 6 }} data-catalogo-requisitos>
+        <label>{t("Truck requirements", "Requisitos del camión")}</label>
+        {!hayCatalogo ? (
+          <div className="hint">{t("Not available yet (the database update is pending).", "Todavía no está disponible (falta la actualización de la base).")}</div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+              {catalogo.map((r) => (
+                <span key={r} className="sema" style={{ background: "var(--line)", color: "inherit", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {r}
+                  <button type="button" className="btn btn-ghost btn-sm" aria-label={t(`Remove ${r}`, `Quitar ${r}`)} style={{ padding: "0 4px" }}
+                    onClick={() => guardaCatalogo(catalogo.filter((x) => x !== r))}>✕</button>
+                </span>
+              ))}
+              {catalogo.length === 0 && <span className="hint" style={{ margin: 0 }}>{t("None yet.", "Ninguno todavía.")}</span>}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input value={nuevoRequisito} maxLength={MAX_LARGO_DE_REQUISITO} placeholder={t("e.g. Liftgate", "p. ej. Liftgate")} style={{ maxWidth: 240 }}
+                onChange={(e) => setNuevoRequisito(e.target.value)} onKeyDown={(e) => e.key === "Enter" && anadeRequisito()} />
+              <button type="button" className="btn btn-primary btn-sm" onClick={anadeRequisito}>{t("Add", "Añadir")}</button>
+            </div>
+          </>
+        )}
+        <div className="hint">
+          {t(
+            "What an order can ask of the truck (liftgate, forklift, big truck, two people…). Mark on each order what it needs and, below, what each driver's truck has: Plan the day and Best fit never give an order to a driver whose truck lacks it, and they say what is missing. Removing one here switches it off everywhere.",
+            "Lo que una orden puede pedirle al camión (liftgate, montacargas, camión grande, dos personas…). Marque en cada orden lo que necesita y, abajo, lo que tiene el camión de cada chofer: Planificar el día y Mejor lugar nunca le dan una orden a un chofer cuyo camión no lo tiene, y dicen qué falta. Quitar uno aquí lo apaga en todas partes.",
+          )}
+        </div>
+      </div>
+
       <h3 style={{ marginTop: 18 }}>🚚 {t("Drivers", "Choferes")}</h3>
       {sinTabla ? (
         <div className="hint">{t("Driver settings aren't available yet (the database update is pending).", "Los ajustes de chofer todavía no están disponibles (falta la actualización de la base).")}</div>
@@ -186,6 +243,7 @@ export function RouteEngineSettings() {
                 <th>{t("Ends", "Sale")}</th>
                 <th style={{ textAlign: "center" }}>{t("Returns to base", "Vuelve a la base")}</th>
                 <th style={{ textAlign: "center" }}>{t("Routes", "Rutea")}</th>
+                {hayFeatures && catalogo.length > 0 && <th>{t("Truck has", "Su camión tiene")}</th>}
                 <th></th>
               </tr>
             </thead>
@@ -219,11 +277,24 @@ export function RouteEngineSettings() {
                     <td><input type="time" value={horaCorta(f.shift_end)} onChange={(e) => edita(u.id, { shift_end: e.target.value })} /></td>
                     <td style={{ textAlign: "center" }}><input type="checkbox" checked={f.returns_to_base} onChange={(e) => edita(u.id, { returns_to_base: e.target.checked })} /></td>
                     <td style={{ textAlign: "center" }}><input type="checkbox" checked={f.routable} onChange={(e) => edita(u.id, { routable: e.target.checked })} /></td>
+                    {hayFeatures && catalogo.length > 0 && (
+                      <td data-camion-de={u.full_name ?? ""}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          {catalogo.map((r) => (
+                            <label key={r} className="col-opt" style={{ margin: 0, whiteSpace: "nowrap" }}>
+                              <input type="checkbox" checked={habilidadesDelChofer(f, catalogo).includes(r)}
+                                onChange={() => edita(u.id, { features: alternaRequisito(f.features, r, catalogo) })} />
+                              {r}
+                            </label>
+                          ))}
+                        </div>
+                      </td>
+                    )}
                     <td><button className="btn btn-primary btn-sm" disabled={ocupado === u.id} onClick={() => void guardaChofer(u.id)}>{t("Save", "Guardar")}</button></td>
                   </tr>
                 );
               })}
-              {choferes.length === 0 && <tr><td colSpan={8} className="empty">{t("No drivers yet.", "Todavía no hay choferes.")}</td></tr>}
+              {choferes.length === 0 && <tr><td colSpan={hayFeatures && catalogo.length > 0 ? 9 : 8} className="empty">{t("No drivers yet.", "Todavía no hay choferes.")}</td></tr>}
             </tbody>
           </table>
         </div>

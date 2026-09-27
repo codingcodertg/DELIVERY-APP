@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
-import { fraseDePrioridadEnRuta, type PorQue } from "@/lib/route-plan/porque";
+import { fraseDePrioridadEnRuta, fraseDeRequisitoConOtro, type PorQue } from "@/lib/route-plan/porque";
 
 /**
  * La ruta de cada chofer, parada a parada (D-322): recogidas (P) y entregas (D) con su etiqueta, a qué hora
@@ -40,7 +40,7 @@ export function RutaDelPlan({ rutas, nombreDeOrden, ajuste, porque }: { rutas: R
     if (q.quien === "persona") return t("A person put this order here (pinned or moved by hand); the engine's numbers no longer describe it.", "Esta orden la puso aquí una persona (fijada o movida a mano); las cuentas del motor ya no la describen.");
     const mas = (n: number, unidad: string) => `${n > 0 ? "+" : ""}${n} ${unidad}`;
     const otras = q.otras.map((o) => (o.noPuede
-      ? `${o.chofer}: ${t("no", "no")} — ${NO_PUEDE[o.noPuede] ? NO_PUEDE[o.noPuede][lang === "es" ? 1 : 0] : o.noPuede}`
+      ? `${o.chofer}: ${t("no", "no")} — ${fraseDeRequisitoConOtro(o, lang) ?? (NO_PUEDE[o.noPuede] ? NO_PUEDE[o.noPuede][lang === "es" ? 1 : 0] : o.noPuede)}`
       : `${o.chofer}: ${mas(o.masManejoMin, t("min driving", "min de manejo"))}, ${mas(o.masMillas, "mi")}${o.masTardeMin ? `, ${mas(o.masTardeMin, t("min late", "min tarde"))}` : ""}${o.masBuilderMin ? `, ${mas(o.masBuilderMin, t("builder-min", "min-builder"))}` : ""}`));
     return (
       <>

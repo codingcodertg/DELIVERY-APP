@@ -12,7 +12,7 @@ import { porQueDelPlan } from "@/lib/route-plan/porque";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
-import { leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
+import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, leeConOpcionales, leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
 // ============================================================
@@ -49,9 +49,10 @@ export async function POST(req: Request) {
   const [ordenes, ajustes, choferes, deChofer, ausencias, publicado] = await Promise.all([
     // Con `priority` (147) si la base la tiene; si aún no, sin ella y todas normales (`leeOrdenesDelDia`).
     leeOrdenesDelDia((columnas) => supabase.from("deliveries").select(columnas).eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])),
-    supabase.from("settings").select("stores, accounts, order_type_rules, route_buckets, driver_capacity, default_truck_capacity, route_weights, route_hard_windows, route_late_cap_min").eq("id", 1).maybeSingle(),
+    // El catálogo de requisitos y lo que tiene cada camión (151, D-NEXT), si la base ya los tiene; si no, sin ellos.
+    leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"]),
     supabase.from("profiles").select("id, full_name, role").eq("role", "driver"),
-    supabase.from("driver_settings").select("profile_id, base_store, capacity_pallets, shift_start, shift_end, returns_to_base, routable"),
+    leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, ["features"]),
     supabase.from("driver_availability").select("driver_id, start_date, end_date"),
     supabase.from("route_plans").select("writes").eq("plan_date", fecha).eq("status", "published").maybeSingle(),
   ]);
@@ -73,8 +74,8 @@ export async function POST(req: Request) {
   const datos: DatosDelDia = {
     ordenes: (ordenes.data ?? []) as unknown as DatosDelDia["ordenes"],
     choferes: (choferes.data ?? []) as DatosDelDia["choferes"],
-    ajustesDeChofer: (deChofer.data ?? []) as DatosDelDia["ajustesDeChofer"],
-    settings: ajustes.data as DatosDelDia["settings"],
+    ajustesDeChofer: (deChofer.data ?? []) as unknown as DatosDelDia["ajustesDeChofer"],
+    settings: ajustes.data as unknown as DatosDelDia["settings"],
     publicadoAntes: ((publicado.data?.writes ?? []) as DatosDelDia["publicadoAntes"]) ?? [],
     fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias,
     noDisponibles: [...unavailableDriverNames((ausencias.data ?? []) as { driver_id: string; start_date: string; end_date: string }[], nombrePorId, fecha)],
