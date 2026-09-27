@@ -113,7 +113,7 @@ describe("la pantalla del Gestor respeta el candado", () => {
     // Y su botón se ve apagado, no solo no hace nada.
     expect(pagina).toContain("<button className=\"btn btn-ghost btn-sm\" disabled={busyDriver === u.key || bloqueada(u.key)} title={t(\"Drop your truckloads");
   });
-  // Reemplazada en parte por D-NEXT: el candado ya no se guarda siempre en el navegador; lo decide `pulsaCandado`.
+  // Reemplazada en parte por D-414: el candado ya no se guarda siempre en el navegador; lo decide `pulsaCandado`.
   it("el candado de la tarjeta alterna el de ESE día, por `pulsaCandado` (base o navegador lo decide la librería)", () => {
     expect(pagina).toContain("onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}");
     const alterna = trozo("const alternaCandado = async (laneKey: string) => {", "const bloqueadaPor");
@@ -147,7 +147,7 @@ describe("la pantalla del Gestor respeta el candado", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// El candado compartido (149, D-NEXT)
+// El candado compartido (149, D-414)
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Un doble del cliente de Supabase que apunta lo que se le pide y contesta lo que se le diga. */
@@ -357,7 +357,7 @@ describe("la migración 149", () => {
   });
   it("sin begin/commit propios, con reversión y con su fila del registro al día", () => {
     expect(codigo(sql)).not.toMatch(/(^|;)\s*(begin|commit|rollback)\s*;/im);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-414");
     expect(sql).toContain("--   drop table if exists public.route_locks;");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");

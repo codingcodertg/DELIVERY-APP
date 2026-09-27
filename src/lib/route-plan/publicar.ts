@@ -99,7 +99,7 @@ export function avisosAlPublicar(nuevo: PlanParaAvisar, anterior: PlanParaAvisar
     if (motivo) avisos.push({ chofer: r.chofer, motivo, paradas: r.paradas.length, primeraSalida: r.paradas[0]?.llegada ?? null });
   }
   // Un chofer que estaba en el plan anterior y ya ni aparece en el nuevo también se queda sin ruta — salvo que no entrara
-  // porque su ruta está bloqueada 🔒 (`sinAviso`): sus órdenes siguen siendo suyas, y el aviso le mentiría (D-NEXT).
+  // porque su ruta está bloqueada 🔒 (`sinAviso`): sus órdenes siguen siendo suyas, y el aviso le mentiría (D-414).
   for (const [chofer, previa] of antes) {
     if (!vistos.has(chofer) && !sinAviso.has(chofer) && previa.paradas.length > 0) avisos.push({ chofer, motivo: "sin_ruta", paradas: 0, primeraSalida: null });
   }

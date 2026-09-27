@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   // La hoja importada del despachador es para COMPARAR. No se publica: ni escribe órdenes ni avisa a nadie.
   if (plan.source === "manual_import") return NextResponse.json({ error: "IMPORTED_PLAN" }, { status: 409 });
 
-  // 🔒 Un candado puesto DESPUÉS de planificar (149, D-NEXT): si el plan asigna a una ruta bloqueada, o mueve una orden que
+  // 🔒 Un candado puesto DESPUÉS de planificar (149, D-414): si el plan asigna a una ruta bloqueada, o mueve una orden que
   // hoy está en una, no se publica — se dice cuáles, y se vuelve a planificar. Sin la tabla, como antes.
   const candados = await choquesAlPublicar(supabase as unknown as ClienteDeCandados, supabase as unknown as ClienteDeOrdenes, String(plan.plan_date), (plan.writes ?? []) as { id: string; assigned_driver: string }[]);
   if (candados.fuente === "error") return NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 });

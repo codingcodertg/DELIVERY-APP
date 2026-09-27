@@ -424,7 +424,7 @@ export default function RoutesPage() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
   const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
-  // 🔒 Rutas bloqueadas (D-411): por día y por ruta. Desde D-NEXT, en la base (`route_locks`, 149) si tiene la tabla —lo ve
+  // 🔒 Rutas bloqueadas (D-411): por día y por ruta. Desde D-414, en la base (`route_locks`, 149) si tiene la tabla —lo ve
   // todo logística y lo respeta «Planificar el día»—; si no, en ESTE navegador, como antes, y el botón lo dice. De dónde se
   // lee y dónde se escribe lo decide `rutas-bloqueadas.ts`, no la pantalla.
   // Se lee tras montar (no en el inicializador), para que el HTML del servidor y el primer pintado del navegador coincidan.

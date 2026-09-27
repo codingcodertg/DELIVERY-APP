@@ -49,7 +49,7 @@ const REMEDIO: Record<string, [string, string]> = {
   quitar_del_carril: ["It's in a manual lane on purpose. Clear its lane to let the engine route it.", "Está en un carril manual a propósito. Quítela del carril para que el motor la rutee."],
 };
 type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue>;
-  /** Solo al planificar (D-NEXT): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
+  /** Solo al planificar (D-414): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
   candados?: "base" | "sin_tabla" };
 
 /** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
@@ -78,7 +78,7 @@ const MOTIVOS: Record<string, [string, string]> = {
   en_un_carril_manual: ["in a manual lane", "en un carril manual"], chofer_no_rutea: ["its driver isn't routed today", "su chofer hoy no rutea"],
   no_rutea: ["not routed", "no rutea"], base: ["no base store", "sin tienda base"], base_sin_punto: ["base store has no map point", "su tienda base no tiene punto"],
   no_disponible: ["off today", "hoy no está"],
-  // 🔒 (149, D-NEXT): la ruta está bloqueada ese día; el motor no la toca.
+  // 🔒 (149, D-414): la ruta está bloqueada ese día; el motor no la toca.
   ruta_bloqueada: ["route locked 🔒", "ruta bloqueada 🔒"], en_ruta_bloqueada: ["on a locked route 🔒, left as it is", "en una ruta bloqueada 🔒, se queda como está"],
 };
 
@@ -171,7 +171,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
         const cuales = viejas.map((v) => `${nombreDeOrden(v.id)}: ${VIEJO[v.motivo] ? VIEJO[v.motivo][lang === "es" ? 1 : 0] : v.motivo}`).join(" · ");
         setError(b.error === "STALE" ? `${t("This plan is out of date, so it wasn't published. Plan the day again.", "Este plan quedó viejo, así que no se publicó. Planifique el día de nuevo.")}${cuales ? ` (${cuales})` : ""}`
           : b.error === "UNSEEN" ? t("You can't see some of this plan's orders, so it wasn't published.", "No ve algunas órdenes de este plan, así que no se publicó.")
-          // 🔒 Alguien bloqueó una ruta después de planificar (D-NEXT): el plan la tocaría. Se dice cuáles y se replanifica.
+          // 🔒 Alguien bloqueó una ruta después de planificar (D-414): el plan la tocaría. Se dice cuáles y se replanifica.
           : b.error === "ROUTE_LOCKED" && Array.isArray(b.detail) ? `${t("A route in this plan was locked 🔒 after planning, so it wasn't published. Plan the day again.", "Una ruta de este plan se bloqueó 🔒 después de planificar, así que no se publicó. Planifique el día de nuevo.")} (${(b.detail as { id: string; ruta: string }[]).map((c) => `${nombreDeOrden(c.id)} → ${c.ruta}`).join(" · ")})`
           : String(b.error ?? res.status));
       } else {

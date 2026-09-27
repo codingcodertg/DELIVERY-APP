@@ -11,7 +11,7 @@ import {
 } from "@/lib/puntualidad";
 
 // ============================================================
-// Informe de puntualidad por chofer (D-NEXT): GET ?from=YYYY-MM-DD&to=YYYY-MM-DD.
+// Informe de puntualidad por chofer (D-414): GET ?from=YYYY-MM-DD&to=YYYY-MM-DD.
 //
 // SOLO LEE, y todo con la SESIÓN de quien pide: ni llave de servicio, ni escrituras, ni proveedores. Qué filas ve cada
 // uno lo decide su RLS; y además, como el Panel (D-396), el gerente solo ve las órdenes de SUS tiendas: se acota con

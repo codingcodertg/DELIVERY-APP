@@ -7,7 +7,7 @@ import { puntualidadPorChofer, rangoValido, DIAS_MAX_DEL_RANGO, type FilaDePuntu
 import type { Delivery, OrderEvent, Profile } from "@/lib/types";
 
 /**
- * «Puntualidad por chofer» (D-NEXT) — en el Panel, bajo «KPIs de choferes y flota», con el rango del Panel.
+ * «Puntualidad por chofer» (D-414) — en el Panel, bajo «KPIs de choferes y flota», con el rango del Panel.
  *
  * El orden es el de la honestidad (D-328): primero de cuántas entregas hay HORA REAL y de dónde sale (GPS / toque del
  * propio chofer), y cuántas no la tienen y por qué; solo después el % a tiempo y el retraso. Se calcula al pulsar, no

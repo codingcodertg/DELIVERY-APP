@@ -29665,10 +29665,10 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el candado ya no vive solo en el navegador. Con la migración 149
+> **⚠ Reemplazada en parte por D-414** (2026-09-27): el candado ya no vive solo en el navegador. Con la migración 149
 > (`route_locks`) aplicada, se guarda en la base, lo ve todo logística y lo respetan «Planificar el día» y «Publicar ruta»;
 > sin ella, sigue en `localStorage` como aquí, y el botón lo dice. Lo de «Dónde vive el candado» de abajo describe el
-> estado hasta D-NEXT.
+> estado hasta D-414.
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Sin migración** (y el bloqueo compartido la
 necesitará: ver «Dónde vive el candado»). **Reemplaza en parte a D-401** («Optimizar todas las rutas» y el diálogo ya no
@@ -29933,7 +29933,7 @@ Capturas en la carpeta del worker: `04-ordenes-orden-asc`, `05-ordenes-filtro-cr
   lleva la prioridad. Se dejó así: una copia no hereda la urgencia de la original sin que alguien lo decida.
 - En el demo solo se midió a 1440 y como admin.
 
-## D-NEXT · El Estimador («Quote Builder»): una app propia que arma la hoja del CLIENTE sin enseñar lo interno, una cotización por estimado y la aprobación del dueño del estimado
+## D-413 · El Estimador («Quote Builder»): una app propia que arma la hoja del CLIENTE sin enseñar lo interno, una cotización por estimado y la aprobación del dueño del estimado
 
 **Fecha:** 2026-09-27 · **Tarea:** T-0408 · **Versión:** la pone el orquestador (`estimator` es app nueva y entra en
 `APP_VERSIONS` con 0.1.0; el cableado del módulo toca también código compartido: `constants.ts`, `UserDialog`, los dos
@@ -30037,7 +30037,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
 
-## D-NEXT · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
+## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
 NO aplicada** (plan en papel: `docs/PLAN-149-candado-compartido.md`, con la matriz por rol para correr con `ROLLBACK`).

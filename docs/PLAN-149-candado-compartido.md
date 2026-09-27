@@ -93,12 +93,12 @@ rama (`/estimator`) puede estar escribiendo la 148; el registro (`schema_migrati
 Ver `supabase/migrations/149_route_locks.sql`. La autocomprobación (`do $comprueba$`) exige: RLS encendida; **3**
 políticas, ninguna `ALL` ni `UPDATE`, y que cubran select, insert y delete; `anon` sin SELECT/INSERT; `authenticated` sin
 UPDATE, TRUNCATE, REFERENCES ni TRIGGER y con SELECT, INSERT y DELETE; y el disparador `route_locks_stamp` puesto.
-Sin `begin`/`commit` propios. Sin `D-NEXT` dentro (numerar la decisión no cambia el checksum). Checksum en el registro:
+Sin `begin`/`commit` propios. Sin `D-414` dentro (numerar la decisión no cambia el checksum). Checksum en el registro:
 `5af9c712f2adc0679fde3222c5cc247724cede84a758186ed2a679f315115abf` (`migrate-status --sum`; lo comprueba una prueba).
 
 ## 6 · Matriz de pruebas por rol, con ROLLBACK (la corre el orquestador)
 
-**14 casos.** Crea sus filas dentro de la transacción; no depende de datos de producción ni los toca. Sustituir
+**13 casos.** Crea sus filas dentro de la transacción; no depende de datos de producción ni los toca. Sustituir
 `<UUID-ADMIN>`, `<UUID-LOGISTICA>`, `<UUID-GERENTE>`, `<UUID-OFFICE>` (`accounting`), `<UUID-ALMACEN>`, `<UUID-VENTAS>`,
 `<UUID-CHOFER>` por perfiles de ese rol **con acceso al módulo de Entregas**. Se pega entero en `psql` desde la raíz del
 repo. **Sin `commit` en ningún sitio.**

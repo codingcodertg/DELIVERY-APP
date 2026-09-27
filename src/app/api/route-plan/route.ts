@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     ? await supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", borradorVigente.id).eq("pinned", true)
     : { data: null };
 
-  // Las rutas bloqueadas 🔒 de ese día (149, D-NEXT): el motor no las toca. Sin la tabla, planifica como antes y lo dice;
+  // Las rutas bloqueadas 🔒 de ese día (149, D-414): el motor no las toca. Sin la tabla, planifica como antes y lo dice;
   // con otro fallo, NO sigue: planificar sin saber qué está bloqueado movería rutas que alguien bloqueó.
   const candados = await rutasBloqueadasDelDia(supabase as unknown as ClienteDeCandados, fecha);
   if (candados.fuente === "error") return NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 });

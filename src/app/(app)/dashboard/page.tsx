@@ -422,7 +422,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ---------- Puntualidad por chofer, contra la ventana (D-NEXT) ---------- */}
+          {/* ---------- Puntualidad por chofer, contra la ventana (D-414) ---------- */}
           {/* Justo debajo de los KPIs de choferes: mismo rango, y su «A tiempo» mide otra cosa, así que se leen juntos. */}
           <PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />
 

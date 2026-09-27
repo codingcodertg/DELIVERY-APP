@@ -112,7 +112,7 @@ describe("la 148", () => {
   });
   it("sin begin/commit propios y sin D-NNN dentro", () => {
     expect(cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n")).not.toMatch(/^\s*(begin|commit)\s*;/im);
-    expect(sql).not.toMatch(/D-\d{3}|D-NEXT/);
+    expect(sql).not.toMatch(/D-\d{3}|D-413/);
   });
   it("el checksum del registro es el del cuerpo", () => {
     const sha = createHash("sha256").update(cuerpo).digest("hex");

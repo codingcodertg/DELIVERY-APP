@@ -47,7 +47,7 @@ export interface DatosDelDia {
   /** Lo que una persona fijó en el borrador anterior de esa fecha (ver `./ajuste`): por chofer, sus paradas en
    *  orden. «Planificar de nuevo» lo respeta: el motor arranca con eso puesto y reparte el resto alrededor. */
   fijadas?: Readonly<Record<string, readonly { orden: string; tipo: "P" | "D" }[]>>;
-  /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-NEXT), por la clave del Gestor: el NOMBRE del chofer o de la
+  /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-414), por la clave del Gestor: el NOMBRE del chofer o de la
    *  ruta temporal. El motor no las toca: el chofer no entra, y sus órdenes quedan fuera del plan tal como están. */
   bloqueadas?: readonly string[];
 }
@@ -89,7 +89,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const bloqueada = (nombre: string | null | undefined) => !!(nombre ?? "").trim() && (datos.bloqueadas ?? []).some((b) => igual(b, nombre));
   for (const c of paraElMotor) {
     const base = c.rutea ? tiendaConPunto(c.base) : null;
-    // Con la ruta bloqueada 🔒, el chofer no entra al motor: ni se le quita ni se le da nada (D-NEXT).
+    // Con la ruta bloqueada 🔒, el chofer no entra al motor: ni se le quita ni se le da nada (D-414).
     const motivo = bloqueada(c.nombre) ? "ruta_bloqueada" as const
       : (datos.noDisponibles ?? []).some((n) => igual(n, c.nombre)) ? "no_disponible" as const
       : c.falta[0] ?? (!c.rutea || !base ? "no_rutea" as const : null);

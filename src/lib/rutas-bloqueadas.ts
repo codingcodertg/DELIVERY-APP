@@ -4,7 +4,7 @@
  * al elegir un chofer, «✨ Auto-asignar» y «📍 Mejor lugar». Es el `lockType: ROUTES` de OptimoRoute
  * (docs/research-route-optimization.md §1.3). A mano sigue editable: flechas, «Asignar», quitar, mover de viaje.
  *
- * **Dónde vive (D-NEXT): en la base, `public.route_locks` (migración 149), si la tabla está; si no, en ESTE navegador.**
+ * **Dónde vive (D-414): en la base, `public.route_locks` (migración 149), si la tabla está; si no, en ESTE navegador.**
  * Con la tabla, el candado lo ve todo logística y lo respeta también «Planificar el día» (el motor, en el servidor:
  * `rutasBloqueadasDelDia`). Sin ella —la 149 se aplica después de fusionar, o se revierte—, la pantalla sigue como en
  * D-411, con `localStorage`, y lo dice (`fuente: "navegador"`). Todo lo que lee o escribe el candado pasa por este

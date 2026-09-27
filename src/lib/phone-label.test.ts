@@ -55,7 +55,7 @@ describe("el vocabulario que ya había, para que la elección conste", () => {
       "existe para que la decisión de llamarlo de otra forma se tome mirando, no por inercia. " +
       "Ver la nota de arriba y la entrada de la decisión.",
     ).toBe(12);
-    // Sube de 11 a 12 con el Estimador (T-0408, D-NEXT): el teléfono INTERNO del cliente en
+    // Sube de 11 a 12 con el Estimador (T-0408, D-413): el teléfono INTERNO del cliente en
     // `src/app/estimator/Estimador.tsx`. Etiqueta de campo, y ahí no hay número de orden con el que
     // confundirlo, así que vale el vocabulario de siempre, por la misma razón que D-256.
     // Sube de 10 a 11 con D-256: la tarjeta del directorio de la compañía. Es una etiqueta de

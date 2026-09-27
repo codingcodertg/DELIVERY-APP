@@ -3,7 +3,7 @@ import { fechaEnZona, metrosEntre, minutoEnZona, sellosDeOrdenes, type Posicion 
 import { redondeaMillas } from "./totales";
 
 /**
- * Informe de puntualidad por chofer, por rango de fechas (D-NEXT). Es el «On-time performance» de OptimoRoute, hecho con
+ * Informe de puntualidad por chofer, por rango de fechas (D-414). Es el «On-time performance» de OptimoRoute, hecho con
  * lo que la app YA guarda — sin migración, sin pedirle nada nuevo al chofer (D-021).
  *
  * Lo que decide, y conviene saber (mismas reglas de honestidad que `route-plan/llegadas.ts`, D-328):

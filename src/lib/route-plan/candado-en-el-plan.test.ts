@@ -5,7 +5,7 @@ import { avisosAlPublicar, choferesConRutaBloqueada, escriturasAlPublicar, type 
 import type { DriverSettings, NamedLocation } from "@/lib/types";
 
 /**
- * 🔒 «Planificar el día» respeta las rutas bloqueadas (149, D-NEXT): el chofer bloqueado no entra al motor, sus órdenes
+ * 🔒 «Planificar el día» respeta las rutas bloqueadas (149, D-414): el chofer bloqueado no entra al motor, sus órdenes
  * quedan fuera del plan tal como están, publicar no las escribe, y al chofer no se le avisa «te quedaste sin paradas».
  * Tiendas y choferes inventados.
  */
