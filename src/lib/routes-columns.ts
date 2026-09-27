@@ -38,7 +38,7 @@ export interface ColumnaDelGestor {
   antesDe?: string;
   /** Sale SIEMPRE y no está en el ⚙ (D-408): la factura, que abre la orden. Una lista guardada sin ella no la esconde. */
   fija?: true;
-  /** Va la ÚLTIMA de «Sin asignar» aunque Órdenes la tenga en otro puesto (D-NEXT, la prioridad). Es para una columna que
+  /** Va la ÚLTIMA de «Sin asignar» aunque Órdenes la tenga en otro puesto (D-412, la prioridad). Es para una columna que
    *  nace escondida: en medio de las que se ven, mover una vecina arriba y abajo la dejaría a un lado distinto del de
    *  partida, y «Restablecer orden» saldría sin que se viera nada movido (`mueveColumna` salta las escondidas hacia un
    *  lado). Al final no estorba, como las escondidas de paradas. */
@@ -96,7 +96,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "po", en: "PO #", es: "PO #", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "po" },
   { key: "fee", en: "Fee", es: "Costo", tablas: ["sinAsignar"], ancho: 72, deOrdenes: "fee" },
   { key: "contact", en: "Contact", es: "Contacto", tablas: ["sinAsignar"], ancho: 116, deOrdenes: "contact" },
-  // Prioridad (D-NEXT, 147): la celda de Órdenes, que solo destaca alta y crítica. NO sale por defecto —se elige en ⚙,
+  // Prioridad (D-412, 147): la celda de Órdenes, que solo destaca alta y crítica. NO sale por defecto —se elige en ⚙,
   // como pidió el dueño— y por eso no lleva marca de tanda: una lista guardada no la recibe sola. De partida va la
   // última (`alFinal`), no tras la etapa como en Órdenes: es la única escondida de esta tabla (ver `alFinal`).
   { key: "priority", en: "Priority", es: "Prioridad", tablas: ["sinAsignar"], ancho: 96, deOrdenes: "priority", oculta: true, alFinal: true },

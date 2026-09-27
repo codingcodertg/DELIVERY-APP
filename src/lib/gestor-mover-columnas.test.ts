@@ -57,7 +57,7 @@ describe("mover columnas en «Sin asignar»", () => {
     expect(sinAsignar(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden).indexOf("store")).toBe(5);
     expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(["p_type", "p_pallets", "p_eta", "p_address", "p_windows"]);
     // La última de «Sin asignar» hacia abajo no se va a la tabla de paradas: no se mueve, y la flecha se apaga.
-    // Con TODAS puestas la última es la prioridad (D-NEXT, `alFinal`); hasta entonces era «Ventanas».
+    // Con TODAS puestas la última es la prioridad (D-412, `alFinal`); hasta entonces era «Ventanas».
     expect(SIN[SIN.length - 1]).toBe("priority");
     expect(mueveEnElGestor("sinAsignar", null, "priority", 1, TODAS)).toBeNull();
     expect(seMueveEnElGestor("sinAsignar", null, "priority", 1, TODAS)).toBe(false);
@@ -170,7 +170,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
   it("un rol lleno —todas las columnas, todo movido— y plantillas llenas con orden: caben 9; la décima, la guarda la para", () => {
     const con = (n: number) => valorDeColumnas({ visibles: { logistics: visiblesLlenas }, orden: { logistics: ordenLleno }, plantillas: Array.from({ length: n }, (_, i) => plantillaLlena(i)) });
     // Medido con `bytesEnLaBase`, que da lo mismo que Postgres (D-394). 6 939 bytes el 2026-09-26 con las 10 plantillas: cabían.
-    // D-NEXT añadió las dos columnas de prioridad («priority» y «p_priority»): 7 553 con 10, y con la reserva de 800 ya no
+    // D-412 añadió las dos columnas de prioridad («priority» y «p_priority»): 7 553 con 10, y con la reserva de 800 ya no
     // caben (8 353 de 8 192). Con 9, sí. La guarda lo dice al guardar la décima; no falla en silencio.
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(7553);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
@@ -180,7 +180,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
   it("los 6 roles llenos + 10 plantillas llenas: no cabe la décima, y la guarda lo dice en vez de fallar en silencio", () => {
     const porRol = <T,>(v: T) => Object.fromEntries(ROLES_QUE_ELIGEN.map((r) => [r, v]));
     const con = (n: number) => valorDeColumnas({ visibles: porRol(visiblesLlenas), orden: porRol(ordenLleno), plantillas: Array.from({ length: n }, (_, i) => plantillaLlena(i)) });
-    // Con las dos de prioridad (D-NEXT): 3 648 → 3 982 y 9 951 → 10 845; caben 4 y no 5.
+    // Con las dos de prioridad (D-412): 3 648 → 3 982 y 9 951 → 10 845; caben 4 y no 5.
     expect(bytesEnLaBase(con(0))).toBe(3982);
     expect(bytesEnLaBase(con(10))).toBe(10845);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);

@@ -185,7 +185,7 @@ export function demoDeliveries(settings: Settings): Delivery[] {
     assigned_sales_rep: null,
     approved_by: null,
     approved_at: null,
-    // La 147 (D-NEXT): toda orden trae su prioridad, como las de una base con la columna. Sin la clave, la ficha no
+    // La 147 (D-412): toda orden trae su prioridad, como las de una base con la columna. Sin la clave, la ficha no
     // enseñaría el selector (`laBaseTienePrioridad`).
     priority: "normal",
     created_at: stamp(60 * 24),
@@ -249,7 +249,7 @@ export function demoDeliveries(settings: Settings): Delivery[] {
       invoice_num: "INV-3005", delivery_fee: 120, delivery_address: "500 Cage Blvd, Pharr TX",
       delivery_windows: "1300-1700", approved_by: "u-mgr", approved_at: stamp(180), assigned_driver: "Miguel A.",
       delivery_lat: 26.1830, delivery_lng: -98.1780, delivery_pin_source: "geocoded" }),
-    // Crítica (D-NEXT): sin chofer todavía, para que se vea destacada en Órdenes y en «Sin asignar».
+    // Crítica (D-412): sin chofer todavía, para que se vea destacada en Órdenes y en «Sin asignar».
     mk(1008, 3, 4.6, { stage: "approved", store: "McAllen", account: "Rio Tile Co.", invoice_num: "INV-3006", priority: "critical",
       delivery_fee: 70, delivery_address: "3100 N 10th St, McAllen TX", delivery_windows: "0830-1030",
       approved_by: "u-mgr", approved_at: stamp(120),

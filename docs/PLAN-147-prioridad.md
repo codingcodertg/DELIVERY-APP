@@ -98,7 +98,7 @@ el de la 145 (la rama del gerente) y **no** mencione `priority`; su disparador p
 `guard_factura_obligatoria` tampoco la mencione (si no está, deja un `NOTICE` y sigue: la 147 no depende de la 146). Mira
 el código de las funciones **sin las líneas de comentario** (lección de la 144).
 
-Sin `begin`/`commit` propios. **Sin `D-NEXT` dentro del `.sql`**: numerar la decisión no cambia el checksum del registro.
+Sin `begin`/`commit` propios. **Sin `D-412` dentro del `.sql`**: numerar la decisión no cambia el checksum del registro.
 
 ## 6 · Matriz de pruebas por rol, con ROLLBACK (la corre el orquestador)
 

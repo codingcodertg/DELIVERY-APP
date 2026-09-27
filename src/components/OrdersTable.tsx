@@ -67,7 +67,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
         </>
       );
     } },
-  // Prioridad (D-NEXT, 147). Solo alta y crítica llevan pastilla; la baja, en gris y sin pastilla; la normal, nada: es
+  // Prioridad (D-412, 147). Solo alta y crítica llevan pastilla; la baja, en gris y sin pastilla; la normal, nada: es
   // la de casi todas, y una tabla con «Normal» en cada fila no deja ver las que importan. Ordena y filtra por «1 · Crítica»
   // (`valorDePrioridad`): ascendente es crítica primero.
   { key: "priority", en: "Priority", es: "Prioridad", pastillas: true, value: (d, { lang }) => valorDePrioridad(d, lang), cell: (d, { lang }) => {

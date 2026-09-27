@@ -245,7 +245,7 @@ export interface Delivery {
   /** Builder o mostrador (D-316, migración 129). `null` en lo que no va a un cliente, y en lo anterior
    *  a este campo. Opcional en el tipo porque una base sin la 129 no lo trae. */
   customer_type?: CustomerType | null;
-  /** Prioridad de la orden (D-NEXT, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
+  /** Prioridad de la orden (D-412, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
    *  tipo porque una base sin la 147 no la trae; se lee siempre con `prioridadDe` (lib/prioridad.ts). */
   priority?: OrderPriority | null;
   created_at: string;

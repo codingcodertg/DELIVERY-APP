@@ -14,7 +14,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
-/** La prioridad (D-NEXT) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
+/** La prioridad (D-412) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
  *  guardado (no tiene marca de tanda): se elige en ⚙. */
 const PRIORIDAD_EN_SIN_ASIGNAR = ["priority"];
 /** «Sin asignar» en el orden de Órdenes (D-402), escrito a mano para que se lea: `status` es la «Etapa» y va donde
@@ -29,7 +29,7 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).slice(0, 3)).toEqual(["po", "so", "invoice"]);
   });
   it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-402)", () => {
-    // Todas menos la prioridad (D-NEXT), que nace escondida y se elige en ⚙.
+    // Todas menos la prioridad (D-412), que nace escondida y se elige en ⚙.
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "priority"));
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);

@@ -112,7 +112,7 @@ export function resumenDelReparto(
   const lista = sueltas.slice(0, 6).map((d) => `#${etiqueta(d)}`).join(", ") + (sueltas.length > 6 ? ` +${sueltas.length - 6}` : "");
   const enSueltas = sueltas.length ? ` · ${sueltas.length} not placed (no location, no room or window already taken): ${lista}` : "";
   const esSueltas = sueltas.length ? ` · ${sueltas.length} sin colocar (sin ubicación, sin capacidad o con la ventana ya ocupada): ${lista}` : "";
-  // Prioridad (D-NEXT): el reparto coloca primero las críticas y las altas. Si aun así alguna se queda fuera, se dice
+  // Prioridad (D-412): el reparto coloca primero las críticas y las altas. Si aun así alguna se queda fuera, se dice
   // aparte: es la que alguien tiene que mirar a mano, y perdida entre «+29» no se ve.
   const urgentes = sueltas.filter((d) => seDestaca(prioridadDe(d))).length;
   const enUrg = urgentes ? ` · ‼ ${urgentes} high/critical not placed` : "";

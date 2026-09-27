@@ -42,7 +42,7 @@ describe("1 · la ficha abierta lee la orden VIVA, no la foto que le pasaron", (
 describe("2 · una celda de pastillas no las parte", () => {
   it("las dos columnas que llevan pastillas están marcadas, y solo esas", () => {
     const marcadas = [...tabla.matchAll(/key: "([a-z_]+)", en: "[^"]*", es: "[^"]*", pastillas: true/g)].map((m) => m[1]);
-    // D-NEXT: la prioridad también es una pastilla («‼ Crítica»).
+    // D-412: la prioridad también es una pastilla («‼ Crítica»).
     expect(marcadas.sort()).toEqual(["date", "priority", "stage"]);
   });
   it("la celda recibe la clase solo cuando la columna lo dice", () => {

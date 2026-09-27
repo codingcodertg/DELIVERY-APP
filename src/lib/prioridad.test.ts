@@ -15,7 +15,7 @@ import { demoDeliveries, demoSettings } from "./demo-data";
 import type { Delivery, OrderPriority } from "./types";
 
 /**
- * Prioridad por orden (D-NEXT, migración 147). El dueño, comparando con OptimoRoute el 2026-09-26: prioridad por orden,
+ * Prioridad por orden (D-412, migración 147). El dueño, comparando con OptimoRoute el 2026-09-26: prioridad por orden,
  * «las 3 haz» (la base, la pantalla y el uso en Auto-asignar).
  */
 
@@ -73,7 +73,7 @@ describe("¿la base ya tiene la columna? (se aplica DESPUÉS de fusionar)", () =
   });
 });
 
-describe("Auto-asignar reparte primero lo urgente (D-401 + D-NEXT)", () => {
+describe("Auto-asignar reparte primero lo urgente (D-401 + D-412)", () => {
   // Un chofer, capacidad justa para UNA orden de 6 pallets en un viaje: la segunda no cabe.
   const at = (id: string, priority: OrderPriority, over: Partial<Delivery> = {}) =>
     mkDelivery({ id, order_no: Number(id), priority, est_pallets: 6, delivery_lat: 26.2, delivery_lng: -98.2, ...over });
@@ -193,9 +193,9 @@ describe("la 147", () => {
     expect(guard).toContain("if r = 'manager' and ((old_stage = 'approved' and new_stage = 'fulfilling')");
     expect(sql).toContain("if position('if r = ''manager'' and ((old_stage = ''approved'' and new_stage = ''fulfilling'')' in guard) = 0 then");
   });
-  it("sin begin/commit propios, sin D-NEXT (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
+  it("sin begin/commit propios, sin D-412 (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
     expect(codigo(sql)).not.toMatch(/(^|;)\s*(begin|commit|rollback)\s*;/i);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-412");
     expect(sql).toContain("--   alter table public.deliveries drop column if exists priority;");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");

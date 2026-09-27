@@ -39,7 +39,7 @@ describe("el gate de la tarifa es propio, no el de ventas ni el de almacén", ()
 describe("no se abre de rebote ningún otro campo de ventas", () => {
   it("los demás controles siguen colgando de `salesFields`, uno por uno", () => {
     // Si alguien «arregla» esto cambiando `salesFields` en vez de usar el gate, este número se mueve y la prueba cae.
-    // 22 desde D-NEXT: el selector de «Prioridad» también cuelga de `salesFields` (lo edita quien edita la orden).
+    // 22 desde D-412: el selector de «Prioridad» también cuelga de `salesFields` (lo edita quien edita la orden).
     expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(22);
     expect((ficha.match(/disabled=\{!tarifaEditable\}/g) ?? []).length).toBe(1);
   });

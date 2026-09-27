@@ -28462,7 +28462,7 @@ en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): «El reparto no cambia» ya no es cierto. `autoAssign` ordena ahora
+> **⚠ Reemplazada en parte por D-412** (2026-09-26): «El reparto no cambia» ya no es cierto. `autoAssign` ordena ahora
 > **primero por prioridad** (crítica, alta, normal, baja) y solo dentro de cada nivel por la ventana y el número, como aquí.
 > Con capacidad o ventanas justas, lo que se queda sin colocar es lo de menos prioridad; el aviso dice aparte las altas y
 > críticas que no se colocaron.
@@ -28589,7 +28589,7 @@ producción ni con llaves.**
 
 ## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): una excepción al «cada columna toma el puesto de su pareja en
+> **⚠ Reemplazada en parte por D-412** (2026-09-26): una excepción al «cada columna toma el puesto de su pareja en
 > Órdenes»: la «Prioridad» de «Sin asignar» va **la última** de partida (`alFinal`), aunque en Órdenes vaya tras la etapa.
 > Es la única columna de esa tabla que nace escondida, y en medio de las que se ven dejaba «Restablecer orden» encendido
 > tras mover una vecina arriba y abajo.
@@ -29544,8 +29544,8 @@ línea «Recibida por almacén», solo la pastilla.
 
 ## D-410 · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-26): los números de «El tope de tamaño» son los de 14 columnas en
-> «Sin asignar» y 13 en paradas. D-NEXT añadió «Prioridad» a las dos, y con el mismo modelo (`bytesEnLaBase`): un rol lleno
+> **⚠ Reemplazada en parte por D-412** (2026-09-26): los números de «El tope de tamaño» son los de 14 columnas en
+> «Sin asignar» y 13 en paradas. D-412 añadió «Prioridad» a las dos, y con el mismo modelo (`bytesEnLaBase`): un rol lleno
 > + 10 plantillas llenas pasa de 6 939 a **7 553** bytes y **ya no cabe** con la reserva (8 353 de 8 192) — **caben 9**, la
 > décima sale con «No cabe»; los 6 roles llenos pasan de 3 648 a 3 982 sin plantillas y de 9 951 a 10 845 con diez, y
 > **caben 4** en vez de 5. «Una persona con su rol lleno caben las diez» deja de ser cierto en ese peor caso (nombres de 40
@@ -29813,7 +29813,7 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
   pantalla ya hacía y no guarda los fallos; «Mejor lugar» no añadió ninguna (usó las coordenadas de la tienda). No se midió
   contra `main`.
 
-## D-NEXT · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
+## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `147_prioridad_de_la_orden.sql`,
 **escrita y NO aplicada** (plan en papel: `docs/PLAN-147-prioridad.md`, con la matriz por rol para correr con `ROLLBACK`).

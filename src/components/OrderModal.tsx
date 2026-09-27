@@ -544,7 +544,7 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
-    // La prioridad (D-NEXT, 147) solo viaja si la base ya tiene la columna: mandarla antes haría fallar la orden entera.
+    // La prioridad (D-412, 147) solo viaja si la base ya tiene la columna: mandarla antes haría fallar la orden entera.
     const payload = conPrioridadSiCabe({
       ...withDurations(d),
       // Builder o mostrador (D-316; desde D-337 lo decide la cuenta). Solo si la base ya tiene la columna: las migraciones se aplican
@@ -1855,7 +1855,7 @@ export function OrderModal({
                 <span>⏰ {t("Priority — deliver first thing in the morning", "Prioridad — entregar a primera hora de la mañana")}</span>
               </label>
             )}
-            {/* Prioridad (D-NEXT, 147): baja, normal, alta o crítica, como OptimoRoute. Nace en Normal. Solo sale si la base
+            {/* Prioridad (D-412, 147): baja, normal, alta o crítica, como OptimoRoute. Nace en Normal. Solo sale si la base
                 ya tiene la columna (se aplica tras fusionar); la edita quien edita el resto de la orden (`salesFields`), que
                 es lo mismo que deja la base: el guard no mira columnas en «misma etapa». */}
             {laBaseTienePrioridad(deliveries) && (

@@ -110,7 +110,7 @@ describe("visibilidad y orden viven juntos y no se pisan", () => {
     const todas = ORDER_COLUMNS.map((c) => c.key);
     const lleno = Object.fromEntries(ROLES_QUE_ELIGEN.map((r) => [r, todas]));
     const bytes = Buffer.byteLength(JSON.stringify(valorDeColumnas({ visibles: lleno, orden: lleno })), "utf8");
-    expect(todas).toHaveLength(15);                                                          // 15 desde D-NEXT («priority»)                                                          // contadas: si el regex de arriba perdiera alguna, el «peor caso» mentiría
+    expect(todas).toHaveLength(15);                                                          // 15 desde D-412 («priority»)                                                          // contadas: si el regex de arriba perdiera alguna, el «peor caso» mentiría
     expect(todas).toEqual(expect.arrayContaining(["date", "fee"]));                          // las dos que ocupan varias líneas en el fichero                                                // si el regex de arriba no casara, el «peor caso» sería vacío
     expect(bytes).toBeLessThan(8192 / 2);
     expect([ROLES_QUE_ELIGEN.length, todas.length, bytes]).toEqual([6, ORDER_COLUMNS.length, bytes]);      // el número va a la entrada

@@ -124,7 +124,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   // (`select pg_column_size('<json>'::jsonb)`, y el `insert` contra un `check` igual al de la 136). Los números de la derecha
   // son los que dio Postgres, no los de esta función: si alguien la cambia, tiene que seguir dándolos.
   //
-  // Se midió con las 14 columnas que Órdenes tenía ese día (`O14`). D-NEXT añadió «priority» (15): los casos siguen
+  // Se midió con las 14 columnas que Órdenes tenía ese día (`O14`). D-412 añadió «priority» (15): los casos siguen
   // construidos con las 14, porque son los que Postgres midió; lo que pasa con las 15 va en su propia prueba, abajo, y con
   // el modelo (`bytesEnLaBase`), no con una medida.
   const O14 = ["po", "so", "invoice", "type", "account", "contact", "stage", "store", "date", "pallets", "fee", "driver", "address", "windows"];
@@ -132,7 +132,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   const nombre = (i: number) => (`Plantilla número ${i} `).padEnd(40, "x");
   const llenas = (n: number) => Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: O14, o: O14, a: ANCH }));
   const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
-  // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-NEXT) llegaron después.
+  // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-412) llegaron después.
   const GESTOR_MEDIDO = COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority");
   const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: O14 }, orden: { logistics: O14 }, anchos: { logistics: ANCH }, plantillas: pl });
   const GEST = ["invoice", "account", "address", "pickup", "store", "pallets", "date", "windows", "status", "p_type", "p_eta", "p_fee"];
@@ -167,7 +167,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
     expect(new TextEncoder().encode(JSON.stringify(v)).length).toBe(5294);
     expect(bytesEnLaBase(v)).toBe(7561);
   });
-  it("D-NEXT, con las 15 columnas de hoy (modelo, no medida): un rol lleno sigue cabiendo en la reserva, y siguen cabiendo 9 plantillas llenas y la décima no", () => {
+  it("D-412, con las 15 columnas de hoy (modelo, no medida): un rol lleno sigue cabiendo en la reserva, y siguen cabiendo 9 plantillas llenas y la décima no", () => {
     const A15 = Object.fromEntries(["__id", ...ORD].map((k) => [k, 800]));
     const rol15 = (n: number) => valorDeColumnas({ visibles: { logistics: ORD }, orden: { logistics: ORD }, anchos: { logistics: A15 },
       plantillas: Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: ORD, o: ORD, a: A15 })) });

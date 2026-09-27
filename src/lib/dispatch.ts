@@ -202,7 +202,7 @@ export function autoAssign(
 
   const LOAD_WEIGHT = 2; // miles-equivalent nudge per already-loaded pallet, to balance
 
-  // Priority first (D-NEXT, 147): critical, then high, normal, low. The greedy loop hands out capacity and windows in
+  // Priority first (D-412, 147): critical, then high, normal, low. The greedy loop hands out capacity and windows in
   // this order, so when they run out, what is left unplaced is the low-priority work, never a critical order that
   // happened to have a later window. Within the same priority: earliest delivery window first (then order_no) so
   // tight windows place first.
