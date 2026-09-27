@@ -117,7 +117,7 @@ describe("la consulta del servidor, con y sin la 151 aplicada", () => {
   it("la ruta de «Planificar el día» lee así el catálogo y lo que tiene cada camión", () => {
     const ruta = plano(leer("src/app/api/route-plan/route.ts"));
     expect(ruta).toContain('leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"])');
-    expect(ruta).toContain('leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, ["features"])');
+    expect(ruta).toContain('leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER)');
   });
 });
 

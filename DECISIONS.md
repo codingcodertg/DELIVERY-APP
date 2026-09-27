@@ -27802,6 +27802,10 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 
 ## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
 
+> **Reemplazada en parte por D-NEXT** (2026-09-27): «el resto, en el orden de siempre» ya no es del todo cierto. Detrás del
+> chofer del filtro van ahora los choferes cuya **zona preferida** es la ciudad de alguna orden marcada, con la marca «su
+> zona»; después, el resto como siempre. Sigue sin elegir a nadie solo: es una sugerencia de orden.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a D-393**
 (sección 2: los controles de bloque de la barra de «Sin asignar»), que lleva su nota.
 
@@ -30633,6 +30637,9 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
 > (Gestor y mapa) reparte con el motor, que lee `requirements` y `features` como «Planificar el día»; una orden que nadie puede
 > llevar sale con «ningún camión que rutea tiene lo que pide».
+> **Reemplazada en parte por D-NEXT** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-4` (zonas preferidas), y de
+> `driver_settings` se piden como opcionales `features` **y** `preferred_zones` (152), con una sola lista
+> (`COLUMNAS_OPCIONALES_DE_CHOFER`). Sin zonas, el plan sigue siendo el de `motor-3` byte a byte.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 151** (escrita, **no aplicada**; plan en
 `docs/PLAN-151-requisitos-y-encuesta.md`). Es 151 y no 150 porque otra rama (avisos al cliente) escribe la 150.
@@ -30941,3 +30948,154 @@ prueba con nombre (el primero repone el fallo: «pinta siempre el valor»).
 
 **No hecho.** No se barrieron los `<input>` de texto de otras apps que conviertan a número en cada tecla fuera del
 Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `select` y campos de enteros.
+
+## D-NEXT · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 152** (escrita, **no aplicada**; plan en
+`docs/PLAN-152-zonas-preferidas.md`). Tarea **T-0412**. **Reemplaza en parte** a D-418 (`motor-4`; una lista de columnas
+opcionales de chofer) y a D-395 (el orden de «Elige conductor»). Las dos llevan su nota.
+
+**Qué pidió el dueño**, 2026-09-27, literal: *«ernesto is mcallen mission and julio is phar thats their preferences as well
+as maximo is brownsville only if possible»*. Preguntado por el orquestador: las bases de salida estaban cruzadas (ya
+corregidas en producción por el orquestador, sin código) y, sobre la zona, *«Preferencia, no regla»*: el motor le da
+primero a cada chofer las entregas de su zona; si su zona no llena el día u otra zona se queda sin chofer, sí lleva de otra.
+
+### Qué había
+
+Nada que dijera qué ciudades prefiere cada chofer. «Planificar el día» y Auto-asignar (que usa el mismo motor desde D-419)
+repartían solo por coste: manejo, millas, ventanas, builders y balance. Con las tiendas cerca unas de otras (McAllen, Pharr
+y Mission están a minutos), un chofer podía acabar el día en la ciudad del otro aunque las dos rutas costaran casi lo mismo.
+
+### Qué hay ahora
+
+- **Una zona es una ciudad de entrega**: la misma que enseña la columna «Ciudad de entrega» del Gestor (D-408),
+  `ciudadDeEntrega(delivery_address)`. La orden no tiene campo de ciudad y no se inventa otra derivación: una dirección sin
+  ciudad legible no tiene zona, y a esa orden ninguna preferencia la toca.
+- **Ajustes → Motor de rutas → choferes**: columna **«Zonas preferidas»** (chips con ✕ y un desplegable «+ zona»), en la
+  misma fila que base, capacidad, turno y «su camión tiene». **Las ciudades que ofrece salen de los datos** —las direcciones
+  de las órdenes que tiene la app, las de las tiendas y lo que ya tenga guardado algún chofer—, con cuántas órdenes van a
+  cada una y la más frecuente primero (`ciudadesElegibles`); ninguna está escrita en el código. Se guarda en
+  `driver_settings.preferred_zones` (152). Y un **peso «5 · Zona preferida»** junto a los otros cuatro, en
+  `settings.route_weights.zona` (**sin columna**, como las opciones de D-415).
+- **En el motor (`motor-4`)**: un término blando más del coste, **entregas fuera de zona**: cada entrega que un chofer
+  **con zonas** lleva de una ciudad que **otro chofer prefiere** cuesta el peso (por defecto **60**, lo que 60 minutos de
+  manejo). Un chofer **sin zonas** no paga nada por nada. Una ciudad que **nadie prefiere** no le cuesta a nadie: va por
+  millas. Se compara sin mayúsculas ni espacios de más.
+- **Nunca deja una orden fuera por la zona.** Lo primero que compara el motor sigue siendo cuántas quedan fuera, y el peso
+  no prohíbe nada. Pero repartir por zonas cambia qué coloca antes la construcción y qué prueba después la mejora, y eso
+  puede cerrar un hueco que otra orden necesitaba: **medido, en 99 de 600 días inventados** quedaba alguna orden más fuera
+  que sin zonas. Así que, con zonas y algo fuera, el motor planifica también sin ellas y se queda con el de menos fuera
+  (a igualdad, el de las zonas), como ya hacía «usar todos los choferes» (D-415). Con eso, **0 de 600**.
+- **«¿Por qué aquí?»** dice la zona de cada entrega: *«En su zona (McAllen).»*, *«Fuera de su zona (Pharr es de X): su
+  chofer iba lleno.»* —o *no le quedaba turno*, *no llegaba a la ventana dura*, *con su chofer el plan entero salía más
+  caro*, *su chofer hoy no rutea*…, sacado de lo que el motor ya apunta de cada alternativa— o *«Edinburg: ningún chofer la
+  tiene de zona, va por millas.»*
+- **Auto-asignar** usa las zonas sin cambiar nada suyo: lee `preferred_zones` como «Planificar el día» y el motor hace el
+  resto.
+- **«📍 Mejor lugar»** (solo sugerencia): en «Elige conductor», detrás del chofer del filtro salen primero los choferes cuya
+  zona es la ciudad de alguna orden marcada, con la marca «su zona». No elige a nadie y **no cambia el cálculo del hueco**.
+- **Sin zonas, todo igual que antes, byte a byte**: la huella sha256 del día grabado con `motor-1` sale igual sin zonas, con
+  órdenes que traen ciudad pero ningún chofer la prefiere, y con listas vacías. La entrada que se guarda con el plan no lleva
+  `zona` ni `zonas`, y el desglose no lleva `fueraDeZona`, si ningún chofer tiene zonas.
+- **Sin la 152 aplicada, nada falla**: las tres lecturas de `driver_settings` (Ajustes, «Planificar el día», Auto-asignar)
+  piden `features` y `preferred_zones` con `leeConOpcionales` (una sola lista, `COLUMNAS_OPCIONALES_DE_CHOFER`); sin la
+  columna, leen sin ella y el motor planifica sin zonas. Ajustes no enseña la columna y lo dice; «Mejor lugar» no sugiere.
+
+### Números (fichero congelado de días reales, 2026-09-27, tiempos estimados en línea recta)
+
+`src/lib/route-plan/dias-reales-anon.json` (18–28 sep, 178 órdenes, anonimizado: no trae direcciones). Para medir, la
+«ciudad» de cada pin es la tienda más cercana («Zona A…G»), y cada chofer anonimizado prefiere la de su base: A (base
+Tienda C) → Zona C; B (Tienda D) → Zonas D y E; C (Tienda A) → Zonas A y G. B y F no son de nadie. «Planificar el día»:
+
+| peso | colocadas | entregas en su zona (de las 105 con dueño) | millas | tiempo de los 10 días |
+|---|---|---|---|---|
+| sin zonas (motor-3) | **153** | 79 | **2.559** | 7,9 s |
+| 15 | 153 | 84 | 2.588 | 17,8 s |
+| 30 | 153 | 89 | 2.581 | 19,0 s |
+| **60 (por defecto)** | **153** | **89** | **2.581 (+0,9 %)** | 18,9 s |
+| 120 | 157 | 87 de 109 | 2.664 | 24,0 s |
+| 240 | 156 | 91 de 108 | 2.771 (+8 %) | 20,3 s |
+
+Se eligió 60: en su zona sube de 79 a 89 (de 75 % a 85 %) por **22 millas más en diez días**, y **las colocadas no bajan**.
+Con más peso las millas suben rápido (240: +8 %) sin ganar casi nada. (A 120 y 240 salen más colocadas por el mismo efecto
+de «el orden de construcción cambia lo que cabe», esta vez a favor; no se buscó.) Lo que sigue fuera de zona con 60 son
+sobre todo los días pesados (19 y 24) y el 27, donde el chofer de la zona ya iba lleno.
+
+**Auto-asignar**, un clic el 27 con los cuatro choferes: de las 29 entregas de una zona con dueño, **19 en su zona sin zonas → 25 con ellas**; colocadas **30 de 30** en los dos; millas estimadas 288 → 313.
+
+**Tiempo**: planificar con zonas cuesta más: el día más pesado del fichero (el 27) pasa de 4,7 s a 7,6 s, y el 24 de 2,0 a
+7,8 s (con algo fuera, se planifica dos veces). Dentro del `maxDuration` de 60 s de las rutas, pero es de lo que habrá que
+vigilar.
+
+### Decisiones tomadas por el worker (a validar)
+
+1. **Peso por defecto 60**, medido arriba. Se afina en Ajustes; 0 lo apaga.
+2. **Un chofer sin zonas no paga nada**, ni por llevar la ciudad de otro (lo pidió así el orquestador). Consecuencia: un
+   chofer sin zonas puede llevarse entregas de la zona de otro si le quedan más cerca. Si el dueño quiere que las zonas
+   «protejan» su ciudad también frente a los que no tienen zona, es cambiar `fueraDeSuZona`.
+3. **Una ciudad que nadie prefiere va por millas**, sin coste para nadie (también del encargo).
+4. **Mission sin tienda**: la lista de Ajustes la ofrece si alguna orden va a Mission (sale de las direcciones), no porque
+   haya una tienda allí.
+5. **El check de la 152 usa una función inmutable** (`zonas_preferidas_validas`) para mirar cada elemento (texto y ≤ 60);
+   la 151 solo miraba tamaño y nulos.
+6. **«Mejor lugar» solo ordena**: ni preselecciona ni filtra. Una ruta temporal nunca sale como «su zona».
+
+### Lo que NO se hizo
+
+- **La comparación con la hoja del despachador** (`ComparaConLaHoja`) no enseña la fila de zonas: su tabla sigue con los
+  cinco términos. El total ponderado sí la incluye.
+- El resumen del plan no cuenta «N de M en su zona»: se ve entrega a entrega en «¿Por qué aquí?».
+- Las zonas **no** tocan el cálculo del hueco de «Mejor lugar» ni «Optimizar».
+
+### Dónde está
+
+`src/lib/zonas.ts` (la zona de una orden, las ciudades elegibles, limpiar, marcar, por nombre); `src/lib/usa-zonas.ts` (el
+gancho de «Mejor lugar»); `src/lib/route-engine/evalua.ts` (`claveDeZona`, `zonasReclamadas`, `fueraDeSuZona`,
+`PESO_DE_ZONA_POR_DEFECTO`, el término en `costeTotal`, `restaDesglose`, `costeDeRutas`, `evaluaRuta`, `evaluaPlan`),
+`planifica.ts` (`motor-4`, la vuelta sin zonas), `types.ts`; `src/lib/route-plan/entrada.ts` (zonas al chofer y ciudad a la
+orden, `delivery_address` en la consulta), `porque.ts` (`ZonaDelPorQue`, `fraseDeZona`); `src/lib/route-settings.ts`
+(`COLUMNAS_OPCIONALES_DE_CHOFER`, `pesoDeZona`); `src/lib/elige-conductor.ts` (`enSuZona`); `src/lib/types.ts`;
+`src/components/RouteEngineSettings.tsx`, `RutaDelPlan.tsx`, `ComparaConLaHoja.tsx` (solo el tipo);
+`src/app/api/route-plan/route.ts`, `src/app/api/route-plan/reparto/route.ts`; `src/app/(app)/routes/page.tsx` (lo mínimo:
+el gancho y `enSuZona`); `supabase/migrations/152_zonas_preferidas.sql`.
+
+### Verificado
+
+- Pruebas nuevas: `route-engine/zonas-en-el-motor.test.ts` (16: la huella de `motor-1` sin zonas; qué cuenta como fuera de
+  zona; el coste; con capacidad de sobra cada orden con el chofer de su zona —y sin zonas no, para que la prueba no pase por
+  casualidad—; lo que sobra de una zona llena lo lleva el otro; ciudad sin dueño por millas; chofer sin zonas sin coste; el
+  día inventado 5 y **150 días inventados** sin ninguna orden de más fuera) y `route-plan/zonas-en-el-plan.test.ts` (33: la
+  librería, el peso, la consulta con y sin la 152, `entradaDelDia`, **los diez días reales** antes/después, Auto-asignar el
+  27, las frases de «¿Por qué aquí?», que Ajustes, el Gestor y la pantalla del plan usan las funciones, y la migración con su
+  checksum).
+- Pruebas que cambiaron: `requisitos-en-el-motor.test.ts` y `plan.test.ts` (`motor-4`), `motor-rutas-modelo.test.ts` (6
+  campos que se apagan sin la 130, uno más: el peso 5), `requisitos.test.ts`, `requisitos-en-el-plan.test.ts` y
+  `reparto.test.ts` (la lectura de `driver_settings` usa `COLUMNAS_OPCIONALES_DE_CHOFER`).
+- **Mutantes** (`~/.claude/herramientas/mutantes`): **31 de 31 caen con una prueba con nombre**, entre ellos quitar la
+  vuelta sin zonas (cae «el día inventado 5…» y «en 150 días inventados…»), que un chofer sin zonas pague, que una ciudad sin
+  dueño cuente, que el desglose lleve la clave sin zonas (cae la huella), no pasar las zonas al evaluar, las dos rutas
+  pidiendo solo `features`, y la migración sin su check. No se mutaron dos atajos de tiempo (no planificar dos veces si no
+  queda nada fuera, o si no hay zonas): quitarlos no cambia ningún plan, solo lo que tarda.
+- `node scripts/verify.mjs` (2026-09-27): tipos, **5127 pasadas | 3 saltadas** y `next build` en verde.
+- **Demo** (2026-09-27, admin, Chrome headless, clics de persona). El demo no tiene `driver_settings`: la lectura y el
+  guardado se contestaron dentro del navegador (interceptando la petición por CDP), sin salir de la máquina. A **1280**: la
+  columna «Preferred zones» sale con chips y «+ zone»; el desplegable ofrece las ciudades de las órdenes del demo con su
+  cuenta (Pharr 15, Brownsville 14, Edinburg 13, Weslaco 13, Mercedes 1), sin las que el chofer ya tiene; el peso «5 ·
+  Preferred zone» vale 60; **0 px** de desplazamiento lateral de la página (la tabla se desplaza 12 px dentro de su marco).
+  Quitar «Mission» con su ✕ la quita; «+ zone» con el teclado añade McAllen; «Save» manda `preferred_zones: ["McAllen"]`
+  en el cuerpo del guardado. A **390**: **0 px** de desplazamiento de la página; la tabla se desplaza dentro de su marco,
+  como antes. Capturas `A-ajustes-zonas-1280`, `B-ajustes-zonas-tras-editar-1280`, `C-ajustes-zonas-390`,
+  `D-ajustes-zonas-390-columna`.
+- **Hallazgo de paso, ya existía antes de esto**: en la tabla de choferes, guardar una fila vuelve a leer TODAS
+  (`cargar()`), y lo editado sin guardar en otra fila se pierde sin aviso (medido en el demo: se editaron dos filas, se
+  guardó una, y la otra se mandó con lo de antes). Pasa igual con base, capacidad, turno y «su camión tiene». **No se
+  arregló aquí.**
+
+### Lo que no se verificó
+
+- **Nada contra la base**: ni la migración, ni su autocomprobación, ni la matriz de 16 casos del plan.
+- **Con direcciones de verdad**: el fichero de días reales no trae direcciones, así que las zonas de la medición son «la
+  tienda más cercana al pin», no la ciudad que dice `ciudadDeEntrega`. Qué grafías salen en producción (¿«McAllen» o «Mc
+  Allen»?) lo dirá la lista de Ajustes al aplicarla; la medición M2 del plan sirve para mirarlo antes.
+- «Planificar el día» y el «¿Por qué aquí?» no se abrieron en el demo (necesitan el servidor); se prueban con
+  `planificaElDia` y con pruebas de que la pantalla usa las funciones.

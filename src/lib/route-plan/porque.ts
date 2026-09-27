@@ -1,4 +1,4 @@
-import type { Desglose, Explicacion, PrioridadDeOrden, TipoDeViolacion } from "@/lib/route-engine";
+import { claveDeZona, type Desglose, type Explicacion, type PrioridadDeOrden, type TipoDeViolacion } from "@/lib/route-engine";
 import { etiquetaDePrioridad } from "@/lib/prioridad";
 import { fraseDeFaltan } from "@/lib/requisitos";
 import { ordenDeLaParte } from "./publicar";
@@ -37,10 +37,24 @@ export interface PorQue {
   /** La prioridad con la que la planificó el motor (D-415), solo si no era normal. Es la del momento de planificar:
    *  lo que explica la decisión, aunque alguien la haya cambiado después. */
   prioridad?: PrioridadDeOrden;
+  /** Zonas preferidas (D-NEXT): solo si algún chofer del plan tiene zonas y la entrega tiene ciudad. */
+  zona?: ZonaDelPorQue;
 }
 
-/** Las órdenes tal como entraron al motor: de ellas sale la prioridad con que se planificó. */
-type OrdenDelPlan = { id: string; prioridad?: PrioridadDeOrden | null };
+/**
+ * Lo que se dice de la zona de una entrega (D-NEXT). `en_su_zona`: va con un chofer que la tiene de zona. `fuera`: su zona
+ * es de otro chofer y va con este, y `por` dice por qué no con aquel (el primero, por nombre). `sin_chofer`: ningún chofer
+ * la tiene de zona, así que va por millas.
+ */
+export type ZonaDelPorQue =
+  | { tipo: "en_su_zona"; zona: string }
+  | { tipo: "fuera"; zona: string; choferDeZona: string; por: MotivoDeNo | "costaba_mas" | "no_rutea" }
+  | { tipo: "sin_chofer"; zona: string };
+
+/** Las órdenes tal como entraron al motor: de ellas sale la prioridad con que se planificó, y su zona. */
+type OrdenDelPlan = { id: string; prioridad?: PrioridadDeOrden | null; zona?: string | null };
+/** Los choferes del plan como entraron al motor. `zonas`, las suyas (D-NEXT). */
+type ChoferDelPlan = { id: string; nombre: string; zonas?: string[] | null };
 const prioridadEnElPlan = (ordenes: readonly OrdenDelPlan[] | null | undefined) => {
   const m = new Map<string, PrioridadDeOrden>();
   for (const o of ordenes ?? []) if (o.prioridad && o.prioridad !== "normal") m.set(o.id, o.prioridad);
@@ -52,7 +66,7 @@ const centesimas = (n: number) => Math.round(n * 100) / 100;
 
 export function porQueEstaAqui(
   explicaciones: readonly Explicacion[] | null | undefined,
-  choferes: readonly { id: string; nombre: string }[],
+  choferes: readonly ChoferDelPlan[],
   ahora: Readonly<Record<string, string>>,
   fijadas: readonly string[] = [],
   ordenes: readonly OrdenDelPlan[] | null = null,
@@ -60,6 +74,7 @@ export function porQueEstaAqui(
   const nombreDe = new Map(choferes.map((c) => [c.id, c.nombre]));
   const aMano = new Set(fijadas);
   const prioridadDe = prioridadEnElPlan(ordenes);
+  const zonaDe = zonaEnElPlan(ordenes, choferes);
   const r: Record<string, PorQue> = {};
   for (const e of explicaciones ?? []) {
     const donde = ahora[e.orden];
@@ -80,9 +95,10 @@ export function porQueEstaAqui(
       return (peor.get(x.choferId) ?? 0) - (peor.get(y.choferId) ?? 0) || (x.choferId < y.choferId ? -1 : 1);
     });
     const prioridad = prioridadDe.get(ordenDeLaParte(e.orden));
+    const zona = zonaDe(e);
     r[e.orden] = {
       orden: e.orden, quien: "motor", aporta: { manejoMin: e.aporta.manejoMin, millas: centesimas(e.aporta.millas), tardeMin: e.aporta.tardeMin }, otras,
-      ...(prioridad ? { prioridad } : {}),
+      ...(prioridad ? { prioridad } : {}), ...(zona ? { zona } : {}),
     };
   }
   // Una orden que está en una ruta y de la que el motor no dijo nada (la metió una persona): también se dice.
@@ -90,11 +106,56 @@ export function porQueEstaAqui(
   return r;
 }
 
+/**
+ * La zona de cada entrega, dicha (D-NEXT). Con la del motor: en su zona si su chofer la tiene; si no, el chofer que la
+ * tiene de zona (el primero por nombre) y por qué no fue con él — lo que el motor apuntó en `alternativas`: no cabía
+ * (capacidad), no tenía tiempo, no llegaba a la ventana…, o cabía pero el plan entero salía más caro. Si ese chofer no
+ * estaba en el plan (no rutea ese día), eso.
+ */
+function zonaEnElPlan(ordenes: readonly OrdenDelPlan[] | null | undefined, choferes: readonly ChoferDelPlan[]) {
+  const zonaDeOrden = new Map<string, string>();
+  for (const o of ordenes ?? []) if (claveDeZona(o.zona)) zonaDeOrden.set(o.id, String(o.zona).trim());
+  const conZonas = choferes.filter((c) => c.zonas?.length);
+  return (e: Explicacion): ZonaDelPorQue | null => {
+    if (!conZonas.length) return null;
+    const zona = zonaDeOrden.get(ordenDeLaParte(e.orden)) ?? zonaDeOrden.get(e.orden);
+    if (!zona) return null;
+    const suyos = conZonas.filter((c) => c.zonas!.some((z) => claveDeZona(z) === claveDeZona(zona)))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    if (!suyos.length) return { tipo: "sin_chofer", zona };
+    if (suyos.some((c) => c.id === e.chofer)) return { tipo: "en_su_zona", zona };
+    const suyo = suyos[0];
+    const alt = e.alternativas.find((a) => a.chofer === suyo.id);
+    const por: Extract<ZonaDelPorQue, { tipo: "fuera" }>["por"] = !alt ? "no_rutea" : alt.diferencia ? "costaba_mas" : (alt.motivo ?? "no_permitido");
+    return { tipo: "fuera", zona, choferDeZona: suyo.nombre, por };
+  };
+}
+
+/** La frase de la zona en «¿Por qué aquí?». `null` = no hay nada que decir de zonas. */
+export function fraseDeZona(q: Pick<PorQue, "quien" | "zona">, lang: "en" | "es"): string | null {
+  const z = q.quien === "motor" ? q.zona : undefined;
+  if (!z) return null;
+  const es = lang === "es";
+  if (z.tipo === "en_su_zona") return es ? `En su zona (${z.zona}).` : `In their zone (${z.zona}).`;
+  if (z.tipo === "sin_chofer") return es ? `${z.zona}: ningún chofer la tiene de zona, va por millas.` : `${z.zona}: no driver has it as their zone, it goes by miles.`;
+  const POR: Record<string, [string, string]> = {
+    capacidad: ["their driver was full", "su chofer iba lleno"], fuera_de_turno: ["their driver had no time left in the shift", "a su chofer no le quedaba turno"],
+    ventana_estrecha: ["their driver couldn't make the hard window", "su chofer no llegaba a la ventana dura"],
+    retraso_sobre_el_tope: ["their driver would be too late", "su chofer llegaría demasiado tarde"],
+    falta_requisito: ["their driver's truck lacks what it needs", "al camión de su chofer le falta lo que pide"],
+    no_permitido: ["the order is tied to another driver", "la orden está atada a otro chofer"],
+    no_rutea: ["their driver isn't routed today", "su chofer hoy no rutea"],
+    costaba_mas: ["with their driver the whole plan cost more", "con su chofer el plan entero salía más caro"],
+  };
+  const motivo = POR[z.por]?.[es ? 1 : 0] ?? (es ? "su chofer no podía" : "their driver couldn't");
+  return es ? `Fuera de su zona (${z.zona} es de ${z.choferDeZona}): ${motivo}.` : `Outside their zone (${z.zona} belongs to ${z.choferDeZona}): ${motivo}.`;
+}
+
 /** Lo mismo, desde lo que se guarda: el resultado del plan, sus choferes y sus paradas. Es lo que llaman las rutas.
  *  `ordenes`: las del plan tal como entraron al motor (`input.entrada.ordenes`), para decir su prioridad. */
 export function porQueDelPlan(
   result: { explicaciones?: readonly Explicacion[] | null; fijadas?: readonly string[] | null } | null | undefined,
-  choferes: readonly { id: string; nombre: string }[] | null | undefined,
+  choferes: readonly ChoferDelPlan[] | null | undefined,
   paradas: readonly { driver_id: string | null; order_ref: string }[],
   ordenes: readonly OrdenDelPlan[] | null = null,
 ): Record<string, PorQue> {

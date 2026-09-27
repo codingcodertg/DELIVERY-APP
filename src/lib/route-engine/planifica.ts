@@ -1,5 +1,6 @@
 import {
-  aCentesimas, claveDeParada, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, restaDesglose, type Contexto,
+  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
+  zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
   Alternativa, ChoferEntrada, Desglose, Entrada, Explicacion, MotivoSinAsignar, OrdenEntrada, ParadaRef, Parametros,
@@ -20,10 +21,12 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
+/** `motor-4` (D-NEXT): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
+ *  cuesta el peso `zona`, y nunca deja una orden fuera. Sin zonas, planifica exactamente lo mismo que `motor-3` (y que
+ *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-3";
+export const VERSION_DEL_MOTOR = "motor-4";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -104,6 +107,26 @@ const mejorQue = (a: Nota, b: Nota) => { for (let k = 0; k < a.length; k++) if (
  * veces, solo con la opción puesta.
  */
 export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_POR_DEFECTO): Plan {
+  const plan = planificaConOpciones(entrada, parametros);
+  // Zonas preferidas (D-NEXT): «Preferencia, no regla», dijo el dueño. El peso ya hace que una entrega vaya a otro chofer
+  // cuando el suyo no puede; pero repartir por zonas cambia lo que la construcción coloca primero y lo que la mejora prueba
+  // después, y eso podría cerrar un hueco que otra orden necesitaba (como con «usar todos», arriba). Así que, con zonas, se
+  // planifica también sin ellas y se queda la de menos órdenes fuera; a igualdad, la de las zonas. Nunca queda una orden
+  // fuera por la zona. Sin zonas —ningún chofer las tiene, o ninguna entrega es de una—, una sola vez: el plan de siempre.
+  // Si con zonas no queda nada fuera, sin ellas no puede quedar menos: no hace falta la segunda vuelta.
+  if (!plan.sinAsignar.length || !zonasQueDeciden(entrada, parametros)) return plan;
+  const sinZonas = planificaConOpciones(entrada, { ...parametros, pesos: { ...parametros.pesos, zona: 0 } });
+  return sinZonas.sinAsignar.length < plan.sinAsignar.length ? sinZonas : plan;
+}
+
+/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna entrega de una de ellas. */
+function zonasQueDeciden(entrada: Entrada, parametros: Parametros): boolean {
+  if ((parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return false;
+  const reclamadas = zonasReclamadas(entrada.choferes);
+  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)));
+}
+
+function planificaConOpciones(entrada: Entrada, parametros: Parametros): Plan {
   if (!parametros.usarTodos) return planificaUnaVez(entrada, parametros);
   const con = planificaUnaVez(entrada, parametros);
   const sin = planificaUnaVez(entrada, { ...parametros, usarTodos: false });
@@ -125,7 +148,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     for (const p of fija) { fijadas.add(claveDeParada(p)); ordenesFijadas.add(p.orden); }
     estado.secuencias.set(c.id, [...fija]);
   }
-  const ctx: Contexto = { ordenes: porId, matriz: entrada.matriz, porHora: entrada.porHora, parametros, fijadas };
+  const ctx: Contexto = { ordenes: porId, matriz: entrada.matriz, porHora: entrada.porHora, parametros, fijadas, zonasReclamadas: zonasReclamadas(choferes) };
   for (const c of choferes) estado.rutas.set(c.id, evaluaRuta(c, estado.secuencias.get(c.id)!, ctx));
 
   // Un solo sitio que pone pesos y modo de balance: el coste del plan y el de probar un hueco no pueden medir distinto.
