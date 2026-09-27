@@ -30313,3 +30313,121 @@ qué» en POST, GET y PATCH); `src/components/RouteEngineSettings.tsx` (las dos 
   «Por qué» con prioridad se probó de punta a punta con `planificaElDia` y un proveedor de tiempos falso, no en pantalla.
 - **Guardar las opciones no se probó en el navegador** (el demo las desactiva); se prueba `routeWeightsAlGuardar` y que la
   pantalla guarda por ahí.
+
+---
+
+## D-NEXT · Avisos al cliente como OptimoRoute: la noche antes y «en camino», por SMS o correo, APAGADOS hasta que el admin los encienda (migración 150)
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (las tres apps: toca `src/lib`, `src/app/api` y `data-provider`)
+· **Migración 150, escrita y NO aplicada** (plan: `docs/PLAN-150-avisos-al-cliente.md`).
+
+**Qué pidió el dueño**, 2026-09-27: tras explicarle OptimoRoute (https://optimoroute.com/customer-notifications/), eligió
+*«solos haz 1 3 y 4»*. El 1: un aviso al cliente **la noche antes** de la entrega y otro cuando el chofer **va en camino**,
+por SMS o correo según la preferencia del cliente, con enlace a la página de seguimiento que ya existe (`/track/<id>`) y
+opción de darse de baja. (La cita sale del encargo del orquestador, no del fichero de sesión del dueño: **extraerla de allí**
+al numerar.)
+
+### Lo que hay ahora
+
+**Nada sale hasta que el admin lo encienda.** Ajustes → «📨 Avisos al cliente» trae dos interruptores, «La noche antes» y
+«En camino», los dos **apagados**, y la hora de la noche antes (12:00 PM – 8:00 PM, hora de Texas; 6:00 PM por defecto). La
+150 los crea en `false` y su autocomprobación **falla** si alguno queda encendido. Sin la 150 aplicada la tarjeta dice
+«Falta aplicar la actualización 150 de la base» y no enseña nada que guardar.
+
+- **A quién** (`decidirAviso`, `lib/avisos-cliente.ts`): solo órdenes **a cliente** —con tipo, y que no sean tienda-a-tienda
+  según las reglas de Ajustes (`isStoreToStore`, la misma que decide si la ficha pide contacto): **nunca Transfer ni
+  Intertienda**—; **nunca `is_training`**; con **teléfono de EE. UU. válido** (10 dígitos, o 11 con el 1; área que no empieza
+  por 0 ni 1; se manda en E.164) o **correo con forma de correo**; y que ese contacto **no se haya dado de baja**.
+- **Cuándo, la noche antes:** órdenes de **mañana** (en Texas) en `approved / fulfilling / ready / picked_up` — una
+  pendiente todavía puede rechazarse. Desde la hora elegida **hasta antes de las 21:00** (un cron que llega tarde no manda
+  a las 11 de la noche).
+- **Cuándo, en camino:** cuando la parada del cliente pasa a ser **la siguiente** de la ruta del chofer **y ya va en el
+  camión** (`picked_up`). «La siguiente» la calcula `siguienteParada`, que es **la misma función** que usa «Mi ruta» para su
+  tarjeta «Siguiente parada»: lo que el chofer ve como siguiente es lo que se avisa.
+- **Por dónde** (`deliveries.notify_pref`, 150): «SMS y correo» (defecto: lo que haya), «Solo SMS», «Solo correo», «No
+  avisar». La ficha lo enseña junto al contacto, con el **correo del cliente** (opcional) y su **idioma**; solo en órdenes a
+  cliente y solo con la 150 (`conAvisosSiCabe`, el patrón de la 147).
+- **Baja:** cada aviso lleva `/unsubscribe/<token>` (16 caracteres base64url, 96 bits aleatorios, único). La página es
+  pública (`route-guard.ts`) y **abrirla no da de baja**: hay que pulsar el botón, porque los antivirus de correo y las
+  vistas previas de los mensajes abren los enlaces solos. La baja marca **ese teléfono y ese correo** en
+  `customer_notify_optouts` y vale para **todas** sus órdenes.
+- **Registro** (`customer_notifications`): una fila por **orden, tipo y día de entrega**, con a quién, qué dijo el
+  proveedor (`sent / dry_run / failed`), los **segmentos del SMS** (el coste) y el token. Solo lo escribe la llave de
+  servicio; solo lo lee el admin.
+
+### Por qué así
+
+- **Idempotente reclamando antes de mandar.** El envío inserta la fila con `on conflict do nothing` y solo manda si la
+  consiguió. Dos crons, dos pestañas o dos toques del chofer no mandan dos avisos. El precio: un envío que falla **no se
+  reintenta solo** (queda `failed`, a la vista). Se prefirió un aviso perdido a dos cobrados.
+- **El día de entrega entra en la clave** (el encargo decía «un aviso por orden y tipo»): una orden **reprogramada** es
+  otra entrega y su cliente tiene que saber la fecha nueva la noche antes. Con la clave sin el día no se enteraba. **Para
+  validar.**
+- **La noche antes: diez crons diarios, no uno.** Vercel Hobby solo admite crons **diarios** (D-406: 100 por proyecto,
+  una vez al día, precisión de una hora). Para que la hora se edite en Ajustes sin redesplegar, `vercel.json` llama a
+  `/api/cron/avisos-noche-antes/17` … `/02` una vez al día cada una (UTC 17-02 = 12-21 h en Texas en verano, 11-20 h en
+  invierno) y **la ruta decide** contra Ajustes. Una prueba comprueba que cada hora elegible tiene su cron en CDT y en CST.
+  Apagado, cada llamada lee una fila de `settings` y vuelve. Con Hobby el aviso sale **dentro de la hora** elegida, no en
+  el minuto.
+- **En camino: sin cron.** Hobby no da nada sub-diario, y el cron de GitHub (D-183) va cada ~5 min en el mejor caso y
+  tocarlo pide el alcance `workflow`. Lo simple es dispararlo **donde el chofer avanza**: `setStage` de `data-provider.tsx`
+  (por donde pasan «Mi ruta», la ficha y el APK, que carga la web) y la **cola offline** al vaciarse, piden `POST
+  /api/avisos-cliente/en-camino` con el id, sin esperar respuesta, **solo si el interruptor está encendido**. El servidor
+  no se fía del navegador: rehace la ruta del chofer desde la base (`paradasDelChofer` + `routeOrder` + `siguienteParada`)
+  y decide. En modo enseñanza no se llega ahí.
+- **El proveedor es el que ya había, inyectable.** `lib/mensajeria.ts` es el camino de `/api/notify` sacado de la ruta
+  (RingCentral → Twilio para SMS, Resend para correo; sin llaves, «dry-run»); `/api/notify` ahora lo llama. Toda la
+  ejecución recibe el proveedor: las pruebas pasan un stub que cuenta, y en el demo (`NEXT_PUBLIC_LOCAL_MODE`)
+  `proveedorDelEntorno` devuelve **siempre** el stub, aunque la máquina tenga llaves.
+- **Idioma:** el de la orden si lo tiene (`customer_lang`, nuevo, opcional); si no, **inglés y español en un solo
+  mensaje**. La orden no guardaba idioma y un aviso que no se entiende es un aviso perdido. Medido el 2026-09-27 con los
+  enlaces de producción: los seis textos (2 tipos × en / es / bilingüe) salen en **2 segmentos** (201-273 caracteres): los
+  dos enlaces pesan más que el idioma, así que el bilingüe **no cuesta más**. Los textos van en **GSM-7** (sin á/í/ó/ú; é y ñ
+  sí están en el alfabeto): un solo carácter fuera lo pasa todo a UCS-2 y dobla los segmentos; una prueba lo exige.
+
+### Coste estimado (2026-09-27)
+
+- **Volumen:** «mediana 3 órdenes por día, máximo 14», medido en 30 días (`docs/route-algorithm-design.md`). No lo medí
+  yo; la consulta M2 del plan lo recuenta. Con ~26 días de reparto al mes: **~78 órdenes/mes** (mediana), **~364** (máximo
+  todos los días).
+- **SMS:** 2 avisos × 2 segmentos = **4 segmentos por orden**. Precio de Twilio (su página de precios de EE. UU., «current
+  as of August 2026», leída hoy): **$0.0083 por segmento + tasa del operador $0.0035-0.005** (AT&T 0.0035, T-Mobile y
+  Verizon 0.0045) ≈ **$0.0128 por segmento**. Mediana: 78 × 4 × 0.0128 ≈ **$4 al mes**; máximo: 364 × 4 × 0.0128 ≈ **$19
+  al mes**. Twilio es el proveedor de respaldo; **el primero es RingCentral**, cuyo precio por SMS **no pude leer** (su
+  página de planes no lo publica): cuenta con que el plan incluya un cupo y cobre lo que pase. **No incluye** el registro
+  10DLC (marca y campaña A2P), que los operadores exigen para SMS de empresa y que no medí.
+- **Correo:** Resend gratis hasta **3.000 al mes y 100 al día** (su página de precios, leída hoy); el máximo aquí serían 28
+  al día. **$0.**
+
+### Medido
+
+- `node scripts/verify.mjs`: tipos, pruebas y `next build` en verde (números en el informe del worker).
+- **Pruebas con nombre** en `avisos-cliente.test.ts` (reglas, texto, horas, cron por hora en CDT y CST, ejecución con
+  base falsa y proveedor stub: apagado no lee ni una orden, idempotencia, reprogramada, baja, fallo del proveedor) y
+  `avisos-cliente-rutas.test.ts` (secreto del cron, sesión de «en camino», token de la baja; `fetch` sustituido por uno
+  que revienta, para que nada pueda salir a la red).
+- **Mutantes** (`~/.claude/herramientas/mutantes`): **41 de 41 caen con una prueba con nombre** — reglas de a quién, las
+  etapas, la baja, los límites de hora, «mañana», la siguiente parada, el GSM-7, la idempotencia (con y sin el día), los
+  interruptores apagados, el orden de la ruta, el token, el proveedor del demo, las tres rutas, las llamadas desde
+  `setStage` y la cola offline, «Mi ruta», la ficha, Ajustes, la migración, `vercel.json` y la ruta pública.
+- **Demo** (CDP, 1440 × 900 y 390 × 844): Ajustes enseña la tarjeta con **los dos en «Off»** y la hora en «6:00 PM»
+  (nueve horas, 12 PM-8 PM); encender «La noche antes» con un clic de ratón lo guarda (`notify_night_before_enabled:
+  true`) y se volvió a apagar. La ficha de una Customer en edición enseña «Customer email (optional)», «Customer updates»
+  (SMS and email · SMS only · Email only · Don’t notify, en «SMS and email») y «Customer language» (English + Spanish ·
+  English · Español). `/unsubscribe/<token>` enseña la pregunta en los dos idiomas y un botón; pulsarlo en el demo dice
+  «Demo: nothing was saved»; un token con mala forma dice «This link is not valid» sin botón. 0 px de desplazamiento lateral
+  en los dos anchos.
+
+### Lo que no se hizo / no se verificó
+
+- **Nada contra la base**: ni la 150, ni su matriz (27 casos, §6 del plan), ni `upsert(..., ignoreDuplicates)` contra
+  PostgREST (solo con la base falsa).
+- **Ningún aviso real**, por la regla de CLAUDE.md. El primero de verdad saldrá cuando el dueño encienda un interruptor.
+  Recomendado antes: `GET /api/cron/avisos-noche-antes/23?ensayo=1` con el secreto, que dice a quién mandaría sin mandar.
+- Que Vercel acepte **diez rutas de cron bajo un segmento dinámico**: lo dirá el primer despliegue.
+- En el demo **no** se abrió una orden nueva hasta el paso del contacto ni una Transfer en edición: que el bloque no salga
+  en tienda-a-tienda se apoya en que vive **dentro** del bloque `!storeToStore` del contacto (el mismo que esconde cuenta,
+  contacto y teléfono, D-309).
+- **No hay pantalla del registro**: se consulta en SQL (M3 del plan). Si el dueño quiere verlo en la app, es trabajo aparte.
+- El SMS automático **al crear** la orden (`rc_auto_sms_enabled`, `OrderModal`) sigue como estaba y es **aparte**: no
+  mira la preferencia ni las bajas. Si el dueño enciende los dos, un cliente puede recibir ese y además estos.

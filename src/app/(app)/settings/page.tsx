@@ -13,6 +13,7 @@ import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 import { RouteEngineSettings } from "@/components/RouteEngineSettings";
+import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
 
 export default function SettingsPage() {
   const { me, users, settings, saveSettings, notify } = useData();
@@ -232,6 +233,8 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      <AvisosAlCliente settings={settings} saveSettings={saveSettings} notify={notify} t={t} />
 
       <div className="card">
         <h2>⏰ {t("Pending-approval deadline alert", "Alerta de vencimiento de aprobación")}</h2>
@@ -483,6 +486,73 @@ function PermissionEditor({
 }
 
 /** On/off switch for an opt-in integration. */
+/**
+ * Avisos al cliente, como OptimoRoute (D-NEXT, migración 150): la noche antes y «en camino». APAGADOS hasta que el
+ * admin los encienda aquí. Sin la 150 en la base no hay dónde guardarlos: se dice, y no se enseñan los interruptores
+ * (guardar una columna que no existe fallaría).
+ */
+function AvisosAlCliente({ settings, saveSettings, notify, t }: {
+  settings: Settings;
+  saveSettings: (patch: Partial<Settings>) => void | Promise<void>;
+  notify: (m: string) => void;
+  t: (en: string, es: string) => string;
+}) {
+  const hayColumnas = laBaseTieneAjustesDeAvisos(settings);
+  const hora = settings.notify_night_before_hour ?? HORA_NOCHE_ANTES_POR_DEFECTO;
+  return (
+    <div className="card" data-avisos-cliente={hayColumnas ? "si" : "sin-150"}>
+      <h2>📨 {t("Customer notifications", "Avisos al cliente")}</h2>
+      <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+        {t(
+          "Texts or emails the customer before and during the delivery, with the live tracking link and a link to stop them. Only Customer orders with a valid phone or email — never Transfer, Intertienda or training orders. Each order can choose SMS, email, both or none. They cost money and reach customers, so they stay OFF until you switch them on.",
+          "Manda al cliente un SMS o correo antes y durante la entrega, con el enlace de seguimiento y uno para darse de baja. Solo órdenes Customer con teléfono o correo válido — nunca Transfer, Intertienda ni órdenes de práctica. Cada orden elige SMS, correo, ambos o ninguno. Cuestan dinero y llegan a clientes, por eso quedan APAGADOS hasta que los encienda.",
+        )}
+      </p>
+      {!hayColumnas ? (
+        <div className="hint">{t("Waiting for database update 150 to be applied.", "Falta aplicar la actualización 150 de la base.")}</div>
+      ) : (
+        <>
+          <Toggle
+            label={t("The night before", "La noche antes")}
+            desc={t(
+              "“Your delivery is scheduled for tomorrow” — sent the evening before, at the time below (Texas time).",
+              "«Su entrega llega mañana» — se manda la tarde anterior, a la hora de abajo (hora de Texas).",
+            )}
+            on={settings.notify_night_before_enabled === true}
+            onChange={(v) => { saveSettings({ notify_night_before_enabled: v }); notify(v ? t("Night-before notice on", "Aviso de la noche antes encendido") : t("Night-before notice off", "Aviso de la noche antes apagado")); }}
+            t={t}
+          />
+          <div className="field" style={{ maxWidth: 220, marginTop: 8 }}>
+            <label>{t("Send at", "Enviar a las")}</label>
+            <select
+              value={hora}
+              onChange={(e) => { saveSettings({ notify_night_before_hour: Number(e.target.value) }); notify(t("Saved", "Guardado")); }}
+            >
+              {HORAS_NOCHE_ANTES.map((h) => <option key={h} value={h}>{`${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? "AM" : "PM"}`}</option>)}
+            </select>
+          </div>
+          <Toggle
+            label={t("On the way", "En camino")}
+            desc={t(
+              "“Your driver is on the way” — sent when the driver’s next stop is this customer and the order is already on the truck.",
+              "«Su chofer va en camino» — se manda cuando la siguiente parada del chofer es este cliente y la orden ya va en el camión.",
+            )}
+            on={settings.notify_on_the_way_enabled === true}
+            onChange={(v) => { saveSettings({ notify_on_the_way_enabled: v }); notify(v ? t("On-the-way notice on", "Aviso en camino encendido") : t("On-the-way notice off", "Aviso en camino apagado")); }}
+            t={t}
+          />
+          <div className="hint" style={{ marginTop: 10 }}>
+            {t(
+              "Sent through the same RingCentral (SMS) and Resend (email) accounts as the manual buttons. Each order gets each notice at most once per delivery date.",
+              "Salen por las mismas cuentas de RingCentral (SMS) y Resend (correo) que los botones manuales. Cada orden recibe cada aviso una sola vez por fecha de entrega.",
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Toggle({
   label, desc, on, onChange, t,
 }: {

@@ -131,8 +131,9 @@ describe("la pantalla usa lo de arriba", () => {
   it("la ficha: el guardado pasa por `conPrioridadSiCabe` con las órdenes cargadas", () => {
     const p = plano(ficha);
     const guardar = p.slice(p.indexOf("const save = async () => {"), p.indexOf("// Hard rule: pickup and delivery address may never be identical."));
-    expect(guardar).toContain("const payload = conPrioridadSiCabe({ ...withDurations(d),");
-    expect(guardar).toContain("}, deliveries);");
+    // Desde D-NEXT (150) lo envuelve `conAvisosSiCabe`, con las mismas órdenes: las dos columnas viajan solo si caben.
+    expect(guardar).toContain("const payload = conAvisosSiCabe(conPrioridadSiCabe({ ...withDurations(d),");
+    expect(guardar).toContain("}, deliveries), deliveries);");
   });
   it("Órdenes: la columna «Prioridad» ordena y filtra por `valorDePrioridad` y solo pinta pastilla a lo que `seDestaca`", () => {
     const c = plano(tabla.slice(tabla.indexOf('{ key: "priority"'), tabla.indexOf('{ key: "type"')));

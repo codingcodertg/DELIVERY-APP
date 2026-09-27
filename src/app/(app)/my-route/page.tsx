@@ -10,6 +10,7 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
+import { siguienteParada } from "@/lib/avisos-cliente";
 import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -123,8 +124,9 @@ export default function MyRoutePage() {
   };
 
   const done = stops.filter((d) => d.stage === "delivered").length;
-  // The one stop that matters right now: first in sequence still to finish.
-  const next = stops.find((d) => d.stage !== "delivered") ?? null;
+  // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
+  // aviso «en camino» en el servidor (D-NEXT): lo que el chofer ve como siguiente es lo que se avisa.
+  const next = siguienteParada(stops);
 
   const storeMarkers = useStoreMarkers(settings.stores);
 

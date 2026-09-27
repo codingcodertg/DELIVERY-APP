@@ -24,6 +24,9 @@ const tabla: Fila[] = [
   // públicas: se sirven tal cual, con o sin sesión
   ["/track/abc",                                    sirve,                                       sirve],
   ["/track",                                        sirve,                                       sirve],
+  ["/unsubscribe/AbCdEfGh12345678",                sirve,                                       sirve],
+  ["/api/avisos-cliente/baja",                      sirve,                                       sirve],
+  ["/api/cron/avisos-noche-antes/23",               sirve,                                       sirve],
   ["/auth/callback?code=x",                         sirve,                                       sirve],
   ["/auth/signout",                                 sirve,                                       sirve],
   ["/reset-password",                               sirve,                                       sirve],
