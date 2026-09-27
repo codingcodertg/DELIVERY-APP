@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { stageInfo } from "@/lib/constants";
 import { fmtDate, fmtWindows } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import { guardaEncuestaLocal, leeEncuestasLocales, MAX_COMENTARIO, sePuedeCalificar, validaRespuesta } from "@/lib/encuesta";
 
 // ============================================================
 // Public, read-only delivery tracking page (#25). A customer opens
@@ -41,6 +42,8 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
   // unwraps with React.use() instead of await.
   const { id } = use(params);
   const [order, setOrder] = useState<TrackOrder | null | undefined>(undefined);
+  // La encuesta (D-418): `null` = no se enseña (no está entregada, o la base aún no la tiene).
+  const [survey, setSurvey] = useState<{ answered: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +53,11 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
           const raw = localStorage.getItem(LS_KEY);
           if (raw) {
             const store = JSON.parse(raw) as { deliveries: Delivery[] };
-            if (!cancelled) setOrder(store.deliveries.find((d) => d.id === id) ?? null);
+            const found = store.deliveries.find((d) => d.id === id) ?? null;
+            if (!cancelled) {
+              setOrder(found);
+              setSurvey(found && sePuedeCalificar(found.stage) ? { answered: leeEncuestasLocales(localStorage).some((f) => f.delivery_id === id) } : null);
+            }
             return;
           }
         } catch { /* ignore */ }
@@ -60,7 +67,10 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
       try {
         const res = await fetch(`/api/track/${id}`, { cache: "no-store" });
         const b = await res.json().catch(() => ({}));
-        if (!cancelled) setOrder((b.order as TrackOrder | null) ?? null);
+        if (!cancelled) {
+          setOrder((b.order as TrackOrder | null) ?? null);
+          setSurvey((b.survey as { answered: boolean } | null | undefined) ?? null);
+        }
       } catch {
         if (!cancelled) setOrder(null);
       }
@@ -117,9 +127,67 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
               {order.assigned_driver && <Row k="Driver" v={order.assigned_driver} />}
               {order.pod_received_by && <Row k="Received by" v={order.pod_received_by} />}
             </div>
+
+            {sePuedeCalificar(order.stage) && survey && <Encuesta id={id} answered={survey.answered} />}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * La encuesta de satisfacción (D-418, 151): 1-5 estrellas y un comentario opcional, una vez por orden. Sin login: la
+ * guarda `/api/track/<id>/survey`, que comprueba todo antes de escribir. En el demo, en este navegador.
+ */
+function Encuesta({ id, answered }: { id: string; answered: boolean }) {
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error">(answered ? "done" : "idle");
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    const v = validaRespuesta({ rating: stars, comment });
+    if (!v.ok) { setState("error"); setError(v.error); return; }
+    setState("sending");
+    if (LOCAL_MODE) {
+      guardaEncuestaLocal(localStorage, id, v.respuesta, new Date().toISOString());
+      setState("done");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/track/${id}/survey`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v.respuesta) });
+      const b = await res.json().catch(() => ({}));
+      if (res.ok || b.already) { setState("done"); return; }
+      setState("error");
+      setError(typeof b.error === "string" ? b.error : "Something went wrong. Please try again.");
+    } catch {
+      setState("error");
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  if (state === "done") {
+    return <div className="card" data-encuesta="gracias" style={{ marginTop: 20 }}><b>Thank you for your feedback!</b></div>;
+  }
+  return (
+    <div className="card" data-encuesta="formulario" style={{ marginTop: 20 }}>
+      <b>How was your delivery?</b>
+      <div role="radiogroup" aria-label="Rating" style={{ display: "flex", gap: 4, margin: "10px 0" }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={stars === n} aria-label={`${n} star${n > 1 ? "s" : ""}`} data-estrella={n}
+            onClick={() => setStars(n)}
+            style={{ fontSize: 30, lineHeight: 1, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", color: n <= stars ? "var(--amber)" : "var(--line)" }}>
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea value={comment} maxLength={MAX_COMENTARIO} rows={3} placeholder="Anything you'd like to tell us? (optional)"
+        onChange={(e) => setComment(e.target.value)} style={{ width: "100%", boxSizing: "border-box" }} />
+      {state === "error" && <div className="hint" style={{ color: "var(--red)" }}>{error}</div>}
+      <button type="button" className="btn btn-primary" style={{ marginTop: 10 }} disabled={stars === 0 || state === "sending"} onClick={() => void send()}>
+        {state === "sending" ? "Sending…" : "Send"}
+      </button>
     </div>
   );
 }

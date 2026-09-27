@@ -48,7 +48,7 @@ describe("planificar el día deja un borrador completo, y reproducible", () => {
       { id: "b", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 1, load_auto: true },
     ]);
     expect(b.plan).toMatchObject({ plan_date: "2026-03-04", source: "engine", provider: "google", traffic: true, converged: true, unassigned_count: 0, late_minutes: 0 });
-    expect(b.plan.algorithm_version).toBe("motor-2");
+    expect(b.plan.algorithm_version).toBe("motor-3");
     expect(b.paradas.map((p) => p.label)).toEqual(["P1", "P2", "D1", "D2"]);
     expect(b.plan.total_minutes).toBe(b.paradas[3].etd + 14 - 480);   // hasta volver a la base, con tráfico
   });
@@ -324,13 +324,13 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("lo que quedó fuera sale orden por orden con su motivo y su siguiente paso; y cada entrega puede preguntar «¿por qué aquí?»", () => {
     expect(plano(panel)).toContain("{r.fueraConPorque!.map((x) => (");
-    expect(plano(panel)).toContain('<b>{nombreDeOrden(x.id)}</b> — {motivo(x.motivo)}.');
+    expect(plano(panel)).toContain('<b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.');
     expect(plano(panel)).toContain('{REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}');
     // Cada remedio que la librería puede devolver tiene su frase en el panel (menos «ninguno», que calla).
     const lib = leer("src/lib/route-plan/porque.ts");
     const tabla = lib.slice(lib.indexOf("const REMEDIOS"), lib.indexOf("};", lib.indexOf("const REMEDIOS")));
     const remedios = [...tabla.matchAll(/: "([a-z_]+)"/g)].map((m) => m[1]);
-    expect(new Set(remedios).size).toBe(7);
+    expect(new Set(remedios).size).toBe(8); // 8 con «dar_requisito» (D-418)
     for (const x of new Set(remedios)) expect(panel).toContain(`  ${x}: [`);
     const vista = plano(sinComentarios(leer("src/components/RutaDelPlan.tsx")));
     expect(vista).toContain('{p.kind === "D" && porque?.[p.order_ref] && ( <button');

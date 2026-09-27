@@ -1035,6 +1035,17 @@ table.orders th { text-align: left; }
 .gantt-hour { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--gray); }
 .gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
 .gantt-bar { position: absolute; top: 4px; height: 22px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; padding: 0 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.28); }
+/* Arrastrar paradas en la línea de tiempo (D-417). La ventana de cada parada es la raya fina de abajo. */
+.gantt-ventana { position: absolute; bottom: 0; height: 3px; border-radius: 2px; opacity: .35; pointer-events: none; }
+.gantt-bar-tarde { outline: 2px solid var(--red); outline-offset: -1px; }
+.gantt-bar-arrastrable { cursor: grab; touch-action: none; user-select: none; }
+.gantt-bar-arrastrada { opacity: .35; cursor: grabbing; }
+.gantt-marca { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--green); pointer-events: none; z-index: 2; }
+.gantt-marca-mal { background: var(--red); }
+.gantt-nombre-ok { outline: 2px dashed var(--green); border-radius: 6px; }
+.gantt-nombre-mal { outline: 2px dashed var(--red); border-radius: 6px; }
+.gantt-fantasma { position: fixed; z-index: 1000; pointer-events: none; max-width: 360px; display: grid; gap: 2px; padding: 6px 9px; border-radius: 8px; background: var(--card); color: var(--text); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(10,20,40,.25); font-size: 12px; }
+.gantt-previa-mal { color: var(--red); font-weight: 700; }
 
 /* ============================================================
    Mobile (phones) — make the app comfortable in a mobile browser.

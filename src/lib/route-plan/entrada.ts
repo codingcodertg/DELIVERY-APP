@@ -2,8 +2,10 @@ import { parseWindow } from "@/lib/dispatch";
 import { serviceMin } from "@/lib/trip-timing";
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
-import { choferParaElMotor, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
+import { choferParaElMotor, COLUMNAS_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
 import { prioridadDe } from "@/lib/prioridad";
+import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from "@/lib/requisitos";
+import { leeConOpcionales, type LecturaConError } from "@/lib/columnas-opcionales";
 import {
   PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
 } from "@/lib/route-engine";
@@ -35,14 +37,16 @@ type OrdenDeLaBase = Pick<Delivery,
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
-  priority?: Delivery["priority"] };
+  priority?: Delivery["priority"];
+  /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
+  requirements?: Delivery["requirements"] };
 
 export interface DatosDelDia {
   ordenes: readonly OrdenDeLaBase[];
   choferes: readonly Pick<Profile, "id" | "full_name" | "role">[];
   ajustesDeChofer: readonly DriverSettings[];
   settings: Pick<Settings, "stores" | "accounts" | "order_type_rules" | "route_buckets" | "driver_capacity" | "default_truck_capacity" |
-    "route_weights" | "route_hard_windows" | "route_late_cap_min">;
+    "route_weights" | "route_hard_windows" | "route_late_cap_min" | "delivery_requirements">;
   /** Lo que escribió el último plan publicado de esa fecha, para saber qué chofer puso el motor y cuál una persona. */
   publicadoAntes?: readonly Pick<EscrituraDeOrden, "id" | "assigned_driver">[];
   /** Choferes que ese día no están (vacaciones, baja): por NOMBRE, como lo da `unavailableDriverNames`. */
@@ -55,25 +59,30 @@ export interface DatosDelDia {
   bloqueadas?: readonly string[];
 }
 
-/** Las columnas de una orden que lee «Planificar el día». `priority` (147) no está: la añade `leeOrdenesDelDia`
- *  solo si la base la tiene. */
+/** Las columnas de una orden que lee «Planificar el día». `priority` (147) y `requirements` (151) no están: las añade
+ *  `leeOrdenesDelDia` solo si la base las tiene. */
 export const COLUMNAS_DE_ORDEN =
   "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
-type Lectura = { data: unknown[] | null; error: { code?: string; message: string } | null };
+/** Las que se piden si la base las tiene, en este orden. */
+export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements"] as const;
+
+type Lectura = LecturaConError<unknown[] | null>;
+export { leeConOpcionales };
 
 /**
- * Lee las órdenes del día pidiendo también `priority`. Si la base todavía no tiene la columna —la 147 se aplica
- * DESPUÉS de fusionar—, PostgREST no devuelve las demás columnas sin ella: rechaza la consulta entera, y
- * «Planificar el día» se quedaría sin órdenes. Entonces se vuelve a leer sin ella, y todas son normales
- * (`prioridadDe`). Cualquier otro error se devuelve tal cual: no es cosa de la columna.
+ * Lee las órdenes del día pidiendo también `priority` (147) y `requirements` (151). Sin una de ellas, se lee sin ella:
+ * todas normales (`prioridadDe`), o ninguna pide nada (`requisitosDeLaOrden`).
  */
 export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Lectura>): Promise<Lectura> {
-  const conPrioridad = await lee(`${COLUMNAS_DE_ORDEN}, priority`);
-  const e = conPrioridad.error;
-  if (e && (e.code === "42703" || e.code === "PGRST204") && /priority/.test(e.message)) return lee(COLUMNAS_DE_ORDEN);
-  return conPrioridad;
+  return leeConOpcionales(lee, COLUMNAS_DE_ORDEN, COLUMNAS_OPCIONALES_DE_ORDEN);
 }
+
+/** Las columnas de `settings` que lee «Planificar el día»; el catálogo de requisitos (151) se pide aparte, como opcional.
+ *  Las de `driver_settings` (`COLUMNAS_DE_CHOFER`) viven en `route-settings`, porque las lee también Ajustes. */
+export const COLUMNAS_DE_AJUSTES =
+  "stores, accounts, order_type_rules, route_buckets, driver_capacity, default_truck_capacity, route_weights, route_hard_windows, route_late_cap_min";
+export { COLUMNAS_DE_CHOFER };
 
 export type FueraDelPlan = { id: string; motivo: "en_un_carril_manual" | "chofer_no_rutea" | "en_ruta_bloqueada" };
 
@@ -104,6 +113,9 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     return puntoDeTienda(t.name);
   };
 
+  // El catálogo de requisitos (D-418, 151): lo que no está en él no cuenta, ni en la orden ni en el chofer.
+  const catalogo = catalogoDeRequisitos(settings);
+
   // ---- Choferes ----
   const filaDe = new Map(datos.ajustesDeChofer.map((f) => [f.profile_id, f]));
   const paraElMotor: ChoferParaElMotor[] = datos.choferes.filter((p) => p.role === "driver").map((p) => choferParaElMotor(p, filaDe.get(p.id), settings));
@@ -117,7 +129,10 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       : (datos.noDisponibles ?? []).some((n) => igual(n, c.nombre)) ? "no_disponible" as const
       : c.falta[0] ?? (!c.rutea || !base ? "no_rutea" as const : null);
     if (motivo || !base) { choferesFuera.push({ id: c.id, nombre: c.nombre, motivo: motivo ?? "no_rutea" }); continue; }
-    choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase });
+    // Lo que tiene su camión (D-418, 151), solo si tiene algo: sin requisitos, la entrada que se guarda es la de siempre.
+    const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
+    choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
+      ...(habilidades.length ? { habilidades } : {}) });
   }
   const idPorNombre = new Map(paraElMotor.map((c) => [c.nombre.trim().toLowerCase(), c.id]));
   const ruteables = new Set(choferes.map((c) => c.id));
@@ -159,6 +174,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       choferFijado,
       // Solo si no es normal: sin la 147, o con todo en normal, la entrada que se guarda es la de siempre.
       ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),
+      // Lo mismo con los requisitos (D-418): solo si pide algo del catálogo.
+      ...(requisitosDeLaOrden(d, catalogo).length ? { requisitos: requisitosDeLaOrden(d, catalogo) } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }

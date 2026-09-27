@@ -1,5 +1,6 @@
 import type { Desglose, Explicacion, PrioridadDeOrden, TipoDeViolacion } from "@/lib/route-engine";
 import { etiquetaDePrioridad } from "@/lib/prioridad";
+import { fraseDeFaltan } from "@/lib/requisitos";
 import { ordenDeLaParte } from "./publicar";
 
 /**
@@ -11,13 +12,15 @@ import { ordenDeLaParte } from "./publicar";
  */
 
 /** Por qué con ese chofer no: lo que el motor violaría, o que ni se le puede ofrecer (fijada con otro, o parte de una orden que ya lleva otro). */
-export type MotivoDeNo = TipoDeViolacion | "no_permitido";
+export type MotivoDeNo = TipoDeViolacion | "no_permitido" | "falta_requisito";
 
 export interface OtraOpcion {
   choferId: string;
   chofer: string;
   /** Con ese chofer no se puede, y por qué. */
   noPuede: MotivoDeNo | null;
+  /** Con `falta_requisito` (D-418): lo que el camión de ese chofer no tiene. */
+  faltan?: string[];
   /** Si se puede: cuánto PEOR saldría el plan entero. Positivo = peor que como está. */
   masManejoMin: number; masMillas: number; masTardeMin: number; masBuilderMin: number;
 }
@@ -70,6 +73,7 @@ export function porQueEstaAqui(
       return {
         choferId: a.chofer, chofer: nombreDe.get(a.chofer) ?? "", noPuede: d ? null : (a.motivo ?? "no_permitido"),
         masManejoMin: d?.manejoMin ?? 0, masMillas: centesimas(d?.millas ?? 0), masTardeMin: d?.tardeMin ?? 0, masBuilderMin: d?.builder ?? 0,
+        ...(a.faltan?.length ? { faltan: [...a.faltan] } : {}),
       };
     }).sort((x, y) => {
       if (!!x.noPuede !== !!y.noPuede) return x.noPuede ? 1 : -1;
@@ -100,12 +104,13 @@ export function porQueDelPlan(
 }
 
 /** Qué se puede HACER con una orden que quedó fuera. No es el motivo (ese ya lo dice el motor): es el siguiente paso. */
-export type Remedio = "poner_pin" | "revisar_choferes" | "partir_o_camion_mayor" | "cambiar_ventana" | "otro_dia_o_mas_choferes" | "cambiar_chofer_fijado" | "quitar_del_carril" | "ninguno";
+export type Remedio = "dar_requisito" | "poner_pin" | "revisar_choferes" | "partir_o_camion_mayor" | "cambiar_ventana" | "otro_dia_o_mas_choferes" | "cambiar_chofer_fijado" | "quitar_del_carril" | "ninguno";
 
 const REMEDIOS: Record<string, Remedio> = {
   sin_punto: "poner_pin", sin_chofer_disponible: "revisar_choferes", supera_capacidad: "partir_o_camion_mayor", ventana_imposible: "cambiar_ventana",
   retraso_sobre_el_tope: "cambiar_ventana", fuera_de_turno: "otro_dia_o_mas_choferes", no_cabe_con_el_resto: "otro_dia_o_mas_choferes",
   chofer_fijado_sin_hueco: "cambiar_chofer_fijado", chofer_no_rutea: "cambiar_chofer_fijado", en_un_carril_manual: "quitar_del_carril",
+  falta_requisito: "dar_requisito",
 };
 
 /** Los motivos en los que la orden cabía SOLA y se quedó sin sitio por las demás: ahí la prioridad pudo decidir. */
@@ -118,12 +123,14 @@ export interface FueraConPorque {
   /** Cuando se quedó sin sitio: cuántas órdenes de MÁS prioridad sí van en ruta. El motor coloca antes lo de más
    *  prioridad, así que son las que cogieron el sitio. Solo si hay alguna. */
   masPrioritariasDentro?: number;
+  /** Con `falta_requisito` (D-418): lo que le falta al chofer que más cerca estaba de tenerlo todo. */
+  faltan?: string[];
 }
 
 /** Todo lo que no va en ninguna ruta, junto: lo que el motor no pudo asignar y lo que ni le llegó. Una fila por
  *  ORDEN (no por parte), en un orden estable. `ordenes`: las del plan como entraron al motor, para la prioridad. */
 export function fueraConPorque(
-  sinAsignar: readonly { orden: string; motivo: string }[] | null | undefined,
+  sinAsignar: readonly { orden: string; motivo: string; faltan?: readonly string[] }[] | null | undefined,
   fuera: readonly { id: string; motivo: string }[] | null | undefined,
   ordenes: readonly OrdenDelPlan[] | null = null,
 ): FueraConPorque[] {
@@ -132,7 +139,7 @@ export function fueraConPorque(
   for (const f of fuera ?? []) filas.set(f.id, { id: f.id, orden: f.id, motivo: f.motivo, remedio: REMEDIOS[f.motivo] ?? "ninguno", laDejoFuera: "entrada" });
   for (const s of sinAsignar ?? []) {
     const id = ordenDeLaParte(s.orden);
-    if (!filas.has(id)) filas.set(id, { id, orden: s.orden, motivo: s.motivo, remedio: REMEDIOS[s.motivo] ?? "ninguno", laDejoFuera: "motor" });
+    if (!filas.has(id)) filas.set(id, { id, orden: s.orden, motivo: s.motivo, remedio: REMEDIOS[s.motivo] ?? "ninguno", laDejoFuera: "motor", ...(s.faltan?.length ? { faltan: [...s.faltan] } : {}) });
   }
   const dentro = (ordenes ?? []).filter((o) => !filas.has(o.id));
   for (const f of filas.values()) {
@@ -171,4 +178,20 @@ export function fraseDePrioridadFuera(f: Pick<FueraConPorque, "prioridad" | "mas
       : `The room went first to ${n} higher-priority ${n === 1 ? "order" : "orders"}.`);
   }
   return partes.length ? partes.join(" ") : null;
+}
+
+// ---- Requisitos del camión (D-418): las frases, aquí, para que la pantalla solo las pinte y una prueba las fije ----
+
+/** El motivo de una orden fuera por requisitos: «falta Liftgate: ningún chofer que rutea hoy lo tiene». `null` = no es eso. */
+export function fraseDeRequisitoFuera(f: Pick<FueraConPorque, "motivo" | "faltan">, lang: "en" | "es"): string | null {
+  if (f.motivo !== "falta_requisito") return null;
+  const lista = f.faltan ?? [];
+  if (!lista.length) return lang === "es" ? "ningún chofer que rutea hoy tiene lo que pide" : "no driver routed today has what it needs";
+  return lang === "es" ? `${fraseDeFaltan(lista, lang)}: ningún chofer que rutea hoy lo tiene todo` : `${fraseDeFaltan(lista, lang)}: no driver routed today has it all`;
+}
+
+/** Por qué con ese chofer no, cuando es por el camión: «falta Liftgate». `null` = es otro motivo. */
+export function fraseDeRequisitoConOtro(o: Pick<OtraOpcion, "noPuede" | "faltan">, lang: "en" | "es"): string | null {
+  if (o.noPuede !== "falta_requisito") return null;
+  return fraseDeFaltan(o.faltan ?? [], lang) || (lang === "es" ? "su camión no tiene lo que pide" : "their truck lacks what it needs");
 }

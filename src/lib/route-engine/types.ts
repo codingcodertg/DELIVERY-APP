@@ -57,6 +57,9 @@ export interface OrdenEntrada {
   /** La prioridad de la orden (D-412), como OptimoRoute. Sin ella —una base sin la 147, un plan guardado de
    *  antes—, normal: el motor planifica exactamente como antes de que existiera. */
   prioridad?: PrioridadDeOrden | null;
+  /** Lo que pide del camión (D-418, 151; OptimoRoute `skills`): solo va con un chofer que lo tenga todo. Sin ella, o
+   *  vacía, va con cualquiera, como antes. Un chofer fijado por una persona se respeta aunque no lo tenga. */
+  requisitos?: string[] | null;
 }
 
 /** Los cuatro niveles de la 147. El motor no importa `lib/prioridad`: se queda sin nada de fuera. */
@@ -74,6 +77,8 @@ export interface ChoferEntrada {
   entrada: number;
   salida: number;
   vuelveABase: boolean;
+  /** Lo que tiene su camión (D-418, 151; OptimoRoute `vehicleFeatures`). Se compara sin mayúsculas. */
+  habilidades?: string[] | null;
 }
 
 export type TipoDeParada = "P" | "D";
@@ -192,18 +197,24 @@ export type MotivoSinAsignar =
   | "retraso_sobre_el_tope"
   | "fuera_de_turno"
   | "chofer_fijado_sin_hueco"
-  | "no_cabe_con_el_resto";
+  | "no_cabe_con_el_resto"
+  /** Ningún chofer que rutea tiene lo que pide (D-418). `faltan` dice qué. */
+  | "falta_requisito";
 
 export interface SinAsignar {
   orden: string;
   motivo: MotivoSinAsignar;
+  /** Solo con `falta_requisito`: lo que le falta al chofer que más cerca estaba de tenerlo todo. */
+  faltan?: string[];
 }
 
 /** Lo que costaría llevar una orden con OTRO chofer, término a término. `null` = con ese no se puede. */
 export interface Alternativa {
   chofer: string;
   diferencia: Desglose | null;
-  motivo?: TipoDeViolacion | "no_permitido";
+  motivo?: TipoDeViolacion | "no_permitido" | "falta_requisito";
+  /** Solo con `falta_requisito`: lo que ese chofer no tiene. */
+  faltan?: string[];
 }
 
 export interface Explicacion {

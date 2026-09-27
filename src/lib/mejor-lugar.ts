@@ -51,6 +51,23 @@ export interface EntradaDeMejorLugar {
   inicioMin: number;
 }
 
+/**
+ * El filtro de chofer válido (D-418, requisitos del camión): de las órdenes marcadas, cuáles puede llevar el chofer de
+ * la ruta elegida y cuáles no, con lo que le falta. Va ANTES de buscar hueco y antes de «asignar al final» (sin pin o de
+ * otro día): una orden que pide liftgate no entra en un camión sin liftgate por ningún camino. El cálculo del hueco
+ * (`mejorLugar`) no cambia. `faltanA` es `faltanAlChofer` de `lib/requisitos` con esa ruta.
+ */
+export function separaPorRequisitos<T>(marcadas: readonly T[], faltanA: (orden: T) => readonly string[]): { pueden: T[]; no: { orden: T; faltan: string[] }[] } {
+  const pueden: T[] = [];
+  const no: { orden: T; faltan: string[] }[] = [];
+  for (const d of marcadas) {
+    const falta = faltanA(d);
+    if (falta.length) no.push({ orden: d, faltan: [...falta] });
+    else pueden.push(d);
+  }
+  return { pueden, no };
+}
+
 export interface Hueco {
   /** Índice del viaje (0 = el primero). `viaje === viajes.length` es un viaje nuevo. */
   viaje: number;

@@ -55,7 +55,14 @@ import { sumaDinero } from "@/lib/totales";
 import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
-import { avisoDelHueco, escrituraDelHueco, mejorLugar, type ParadaDeRuta } from "@/lib/mejor-lugar";
+import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
+import {
+  anota, barrasDeLaRuta, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
+  HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
+  type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
+} from "@/lib/arrastre-de-paradas";
+import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
+import { fraseDeFaltan } from "@/lib/requisitos";
 import { avisoDeSaltadas, CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, optimizaSinLasBloqueadas, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 
@@ -207,7 +214,7 @@ interface RoutePlan {
 }
 
 export default function RoutesPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [date, setDate] = useState(todayISO());
@@ -829,6 +836,8 @@ export default function RoutesPage() {
   const colorFor = (driver: string | null) => (driver ? settings.driver_colors?.[driver] || fallbackDriverColor(driver) : UNASSIGNED_COLOR);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
+  // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
+  const { faltanA } = useRequisitosDelCamion();
   const setCapacity = (driver: string, capacity: number) => {
     clearRouteFor(driver);
     saveSettings({ driver_capacity: { ...(settings.driver_capacity ?? {}), [driver]: capacity } });
@@ -1051,13 +1060,38 @@ export default function RoutesPage() {
     printRouteManifest(label, stops, settings, lang, fmtDate(date));
   };
 
-  // Timeline rows: drivers that have stops, each drawn over the day axis.
-  const ganttRows: GanttRow[] = useMemo(
-    () => boardColumns
-      .filter((c) => c.key !== "__unassigned__" && c.orders.length > 0)
-      .map((c) => ({ key: c.key, title: c.title, color: c.color, orders: c.orders })),
-    [boardColumns],
-  );
+  // «📅 Horario» (D-417): cada ruta del día en su orden y sus viajes (`buildTrips`, lo mismo que la tabla de paradas), con
+  // cada parada a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
+  // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve.
+  // La base: las coordenadas de la tienda en Ajustes si las tiene; si no, las que la pantalla ya buscó para pintar la «P».
+  const baseDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {
+    const direccion = (pickupAddressFor(laneKey) ?? "").trim();
+    const tienda = settings.stores.find((s) => (s.address || "").trim() === direccion && s.lat != null && s.lng != null);
+    if (tienda) return { lat: tienda.lat!, lng: tienda.lng! };
+    const c = depotCoords[direccion];
+    return c ? { lat: c[0], lng: c[1] } : null;
+  };
+  const aParadaDelGantt = (x: Delivery): ParadaDelGantt => ({
+    id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
+    ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
+    assigned_driver: x.assigned_driver ?? null, route_seq: x.route_seq ?? null, load_no: x.load_no ?? null,
+  });
+  const rutasDelGantt: RutaDelGantt[] = lanes.map((l) => {
+    const stops = byDriver.get(l.key) ?? [];
+    const capacidad = capacityFor(driverOf(l.key));
+    return {
+      clave: l.key, viajes: buildTrips(stops, capacidad).map((v) => v.map(aParadaDelGantt)), manual: hasManualLoads(stops),
+      capacidad, bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key),
+    };
+  });
+  // Una fila por ruta, también las vacías: se puede soltar una parada en un chofer que aún no tiene nada.
+  const ganttRows: GanttRow[] = rutasDelGantt.map((r) => {
+    const l = lanes.find((x) => x.key === r.clave)!;
+    return {
+      key: r.clave, title: l.label, color: colorFor(l.driver), orders: byDriver.get(r.clave) ?? [],
+      barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,
+    };
+  });
 
   // A driver's stops changed, so any earlier optimize summary/trace (and any
   // in-flight simulation) is stale — drop it rather than show a route that
@@ -1414,8 +1448,14 @@ export default function RoutesPage() {
       notify(t(`🔒 ${laneLabel(laneKey)} is locked — Best fit leaves it alone. Unlock it, or use “Assign”.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Mejor lugar no la toca. Desbloquéela, o use «Asignar».`));
       return;
     }
-    const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));
-    if (!marcadas.length) return;
+    // El filtro de chofer válido (D-418): lo que su camión no puede llevar ni se coloca ni se asigna al final.
+    const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));
+    const noEnEn = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "en")}`).join(", ");
+    const noEnEs = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "es")}`).join(", ");
+    if (!marcadas.length) {
+      if (sinCamion.length) notify(t(`Not placed — ${laneLabel(laneKey)}'s truck lacks what they need: ${noEnEn}.`, `Sin colocar — el camión de ${laneLabel(laneKey)} no tiene lo que piden: ${noEnEs}.`));
+      return;
+    }
     const delDia = new Set(dayOrders.map((d) => d.id));
     const capacidad = capacityFor(driverOf(laneKey));
     // La base: la de la ruta; con la ruta vacía, la recogida de la primera orden. Las coordenadas de la tienda de
@@ -1469,10 +1509,10 @@ export default function RoutesPage() {
       setAutoAssigning(false);
     }
     clearSelection();
-    const extraEn = aMano.length ? ` Assigned at the end (no pin or another day): #${aMano.join(", #")}.` : "";
-    const extraEs = aMano.length ? ` Asignadas al final (sin pin o de otro día): #${aMano.join(", #")}.` : "";
+    const extraEn = (aMano.length ? ` Assigned at the end (no pin or another day): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Not placed — the truck lacks what they need: ${noEnEn}.` : "");
+    const extraEs = (aMano.length ? ` Asignadas al final (sin pin o de otro día): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Sin colocar — el camión no tiene lo que piden: ${noEnEs}.` : "");
     notify(t(colocadas.map((a) => a.en).join(" · ") + extraEn, colocadas.map((a) => a.es).join(" · ") + extraEs));
-    setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
+    setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
 
   /** Simulate adding an unassigned order to the selected driver's day —
@@ -1547,7 +1587,124 @@ export default function RoutesPage() {
     // One guarded operation for the whole new sequence: the list updates
     // locally right away and is held there until every write lands, so a
     // realtime refetch can't snap the stop back to where it was.
-    await reorderStops(list.map((d) => d.id), loadNoById);
+    const ids = list.map((d) => d.id);
+    const ok = await reorderStops(ids, loadNoById);
+    // Las flechas también entran en deshacer/rehacer (D-417): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
+    // no se deshace pisando la flecha (su comprobación lo vería cambiado).
+    if (ok) {
+      const antes = fotoDe(trips.flat().map(aParadaDelGantt));
+      await anotaMovimiento({ en: `#${orderLabel(item)} ${dir < 0 ? "up" : "down"}`, es: `#${orderLabel(item)} ${dir < 0 ? "arriba" : "abajo"}` }, [laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById));
+    }
+  };
+
+  // ---- Deshacer / rehacer (D-417) -------------------------------------------------------------------------------
+  // Los movimientos a mano de ESTA sesión y de ESTE día: arrastrar en «📅 Horario» y las flechas ↑ ↓ de parada. Deshacer
+  // es otra escritura en la base (los mismos campos que las flechas: `assigned_driver`, `route_seq`, `load_no`), y antes
+  // de escribir se lee lo que hay AHORA: si otra persona tocó algo de lo que se va a escribir, no se escribe nada.
+  const [historial, setHistorial] = useState<Historial>(HISTORIAL_VACIO);
+  const [moviendo, setMoviendo] = useState(false);
+  useEffect(() => { setHistorial(HISTORIAL_VACIO); }, [date]);
+  const deliveriesRef = useRef(deliveries);
+  deliveriesRef.current = deliveries;
+  /** Lo que hay ahora de estas paradas. Con base, leído de la base en este momento (no lo de la pantalla, que puede ir
+   * por detrás del tiempo real); sin base (demo) o en modo práctica, lo que la pantalla tiene, que es la verdad ahí. */
+  const leeFilasFrescas = async (ids: string[]): Promise<FilaFresca[] | null> => {
+    if (SIN_BASE || teaching) {
+      await new Promise((r) => setTimeout(r, 60)); // que el demo pinte lo que acaba de escribir
+      const quiero = new Set(ids);
+      return deliveriesRef.current.filter((d) => quiero.has(d.id)).map((d) => ({
+        id: d.id, assigned_driver: d.assigned_driver ?? null, route_seq: d.route_seq ?? null, load_no: d.load_no ?? null, updated_at: d.updated_at ?? null,
+      }));
+    }
+    const { data, error } = await createClient().from("deliveries").select("id, assigned_driver, route_seq, load_no, updated_at").in("id", ids);
+    if (error || !data) return null;
+    return data as FilaFresca[];
+  };
+  const anotaMovimiento = async (etiqueta: { en: string; es: string }, rutas: string[], antes: ReturnType<typeof fotoDe>, despues: ReturnType<typeof fotoDe>) => {
+    const sellos = sellosDe(await leeFilasFrescas(Object.keys(despues)));
+    setHistorial((h) => anota(h, { etiqueta, rutas, antes, despues, sellos }));
+  };
+  const vuelve = async (dir: Direccion) => {
+    const pila = dir === "deshacer" ? historial.deshacer : historial.rehacer;
+    const m = pila[pila.length - 1];
+    if (!m || moviendo) return;
+    setMoviendo(true);
+    try {
+      const objetivo = objetivoDe(m, dir);
+      const ids = Object.keys(objetivo);
+      const filas = await leeFilasFrescas(ids);
+      if (!filas) { notify(t("Couldn't read the route to check it — nothing was written.", "No se pudo leer la ruta para comprobarla — no se escribió nada.")); return; }
+      const miembros = Object.fromEntries(m.rutas.map((r) => [r, (byDriver.get(r) ?? []).map((d) => d.id)]));
+      const choques = choquesAlVolver(m, dir, filas, miembros);
+      const nombre = (id: string) => { const d = deliveriesRef.current.find((x) => x.id === id); return d ? orderLabel(d) : id.slice(0, 6); };
+      if (choques.length) {
+        setHistorial((h) => descartaElDeArriba(h, dir));
+        const a = textoDeChoques(choques, nombre, dir);
+        notify(t(a.en, a.es));
+        return;
+      }
+      m.rutas.forEach((r) => clearRouteFor(r));
+      for (const e of escriturasHacia(objetivo, fotoDeFilas(filas))) {
+        if (!(await updateDelivery(e.id, e.parche))) return; // el proveedor ya avisó; el movimiento se queda donde estaba
+      }
+      const sellos = sellosDe(await leeFilasFrescas(ids));
+      setHistorial((h) => trasVolver(h, dir, sellos));
+      notify(dir === "deshacer" ? t(`Undone: ${m.etiqueta.en}`, `Deshecho: ${m.etiqueta.es}`) : t(`Redone: ${m.etiqueta.en}`, `Rehecho: ${m.etiqueta.es}`));
+    } finally {
+      setMoviendo(false);
+    }
+  };
+  // Ctrl+Z / Ctrl+Y (y Ctrl+Mayús+Z, y ⌘ en Mac), salvo escribiendo en un campo o con una orden abierta.
+  const vuelveRef = useRef(vuelve);
+  vuelveRef.current = vuelve;
+  const hayOrdenAbierta = useRef(false);
+  hayOrdenAbierta.current = !!openOrder;
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || hayOrdenAbierta.current) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) { e.preventDefault(); void vuelveRef.current("deshacer"); }
+      else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); void vuelveRef.current("rehacer"); }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, []);
+
+  // Soltar una parada en «📅 Horario» (D-417). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
+  // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir.
+  const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);
+  const sueltaEnLaLinea = async (movida: string, destino: Destino) => {
+    if (moviendo) return;
+    const plan = previaDeSoltar(movida, destino);
+    if (!plan.ok) {
+      if (plan.motivo !== "sin_cambio") { const p = porQueNoSuelta(plan.motivo); notify(t(p.en, p.es)); }
+      return;
+    }
+    const d = dayOrders.find((x) => x.id === movida);
+    if (!d) return;
+    setMoviendo(true);
+    try {
+      clearRouteFor(plan.destino);
+      if (plan.origen !== plan.destino) {
+        clearRouteFor(plan.origen);
+        if (!(await updateDelivery(movida, plan.parcheDeLaMovida))) return;
+      }
+      if (!(await reorderStops(plan.ids, plan.loadNoById))) return;
+      const nombre = (id: string) => { const x = dayOrders.find((o) => o.id === id); return x ? orderLabel(x) : id.slice(0, 6); };
+      const previa = textoDePrevia(plan.previa, nombre);
+      const cambio = plan.origen !== plan.destino ? ` (from ${laneLabel(plan.origen)})` : "";
+      const cambioEs = plan.origen !== plan.destino ? ` (desde ${laneLabel(plan.origen)})` : "";
+      const en = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambio}, truckload ${plan.viaje + 1}, stop ${plan.puesto + 1} of ${plan.totalDelViaje}${plan.porNombre ? " (Best fit)" : ""}: ${previa.en} (straight-line estimate)`;
+      const es = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambioEs}, viaje ${plan.viaje + 1}, parada ${plan.puesto + 1} de ${plan.totalDelViaje}${plan.porNombre ? " (Mejor lugar)" : ""}: ${previa.es} (estimación en línea recta)`;
+      addNote(movida, `Timeline: ${en}`);
+      notify(t(en, es));
+      await anotaMovimiento({ en: `#${orderLabel(d)} → ${laneLabel(plan.destino)}`, es: `#${orderLabel(d)} → ${laneLabel(plan.destino)}` },
+        plan.origen === plan.destino ? [plan.destino] : [plan.origen, plan.destino], plan.antes, plan.despues);
+    } finally {
+      setMoviendo(false);
+    }
   };
 
   // Move a WHOLE truckload up/down within a driver's day, so the dispatcher
@@ -2170,12 +2327,27 @@ export default function RoutesPage() {
       )}
 
       {/* ---------- Tabs ---------- */}
-      <div className="viewtoggle" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <div className="viewtoggle">
         <button className={"vt " + (tab === "routes" ? "on" : "")} onClick={() => setTab("routes")}>🧭 {t("Routes", "Rutas")} ({withStops.filter((u) => pasaFiltro(u.key)).length})</button>
         <button className={"vt " + (tab === "orders" ? "on" : "")} onClick={() => setTab("orders")}>📦 {t("Unassigned", "Sin asignar")} ({unassigned.length})</button>
         <button className={"vt " + (tab === "board" ? "on" : "")} onClick={() => setTab("board")}>🗂 {t("Board", "Tablero")}</button>
         <button className={"vt " + (tab === "timeline" ? "on" : "")} onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
         <button className={"vt " + (tab === "incidents" ? "on" : "")} onClick={() => setTab("incidents")}>⚠ {t("Incidents", "Incidencias")} ({incidents.length})</button>
+      </div>
+        {/* Deshacer / rehacer los movimientos a mano de esta sesión (D-417): arrastrar en «Horario» y las flechas. */}
+        {(tab === "timeline" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (
+          <span style={{ display: "inline-flex", gap: 6 }}>
+            <button className="btn btn-ghost btn-sm" data-deshacer disabled={moviendo || !historial.deshacer.length} onClick={() => void vuelve("deshacer")}
+              title={historial.deshacer.length ? t(`Undo: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.en} (Ctrl+Z)`, `Deshacer: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.es} (Ctrl+Z)`) : undefined}>
+              ↶ {t("Undo", "Deshacer")}
+            </button>
+            <button className="btn btn-ghost btn-sm" data-rehacer disabled={moviendo || !historial.rehacer.length} onClick={() => void vuelve("rehacer")}
+              title={historial.rehacer.length ? t(`Redo: ${historial.rehacer[historial.rehacer.length - 1].etiqueta.en} (Ctrl+Y)`, `Rehacer: ${historial.rehacer[historial.rehacer.length - 1].etiqueta.es} (Ctrl+Y)`) : undefined}>
+              ↷ {t("Redo", "Rehacer")}
+            </button>
+          </span>
+        )}
       </div>
 
       {tab === "incidents" && <DriverIncidents me={me} drivers={drivers} deliveries={deliveries} incidents={incidents} addIncident={addIncident} removeIncident={removeIncident} confirmAction={confirmAction} notify={notify} t={t} />}
@@ -2184,11 +2356,14 @@ export default function RoutesPage() {
       {tab === "timeline" && (
         <div className="card" style={{ margin: 0 }}>
           <p className="hint" style={{ marginTop: 0 }}>
-            {t("Each driver's day by delivery window (07:00–19:00).", "El día de cada chofer por ventana de entrega (07:00–19:00).")}
+            {t("Each driver's day in route order: every stop at its estimated arrival (straight-line estimate, leaving at 08:00), its window as the thin line underneath; ⚠ = late.",
+              "El día de cada chofer en el orden de su ruta: cada parada a su llegada estimada (en línea recta, saliendo a las 08:00), y su ventana en la raya fina de abajo; ⚠ = tarde.")}
+            {modo === "dia" && <> {t("Drag a stop to another slot or driver, or onto a driver's name for 📍 Best fit. Ctrl+Z undoes.", "Arrastre una parada a otro hueco o chofer, o al nombre de un chofer para 📍 Mejor lugar. Ctrl+Z deshace.")}</>}
           </p>
-          {ganttRows.length === 0
+          {ganttRows.every((r) => r.barras.length === 0)
             ? <div className="empty">{t("No assigned orders to show yet.", "Aún no hay órdenes asignadas.")}</div>
-            : <GanttTimeline rows={ganttRows} t={t} />}
+            : <GanttTimeline rows={ganttRows} t={t}
+                arrastre={modo === "dia" ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined} />}
         </div>
       )}
 

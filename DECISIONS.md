@@ -129,6 +129,13 @@ idioma."*
 ---
 
 ## D-007 · Sin arrastrar en el Gestor de Rutas: solo flechas
+
+> **⚠ Reemplazada en parte por D-417** (2026-09-27): el título dice «en el Gestor» y ya no es cierto entero. Por pedido
+> del dueño («solos haz 1 3 y 4», tras explicarle el «drag and drop» de OptimoRoute), las paradas **se arrastran en la
+> pestaña «📅 Horario»** (la línea de tiempo). Lo que decidió esta entrada sigue igual: **las filas de la pestaña «Rutas» no
+> se arrastran**, se mueven con las flechas ↑/↓, y el fallo que la motivó (pulsar una flecha arrancaba el arrastre de la
+> fila) no puede volver porque en «Horario» no hay flechas ni botones sobre lo que se arrastra. (El «Tablero» ya arrastraba
+> tarjetas para asignar desde antes de D-417.)
 **Fecha:** 2026-08-12 · **Versión:** v0.9.77 · **Pedido por:** Andrés
 
 **Cambio:** Se eliminó arrastrar y soltar filas en la pestaña Rutas. Las paradas
@@ -1278,6 +1285,10 @@ exótico ahí produce una cuenta que se ve bien y **no puede entrar**.
 ---
 
 ## D-043 · Fuera la satisfacción del cliente
+> **Reemplazada en parte por D-418** (2026-09-27): la satisfacción vuelve, pero **no** como estaba. La da el **cliente**, en
+> una encuesta de la página de seguimiento (tabla nueva `delivery_surveys`, migración 151), y se ve en una tarjeta del
+> **Panel**. La ficha de la orden y la vista del chofer siguen sin enseñarla, y `csat_rating`/`csat_comment` siguen sin
+> usarse. El texto de abajo se conserva tal cual.
 
 **Fecha:** 2026-08-16 · **Versión:** v1.7.7 · **Pedido por:** Andrés
 
@@ -30188,6 +30199,10 @@ la verdad, no un fallo: el hueco es de captura.
 - En el demo solo se midió como admin, en inglés.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+> **Reemplazada en parte por D-418** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
+> `leeOrdenesDelDia` pide también `requirements` (151), así que su prueba de la consulta espera ahora dos columnas
+> opcionales en vez de una. Sin requisitos, el plan sigue siendo el de `motor-1` byte a byte (la misma huella). El texto de
+> abajo se conserva tal cual.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte** a D-412 (el motor ya usa la prioridad) y a D-314 (qué compara el motor y el orden de construir). Las
@@ -30436,3 +30451,301 @@ al numerar.)
 - **No hay pantalla del registro**: se consulta en SQL (M3 del plan). Si el dueño quiere verlo en la app, es trabajo aparte.
 - El SMS automático **al crear** la orden (`rc_auto_sms_enabled`, `OrderModal`) sigue como estaba y es **aparte**: no
   mira la preferencia ni las bajas. Si el dueño enciende los dos, un cliente puede recibir ese y además estos.
+
+## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
+**Reemplaza en parte a D-007** («Sin arrastrar en el Gestor de Rutas: solo flechas»; lleva su nota). No toca Ajustes, los
+crons, `/unsubscribe`, `OrderModal`, `route-engine` ni `/track` (van en otras ramas).
+
+**Qué pidió el dueño.** Tras explicarle OptimoRoute (https://optimoroute.com/drag-and-drop/), de las opciones que salieron
+eligió *«solos haz 1 3 y 4»* (2026-09-27; cita tal como la pasó el orquestador, no extraída del fichero de sesión). El 3 es
+esto: **arrastrar paradas en la línea de tiempo del Gestor, con recálculo al instante y deshacer/rehacer.**
+
+### Esto revierte en parte D-007, y se dice
+
+D-007 (2026-08-12) quitó arrastrar filas en la pestaña Rutas: *«no ocupo arrastrar, elimina eso, solo con las flechas»*, y
+porque el arrastre se comía el clic de las flechas. Ahora el dueño pide arrastrar, con su pedido literal, **en la línea de
+tiempo**. El diseño respeta lo que D-007 decidió de verdad:
+- **Las filas de «Rutas» siguen sin arrastrarse** y con sus flechas ↑ ↓: no se tocó esa tabla.
+- **El arrastre vive solo en «📅 Horario»**, donde sobre las barras no hay flechas ni botones: el fallo de D-007 no puede volver.
+- Con teclado siguen las flechas de «Rutas»; en el teléfono, solo las flechas (abajo).
+
+### Qué hay ahora
+
+**La línea de tiempo cambia de qué pinta.** Hasta hoy cada orden era una barra sobre su **ventana** (solo pintaba). Ahora
+cada parada va **a su hora de llegada estimada, en el orden y los viajes de su ruta** (`buildTrips`, lo mismo que la tabla
+de paradas), con el ancho de su descarga; su ventana es la **raya fina de abajo**, y la que llega tarde sale con **⚠ y
+borde rojo**. El reloj es el de «📍 Mejor lugar» (D-411, `costeDeLaRuta`): sale a las 08:00, línea recta × 1,3 a 30 mph,
+espera a que abra la ventana, recarga de 20 min entre viajes. **Sin llamar a Google.** El eje va de 07:00 a 19:00 o más
+tarde si una ruta acaba más tarde. Salen **todas las rutas, también las vacías**, para poder soltar en un chofer sin nada.
+Sin la base de la ruta (el demo no geocodifica) la ruta es abierta, como en «Mejor lugar».
+
+**Arrastrar** (ratón o dedo, *pointer events*; un movimiento de más de 5 px para que un toque no sea un arrastre; Escape
+cancela):
+- **Dentro de una fila**: el hueco es el más cercano al puntero (antes de la primera de un viaje, entre dos, o detrás de la
+  última), contado **sin** la parada arrastrada. Sirve para cambiar el orden **y para pasar de un viaje a otro si cabe**:
+  un viaje que pasaría de la capacidad no acepta («No cabe», en rojo).
+- **A la fila de otro chofer**: igual, en el hueco elegido.
+- **Sobre el NOMBRE de un chofer**: «📍 Mejor lugar» elige el hueco (`mejorLugar` de D-411, sobre la ruta sin ella).
+- **Mientras se arrastra**: una etiqueta junto al puntero con dónde quedaría (viaje, parada) y **millas y minutos tarde de
+  más** de la ruta (o de las dos rutas, si cambia de chofer), y **qué ventana rompe**: «⚠ rompe la ventana de #1010», en
+  rojo, con la marca del hueco en rojo, **antes de soltar**. Lo que no se puede (candado, no cabe, sin pin) sale en rojo y
+  al soltar no escribe nada.
+- **Al soltar**: el aviso de abajo y una nota en el historial de la orden («Timeline: …», como «Best fit: …» de D-411).
+
+**Qué se escribe: lo mismo que las flechas** (`planDeSoltar`, `src/lib/arrastre-de-paradas.ts`). La secuencia entera de la
+ruta de llegada con `reorderStops` (`route_seq` 0..n-1) y, si hace falta, el viaje de cada parada (`load_no`). Si cambia de
+chofer, antes `updateDelivery` le escribe a ella `assigned_driver`, `route_seq` y `load_no`, como «Mejor lugar». La ruta de
+salida no se reescribe. **Cuándo se escriben viajes:** en una ruta con viajes puestos, siempre; en una que parte la
+capacidad sola, solo si partirla de nuevo no daría los viajes que se acaban de dibujar (p. ej. pasar la primera parada al
+viaje 2): entonces se fijan, como «mover de viaje» (`moveStopToLoad`). La vista previa y lo que se escribe salen **del mismo
+plan**. No se reoptimiza nada. Solo viendo **un día** (no en «Todas» ni en «Pendientes», donde las rutas mezclan días).
+
+### El candado 🔒 (decisión del worker, a validar)
+
+**Arrastrar a mano se deja con candado; soltar sobre el nombre, no.** D-411 dejó la ruta bloqueada editable a mano
+(flechas, mover de viaje, «Asignar», quitar): *«el candado protege de lo automático, no de quien despacha»*. Soltar una
+parada **en un hueco que la persona elige** es eso mismo, así que se trata como las flechas: se puede arrastrar desde una
+ruta bloqueada y soltar en ella. Soltar **sobre el nombre** es «Mejor lugar», que elige solo y que D-411 ya apaga con
+candado: se niega («🔒 Ruta bloqueada: Mejor lugar no la toca — suéltela en un hueco»). El pedido del orquestador decía «no
+acepta soltar ni se puede arrastrar desde ella» y a la vez recomendaba tratarlo como manual; se eligió lo segundo por
+coherencia con D-411. **Cambiarlo es una línea** (`candadoDeja`), con sus pruebas.
+
+### Deshacer / rehacer
+
+Botones **↶ Deshacer / ↷ Rehacer** junto a las pestañas (en «Horario» siempre; en las demás cuando hay algo que deshacer) y
+**Ctrl+Z / Ctrl+Y** (también Ctrl+Mayús+Z y ⌘), salvo escribiendo en un campo o con una orden abierta. Guarda **los
+movimientos a mano de esta sesión y de este día**: los arrastres **y las flechas ↑ ↓ de parada** (si no, Ctrl+Z tras una
+flecha desharía el arrastre anterior pisando la flecha). Cambiar de día lo vacía; 50 como mucho.
+
+**Deshacer es otra escritura, no un paso atrás en la pantalla.** Cada movimiento guarda la foto de antes y la de después
+(`assigned_driver`, `route_seq`, `load_no` de todas las paradas de las rutas tocadas) y el `updated_at` de cada una justo
+después de escribir. Al deshacer, **primero se lee lo que hay ahora** (con base: de la base en ese momento, no de la
+pantalla, que puede ir por detrás del tiempo real) y **no se escribe nada** si: una parada ya no está; sus campos de ruta no
+son los que dejó el movimiento; su `updated_at` cambió (alguien la editó, aunque fuera otra cosa: se prefiere no pisar); o
+entró otra parada en una de esas rutas. Entonces avisa *«No se deshizo: alguien cambió #1009 después de este movimiento. No
+se escribió nada, así que su cambio se queda.»* y ese movimiento sale de la pila (los de debajo se quedan: cada uno se
+comprueba igual al pulsar). Si todo cuadra, escribe con `updateDelivery` **solo las paradas y los campos que difieren** —así
+una secuencia que era `null` vuelve a `null`, cosa que `reorderStops` no puede— y relee los sellos. Rehacer, al revés.
+
+### El teléfono: solo flechas
+
+Por debajo de 760 px la línea de tiempo **solo se mira** y lo dice: *«En el teléfono la línea de tiempo solo se mira:
+reordene con las flechas ↑ ↓ de «Rutas».»* Dos razones: a 390 px la línea (620 px de ancho mínimo) se desplaza de lado y su pista tiene ~460 px para 12
+horas: una descarga de 15 min son ~10 px, y se ve solo un trozo (no se atina con el dedo), y hacer arrastrables las barras obliga a `touch-action: none`, que se come el
+desplazamiento lateral de la línea justo donde hace falta. En tableta (≥ 761 px) se arrastra con el dedo. Deshacer/rehacer
+funcionan igual en el teléfono.
+
+### Dónde está
+
+`src/lib/arrastre-de-paradas.ts` (puro: `planDeSoltar`, `candadoDeja`, `partePorCapacidad` —el mismo corte que
+`splitIntoTrips`, con prueba de que coinciden en 300 rutas—, `barrasDeLaRuta`, `huecosDeLaFila`, `huecoMasCercano`, el
+historial `anota`/`choquesAlVolver`/`escriturasHacia`/`trasVolver`/`descartaElDeArriba`, y los textos);
+`src/components/GanttTimeline.tsx` (el puntero, la etiqueta y la marca); `routes/page.tsx` (`rutasDelGantt`,
+`sueltaEnLaLinea`, `vuelve`, `leeFilasFrescas`, las teclas, los botones, y las flechas `move` que ahora apuntan en el
+historial); `globals.css` (`.gantt-*`).
+
+### Medido en el demo (2026-09-27, admin, en inglés, puerto propio, arrastres de persona con el ratón y la barra a la vista)
+
+A 1280 × 900, Fleet Truck 3 de partida: `#1010 (v1) · #1032 (v1) · #1033 (v2)`, `route_seq` todas `null`.
+- **Arrastrar #1010 detrás de #1033:** a mitad, la etiqueta dice *«truckload 2, stop 2 · +0.0 mi · +140 min late · ⚠ breaks
+  the window of #1010»* en rojo y la marca del hueco en rojo (captura `s1-arrastrando-1010`). Al soltar, la base del demo
+  queda `1032:seq 0 · 1033:seq 1, viaje 2 · 1010:seq 2, viaje 2` (se fijaron los viajes: la ruta partía sola), y la barra
+  #1010 sale con ⚠ a las ~13:20.
+- **Ctrl+Z:** `1010:null · 1032:null · 1033:null`, **idéntico** a la partida (también los `null`). **Ctrl+Y:** otra vez lo
+  de arriba. **Botón Deshacer:** idéntico a la partida otra vez.
+- **#1026 (Carlos R.) sobre el NOMBRE de Diego Driver:** etiqueta *«📍 Best fit: truckload 3, stop 1 · +13.5 mi · -2 min late
+  · ⚠ breaks the window of #1034»*; al soltar, Diego queda `1009, 1012, 1013, 1026, 1034` y Carlos sin #1026.
+- **Otra persona entre medias:** otra pestaña del mismo navegador (mismo almacén del demo) pone `route_seq` 42 a #1009 con
+  su `updated_at`. **Ctrl+Z** en la primera: *«Not undone: someone changed #1009 after this move. Nothing was written, so
+  their change stays.»*; la ruta de Diego, **idéntica** antes y después del intento; #1026 sigue con Diego; los dos botones
+  quedan apagados.
+- **Candado en Fleet Truck 3** (clic en su 🔓): la fila dice «Fleet Truck 3 🔒». #1011 sobre su nombre: *«🔒 Locked route:
+  Best fit doesn't touch it — drop it in a slot instead»*, en rojo; al soltar, la ruta **no cambia**. #1011 en el hueco de
+  detrás de #1033 (a mano): se escribe (`1010, 1032, 1033, 1011`), y **Ctrl+Z** lo deshace a la partida.
+- **Desplazamiento lateral: 0 px** en todos los pasos.
+- **Tableta, 1024 × 768, con el DEDO** (eventos táctiles de CDP): #1032 delante de #1010, etiqueta *«truckload 1, stop 1 ·
+  +0.0 mi · +45 min late · ⚠ breaks the window of #1010»*, y al soltar `1032:0 · 1010:1 · 1033:2`. 0 px de lado.
+- **Teléfono, 390 × 844:** 15 barras, **0 arrastrables**, sale el aviso de «solo flechas», 0 px de lado; un arrastre de
+  ratón sobre #1033 (encima de todo, comprobado con `elementFromPoint`) **no cambia nada** ni saca etiqueta.
+
+**Lo que el demo no mide:** no tiene base, así que «lo de ahora» se lee de la pantalla y el `updated_at` lo pone el demo. El
+camino con base (`select … updated_at` en `deliveries`, en el momento) está probado leyendo el código y con la función pura,
+**no contra Supabase**. Nada contra producción, ni SMS, ni llamadas.
+
+**Visto de paso, sin tocarlo:** a 390 y a 1024 el mapa pegajoso (`position: sticky`, z 5) **tapa las pestañas** cuando
+quedan en el centro de la pantalla: un toque ahí cae en el mapa. En el teléfono se llegó a la pestaña con el teclado, y en
+la tableta bajándola al borde inferior. No se midió contra `main`, pero el mapa no es de este cambio.
+
+### Verificado
+
+- `node scripts/verify.mjs` (2026-09-27): tipos, suite y `next build` en verde. Suite: **4924 pasadas | 3 saltadas** (un fichero
+  saltado entero).
+- Pruebas: `src/lib/arrastre-de-paradas.test.ts` (58, con nombre): soltar en la misma ruta, en otra y sobre el nombre;
+  capacidad; cuándo se fijan viajes (con `splitIntoTrips` de verdad); el candado; la vista previa (millas de una y de dos
+  rutas, la ventana que rompe); las barras y los huecos; el historial (choques por campo, por `updated_at`, por parada que
+  falta y por parada que entró; volver a `null`; ida y vuelta exacta); y que la pantalla usa esas funciones.
+- **Mutantes: 49, caen los 49**, leídos por nombre de prueba. En la primera vuelta **sobrevivió uno** (L25, «la foto de
+  después ignora los viajes escritos»): ninguna prueba miraba la foto de `load_no` con la que deshacer compara. Era una
+  prueba floja, no código de sobra (sin esa foto, deshacer tras fijar viajes chocaría siempre); se reforzó la prueba y cae.
+  Librería (27): el candado prohíbe arrastrar a mano; deja «Mejor lugar»; sin capacidad; nunca fija viajes; siempre los
+  fija; la que cambia de chofer conserva su `load_no`; el nombre sin `mejorLugar`; el mismo sitio como movimiento; la
+  previa sin la ruta de salida; la previa sin ventanas rotas; el viaje vacío que no desaparece; partir al llegar justo; los
+  huecos con la arrastrada; el empate al último; el hueco del medio mal puesto; deshacer sin `updated_at`, sin la parada que
+  entró, sin los campos; rehacer contra la foto equivocada; el movimiento nuevo que no vacía rehacer; sin tope; escribir lo
+  que no cambió; no devolver el chofer; sin sellos nuevos; la foto sin viajes; las barras nunca tarde; el choque que tira la
+  pila entera. Pantalla (14): sin escribir el chofer; sin los viajes; solo la ruta de llegada en el historial; deshacer con
+  choque; sin mirar quién hay en la ruta; la lectura sin `updated_at`; las flechas con foto vacía; sin Ctrl+Z; el historial
+  que sobrevive al cambio de día; sin candado; sin `buildTrips`; arrastrar en «Todas»; escribir otra cosa que la previa; sin
+  barras. Línea de tiempo (8): huecos con la arrastrada; soltar aunque el plan diga que no; arrastrar en el teléfono; sin
+  umbral; la previa sin rojo; sin Escape; el nombre como un hueco; sin capturar el puntero.
+
+### Lo que no se hizo
+
+- **Soltar para abrir un viaje nuevo**: arrastrando solo se entra en los viajes que hay (si no cabe, no se suelta). «Mejor
+  lugar» por el nombre sí abre uno al final si no cabe en ninguno, como en D-411.
+- **Deshacer de todo lo demás** (mover viajes enteros, «mover de viaje», «Asignar», «Mejor lugar» del recuadro, Optimizar):
+  solo arrastres y flechas de parada. Lo automático no tiene foto de antes.
+- **El arrastre desde «Sin asignar» a la línea de tiempo**: las filas son de rutas; lo sin chofer sigue en su pestaña.
+- **Teclado sobre las barras**: no se enfocan; con teclado, las flechas de «Rutas».
+- **Tiempo real del candado**: como D-414, se relee al volver a la pestaña; el plan mira el candado que la pantalla tiene.
+
+## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 151** (escrita, **no aplicada**; plan en
+`docs/PLAN-151-requisitos-y-encuesta.md`). Es 151 y no 150 porque otra rama (avisos al cliente) escribe la 150.
+**Reemplaza en parte** a D-043 (la satisfacción vuelve, de otra forma) y a D-415 (`motor-3`, y la consulta pide una columna
+opcional más). Las dos llevan su nota.
+
+**Qué pidió el dueño**, 2026-09-27, tras explicarle cómo funciona OptimoRoute: *«solos haz 1 3 y 4»*. El 4 eran dos cosas
+menores de OptimoRoute: (A) que una orden pueda pedir algo del camión y cada chofer declare lo que tiene (`skills` /
+`vehicleFeatures`), y (B) la encuesta de satisfacción de su página de seguimiento.
+
+### Qué había
+
+- Nada que dijera qué necesita una entrega del camión. «Planificar el día», «Mejor lugar» y Auto-asignar podían darle una
+  entrega que necesita liftgate a un camión sin liftgate, y nadie se enteraba hasta la puerta del cliente.
+- La satisfacción del cliente se quitó en D-043 porque la tenía que rellenar la oficina y nunca se usó (0 de 53). Las columnas
+  `csat_rating`/`csat_comment` (021) se quedaron en la base, sin uso.
+- `/track/<id>` era de solo lectura. El id es el `uuid` de la orden (`gen_random_uuid()`, 122 bits al azar): **no se
+  adivina**. El GET público ya enseñaba —antes de este cambio— la cuenta, la dirección y el chofer.
+
+### Qué hay ahora
+
+**A. Requisitos del camión.**
+
+- **El catálogo es de Ajustes, no del código** (`settings.delivery_requirements`): Ajustes → Motor de rutas → «Requisitos
+  del camión», añadir y quitar. En la misma tarjeta, la tabla de choferes gana «Su camión tiene», una casilla por requisito
+  (`driver_settings.features`, junto a base, capacidad y turno de la 128).
+- **La ficha de la orden** (al editar, bajo la prioridad): «Requisitos del camión», una casilla por requisito. La edita quien
+  edita el resto de la orden (`salesFields`), y la base no añade ninguna regla: el guard de la 145 no mira columnas.
+- **Solo cuenta lo que está en el catálogo, y se compara sin mayúsculas.** Quitar «Liftgate» del catálogo lo apaga en todas
+  las órdenes y camiones a la vez (`lib/requisitos.ts`).
+- **«Planificar el día»** (`motor-3`): una orden con requisitos solo va con un chofer cuyo camión lo tiene todo. Si ninguno
+  que rutea hoy lo tiene, queda fuera con `falta_requisito`, y «Fuera de este plan» dice *«falta Montacargas: ningún chofer
+  que rutea hoy lo tiene todo»* con su remedio (*«Márquelo en el camión de un chofer… o quíteselo a la orden»*). «¿Por qué
+  aquí?» dice de cada otro chofer *«Chofer X: no — falta Liftgate»*. Una orden grande se parte por el camión más grande **de
+  los que lo tienen**.
+- **«Mejor lugar»**: antes de buscar hueco (y antes del «se asigna al final» de las que no tienen pin o son de otro día),
+  separa lo que el camión de la ruta elegida no puede llevar: eso ni se coloca ni se asigna, y el aviso dice
+  *«Sin colocar — el camión de X no tiene lo que piden: #123: falta Liftgate»*. El cálculo del hueco no cambia.
+- **Sin requisitos, todo igual que antes, byte a byte**: la huella sha256 del día grabado con `motor-1` (la de D-415) sale
+  igual sin requisitos, con camiones que declaran cosas y órdenes que no piden nada, y con órdenes que piden algo que TODOS
+  tienen. La entrada que se guarda con el plan no lleva `requisitos` ni `habilidades` si están vacíos.
+
+**B. Encuesta de satisfacción.**
+
+- En `/track/<id>`, **solo con la orden entregada**: *«How was your delivery?»*, 5 estrellas y un comentario opcional
+  (≤ 500). Una vez respondida, *«Thank you for your feedback!»*, también al volver a abrir el enlace. **No se manda por SMS
+  ni correo**: vive en la página que el cliente ya tiene.
+- **La escribe una ruta del servidor**, `POST /api/track/<id>/survey`, con la llave de servicio, después de comprobar el id
+  (forma de uuid), el tamaño (≤ 2 KB), las estrellas (entero 1-5), el comentario (sin caracteres de control) y que la orden
+  esté entregada. **No devuelve nada de la orden.** `delivery_surveys` no tiene ninguna política de escritura: ni `anon` ni
+  `authenticated` pueden insertar. La base vuelve a exigir estrellas y comentario (`check`), «solo entregada» (disparador) y
+  **una por orden** (la clave primaria es la orden: la segunda choca y la ruta la cuenta como «ya estaba»).
+- **El GET público** solo añade `survey: { answered }`, nunca la respuesta.
+- **Resultados: tarjeta «Satisfacción del cliente» en el Panel**, con media, reparto por estrellas y los últimos comentarios,
+  de las **mismas órdenes que el resto del Panel** (sus tiendas, D-396, y su rango). La ven admin, logística y gerentes; la
+  política de la 151 dice lo mismo y además solo deja leer respuestas de órdenes que esa persona ya ve (la 131 vale sola).
+- **No vuelve a la ficha ni a la vista del chofer** (D-043, D-026): una prueba lo fija.
+
+**Sin la 151 aplicada, nada falla**: «Planificar el día» pide `requirements`, `delivery_requirements` y `features` solo si
+existen (`leeConOpcionales`, que generaliza lo que D-415 hizo con `priority`: si PostgREST contesta `42703`/`PGRST204`
+nombrando ESA columna, se vuelve a leer sin ella); la ficha no la manda (`conRequisitosSiCabe`); Ajustes dice «falta la
+actualización de la base»; la página de seguimiento no enseña la encuesta y el Panel no enseña la tarjeta (`PGRST205`).
+
+### Decisiones (para validar)
+
+1. **Un chofer fijado por una persona se respeta aunque su camión no lo tenga.** El motor no deshace lo que decidió alguien
+   (D-320); con los demás choferes, la orden sigue «atada a su chofer», no «falta X». Si el dueño prefiere que el motor la
+   saque, es cambiar `permitidos`.
+2. **Las rutas temporales («Route 1»…) no se filtran** en «Mejor lugar»: son carriles que arma una persona, no camiones que
+   declaren nada.
+3. **Si no se puede leer lo que tiene cada camión, cuenta como que no tiene nada** («Mejor lugar» no coloca lo que pide algo
+   y dice qué falta). Es el lado seguro: un viaje perdido a la puerta del cliente cuesta más que un clic de una persona.
+4. **Requisitos como nombres (`text[]`) y no como tabla con FK**, y «solo cuenta lo del catálogo»: quitar uno lo apaga en
+   todas partes sin cascadas. Renombrar = quitar y volver a marcar.
+5. **Office (`accounting`) no ve la encuesta**: el pedido nombraba «admin/logística/gerentes».
+6. **Borrar una orden borra su respuesta** (`on delete cascade`); `deliveries_borradas` (142) no la guarda.
+7. **Estrellas y textos de la encuesta en inglés**, como el resto de la página pública de seguimiento.
+
+### Lo que NO se hizo
+
+- **Auto-asignar no respeta los requisitos en esta rama.** Se escribió (en `dispatch.ts` y `auto-asignar.ts`, con su aviso, y
+  en el Auto-asignar del Mapa) y **se revirtió** por orden del orquestador (2026-09-27): otra rama reescribe Auto-asignar sobre
+  el motor de «Planificar el día», que ya los respeta. `dispatch.ts`, `auto-asignar.ts` y `map/page.tsx` quedan como en `main`.
+- La ficha no enseña los requisitos en **modo lectura** (tampoco la prioridad): solo al editar.
+- Ajustar a mano un plan del motor (`ajuste.ts`) no avisa si se pasa una orden a un camión sin el requisito: es una persona
+  decidiendo, como con el chofer fijado.
+
+### Dónde está
+
+`src/lib/requisitos.ts` (catálogo, comparar, frases, guardar sin la columna) y su gancho `src/lib/usa-requisitos.ts`;
+`src/lib/columnas-opcionales.ts` (`leeConOpcionales`); `src/lib/route-engine/planifica.ts` (`faltanEnElCamion`,
+`permitidos`, el intercambio, `falta_requisito`, `motor-3`) y `types.ts`; `src/lib/route-plan/entrada.ts` (lo del catálogo al
+motor, la consulta), `porque.ts` (`faltan`, `dar_requisito`, `fraseDeRequisitoFuera`, `fraseDeRequisitoConOtro`);
+`src/lib/mejor-lugar.ts` (`separaPorRequisitos`); `src/lib/route-settings.ts` (`COLUMNAS_DE_CHOFER`);
+`src/components/RouteEngineSettings.tsx`, `OrderModal.tsx`, `PlanDelDia.tsx`, `RutaDelPlan.tsx`;
+`src/app/api/route-plan/route.ts`. Encuesta: `src/lib/encuesta.ts`, `src/app/api/track/[id]/survey/route.ts`,
+`src/app/api/track/[id]/route.ts`, `src/app/track/[id]/page.tsx`, `src/components/EncuestaDelPanel.tsx` y
+`dashboard/page.tsx`. **`routes/page.tsx`, lo mínimo**: el gancho y el filtro de «Mejor lugar»; nada de la línea de tiempo
+ni de Auto-asignar.
+
+### Verificado
+
+- Pruebas nuevas: `route-engine/requisitos-en-el-motor.test.ts` (la huella de `motor-1` con y sin requisitos; con quién va;
+  fuera y lo que falta; «¿por qué aquí?»; chofer fijado; partir; **300 días inventados** sin ninguna orden en un camión que no
+  lo tiene), `route-plan/requisitos-en-el-plan.test.ts` (catálogo → motor, la consulta con y sin la 151, «Por qué» de punta a
+  punta con `planificaElDia`, las pantallas), `requisitos.test.ts` (librería, «Mejor lugar», que Gestor, ficha y Ajustes usan
+  las funciones), `encuesta.test.ts` (validación, la ruta POST y el GET con un Supabase falso, el Panel, la página, la
+  migración y su checksum).
+- **La prueba de los 300 días encontró un fallo real antes de darlo por hecho**: el movimiento «intercambiar» de la mejora
+  metía cada orden en el camión de la otra **sin pasar por `permitidos`**; se añadió la comprobación.
+- Pruebas que cambiaron: `plan.test.ts` (`motor-3`; 8 remedios), `prioridad-en-el-plan.test.ts` (la consulta pide también
+  `requirements`), `prioridad.test.ts` (el guardado envuelve `conRequisitosSiCabe`), `almacen-escribe-la-tarifa.test.ts`
+  (23 controles de `salesFields`, uno más).
+- **Mutantes** (`~/.claude/herramientas/mutantes`, tanda en la carpeta del worker): **41 de 41 caen con una prueba con nombre** (47 de 47 en la primera tanda, que incluía 6 de Auto-asignar y del Mapa, ya revertidos). Una pieza de código
+  se quitó antes porque no decidía nada: `!o.choferFijado &&` al descartar por requisito (un fijado ya tiene su chofer en
+  `permitidos`).
+- `node scripts/verify.mjs` (2026-09-27): tipos, **4914 pasadas | 3 saltadas** y `next build` en verde.
+- **Demo** (2026-09-27, admin, 1280 × 900 y 390 × 844, clics de persona): sin las claves, Ajustes dice *«Not available yet
+  (the database update is pending)»*; con ellas, se añadieron «Liftgate» y «Montacargas» y «liftgate» se rechazó como repetido
+  (*«That one is already in the list.»*); en la ficha de una aprobada, al editar, salen las dos casillas, se marcó Liftgate y
+  quedó guardado `["Liftgate"]`; en `/track/<id>` de una entregada, «Send» nace desactivado, 4 estrellas + comentario →
+  *«Thank you for your feedback!»*, y al recargar sigue el agradecimiento sin formulario; una sin entregar no enseña nada; el
+  Panel enseña **4.0 / 5, 1 answer(s)** y el comentario con su número de orden. **0 px** de desplazamiento lateral en Ajustes,
+  seguimiento y Panel a 1280 y a 390 (el formulario de la encuesta a 390: 290 px de ancho, 50 px a cada lado). Capturas
+  `A-ajustes-sin-151`, `B-ajustes-catalogo-1280/390`, `C-ficha-requisitos-1280`, `D-seguimiento-encuesta-1280/390`,
+  `E-panel-encuesta-1280/390`.
+
+### Lo que no se verificó
+
+- **Nada contra la base**: ni la migración, ni su autocomprobación, ni la matriz de 27 casos del plan.
+- **Lo del camión de cada chofer no se vio en el demo**: la tabla de choferes de Ajustes lee `driver_settings` de la base, y
+  el demo no la tiene (dice *«Driver settings aren't available yet»*, como antes). Se prueba por texto que la pantalla lee
+  `features` solo si existe y marca con `alternaRequisito`.
+- **«Planificar el día» y «Mejor lugar» no se abrieron en el demo**: el primero necesita el servidor; el segundo, en el demo,
+  no puede leer lo que tiene cada camión. Los dos se prueban con sus funciones (el motor de punta a punta con
+  `planificaElDia`) y con pruebas de que la pantalla las usa.
+- La encuesta con la base de verdad (la ruta POST contra PostgREST, el `23505` real): probada solo con un cliente falso.
