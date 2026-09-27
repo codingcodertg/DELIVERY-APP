@@ -253,7 +253,7 @@ export interface Delivery {
   customer_email?: string | null;
   notify_pref?: "both" | "sms" | "email" | "none" | null;
   customer_lang?: "en" | "es" | null;
-  /** Lo que la orden pide del camión (D-NEXT, migración 151): nombres del catálogo de Ajustes (`delivery_requirements`),
+  /** Lo que la orden pide del camión (D-418, migración 151): nombres del catálogo de Ajustes (`delivery_requirements`),
    *  p. ej. «Liftgate». Vacío = nada. Opcional en el tipo porque una base sin la 151 no lo trae; se lee con
    *  `requisitosDeLaOrden` (lib/requisitos.ts), que ignora lo que ya no está en el catálogo. */
   requirements?: string[] | null;
@@ -441,7 +441,7 @@ export interface DriverSettings {
   returns_to_base: boolean;
   /** `false` = el motor no le da trabajo. No lo borra ni lo esconde de ningún otro sitio. */
   routable: boolean;
-  /** Lo que tiene el camión de este chofer (D-NEXT, migración 151): nombres del catálogo de Ajustes. Una orden que
+  /** Lo que tiene el camión de este chofer (D-418, migración 151): nombres del catálogo de Ajustes. Una orden que
    *  pide algo que no está aquí no se le da en automático. Opcional: una base sin la 151 no lo trae. */
   features?: string[] | null;
   updated_at?: string;
@@ -582,7 +582,7 @@ export interface Settings {
   route_hard_windows?: string[] | null;
   /** Cuántos minutos de retraso admite, como mucho, una ventana que no es dura. */
   route_late_cap_min?: number | null;
-  /** El catálogo de requisitos del camión (D-NEXT, migración 151): «Liftgate», «Montacargas»… Lo edita el admin en
+  /** El catálogo de requisitos del camión (D-418, migración 151): «Liftgate», «Montacargas»… Lo edita el admin en
    *  Ajustes → Motor de rutas. Ausente = la base no tiene la columna todavía. */
   delivery_requirements?: string[] | null;
 

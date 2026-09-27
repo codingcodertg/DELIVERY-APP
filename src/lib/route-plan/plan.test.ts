@@ -330,7 +330,7 @@ describe("la ruta de planificar y la pantalla", () => {
     const lib = leer("src/lib/route-plan/porque.ts");
     const tabla = lib.slice(lib.indexOf("const REMEDIOS"), lib.indexOf("};", lib.indexOf("const REMEDIOS")));
     const remedios = [...tabla.matchAll(/: "([a-z_]+)"/g)].map((m) => m[1]);
-    expect(new Set(remedios).size).toBe(8); // 8 con «dar_requisito» (D-NEXT)
+    expect(new Set(remedios).size).toBe(8); // 8 con «dar_requisito» (D-418)
     for (const x of new Set(remedios)) expect(panel).toContain(`  ${x}: [`);
     const vista = plano(sinComentarios(leer("src/components/RutaDelPlan.tsx")));
     expect(vista).toContain('{p.kind === "D" && porque?.[p.order_ref] && ( <button');

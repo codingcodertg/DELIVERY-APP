@@ -20,7 +20,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-3` (D-NEXT): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
+/** `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
 export const VERSION_DEL_MOTOR = "motor-3";
@@ -31,7 +31,7 @@ const rangoDe = (o: OrdenEntrada): number => RANGO[o.prioridad ?? "normal"] ?? R
 /** Cuánto empuja cada prioridad a ir antes en su ruta, a igual coste. Normal y baja, nada: su orden es el de siempre. */
 const ADELANTO: Record<string, number> = { critical: 2, high: 1 };
 
-/** Requisitos del camión (D-NEXT, OptimoRoute `skills`): lo que pide la orden y el camión de ese chofer no tiene. Vacío =
+/** Requisitos del camión (D-418, OptimoRoute `skills`): lo que pide la orden y el camión de ese chofer no tiene. Vacío =
  *  puede llevarla. Se compara sin mayúsculas ni espacios de más. Una orden que no pide nada va con cualquiera. */
 const claveDeRequisito = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
 const NADA: readonly string[] = [];
@@ -158,7 +158,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
         if (c) return choferes.filter((x) => x.id === c);
       }
     }
-    // Requisitos del camión (D-NEXT): solo los que lo tienen todo. El chofer que fijó una persona (arriba) se respeta
+    // Requisitos del camión (D-418): solo los que lo tienen todo. El chofer que fijó una persona (arriba) se respeta
     // aunque no lo tenga: el motor no deshace lo que decidió alguien.
     if (!o.requisitos?.length) return choferes;
     return choferes.filter((c) => !faltanEnElCamion(c, o).length);
@@ -296,7 +296,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
       for (let b = a + 1; b < lista.length && convergio; b++) {
         const ca = choferDe(lista[a].id), cb = choferDe(lista[b].id);
         if (!ca || !cb || ca === cb) continue;
-        // Requisitos del camión (D-NEXT): el intercambio mete cada una en el camión de la otra sin pasar por `permitidos`;
+        // Requisitos del camión (D-418): el intercambio mete cada una en el camión de la otra sin pasar por `permitidos`;
         // si alguno de los dos no tiene lo que pide la que le llega, no se intenta. Lo cazó la prueba de los 300 días.
         if (faltanEnElCamion(choferes.find((c) => c.id === cb)!, lista[a]).length || faltanEnElCamion(choferes.find((c) => c.id === ca)!, lista[b]).length) continue;
         const antes = copia(), notaAntes = nota();
@@ -385,7 +385,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     const alternativas: Alternativa[] = [];
     for (const otro of choferes) {
       if (otro.id === c) continue;
-      // Si con ese no puede porque su camión no tiene lo que pide (D-NEXT), se dice eso, y qué le falta. Un chofer fijado
+      // Si con ese no puede porque su camión no tiene lo que pide (D-418), se dice eso, y qué le falta. Un chofer fijado
       // por una persona, o una parte que va con sus hermanas, siguen siendo «no permitido».
       const noTiene = o.choferFijado ? NADA : faltanEnElCamion(otro, o);
       if (ordenesFijadas.has(o.id) || (!mias.has(otro.id) && !noTiene.length)) { alternativas.push({ chofer: otro.id, diferencia: null, motivo: "no_permitido" }); continue; }

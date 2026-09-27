@@ -9,7 +9,7 @@ import { COLUMNAS_DE_ORDEN, entradaDelDia, leeOrdenesDelDia, type DatosDelDia } 
 import { fraseDeRequisitoConOtro, fraseDeRequisitoFuera, fueraConPorque, porQueDelPlan } from "./porque";
 
 /**
- * Requisitos del camión, de la base a la pantalla de «Planificar el día» (D-NEXT, 151): la consulta que sobrevive a una
+ * Requisitos del camión, de la base a la pantalla de «Planificar el día» (D-418, 151): la consulta que sobrevive a una
  * base sin la 151, lo que entra al motor (solo lo del catálogo), y lo que dicen «Fuera de este plan» y «¿Por qué aquí?».
  * Tiendas y choferes inventados.
  */

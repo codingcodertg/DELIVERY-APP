@@ -130,12 +130,12 @@ idioma."*
 
 ## D-007 · Sin arrastrar en el Gestor de Rutas: solo flechas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-27): el título dice «en el Gestor» y ya no es cierto entero. Por pedido
+> **⚠ Reemplazada en parte por D-417** (2026-09-27): el título dice «en el Gestor» y ya no es cierto entero. Por pedido
 > del dueño («solos haz 1 3 y 4», tras explicarle el «drag and drop» de OptimoRoute), las paradas **se arrastran en la
 > pestaña «📅 Horario»** (la línea de tiempo). Lo que decidió esta entrada sigue igual: **las filas de la pestaña «Rutas» no
 > se arrastran**, se mueven con las flechas ↑/↓, y el fallo que la motivó (pulsar una flecha arrancaba el arrastre de la
 > fila) no puede volver porque en «Horario» no hay flechas ni botones sobre lo que se arrastra. (El «Tablero» ya arrastraba
-> tarjetas para asignar desde antes de D-NEXT.)
+> tarjetas para asignar desde antes de D-417.)
 **Fecha:** 2026-08-12 · **Versión:** v0.9.77 · **Pedido por:** Andrés
 
 **Cambio:** Se eliminó arrastrar y soltar filas en la pestaña Rutas. Las paradas
@@ -1285,7 +1285,7 @@ exótico ahí produce una cuenta que se ve bien y **no puede entrar**.
 ---
 
 ## D-043 · Fuera la satisfacción del cliente
-> **Reemplazada en parte por D-NEXT** (2026-09-27): la satisfacción vuelve, pero **no** como estaba. La da el **cliente**, en
+> **Reemplazada en parte por D-418** (2026-09-27): la satisfacción vuelve, pero **no** como estaba. La da el **cliente**, en
 > una encuesta de la página de seguimiento (tabla nueva `delivery_surveys`, migración 151), y se ve en una tarjeta del
 > **Panel**. La ficha de la orden y la vista del chofer siguen sin enseñarla, y `csat_rating`/`csat_comment` siguen sin
 > usarse. El texto de abajo se conserva tal cual.
@@ -30199,7 +30199,7 @@ la verdad, no un fallo: el hueco es de captura.
 - En el demo solo se midió como admin, en inglés.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
-> **Reemplazada en parte por D-NEXT** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
+> **Reemplazada en parte por D-418** (2026-09-27): `VERSION_DEL_MOTOR` pasa a `motor-3` (requisitos del camión), y
 > `leeOrdenesDelDia` pide también `requirements` (151), así que su prueba de la consulta espera ahora dos columnas
 > opcionales en vez de una. Sin requisitos, el plan sigue siendo el de `motor-1` byte a byte (la misma huella). El texto de
 > abajo se conserva tal cual.
@@ -30452,7 +30452,7 @@ al numerar.)
 - El SMS automático **al crear** la orden (`rc_auto_sms_enabled`, `OrderModal`) sigue como estaba y es **aparte**: no
   mira la preferencia ni las bajas. Si el dueño enciende los dos, un cliente puede recibir ese y además estos.
 
-## D-NEXT · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
+## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte a D-007** («Sin arrastrar en el Gestor de Rutas: solo flechas»; lleva su nota). No toca Ajustes, los
@@ -30611,7 +30611,7 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 - **Teclado sobre las barras**: no se enfocan; con teclado, las flechas de «Rutas».
 - **Tiempo real del candado**: como D-414, se relee al volver a la pestaña; el plan mira el candado que la pantalla tiene.
 
-## D-NEXT · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
+## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 151** (escrita, **no aplicada**; plan en
 `docs/PLAN-151-requisitos-y-encuesta.md`). Es 151 y no 150 porque otra rama (avisos al cliente) escribe la 150.

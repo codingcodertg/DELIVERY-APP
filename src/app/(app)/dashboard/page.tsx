@@ -427,7 +427,7 @@ export default function DashboardPage() {
           {/* Justo debajo de los KPIs de choferes: mismo rango, y su «A tiempo» mide otra cosa, así que se leen juntos. */}
           <PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />
 
-          {/* ---------- Satisfacción del cliente: la encuesta de la página de seguimiento (D-NEXT, 151) ---------- */}
+          {/* ---------- Satisfacción del cliente: la encuesta de la página de seguimiento (D-418, 151) ---------- */}
           {/* Mismas órdenes que el resto del Panel (`scoped`): sus tiendas y su rango. Solo admin, logística y gerentes. */}
           <EncuestaDelPanel desde={from} entregasDelPanel={scoped} />
 

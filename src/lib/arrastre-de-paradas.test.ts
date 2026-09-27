@@ -11,7 +11,7 @@ import { costeDeLaRuta, mejorLugar } from "./mejor-lugar";
 import { splitIntoTrips } from "./dispatch";
 import type { Delivery } from "./types";
 
-/** Arrastrar paradas en «📅 Horario» del Gestor de Rutas (D-NEXT). */
+/** Arrastrar paradas en «📅 Horario» del Gestor de Rutas (D-417). */
 
 const BASE = { lat: 29.7, lng: -95.4 };
 const INICIO = 480;

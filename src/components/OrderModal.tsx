@@ -546,7 +546,7 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
-    // La prioridad (D-412, 147), los avisos (D-416, 150) y los requisitos del camión (D-NEXT, 151) solo viajan si la base
+    // La prioridad (D-412, 147), los avisos (D-416, 150) y los requisitos del camión (D-418, 151) solo viajan si la base
     // ya tiene la columna: mandarlos antes haría fallar la orden entera.
     const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({
       ...withDurations(d),
@@ -1872,7 +1872,7 @@ export function OrderModal({
                 </div>
               </div>
             )}
-            {/* Requisitos del camión (D-NEXT, 151; OptimoRoute `skills`): lo que la entrega necesita del camión. Solo sale si la
+            {/* Requisitos del camión (D-418, 151; OptimoRoute `skills`): lo que la entrega necesita del camión. Solo sale si la
                 base ya tiene la columna y el admin puso algo en el catálogo (Ajustes → Motor de rutas). «Planificar el día» y
                 «Mejor lugar» no se la dan a un chofer cuyo camión no lo tiene. */}
             {laBaseTieneRequisitosEnOrdenes(deliveries) && catalogoDeRequisitos(settings).length > 0 && (

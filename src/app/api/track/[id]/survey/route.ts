@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { esIdDeOrden, faltaLaTabla, sePuedeCalificar, validaRespuesta } from "@/lib/encuesta";
 
 // ============================================================
-// La encuesta de la página pública de seguimiento (D-NEXT, migración 151). El cliente abre /track/<id> sin login y,
+// La encuesta de la página pública de seguimiento (D-418, migración 151). El cliente abre /track/<id> sin login y,
 // con la orden ENTREGADA, puede dejar 1-5 estrellas y un comentario. Una respuesta por orden.
 //
 // POR QUÉ UNA RUTA DEL SERVIDOR y no un insert anónimo: `delivery_surveys` no tiene NINGUNA política de escritura

@@ -19,7 +19,7 @@ export interface OtraOpcion {
   chofer: string;
   /** Con ese chofer no se puede, y por qué. */
   noPuede: MotivoDeNo | null;
-  /** Con `falta_requisito` (D-NEXT): lo que el camión de ese chofer no tiene. */
+  /** Con `falta_requisito` (D-418): lo que el camión de ese chofer no tiene. */
   faltan?: string[];
   /** Si se puede: cuánto PEOR saldría el plan entero. Positivo = peor que como está. */
   masManejoMin: number; masMillas: number; masTardeMin: number; masBuilderMin: number;
@@ -123,7 +123,7 @@ export interface FueraConPorque {
   /** Cuando se quedó sin sitio: cuántas órdenes de MÁS prioridad sí van en ruta. El motor coloca antes lo de más
    *  prioridad, así que son las que cogieron el sitio. Solo si hay alguna. */
   masPrioritariasDentro?: number;
-  /** Con `falta_requisito` (D-NEXT): lo que le falta al chofer que más cerca estaba de tenerlo todo. */
+  /** Con `falta_requisito` (D-418): lo que le falta al chofer que más cerca estaba de tenerlo todo. */
   faltan?: string[];
 }
 
@@ -180,7 +180,7 @@ export function fraseDePrioridadFuera(f: Pick<FueraConPorque, "prioridad" | "mas
   return partes.length ? partes.join(" ") : null;
 }
 
-// ---- Requisitos del camión (D-NEXT): las frases, aquí, para que la pantalla solo las pinte y una prueba las fije ----
+// ---- Requisitos del camión (D-418): las frases, aquí, para que la pantalla solo las pinte y una prueba las fije ----
 
 /** El motivo de una orden fuera por requisitos: «falta Liftgate: ningún chofer que rutea hoy lo tiene». `null` = no es eso. */
 export function fraseDeRequisitoFuera(f: Pick<FueraConPorque, "motivo" | "faltan">, lang: "en" | "es"): string | null {

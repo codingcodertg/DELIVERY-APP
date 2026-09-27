@@ -52,7 +52,7 @@ export interface EntradaDeMejorLugar {
 }
 
 /**
- * El filtro de chofer válido (D-NEXT, requisitos del camión): de las órdenes marcadas, cuáles puede llevar el chofer de
+ * El filtro de chofer válido (D-418, requisitos del camión): de las órdenes marcadas, cuáles puede llevar el chofer de
  * la ruta elegida y cuáles no, con lo que le falta. Va ANTES de buscar hueco y antes de «asignar al final» (sin pin o de
  * otro día): una orden que pide liftgate no entra en un camión sin liftgate por ningún camino. El cálculo del hueco
  * (`mejorLugar`) no cambia. `faltanA` es `faltanAlChofer` de `lib/requisitos` con esa ruta.

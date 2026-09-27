@@ -40,7 +40,7 @@ type Resumen = {
 
 /** Qué se puede hacer con una orden que quedó fuera: el siguiente paso, no el motivo. */
 const REMEDIO: Record<string, [string, string]> = {
-  // Requisitos del camión (D-NEXT): lo que pide la orden no lo tiene ningún chofer que rutea hoy.
+  // Requisitos del camión (D-418): lo que pide la orden no lo tiene ningún chofer que rutea hoy.
   dar_requisito: ["Mark it on a driver's truck (Settings → Route engine → Drivers), or take it off the order.", "Márquelo en el camión de un chofer (Ajustes → Motor de rutas → Choferes), o quíteselo a la orden."],
   poner_pin: ["Open the order and set its map pin.", "Abra la orden y póngale el pin en el mapa."],
   revisar_choferes: ["Check who routes today (Settings → drivers) and who is off.", "Revise quién rutea hoy (Ajustes → choferes) y quién no está."],

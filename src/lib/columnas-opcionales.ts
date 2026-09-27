@@ -1,5 +1,5 @@
 /**
- * Leer pidiendo columnas que la base puede no tener todavía (D-415 lo hizo para `priority`; D-NEXT lo generaliza para
+ * Leer pidiendo columnas que la base puede no tener todavía (D-415 lo hizo para `priority`; D-418 lo generaliza para
  * los requisitos del camión, 151).
  *
  * Las migraciones se aplican DESPUÉS de fusionar, así que hay una ventana en la que el código nuevo corre contra la base

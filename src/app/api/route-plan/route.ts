@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const [ordenes, ajustes, choferes, deChofer, ausencias, publicado] = await Promise.all([
     // Con `priority` (147) si la base la tiene; si aún no, sin ella y todas normales (`leeOrdenesDelDia`).
     leeOrdenesDelDia((columnas) => supabase.from("deliveries").select(columnas).eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])),
-    // El catálogo de requisitos y lo que tiene cada camión (151, D-NEXT), si la base ya los tiene; si no, sin ellos.
+    // El catálogo de requisitos y lo que tiene cada camión (151, D-418), si la base ya los tiene; si no, sin ellos.
     leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"]),
     supabase.from("profiles").select("id, full_name, role").eq("role", "driver"),
     leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, ["features"]),

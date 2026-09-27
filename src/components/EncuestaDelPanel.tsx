@@ -9,7 +9,7 @@ import { faltaLaTabla, leeEncuestasLocales, resumenDeEncuestas, veEncuestas, typ
 import type { Delivery } from "@/lib/types";
 
 /**
- * «Satisfacción del cliente» en el Panel (D-NEXT, 151): lo que los clientes contestaron en la página de seguimiento.
+ * «Satisfacción del cliente» en el Panel (D-418, 151): lo que los clientes contestaron en la página de seguimiento.
  *
  * Solo admin, logística y gerentes (`veEncuestas`; la política de la 151 dice lo mismo). De qué órdenes: las MISMAS del
  * Panel —sus tiendas (D-396) y su rango—, así que un gerente ve las de su tienda. La base, además, solo le manda las

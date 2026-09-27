@@ -57,7 +57,7 @@ export interface OrdenEntrada {
   /** La prioridad de la orden (D-412), como OptimoRoute. Sin ella —una base sin la 147, un plan guardado de
    *  antes—, normal: el motor planifica exactamente como antes de que existiera. */
   prioridad?: PrioridadDeOrden | null;
-  /** Lo que pide del camión (D-NEXT, 151; OptimoRoute `skills`): solo va con un chofer que lo tenga todo. Sin ella, o
+  /** Lo que pide del camión (D-418, 151; OptimoRoute `skills`): solo va con un chofer que lo tenga todo. Sin ella, o
    *  vacía, va con cualquiera, como antes. Un chofer fijado por una persona se respeta aunque no lo tenga. */
   requisitos?: string[] | null;
 }
@@ -77,7 +77,7 @@ export interface ChoferEntrada {
   entrada: number;
   salida: number;
   vuelveABase: boolean;
-  /** Lo que tiene su camión (D-NEXT, 151; OptimoRoute `vehicleFeatures`). Se compara sin mayúsculas. */
+  /** Lo que tiene su camión (D-418, 151; OptimoRoute `vehicleFeatures`). Se compara sin mayúsculas. */
   habilidades?: string[] | null;
 }
 
@@ -198,7 +198,7 @@ export type MotivoSinAsignar =
   | "fuera_de_turno"
   | "chofer_fijado_sin_hueco"
   | "no_cabe_con_el_resto"
-  /** Ningún chofer que rutea tiene lo que pide (D-NEXT). `faltan` dice qué. */
+  /** Ningún chofer que rutea tiene lo que pide (D-418). `faltan` dice qué. */
   | "falta_requisito";
 
 export interface SinAsignar {

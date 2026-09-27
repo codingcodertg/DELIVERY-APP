@@ -116,7 +116,7 @@ defecto `'{}'`; que los guards de la 145 y la 146 (si está) no mencionen `requi
 lección de la 144); RLS puesta en `delivery_surveys`, **una** política y de `SELECT`; ni `anon` lee o inserta, ni
 `authenticated` inserta, actualiza, borra o trunca; `authenticated` lee y `service_role` inserta; y el disparador puesto.
 
-Sin `begin`/`commit` propios. **Sin `D-NEXT` dentro del `.sql`**: numerar la decisión no cambia el checksum del registro.
+Sin `begin`/`commit` propios. **Sin `D-418` dentro del `.sql`**: numerar la decisión no cambia el checksum del registro.
 Checksum del registro: `9ef71064704290ef2e3d09da942b85c861970a512fb11e9c6d9dc9dfe4cd719a`
 (`node scripts/db/migrate-status.mjs --sum 151_requisitos_y_encuesta.sql`, 2026-09-27; una prueba del repo lo recalcula).
 

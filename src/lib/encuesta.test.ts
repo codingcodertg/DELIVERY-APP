@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
-// La encuesta de satisfacción del seguimiento (D-NEXT, 151). El cliente de Supabase es FALSO: nada sale de esta máquina,
+// La encuesta de satisfacción del seguimiento (D-418, 151). El cliente de Supabase es FALSO: nada sale de esta máquina,
 // y la ruta nunca manda nada a nadie (no hay proveedor que stubear: la encuesta no avisa).
 
 const falso = vi.hoisted(() => ({
@@ -180,9 +180,9 @@ describe("la migración 151", () => {
       expect(c).toContain(`alter table public.${t} add column if not exists ${col} text[] not null default '{}'::text[];`);
     }
   });
-  it("sin begin/commit propios, sin D-NEXT dentro (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
+  it("sin begin/commit propios, sin D-418 dentro (numerar cambiaría el checksum), con reversión y con su fila del registro al día", () => {
     expect(codigo(sql)).not.toMatch(/(^|;)\s*(begin|commit|rollback)\s*;/im);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-418");
     expect(sql).toContain("--   drop table if exists public.delivery_surveys;");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");

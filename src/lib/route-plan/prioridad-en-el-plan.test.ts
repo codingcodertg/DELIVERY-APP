@@ -69,7 +69,7 @@ describe("la consulta del servidor, con y sin la 147 aplicada", () => {
         : { data: [{ id: "a" }], error: null };
     };
     expect(await leeOrdenesDelDia(sinLa147)).toEqual({ data: [{ id: "a" }], error: null });
-    // Desde D-NEXT también pide `requirements` (151): sin la 147, se quita SOLO `priority` y los requisitos siguen.
+    // Desde D-418 también pide `requirements` (151): sin la 147, se quita SOLO `priority` y los requisitos siguen.
     expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements`, `${COLUMNAS_DE_ORDEN}, requirements`]);
   });
 

@@ -6,7 +6,7 @@ import {
 } from "./index";
 
 /**
- * Requisitos del camión en «Planificar el día» (D-NEXT, OptimoRoute `skills` / `vehicleFeatures`). El dueño, 2026-09-27:
+ * Requisitos del camión en «Planificar el día» (D-418, OptimoRoute `skills` / `vehicleFeatures`). El dueño, 2026-09-27:
  * *«solos haz 1 3 y 4»*. Misma cuadrícula que `prioridad-y-reparto.test.ts`: de «x,y» a «x',y'» se tarda |dx|+|dy|
  * minutos. Nada es real.
  */

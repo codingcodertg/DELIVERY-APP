@@ -10,7 +10,7 @@ import { separaPorRequisitos } from "./mejor-lugar";
 import type { Delivery } from "./types";
 
 /**
- * Requisitos del camión (D-NEXT, 151; OptimoRoute `skills` / `vehicleFeatures`). El dueño, 2026-09-27: *«solos haz 1 3
+ * Requisitos del camión (D-418, 151; OptimoRoute `skills` / `vehicleFeatures`). El dueño, 2026-09-27: *«solos haz 1 3
  * y 4»*. Aquí: la librería, «Mejor lugar», y que las pantallas usan todo esto. Auto-asignar NO: el orquestador lo sacó del alcance (otra rama lo reescribe sobre el motor). El motor de «Planificar el
  * día» tiene su propia prueba (`route-engine/requisitos-en-el-motor.test.ts`).
  */
@@ -114,7 +114,7 @@ describe("las pantallas usan todo esto", () => {
   it("la ficha: marca con `alternaRequisito` y guarda con `conRequisitosSiCabe`", () => {
     const f = plano(leer("src/components/OrderModal.tsx"));
     expect(f).toContain("const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({");
-    expect(f).toContain("}, deliveries), deliveries);");
+    expect(f).toContain("}, deliveries), deliveries), deliveries);");
     expect(f).toContain('{laBaseTieneRequisitosEnOrdenes(deliveries) && catalogoDeRequisitos(settings).length > 0 && (');
     expect(f).toContain('onChange={() => set("requirements", alternaRequisito(d.requirements, r, catalogoDeRequisitos(settings)))}');
   });

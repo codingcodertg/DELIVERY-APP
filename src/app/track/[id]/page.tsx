@@ -42,7 +42,7 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
   // unwraps with React.use() instead of await.
   const { id } = use(params);
   const [order, setOrder] = useState<TrackOrder | null | undefined>(undefined);
-  // La encuesta (D-NEXT): `null` = no se enseña (no está entregada, o la base aún no la tiene).
+  // La encuesta (D-418): `null` = no se enseña (no está entregada, o la base aún no la tiene).
   const [survey, setSurvey] = useState<{ answered: boolean } | null>(null);
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
 }
 
 /**
- * La encuesta de satisfacción (D-NEXT, 151): 1-5 estrellas y un comentario opcional, una vez por orden. Sin login: la
+ * La encuesta de satisfacción (D-418, 151): 1-5 estrellas y un comentario opcional, una vez por orden. Sin login: la
  * guarda `/api/track/<id>/survey`, que comprueba todo antes de escribir. En el demo, en este navegador.
  */
 function Encuesta({ id, answered }: { id: string; answered: boolean }) {

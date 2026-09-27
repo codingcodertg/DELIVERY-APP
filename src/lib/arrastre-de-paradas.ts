@@ -1,7 +1,7 @@
 import { costeDeLaRuta, mejorLugar, type LatLng, type ParadaDeRuta } from "@/lib/mejor-lugar";
 
 /**
- * Arrastrar paradas en la línea de tiempo («📅 Horario») del Gestor de Rutas (D-NEXT), como el «drag and drop» de
+ * Arrastrar paradas en la línea de tiempo («📅 Horario») del Gestor de Rutas (D-417), como el «drag and drop» de
  * OptimoRoute. Aquí vive TODO lo que decide: qué hueco hay bajo el puntero, qué se escribe al soltar, cuánto cuesta
  * (vista previa), qué deja el candado, y el historial de deshacer/rehacer con su comprobación de choques. La pantalla
  * (`GanttTimeline` + `routes/page.tsx`) solo mide el puntero y llama.

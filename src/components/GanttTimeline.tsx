@@ -13,7 +13,7 @@ import type { Delivery } from "@/lib/types";
 // The day axis starts at 07:00 and runs to 19:00, or later if a route runs later.
 const AXIS_START = 7 * 60;
 const AXIS_END_MIN = 19 * 60;
-/** Por debajo de este ancho (el teléfono) no se arrastra: queda con las flechas de «Rutas» (D-NEXT). */
+/** Por debajo de este ancho (el teléfono) no se arrastra: queda con las flechas de «Rutas» (D-417). */
 const SOLO_FLECHAS = "(max-width: 760px)";
 /** Píxeles que hay que mover el puntero para que una pulsación sea un arrastre y no un toque. */
 const UMBRAL_PX = 5;
@@ -28,7 +28,7 @@ export interface GanttRow {
   bloqueada: boolean;
 }
 
-/** Lo que la pantalla le da a la línea de tiempo para arrastrar (D-NEXT). Sin esto, la línea solo pinta. */
+/** Lo que la pantalla le da a la línea de tiempo para arrastrar (D-417). Sin esto, la línea solo pinta. */
 export interface ArrastreDelGantt {
   inicioMin: number;
   /** Qué pasaría al soltar ahí, sin escribir nada (`planDeSoltar`). Se llama en cada movimiento del puntero. */
@@ -64,7 +64,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
   const nombre = (id: string) => nombres.get(id) ?? id.slice(0, 6);
   const porId = useMemo(() => new Map(rows.flatMap((r) => r.orders.map((d) => [d.id, d] as const))), [rows]);
 
-  // En el teléfono no se arrastra (queda con las flechas de «Rutas»): ver D-NEXT.
+  // En el teléfono no se arrastra (queda con las flechas de «Rutas»): ver D-417.
   const [estrecho, setEstrecho] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(SOLO_FLECHAS);

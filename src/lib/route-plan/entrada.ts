@@ -38,7 +38,7 @@ type OrdenDeLaBase = Pick<Delivery,
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
   priority?: Delivery["priority"];
-  /** D-NEXT. Puede no venir: una base sin la 151 no tiene la columna. */
+  /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
   requirements?: Delivery["requirements"] };
 
 export interface DatosDelDia {
@@ -113,7 +113,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     return puntoDeTienda(t.name);
   };
 
-  // El catálogo de requisitos (D-NEXT, 151): lo que no está en él no cuenta, ni en la orden ni en el chofer.
+  // El catálogo de requisitos (D-418, 151): lo que no está en él no cuenta, ni en la orden ni en el chofer.
   const catalogo = catalogoDeRequisitos(settings);
 
   // ---- Choferes ----
@@ -129,7 +129,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       : (datos.noDisponibles ?? []).some((n) => igual(n, c.nombre)) ? "no_disponible" as const
       : c.falta[0] ?? (!c.rutea || !base ? "no_rutea" as const : null);
     if (motivo || !base) { choferesFuera.push({ id: c.id, nombre: c.nombre, motivo: motivo ?? "no_rutea" }); continue; }
-    // Lo que tiene su camión (D-NEXT, 151), solo si tiene algo: sin requisitos, la entrada que se guarda es la de siempre.
+    // Lo que tiene su camión (D-418, 151), solo si tiene algo: sin requisitos, la entrada que se guarda es la de siempre.
     const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
       ...(habilidades.length ? { habilidades } : {}) });
@@ -174,7 +174,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       choferFijado,
       // Solo si no es normal: sin la 147, o con todo en normal, la entrada que se guarda es la de siempre.
       ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),
-      // Lo mismo con los requisitos (D-NEXT): solo si pide algo del catálogo.
+      // Lo mismo con los requisitos (D-418): solo si pide algo del catálogo.
       ...(requisitosDeLaOrden(d, catalogo).length ? { requisitos: requisitosDeLaOrden(d, catalogo) } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });

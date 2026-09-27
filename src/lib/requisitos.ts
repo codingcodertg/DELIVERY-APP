@@ -1,5 +1,5 @@
 /**
- * Requisitos del camión (D-NEXT, migración 151), como las `skills` / `vehicleFeatures` de OptimoRoute.
+ * Requisitos del camión (D-418, migración 151), como las `skills` / `vehicleFeatures` de OptimoRoute.
  *
  * El dueño, 2026-09-27, tras explicarle OptimoRoute: *«solos haz 1 3 y 4»*. El 4 incluía esto: una orden puede pedir
  * algo del camión (liftgate, montacargas, camión grande, dos personas) y cada chofer declara lo que tiene. Lo automático

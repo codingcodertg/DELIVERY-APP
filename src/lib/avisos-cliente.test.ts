@@ -262,7 +262,7 @@ describe("la base sin la 150 no se rompe", () => {
   });
   it("la ficha los usa al guardar y enseña los campos solo con la 150", () => {
     const src = leer("src/components/OrderModal.tsx");
-    expect(src).toContain("const payload = conAvisosSiCabe(conPrioridadSiCabe({");
+    expect(src).toContain("const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({");
     expect(src).toContain("{laBaseTieneAvisos(deliveries) && (");
   });
   it("Ajustes enseña la tarjeta con su comprobación", () => {

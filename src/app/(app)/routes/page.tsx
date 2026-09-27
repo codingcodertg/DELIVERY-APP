@@ -836,7 +836,7 @@ export default function RoutesPage() {
   const colorFor = (driver: string | null) => (driver ? settings.driver_colors?.[driver] || fallbackDriverColor(driver) : UNASSIGNED_COLOR);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
-  // Requisitos del camión (D-NEXT): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
+  // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
   const { faltanA } = useRequisitosDelCamion();
   const setCapacity = (driver: string, capacity: number) => {
     clearRouteFor(driver);
@@ -1060,7 +1060,7 @@ export default function RoutesPage() {
     printRouteManifest(label, stops, settings, lang, fmtDate(date));
   };
 
-  // «📅 Horario» (D-NEXT): cada ruta del día en su orden y sus viajes (`buildTrips`, lo mismo que la tabla de paradas), con
+  // «📅 Horario» (D-417): cada ruta del día en su orden y sus viajes (`buildTrips`, lo mismo que la tabla de paradas), con
   // cada parada a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
   // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve.
   // La base: las coordenadas de la tienda en Ajustes si las tiene; si no, las que la pantalla ya buscó para pintar la «P».
@@ -1448,7 +1448,7 @@ export default function RoutesPage() {
       notify(t(`🔒 ${laneLabel(laneKey)} is locked — Best fit leaves it alone. Unlock it, or use “Assign”.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Mejor lugar no la toca. Desbloquéela, o use «Asignar».`));
       return;
     }
-    // El filtro de chofer válido (D-NEXT): lo que su camión no puede llevar ni se coloca ni se asigna al final.
+    // El filtro de chofer válido (D-418): lo que su camión no puede llevar ni se coloca ni se asigna al final.
     const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));
     const noEnEn = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "en")}`).join(", ");
     const noEnEs = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "es")}`).join(", ");
@@ -1589,7 +1589,7 @@ export default function RoutesPage() {
     // realtime refetch can't snap the stop back to where it was.
     const ids = list.map((d) => d.id);
     const ok = await reorderStops(ids, loadNoById);
-    // Las flechas también entran en deshacer/rehacer (D-NEXT): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
+    // Las flechas también entran en deshacer/rehacer (D-417): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
     // no se deshace pisando la flecha (su comprobación lo vería cambiado).
     if (ok) {
       const antes = fotoDe(trips.flat().map(aParadaDelGantt));
@@ -1597,7 +1597,7 @@ export default function RoutesPage() {
     }
   };
 
-  // ---- Deshacer / rehacer (D-NEXT) -------------------------------------------------------------------------------
+  // ---- Deshacer / rehacer (D-417) -------------------------------------------------------------------------------
   // Los movimientos a mano de ESTA sesión y de ESTE día: arrastrar en «📅 Horario» y las flechas ↑ ↓ de parada. Deshacer
   // es otra escritura en la base (los mismos campos que las flechas: `assigned_driver`, `route_seq`, `load_no`), y antes
   // de escribir se lee lo que hay AHORA: si otra persona tocó algo de lo que se va a escribir, no se escribe nada.
@@ -1672,7 +1672,7 @@ export default function RoutesPage() {
     return () => window.removeEventListener("keydown", tecla);
   }, []);
 
-  // Soltar una parada en «📅 Horario» (D-NEXT). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
+  // Soltar una parada en «📅 Horario» (D-417). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
   // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir.
   const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);
   const sueltaEnLaLinea = async (movida: string, destino: Destino) => {
@@ -2335,7 +2335,7 @@ export default function RoutesPage() {
         <button className={"vt " + (tab === "timeline" ? "on" : "")} onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
         <button className={"vt " + (tab === "incidents" ? "on" : "")} onClick={() => setTab("incidents")}>⚠ {t("Incidents", "Incidencias")} ({incidents.length})</button>
       </div>
-        {/* Deshacer / rehacer los movimientos a mano de esta sesión (D-NEXT): arrastrar en «Horario» y las flechas. */}
+        {/* Deshacer / rehacer los movimientos a mano de esta sesión (D-417): arrastrar en «Horario» y las flechas. */}
         {(tab === "timeline" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (
           <span style={{ display: "inline-flex", gap: 6 }}>
             <button className="btn btn-ghost btn-sm" data-deshacer disabled={moviendo || !historial.deshacer.length} onClick={() => void vuelve("deshacer")}

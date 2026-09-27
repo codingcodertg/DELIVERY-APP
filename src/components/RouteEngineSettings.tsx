@@ -93,7 +93,7 @@ export function RouteEngineSettings() {
   };
   const edita = (id: string, patch: Partial<Fila>) => setFilas((f) => ({ ...(f ?? {}), [id]: { ...filaDe(id), ...patch } }));
 
-  // ---- Requisitos del camión (D-NEXT, 151): el catálogo, y qué tiene cada camión ----
+  // ---- Requisitos del camión (D-418, 151): el catálogo, y qué tiene cada camión ----
   const catalogo = catalogoDeRequisitos(settings);
   const hayCatalogo = laBaseTieneRequisitos(settings);
   const [nuevoRequisito, setNuevoRequisito] = useState("");

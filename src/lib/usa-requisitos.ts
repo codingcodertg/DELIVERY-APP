@@ -7,7 +7,7 @@ import { catalogoDeRequisitos, faltanAlChofer, habilidadesPorNombre } from "@/li
 import type { Delivery, DriverSettings } from "@/lib/types";
 
 /**
- * Lo que necesita «Mejor lugar» en el Gestor (D-NEXT): el catálogo de requisitos y qué tiene el camión de cada chofer,
+ * Lo que necesita «Mejor lugar» en el Gestor (D-418): el catálogo de requisitos y qué tiene el camión de cada chofer,
  * para preguntar «¿qué le falta a este chofer para llevar esta orden?». Auto-asignar NO lo usa en esta rama: el
  * orquestador lo dejó fuera (2026-09-27) porque otra rama lo reescribe sobre el motor de «Planificar el día», que ya
  * respeta los requisitos.

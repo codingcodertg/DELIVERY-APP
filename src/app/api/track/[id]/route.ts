@@ -35,7 +35,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (error) return NextResponse.json({ error: "Lookup failed" }, { status: 502 });
   if (!data) return NextResponse.json({ order: null }, { status: 404 });
 
-  // La encuesta (D-NEXT, 151): solo con la orden entregada, y solo SI ya se respondió — nunca la respuesta. Sin la tabla
+  // La encuesta (D-418, 151): solo con la orden entregada, y solo SI ya se respondió — nunca la respuesta. Sin la tabla
   // (la 151 sin aplicar) o con cualquier error, `null`: la página no la enseña, y el seguimiento sigue igual.
   let survey: { answered: boolean } | null = null;
   if (sePuedeCalificar((data as { stage?: string }).stage)) {
