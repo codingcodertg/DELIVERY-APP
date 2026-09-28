@@ -54,7 +54,7 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
   it("«Default» devuelve el orden nuevo, y una plantilla se pinta en el orden nuevo sin que su foto cambie", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)[0]).toBe("po");
     const foto = ["address", "po", "fee"];
-    // Sin ninguna del plan, la plantilla es de antes de que el plan tuviera columnas (D-NEXT): recibe las del plan por defecto.
+    // Sin ninguna del plan, la plantilla es de antes de que el plan tuviera columnas (D-429): recibe las del plan por defecto.
     expect(new Set(fotoDelGestor(columnasDePlantillaDelGestor(foto)).filter((k) => !k.startsWith("pl_")))).toEqual(new Set(foto));
     // Desde D-408 la factura es fija: sale aunque la foto no la tenga, en su puesto de ventas (tras PO y SO).
     expect(columnasDeLaTabla("sinAsignar", columnasDePlantillaDelGestor(foto)).map((c) => c.key)).toEqual(["po", "invoice", "fee", "address"]);

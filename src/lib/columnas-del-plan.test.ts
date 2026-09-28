@@ -11,7 +11,7 @@ import {
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR } from "./user-prefs";
 
 /**
- * D-NEXT: la tabla del PLANIFICADOR con las columnas de Órdenes. El dueño, 2026-09-28: «quiero que en el planificador salga
+ * D-429: la tabla del PLANIFICADOR con las columnas de Órdenes. El dueño, 2026-09-28: «quiero que en el planificador salga
  * las mismas tables como en orden como te lo habia pedido sabajo» — «Las mismas que Órdenes» — «y que yo pueda editar las
  * columas cambiar ordenes y hasta dejar templates».
  */

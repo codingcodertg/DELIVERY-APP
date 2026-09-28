@@ -4,7 +4,7 @@ import type { EntradaDelDia } from "./entrada";
 import type { EscrituraDeOrden } from "./publicar";
 
 /**
- * Cambiar una ruta YA PUBLICADA (D-NEXT). El dueño: «los botons para cmabiar la ruta cuando ya esta no funciona» — «Ya
+ * Cambiar una ruta YA PUBLICADA (D-429). El dueño: «los botons para cmabiar la ruta cuando ya esta no funciona» — «Ya
  * publicada, no me deja». Hasta aquí un plan publicado solo se miraba (D-322, D-323): los controles salían en un borrador.
  *
  * El primer ajuste sobre un publicado crea un BORRADOR NUEVO —copia del publicado con el movimiento aplicado— y el publicado

@@ -172,7 +172,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // Medido con `bytesEnLaBase`, que da lo mismo que Postgres (D-394). 6 939 bytes el 2026-09-26 con las 10 plantillas: cabían.
     // D-412 añadió las dos columnas de prioridad («priority» y «p_priority»): 7 553 con 10, y con la reserva de 800 ya no
     // caben (8 353 de 8 192). Con 9, sí. La guarda lo dice al guardar la décima; no falla en silencio.
-    // D-NEXT sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
+    // D-429 sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
     // plantilla LLENA —las 48 columnas y las tres tablas movidas— pesa ~1,2 KB: caben 5, y la sexta la para la guarda.
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(12753);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
@@ -184,7 +184,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     const porRol = <T,>(v: T) => Object.fromEntries(ROLES_QUE_ELIGEN.map((r) => [r, v]));
     const con = (n: number) => valorDeColumnas({ visibles: porRol(visiblesLlenas), orden: porRol(ordenLleno), plantillas: Array.from({ length: n }, (_, i) => plantillaLlena(i)) });
     // Con las dos de prioridad (D-412): 3 648 → 3 982 y 9 951 → 10 845; caben 4 y no 5.
-    // Con la tabla del plan (D-NEXT): 3 982 → 6 861 sin plantillas, y 18 445 con 10. Los seis roles con TODO marcado y movido
+    // Con la tabla del plan (D-429): 3 982 → 6 861 sin plantillas, y 18 445 con 10. Los seis roles con TODO marcado y movido
     // aún caben (6 861 + 800 de reserva < 8 192), pero ya no una plantilla llena más. Lo normal —logística y admin con las de
     // por defecto y 10 plantillas de esas— son 4 312 bytes (la prueba de abajo).
     expect(bytesEnLaBase(con(0))).toBe(6861);
@@ -196,7 +196,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     const caben = Array.from({ length: MAX_PLANTILLAS + 1 }, (_, n) => n).filter((n) => cabeEnLaFila(con(n))).pop();
     expect(caben).toBe(0);
   });
-  it("lo normal con la tabla del plan (D-NEXT): logística y admin con las de por defecto y 10 plantillas de esas caben con holgura", () => {
+  it("lo normal con la tabla del plan (D-429): logística y admin con las de por defecto y 10 plantillas de esas caben con holgura", () => {
     const porDefecto = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => !MARCAS.includes(k));
     const v = valorDeColumnas({ visibles: { logistics: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], admin: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO] }, orden: {},
       plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });

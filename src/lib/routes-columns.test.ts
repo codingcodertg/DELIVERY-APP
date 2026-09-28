@@ -12,7 +12,7 @@ const plano = (s: string) => s.replace(/\s+/g, " ");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5];
-/** Las de Órdenes que la tabla del plan enseña por defecto (D-NEXT): el juego de ventas en Órdenes, en su orden. */
+/** Las de Órdenes que la tabla del plan enseña por defecto (D-429): el juego de ventas en Órdenes, en su orden. */
 const DEL_PLAN_POR_DEFECTO = ["pl_po", "pl_type", "pl_account", "pl_stage", "pl_store", "pl_date", "pl_pallets", "pl_driver", "pl_address", "pl_windows"];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
@@ -86,7 +86,7 @@ describe("las columnas del Gestor", () => {
     expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
     // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.
     expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
-    // Con la v4 y sin la v5 (guardó antes de que el plan tuviera columnas, D-NEXT): le llegan las del plan por defecto, una vez.
+    // Con la v4 y sin la v5 (guardó antes de que el plan tuviera columnas, D-429): le llegan las del plan por defecto, una vez.
     expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
     // Con todas las marcas, ya nada se añade: quitó el costo y se respeta.
     expect(conColumnasNuevas(["invoice", ...MARCAS])).toEqual(["invoice", ...MARCAS]);
@@ -136,7 +136,7 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
   });
   it("cada columna que viene de Órdenes lleva EXACTAMENTE su rótulo en los dos idiomas", () => {
     const deOrdenes = COLUMNAS_DEL_GESTOR.filter((c) => c.deOrdenes);
-    // Y las de la tabla del plan (D-NEXT): todas las de Órdenes, cada una con su rótulo de Órdenes.
+    // Y las de la tabla del plan (D-429): todas las de Órdenes, cada una con su rótulo de Órdenes.
     expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + 15);
     for (const c of deOrdenes) {
       const r = rotuloEnOrdenes(c.deOrdenes!);
@@ -299,7 +299,7 @@ describe("la página del Gestor", () => {
     const mapa = pagina.slice(pagina.indexOf("{shownDrivers.map((u) => {"));
     expect(mapa.indexOf("<SelectorDeColumnas")).toBeGreaterThan(-1);
     expect(pagina).not.toMatch(/verColsParadas|cajaDeColsParadas|verColsPool|cajaDeColsPool|useCierraAlSalir/);
-    // Tres desde D-NEXT: el del plan va UNO para todas las rutas (fuera del `map` de choferes de `RutaDelPlan`).
+    // Tres desde D-429: el del plan va UNO para todas las rutas (fuera del `map` de choferes de `RutaDelPlan`).
     expect(pagina.split("<SelectorDeColumnas").length - 1).toBe(3);
     const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
     expect(selector).toContain("const [abierto, setAbierto] = useState(false);");

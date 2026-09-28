@@ -22,7 +22,7 @@
 import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
 import { ROLE_DEFAULT_COLUMNS } from "./constants";
 
-/** «plan» (D-NEXT): la tabla de paradas del planificador, «Armar las rutas del día» (`RutaDelPlan`). */
+/** «plan» (D-429): la tabla de paradas del planificador, «Armar las rutas del día» (`RutaDelPlan`). */
 export type TablaDelGestor = "sinAsignar" | "paradas" | "plan";
 
 export interface ColumnaDelGestor {
@@ -127,7 +127,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
 ]);
 
 /**
- * La tabla del PLANIFICADOR (D-NEXT), la de «Armar las rutas del día». El dueño, 2026-09-28: «quiero que en el planificador
+ * La tabla del PLANIFICADOR (D-429), la de «Armar las rutas del día». El dueño, 2026-09-28: «quiero que en el planificador
  * salga las mismas tables como en orden como te lo habia pedido sabajo» — y, preguntado cuáles: «Las mismas que Órdenes». Y
  * luego: «y que yo pueda editar las columas cambiar ordenes y hasta dejar templates».
  *
@@ -163,7 +163,7 @@ function columnasDelPlan(): ColumnaDelGestor[] {
 }
 
 /**
- * Qué columnas de Órdenes se pintan en una fila de RECOGIDA (P) del plan (D-NEXT). La fila P y la D son la MISMA orden:
+ * Qué columnas de Órdenes se pintan en una fila de RECOGIDA (P) del plan (D-429). La fila P y la D son la MISMA orden:
  * lo que es de la orden —PO, SO, factura, tipo, cuenta, etapa, prioridad, tienda, fecha, pallets, costo, chofer— sale en
  * las dos, porque quien mira una recogida necesita saber qué carga. Lo que es de la ENTREGA —la dirección, sus ventanas y el
  * contacto del cliente— en una recogida mentiría: esa parada es en la tienda (la dice la columna de la parada). Va vacío.
@@ -181,7 +181,7 @@ export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_D
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
   paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
-  // El plan (D-NEXT): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
+  // El plan (D-429): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
   plan: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan")).map((c) => c.key),
 };
 const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas", "plan"];
@@ -307,7 +307,7 @@ const NUEVAS_EN_V3: readonly string[] = ["pickup"];
 // D-376: las de Órdenes en «Sin asignar». Solo las que salen por defecto; las de paradas nacen ocultas y no se añaden.
 export const MARCA_V4 = "_v4";
 const NUEVAS_EN_V4: readonly string[] = ["type", "so", "po", "fee", "contact"];
-// D-NEXT: la tabla del plan con las columnas de Órdenes. Solo las que salen por defecto; las propias del plan nacen ocultas.
+// D-429: la tabla del plan con las columnas de Órdenes. Solo las que salen por defecto; las propias del plan nacen ocultas.
 export const MARCA_V5 = "_v5";
 const NUEVAS_EN_V5: readonly string[] = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && !c.oculta).map((c) => c.key);
 export function conColumnasNuevas(guardadas: readonly string[]): string[] {
@@ -369,7 +369,7 @@ export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | n
  * catálogo, con las marcas. Las marcas van SIEMPRE: la foto se tomó con este código, que ya conoce las columnas de cada tanda,
  * y sin ellas `conColumnasNuevas` volvería a añadir al recargar las que la plantilla tenía quitadas.
  *
- * Salvo la tabla del plan (D-NEXT): una plantilla SIN NINGUNA columna del plan se guardó antes de que la tabla existiera —o
+ * Salvo la tabla del plan (D-429): una plantilla SIN NINGUNA columna del plan se guardó antes de que la tabla existiera —o
  * con todas quitadas, que es indistinguible—, y aplicarla dejaría el plan sin columnas de Órdenes. Recibe las de por defecto.
  */
 export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {

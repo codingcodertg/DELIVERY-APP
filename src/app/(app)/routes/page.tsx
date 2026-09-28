@@ -2081,7 +2081,7 @@ export default function RoutesPage() {
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar.
-          Sus columnas (D-NEXT) son las de Órdenes: la misma lista, el mismo orden guardado, las mismas plantillas y las mismas
+          Sus columnas (D-429) son las de Órdenes: la misma lista, el mismo orden guardado, las mismas plantillas y las mismas
           flechas que «Sin asignar» y paradas — la tercera tabla de la fila `routes_columns`. */}
       {barraDeArmarRutas && (
         <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano}

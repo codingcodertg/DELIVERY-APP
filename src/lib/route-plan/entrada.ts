@@ -78,7 +78,7 @@ export { leeConOpcionales };
  * todas normales (`prioridadDe`), o ninguna pide nada (`requisitosDeLaOrden`).
  */
 export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Lectura>,
-  /** Columnas de más, siempre presentes en la base (D-NEXT: `route_seq, load_no`, para la copia de un publicado). */
+  /** Columnas de más, siempre presentes en la base (D-429: `route_seq, load_no`, para la copia de un publicado). */
   extra = ""): Promise<Lectura> {
   return leeConOpcionales(lee, COLUMNAS_DE_ORDEN + extra, COLUMNAS_OPCIONALES_DE_ORDEN);
 }

@@ -16,10 +16,10 @@ import type { Delivery } from "@/lib/types";
  * horas: son las que guardó el motor. Aquí no hay ni una suma.
  *
  * Con `ajuste` cada parada lleva sus controles: subir, bajar, pasar la orden a otro chofer, fijarla. Aquí tampoco se
- * decide nada: se manda el movimiento y se pinta lo que el servidor contesta. Desde D-NEXT también en un plan PUBLICADO
+ * decide nada: se manda el movimiento y se pinta lo que el servidor contesta. Desde D-429 también en un plan PUBLICADO
  * (el servidor hace una copia en borrador); lo que ya no está pendiente lleva 🔒 y no se mueve (`noSeMueven`).
  *
- * LAS COLUMNAS (D-NEXT): las de Órdenes, en el orden de Órdenes, elegibles y movibles en ⚙ y con plantillas como el resto
+ * LAS COLUMNAS (D-429): las de Órdenes, en el orden de Órdenes, elegibles y movibles en ⚙ y con plantillas como el resto
  * del Gestor (`columnas`, que arma la página con `columnasDeLaTabla("plan", …)`). Fijas: la etiqueta, la parada y Ajustar.
  * Las cuatro de antes —llega–sale, ventana, tramo y pallets a bordo— son columnas más del ⚙, escondidas de partida. En una
  * RECOGIDA, lo que es de la entrega (dirección, ventanas, contacto) va vacío (`seVeEnLaRecogida`).
@@ -43,7 +43,7 @@ export interface ColumnasDeLaRuta {
   selector?: ReactNode;
 }
 
-/** Sin columnas de la página, las cuatro de siempre: la tabla se ve como antes de D-NEXT. */
+/** Sin columnas de la página, las cuatro de siempre: la tabla se ve como antes de D-429. */
 const SOLO_LAS_DEL_PLAN = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && !c.deOrdenes);
 
 export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, ajuste, columnas }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; destinoDeOrden?: (ref: string) => { ciudad: string; direccion: string } | null; abrirOrden?: (ref: string) => void; ajuste?: AjusteDeRuta; columnas?: ColumnasDeLaRuta }) {
@@ -131,7 +131,7 @@ export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, 
 
   return (
     // `minWidth: 0` aquí y en cada tarjeta: un hijo de grid crece hasta lo que mida su tabla, y con las columnas de Órdenes
-    // (D-NEXT) la tabla empujaba la PÁGINA de lado en vez de desplazarse dentro de su caja (medido en el demo: 297 px a 1440).
+    // (D-429) la tabla empujaba la PÁGINA de lado en vez de desplazarse dentro de su caja (medido en el demo: 297 px a 1440).
     <div style={{ display: "grid", gap: 10, marginTop: 6, minWidth: 0 }}>
       {/* Un ⚙ para todas las rutas: las columnas son de la persona, no de cada chofer. */}
       {columnas?.selector && <div data-columnas-del-plan style={{ textAlign: "right" }}>{columnas.selector}</div>}

@@ -11,7 +11,7 @@ import { fisicaDeLaOrden, fotoDeLaCopia, type Foto, type OrdenAhora } from "./co
 import type { DatosDelDia } from "./entrada";
 
 /**
- * Cambiar una ruta YA PUBLICADA (D-NEXT). El dueño: «los botons para cmabiar la ruta cuando ya esta no funciona» —
+ * Cambiar una ruta YA PUBLICADA (D-429). El dueño: «los botons para cmabiar la ruta cuando ya esta no funciona» —
  * «Ya publicada, no me deja». El primer ajuste crea un borrador nuevo, copia del publicado; el publicado no se toca.
  */
 

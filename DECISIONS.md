@@ -22553,7 +22553,7 @@ una.
   ámbar separa un viaje del siguiente. Las órdenes de **builder** llevan su marca; una orden repartida dice
   «carga 2 de 3» en cada parada, además de la nota general de D-320.
 
-  > **Reemplazada en parte por D-NEXT** (2026-09-28): las columnas de la tabla ya no son fijas. Son las de Órdenes, en el
+  > **Reemplazada en parte por D-429** (2026-09-28): las columnas de la tabla ya no son fijas. Son las de Órdenes, en el
   > orden de Órdenes, elegibles y movibles en ⚙ con plantillas; llega–sale, ventana, tramo y pallets a bordo siguen como
   > columnas elegibles, escondidas de partida.
 - **Todo eso sale de una función pura**, `vistaDelPlan` (`src/lib/route-plan/vista.ts`), sobre las filas guardadas en
@@ -22596,7 +22596,7 @@ una.
 `source = 'manual_edit'`, `parent_plan_id` y `pinned`). **Diseño:** `docs/route-algorithm-design.md`, §7.
 **El Gestor de Rutas de hoy no cambia.** Solo admin y logística, solo sobre un plan en borrador.
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): «solo sobre un plan en borrador» ya no vale. Un plan PUBLICADO también
+> **Reemplazada en parte por D-429** (2026-09-28): «solo sobre un plan en borrador» ya no vale. Un plan PUBLICADO también
 > se ajusta: el primer movimiento crea un borrador nuevo, copia del publicado, y el publicado no se toca hasta publicar la copia.
 
 ### Qué hay ahora
@@ -31629,7 +31629,7 @@ Si «today yesterday and tomorrow» quería decir otra cosa (p. ej. que el plan 
 cada vez con su botón marcado y sin desplazamiento lateral. El enlace del plan no se abrió en el demo (el borrador necesita
 servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.
 
-## D-NEXT · El planificador con las columnas de Órdenes (⚙, mover, plantillas); y una ruta ya publicada se puede cambiar
+## D-429 · El planificador con las columnas de Órdenes (⚙, mover, plantillas); y una ruta ya publicada se puede cambiar
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«quiero que en el planificador salga las mismas tables como en orden como
 te lo habia pedido sabajo y mia que los botons para cmabiar la ruta cuando ya esta no funciona»*. Preguntado, aclaró: los

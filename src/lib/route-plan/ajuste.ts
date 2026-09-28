@@ -34,7 +34,7 @@ export type ErrorDeMovimiento = "chofer_desconocido" | "parada_desconocida" | "o
 
 /**
  * Si la parada `indice` de una ruta puede cambiarse con su vecina (`delta` −1 arriba, +1 abajo) sin tocar una orden que ya
- * no se mueve (D-NEXT: en la copia de un publicado, lo que ya no está pendiente). Solo mira eso y el borde; que el cambio
+ * no se mueve (D-429: en la copia de un publicado, lo que ya no está pendiente). Solo mira eso y el borde; que el cambio
  * siga siendo una ruta lo decide `aplicaMovimiento`. La usan el servidor y la pantalla, para apagar la flecha.
  */
 export function cambiaConLaVecina(ordenes: readonly string[], indice: number, delta: -1 | 1, noSeMueven: ReadonlySet<string>): boolean {
@@ -88,7 +88,7 @@ export function esUnaRuta(secuencias: Secuencias): boolean {
   return [...visto.values()].every((v) => v.p >= 0 && v.d > v.p);
 }
 
-/** `noSeMueven`: órdenes (su id, sin parte) cuyas paradas no se suben, bajan ni pasan a otro chofer (D-NEXT). Fijarlas sí. */
+/** `noSeMueven`: órdenes (su id, sin parte) cuyas paradas no se suben, bajan ni pasan a otro chofer (D-429). Fijarlas sí. */
 export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes: readonly string[], noSeMueven: ReadonlySet<string> = new Set()): EstadoDelPlan | { error: ErrorDeMovimiento } {
   const secuencias: Secuencias = Object.fromEntries(Object.entries(estado.secuencias).map(([c, s]) => [c, [...s]]));
   const existe = (orden: string) => Object.values(secuencias).some((s) => s.some((p) => p.orden === orden));
@@ -160,7 +160,7 @@ export function revalida(guardado: PlanGuardado, estado: EstadoDelPlan, padre: s
     }
   }
 
-  // Solo se escribe lo que está en la foto: en la copia de un publicado, lo que ya no está pendiente salió de ella (D-NEXT).
+  // Solo se escribe lo que está en la foto: en la copia de un publicado, lo que ya no está pendiente salió de ella (D-429).
   // En un plan del motor toda orden que entró está en la foto, y esto no quita nada.
   const enLaFoto = guardado.input.ordenes ? new Set(guardado.input.ordenes.map((f) => f.id)) : null;
   const plan: FilaDePlan = {

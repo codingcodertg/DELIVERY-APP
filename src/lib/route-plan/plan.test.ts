@@ -267,7 +267,7 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(ruta.split("porque: porQueDelPlan(").length - 1).toBe(3);
   });
 
-  it("ajustar (PATCH): solo admin y logística, solo un BORRADOR o un PUBLICADO (D-NEXT, que se copia), y el cliente manda el movimiento, no la ruta", () => {
+  it("ajustar (PATCH): solo admin y logística, solo un BORRADOR o un PUBLICADO (D-429, que se copia), y el cliente manda el movimiento, no la ruta", () => {
     const patch = ruta.slice(ruta.indexOf("export async function PATCH("));
     expect(patch.length).toBeGreaterThan(100);
     expect(plano(patch)).toContain('if (!yo || !["admin", "logistics"].includes(String(yo.role)))');
@@ -385,7 +385,7 @@ describe("la ruta de planificar y la pantalla", () => {
     // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
-    // Desde D-NEXT el publicado también lleva los controles: el primer ajuste hace una copia en borrador.
+    // Desde D-429 el publicado también lleva los controles: el primer ajuste hace una copia en borrador.
     expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden} columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined} ajuste={borrador!.status === "draft" || borrador!.status === "published" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });

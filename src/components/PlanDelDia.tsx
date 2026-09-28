@@ -55,7 +55,7 @@ const REMEDIO: Record<string, [string, string]> = {
 type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue>;
   /** Solo al planificar (D-414): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
   candados?: "base" | "sin_tabla";
-  /** Solo en la copia de un plan publicado que se está cambiando (D-NEXT): de qué versión salió, qué no se reescribe y qué cambió. */
+  /** Solo en la copia de un plan publicado que se está cambiando (D-429): de qué versión salió, qué no se reescribe y qué cambió. */
   copia?: CopiaDelPublicado | null };
 
 /** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
@@ -93,7 +93,7 @@ const MOTIVOS: Record<string, [string, string]> = {
  *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
  *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
 export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false, columnas }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void;
-  /** Las columnas de la tabla de paradas (D-NEXT): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
+  /** Las columnas de la tabla de paradas (D-429): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
   columnas?: Omit<ColumnasDeLaRuta, "orden"> }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
@@ -131,7 +131,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
-  // La orden de cada parada, para las columnas de Órdenes (D-NEXT). Una parte «id#b» es la orden «id».
+  // La orden de cada parada, para las columnas de Órdenes (D-429). Una parte «id#b» es la orden «id».
   const porId = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const ordenDeLaParada = (ref: string) => porId.get(ordenDeLaParte(ref));
 
@@ -150,7 +150,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
     setOcupado(null);
   };
 
-  // Un PUBLICADO también se ajusta (D-NEXT): el servidor hace una copia en borrador y el publicado no se toca.
+  // Un PUBLICADO también se ajusta (D-429): el servidor hace una copia en borrador y el publicado no se toca.
   const ajusta = async (movimiento: Movimiento) => {
     if (!borrador || !["draft", "published"].includes(borrador.status) || ocupado) return;
     setOcupado("ajustando"); setError(null);

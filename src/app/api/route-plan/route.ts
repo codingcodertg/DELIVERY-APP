@@ -40,7 +40,7 @@ type CandadosLeidos = Exclude<Awaited<ReturnType<typeof rutasBloqueadasDelDia>>,
 
 /**
  * Lo que se lee de la base para planificar un día, con la sesión de quien llama: las órdenes pendientes, Ajustes, los
- * choferes, sus ausencias, lo que escribió el publicado y los candados 🔒. Lo usa planificar (POST) y, desde D-NEXT, el
+ * choferes, sus ausencias, lo que escribió el publicado y los candados 🔒. Lo usa planificar (POST) y, desde D-429, el
  * primer ajuste sobre un plan PUBLICADO, para saber qué órdenes siguen siendo las que ese plan conoció (`route-plan/copia`).
  * `extra`: columnas de la orden que hacen falta además de las del motor. Solo LEE.
  */
@@ -200,7 +200,7 @@ export async function GET(req: Request) {
 // plan ya guardó. Y no pisa el plan: guarda uno NUEVO (`manual_edit`, hijo del anterior) y descarta el anterior
 // solo cuando el nuevo está entero. Todo con la sesión de quien ajusta; la RLS y el guard de la 133 deciden.
 //
-// Desde D-NEXT también un PUBLICADO: el primer ajuste crea un BORRADOR NUEVO —copia del publicado, con el movimiento
+// Desde D-429 también un PUBLICADO: el primer ajuste crea un BORRADOR NUEVO —copia del publicado, con el movimiento
 // aplicado— y el publicado NO se toca: sigue siendo el vigente, con sus avisos ya dados, hasta que se publique la copia por
 // el camino de siempre (`./publish`). La copia refresca su foto y aparta lo que ya no está pendiente (`route-plan/copia`).
 // Si ya hay un borrador más nuevo de esa fecha, no se hace otra copia: 409, y la pantalla relee el vigente.
@@ -254,7 +254,7 @@ export async function PATCH(req: Request) {
     };
   }
   const choferes = (guardado.input?.entrada?.choferes ?? []).map((c) => c.id);
-  // Lo que ya no está pendiente no se mueve (D-NEXT). En un borrador del motor la lista está vacía.
+  // Lo que ya no está pendiente no se mueve (D-429). En un borrador del motor la lista está vacía.
   const noSeMueven = new Set(guardado.result?.copiaDelPublicado?.noSeReescriben ?? []);
   const estado = aplicaMovimiento(estadoDeParadas((paradas.data ?? []) as Parameters<typeof estadoDeParadas>[0]), movimiento, choferes, noSeMueven);
   if ("error" in estado) return NextResponse.json({ error: "BAD_MOVE", detail: estado.error }, { status: 400 });
@@ -271,7 +271,7 @@ export async function PATCH(req: Request) {
   }
   // El nuevo está entero: ahora sí, el anterior deja de ser el vigente. Si esto fallara quedan dos borradores y
   // manda el de versión más alta —el nuevo—, que es lo que `GET` enseña. Un PUBLICADO no se descarta: lo sustituye
-  // publicar la copia, y hasta entonces es lo que tiene cada chofer (D-NEXT).
+  // publicar la copia, y hasta entonces es lo que tiene cada chofer (D-429).
   if (!esPublicado) await supabase.from("route_plans").update({ status: "discarded" }).eq("id", planId);
 
   return NextResponse.json({
