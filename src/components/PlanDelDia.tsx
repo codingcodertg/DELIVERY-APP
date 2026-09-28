@@ -6,7 +6,7 @@ import { CerrarAviso } from "@/components/CerrarAviso";
 import { AVISOS_DEL_GESTOR } from "@/lib/avisos-ocultos";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
-import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
+import { destinoDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { ordenesDelDia } from "@/lib/ordenes-del-dia";
 import { RutaDelPlan } from "@/components/RutaDelPlan";
@@ -128,6 +128,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan», «¿Por qué aquí?» y la hoja.
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
+  const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);
 
   const planifica = async () => {
     setOcupado("planificando"); setError(null); setPublicado(null);
@@ -286,7 +287,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
           {(r.tramosSinTrafico ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} porque={borrador!.porque}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} porque={borrador!.porque}
             ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
           <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />

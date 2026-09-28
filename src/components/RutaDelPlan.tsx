@@ -27,7 +27,7 @@ const NO_PUEDE: Record<string, [string, string]> = {
 
 export interface AjusteDeRuta { choferes: { id: string; nombre: string }[]; ocupado: boolean; mueve: (m: Movimiento) => void }
 
-export function RutaDelPlan({ rutas, nombreDeOrden, ajuste, porque }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; ajuste?: AjusteDeRuta; porque?: Record<string, PorQue> }) {
+export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, ajuste, porque }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; destinoDeOrden?: (ref: string) => { ciudad: string; direccion: string } | null; ajuste?: AjusteDeRuta; porque?: Record<string, PorQue> }) {
   const { t, lang } = usePrefs();
   const [preguntada, setPreguntada] = useState<string | null>(null);
   const [cerradas, setCerradas] = useState<Record<string, boolean>>({});
@@ -64,6 +64,13 @@ export function RutaDelPlan({ rutas, nombreDeOrden, ajuste, porque }: { rutas: R
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
           {p.builder && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", marginLeft: 6 }}>{t("Builder", "Builder")}</span>}
           {p.place && <span className="hint" style={{ margin: 0 }}> · {p.place}</span>}
+          {/* A dónde va (D-422): en una entrega a cliente el plan no guarda lugar; se lee de la orden. */}
+          {p.kind === "D" && !p.place && (() => {
+            const destino = destinoDeOrden?.(p.order_ref);
+            return destino ? (
+              <div data-destino style={{ fontSize: 12, marginTop: 2 }}>📍 {destino.ciudad && <b>{destino.ciudad}</b>}{destino.ciudad && " · "}<span className="hint" style={{ margin: 0 }}>{destino.direccion}</span></div>
+            ) : null;
+          })()}
           {p.kind === "D" && porque?.[p.order_ref] && (
             <button type="button" className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }} aria-expanded={preguntada === p.order_ref}
               onClick={() => setPreguntada((q) => (q === p.order_ref ? null : p.order_ref))}>{t("Why here?", "¿Por qué aquí?")}</button>

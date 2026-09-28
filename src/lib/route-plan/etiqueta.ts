@@ -1,4 +1,5 @@
 import { orderLabel } from "@/lib/utils";
+import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 
 /**
  * Cómo se nombra una orden en todo lo del plan de ruta (D-331): su código Y su número de factura.
@@ -19,4 +20,19 @@ export function etiquetaDeOrden(d: OrdenParaNombrar, es: boolean): string {
 export function nombraLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string, es: boolean): string {
   const d = ordenes.find((x) => x.id === ref.split("#")[0]);
   return d ? etiquetaDeOrden(d, es) : ref.slice(0, 8);
+}
+
+/**
+ * A dónde va una entrega del plan (D-422): la ciudad y la dirección, leídas EN VIVO de la orden como la factura, para que
+ * salga también en los borradores ya guardados. El dueño, con la captura del borrador: «aun no miro a donde delivere».
+ * `null` si la orden no está a la vista o no tiene dirección.
+ */
+export function destinoDeLaOrden(
+  ordenes: readonly (OrdenParaNombrar & { delivery_address?: string | null })[],
+  ref: string,
+): { ciudad: string; direccion: string } | null {
+  const d = ordenes.find((x) => x.id === ref.split("#")[0]);
+  const direccion = (d?.delivery_address ?? "").replace(/\s+/g, " ").trim();
+  if (!direccion) return null;
+  return { ciudad: ciudadDeEntrega(direccion), direccion };
 }
