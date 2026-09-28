@@ -31602,3 +31602,22 @@ parte de esa bajada venía de mover ciudades sin dueño hacia el dueño de la ti
 
 - **Tiempos con Google/tráfico**: con tiempos reales, los empates de millas (como #FT205, +0,33 mi) pueden caer del otro lado.
 - El borrador en pantalla no se abrió: se prueba con `planificaElDia`, `repartoConDetalle` y los días reales.
+
+## D-428 · En el Gestor, la orden del plan abre su ficha; y atajos Ayer / Hoy / Mañana
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«ROUTES MANAGER WHEN PLANNING I WANT TO CLICK INTO THE INVOICE TO SEE
+THE FULL TODAY YESTERDAY AND TOMORROW»*.
+
+**Qué se hizo.**
+- En el borrador de «Planificar el día», el nombre de cada parada (orden y factura, D-331) y el de cada orden de «Fuera de
+  este plan» es un enlace que abre la ficha completa de la orden (la misma `OrderModal` que el resto del Gestor). Una carga
+  partida (`id#b`) abre su orden.
+- Junto a las flechas de fecha, tres atajos siempre a la vista: **Ayer, Hoy y Mañana**, relativos a HOY (no al día que se
+  mira), con el que se está mirando marcado. Antes solo salía «Hoy», y solo si no se miraba hoy.
+
+**Leído así** porque el mensaje junta dos cosas: abrir la orden («click into the invoice to see the full») y los tres días.
+Si «today yesterday and tomorrow» quería decir otra cosa (p. ej. que el plan muestre los tres días a la vez), no está hecho.
+
+**Medido.** Demo en Chrome con clics de persona a 1280 y 390: Ayer → 2026-09-27, Mañana → 2026-09-29, Hoy → 2026-09-28,
+cada vez con su botón marcado y sin desplazamiento lateral. El enlace del plan no se abrió en el demo (el borrador necesita
+servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.

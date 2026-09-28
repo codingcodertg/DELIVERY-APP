@@ -87,7 +87,7 @@ const MOTIVOS: Record<string, [string, string]> = {
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
  *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
  *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
-export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean }) {
+export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
@@ -251,7 +251,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
               <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
                 {r.fueraConPorque!.map((x) => (
                   <li key={x.id}>
-                    <b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.
+                    <b>{onAbrirOrden ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit" }} onClick={() => onAbrirOrden(x.id)}>{nombreDeOrden(x.id)}</button> : nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.
                     {fraseDePrioridadFuera(x, lang) && <> {fraseDePrioridadFuera(x, lang)}</>}
                     {REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}
                   </li>
@@ -287,7 +287,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
           {(r.tramosSinTrafico ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden}
             ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
           <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />
