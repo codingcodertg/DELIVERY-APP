@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { estadoDelEstimado, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, type EstimadoHallado } from "./validar";
+import { borradorSinTrabajo, trasComprobar, estadoDelEstimado, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado } from "./validar";
 import { sePuedeGenerar, sePuedePedirLaCopia, POLITICA_PARRAFOS, POLITICA_CASILLA, POLITICA_TITULO } from "./politica";
-import { borradorVacio, lineaSfVacia, type QuoteDraft } from "./modelo";
+import { borradorVacio, lineaSfVacia, lineaUnidadVacia, type QuoteDraft } from "./modelo";
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 
@@ -47,7 +47,7 @@ function completo(patch: Partial<QuoteDraft> = {}): QuoteDraft {
     ...borradorVacio("2026-09-08"),
     estimate_num: "104582",
     sales_ext: "214",
-    customer: { salutation: "Ms.", full_name: "Ana Prueba", last_name: "Prueba", last_name_edited: false, company: "", phone: "", address: "" },
+    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "", address: "" },
     lines: [{ ...lineaSfVacia(), customer_category: "24x48 Tile", requested_sf: 100, sf_per_box: 10, price_per_sf: 2 }],
     ...patch,
   };
@@ -71,10 +71,11 @@ describe("lo que falta antes de generar la copia", () => {
     // Recogiendo, la dirección no se pide.
     expect(loQueFalta(completo({ delivery: { ...d.delivery, mode: "pickup" } }), "nueva", "2026-09-08")).toEqual([]);
   });
-  it("extensión, nombre, apellido, categoría y línea completa", () => {
+  it("extensión, nombre, categoría y línea completa (sin «apellido»: sale del nombre, D-432)", () => {
     const q = completo({ sales_ext: " ", lines: [{ ...lineaSfVacia(), requested_sf: 100 }] });
-    q.customer = { ...q.customer, full_name: "", last_name: "" };
-    expect(loQueFalta(q, "nueva", "2026-09-08")).toEqual(["extension", "nombre", "apellido", "linea-incompleta", "categoria"]);
+    q.customer = { ...q.customer, full_name: "" };
+    expect(loQueFalta(q, "nueva", "2026-09-08")).toEqual(["extension", "nombre", "linea-incompleta", "categoria"]);
+    expect(Object.keys(TEXTO_DE_FALTA)).not.toContain("apellido");
     expect(loQueFalta(completo({ lines: [] }), "nueva", "2026-09-08")).toEqual(["lineas"]);
   });
   it("una validez ya pasada no se imprime; la de hoy sí", () => {
@@ -84,7 +85,9 @@ describe("lo que falta antes de generar la copia", () => {
   it("guardar pide menos: número y permiso, y con base", () => {
     expect(puedeGuardar(completo({ lines: [] }), "nueva")).toBe(true);
     expect(puedeGuardar(completo(), "sin-base")).toBe(false);
-    expect(puedeGuardar(completo(), "sin-buscar")).toBe(false);
+    // Sin comprobar aún se puede PULSAR (D-432): el guardado comprueba antes de escribir.
+    expect(puedeGuardar(completo(), "sin-buscar")).toBe(true);
+    expect(puedeGuardar(completo(), "pendiente")).toBe(false);
     expect(puedeGuardar(completo(), "sin-pedir")).toBe(false);
     expect(puedeGuardar(completo({ estimate_num: "" }), "nueva")).toBe(false);
   });
@@ -92,6 +95,60 @@ describe("lo que falta antes de generar la copia", () => {
     const l = { ...lineaSfVacia(), id: "corta", customer_category: "x", requested_sf: 100, sf_per_box: 10, price_per_sf: 2, boxes: 9 };
     expect(lineasCortas(completo({ lines: [l] }))).toEqual(["corta"]);
     expect(lineasCortas(completo({ lines: [{ ...l, boxes: 10 }] }))).toEqual([]);
+  });
+});
+
+describe("un nombre de una palabra basta (D-432)", () => {
+  it("con nombre, nada que ver con el apellido", () => {
+    const q = completo();
+    q.customer = { ...q.customer, full_name: "Gonzalez" };
+    expect(loQueFalta(q, "nueva", "2026-09-08")).toEqual([]);
+  });
+});
+
+describe("la guardada se abre sola solo sobre un borrador en blanco (D-432)", () => {
+  const blanco = () => ({ ...borradorVacio("2026-09-08"), estimate_num: "E-9", sales_ext: "214" });
+  it("en blanco (número, extensión y fecha no cuentan como trabajo)", () => {
+    expect(borradorSinTrabajo(borradorVacio("2026-09-08"))).toBe(true);
+    expect(borradorSinTrabajo(blanco())).toBe(true);
+    expect(borradorSinTrabajo({ ...blanco(), valid_through: "2026-12-01" })).toBe(true);
+  });
+  it("con cualquier dato del cliente, de la entrega o de una línea, ya hay trabajo", () => {
+    const b = blanco();
+    expect(borradorSinTrabajo({ ...b, customer: { ...b.customer, full_name: "Ana" } })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, customer: { ...b.customer, phone: "956" } })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, delivery: { ...b.delivery, mode: "delivery" } })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaSfVacia(), customer_category: "x" }] })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaSfVacia(), requested_sf: 100 }] })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaUnidadVacia(), unit_price: 385 }] })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, project_summary: "Kitchen" })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, display_level: "detailed" })).toBe(false);
+  });
+});
+
+describe("qué se hace con la comprobación automática (D-432)", () => {
+  const blanco = { ...borradorVacio("2026-09-08"), estimate_num: "104582" };
+  const conTrabajo = { ...blanco, customer: { ...blanco.customer, full_name: "Ana Prueba" } };
+  const args = { meId: "yo", esAdmin: false, quoteIdAbierto: null, borrador: blanco, abrirSola: true };
+  it("sin cotización: nueva (quien prepara será el dueño)", () => {
+    expect(trasComprobar({ ...args, hallado: null })).toBe("nueva");
+  });
+  it("de otro y sin permiso: ajena, aunque el borrador esté en blanco", () => {
+    expect(trasComprobar({ ...args, hallado: hallado() })).toBe("ajena");
+    expect(trasComprobar({ ...args, hallado: hallado({ my_approval: "pending" }) })).toBe("ajena");
+    expect(trasComprobar({ ...args, meId: null, hallado: hallado({ owner_id: null }) })).toBe("ajena");
+  });
+  it("mía (o aprobada, o admin) sobre un borrador en blanco: se abre sola", () => {
+    expect(trasComprobar({ ...args, hallado: hallado({ owner_id: "yo" }) })).toBe("abrir");
+    expect(trasComprobar({ ...args, hallado: hallado({ my_approval: "approved" }) })).toBe("abrir");
+    expect(trasComprobar({ ...args, esAdmin: true, hallado: hallado() })).toBe("abrir");
+  });
+  it("con trabajo tecleado, o si la lanzó Guardar, se ofrece y no se pisa", () => {
+    expect(trasComprobar({ ...args, borrador: conTrabajo, hallado: hallado({ owner_id: "yo" }) })).toBe("ofrecer");
+    expect(trasComprobar({ ...args, abrirSola: false, hallado: hallado({ owner_id: "yo" }) })).toBe("ofrecer");
+  });
+  it("la que ya está abierta no se vuelve a abrir", () => {
+    expect(trasComprobar({ ...args, quoteIdAbierto: "q1", borrador: conTrabajo, hallado: hallado({ owner_id: "yo" }) })).toBe("ya-abierta");
   });
 });
 
@@ -128,5 +185,55 @@ describe("la pantalla usa estas reglas, no una copia", () => {
   });
   it("guardar pasa por puedeGuardar", () => {
     expect(p).toContain("if (!me || !puedeGuardar(draft, estado)) return null;");
+  });
+  it("sin botón «Search» (D-432): se comprueba solo, al salir del campo y antes de guardar", () => {
+    expect(p).not.toContain("data-buscar");
+    expect(p).not.toContain('t("Search", "Buscar")');
+    expect(p).toContain("onBlur={comprobarYa}");
+    expect(p).toContain("void comprobarRef.current(n); }, ESPERA_COMPROBACION_MS);");
+    // Guardar sin comprobar: comprueba él, y se para si el estimado es de otro.
+    expect(p).toMatch(/if \(estado === "sin-buscar"\) \{[\s\S]*?const c = await comprobar\(draft\.estimate_num, false\);[\s\S]*?if \(!puedeTrabajar\(est\)\) return null;/);
+    // Y una guardada que no es la abierta no se pisa.
+    expect(p).toContain("if (h && h.quote_id !== quoteIdRef.current) {");
+  });
+  it("la comprobación decide con trasComprobar, sobre el borrador de AHORA, y descarta respuestas viejas", () => {
+    expect(p).toContain("quoteIdAbierto: quoteIdRef.current, borrador: draftRef.current, abrirSola,");
+    expect(p).toContain("if (claveDeEstimado(draftRef.current.estimate_num) !== clave) return { ok: false };");
+    expect(p).toContain('} else if (que === "abrir" && h) {\n      await abrirGuardada(h.quote_id);');
+  });
+  it("«Original sales rep» sin comprobar dice quién prepara, no «Search the estimate first»", () => {
+    expect(p).not.toContain("Search the estimate first");
+    expect(p).toContain(': buscado || !draft.estimate_num.trim() ? `${me.name} (${t("you", "tú")})`');
+  });
+  it("sin campo de apellido; la línea «Customer sees only» sale del nombre", () => {
+    expect(p).not.toContain("est-apellido");
+    expect(p).not.toContain("last_name");
+    expect(p).toContain("<b>{paraQuienSeImprime(draft.customer) || \"—\"}</b>");
+  });
+  it("el teléfono se limpia al escribir y al salir", () => {
+    expect(p).toContain("onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}");
+    expect(p).toContain("onBlur={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })} />");
+  });
+  it("la dirección ocupa la fila entera: en el móvil no fabrica columnas que estrujen Título y Teléfono", () => {
+    expect(p).toMatch(/gridColumn: "1 \/ -1" \}\}>\s*<label htmlFor="est-dir">/);
+  });
+  it("la sección de la competencia ya no pide «buscar» el estimado", () => {
+    const comp = leer("src/app/estimator/Competencia.tsx");
+    expect(comp).not.toContain("Search and save");
+    expect(comp).toContain("Save this estimate's quote first");
+  });
+  it("la extensión nace de extensionDePartida: la del servidor, o la del demo", () => {
+    expect(p).toContain("const p = extensionDePartida(demo ? extensionDemo(me.id) : extensionServidor, recordada);");
+  });
+});
+
+describe("la extensión del expediente la lee el servidor, solo la de quien entra (D-432)", () => {
+  const page = leer("src/app/estimator/page.tsx");
+  it("una columna, filtrada por el id de la sesión y activa", () => {
+    expect(page).toContain('.select("ringcentral_ext")');
+    expect(page).toContain('.eq("profile_id", userId)');
+    expect(page).toContain('.is("date_left", null)');
+    expect(page).toContain("const extension = me ? await extensionDelExpediente(me.id) : null;");
+    expect(page).toContain("<Estimador me={me} demo={false} extension={extension} />");
   });
 });

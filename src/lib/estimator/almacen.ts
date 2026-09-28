@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EstimadoHallado, AprobacionEstado } from "./validar";
 import {
-  DEFAULT_DISPLAY_LEVEL, DISPLAY_LEVELS, SALUTATIONS, hoyLocal,
+  DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
 
@@ -76,10 +76,10 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
   const c = (fila.customer ?? {}) as Record<string, unknown>;
   const d = (fila.delivery ?? {}) as Record<string, unknown>;
   const customer: Customer = {
-    salutation: (SALUTATIONS as readonly string[]).includes(texto(c.salutation)) ? (c.salutation as Customer["salutation"]) : "Ms.",
+    salutation: (SALUTATIONS as readonly string[]).includes(texto(c.salutation)) ? (c.salutation as Customer["salutation"]) : DEFAULT_SALUTATION,
     full_name: texto(c.full_name),
-    last_name: texto(c.last_name),
-    last_name_edited: c.last_name_edited === true,
+    // `last_name` / `last_name_edited` de las filas guardadas antes de D-432 se ignoran a propósito: el apellido que se
+    // imprime sale del nombre completo, que sí se ve y se corrige en pantalla.
     company: texto(c.company),
     phone: texto(c.phone),
     address: texto(c.address),

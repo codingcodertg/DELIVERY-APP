@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { borradorDeFila, faltaLaTabla, filaDeBorrador, precioPorSf, prefijoIlike } from "./almacen";
-import { almacenDemo, buscarEnCatalogoDemo, DEMO_ESTIMADO_AJENO, DEMO_OTRO_VENDEDOR } from "./demo";
-import { borradorVacio, lineaSfVacia, lineaUnidadVacia } from "./modelo";
+import { almacenDemo, buscarEnCatalogoDemo, DEMO_ESTIMADO_AJENO, DEMO_OTRO_VENDEDOR, extensionDemo } from "./demo";
+import { borradorVacio, lineaSfVacia, lineaUnidadVacia, paraQuienSeImprime } from "./modelo";
 
 describe("sin la 148: «no hay tabla» no es cualquier error", () => {
   it("los códigos de tabla o función que no existe", () => {
@@ -45,7 +45,28 @@ describe("de la fila a la pantalla y de vuelta", () => {
     const d = borradorDeFila({ estimate_num: "X", lines: "no", display_level: "raro", customer: { salutation: "Dr." } });
     expect(d.lines).toEqual([]);
     expect(d.display_level).toBe("standard");
-    expect(d.customer.salutation).toBe("Ms.");
+    expect(d.customer.salutation).toBe("Mr.");
+  });
+  it("una cotización guardada antes de D-432, con last_name escrito a mano, se abre igual", () => {
+    const d = borradorDeFila({
+      estimate_num: "E-OLD", sales_ext: "214",
+      customer: { salutation: "Ms.", full_name: "Ana Garza Lopez", last_name: "Garza", last_name_edited: true, company: "", phone: "956-555-0100", address: "" },
+      lines: [{ kind: "sf", id: "a", customer_category: "x", requested_sf: 10, sf_per_box: 5, price_per_sf: 2 }],
+      display_level: "basic", valid_through: "2026-09-08",
+    });
+    expect(d.customer).toEqual({ salutation: "Ms.", full_name: "Ana Garza Lopez", company: "", phone: "956-555-0100", address: "" });
+    expect(d.lines).toHaveLength(1);
+    expect(d.display_level).toBe("basic");
+    // Lo que se imprime sale del nombre completo, que es lo que se ve en pantalla.
+    expect(paraQuienSeImprime(d.customer)).toBe("Ms. Lopez");
+  });
+});
+
+describe("el demo simula la extensión del expediente (D-432)", () => {
+  it("cada vendedor la suya; «Maria Manager» sin ninguna, para medir el caso a mano", () => {
+    expect(extensionDemo("u-sales")).toBe("214");
+    expect(extensionDemo(DEMO_OTRO_VENDEDOR.id)).toBe("201");
+    expect(extensionDemo("u-mgr")).toBeNull();
   });
 });
 

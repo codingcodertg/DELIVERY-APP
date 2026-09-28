@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aCentavos, apellidoDe, borradorVacio, cajasDeLinea, cajasPorDefecto, fechaLarga, hoyLocal, lineaSfVacia,
+  aCentavos, apellidoDe, borradorVacio, extensionDePartida, SALUTATIONS, telefonoAlEscribir, telefonoLimpio, cajasDeLinea, cajasPorDefecto, fechaLarga, hoyLocal, lineaSfVacia,
   lineaUnidadVacia, paraQuienSeImprime, sfReal, totalDeLinea, totalDeMateriales, type SfLine, type UnitLine,
 } from "./modelo";
 
@@ -79,11 +79,48 @@ describe("el cliente: nombre completo dentro, «Ms. Apellido» fuera", () => {
   it("el apellido sale del nombre completo", () => {
     expect(apellidoDe("Maria Gonzalez")).toBe("Gonzalez");
     expect(apellidoDe("  Maria   de la Cruz ")).toBe("Cruz");
-    expect(apellidoDe("Maria")).toBe("");
   });
-  it("lo que se imprime es tratamiento + apellido", () => {
-    expect(paraQuienSeImprime({ salutation: "Ms.", last_name: "Gonzalez" })).toBe("Ms. Gonzalez");
-    expect(paraQuienSeImprime({ salutation: "Mr.", last_name: "  " })).toBe("");
+  it("una sola palabra es el apellido (D-432: ya no hay campo aparte); vacío solo sin nombre", () => {
+    expect(apellidoDe("Gonzalez")).toBe("Gonzalez");
+    expect(apellidoDe("   ")).toBe("");
+  });
+  it("lo que se imprime es tratamiento + apellido, sacado del nombre completo", () => {
+    expect(paraQuienSeImprime({ salutation: "Ms.", full_name: "Maria Gonzalez" })).toBe("Ms. Gonzalez");
+    expect(paraQuienSeImprime({ salutation: "Mr.", full_name: "  " })).toBe("");
+  });
+  it("el tratamiento por defecto es «Mr.» (D-432), y va primero en la lista", () => {
+    expect(borradorVacio().customer.salutation).toBe("Mr.");
+    expect(SALUTATIONS[0]).toBe("Mr.");
+    expect([...SALUTATIONS].sort()).toEqual(["Mr.", "Mrs.", "Ms."]);
+  });
+});
+
+describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-432)", () => {
+  it("paréntesis, espacios, puntos y +1 se normalizan", () => {
+    expect(telefonoLimpio("(956) 555 0123")).toBe("956-555-0123");
+    expect(telefonoLimpio("+1 956 555 0123")).toBe("956-555-0123");
+    expect(telefonoLimpio("1-956-555-0123")).toBe("956-555-0123");
+    expect(telefonoLimpio("956.555.0123")).toBe("956-555-0123");
+    expect(telefonoLimpio("9565550123")).toBe("956-555-0123");
+  });
+  it("lo que no son 10 dígitos de EE. UU. no se toca: null, y al escribir se deja tal cual", () => {
+    expect(telefonoLimpio("555 0123")).toBeNull();
+    expect(telefonoLimpio("95655501234")).toBeNull();
+    expect(telefonoLimpio("(056) 555 0123")).toBeNull();
+    expect(telefonoAlEscribir("555 0123")).toBe("555 0123");
+    expect(telefonoAlEscribir("(956) 555 012")).toBe("(956) 555 012");
+    expect(telefonoAlEscribir("(956) 555 0123")).toBe("956-555-0123");
+  });
+});
+
+describe("la extensión de quien prepara sale sola (D-432)", () => {
+  it("primero la del expediente; aunque el navegador recuerde otra", () => {
+    expect(extensionDePartida(" 214 ", "999")).toEqual({ valor: "214", origen: "expediente" });
+  });
+  it("sin expediente, la que se escribió en este navegador; sin ninguna, vacía", () => {
+    expect(extensionDePartida(null, "305")).toEqual({ valor: "305", origen: "navegador" });
+    expect(extensionDePartida("  ", "305")).toEqual({ valor: "305", origen: "navegador" });
+    expect(extensionDePartida(null, null)).toEqual({ valor: "", origen: "ninguno" });
   });
 });
 
