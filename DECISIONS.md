@@ -22552,6 +22552,10 @@ una.
   de qué hora a qué hora, entregas, paradas, viajes, millas, manejo, carga máxima, espera y minutos tarde. Una raya
   ámbar separa un viaje del siguiente. Las órdenes de **builder** llevan su marca; una orden repartida dice
   «carga 2 de 3» en cada parada, además de la nota general de D-320.
+
+  > **Reemplazada en parte por D-NEXT** (2026-09-28): las columnas de la tabla ya no son fijas. Son las de Órdenes, en el
+  > orden de Órdenes, elegibles y movibles en ⚙ con plantillas; llega–sale, ventana, tramo y pallets a bordo siguen como
+  > columnas elegibles, escondidas de partida.
 - **Todo eso sale de una función pura**, `vistaDelPlan` (`src/lib/route-plan/vista.ts`), sobre las filas guardadas en
   `route_plan_stops`. **No recalcula ninguna hora:** son las que guardó el motor. Solo agrupa, ordena y suma.
 - **`GET /api/route-plan?date=`** devuelve el plan vigente de la fecha —el último borrador o publicado— con la misma
@@ -22591,6 +22595,9 @@ una.
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la 133 ya traía
 `source = 'manual_edit'`, `parent_plan_id` y `pinned`). **Diseño:** `docs/route-algorithm-design.md`, §7.
 **El Gestor de Rutas de hoy no cambia.** Solo admin y logística, solo sobre un plan en borrador.
+
+> **Reemplazada en parte por D-NEXT** (2026-09-28): «solo sobre un plan en borrador» ya no vale. Un plan PUBLICADO también
+> se ajusta: el primer movimiento crea un borrador nuevo, copia del publicado, y el publicado no se toca hasta publicar la copia.
 
 ### Qué hay ahora
 
@@ -31621,3 +31628,81 @@ Si «today yesterday and tomorrow» quería decir otra cosa (p. ej. que el plan 
 **Medido.** Demo en Chrome con clics de persona a 1280 y 390: Ayer → 2026-09-27, Mañana → 2026-09-29, Hoy → 2026-09-28,
 cada vez con su botón marcado y sin desplazamiento lateral. El enlace del plan no se abrió en el demo (el borrador necesita
 servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.
+
+## D-NEXT · El planificador con las columnas de Órdenes (⚙, mover, plantillas); y una ruta ya publicada se puede cambiar
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«quiero que en el planificador salga las mismas tables como en orden como
+te lo habia pedido sabajo y mia que los botons para cmabiar la ruta cuando ya esta no funciona»*. Preguntado, aclaró: los
+botones, *«Ya publicada, no me deja»*; las columnas, *«Las mismas que Órdenes»*. Y después: *«y que yo pueda editar las columas
+cambiar ordenes y hasta dejar templates»*. **Migraciones:** ninguna. **Reemplaza en parte** D-323 («solo sobre un plan en
+borrador») y D-322 (las columnas fijas de la tabla del plan); las dos llevan su nota.
+
+### 1. Las columnas: las de Órdenes, en el orden de Órdenes
+
+- La tabla de paradas de «Armar las rutas del día» (`RutaDelPlan`) es una **tercera tabla del Gestor** (`plan`, en
+  `src/lib/routes-columns.ts`), junto a «Sin asignar» y paradas. Sus columnas son **todas las de Órdenes, en su orden de
+  partida** (`ORDEN_DE_PARTIDA`, D-347), generadas de esa lista —no copiadas—: si Órdenes cambia, el plan la sigue, como hizo
+  D-402. La celda es la de Órdenes (`deOrdenes` → `ORDER_COLUMNS`). Se ven por defecto las de ventas en Órdenes
+  (`ROLE_DEFAULT_COLUMNS.sales`: PO, tipo, cuenta, etapa, tienda, fecha, pallets, chofer, dirección, ventanas).
+- **⚙ Columnas, flechas y plantillas: el mismo mecanismo del Gestor** (D-394, D-410): la misma fila de `user_prefs`
+  (`routes_columns`, ninguna clave nueva), la misma lista `_orden` (ahora con tres tablas), las mismas plantillas —una
+  plantilla guarda también las columnas y el orden del plan—. Un solo ⚙ para todas las rutas, encima de ellas.
+- **Fijas**: la etiqueta (P1/D1, 📌, 🔒), la parada —Recoger/Entregar con la orden, que la abre (D-428)— y Ajustar.
+- **Las cuatro de antes** (llega–sale, ventana del plan, tramo, pallets a bordo) siguen como columnas del ⚙, **escondidas de
+  partida**, al final. Consecuencia a validar: por defecto ya no se ven las horas ni el «min tarde» de cada parada (sí en la
+  cabecera de cada chofer); quien las quiera, las marca una vez.
+- **Fila de recogida (P)**: es la misma orden que su D, así que lleva lo de la orden (PO, SO, factura, tipo, cuenta, etapa,
+  prioridad, tienda, fecha, pallets, costo, chofer). Lo que es de la ENTREGA —dirección, ventanas y contacto del cliente— va
+  **vacío** en la P: esa parada es en la tienda y lo dice la columna de la parada (`seVeEnLaRecogida`).
+- Quien ya tenía columnas guardadas recibe las del plan una vez (marca `_v5`). Una plantilla sin ninguna columna del plan se
+  entiende de antes de esto y recibe las de por defecto (una hecha adrede con todas quitadas es indistinguible: se acepta).
+- **El tope de la fila** (8 192 bytes, 136) aprieta más: con 48 columnas, en el peor caso (un rol con TODO marcado y movido)
+  caben 5 plantillas llenas, antes 9; con los seis roles así, ninguna. La guarda lo dice al guardar, no falla en silencio. Lo
+  normal —logística y admin con las de por defecto y 10 plantillas— son 4 312 bytes (modelo `bytesEnLaBase`, no medida).
+- Un hijo de grid crecía con la tabla y empujaba la página de lado (297 px a 1440 en el demo): `minWidth: 0`, y la tabla se
+  desplaza dentro de su caja.
+
+### 2. Cambiar una ruta ya publicada
+
+- En un plan publicado salen los mismos controles (↑ ↓ 📍 «Pasar a…»). **El primer ajuste crea un BORRADOR nuevo** (versión +1,
+  `manual_edit`, hijo del publicado) con el movimiento aplicado; **el publicado no se toca** —ni se descarta ni se edita— y sigue
+  siendo lo que tiene cada chofer hasta publicar la copia. La pantalla lo dice: «Estás editando una copia del publicado vN;
+  publícala para que el chofer la reciba».
+- **Publicar la copia es el camino de siempre** (D-320): STALE, ROUTE_LOCKED, candados 🔒 (D-414), y avisos **solo a los
+  choferes a los que les cambió la ruta** (`avisosAlPublicar` compara con el publicado): no hay avisos dobles.
+- **La foto.** Publicar compara el `updated_at` de cada orden con la foto del plan (133); pero publicar escribe en las órdenes,
+  así que la foto del publicado está vieja por construcción. La copia la refresca con el `updated_at` de hoy **solo** para la
+  orden que sigue siendo la del plan: lo que usó el motor (recogida y entrega con coordenadas, pallets, ventana, servicio,
+  builder, prioridad, requisitos) es igual hoy, y lo que escribió el publicado (chofer, viaje, puesto) sigue igual. La que no,
+  se queda con su foto vieja, la pantalla la nombra, y publicar la copia dirá «plan viejo» como hoy (`src/lib/route-plan/copia.ts`).
+- **Lo ya hecho.** Una orden del publicado que ya no está pendiente ese día (recogida, entregada, anulada, cambiada de fecha, o
+  que no se ve) **no se mueve ni se reescribe**: sale de la foto y de lo que se escribe, y sus paradas llevan 🔒 con las flechas
+  apagadas (también la de la vecina). Se decidió fijarlas porque el chofer ya la lleva o ya no es del día, y porque 133 no deja
+  publicar una orden fuera de etapa. Las etiquetas P/D se recalculan como en cualquier ajuste: si se saca una orden de delante
+  de una ya hecha, la de la hecha puede cambiar.
+- Si ya hay un borrador más nuevo de esa fecha, no se hace otra copia: 409 `DRAFT_EXISTS` y la pantalla relee el vigente.
+- La copia necesita leer el día (la misma lectura de planificar, sacada a `leeElDia`, solo lectura). Un borrador normal se
+  ajusta como antes, sin esa lectura.
+
+### Descartado
+
+- Editar el publicado en sitio: rompería lo que el chofer ya tiene y la historia (D-323).
+- Refrescar la foto de todas las órdenes sin mirar: una orden editada después de publicar se publicaría con datos viejos.
+- Una clave nueva de `user_prefs` para el plan: no hace falta, y la lista blanca de la base es cerrada (137).
+
+### Medido
+
+- 30 mutantes propios, caen los 30, cada uno con una prueba con nombre (`copia.test.ts`, `columnas-del-plan.test.ts`,
+  `ajuste.test.ts`, `plan.test.ts` y otras). La ruta PATCH se prueba con un Supabase falso.
+- Demo en Chrome (CDP, clics de persona, 2026-09-28): el demo no tiene servidor, así que las respuestas de `/api/route-plan` se
+  sirvieron desde el navegador con un plan falso sobre órdenes reales del demo. Medido: cabeceras de partida = las 10 de ventas
+  en su orden; P con dirección y ventanas vacías; ⚙ «Tienda» ↑ cambia la cabecera y guarda el orden; marcar «Llega–sale» la
+  añade; plantilla «Plan prueba» guardada → «Default» → aplicarla devuelve orden y columnas; en el publicado, ↓ manda
+  `PATCH {plan_id del publicado, baja}`, sale «Borrador v4», el aviso de copia, 🔒 en las 2 paradas no pendientes y la ↑ vecina
+  apagada; sin desplazamiento lateral a 1440 ni a 390.
+
+### No verificado
+
+- Nada contra la base: que la RLS/guard de 133 acepten un `manual_edit` hijo de un `published` (se lee que sí: el guard solo
+  mira el estado del plan nuevo), y que el `updated_at` refrescado haga pasar `publish_route_plan` en producción.
+- Con muchas columnas marcadas, «Ajustar» queda a la derecha y hay que desplazar la tabla para verla.

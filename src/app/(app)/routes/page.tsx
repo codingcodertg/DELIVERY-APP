@@ -2080,11 +2080,26 @@ export default function RoutesPage() {
 
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
-          (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
+          (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar.
+          Sus columnas (D-NEXT) son las de Órdenes: la misma lista, el mismo orden guardado, las mismas plantillas y las mismas
+          flechas que «Sin asignar» y paradas — la tercera tabla de la fila `routes_columns`. */}
       {barraDeArmarRutas && (
         <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano}
           onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }}
-          onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }} />
+          onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }}
+          columnas={{
+            lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDeOrdenes, clase: clasePastillas,
+            selector: (
+              <SelectorDeColumnas
+                columnas={columnasDelSelector("plan", ordenGestor)}
+                elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
+                rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
+                titulo={t("Plan columns", "Columnas del plan")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
+                plantillas={propsDePlantillas}
+                mover={moverEn("plan")}
+              />
+            ),
+          }} />
       )}
 
       {/* ---------- Drivers who stopped reporting ----------

@@ -318,7 +318,9 @@ describe("«Planificar el día» y «Publicar ruta» leen el candado compartido"
   it("planificar: lee las del día, se para si la lectura falla, y se las pasa al motor", () => {
     const r = leer("src/app/api/route-plan/route.ts");
     expect(r).toContain("const candados = await rutasBloqueadasDelDia(supabase as unknown as ClienteDeCandados, fecha);");
-    expect(r).toContain('if (candados.fuente === "error") return NextResponse.json({ error: "Could not read the locked routes."');
+    // Desde D-NEXT la lectura del día es una función (`leeElDia`) que devuelve la respuesta de error, y planificar la devuelve.
+    expect(r).toContain('if (candados.fuente === "error") return { ok: false, respuesta: NextResponse.json({ error: "Could not read the locked routes."');
+    expect(r).toContain("const dia = await leeElDia(supabase, fecha); if (!dia.ok) return dia.respuesta;");
     expect(r).toContain('bloqueadas: candados.fuente === "base" ? candados.rutas : [],');
     expect(r).toContain("candados: candados.fuente,");
   });

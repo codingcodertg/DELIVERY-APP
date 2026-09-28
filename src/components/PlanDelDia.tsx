@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { CerrarAviso } from "@/components/CerrarAviso";
 import { AVISOS_DEL_GESTOR } from "@/lib/avisos-ocultos";
@@ -9,11 +9,13 @@ import { useData } from "@/lib/data-provider";
 import { destinoDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { ordenesDelDia } from "@/lib/ordenes-del-dia";
-import { RutaDelPlan } from "@/components/RutaDelPlan";
+import { RutaDelPlan, type ColumnasDeLaRuta } from "@/components/RutaDelPlan";
 import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
 import type { RutaVista } from "@/lib/route-plan/vista";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
+import type { CopiaDelPublicado } from "@/lib/route-plan/copia";
+import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { fraseDePrioridadFuera, fraseDeRequisitoFuera, type FueraConPorque, type PorQue } from "@/lib/route-plan/porque";
 
 /**
@@ -52,7 +54,9 @@ const REMEDIO: Record<string, [string, string]> = {
 };
 type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue>;
   /** Solo al planificar (D-414): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
-  candados?: "base" | "sin_tabla" };
+  candados?: "base" | "sin_tabla";
+  /** Solo en la copia de un plan publicado que se está cambiando (D-NEXT): de qué versión salió, qué no se reescribe y qué cambió. */
+  copia?: CopiaDelPublicado | null };
 
 /** Lo que un ajuste a mano incumple. Se avisa; no impide publicar. */
 const INCUMPLE: Record<string, [string, string]> = {
@@ -63,6 +67,7 @@ const INCUMPLE: Record<string, [string, string]> = {
 const NO_SE_PUEDE: Record<string, [string, string]> = {
   entrega_antes_de_recoger: ["An order can't be delivered before it's picked up.", "Una orden no se puede entregar antes de recogerla."],
   en_el_borde: ["That stop is already at the end.", "Esa parada ya está en el extremo."], ya_esta_ahi: ["It's already on that driver.", "Ya está con ese chofer."],
+  ya_no_se_mueve:["That order is no longer pending that day (picked up, delivered, canceled or moved): it stays where it is.", "Esa orden ya no está pendiente ese día (recogida, entregada, anulada o movida): se queda donde está."],
 };
 
 /** Por qué la base dijo que el plan está viejo, orden a orden. */
@@ -87,7 +92,9 @@ const MOTIVOS: Record<string, [string, string]> = {
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
  *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
  *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
-export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void }) {
+export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false, columnas }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void;
+  /** Las columnas de la tabla de paradas (D-NEXT): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
+  columnas?: Omit<ColumnasDeLaRuta, "orden"> }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
@@ -124,6 +131,9 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
+  // La orden de cada parada, para las columnas de Órdenes (D-NEXT). Una parte «id#b» es la orden «id».
+  const porId = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
+  const ordenDeLaParada = (ref: string) => porId.get(ordenDeLaParte(ref));
 
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan» y la hoja.
@@ -140,15 +150,18 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
     setOcupado(null);
   };
 
+  // Un PUBLICADO también se ajusta (D-NEXT): el servidor hace una copia en borrador y el publicado no se toca.
   const ajusta = async (movimiento: Movimiento) => {
-    if (!borrador || borrador.status !== "draft" || ocupado) return;
+    if (!borrador || !["draft", "published"].includes(borrador.status) || ocupado) return;
     setOcupado("ajustando"); setError(null);
     try {
       const res = await fetch("/api/route-plan", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: borrador.plan_id, movimiento }) });
       const b = await res.json().catch(() => ({}));
       if (!res.ok || !b.ok) {
         const porQue = NO_SE_PUEDE[String(b.detail)];
-        setError(porQue ? porQue[lang === "es" ? 1 : 0] : String(b.error ?? res.status));
+        setError(porQue ? porQue[lang === "es" ? 1 : 0]
+          : b.error === "DRAFT_EXISTS" ? t("Someone already made a newer draft for this date: here it is.", "Alguien ya hizo un borrador más nuevo de esta fecha: aquí está.")
+          : String(b.error ?? res.status));
         if (res.status === 404 || res.status === 409) void lee();      // otro lo cambió: enseñar lo que hay
       } else setBorrador(b as Borrador);
     } catch { setError(t("Network error.", "Error de red.")); }
@@ -287,8 +300,28 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
           {(r.tramosSinTrafico ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
           )}
+          {borrador!.status === "published" && (
+            <div className="hint" data-publicado-se-cambia style={{ margin: 0 }}>
+              {t("You can still change this route with the arrows below: the first change makes a copy, and drivers get nothing until you publish it.", "Esta ruta se puede cambiar con las flechas de abajo: el primer cambio hace una copia, y los choferes no reciben nada hasta publicarla.")}
+            </div>
+          )}
+          {borrador!.status === "draft" && borrador!.copia && (
+            <div data-copia-del-publicado style={{ margin: 0, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--amber)", background: "var(--amber-soft)" }}>
+              <b>{t(`You're editing a copy of published v${borrador!.copia.version}; publish it so the drivers receive it.`, `Estás editando una copia del publicado v${borrador!.copia.version}; publícala para que el chofer la reciba.`)}</b>
+              {" "}{t(`Until then, drivers keep v${borrador!.copia.version}. Only drivers whose route changes get a notice.`, `Hasta entonces, los choferes siguen con la v${borrador!.copia.version}. Solo se avisa a los choferes a los que les cambie la ruta.`)}
+              {borrador!.copia.noSeReescriben.length > 0 && (
+                <div className="hint" style={{ margin: "4px 0 0" }}>🔒 {t("No longer pending that day, so they stay where they are and aren't rewritten", "Ya no están pendientes ese día: se quedan donde están y no se reescriben")}: {borrador!.copia.noSeReescriben.map(nombreDeOrden).join(" · ")}</div>
+              )}
+              {borrador!.copia.cambiaron.length > 0 && (
+                <div className="hint" style={{ margin: "4px 0 0", color: "var(--red)" }}>
+                  {t("Edited after publishing, so this copy won't publish: plan the day again", "Se editaron después de publicar, así que esta copia no se podrá publicar: planifique el día de nuevo")}: {borrador!.copia.cambiaron.map(nombreDeOrden).join(" · ")}
+                </div>
+              )}
+            </div>
+          )}
           <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden}
-            ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
+            columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined}
+            ajuste={borrador!.status === "draft" || borrador!.status === "published" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m), noSeMueven: new Set(borrador!.copia?.noSeReescriben ?? []) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
           <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />
         </div>

@@ -9,7 +9,7 @@ import {
   CLAVE_DE_PLANTILLAS, MAX_NOMBRE_DE_PLANTILLA, ROLES_QUE_ELIGEN, TODOS_LOS_ROLES, columnasValidas, guardaColumnas, leeColumnas, plantillasDeValor,
   plantillasValidas, prefsDeValor, valorDeColumnas, type ClienteDePrefs, type PlantillaDeColumnas,
 } from "./user-prefs";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
 
 /**
  * Las plantillas de ⚙ Columnas (D-394), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
@@ -133,7 +133,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   const llenas = (n: number) => Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: O14, o: O14, a: ANCH }));
   const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
   // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-412) llegaron después.
-  const GESTOR_MEDIDO = COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority");
+  const GESTOR_MEDIDO = COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority" && !k.startsWith("pl_"));   // ni las del plan (D-NEXT)
   const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: O14 }, orden: { logistics: O14 }, anchos: { logistics: ANCH }, plantillas: pl });
   const GEST = ["invoice", "account", "address", "pickup", "store", "pallets", "date", "windows", "status", "p_type", "p_eta", "p_fee"];
   const casos: [string, unknown, number][] = [
@@ -248,7 +248,7 @@ describe("aplicar", () => {
     expect(foto).not.toContain("fee");
     expect(foto.some((k) => k.startsWith("_"))).toBe(false);
     const puesta = columnasDePlantillaDelGestor(["fee", "retirada", ...foto]);
-    expect(puesta.slice(-3)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4]);
+    expect(puesta.slice(-4)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5]);
     expect(puesta).toContain("fee");
     expect(puesta).not.toContain("retirada");
     expect(conColumnasNuevas(columnasDePlantillaDelGestor(foto))).not.toContain("address");   // sin marcas, `conColumnasNuevas` la devolvería
@@ -296,9 +296,9 @@ describe("Órdenes usa las plantillas", () => {
 
 describe("el Gestor usa las MISMAS plantillas", () => {
   const p = leer("src/app/(app)/routes/page.tsx");
-  it("los dos ⚙ (Sin asignar y paradas) llevan el bloque", () => {
-    expect(p.split("plantillas={propsDePlantillas}").length - 1).toBe(2);
-    expect(p.split("<SelectorDeColumnas").length - 1).toBe(2);
+  it("los tres ⚙ (Sin asignar, paradas y, desde D-NEXT, el plan) llevan el bloque", () => {
+    expect(p.split("plantillas={propsDePlantillas}").length - 1).toBe(3);
+    expect(p.split("<SelectorDeColumnas").length - 1).toBe(3);
   });
   it("aplicar, guardar y borrar usan las funciones probadas", () => {
     expect(p).toContain("const next = p ? columnasDePlantillaDelGestor(p.v) : [...COLUMNAS_DEL_GESTOR_POR_DEFECTO];");
