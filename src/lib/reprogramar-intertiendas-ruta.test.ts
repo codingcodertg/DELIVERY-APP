@@ -81,9 +81,10 @@ describe("ensayo y ejecución", () => {
 
 describe("programada en vercel.json", () => {
   const vercel = JSON.parse(readFileSync(join(process.cwd(), "vercel.json"), "utf8")) as { crons: { path: string; schedule: string }[] };
-  it("una vez al día a las 07:05 UTC: pasada la medianoche de Texas en verano (02:05) y en invierno (01:05)", () => {
-    const c = vercel.crons.find((x) => x.path === "/api/cron/reprogramar-intertiendas");
-    expect(c?.schedule).toBe("5 7 * * *");
+  // D-430: el dueño la apagó («ya no quiero que las ordenes outdated se sigan reschedueling»). La ruta se queda (con su
+  // ensayo) por si vuelve; lo que la corría cada noche era esta entrada, y ya no está.
+  it("ya NO está programada: nada la corre sola; la ruta sigue existiendo por si se vuelve a encender", () => {
+    expect(vercel.crons.find((x) => x.path === "/api/cron/reprogramar-intertiendas")).toBeUndefined();
     expect(existsSync(join(process.cwd(), "src/app/api/cron/reprogramar-intertiendas/route.ts"))).toBe(true);
   });
   it("todas las entradas son diarias (Vercel Hobby rechaza el despliegue si alguna corre más de una vez al día)", () => {

@@ -29104,6 +29104,8 @@ añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
 
 ## D-406 · Una Intertienda que no se entregó pasa sola a hoy: un cron de madrugada, con ensayo y con el día de antes en el historial
 
+> **⚠ Reemplazada por D-430** (2026-09-28): el dueño la apagó — *«ya no quiero que las ordenes outdated se sigan reschedueling»*. El cron ya no está en `vercel.json`; la ruta y su ensayo siguen en el código por si se vuelve a encender.
+
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas; es código de servidor y
 `vercel.json`, sin bundle nuevo) · **Sin migración.**
 **Pedido por el dueño**, literal: *«si intertienda no se entregó ese día se reprograma automáticamente para el día
@@ -31706,3 +31708,19 @@ borrador») y D-322 (las columnas fijas de la tabla del plan); las dos llevan su
 - Nada contra la base: que la RLS/guard de 133 acepten un `manual_edit` hijo de un `published` (se lee que sí: el guard solo
   mira el estado del plan nuevo), y que el `updated_at` refrescado haga pasar `publish_route_plan` en producción.
 - Con muchas columnas marcadas, «Ajustar» queda a la derecha y hay que desplazar la tabla para verla.
+
+## D-430 · Las Intertiendas atrasadas ya no se reprograman solas
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«ya no quiero que las ordenes outdated se sigan reschedueling»*.
+
+**Qué se quitó.** La entrada `/api/cron/reprogramar-intertiendas` de `vercel.json` (D-406, pedida el 2026-09-26: *«si intertienda
+no se entrego ese dia se reprograma automaticamente para el dia siguiente»*). Era lo único que movía de fecha una orden sin que
+nadie la tocara. Desde ahora una orden atrasada se queda en su fecha y aparece en la pastilla «Outdated / Expiradas» (D-384,
+D-404, D-426) hasta que alguien la reprograme o la cancele («Expirada sin reprogramar», el motivo de D-406).
+
+**Qué se queda.** La ruta `/api/cron/reprogramar-intertiendas` y su lógica (`reprogramar-intertiendas.ts`, con `?ensayo=1` y el
+día de antes en el historial): nada la llama, y volver a encenderla es devolver la línea a `vercel.json`. No se deshace lo
+que ya movió: el historial de cada orden guarda la fecha de antes (D-406) por si hiciera falta.
+
+**Versión.** Solo `package.json`: no cambia nada que el navegador tenga que volver a bajar (la regla de los cambios que viven
+fuera del cliente).
