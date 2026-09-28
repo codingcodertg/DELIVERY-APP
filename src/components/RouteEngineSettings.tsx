@@ -144,7 +144,7 @@ export function RouteEngineSettings() {
     setOcupado(null);
     if (error || !data || data.length !== 1) { notify("Error: " + (error?.message ?? t("nothing was saved", "no se guardó nada"))); return; }
     notify(t("Saved", "Guardado"));
-    // Se vuelve a leer SOLO esta fila (D-NEXT): recargarlas todas, como antes, pisaba en silencio lo que se estaba
+    // Se vuelve a leer SOLO esta fila (D-423): recargarlas todas, como antes, pisaba en silencio lo que se estaba
     // editando en las demás sin guardar. Si la lectura falla, vale lo que se mandó y la base aceptó.
     const { data: leida } = await leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas).eq("profile_id", id), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER);
     const guardada: Fila = ((leida ?? []) as unknown as DriverSettings[])[0] ?? { profile_id: id, ...f, base_store: (f.base_store ?? "").trim() || null };

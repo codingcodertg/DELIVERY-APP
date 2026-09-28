@@ -13,10 +13,10 @@
  * condado—. Lo que queda al final es el trozo de la ciudad, al que aún se le quitan el código postal y el estado pegados
  * («McAllen TX 78504» → «McAllen»). Si ese trozo empieza con un número, es la calle: la dirección no dice la ciudad y se
  * devuelve «» (la celda pinta «—» y la dirección entera va en el `title`). Nunca adivina buscando nombres conocidos
- * dentro del texto: «2 McAllen Ave, Pharr TX» es Pharr. (Nota de D-NEXT: sigue valiendo para una dirección con comas;
+ * dentro del texto: «2 McAllen Ave, Pharr TX» es Pharr. (Nota de D-423: sigue valiendo para una dirección con comas;
  * sin ellas, una ciudad conocida que CIERRE el texto sí se toma — abajo.)
  *
- * **Direcciones escritas a mano, sin comas (D-NEXT, T-0413).** Medido en producción el 2026-09-27: 21 de 295 direcciones
+ * **Direcciones escritas a mano, sin comas (D-423, T-0413).** Medido en producción el 2026-09-27: 21 de 295 direcciones
  * daban «» o basura — «LOTE #24 9 W ROBLES EDINBURG, TX» (el lote delante), «…, TX, USA LOTE 11» (el lote detrás del país),
  * «…, TX.» y «…, TX.78521» (el estado con punto), y «9 W ROBLES EDINBURG TX» (todo en un trozo). (Calles inventadas; los patrones, los medidos). Ahora:
  *   · el lote, apartamento o suite («LOTE #24», «APT 3», «STE 200», «#12») se quita antes de leer;
@@ -79,7 +79,7 @@ export function ciudadDeEntrega(direccion: string | null | undefined, conocidas:
   // Las colas llevan un espacio delante: un trozo que es solo «TX» no se vacía.
   const ciudad = sinPuntoFinal(trozos[trozos.length - 1].replace(COLA_POSTAL, "").replace(COLA_ESTADO_SIGLA, "").replace(COLA_ESTADO_NOMBRE, ""));
   // Lleva números: es la calle. Pasa con un solo trozo («123 Main St McAllen TX», sin coma) y cuando la dirección acaba en
-  // la calle. La ciudad, si está, va detrás de ella (D-NEXT).
+  // la calle. La ciudad, si está, va detrás de ella (D-423).
   if (/\d/.test(ciudad)) return ciudadDetrasDeLaCalle(ciudad, conocidas);
   return ciudad;
 }

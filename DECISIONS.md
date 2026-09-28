@@ -29338,7 +29338,7 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 > **⚠ Reemplazada en parte por D-410** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
 > marcada y apagada** —sigue sin poder quitarse—, porque ahora las columnas se mueven y la factura también. Y los anchos de
 > paradas pasan de `rtg_routes_stops8` (por posición) a `rtg_routes_stops9` (por clave), heredando los guardados.
-> **Reemplazada en parte por D-NEXT** (2026-09-27): la ciudad de una dirección escrita a mano ya no sale «» o basura.
+> **Reemplazada en parte por D-423** (2026-09-27): la ciudad de una dirección escrita a mano ya no sale «» o basura.
 > `ciudadDeEntrega` quita el lote/apartamento/suite («LOTE #24», «USA LOTE 11»), reconoce el estado con punto («TX.»,
 > «TX.78521») y, cuando lo que queda es la calle sin comas («9 W ROBLES EDINBURG TX»), toma la ciudad CONOCIDA que cierra el
 > texto (las que salen limpias de otras direcciones, las de las tiendas y las zonas de los choferes). «Nunca adivina buscando
@@ -30956,14 +30956,14 @@ Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `s
 
 ## D-421 · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
 
-> **Reemplazada en parte por D-NEXT** (2026-09-27, T-0413): el peso de la zona solo ya no decide contra el builder y el
+> **Reemplazada en parte por D-423** (2026-09-27, T-0413): el peso de la zona solo ya no decide contra el builder y el
 > balance. Medido con 16 días reales, una entrega de Brownsville se iba con otro chofer aunque el de su zona la hacía con +0
 > millas (el builder, +37 min × 2, y el balance le ganaban al peso 60), y ningún peso lo arreglaba sin volver la zona una
 > regla también cuando es ineficiente. Ahora, ya mejorado el plan, cada entrega fuera de zona vuelve al chofer de su zona si
 > con él son **menos de `zonaMillas` millas de más** (Ajustes, por defecto 5) y nadie llega más tarde; con más, manda la
 > eficiencia y la zona es solo este peso. `VERSION_DEL_MOTOR` pasa a `motor-5`; sin zonas, el mismo plan byte a byte.
 > Y el **hallazgo de paso** de abajo (guardar una fila de choferes pisaba lo editado en las demás) **está arreglado en
-> D-NEXT**: al guardar se vuelve a leer solo esa fila. Y «una dirección sin ciudad legible no tiene zona» se estrecha: las
+> D-423**: al guardar se vuelve a leer solo esa fila. Y «una dirección sin ciudad legible no tiene zona» se estrecha: las
 > escritas a mano sin comas se leen con las zonas de los choferes como ciudades conocidas (nota en D-408).
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 152** (escrita, **no aplicada**; plan en
@@ -31135,7 +31135,7 @@ duplicaría un dato que ya está en la orden.
 **Pruebas.** `etiqueta.test.ts` (destino, carga partida, sin dirección, y que el borrador lo pinta). 3 mutantes, caen los 3.
 No se abrió en el demo: el borrador necesita el servidor (`/api/route-plan`).
 
-## D-NEXT · La zona le gana al builder y al balance cuando cuesta casi lo mismo en millas; la ciudad de las direcciones escritas a mano; y guardar un chofer en Ajustes ya no pisa las demás filas
+## D-423 · La zona le gana al builder y al balance cuando cuesta casi lo mismo en millas; la ciudad de las direcciones escritas a mano; y guardar un chofer en Ajustes ya no pisa las demás filas
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (el umbral vive en
 `settings.route_weights`, como el peso de zona de D-421 y las opciones de D-415). Tarea **T-0413**, hija de T-0412.

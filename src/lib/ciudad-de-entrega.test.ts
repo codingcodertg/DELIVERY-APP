@@ -53,7 +53,7 @@ describe("ciudadDeEntrega", () => {
   });
 
   /**
-   * D-NEXT (T-0413): las escritas a mano. Medido en producción el 2026-09-27, 21 de 295 daban «» o basura; estos son sus
+   * D-423 (T-0413): las escritas a mano. Medido en producción el 2026-09-27, 21 de 295 daban «» o basura; estos son sus
    * patrones, con calles inventadas.
    */
   it("el lote, apartamento o suite, delante, detrás o detrás del país, se quita (antes salía «LOTE #24 …» o «USA LOTE 11»)", () => {

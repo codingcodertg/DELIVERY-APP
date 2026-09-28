@@ -106,7 +106,7 @@ export interface Pesos {
   /** Por entrega que un chofer con zonas lleva FUERA de ellas, siendo de una zona que prefiere otro chofer (D-421). En
    *  minutos equivalentes, como `manejo`. Ausente = el de por defecto; 0 = las zonas no deciden nada. */
   zona?: number;
-  /** El umbral de la zona, en millas (D-NEXT): por debajo, la zona gana al builder y al balance. No es un peso —no entra
+  /** El umbral de la zona, en millas (D-423): por debajo, la zona gana al builder y al balance. No es un peso —no entra
    *  en el coste—, pero se guarda con ellos en `route_weights`. Ausente = el de por defecto; 0 = solo el peso `zona`. */
   zonaMillas?: number;
 }

@@ -147,7 +147,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   // guarda con el plan es la de siempre, byte a byte.
   const hayZonas = choferes.some((c) => c.zonas?.length);
   // Las zonas de los choferes, como ciudades conocidas: una dirección escrita sin comas («9 W Robles EDINBURG TX») se lee
-  // con ellas (D-NEXT). Una ciudad que no es zona de nadie no decide nada en el motor, así que no hace falta más lista.
+  // con ellas (D-423). Una ciudad que no es zona de nadie no decide nada en el motor, así que no hace falta más lista.
   const zonasConocidas = choferes.flatMap((c) => c.zonas ?? []);
 
   // ---- Órdenes ----

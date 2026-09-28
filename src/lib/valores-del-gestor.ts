@@ -48,7 +48,7 @@ export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdene
     case "invoice": return d.invoice_num ?? null;
     case "account": return d.account ?? null;
     // La columna enseña solo la CIUDAD desde D-408 («Ciudad de entrega»): ordena y filtra por ella, no por la calle.
-    // Con las mismas ciudades conocidas que la celda (D-NEXT): una dirección sin comas se ordena por la ciudad que se ve.
+    // Con las mismas ciudades conocidas que la celda (D-423): una dirección sin comas se ordena por la ciudad que se ve.
     case "address": return ciudadDeEntrega(d.delivery_address, ciudadesConocidas) || null;
     // La celda pinta el nombre del punto de recogida y, si no lo hay, la dirección: se ordena por lo que se ve.
     case "pickup": return d.pickup_name || d.pickup_address || null;

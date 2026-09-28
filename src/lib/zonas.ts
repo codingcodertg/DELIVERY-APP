@@ -46,7 +46,7 @@ export function zonasDelChofer(f: Pick<Partial<DriverSettings>, "preferred_zones
 }
 
 /** La zona de una orden: la ciudad de su dirección de entrega, como la columna del Gestor. «» = no se sabe. `conocidas`: las
- *  ciudades que pueden cerrar una dirección escrita sin comas (D-NEXT; `ciudadDeEntrega`). */
+ *  ciudades que pueden cerrar una dirección escrita sin comas (D-423; `ciudadDeEntrega`). */
 export function zonaDeLaOrden(d: Pick<Partial<Delivery>, "delivery_address"> | null | undefined, conocidas: Iterable<string> = []): string {
   return ciudadDeEntrega(d?.delivery_address, conocidas);
 }
@@ -71,7 +71,7 @@ export function ciudadesElegibles(
     g.grafias.set(nombre, (g.grafias.get(nombre) ?? 0) + 1);
     grupos.set(clave, g);
   };
-  // Las direcciones escritas sin comas (D-NEXT) se leen con las ciudades que salen limpias de las demás y las ya guardadas.
+  // Las direcciones escritas sin comas (D-423) se leen con las ciudades que salen limpias de las demás y las ya guardadas.
   const conocidas = [...ciudadesConocidas([...ordenes.map((o) => o.delivery_address), ...tiendas.map((t) => t.address)]), ...yaGuardadas];
   for (const o of ordenes) suma(zonaDeLaOrden(o, conocidas), 1);
   for (const t of tiendas) suma(ciudadDeEntrega(t.address, conocidas), 0);
@@ -108,7 +108,7 @@ export function zonasPorNombre(
 export function esDeSuZona(chofer: string, ordenes: readonly Pick<Partial<Delivery>, "delivery_address">[], zonas: ReadonlyMap<string, readonly string[]>): boolean {
   const suyas = new Set((zonas.get(claveDeZona(chofer)) ?? []).map(claveDeZona));
   if (!suyas.size) return false;
-  // Con las zonas de todos como conocidas (D-NEXT): la misma lectura que hace «Planificar el día».
+  // Con las zonas de todos como conocidas (D-423): la misma lectura que hace «Planificar el día».
   const todas = [...zonas.values()].flat();
   return ordenes.some((o) => suyas.has(claveDeZona(zonaDeLaOrden(o, todas))));
 }

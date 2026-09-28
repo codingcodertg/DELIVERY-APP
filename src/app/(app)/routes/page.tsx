@@ -1018,7 +1018,7 @@ export default function RoutesPage() {
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
-  // Las ciudades conocidas para leer una dirección escrita sin comas (D-NEXT, `ciudadDeEntrega`): las que salen limpias de
+  // Las ciudades conocidas para leer una dirección escrita sin comas (D-423, `ciudadDeEntrega`): las que salen limpias de
   // las órdenes cargadas y de las tiendas, y las zonas de los choferes. La misma lista para la celda, el orden y el filtro.
   const ciudadesQueSeConocen = useMemo(
     () => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],

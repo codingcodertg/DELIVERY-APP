@@ -21,7 +21,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-5` (D-NEXT, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
+/** `motor-5` (D-423, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
  *  de su zona si con él son menos de `zonaMillas` millas de más, nadie llega más tarde y no se rompe nada
  *  (`vuelveASuZona`). Sin zonas, lo mismo que `motor-4`, byte a byte (la misma huella).
  *  `motor-4` (D-421): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
@@ -285,7 +285,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   let fuera = coloca(pendientes);
 
   /**
-   * La zona, antes que el builder y el balance (D-NEXT, T-0413). El dueño, 2026-09-27: «maximo siempre tiene prioridad en
+   * La zona, antes que el builder y el balance (D-423, T-0413). El dueño, 2026-09-27: «maximo siempre tiene prioridad en
    * brownsville y nunca mandes a otro conductor por una ruta que sea inefeciente». Con el peso solo, un builder que llega
    * 37 min antes (×2) y el balance le ganaban a la zona aunque el chofer de la zona hiciera la entrega con +0 millas
    * (#135 del 2026-09-07, medido): ningún peso lo arregla sin volver la zona una regla también cuando es ineficiente.
@@ -425,7 +425,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   };
 
   mejoraElPlan(false);
-  // La zona, antes que el builder y el balance (D-NEXT): lo que vuelve a su zona, y otra vuelta de mejora que ya no puede
+  // La zona, antes que el builder y el balance (D-423): lo que vuelve a su zona, y otra vuelta de mejora que ya no puede
   // sacarlo. Cada vuelta baja las entregas fuera de zona: se acaba.
   while (convergio && vuelveASuZona() > 0) mejoraElPlan(true);
 

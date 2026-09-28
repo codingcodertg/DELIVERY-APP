@@ -7,7 +7,7 @@ import {
 } from "./index";
 
 /**
- * La zona, antes que el builder y el balance (D-NEXT, T-0413, hija de T-0412). El dueño, 2026-09-27, literal: *«no
+ * La zona, antes que el builder y el balance (D-423, T-0413, hija de T-0412). El dueño, 2026-09-27, literal: *«no
  * edingur o weslaco se pueden dividir entre ernesto y julio y por emergencia con maximo, maximo siempre tiene priorirdad
  * en brownivlle y nunca mandes a otro conductor por una ruta que sea inefeciente y que seria mejor con otro conducto
  * siempre que piense todo eso arma ese algoritnmo asi»*.
