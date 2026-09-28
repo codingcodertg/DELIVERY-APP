@@ -6,7 +6,7 @@ import { CerrarAviso } from "@/components/CerrarAviso";
 import { AVISOS_DEL_GESTOR } from "@/lib/avisos-ocultos";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
-import { destinoDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
+import { idDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { ordenesDelDia } from "@/lib/ordenes-del-dia";
 import { RutaDelPlan, type ColumnasDeLaRuta } from "@/components/RutaDelPlan";
@@ -138,7 +138,8 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan» y la hoja.
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
-  const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);
+  // Solo el id, para la columna ID del plan (D-NEXT): la factura va en su columna.
+  const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);
 
   const planifica = async () => {
     setOcupado("planificando"); setError(null); setPublicado(null);
@@ -319,7 +320,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
               )}
             </div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden}
+          <RutaDelPlan rutas={borrador!.rutas} idDeOrden={idDeOrden} abrirOrden={onAbrirOrden}
             columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined}
             ajuste={borrador!.status === "draft" || borrador!.status === "published" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m), noSeMueven: new Set(borrador!.copia?.noSeReescriben ?? []) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}

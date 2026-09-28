@@ -23,6 +23,10 @@ import type { Delivery } from "@/lib/types";
  * del Gestor (`columnas`, que arma la página con `columnasDeLaTabla("plan", …)`). Fijas: la etiqueta, la parada y Ajustar.
  * Las cuatro de antes —llega–sale, ventana, tramo y pallets a bordo— son columnas más del ⚙, escondidas de partida. En una
  * RECOGIDA, lo que es de la entrega (dirección, ventanas, contacto) va vacío (`seVeEnLaRecogida`).
+ *
+ * D-NEXT: la columna fija de la parada es SOLO el id de la orden (el dueño: «una columna solo para el id»). Se fueron de ahí la
+ * factura, «Recoger / Entregar», la pastilla Builder, el lugar y la línea «📍 ciudad · dirección» de D-422: cada cosa tiene
+ * ahora su columna (Factura, Tipo de cliente, Ciudad de recogida, Dirección de entrega) o ya la dice la etiqueta P/D.
  */
 
 export interface AjusteDeRuta {
@@ -46,7 +50,7 @@ export interface ColumnasDeLaRuta {
 /** Sin columnas de la página, las cuatro de siempre: la tabla se ve como antes de D-429. */
 const SOLO_LAS_DEL_PLAN = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && !c.deOrdenes);
 
-export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, ajuste, columnas }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; destinoDeOrden?: (ref: string) => { ciudad: string; direccion: string } | null; abrirOrden?: (ref: string) => void; ajuste?: AjusteDeRuta; columnas?: ColumnasDeLaRuta }) {
+export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: { rutas: RutaVista[]; idDeOrden: (ref: string) => string; abrirOrden?: (ref: string) => void; ajuste?: AjusteDeRuta; columnas?: ColumnasDeLaRuta }) {
   const { t, lang } = usePrefs();
   const [cerradas, setCerradas] = useState<Record<string, boolean>>({});
   if (!rutas.length) return null;
@@ -89,24 +93,16 @@ export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, 
     return (
       <Fragment key={`${p.seq}`}>
       <tr style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
-        <td><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
+        <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>
-          {/* D-431: la orden VA PRIMERO («el id ponlo antes de recoger para que sepamos que carga es»); D-428: abre la ficha. */}
+          {/* D-NEXT: SOLO el id («quiero que haya una columna solo para el id»); D-428: abre la ficha. La factura, el tipo de
+              cliente y la ciudad de recogida van en sus columnas; «Recoger / Entregar» lo dice la etiqueta P/D (y su título). */}
           {abrirOrden
-            ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit", fontWeight: 600 }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>
-            : <b>{nombreDeOrden(p.order_ref)}</b>}
-          <span data-accion-parada className="hint" style={{ margin: 0 }}> · {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}</span>
+            ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit", fontWeight: 600 }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{idDeOrden(p.order_ref)}</button>
+            : <b>{idDeOrden(p.order_ref)}</b>}
+          {/* Una orden partida sale dos veces con el mismo id: sin esto no se sabe cuál carga es cada fila. */}
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
-          {p.builder && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", marginLeft: 6 }}>{t("Builder", "Builder")}</span>}
-          {p.place && <span className="hint" style={{ margin: 0 }}> · {p.place}</span>}
-          {/* A dónde va (D-422): en una entrega a cliente el plan no guarda lugar; se lee de la orden. */}
-          {p.kind === "D" && !p.place && (() => {
-            const destino = destinoDeOrden?.(p.order_ref);
-            return destino ? (
-              <div data-destino style={{ fontSize: 12, marginTop: 2 }}>📍 {destino.ciudad && <b>{destino.ciudad}</b>}{destino.ciudad && " · "}<span className="hint" style={{ margin: 0 }}>{destino.direccion}</span></div>
-            ) : null;
-          })()}
         </td>
         {lista.map((c) => celda(c, p, k))}
         {ajuste && (
@@ -156,7 +152,7 @@ export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, 
                 <table className="orders" style={{ minWidth: 720 }}>
                   <thead>
                     <tr>
-                      <th>#</th><th>{t("Stop", "Parada")}</th>
+                      <th>#</th><th data-columna-id>{t("ID", "ID")}</th>
                       {lista.map((c) => <th key={c.key} data-columna-del-plan={c.key}>{rotulo(c)}</th>)}
                       {ajuste && <th>{t("Adjust", "Ajustar")}</th>}
                     </tr>

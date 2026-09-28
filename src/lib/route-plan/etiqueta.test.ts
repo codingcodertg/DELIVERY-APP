@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { destinoDeLaOrden, etiquetaDeOrden, nombraLaOrden } from "./etiqueta";
+import { etiquetaDeOrden, idDeLaOrden, nombraLaOrden } from "./etiqueta";
 
 /** Cómo se nombra una orden en todo lo del plan de ruta (D-331): código Y factura. */
 
@@ -32,35 +32,20 @@ describe("dónde se usa", () => {
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")}');
     // Y de ahí beben las paradas, «Fuera de este plan», la comparación con la hoja y la tarjeta del chofer.
     const panel = leer("src/components/PlanDelDia.tsx");
-    for (const uso of ["<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}", "<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", ">{nombreDeOrden(x.id)}</button> : nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
-    expect(leer("src/components/RutaDelPlan.tsx")).toContain("{nombreDeOrden(p.order_ref)}");
+    // Salvo la columna ID del plan (D-NEXT), que lleva SOLO el id: la factura tiene allí su columna (ver abajo).
+    for (const uso of ["<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", ">{nombreDeOrden(x.id)}</button> : nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
     expect(leer("src/components/MiPlanPublicado.tsx")).toContain("{nombreDeOrden(p.delivery_id, p.order_ref)}");
   });
 });
 
-describe("a dónde va cada entrega del plan (D-422)", () => {
-  const conDireccion = [
-    { id: "o1", order_no: 1, delivery_address: "100  Calle Falsa, Ciudad Uno, TX 78500, USA" },
-    { id: "o2", order_no: 2, delivery_address: "   " },
-    { id: "o3", order_no: 3 },
-  ];
-  it("la ciudad y la dirección salen de la orden, también para una carga partida (`id#b`)", () => {
-    expect(destinoDeLaOrden(conDireccion, "o1")).toEqual({ ciudad: "Ciudad Uno", direccion: "100 Calle Falsa, Ciudad Uno, TX 78500, USA" });
-    expect(destinoDeLaOrden(conDireccion, "o1#b")?.ciudad).toBe("Ciudad Uno");
-  });
-  it("sin dirección o sin la orden a la vista, nada (no se inventa un destino)", () => {
-    expect(destinoDeLaOrden(conDireccion, "o2")).toBeNull();
-    expect(destinoDeLaOrden(conDireccion, "o3")).toBeNull();
-    expect(destinoDeLaOrden(conDireccion, "otra")).toBeNull();
-  });
-  it("el borrador de «Planificar el día» lo pinta en cada entrega sin lugar", () => {
+describe("a dónde va cada entrega del plan (D-422, reemplazada en parte por D-NEXT)", () => {
+  // D-422 ponía «📍 ciudad · dirección» bajo cada entrega. Desde D-NEXT la dice la columna «Dirección de entrega», y la línea
+  // repetida se quitó: el dueño, «deja direcion de entrega y ventana».
+  it("la tabla del plan ya no pinta la línea 📍 bajo las entregas, ni el panel se la pasa", () => {
     const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
-    const ruta = leer("src/components/RutaDelPlan.tsx");
-    expect(ruta).toContain('{p.kind === "D" && !p.place && (() => { const destino = destinoDeOrden?.(p.order_ref);');
-    expect(ruta).toContain("<div data-destino");
-    const plan = leer("src/components/PlanDelDia.tsx");
-    expect(plan).toContain("const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);");
-    expect(plan).toContain("destinoDeOrden={destinoDeOrden}");
+    expect(leer("src/components/RutaDelPlan.tsx")).not.toContain("data-destino");
+    expect(leer("src/components/RutaDelPlan.tsx")).not.toContain("destinoDeOrden");
+    expect(leer("src/components/PlanDelDia.tsx")).not.toContain("destinoDeOrden");
   });
 });
 
@@ -68,7 +53,7 @@ describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", (
   const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
   it("en el borrador, la orden y su factura abren la ficha completa (paradas y «Fuera de este plan»)", () => {
     const ruta = leer("src/components/RutaDelPlan.tsx");
-    expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>");
+    expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{idDeOrden(p.order_ref)}</button>");
     const plan = leer("src/components/PlanDelDia.tsx");
     expect(plan).toContain("abrirOrden={onAbrirOrden}");
     expect(plan).toContain("onClick={() => onAbrirOrden(x.id)}>{nombreDeOrden(x.id)}</button>");
@@ -84,13 +69,27 @@ describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", (
   });
 });
 
-describe("la parada del plan nombra la orden ANTES de «Recoger/Entregar» (D-431)", () => {
-  it("primero la orden (enlace), después la acción", () => {
-    const ruta = readFileSync(join(process.cwd(), "src/components/RutaDelPlan.tsx"), "utf8").replace(/\s+/g, " ");
-    const orden = ruta.indexOf("onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>");
-    const accion = ruta.indexOf('<span data-accion-parada className="hint" style={{ margin: 0 }}> · {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}</span>');
-    expect(orden).toBeGreaterThan(-1);
-    expect(accion).toBeGreaterThan(-1);
-    expect(orden).toBeLessThan(accion);
+describe("la columna ID del plan: solo el id (D-NEXT; reemplaza en parte D-431)", () => {
+  // D-431 puso la orden antes de «Recoger / Entregar». El dueño, después: «quiero que haya una columna solo para el id». La
+  // acción ya la dice la etiqueta P/D, que la lleva como título; la factura va en su columna.
+  const ruta = readFileSync(join(process.cwd(), "src/components/RutaDelPlan.tsx"), "utf8").replace(/\s+/g, " ");
+  it("el id sin la factura, también para una carga partida; una orden fuera de la vista, por su referencia", () => {
+    expect(idDeLaOrden(ORDENES, "a")).toBe("#RDZ-0012");
+    expect(idDeLaOrden(ORDENES, "a#b")).toBe("#RDZ-0012");
+    expect(idDeLaOrden(ORDENES, "b")).toBe("#13b");
+    expect(idDeLaOrden(ORDENES, "11111111-2222-3333")).toBe("11111111");
+  });
+  it("la celda del id pinta idDeOrden, y el panel le pasa idDeLaOrden", () => {
+    expect(ruta).toContain("<th>#</th><th data-columna-id>{t(\"ID\", \"ID\")}</th>");
+    expect(ruta).not.toContain("data-accion-parada");
+    expect(ruta).not.toContain("{nombreDeOrden(");
+    expect(ruta).toContain("<td title={p.kind === \"P\" ? t(\"Pick up\", \"Recoger\") : t(\"Deliver\", \"Entregar\")}><b>{p.label}</b>");
+    const panel = readFileSync(join(process.cwd(), "src/components/PlanDelDia.tsx"), "utf8").replace(/\s+/g, " ");
+    expect(panel).toContain("const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);");
+    expect(panel).toContain("<RutaDelPlan rutas={borrador!.rutas} idDeOrden={idDeOrden}");
+  });
+  it("la pastilla Builder y el lugar ya no van junto al id: los dicen «Tipo de cliente» y «Ciudad de recogida»", () => {
+    expect(ruta).not.toContain("p.builder &&");
+    expect(ruta).not.toContain("{p.place &&");
   });
 });
