@@ -130,7 +130,10 @@ export interface DataState {
   /** `loadAuto` records WHO grouped these loads: true = the optimizer (free to
    * regroup later), false = a person (leave it alone). Omitted leaves it as it
    * was, for moves that change order without changing the grouping. */
-  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean) => Promise<boolean>;
+  /** `desde` (D-NEXT): el primer `route_seq` —la secuencia va de `desde` a `desde`+n-1—. Las flechas y el selector de viaje
+   * del Gestor numeran DESPUÉS de lo que el chofer ya recogió o entregó ese día (`inicioDeLaSecuencia`), para no empatar
+   * con ello en «Mi ruta». Sin darlo, 0, como siempre. */
+  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number) => Promise<boolean>;
   /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja
    * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
   deleteDelivery: (id: string) => Promise<boolean>;
@@ -1169,9 +1172,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // committed sequence. On any failure the previous order is restored, so the
   // list never silently disagrees with the database.
   const reorderStops = useCallback<DataState["reorderStops"]>(
-    async (orderedIds, loadNoById, loadAuto) => {
+    async (orderedIds, loadNoById, loadAuto, desde = 0) => {
       if (!orderedIds.length) return true;
-      const seqById = new Map(orderedIds.map((id, i) => [id, i]));
+      const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));
       // The full patch for one stop: its new position, plus its truckload when
       // whole truckloads are being reordered.
       const patchFor = (id: string): Partial<Delivery> => ({
