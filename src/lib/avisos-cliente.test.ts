@@ -260,10 +260,12 @@ describe("la base sin la 150 no se rompe", () => {
     expect(conAvisosSiCabe(p, [{ id: "1", notify_pref: "both" }])).toEqual(p);
     expect(laBaseTieneAvisos([])).toBe(false);
   });
-  it("la ficha los usa al guardar y enseña los campos solo con la 150", () => {
+  it("la ficha los usa al guardar, pero ya NO enseña correo, preferencia ni idioma (D-436)", () => {
     const src = leer("src/components/OrderModal.tsx");
     expect(src).toContain("const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({");
-    expect(src).toContain("{laBaseTieneAvisos(deliveries) && (");
+    expect(src).not.toContain("laBaseTieneAvisos(deliveries)");
+    expect(src).not.toContain('data-campo="notify_pref"');
+    expect(src).not.toContain('data-campo="customer_lang"');
   });
   it("Ajustes enseña la tarjeta con su comprobación", () => {
     const src = leer("src/app/(app)/settings/page.tsx");

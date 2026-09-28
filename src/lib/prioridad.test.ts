@@ -78,11 +78,10 @@ describe("¿la base ya tiene la columna? (se aplica DESPUÉS de fusionar)", () =
 describe("la pantalla usa lo de arriba", () => {
   const ficha = leer("src/components/OrderModal.tsx");
   const tabla = leer("src/components/OrdersTable.tsx");
-  it("la ficha: selector «Prioridad» con los cuatro niveles, Normal si no hay valor, solo con la columna en la base, y editable con `salesFields`", () => {
+  it("la ficha ya NO enseña el selector «Prioridad» (D-436); la prioridad sigue en la base y en el motor", () => {
     const p = plano(ficha);
-    expect(p).toContain("{laBaseTienePrioridad(deliveries) && (");
-    expect(p).toContain('<select data-campo="prioridad" value={prioridadDe(d)} disabled={!salesFields} onChange={(e) => set("priority", e.target.value)}>');
-    expect(p).toContain("{PRIORIDADES.map((p) => <option key={p.key} value={p.key}>{t(p.en, p.es)}</option>)}");
+    expect(p).not.toContain("laBaseTienePrioridad(deliveries)");
+    expect(p).not.toContain('data-campo="prioridad"');
   });
   it("la ficha: el guardado pasa por `conPrioridadSiCabe` con las órdenes cargadas", () => {
     const p = plano(ficha);

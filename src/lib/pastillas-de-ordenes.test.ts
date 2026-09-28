@@ -71,9 +71,8 @@ describe("la cuenta de «Todas»", () => {
 
   it("y sin cuenta ninguna es cero, no un hueco", () => {
     const fila = pastillasDeOrdenes({ pendientesSinTienda: false, etapas: ["approved"], todasAprueban: false, cuentas: {}, filtro: PASTILLA_TODAS });
-    // «Todas» y la etapa. «Outdated» salía siempre (D-384); desde D-404, como la de factura
-    // pendiente, con 0 no sale.
-    expect(fila.map((p) => p.cuenta)).toEqual([0, 0]);
+    // «Todas», la etapa, «Outdated» y «Factura pendiente»: desde D-436 las dos últimas salen siempre, con 0.
+    expect(fila.map((p) => p.cuenta)).toEqual([0, 0, 0, 0]);
   });
 });
 
@@ -82,9 +81,9 @@ describe("«Outdated» funciona como «Factura pendiente» (D-404)", () => {
   // pending pero en rojo».
   const sinAtrasadas = { ...CUENTAS, [PESTANA_ATRASADAS]: 0 };
 
-  it("con 0 atrasadas no sale", () => {
+  it("con 0 atrasadas SALE igual (D-436)", () => {
     const fila = pastillasDeOrdenes({ pendientesSinTienda: false, etapas: ETAPAS, todasAprueban: false, cuentas: sinAtrasadas, filtro: PASTILLA_TODAS });
-    expect(claves(fila)).not.toContain(PESTANA_ATRASADAS);
+    expect(claves(fila)).toContain(PESTANA_ATRASADAS);
   });
 
   it("…salvo si se está dentro, para que no desaparezca bajo el dedo", () => {
@@ -106,9 +105,9 @@ describe("«Factura pendiente» a quien no tiene tienda (D-404)", () => {
     expect(fila.find((p) => p.key === PESTANA_DOCUMENTO_PENDIENTE)).toMatchObject({ cuenta: 0, activa: false });
   });
 
-  it("con tienda y 0 pendientes, no sale (lo de siempre)", () => {
+  it("con tienda y 0 pendientes, SALE igual (D-436)", () => {
     const fila = pastillasDeOrdenes({ pendientesSinTienda: false, etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PASTILLA_TODAS });
-    expect(claves(fila)).not.toContain(PESTANA_DOCUMENTO_PENDIENTE);
+    expect(claves(fila)).toContain(PESTANA_DOCUMENTO_PENDIENTE);
   });
 
   it("la pantalla se lo dice con el alcance que devolvió `ordenesVisibles`, no con otra cuenta", () => {
@@ -126,10 +125,10 @@ describe("lo que ya decidía esta fila y no cambia", () => {
     expect(claves(fila)[0]).toBe(PASTILLA_TODAS);
   });
 
-  it("la de «Factura pendiente» solo sale si hay algo pendiente (D-310)", () => {
+  it("la de «Factura pendiente» sale siempre, también con 0 (D-436; antes solo con algo pendiente, D-310)", () => {
     const sinNada = { ...CUENTAS, [PESTANA_DOCUMENTO_PENDIENTE]: 0 };
     expect(claves(pastillasDeOrdenes({ pendientesSinTienda: false, etapas: ETAPAS, todasAprueban: false, cuentas: sinNada, filtro: PASTILLA_TODAS })))
-      .not.toContain(PESTANA_DOCUMENTO_PENDIENTE);
+      .toContain(PESTANA_DOCUMENTO_PENDIENTE);
   });
 
   it("…o si se está dentro de ella, para que no desaparezca bajo el dedo al vaciarse", () => {
