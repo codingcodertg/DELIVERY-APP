@@ -130,7 +130,7 @@ export interface DataState {
   /** `loadAuto` records WHO grouped these loads: true = the optimizer (free to
    * regroup later), false = a person (leave it alone). Omitted leaves it as it
    * was, for moves that change order without changing the grouping. */
-  /** `desde` (D-NEXT): el primer `route_seq` —la secuencia va de `desde` a `desde`+n-1—. Las flechas y el selector de viaje
+  /** `desde` (D-433): el primer `route_seq` —la secuencia va de `desde` a `desde`+n-1—. Las flechas y el selector de viaje
    * del Gestor numeran DESPUÉS de lo que el chofer ya recogió o entregó ese día (`inicioDeLaSecuencia`), para no empatar
    * con ello en «Mi ruta». Sin darlo, 0, como siempre. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number) => Promise<boolean>;

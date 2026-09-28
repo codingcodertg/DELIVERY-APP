@@ -1,7 +1,7 @@
 import { aLaDecima, palletsDeLaOrden, sumaPallets } from "./pallets";
 
 /**
- * Mover UNA parada a mano en la tarjeta de un chofer del Gestor de Rutas (D-NEXT): las flechas ↑ ↓ y el selector «Viaje N».
+ * Mover UNA parada a mano en la tarjeta de un chofer del Gestor de Rutas (D-433): las flechas ↑ ↓ y el selector «Viaje N».
  *
  * El dueño, el 2026-09-28, con la tarjeta de Ernesto delante: «las felchas no funcionan igual para cmabiar truckload no
  * funcionan». Lo que se midió en el demo (clics de persona, con plan publicado simulado):

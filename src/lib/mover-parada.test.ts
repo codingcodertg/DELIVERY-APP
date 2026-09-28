@@ -5,7 +5,7 @@ import { cabeEnElViaje, hechasDelChofer, inicioDeLaSecuencia, planDeCambioDeViaj
 import { fotoTrasReordenar } from "./arrastre-de-paradas";
 import { groupIntoLoads } from "./route-lanes";
 
-/** Mover una parada a mano en la tarjeta del Gestor (D-NEXT): flechas ↑ ↓ y el selector «Viaje N». */
+/** Mover una parada a mano en la tarjeta del Gestor (D-433): flechas ↑ ↓ y el selector «Viaje N». */
 
 const o = (id: string, pallets: number | null = 2) => ({ id, est_pallets: pallets, actual_pallets: null });
 const ids = (vs: readonly (readonly { id: string }[])[]) => vs.map((v) => v.map((x) => x.id));

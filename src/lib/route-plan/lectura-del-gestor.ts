@@ -2,7 +2,7 @@ import { lecturaDeLaRuta, sigueElPlan, type FilaInformativa, type LecturaDeRuta,
 import { ordenDeLaParte } from "./publicar";
 
 /**
- * La lectura de una ruta en el Gestor, con lo que el chofer ya recogió o entregó (D-NEXT).
+ * La lectura de una ruta en el Gestor, con lo que el chofer ya recogió o entregó (D-433).
  *
  * El hueco: el Gestor solo enseña lo pendiente (`ROUTE_STAGES`), y le pasaba a `lecturaDeLaRuta` solo eso. El plan
  * publicado conserva las órdenes ya entregadas, así que `sigueElPlan` —que exige las MISMAS órdenes— decía «cambió» en

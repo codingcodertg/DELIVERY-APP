@@ -5,7 +5,7 @@ import { lecturaConLoHecho } from "./lectura-del-gestor";
 import { filasDelViaje, lecturaDeLaRuta, type ParadaDelPlanMinima } from "./lectura-de-ruta";
 
 /**
- * El aviso «Esta ruta cambió desde que se publicó el plan» en el Gestor, con una orden ya entregada (D-NEXT).
+ * El aviso «Esta ruta cambió desde que se publicó el plan» en el Gestor, con una orden ya entregada (D-433).
  * Plan publicado de un viaje: P h (McAllen) · P a (Edinburg) · D h · P b (Pharr) · D a · D b. Publicar escribió
  * h = puesto 0, a = 1, b = 2, todas en el viaje 1. `h` ya se entregó: el Gestor no la pinta.
  */

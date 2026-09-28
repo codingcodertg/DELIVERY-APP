@@ -658,19 +658,19 @@ export default function RoutesPage() {
   // The next free load number for a driver (1 if they have no work yet).
   const nextLoadFor = (driver: string) => nextLoadForPure(dayOrders, driver);
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
-  // el Gestor no enseña pero «Mi ruta» sí (D-NEXT, `inicioDeLaSecuencia`).
+  // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).
   // Lo ya recogido o entregado de esa ruta en las fechas de sus paradas: no se pinta, pero sí cuenta para numerar y para
-  // saber si la ruta sigue siendo la publicada (D-NEXT, `lecturaConLoHecho`).
+  // saber si la ruta sigue siendo la publicada (D-433, `lecturaConLoHecho`).
   const hechasDeLaRuta = (laneKey: string, stops: Delivery[]) =>
     hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));
   const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));
-  // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-NEXT).
+  // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-433).
   const [recienMovida, setRecienMovida] = useState<string | null>(null);
   const senalaLaMovida = (id: string) => {
     setRecienMovida(id);
     setTimeout(() => setRecienMovida((x) => (x === id ? null : x)), 2500);
   };
-  // El selector «Viaje N» de una parada (D-NEXT): la pasa al final de otro viaje del mismo chofer, o a uno nuevo. Qué se
+  // El selector «Viaje N» de una parada (D-433): la pasa al final de otro viaje del mismo chofer, o a uno nuevo. Qué se
   // escribe lo decide `planDeCambioDeViaje`: la ruta ENTERA —puesto y viaje de cada parada—, no solo la movida. Antes se
   // escribía la movida con `route_seq: null`, y una ruta con una parada sin puesto se lee a medias (D-336): la movida salía
   // «—» y desaparecían todas las filas de recogida de la tarjeta. Y a un viaje donde no cabe, no: se dice cuánto lleva.
@@ -1583,7 +1583,7 @@ export default function RoutesPage() {
     const stops = byDriver.get(laneKey) ?? [];
     const trips = buildTrips(stops, capacityFor(driverOf(laneKey)));
     const item = trips.flat()[index];
-    // Qué se escribe lo decide `planDeFlecha` (D-NEXT): la secuencia entera en el orden nuevo y, con viajes puestos a mano,
+    // Qué se escribe lo decide `planDeFlecha` (D-433): la secuencia entera en el orden nuevo y, con viajes puestos a mano,
     // el viaje de cada parada por posición —cada viaje conserva su tamaño, y la que pasa del borde entra de verdad en el de
     // al lado; si no, la pantalla la reagruparía por `load_no` y la flecha parecería rota—. Numerada DESPUÉS de lo que el
     // chofer ya recogió o entregó ese día (`inicioDeLaRuta`), que no sale aquí pero sí en «Mi ruta».
@@ -1600,7 +1600,7 @@ export default function RoutesPage() {
     // Las flechas también entran en deshacer/rehacer (D-417): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
     // no se deshace pisando la flecha (su comprobación lo vería cambiado).
     if (ok) {
-      // Se VE a dónde fue (D-NEXT): la etiqueta P/D es de la posición —la primera entrega es D1 la haga quien la haga—, así
+      // Se VE a dónde fue (D-433): la etiqueta P/D es de la posición —la primera entrega es D1 la haga quien la haga—, así
       // que tras la flecha la fila de arriba sigue diciendo «D1». La movida se resalta y se dice su puesto.
       senalaLaMovida(item.id);
       const viaje = plan.viaje ? t(`, truckload ${plan.viaje}`, `, viaje ${plan.viaje}`) : "";
@@ -3067,7 +3067,7 @@ export default function RoutesPage() {
                                     onChange={(e) => { const v = e.target.value; moveStopToLoad(d, v === "__new__" ? trips.length + 1 : Number(v)); }}
                                     style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}
                                   >
-                                    {/* Los viajes que se PINTAN (D-NEXT): antes salían tantos como el `load_no` más alto, y con
+                                    {/* Los viajes que se PINTAN (D-433): antes salían tantos como el `load_no` más alto, y con
                                         números saltados («1» y «3») se ofrecía un «Viaje 2» que no era ninguno. El que no
                                         cabe lo dice ya en la lista; elegirlo no mueve nada y explica por qué. */}
                                     {Array.from({ length: trips.length }, (_, k) => k + 1).map((n) => (

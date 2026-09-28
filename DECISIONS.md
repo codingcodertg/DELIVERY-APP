@@ -31859,7 +31859,7 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
   esta página.
 - Cuántas cotizaciones guardadas tenían el apellido corregido a mano (arriba).
 
-## D-NEXT · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
+## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con captura de la tarjeta de Ernesto Castillo en la pestaña «Rutas» (2 paradas,
 «Viaje 1 — ~8/10 pallets», el aviso «Esta ruta cambió desde que se publicó el plan», P1 Edinburg, P2 Pharr, D1, D2), literal:

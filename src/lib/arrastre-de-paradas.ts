@@ -133,7 +133,7 @@ export function fotoDe(paradas: readonly ParadaDelGantt[]): Foto {
 /**
  * La foto después de `reorderStops(ids, loadNoById)`: cada id pasa a `route_seq` = su puesto, y a su viaje si se dan los
  * viajes. Lo que no está en `ids` no cambia. Es lo que escriben las flechas y lo que escribe soltar.
- * `desde` (D-NEXT): el primer puesto, el mismo que se le dio a `reorderStops` (las flechas numeran tras lo ya hecho).
+ * `desde` (D-433): el primer puesto, el mismo que se le dio a `reorderStops` (las flechas numeran tras lo ya hecho).
  */
 export function fotoTrasReordenar(antes: Foto, ids: readonly string[], loadNoById?: Record<string, number | null>, desde = 0): Foto {
   const f: Foto = { ...antes };
