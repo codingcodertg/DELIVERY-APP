@@ -31858,3 +31858,107 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
   apoya en que `src/app/recruiting/actions/hr.ts` ya lee `employee_files` por `.schema("recruiting")`; no se midió desde
   esta página.
 - Cuántas cotizaciones guardadas tenían el apellido corregido a mano (arriba).
+
+## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, con captura de la tarjeta de Ernesto Castillo en la pestaña «Rutas» (2 paradas,
+«Viaje 1 — ~8/10 pallets», el aviso «Esta ruta cambió desde que se publicó el plan», P1 Edinburg, P2 Pharr, D1, D2), literal:
+*«las felchas no funcionan igual para cmabiar truckload no funcionan entonces arregla eso»*. **Migraciones:** ninguna.
+
+### Qué pasaba, medido
+
+Reproducido en el demo (Chrome por CDP, clics de persona, 1280 px, 2026-09-28) con una ruta como la de Ernesto: dos
+pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un plan publicado simulado en el navegador.
+
+- **Las flechas SÍ escribían y SÍ repintaban.** ↓ en la primera: lo guardado pasó a `#1033 seq=0, #1032 seq=1` y la tarjeta
+  enseñó las dos filas cambiadas. La hipótesis de partida —que con plan publicado la tarjeta ordena por el plan y no por
+  `route_seq`— **es falsa**: la tabla pinta el orden de `route_seq` (`filasDelViaje` recorre el viaje tal cual) y el plan
+  solo pone etiquetas. Tampoco la entregada rompía el intercambio en el Gestor: no sale en él (`ROUTE_STAGES`, sin
+  `picked_up` ni `delivered`).
+- **Lo que sí confunde al mirar la flecha:** la etiqueta P/D es de la POSICIÓN (D-334: se numera por orden de recogida). Tras
+  ↓, la fila de arriba sigue diciendo «D1» y «P1»; lo que cambia es la factura y la tienda. Quien lee la ruta por sus
+  etiquetas ve lo mismo que antes.
+- **«＋ Nuevo viaje» / «Viaje N» dejaba la tarjeta rota.** Escribía la movida con `route_seq: null` y nada más. Una ruta con
+  una parada sin puesto se lee a medias (D-336): medido, la movida pasó a «—», **desaparecieron todas las filas de recogida
+  (P1, P2) de los dos viajes**, salió «Not optimized yet», y el aviso del plan se fue. Y lo guardado (sin puesto) no decía
+  dónde estaba la parada que la pantalla pintaba al final del viaje.
+- **No miraba la capacidad:** pasaba una parada a un viaje lleno sin decir nada (leído en el código, no medido).
+- **Las opciones del selector** eran tantas como el `load_no` más alto, no como los viajes que se pintan: con viajes «1» y
+  «3» se ofrecía un «Viaje 2» que no era ninguno.
+- **Las flechas numeraban 0..n-1 contando solo lo pendiente.** Lo recogido o entregado del chofer ese día conserva su puesto
+  y «Mi ruta» ordena TODO por `route_seq` (`routeOrder`). Medido en el demo: tras ↓, `#1033 seq=0` delante de la entregada
+  `#1010 seq=1`, y `#1032 seq=1` empatada con ella. En producción el orquestador midió lo mismo el 2026-09-28: #552
+  entregada con puesto 1 y #603 pendiente también con 1.
+
+### La regla
+
+- **El selector escribe la ruta ENTERA** (`planDeCambioDeViaje`, `src/lib/mover-parada.ts`): puesto y viaje de cada parada,
+  con `reorderStops`. La movida va al final del viaje elegido o a un viaje nuevo; un viaje que se queda vacío desaparece y los
+  de detrás corren un número. La ruta sigue ordenada entera, así que sus P/D se siguen leyendo: con «Nuevo viaje», Viaje 1 =
+  P1 Edinburg · D1 y Viaje 2 = P2 Pharr · D2 (medido).
+- **A un viaje donde no cabe, no se mueve y se dice** cuánto lleva, cuánto es la parada y que use «Nuevo viaje». La lista ya
+  lo marca («Viaje 1 — no cabe»). A la décima, y justo lleno cabe. Un viaje nuevo siempre se puede; si la parada sola ya
+  pasa la capacidad se hace igual (como `splitIntoTrips`) y se avisa.
+- **Las opciones son los viajes que se pintan**, más «＋ Nuevo viaje».
+- **Las pendientes se numeran DESPUÉS de lo ya hecho del chofer** en esas fechas (`inicioDeLaSecuencia` sobre
+  `hechasDelChofer`: `picked_up` y `delivered`). Decidido así y no intercalando o saltando números porque lo hecho ya pasó: en
+  el día va delante de todo lo pendiente. Lo hecho no se reescribe ni se mueve. `reorderStops` gana un cuarto parámetro,
+  `desde` (0 si no se da: todo lo demás escribe igual que antes). Lo usan las flechas ↑↓ de parada, el selector y las
+  flechas de viaje entero. **No** lo usan Optimizar, «Mejor lugar» ni soltar en «📅 Horario» (siguen 0..n-1).
+- **Se ve a dónde fue:** la parada movida se resalta 2,5 s (borde ámbar) y un aviso dice «#1032 → parada 2 de 2, viaje 2».
+- El selector **entra en deshacer/rehacer** como las flechas (D-417), con la foto de lo que escribió (`fotoTrasReordenar`
+  acepta `desde`). El candado 🔒 no cambia: flechas y selector siguen permitidos a mano (D-411).
+- El selector pone `load_auto: false` en **toda** la ruta (antes solo en la movida). Hace falta en todas porque Optimizar
+  decide si respeta los viajes con `some(load_no > 1 && !load_auto)`: si la parada pasa al viaje 1 (`load_no` nulo) y las
+  demás siguen con `load_auto: true` —como las deja publicar un plan—, no hay ninguna que cumpla y Optimizar reagrupa,
+  deshaciendo el cambio.
+- Numerar tras lo hecho y negarse a mover cuando no cabe: validados por el orquestador el 2026-09-28.
+
+### El aviso «Esta ruta cambió…» ya no sale solo por entregar
+
+- **Qué pasaba, medido en el demo:** con un plan publicado que tiene #1010, #1032 y #1033 y la ruta EXACTAMENTE como se
+  publicó, entregar #1010 bastaba para que la tarjeta dijera «This route changed after the plan was published» y
+  cambiara a las etiquetas derivadas (D1, D2 en vez de las del plan, D2, D3). `sigueElPlan` exige las MISMAS órdenes, y el
+  Gestor le pasaba solo las pendientes (`ROUTE_STAGES`) mientras el plan seguía teniendo la entregada. Eso contradice
+  D-335 («un cambio de ETAPA no es tocar la ruta»), cuya prueba lo cumple en la librería porque le pasa las órdenes en
+  camino. El fallo estaba en lo que le daba la pantalla. «Mi ruta» no lo tenía: le pasa todas las del día. Es,
+  probablemente, el aviso de la captura de Ernesto (#552 entregada).
+- **El arreglo, en lo que se le pasa** (`lecturaConLoHecho`, `src/lib/route-plan/lectura-del-gestor.ts`; la librería no se
+  tocó): se compara con las pendientes **más lo ya recogido o entregado de esa ruta** (`hechasDeLaRuta`, lo mismo que numera
+  las flechas). Lo hecho conserva el viaje y el puesto que escribió publicar, porque nadie lo reescribe. Si con eso la ruta
+  sigue siendo la publicada, mandan el plan y sus etiquetas. Si no, se devuelve la lectura de siempre, con su aviso.
+- **Se descartó quitar las hechas del plan:** `posicionesDeLaRuta` volvería a numerar los puestos sin ellas, y las
+  pendientes, que tienen los puestos que escribió publicar, no casarían nunca.
+- **Las filas que se pintan no cambian.** La tarjeta sigue recorriendo solo las pendientes. Las recogidas que el plan
+  ponía antes de la entrega de una orden ya hecha se pasan a la siguiente entrega pendiente del plan (donde ya estaban en
+  la secuencia), o al final si no queda ninguna. No se pierde ninguna fila de recogida de las que se veían antes de
+  entregar.
+- **Medido en el demo, después** (misma ruta, #1010 entregada, plan simulado):
+  - Sin tocar nada no hay aviso, con las etiquetas del plan: P1 McAllen · P2 Edinburg · P3 Pharr · D2 · D3.
+  - ↓ en la primera pendiente (un cambio de verdad): sale el aviso.
+  - ↑ de vuelta: se va otra vez, porque la numeración tras lo hecho reescribe los puestos 1 y 2, que son los del plan.
+  - Antes del arreglo, las tres pantallas salían con aviso.
+- Una pendiente movida, añadida o quitada **sigue avisando** (pruebas con nombre para las tres).
+- El cálculo de las etiquetas del mapa usa la misma lectura, y por eso ahora depende también de `deliveries`.
+
+### Mutantes
+
+**Primera tanda:** 35 propios, caen los 35, leídos por nombre (`mover-parada.test.ts`; uno también con
+`arrastre-de-paradas.test.ts`).
+- Uno sobrevivió al principio y era **prueba floja**: «el selector no entra en deshacer». Cambiar
+  `await anotaMovimiento(` por `void (` dejaba intactos los argumentos que miraba la prueba; ahora la prueba fija la
+  llamada entera.
+- La herramienta atribuyó a «flecha: ignora el desde» también una prueba de texto de la página que no lee ese fichero.
+  Corrido a mano, caen solo las dos que deben.
+
+**Segunda tanda (el aviso):** 8, caen los 8 (`lectura-del-gestor.test.ts`, `secuencia-pd.test.ts`,
+`mover-parada.test.ts`).
+- Sobrevivió al principio «con lo hecho, manda el plan sin comparar», por otra **prueba floja**: el caso «movida» solo
+  miraba el aviso. Ahora exige además que la lectura sea la de siempre (sin la entregada colada como un viaje más).
+
+### Lo que NO está
+
+- Las etiquetas P/D siguen siendo de la posición (D-334). No se cambió: es la definición del dueño.
+- La fila de recogida de una orden ya entregada (P1 McAllen en la medición) se sigue viendo, como antes de entregarla. Se
+  dejó así para no cambiar qué filas enseña la tarjeta.
+- No verificado contra producción: todo lo medido es en el demo.

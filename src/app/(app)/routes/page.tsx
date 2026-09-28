@@ -27,7 +27,8 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
-import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
+import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
+import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -62,6 +63,7 @@ import {
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
+import { cabeEnElViaje, hechasDelChofer, inicioDeLaSecuencia, planDeCambioDeViaje, planDeFlecha } from "@/lib/mover-parada";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
 import { esDeSuZona } from "@/lib/zonas";
@@ -655,33 +657,53 @@ export default function RoutesPage() {
 
   // The next free load number for a driver (1 if they have no work yet).
   const nextLoadFor = (driver: string) => nextLoadForPure(dayOrders, driver);
-  // Highest truckload number a driver currently has (1 if none set).
-  const maxLoadForDriver = (name: string) => {
-    let m = 1;
-    for (const d of dayOrders) if (d.assigned_driver === name) m = Math.max(m, loadNoOf(d));
-    return m;
+  // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
+  // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).
+  // Lo ya recogido o entregado de esa ruta en las fechas de sus paradas: no se pinta, pero sí cuenta para numerar y para
+  // saber si la ruta sigue siendo la publicada (D-433, `lecturaConLoHecho`).
+  const hechasDeLaRuta = (laneKey: string, stops: Delivery[]) =>
+    hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));
+  const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));
+  // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-433).
+  const [recienMovida, setRecienMovida] = useState<string | null>(null);
+  const senalaLaMovida = (id: string) => {
+    setRecienMovida(id);
+    setTimeout(() => setRecienMovida((x) => (x === id ? null : x)), 2500);
   };
-  // Move one already-assigned stop to a different truckload/pickup of the same
-  // driver (keeps the driver, changes the load number, resets its sequence).
-  const moveStopToLoad = async (d: Delivery, load: number) => {
+  // El selector «Viaje N» de una parada (D-433): la pasa al final de otro viaje del mismo chofer, o a uno nuevo. Qué se
+  // escribe lo decide `planDeCambioDeViaje`: la ruta ENTERA —puesto y viaje de cada parada—, no solo la movida. Antes se
+  // escribía la movida con `route_seq: null`, y una ruta con una parada sin puesto se lee a medias (D-336): la movida salía
+  // «—» y desaparecían todas las filas de recogida de la tarjeta. Y a un viaje donde no cabe, no: se dice cuánto lleva.
+  const moveStopToLoad = async (d: Delivery, destino: number) => {
     const driver = d.assigned_driver;
     if (!driver) return;
-    clearRouteFor(driver);
     const stops = byDriver.get(driver) ?? [];
-    // If the lane is still auto-split by capacity (no manual load numbers yet),
-    // first stamp every OTHER stop with the truckload it's currently shown in —
-    // otherwise moving just this one flips the lane to manual grouping and the
-    // rest collapse/reshuffle. This keeps every other stop exactly where it is.
-    if (!hasManualLoads(stops)) {
-      const trips = buildTrips(stops, capacityFor(driver));
-      await Promise.all(trips.flatMap((batch, ti) =>
-        batch.filter((s) => s.id !== d.id).map((s) => updateDelivery(s.id, { load_no: ti + 1 > 1 ? ti + 1 : null })),
-      ));
+    const capacidad = capacityFor(driverOf(driver));
+    const trips = buildTrips(stops, capacidad);
+    const plan = planDeCambioDeViaje(trips, d.id, destino, capacidad, inicioDeLaRuta(driver, stops));
+    if (!plan.ok) {
+      if (plan.motivo === "no_cabe") {
+        notify(t(
+          `#${orderLabel(d)} doesn't fit in truckload ${plan.viaje}: it already carries ${plan.carga} of ${plan.capacidad} pallets and this stop is ${plan.pallets}. Nothing was moved — use “New truckload”.`,
+          `#${orderLabel(d)} no cabe en el viaje ${plan.viaje}: ya lleva ${plan.carga} de ${plan.capacidad} pallets y esta parada son ${plan.pallets}. No se movió nada — use «Nuevo viaje».`,
+        ));
+      }
+      return;
     }
-    // Hand-placed: from here on the optimizer reorders this lane but leaves the
-    // grouping alone, so the dispatcher's call survives pressing Optimize.
-    await updateDelivery(d.id, { load_no: load > 1 ? load : null, route_seq: null, load_auto: false });
-    notify(t(`Moved to truckload ${load}`, `Movido al viaje ${load}`));
+    clearRouteFor(driver);
+    // Hand-placed (`load_auto: false`): from here on the optimizer reorders this lane but leaves the grouping alone, so the
+    // dispatcher's call survives pressing Optimize.
+    const ok = await reorderStops(plan.ids, plan.loadNoById, false, plan.desde);
+    if (!ok) return;
+    senalaLaMovida(d.id);
+    notify(plan.excede
+      ? t(`Moved to a new truckload ${plan.viaje} — on its own it's already over the truck's ${capacidad} pallets.`, `Movido a un viaje nuevo, el ${plan.viaje} — sola ya pasa los ${capacidad} pallets del camión.`)
+      : plan.nuevo
+        ? t(`Moved to a new truckload ${plan.viaje}`, `Movido a un viaje nuevo, el ${plan.viaje}`)
+        : t(`Moved to truckload ${plan.viaje}`, `Movido al viaje ${plan.viaje}`));
+    // Entra en deshacer/rehacer como las flechas (D-417).
+    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
+    await anotaMovimiento({ en: `#${orderLabel(d)} → truckload ${plan.viaje}`, es: `#${orderLabel(d)} → viaje ${plan.viaje}` }, [driver], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
   };
   // Split a lane's stops into truckloads: by the dispatcher's manual load
   // numbers when set, otherwise automatically by truck capacity.
@@ -1560,45 +1582,31 @@ export default function RoutesPage() {
   const move = async (laneKey: string, index: number, dir: -1 | 1) => {
     const stops = byDriver.get(laneKey) ?? [];
     const trips = buildTrips(stops, capacityFor(driverOf(laneKey)));
-    const list = trips.flat();
-    const j = index + dir;
-    if (j < 0 || j >= list.length) return;
-    // Reorder the whole list and renumber it 0..n-1.
-    const [item] = list.splice(index, 1);
-    list.splice(j, 0, item);
+    const item = trips.flat()[index];
+    // Qué se escribe lo decide `planDeFlecha` (D-433): la secuencia entera en el orden nuevo y, con viajes puestos a mano,
+    // el viaje de cada parada por posición —cada viaje conserva su tamaño, y la que pasa del borde entra de verdad en el de
+    // al lado; si no, la pantalla la reagruparía por `load_no` y la flecha parecería rota—. Numerada DESPUÉS de lo que el
+    // chofer ya recogió o entregó ese día (`inicioDeLaRuta`), que no sale aquí pero sí en «Mi ruta».
+    const plan = item ? planDeFlecha(trips, index, dir, hasManualLoads(stops), inicioDeLaRuta(laneKey, stops)) : null;
+    if (!plan) return;
     // The traced path/distance were computed for the old order — a manual
     // nudge no longer matches them, so drop them rather than mislead.
     clearRouteFor(laneKey);
-
-    // Once a lane carries MANUAL truckload numbers (which moving a whole
-    // truckload stamps), the display regroups stops by load_no — so writing a
-    // new sequence alone puts a stop straight back in the load it came from,
-    // and the arrow looks broken. Re-stamp the loads by position, keeping each
-    // truckload's size: a stop nudged past a boundary genuinely moves into the
-    // next load, which is what the dispatcher just asked for. Lanes still split
-    // automatically by capacity are left alone — there, sequence is enough.
-    let loadNoById: Record<string, number | null> | undefined;
-    if (hasManualLoads(stops)) {
-      loadNoById = {};
-      let at = 0;
-      trips.forEach((batch, ti) => {
-        for (let k = 0; k < batch.length; k++) {
-          const d = list[at++];
-          if (d) loadNoById![d.id] = ti + 1 > 1 ? ti + 1 : null;
-        }
-      });
-    }
-
+    const { ids, loadNoById, desde } = plan;
     // One guarded operation for the whole new sequence: the list updates
     // locally right away and is held there until every write lands, so a
     // realtime refetch can't snap the stop back to where it was.
-    const ids = list.map((d) => d.id);
-    const ok = await reorderStops(ids, loadNoById);
+    const ok = await reorderStops(ids, loadNoById, undefined, desde);
     // Las flechas también entran en deshacer/rehacer (D-417): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
     // no se deshace pisando la flecha (su comprobación lo vería cambiado).
     if (ok) {
+      // Se VE a dónde fue (D-433): la etiqueta P/D es de la posición —la primera entrega es D1 la haga quien la haga—, así
+      // que tras la flecha la fila de arriba sigue diciendo «D1». La movida se resalta y se dice su puesto.
+      senalaLaMovida(item.id);
+      const viaje = plan.viaje ? t(`, truckload ${plan.viaje}`, `, viaje ${plan.viaje}`) : "";
+      notify(t(`#${orderLabel(item)} → stop ${plan.puesto + 1} of ${plan.total}${viaje}`, `#${orderLabel(item)} → parada ${plan.puesto + 1} de ${plan.total}${viaje}`));
       const antes = fotoDe(trips.flat().map(aParadaDelGantt));
-      await anotaMovimiento({ en: `#${orderLabel(item)} ${dir < 0 ? "up" : "down"}`, es: `#${orderLabel(item)} ${dir < 0 ? "arriba" : "abajo"}` }, [laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById));
+      await anotaMovimiento({ en: `#${orderLabel(item)} ${dir < 0 ? "up" : "down"}`, es: `#${orderLabel(item)} ${dir < 0 ? "arriba" : "abajo"}` }, [laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById, desde));
     }
   };
 
@@ -1727,7 +1735,7 @@ export default function RoutesPage() {
     clearRouteFor(laneKey);
     const loadNoById: Record<string, number | null> = {};
     next.forEach((batch, ti) => batch.forEach((d) => { loadNoById[d.id] = ti + 1 > 1 ? ti + 1 : null; }));
-    await reorderStops(next.flat().map((d) => d.id), loadNoById);
+    await reorderStops(next.flat().map((d) => d.id), loadNoById, undefined, inicioDeLaRuta(laneKey, stops));
     notify(t(`Truckload moved to position ${j + 1}`, `Viaje movido a la posición ${j + 1}`));
   };
 
@@ -1796,7 +1804,7 @@ export default function RoutesPage() {
     for (const [laneKey, list] of byDriver) {
       if (!list.some((d) => d.route_seq != null)) continue;
       if (!pasaFiltro(laneKey)) continue;
-      const lectura = lecturaDeLaRuta(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver));
+      const lectura = lecturaConLoHecho(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));
       for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
       for (const p of [...lectura.previas.values()].flat()) {
         if (p.tipo !== "P" || !p.lugar) continue;
@@ -1867,7 +1875,7 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries]);
 
   // Every optimized driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
@@ -2658,7 +2666,7 @@ export default function RoutesPage() {
         // La misma ruta, leída como P1, P2… D1, D2… (D-334). No cambia nada de lo asignado: es solo cómo se LEE.
         // Con plan publicado y la ruta tal como el plan la dejó, mandan SUS etiquetas y SU secuencia; si se tocó después,
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
-        const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver));
+        const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops));
         const dDe = lectura.etiquetaDe;
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
         const provisional = esProvisional(stops);
@@ -2994,7 +3002,8 @@ export default function RoutesPage() {
                                 // visibly fills in over the day. Isolating a
                                 // stop still wins — that's a deliberate pick.
                                 className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}`}
-                                style={isolated ? { background: "var(--accent-soft)" } : undefined}
+                                style={isolated ? { background: "var(--accent-soft)" } : recienMovida === d.id ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined}
+                                data-recien-movida={recienMovida === d.id ? "" : undefined}
                                 // Stop here: without this the click also reaches
                                 // the card's "tap outside" handler, which sees a
                                 // selection already set and clears it — so moving
@@ -3058,8 +3067,11 @@ export default function RoutesPage() {
                                     onChange={(e) => { const v = e.target.value; moveStopToLoad(d, v === "__new__" ? trips.length + 1 : Number(v)); }}
                                     style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}
                                   >
-                                    {Array.from({ length: Math.max(trips.length, maxLoadForDriver(u.driver)) }, (_, k) => k + 1).map((n) => (
-                                      <option key={n} value={n}>{t("Truckload", "Viaje")} {n}</option>
+                                    {/* Los viajes que se PINTAN (D-433): antes salían tantos como el `load_no` más alto, y con
+                                        números saltados («1» y «3») se ofrecía un «Viaje 2» que no era ninguno. El que no
+                                        cabe lo dice ya en la lista; elegirlo no mueve nada y explica por qué. */}
+                                    {Array.from({ length: trips.length }, (_, k) => k + 1).map((n) => (
+                                      <option key={n} value={n}>{t("Truckload", "Viaje")} {n}{n !== ti + 1 && !cabeEnElViaje(trips, d.id, n, capacity).cabe ? t(" — won't fit", " — no cabe") : ""}</option>
                                     ))}
                                     <option value="__new__">＋ {t("New truckload", "Nuevo viaje")}</option>
                                   </select>

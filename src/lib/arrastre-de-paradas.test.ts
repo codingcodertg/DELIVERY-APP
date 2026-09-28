@@ -402,8 +402,9 @@ describe("la pantalla: el Gestor", () => {
     expect(pagina).toContain('.from("deliveries").select("id, assigned_driver, route_seq, load_no, updated_at").in("id", ids);');
   });
   it("las flechas también entran en el historial, con la foto de lo que escribieron", () => {
-    expect(flechas).toContain("const ok = await reorderStops(ids, loadNoById);");
-    expect(flechas).toContain("[laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById));");
+    // D-433: numeradas tras lo ya hecho del chofer (`desde`), y la foto con el mismo `desde`.
+    expect(flechas).toContain("const ok = await reorderStops(ids, loadNoById, undefined, desde);");
+    expect(flechas).toContain("[laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById, desde));");
   });
   it("Ctrl+Z deshace y Ctrl+Y / Ctrl+Mayús+Z rehacen, salvo escribiendo en un campo", () => {
     expect(pagina).toContain('if (k === "z" && !e.shiftKey) { e.preventDefault(); void vuelveRef.current("deshacer"); }');
