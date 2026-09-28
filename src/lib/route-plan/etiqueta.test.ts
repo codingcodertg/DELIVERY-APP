@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { etiquetaDeOrden, nombraLaOrden } from "./etiqueta";
+import { destinoDeLaOrden, etiquetaDeOrden, nombraLaOrden } from "./etiqueta";
 
 /** Cómo se nombra una orden en todo lo del plan de ruta (D-331): código Y factura. */
 
@@ -35,5 +35,31 @@ describe("dónde se usa", () => {
     for (const uso of ["<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}", "<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", "<b>{nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
     expect(leer("src/components/RutaDelPlan.tsx")).toContain("{nombreDeOrden(p.order_ref)}");
     expect(leer("src/components/MiPlanPublicado.tsx")).toContain("{nombreDeOrden(p.delivery_id, p.order_ref)}");
+  });
+});
+
+describe("a dónde va cada entrega del plan (D-422)", () => {
+  const conDireccion = [
+    { id: "o1", order_no: 1, delivery_address: "100  Calle Falsa, Ciudad Uno, TX 78500, USA" },
+    { id: "o2", order_no: 2, delivery_address: "   " },
+    { id: "o3", order_no: 3 },
+  ];
+  it("la ciudad y la dirección salen de la orden, también para una carga partida (`id#b`)", () => {
+    expect(destinoDeLaOrden(conDireccion, "o1")).toEqual({ ciudad: "Ciudad Uno", direccion: "100 Calle Falsa, Ciudad Uno, TX 78500, USA" });
+    expect(destinoDeLaOrden(conDireccion, "o1#b")?.ciudad).toBe("Ciudad Uno");
+  });
+  it("sin dirección o sin la orden a la vista, nada (no se inventa un destino)", () => {
+    expect(destinoDeLaOrden(conDireccion, "o2")).toBeNull();
+    expect(destinoDeLaOrden(conDireccion, "o3")).toBeNull();
+    expect(destinoDeLaOrden(conDireccion, "otra")).toBeNull();
+  });
+  it("el borrador de «Planificar el día» lo pinta en cada entrega sin lugar", () => {
+    const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
+    const ruta = leer("src/components/RutaDelPlan.tsx");
+    expect(ruta).toContain('{p.kind === "D" && !p.place && (() => { const destino = destinoDeOrden?.(p.order_ref);');
+    expect(ruta).toContain("<div data-destino");
+    const plan = leer("src/components/PlanDelDia.tsx");
+    expect(plan).toContain("const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);");
+    expect(plan).toContain("destinoDeOrden={destinoDeOrden}");
   });
 });

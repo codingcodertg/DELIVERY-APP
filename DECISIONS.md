@@ -31099,3 +31099,23 @@ el gancho y `enSuZona`); `supabase/migrations/152_zonas_preferidas.sql`.
   Allen»?) lo dirá la lista de Ajustes al aplicarla; la medición M2 del plan sirve para mirarlo antes.
 - «Planificar el día» y el «¿Por qué aquí?» no se abrieron en el demo (necesitan el servidor); se prueban con
   `planificaElDia` y con pruebas de que la pantalla usa las funciones.
+
+## D-422 · El borrador de «Planificar el día» dice a dónde va cada entrega
+
+**Fecha:** 2026-09-27. **Pedido del dueño**, con la captura del borrador de «Armar las rutas del día automáticamente»:
+*«aun no miro a donde delivere»* (antes, a otra sesión: *«aqui quiero vert tambien donde entrega»*).
+
+**Qué faltaba.** Las recogidas (P) decían su tienda (`place`, que el plan guarda solo para puntos de tienda), pero las
+entregas (D) solo decían la orden y la factura: `entrada.ts` guarda `place` = `null` para la dirección de un cliente, así
+que no se veía a qué ciudad iba cada parada.
+
+**Qué se hizo.** Cada entrega sin `place` enseña debajo **📍 Ciudad · dirección**, leídas EN VIVO de la orden
+(`destinoDeLaOrden` en `route-plan/etiqueta.ts`, como la factura de D-331), así que sale también en los borradores ya
+guardados. La ciudad es la de `ciudadDeEntrega` (la misma de la columna «Ciudad de entrega» y de las zonas, D-408/D-421).
+Una carga partida (`id#b`) muestra el destino de su orden; sin dirección no se pinta nada.
+
+**Descartado:** guardar la ciudad en `route_plan_stops.place` al planificar: solo la tendrían los planes nuevos y
+duplicaría un dato que ya está en la orden.
+
+**Pruebas.** `etiqueta.test.ts` (destino, carga partida, sin dirección, y que el borrador lo pinta). 3 mutantes, caen los 3.
+No se abrió en el demo: el borrador necesita el servidor (`/api/route-plan`).
