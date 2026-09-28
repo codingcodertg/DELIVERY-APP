@@ -31290,3 +31290,97 @@ sus pruebas; volver a enseñarlo es una línea en cada componente.
 
 **Pruebas.** Las que leían el botón ahora afirman que no está (`plan.test.ts`, `prioridad-en-el-plan`, `requisitos-en-el-plan`,
 `zonas-en-el-plan`). Un mutante que repone el botón cae con «lo que quedó fuera sale orden por orden…».
+
+## D-425 · El Estimador guarda el estimado de la competencia (PDF o foto) pegado a la cotización, interno y nunca en la hoja del cliente (migración 153)
+
+**Fecha:** 2026-09-27 · **Tarea:** hija de T-0408 (el Estimador, D-413) · **Versión:** la pone el orquestador (toca
+`src/app/estimator/` y `src/lib/estimator/`: sube `estimator`) · **Migración:** `153_estimados_competencia.sql`, **escrita y
+NO aplicada** (plan en papel: `docs/PLAN-153-estimados-competencia.md`, con la matriz por rol de 24 casos, `storage.objects`
+incluido, para correr con `ROLLBACK`).
+
+**Qué pidió el dueño**, literal (cita que trajo el orquestador): *«en el estimador app deja que se pueda subir el competitors
+estimate upload option»*.
+
+### Qué hay ahora
+
+- **Una sección «🕵️ Competitor's estimate / Estimado de la competencia»** en `/estimator`, entre «Entrega» y «Copia del
+  cliente», con el aviso *«Interno — nunca sale en la copia del cliente»*. Se eligen uno o varios archivos (PDF o foto:
+  JPG, PNG, WEBP, HEIC/HEIF), y **por archivo**, opcionales, el nombre del competidor, el total que cotizó (`CampoDecimal`,
+  D-420: deja escribir `2199.5`) y una nota. Se suben con «⬆ Upload N».
+- **La lista** enseña nombre, tamaño, quién lo subió y cuándo, y lo opcional. **Abrir** firma un enlace de **60 s** y lo abre
+  en pestaña nueva. **Quitar** pide confirmación en la misma fila y solo sale a **quien lo subió o al admin**.
+- **Va pegado a la cotización guardada** (`quote_id`): la ruta en el cubo es `<quote_id>/<sello>-<azar>-<nombre saneado>`
+  (reusa `nombreSaneado` de los adjuntos de ayuda, D-284). **Sin cotización guardada o abierta** —no se ha buscado y guardado
+  el estimado, o es de otro vendedor sin su aprobación— **no deja subir y lo dice**.
+- **Sin la 153** (`PGRST205` en la tabla, o «Bucket not found» en el cubo) **o sin la 148**, la sección se ve apagada con
+  *«falta actualizar la base (migración 153)»* y el resto del Estimador funciona igual. Cualquier otro error se enseña como
+  error, igual que D-413.
+- **Es interno por construcción:** nada de esto entra en `QuoteDraft` ni en `HojaDelCliente`. `HojaCliente.tsx` solo
+  recibe `HojaDelCliente` (D-413), así que no lo puede pintar; y `@media print` además quita la sección con
+  `display: none`. Tampoco viaja dentro de la cotización guardada (`filaDeBorrador`).
+- **La base (153):** cubo **privado** `estimator-competitor-files` (10 MB, 6 tipos) y `public.estimator_competitor_files`.
+  **Ve** quien ve la cotización —la política hace `exists (select 1 from estimator_quotes …)` con la sesión de quien pregunta,
+  así que manda la RLS de la 148 sin copiarla—; **sube** quien la **edita** (dueño, aprobado, admin; el compañero de tienda
+  que la ve, no); **quita** quien lo subió o el admin (en el cubo por `owner_id` del objeto, en la tabla por `uploaded_by`).
+  Sin `UPDATE`. Un disparador pone quién y su nombre, toma tamaño y tipo **del objeto real** del cubo, exige que la ruta
+  esté en la carpeta de su cotización y que el objeto exista.
+- **Demo:** en memoria, sin red; abrir da un `blob:` del propio archivo; `?sinTabla=1` imita la base sin la 153.
+- Código: `src/lib/estimator/competencia.ts` (reglas y almacén de la base), `almacenDeCompetenciaDemo` en `demo.ts`,
+  `src/app/estimator/Competencia.tsx` (la sección, con `AvisoDeCompetencia` y `ListaDeCompetencia` aparte para probarlas sin
+  navegador).
+
+### Decisiones mías, para validar
+
+1. **10 MB por archivo y 5 por cotización** (50 MB por estimado como mucho), en la pantalla, en la tabla (disparador) **y en
+   el cubo** (la política de `INSERT` cuenta los objetos de la carpeta), para que nadie lo salte subiendo sin la pantalla.
+   10 MB es el número de `help-files` (119): una foto de móvil pesa 2-5 MB, un PDF de estimado menos de 1. El techo por
+   carpeta es por la caída por cuota del 2026-09-25 (D-403); que fuera el cubo `timetracker-screenshots` llenando el plan lo
+   dice el encargo del orquestador, no lo medí.
+2. **No se comprimen las fotos** en el navegador antes de subir. Bajaría una foto de 4 MB a ~0,5 MB, pero Chrome no
+   decodifica HEIC en un `canvas` y habría dos caminos. Si la cuota aprieta, es lo siguiente.
+3. **Subir = editar la cotización (D-413)**, no «verla». El compañero de tienda que la ve no sube: para eso está la
+   aprobación.
+4. **Lo opcional no se edita después** (sin `UPDATE`): se escribe al subir; para corregirlo, se quita y se vuelve a subir.
+5. **Primero se quita el archivo, luego la fila.** Al revés, un fallo dejaría un archivo que nada enseña gastando cuota; y si
+   la fila no entra al subir, el archivo recién subido se retira.
+6. **Enlace de 60 s** (como los CV de recruiting), no los 30 días de la ayuda: aquí se abre al pulsar y no se reenvía.
+7. **Quién subió va copiado** (`uploaded_by_name`), porque leer el nombre de otro perfil depende de la RLS de `profiles`.
+8. **La autocomprobación de la 148** exige que ninguna tabla `estimator\_%` tenga política `DELETE`, y esta la tiene. Solo
+   importa si alguien re-ejecuta la 148 entera a mano; lo dicen el `.sql` y el plan.
+9. **Conflicto con las reglas del worker:** las reglas comunes dicen «no escribas migraciones»; este encargo pedía
+   explícitamente la 153 escrita y sin aplicar. Se siguió el encargo.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, **5180 pasadas | 3 saltadas** y `next build` en verde (2026-09-27).
+- **Mutantes: 31, los 31 caen**, leídos por el nombre de la prueba (`src/lib/estimator/competencia.test.ts`). Reglas: el
+  techo sin contar los que hay (M1), 10 MB justos rechazados (M2), HEIC sin tipo (M3), quitar sin admin (M4) o por cualquiera
+  (M5), sin la 153 sin apagar (M6), subir sin cotización (M7), «Bucket not found» (M8), total negativo (M9). Almacén: el
+  archivo huérfano que no se retira (M10), un `remove` vacío dado por bueno (M11), enlace de una hora (M12). **Interno:** la
+  hoja pintando el competidor (M13), la cotización arrastrando lo que cuelga del borrador (M14), la sección dentro de la vista
+  previa impresa (M15), la impresión sin `display: none` (M16). Cableado: sin `quoteId` (M17), sin la base de cotizaciones
+  (M18), «Quitar» en lo de otros (M19), subir sin estado `lista` (M20), elegir sin validar (M21), el aviso que no sale (M22),
+  el demo sin techo (M23) o dejando quitar (M24). La 153: 50 objetos por carpeta (M25 — **sobrevivía la primera vez**: la
+  prueba buscaba «< 5» y «< 50» lo contiene; se ancló con el cierre), 50 filas (M26), quitar cualquiera (M27), cubo público
+  (M28), la tienda subiendo (M29), ver sin mirar la cotización (M30 — **sobrevivía**: la prueba casaba la subconsulta de la
+  política de DELETE; ahora compara la política entera), el cubo aceptando Word (M31).
+- **En el navegador** (demo, Chrome headless por CDP con clics de persona, a **1280 y 390**): con `?sinTabla=1` la sección
+  sale `sin-base` con su aviso, sin selector de archivos, y «Generate customer copy» sigue; sin cotización, `sin-cotizacion`
+  con su aviso; tras buscar y guardar `DEMO-COMP-…`, se eligen un PDF y un PNG inventados (el diálogo del sistema no se
+  pulsa en headless: `DOM.setFileInputFiles`), se escribe competidor, **2199.5** y nota en el PDF, «Upload 2» → la lista
+  enseña los dos con tamaño (193 B, 70 B), «You (Admin)», fecha, *Competitor: Rival Tiles Demo*, *Their total: $2,199.50* y
+  la nota; «Open» abre una pestaña `blob:`; generar la copia → política → Continue → con `media: print` la sección tiene
+  `display: none`, la hoja se ve, y **ninguna** de «Rival Tiles Demo», los dos nombres de archivo, «2,199.50», la nota,
+  «competitor» ni «competencia» está en el texto visible — y con la pantalla normal (control) sí salen los cuatro primeros;
+  quitar la foto con confirmación deja solo el PDF; como otra persona («Ver como» Sofia Ventas) se ve el PDF sin «Quitar».
+  Sin desplazamiento lateral en los dos anchos.
+
+### Lo que no se hizo / no se verificó
+
+- **La 153 no se aplicó ni se ensayó** contra ninguna base. La matriz de §6 del plan es para el orquestador.
+- Que el servicio de Storage aplique `file_size_limit` y `allowed_mime_types` (se mide tras aplicar, subiendo un PDF de
+  11 MB y un `.txt`), que `storage.objects.metadata` traiga `size`/`mimetype` con esos nombres (si no, cae al valor del
+  navegador), y que `remove` vuelva vacío y sin error cuando la política no deja borrar.
+- `window.open` tras un `await` puede quedar bloqueado por el navegador en algunos móviles (Safari); es el mismo patrón que
+  los CV de recruiting y la ayuda. No se probó en un teléfono.
+- Solo el admin tiene hoy el módulo `estimator`: nadie más lo verá hasta que se le conceda (D-413).
