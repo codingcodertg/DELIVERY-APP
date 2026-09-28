@@ -28,8 +28,8 @@ export function AvisoDeCompetencia({ estado, t }: { estado: EstadoDeCompetencia;
     return (
       <p className="hint" data-competencia-sin-cotizacion>
         {t(
-          "Search and save this estimate's quote first: the competitor's estimate is attached to it.",
-          "Busca y guarda primero la cotización de este estimado: el estimado de la competencia va pegado a ella.",
+          "Save this estimate's quote first: the competitor's estimate is attached to it.",
+          "Guarda primero la cotización de este estimado: el estimado de la competencia va pegado a ella.",
         )}
       </p>
     );

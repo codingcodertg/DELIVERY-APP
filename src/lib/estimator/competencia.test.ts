@@ -98,7 +98,8 @@ describe("sin la 153 o sin cotización, la sección lo dice", () => {
     expect(sinBase).toContain("migration 153");
     const sinCot = renderToStaticMarkup(createElement(AvisoDeCompetencia, { estado: "sin-cotizacion", t }));
     expect(sinCot).toContain("data-competencia-sin-cotizacion");
-    expect(sinCot).toContain("save this estimate");
+    // D-NEXT: sin «Search and» delante (la búsqueda ya es automática), así que empieza en mayúscula.
+    expect(sinCot).toContain("Save this estimate");
     expect(renderToStaticMarkup(createElement(AvisoDeCompetencia, { estado: "lista", t }))).toBe("");
   });
 });
@@ -226,7 +227,7 @@ describe("ES INTERNO: la hoja del cliente no lo lleva nunca", () => {
   const ARCHIVO = "estimado-rival-9931.pdf";
   const borrador = (): QuoteDraft => ({
     ...borradorVacio("2026-09-30"), estimate_num: "E-77", sales_ext: "214",
-    customer: { salutation: "Ms.", full_name: "Ana Prueba", last_name: "Prueba", last_name_edited: false, company: "", phone: "", address: "" },
+    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "", address: "" },
     lines: [{ ...lineaSfVacia(), customer_category: "24x48 Tile", requested_sf: 100, sf_per_box: 10, price_per_sf: 2 }],
   });
 

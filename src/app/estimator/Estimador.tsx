@@ -7,18 +7,18 @@ import { CampoDecimal } from "@/components/CampoDecimal";
 import { createClient } from "@/lib/supabase/client";
 import { createClient as createErpClient } from "@/lib/erp/supabase/client";
 import {
-  apellidoDe, borradorVacio, cajasDeLinea, cajasPorDefecto, claveDeEstimado, dinero, lineaSfVacia, lineaUnidadVacia,
-  numero, paraQuienSeImprime, SALUTATIONS, sfReal, totalDeLinea, totalDeMateriales,
+  borradorVacio, cajasDeLinea, cajasPorDefecto, claveDeEstimado, dinero, extensionDePartida, lineaSfVacia, lineaUnidadVacia,
+  numero, paraQuienSeImprime, SALUTATIONS, sfReal, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalDeMateriales,
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
 import { hojaDelCliente } from "@/lib/estimator/hoja";
 import {
-  estadoDelEstimado, lineasCortas, loQueFalta, puedeGuardar, TEXTO_DE_FALTA, type EstimadoHallado,
+  estadoDelEstimado, trasComprobar, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado,
 } from "@/lib/estimator/validar";
 import {
   almacenDeLaBase, buscarEnCatalogo, type AlmacenDeCotizaciones, type AprobacionPendiente, type ProductoDelCatalogo,
 } from "@/lib/estimator/almacen";
-import { almacenDeCompetenciaDemo, almacenDemo, buscarEnCatalogoDemo } from "@/lib/estimator/demo";
+import { almacenDeCompetenciaDemo, almacenDemo, buscarEnCatalogoDemo, extensionDemo } from "@/lib/estimator/demo";
 import { almacenDeCompetenciaDeLaBase, type AlmacenDeCompetencia } from "@/lib/estimator/competencia";
 import {
   POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
@@ -29,6 +29,8 @@ import { SeccionCompetencia } from "./Competencia";
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
 const claveDeExtension = (id: string) => `rtg_estimator_ext_${id}`;
+/** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-NEXT: sin botón «Search»). */
+const ESPERA_COMPROBACION_MS = 600;
 
 type Yo = { id: string; name: string; admin: boolean };
 type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
@@ -43,7 +45,12 @@ type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
  * Sin la migración 148 aplicada, se arma e imprime igual —y se dice que no se guarda ni se comprueba
  * el dueño del estimado—, como la prioridad sin la 147.
  */
-export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boolean }) {
+export function Estimador({ me: meServidor, demo, extension: extensionServidor }: {
+  me: Yo | null;
+  demo: boolean;
+  /** La del expediente de RR. HH. de quien prepara, leída en el servidor (page.tsx). En demo, `extensionDemo`. */
+  extension: string | null;
+}) {
   const { t, lang } = usePrefs();
 
   // ---- quién soy (en demo, «Ver como») --------------------------------------------------------
@@ -107,20 +114,36 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
   const [politicaMarcada, setPoliticaMarcada] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState(false);
 
-  // La extensión se recuerda por persona en este navegador: es suya, no de la cotización.
+  // La extensión sale sola (D-NEXT, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
+  // escribió la última vez en este navegador. Se reemplaza mientras nadie la toque (en demo «Ver como» cambia de
+  // persona sin recargar); si la escribió a mano, se respeta.
+  const [origenExt, setOrigenExt] = useState<"expediente" | "navegador" | "ninguno">("ninguno");
+  const extAuto = useRef("");
   useEffect(() => {
     if (!me) return;
-    try {
-      const ext = localStorage.getItem(claveDeExtension(me.id));
-      if (ext) setDraft((d) => (d.sales_ext ? d : { ...d, sales_ext: ext }));
-    } catch { /* sin almacenamiento: se escribe a mano */ }
-  }, [me]);
+    let recordada: string | null = null;
+    try { recordada = localStorage.getItem(claveDeExtension(me.id)); } catch { /* sin almacenamiento: se escribe a mano */ }
+    const p = extensionDePartida(demo ? extensionDemo(me.id) : extensionServidor, recordada);
+    setOrigenExt(p.origen);
+    setDraft((d) => (!d.sales_ext.trim() || d.sales_ext === extAuto.current ? { ...d, sales_ext: p.valor } : d));
+    extAuto.current = p.valor;
+  }, [me, demo, extensionServidor]);
 
   const set = <K extends keyof QuoteDraft>(k: K, v: QuoteDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setCliente = (patch: Partial<QuoteDraft["customer"]>) => setDraft((d) => ({ ...d, customer: { ...d.customer, ...patch } }));
   const setEntrega = (patch: Partial<QuoteDraft["delivery"]>) => setDraft((d) => ({ ...d, delivery: { ...d.delivery, ...patch } }));
   const setLinea = (id: string, patch: Partial<QuoteLine>) =>
     setDraft((d) => ({ ...d, lines: d.lines.map((l) => (l.id === id ? ({ ...l, ...patch } as QuoteLine) : l)) }));
+
+  // Lo que las comprobaciones asíncronas leen AHORA, no lo que había cuando se lanzaron.
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  const quoteIdRef = useRef<string | null>(null);
+  const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); };
+  const [comprobando, setComprobando] = useState(false);
+  /** Una cotización guardada de este estimado que se puede abrir pero no se abrió sola (había trabajo tecleado). */
+  const [ofertaAbrir, setOfertaAbrir] = useState<string | null>(null);
+  const enCurso = useRef<string | null>(null);
 
   const buscado = busqueda !== null && claveDeEstimado(busqueda.num) === claveDeEstimado(draft.estimate_num);
   const hallado = buscado ? busqueda!.hallado : null;
@@ -132,57 +155,114 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
   const total = totalDeMateriales(draft.lines);
 
   // ---- acciones -------------------------------------------------------------------------------------
-  const buscar = async () => {
-    const num = draft.estimate_num.trim();
-    if (!num) return;
-    setOcupado(true);
-    setAviso(null);
-    const r = await almacen.buscar(num);
-    setOcupado(false);
-    if (!r.ok) {
-      if (r.sinTabla) { setBaseDisponible(false); return; }
-      setAviso({ tipo: "rojo", texto: `${t("Search failed", "Falló la búsqueda")}: ${r.error}` });
-      return;
-    }
-    setBusqueda({ num, hallado: r.valor });
-    const h = r.valor;
-    if (!h) {
-      setQuoteId(null);
-      setPrintCount(0);
-      setAviso({ tipo: "verde", texto: t("No quote exists for this estimate yet. When you save, you will be its owner.", "Todavía no hay cotización para este estimado. Al guardar, quedas como su dueño.") });
-      return;
-    }
-    const puedeAbrir = h.owner_id === me?.id || me?.admin || h.my_approval === "approved";
-    if (!puedeAbrir) {
-      setQuoteId(null);
-      setAviso({ tipo: "ambar", texto: t(`This estimate belongs to ${h.owner_name ?? "another rep"}. You need their approval before you prepare a quote for it.`, `Este estimado es de ${h.owner_name ?? "otro vendedor"}. Necesitas su aprobación antes de preparar una cotización.`) });
-      return;
-    }
-    const c = await almacen.cargar(h.quote_id);
-    if (!c.ok) { setAviso({ tipo: "rojo", texto: `${t("Could not open the quote", "No se pudo abrir la cotización")}: ${c.error}` }); return; }
+  const abrirGuardada = async (id: string): Promise<boolean> => {
+    const c = await almacen.cargar(id);
+    if (!c.ok) { setAviso({ tipo: "rojo", texto: `${t("Could not open the quote", "No se pudo abrir la cotización")}: ${c.error}` }); return false; }
     setDraft(c.valor.draft);
-    setQuoteId(c.valor.id);
+    ponerQuoteId(c.valor.id);
     setPrintCount(c.valor.print_count);
+    setOfertaAbrir(null);
     setAviso({ tipo: "verde", texto: t("Saved quote opened. Changes replace it: one quote per estimate.", "Cotización guardada abierta. Los cambios la reemplazan: una cotización por estimado.") });
+    return true;
+  };
+
+  /**
+   * Comprueba de quién es el estimado. **Sin botón** (D-NEXT, «No need to search first»): la lanzan la pausa al
+   * teclear, salir del campo, Enter y el propio guardado. La regla de D-413 sigue igual: si es de otro, se dice y se
+   * pide su aprobación. `abrirSola`: si la guardada es mía (o aprobada) y el borrador está en blanco, se abre; con
+   * trabajo tecleado, se ofrece y no se pisa.
+   */
+  const comprobar = async (num: string, abrirSola = true): Promise<{ ok: true; hallado: EstimadoHallado | null } | { ok: false }> => {
+    const n = num.trim();
+    if (!n) return { ok: false };
+    const clave = claveDeEstimado(n);
+    enCurso.current = clave;
+    setComprobando(true);
+    const r = await almacen.buscar(n);
+    if (enCurso.current === clave) { enCurso.current = null; setComprobando(false); }
+    // La respuesta de un número que ya no es el escrito no vale: se tecleó otro mientras volvía.
+    if (claveDeEstimado(draftRef.current.estimate_num) !== clave) return { ok: false };
+    if (!r.ok) {
+      if (r.sinTabla) { setBaseDisponible(false); return { ok: false }; }
+      setAviso({ tipo: "rojo", texto: `${t("Could not check the estimate", "No se pudo comprobar el estimado")}: ${r.error}` });
+      return { ok: false };
+    }
+    setBusqueda({ num: n, hallado: r.valor });
+    const h = r.valor;
+    const que = trasComprobar({
+      hallado: h, meId: me?.id ?? null, esAdmin: me?.admin ?? false,
+      quoteIdAbierto: quoteIdRef.current, borrador: draftRef.current, abrirSola,
+    });
+    if (que === "nueva") {
+      // Nadie la tiene: al guardar, quien la prepara queda como dueño («Original sales rep» ya lo dice).
+      if (quoteIdRef.current) { ponerQuoteId(null); setPrintCount(0); }
+      setOfertaAbrir(null);
+      setAviso(null);
+    } else if (que === "ajena") {
+      ponerQuoteId(null);
+      setOfertaAbrir(null);
+      setAviso({ tipo: "ambar", texto: t(`This estimate belongs to ${h?.owner_name ?? "another rep"}. You need their approval before you prepare a quote for it.`, `Este estimado es de ${h?.owner_name ?? "otro vendedor"}. Necesitas su aprobación antes de preparar una cotización.`) });
+    } else if (que === "abrir" && h) {
+      await abrirGuardada(h.quote_id);
+    } else if (que === "ofrecer" && h) {
+      setOfertaAbrir(h.quote_id);
+      setAviso({ tipo: "ambar", texto: t("A quote is already saved for this estimate. Open it to keep working on it: what you typed here will be replaced.", "Ya hay una cotización guardada para este estimado. Ábrela para seguir con ella: lo que escribiste aquí se reemplaza.") });
+    }
+    return { ok: true, hallado: h };
+  };
+  const comprobarRef = useRef(comprobar);
+  useEffect(() => { comprobarRef.current = comprobar; });
+
+  // La comprobación sola: una pausa después de la última tecla del número.
+  useEffect(() => {
+    const n = draft.estimate_num.trim();
+    if (!me || baseDisponible === false || !n || buscado) return;
+    const id = setTimeout(() => { if (enCurso.current !== claveDeEstimado(n)) void comprobarRef.current(n); }, ESPERA_COMPROBACION_MS);
+    return () => clearTimeout(id);
+  }, [draft.estimate_num, buscado, baseDisponible, me]);
+
+  /** Salir del campo o Enter: sin esperar la pausa. */
+  const comprobarYa = () => {
+    const n = draft.estimate_num.trim();
+    if (!n || buscado || baseDisponible === false || enCurso.current === claveDeEstimado(n)) return;
+    void comprobar(n);
   };
 
   const guardar = async (): Promise<string | null> => {
     if (!me || !puedeGuardar(draft, estado)) return null;
+    // Siempre se comprueba antes de guardar (D-NEXT): si la pausa aún no lo hizo, se hace aquí y se para si es de otro.
+    let h = hallado;
+    if (estado === "sin-buscar") {
+      setOcupado(true);
+      const c = await comprobar(draft.estimate_num, false);
+      setOcupado(false);
+      if (!c.ok) return null;
+      h = c.hallado;
+      const est = estadoDelEstimado({ baseDisponible: true, buscado: true, hallado: h, meId: me.id, esAdmin: me.admin });
+      if (!puedeTrabajar(est)) return null; // el aviso ámbar ya dice de quién es
+    }
+    // Hay una guardada de este estimado y no es la abierta: guardar encima sin haberla visto, no. Se ofrece abrirla.
+    if (h && h.quote_id !== quoteIdRef.current) {
+      setOfertaAbrir(h.quote_id);
+      setAviso({ tipo: "ambar", texto: t("A quote is already saved for this estimate. Open it first: one quote per estimate.", "Ya hay una cotización guardada para este estimado. Ábrela primero: una cotización por estimado.") });
+      return null;
+    }
     setOcupado(true);
-    const r = await almacen.guardar(quoteId, draft);
+    const r = await almacen.guardar(quoteIdRef.current, draft);
     setOcupado(false);
     if (!r.ok) {
       if (r.sinTabla) { setBaseDisponible(false); return null; }
       if (r.duplicado) {
+        // Se vuelve a comprobar solo (la pausa lo lanza al quedar sin comprobar).
         setBusqueda(null);
-        setAviso({ tipo: "rojo", texto: t("Someone else just saved a quote for this estimate. Search it again.", "Alguien acaba de guardar una cotización para este estimado. Búscalo otra vez.") });
+        setAviso({ tipo: "rojo", texto: t("Someone else just saved a quote for this estimate. Checking who owns it…", "Alguien acaba de guardar una cotización para este estimado. Comprobando de quién es…") });
         return null;
       }
       setAviso({ tipo: "rojo", texto: `${t("Not saved", "No se guardó")}: ${r.error}` });
       return null;
     }
-    setQuoteId(r.valor);
-    if (!hallado) {
+    ponerQuoteId(r.valor);
+    if (!h) {
       setBusqueda({ num: draft.estimate_num.trim(), hallado: { quote_id: r.valor, estimate_num: draft.estimate_num.trim(), owner_id: me.id, owner_name: me.name, owner_store: null, my_approval_id: null, my_approval: null } });
     }
     setAviso({ tipo: "verde", texto: t("Saved.", "Guardada.") });
@@ -195,8 +275,8 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
     const r = await almacen.pedirAprobacion(hallado.quote_id, hallado.my_approval_id);
     setOcupado(false);
     if (!r.ok) { setAviso({ tipo: "rojo", texto: `${t("Request failed", "No se pudo pedir")}: ${r.error}` }); return; }
-    setAviso({ tipo: "ambar", texto: t(`Approval requested from ${hallado.owner_name ?? "the owner"}. Search again once they approve.`, `Aprobación pedida a ${hallado.owner_name ?? "el dueño"}. Vuelve a buscar cuando la dé.`) });
-    await buscar();
+    await comprobar(draft.estimate_num);
+    setAviso({ tipo: "ambar", texto: t(`Approval requested from ${hallado.owner_name ?? "the owner"}. Press “Check again” once they approve.`, `Aprobación pedida a ${hallado.owner_name ?? "el dueño"}. Pulsa «Comprobar otra vez» cuando la dé.`) });
   };
 
   const decidir = async (a: AprobacionPendiente, st: "approved" | "denied") => {
@@ -293,21 +373,19 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
         <div className="grid g3">
           <div className="field">
             <label htmlFor="est-num">{t("Estimate #", "# de estimado")}</label>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input id="est-num" value={draft.estimate_num} className={inv(!draft.estimate_num.trim())}
-                onChange={(e) => set("estimate_num", e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") void buscar(); }} />
-              <button className="btn btn-primary" data-buscar disabled={ocupado || !draft.estimate_num.trim() || baseDisponible === false} onClick={buscar}>
-                {t("Search", "Buscar")}
-              </button>
-            </div>
+            {/* Sin botón «Search» (D-NEXT): se comprueba solo tras una pausa, al salir del campo y antes de guardar. */}
+            <input id="est-num" value={draft.estimate_num} className={inv(!draft.estimate_num.trim())}
+              onChange={(e) => set("estimate_num", e.target.value)}
+              onBlur={comprobarYa}
+              onKeyDown={(e) => { if (e.key === "Enter") comprobarYa(); }} />
           </div>
           <div className="field">
             <label>{t("Original sales rep", "Vendedor original")}</label>
             <div data-dueno style={{ padding: "8px 0", fontWeight: 600 }}>
               {estado === "sin-base" ? t("Cannot be checked", "No se puede comprobar")
-                : !buscado ? t("Search the estimate first", "Busca primero el estimado")
-                : hallado ? (hallado.owner_name ?? "?") : `${me.name} (${t("you", "tú")})`}
+                : hallado ? (hallado.owner_name ?? "?")
+                : buscado || !draft.estimate_num.trim() ? `${me.name} (${t("you", "tú")})`
+                : <span className="hint" data-comprobando>{t("Checking…", "Comprobando…")}</span>}
             </div>
           </div>
           <div className="field">
@@ -327,6 +405,18 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
                 {estado === "denegada" ? t("Ask again", "Volver a pedir") : t("Request approval", "Pedir aprobación")}
               </button>
             )}
+            {estado === "pendiente" && (
+              <button className="btn btn-ghost btn-sm" data-comprobar-otra-vez disabled={ocupado || comprobando} onClick={() => void comprobar(draft.estimate_num)}>
+                {t("Check again", "Comprobar otra vez")}
+              </button>
+            )}
+          </div>
+        )}
+        {ofertaAbrir && (
+          <div className="est-acciones" data-oferta-abrir>
+            <button className="btn btn-amber btn-sm" disabled={ocupado} onClick={() => void abrirGuardada(ofertaAbrir)}>
+              {t("Open the saved quote", "Abrir la cotización guardada")}
+            </button>
           </div>
         )}
         <div className="grid g3">
@@ -337,6 +427,11 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
                 set("sales_ext", e.target.value);
                 try { localStorage.setItem(claveDeExtension(me.id), e.target.value); } catch { /* nada */ }
               }} />
+            <span className="hint" data-origen-ext={origenExt}>
+              {origenExt === "expediente" ? t("From your HR record (the same as the directory).", "De tu expediente de RR. HH. (la misma del directorio).")
+                : origenExt === "navegador" ? t("The one you typed last time on this browser.", "La que escribiste la última vez en este navegador.")
+                : t("Not on your HR record: type it once, this browser remembers it.", "No está en tu expediente: escríbela una vez, este navegador la recuerda.")}
+            </span>
           </div>
         </div>
       </div>
@@ -354,15 +449,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
           <div className="field">
             <label htmlFor="est-nombre">{t("Full name", "Nombre completo")}</label>
             <input id="est-nombre" value={draft.customer.full_name} className={inv(!draft.customer.full_name.trim())}
-              onChange={(e) => {
-                const full_name = e.target.value;
-                setCliente(draft.customer.last_name_edited ? { full_name } : { full_name, last_name: apellidoDe(full_name) });
-              }} />
-          </div>
-          <div className="field">
-            <label htmlFor="est-apellido">{t("Last name as printed", "Apellido que se imprime")}</label>
-            <input id="est-apellido" value={draft.customer.last_name} className={inv(!draft.customer.last_name.trim())}
-              onChange={(e) => setCliente({ last_name: e.target.value, last_name_edited: true })} />
+              onChange={(e) => setCliente({ full_name: e.target.value })} />
           </div>
           <div className="field">
             <label htmlFor="est-empresa">{t("Company", "Empresa")}</label>
@@ -370,9 +457,18 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
           </div>
           <div className="field">
             <label htmlFor="est-tel">{t("Phone", "Teléfono")}</label>
-            <input id="est-tel" value={draft.customer.phone} onChange={(e) => setCliente({ phone: e.target.value })} />
+            {/* 956-555-0123 al completar los 10 dígitos o al salir (D-NEXT); lo que no es un número completo se deja y se marca. */}
+            <input id="est-tel" value={draft.customer.phone} inputMode="tel" placeholder="956-555-0123"
+              className={inv(!!draft.customer.phone.trim() && telefonoLimpio(draft.customer.phone) === null)}
+              onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}
+              onBlur={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })} />
+            {!!draft.customer.phone.trim() && telefonoLimpio(draft.customer.phone) === null && (
+              <span className="hint" data-tel-mal style={{ color: "var(--red)" }}>{t("Not a 10-digit US number.", "No es un número de EE. UU. de 10 dígitos.")}</span>
+            )}
           </div>
-          <div className="field" style={{ gridColumn: "span 3" }}>
+          {/* «1 / -1» y no «span 3»: en el móvil la rejilla tiene una columna, y «span 3» fabricaba tres implícitas que
+              estrujaban Título y Teléfono (medido a 390 de ancho). */}
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
             <label htmlFor="est-dir">{t("Address", "Dirección")}</label>
             <input id="est-dir" value={draft.customer.address} onChange={(e) => setCliente({ address: e.target.value })} />
           </div>

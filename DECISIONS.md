@@ -30090,6 +30090,15 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
 
+> **Nota (2026-09-28): reemplazada en parte por D-NEXT**, sobre una captura con observaciones del dueño. Cambian cuatro
+> cosas de esta entrada, y el resto sigue: (a) **«Buscar» deja de ser un botón que hay que pulsar**: el estimado se comprueba
+> solo (pausa al teclear, al salir del campo, antes de guardar). La regla de la política —*«Search the estimate number
+> first»*, que sigue literal en la ventana de política— se cumple igual, porque la pantalla busca por el vendedor; si es de
+> otro, el mismo aviso y la misma aprobación. (b) La decisión 4, **«la extensión la escribe el vendedor»**, cambia: sale del
+> expediente de RR. HH. (`recruiting.employee_files.ringcentral_ext`, 106) y solo se escribe a mano si no hay. (c) La
+> decisión 7: **el tratamiento por defecto es «Mr.»** y el apellido **ya no se corrige a mano** (el campo se quitó): sale
+> siempre de la última palabra del nombre. (d) En `validar.ts` desaparece la falta «apellido».
+
 ## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
@@ -31735,3 +31744,117 @@ negrita) va delante, y «· Recoger» / «· Entregar» detrás como etiqueta: *
 fila (carga N de M, Builder, tienda, destino de D-422) sigue igual y en el mismo sitio.
 
 **Pruebas.** Una prueba fija que la orden va antes que la acción; un mutante que vuelve a poner la acción delante cae.
+
+## D-NEXT · El Estimador, sobre la captura del dueño: sin «Search» obligatorio, extensión automática, «Mr.» por defecto, sin campo de apellido y teléfono 956-xxx-xxxx
+
+**Fecha:** 2026-09-28 · **Tarea:** hija de T-0408 (el Estimador, D-413) · **Versión:** la pone el orquestador (toca solo
+`estimator`: `src/app/estimator/*` y `src/lib/estimator/*`) · **Migración:** ninguna. **Reemplaza en parte a D-413** (lleva
+su nota).
+
+**Qué pidió el dueño.** Mandó una captura del Estimador con sus observaciones **escritas dentro de los campos**, y dijo,
+literal: *«do the observations of this picture»*. Las observaciones, campo por campo (tal como las transcribió el orquestador
+de la captura; no extraídas de un fichero de sesión):
+
+1. «Estimate #», junto al botón «Search»: *«No need to search first»*.
+2. «Your extension (customer sees "Ext. NNN")»: *«should be automatic»*.
+3. «Title»: por defecto **«Mr.»**.
+4. «Last name as printed»: *«This Field is unnecessary»*.
+5. «Phone»: *«clean format 956-xxx-xxxx»*.
+
+### Qué hay ahora
+
+1. **Sin botón «Search».** El número se comprueba solo: 600 ms después de la última tecla, al salir del campo, con Enter y
+   **siempre antes de guardar** (si Guardar llega antes que la pausa, comprueba él y se para si el estimado es de otro).
+   La política de D-413 no cambia: si es de otro vendedor, el mismo aviso ámbar, «Request approval» y Guardar/Generar
+   bloqueados; la 148 sigue siendo quien lo hace cumplir (índice único por estimado y políticas de escritura). «Original
+   sales rep» ya no dice «Search the estimate first»: con el número vacío o nuevo dice **quien prepara («Sam Sales (you)»)**,
+   mientras comprueba «Checking…», y si es de otro, su nombre. Con la aprobación pendiente hay un «Check again» opcional
+   (antes el aviso decía «vuelve a buscar»).
+   - **Lo que tuvo que decidirse por la búsqueda automática** (`trasComprobar` en `validar.ts`): antes, Search abría la
+     cotización guardada encima del borrador, pero lo pedía el vendedor. Ahora que la búsqueda va sola, abrirla encima de lo
+     tecleado le borraría el trabajo sin avisar. Así que **se abre sola solo si el borrador está en blanco**
+     (`borradorSinTrabajo`: nada del cliente, de la entrega ni de las líneas; número, extensión y fecha no cuentan); si hay
+     trabajo, aparece «Open the saved quote» y no se pisa nada. Guardar tampoco escribe encima de una guardada que no está
+     abierta: la ofrece. Una respuesta que vuelve cuando el número ya es otro se descarta.
+   - `puedeGuardar` acepta `sin-buscar`: el botón se puede pulsar mientras la comprobación vuelve, porque el guardado
+     comprueba antes de escribir. Todo lo demás de `puedeGuardar` y `loQueFalta` igual.
+2. **La extensión sale sola.** La fuente es el **expediente de RR. HH.** de quien prepara:
+   `recruiting.employee_files.ringcentral_ext`, enlazado a la cuenta por `profile_id` (106, índice único) y solo si está
+   activo (`date_left is null`) — la misma extensión que enseña el directorio (`phone_book()`, 117). **Permisos:** esa tabla
+   solo la leen admin y gerente de RR. HH. (094), así que un vendedor **no** la puede leer con su sesión. Se lee en el servidor
+   (`src/app/estimator/page.tsx`) con la llave de servicio, **filtrando por el id de la sesión y pidiendo solo esa columna**.
+   No abre nada nuevo: la extensión de cada persona activa ya la ve cualquier usuario en el directorio.
+   - Se descartó leerla de `phone_book()` con la sesión del vendedor (que sí puede ejecutarla): la función no devuelve el
+     id de la cuenta, solo el nombre, y dos personas con el mismo nombre darían la extensión de otra. También se descartó
+     una función nueva en la base: habría sido migración, y lo de arriba no la necesita.
+   - Sin extensión en el expediente, la que esa persona escribió la última vez en este navegador (como antes), y si tampoco,
+     el campo queda para escribirla. Siempre editable; debajo dice de dónde salió. Precedencia: expediente → navegador →
+     vacío (`extensionDePartida`). Si falta la llave de servicio o la lectura falla, se escribe a mano: la pantalla abre igual.
+   - En demo se simula con `EXTENSIONES_DEMO` (Sam 214, Sofia 201, admin 200; «Maria Manager» sin ninguna, a propósito).
+3. **«Mr.» por defecto**, y primero en la lista. Una fila guardada con un tratamiento raro también cae en «Mr.».
+4. **Sin campo de apellido.** El apellido que se imprime es siempre la última palabra del nombre completo (`apellidoDe`), y
+   «Customer sees only: Mr. Garza» lo sigue diciendo en pantalla. Cambia un detalle: **un nombre de una sola palabra ahora es
+   el apellido** («Gonzalez» → «Mr. Gonzalez»); antes daba vacío y obligaba a escribirlo en el campo que ya no existe. Sale
+   de `loQueFalta` la falta «apellido»: con nombre hay apellido, y sin nombre falta «nombre». `last_name` y `last_name_edited`
+   salen del tipo `Customer`.
+5. **Teléfono 956-555-0123.** Al completar un número de EE. UU. de 10 dígitos (o 11 con el 1) se escribe solo con guiones,
+   al teclear y al salir; paréntesis, espacios, puntos y `+1` se quitan. Se reutiliza `telefonoValido` de
+   `src/lib/avisos-cliente.ts` (el de los avisos al cliente) en vez de escribir otro. Lo que no es un número completo se deja
+   tal cual y se marca en rojo («Not a 10-digit US number»); no bloquea nada, como antes (el teléfono nunca se imprime).
+6. De paso: la dirección del cliente ocupa la fila entera con `grid-column: 1 / -1`. Con `span 3` sobre la rejilla de una
+   columna del móvil, el navegador fabricaba tres columnas implícitas y estrujaba Título y Teléfono (se vio a 390 de ancho en
+   la medición de esta rama; ya pasaba antes). Y la sección de la competencia dice «Save this estimate's quote first» en vez de
+   «Search and save…».
+
+### Las cotizaciones ya guardadas (148)
+
+`borradorDeFila` ya no lee `last_name` / `last_name_edited` del `jsonb`: una fila vieja **se abre igual** (probado con una
+que trae los dos). **Decisión mía, para validar:** si alguna cotización guardada tenía el apellido **corregido a mano**
+(p. ej. «Ana Garza Lopez» con «Garza»), ahora imprime «Ms. Lopez», la última palabra del nombre. Se eligió así porque el
+apellido corregido ya no se vería ni se podría cambiar en pantalla, y la hoja imprimiría algo distinto de lo que la pantalla
+enseña. Cuántas hay así **no se midió** (no hay lectura de producción desde la rama, ni se comprobó si la 148 está aplicada).
+Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
+
+### Decisiones mías, para validar
+
+1. La fuente de la extensión (expediente leído con la llave de servicio, filtrado por la sesión), arriba.
+2. La guardada solo se abre sola sobre un borrador en blanco; si no, se ofrece.
+3. Un nombre de una palabra es el apellido.
+4. Las cotizaciones con el apellido corregido a mano pasan a imprimir la última palabra del nombre.
+5. «Check again» con la aprobación pendiente: opcional, no obligatorio; la búsqueda sola no se repite por su cuenta.
+
+### Verificado
+
+- `node scripts/verify.mjs` (tipos, suite y `next build`).
+- **Mutantes: 39 propios, los 39 caen** con una prueba con nombre (tres tandas; el M11 de la primera **sobrevivió porque
+  el mutante estaba mal hecho**: metía la comprobación del navegador DESPUÉS de la del expediente, o sea que no hacía lo que
+  decía su nombre; rehecho como M11b, que la mira antes, cae). Por pieza: «Mr.» por defecto y primero (M1, M2, M36);
+  apellido de una palabra (M3) y la hoja con el nombre completo (M4); teléfono sin guiones (M5), sin limpiar (M6), borrando lo
+  incompleto (M7), la pantalla sin limpiar al escribir (M8) o al salir (M9); extensión: el expediente deja de mandar (M10),
+  el navegador le gana (M11b), la pantalla ignora al servidor (M12), el servidor sin filtrar por la sesión (M13), leyendo a
+  quien se fue (M14), la página sin pasarla (M15), el demo sin la de Sam (M16); nombre vacío que no falta (M17); Guardar que
+  vuelve a exigir buscar (M18) o deja pasar lo ajeno (M19); borrador en blanco que ignora cliente, textos de línea, precio de
+  lote, números SF o entrega (M20-M24); la guardada abierta con trabajo (M25), lo ajeno abierto (M26), un estimado sin dueño
+  leído como mío (M27), la abierta reabierta (M28), la pantalla decidiendo con el borrador viejo (M29) o aceptando respuestas
+  de otro número (M30), Guardar sin pararse ante lo ajeno (M31) o pisando una guardada no abierta (M32), sin comprobar al
+  salir (M33) ni tras la pausa (M34), «Original sales rep» pidiendo buscar (M35), la comprobación de Guardar abriendo sola
+  (M37), la dirección con `span 3` (M38) y la competencia pidiendo buscar (M39).
+- **En el navegador** (demo, puerto privado, clics y teclas de persona, a 1280 y a 390, 2026-09-28), como «Sam Sales»: sin
+  botón Search; extensión **214** sola («From your HR record»); título **Mr.**; sin campo de apellido; «Original sales rep»
+  = «Sam Sales (you)» con el número vacío, «Checking…» al teclear y «Sam Sales (you)» tras la pausa; «Juan de la Garza» →
+  «Customer sees only: **Mr. Garza**»; teléfono «(956) 555 0123» → **956-555-0123**, «555 0123» se queda y se marca,
+  «+1 956.555.0123» → 956-555-0123; **Guardar sin haber buscado → «Saved.»**; la hoja dice «Mr. Garza» y «Ext. 214» y no
+  dice «Juan» ni el teléfono. `DEMO-1001` (de Sofia) tecleado y **Guardar pulsado al instante** → aviso «This estimate belongs
+  to Sofia Ventas…», «Request approval», Guardar desactivado; y lo mismo **solo por la pausa**, sin salir del campo. Como
+  «Sofia Ventas»: extensión 201; `DEMO-1001` sobre un borrador en blanco **se abre sola** («Demo Customer»); con «Ana Nueva»
+  ya tecleado **no se pisa** y aparece «Open the saved quote», que al pulsarlo la abre. Como «Maria Manager»: extensión vacía
+  («Not on your HR record…»), escribe 305, y tras recargar la recuerda («navegador»). Sin desplazamiento lateral: 1280/1280 y
+  390/390.
+
+### No verificado
+
+- **La lectura del expediente con la llave de servicio contra la base real**: el demo no tiene servidor ni base, así que la
+  extensión automática se midió con la simulación. Que `recruiting` esté expuesto a PostgREST para la llave de servicio se
+  apoya en que `src/app/recruiting/actions/hr.ts` ya lee `employee_files` por `.schema("recruiting")`; no se midió desde
+  esta página.
+- Cuántas cotizaciones guardadas tenían el apellido corregido a mano (arriba).
