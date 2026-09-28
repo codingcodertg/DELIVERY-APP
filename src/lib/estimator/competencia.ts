@@ -3,7 +3,7 @@ import { nombreSaneado } from "@/lib/help-attachments";
 import { faltaLaTabla, type Resultado } from "./almacen";
 
 /**
- * El estimado de la competencia (D-NEXT, hija de T-0408): el vendedor sube el PDF o la foto del
+ * El estimado de la competencia (D-425, hija de T-0408): el vendedor sube el PDF o la foto del
  * estimado que le dio otro almacén, **pegado a la cotización** (estimate #), para tenerlo a mano al
  * hablar de precio con el cliente.
  *

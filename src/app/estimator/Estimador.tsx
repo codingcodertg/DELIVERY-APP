@@ -75,7 +75,7 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
     () => (demo ? almacenDemo(() => meRef.current, sinTablaDemo) : almacenDeLaBase(createClient())),
     [demo, sinTablaDemo],
   );
-  // El estimado de la competencia (D-NEXT): su propia tabla y su cubo (153), con la misma pareja base/demo.
+  // El estimado de la competencia (D-425): su propia tabla y su cubo (153), con la misma pareja base/demo.
   const almacenCompetencia: AlmacenDeCompetencia = useMemo(
     () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo) : almacenDeCompetenciaDeLaBase(createClient())),
     [demo, sinTablaDemo],

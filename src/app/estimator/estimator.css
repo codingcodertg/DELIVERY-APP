@@ -79,7 +79,7 @@
   .est-vista-previa { position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
   .hoja-cliente { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: none; box-shadow: none; padding: 0; }
   /* El estimado de la competencia, además, fuera del todo: aunque alguien lo metiera algún día dentro
-     de la hoja, no se imprime (D-NEXT). */
+     de la hoja, no se imprime (D-425). */
   .est-competencia, .est-competencia * { display: none !important; }
   @page { margin: 16mm; }
 }

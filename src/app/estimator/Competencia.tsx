@@ -93,7 +93,7 @@ export function ListaDeCompetencia({ archivos, me, t, lang, confirmando, ocupado
 type Pendiente = { clave: string; file: File; meta: MetaDeCompetencia };
 
 /**
- * «Competitor's estimate / Estimado de la competencia» (D-NEXT). **Interno**: vive fuera de la hoja
+ * «Competitor's estimate / Estimado de la competencia» (D-425). **Interno**: vive fuera de la hoja
  * del cliente (`HojaCliente` solo recibe `HojaDelCliente`) y al imprimir queda escondido con todo lo
  * demás. Va pegado a la cotización guardada: sin `quoteId` no hay carpeta, y lo dice.
  */

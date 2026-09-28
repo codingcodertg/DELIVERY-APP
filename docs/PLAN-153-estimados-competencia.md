@@ -113,6 +113,12 @@ Sustituir: `<UUID-ADMIN>` (`admin`), `<UUID-DUENO>` y `<UUID-TIENDA>` (dos vende
 
 Se pega entero en `psql` **desde la raíz del repo** (el `\i` es relativo). **Sin `commit` en ningún sitio.**
 
+> **Nota del orquestador (2026-09-27, al ensayarla):** Supabase bloquea el `delete` directo en `storage.objects`
+> (`storage.protect_delete`: *«Direct deletion from storage tables is not allowed»*) salvo con
+> `storage.allow_delete_query = true`, que es lo que hace el Storage API al borrar. Para que los casos de borrado prueben
+> las políticas, antes de la matriz y dentro de la misma transacción: `set local storage.allow_delete_query = 'true';`.
+> Así se ensayó: 24/24 OK con ROLLBACK. Los vendedores de prueba no tenían el módulo: se les dio dentro de la transacción.
+
 ```sql
 begin;
 

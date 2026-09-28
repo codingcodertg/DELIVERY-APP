@@ -31291,7 +31291,7 @@ sus pruebas; volver a enseñarlo es una línea en cada componente.
 **Pruebas.** Las que leían el botón ahora afirman que no está (`plan.test.ts`, `prioridad-en-el-plan`, `requisitos-en-el-plan`,
 `zonas-en-el-plan`). Un mutante que repone el botón cae con «lo que quedó fuera sale orden por orden…».
 
-## D-NEXT · El Estimador guarda el estimado de la competencia (PDF o foto) pegado a la cotización, interno y nunca en la hoja del cliente (migración 153)
+## D-425 · El Estimador guarda el estimado de la competencia (PDF o foto) pegado a la cotización, interno y nunca en la hoja del cliente (migración 153)
 
 **Fecha:** 2026-09-27 · **Tarea:** hija de T-0408 (el Estimador, D-413) · **Versión:** la pone el orquestador (toca
 `src/app/estimator/` y `src/lib/estimator/`: sube `estimator`) · **Migración:** `153_estimados_competencia.sql`, **escrita y
