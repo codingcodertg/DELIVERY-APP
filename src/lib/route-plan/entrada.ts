@@ -146,6 +146,9 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   // La zona de cada entrega (D-421) solo se apunta si algún chofer que rutea tiene zonas: sin ellas, la entrada que se
   // guarda con el plan es la de siempre, byte a byte.
   const hayZonas = choferes.some((c) => c.zonas?.length);
+  // Las zonas de los choferes, como ciudades conocidas: una dirección escrita sin comas («9 W Robles EDINBURG TX») se lee
+  // con ellas (D-NEXT). Una ciudad que no es zona de nadie no decide nada en el motor, así que no hace falta más lista.
+  const zonasConocidas = choferes.flatMap((c) => c.zonas ?? []);
 
   // ---- Órdenes ----
   const ordenes: OrdenEntrada[] = [];
@@ -185,7 +188,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       // Lo mismo con los requisitos (D-418): solo si pide algo del catálogo.
       ...(requisitosDeLaOrden(d, catalogo).length ? { requisitos: requisitosDeLaOrden(d, catalogo) } : {}),
       // Y la zona: la ciudad de la dirección de entrega, la misma de la columna «Ciudad de entrega» (D-408).
-      ...(hayZonas && zonaDeLaOrden(d) ? { zona: zonaDeLaOrden(d) } : {}),
+      ...(hayZonas && zonaDeLaOrden(d, zonasConocidas) ? { zona: zonaDeLaOrden(d, zonasConocidas) } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }

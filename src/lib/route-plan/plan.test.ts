@@ -48,7 +48,7 @@ describe("planificar el día deja un borrador completo, y reproducible", () => {
       { id: "b", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 1, load_auto: true },
     ]);
     expect(b.plan).toMatchObject({ plan_date: "2026-03-04", source: "engine", provider: "google", traffic: true, converged: true, unassigned_count: 0, late_minutes: 0 });
-    expect(b.plan.algorithm_version).toBe("motor-4");
+    expect(b.plan.algorithm_version).toBe("motor-5");
     expect(b.paradas.map((p) => p.label)).toEqual(["P1", "P2", "D1", "D2"]);
     expect(b.plan.total_minutes).toBe(b.paradas[3].etd + 14 - 480);   // hasta volver a la base, con tráfico
   });

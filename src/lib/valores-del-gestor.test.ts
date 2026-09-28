@@ -49,6 +49,9 @@ describe("valorDelGestor", () => {
     expect(valorDelGestor("address", d)).toBe("Pharr");
     expect(valorDelGestor("address", mk({ delivery_address: "123 Main St" }))).toBeNull();
     expect(valorDelGestor("address", mk({ delivery_address: null }))).toBeNull();
+    // Sin comas (D-NEXT): con las ciudades conocidas que le pasa la página, la ciudad que cierra la dirección.
+    expect(valorDelGestor("address", mk({ delivery_address: "9 W Robles PUERTO SUR TX" }), undefined, ["Puerto Sur"])).toBe("PUERTO SUR");
+    expect(valorDelGestor("address", mk({ delivery_address: "9 W Robles PUERTO SUR TX" }))).toBeNull();
     expect(valorDelGestor("pickup", d)).toBe("Bodega N");
     expect(valorDelGestor("pallets", d)).toBe(3);
   });

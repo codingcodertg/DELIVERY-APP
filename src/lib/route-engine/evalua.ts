@@ -27,6 +27,14 @@ export const PESOS_POR_DEFECTO: Pesos = { builder: 2, manejo: 1, millas: 0.5, ta
  */
 export const PESO_DE_ZONA_POR_DEFECTO = 60;
 
+/**
+ * El umbral de la zona, en millas (D-NEXT, T-0413). Una entrega que va con un chofer FUERA de su zona vuelve al chofer
+ * de su zona si con él el plan hace menos de estas millas de más —aunque el builder o el balance digan otra cosa— y sin
+ * que nadie llegue más tarde ni se rompa nada. Si con el de su zona son estas millas o más, la zona es solo el peso de
+ * arriba. Vive en `route_weights.zonaMillas`, junto al peso; 0 lo apaga. Por qué 5, medido, en DECISIONS.md.
+ */
+export const UMBRAL_DE_ZONA_POR_DEFECTO_MI = 5;
+
 /** Una zona se compara sin mayúsculas ni espacios de más: «McAllen», « mcallen» y «MCALLEN» son la misma. */
 export const claveDeZona = (s: string | null | undefined): string => String(s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 

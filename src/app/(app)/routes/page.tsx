@@ -45,7 +45,7 @@ import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColum
 import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
-import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
+import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -1018,7 +1018,13 @@ export default function RoutesPage() {
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
-  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);
+  // Las ciudades conocidas para leer una dirección escrita sin comas (D-NEXT, `ciudadDeEntrega`): las que salen limpias de
+  // las órdenes cargadas y de las tiendas, y las zonas de los choferes. La misma lista para la celda, el orden y el filtro.
+  const ciudadesQueSeConocen = useMemo(
+    () => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],
+    [deliveries, settings.stores, zonasDeChofer],
+  );
+  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
   // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
   // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
@@ -2488,7 +2494,7 @@ export default function RoutesPage() {
                           {c.deOrdenes ? celdaDeOrdenes(c.key, d)
                             : c.key === "invoice" ? enlaceALaOrden(d)
                             : c.key === "account" ? (d.account || "—")
-                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</span>
+                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>
                             : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
                             : c.key === "store" ? (d.store || "—")
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
@@ -3004,7 +3010,7 @@ export default function RoutesPage() {
                                         )}
                                       </td>
                                     );
-                                    case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>;
+                                    case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
                                     case "p_eta": return (
                                       <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
                                         {eta ?? "—"}{late ? " ⚠️" : ""}

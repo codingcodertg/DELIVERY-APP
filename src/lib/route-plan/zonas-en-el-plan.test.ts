@@ -7,7 +7,7 @@ import type { Desglose, Explicacion } from "@/lib/route-engine";
 import { cacheEnMemoria } from "@/lib/route-times/tiempos";
 import { proveedorEstimado } from "@/lib/route-times/proveedores";
 import { leeConOpcionales } from "@/lib/columnas-opcionales";
-import { COLUMNAS_OPCIONALES_DE_CHOFER, pesoDeZona, pesosDeRuta, PESOS_DE_RUTA_POR_DEFECTO, routeWeightsAlGuardar } from "@/lib/route-settings";
+import { COLUMNAS_OPCIONALES_DE_CHOFER, conFilaGuardada, pesoDeZona, pesosDeRuta, PESOS_DE_RUTA_POR_DEFECTO, routeWeightsAlGuardar, umbralDeZonaMi } from "@/lib/route-settings";
 import { alternaZona, ciudadesElegibles, esDeSuZona, limpiaZonas, MAX_LARGO_DE_ZONA, MAX_ZONAS, zonaDeLaOrden, zonasDelChofer, zonasPorNombre } from "@/lib/zonas";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { planificaElDia, type Borrador } from "./borrador";
@@ -50,7 +50,9 @@ describe("las zonas de un chofer", () => {
     expect(zonaDeLaOrden({ delivery_address: "12 Calle Uno, Villa Norte, TX 78500" })).toBe("Villa Norte");
     expect(zonaDeLaOrden({ delivery_address: "12 Calle Uno" })).toBe("");
     expect(zonaDeLaOrden({})).toBe("");
-    expect(leer("src/lib/zonas.ts")).toContain("return ciudadDeEntrega(d?.delivery_address);");
+    expect(leer("src/lib/zonas.ts")).toContain("return ciudadDeEntrega(d?.delivery_address, conocidas);");
+    // Sin comas (D-NEXT), con las ciudades conocidas que le pasen.
+    expect(zonaDeLaOrden({ delivery_address: "12 Calle Uno VILLA NORTE TX" }, ["Villa Norte"])).toBe("VILLA NORTE");
   });
 
   it("las ciudades que se ofrecen salen de los datos: órdenes, tiendas y lo ya guardado; la grafía más repetida, la más frecuente primero", () => {
@@ -63,6 +65,11 @@ describe("las zonas de un chofer", () => {
       { nombre: "Villa Norte", n: 3 }, { nombre: "Puerto Sur", n: 1 }, { nombre: "Llano Este", n: 0 }, { nombre: "Monte Oeste", n: 0 },
     ]);
     expect(ciudadesElegibles([])).toEqual([]);
+    // Sin comas (D-NEXT): la que cierra la dirección, si sale limpia de otra o ya está guardada; si no, no cuenta.
+    expect(ciudadesElegibles([
+      { delivery_address: "1 A, Villa Norte, TX" }, { delivery_address: "2 B, Villa Norte, TX" }, { delivery_address: "LOTE #2 9 W Robles VILLA NORTE TX" },
+      { delivery_address: "9 W Robles Monte Oeste" }, { delivery_address: "9 W Robles Llano Bajo" },
+    ], [], ["Monte Oeste"])).toEqual([{ nombre: "Villa Norte", n: 3 }, { nombre: "Monte Oeste", n: 1 }]);
   });
 
   it("por nombre, para «Mejor lugar»: solo los choferes con zonas, y «es de su zona» mira las órdenes marcadas", () => {
@@ -72,6 +79,8 @@ describe("las zonas de un chofer", () => {
     expect(esDeSuZona("Chofer Uno", [{ delivery_address: "1 A, VILLA NORTE, TX" }], m)).toBe(true);
     expect(esDeSuZona("Chofer Uno", [{ delivery_address: "1 A, Puerto Sur, TX" }], m)).toBe(false);
     expect(esDeSuZona("Chofer Dos", [{ delivery_address: "1 A, Villa Norte, TX" }], m)).toBe(false);
+    // Sin comas (D-NEXT), con las zonas de todos como ciudades conocidas.
+    expect(esDeSuZona("Chofer Uno", [{ delivery_address: "9 W Robles VILLA NORTE TX" }], m)).toBe(true);
   });
 });
 
@@ -83,6 +92,20 @@ describe("el peso de las zonas vive en route_weights (sin columna nueva)", () =>
     expect(pesoDeZona({ route_weights: { zona: 0 } })).toBe(0);
     expect(pesosDeRuta({})).toEqual(PESOS_DE_RUTA_POR_DEFECTO);
     expect(pesosDeRuta({ route_weights: { zona: 15 } })).toEqual({ ...PESOS_DE_RUTA_POR_DEFECTO, zona: 15 });
+  });
+
+  it("el umbral de la zona en millas (D-NEXT), igual: por defecto 5; guardado y válido, el suyo; y llega al motor en los pesos", () => {
+    expect(umbralDeZonaMi({})).toBe(5);
+    expect(umbralDeZonaMi({ route_weights: { zonaMillas: 8 } })).toBe(8);
+    expect(umbralDeZonaMi({ route_weights: { zonaMillas: -1 } })).toBe(5);
+    expect(umbralDeZonaMi({ route_weights: { zonaMillas: 0 } })).toBe(0);
+    expect(pesosDeRuta({})).not.toHaveProperty("zonaMillas");
+    expect(pesosDeRuta({ route_weights: { zonaMillas: 8 } })).toEqual({ ...PESOS_DE_RUTA_POR_DEFECTO, zonaMillas: 8 });
+    const d = datosMinimos([fila("u1"), fila("u2")]);
+    const e = entradaDelDia({ ...d, settings: { ...d.settings, route_weights: { zonaMillas: 8 } } as DatosDelDia["settings"] });
+    expect(e.parametros.pesos.zonaMillas).toBe(8);
+    // Guardar otro peso no lo borra.
+    expect(routeWeightsAlGuardar({ route_weights: { ...PESOS_DE_RUTA_POR_DEFECTO, zonaMillas: 8 } }, { zona: 30 })).toEqual({ ...PESOS_DE_RUTA_POR_DEFECTO, zona: 30, zonaMillas: 8 });
   });
 
   it("guardar otro peso u opción no borra el de las zonas, ni al revés", () => {
@@ -148,6 +171,12 @@ describe("entradaDelDia: de driver_settings y la dirección, al motor", () => {
     const e = entradaDelDia(datosMinimos([fila("u1", { preferred_zones: [" villa norte ", "Villa Norte"] }), fila("u2")])).entrada;
     expect(e.choferes.map((c) => [c.id, c.zonas])).toEqual([["u1", ["villa norte"]], ["u2", undefined]]);
     expect(e.ordenes.map((o) => [o.id, o.zona])).toEqual([["o1", "Villa Norte"], ["o2", undefined]]);
+  });
+
+  it("una dirección escrita sin comas se lee con las zonas de los choferes como ciudades conocidas (D-NEXT)", () => {
+    const d0 = datosMinimos([fila("u1", { preferred_zones: ["Puerto Sur"] }), fila("u2")]);
+    const d = { ...d0, ordenes: [d0.ordenes[0], { ...d0.ordenes[1], delivery_address: "LOTE #3 7 Dos PUERTO SUR TX" }] };
+    expect(entradaDelDia(d).entrada.ordenes.map((o) => [o.id, o.zona])).toEqual([["o1", "Villa Norte"], ["o2", "PUERTO SUR"]]);
   });
 
   it("sin zonas —columna vacía o una base sin la 152—, la entrada es la de siempre, sin una clave de más", () => {
@@ -230,7 +259,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
 
   it("el plan guardado lleva la versión nueva y cuenta las entregas fuera de zona en su coste", () => {
     const b = DESPUES["2026-09-27"];
-    expect(b.plan.algorithm_version).toBe("motor-4");
+    expect(b.plan.algorithm_version).toBe("motor-5");
     expect(typeof b.plan.result.coste.fueraDeZona).toBe("number");
     expect("fueraDeZona" in ANTES["2026-09-27"].plan.result.coste).toBe(false);
   });
@@ -324,6 +353,16 @@ describe("«¿Por qué aquí?», la frase de la zona", () => {
 
 // ---- Las pantallas -----------------------------------------------------------------------------------------------------
 
+describe("Gestor de Rutas: la ciudad de una dirección sin comas (D-NEXT)", () => {
+  const g = plano(leer("src/app/(app)/routes/page.tsx"));
+  it("la celda de las dos tablas, el orden y el filtro leen con la MISMA lista de ciudades conocidas", () => {
+    expect(g).toContain("() => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],");
+    expect(g.split("{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || \"—\"}").length).toBe(3);
+    expect(g).not.toContain("{ciudadDeEntrega(d.delivery_address) ||");
+    expect(g).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen)");
+  });
+});
+
 describe("Ajustes → Motor de rutas → choferes", () => {
   const c = plano(leer("src/components/RouteEngineSettings.tsx"));
 
@@ -332,6 +371,23 @@ describe("Ajustes → Motor de rutas → choferes", () => {
     expect(c).toContain('setHayZonas(pedidas.split(", ").includes("preferred_zones"));');
     expect(c).toContain('{hayZonas && <th>{t("Preferred zones", "Zonas preferidas")}</th>}');
     expect(c).toContain("{hayZonas && ( <td data-zonas-de=");
+  });
+
+  it("el umbral de la zona (D-NEXT) sale junto al peso 5, con `umbralDeZonaMi`, y se guarda en `route_weights.zonaMillas`", () => {
+    expect(c).toContain("const zonaMillas = umbralDeZonaMi(settings);");
+    expect(c).toContain('value={zonaMillas} paso="1" disabled={!hayColumnas} onSave={(v) => guardaPeso("zonaMillas", v)} />');
+  });
+
+  it("guardar un chofer vuelve a leer SOLO su fila y conserva lo que se edita en las demás (D-NEXT; antes, `cargar()` las pisaba)", () => {
+    const g = c.slice(c.indexOf("const guardaChofer = async"), c.indexOf("return ( <div"));
+    expect(g.length).toBeGreaterThan(100);
+    expect(g).not.toContain("cargar()");
+    expect(g).toContain('supabase.from("driver_settings").select(columnas).eq("profile_id", id), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER);');
+    expect(g).toContain("setFilas((actuales) => conFilaGuardada(actuales, id, guardada));");
+    // La función: la guardada, como quedó; las demás, con su borrador.
+    const antes = { u1: { base_store: "T1", capacity_pallets: 10 }, u2: { base_store: "T2", capacity_pallets: 99 } };
+    expect(conFilaGuardada(antes, "u1", { base_store: "T3", capacity_pallets: 12 })).toEqual({ u1: { base_store: "T3", capacity_pallets: 12 }, u2: { base_store: "T2", capacity_pallets: 99 } });
+    expect(conFilaGuardada(null, "u1", { base_store: "T3", capacity_pallets: 1 })).toEqual({ u1: { base_store: "T3", capacity_pallets: 1 } });
   });
 
   it("ofrece las ciudades de los datos (`ciudadesElegibles` con las órdenes y las tiendas) y marca con `alternaZona`", () => {
