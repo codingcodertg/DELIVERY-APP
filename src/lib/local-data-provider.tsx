@@ -175,9 +175,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
 
   // Renumber a route's stops (see the real provider) — one local write, so the
   // whole new sequence lands at once.
-  const reorderStops = useCallback<DataState["reorderStops"]>(async (orderedIds, loadNoById, loadAuto) => {
+  const reorderStops = useCallback<DataState["reorderStops"]>(async (orderedIds, loadNoById, loadAuto, desde = 0) => {
     const s = storeRef.current;
-    const seqById = new Map(orderedIds.map((id, i) => [id, i]));
+    const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));
     persist({
       ...s,
       deliveries: s.deliveries.map((c) =>
