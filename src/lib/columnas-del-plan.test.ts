@@ -19,12 +19,12 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
 const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo", "pl_bordo"];
-/** Las dos que Órdenes no tiene y van delante (D-NEXT): el tipo de cliente y la ciudad de recogida. */
+/** Las dos que Órdenes no tiene y van delante (D-434): el tipo de cliente y la ciudad de recogida. */
 const DELANTE = ["pl_clase", "pl_ciudad_recogida"];
 
 describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
   it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las cuatro propias del plan", () => {
-    // Desde D-NEXT, delante, las dos que Órdenes no tiene.
+    // Desde D-434, delante, las dos que Órdenes no tiene.
     expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...DELANTE, ...ORDEN_DE_PARTIDA.map((k) => `pl_${k}`), ...PROPIAS]);
     // Cada una pinta la celda de SU columna de Órdenes.
     const catalogo = ORDEN_DE_PARTIDA.map((key) => ({ key }));
@@ -32,7 +32,7 @@ describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
     for (const k of [...DELANTE, ...PROPIAS]) expect(columnaDeOrdenes(k, catalogo), k).toBeUndefined();
   });
 
-  // D-429 veía de partida las de ventas en Órdenes. Reemplazado por D-NEXT: las que pidió el dueño (describe de abajo).
+  // D-429 veía de partida las de ventas en Órdenes. Reemplazado por D-434: las que pidió el dueño (describe de abajo).
   it("las cuatro del plan nacen escondidas", () => {
     for (const k of PROPIAS) expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO, k).not.toContain(k);
   });
@@ -105,7 +105,7 @@ describe("la pantalla usa esto", () => {
 
   it("la página le pasa al plan SUS columnas, su ⚙ con las flechas del plan y las MISMAS plantillas del Gestor", () => {
     const bloque = pagina.slice(pagina.indexOf("<PlanDelDia"), pagina.indexOf("}} />", pagina.indexOf("<PlanDelDia")));
-    // Desde D-NEXT la celda es `celdaDelPlan`: las dos propias y, las demás, la de Órdenes (describe de abajo).
+    // Desde D-434 la celda es `celdaDelPlan`: las dos propias y, las demás, la de Órdenes (describe de abajo).
     expect(bloque).toContain('lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan, clase: clasePastillas');
     expect(bloque).toContain('columnas={columnasDelSelector("plan", ordenGestor)}');
     expect(bloque).toContain("elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");

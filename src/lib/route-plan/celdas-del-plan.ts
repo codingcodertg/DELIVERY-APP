@@ -4,7 +4,7 @@ import { zonaDeLaRecogida } from "@/lib/zonas";
 import type { Delivery, NamedLocation } from "@/lib/types";
 
 /**
- * Las dos columnas PROPIAS de la tabla del plan que salen de la orden pero que Órdenes no tiene (D-NEXT). El dueño,
+ * Las dos columnas PROPIAS de la tabla del plan que salen de la orden pero que Órdenes no tiene (D-434). El dueño,
  * 2026-09-28, sobre la tabla del plan publicado: «quiero que haya una columna solo para el id, lueg osi es builder, inter
  * tienda o vventa al mostrador, luego la ciudad donde se recoje, y el invoice number».
  *

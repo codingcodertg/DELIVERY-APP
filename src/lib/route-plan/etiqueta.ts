@@ -22,11 +22,11 @@ export function nombraLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string,
 }
 
 /**
- * Solo el id de la orden (D-NEXT), para la columna ID de la tabla del plan: el dueño, «quiero que haya una columna solo para el
+ * Solo el id de la orden (D-434), para la columna ID de la tabla del plan: el dueño, «quiero que haya una columna solo para el
  * id». La factura va en su propia columna. Una orden que ya no está a la vista, por el principio de su referencia, como
  * `nombraLaOrden`.
  *
- * Aquí vivía `destinoDeLaOrden` (D-422), la línea «📍 ciudad · dirección» bajo cada entrega. Se quitó con D-NEXT: la columna
+ * Aquí vivía `destinoDeLaOrden` (D-422), la línea «📍 ciudad · dirección» bajo cada entrega. Se quitó con D-434: la columna
  * «Dirección de entrega» ya lo dice, y el dueño pidió quitar lo repetido.
  */
 export function idDeLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string): string {

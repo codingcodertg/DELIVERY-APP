@@ -13,7 +13,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("
 
 const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6];
 /** Las de Órdenes que la tabla del plan enseña por defecto (D-429): el juego de ventas en Órdenes, en su orden. */
-// Las del plan por defecto desde D-NEXT (antes, desde D-429, las diez de ventas en Órdenes).
+// Las del plan por defecto desde D-434 (antes, desde D-429, las diez de ventas en Órdenes).
 const DEL_PLAN_POR_DEFECTO = ["pl_clase", "pl_ciudad_recogida", "pl_invoice", "pl_address", "pl_windows"];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
@@ -214,7 +214,7 @@ describe("la página del Gestor", () => {
   it("D-346: la dirección y la recogida se pintan en «Sin asignar», lo guardado de antes recibe las columnas nuevas, y la sugerencia de chofer ya no está", () => {
     // La dirección enseña solo la ciudad desde D-408: lo fija la prueba de la ciudad, más arriba.
     expect(pagina.split('c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>').length - 1).toBe(1);
-    // Desde D-NEXT por `preferenciasDelGestorAlLeer`, que llama a `conColumnasNuevas` (lo prueba columnas-del-plan.test).
+    // Desde D-434 por `preferenciasDelGestorAlLeer`, que llama a `conColumnasNuevas` (lo prueba columnas-del-plan.test).
     expect(pagina).toContain("const al = preferenciasDelGestorAlLeer(leido.columnas[rol], leido.orden[rol]);");
     expect(pagina).toContain("if (al.columnas) setColsGestor(al.columnas);");
     expect(pagina).not.toContain("suggestDriverFor");

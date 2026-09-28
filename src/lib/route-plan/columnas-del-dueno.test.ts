@@ -8,7 +8,7 @@ import {
 import { celdaPropiaDelPlan, claseDeLaOrden, type ContextoDelPlan } from "./celdas-del-plan";
 
 /**
- * D-NEXT: la tabla del plan con las columnas que pidió el dueño, 2026-09-28, sobre la captura del plan publicado: «quiero que
+ * D-434: la tabla del plan con las columnas que pidió el dueño, 2026-09-28, sobre la captura del plan publicado: «quiero que
  * haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la ciudad donde se recoje,
  * y el invoice number, quitame el pocolum, siguiente etapa, y a donde entrega, fecha de enterea, pallets, quita choffer, deja
  * direcion de entrega y ventana».

@@ -24,7 +24,7 @@ import type { Delivery } from "@/lib/types";
  * Las cuatro de antes —llega–sale, ventana, tramo y pallets a bordo— son columnas más del ⚙, escondidas de partida. En una
  * RECOGIDA, lo que es de la entrega (dirección, ventanas, contacto) va vacío (`seVeEnLaRecogida`).
  *
- * D-NEXT: la columna fija de la parada es SOLO el id de la orden (el dueño: «una columna solo para el id»). Se fueron de ahí la
+ * D-434: la columna fija de la parada es SOLO el id de la orden (el dueño: «una columna solo para el id»). Se fueron de ahí la
  * factura, «Recoger / Entregar», la pastilla Builder, el lugar y la línea «📍 ciudad · dirección» de D-422: cada cosa tiene
  * ahora su columna (Factura, Tipo de cliente, Ciudad de recogida, Dirección de entrega) o ya la dice la etiqueta P/D.
  */
@@ -96,7 +96,7 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
         <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>
-          {/* D-NEXT: SOLO el id («quiero que haya una columna solo para el id»); D-428: abre la ficha. La factura, el tipo de
+          {/* D-434: SOLO el id («quiero que haya una columna solo para el id»); D-428: abre la ficha. La factura, el tipo de
               cliente y la ciudad de recogida van en sus columnas; «Recoger / Entregar» lo dice la etiqueta P/D (y su título). */}
           {abrirOrden
             ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit", fontWeight: 600 }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{idDeOrden(p.order_ref)}</button>

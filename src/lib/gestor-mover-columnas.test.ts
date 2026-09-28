@@ -122,7 +122,7 @@ describe("un solo escritor: mover no borra columnas ni plantillas, y al revés",
     expect(pon).toContain("ordenDelGestor.current = todos; void escribeElGestor();");
     // Lo leído llega a la `ref` que se escribe.
     expect(pagina).toContain("ordenDelGestor.current = leido.orden; plantillasDelGestor.current = leido.plantillas;");
-    // D-NEXT: el orden que se pinta es el que devuelve la tanda del plan, y si la tanda cambió algo, llega a las `ref` y se escribe.
+    // D-434: el orden que se pinta es el que devuelve la tanda del plan, y si la tanda cambió algo, llega a las `ref` y se escribe.
     expect(pagina).toContain("setOrdenGestor(al.orden);");
     expect(pagina).toContain("if (al.escribe && al.columnas) { prefsDelGestor.current = { ...leido.columnas, [rol]: al.columnas }; const orden: ColumnasPorRol = { ...leido.orden }; if (al.orden) orden[rol] = al.orden; else delete orden[rol]; ordenDelGestor.current = orden; void escribeElGestor(); }");
   });
@@ -177,7 +177,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // caben (8 353 de 8 192). Con 9, sí. La guarda lo dice al guardar la décima; no falla en silencio.
     // D-429 sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
     // plantilla LLENA —las 48 columnas y las tres tablas movidas— pesa ~1,2 KB: caben 5, y la sexta la para la guarda.
-    // D-NEXT sumó dos columnas al plan (tipo de cliente y ciudad de recogida) y una marca (`_v6`): 13467 con 10 (modelo).
+    // D-434 sumó dos columnas al plan (tipo de cliente y ciudad de recogida) y una marca (`_v6`): 13467 con 10 (modelo).
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13467);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
     expect(cabeEnLaFila(con(5))).toBe(true);
@@ -191,7 +191,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // Con la tabla del plan (D-429): 3 982 → 6 861 sin plantillas, y 18 445 con 10. Los seis roles con TODO marcado y movido
     // aún caben (6 861 + 800 de reserva < 8 192), pero ya no una plantilla llena más. Lo normal —logística y admin con las de
     // por defecto y 10 plantillas de esas— son 4 312 bytes (la prueba de abajo).
-    // Con las dos del plan de D-NEXT y la marca `_v6`: 6 861 → 7 294 sin plantillas y 18 445 → 19 519 con 10. Siguen cabiendo sin plantillas.
+    // Con las dos del plan de D-434 y la marca `_v6`: 6 861 → 7 294 sin plantillas y 18 445 → 19 519 con 10. Siguen cabiendo sin plantillas.
     expect(bytesEnLaBase(con(0))).toBe(7294);
     expect(cabeEnLaFila(con(0))).toBe(true);
     expect(bytesEnLaBase(con(10))).toBe(19519);
@@ -205,7 +205,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     const porDefecto = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => !MARCAS.includes(k));
     const v = valorDeColumnas({ visibles: { logistics: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], admin: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO] }, orden: {},
       plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });
-    // D-NEXT: el plan de partida pasa de 10 columnas a 5, así que lo normal pesa menos (4 312 → 3 752).
+    // D-434: el plan de partida pasa de 10 columnas a 5, así que lo normal pesa menos (4 312 → 3 752).
     expect(porDefecto).toHaveLength(24);
     expect(bytesEnLaBase(v)).toBe(3752);
     expect(cabeEnLaFila(v)).toBe(true);

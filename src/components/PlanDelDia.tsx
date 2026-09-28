@@ -138,7 +138,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
   // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan» y la hoja.
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
-  // Solo el id, para la columna ID del plan (D-NEXT): la factura va en su columna.
+  // Solo el id, para la columna ID del plan (D-434): la factura va en su columna.
   const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);
 
   const planifica = async () => {

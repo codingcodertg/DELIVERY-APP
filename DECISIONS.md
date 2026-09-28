@@ -31149,7 +31149,7 @@ el gancho y `enSuZona`); `supabase/migrations/152_zonas_preferidas.sql`.
 
 ## D-422 · El borrador de «Planificar el día» dice a dónde va cada entrega
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): la línea «📍 Ciudad · dirección» bajo cada entrega ya no se pinta, y
+> **Reemplazada en parte por D-434** (2026-09-28): la línea «📍 Ciudad · dirección» bajo cada entrega ya no se pinta, y
 > `destinoDeLaOrden` se retiró. La dirección sale en la columna «Dirección de entrega» de la tabla del plan, que el dueño
 > pidió dejar: *«deja direcion de entrega y ventana»*.
 
@@ -31646,7 +31646,7 @@ servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.
 
 ## D-429 · El planificador con las columnas de Órdenes (⚙, mover, plantillas); y una ruta ya publicada se puede cambiar
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): lo que la tabla del plan enseña de partida ya no es el juego de ventas en
+> **Reemplazada en parte por D-434** (2026-09-28): lo que la tabla del plan enseña de partida ya no es el juego de ventas en
 > Órdenes, sino cinco columnas que pidió el dueño —Tipo de cliente, Ciudad de recogida, Factura, Dirección de entrega y
 > Ventanas— tras un ID fijo que ya no lleva la factura. Las columnas de Órdenes siguen todas en el ⚙, y el mecanismo (mover,
 > plantillas, fila `routes_columns`) no cambia. A quien tenía guardadas las del plan se le devuelven, una vez, a las nuevas.
@@ -31745,7 +31745,7 @@ fuera del cliente).
 
 ## D-431 · En el plan, cada parada nombra primero la orden y después «Recoger / Entregar»
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): la columna de la orden lleva ahora SOLO el id (*«quiero que haya una
+> **Reemplazada en parte por D-434** (2026-09-28): la columna de la orden lleva ahora SOLO el id (*«quiero que haya una
 > columna solo para el id»*). «· Recoger / Entregar» se quitó —lo dice la etiqueta P/D, que lo lleva de título al pasar el
 > ratón—, y la factura, la pastilla Builder y la tienda pasaron a sus columnas.
 
@@ -31976,7 +31976,7 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
   dejó así para no cambiar qué filas enseña la tarjeta.
 - No verificado contra producción: todo lo medido es en el demo.
 
-## D-NEXT · La tabla del plan con las columnas del dueño: ID solo, tipo de cliente, ciudad de recogida, factura, dirección y ventanas
+## D-434 · La tabla del plan con las columnas del dueño: ID solo, tipo de cliente, ciudad de recogida, factura, dirección y ventanas
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
 literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la

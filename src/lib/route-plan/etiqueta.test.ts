@@ -32,14 +32,14 @@ describe("dónde se usa", () => {
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")}');
     // Y de ahí beben las paradas, «Fuera de este plan», la comparación con la hoja y la tarjeta del chofer.
     const panel = leer("src/components/PlanDelDia.tsx");
-    // Salvo la columna ID del plan (D-NEXT), que lleva SOLO el id: la factura tiene allí su columna (ver abajo).
+    // Salvo la columna ID del plan (D-434), que lleva SOLO el id: la factura tiene allí su columna (ver abajo).
     for (const uso of ["<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", ">{nombreDeOrden(x.id)}</button> : nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
     expect(leer("src/components/MiPlanPublicado.tsx")).toContain("{nombreDeOrden(p.delivery_id, p.order_ref)}");
   });
 });
 
-describe("a dónde va cada entrega del plan (D-422, reemplazada en parte por D-NEXT)", () => {
-  // D-422 ponía «📍 ciudad · dirección» bajo cada entrega. Desde D-NEXT la dice la columna «Dirección de entrega», y la línea
+describe("a dónde va cada entrega del plan (D-422, reemplazada en parte por D-434)", () => {
+  // D-422 ponía «📍 ciudad · dirección» bajo cada entrega. Desde D-434 la dice la columna «Dirección de entrega», y la línea
   // repetida se quitó: el dueño, «deja direcion de entrega y ventana».
   it("la tabla del plan ya no pinta la línea 📍 bajo las entregas, ni el panel se la pasa", () => {
     const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
@@ -69,7 +69,7 @@ describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", (
   });
 });
 
-describe("la columna ID del plan: solo el id (D-NEXT; reemplaza en parte D-431)", () => {
+describe("la columna ID del plan: solo el id (D-434; reemplaza en parte D-431)", () => {
   // D-431 puso la orden antes de «Recoger / Entregar». El dueño, después: «quiero que haya una columna solo para el id». La
   // acción ya la dice la etiqueta P/D, que la lleva como título; la factura va en su columna.
   const ruta = readFileSync(join(process.cwd(), "src/components/RutaDelPlan.tsx"), "utf8").replace(/\s+/g, " ");

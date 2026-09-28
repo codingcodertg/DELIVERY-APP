@@ -279,7 +279,7 @@ export default function RoutesPage() {
       ordenDelGestor.current = leido.orden;
       plantillasDelGestor.current = leido.plantillas;
       setPlantillasGestor(leido.plantillas);
-      // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas). Y desde D-NEXT, quien
+      // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas). Y desde D-434, quien
       // no había pasado por la tanda del plan lo recibe con las columnas y el ORDEN de partida, y se guarda ya, una vez.
       const al = preferenciasDelGestorAlLeer(leido.columnas[rol], leido.orden[rol]);
       setOrdenGestor(al.orden);
@@ -1062,7 +1062,7 @@ export default function RoutesPage() {
   const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
-  /** La celda de la tabla del plan (D-NEXT): sus dos columnas propias —tipo de cliente y ciudad de recogida— y, las demás, la de
+  /** La celda de la tabla del plan (D-434): sus dos columnas propias —tipo de cliente y ciudad de recogida— y, las demás, la de
    *  Órdenes. La ciudad se lee con las mismas tiendas y ciudades conocidas que el resto del Gestor. */
   const celdaDelPlan = (clave: string, d: Delivery) =>
     celdaPropiaDelPlan(clave, d, { reglas: settings.order_type_rules, tiendas: settings.stores ?? [], conocidas: ciudadesQueSeConocen, es: lang === "es" }) ?? celdaDeOrdenes(clave, d);
