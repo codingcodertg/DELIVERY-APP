@@ -259,7 +259,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
 
   it("el plan guardado lleva la versión nueva y cuenta las entregas fuera de zona en su coste", () => {
     const b = DESPUES["2026-09-27"];
-    expect(b.plan.algorithm_version).toBe("motor-5");
+    expect(b.plan.algorithm_version).toBe("motor-6");
     expect(typeof b.plan.result.coste.fueraDeZona).toBe("number");
     expect("fueraDeZona" in ANTES["2026-09-27"].plan.result.coste).toBe(false);
   });
@@ -420,7 +420,7 @@ describe("«📍 Mejor lugar»: los choferes de la zona de lo marcado, primero (
 
   it("el Gestor le pasa `esDeSuZona` con las órdenes marcadas y las zonas leídas de driver_settings", () => {
     const p = plano(leer("src/app/(app)/routes/page.tsx"));
-    expect(p).toContain("enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer),");
+    expect(p).toContain("enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),");   // las tiendas: D-NEXT
     expect(p).toContain("const zonasDeChofer = useZonasDeChofer();");
     expect(p).toContain("{o.enSuZona && <span className=\"sema\" data-su-zona");
     expect(plano(leer("src/lib/usa-zonas.ts"))).toContain('createClient().from("driver_settings").select("profile_id, preferred_zones")');

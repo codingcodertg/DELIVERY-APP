@@ -58,6 +58,8 @@ describe("los dos casos medidos con días reales", () => {
     expect(ahora.coste.fueraDeZona!).toBeLessThan(antes.coste.fueraDeZona!);
   });
 
+  // D-NEXT: esta orden es la #FT205 que el dueño señaló — se RECOGE en la tienda de la zona de C. Este fixture no trae la
+  // zona de la recogida, así que prueba solo el umbral de D-423; con ella (`zona-recogida-caso-real.json`) va con C.
   it("2026-09-28: una entrega de la zona de A y B se iba con C por el balance (con peso 30), aunque B la hacía con menos millas; ahora va con B", () => {
     const e = entradaReal("2026-09-28"), caso = DIAS["2026-09-28"].caso;
     const antes = planifica(e, con(30, 0));

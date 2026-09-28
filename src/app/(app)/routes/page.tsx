@@ -996,7 +996,7 @@ export default function RoutesPage() {
     capacidadDe: (k) => capacityFor(k),
     noDisponibles: unavailableToday,
     filtro: filtroChofer,
-    enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer),
+    enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
   // Los choferes del diálogo de «✨ Auto-asignar» (D-401): los mismos números que el recuadro, pero solo choferes de

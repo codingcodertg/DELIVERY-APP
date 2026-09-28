@@ -1,6 +1,6 @@
 import {
-  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, fueraDeSuZona, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
-  UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
+  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
+  puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
   Alternativa, ChoferEntrada, Desglose, Entrada, Explicacion, MotivoSinAsignar, OrdenEntrada, ParadaRef, Parametros,
@@ -21,7 +21,10 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-5` (D-423, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
+/** `motor-6` (D-NEXT): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
+ *  punta fuera de zona, como entregar allí (`puntasFueraDeZona`); y si eso deja más órdenes fuera, se queda el plan que
+ *  cuenta solo la entrega. Sin zonas, lo mismo que `motor-5`, byte a byte (la misma huella).
+ *  `motor-5` (D-423, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
  *  de su zona si con él son menos de `zonaMillas` millas de más, nadie llega más tarde y no se rompe nada
  *  (`vuelveASuZona`). Sin zonas, lo mismo que `motor-4`, byte a byte (la misma huella).
  *  `motor-4` (D-421): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
@@ -29,7 +32,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-5";
+export const VERSION_DEL_MOTOR = "motor-6";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -118,15 +121,26 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
   // fuera por la zona. Sin zonas —ningún chofer las tiene, o ninguna entrega es de una—, una sola vez: el plan de siempre.
   // Si con zonas no queda nada fuera, sin ellas no puede quedar menos: no hace falta la segunda vuelta.
   if (!plan.sinAsignar.length || !zonasQueDeciden(entrada, parametros)) return plan;
+  // Lo mismo con la zona de la recogida (D-NEXT): también se planifica contando solo la entrega —lo de `motor-5`— y se
+  // queda la de menos órdenes fuera; a igualdad, la de las dos puntas. Contar la recogida mueve trabajo entre choferes
+  // (medido: 46 entregas cambian de chofer en 16 días reales), y en un día lleno eso cerraba huecos: sin esta vuelta quedaban 2
+  // órdenes más fuera en esos 16 días. Nunca queda una orden fuera por la zona, tampoco por la de la recogida.
+  let mejor = plan;
+  if (entrada.ordenes.some((o) => claveDeZona(o.zonaRecogida))) {
+    const soloEntrega = planificaConOpciones({ ...entrada, ordenes: entrada.ordenes.map(({ zonaRecogida: _r, ...o }) => o) }, parametros);
+    if (soloEntrega.sinAsignar.length < mejor.sinAsignar.length) mejor = soloEntrega;
+    if (!mejor.sinAsignar.length) return mejor;
+  }
   const sinZonas = planificaConOpciones(entrada, { ...parametros, pesos: { ...parametros.pesos, zona: 0 } });
-  return sinZonas.sinAsignar.length < plan.sinAsignar.length ? sinZonas : plan;
+  return sinZonas.sinAsignar.length < mejor.sinAsignar.length ? sinZonas : mejor;
 }
 
-/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna entrega de una de ellas. */
+/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna orden con una punta —su
+ *  entrega o su recogida (D-NEXT)— en una de ellas. */
 function zonasQueDeciden(entrada: Entrada, parametros: Parametros): boolean {
   if ((parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return false;
   const reclamadas = zonasReclamadas(entrada.choferes);
-  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)));
+  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)) || reclamadas.has(claveDeZona(o.zonaRecogida)));
 }
 
 function planificaConOpciones(entrada: Entrada, parametros: Parametros): Plan {
@@ -299,6 +313,11 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
    *
    * Va DESPUÉS de la mejora y no dentro de su comparación a propósito: dentro, «menos de N millas de más» no es un orden
    * entre planes (A gana a B por zona, B a C por coste, C a A por millas) y la búsqueda podría dar vueltas.
+   *
+   * Con las dos puntas (D-NEXT), «los choferes de su zona» son los choferes con los que la orden hace MENOS puntas fuera
+   * de zona que con el suyo de ahora. Una orden que sale de la tienda de la zona de uno y va a la zona de otro hace una
+   * punta fuera con cualquiera de los dos: ninguno es «más de su zona», no se mueve, y decide el coste. Sigue terminando:
+   * cada cambio baja las puntas fuera de zona del plan.
    */
   function vuelveASuZona(): number {
     const umbral = parametros.pesos.zonaMillas ?? UMBRAL_DE_ZONA_POR_DEFECTO_MI;
@@ -309,8 +328,9 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     for (const o of movibles()) {
       if (movimientos >= parametros.maxMovimientos) { convergio = false; return vueltas; }
       const c = choferDe(o.id)!;
-      if (!fueraDeSuZona(choferes.find((x) => x.id === c)!, o, reclamadas)) continue;
-      const suyos = permitidos(o).filter((x) => x.id !== c && x.zonas?.some((z) => claveDeZona(z) === claveDeZona(o.zona)));
+      const puntas = puntasFueraDeZona(choferes.find((x) => x.id === c)!, o, reclamadas);
+      if (!puntas) continue;
+      const suyos = permitidos(o).filter((x) => x.id !== c && x.zonas?.length && puntasFueraDeZona(x, o, reclamadas) < puntas);
       if (!suyos.length) continue;
       if (parametros.usarTodos && estado.secuencias.get(c)!.every((p) => p.orden === o.id)) continue;
       const antes = copia(), costeAntes = coste(estado.rutas);

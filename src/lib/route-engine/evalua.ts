@@ -46,12 +46,33 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
   return s;
 }
 
-/** ¿Lleva este chofer esta entrega fuera de su zona? Solo si él tiene zonas, la entrega tiene zona, esa zona la prefiere
- *  alguien, y no es suya. Un chofer sin zonas nunca está «fuera». */
-export function fueraDeSuZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona">, reclamadas: ReadonlySet<string>): boolean {
-  const z = claveDeZona(o.zona);
-  if (!z || !reclamadas.has(z) || !c.zonas?.length) return false;
-  return !c.zonas.some((x) => claveDeZona(x) === z);
+/**
+ * Cuántas puntas de esta orden hace este chofer en la zona de OTRO (D-421; la recogida, desde D-NEXT). Una orden tiene
+ * dos puntas: la ciudad de la tienda donde se recoge (`zonaRecogida`) y la de la entrega (`zona`). Cada una cuenta si
+ * tiene ciudad, esa ciudad la prefiere algún chofer, y no es de este. Cuentan por separado: recoger en la zona de otro y
+ * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Un chofer sin
+ * zonas nunca está «fuera».
+ *
+ * Por qué la recogida (el dueño, 2026-09-27: «no tiene sentido mandar a julio hasta brownsville si ya te dije que ahi
+ * esta maximo»): contando solo la entrega, ir a recoger a la tienda de la zona de otro no costaba nada, y el chofer de
+ * esa zona pagaba por la entrega aunque la carga saliera de SU tienda. Contando las dos, una orden que sale de la zona
+ * de uno y va a la de otro cuesta una punta con cualquiera de los dos, y decide la eficiencia. Por qué por separado y no
+ * una vez por ciudad, medido en DECISIONS.md: una vez por ciudad hacía que a un chofer de fuera le saliera más barata
+ * una entrega DENTRO de esa zona que una que sale de ella.
+ */
+export function puntasFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona" | "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): number {
+  if (!c.zonas?.length) return 0;
+  let fuera = 0;
+  for (const punta of [o.zona, o.recogidaHecha ? null : o.zonaRecogida]) {
+    const z = claveDeZona(punta);
+    if (z && reclamadas.has(z) && !c.zonas.some((x) => claveDeZona(x) === z)) fuera++;
+  }
+  return fuera;
+}
+
+/** ¿Hace este chofer alguna punta de esta orden fuera de su zona? (`puntasFueraDeZona` > 0.) */
+export function fueraDeSuZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona" | "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): boolean {
+  return puntasFueraDeZona(c, o, reclamadas) > 0;
 }
 
 export const PARAMETROS_POR_DEFECTO: Parametros = {
@@ -191,7 +212,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
       servicio = Math.max(0, Math.round(o.servicioEntregaMin));
       tarde += tardeAqui;
       if (o.builder) builder += inicio - chofer.entrada;
-      if (conZonas && ctx.zonasReclamadas && fueraDeSuZona(chofer, o, ctx.zonasReclamadas)) fueraDeZona++;
+      if (conZonas && ctx.zonasReclamadas) fueraDeZona += puntasFueraDeZona(chofer, o, ctx.zonasReclamadas);
       carga -= aCentesimas(o.pallets);
       entregadas.add(o.id);
       // Una orden recogida antes de hoy no tuvo su P aquí: se numera al entregarla.
