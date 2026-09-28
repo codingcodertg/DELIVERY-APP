@@ -167,7 +167,8 @@ describe("la pantalla: la tarjeta del chofer en el Gestor", () => {
     expect(flechas).toContain("parada ${plan.puesto + 1} de ${plan.total}");
   });
   it("el inicio de la ruta sale de lo ya hecho del chofer en las fechas de sus paradas", () => {
-    expect(pagina).toContain("inicioDeLaSecuencia(hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null))))");
+    expect(pagina).toContain("hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));");
+    expect(pagina).toContain("const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));");
   });
   it("el selector escribe la ruta entera con `planDeCambioDeViaje`: ya no deja la movida sin puesto", () => {
     expect(selector).toContain("planDeCambioDeViaje(trips, d.id, destino, capacidad, inicioDeLaRuta(driver, stops))");

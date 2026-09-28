@@ -88,7 +88,7 @@ describe("dónde se ve", () => {
   // Desde D-335 las pantallas no llaman a `secuenciaPD` directamente: pasan por `lecturaDeLaRuta`, que la usa cuando no hay
   // plan publicado —o cuando la ruta se tocó después— y usa las etiquetas del plan cuando la ruta sigue siendo la publicada.
   it("el Gestor: la tabla de paradas por ruta lee la ruta con los MISMOS viajes que pinta, y por chofer", () => {
-    expect(gestor).toContain("const trips = buildTrips(stops, capacity); const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver)); const dDe = lectura.etiquetaDe;");
+    expect(gestor).toContain("const trips = buildTrips(stops, capacity); const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops)); const dDe = lectura.etiquetaDe;");
     // Desde D-379 la celda la decide `etiquetaDeLaParada` (probada en lectura-de-ruta.test.ts), también sin optimizar.
     expect(gestor).toContain("const provisional = esProvisional(stops);");
     expect(gestor).toContain("const e = etiquetaDeLaParada(d, dDe, i + 1, provisional);");
@@ -115,11 +115,11 @@ describe("dónde se ve", () => {
   });
   it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color del chofer — con la misma lectura que la tabla", () => {
     expect(gestor).toContain("const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;");
-    expect(gestor).toContain("const lectura = lecturaDeLaRuta(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver));");
+    expect(gestor).toContain("const lectura = lecturaConLoHecho(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));");
     expect(gestor).toContain('badge: p.etiquetas.join("·"),');
     expect(gestor).toContain("color: colorFor(list[0].assigned_driver),");
     expect(gestor).toContain("if (!list.some((d) => d.route_seq != null)) continue;");
-    expect(gestor).toContain("depotCoords, lanes, rutasPublicadas]);");                 // el plan llega después: el mapa se recalcula
+    expect(gestor).toContain("depotCoords, lanes, rutasPublicadas, deliveries]);");                 // el plan llega después: el mapa se recalcula
   });
   it("el plan publicado se lee UNA vez por fecha, y sin UNA fecha —«todas», pendientes— no hay plan con el que comparar", () => {
     expect(gestor).toContain("const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date, publicaciones);");

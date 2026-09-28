@@ -27,7 +27,8 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
-import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaDeLaRuta, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
+import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
+import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -658,8 +659,11 @@ export default function RoutesPage() {
   const nextLoadFor = (driver: string) => nextLoadForPure(dayOrders, driver);
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
   // el Gestor no enseña pero «Mi ruta» sí (D-NEXT, `inicioDeLaSecuencia`).
-  const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) =>
-    inicioDeLaSecuencia(hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null))));
+  // Lo ya recogido o entregado de esa ruta en las fechas de sus paradas: no se pinta, pero sí cuenta para numerar y para
+  // saber si la ruta sigue siendo la publicada (D-NEXT, `lecturaConLoHecho`).
+  const hechasDeLaRuta = (laneKey: string, stops: Delivery[]) =>
+    hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));
+  const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));
   // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-NEXT).
   const [recienMovida, setRecienMovida] = useState<string | null>(null);
   const senalaLaMovida = (id: string) => {
@@ -1800,7 +1804,7 @@ export default function RoutesPage() {
     for (const [laneKey, list] of byDriver) {
       if (!list.some((d) => d.route_seq != null)) continue;
       if (!pasaFiltro(laneKey)) continue;
-      const lectura = lecturaDeLaRuta(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver));
+      const lectura = lecturaConLoHecho(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));
       for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
       for (const p of [...lectura.previas.values()].flat()) {
         if (p.tipo !== "P" || !p.lugar) continue;
@@ -1871,7 +1875,7 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries]);
 
   // Every optimized driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
@@ -2662,7 +2666,7 @@ export default function RoutesPage() {
         // La misma ruta, leída como P1, P2… D1, D2… (D-334). No cambia nada de lo asignado: es solo cómo se LEE.
         // Con plan publicado y la ruta tal como el plan la dejó, mandan SUS etiquetas y SU secuencia; si se tocó después,
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
-        const lectura = lecturaDeLaRuta(trips, paradasPublicadasDe(u.driver));
+        const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops));
         const dDe = lectura.etiquetaDe;
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
         const provisional = esProvisional(stops);
