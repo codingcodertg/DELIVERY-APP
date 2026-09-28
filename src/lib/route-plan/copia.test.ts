@@ -273,6 +273,17 @@ describe("PATCH sobre un plan PUBLICADO: una copia en borrador, y el publicado i
     }
     expect(falso.escrito).toEqual([]);
   });
+
+  // Mutante del orquestador: quitar `|| fila.source === "manual_import"` sobrevivía. La hoja importada a mano (D-326) es
+  // para comparar, no una ruta: ni en borrador ni publicada se ajusta.
+  it("una hoja importada a mano (`manual_import`) no se ajusta, ni en borrador ni publicada: 409 NOT_DRAFT", async () => {
+    for (const status of ["draft", "published"]) {
+      falso.planes[PUB] = { ...falso.planes[PUB], status, source: "manual_import" };
+      const res = await pide({ tipo: "fija", orden: "a" });
+      expect([res.status, (await res.json()).error]).toEqual([409, "NOT_DRAFT"]);
+    }
+    expect(falso.escrito).toEqual([]);
+  });
 });
 
 describe("el servidor: la copia LEE el día y no escribe en él", () => {
