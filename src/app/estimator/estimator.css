@@ -29,6 +29,18 @@
 .est-politica .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 700; font-size: 13.5px; }
 .est-politica .check input { width: auto; margin-top: 3px; }
 
+/* ---- El estimado de la competencia (interno): nunca se imprime; el @media print de abajo lo esconde ---- */
+.est-competencia.apagada { opacity: .6; }
+.est-comp-lista { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.est-comp-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--paper); min-width: 0; }
+.est-comp-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.est-comp-nombre { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--ink); text-align: left; cursor: pointer; overflow-wrap: anywhere; min-width: 0; }
+.est-comp-nombre:hover { text-decoration: underline; }
+.est-comp-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+.est-wrap .est-comp-elegir { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink); text-transform: none; letter-spacing: normal; }
+.est-wrap .est-comp-elegir[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.est-wrap .est-comp-elegir input { display: none; }
+
 /* ---- La hoja del cliente: aspecto tecleado, a propósito poco oficial ---- */
 .hoja-cliente {
   background: #fff; color: #111; max-width: 760px; margin: 0 auto; padding: 36px 40px;
@@ -66,5 +78,8 @@
   .hoja-cliente, .hoja-cliente * { visibility: visible !important; }
   .est-vista-previa { position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
   .hoja-cliente { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: none; box-shadow: none; padding: 0; }
+  /* El estimado de la competencia, además, fuera del todo: aunque alguien lo metiera algún día dentro
+     de la hoja, no se imprime (D-NEXT). */
+  .est-competencia, .est-competencia * { display: none !important; }
   @page { margin: 16mm; }
 }
