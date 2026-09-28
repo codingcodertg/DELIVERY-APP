@@ -18,11 +18,13 @@ import {
 import {
   almacenDeLaBase, buscarEnCatalogo, type AlmacenDeCotizaciones, type AprobacionPendiente, type ProductoDelCatalogo,
 } from "@/lib/estimator/almacen";
-import { almacenDemo, buscarEnCatalogoDemo } from "@/lib/estimator/demo";
+import { almacenDeCompetenciaDemo, almacenDemo, buscarEnCatalogoDemo } from "@/lib/estimator/demo";
+import { almacenDeCompetenciaDeLaBase, type AlmacenDeCompetencia } from "@/lib/estimator/competencia";
 import {
   POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { HojaCliente } from "./HojaCliente";
+import { SeccionCompetencia } from "./Competencia";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
@@ -71,6 +73,11 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
   }, [demo]);
   const almacen: AlmacenDeCotizaciones = useMemo(
     () => (demo ? almacenDemo(() => meRef.current, sinTablaDemo) : almacenDeLaBase(createClient())),
+    [demo, sinTablaDemo],
+  );
+  // El estimado de la competencia (D-NEXT): su propia tabla y su cubo (153), con la misma pareja base/demo.
+  const almacenCompetencia: AlmacenDeCompetencia = useMemo(
+    () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo) : almacenDeCompetenciaDeLaBase(createClient())),
     [demo, sinTablaDemo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
@@ -525,6 +532,9 @@ export function Estimador({ me: meServidor, demo }: { me: Yo | null; demo: boole
           </>
         )}
       </div>
+
+      {/* Interno: el estimado de la competencia. Fuera de la hoja del cliente, y escondido al imprimir. */}
+      <SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang} />
 
       {/* 5-7. La copia del cliente */}
       <div className="card">

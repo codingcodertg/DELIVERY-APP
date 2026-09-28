@@ -1,6 +1,9 @@
 import type { AlmacenDeCotizaciones, AprobacionPendiente, CotizacionGuardada, ProductoDelCatalogo, Resultado } from "./almacen";
 import { claveDeEstimado, lineaSfVacia, borradorVacio, type QuoteDraft } from "./modelo";
 import type { AprobacionEstado, EstimadoHallado } from "./validar";
+import {
+  filaDeCompetencia, puedeQuitar, rutaDeCompetencia, validaArchivos, type AlmacenDeCompetencia, type ArchivoDeCompetencia,
+} from "./competencia";
 
 /**
  * El Estimador en **modo demo**: datos inventados, en memoria, con la misma interfaz que la base.
@@ -134,6 +137,64 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       if (sinTabla) return SIN_TABLA;
       const q = db.cotizaciones.find((c) => c.id === quoteId);
       if (q) q.print_count = printCount;
+      return bien(null);
+    },
+  };
+}
+
+// ---- el estimado de la competencia, en memoria ------------------------------------------------------
+
+const SIN_TABLA_COMPETENCIA: Resultado<never> = {
+  ok: false, sinTabla: true, error: "PGRST205: Could not find the table 'public.estimator_competitor_files' (demo)",
+};
+
+/**
+ * Los archivos de la competencia en **modo demo**: en memoria, sin red. Abrir da una URL de objeto
+ * (`blob:`) del propio archivo elegido; recargar la página lo olvida todo, como el resto del demo.
+ * Imita de la 153 lo que se ve desde la pantalla: cinco por cotización, los tipos y el tamaño del
+ * cubo, y quitar solo quien lo subió o el admin. Con `?sinTabla=1`, como la base sin la 153.
+ */
+export function almacenDeCompetenciaDemo(
+  me: () => { id: string; name: string; admin: boolean }, sinTabla: boolean,
+): AlmacenDeCompetencia {
+  const filas: ArchivoDeCompetencia[] = [];
+  const blobs = new Map<string, Blob>();
+  let n = 0;
+  return {
+    async disponible() {
+      return sinTabla ? SIN_TABLA_COMPETENCIA : bien(null);
+    },
+    async listar(quoteId) {
+      if (sinTabla) return SIN_TABLA_COMPETENCIA;
+      return bien(filas.filter((f) => f.quote_id === quoteId).map((f) => ({ ...f })));
+    },
+    async subir(quoteId, f, meta) {
+      if (sinTabla) return SIN_TABLA_COMPETENCIA;
+      const yaHay = filas.filter((x) => x.quote_id === quoteId).length;
+      const fallo = validaArchivos([f], yaHay);
+      if (fallo) return { ok: false, sinTabla: false, error: `demo: ${fallo.motivo}` };
+      n += 1;
+      const yo = me();
+      const path = rutaDeCompetencia(quoteId, f.name, new Date(), `d${n}`);
+      const fila: ArchivoDeCompetencia = {
+        ...filaDeCompetencia(quoteId, path, f, meta),
+        id: `demo-c-${n}`, uploaded_by: yo.id, uploaded_by_name: yo.name, uploaded_at: new Date().toISOString(),
+      };
+      filas.push(fila);
+      blobs.set(fila.id, f);
+      return bien({ ...fila });
+    },
+    async abrir(a) {
+      const b = blobs.get(a.id);
+      if (!b || typeof URL.createObjectURL !== "function") return { ok: false, sinTabla: false, error: "demo: not found" };
+      return bien(URL.createObjectURL(b));
+    },
+    async quitar(a) {
+      if (sinTabla) return SIN_TABLA_COMPETENCIA;
+      const i = filas.findIndex((x) => x.id === a.id);
+      if (i < 0 || !puedeQuitar(filas[i], me())) return { ok: false, sinTabla: false, error: "0 rows" };
+      filas.splice(i, 1);
+      blobs.delete(a.id);
       return bien(null);
     },
   };
