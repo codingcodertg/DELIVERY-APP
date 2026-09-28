@@ -92,11 +92,11 @@ export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, 
         <td><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>
-          {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}{" "}
-          {/* D-428: la orden y su factura abren la ficha completa. */}
+          {/* D-431: la orden VA PRIMERO («el id ponlo antes de recoger para que sepamos que carga es»); D-428: abre la ficha. */}
           {abrirOrden
-            ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit" }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>
-            : nombreDeOrden(p.order_ref)}
+            ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit", fontWeight: 600 }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>
+            : <b>{nombreDeOrden(p.order_ref)}</b>}
+          <span data-accion-parada className="hint" style={{ margin: 0 }}> · {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}</span>
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
           {p.builder && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", marginLeft: 6 }}>{t("Builder", "Builder")}</span>}
           {p.place && <span className="hint" style={{ margin: 0 }}> · {p.place}</span>}

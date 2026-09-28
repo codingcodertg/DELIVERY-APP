@@ -31724,3 +31724,14 @@ que ya movió: el historial de cada orden guarda la fecha de antes (D-406) por s
 
 **Versión.** Solo `package.json`: no cambia nada que el navegador tenga que volver a bajar (la regla de los cambios que viven
 fuera del cliente).
+
+## D-431 · En el plan, cada parada nombra primero la orden y después «Recoger / Entregar»
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, con captura del plan de Julio: *«el id ponlo antes de recoger para que sepamos
+que carga es»*.
+
+**Qué cambió.** En la tabla de paradas del plan (`RutaDelPlan.tsx`), la orden con su factura (el enlace de D-428, ahora en
+negrita) va delante, y «· Recoger» / «· Entregar» detrás como etiqueta: *«#FT171 · Fact. 170261 · Recoger»*. Lo demás de la
+fila (carga N de M, Builder, tienda, destino de D-422) sigue igual y en el mismo sitio.
+
+**Pruebas.** Una prueba fija que la orden va antes que la acción; un mutante que vuelve a poner la acción delante cae.
