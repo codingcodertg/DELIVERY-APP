@@ -175,7 +175,7 @@ describe("«Por qué» dice la prioridad", () => {
 
   it("las pantallas pintan esas frases, y la ruta de servidor les pasa las órdenes del plan en las tres respuestas", () => {
     expect(plano(leer("src/components/PlanDelDia.tsx"))).toContain("{fraseDePrioridadFuera(x, lang) && <> {fraseDePrioridadFuera(x, lang)}</>}");
-    expect(plano(leer("src/components/RutaDelPlan.tsx"))).toContain("{fraseDePrioridadEnRuta(q, lang) && <> {fraseDePrioridadEnRuta(q, lang)}</>}");
+    expect(plano(leer("src/components/RutaDelPlan.tsx"))).not.toContain("fraseDePrioridadEnRuta"); // D-424: sin «¿Por qué aquí?»
     const ruta = plano(leer("src/app/api/route-plan/route.ts"));
     for (const x of ["borrador.plan.input.entrada.ordenes", "plan.ordenes", "ajustado.plan.input.entrada.ordenes"]) {
       expect(ruta).toContain(`resumenDelPlan(${x.startsWith("plan.") ? "plan, filas.length" : x.startsWith("borrador") ? "borrador.plan, borrador.paradas.length" : "ajustado.plan, ajustado.paradas.length"}, ${x})`);

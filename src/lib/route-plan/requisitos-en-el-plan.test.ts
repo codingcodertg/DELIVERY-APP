@@ -126,7 +126,6 @@ describe("las pantallas del plan dicen el motivo con estas frases", () => {
     const panel = plano(leer("src/components/PlanDelDia.tsx"));
     expect(panel).toContain("<b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.");
     expect(panel).toContain("dar_requisito: [");
-    const ruta = plano(leer("src/components/RutaDelPlan.tsx"));
-    expect(ruta).toContain("${fraseDeRequisitoConOtro(o, lang) ?? (NO_PUEDE[o.noPuede]");
+    // «¿Por qué aquí?» ya no se enseña (D-424): la frase de requisito con otro chofer queda solo en la librería.
   });
 });

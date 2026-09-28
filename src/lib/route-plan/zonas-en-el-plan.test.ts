@@ -346,7 +346,7 @@ describe("«¿Por qué aquí?», la frase de la zona", () => {
   });
 
   it("la pantalla la pinta con `fraseDeZona`, y las rutas le pasan los choferes y órdenes del plan", () => {
-    expect(plano(leer("src/components/RutaDelPlan.tsx"))).toContain("{fraseDeZona(q, lang) && <> <span data-zona-porque>{fraseDeZona(q, lang)}</span></>}");
+    expect(plano(leer("src/components/RutaDelPlan.tsx"))).not.toContain("fraseDeZona"); // D-424: sin «¿Por qué aquí?»
     expect(plano(leer("src/app/api/route-plan/route.ts"))).toContain("porque: porQueDelPlan(borrador.plan.result, borrador.plan.input.entrada.choferes, borrador.paradas, borrador.plan.input.entrada.ordenes)");
   });
 });
