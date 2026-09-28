@@ -417,6 +417,9 @@ export interface RouteWeights {
    *  `route_weights` guardado antes no lo trae, y entonces vale el de por defecto (`PESO_DE_ZONA_POR_DEFECTO`). Vive
    *  dentro del mismo jsonb que los otros cinco: no hace falta columna. */
   zona?: number;
+  /** El umbral de la zona, en millas (D-NEXT): por debajo, la zona gana al builder y al balance. Opcional, como `zona`, y
+   *  en el mismo jsonb: sin él, `UMBRAL_DE_ZONA_POR_DEFECTO_MI`. */
+  zonaMillas?: number;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
-import { PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, PESOS_POR_DEFECTO, type BalancePor } from "./route-engine";
+import { PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, PESOS_POR_DEFECTO, UMBRAL_DE_ZONA_POR_DEFECTO_MI, type BalancePor } from "./route-engine";
 import type { DriverSettings, NamedLocation, RouteBalanceOptions, RouteWeights, Settings } from "./types";
 
 /** Las columnas de `driver_settings` (128) que leen Ajustes y «Planificar el día». Lo que tiene cada camión (`features`,
@@ -43,12 +43,19 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   // El de las zonas (D-421) solo si está guardado y es válido: sin él, el motor usa el de por defecto, y los cinco de la
   // 130 salen como siempre (las pruebas que comparan con la siembra de la 130 no ven una clave de más).
   if (numeroValido(guardados.zona)) r.zona = guardados.zona;
+  // Y su umbral en millas (D-NEXT), con la misma regla: solo si está guardado y es válido.
+  if (numeroValido(guardados.zonaMillas)) r.zonaMillas = guardados.zonaMillas;
   return r;
 }
 
 /** El peso de las zonas vigente (D-421): el guardado en `route_weights.zona`, o el de por defecto. */
 export function pesoDeZona(settings: Pick<Settings, "route_weights">): number {
   return pesosDeRuta(settings).zona ?? PESO_DE_ZONA_POR_DEFECTO;
+}
+
+/** El umbral de la zona vigente, en millas (D-NEXT): el guardado en `route_weights.zonaMillas`, o el de por defecto. */
+export function umbralDeZonaMi(settings: Pick<Settings, "route_weights">): number {
+  return pesosDeRuta(settings).zonaMillas ?? UMBRAL_DE_ZONA_POR_DEFECTO_MI;
 }
 
 // ---- Opciones de reparto (D-415) ----------------------------------------------------------------
@@ -109,6 +116,15 @@ export function topeDeRetrasoMin(settings: Pick<Settings, "route_late_cap_min">)
 }
 
 // ---- El chofer -----------------------------------------------------------------------------------
+
+/**
+ * Las filas de la tabla de choferes de Ajustes después de guardar UNA (D-NEXT): esa, como quedó en la base; las demás, como
+ * estaban en pantalla —con lo que se esté editando sin guardar—. Antes se recargaban todas y lo editado en otra fila se
+ * perdía sin aviso (hallazgo de D-421).
+ */
+export function conFilaGuardada<F>(filas: Readonly<Record<string, F>> | null, id: string, guardada: F): Record<string, F> {
+  return { ...(filas ?? {}), [id]: guardada };
+}
 
 /** "08:00" o "08:00:00" → minutos desde la medianoche; `null` si no es una hora. */
 export function minutosDeHora(hora: string | null | undefined): number | null {

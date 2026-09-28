@@ -1,6 +1,6 @@
 import {
-  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
-  zonasReclamadas, type Contexto,
+  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, fueraDeSuZona, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
+  UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
   Alternativa, ChoferEntrada, Desglose, Entrada, Explicacion, MotivoSinAsignar, OrdenEntrada, ParadaRef, Parametros,
@@ -21,12 +21,15 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-4` (D-421): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
+/** `motor-5` (D-NEXT, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
+ *  de su zona si con él son menos de `zonaMillas` millas de más, nadie llega más tarde y no se rompe nada
+ *  (`vuelveASuZona`). Sin zonas, lo mismo que `motor-4`, byte a byte (la misma huella).
+ *  `motor-4` (D-421): zonas preferidas por chofer — preferencia, no regla: llevar una entrega de la zona de otro chofer
  *  cuesta el peso `zona`, y nunca deja una orden fuera. Sin zonas, planifica exactamente lo mismo que `motor-3` (y que
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-4";
+export const VERSION_DEL_MOTOR = "motor-5";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -281,6 +284,47 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   };
   let fuera = coloca(pendientes);
 
+  /**
+   * La zona, antes que el builder y el balance (D-NEXT, T-0413). El dueño, 2026-09-27: «maximo siempre tiene prioridad en
+   * brownsville y nunca mandes a otro conductor por una ruta que sea inefeciente». Con el peso solo, un builder que llega
+   * 37 min antes (×2) y el balance le ganaban a la zona aunque el chofer de la zona hiciera la entrega con +0 millas
+   * (#135 del 2026-09-07, medido): ningún peso lo arregla sin volver la zona una regla también cuando es ineficiente.
+   *
+   * Así que, ya mejorado el plan, cada entrega que va FUERA de su zona se prueba con los choferes de su zona (su mejor
+   * hueco, sin violaciones nuevas): si con alguno el plan entero hace MENOS de `zonaMillas` millas de más y no suma ni un
+   * minuto tarde, va con él —con el más barato de esos, por el coste de siempre—, digan lo que digan el builder y el
+   * balance. Si con todos son `zonaMillas` o más, se queda donde la dejó el coste: ahí la zona es solo su peso, y manda
+   * la eficiencia. Nunca deja una orden fuera (solo mueve lo que ya tiene ruta) ni deja vacío a un chofer con «usar
+   * todos». Termina: cada cambio baja en uno las entregas fuera de zona, y ninguno sube otra.
+   *
+   * Va DESPUÉS de la mejora y no dentro de su comparación a propósito: dentro, «menos de N millas de más» no es un orden
+   * entre planes (A gana a B por zona, B a C por coste, C a A por millas) y la búsqueda podría dar vueltas.
+   */
+  function vuelveASuZona(): number {
+    const umbral = parametros.pesos.zonaMillas ?? UMBRAL_DE_ZONA_POR_DEFECTO_MI;
+    const reclamadas = ctx.zonasReclamadas!;
+    if (!(umbral > 0) || (parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return 0;
+    const tope = Math.round(umbral * 100);
+    let vueltas = 0;
+    for (const o of movibles()) {
+      if (movimientos >= parametros.maxMovimientos) { convergio = false; return vueltas; }
+      const c = choferDe(o.id)!;
+      if (!fueraDeSuZona(choferes.find((x) => x.id === c)!, o, reclamadas)) continue;
+      const suyos = permitidos(o).filter((x) => x.id !== c && x.zonas?.some((z) => claveDeZona(z) === claveDeZona(o.zona)));
+      if (!suyos.length) continue;
+      if (parametros.usarTodos && estado.secuencias.get(c)!.every((p) => p.orden === o.id)) continue;
+      const antes = copia(), costeAntes = coste(estado.rutas);
+      quita(o.id, c);
+      const huecos = suyos.map((x) => mejorHuecoEn(o, x, estado.secuencias.get(x.id)!)).filter((h): h is Hueco => !!h)
+        .filter((h) => aCentesimas(h.coste.millas) - aCentesimas(costeAntes.millas) < tope && h.coste.tardeMin <= costeAntes.tardeMin)
+        .sort((a, b) => a.coste.total - b.coste.total);
+      if (!huecos.length) { restaura(antes); continue; }
+      aplica(huecos[0]);
+      movimientos++; vueltas++;
+    }
+    return vueltas;
+  }
+
   // ---- Mejora: mover el par entero ----------------------------------------------------------------
   const nota = (): Nota => [
     fuera.length,
@@ -297,80 +341,93 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   const copia = (): Estado => ({ secuencias: new Map(estado.secuencias), rutas: new Map(estado.rutas) });
   const restaura = (e: Estado) => { estado.secuencias = e.secuencias; estado.rutas = e.rutas; };
 
-  for (let mejoro = true; mejoro; ) {
-    mejoro = false;
+  /** Las entregas fuera de zona del plan de ahora. Sin zonas, siempre 0. */
+  const fueraDeZonaAhora = (): number => coste(estado.rutas).fueraDeZona ?? 0;
 
-    // Recolocar: sacar una orden y volver a meterla donde mejor quede, en su ruta o en otra.
-    for (const o of movibles()) {
-      if (!convergio) break;
-      const antes = copia(), notaAntes = nota();
-      quita(o.id, choferDe(o.id)!);
-      const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
-        .sort((a, b) => a.coste.total - b.coste.total);
-      if (huecos.length) aplica(eligeHueco(huecos));
-      const mejora = huecos.length > 0 && mejorQue(nota(), notaAntes);
-      if (mejora && movimientos < parametros.maxMovimientos) { movimientos++; mejoro = true; }
-      else { restaura(antes); if (mejora) convergio = false; }
-    }
+  /** La búsqueda local. Con `protegeZona` (la vuelta de después de `vuelveASuZona`), recolocar e intercambiar no aceptan
+   *  un cambio que suba las entregas fuera de zona: la mejora sigue afinando el plan, pero no deshace lo que la zona ganó.
+   *  Lo que queda fuera sí puede entrar fuera de zona: nunca queda una orden sin ruta por la zona. */
+  const mejoraElPlan = (protegeZona: boolean) => {
+    for (let mejoro = true; mejoro; ) {
+      mejoro = false;
 
-    // Intercambiar dos órdenes entre dos choferes. Las partes de una orden partida no entran: van juntas.
-    const lista = movibles().filter((o) => !o.choferFijado && !partido.grupoDe.has(o.id) && !o.recogidaHecha);
-    for (let a = 0; a < lista.length && convergio; a++) {
-      for (let b = a + 1; b < lista.length && convergio; b++) {
-        const ca = choferDe(lista[a].id), cb = choferDe(lista[b].id);
-        if (!ca || !cb || ca === cb) continue;
-        // Requisitos del camión (D-418): el intercambio mete cada una en el camión de la otra sin pasar por `permitidos`;
-        // si alguno de los dos no tiene lo que pide la que le llega, no se intenta. Lo cazó la prueba de los 300 días.
-        if (faltanEnElCamion(choferes.find((c) => c.id === cb)!, lista[a]).length || faltanEnElCamion(choferes.find((c) => c.id === ca)!, lista[b]).length) continue;
-        const antes = copia(), notaAntes = nota();
-        quita(lista[a].id, ca); quita(lista[b].id, cb);
-        const ha = mejorHuecoEn(lista[a], choferes.find((c) => c.id === cb)!, estado.secuencias.get(cb)!);
-        if (ha) aplica(ha);
-        const hb = ha ? mejorHuecoEn(lista[b], choferes.find((c) => c.id === ca)!, estado.secuencias.get(ca)!) : null;
-        if (hb) aplica(hb);
-        const mejora = !!ha && !!hb && mejorQue(nota(), notaAntes);
+      // Recolocar: sacar una orden y volver a meterla donde mejor quede, en su ruta o en otra.
+      for (const o of movibles()) {
+        if (!convergio) break;
+        const antes = copia(), notaAntes = nota(), zonaAntes = protegeZona ? fueraDeZonaAhora() : 0;
+        quita(o.id, choferDe(o.id)!);
+        const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
+          .sort((a, b) => a.coste.total - b.coste.total);
+        if (huecos.length) aplica(eligeHueco(huecos));
+        const mejora = huecos.length > 0 && mejorQue(nota(), notaAntes) && (!protegeZona || fueraDeZonaAhora() <= zonaAntes);
         if (mejora && movimientos < parametros.maxMovimientos) { movimientos++; mejoro = true; }
         else { restaura(antes); if (mejora) convergio = false; }
       }
-    }
 
-    // Y lo que quedó fuera se vuelve a intentar: un hueco puede haberse abierto al mover lo demás.
-    if (fuera.length) {
-      const antes = fuera.length;
-      fuera = coloca(fuera);
-      if (fuera.length < antes) { movimientos++; mejoro = true; }
-    }
-
-    // Ceder el sitio (D-415, como OptimoRoute): una de fuera entra quitando una de MENOS prioridad, que pasa a fuera
-    // (y la vuelta siguiente la reintenta en otro sitio). La construcción ya coloca primero lo de más prioridad, pero
-    // la mejora reordena las rutas y puede abrir un hueco que ya ocupó una de menos: una búsqueda sobre 400 días
-    // inventados encontró 2 así. Con todo en normal nunca hay una de menos prioridad, y esto no hace nada.
-    for (const o of [...fuera].sort((a, b) => rangoDe(a) - rangoDe(b))) {
-      if (!convergio) break;
-      // Cede la de menos prioridad y, entre iguales, la que entró la última. Sin excepciones, a propósito: una orden a
-      // la que una persona le puso chofer puede ceder (se respeta su chofer, no que vaya hoy), y una carga de una orden
-      // partida también, como ya puede quedarse fuera una carga sola cuando no cabe (motor-1 lo hacía). Se buscó: en
-      // 1.500 días inventados, excluir las de chofer puesto no cambió ningún plan.
-      const candidatas = movibles().filter((q) => rangoDe(q) > rangoDe(o))
-        .sort((a, b) => rangoDe(b) - rangoDe(a) || porClave(b, a));
-      // Si entra, el cambio siempre es a mejor: sale de fuera una de más prioridad y entra una de menos. No hace falta
-      // comparar notas (se comparaba, y un mutante que no lo hacía sobrevivía), y no puede dar vueltas: cada cambio
-      // baja lo de fuera en ese orden, que no puede bajar sin fin.
-      for (const q of candidatas) {
-        const antes = copia();
-        quita(q.id, choferDe(q.id)!);
-        const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
-          .sort((a, b) => a.coste.total - b.coste.total);
-        if (!huecos.length) { restaura(antes); continue; }
-        if (movimientos >= parametros.maxMovimientos) { restaura(antes); convergio = false; break; }
-        aplica(huecos[0]);
-        fuera = [...fuera.filter((x) => x.id !== o.id), q];
-        movimientos++; mejoro = true;
-        break;
+      // Intercambiar dos órdenes entre dos choferes. Las partes de una orden partida no entran: van juntas.
+      const lista = movibles().filter((o) => !o.choferFijado && !partido.grupoDe.has(o.id) && !o.recogidaHecha);
+      for (let a = 0; a < lista.length && convergio; a++) {
+        for (let b = a + 1; b < lista.length && convergio; b++) {
+          const ca = choferDe(lista[a].id), cb = choferDe(lista[b].id);
+          if (!ca || !cb || ca === cb) continue;
+          // Requisitos del camión (D-418): el intercambio mete cada una en el camión de la otra sin pasar por `permitidos`;
+          // si alguno de los dos no tiene lo que pide la que le llega, no se intenta. Lo cazó la prueba de los 300 días.
+          if (faltanEnElCamion(choferes.find((c) => c.id === cb)!, lista[a]).length || faltanEnElCamion(choferes.find((c) => c.id === ca)!, lista[b]).length) continue;
+          const antes = copia(), notaAntes = nota(), zonaAntes = protegeZona ? fueraDeZonaAhora() : 0;
+          quita(lista[a].id, ca); quita(lista[b].id, cb);
+          const ha = mejorHuecoEn(lista[a], choferes.find((c) => c.id === cb)!, estado.secuencias.get(cb)!);
+          if (ha) aplica(ha);
+          const hb = ha ? mejorHuecoEn(lista[b], choferes.find((c) => c.id === ca)!, estado.secuencias.get(ca)!) : null;
+          if (hb) aplica(hb);
+          const mejora = !!ha && !!hb && mejorQue(nota(), notaAntes) && (!protegeZona || fueraDeZonaAhora() <= zonaAntes);
+          if (mejora && movimientos < parametros.maxMovimientos) { movimientos++; mejoro = true; }
+          else { restaura(antes); if (mejora) convergio = false; }
+        }
       }
+
+      // Y lo que quedó fuera se vuelve a intentar: un hueco puede haberse abierto al mover lo demás.
+      if (fuera.length) {
+        const antes = fuera.length;
+        fuera = coloca(fuera);
+        if (fuera.length < antes) { movimientos++; mejoro = true; }
+      }
+
+      // Ceder el sitio (D-415, como OptimoRoute): una de fuera entra quitando una de MENOS prioridad, que pasa a fuera
+      // (y la vuelta siguiente la reintenta en otro sitio). La construcción ya coloca primero lo de más prioridad, pero
+      // la mejora reordena las rutas y puede abrir un hueco que ya ocupó una de menos: una búsqueda sobre 400 días
+      // inventados encontró 2 así. Con todo en normal nunca hay una de menos prioridad, y esto no hace nada.
+      for (const o of [...fuera].sort((a, b) => rangoDe(a) - rangoDe(b))) {
+        if (!convergio) break;
+        // Cede la de menos prioridad y, entre iguales, la que entró la última. Sin excepciones, a propósito: una orden a
+        // la que una persona le puso chofer puede ceder (se respeta su chofer, no que vaya hoy), y una carga de una orden
+        // partida también, como ya puede quedarse fuera una carga sola cuando no cabe (motor-1 lo hacía). Se buscó: en
+        // 1.500 días inventados, excluir las de chofer puesto no cambió ningún plan.
+        const candidatas = movibles().filter((q) => rangoDe(q) > rangoDe(o))
+          .sort((a, b) => rangoDe(b) - rangoDe(a) || porClave(b, a));
+        // Si entra, el cambio siempre es a mejor: sale de fuera una de más prioridad y entra una de menos. No hace falta
+        // comparar notas (se comparaba, y un mutante que no lo hacía sobrevivía), y no puede dar vueltas: cada cambio
+        // baja lo de fuera en ese orden, que no puede bajar sin fin.
+        for (const q of candidatas) {
+          const antes = copia();
+          quita(q.id, choferDe(q.id)!);
+          const huecos = permitidos(o).map((c) => mejorHuecoEn(o, c, estado.secuencias.get(c.id)!)).filter((h): h is Hueco => !!h)
+            .sort((a, b) => a.coste.total - b.coste.total);
+          if (!huecos.length) { restaura(antes); continue; }
+          if (movimientos >= parametros.maxMovimientos) { restaura(antes); convergio = false; break; }
+          aplica(huecos[0]);
+          fuera = [...fuera.filter((x) => x.id !== o.id), q];
+          movimientos++; mejoro = true;
+          break;
+        }
+      }
+      if (!convergio) break;
     }
-    if (!convergio) break;
-  }
+  };
+
+  mejoraElPlan(false);
+  // La zona, antes que el builder y el balance (D-NEXT): lo que vuelve a su zona, y otra vuelta de mejora que ya no puede
+  // sacarlo. Cada vuelta baja las entregas fuera de zona: se acaba.
+  while (convergio && vuelveASuZona() > 0) mejoraElPlan(true);
 
   // ---- Por qué quedó fuera cada una ---------------------------------------------------------------
   const ORDEN_DE_MOTIVOS: TipoDeViolacion[] = ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje"];
