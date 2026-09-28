@@ -8,7 +8,7 @@ import { borradorVacio, cajasDeLinea, hoyLocal, sfReal, totalDeLinea, type Quote
  * base lo hace cumplir (migración 148: un índice único por estimado y las políticas de escritura);
  * esto es el espejo en la pantalla, para decirlo antes de que la base diga que no.
  *
- * Desde D-NEXT **la búsqueda la hace la pantalla sola** (el dueño: «No need to search first»): al teclear el número
+ * Desde D-432 **la búsqueda la hace la pantalla sola** (el dueño: «No need to search first»): al teclear el número
  * (con una pausa), al salir del campo y siempre antes de guardar. La regla de buscar primero sigue; lo que desaparece
  * es el botón que había que pulsar. Mientras la comprobación no ha vuelto, el estado es `sin-buscar`.
  */
@@ -71,7 +71,7 @@ export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string
   else if (estado === "sin-buscar") f.push("buscar");
   else if (!puedeTrabajar(estado)) f.push("permiso");
   if (!q.sales_ext.trim()) f.push("extension");
-  // El apellido que se imprime sale del nombre (D-NEXT): con nombre hay apellido, así que no hay falta aparte.
+  // El apellido que se imprime sale del nombre (D-432): con nombre hay apellido, así que no hay falta aparte.
   if (!q.customer.full_name.trim()) f.push("nombre");
   if (q.lines.length === 0) f.push("lineas");
   if (q.lines.some((l) => totalDeLinea(l) === null)) f.push("linea-incompleta");
@@ -90,7 +90,7 @@ export function direccionCompleta(q: Pick<QuoteDraft, "delivery">): boolean {
 
 /**
  * Para guardar basta con el número y el permiso: un borrador a medias también se guarda. `sin-buscar` deja PULSAR
- * Guardar (D-NEXT): el propio guardado comprueba el estimado antes de escribir (`guardar` en la pantalla), y si es de
+ * Guardar (D-432): el propio guardado comprueba el estimado antes de escribir (`guardar` en la pantalla), y si es de
  * otro se para ahí. Sin eso, el botón se quedaría apagado sin decir por qué mientras la comprobación vuelve.
  */
 export function puedeGuardar(q: QuoteDraft, estado: EstadoDelEstimado): boolean {
@@ -99,7 +99,7 @@ export function puedeGuardar(q: QuoteDraft, estado: EstadoDelEstimado): boolean 
 
 /**
  * ¿El borrador no tiene aún trabajo, fuera del número, la extensión y la fecha? Decide si una cotización guardada que
- * aparece al comprobar el estimado se abre sola (D-NEXT). Con la búsqueda automática, abrirla encima de lo que el
+ * aparece al comprobar el estimado se abre sola (D-432). Con la búsqueda automática, abrirla encima de lo que el
  * vendedor ya tecleó le borraría el trabajo sin avisar; así que solo se abre sola sobre un borrador en blanco, y si no,
  * se ofrece.
  */
@@ -119,7 +119,7 @@ export function borradorSinTrabajo(q: QuoteDraft): boolean {
 }
 
 /**
- * Qué hace la pantalla con lo que devuelve la comprobación automática del estimado (D-NEXT):
+ * Qué hace la pantalla con lo que devuelve la comprobación automática del estimado (D-432):
  * - `nueva`: nadie la tiene; quien la prepara será el dueño.
  * - `ajena`: es de otro y no tengo permiso: aviso y «Request approval» (D-413, igual que antes).
  * - `ya-abierta`: es la cotización que ya tengo abierta; nada que hacer.

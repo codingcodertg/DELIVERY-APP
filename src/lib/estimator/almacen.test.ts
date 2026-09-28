@@ -47,7 +47,7 @@ describe("de la fila a la pantalla y de vuelta", () => {
     expect(d.display_level).toBe("standard");
     expect(d.customer.salutation).toBe("Mr.");
   });
-  it("una cotización guardada antes de D-NEXT, con last_name escrito a mano, se abre igual", () => {
+  it("una cotización guardada antes de D-432, con last_name escrito a mano, se abre igual", () => {
     const d = borradorDeFila({
       estimate_num: "E-OLD", sales_ext: "214",
       customer: { salutation: "Ms.", full_name: "Ana Garza Lopez", last_name: "Garza", last_name_edited: true, company: "", phone: "956-555-0100", address: "" },
@@ -62,7 +62,7 @@ describe("de la fila a la pantalla y de vuelta", () => {
   });
 });
 
-describe("el demo simula la extensión del expediente (D-NEXT)", () => {
+describe("el demo simula la extensión del expediente (D-432)", () => {
   it("cada vendedor la suya; «Maria Manager» sin ninguna, para medir el caso a mano", () => {
     expect(extensionDemo("u-sales")).toBe("214");
     expect(extensionDemo(DEMO_OTRO_VENDEDOR.id)).toBe("201");

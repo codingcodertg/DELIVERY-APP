@@ -14,7 +14,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  *
  * En demo no hay sesión: quién eres lo dice «Ver como» (`localStorage`), y eso solo lo lee el cliente.
  *
- * **La extensión de quien prepara** (D-NEXT, «should be automatic») también la dice el servidor: es la de su expediente
+ * **La extensión de quien prepara** (D-432, «should be automatic») también la dice el servidor: es la de su expediente
  * de RR. HH., `recruiting.employee_files.ringcentral_ext`, enlazado a la cuenta por `profile_id` (106) — la misma que
  * enseña el directorio. Esa tabla solo la leen admin y gerente de RR. HH. (094), así que un vendedor no la puede leer
  * con su sesión; se lee aquí con la llave de servicio, **filtrando por el id de la sesión y pidiendo solo esa

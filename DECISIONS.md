@@ -30090,7 +30090,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
 
-> **Nota (2026-09-28): reemplazada en parte por D-NEXT**, sobre una captura con observaciones del dueño. Cambian cuatro
+> **Nota (2026-09-28): reemplazada en parte por D-432**, sobre una captura con observaciones del dueño. Cambian cuatro
 > cosas de esta entrada, y el resto sigue: (a) **«Buscar» deja de ser un botón que hay que pulsar**: el estimado se comprueba
 > solo (pausa al teclear, al salir del campo, antes de guardar). La regla de la política —*«Search the estimate number
 > first»*, que sigue literal en la ventana de política— se cumple igual, porque la pantalla busca por el vendedor; si es de
@@ -31745,7 +31745,7 @@ fila (carga N de M, Builder, tienda, destino de D-422) sigue igual y en el mismo
 
 **Pruebas.** Una prueba fija que la orden va antes que la acción; un mutante que vuelve a poner la acción delante cae.
 
-## D-NEXT · El Estimador, sobre la captura del dueño: sin «Search» obligatorio, extensión automática, «Mr.» por defecto, sin campo de apellido y teléfono 956-xxx-xxxx
+## D-432 · El Estimador, sobre la captura del dueño: sin «Search» obligatorio, extensión automática, «Mr.» por defecto, sin campo de apellido y teléfono 956-xxx-xxxx
 
 **Fecha:** 2026-09-28 · **Tarea:** hija de T-0408 (el Estimador, D-413) · **Versión:** la pone el orquestador (toca solo
 `estimator`: `src/app/estimator/*` y `src/lib/estimator/*`) · **Migración:** ninguna. **Reemplaza en parte a D-413** (lleva

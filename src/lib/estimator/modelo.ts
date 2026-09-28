@@ -13,7 +13,7 @@
 import { telefonoValido } from "@/lib/avisos-cliente";
 
 export type Salutation = "Ms." | "Mr." | "Mrs.";
-/** «Mr.» primero: es el de por defecto (D-NEXT, lo pidió el dueño sobre la captura). */
+/** «Mr.» primero: es el de por defecto (D-432, lo pidió el dueño sobre la captura). */
 export const SALUTATIONS: readonly Salutation[] = ["Mr.", "Ms.", "Mrs."];
 export const DEFAULT_SALUTATION: Salutation = "Mr.";
 
@@ -26,7 +26,7 @@ export interface Customer {
   salutation: Salutation;
   /**
    * El nombre completo. El apellido que se imprime SALE DE AQUÍ (`apellidoDe`): el campo «Last name as printed» se
-   * quitó (D-NEXT, «This Field is unnecessary»). Las filas viejas de la 148 traen `last_name` y `last_name_edited`
+   * quitó (D-432, «This Field is unnecessary»). Las filas viejas de la 148 traen `last_name` y `last_name_edited`
    * en el `jsonb`; `borradorDeFila` no los lee y se abren igual.
    */
   full_name: string;
@@ -147,7 +147,7 @@ export function totalDeMateriales(lineas: readonly QuoteLine[]): number {
 
 /**
  * El apellido que se imprime: la ÚLTIMA palabra del nombre completo. «Maria Gonzalez» → «Gonzalez»; con dos apellidos
- * sale el último. Una sola palabra es esa palabra (D-NEXT): ya no hay campo donde escribir el apellido aparte, así que
+ * sale el último. Una sola palabra es esa palabra (D-432): ya no hay campo donde escribir el apellido aparte, así que
  * un nombre de una palabra no puede dejar la hoja sin destinatario. Vacío solo si el nombre está vacío.
  */
 export function apellidoDe(nombreCompleto: string): string {
@@ -162,7 +162,7 @@ export function paraQuienSeImprime(c: Pick<Customer, "salutation" | "full_name">
 }
 
 /**
- * El teléfono del cliente con forma limpia, `956-555-0123` (D-NEXT). Reutiliza `telefonoValido` (el de los avisos al
+ * El teléfono del cliente con forma limpia, `956-555-0123` (D-432). Reutiliza `telefonoValido` (el de los avisos al
  * cliente: 10 dígitos de EE. UU., o 11 con el 1 delante; paréntesis, espacios, puntos y `+1` se quitan). Null si no es
  * un número de EE. UU. completo: entonces se deja lo escrito tal cual y la pantalla lo marca.
  */
@@ -244,7 +244,7 @@ export function borradorVacio(hoy: string = hoyLocal()): QuoteDraft {
 }
 
 /**
- * La extensión con la que nace el borrador (D-NEXT, «should be automatic»). Primero la del expediente de RR. HH. de
+ * La extensión con la que nace el borrador (D-432, «should be automatic»). Primero la del expediente de RR. HH. de
  * quien prepara (`recruiting.employee_files.ringcentral_ext`, la misma que enseña el directorio), que la lee el
  * servidor; si no tiene, la que esa persona escribió la última vez en este navegador; si tampoco, vacía y se escribe.
  * Siempre editable: esto solo decide el punto de partida.

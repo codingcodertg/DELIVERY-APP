@@ -78,7 +78,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
   const customer: Customer = {
     salutation: (SALUTATIONS as readonly string[]).includes(texto(c.salutation)) ? (c.salutation as Customer["salutation"]) : DEFAULT_SALUTATION,
     full_name: texto(c.full_name),
-    // `last_name` / `last_name_edited` de las filas guardadas antes de D-NEXT se ignoran a propósito: el apellido que se
+    // `last_name` / `last_name_edited` de las filas guardadas antes de D-432 se ignoran a propósito: el apellido que se
     // imprime sale del nombre completo, que sí se ve y se corrige en pantalla.
     company: texto(c.company),
     phone: texto(c.phone),

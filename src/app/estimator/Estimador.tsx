@@ -29,7 +29,7 @@ import { SeccionCompetencia } from "./Competencia";
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
 const claveDeExtension = (id: string) => `rtg_estimator_ext_${id}`;
-/** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-NEXT: sin botón «Search»). */
+/** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-432: sin botón «Search»). */
 const ESPERA_COMPROBACION_MS = 600;
 
 type Yo = { id: string; name: string; admin: boolean };
@@ -114,7 +114,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
   const [politicaMarcada, setPoliticaMarcada] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState(false);
 
-  // La extensión sale sola (D-NEXT, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
+  // La extensión sale sola (D-432, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
   // escribió la última vez en este navegador. Se reemplaza mientras nadie la toque (en demo «Ver como» cambia de
   // persona sin recargar); si la escribió a mano, se respeta.
   const [origenExt, setOrigenExt] = useState<"expediente" | "navegador" | "ninguno">("ninguno");
@@ -167,7 +167,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
   };
 
   /**
-   * Comprueba de quién es el estimado. **Sin botón** (D-NEXT, «No need to search first»): la lanzan la pausa al
+   * Comprueba de quién es el estimado. **Sin botón** (D-432, «No need to search first»): la lanzan la pausa al
    * teclear, salir del campo, Enter y el propio guardado. La regla de D-413 sigue igual: si es de otro, se dice y se
    * pide su aprobación. `abrirSola`: si la guardada es mía (o aprobada) y el borrador está en blanco, se abre; con
    * trabajo tecleado, se ofrece y no se pisa.
@@ -230,7 +230,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
 
   const guardar = async (): Promise<string | null> => {
     if (!me || !puedeGuardar(draft, estado)) return null;
-    // Siempre se comprueba antes de guardar (D-NEXT): si la pausa aún no lo hizo, se hace aquí y se para si es de otro.
+    // Siempre se comprueba antes de guardar (D-432): si la pausa aún no lo hizo, se hace aquí y se para si es de otro.
     let h = hallado;
     if (estado === "sin-buscar") {
       setOcupado(true);
@@ -373,7 +373,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
         <div className="grid g3">
           <div className="field">
             <label htmlFor="est-num">{t("Estimate #", "# de estimado")}</label>
-            {/* Sin botón «Search» (D-NEXT): se comprueba solo tras una pausa, al salir del campo y antes de guardar. */}
+            {/* Sin botón «Search» (D-432): se comprueba solo tras una pausa, al salir del campo y antes de guardar. */}
             <input id="est-num" value={draft.estimate_num} className={inv(!draft.estimate_num.trim())}
               onChange={(e) => set("estimate_num", e.target.value)}
               onBlur={comprobarYa}
@@ -457,7 +457,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
           </div>
           <div className="field">
             <label htmlFor="est-tel">{t("Phone", "Teléfono")}</label>
-            {/* 956-555-0123 al completar los 10 dígitos o al salir (D-NEXT); lo que no es un número completo se deja y se marca. */}
+            {/* 956-555-0123 al completar los 10 dígitos o al salir (D-432); lo que no es un número completo se deja y se marca. */}
             <input id="est-tel" value={draft.customer.phone} inputMode="tel" placeholder="956-555-0123"
               className={inv(!!draft.customer.phone.trim() && telefonoLimpio(draft.customer.phone) === null)}
               onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}

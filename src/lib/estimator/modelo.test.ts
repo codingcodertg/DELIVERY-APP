@@ -80,7 +80,7 @@ describe("el cliente: nombre completo dentro, «Ms. Apellido» fuera", () => {
     expect(apellidoDe("Maria Gonzalez")).toBe("Gonzalez");
     expect(apellidoDe("  Maria   de la Cruz ")).toBe("Cruz");
   });
-  it("una sola palabra es el apellido (D-NEXT: ya no hay campo aparte); vacío solo sin nombre", () => {
+  it("una sola palabra es el apellido (D-432: ya no hay campo aparte); vacío solo sin nombre", () => {
     expect(apellidoDe("Gonzalez")).toBe("Gonzalez");
     expect(apellidoDe("   ")).toBe("");
   });
@@ -88,14 +88,14 @@ describe("el cliente: nombre completo dentro, «Ms. Apellido» fuera", () => {
     expect(paraQuienSeImprime({ salutation: "Ms.", full_name: "Maria Gonzalez" })).toBe("Ms. Gonzalez");
     expect(paraQuienSeImprime({ salutation: "Mr.", full_name: "  " })).toBe("");
   });
-  it("el tratamiento por defecto es «Mr.» (D-NEXT), y va primero en la lista", () => {
+  it("el tratamiento por defecto es «Mr.» (D-432), y va primero en la lista", () => {
     expect(borradorVacio().customer.salutation).toBe("Mr.");
     expect(SALUTATIONS[0]).toBe("Mr.");
     expect([...SALUTATIONS].sort()).toEqual(["Mr.", "Mrs.", "Ms."]);
   });
 });
 
-describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-NEXT)", () => {
+describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-432)", () => {
   it("paréntesis, espacios, puntos y +1 se normalizan", () => {
     expect(telefonoLimpio("(956) 555 0123")).toBe("956-555-0123");
     expect(telefonoLimpio("+1 956 555 0123")).toBe("956-555-0123");
@@ -113,7 +113,7 @@ describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-NEXT)", () 
   });
 });
 
-describe("la extensión de quien prepara sale sola (D-NEXT)", () => {
+describe("la extensión de quien prepara sale sola (D-432)", () => {
   it("primero la del expediente; aunque el navegador recuerde otra", () => {
     expect(extensionDePartida(" 214 ", "999")).toEqual({ valor: "214", origen: "expediente" });
   });

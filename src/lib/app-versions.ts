@@ -33,7 +33,7 @@ export const APP_VERSIONS = {
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
   promos: "0.12.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
-  estimator: "0.3.0",
+  estimator: "0.4.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

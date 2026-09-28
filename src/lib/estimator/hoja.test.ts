@@ -83,7 +83,7 @@ describe("la hoja del cliente NO lleva nada interno", () => {
     expect(hojaDelCliente(borrador()).preparadoPara).toBe("Ms. Zubizarreta");
   });
 
-  it("sin campo de apellido (D-NEXT): la hoja dice «Mr. <última palabra del nombre>»", () => {
+  it("sin campo de apellido (D-432): la hoja dice «Mr. <última palabra del nombre>»", () => {
     const q = borrador();
     q.customer = { ...q.customer, salutation: "Mr.", full_name: "  Juan  de la Garza " };
     expect(hojaDelCliente(q).preparadoPara).toBe("Mr. Garza");

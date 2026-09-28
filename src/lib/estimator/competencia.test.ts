@@ -98,7 +98,7 @@ describe("sin la 153 o sin cotización, la sección lo dice", () => {
     expect(sinBase).toContain("migration 153");
     const sinCot = renderToStaticMarkup(createElement(AvisoDeCompetencia, { estado: "sin-cotizacion", t }));
     expect(sinCot).toContain("data-competencia-sin-cotizacion");
-    // D-NEXT: sin «Search and» delante (la búsqueda ya es automática), así que empieza en mayúscula.
+    // D-432: sin «Search and» delante (la búsqueda ya es automática), así que empieza en mayúscula.
     expect(sinCot).toContain("Save this estimate");
     expect(renderToStaticMarkup(createElement(AvisoDeCompetencia, { estado: "lista", t }))).toBe("");
   });

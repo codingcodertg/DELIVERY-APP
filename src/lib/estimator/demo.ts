@@ -20,7 +20,7 @@ export const DEMO_OTRO_VENDEDOR = { id: "u-sales2", name: "Sofia Ventas" };
 export const DEMO_ESTIMADO_AJENO = "DEMO-1001";
 
 /**
- * La extensión de cada persona del demo (D-NEXT): simula `recruiting.employee_files.ringcentral_ext`, que en producción
+ * La extensión de cada persona del demo (D-432): simula `recruiting.employee_files.ringcentral_ext`, que en producción
  * lee el servidor. «Maria Manager» (`u-mgr`) no tiene a propósito: así se mide el caso sin extensión conocida, en el que
  * el campo queda para escribirla a mano.
  */

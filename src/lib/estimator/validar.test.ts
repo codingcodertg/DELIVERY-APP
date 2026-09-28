@@ -71,7 +71,7 @@ describe("lo que falta antes de generar la copia", () => {
     // Recogiendo, la dirección no se pide.
     expect(loQueFalta(completo({ delivery: { ...d.delivery, mode: "pickup" } }), "nueva", "2026-09-08")).toEqual([]);
   });
-  it("extensión, nombre, categoría y línea completa (sin «apellido»: sale del nombre, D-NEXT)", () => {
+  it("extensión, nombre, categoría y línea completa (sin «apellido»: sale del nombre, D-432)", () => {
     const q = completo({ sales_ext: " ", lines: [{ ...lineaSfVacia(), requested_sf: 100 }] });
     q.customer = { ...q.customer, full_name: "" };
     expect(loQueFalta(q, "nueva", "2026-09-08")).toEqual(["extension", "nombre", "linea-incompleta", "categoria"]);
@@ -85,7 +85,7 @@ describe("lo que falta antes de generar la copia", () => {
   it("guardar pide menos: número y permiso, y con base", () => {
     expect(puedeGuardar(completo({ lines: [] }), "nueva")).toBe(true);
     expect(puedeGuardar(completo(), "sin-base")).toBe(false);
-    // Sin comprobar aún se puede PULSAR (D-NEXT): el guardado comprueba antes de escribir.
+    // Sin comprobar aún se puede PULSAR (D-432): el guardado comprueba antes de escribir.
     expect(puedeGuardar(completo(), "sin-buscar")).toBe(true);
     expect(puedeGuardar(completo(), "pendiente")).toBe(false);
     expect(puedeGuardar(completo(), "sin-pedir")).toBe(false);
@@ -98,7 +98,7 @@ describe("lo que falta antes de generar la copia", () => {
   });
 });
 
-describe("un nombre de una palabra basta (D-NEXT)", () => {
+describe("un nombre de una palabra basta (D-432)", () => {
   it("con nombre, nada que ver con el apellido", () => {
     const q = completo();
     q.customer = { ...q.customer, full_name: "Gonzalez" };
@@ -106,7 +106,7 @@ describe("un nombre de una palabra basta (D-NEXT)", () => {
   });
 });
 
-describe("la guardada se abre sola solo sobre un borrador en blanco (D-NEXT)", () => {
+describe("la guardada se abre sola solo sobre un borrador en blanco (D-432)", () => {
   const blanco = () => ({ ...borradorVacio("2026-09-08"), estimate_num: "E-9", sales_ext: "214" });
   it("en blanco (número, extensión y fecha no cuentan como trabajo)", () => {
     expect(borradorSinTrabajo(borradorVacio("2026-09-08"))).toBe(true);
@@ -126,7 +126,7 @@ describe("la guardada se abre sola solo sobre un borrador en blanco (D-NEXT)", (
   });
 });
 
-describe("qué se hace con la comprobación automática (D-NEXT)", () => {
+describe("qué se hace con la comprobación automática (D-432)", () => {
   const blanco = { ...borradorVacio("2026-09-08"), estimate_num: "104582" };
   const conTrabajo = { ...blanco, customer: { ...blanco.customer, full_name: "Ana Prueba" } };
   const args = { meId: "yo", esAdmin: false, quoteIdAbierto: null, borrador: blanco, abrirSola: true };
@@ -186,7 +186,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
   it("guardar pasa por puedeGuardar", () => {
     expect(p).toContain("if (!me || !puedeGuardar(draft, estado)) return null;");
   });
-  it("sin botón «Search» (D-NEXT): se comprueba solo, al salir del campo y antes de guardar", () => {
+  it("sin botón «Search» (D-432): se comprueba solo, al salir del campo y antes de guardar", () => {
     expect(p).not.toContain("data-buscar");
     expect(p).not.toContain('t("Search", "Buscar")');
     expect(p).toContain("onBlur={comprobarYa}");
@@ -227,7 +227,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
   });
 });
 
-describe("la extensión del expediente la lee el servidor, solo la de quien entra (D-NEXT)", () => {
+describe("la extensión del expediente la lee el servidor, solo la de quien entra (D-432)", () => {
   const page = leer("src/app/estimator/page.tsx");
   it("una columna, filtrada por el id de la sesión y activa", () => {
     expect(page).toContain('.select("ringcentral_ext")');
