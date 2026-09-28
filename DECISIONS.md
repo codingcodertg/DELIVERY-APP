@@ -29338,6 +29338,11 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 > **⚠ Reemplazada en parte por D-410** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
 > marcada y apagada** —sigue sin poder quitarse—, porque ahora las columnas se mueven y la factura también. Y los anchos de
 > paradas pasan de `rtg_routes_stops8` (por posición) a `rtg_routes_stops9` (por clave), heredando los guardados.
+> **Reemplazada en parte por D-423** (2026-09-27): la ciudad de una dirección escrita a mano ya no sale «» o basura.
+> `ciudadDeEntrega` quita el lote/apartamento/suite («LOTE #24», «USA LOTE 11»), reconoce el estado con punto («TX.»,
+> «TX.78521») y, cuando lo que queda es la calle sin comas («9 W ROBLES EDINBURG TX»), toma la ciudad CONOCIDA que cierra el
+> texto (las que salen limpias de otras direcciones, las de las tiendas y las zonas de los choferes). «Nunca adivina buscando
+> nombres conocidos dentro del texto» sigue valiendo para las direcciones con comas; sin ellas, una conocida al FINAL sí.
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** Dos pedidos del dueño el mismo día, literales:
@@ -30951,6 +30956,16 @@ Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `s
 
 ## D-421 · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
 
+> **Reemplazada en parte por D-423** (2026-09-27, T-0413): el peso de la zona solo ya no decide contra el builder y el
+> balance. Medido con 16 días reales, una entrega de Brownsville se iba con otro chofer aunque el de su zona la hacía con +0
+> millas (el builder, +37 min × 2, y el balance le ganaban al peso 60), y ningún peso lo arreglaba sin volver la zona una
+> regla también cuando es ineficiente. Ahora, ya mejorado el plan, cada entrega fuera de zona vuelve al chofer de su zona si
+> con él son **menos de `zonaMillas` millas de más** (Ajustes, por defecto 5) y nadie llega más tarde; con más, manda la
+> eficiencia y la zona es solo este peso. `VERSION_DEL_MOTOR` pasa a `motor-5`; sin zonas, el mismo plan byte a byte.
+> Y el **hallazgo de paso** de abajo (guardar una fila de choferes pisaba lo editado en las demás) **está arreglado en
+> D-423**: al guardar se vuelve a leer solo esa fila. Y «una dirección sin ciudad legible no tiene zona» se estrecha: las
+> escritas a mano sin comas se leen con las zonas de los choferes como ciudades conocidas (nota en D-408).
+
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración 152** (escrita, **no aplicada**; plan en
 `docs/PLAN-152-zonas-preferidas.md`). Tarea **T-0412**. **Reemplaza en parte** a D-418 (`motor-4`; una lista de columnas
 opcionales de chofer) y a D-395 (el orden de «Elige conductor»). Las dos llevan su nota.
@@ -31119,3 +31134,134 @@ duplicaría un dato que ya está en la orden.
 
 **Pruebas.** `etiqueta.test.ts` (destino, carga partida, sin dirección, y que el borrador lo pinta). 3 mutantes, caen los 3.
 No se abrió en el demo: el borrador necesita el servidor (`/api/route-plan`).
+
+## D-423 · La zona le gana al builder y al balance cuando cuesta casi lo mismo en millas; la ciudad de las direcciones escritas a mano; y guardar un chofer en Ajustes ya no pisa las demás filas
+
+**Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (el umbral vive en
+`settings.route_weights`, como el peso de zona de D-421 y las opciones de D-415). Tarea **T-0413**, hija de T-0412.
+**Reemplaza en parte** a D-421 (`motor-5`; el hallazgo de paso de Ajustes) y a D-408 (la ciudad de una dirección sin
+comas); las dos llevan su nota.
+
+**Qué pidió el dueño**, 2026-09-27, literal: *«no edingur o weslaco se pueden dividir entre ernesto y julio y por emergencia
+con maximo, maximo siempre tiene priorirdad en brownivlle y nunca mandes a otro conductor por una ruta que sea inefeciente y
+que seria mejor con otro conducto siempre que piense todo eso arma ese algoritnmo asi»*. Las zonas ya estaban puestas en
+producción (Ernesto: McAllen, Mission, Edinburg, Weslaco; Julio: Pharr, Edinburg, Weslaco; Maximo: Brownsville) y el peso de
+zona en 60.
+
+### Qué fallaba
+
+Con D-421 la zona es un término más del coste: una entrega fuera de zona cuesta el peso (60, unas 24 millas con la
+estimación: una milla ≈ 2,5 unidades). Medido con 16 días reales (7–30 sep, 204 órdenes, motor real, solo lectura), el
+**2026-09-07 #135** (Brownsville) se iba con Ernesto aunque **Maximo la hacía con +0 millas y +0 minutos**: con Maximo, un
+builder llegaba 37 min más tarde (× peso 2 = 74) y el balance subía 96 min (× 0,1 = 9,6), y eso le ganaba a 60. Ningún peso
+razonable lo arregla: subirlo hasta ganarle al builder vuelve la zona una regla también cuando es ineficiente (con 120, las
+millas suben un 1,5 % y los minutos tarde de 54 a 122). Y el **2026-09-28 #546** (Weslaco, con Maximo con peso 30) solo lo
+impedía el balance: Julio la hacía con **0,3 millas menos**.
+
+### Qué hay ahora
+
+- **Un umbral en millas, «la zona primero, salvo que cueste estas millas de más»** (Ajustes → Motor de rutas, junto al peso 5;
+  `route_weights.zonaMillas`, **por defecto 5**, 0 lo apaga). Ya mejorado el plan, cada entrega que va **fuera de su zona**
+  se prueba con los choferes **de** su zona (su mejor hueco, sin violaciones nuevas: ni ventana dura, ni capacidad, ni turno,
+  ni tope de retraso). Si con alguno el plan entero hace **menos de 5 millas de más** y **no suma ni un minuto tarde**, va con
+  él (con el más barato de esos, por el coste de siempre), **digan lo que digan el builder y el balance**. Con 5 millas o más,
+  se queda donde la dejó el coste: ahí la zona es solo el peso de siempre y manda la eficiencia. Después, otra vuelta de
+  mejora que ya **no puede subir** las entregas fuera de zona (recolocar e intercambiar), para que el resto del plan se
+  reacomode sin deshacer lo que volvió. Se repite mientras algo vuelva: cada vuelta baja las entregas fuera de zona, así que
+  se acaba. `motor-5`.
+- **Por qué así y no un peso ni un orden lexicográfico en la comparación de planes.** Un peso no puede: el builder y el
+  balance no tienen techo. Meter «menos de N millas de más» dentro de la comparación de la búsqueda local no es un orden
+  entre planes (A gana a B por zona, B a C por coste, C a A por millas) y la búsqueda podría dar vueltas. Un repaso **después**
+  de la mejora sí es un orden: cada movimiento baja en uno las entregas fuera de zona. Es la forma más simple que cumple.
+- **Nunca deja una orden fuera** (solo mueve lo que ya tiene ruta; lo que queda fuera puede entrar fuera de zona en la vuelta
+  de después, como en D-421), **nunca deja vacío** a un chofer con «usar todos», **nunca** mueve una orden fijada, una
+  parte de una orden partida (va con sus hermanas) ni una con chofer puesto por una persona.
+- **Sin zonas, el mismo plan byte a byte**: la huella de `motor-1` de `zonas-en-el-motor.test.ts` sale igual.
+- **La ciudad de las direcciones escritas a mano** (`ciudadDeEntrega`). Medido en producción el 2026-09-27: **21 de 295**
+  direcciones daban «» o basura («LOTE #24 … EDINBURG» como ciudad, «USA LOTE 11», «TX.», «TX.78521», y las escritas sin comas
+  «… EDINBURG TX»). Ahora se quita el lote/apartamento/suite, el estado con punto es estado, y si lo que queda es la calle, la
+  ciudad es la **conocida** que cierra el texto: las que salen limpias de otras direcciones, las de las tiendas y las zonas de
+  los choferes. Sin ninguna, «» — **no se inventa**. Con eso quedan **3 de 295** sin ciudad, y las 3 no la dicen de forma que se
+  pueda leer (una calle sola, «BVILLE», y una ciudad que no sale en ninguna otra dirección). El motor lee con las zonas de los
+  choferes como conocidas; el Gestor (celda, orden y filtro, con la misma lista), Ajustes (las ciudades que ofrece) y
+  «Mejor lugar», con las suyas.
+  - Se probó también leer lo que va detrás del tipo de vía (St, Rd, Loop…) sin lista, y se descartó: una prueba ya existente,
+    «7 Dos St sin coma», daba la ciudad «sin coma».
+- **Ajustes → choferes: guardar una fila ya no pisa las demás** (el hallazgo de D-421). Antes, «Guardar» recargaba toda la
+  tabla y lo editado sin guardar en otra fila se perdía sin aviso (y al guardarla después se mandaba lo de antes). Ahora se
+  vuelve a leer **solo esa fila** (`.eq("profile_id", id)`) y se pone con `conFilaGuardada`; las demás conservan su borrador.
+
+### Números (16 días reales, 7–30 sep 2026, estimación en línea recta, peso de zona 60, medido el 2026-09-27)
+
+| | colocadas | millas | min tarde | ventanas duras rotas | fuera de zona | Edinburg/Weslaco → Maximo | Brownsville → otro | alternativa ≥5 mi / ≥10 mi | #135 | #546 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| antes (`motor-4`, umbral 0) | 181 | 3.459 | 54 | 0 | 34 | 3 | 6 | 8 / 2 | Ernesto | Julio |
+| **umbral 5 (por defecto)** | **181** | **3.459** | **54** | **0** | **32** | **3** | **5** | **6 / 2** | **Maximo** | Julio |
+| umbral 8 | 181 | 3.507 (+1,4 %) | 54 | 0 | 31 | 3 | 5 | 9 / 4 | Maximo | Julio |
+| umbral 5 + ciudades nuevas | 181 | 3.459 | 54 | 0 | 32 | 3 | 5 | 6 / 2 | Maximo | Julio |
+| peso 30, umbral 0 | 180 | 3.432 | 21 | 0 | 38 | 7 | 6 | 7 / 1 | Ernesto | **Maximo** |
+| peso 30, umbral 5 | 180 | 3.432 | 21 | 0 | 35 | 6 | 5 | 5 / 1 | Maximo | **Julio** |
+
+Se eligió **5**: arregla #135 (y #546 con peso 30), las colocadas no bajan, las millas no
+suben, los minutos de jornada bajan 13, y las «alternativas ≥ 5 millas más baratas» bajan de 8 a 6. Con 8 ya se paga en
+millas (+48, +1,4 %) y salen más alternativas ≥ 5 mi, no menos. Con umbral 5, además de #135, cambian otras tres: una de
+McAllen pasa de Maximo a Ernesto (su zona), y dos de McAllen se cruzan entre Maximo y Julio (ninguno de los dos es de McAllen).
+
+**Lo que sigue saliendo, con su motivo** (umbral 5): Brownsville con otro — 09-10 #170, **no cabe** en el camión de Maximo
+(11 pallets); 09-27 #280, #293, #294, #322, **recogida lejos** (en Pharr y Edinburg: con Maximo, +115 a +129 millas).
+Weslaco con Maximo — 09-24 #272, **a Ernesto y a Julio no les queda turno**; 09-26 #432, Ernesto +24,8 mi y Julio **llegaría
+33 min tarde**; 09-26 #434, Ernesto +36,1 mi y a Julio se le pasa el tope de retraso. Las ciudades nuevas no cambiaron el
+plan de estos 16 días: las 9 entregas que ahora tienen ciudad ya iban con un chofer de su zona.
+
+### Decisiones tomadas por el worker (a validar)
+
+1. **Umbral por defecto 5 millas**, medido arriba; editable en Ajustes, 0 lo apaga.
+2. **La zona no le gana a llegar tarde**: si con el chofer de su zona sube un solo minuto tarde (aunque sea en una ventana
+   ancha dentro del tope), no vuelve. Es #432: Julio la hacía con 12 millas menos pero llegando 33 min tarde, y se queda con
+   Maximo. Si el dueño prefiere zona antes que puntualidad en las ventanas anchas, es quitar esa condición.
+3. **Brownsville con un chofer que NO es de su zona**: la regla solo devuelve entregas a su zona; entre dos choferes que no
+   son de la zona (Julio y Ernesto en Brownsville) decide el coste de siempre. Y #135 queda con Maximo aunque Julio la hiciera
+   con 9,7 millas menos que Ernesto (el peso 60 lo protege, como pidió: «maximo siempre tiene prioridad en brownsville»).
+4. **La ciudad con la grafía del texto** («BROWNSVILLE», «EDINBURG»), no la de la lista: la zona se compara sin mayúsculas y
+   da igual, pero el filtro del Gestor enseña las dos grafías como hoy ya pasaba con las direcciones con comas.
+5. **«SWEET 104» se quita como suite**: así venía escrita una dirección real.
+
+### Lo que NO se hizo
+
+- «¿Por qué aquí?» no dice «volvió a su zona» ni «con su chofer eran N millas de más»: sigue con las frases de D-421. En el
+  caso de #432 dice «con su chofer el plan entero salía más caro», que es verdad pero no nombra la llegada tarde.
+- El repaso no prueba intercambios (sacar una de la zona de otro para hacer sitio): solo mueve la entrega a un hueco libre.
+
+### Dónde está
+
+`src/lib/route-engine/planifica.ts` (`vuelveASuZona`, `mejoraElPlan(protegeZona)`, `motor-5`), `evalua.ts`
+(`UMBRAL_DE_ZONA_POR_DEFECTO_MI`), `types.ts` (`Pesos.zonaMillas`); `src/lib/route-settings.ts` (`umbralDeZonaMi`,
+`pesosDeRuta`, `conFilaGuardada`), `src/lib/types.ts`; `src/components/RouteEngineSettings.tsx` (el campo y el guardado de
+una fila); `src/lib/ciudad-de-entrega.ts` (`UNIDAD`, estado con punto, `ciudadesConocidas`, la conocida al final),
+`src/lib/zonas.ts`, `src/lib/route-plan/entrada.ts`, `src/lib/valores-del-gestor.ts`, `src/app/(app)/routes/page.tsx`.
+
+### Verificado
+
+- Pruebas nuevas: `route-engine/zona-antes-que-builder.test.ts` (8: **los dos casos medidos con un fixture anonimizado de
+  los días reales**, `route-engine/zona-casos-reales.json` —sin direcciones, nombres ni códigos; pins a 2 decimales;
+  choferes A/B/C— antes y después; y en una cuadrícula: +0 y +4 millas vuelven, 5 y 6 no, 6 sí con umbral 7, llegar 50 min
+  tarde no vuelve, umbral 0 y peso 0 lo apagan, «usar todos» no deja a nadie vacío, y el día inventado 10 de la vuelta de después). Más casos en
+  `ciudad-de-entrega.test.ts`, `zonas-en-el-plan.test.ts` (umbral en Ajustes y hasta el motor, el campo, guardar una fila,
+  ciudades elegibles, «Mejor lugar», el Gestor con la misma lista) y `valores-del-gestor.test.ts`.
+- Pruebas que cambiaron: `requisitos-en-el-motor.test.ts`, `plan.test.ts` y `zonas-en-el-plan.test.ts` (`motor-5`);
+  `motor-rutas-modelo.test.ts` (7 campos que se apagan sin la 130: el umbral); `routes-columns.test.ts` (la celda y el orden del Gestor pasan la lista); `ciudad-de-entrega.test.ts` («123 Main St
+  McAllen TX 78501» sigue dando «» sin lista, y da McAllen con ella).
+- **Mutantes**: (`~/.claude/herramientas/mutantes`): primera tanda, **26 de 31** cayeron con una prueba con nombre. De los 5 vivos: uno era una prueba que faltaba —quitar la protección del intercambio en la vuelta de después no lo notaba nadie; una búsqueda sobre días inventados dio los días 10, 13 y 18, y el 10 es ahora la prueba «la mejora de después del repaso no saca de su zona lo que volvió»—; dos eran pruebas flojas («la conocida más larga» pasaba porque la lista ya venía en ese orden; «la conocida no puede ser el texto entero» no la cubría nadie) y se endurecieron; y dos eran **código de sobra** y se quitaron (el estado con punto en la regla de las siglas: «TX.» ya lo reconoce la del nombre, sin mayúsculas; y exigir un número delante de la conocida: si el trozo lleva número y la conocida lo cierra, el número ya está delante). Segunda tanda sobre lo cambiado: **4 de 4**. En total, **29 de 29** caen, entre ellos: sin el repaso (caen los dos días reales y la cuadrícula), `<=` en vez de `<` en el umbral, dejar llegar más tarde, dejar vacío con «usar todos», correr con peso 0 o umbral 0, mandar a cualquier chofer y no solo a los de la zona, mover lo que ya va en su zona, no leer el umbral de Ajustes, guardar el campo en el peso de zona, recargar todas las filas al guardar, no quitar el lote, y cada uno de los sitios que pasan la lista de conocidas (motor, Gestor —celda, orden y filtro—, Ajustes, «Mejor lugar»).
+- **Demo** (2026-09-27, Chrome headless por CDP, clics y teclado de persona; `driver_settings` contestada dentro del navegador,
+  como en D-421). **Antes** (el componente de `main`): se escribió 7 en la capacidad de la fila 1 y 9 en la de la 2, se guardó
+  la 2 → la fila 1 volvió a vacío y al guardarla se mandó `capacity_pallets: null`. **Ahora**: guardar la 2 lee solo
+  `profile_id=eq.<la 2>`, la fila 1 conserva su 7, y al guardarla se manda 7. El campo «5 · Zone first, unless it costs this
+  many extra miles» sale junto al peso 5 con 5, **0 px** de desplazamiento lateral a 1440 y a 390. Capturas
+  `A-dos-filas-editadas`, `B-tras-guardar-fila-1`, `C-tras-guardar-fila-0`, `D-umbral-zona-1440`, `D-umbral-zona-390`.
+- `node scripts/verify.mjs`: tipos, **5144 pasadas | 3 saltadas** y `next build` en verde (2026-09-27).
+
+### Lo que no se verificó
+
+- **Tiempos con Google/tráfico**: la medición es con la estimación en línea recta, como D-421. Con tiempos de verdad, las
+  millas de más de cada entrega cambian y algún caso cerca de 5 millas puede caer del otro lado.
+- «Planificar el día» no se abrió en el demo (necesita el servidor); se prueba con `planifica` y los días reales.

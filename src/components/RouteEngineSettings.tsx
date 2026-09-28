@@ -8,7 +8,7 @@ import { DELIVERY_WINDOW_PRESETS } from "@/lib/constants";
 import { MINUTOS_POR_ORDEN_EN_BALANCE } from "@/lib/route-engine";
 import {
   COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta,
-  opcionesDeReparto, pesoDeZona, pesosDeRuta, routeWeightsAlGuardar, topeDeRetrasoMin, ventanasDuras,
+  conFilaGuardada, opcionesDeReparto, pesoDeZona, pesosDeRuta, routeWeightsAlGuardar, topeDeRetrasoMin, umbralDeZonaMi, ventanasDuras,
 } from "@/lib/route-settings";
 import { alternaZona, ciudadesElegibles, claveDeZona, zonasDelChofer } from "@/lib/zonas";
 import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings } from "@/lib/types";
@@ -28,7 +28,7 @@ import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDel
  * no hace falta que cada pantalla de Entregas cargue una tabla que solo mira Ajustes.
  */
 
-const PESOS: { key: Exclude<keyof RouteWeights, "zona">; en: string; es: string }[] = [
+const PESOS: { key: Exclude<keyof RouteWeights, "zona" | "zonaMillas">; en: string; es: string }[] = [
   { key: "builder", en: "1 · Builder early (per minute until a builder is delivered)", es: "1 · Builder temprano (por minuto hasta entregar a un builder)" },
   { key: "manejo", en: "2 · Short route — per driving minute", es: "2 · Ruta corta — por minuto de manejo" },
   { key: "millas", en: "2 · Short route — per mile", es: "2 · Ruta corta — por milla" },
@@ -124,6 +124,7 @@ export function RouteEngineSettings() {
     [deliveries, settings.stores, filas],
   );
   const zona = pesoDeZona(settings);
+  const zonaMillas = umbralDeZonaMi(settings);
 
   const guardaChofer = async (id: string) => {
     const f = filaDe(id);
@@ -143,7 +144,11 @@ export function RouteEngineSettings() {
     setOcupado(null);
     if (error || !data || data.length !== 1) { notify("Error: " + (error?.message ?? t("nothing was saved", "no se guardó nada"))); return; }
     notify(t("Saved", "Guardado"));
-    await cargar();
+    // Se vuelve a leer SOLO esta fila (D-423): recargarlas todas, como antes, pisaba en silencio lo que se estaba
+    // editando en las demás sin guardar. Si la lectura falla, vale lo que se mandó y la base aceptó.
+    const { data: leida } = await leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas).eq("profile_id", id), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER);
+    const guardada: Fila = ((leida ?? []) as unknown as DriverSettings[])[0] ?? { profile_id: id, ...f, base_store: (f.base_store ?? "").trim() || null };
+    setFilas((actuales) => conFilaGuardada(actuales, id, guardada));
   };
 
   return (
@@ -168,6 +173,9 @@ export function RouteEngineSettings() {
         <NumeroConGuardado
           label={t("5 · Preferred zone (per delivery outside it)", "5 · Zona preferida (por entrega fuera de ella)")}
           value={zona} paso="5" disabled={!hayColumnas} onSave={(v) => guardaPeso("zona", v)} />
+        <NumeroConGuardado
+          label={t("5 · Zone first, unless it costs this many extra miles", "5 · La zona primero, salvo que cueste estas millas de más")}
+          value={zonaMillas} paso="1" disabled={!hayColumnas} onSave={(v) => guardaPeso("zonaMillas", v)} />
         <NumeroConGuardado
           label={t("Latest a wide window may run (minutes)", "Retraso máximo en una ventana ancha (minutos)")}
           value={tope} paso="5" disabled={!hayColumnas}
@@ -339,8 +347,8 @@ export function RouteEngineSettings() {
         <div className="hint" data-zonas-ayuda>
           {hayZonas
             ? t(
-              "Preferred zones are the delivery cities (as in the Routes Manager's «Delivery city» column) each driver should get first. A preference, not a rule: when a driver's zone has more than fits, or another city has no driver, the engine still gives them work elsewhere, and it never leaves an order out because of a zone. Weight 5 says how much it weighs, in minutes of driving per delivery outside the zone; 0 turns it off. A driver with no zones takes anything at no extra cost.",
-              "Las zonas preferidas son las ciudades de entrega (como la columna «Ciudad de entrega» del Gestor de Rutas) que cada chofer recibe primero. Preferencia, no regla: si la zona de un chofer tiene más de lo que cabe, u otra ciudad no tiene chofer, el motor le da trabajo de otra zona, y nunca deja una orden fuera por la zona. El peso 5 dice cuánto pesa, en minutos de manejo por entrega fuera de su zona; 0 lo apaga. Un chofer sin zonas lleva cualquier cosa sin coste de más.",
+              "Preferred zones are the delivery cities (as in the Routes Manager's «Delivery city» column) each driver should get first. A preference, not a rule: when a driver's zone has more than fits, or another city has no driver, the engine still gives them work elsewhere, and it never leaves an order out because of a zone. Weight 5 says how much it weighs, in minutes of driving per delivery outside the zone; 0 turns it off. And the zone beats builders and balance: a delivery goes back to its zone's driver if that costs fewer extra miles than the threshold and nobody arrives later; at the threshold or more, efficiency wins (0 turns it off). A driver with no zones takes anything at no extra cost.",
+              "Las zonas preferidas son las ciudades de entrega (como la columna «Ciudad de entrega» del Gestor de Rutas) que cada chofer recibe primero. Preferencia, no regla: si la zona de un chofer tiene más de lo que cabe, u otra ciudad no tiene chofer, el motor le da trabajo de otra zona, y nunca deja una orden fuera por la zona. El peso 5 dice cuánto pesa, en minutos de manejo por entrega fuera de su zona; 0 lo apaga. Y la zona le gana al builder y al balance: una entrega vuelve al chofer de su zona si con él son menos millas de más que el umbral y nadie llega más tarde; con el umbral o más, manda la eficiencia (0 lo apaga). Un chofer sin zonas lleva cualquier cosa sin coste de más.",
             )
             : t("Preferred zones per driver aren't available yet (the database update is pending).", "Las zonas preferidas por chofer todavía no están disponibles (falta la actualización de la base).")}
         </div>

@@ -41,14 +41,15 @@ export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_cod
  * El valor crudo de la columna `clave` para la orden `d`. Texto vacío cuenta como «sin valor» (lo decide
  * `claveDeFiltro`), así que aquí no hace falta convertir «» en nulo.
  */
-export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdenes<C>): ValorDeCelda {
+export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdenes<C>, ciudadesConocidas: readonly string[] = []): ValorDeCelda {
   const deOrdenes = ordenes ? columnaDeOrdenes(clave, ordenes.catalogo) : undefined;
   if (deOrdenes) return deOrdenes.value(d, ordenes!.ctx);
   switch (clave) {
     case "invoice": return d.invoice_num ?? null;
     case "account": return d.account ?? null;
     // La columna enseña solo la CIUDAD desde D-408 («Ciudad de entrega»): ordena y filtra por ella, no por la calle.
-    case "address": return ciudadDeEntrega(d.delivery_address) || null;
+    // Con las mismas ciudades conocidas que la celda (D-423): una dirección sin comas se ordena por la ciudad que se ve.
+    case "address": return ciudadDeEntrega(d.delivery_address, ciudadesConocidas) || null;
     // La celda pinta el nombre del punto de recogida y, si no lo hay, la dirección: se ordena por lo que se ve.
     case "pickup": return d.pickup_name || d.pickup_address || null;
     case "store": return d.store ?? null;

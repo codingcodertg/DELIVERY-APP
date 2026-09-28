@@ -195,10 +195,10 @@ describe("la página del Gestor", () => {
     expect(cuerpo).toContain("const gesto = abreLaOrden(d);");
     expect(cuerpo).toContain('<span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>');
   });
-  it("D-408: la columna de la ciudad pinta `ciudadDeEntrega`, con la dirección entera en el title, en las dos tablas", () => {
-    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</span>').length - 1).toBe(1);
+  it("D-408: la columna de la ciudad pinta `ciudadDeEntrega` (desde D-423, con las ciudades conocidas), con la dirección entera en el title, en las dos tablas", () => {
+    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>').length - 1).toBe(1);
     // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»).
-    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address) || "—"}</td>;').length - 1).toBe(1);
+    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;').length - 1).toBe(1);
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: City", es: "Paradas: Ciudad" });
     // El botón de abrir y cerrar la dirección se fue con ella.
     expect(pagina).not.toMatch(/addrWide|Expand address|Contraer dirección/);
@@ -253,7 +253,8 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);");
     expect(pagina).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
-    expect(pagina).toContain("const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes), [deOrdenes]);");
+    // D-423: con las ciudades conocidas, las mismas que la celda.
+    expect(pagina).toContain("const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);");
     expect(pagina).toContain("etiqueta: etiquetaDelGestor(c.key, deOrdenes)");
     expect(pagina).toContain("const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);");
     expect(pagina).toContain('const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);');
