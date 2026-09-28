@@ -285,12 +285,12 @@ export default function MyRoutePage() {
           hace sigue saliendo de las órdenes asignadas, abajo. */}
       {verAtrasadas ? (
         <div className="hint" style={{ marginBottom: 8 }}>
-          <b>{t("Viewing your overdue stops only", "Viendo solo tus paradas atrasadas")}</b>{" "}
+          <b>{t("Viewing your overdue stops only", "Viendo solo tus paradas expiradas")}</b>{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(false)}>{t("Back to today", "Volver a hoy")}</button>
         </div>
       ) : atrasadas.length > 0 && (
         <div className="hint" style={{ marginBottom: 8 }}>
-          {t(`${atrasadas.length} overdue stop(s) from earlier days — not part of today.`, `${atrasadas.length} parada(s) atrasadas de días anteriores — no son de hoy.`)}{" "}
+          {t(`${atrasadas.length} overdue stop(s) from earlier days — not part of today.`, `${atrasadas.length} parada(s) expiradas de días anteriores — no son de hoy.`)}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(true)}>{t("View them", "Verlas")}</button>
         </div>
       )}

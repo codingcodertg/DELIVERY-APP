@@ -116,7 +116,7 @@ export default function AccountsPage() {
           <div className="kpi"><b>{current.total}</b><span>{t("Orders", "Órdenes")}</span></div>
           <div className="kpi"><b style={{ color: "var(--accent)" }}>{current.active}</b><span>{t("Open", "Abiertas")}</span></div>
           <div className="kpi"><b style={{ color: "var(--green)" }}>{current.delivered}</b><span>{t("Delivered", "Entregadas")}</span></div>
-          <div className="kpi"><b style={{ color: current.overdue ? "var(--red)" : undefined }}>{current.overdue}</b><span>{t("Overdue", "Atrasadas")}</span></div>
+          <div className="kpi"><b style={{ color: current.overdue ? "var(--red)" : undefined }}>{current.overdue}</b><span>{t("Overdue", "Expiradas")}</span></div>
           <div className="kpi"><b>{current.pallets}</b><span>{t("Pallets", "Pallets")}</span></div>
           <div className="kpi"><b style={{ color: "var(--green)", fontSize: 17 }}>{fmtMoney(current.fees)}</b><span>{t("Fees", "Cobros")}</span></div>
         </div>
@@ -190,7 +190,7 @@ export default function AccountsPage() {
                 <th>{t("Orders", "Órdenes")}<span className="col-resizer" onMouseDown={acctCols.startResize(1)} /></th>
                 <th>{t("Open", "Abiertas")}<span className="col-resizer" onMouseDown={acctCols.startResize(2)} /></th>
                 <th>{t("Delivered", "Entregadas")}<span className="col-resizer" onMouseDown={acctCols.startResize(3)} /></th>
-                <th>{t("Overdue", "Atrasadas")}<span className="col-resizer" onMouseDown={acctCols.startResize(4)} /></th>
+                <th>{t("Overdue", "Expiradas")}<span className="col-resizer" onMouseDown={acctCols.startResize(4)} /></th>
                 <th>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={acctCols.startResize(5)} /></th>
                 <th>{t("Fees", "Cobros")}<span className="col-resizer" onMouseDown={acctCols.startResize(6)} /></th>
                 <th>{t("Last delivery", "Última entrega")}</th>

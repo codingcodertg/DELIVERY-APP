@@ -2153,12 +2153,12 @@ export default function RoutesPage() {
 
       {soloPendientes ? (
         <div className="hint" style={{ marginBottom: 8 }}>
-          <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes atrasadas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
+          <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes expiradas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
         </div>
       ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
         <div className="hint" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) atrasadas · ${pendientes.sinFecha.length} sin fecha`)}
+          <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) expiradas · ${pendientes.sinFecha.length} sin fecha`)}
           {" — "}{t("not part of this day.", "no son de este día.")}</span>
           <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
           <CerrarAviso aviso={AVISOS_DEL_GESTOR.atrasadas} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.atrasadas)} />
@@ -2424,9 +2424,9 @@ export default function RoutesPage() {
               data-chip-sin-asignar={f}
               title={f === "todas" ? t("Unassigned orders from any day — past, future or undated", "Órdenes sin asignar de cualquier día — pasadas, futuras o sin fecha") : undefined}
             >
-              {f === "dia" ? (modo === "dia" ? t("This day", "Este día") : modo === "todas" ? t("All dates", "Todas las fechas") : t("Overdue & undated", "Atrasadas y sin fecha"))
+              {f === "dia" ? (modo === "dia" ? t("This day", "Este día") : modo === "todas" ? t("All dates", "Todas las fechas") : t("Overdue & undated", "Expiradas y sin fecha"))
                 : f === "todas" ? t("All", "Todas")
-                : f === "overdue" ? t("Overdue", "Atrasadas")
+                : f === "overdue" ? t("Overdue", "Expiradas")
                 : f === "windowed" ? t("Windowed", "Con ventana")
                 : t("No location", "Sin ubicación")} ({cuentasDeChips[f]})
             </button>
@@ -3100,7 +3100,7 @@ function DateCell({
   if (d.delivery_date === date && !vencida) return <>{fmtDate(d.delivery_date)}</>;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      {vencida && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{t("Late", "Atrasada")}</span>}
+      {vencida && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{t("Late", "Expirada")}</span>}
       <input
         type="date"
         value={d.delivery_date ?? ""}

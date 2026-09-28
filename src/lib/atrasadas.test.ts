@@ -244,7 +244,7 @@ describe("la pantalla usa todo esto, y no una copia", () => {
     expect(pagina).toContain("cuentas: counts,");
   });
 
-  it("la pastilla dice «Outdated» / «Atrasadas»", () => {
-    expect(pagina).toContain(': p.key === PESTANA_ATRASADAS ? t("Outdated", "Atrasadas")');
+  it("la pastilla dice «Outdated» / «Expiradas» (D-426)", () => {
+    expect(pagina).toContain(': p.key === PESTANA_ATRASADAS ? t("Outdated", "Expiradas")');
   });
 });

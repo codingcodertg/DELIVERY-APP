@@ -33,7 +33,7 @@ export const MOTIVOS_SEMBRADOS: CancelReason[] = [
   { key: "customer_pickup", en: "Customer will pick up at the store", es: "Cliente recogerá en tienda" },
   { key: "out_of_stock", en: "Out of stock", es: "Sin existencias" },
   { key: "wrong_info", en: "Wrong information", es: "Información incorrecta" },
-  { key: MOTIVO_POR_RETRASO, en: "Late without rescheduling", es: "Atrasada sin reprogramar" },
+  { key: MOTIVO_POR_RETRASO, en: "Late without rescheduling", es: "Expirada sin reprogramar" },
   { key: MOTIVO_OTRO, en: "Other", es: "Otro", free_text: true },
 ];
 
