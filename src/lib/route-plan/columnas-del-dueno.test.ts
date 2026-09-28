@@ -18,8 +18,8 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
 
 describe("las columnas de partida del plan, en el orden del dueño", () => {
-  it("tras el ID fijo: tipo de cliente, ciudad de recogida, factura, dirección de entrega y ventanas — y nada más", () => {
-    expect([...VISTAS_EN_EL_PLAN]).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_invoice", "pl_address", "pl_windows"]);
+  it("tras el ID fijo: tipo de cliente, ciudad de recogida, (D-435: ciudad de entrega,) factura, dirección de entrega y ventanas — y nada más", () => {
+    expect([...VISTAS_EN_EL_PLAN]).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_invoice", "pl_address", "pl_windows"]);
     expect(claves(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual([...VISTAS_EN_EL_PLAN]);
   });
 
@@ -124,7 +124,7 @@ describe("lo ya guardado: a quien tenía columnas del plan (D-429) le salen las 
     const sinFactura = al.columnas!.filter((k) => k !== "pl_invoice");
     const movido = mueveEnElGestor("plan", al.orden, "pl_windows", -1, sinFactura);
     const recarga = preferenciasDelGestorAlLeer(sinFactura, movido);
-    expect(claves(recarga.columnas!, recarga.orden)).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_windows", "pl_address"]);
+    expect(claves(recarga.columnas!, recarga.orden)).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_windows", "pl_address"]);
     expect(recarga.escribe).toBe(false);
   });
 

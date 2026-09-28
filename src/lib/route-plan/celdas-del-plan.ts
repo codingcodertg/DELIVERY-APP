@@ -1,6 +1,7 @@
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import { zonaDeLaRecogida } from "@/lib/zonas";
+import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import type { Delivery, NamedLocation } from "@/lib/types";
 
 /**
@@ -8,9 +9,20 @@ import type { Delivery, NamedLocation } from "@/lib/types";
  * 2026-09-28, sobre la tabla del plan publicado: «quiero que haya una columna solo para el id, lueg osi es builder, inter
  * tienda o vventa al mostrador, luego la ciudad donde se recoje, y el invoice number».
  *
+ * D-435 sumó una tercera, la ciudad de entrega: «lo unico que hizo falta es ciudad de entregfa».
+ *
  * Aquí no se decide nada nuevo: cada una LEE la regla que ya decide eso en otra parte, para que el plan no pueda
  * contradecir al motor ni a la ficha.
  */
+
+/**
+ * La clase de la FILA de una parada en la tabla del plan (D-435): la recogida en verde muy suave, la entrega en amarillo
+ * (los tintes, en `globals.css`, con su par oscuro). El dueño, 2026-09-28: «quiero que en esa misma table las pickup toda la
+ * row este highlited pero bien suave de verde y las deliveries de amarillo para poder identificarlas mejor».
+ */
+export function claseDeLaFilaDelPlan(kind: "P" | "D"): "fila-plan-recoger" | "fila-plan-entregar" {
+  return kind === "P" ? "fila-plan-recoger" : "fila-plan-entregar";
+}
 
 /** Builder, Intertienda o Venta al mostrador. `null`: la orden aún no tiene tipo de orden, y no se sabe. */
 export type ClaseDeOrden = "builder" | "counter_sale" | "intertienda";
@@ -43,15 +55,18 @@ export interface ContextoDelPlan {
 }
 
 /**
- * El texto de una columna propia del plan en una orden, o `undefined` si la columna no es de estas dos (entonces la pinta
+ * El texto de una columna propia del plan en una orden, o `undefined` si la columna no es de estas (entonces la pinta
  * la celda de Órdenes). La ciudad de recogida es `zonaDeLaRecogida` (D-427): la tienda de `pickup_name`, y si no está o no
  * tiene punto, la de `store` — la misma tienda que «Planificar el día» usa como origen.
  */
-export function celdaPropiaDelPlan(clave: string, d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "pickup_name" | "store">, ctx: ContextoDelPlan): string | undefined {
+export function celdaPropiaDelPlan(clave: string, d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "pickup_name" | "store" | "delivery_address">, ctx: ContextoDelPlan): string | undefined {
   if (clave === "pl_clase") {
     const c = claseDeLaOrden(d, ctx.reglas);
     return c ? TEXTO_DE_CLASE[c][ctx.es ? 1 : 0] : "—";
   }
   if (clave === "pl_ciudad_recogida") return zonaDeLaRecogida(d, ctx.tiendas, ctx.conocidas) || "—";
+  // D-435: la MISMA ciudad que la columna «Ciudad de entrega» de «Sin asignar» (D-408), con las mismas ciudades conocidas
+  // (D-423). En una recogida no llega aquí: la tabla la deja vacía (`seVeEnLaRecogida`).
+  if (clave === "pl_ciudad_entrega") return ciudadDeEntrega(d.delivery_address, ctx.conocidas) || "—";
   return undefined;
 }
