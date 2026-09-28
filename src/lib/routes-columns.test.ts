@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -11,7 +11,9 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
-const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
+const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5];
+/** Las de Órdenes que la tabla del plan enseña por defecto (D-429): el juego de ventas en Órdenes, en su orden. */
+const DEL_PLAN_POR_DEFECTO = ["pl_po", "pl_type", "pl_account", "pl_stage", "pl_store", "pl_date", "pl_pallets", "pl_driver", "pl_address", "pl_windows"];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
 /** La prioridad (D-412) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
@@ -62,9 +64,9 @@ describe("las columnas del Gestor", () => {
   });
   it("todas las columnas del catálogo salen en alguna tabla, y toda la que sale en una tabla está en el catálogo", () => {
     const todas = COLUMNAS_DEL_GESTOR.map((c) => c.key);
-    const enTablas = new Set((["sinAsignar", "paradas"] as const).flatMap((tb) => columnasDeLaTabla(tb, todas)).map((c) => c.key));
+    const enTablas = new Set((["sinAsignar", "paradas", "plan"] as const).flatMap((tb) => columnasDeLaTabla(tb, todas)).map((c) => c.key));
     expect([...enTablas].sort()).toEqual([...todas].sort());
-    for (const c of COLUMNAS_DEL_GESTOR) for (const tabla of ["sinAsignar", "paradas"] as const) expect(columnasDeLaTabla(tabla, [c.key]).some((x) => x.key === c.key), `${c.key} en ${tabla}`).toBe(c.tablas.includes(tabla));
+    for (const c of COLUMNAS_DEL_GESTOR) for (const tabla of ["sinAsignar", "paradas", "plan"] as const) expect(columnasDeLaTabla(tabla, [c.key]).some((x) => x.key === c.key), `${c.key} en ${tabla}`).toBe(c.tablas.includes(tabla));
   });
   it("marcar y desmarcar: en orden canónico, sin repetidas y sin claves desconocidas — y con las tres marcas siempre", () => {
     expect(alternaColumna(["pallets", "invoice"], "account")).toEqual(["invoice", "account", "pallets", ...MARCAS]);
@@ -78,13 +80,15 @@ describe("las columnas del Gestor", () => {
   });
   it("a quien guardó sus columnas ANTES de cada tanda le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
     const deAntes = conColumnasNuevas(["invoice", "pallets"]);
-    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
+    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
     expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["po", "so", "invoice", "type", "contact", "pallets", "fee", "pickup", "address"]);
     // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
+    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
     // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4]);
-    // Con las tres marcas, ya nada se añade: quitó el costo y se respeta.
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
+    // Con la v4 y sin la v5 (guardó antes de que el plan tuviera columnas, D-429): le llegan las del plan por defecto, una vez.
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, ...DEL_PLAN_POR_DEFECTO, MARCA_V5]);
+    // Con todas las marcas, ya nada se añade: quitó el costo y se respeta.
     expect(conColumnasNuevas(["invoice", ...MARCAS])).toEqual(["invoice", ...MARCAS]);
     // Una que ya la tenía no la gana dos veces.
     expect(conColumnasNuevas(["address", "fee"]).filter((k) => k === "address" || k === "fee")).toEqual(["address", "fee"]);
@@ -132,7 +136,8 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
   });
   it("cada columna que viene de Órdenes lleva EXACTAMENTE su rótulo en los dos idiomas", () => {
     const deOrdenes = COLUMNAS_DEL_GESTOR.filter((c) => c.deOrdenes);
-    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length);
+    // Y las de la tabla del plan (D-429): todas las de Órdenes, cada una con su rótulo de Órdenes.
+    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + 15);
     for (const c of deOrdenes) {
       const r = rotuloEnOrdenes(c.deOrdenes!);
       expect({ en: quitaPrefijo(c.en), es: quitaPrefijo(c.es) }, c.key).toEqual(r);
@@ -294,7 +299,8 @@ describe("la página del Gestor", () => {
     const mapa = pagina.slice(pagina.indexOf("{shownDrivers.map((u) => {"));
     expect(mapa.indexOf("<SelectorDeColumnas")).toBeGreaterThan(-1);
     expect(pagina).not.toMatch(/verColsParadas|cajaDeColsParadas|verColsPool|cajaDeColsPool|useCierraAlSalir/);
-    expect(pagina.split("<SelectorDeColumnas").length - 1).toBe(2);
+    // Tres desde D-429: el del plan va UNO para todas las rutas (fuera del `map` de choferes de `RutaDelPlan`).
+    expect(pagina.split("<SelectorDeColumnas").length - 1).toBe(3);
     const selector = plano(sinComentarios(leer("src/components/SelectorDeColumnas.tsx")));
     expect(selector).toContain("const [abierto, setAbierto] = useState(false);");
     expect(selector).toContain("const caja = useRef<HTMLDivElement>(null);");
@@ -371,7 +377,7 @@ describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () 
   it("plegado por defecto, y plegado sigue diciendo cuántas órdenes no tienen plan", () => {
     // Nace abierto solo si la página lo pide (D-400: el botón «🧭 Armar rutas» de la cabecera, con la barra cerrada).
     expect(plan).toContain("const [abierto, setAbierto] = useState(naceAbierto);");
-    expect(plan).toContain("naceAbierto = false }");
+    expect(plan).toContain("naceAbierto = false, columnas }");
     const desde = plan.indexOf("if (!abierto) return ("), hasta = plan.indexOf("return ( <div className=\"card\"> <div style");
     expect(desde).toBeGreaterThan(-1); expect(hasta).toBeGreaterThan(desde);
     const plegado = plan.slice(desde, hasta);

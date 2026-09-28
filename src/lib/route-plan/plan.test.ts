@@ -267,11 +267,11 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(ruta.split("porque: porQueDelPlan(").length - 1).toBe(3);
   });
 
-  it("ajustar (PATCH): solo admin y logística, solo un BORRADOR, y el cliente manda el movimiento, no la ruta", () => {
+  it("ajustar (PATCH): solo admin y logística, solo un BORRADOR o un PUBLICADO (D-429, que se copia), y el cliente manda el movimiento, no la ruta", () => {
     const patch = ruta.slice(ruta.indexOf("export async function PATCH("));
     expect(patch.length).toBeGreaterThan(100);
     expect(plano(patch)).toContain('if (!yo || !["admin", "logistics"].includes(String(yo.role)))');
-    expect(plano(patch)).toContain('if (fila.status !== "draft" || fila.source === "manual_import") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });');
+    expect(plano(patch)).toContain('if (!["draft", "published"].includes(String(fila.status)) || fila.source === "manual_import") return NextResponse.json({ error: "NOT_DRAFT" }, { status: 409 });');
     // Parte de las paradas GUARDADAS y les aplica el movimiento; del cuerpo no se lee ninguna secuencia.
     expect(plano(patch)).toContain("aplicaMovimiento(estadoDeParadas((paradas.data ?? [])");
     expect(patch).not.toMatch(/cuerpo\.(secuencias|paradas|rutas|writes)/);
@@ -311,7 +311,7 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(vista).toContain('ajuste.mueve({ tipo: p.pinned ? "suelta" : "fija", orden: p.order_ref })');
     expect(vista).toContain('ajuste.mueve({ tipo: "a_chofer", orden: p.order_ref, chofer: e.target.value })');
     expect(vista).not.toMatch(/fetch\(|supabase|aplicaMovimiento|revalida/);
-    expect(plano(panel)).toContain('if (!borrador || borrador.status !== "draft" || ocupado) return;');
+    expect(plano(panel)).toContain('if (!borrador || !["draft", "published"].includes(borrador.status) || ocupado) return;');
     expect(plano(panel)).toContain('method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: borrador.plan_id, movimiento })');
     // Los avisos se enseñan y se cuentan al confirmar; no deshabilitan «Publicar».
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");
@@ -385,7 +385,8 @@ describe("la ruta de planificar y la pantalla", () => {
     // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
-    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden} ajuste={borrador!.status === "draft" ? {');
+    // Desde D-429 el publicado también lleva los controles: el primer ajuste hace una copia en borrador.
+    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden} columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined} ajuste={borrador!.status === "draft" || borrador!.status === "published" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });

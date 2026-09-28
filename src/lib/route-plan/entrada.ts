@@ -77,8 +77,10 @@ export { leeConOpcionales };
  * Lee las órdenes del día pidiendo también `priority` (147) y `requirements` (151). Sin una de ellas, se lee sin ella:
  * todas normales (`prioridadDe`), o ninguna pide nada (`requisitosDeLaOrden`).
  */
-export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Lectura>): Promise<Lectura> {
-  return leeConOpcionales(lee, COLUMNAS_DE_ORDEN, COLUMNAS_OPCIONALES_DE_ORDEN);
+export async function leeOrdenesDelDia(lee: (columnas: string) => PromiseLike<Lectura>,
+  /** Columnas de más, siempre presentes en la base (D-429: `route_seq, load_no`, para la copia de un publicado). */
+  extra = ""): Promise<Lectura> {
+  return leeConOpcionales(lee, COLUMNAS_DE_ORDEN + extra, COLUMNAS_OPCIONALES_DE_ORDEN);
 }
 
 /** Las columnas de `settings` que lee «Planificar el día»; el catálogo de requisitos (151) se pide aparte, como opcional.

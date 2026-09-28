@@ -4,6 +4,7 @@ import type { NamedLocation } from "@/lib/types";
 import { entradaDelDia, filasDeParadas, type DatosDelDia, type EntradaDelDia, type FilaDeParada } from "./entrada";
 import { escriturasAlPublicar, type EscrituraDeOrden } from "./publicar";
 import { fueraConPorque } from "./porque";
+import type { CopiaDelPublicado } from "./copia";
 
 /**
  * Planificar el día y dejarlo en BORRADOR (D-320): de las filas de la base a lo que se guarda en
@@ -27,6 +28,9 @@ export interface FilaDePlan {
   result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean;
     /** Solo tras un ajuste a mano: lo que incumple, cuántos tramos van sin tráfico guardado, y qué órdenes quedaron fijadas. */
     violaciones?: Violacion[]; tramosSinTrafico?: number; fijadas?: string[];
+    /** Solo en la copia de un plan PUBLICADO que se está cambiando (D-429, `./copia`): de qué versión salió, qué no se
+     *  reescribe y qué cambió desde entonces. Viaja con cada ajuste siguiente, porque el `result` se copia entero. */
+    copiaDelPublicado?: CopiaDelPublicado;
     /** Solo en un plan `manual_import`: cómo casó la hoja y la comparación con el plan del motor. Sin el contenido de la hoja. */
     hoja?: Record<string, unknown> };
   writes: EscrituraDeOrden[];

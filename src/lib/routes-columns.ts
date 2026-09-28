@@ -20,8 +20,10 @@
  */
 
 import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
+import { ROLE_DEFAULT_COLUMNS } from "./constants";
 
-export type TablaDelGestor = "sinAsignar" | "paradas";
+/** «plan» (D-429): la tabla de paradas del planificador, «Armar las rutas del día» (`RutaDelPlan`). */
+export type TablaDelGestor = "sinAsignar" | "paradas" | "plan";
 
 export interface ColumnaDelGestor {
   key: string; en: string; es: string; tablas: readonly TablaDelGestor[]; ancho: number;
@@ -121,11 +123,57 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "p_fee", en: "Stops: Fee", es: "Paradas: Costo", tablas: ["paradas"], ancho: 72, deOrdenes: "fee", oculta: true },
   { key: "p_contact", en: "Stops: Contact", es: "Paradas: Contacto", tablas: ["paradas"], ancho: 116, deOrdenes: "contact", oculta: true },
   { key: "p_priority", en: "Stops: Priority", es: "Paradas: Prioridad", tablas: ["paradas"], ancho: 96, deOrdenes: "priority", oculta: true },
+  ...columnasDelPlan(),
 ]);
+
+/**
+ * La tabla del PLANIFICADOR (D-429), la de «Armar las rutas del día». El dueño, 2026-09-28: «quiero que en el planificador
+ * salga las mismas tables como en orden como te lo habia pedido sabajo» — y, preguntado cuáles: «Las mismas que Órdenes». Y
+ * luego: «y que yo pueda editar las columas cambiar ordenes y hasta dejar templates».
+ *
+ * Son las columnas de Órdenes, TODAS y en el orden de Órdenes (`ORDEN_DE_PARTIDA`, D-347), LEÍDAS de allí: si Órdenes
+ * cambia su orden o suma una columna, el plan la sigue, como hizo D-402 con «Sin asignar». Se ven por defecto las que ve
+ * ventas en Órdenes (`ROLE_DEFAULT_COLUMNS.sales`, el mismo juego con que D-402 midió «el orden de ventas»); el resto, en ⚙.
+ * La celda es la de Órdenes (`deOrdenes`). Detrás, las cuatro que la tabla tenía hasta hoy —propias del plan, que Órdenes no
+ * tiene—: siguen existiendo, pero nacen escondidas y se eligen en ⚙.
+ *
+ * Fijas y fuera del ⚙: la etiqueta (P1/D1), la parada —Recoger/Entregar con la orden, que la abre (D-428)— y Ajustar.
+ * Clave `pl_` + la de Órdenes: en la misma fila de `user_prefs` (`routes_columns`) que las otras dos tablas, sin cruzarse.
+ */
+function columnasDelPlan(): ColumnaDelGestor[] {
+  const seVen = new Set(ROLE_DEFAULT_COLUMNS.sales ?? []);
+  // El rótulo, el de Órdenes tal cual (la prueba de D-376 lo compara con `ORDER_COLUMNS`, columna a columna): aquí no se
+  // importa aquel catálogo porque vive en un componente con JSX.
+  const rotulo: Record<string, [string, string]> = {
+    po: ["PO #", "PO #"], so: ["SO #", "SO #"], invoice: ["Invoice #", "Factura #"], type: ["Type", "Tipo"], account: ["Account", "Cuenta"],
+    contact: ["Contact", "Contacto"], stage: ["Stage", "Etapa"], priority: ["Priority", "Prioridad"], store: ["Store", "Tienda"],
+    date: ["Delivery Date", "Fecha entrega"], pallets: ["Pallets", "Pallets"], fee: ["Fee", "Costo"], driver: ["Driver", "Chofer"],
+    address: ["Delivery Address", "Dirección de entrega"], windows: ["Windows", "Ventanas"],
+  };
+  return [
+    ...ORDEN_DE_PARTIDA.map((k): ColumnaDelGestor => ({
+      key: `pl_${k}`, en: `Plan: ${rotulo[k]?.[0] ?? k}`, es: `Plan: ${rotulo[k]?.[1] ?? k}`, tablas: ["plan"], ancho: 100, deOrdenes: k,
+      ...(seVen.has(k) ? {} : { oculta: true as const }),
+    })),
+    { key: "pl_horas", en: "Plan: Arrives–leaves", es: "Plan: Llega–sale", tablas: ["plan"], ancho: 120, oculta: true },
+    { key: "pl_ventana", en: "Plan: Plan window", es: "Plan: Ventana del plan", tablas: ["plan"], ancho: 110, oculta: true },
+    { key: "pl_tramo", en: "Plan: Leg", es: "Plan: Tramo", tablas: ["plan"], ancho: 110, oculta: true },
+    { key: "pl_bordo", en: "Plan: Pallets on board", es: "Plan: Pallets a bordo", tablas: ["plan"], ancho: 90, oculta: true },
+  ];
+}
+
+/**
+ * Qué columnas de Órdenes se pintan en una fila de RECOGIDA (P) del plan (D-429). La fila P y la D son la MISMA orden:
+ * lo que es de la orden —PO, SO, factura, tipo, cuenta, etapa, prioridad, tienda, fecha, pallets, costo, chofer— sale en
+ * las dos, porque quien mira una recogida necesita saber qué carga. Lo que es de la ENTREGA —la dirección, sus ventanas y el
+ * contacto del cliente— en una recogida mentiría: esa parada es en la tienda (la dice la columna de la parada). Va vacío.
+ */
+export const SOLO_DE_LA_ENTREGA: readonly string[] = ["address", "windows", "contact"];
+export const seVeEnLaRecogida = (c: Pick<ColumnaDelGestor, "deOrdenes">): boolean => !c.deOrdenes || !SOLO_DE_LA_ENTREGA.includes(c.deOrdenes);
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
  *  columnas es una elección, no el punto de partida. */
-export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4"];
+export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5"];
 
 /** El orden DE PARTIDA de cada tabla: el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden».
  *  «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde D-331, la factura la primera
@@ -133,8 +181,13 @@ export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_D
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
   paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
+  // El plan (D-429): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
+  plan: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan")).map((c) => c.key),
 };
-const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas"];
+const TABLAS: readonly TablaDelGestor[] = ["sinAsignar", "paradas", "plan"];
+/** El orden de cada tabla leído de una lista guardada. */
+const ordenPorTabla = (guardado: readonly string[] | null | undefined): Record<TablaDelGestor, string[]> =>
+  ({ sinAsignar: ordenDeLaTabla("sinAsignar", guardado), paradas: ordenDeLaTabla("paradas", guardado), plan: ordenDeLaTabla("plan", guardado) });
 
 /**
  * MOVER COLUMNAS en el Gestor (D-410). El dueño: «Route manager view to be able to move columns and save template IN THE
@@ -160,7 +213,7 @@ export function componeOrdenDelGestor(porTabla: Readonly<Record<TablaDelGestor, 
 
 /** Cambia el orden de UNA tabla y deja el de la otra como estaba. */
 function conOrdenDe(tabla: TablaDelGestor, suyo: readonly string[] | null, guardado: readonly string[] | null | undefined): string[] | null {
-  const porTabla = { sinAsignar: ordenDeLaTabla("sinAsignar", guardado), paradas: ordenDeLaTabla("paradas", guardado) };
+  const porTabla = ordenPorTabla(guardado);
   porTabla[tabla] = suyo ? [...suyo] : [...ORDEN_DE_PARTIDA_DEL_GESTOR[tabla]];
   return componeOrdenDelGestor(porTabla);
 }
@@ -216,7 +269,7 @@ export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly st
 /** El orden que trae una plantilla del Gestor, o `null` si se guardó sin orden propio (las de antes de D-410): entonces
  *  se aplica el de partida. Solo claves que aún existen; lo que quede en su orden de partida no se guarda. */
 export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): string[] | null {
-  return o ? componeOrdenDelGestor({ sinAsignar: ordenDeLaTabla("sinAsignar", o), paradas: ordenDeLaTabla("paradas", o) }) : null;
+  return o ? componeOrdenDelGestor(ordenPorTabla(o)) : null;
 }
 
 
@@ -254,10 +307,14 @@ const NUEVAS_EN_V3: readonly string[] = ["pickup"];
 // D-376: las de Órdenes en «Sin asignar». Solo las que salen por defecto; las de paradas nacen ocultas y no se añaden.
 export const MARCA_V4 = "_v4";
 const NUEVAS_EN_V4: readonly string[] = ["type", "so", "po", "fee", "contact"];
+// D-429: la tabla del plan con las columnas de Órdenes. Solo las que salen por defecto; las propias del plan nacen ocultas.
+export const MARCA_V5 = "_v5";
+const NUEVAS_EN_V5: readonly string[] = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && !c.oculta).map((c) => c.key);
 export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   let lista = guardadas.includes(MARCA_V2) ? [...guardadas] : [...new Set([...guardadas, ...NUEVAS_EN_V2])].concat(MARCA_V2);
   if (!lista.includes(MARCA_V3)) lista = [...new Set([...lista, ...NUEVAS_EN_V3])].concat(MARCA_V3);
   if (!lista.includes(MARCA_V4)) lista = [...new Set([...lista, ...NUEVAS_EN_V4])].concat(MARCA_V4);
+  if (!lista.includes(MARCA_V5)) lista = [...new Set([...lista, ...NUEVAS_EN_V5])].concat(MARCA_V5);
   return lista;
 }
 
@@ -311,10 +368,14 @@ export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | n
  * Lo que se pone al aplicar una PLANTILLA del Gestor (D-394): las columnas de la foto que aún existen, en el orden del
  * catálogo, con las marcas. Las marcas van SIEMPRE: la foto se tomó con este código, que ya conoce las columnas de cada tanda,
  * y sin ellas `conColumnasNuevas` volvería a añadir al recargar las que la plantilla tenía quitadas.
+ *
+ * Salvo la tabla del plan (D-429): una plantilla SIN NINGUNA columna del plan se guardó antes de que la tabla existiera —o
+ * con todas quitadas, que es indistinguible—, y aplicarla dejaría el plan sin columnas de Órdenes. Recibe las de por defecto.
  */
 export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
-  const si = new Set(v);
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4);
+  const conocePlan = v.some((k) => COLUMNAS_DEL_GESTOR.some((c) => c.key === k && c.tablas.includes("plan")));
+  const si = new Set(conocePlan ? v : [...v, ...NUEVAS_EN_V5]);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5);
 }
 
 /** La foto que guarda una plantilla del Gestor: solo las columnas del catálogo que se ven, sin marcas ni claves retiradas. */
@@ -335,5 +396,5 @@ export function alternaColumna(elegidas: readonly string[], key: string): string
   const si = new Set(elegidas);
   if (si.has(key)) si.delete(key); else si.add(key);
   // Las marcas viajan siempre: lo que se guarde a partir de aquí ya conoce las columnas de cada tanda.
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5);
 }
