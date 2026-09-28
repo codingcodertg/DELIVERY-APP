@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
 import {
-  ANCHO_FIJO_DE_PARADAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, MARCA_V2, MARCA_V3, MARCA_V4,
+  ANCHO_FIJO_DE_PARADAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5,
   ORDEN_DE_PARTIDA_DEL_GESTOR, anchoDePartidaDeParada, anchosDeParadasHeredados, claveDelOrdenEnElNavegador, columnasDeLaTabla,
   columnasDelSelector, componeOrdenDelGestor, fotoDePlantillaDelGestor, mueveEnElGestor, ordenDeLaTabla, ordenDePlantillaDelGestor,
   ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas, tieneOrdenPropio,
@@ -22,7 +22,7 @@ import {
 const SIN = ORDEN_DE_PARTIDA_DEL_GESTOR.sinAsignar;
 const PAR = ORDEN_DE_PARTIDA_DEL_GESTOR.paradas;
 const TODAS = COLUMNAS_DEL_GESTOR.map((c) => c.key);
-const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4];
+const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5];
 const sinAsignar = (elegidas: readonly string[], orden: readonly string[] | null) => columnasDeLaTabla("sinAsignar", elegidas, orden).map((c) => c.key);
 const paradas = (elegidas: readonly string[], orden: readonly string[] | null) => columnasDeLaTabla("paradas", elegidas, orden).map((c) => c.key);
 /** Mover `clave` n puestos (negativo = arriba), como lo haría la persona pulsando la flecha n veces. */
@@ -69,7 +69,7 @@ describe("mover columnas en «Sin asignar»", () => {
 
 describe("lo que se guarda en `_orden`", () => {
   it("sin mover nada no se guarda nada (`null`), y solo se guarda la tabla que se movió", () => {
-    expect(componeOrdenDelGestor({ sinAsignar: SIN, paradas: PAR })).toBeNull();
+    expect(componeOrdenDelGestor({ sinAsignar: SIN, paradas: PAR, plan: ORDEN_DE_PARTIDA_DEL_GESTOR.plan })).toBeNull();
     const orden = mueve("sinAsignar", null, "store", -2)!;
     expect(orden).toHaveLength(SIN.length);
     expect(orden.some((k) => PAR.includes(k))).toBe(false);
@@ -164,30 +164,45 @@ describe("las plantillas guardan también el orden", () => {
 
 describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", () => {
   const nombre = (i: number) => `${i}`.padStart(MAX_NOMBRE_DE_PLANTILLA, "x");
-  const ordenLleno = [...[...SIN].reverse(), ...[...PAR].reverse()];
+  const ordenLleno = [...[...SIN].reverse(), ...[...PAR].reverse(), ...[...ORDEN_DE_PARTIDA_DEL_GESTOR.plan].reverse()];
   const visiblesLlenas = [...TODAS, ...MARCAS];
   const plantillaLlena = (i: number): PlantillaDeColumnas => ({ n: nombre(i), v: [...TODAS], o: ordenLleno });
-  it("un rol lleno —todas las columnas, todo movido— y plantillas llenas con orden: caben 9; la décima, la guarda la para", () => {
+  it("un rol lleno —todas las columnas, todo movido— y plantillas llenas con orden: caben 5; la sexta, la guarda la para", () => {
     const con = (n: number) => valorDeColumnas({ visibles: { logistics: visiblesLlenas }, orden: { logistics: ordenLleno }, plantillas: Array.from({ length: n }, (_, i) => plantillaLlena(i)) });
     // Medido con `bytesEnLaBase`, que da lo mismo que Postgres (D-394). 6 939 bytes el 2026-09-26 con las 10 plantillas: cabían.
     // D-412 añadió las dos columnas de prioridad («priority» y «p_priority»): 7 553 con 10, y con la reserva de 800 ya no
     // caben (8 353 de 8 192). Con 9, sí. La guarda lo dice al guardar la décima; no falla en silencio.
-    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(7553);
+    // D-NEXT sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
+    // plantilla LLENA —las 48 columnas y las tres tablas movidas— pesa ~1,2 KB: caben 5, y la sexta la para la guarda.
+    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(12753);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
-    expect(cabeEnLaFila(con(9))).toBe(true);
+    expect(cabeEnLaFila(con(5))).toBe(true);
+    expect(cabeEnLaFila(con(6))).toBe(false);
     expect(MAX_PLANTILLAS).toBe(10);
   });
-  it("los 6 roles llenos + 10 plantillas llenas: no cabe la décima, y la guarda lo dice en vez de fallar en silencio", () => {
+  it("los 6 roles llenos + plantillas llenas: la guarda dice cuántas no caben en vez de fallar en silencio", () => {
     const porRol = <T,>(v: T) => Object.fromEntries(ROLES_QUE_ELIGEN.map((r) => [r, v]));
     const con = (n: number) => valorDeColumnas({ visibles: porRol(visiblesLlenas), orden: porRol(ordenLleno), plantillas: Array.from({ length: n }, (_, i) => plantillaLlena(i)) });
     // Con las dos de prioridad (D-412): 3 648 → 3 982 y 9 951 → 10 845; caben 4 y no 5.
-    expect(bytesEnLaBase(con(0))).toBe(3982);
-    expect(bytesEnLaBase(con(10))).toBe(10845);
+    // Con la tabla del plan (D-NEXT): 3 982 → 6 861 sin plantillas, y 18 445 con 10. Los seis roles con TODO marcado y movido
+    // aún caben (6 861 + 800 de reserva < 8 192), pero ya no una plantilla llena más. Lo normal —logística y admin con las de
+    // por defecto y 10 plantillas de esas— son 4 312 bytes (la prueba de abajo).
+    expect(bytesEnLaBase(con(0))).toBe(6861);
+    expect(cabeEnLaFila(con(0))).toBe(true);
+    expect(bytesEnLaBase(con(10))).toBe(18445);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);
     expect(cabeEnLaFila(con(10))).toBe(false);
     // Cuántas caben en ese peor caso: lo que cuenta la entrada de DECISIONS.md.
     const caben = Array.from({ length: MAX_PLANTILLAS + 1 }, (_, n) => n).filter((n) => cabeEnLaFila(con(n))).pop();
-    expect(caben).toBe(4);
+    expect(caben).toBe(0);
+  });
+  it("lo normal con la tabla del plan (D-NEXT): logística y admin con las de por defecto y 10 plantillas de esas caben con holgura", () => {
+    const porDefecto = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => !MARCAS.includes(k));
+    const v = valorDeColumnas({ visibles: { logistics: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], admin: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO] }, orden: {},
+      plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });
+    expect(porDefecto).toHaveLength(29);
+    expect(bytesEnLaBase(v)).toBe(4312);
+    expect(cabeEnLaFila(v)).toBe(true);
   });
 });
 

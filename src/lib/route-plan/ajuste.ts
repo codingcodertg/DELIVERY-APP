@@ -4,7 +4,7 @@ import {
 import type { NamedLocation } from "@/lib/types";
 import type { FilaDePlan } from "./borrador";
 import { filasDeParadas, type FilaDeParada } from "./entrada";
-import { escriturasAlPublicar } from "./publicar";
+import { escriturasAlPublicar, ordenDeLaParte } from "./publicar";
 
 /**
  * Ajustar a mano un plan en BORRADOR (D-323): reordenar una parada, pasar una orden a otro chofer, fijarla.
@@ -30,7 +30,18 @@ export type Movimiento =
   | { tipo: "fija"; orden: string }
   | { tipo: "suelta"; orden: string };
 
-export type ErrorDeMovimiento = "chofer_desconocido" | "parada_desconocida" | "orden_desconocida" | "en_el_borde" | "entrega_antes_de_recoger" | "ya_esta_ahi";
+export type ErrorDeMovimiento = "chofer_desconocido" | "parada_desconocida" | "orden_desconocida" | "en_el_borde" | "entrega_antes_de_recoger" | "ya_esta_ahi" | "ya_no_se_mueve";
+
+/**
+ * Si la parada `indice` de una ruta puede cambiarse con su vecina (`delta` −1 arriba, +1 abajo) sin tocar una orden que ya
+ * no se mueve (D-NEXT: en la copia de un publicado, lo que ya no está pendiente). Solo mira eso y el borde; que el cambio
+ * siga siendo una ruta lo decide `aplicaMovimiento`. La usan el servidor y la pantalla, para apagar la flecha.
+ */
+export function cambiaConLaVecina(ordenes: readonly string[], indice: number, delta: -1 | 1, noSeMueven: ReadonlySet<string>): boolean {
+  const otro = indice + delta;
+  if (indice < 0 || indice >= ordenes.length || otro < 0 || otro >= ordenes.length) return false;
+  return !noSeMueven.has(ordenDeLaParte(ordenes[indice])) && !noSeMueven.has(ordenDeLaParte(ordenes[otro]));
+}
 
 /** El movimiento que manda el cliente, comprobado campo a campo: lo que no encaja es `null`. */
 export function movimientoValido(m: unknown): Movimiento | null {
@@ -77,7 +88,8 @@ export function esUnaRuta(secuencias: Secuencias): boolean {
   return [...visto.values()].every((v) => v.p >= 0 && v.d > v.p);
 }
 
-export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes: readonly string[]): EstadoDelPlan | { error: ErrorDeMovimiento } {
+/** `noSeMueven`: órdenes (su id, sin parte) cuyas paradas no se suben, bajan ni pasan a otro chofer (D-NEXT). Fijarlas sí. */
+export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes: readonly string[], noSeMueven: ReadonlySet<string> = new Set()): EstadoDelPlan | { error: ErrorDeMovimiento } {
   const secuencias: Secuencias = Object.fromEntries(Object.entries(estado.secuencias).map(([c, s]) => [c, [...s]]));
   const existe = (orden: string) => Object.values(secuencias).some((s) => s.some((p) => p.orden === orden));
 
@@ -94,6 +106,7 @@ export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes:
     const origen = Object.keys(secuencias).find((c) => secuencias[c].some((p) => p.orden === m.orden));
     if (!origen) return { error: "orden_desconocida" };
     if (origen === m.chofer) return { error: "ya_esta_ahi" };
+    if (noSeMueven.has(ordenDeLaParte(m.orden))) return { error: "ya_no_se_mueve" };
     secuencias[origen] = secuencias[origen].filter((p) => p.orden !== m.orden);
     // Al final de la ruta del otro: recoger y, enseguida, entregar. Desde ahí la persona la sube adonde quiera.
     secuencias[m.chofer] = [...(secuencias[m.chofer] ?? []), { orden: m.orden, tipo: "P" }, { orden: m.orden, tipo: "D" }];
@@ -105,6 +118,7 @@ export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes:
   if (!Number.isInteger(m.indice) || m.indice < 0 || m.indice >= sec.length) return { error: "parada_desconocida" };
   const otro = m.tipo === "sube" ? m.indice - 1 : m.indice + 1;
   if (otro < 0 || otro >= sec.length) return { error: "en_el_borde" };
+  if (!cambiaConLaVecina(sec.map((p) => p.orden), m.indice, m.tipo === "sube" ? -1 : 1, noSeMueven)) return { error: "ya_no_se_mueve" };
   [sec[m.indice], sec[otro]] = [sec[otro], sec[m.indice]];
   secuencias[m.chofer] = sec;
   if (!esUnaRuta(secuencias)) return { error: "entrega_antes_de_recoger" };
@@ -146,11 +160,14 @@ export function revalida(guardado: PlanGuardado, estado: EstadoDelPlan, padre: s
     }
   }
 
+  // Solo se escribe lo que está en la foto: en la copia de un publicado, lo que ya no está pendiente salió de ella (D-NEXT).
+  // En un plan del motor toda orden que entró está en la foto, y esto no quita nada.
+  const enLaFoto = guardado.input.ordenes ? new Set(guardado.input.ordenes.map((f) => f.id)) : null;
   const plan: FilaDePlan = {
     plan_date: guardado.plan_date, source: "manual_edit", parent_plan_id: padre, algorithm_version: guardado.algorithm_version,
     params: guardado.params, input: guardado.input,
     result: { ...guardado.result, coste: r.coste, violaciones: r.violaciones, tramosSinTrafico, fijadas: estado.fijadas },
-    writes: escriturasAlPublicar(r, entrada.choferes),
+    writes: escriturasAlPublicar(r, entrada.choferes).filter((w) => !enLaFoto || enLaFoto.has(w.id)),
     provider: guardado.provider, traffic: guardado.traffic, converged: guardado.converged,
     total_minutes: r.rutas.reduce((s, x) => s + x.duracionMin, 0), total_miles: Math.round(r.coste.millas * 100) / 100,
     late_minutes: r.coste.tardeMin, unassigned_count: guardado.result.sinAsignar.length + guardado.result.fuera.length,
