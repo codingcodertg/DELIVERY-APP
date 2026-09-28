@@ -31149,6 +31149,10 @@ el gancho y `enSuZona`); `supabase/migrations/152_zonas_preferidas.sql`.
 
 ## D-422 · El borrador de «Planificar el día» dice a dónde va cada entrega
 
+> **Reemplazada en parte por D-NEXT** (2026-09-28): la línea «📍 Ciudad · dirección» bajo cada entrega ya no se pinta, y
+> `destinoDeLaOrden` se retiró. La dirección sale en la columna «Dirección de entrega» de la tabla del plan, que el dueño
+> pidió dejar: *«deja direcion de entrega y ventana»*.
+
 **Fecha:** 2026-09-27. **Pedido del dueño**, con la captura del borrador de «Armar las rutas del día automáticamente»:
 *«aun no miro a donde delivere»* (antes, a otra sesión: *«aqui quiero vert tambien donde entrega»*).
 
@@ -31642,6 +31646,11 @@ servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.
 
 ## D-429 · El planificador con las columnas de Órdenes (⚙, mover, plantillas); y una ruta ya publicada se puede cambiar
 
+> **Reemplazada en parte por D-NEXT** (2026-09-28): lo que la tabla del plan enseña de partida ya no es el juego de ventas en
+> Órdenes, sino cinco columnas que pidió el dueño —Tipo de cliente, Ciudad de recogida, Factura, Dirección de entrega y
+> Ventanas— tras un ID fijo que ya no lleva la factura. Las columnas de Órdenes siguen todas en el ⚙, y el mecanismo (mover,
+> plantillas, fila `routes_columns`) no cambia. A quien tenía guardadas las del plan se le devuelven, una vez, a las nuevas.
+
 **Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«quiero que en el planificador salga las mismas tables como en orden como
 te lo habia pedido sabajo y mia que los botons para cmabiar la ruta cuando ya esta no funciona»*. Preguntado, aclaró: los
 botones, *«Ya publicada, no me deja»*; las columnas, *«Las mismas que Órdenes»*. Y después: *«y que yo pueda editar las columas
@@ -31735,6 +31744,10 @@ que ya movió: el historial de cada orden guarda la fecha de antes (D-406) por s
 fuera del cliente).
 
 ## D-431 · En el plan, cada parada nombra primero la orden y después «Recoger / Entregar»
+
+> **Reemplazada en parte por D-NEXT** (2026-09-28): la columna de la orden lleva ahora SOLO el id (*«quiero que haya una
+> columna solo para el id»*). «· Recoger / Entregar» se quitó —lo dice la etiqueta P/D, que lo lleva de título al pasar el
+> ratón—, y la factura, la pastilla Builder y la tienda pasaron a sus columnas.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con captura del plan de Julio: *«el id ponlo antes de recoger para que sepamos
 que carga es»*.
@@ -31962,3 +31975,79 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 - La fila de recogida de una orden ya entregada (P1 McAllen en la medición) se sigue viendo, como antes de entregarla. Se
   dejó así para no cambiar qué filas enseña la tarjeta.
 - No verificado contra producción: todo lo medido es en el demo.
+
+## D-NEXT · La tabla del plan con las columnas del dueño: ID solo, tipo de cliente, ciudad de recogida, factura, dirección y ventanas
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
+literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la
+ciudad donde se recoje, y el invoice number, quitame el pocolum, siguiente etapa, y a donde entrega, fecha de enterea,
+pallets, quita choffer, deja direcion de entrega y ventana»*. **Migraciones:** ninguna. **Reemplaza en parte** D-422 (la
+línea 📍), D-429 (qué se ve de partida) y D-431 (la orden con su factura y «Recoger / Entregar» en la misma celda); las
+tres llevan su nota.
+
+**Cómo estaba.** La tabla (D-429) era: # · PARADA (enlace «#FT158 · Fact. 99437» + «· Recoger/Entregar» + pastilla Builder
++ «· tienda», y en las D la línea «📍 Ciudad · dirección» de D-422) · PO # · Tipo · Cuenta · Etapa · Tienda · Fecha entrega ·
+Pallets · Chofer · Dirección de entrega · Ventanas · Ajustar. Lo visible de partida era el juego de ventas en Órdenes.
+
+**Cómo queda, de partida:** # (P1/D1, fija) · **ID** (fija; solo `#FT158`, enlace que abre la ficha como en D-428) ·
+**Tipo de cliente** · **Ciudad de recogida** · **Factura #** · **Dirección de entrega** · **Ventanas** · Ajustar (fija).
+
+- **ID.** `idDeLaOrden` (`route-plan/etiqueta.ts`): el código sin la factura. Se quitó «· Recoger / Entregar»: el dueño dijo
+  *solo* el id, y la acción ya la dice la etiqueta P/D; para no perderla, la celda de la etiqueta la lleva de título
+  (`title`). D-431 pidió *«el id antes de recoger»*: con la acción fuera, el id no tiene nada delante. Se quedó solo
+  «· carga N de M» en letra pequeña: una orden partida sale en dos filas con el mismo id, y sin eso no se sabe cuál es cuál.
+- **Tipo de cliente** (`pl_clase`). Builder, Intertienda o Venta al mostrador. No es lógica nueva: `claseDeLaOrden`
+  (`route-plan/celdas-del-plan.ts`) llama a `tipoDeClienteDeLaOrden` —la misma con la que el motor da prioridad a los
+  builders (D-316/D-337: el tipo guardado en la orden y, si no, la cuenta «Venta al mostrador» o no)— y, si la orden no va a un
+  cliente, a `isStoreToStore` con las reglas de Ajustes (`order_type_rules`): de tienda a tienda es «Intertienda». Sin tipo de
+  orden, «—». **Nombre:** «Tipo de cliente» y no «Tipo», porque «Plan: Tipo» ya existe y es el TIPO DE ORDEN de Órdenes
+  (Customer / Intertienda / Transfer), que sigue elegible en ⚙. La pastilla Builder junto al id se quitó: lo dice esta columna.
+- **Ciudad de recogida** (`pl_ciudad_recogida`). `zonaDeLaRecogida` de D-427 tal cual: la tienda de `pickup_name` y, si no está
+  o no tiene punto en Ajustes, la de `store`; la ciudad de su dirección con `ciudadDeEntrega` y las mismas ciudades conocidas
+  que el resto del Gestor (`ciudadesQueSeConocen`). Es la misma tienda que el plan usa como origen, así que una orden que está
+  en el plan siempre la tiene; una tienda sin punto da «—».
+- **Factura, Dirección de entrega, Ventanas:** las columnas de Órdenes que ya estaban (`pl_invoice`, `pl_address`, `pl_windows`).
+- **Fila P:** Tipo de cliente, Ciudad de recogida y Factura llenas; Dirección de entrega y Ventanas vacías (son de la
+  entrega, regla `seVeEnLaRecogida` de D-429). **Fila D:** todo.
+- **Lo que pidió quitar** (PO, Etapa, Fecha de entrega, Pallets, Chofer) y lo que no pidió pero no está en su lista (Tienda,
+  Cuenta, el Tipo de orden, SO, Costo, Contacto, Prioridad, y las cuatro propias del plan) **siguen en el ⚙, escondidas**.
+  No se borró nada del catálogo.
+- **La línea 📍 de D-422** se quitó con `destinoDeLaOrden`, que no tenía otro uso: la columna Dirección de entrega ya lo dice.
+
+**Lo ya guardado (`_v6`).** El dueño ya tenía columnas del plan guardadas desde D-429. Las tandas anteriores (`_v2`…`_v5`)
+solo AÑADEN columnas; esta no bastaba añadiendo, porque él pidió QUITAR. `conColumnasNuevas`, a una lista sin `_v6`, le quita
+todas las del plan y le pone las cinco nuevas; las de «Sin asignar» y paradas no se tocan. Y el ORDEN: con un orden del plan
+guardado, las dos columnas nuevas saldrían al final (`ordenEfectivo` pone lo que no conoce detrás), no donde las pidió; por eso
+`preferenciasDelGestorAlLeer` también devuelve el orden del plan a su partida —el de las otras dos tablas se queda— y **lo
+guarda en ese momento**, una vez. Si esperara a que marcara una casilla, mover una columna del plan antes guardaría el orden
+sin la marca y al recargar se le volvería a deshacer. Es la única escritura nueva, en su propia fila de `user_prefs`, y solo
+si se pudo leer (como el resto del Gestor). **Las plantillas guardadas no se tocan:** una de D-429 con PO y Chofer los pone.
+
+**Peso de la fila** (`gestor-mover-columnas.test.ts`, modelo, no medida): dos columnas y una marca más. El peor caso de un rol
+lleno con 10 plantillas llenas: 12 753 → 13 467 bytes (siguen cabiendo 5, la sexta la para la guarda, igual que antes). Los
+seis roles llenos sin plantillas: 6 861 → 7 294, que con la reserva de 800 sigue cabiendo en 8 192, pero con menos holgura
+(98 bytes). Lo normal —logística y admin con las de partida y 10 plantillas de esas— baja de 4 312 a 3 752, porque el plan
+de partida pasa de 10 columnas a 5.
+
+**Medido en el demo por CDP** (2026-09-28, puerto propio, `/api/route-plan` simulado en el navegador con un plan publicado de
+tres órdenes del demo: builder, Transfer y una pasada a «Venta al mostrador»; dos tiendas del demo con punto, porque el demo
+no trae coordenadas), en español, a 1440 y a 390:
+- Cabeceras, en orden: `# · ID · Tipo de cliente · Ciudad de recogida · Factura # · Dirección de entrega · Ventanas · Ajustar`.
+- P1: `#1089 · Builder · McAllen · INV-4119 · (vacía) · (vacía)`. D1: `#1089 · Builder · McAllen · INV-4119 · 5800 N 10th St,
+  McAllen TX · 13:00-16:00`. P2/D2 `#1023 · Intertienda · Weslaco · —` (Transfer, sin factura). P3/D3 `#1088 · Venta al mostrador
+  · —` (su tienda, Mission, sin punto en el demo).
+- 0 líneas 📍 (`[data-destino]`) y 0 «Recoger/Entregar» junto al id. Desplazamiento lateral de la página: 0 px a 1440 y 0 px a
+  390 (la tabla se desplaza dentro de su caja).
+
+**Pruebas.** `route-plan/columnas-del-dueno.test.ts` (nueva: orden y nombres de partida, lo que queda escondido en ⚙, la fila P,
+las tres clases y «—», la ciudad por `pickup_name` / `store` / sin punto, la tanda `_v6` con columnas y orden, que no se
+repite, y que las plantillas no se tocan); y ajustadas `columnas-del-plan`, `etiqueta`, `routes-columns`,
+`gestor-mover-columnas`, `plantillas-de-columnas` y `plan`. **Mutantes:** 19 propios, caen los 19, leídos por nombre.
+
+**Para validar con el dueño.**
+- Un tipo de orden **Transfer** (de tienda a tienda en Ajustes) sale como «Intertienda»: el dueño nombró tres clases, y la
+  regla que ya existe no distingue Transfer de Intertienda. Si quiere ver «Transfer», es cambiar el texto, no la regla.
+- «Recoger / Entregar» ya no se lee junto al id; solo la P/D (y su título al pasar el ratón).
+
+**No verificado:** contra producción. Que la escritura única de `_v6` llegue a su fila de `user_prefs` se prueba con el texto de
+la página y la función pura; el demo no tiene `user_prefs`.

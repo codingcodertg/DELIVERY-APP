@@ -1,5 +1,4 @@
 import { orderLabel } from "@/lib/utils";
-import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 
 /**
  * Cómo se nombra una orden en todo lo del plan de ruta (D-331): su código Y su número de factura.
@@ -23,16 +22,14 @@ export function nombraLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string,
 }
 
 /**
- * A dónde va una entrega del plan (D-422): la ciudad y la dirección, leídas EN VIVO de la orden como la factura, para que
- * salga también en los borradores ya guardados. El dueño, con la captura del borrador: «aun no miro a donde delivere».
- * `null` si la orden no está a la vista o no tiene dirección.
+ * Solo el id de la orden (D-NEXT), para la columna ID de la tabla del plan: el dueño, «quiero que haya una columna solo para el
+ * id». La factura va en su propia columna. Una orden que ya no está a la vista, por el principio de su referencia, como
+ * `nombraLaOrden`.
+ *
+ * Aquí vivía `destinoDeLaOrden` (D-422), la línea «📍 ciudad · dirección» bajo cada entrega. Se quitó con D-NEXT: la columna
+ * «Dirección de entrega» ya lo dice, y el dueño pidió quitar lo repetido.
  */
-export function destinoDeLaOrden(
-  ordenes: readonly (OrdenParaNombrar & { delivery_address?: string | null })[],
-  ref: string,
-): { ciudad: string; direccion: string } | null {
+export function idDeLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string): string {
   const d = ordenes.find((x) => x.id === ref.split("#")[0]);
-  const direccion = (d?.delivery_address ?? "").replace(/\s+/g, " ").trim();
-  if (!direccion) return null;
-  return { ciudad: ciudadDeEntrega(direccion), direccion };
+  return d ? `#${orderLabel(d)}` : ref.slice(0, 8);
 }

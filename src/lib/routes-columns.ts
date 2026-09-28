@@ -20,7 +20,15 @@
  */
 
 import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
-import { ROLE_DEFAULT_COLUMNS } from "./constants";
+
+/**
+ * Lo que la tabla del plan enseña de partida (D-NEXT), en este orden tras el ID fijo. El dueño, 2026-09-28: «quiero que haya
+ * una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la ciudad donde se recoje, y el
+ * invoice number, quitame el pocolum, siguiente etapa, y a donde entrega, fecha de enterea, pallets, quita choffer, deja
+ * direcion de entrega y ventana». Lo demás (PO, Tipo, Cuenta, Etapa, Tienda, Fecha, Pallets, Chofer…) sigue en ⚙, escondido.
+ * Va aquí arriba porque el catálogo se arma al cargar el módulo y lo lee.
+ */
+export const VISTAS_EN_EL_PLAN: readonly string[] = ["pl_clase", "pl_ciudad_recogida", "pl_invoice", "pl_address", "pl_windows"];
 
 /** «plan» (D-429): la tabla de paradas del planificador, «Armar las rutas del día» (`RutaDelPlan`). */
 export type TablaDelGestor = "sinAsignar" | "paradas" | "plan";
@@ -139,9 +147,14 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
  *
  * Fijas y fuera del ⚙: la etiqueta (P1/D1), la parada —Recoger/Entregar con la orden, que la abre (D-428)— y Ajustar.
  * Clave `pl_` + la de Órdenes: en la misma fila de `user_prefs` (`routes_columns`) que las otras dos tablas, sin cruzarse.
+ *
+ * **Reemplazado en parte por D-NEXT:** lo que se ve de partida ya no es el juego de ventas sino `VISTAS_EN_EL_PLAN`, y hay
+ * dos columnas que Órdenes no tiene, delante de las suyas: «Tipo de cliente» (builder / intertienda / mostrador) y «Ciudad
+ * de recogida». La columna fija de la parada es ahora solo el ID; la factura va en su columna.
  */
 function columnasDelPlan(): ColumnaDelGestor[] {
-  const seVen = new Set(ROLE_DEFAULT_COLUMNS.sales ?? []);
+  // D-NEXT: lo que se ve de partida ya no es el juego de ventas, sino el que pidió el dueño (ver `VISTAS_EN_EL_PLAN`).
+  const seVen = new Set<string>(VISTAS_EN_EL_PLAN);
   // El rótulo, el de Órdenes tal cual (la prueba de D-376 lo compara con `ORDER_COLUMNS`, columna a columna): aquí no se
   // importa aquel catálogo porque vive en un componente con JSX.
   const rotulo: Record<string, [string, string]> = {
@@ -151,9 +164,13 @@ function columnasDelPlan(): ColumnaDelGestor[] {
     address: ["Delivery Address", "Dirección de entrega"], windows: ["Windows", "Ventanas"],
   };
   return [
+    // Las dos que Órdenes no tiene (D-NEXT), delante: tras el ID fijo, la clase y la ciudad donde se recoge. Su celda la
+    // pone la página (`celdaPropiaDelPlan`). «Tipo de cliente» y no «Tipo»: «Plan: Tipo» ya es el tipo de ORDEN de Órdenes.
+    { key: "pl_clase", en: "Plan: Customer type", es: "Plan: Tipo de cliente", tablas: ["plan"], ancho: 110 },
+    { key: "pl_ciudad_recogida", en: "Plan: Pickup city", es: "Plan: Ciudad de recogida", tablas: ["plan"], ancho: 110 },
     ...ORDEN_DE_PARTIDA.map((k): ColumnaDelGestor => ({
       key: `pl_${k}`, en: `Plan: ${rotulo[k]?.[0] ?? k}`, es: `Plan: ${rotulo[k]?.[1] ?? k}`, tablas: ["plan"], ancho: 100, deOrdenes: k,
-      ...(seVen.has(k) ? {} : { oculta: true as const }),
+      ...(seVen.has(`pl_${k}`) ? {} : { oculta: true as const }),
     })),
     { key: "pl_horas", en: "Plan: Arrives–leaves", es: "Plan: Llega–sale", tablas: ["plan"], ancho: 120, oculta: true },
     { key: "pl_ventana", en: "Plan: Plan window", es: "Plan: Ventana del plan", tablas: ["plan"], ancho: 110, oculta: true },
@@ -173,7 +190,7 @@ export const seVeEnLaRecogida = (c: Pick<ColumnaDelGestor, "deOrdenes">): boolea
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
  *  columnas es una elección, no el punto de partida. */
-export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5"];
+export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5", "_v6"];
 
 /** El orden DE PARTIDA de cada tabla: el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden».
  *  «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde D-331, la factura la primera
@@ -315,7 +332,29 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   if (!lista.includes(MARCA_V3)) lista = [...new Set([...lista, ...NUEVAS_EN_V3])].concat(MARCA_V3);
   if (!lista.includes(MARCA_V4)) lista = [...new Set([...lista, ...NUEVAS_EN_V4])].concat(MARCA_V4);
   if (!lista.includes(MARCA_V5)) lista = [...new Set([...lista, ...NUEVAS_EN_V5])].concat(MARCA_V5);
+  // D-NEXT no AÑADE: la tabla del plan vuelve entera a su partida, una vez. Se quitan todas las del plan que la persona
+  // tuviera y se ponen las de `VISTAS_EN_EL_PLAN`. Las otras dos tablas no se tocan.
+  if (!lista.includes(MARCA_V6)) lista = [...lista.filter((k) => !esDelPlan(k)), ...VISTAS_EN_EL_PLAN, MARCA_V6];
   return lista;
+}
+
+// D-NEXT: el dueño rehízo la tabla del plan (ver `VISTAS_EN_EL_PLAN`). Quien guardó sus columnas del plan desde D-429 las
+// tiene en su lista; sin esta marca seguiría viendo las de antes. Esta tanda no añade: DEVUELVE el plan a su partida.
+export const MARCA_V6 = "_v6";
+const esDelPlan = (k: string): boolean => COLUMNAS_DEL_GESTOR.some((c) => c.key === k && c.tablas.includes("plan"));
+
+/**
+ * Lo que se pone al LEER las preferencias del Gestor de una persona (D-NEXT): sus columnas con las tandas (`conColumnasNuevas`)
+ * y su orden. Si aún no había pasado por la tanda del plan (`MARCA_V6`), también el ORDEN del plan vuelve al de partida —si
+ * no, las dos columnas nuevas saldrían al final de un orden guardado, no donde las pidió el dueño—, y `escribe` dice que hay
+ * que guardarlo YA: si esperara a que marque una casilla, mover una columna del plan antes guardaría el orden sin la marca, y
+ * al recargar se le volvería a deshacer. Las plantillas guardadas no pasan por aquí: se aplican como se guardaron.
+ * `columnas` `null` = no tenía columnas guardadas (manda el defecto).
+ */
+export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined, orden: readonly string[] | null | undefined): { columnas: string[] | null; orden: string[] | null; escribe: boolean } {
+  const columnas = suyas ? conColumnasNuevas(suyas) : null;
+  if (suyas?.includes(MARCA_V6) || (!suyas && !orden)) return { columnas, orden: orden ? [...orden] : null, escribe: false };
+  return { columnas: columnas ?? [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], orden: restableceOrdenDelGestor("plan", orden), escribe: true };
 }
 
 /**
@@ -375,7 +414,7 @@ export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | n
 export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
   const conocePlan = v.some((k) => COLUMNAS_DEL_GESTOR.some((c) => c.key === k && c.tablas.includes("plan")));
   const si = new Set(conocePlan ? v : [...v, ...NUEVAS_EN_V5]);
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6);
 }
 
 /** La foto que guarda una plantilla del Gestor: solo las columnas del catálogo que se ven, sin marcas ni claves retiradas. */
@@ -396,5 +435,5 @@ export function alternaColumna(elegidas: readonly string[], key: string): string
   const si = new Set(elegidas);
   if (si.has(key)) si.delete(key); else si.add(key);
   // Las marcas viajan siempre: lo que se guarde a partir de aquí ya conoce las columnas de cada tanda.
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6);
 }
