@@ -6,6 +6,7 @@ import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/
 import { cambiaConLaVecina, type Movimiento } from "@/lib/route-plan/ajuste";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { COLUMNAS_DEL_GESTOR, seVeEnLaRecogida, type ColumnaDelGestor } from "@/lib/routes-columns";
+import { claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import type { Delivery } from "@/lib/types";
 
 /**
@@ -27,6 +28,9 @@ import type { Delivery } from "@/lib/types";
  * D-434: la columna fija de la parada es SOLO el id de la orden (el dueño: «una columna solo para el id»). Se fueron de ahí la
  * factura, «Recoger / Entregar», la pastilla Builder, el lugar y la línea «📍 ciudad · dirección» de D-422: cada cosa tiene
  * ahora su columna (Factura, Tipo de cliente, Ciudad de recogida, Dirección de entrega) o ya la dice la etiqueta P/D.
+ *
+ * D-NEXT: cada fila lleva el color de su parada —recogida verde, entrega amarilla, muy suaves— para distinguirlas de un
+ * vistazo (`claseDeLaFilaDelPlan`); y hay «Ciudad de entrega» tras la de recogida, vacía en las P como la dirección.
  */
 
 export interface AjusteDeRuta {
@@ -92,7 +96,8 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
     const quieta = !!ajuste?.noSeMueven.has(ordenDeLaParte(p.order_ref));
     return (
       <Fragment key={`${p.seq}`}>
-      <tr style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
+      {/* D-NEXT: recogida en verde muy suave, entrega en amarillo, la fila entera (los tintes, en `globals.css`). */}
+      <tr className={claseDeLaFilaDelPlan(p.kind)} style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
         <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>

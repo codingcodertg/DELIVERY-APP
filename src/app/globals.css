@@ -45,6 +45,15 @@
   --teaching-text: #7c3aed;
   --panel-line: #dfe3ea;   /* borde de panel; casi --line, pero no idéntico */
   --row-line: #eef1f5;     /* separador entre filas de una lista */
+  /* La tabla del plan (D-NEXT): cada RECOGIDA (P) en verde muy suave y cada ENTREGA (D) en amarillo muy suave, la fila
+     entera. El dueño: «las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo». No
+     son `--green-soft` (#e9f7f0): ese verde ya quiere decir «entregada» en Órdenes (`row-done`). El amarillo es limón y
+     no ámbar, para que el borde ámbar entre viajes siga viéndose encima. */
+  --plan-recoger-bg: #eef9f2;
+  --plan-entregar-bg: #fff9e0;
+  /* El azul de los enlaces que abren una orden desde el plan (`var(--blue, #2563eb)`). En claro es el mismo que ya había;
+     se declara para poder darle su par oscuro: #2563eb sobre la tarjeta oscura se leía a 3,1:1. */
+  --blue: #2563eb;
 }
 /* Le dice al NAVEGADOR en qué tema está, no solo a nuestro CSS.
    ---------------------------------------------------------------------------
@@ -87,6 +96,10 @@
   --teaching-text: #b794f6;
   --panel-line: #2b3644;
   --row-line: #2b3644;
+  /* Los pares oscuros de la tabla del plan (D-NEXT): el mismo matiz, apenas por encima de la tarjeta (#1a212c). */
+  --plan-recoger-bg: #172a21;
+  --plan-entregar-bg: #2a2818;
+  --blue: #7aa2ff;
 }
 /* These element-level defaults are wrapped in a cascade LAYER, and that is
    load-bearing for /erp (D-090).
@@ -384,6 +397,11 @@ table.orders tr.row-done td { background: #e9f7f0; }
 table.orders tr.row-done:hover td { background: #d8f0e4; }
 :root[data-theme="dark"] table.orders tr.row-done td { background: #16352a; }
 :root[data-theme="dark"] table.orders tr.row-done:hover td { background: #1c4535; }
+/* La tabla del plan (D-NEXT, `claseDeLaFilaDelPlan`): recogida en verde, entrega en amarillo, TODA la fila —la etiqueta, el
+   ID y Ajustar también—. El gris de `.hint` («carga 1 de 2») bajaba a 4,3:1 sobre los tintes claros: ahí va más oscuro. */
+table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }
+table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }
+table.orders tr.fila-plan-recoger .hint, table.orders tr.fila-plan-entregar .hint { color: var(--ink-soft); }
 .ordno { font-weight: 800; font-family: 'Archivo'; }
 /* `.parada-id` y `.parada-factura` (D-379, el código arriba y la factura debajo en la celda del ID de las paradas) se
    quitaron en D-408: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */

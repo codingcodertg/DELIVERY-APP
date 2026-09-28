@@ -31978,6 +31978,10 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 
 ## D-434 · La tabla del plan con las columnas del dueño: ID solo, tipo de cliente, ciudad de recogida, factura, dirección y ventanas
 
+> **Reemplazada en parte por D-NEXT** (2026-09-28): de partida hay una columna más, «Ciudad de entrega», justo tras la de
+> recogida (el dueño: *«lo unico que hizo falta es ciudad de entregfa»*), y llega a lo ya guardado con una tanda `_v7` que
+> AÑADE, sin devolver nada a su partida. Los pesos de la fila de aquí abajo cambiaron: ver D-NEXT.
+
 **Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
 literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la
 ciudad donde se recoje, y el invoice number, quitame el pocolum, siguiente etapa, y a donde entrega, fecha de enterea,
@@ -32051,3 +32055,94 @@ repite, y que las plantillas no se tocan); y ajustadas `columnas-del-plan`, `eti
 
 **No verificado:** contra producción. Que la escritura única de `_v6` llegue a su fila de `user_prefs` se prueba con el texto de
 la página y la función pura; el demo no tiene `user_prefs`.
+
+## D-NEXT · La tabla del plan: recogidas en verde, entregas en amarillo, y la ciudad de entrega
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, sobre la tabla del plan que acababa de dejar D-434, literal: *«ok quiero que en
+esa misma table las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo para poder
+identificarlas mejor y lo unico que hizo falta es ciudad de entregfa»*. **Migraciones:** ninguna. **Reemplaza en parte** D-434
+(una columna más de partida, y sus pesos de la fila); lleva su nota.
+
+### 1. El color de cada fila
+
+- Cada **recogida (P)** lleva la fila entera en verde muy suave y cada **entrega (D)** en amarillo muy suave, **todas las
+  celdas**: la etiqueta P/D, el ID, las columnas y Ajustar. `claseDeLaFilaDelPlan` (`route-plan/celdas-del-plan.ts`) da la
+  clase (`fila-plan-recoger` / `fila-plan-entregar`) y `RutaDelPlan` la pone en el `<tr>`; el color va en `globals.css` sobre
+  cada `td` de esa fila.
+- **Tokens con par oscuro** (el tema oscuro es `:root[data-theme="dark"]`, como el resto de la app): `--plan-recoger-bg`
+  #eef9f2 / #172a21 y `--plan-entregar-bg` #fff9e0 / #2a2818. No es `--green-soft` (#e9f7f0): ese verde ya quiere decir
+  «entregada» en Órdenes (`row-done`). El amarillo es limón, no ámbar, para que el **borde ámbar entre viajes** se siga
+  viendo encima.
+- **Contraste.** El enlace azul del ID (`var(--blue, #2563eb)`) no tenía token: sobre la tarjeta oscura se leía a 3,1:1, y sobre
+  el verde oscuro habría quedado en 3,0. Se declaró `--blue`: en claro, el mismo #2563eb que ya había (nada cambia), y en oscuro
+  #7aa2ff. Lo usan también los enlaces de órdenes del resumen del plan (`PlanDelDia`), que ganan lo mismo en oscuro. El gris de
+  `.hint` («carga 1 de 2») bajaba a 4,3:1 sobre los tintes claros: dentro de estas filas va en `--ink-soft`.
+- **No choca con:** el borde ámbar entre viajes (medido abajo); el 🔒 de lo fijado y el 📌/📍, que son emoji con su propio
+  color; ni el resaltado ámbar de la parada movida de D-433, que es de la tabla de paradas de cada chofer del Gestor
+  (`page.tsx`), no de esta: aquí no existe. Las pastillas de Etapa (si se marcan en ⚙) llevan su propio fondo.
+
+### 2. «Ciudad de entrega»
+
+- Columna nueva `pl_ciudad_entrega` («Plan: Ciudad de entrega» / «Plan: Delivery city»), **vista de partida**, justo tras la
+  ciudad de recogida: `# · ID · Tipo de cliente · Ciudad de recogida · Ciudad de entrega · Factura # · Dirección de entrega ·
+  Ventanas · Ajustar`. De dónde sale a dónde va, una al lado de la otra; no vi razón para otro sitio.
+- **No es lógica nueva:** la celda es `ciudadDeEntrega(delivery_address, conocidas)`, la misma función con la que se pinta la
+  columna «Ciudad de entrega» de «Sin asignar» (D-408), con la misma lista de ciudades conocidas de D-423
+  (`ciudadesQueSeConocen`, que la página ya pasa a las celdas del plan). Sin dirección, «—».
+- **En una recogida va vacía**, como la dirección: es de la entrega. Como no viene de Órdenes, `seVeEnLaRecogida` la reconoce
+  por su clave (`PROPIAS_DE_LA_ENTREGA`).
+- No es la «Dirección de entrega» (`pl_address`, la dirección entera, de Órdenes): las dos siguen, porque el dueño pidió en D-434
+  dejar la dirección.
+
+### 3. Lo ya guardado: la tanda `_v7`
+
+El dueño ya pasó por `_v6` (su fila `routes_columns` se reescribió al cargar con D-434): sin otra marca no vería nunca la
+columna. `_v7`, a diferencia de `_v6`, **solo AÑADE** —como `_v2`…`_v5`—:
+
+- `conColumnasNuevas` le suma `pl_ciudad_entrega` a una lista sin `_v7`; lo que tuviera marcado o quitado se queda.
+- **El orden:** con un orden del plan guardado, `ordenEfectivo` la pondría AL FINAL. `conCiudadDeEntregaEnSuSitio` la mete justo
+  **tras la ciudad de recogida, esté donde esté esa en su orden**; el resto de su orden no se mueve. Sin orden del plan guardado
+  (que es el caso del dueño: `_v6` dejó el plan en su partida, y la partida no se guarda), no hace falta nada: la partida ya la trae.
+- **Se guarda una vez al leer**, como `_v6` y por la misma razón: `preferenciasDelGestorAlLeer` devuelve `escribe: true` a una
+  lista con `_v6` y sin `_v7`. Una lista sin `_v6` pasa por la tanda del plan de D-434, que ya trae la columna.
+- **Las plantillas no se tocan:** una de D-434 sigue sin la ciudad de entrega al aplicarla (lleva ya la marca `_v7`), y al
+  recargar no se le añade.
+
+**Peso de la fila** (`gestor-mover-columnas.test.ts`, modelo `bytesEnLaBase`, no medida): una columna y una marca más.
+- Lo normal —logística y admin con las de partida y 10 plantillas de esas—: 3 752 → 4 045 bytes. Cabe con holgura.
+- Un rol con TODO marcado y movido y plantillas llenas: 13 467 → 13 916 con 10; **caben 4 plantillas llenas, antes 5**. La
+  guarda para la quinta y lo dice.
+- Los seis roles con TODO marcado y movido, sin plantillas: 7 294 → 7 582. La fila **sigue cabiendo en la base** (< 8 192, lo
+  que rechaza la 136), pero ya no con la reserva de 800 de la guarda: en ese peor caso no se puede guardar **ninguna**
+  plantilla (antes, ninguna llena más; ahora, tampoco la primera). Marcar, mover o quitar columnas no pasa por la guarda y se
+  sigue escribiendo. Es un caso de laboratorio (nadie tiene los seis roles con todas las columnas marcadas y movidas), pero la
+  holgura se está acabando: la próxima columna del Gestor debería mirar esto antes.
+
+### Medido en el demo por CDP
+
+2026-09-28, puerto propio, `/api/route-plan` simulado en el navegador como en D-429/D-434 (plan publicado, tres órdenes del
+demo: builder, Transfer y una pasada a «Venta al mostrador»; las dos primeras en el viaje 1 y la tercera en el viaje 2 para
+ver el borde ámbar), en español, a 1440 y a 390, en claro y en oscuro:
+- Cabeceras, en orden, en los cuatro casos: `# · ID · Tipo de cliente · Ciudad de recogida · Ciudad de entrega · Factura # ·
+  Dirección de entrega · Ventanas · Ajustar`.
+- Ciudad de entrega: P1, P2, P3 vacías; D1 `McAllen`, D2 `Brownsville` (la Transfer recoge en Weslaco y entrega en Brownsville),
+  D3 `Mission`.
+- Fondo computado, igual en las 9 celdas de la fila (etiqueta, ID, columnas, Ajustar): claro P `rgb(238, 249, 242)`, D
+  `rgb(255, 249, 224)`; oscuro P `rgb(23, 42, 33)`, D `rgb(42, 40, 24)`. Contra el fondo de la primera tarjeta (`.card`) de la página, 1,08:1 en claro y
+  1,07:1 en oscuro (suaves).
+- Contraste: texto 14,77 (P) / 15,08 (D) en claro y 12,52 / 12,30 en oscuro; enlace del ID 4,79 / 4,89 en claro y 6,07 / 5,96 en
+  oscuro (antes de `--blue` oscuro habría sido ~3,0). El borde ámbar entre viajes, 2 px `rgb(233, 161, 59)`, a 2,02:1 sobre el
+  verde claro y 6,93:1 sobre el oscuro: se ve.
+- Desplazamiento lateral de la página: 0 px en los cuatro casos (la tabla se desplaza dentro de su caja).
+
+**Pruebas.** `route-plan/colores-y-ciudad-de-entrega.test.ts` (nueva: la clase por tipo; que el `<tr>` la usa; que las reglas van
+a cada `td`; los tokens con par oscuro; «suave» y legible calculado sobre los hex de `globals.css` —contra la tarjeta entre 1,02 y
+1,15; texto, enlace y letra pequeña ≥ 4,5:1 en los dos temas—; la columna, su sitio y la P vacía; la celda con y sin comas y sin
+dirección, y que la página la llama con las ciudades de «Sin asignar»; y `_v7` con listas de ejemplo: con `_v6` y el plan en su
+partida, con el plan movido —ventanas arriba—, con la recogida movida al final, sin `_v6`, que no se repite, y que las plantillas
+no se tocan). Ajustadas `columnas-del-dueno`, `columnas-del-plan`, `routes-columns`, `gestor-mover-columnas` y
+`plantillas-de-columnas`. **Mutantes:** 21 propios, caen los 21, leídos por nombre.
+
+**No verificado:** contra producción, y que la escritura única de `_v7` llegue a la fila `user_prefs` del dueño (el demo no tiene
+`user_prefs`; se prueba con la función pura y con el texto de la página, que ya escribía con `escribe`). El 🔒 de una orden ya
+hecha no salió en el demo (necesita la copia de un publicado con órdenes fuera de etapa); es un emoji y no toma el color de la fila.

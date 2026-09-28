@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -11,10 +11,10 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
-const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6];
+const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7];
 /** Las de Órdenes que la tabla del plan enseña por defecto (D-429): el juego de ventas en Órdenes, en su orden. */
-// Las del plan por defecto desde D-434 (antes, desde D-429, las diez de ventas en Órdenes).
-const DEL_PLAN_POR_DEFECTO = ["pl_clase", "pl_ciudad_recogida", "pl_invoice", "pl_address", "pl_windows"];
+// Las del plan por defecto desde D-434 (antes, desde D-429, las diez de ventas en Órdenes); D-NEXT sumó la ciudad de entrega.
+const DEL_PLAN_POR_DEFECTO = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_invoice", "pl_address", "pl_windows"];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
 const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
 /** La prioridad (D-412) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
@@ -81,14 +81,14 @@ describe("las columnas del Gestor", () => {
   });
   it("a quien guardó sus columnas ANTES de cada tanda le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
     const deAntes = conColumnasNuevas(["invoice", "pallets"]);
-    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6]);
+    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7]);
     expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["po", "so", "invoice", "type", "contact", "pallets", "fee", "pickup", "address"]);
     // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6]);
+    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7]);
     // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6]);
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7]);
     // Con la v4 y sin la v5 (guardó antes de que el plan tuviera columnas, D-429): le llegan las del plan por defecto, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6]);
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7]);
     // Con todas las marcas, ya nada se añade: quitó el costo y se respeta.
     expect(conColumnasNuevas(["invoice", ...MARCAS])).toEqual(["invoice", ...MARCAS]);
     // Una que ya la tenía no la gana dos veces.
