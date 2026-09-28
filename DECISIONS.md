@@ -22703,6 +22703,8 @@ escrita y **no aplicada**. **Plan:** `docs/PLAN-134-chofer-lee-sus-paradas.md`. 
 
 ## D-325 · Motor de rutas, incremento 7: lo que quedó fuera, con su porqué y su siguiente paso — y «¿por qué aquí?» en cada entrega
 
+> **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Diseño:** `docs/route-algorithm-design.md`, §7. Sigue a D-323. Solo admin y logística lo ven (es el panel del plan).
 
@@ -30222,6 +30224,8 @@ la verdad, no un fallo: el hueco es de captura.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
 
+> **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
+
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar y “Optimizar” no cambian» ya no es cierto para
 > Auto-asignar: reparte con este mismo motor (en «modo reparto»), así que la prioridad y las opciones de reparto también
 > valen para él. «Optimizar» sigue igual.
@@ -30639,6 +30643,8 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 
 ## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
+> **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
+
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
 > (Gestor y mapa) reparte con el motor, que lee `requirements` y `features` como «Planificar el día»; una orden que nadie puede
 > llevar sale con «ningún camión que rutea tiene lo que pide».
@@ -30956,6 +30962,8 @@ Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `s
 
 ## D-421 · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
 
+> **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
+
 > **Reemplazada en parte por D-423** (2026-09-27, T-0413): el peso de la zona solo ya no decide contra el builder y el
 > balance. Medido con 16 días reales, una entrega de Brownsville se iba con otro chofer aunque el de su zona la hacía con +0
 > millas (el builder, +37 min × 2, y el balance le ganaban al peso 60), y ningún peso lo arreglaba sin volver la zona una
@@ -31265,3 +31273,20 @@ una fila); `src/lib/ciudad-de-entrega.ts` (`UNIDAD`, estado con punto, `ciudades
 - **Tiempos con Google/tráfico**: la medición es con la estimación en línea recta, como D-421. Con tiempos de verdad, las
   millas de más de cada entrega cambian y algún caso cerca de 5 millas puede caer del otro lado.
 - «Planificar el día» no se abrió en el demo (necesita el servidor); se prueba con `planifica` y los días reales.
+
+## D-424 · Se quita «¿Por qué aquí?» del borrador de «Planificar el día»
+
+**Fecha:** 2026-09-27. **Pedido del dueño**, literal: *«ok esta bien pero quita las justificaciones eso de porque aqui no fuciona»*.
+
+**Qué se quitó.** El botón «¿Por qué aquí?» de cada entrega del borrador (D-325) y el renglón que abría con lo que la
+orden le sumaba al día, la comparación con los demás choferes y las frases de prioridad (D-415), requisitos (D-418) y zona
+(D-421). Solo la pantalla: `RutaDelPlan.tsx` deja de recibir `porque` y `PlanDelDia.tsx` deja de pasarlo.
+
+**Qué se queda.** «Fuera de este plan» con su motivo y su siguiente paso (también D-325): el dueño pidió quitar «eso de por
+qué aquí», y lo que quedó fuera es lo que hay que resolver. El cálculo (`route-plan/porque.ts`) sigue en el servidor y en
+sus pruebas; volver a enseñarlo es una línea en cada componente.
+
+**No se midió por qué «no funciona»** en su pantalla: se quitó, que es lo que pidió.
+
+**Pruebas.** Las que leían el botón ahora afirman que no está (`plan.test.ts`, `prioridad-en-el-plan`, `requisitos-en-el-plan`,
+`zonas-en-el-plan`). Un mutante que repone el botón cae con «lo que quedó fuera sale orden por orden…».

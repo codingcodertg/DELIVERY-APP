@@ -126,7 +126,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
 
   const motivo = (m: string) => (MOTIVOS[m] ? MOTIVOS[m][lang === "es" ? 1 : 0] : m);
-  // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan», «¿Por qué aquí?» y la hoja.
+  // Código Y factura, leídos en vivo de la orden: vale para las paradas, «Fuera de este plan» y la hoja.
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
   const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);
 
@@ -287,7 +287,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false }:
           {(r.tramosSinTrafico ?? 0) > 0 && (
             <div className="hint" style={{ margin: 0 }}>{t(`${r.tramosSinTrafico} leg(s) changed by hand have no traffic data: their times are without traffic.`, `${r.tramosSinTrafico} tramo(s) cambiados a mano no tienen dato de tráfico: sus horas van sin tráfico.`)}</div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} porque={borrador!.porque}
+          <RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden}
             ajuste={borrador!.status === "draft" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
           <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />
