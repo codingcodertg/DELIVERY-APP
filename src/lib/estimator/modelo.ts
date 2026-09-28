@@ -10,8 +10,12 @@
  * se puede equivocar al guardar.
  */
 
+import { telefonoValido } from "@/lib/avisos-cliente";
+
 export type Salutation = "Ms." | "Mr." | "Mrs.";
-export const SALUTATIONS: readonly Salutation[] = ["Ms.", "Mr.", "Mrs."];
+/** «Mr.» primero: es el de por defecto (D-NEXT, lo pidió el dueño sobre la captura). */
+export const SALUTATIONS: readonly Salutation[] = ["Mr.", "Ms.", "Mrs."];
+export const DEFAULT_SALUTATION: Salutation = "Mr.";
 
 /** Basic / Standard / Detailed: cuánto enseña la hoja del cliente. Standard es el de por defecto. */
 export type DisplayLevel = "basic" | "standard" | "detailed";
@@ -20,10 +24,12 @@ export const DEFAULT_DISPLAY_LEVEL: DisplayLevel = "standard";
 
 export interface Customer {
   salutation: Salutation;
+  /**
+   * El nombre completo. El apellido que se imprime SALE DE AQUÍ (`apellidoDe`): el campo «Last name as printed» se
+   * quitó (D-NEXT, «This Field is unnecessary»). Las filas viejas de la 148 traen `last_name` y `last_name_edited`
+   * en el `jsonb`; `borradorDeFila` no los lee y se abren igual.
+   */
   full_name: string;
-  /** El apellido tal como se imprime. Sale del nombre completo mientras nadie lo toque. */
-  last_name: string;
-  last_name_edited: boolean;
   company: string;
   phone: string;
   address: string;
@@ -139,16 +145,37 @@ export function totalDeMateriales(lineas: readonly QuoteLine[]): number {
   return aCentavos(lineas.reduce((s, l) => s + (totalDeLinea(l) ?? 0), 0));
 }
 
-/** El apellido de «Maria Gonzalez» es «Gonzalez». Con dos apellidos acierta el último: por eso se edita. */
+/**
+ * El apellido que se imprime: la ÚLTIMA palabra del nombre completo. «Maria Gonzalez» → «Gonzalez»; con dos apellidos
+ * sale el último. Una sola palabra es esa palabra (D-NEXT): ya no hay campo donde escribir el apellido aparte, así que
+ * un nombre de una palabra no puede dejar la hoja sin destinatario. Vacío solo si el nombre está vacío.
+ */
 export function apellidoDe(nombreCompleto: string): string {
   const partes = nombreCompleto.trim().split(/\s+/).filter(Boolean);
-  return partes.length > 1 ? partes[partes.length - 1] : "";
+  return partes.length > 0 ? partes[partes.length - 1] : "";
 }
 
-/** Lo único del cliente que se imprime: «Ms. Gonzalez». */
-export function paraQuienSeImprime(c: Pick<Customer, "salutation" | "last_name">): string {
-  const apellido = c.last_name.trim();
+/** Lo único del cliente que se imprime: «Mr. Gonzalez», sacado del nombre completo. */
+export function paraQuienSeImprime(c: Pick<Customer, "salutation" | "full_name">): string {
+  const apellido = apellidoDe(c.full_name);
   return apellido ? `${c.salutation} ${apellido}` : "";
+}
+
+/**
+ * El teléfono del cliente con forma limpia, `956-555-0123` (D-NEXT). Reutiliza `telefonoValido` (el de los avisos al
+ * cliente: 10 dígitos de EE. UU., o 11 con el 1 delante; paréntesis, espacios, puntos y `+1` se quitan). Null si no es
+ * un número de EE. UU. completo: entonces se deja lo escrito tal cual y la pantalla lo marca.
+ */
+export function telefonoLimpio(raw: string): string | null {
+  const e164 = telefonoValido(raw);
+  if (!e164) return null;
+  const d = e164.slice(2);
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+/** Lo que el campo Teléfono deja escrito: la forma limpia si es un número completo, y si no, lo tecleado sin tocar. */
+export function telefonoAlEscribir(raw: string): string {
+  return telefonoLimpio(raw) ?? raw;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -207,13 +234,29 @@ export function borradorVacio(hoy: string = hoyLocal()): QuoteDraft {
   return {
     estimate_num: "",
     sales_ext: "",
-    customer: { salutation: "Ms.", full_name: "", last_name: "", last_name_edited: false, company: "", phone: "", address: "" },
+    customer: { salutation: DEFAULT_SALUTATION, full_name: "", company: "", phone: "", address: "" },
     delivery: { mode: "pickup", street: "", city: "", state: "", zip: "", charge: null },
     lines: [lineaSfVacia()],
     display_level: DEFAULT_DISPLAY_LEVEL,
     valid_through: hoy,
     project_summary: "",
   };
+}
+
+/**
+ * La extensión con la que nace el borrador (D-NEXT, «should be automatic»). Primero la del expediente de RR. HH. de
+ * quien prepara (`recruiting.employee_files.ringcentral_ext`, la misma que enseña el directorio), que la lee el
+ * servidor; si no tiene, la que esa persona escribió la última vez en este navegador; si tampoco, vacía y se escribe.
+ * Siempre editable: esto solo decide el punto de partida.
+ */
+export function extensionDePartida(
+  delExpediente: string | null | undefined, recordada: string | null | undefined,
+): { valor: string; origen: "expediente" | "navegador" | "ninguno" } {
+  const e = (delExpediente ?? "").trim();
+  if (e) return { valor: e, origen: "expediente" };
+  const r = (recordada ?? "").trim();
+  if (r) return { valor: r, origen: "navegador" };
+  return { valor: "", origen: "ninguno" };
 }
 
 /** Normaliza el número de estimado como lo compara la base (`lower(btrim(...))` en el índice único). */

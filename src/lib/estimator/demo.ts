@@ -19,6 +19,14 @@ import {
 export const DEMO_OTRO_VENDEDOR = { id: "u-sales2", name: "Sofia Ventas" };
 export const DEMO_ESTIMADO_AJENO = "DEMO-1001";
 
+/**
+ * La extensión de cada persona del demo (D-NEXT): simula `recruiting.employee_files.ringcentral_ext`, que en producción
+ * lee el servidor. «Maria Manager» (`u-mgr`) no tiene a propósito: así se mide el caso sin extensión conocida, en el que
+ * el campo queda para escribirla a mano.
+ */
+export const EXTENSIONES_DEMO: Readonly<Record<string, string>> = { "u-admin": "200", "u-sales": "214", "u-sales2": "201" };
+export const extensionDemo = (id: string): string | null => EXTENSIONES_DEMO[id] ?? null;
+
 /** Catálogo inventado: códigos DEMO-*, para que nadie los confunda con un producto real. */
 export const CATALOGO_DEMO: ProductoDelCatalogo[] = [
   { sku: "DEMO-2448", name: "Demo Porcelain Marble-look 24x48 Polished", size_in: "24x48", sf_per_box: 23.8, price_per_sf: 1.89 },
@@ -39,7 +47,7 @@ function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {
   const draft = borradorVacio();
   draft.estimate_num = DEMO_ESTIMADO_AJENO;
   draft.sales_ext = "201";
-  draft.customer = { salutation: "Mr.", full_name: "Demo Customer", last_name: "Customer", last_name_edited: false, company: "Demo Builders", phone: "555-0100", address: "1 Demo St" };
+  draft.customer = { salutation: "Mr.", full_name: "Demo Customer", company: "Demo Builders", phone: "956-555-0100", address: "1 Demo St" };
   draft.lines = [{ ...lineaSfVacia(), customer_category: "12x24 Tile", requested_sf: 400, sf_per_box: 15.5, price_per_sf: 1.29, item_code: "DEMO-1224", internal_description: "Demo Ceramic Wood-look 12x24 Matte" }];
   return {
     cotizaciones: [{ id: "demo-q-1", owner_id: DEMO_OTRO_VENDEDOR.id, owner_name: DEMO_OTRO_VENDEDOR.name, print_count: 0, draft }],

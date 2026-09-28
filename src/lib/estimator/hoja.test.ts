@@ -36,7 +36,7 @@ function borrador(patch: Partial<QuoteDraft> = {}): QuoteDraft {
     estimate_num: "104582",
     sales_ext: "214",
     customer: {
-      salutation: "Ms.", full_name: INTERNO.nombre, last_name: "Zubizarreta", last_name_edited: false,
+      salutation: "Ms.", full_name: INTERNO.nombre,
       company: INTERNO.empresa, phone: INTERNO.telefono, address: INTERNO.direccion,
     },
     delivery: { mode: "delivery", street: INTERNO.calle, city: INTERNO.ciudad, state: "TX", zip: INTERNO.zip, charge: 150 },
@@ -81,6 +81,14 @@ describe("la hoja del cliente NO lleva nada interno", () => {
 
   it("el cliente se nombra solo como «Ms. Apellido»", () => {
     expect(hojaDelCliente(borrador()).preparadoPara).toBe("Ms. Zubizarreta");
+  });
+
+  it("sin campo de apellido (D-NEXT): la hoja dice «Mr. <última palabra del nombre>»", () => {
+    const q = borrador();
+    q.customer = { ...q.customer, salutation: "Mr.", full_name: "  Juan  de la Garza " };
+    expect(hojaDelCliente(q).preparadoPara).toBe("Mr. Garza");
+    q.customer = { ...q.customer, full_name: "" };
+    expect(hojaDelCliente(q).preparadoPara).toBe("");
   });
 
   it("las claves de la hoja son las de la plantilla: ninguna del borrador interno", () => {
