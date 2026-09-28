@@ -1,0 +1,225 @@
+{
+ "nota": "Fixture anonimizado de producción (D-427): la entrada del motor del 2026-09-28 tal como la armó «Planificar el día» (sin tráfico, matriz estimada), con la zona de la RECOGIDA. Sin direcciones, nombres ni códigos de orden: choferes A/B/C (por nombre), órdenes o01…, puntos p1…, zonas Z1… (ciudades renombradas); pins a 2 decimales. «caso» es la orden que motivó la prueba: se recoge en la tienda de la zona de C y se entrega en una zona de A y B.",
+ "dias": {
+  "2026-09-28": {
+   "caso": "o03",
+   "choferes": [
+    {
+     "id": "B",
+     "nombre": "B",
+     "base": "p1",
+     "capacidad": 12,
+     "entrada": 480,
+     "salida": 1050,
+     "vuelveABase": true,
+     "zonas": [
+      "Z1",
+      "Z2",
+      "Z3"
+     ]
+    },
+    {
+     "id": "C",
+     "nombre": "C",
+     "base": "p2",
+     "capacidad": 10,
+     "entrada": 480,
+     "salida": 1050,
+     "vuelveABase": true,
+     "zonas": [
+      "Z4"
+     ]
+    },
+    {
+     "id": "A",
+     "nombre": "A",
+     "base": "p3",
+     "capacidad": 12,
+     "entrada": 480,
+     "salida": 1050,
+     "vuelveABase": true,
+     "zonas": [
+      "Z5",
+      "Z6",
+      "Z2",
+      "Z3"
+     ]
+    }
+   ],
+   "ordenes": [
+    {
+     "id": "o01",
+     "entrada": "2026-09-23 1653",
+     "origen": "p4",
+     "destino": "p5",
+     "pallets": 3,
+     "ventana": [
+      510,
+      600
+     ],
+     "estrecha": true,
+     "builder": true,
+     "servicioRecogidaMin": 12,
+     "servicioEntregaMin": 15,
+     "choferFijado": null,
+     "zona": "Z2",
+     "zonaRecogida": "Z2"
+    },
+    {
+     "id": "o02",
+     "entrada": "2026-09-24 1215",
+     "origen": "p1",
+     "destino": "p6",
+     "pallets": 4,
+     "ventana": [
+      510,
+      720
+     ],
+     "estrecha": true,
+     "builder": true,
+     "servicioRecogidaMin": 16,
+     "servicioEntregaMin": 20,
+     "choferFijado": null,
+     "zona": "Z7",
+     "zonaRecogida": "Z1"
+    },
+    {
+     "id": "o03",
+     "entrada": "2026-09-26 0821",
+     "origen": "p2",
+     "destino": "p7",
+     "pallets": 3,
+     "ventana": [
+      510,
+      1050
+     ],
+     "estrecha": false,
+     "builder": false,
+     "servicioRecogidaMin": 12,
+     "servicioEntregaMin": 15,
+     "choferFijado": null,
+     "zona": "Z3",
+     "zonaRecogida": "Z4"
+    },
+    {
+     "id": "o04",
+     "entrada": "2026-09-26 0822",
+     "origen": "p1",
+     "destino": "p8",
+     "pallets": 1.5,
+     "ventana": [
+      510,
+      1050
+     ],
+     "estrecha": false,
+     "builder": false,
+     "servicioRecogidaMin": 6,
+     "servicioEntregaMin": 8,
+     "choferFijado": null,
+     "zona": "Z3",
+     "zonaRecogida": "Z1"
+    },
+    {
+     "id": "o05",
+     "entrada": "2026-09-26 0822",
+     "origen": "p1",
+     "destino": "p9",
+     "pallets": 1.5,
+     "ventana": [
+      510,
+      1050
+     ],
+     "estrecha": false,
+     "builder": false,
+     "servicioRecogidaMin": 6,
+     "servicioEntregaMin": 8,
+     "choferFijado": null,
+     "zona": "Z3",
+     "zonaRecogida": "Z1"
+    },
+    {
+     "id": "o06",
+     "entrada": "2026-09-26 0957",
+     "origen": "p1",
+     "destino": "p10",
+     "pallets": 6,
+     "ventana": [
+      510,
+      1050
+     ],
+     "estrecha": false,
+     "builder": true,
+     "servicioRecogidaMin": 24,
+     "servicioEntregaMin": 30,
+     "choferFijado": null,
+     "zona": "Z8",
+     "zonaRecogida": "Z1"
+    },
+    {
+     "id": "o07",
+     "entrada": "2026-09-26 1218",
+     "origen": "p3",
+     "destino": "p11",
+     "pallets": 5,
+     "ventana": [
+      510,
+      1050
+     ],
+     "estrecha": false,
+     "builder": true,
+     "servicioRecogidaMin": 20,
+     "servicioEntregaMin": 25,
+     "choferFijado": null,
+     "zona": "Z6",
+     "zonaRecogida": "Z5"
+    }
+   ],
+   "puntos": {
+    "p1": {
+     "lat": 26.2,
+     "lng": -98.17
+    },
+    "p2": {
+     "lat": 25.96,
+     "lng": -97.51
+    },
+    "p3": {
+     "lat": 26.21,
+     "lng": -98.27
+    },
+    "p4": {
+     "lat": 26.31,
+     "lng": -98.21
+    },
+    "p5": {
+     "lat": 26.32,
+     "lng": -98.13
+    },
+    "p6": {
+     "lat": 26.16,
+     "lng": -98.14
+    },
+    "p7": {
+     "lat": 26.17,
+     "lng": -98
+    },
+    "p8": {
+     "lat": 26.17,
+     "lng": -98
+    },
+    "p9": {
+     "lat": 26.17,
+     "lng": -98
+    },
+    "p10": {
+     "lat": 26.17,
+     "lng": -98.14
+    },
+    "p11": {
+     "lat": 26.27,
+     "lng": -98.33
+    }
+   }
+  }
+ }
+}
