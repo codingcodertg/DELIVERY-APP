@@ -386,7 +386,7 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
     // Desde D-429 el publicado también lleva los controles: el primer ajuste hace una copia en borrador.
-    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden} columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined} ajuste={borrador!.status === "draft" || borrador!.status === "published" ? {');
+    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} idDeOrden={idDeOrden} abrirOrden={onAbrirOrden} columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined} ajuste={borrador!.status === "draft" || borrador!.status === "published" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });

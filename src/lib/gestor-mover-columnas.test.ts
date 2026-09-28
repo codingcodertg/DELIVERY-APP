@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
 import {
-  ANCHO_FIJO_DE_PARADAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5,
+  ANCHO_FIJO_DE_PARADAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6,
   ORDEN_DE_PARTIDA_DEL_GESTOR, anchoDePartidaDeParada, anchosDeParadasHeredados, claveDelOrdenEnElNavegador, columnasDeLaTabla,
   columnasDelSelector, componeOrdenDelGestor, fotoDePlantillaDelGestor, mueveEnElGestor, ordenDeLaTabla, ordenDePlantillaDelGestor,
   ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas, tieneOrdenPropio,
@@ -22,7 +22,7 @@ import {
 const SIN = ORDEN_DE_PARTIDA_DEL_GESTOR.sinAsignar;
 const PAR = ORDEN_DE_PARTIDA_DEL_GESTOR.paradas;
 const TODAS = COLUMNAS_DEL_GESTOR.map((c) => c.key);
-const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5];
+const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6];
 const sinAsignar = (elegidas: readonly string[], orden: readonly string[] | null) => columnasDeLaTabla("sinAsignar", elegidas, orden).map((c) => c.key);
 const paradas = (elegidas: readonly string[], orden: readonly string[] | null) => columnasDeLaTabla("paradas", elegidas, orden).map((c) => c.key);
 /** Mover `clave` n puestos (negativo = arriba), como lo haría la persona pulsando la flecha n veces. */
@@ -121,7 +121,10 @@ describe("un solo escritor: mover no borra columnas ni plantillas, y al revés",
     expect(pon).toContain("if (next) todos[me.role] = next; else delete todos[me.role];");
     expect(pon).toContain("ordenDelGestor.current = todos; void escribeElGestor();");
     // Lo leído llega a la `ref` que se escribe.
-    expect(pagina).toContain("ordenDelGestor.current = leido.orden; setOrdenGestor(leido.orden[rol] ?? null);");
+    expect(pagina).toContain("ordenDelGestor.current = leido.orden; plantillasDelGestor.current = leido.plantillas;");
+    // D-434: el orden que se pinta es el que devuelve la tanda del plan, y si la tanda cambió algo, llega a las `ref` y se escribe.
+    expect(pagina).toContain("setOrdenGestor(al.orden);");
+    expect(pagina).toContain("if (al.escribe && al.columnas) { prefsDelGestor.current = { ...leido.columnas, [rol]: al.columnas }; const orden: ColumnasPorRol = { ...leido.orden }; if (al.orden) orden[rol] = al.orden; else delete orden[rol]; ordenDelGestor.current = orden; void escribeElGestor(); }");
   });
   it("con lo que manda ese escritor, la fila guardada lleva columnas, orden y plantillas; sin el orden, lo borraría", async () => {
     const escrito: unknown[] = [];
@@ -174,7 +177,8 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // caben (8 353 de 8 192). Con 9, sí. La guarda lo dice al guardar la décima; no falla en silencio.
     // D-429 sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
     // plantilla LLENA —las 48 columnas y las tres tablas movidas— pesa ~1,2 KB: caben 5, y la sexta la para la guarda.
-    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(12753);
+    // D-434 sumó dos columnas al plan (tipo de cliente y ciudad de recogida) y una marca (`_v6`): 13467 con 10 (modelo).
+    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13467);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
     expect(cabeEnLaFila(con(5))).toBe(true);
     expect(cabeEnLaFila(con(6))).toBe(false);
@@ -187,9 +191,10 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // Con la tabla del plan (D-429): 3 982 → 6 861 sin plantillas, y 18 445 con 10. Los seis roles con TODO marcado y movido
     // aún caben (6 861 + 800 de reserva < 8 192), pero ya no una plantilla llena más. Lo normal —logística y admin con las de
     // por defecto y 10 plantillas de esas— son 4 312 bytes (la prueba de abajo).
-    expect(bytesEnLaBase(con(0))).toBe(6861);
+    // Con las dos del plan de D-434 y la marca `_v6`: 6 861 → 7 294 sin plantillas y 18 445 → 19 519 con 10. Siguen cabiendo sin plantillas.
+    expect(bytesEnLaBase(con(0))).toBe(7294);
     expect(cabeEnLaFila(con(0))).toBe(true);
-    expect(bytesEnLaBase(con(10))).toBe(18445);
+    expect(bytesEnLaBase(con(10))).toBe(19519);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);
     expect(cabeEnLaFila(con(10))).toBe(false);
     // Cuántas caben en ese peor caso: lo que cuenta la entrada de DECISIONS.md.
@@ -200,8 +205,9 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     const porDefecto = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => !MARCAS.includes(k));
     const v = valorDeColumnas({ visibles: { logistics: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], admin: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO] }, orden: {},
       plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });
-    expect(porDefecto).toHaveLength(29);
-    expect(bytesEnLaBase(v)).toBe(4312);
+    // D-434: el plan de partida pasa de 10 columnas a 5, así que lo normal pesa menos (4 312 → 3 752).
+    expect(porDefecto).toHaveLength(24);
+    expect(bytesEnLaBase(v)).toBe(3752);
     expect(cabeEnLaFila(v)).toBe(true);
   });
 });

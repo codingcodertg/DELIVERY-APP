@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ORDEN_DE_PARTIDA } from "./orden-de-columnas";
-import { ROLE_DEFAULT_COLUMNS } from "./constants";
 import {
   COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, ORDEN_DE_PARTIDA_DEL_GESTOR, SOLO_DE_LA_ENTREGA, alternaColumna, columnaDeOrdenes,
   columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, conColumnasNuevas, fotoDePlantillaDelGestor, mueveEnElGestor,
@@ -20,20 +19,21 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
 const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo", "pl_bordo"];
+/** Las dos que Órdenes no tiene y van delante (D-434): el tipo de cliente y la ciudad de recogida. */
+const DELANTE = ["pl_clase", "pl_ciudad_recogida"];
 
 describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
   it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las cuatro propias del plan", () => {
-    expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...ORDEN_DE_PARTIDA.map((k) => `pl_${k}`), ...PROPIAS]);
+    // Desde D-434, delante, las dos que Órdenes no tiene.
+    expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...DELANTE, ...ORDEN_DE_PARTIDA.map((k) => `pl_${k}`), ...PROPIAS]);
     // Cada una pinta la celda de SU columna de Órdenes.
     const catalogo = ORDEN_DE_PARTIDA.map((key) => ({ key }));
     for (const k of ORDEN_DE_PARTIDA) expect(columnaDeOrdenes(`pl_${k}`, catalogo)?.key, k).toBe(k);
-    for (const k of PROPIAS) expect(columnaDeOrdenes(k, catalogo), k).toBeUndefined();
+    for (const k of [...DELANTE, ...PROPIAS]) expect(columnaDeOrdenes(k, catalogo), k).toBeUndefined();
   });
 
-  it("de partida se ven las que ve ventas en Órdenes, en el mismo orden que allí; las cuatro del plan nacen escondidas", () => {
-    const deVentas = ORDEN_DE_PARTIDA.filter((k) => ROLE_DEFAULT_COLUMNS.sales!.includes(k));
-    expect(claves(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(deVentas.map((k) => `pl_${k}`));
-    expect(deVentas).toEqual(["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"]);
+  // D-429 veía de partida las de ventas en Órdenes. Reemplazado por D-434: las que pidió el dueño (describe de abajo).
+  it("las cuatro del plan nacen escondidas", () => {
     for (const k of PROPIAS) expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO, k).not.toContain(k);
   });
 
@@ -46,8 +46,8 @@ describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
   it("quien ya había guardado sus columnas recibe las del plan UNA vez; si luego las quita, no le vuelven", () => {
     const deAntes = ["invoice", "pallets", "_v2", "_v3", "_v4"];
     expect(claves(conColumnasNuevas(deAntes))).toEqual(claves(COLUMNAS_DEL_GESTOR_POR_DEFECTO));
-    const sinChofer = alternaColumna(conColumnasNuevas(deAntes), "pl_driver");
-    expect(claves(conColumnasNuevas(sinChofer))).not.toContain("pl_driver");
+    const sinFactura = alternaColumna(conColumnasNuevas(deAntes), "pl_invoice");
+    expect(claves(conColumnasNuevas(sinFactura))).not.toContain("pl_invoice");
   });
 });
 
@@ -60,8 +60,8 @@ describe("mover columnas y plantillas: el mismo mecanismo que el resto del Gesto
   };
 
   it("mover una columna del plan cambia SOLO el plan; «Restablecer orden» la devuelve", () => {
-    const orden = mueve("pl_store", -2);
-    expect(claves(elegidas, orden).slice(0, 5)).toEqual(["pl_po", "pl_type", "pl_store", "pl_account", "pl_stage"]);
+    const orden = mueve("pl_windows", -2);
+    expect(claves(elegidas, orden)).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_windows", "pl_invoice", "pl_address"]);
     expect(ordenDeLaTabla("sinAsignar", orden)).toEqual(ordenDeLaTabla("sinAsignar", null));
     expect(ordenDeLaTabla("paradas", orden)).toEqual(ordenDeLaTabla("paradas", null));
     expect(tieneOrdenPropio("plan", orden)).toBe(true);
@@ -70,12 +70,12 @@ describe("mover columnas y plantillas: el mismo mecanismo que el resto del Gesto
 
   it("una plantilla guarda qué columnas del plan se ven y su orden, y al aplicarla vuelven los dos", () => {
     const orden = mueve("pl_windows", -9);
-    const conFactura = alternaColumna(alternaColumna(elegidas, "pl_invoice"), "pl_driver");
-    const foto = fotoDePlantillaDelGestor(conFactura, orden);
+    const conPo = alternaColumna(alternaColumna(elegidas, "pl_po"), "pl_invoice");
+    const foto = fotoDePlantillaDelGestor(conPo, orden);
     const puestas = columnasDePlantillaDelGestor(foto.v);
-    expect(claves(puestas, ordenDePlantillaDelGestor(foto.o))).toEqual(claves(conFactura, orden));
-    expect(claves(puestas)).toContain("pl_invoice");
-    expect(claves(puestas)).not.toContain("pl_driver");
+    expect(claves(puestas, ordenDePlantillaDelGestor(foto.o))).toEqual(claves(conPo, orden));
+    expect(claves(puestas)).toContain("pl_po");
+    expect(claves(puestas)).not.toContain("pl_invoice");
   });
 
   it("una plantilla de ANTES (sin ninguna columna del plan) recibe las del plan por defecto, en vez de dejarlo vacío", () => {
@@ -95,7 +95,7 @@ describe("la fila de RECOGIDA (P)", () => {
   it("lo de la entrega —dirección, ventanas, contacto— no se pinta en una recogida; lo de la orden, sí; y las propias del plan, siempre", () => {
     expect([...SOLO_DE_LA_ENTREGA]).toEqual(["address", "windows", "contact"]);
     const enP = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && seVeEnLaRecogida(c)).map((c) => c.key);
-    expect(enP).toEqual(["pl_po", "pl_so", "pl_invoice", "pl_type", "pl_account", "pl_stage", "pl_priority", "pl_store", "pl_date", "pl_pallets", "pl_fee", "pl_driver", ...PROPIAS]);
+    expect(enP).toEqual([...DELANTE, "pl_po", "pl_so", "pl_invoice", "pl_type", "pl_account", "pl_stage", "pl_priority", "pl_store", "pl_date", "pl_pallets", "pl_fee", "pl_driver", ...PROPIAS]);
   });
 });
 
@@ -105,7 +105,8 @@ describe("la pantalla usa esto", () => {
 
   it("la página le pasa al plan SUS columnas, su ⚙ con las flechas del plan y las MISMAS plantillas del Gestor", () => {
     const bloque = pagina.slice(pagina.indexOf("<PlanDelDia"), pagina.indexOf("}} />", pagina.indexOf("<PlanDelDia")));
-    expect(bloque).toContain('lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDeOrdenes, clase: clasePastillas');
+    // Desde D-434 la celda es `celdaDelPlan`: las dos propias y, las demás, la de Órdenes (describe de abajo).
+    expect(bloque).toContain('lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan, clase: clasePastillas');
     expect(bloque).toContain('columnas={columnasDelSelector("plan", ordenGestor)}');
     expect(bloque).toContain("elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");
     expect(bloque).toContain("plantillas={propsDePlantillas}");

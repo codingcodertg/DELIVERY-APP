@@ -34,7 +34,7 @@ import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
-  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, conColumnasNuevas, fotoDePlantillaDelGestor,
+  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
   tieneOrdenPropio, type TablaDelGestor,
 } from "@/lib/routes-columns";
@@ -47,6 +47,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
+import { celdaPropiaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -276,12 +277,20 @@ export default function RoutesPage() {
       if (!vivo || !leido.leida) return;
       prefsDelGestor.current = leido.columnas;
       ordenDelGestor.current = leido.orden;
-      setOrdenGestor(leido.orden[rol] ?? null);
       plantillasDelGestor.current = leido.plantillas;
       setPlantillasGestor(leido.plantillas);
-      const suyas = leido.columnas[rol];
-      // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas).
-      if (suyas) setColsGestor(conColumnasNuevas(suyas));
+      // Quien guardó las suyas antes de D-346 recibe las columnas nuevas (la dirección, las de paradas). Y desde D-434, quien
+      // no había pasado por la tanda del plan lo recibe con las columnas y el ORDEN de partida, y se guarda ya, una vez.
+      const al = preferenciasDelGestorAlLeer(leido.columnas[rol], leido.orden[rol]);
+      setOrdenGestor(al.orden);
+      if (al.columnas) setColsGestor(al.columnas);
+      if (al.escribe && al.columnas) {
+        prefsDelGestor.current = { ...leido.columnas, [rol]: al.columnas };
+        const orden: ColumnasPorRol = { ...leido.orden };
+        if (al.orden) orden[rol] = al.orden; else delete orden[rol];
+        ordenDelGestor.current = orden;
+        void escribeElGestor();
+      }
     });
     return () => { vivo = false; };
   }, [me?.id, me?.role]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1053,6 +1062,10 @@ export default function RoutesPage() {
   const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
+  /** La celda de la tabla del plan (D-434): sus dos columnas propias —tipo de cliente y ciudad de recogida— y, las demás, la de
+   *  Órdenes. La ciudad se lee con las mismas tiendas y ciudades conocidas que el resto del Gestor. */
+  const celdaDelPlan = (clave: string, d: Delivery) =>
+    celdaPropiaDelPlan(clave, d, { reglas: settings.order_type_rules, tiendas: settings.stores ?? [], conocidas: ciudadesQueSeConocen, es: lang === "es" }) ?? celdaDeOrdenes(clave, d);
   /** Las pastillas (la etapa, «Tarde») bajan de línea en vez de cortarse, como en Órdenes (D-364). */
   const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
@@ -2096,7 +2109,7 @@ export default function RoutesPage() {
           onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }}
           onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }}
           columnas={{
-            lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDeOrdenes, clase: clasePastillas,
+            lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan, clase: clasePastillas,
             selector: (
               <SelectorDeColumnas
                 columnas={columnasDelSelector("plan", ordenGestor)}
