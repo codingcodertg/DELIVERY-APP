@@ -2022,9 +2022,14 @@ export default function RoutesPage() {
             <input type="date" value={date} disabled={allDates} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
             <button className="vt" disabled={allDates} onClick={() => setDate((d) => shiftDateISO(d, 1))} title={t("Next day", "Día siguiente")}>▶</button>
           </div>
-          {date !== todayISO() && !allDates && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setDate(todayISO())}>{t("Today", "Hoy")}</button>
-          )}
+          {/* D-428: atajos de fecha, siempre a la vista; el día que se mira sale marcado. */}
+          {!allDates && ([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([dias, etiqueta]) => {
+            const dia = shiftDateISO(todayISO(), dias);
+            return (
+              <button key={dias} data-atajo-fecha={dias} className={"btn btn-sm " + (date === dia ? "btn-primary" : "btn-ghost")}
+                aria-pressed={date === dia} onClick={() => setDate(dia)}>{etiqueta}</button>
+            );
+          })}
           <button
             className={"btn btn-sm " + (allDates ? "btn-primary" : "btn-ghost")}
             onClick={() => { setSoloPendientes(false); setAllDates((v) => !v); }}
@@ -2078,7 +2083,8 @@ export default function RoutesPage() {
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar. */}
       {barraDeArmarRutas && (
         <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano}
-          onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }} />
+          onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }}
+          onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }} />
       )}
 
       {/* ---------- Drivers who stopped reporting ----------

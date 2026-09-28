@@ -324,7 +324,7 @@ describe("la ruta de planificar y la pantalla", () => {
 
   it("lo que quedó fuera sale orden por orden con su motivo y su siguiente paso; «¿por qué aquí?» ya no se enseña (D-424)", () => {
     expect(plano(panel)).toContain("{r.fueraConPorque!.map((x) => (");
-    expect(plano(panel)).toContain('<b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.');
+    expect(plano(panel)).toContain(': nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.');
     expect(plano(panel)).toContain('{REMEDIO[x.remedio] && <span className="hint" style={{ margin: 0 }}> {REMEDIO[x.remedio][lang === "es" ? 1 : 0]}</span>}');
     // Cada remedio que la librería puede devolver tiene su frase en el panel (menos «ninguno», que calla).
     const lib = leer("src/lib/route-plan/porque.ts");
@@ -385,7 +385,7 @@ describe("la ruta de planificar y la pantalla", () => {
     // Un plan publicado se enseña, pero no se vuelve a publicar; y un plan viejo dice qué orden y por qué.
     expect(plano(panel)).toContain('{borrador?.status === "draft" && ( <button className="btn btn-primary btn-sm"');
     expect(panel).toContain('no_esta: ["you can\'t see this order, or it no longer exists", "no ve esta orden, o ya no existe"]');
-    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} ajuste={borrador!.status === "draft" ? {');
+    expect(plano(panel)).toContain('<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden} destinoDeOrden={destinoDeOrden} abrirOrden={onAbrirOrden} ajuste={borrador!.status === "draft" ? {');
     expect(panel).toContain("se reparte en ${partes.length} cargas; en Órdenes figura una sola.");
   });
 });

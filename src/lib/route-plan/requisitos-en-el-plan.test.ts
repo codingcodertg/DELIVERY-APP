@@ -124,7 +124,7 @@ describe("la consulta del servidor, con y sin la 151 aplicada", () => {
 describe("las pantallas del plan dicen el motivo con estas frases", () => {
   it("«Fuera de este plan» y «¿Por qué aquí?» usan las funciones; el remedio tiene su frase", () => {
     const panel = plano(leer("src/components/PlanDelDia.tsx"));
-    expect(panel).toContain("<b>{nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.");
+    expect(panel).toContain(": nombreDeOrden(x.id)}</b> — {fraseDeRequisitoFuera(x, lang) ?? motivo(x.motivo)}.");
     expect(panel).toContain("dar_requisito: [");
     // «¿Por qué aquí?» ya no se enseña (D-424): la frase de requisito con otro chofer queda solo en la librería.
   });

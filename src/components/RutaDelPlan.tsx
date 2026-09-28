@@ -18,7 +18,7 @@ import type { Movimiento } from "@/lib/route-plan/ajuste";
 
 export interface AjusteDeRuta { choferes: { id: string; nombre: string }[]; ocupado: boolean; mueve: (m: Movimiento) => void }
 
-export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, ajuste }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; destinoDeOrden?: (ref: string) => { ciudad: string; direccion: string } | null; ajuste?: AjusteDeRuta }) {
+export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, abrirOrden, ajuste }: { rutas: RutaVista[]; nombreDeOrden: (ref: string) => string; destinoDeOrden?: (ref: string) => { ciudad: string; direccion: string } | null; abrirOrden?: (ref: string) => void; ajuste?: AjusteDeRuta }) {
   const { t } = usePrefs();
   const [cerradas, setCerradas] = useState<Record<string, boolean>>({});
   if (!rutas.length) return null;
@@ -32,7 +32,11 @@ export function RutaDelPlan({ rutas, nombreDeOrden, destinoDeOrden, ajuste }: { 
       <tr style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
         <td><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}</td>
         <td>
-          {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")} {nombreDeOrden(p.order_ref)}
+          {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}{" "}
+          {/* D-428: la orden y su factura abren la ficha completa. */}
+          {abrirOrden
+            ? <button type="button" data-abrir-orden style={{ background: "none", border: 0, padding: 0, color: "var(--blue, #2563eb)", textDecoration: "underline", cursor: "pointer", font: "inherit" }} title={t("Open the order", "Abrir la orden")} onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>
+            : nombreDeOrden(p.order_ref)}
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
           {p.builder && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", marginLeft: 6 }}>{t("Builder", "Builder")}</span>}
           {p.place && <span className="hint" style={{ margin: 0 }}> · {p.place}</span>}

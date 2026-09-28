@@ -32,7 +32,7 @@ describe("dónde se usa", () => {
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")}');
     // Y de ahí beben las paradas, «Fuera de este plan», la comparación con la hoja y la tarjeta del chofer.
     const panel = leer("src/components/PlanDelDia.tsx");
-    for (const uso of ["<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}", "<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", "<b>{nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
+    for (const uso of ["<RutaDelPlan rutas={borrador!.rutas} nombreDeOrden={nombreDeOrden}", "<ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />", ">{nombreDeOrden(x.id)}</button> : nombreDeOrden(x.id)}</b>"]) expect(panel).toContain(uso);
     expect(leer("src/components/RutaDelPlan.tsx")).toContain("{nombreDeOrden(p.order_ref)}");
     expect(leer("src/components/MiPlanPublicado.tsx")).toContain("{nombreDeOrden(p.delivery_id, p.order_ref)}");
   });
@@ -61,5 +61,25 @@ describe("a dónde va cada entrega del plan (D-422)", () => {
     const plan = leer("src/components/PlanDelDia.tsx");
     expect(plan).toContain("const destinoDeOrden = (id: string) => destinoDeLaOrden(deliveries, id);");
     expect(plan).toContain("destinoDeOrden={destinoDeOrden}");
+  });
+});
+
+describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", () => {
+  const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
+  it("en el borrador, la orden y su factura abren la ficha completa (paradas y «Fuera de este plan»)", () => {
+    const ruta = leer("src/components/RutaDelPlan.tsx");
+    expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>");
+    const plan = leer("src/components/PlanDelDia.tsx");
+    expect(plan).toContain("abrirOrden={onAbrirOrden}");
+    expect(plan).toContain("onClick={() => onAbrirOrden(x.id)}>{nombreDeOrden(x.id)}</button>");
+    const gestor = leer("src/app/(app)/routes/page.tsx");
+    // Una carga partida (`id#b`) abre su orden.
+    expect(gestor).toContain('onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }}');
+  });
+  it("Ayer, Hoy y Mañana siempre a la vista, relativos a HOY (no al día que se mira), y el que se mira sale marcado", () => {
+    const gestor = leer("src/app/(app)/routes/page.tsx");
+    expect(gestor).toContain('[[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]]');
+    expect(gestor).toContain("const dia = shiftDateISO(todayISO(), dias);");
+    expect(gestor).toContain('className={"btn btn-sm " + (date === dia ? "btn-primary" : "btn-ghost")}');
   });
 });
