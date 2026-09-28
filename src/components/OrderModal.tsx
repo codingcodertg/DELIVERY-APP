@@ -45,8 +45,8 @@ import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/li
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador, parcheDeTipoDeCliente, tipoDeClientePorDefecto } from "@/lib/customer-type";
-import { conPrioridadSiCabe, laBaseTienePrioridad, PRIORIDADES, prioridadDe } from "@/lib/prioridad";
-import { conAvisosSiCabe, idiomaDe, laBaseTieneAvisos, preferenciaDe } from "@/lib/avisos-cliente";
+import { conPrioridadSiCabe } from "@/lib/prioridad";
+import { conAvisosSiCabe } from "@/lib/avisos-cliente";
 import { alternaRequisito, catalogoDeRequisitos, conRequisitosSiCabe, laBaseTieneRequisitosEnOrdenes, requisitosDeLaOrden } from "@/lib/requisitos";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
@@ -1858,20 +1858,8 @@ export function OrderModal({
                 <span>⏰ {t("Priority — deliver first thing in the morning", "Prioridad — entregar a primera hora de la mañana")}</span>
               </label>
             )}
-            {/* Prioridad (D-412, 147): baja, normal, alta o crítica, como OptimoRoute. Nace en Normal. Solo sale si la base
-                ya tiene la columna (se aplica tras fusionar); la edita quien edita el resto de la orden (`salesFields`), que
-                es lo mismo que deja la base: el guard no mira columnas en «misma etapa». */}
-            {laBaseTienePrioridad(deliveries) && (
-              <div className="grid g2" style={{ marginTop: 8 }}>
-                <div className="field">
-                  <label>{t("Priority", "Prioridad")}</label>
-                  <select data-campo="prioridad" value={prioridadDe(d)} disabled={!salesFields}
-                    onChange={(e) => set("priority", e.target.value)}>
-                    {PRIORIDADES.map((p) => <option key={p.key} value={p.key}>{t(p.en, p.es)}</option>)}
-                  </select>
-                </div>
-              </div>
-            )}
+            {/* D-436: la prioridad (D-412) ya no sale en la ficha — el dueño: «no entiendo porque agregaste cosas que no te pedi
+                priorirdad, correo del cliente aviso al cliente y idioa alc lciente remueve eso». La columna y el motor siguen. */}
             {/* Requisitos del camión (D-418, 151; OptimoRoute `skills`): lo que la entrega necesita del camión. Solo sale si la
                 base ya tiene la columna y el admin puso algo en el catálogo (Ajustes → Motor de rutas). «Planificar el día» y
                 «Mejor lugar» no se la dan a un chofer cuyo camión no lo tiene. */}
@@ -1980,31 +1968,8 @@ export function OrderModal({
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
               <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
             </div>
-            {/* Avisos al cliente (D-416, 150): su correo, cómo quiere los avisos (la noche antes y «en camino») y su
-                idioma. Solo en órdenes a cliente (este bloque ya no sale en tienda-a-tienda) y solo si la base ya tiene
-                las columnas. Sin idioma, el aviso va en inglés y español a la vez. */}
-            {laBaseTieneAvisos(deliveries) && (
-              <div className="grid g3" data-campo="avisos-cliente">
-                <Txt label={t("Customer email (optional)", "Correo del cliente (opcional)")} type="email" val={d.customer_email} on={(v) => set("customer_email", v)} disabled={!salesFields} placeholder="cliente@correo.com" />
-                <div className="field">
-                  <label>{t("Customer updates", "Avisos al cliente")}</label>
-                  <select data-campo="notify_pref" value={preferenciaDe(d)} disabled={!salesFields} onChange={(e) => set("notify_pref", e.target.value)}>
-                    <option value="both">{t("SMS and email", "SMS y correo")}</option>
-                    <option value="sms">{t("SMS only", "Solo SMS")}</option>
-                    <option value="email">{t("Email only", "Solo correo")}</option>
-                    <option value="none">{t("Don’t notify", "No avisar")}</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label>{t("Customer language", "Idioma del cliente")}</label>
-                  <select data-campo="customer_lang" value={idiomaDe(d) ?? ""} disabled={!salesFields} onChange={(e) => set("customer_lang", e.target.value || null)}>
-                    <option value="">{t("English + Spanish", "Inglés + español")}</option>
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
-                  </select>
-                </div>
-              </div>
-            )}
+            {/* D-436: correo, avisos e idioma del cliente (D-416) ya no salen en la ficha (ver arriba). Los avisos, si se
+                encienden, van por el teléfono de la orden con la preferencia por defecto. */}
             {salesFields && laCuentaRecuerda(d.account) && !!d.contact?.trim() && !!d.delivery_phone?.trim() &&
               !savedAccounts.some((a) => a.name.toLowerCase() === d.account!.trim().toLowerCase() && a.contact === d.contact && a.phone === d.delivery_phone
                 && (a.address ?? "") === (storeToStore ? (a.address ?? "") : (d.delivery_address ?? ""))) && (

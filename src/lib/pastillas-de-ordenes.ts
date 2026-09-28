@@ -62,16 +62,13 @@ export function pastillasDeOrdenes(args: {
   // cada uno con las atrasadas que ve (admin y logística, todas; los demás, las de ayer, D-392).
   // Antes salía siempre, también con 0 (D-384), y solo para admin y logística (D-392).
   // Va tras las etapas y antes de la de factura pendiente.
-  if (n(PESTANA_ATRASADAS) > 0 || filtro === PESTANA_ATRASADAS) {
-    salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
-  }
+  // D-436: las dos salen SIEMPRE, también con 0 — el dueño: «y el pending invoice y outdated filter aunque no hayan que
+  // siempre se mire el boton del filtro». Antes salían solo con algo dentro o estando en ellas (D-310, D-404).
+  salida.push(pastilla(PESTANA_ATRASADAS, "chip-late"));
 
-  // La del documento pendiente (D-310) solo sale si hay algo pendiente **o** si se está dentro de
-  // ella: si no, al vaciarse desaparecería bajo el dedo y la lista se quedaría en un filtro invisible.
-  // Y a quien no tiene tienda le sale siempre, con 0 (D-404): dentro se le dice por qué.
-  if (n(PESTANA_DOCUMENTO_PENDIENTE) > 0 || filtro === PESTANA_DOCUMENTO_PENDIENTE || pendientesSinTienda) {
-    salida.push(pastilla(PESTANA_DOCUMENTO_PENDIENTE, "chip-pend"));
-  }
+  // La del documento pendiente (D-310), igual: siempre (D-436). Quien no tiene tienda la veía siempre desde D-404.
+  void pendientesSinTienda;
+  salida.push(pastilla(PESTANA_DOCUMENTO_PENDIENTE, "chip-pend"));
 
   return salida;
 }

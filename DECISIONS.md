@@ -28831,6 +28831,8 @@ con datos inventados, en el demo en `127.0.0.1`, Chrome sin perfil, clics de per
 
 ## D-404 · Órdenes: toda atrasada abierta va a «Outdated» (también la de ayer, y para todos los roles), y «Factura pendiente» es solo de la tienda propia
 
+> **Reemplazada en parte por D-436** (2026-09-28): «Outdated» y «Factura pendiente» salen siempre, también con 0.
+
 > **⚠ Revertida en parte por D-407** (2026-09-26, por la tarde). Dos cosas de abajo ya no valen:
 > (1) en la parte 1, *«la lista normal ya no lleva ninguna atrasada abierta»*: el dueño pidió *«outdated que también
 > salga en all»*, y la atrasada sale **en «Todas» (y su etapa) y en «Outdated»**, sin buscar. Lo demás de la parte 1
@@ -29865,6 +29867,8 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
+> **Reemplazada en parte por D-436** (2026-09-28): el selector «Prioridad» ya no sale en la ficha de la orden; la columna y el motor siguen.
+
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «`autoAssign` ordena primero por prioridad» ya no aplica — `autoAssign`
 > se quitó y Auto-asignar reparte con el motor, que coloca por prioridad desde D-415. El aviso sigue diciendo aparte las
 > altas y críticas sin colocar.
@@ -30380,6 +30384,8 @@ qué» en POST, GET y PATCH); `src/components/RouteEngineSettings.tsx` (las dos 
 ---
 
 ## D-416 · Avisos al cliente como OptimoRoute: la noche antes y «en camino», por SMS o correo, APAGADOS hasta que el admin los encienda (migración 150)
+
+> **Reemplazada en parte por D-436** (2026-09-28): correo, preferencia e idioma del cliente ya no salen en la ficha; los avisos siguen apagados y, si se encienden, van por el teléfono.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (las tres apps: toca `src/lib`, `src/app/api` y `data-provider`)
 · **Migración 150, escrita y NO aplicada** (plan: `docs/PLAN-150-avisos-al-cliente.md`).
@@ -32146,3 +32152,24 @@ no se tocan). Ajustadas `columnas-del-dueno`, `columnas-del-plan`, `routes-colum
 **No verificado:** contra producción, y que la escritura única de `_v7` llegue a la fila `user_prefs` del dueño (el demo no tiene
 `user_prefs`; se prueba con la función pura y con el texto de la página, que ya escribía con `escribe`). El 🔒 de una orden ya
 hecha no salió en el demo (necesita la copia de un publicado con órdenes fuera de etapa); es un emoji y no toma el color de la fila.
+
+## D-436 · La ficha de la orden sin prioridad ni avisos al cliente; «Outdated» y «Factura pendiente» siempre a la vista
+
+**Fecha:** 2026-09-28. **Pedidos del dueño**, literales: *«en el delviereis form no entiendo porque agregaste cosas que no te pedi
+priorirdad, correo del cliente aviso al cliente y idioa alc lciente remueve eso»* y *«y el pending invoice y outdated filter
+aunque no hayan que siempre se mire el boton del filtro»*.
+
+**De dónde venían.** La prioridad salió de su «LAS 3 HAZ» sobre OptimoRoute (D-412) y los avisos al cliente de «solos haz 1 3 y 4»
+(D-416). Pidió las funciones, no los campos en la ficha: se quitan de la ficha (`OrderModal.tsx`) el selector «Prioridad» y el
+bloque «Correo del cliente / Avisos al cliente / Idioma del cliente». **No se quita nada de la base ni del motor**: toda orden
+sigue en prioridad Normal y el reparto la sigue leyendo; los avisos siguen apagados y, si se encienden, usan el teléfono de la
+orden con la preferencia por defecto (SMS y correo, sin correo = solo SMS). El guardado sigue pasando por `conPrioridadSiCabe` /
+`conAvisosSiCabe` (sin los campos, no mandan nada nuevo).
+
+**Filtros.** En Órdenes, las pastillas «Outdated / Expiradas» y «Factura pendiente» salen siempre, también con 0
+(`pastillasDeOrdenes`). Antes solo con algo dentro o estando en ellas (D-310, D-404).
+
+**Pendiente de aclarar** (tercer mensaje del mismo rato): *«a un usuario no ler permite ingresar una orden porque el delivery
+fee es menos de la tarifca sugerida quita ese bloqeuo»*. En el código no hay ningún bloqueo por un costo menor al sugerido: la
+ficha solo exige que haya costo (0 vale, `required.ts`) y enseña el aviso «Igualar precio (menor al descuento) — requiere
+aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio ese usuario antes de tocar nada.

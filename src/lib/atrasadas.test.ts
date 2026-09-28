@@ -212,8 +212,8 @@ describe("la pastilla en la fila", () => {
   const fila = (cuentas: Record<string, number>, filtro: string) =>
     pastillasDeOrdenes({ etapas: ["approved", "ready"], todasAprueban: false, cuentas, filtro, pendientesSinTienda: false });
 
-  it("con 0 no sale, como la de factura pendiente (D-404; antes salía siempre, D-384)", () => {
-    expect(fila({}, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS)).toBeUndefined();
+  it("sale SIEMPRE, también con 0 (D-436: «aunque no hayan que siempre se mire el boton del filtro»)", () => {
+    expect(fila({}, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS)).toMatchObject({ cuenta: 0, activa: false, clase: "chip-late" });
     expect(fila({ [PESTANA_ATRASADAS]: 1 }, PASTILLA_TODAS).find((x) => x.key === PESTANA_ATRASADAS))
       .toMatchObject({ cuenta: 1, activa: false, clase: "chip-late" });
   });

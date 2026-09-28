@@ -42,7 +42,8 @@ describe("no se abre de rebote ningún otro campo de ventas", () => {
     // 22 desde D-412: el selector de «Prioridad» también cuelga de `salesFields` (lo edita quien edita la orden).
     // 25 desde D-416 (avisos al cliente, 150): correo, preferencia e idioma del cliente, los tres de `salesFields`.
     // 26 al juntar D-418 (151): las casillas de «Requisitos del camión», igual (una sola expresión dentro del `map`).
-    expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(26);
+    // 22 desde D-436: se quitan de la ficha la prioridad y los tres de avisos al cliente (el dueño no los pidió ahí).
+    expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(22);
     expect((ficha.match(/disabled=\{!tarifaEditable\}/g) ?? []).length).toBe(1);
   });
   it("los campos que son de ventas y NO de la tarifa siguen cerrados para almacén", () => {
