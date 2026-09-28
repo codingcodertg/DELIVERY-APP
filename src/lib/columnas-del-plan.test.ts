@@ -20,7 +20,7 @@ const plano = (s: string) => s.replace(/\s+/g, " ");
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
 const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo", "pl_bordo"];
 /** Las dos que Órdenes no tiene y van delante (D-434): el tipo de cliente y la ciudad de recogida. */
-const DELANTE = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega"];   // y la de entrega desde D-NEXT
+const DELANTE = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega"];   // y la de entrega desde D-435
 
 describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
   it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las cuatro propias del plan", () => {
@@ -92,7 +92,7 @@ describe("mover columnas y plantillas: el mismo mecanismo que el resto del Gesto
 });
 
 describe("la fila de RECOGIDA (P)", () => {
-  it("lo de la entrega —dirección, ventanas, contacto, y la ciudad de entrega (D-NEXT)— no se pinta en una recogida; lo de la orden, sí; y las demás propias del plan, siempre", () => {
+  it("lo de la entrega —dirección, ventanas, contacto, y la ciudad de entrega (D-435)— no se pinta en una recogida; lo de la orden, sí; y las demás propias del plan, siempre", () => {
     expect([...SOLO_DE_LA_ENTREGA]).toEqual(["address", "windows", "contact"]);
     const enP = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan") && seVeEnLaRecogida(c)).map((c) => c.key);
     expect(enP).toEqual([...DELANTE.filter((k) => k !== "pl_ciudad_entrega"),"pl_po", "pl_so", "pl_invoice", "pl_type", "pl_account", "pl_stage", "pl_priority", "pl_store", "pl_date", "pl_pallets", "pl_fee", "pl_driver", ...PROPIAS]);

@@ -18,7 +18,7 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
 
 describe("las columnas de partida del plan, en el orden del dueño", () => {
-  it("tras el ID fijo: tipo de cliente, ciudad de recogida, (D-NEXT: ciudad de entrega,) factura, dirección de entrega y ventanas — y nada más", () => {
+  it("tras el ID fijo: tipo de cliente, ciudad de recogida, (D-435: ciudad de entrega,) factura, dirección de entrega y ventanas — y nada más", () => {
     expect([...VISTAS_EN_EL_PLAN]).toEqual(["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_invoice", "pl_address", "pl_windows"]);
     expect(claves(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual([...VISTAS_EN_EL_PLAN]);
   });

@@ -45,7 +45,7 @@
   --teaching-text: #7c3aed;
   --panel-line: #dfe3ea;   /* borde de panel; casi --line, pero no idéntico */
   --row-line: #eef1f5;     /* separador entre filas de una lista */
-  /* La tabla del plan (D-NEXT): cada RECOGIDA (P) en verde muy suave y cada ENTREGA (D) en amarillo muy suave, la fila
+  /* La tabla del plan (D-435): cada RECOGIDA (P) en verde muy suave y cada ENTREGA (D) en amarillo muy suave, la fila
      entera. El dueño: «las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo». No
      son `--green-soft` (#e9f7f0): ese verde ya quiere decir «entregada» en Órdenes (`row-done`). El amarillo es limón y
      no ámbar, para que el borde ámbar entre viajes siga viéndose encima. */
@@ -96,7 +96,7 @@
   --teaching-text: #b794f6;
   --panel-line: #2b3644;
   --row-line: #2b3644;
-  /* Los pares oscuros de la tabla del plan (D-NEXT): el mismo matiz, apenas por encima de la tarjeta (#1a212c). */
+  /* Los pares oscuros de la tabla del plan (D-435): el mismo matiz, apenas por encima de la tarjeta (#1a212c). */
   --plan-recoger-bg: #172a21;
   --plan-entregar-bg: #2a2818;
   --blue: #7aa2ff;
@@ -397,7 +397,7 @@ table.orders tr.row-done td { background: #e9f7f0; }
 table.orders tr.row-done:hover td { background: #d8f0e4; }
 :root[data-theme="dark"] table.orders tr.row-done td { background: #16352a; }
 :root[data-theme="dark"] table.orders tr.row-done:hover td { background: #1c4535; }
-/* La tabla del plan (D-NEXT, `claseDeLaFilaDelPlan`): recogida en verde, entrega en amarillo, TODA la fila —la etiqueta, el
+/* La tabla del plan (D-435, `claseDeLaFilaDelPlan`): recogida en verde, entrega en amarillo, TODA la fila —la etiqueta, el
    ID y Ajustar también—. El gris de `.hint` («carga 1 de 2») bajaba a 4,3:1 sobre los tintes claros: ahí va más oscuro. */
 table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }
 table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }

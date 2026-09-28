@@ -10,7 +10,7 @@ import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import { celdaPropiaDelPlan, claseDeLaFilaDelPlan, type ContextoDelPlan } from "./celdas-del-plan";
 
 /**
- * D-NEXT: la tabla del plan de D-434, con dos retoques que pidió el dueño el 2026-09-28 sobre esa misma tabla: «ok quiero que
+ * D-435: la tabla del plan de D-434, con dos retoques que pidió el dueño el 2026-09-28 sobre esa misma tabla: «ok quiero que
  * en esa misma table las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo para poder
  * identificarlas mejor y lo unico que hizo falta es ciudad de entregfa».
  */

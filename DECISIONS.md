@@ -31978,9 +31978,9 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 
 ## D-434 · La tabla del plan con las columnas del dueño: ID solo, tipo de cliente, ciudad de recogida, factura, dirección y ventanas
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): de partida hay una columna más, «Ciudad de entrega», justo tras la de
+> **Reemplazada en parte por D-435** (2026-09-28): de partida hay una columna más, «Ciudad de entrega», justo tras la de
 > recogida (el dueño: *«lo unico que hizo falta es ciudad de entregfa»*), y llega a lo ya guardado con una tanda `_v7` que
-> AÑADE, sin devolver nada a su partida. Los pesos de la fila de aquí abajo cambiaron: ver D-NEXT.
+> AÑADE, sin devolver nada a su partida. Los pesos de la fila de aquí abajo cambiaron: ver D-435.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
 literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la
@@ -32056,7 +32056,7 @@ repite, y que las plantillas no se tocan); y ajustadas `columnas-del-plan`, `eti
 **No verificado:** contra producción. Que la escritura única de `_v6` llegue a su fila de `user_prefs` se prueba con el texto de
 la página y la función pura; el demo no tiene `user_prefs`.
 
-## D-NEXT · La tabla del plan: recogidas en verde, entregas en amarillo, y la ciudad de entrega
+## D-435 · La tabla del plan: recogidas en verde, entregas en amarillo, y la ciudad de entrega
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, sobre la tabla del plan que acababa de dejar D-434, literal: *«ok quiero que en
 esa misma table las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo para poder

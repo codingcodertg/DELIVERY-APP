@@ -178,7 +178,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-429 sumó la tabla del plan (19 columnas más: las 15 de Órdenes y 4 propias): 12 753 con 10 (modelo, no medida). Una
     // plantilla LLENA —las 48 columnas y las tres tablas movidas— pesa ~1,2 KB: caben 5, y la sexta la para la guarda.
     // D-434 sumó dos columnas al plan (tipo de cliente y ciudad de recogida) y una marca (`_v6`): 13467 con 10 (modelo).
-    // D-NEXT sumó la ciudad de entrega al plan y la marca `_v7`: 13916 con 10 (modelo). En este peor caso ya caben 4 plantillas
+    // D-435 sumó la ciudad de entrega al plan y la marca `_v7`: 13916 con 10 (modelo). En este peor caso ya caben 4 plantillas
     // llenas, no 5: la quinta la para la guarda, que lo dice al guardar.
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13916);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
@@ -194,7 +194,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // aún caben (6 861 + 800 de reserva < 8 192), pero ya no una plantilla llena más. Lo normal —logística y admin con las de
     // por defecto y 10 plantillas de esas— son 4 312 bytes (la prueba de abajo).
     // Con las dos del plan de D-434 y la marca `_v6`: 6 861 → 7 294 sin plantillas y 18 445 → 19 519 con 10. Siguen cabiendo sin plantillas.
-    // D-NEXT (la ciudad de entrega y `_v7`): 7 294 → 7 582 sin plantillas. La FILA sigue cabiendo en la base (< 8 192, que es
+    // D-435 (la ciudad de entrega y `_v7`): 7 294 → 7 582 sin plantillas. La FILA sigue cabiendo en la base (< 8 192, que es
     // lo que la 136 rechaza), pero ya no con la reserva de 800 de la guarda: en este peor caso no se puede guardar ninguna
     // plantilla — que ya era así (caben 0, abajo). Marcar, mover o quitar columnas no pasa por la guarda y sigue escribiéndose.
     expect(bytesEnLaBase(con(0))).toBe(7582);
@@ -205,7 +205,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     expect(cabeEnLaFila(con(10))).toBe(false);
     // Cuántas caben en ese peor caso: lo que cuenta la entrada de DECISIONS.md.
     const caben = Array.from({ length: MAX_PLANTILLAS + 1 }, (_, n) => n).filter((n) => cabeEnLaFila(con(n))).pop();
-    // Hasta D-434, 0 (sin plantillas la guarda aún dejaba); desde D-NEXT, ninguna cuenta —ni 0—: la guarda para la primera.
+    // Hasta D-434, 0 (sin plantillas la guarda aún dejaba); desde D-435, ninguna cuenta —ni 0—: la guarda para la primera.
     expect(caben).toBeUndefined();
   });
   it("lo normal con la tabla del plan (D-429): logística y admin con las de por defecto y 10 plantillas de esas caben con holgura", () => {
@@ -213,7 +213,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     const v = valorDeColumnas({ visibles: { logistics: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], admin: [...COLUMNAS_DEL_GESTOR_POR_DEFECTO] }, orden: {},
       plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });
     // D-434: el plan de partida pasa de 10 columnas a 5, así que lo normal pesa menos (4 312 → 3 752).
-    // D-NEXT: una columna más de partida (la ciudad de entrega) y la marca `_v7`.
+    // D-435: una columna más de partida (la ciudad de entrega) y la marca `_v7`.
     expect(porDefecto).toHaveLength(25);
     expect(bytesEnLaBase(v)).toBe(4045);   // 3 752 → 4 045
     expect(cabeEnLaFila(v)).toBe(true);

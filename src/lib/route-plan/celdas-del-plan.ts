@@ -9,14 +9,14 @@ import type { Delivery, NamedLocation } from "@/lib/types";
  * 2026-09-28, sobre la tabla del plan publicado: «quiero que haya una columna solo para el id, lueg osi es builder, inter
  * tienda o vventa al mostrador, luego la ciudad donde se recoje, y el invoice number».
  *
- * D-NEXT sumó una tercera, la ciudad de entrega: «lo unico que hizo falta es ciudad de entregfa».
+ * D-435 sumó una tercera, la ciudad de entrega: «lo unico que hizo falta es ciudad de entregfa».
  *
  * Aquí no se decide nada nuevo: cada una LEE la regla que ya decide eso en otra parte, para que el plan no pueda
  * contradecir al motor ni a la ficha.
  */
 
 /**
- * La clase de la FILA de una parada en la tabla del plan (D-NEXT): la recogida en verde muy suave, la entrega en amarillo
+ * La clase de la FILA de una parada en la tabla del plan (D-435): la recogida en verde muy suave, la entrega en amarillo
  * (los tintes, en `globals.css`, con su par oscuro). El dueño, 2026-09-28: «quiero que en esa misma table las pickup toda la
  * row este highlited pero bien suave de verde y las deliveries de amarillo para poder identificarlas mejor».
  */
@@ -65,7 +65,7 @@ export function celdaPropiaDelPlan(clave: string, d: Pick<Partial<Delivery>, "or
     return c ? TEXTO_DE_CLASE[c][ctx.es ? 1 : 0] : "—";
   }
   if (clave === "pl_ciudad_recogida") return zonaDeLaRecogida(d, ctx.tiendas, ctx.conocidas) || "—";
-  // D-NEXT: la MISMA ciudad que la columna «Ciudad de entrega» de «Sin asignar» (D-408), con las mismas ciudades conocidas
+  // D-435: la MISMA ciudad que la columna «Ciudad de entrega» de «Sin asignar» (D-408), con las mismas ciudades conocidas
   // (D-423). En una recogida no llega aquí: la tabla la deja vacía (`seVeEnLaRecogida`).
   if (clave === "pl_ciudad_entrega") return ciudadDeEntrega(d.delivery_address, ctx.conocidas) || "—";
   return undefined;
