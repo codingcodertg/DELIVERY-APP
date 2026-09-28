@@ -168,7 +168,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
 
     const entreTiendas = isStoreToStore(d.order_type, reglas);
     const origen = tiendaConPunto(d.pickup_name) ?? tiendaConPunto(d.store);
-    // La zona de la recogida (D-NEXT): la ciudad de la dirección de la tienda de origen —la misma de arriba—.
+    // La zona de la recogida (D-427): la ciudad de la dirección de la tienda de origen —la misma de arriba—.
     const zonaRecogida = hayZonas ? zonaDeLaRecogida(d, tiendas, zonasConocidas) : "";
     let destino: Punto | null = null;
     if (d.delivery_lat != null && d.delivery_lng != null) {
@@ -191,7 +191,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       ...(requisitosDeLaOrden(d, catalogo).length ? { requisitos: requisitosDeLaOrden(d, catalogo) } : {}),
       // Y la zona: la ciudad de la dirección de entrega, la misma de la columna «Ciudad de entrega» (D-408).
       ...(hayZonas && zonaDeLaOrden(d, zonasConocidas) ? { zona: zonaDeLaOrden(d, zonasConocidas) } : {}),
-      // Y la de la recogida (D-NEXT): recoger en la tienda de la zona de otro chofer también es entrar en su zona.
+      // Y la de la recogida (D-427): recoger en la tienda de la zona de otro chofer también es entrar en su zona.
       ...(zonaRecogida ? { zonaRecogida } : {}),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });

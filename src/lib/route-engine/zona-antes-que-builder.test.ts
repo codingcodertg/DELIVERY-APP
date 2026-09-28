@@ -38,7 +38,8 @@ const con = (zona: number, zonaMillas?: number): Parametros =>
   ({ ...PARAMETROS_POR_DEFECTO, pesos: { ...PARAMETROS_POR_DEFECTO.pesos, zona, ...(zonaMillas === undefined ? {} : { zonaMillas }) } });
 const choferDe = (plan: Plan, id: string) => plan.rutas.find((r) => r.paradas.some((p) => p.orden === id || p.orden.startsWith(`${id}#`)))?.chofer ?? null;
 
-describe("los dos casos medidos con días reales", () => {
+// Motor entero sobre días reales: ~2 s solo, más de 5 s con la suite en paralelo (medido 2026-09-27). Límite propio.
+describe("los dos casos medidos con días reales", { timeout: 30_000 }, () => {
   it("2026-09-07: la entrega de la zona de C (la de Maximo) se la llevaba A por el builder y el balance, con +0 mi para C; ahora va con C", () => {
     const e = entradaReal("2026-09-07"), caso = DIAS["2026-09-07"].caso;
     // Antes (umbral 0 = motor-4): A, fuera de su zona, aunque C la hacía con las mismas millas.
@@ -58,7 +59,7 @@ describe("los dos casos medidos con días reales", () => {
     expect(ahora.coste.fueraDeZona!).toBeLessThan(antes.coste.fueraDeZona!);
   });
 
-  // D-NEXT: esta orden es la #FT205 que el dueño señaló — se RECOGE en la tienda de la zona de C. Este fixture no trae la
+  // D-427: esta orden es la #FT205 que el dueño señaló — se RECOGE en la tienda de la zona de C. Este fixture no trae la
   // zona de la recogida, así que prueba solo el umbral de D-423; con ella (`zona-recogida-caso-real.json`) va con C.
   it("2026-09-28: una entrega de la zona de A y B se iba con C por el balance (con peso 30), aunque B la hacía con menos millas; ahora va con B", () => {
     const e = entradaReal("2026-09-28"), caso = DIAS["2026-09-28"].caso;

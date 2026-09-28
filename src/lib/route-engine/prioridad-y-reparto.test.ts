@@ -274,7 +274,8 @@ describe("repartir por tiempo o por número de órdenes (OptimoRoute balanceBy)"
   });
 });
 
-describe("usar todos los choferes disponibles", () => {
+// Motor entero varias veces: pasa de 5 s con la suite en paralelo (medido 2026-09-27). Límite propio.
+describe("usar todos los choferes disponibles", { timeout: 30_000 }, () => {
   // Tres órdenes al mismo sitio: lo barato es llevarlas juntas, un solo chofer.
   const juntas = () => entradaDe([1, 2, 3].map((k) => orden(`o${k}`, { destino: punto(10), entrada: `2026-01-05 080${k}` })), [chofer("c1"), chofer("c2"), chofer("c3")]);
 

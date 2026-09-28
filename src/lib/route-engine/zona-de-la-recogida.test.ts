@@ -7,7 +7,7 @@ import {
 } from "./index";
 
 /**
- * La zona de la RECOGIDA también cuenta (D-NEXT, `motor-6`). El dueño, 2026-09-27, con la captura del borrador del 28:
+ * La zona de la RECOGIDA también cuenta (D-427, `motor-6`). El dueño, 2026-09-27, con la captura del borrador del 28:
  * *«mira esto es para mana 28 no entiendo porque la p5 y d 5 se las a julio no tiene sentido mandar a julio hasta
  * brownsville si ya te dije que ahi esta maximo  revisa ese alritmo»*.
  *

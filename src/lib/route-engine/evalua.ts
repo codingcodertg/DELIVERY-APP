@@ -47,7 +47,7 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
 }
 
 /**
- * Cuántas puntas de esta orden hace este chofer en la zona de OTRO (D-421; la recogida, desde D-NEXT). Una orden tiene
+ * Cuántas puntas de esta orden hace este chofer en la zona de OTRO (D-421; la recogida, desde D-427). Una orden tiene
  * dos puntas: la ciudad de la tienda donde se recoge (`zonaRecogida`) y la de la entrega (`zona`). Cada una cuenta si
  * tiene ciudad, esa ciudad la prefiere algún chofer, y no es de este. Cuentan por separado: recoger en la zona de otro y
  * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Y la recogida

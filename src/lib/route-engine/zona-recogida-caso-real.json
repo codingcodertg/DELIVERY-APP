@@ -1,5 +1,5 @@
 {
- "nota": "Fixture anonimizado de producción (D-NEXT): la entrada del motor del 2026-09-28 tal como la armó «Planificar el día» (sin tráfico, matriz estimada), con la zona de la RECOGIDA. Sin direcciones, nombres ni códigos de orden: choferes A/B/C (por nombre), órdenes o01…, puntos p1…, zonas Z1… (ciudades renombradas); pins a 2 decimales. «caso» es la orden que motivó la prueba: se recoge en la tienda de la zona de C y se entrega en una zona de A y B.",
+ "nota": "Fixture anonimizado de producción (D-427): la entrada del motor del 2026-09-28 tal como la armó «Planificar el día» (sin tráfico, matriz estimada), con la zona de la RECOGIDA. Sin direcciones, nombres ni códigos de orden: choferes A/B/C (por nombre), órdenes o01…, puntos p1…, zonas Z1… (ciudades renombradas); pins a 2 decimales. «caso» es la orden que motivó la prueba: se recoge en la tienda de la zona de C y se entrega en una zona de A y B.",
  "dias": {
   "2026-09-28": {
    "caso": "o03",

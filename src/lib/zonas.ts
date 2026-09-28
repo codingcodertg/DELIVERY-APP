@@ -52,7 +52,7 @@ export function zonaDeLaOrden(d: Pick<Partial<Delivery>, "delivery_address"> | n
 }
 
 /**
- * La zona de la RECOGIDA de una orden (D-NEXT): la ciudad de la dirección de su tienda, leída como la de una entrega. La
+ * La zona de la RECOGIDA de una orden (D-427): la ciudad de la dirección de su tienda, leída como la de una entrega. La
  * tienda es la misma que usa «Planificar el día» como origen (`entradaDelDia`): la de `pickup_name` y, si no está o no
  * tiene punto, la de `store`. «» = no se sabe. El dueño, 2026-09-27: «no tiene sentido mandar a julio hasta brownsville si
  * ya te dije que ahi esta maximo» — recoger en la tienda de la zona de otro chofer también es entrar en su zona.
@@ -124,7 +124,7 @@ export function zonasPorNombre(
 }
 
 /** «📍 Mejor lugar» (solo sugerencia): ¿alguna de las órdenes marcadas es de la zona de este chofer? Por su entrega o, con
- *  las tiendas de Ajustes (D-NEXT), por la tienda donde se recoge: la que sale de su tienda también es de su zona, salvo
+ *  las tiendas de Ajustes (D-427), por la tienda donde se recoge: la que sale de su tienda también es de su zona, salvo
  *  que vaya a una ciudad que no es zona de nadie. */
 export function esDeSuZona(
   chofer: string, ordenes: readonly Pick<Partial<Delivery>, "delivery_address" | "pickup_name" | "store">[], zonas: ReadonlyMap<string, readonly string[]>,

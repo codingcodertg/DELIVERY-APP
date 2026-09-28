@@ -9,7 +9,7 @@ import { entradaDelDia, type DatosDelDia } from "./entrada";
 import { repartoConDetalle, type DiaParaElReparto, type FilaDelReparto } from "./reparto";
 
 /**
- * La zona de la RECOGIDA, de la base a las tres pantallas que reparten (D-NEXT). El dueño, 2026-09-27: *«no tiene sentido
+ * La zona de la RECOGIDA, de la base a las tres pantallas que reparten (D-427). El dueño, 2026-09-27: *«no tiene sentido
  * mandar a julio hasta brownsville si ya te dije que ahi esta maximo»*. La zona de la recogida es la ciudad de la
  * dirección de la tienda (Ajustes → tiendas), leída igual que la de una entrega. Nada de aquí es del dueño: «Villa
  * Norte», «Puerto Sur» y «Llano Centro» son inventadas.

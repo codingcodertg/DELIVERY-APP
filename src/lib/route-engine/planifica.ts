@@ -21,7 +21,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-6` (D-NEXT): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
+/** `motor-6` (D-427): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
  *  punta fuera de zona, como entregar allí (`puntasFueraDeZona`); y si eso deja más órdenes fuera, se queda el plan que
  *  cuenta solo la entrega. Sin zonas, lo mismo que `motor-5`, byte a byte (la misma huella).
  *  `motor-5` (D-423, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
@@ -121,7 +121,7 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
   // fuera por la zona. Sin zonas —ningún chofer las tiene, o ninguna entrega es de una—, una sola vez: el plan de siempre.
   // Si con zonas no queda nada fuera, sin ellas no puede quedar menos: no hace falta la segunda vuelta.
   if (!plan.sinAsignar.length || !zonasQueDeciden(entrada, parametros)) return plan;
-  // Lo mismo con la zona de la recogida (D-NEXT): también se planifica contando solo la entrega —lo de `motor-5`— y se
+  // Lo mismo con la zona de la recogida (D-427): también se planifica contando solo la entrega —lo de `motor-5`— y se
   // queda la de menos órdenes fuera; a igualdad, la de las dos puntas. Contar la recogida mueve trabajo entre choferes
   // (medido: 46 entregas cambian de chofer en 16 días reales), y en un día lleno eso cerraba huecos: sin esta vuelta quedaban 2
   // órdenes más fuera en esos 16 días. Nunca queda una orden fuera por la zona, tampoco por la de la recogida.
@@ -136,7 +136,7 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
 }
 
 /** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna entrega de una de ellas. (La
- *  recogida no hace falta mirarla: solo cuenta cuando la entrega tiene dueño, D-NEXT.) */
+ *  recogida no hace falta mirarla: solo cuenta cuando la entrega tiene dueño, D-427.) */
 function zonasQueDeciden(entrada: Entrada, parametros: Parametros): boolean {
   if ((parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return false;
   const reclamadas = zonasReclamadas(entrada.choferes);
@@ -314,7 +314,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
    * Va DESPUÉS de la mejora y no dentro de su comparación a propósito: dentro, «menos de N millas de más» no es un orden
    * entre planes (A gana a B por zona, B a C por coste, C a A por millas) y la búsqueda podría dar vueltas.
    *
-   * Con las dos puntas (D-NEXT), «los choferes de su zona» son los choferes con los que la orden hace MENOS puntas fuera
+   * Con las dos puntas (D-427), «los choferes de su zona» son los choferes con los que la orden hace MENOS puntas fuera
    * de zona que con el suyo de ahora. Una orden que sale de la tienda de la zona de uno y va a la zona de otro hace una
    * punta fuera con cualquiera de los dos: ninguno es «más de su zona», no se mueve, y decide el coste. Sigue terminando:
    * cada cambio baja las puntas fuera de zona del plan.

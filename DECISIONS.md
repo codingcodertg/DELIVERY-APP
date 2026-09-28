@@ -30962,7 +30962,7 @@ Estimador: el barrido de `onChange … Number(e.target.value)` solo encontró `s
 
 ## D-421 · Zonas preferidas por chofer: el motor le da primero a cada chofer las entregas de su ciudad, sin dejar ninguna fuera por eso (migración 152)
 
-> **Reemplazada en parte por D-NEXT** (2026-09-27): «fuera de zona» ya no mira solo la ciudad de la ENTREGA. Cada orden
+> **Reemplazada en parte por D-427** (2026-09-27): «fuera de zona» ya no mira solo la ciudad de la ENTREGA. Cada orden
 > tiene dos puntas —la ciudad de la tienda donde se recoge y la de la entrega— y cada punta en la zona que prefiere otro
 > chofer cuesta el peso. El dueño: *«no tiene sentido mandar a julio hasta brownsville si ya te dije que ahi esta maximo»*
 > (#FT205 del 28: Julio iba a recoger a RDZ Brownsville porque solo Maximo pagaba zona, por entregar en Weslaco). `motor-6`;
@@ -31151,7 +31151,7 @@ No se abrió en el demo: el borrador necesita el servidor (`/api/route-plan`).
 
 ## D-423 · La zona le gana al builder y al balance cuando cuesta casi lo mismo en millas; la ciudad de las direcciones escritas a mano; y guardar un chofer en Ajustes ya no pisa las demás filas
 
-> **Reemplazada en parte por D-NEXT** (2026-09-27): el umbral ya no devuelve una entrega «al chofer de su zona» (el que tiene
+> **Reemplazada en parte por D-427** (2026-09-27): el umbral ya no devuelve una entrega «al chofer de su zona» (el que tiene
 > la ciudad de la entrega) sino a un chofer con el que la orden hace MENOS puntas fuera de zona, contando también la tienda
 > donde se recoge. Y el caso **#546 del 2026-09-28**, que aquí se cuenta como acierto al volver a Julio, es justo el que el
 > dueño señaló como error: se recoge en RDZ Brownsville, y ahora va con Maximo. La prueba de este caso en
@@ -31414,7 +31414,7 @@ lista sembrada.
 
 **Pruebas.** Las que leían el texto (`atrasadas.test.ts`, `ordenes-del-dia.test.ts`) ahora afirman el nuevo.
 
-## D-NEXT · La zona también mira dónde se RECOGE: ir a la tienda de la zona de otro chofer cuenta como entrar en su zona (`motor-6`)
+## D-427 · La zona también mira dónde se RECOGE: ir a la tienda de la zona de otro chofer cuenta como entrar en su zona (`motor-6`)
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la ciudad de la tienda
 sale de la dirección de la tienda en Ajustes, que ya existía). **Reemplaza en parte** a D-421 (qué es «fuera de zona») y a
