@@ -87,7 +87,7 @@ const MOTIVOS: Record<string, [string, string]> = {
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
  *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
  *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
-export function PlanDelDia({ date, onPublicado, onCerrar, naceAbierto = false, onAbrirOrden }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void }) {
+export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
