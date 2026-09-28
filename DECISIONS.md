@@ -31384,3 +31384,20 @@ estimate upload option»*.
 - `window.open` tras un `await` puede quedar bloqueado por el navegador en algunos móviles (Safari); es el mismo patrón que
   los CV de recruiting y la ayuda. No se probó en un teléfono.
 - Solo el admin tiene hoy el módulo `estimator`: nadie más lo verá hasta que se le conceda (D-413).
+
+## D-426 · En Entregas, «Atrasada» pasa a llamarse «Expirada»
+
+**Fecha:** 2026-09-27. **Pedido del dueño**, literal: *«change atrasado to Expirado in delivery app»*.
+
+**Qué cambió.** Solo el texto en español que se ve en la app de Entregas: la pastilla de Órdenes («Outdated / Expiradas»,
+D-384/D-404), los KPI de Panel, Cuentas y Resumen, «Órdenes expiradas» y «Nada expirado» del Panel, la marca del Mapa y del
+Gestor, el modo «Expiradas y sin fecha» del Gestor con su aviso, la línea de «Mi ruta» del chofer, y el motivo de
+cancelación sembrado «Expirada sin reprogramar» (16 textos en 8 ficheros).
+
+**Qué NO cambió.** El inglés («Outdated», «Overdue», «Late»): el dueño nombró la palabra en español. Los nombres internos
+(`atrasadas.ts`, `vaAAtrasadas`, `PESTANA_ATRASADAS`, la clave `atrasadas` de avisos ocultos, el modo `"atrasadas"`): no se
+ven y renombrarlos rompería lo guardado por cada persona. Recruiting («Resultado atrasado») no es la app de Entregas. Un
+motivo de cancelación ya guardado en Ajustes con el texto viejo se queda como está (se edita en Datos); el cambio vale para la
+lista sembrada.
+
+**Pruebas.** Las que leían el texto (`atrasadas.test.ts`, `ordenes-del-dia.test.ts`) ahora afirman el nuevo.

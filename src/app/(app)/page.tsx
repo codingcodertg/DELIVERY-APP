@@ -642,7 +642,7 @@ export default function OrdersPage() {
                   : p.key === PESTANA_DOCUMENTO_PENDIENTE
                     ? t("Invoice pending", "Factura pendiente")
                     : p.key === PESTANA_ATRASADAS
-                      ? t("Outdated", "Atrasadas")
+                      ? t("Outdated", "Expiradas")
                       : stageLabel(p.key, lang)} <span className="cnt">{p.cuenta}</span>
               </button>
             ))}

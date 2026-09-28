@@ -113,7 +113,7 @@ export default function SummaryPage() {
           <div className="kpi"><b>{stats.total}</b><span>{t("Total", "Total")}</span></div>
           <div className="kpi"><b style={{ color: "var(--accent)" }}>{stats.active}</b><span>{t("In progress", "En curso")}</span></div>
           <div className="kpi"><b style={{ color: "var(--green)" }}>{stats.delivered}</b><span>{t("Delivered", "Entregadas")}</span></div>
-          <div className="kpi"><b style={{ color: stats.overdue ? "var(--red)" : undefined }}>{stats.overdue}</b><span>{t("Overdue", "Atrasadas")}</span></div>
+          <div className="kpi"><b style={{ color: stats.overdue ? "var(--red)" : undefined }}>{stats.overdue}</b><span>{t("Overdue", "Expiradas")}</span></div>
           {subject?.role !== "driver" && (
             <div className="kpi"><b style={{ color: "var(--green)", fontSize: 17 }}>{fmtMoney(stats.fees)}</b><span>{t("Fees charged", "Cobros")}</span></div>
           )}

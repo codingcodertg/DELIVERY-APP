@@ -271,7 +271,7 @@ export default function DashboardPage() {
             <Kpi n={kpis.inWarehouse} label={t("In warehouse", "En almacén")} tone="purple" />
             <Kpi n={kpis.outForDelivery} label={t("Out for delivery", "En reparto")} tone="accent" />
             <Kpi n={kpis.delivered} label={t("Delivered", "Entregadas")} tone="green" />
-            <Kpi n={kpis.overdue} label={t("Overdue", "Atrasadas")} tone={kpis.overdue ? "red" : undefined} />
+            <Kpi n={kpis.overdue} label={t("Overdue", "Expiradas")} tone={kpis.overdue ? "red" : undefined} />
             <Kpi n={kpis.totalPallets} label={t("Pallets", "Pallets")} />
             <Kpi n={kpis.totalMiles} label={t("Route miles", "Millas")} />
             <Kpi n={fmtMoney(kpis.totalFees)} label={t("Fees charged", "Cobros de entrega")} tone="green" small />
@@ -574,10 +574,10 @@ export default function DashboardPage() {
             {/* ---------- Overdue list ---------- */}
             <div className="card">
               <h2 style={{ color: overdue.length ? "var(--red)" : undefined }}>
-                ⏰ {t("Overdue orders", "Órdenes atrasadas")} {overdue.length > 0 && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{overdue.length}</span>}
+                ⏰ {t("Overdue orders", "Órdenes expiradas")} {overdue.length > 0 && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{overdue.length}</span>}
               </h2>
               {overdue.length === 0 ? (
-                <div className="empty">✅ {t("Nothing overdue. Nice.", "Nada atrasado. ¡Bien!")}</div>
+                <div className="empty">✅ {t("Nothing overdue. Nice.", "Nada expirado. ¡Bien!")}</div>
               ) : (
                 <div className="bar-list">
                   {overdue.slice(0, 8).map((d) => (

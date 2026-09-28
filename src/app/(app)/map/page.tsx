@@ -334,7 +334,7 @@ export default function MapPage() {
     const over = risk === "overdue";
     return (
       <span className="sema" style={{ background: over ? "var(--red, #d64545)" : "var(--amber, #e9a13b)", color: "#fff", marginLeft: 6 }}>
-        {over ? t("Overdue", "Atrasada") : t("At risk", "En riesgo")}
+        {over ? t("Overdue", "Expirada") : t("At risk", "En riesgo")}
       </span>
     );
   };
