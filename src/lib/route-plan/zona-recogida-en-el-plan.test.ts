@@ -64,6 +64,7 @@ describe("Ajustes lo dice", () => {
     expect(s).toContain("5 · Zona preferida (por punta fuera de ella: tienda o entrega)");
     expect(s).toContain("Recoger en la tienda de la zona de otro chofer también cuenta");
     expect(s).not.toContain("por entrega fuera de ella");
+    expect(s).toContain("Una entrega a una ciudad que no es zona de nadie va al chofer más eficiente");
   });
 });
 
@@ -91,6 +92,8 @@ describe("las tres pantallas que reparten heredan la regla", () => {
     expect(esDeSuZona("Chofer J", [o], zonas, [TIENDA_N, TIENDA_S])).toBe(true);   // por la entrega, como antes
     expect(esDeSuZona("Chofer M", [o], zonas, [TIENDA_N, TIENDA_S])).toBe(true);   // por la tienda
     expect(esDeSuZona("Chofer M", [o], zonas)).toBe(false);                       // sin tiendas, solo la entrega
+    // A una ciudad que no es zona de nadie, la tienda no cuenta (como en el motor): va por eficiencia.
+    expect(esDeSuZona("Chofer M", [{ ...o, delivery_address: "5 Uno St, Pueblo Lejos, TX 78501" }], zonas, [TIENDA_N, TIENDA_S])).toBe(false);
     expect(esDeSuZona("Chofer M", [{ ...o, pickup_name: "Tienda Norte", store: "Tienda Norte" }], zonas, [TIENDA_N, TIENDA_S])).toBe(false);
     // Y el Gestor le pasa las tiendas de Ajustes.
     expect(leer("src/app/(app)/routes/page.tsx").replace(/\s+/g, " ")).toContain("esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? [])");

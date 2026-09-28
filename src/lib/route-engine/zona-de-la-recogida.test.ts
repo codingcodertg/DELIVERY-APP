@@ -180,6 +180,21 @@ describe("las reglas del dueño, una por una", () => {
     expect(choferDe(plan, "o")).toBe("M");
   });
 
+  it("una entrega a una ciudad sin dueño va por eficiencia aunque salga de la tienda de la zona de M: la recogida no cuenta", () => {
+    // El dueño: «esas ciudades para el algortimos se le da a los conductores que sea mejor opcion y mas eficiente». La
+    // tienda de M (Sur) está en x=40 y el pueblo en x=5, al lado de la base de J: con J, J va a por ella y vuelve; con M,
+    // M la lleva desde su tienda. Sea cual sea el más barato, es el mismo que sin zonas, y nadie paga ninguna punta.
+    const e = entradaDe([orden("o", { origen: punto(40), destino: punto(5), zona: "Pueblo", zonaRecogida: "Sur" })], [J, M]);
+    const plan = planifica(e, con());
+    expect(choferDe(plan, "o")).toBe(choferDe(planifica(e, con({ zona: 0 })), "o"));
+    expect(plan.coste.fueraDeZona).toBe(0);
+    expect(plan.explicaciones[0].alternativas.every((a) => (a.diferencia?.fueraDeZona ?? 0) === 0)).toBe(true);
+    const recl = zonasReclamadas([J, M]);
+    expect(puntasFueraDeZona(J, e.ordenes[0], recl)).toBe(0);
+    // Y si la ciudad fuera de J, la recogida en la tienda de M sí le cuenta a J (y la entrega, a M).
+    expect(puntasFueraDeZona(J, { ...e.ordenes[0], zona: "Centro" }, recl)).toBe(1);
+  });
+
   it("una entrega de una ciudad sin dueño, desde una tienda sin dueño, va por eficiencia: como sin zonas", () => {
     const e = entradaDe([orden("o", { origen: punto(20), destino: punto(30), zona: "Pueblo", zonaRecogida: "Villa" })], [J, M]);
     const plan = planifica(e, con());
@@ -249,18 +264,29 @@ function diaInventado(sem: number, conZonaDeEntrega = true): Entrada {
 
 describe("preferencia, no regla: la zona de la recogida nunca deja una orden fuera", () => {
   it("el día inventado 55: contar la recogida dejaba una orden fuera, y el motor se queda con el plan que cuenta solo la entrega", () => {
-    // Medido al escribirlo: sin esta vuelta, 37 de 600 días inventados dejaban más fuera (el 55 es el primero). Con ella, ninguno.
+    // Medido al escribirlo: sin esta vuelta, 28 de 600 días inventados dejaban más fuera (el 55 es el primero). Con ella, ninguno.
     const e = diaInventado(55);
     expect(planifica(soloEntrega(e)).sinAsignar).toEqual([]);
     expect(planifica(e).sinAsignar).toEqual([]);
+    // Y el que devuelve es ESE plan, no el de sin zonas.
+    expect(planifica(e)).toEqual(planifica(soloEntrega(e)));
+    expect(planifica(e)).not.toEqual(planifica(e, { ...PARAMETROS_POR_DEFECTO, pesos: { ...PARAMETROS_POR_DEFECTO.pesos, zona: 0 } }));
   });
 
-  it("el día inventado 48, con zona solo en las tiendas: también se prueba sin zonas, y no queda nada fuera", () => {
-    // Ninguna entrega tiene ciudad: las zonas deciden solo por la recogida. Medido: sin mirar la recogida al decidir si las
-    // zonas cuentan, 85 de 600 días así dejaban más fuera.
+  it("el día inventado 67: contar la recogida deja 8 fuera y solo la entrega 7; el motor devuelve el de 7 aunque algo quede fuera", () => {
+    const e = diaInventado(67);
+    const solo = planifica(soloEntrega(e));
+    expect(solo.sinAsignar.length).toBe(7);
+    expect(planifica(e)).toEqual(solo);
+  });
+
+  it("el día inventado 48, con zona solo en las tiendas: ninguna entrega tiene dueño, y el plan es el de sin zonas", () => {
+    // La recogida solo cuenta si la entrega tiene dueño: aquí ninguna lo tiene, así que todo va por eficiencia.
     const e = diaInventado(48, false);
     expect(e.ordenes.every((o) => !o.zona)).toBe(true);
-    expect(planifica(e).sinAsignar).toEqual([]);
+    const sinZonas = { ...e, choferes: e.choferes.map(({ zonas: _z, ...c }) => { void _z; return c; }) };
+    expect(planifica(e).rutas.map((r) => r.paradas.map((p) => p.tipo + p.orden))).toEqual(planifica(sinZonas).rutas.map((r) => r.paradas.map((p) => p.tipo + p.orden)));
+    expect(planifica(e).coste.fueraDeZona).toBe(0);
   });
 
   it("un empate de puntas no se mueve por el umbral: el día inventado 154, la o7 se queda donde la deja el coste", () => {

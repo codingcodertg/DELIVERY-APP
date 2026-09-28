@@ -50,8 +50,10 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
  * Cuántas puntas de esta orden hace este chofer en la zona de OTRO (D-421; la recogida, desde D-NEXT). Una orden tiene
  * dos puntas: la ciudad de la tienda donde se recoge (`zonaRecogida`) y la de la entrega (`zona`). Cada una cuenta si
  * tiene ciudad, esa ciudad la prefiere algún chofer, y no es de este. Cuentan por separado: recoger en la zona de otro y
- * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Un chofer sin
- * zonas nunca está «fuera».
+ * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Y la recogida
+ * solo cuenta si la ciudad de la ENTREGA la prefiere algún chofer: una entrega a una ciudad sin dueño va al más eficiente,
+ * como pidió el dueño («esas ciudades … se le da a los conductores que sea mejor opcion y mas eficiente»), aunque salga de
+ * la tienda de la zona de alguien. Un chofer sin zonas nunca está «fuera».
  *
  * Por qué la recogida (el dueño, 2026-09-27: «no tiene sentido mandar a julio hasta brownsville si ya te dije que ahi
  * esta maximo»): contando solo la entrega, ir a recoger a la tienda de la zona de otro no costaba nada, y el chofer de
@@ -63,7 +65,9 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
 export function puntasFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona" | "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): number {
   if (!c.zonas?.length) return 0;
   let fuera = 0;
-  for (const punta of [o.zona, o.recogidaHecha ? null : o.zonaRecogida]) {
+  // La recogida solo cuenta si la ENTREGA tiene dueño: una entrega a una ciudad sin dueño va por eficiencia pura (D-421).
+  const recogida = o.recogidaHecha || !reclamadas.has(claveDeZona(o.zona)) ? null : o.zonaRecogida;
+  for (const punta of [o.zona, recogida]) {
     const z = claveDeZona(punta);
     if (z && reclamadas.has(z) && !c.zonas.some((x) => claveDeZona(x) === z)) fuera++;
   }

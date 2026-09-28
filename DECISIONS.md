@@ -31341,6 +31341,11 @@ Edinburg o Weslaco**, y el motor mandaba a Julio o a Ernesto a buscarlas: 28 rec
   la tienda de Ajustes, leída como la de una entrega con `ciudadDeEntrega`; la tienda es la del origen, `pickup_name` y si no
   `store`) y la de la **entrega** (`zona`, como hasta ahora). **Cada punta en la zona que prefiere otro chofer cuesta el peso
   `zona`** (`puntasFueraDeZona`, 0, 1 o 2). Con la recogida ya hecha, solo cuenta la entrega. Sin zonas, nada cambia.
+- **La recogida solo cuenta si la ciudad de la ENTREGA tiene dueño** (la prefiere algún chofer). Una entrega a una ciudad
+  sin dueño (San Juan, Palmhurst, Donna, Harlingen…) va al más eficiente, salga de la tienda que salga: 0 puntas por la
+  recogida. Es regla literal del dueño (2026-09-27): *«esas ciudades para el algortimos se le da a los conductores que sea
+  mejor opcion y mas eficiente»*. La primera versión de esta rama contaba la recogida siempre y movía 5 de esas entregas
+  hacia el dueño de la tienda; el orquestador la corrigió antes de publicar (ver «Decisiones», 2).
 - Así, #FT205 cuesta **una punta con cualquiera de los dos**: con Julio, la recogida (Brownsville es de Maximo); con Maximo, la
   entrega (Weslaco es de otros). La zona ya no decide entre ellos, y deciden la eficiencia y el balance: **va con Maximo**.
 - **El umbral de D-423** devuelve una orden a un chofer con el que hace **menos puntas** fuera que con el de ahora (antes: a
@@ -31348,13 +31353,15 @@ Edinburg o Weslaco**, y el motor mandaba a Julio o a Ernesto a buscarlas: 28 rec
   fuera de zona del plan. Un chofer sin zonas sigue sin ser «de la zona» de nadie.
 - **Nunca deja una orden fuera por la zona de la recogida**: si con ella quedan más fuera, se planifica también contando solo
   la entrega (lo de `motor-5`) y se queda la de menos fuera; a igualdad, la de las dos puntas. Sin esa vuelta, en los 16 días
-  quedaban **2 órdenes más fuera** (el 19, un día con 20 fuera). Y «¿deciden algo las zonas?» mira también las recogidas: un
-  día con zonas solo en las tiendas también prueba el plan sin zonas.
+  quedaban **2 órdenes más fuera** (el 19, un día con 20 fuera). «¿Deciden algo las zonas?» sigue mirando solo las entregas:
+  una recogida solo cuenta si su entrega tiene dueño, y entonces la entrega ya basta para decidir.
 - **Auto-asignar** reparte con el mismo motor y la misma `entradaDelDia` (D-419): hereda la regla sin tocarlo.
   **«📍 Mejor lugar»** no usa el motor (calcula el hueco sin zonas): solo marca «su zona» en «Elige conductor»; ahora la marca
-  también por la tienda de la recogida (`esDeSuZona` recibe las tiendas de Ajustes).
+  también por la tienda de la recogida (`esDeSuZona` recibe las tiendas de Ajustes), con la misma salvedad: si la entrega va a
+  una ciudad sin dueño, la tienda no cuenta.
 - **Ajustes → Motor de rutas** lo dice: la etiqueta del peso 5 pasa a «por punta fuera de ella: tienda o entrega», y la
-  ayuda de las zonas explica que recoger en la tienda de la zona de otro también cuenta.
+  ayuda de las zonas explica que recoger en la tienda de la zona de otro también cuenta, y que una ciudad sin dueño va al más
+  eficiente.
 - `VERSION_DEL_MOTOR` pasa a **`motor-6`**. **Sin zonas, el mismo plan byte a byte**: la huella de `motor-1` sale igual, y en
   los 16 días reales sin zonas los 16 planes son idénticos a los de `motor-5` (huella de paradas por día).
 
@@ -31371,7 +31378,8 @@ recogida a medias (#FT205 seguiría castigando a Maximo con media punta de más,
 
 ### Números (16 días reales, 7–30 sep 2026, 204 órdenes, estimación en línea recta, peso 60, umbral 5; medido el 2026-09-27)
 
-Las puntas fuera de zona se cuentan igual en todas las filas (con la regla nueva), para que se puedan comparar.
+Las puntas fuera de zona se cuentan igual en todas las filas, para que se puedan comparar: con la regla de la 1.ª versión
+(la recogida cuenta siempre), también en la fila de `motor-6`.
 
 | | colocadas | millas | min jornada | min tarde | ventanas duras rotas | puntas fuera (entrega / recogida) | entregas en Brownsville con otro | recogidas en Brownsville con otro | Edinburg/Weslaco → Maximo | #FT205 del 28 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -31379,7 +31387,14 @@ Las puntas fuera de zona se cuentan igual en todas las filas (con la regla nueva
 | una vez por ciudad, sin la vuelta | **179** | 3.399 | 11.486 | 80 | 0 | 49 / 50 | 5 | 19 | 7 | Maximo |
 | una vez por ciudad, con la vuelta | 181 | 3.438 | 11.527 | 86 | 0 | 48 / 47 | 1 | 17 | 6 | Maximo |
 | por separado, sin la vuelta | **179** | 3.396 | 11.400 | 0 | 0 | 44 / 43 | 1 | 14 | 6 | Maximo |
-| **por separado, con la vuelta (`motor-6`)** | **181** | **3.382 (−2,2 %)** | **11.413** | **33** | **0** | **43 / 49** | **1** | **16** | **5** | **Maximo** |
+| por separado, con la vuelta, recogida siempre (1.ª versión) | 181 | 3.382 (−2,2 %) | 11.413 | 33 | 0 | 43 / 49 | 1 | 16 | 5 | Maximo |
+| **`motor-6`: por separado, con la vuelta, recogida solo si la entrega tiene dueño** | **181** | **3.473 (+0,4 %)** | **11.580** | **33** | **0** | **45 / 50** | **1** | **16** | **5** | **Maximo** |
+
+Las columnas que importan contra `motor-5`: las colocadas no bajan (181), las ventanas duras no se rompen, los minutos tarde
+bajan de 54 a 33, las entregas en Brownsville con otro de 5 a 1, las recogidas en Brownsville con otro de 28 a 16, y #FT205
+va con Maximo. Las millas **suben 14 (+0,4 %)** y los minutos de jornada 59: es lo que cuesta mandar a Maximo lo de su
+tienda (Maximo pasa de 772 a 1.005 millas en los 16 días; Julio baja de 1.396 a 991). La 1.ª versión bajaba 77 millas, pero
+parte de esa bajada venía de mover ciudades sin dueño hacia el dueño de la tienda, que el dueño no quiere.
 
 - **Edinburg/Weslaco con Maximo**: las 5 se recogen en Brownsville (09-15 #173, 09-24 #272, 09-26 #333, 09-27 #284, 09-28
   #546). #272 y #333: a Ernesto no le queda turno (y a Julio tampoco, o +76 mi y 54 min tarde). #284: Ernesto +119,5 mi,
@@ -31391,25 +31406,33 @@ Las puntas fuera de zona se cuentan igual en todas las filas (con la regla nueva
 - **Recogidas en Brownsville con otro**: de 28 a 16, y en 15 de las 16 **a Maximo no le cabe** (turno o capacidad; 07, 19 y 27
   son días con Brownsville lleno). La otra, 09-07 #146 (Brownsville → Pharr): una punta con cualquiera, Maximo +0,4 mi y la da
   el coste a Julio.
-- **Edinburg/Weslaco entre Ernesto y Julio** (recogidas fuera de Brownsville): Julio 22 / Ernesto 9 / Maximo 2 → Ernesto 18 /
-  Julio 15 / Maximo 0. Se reparten más parejo porque ahora pesa la tienda: lo que sale de McAllen va más con Ernesto y lo de
+- **Edinburg/Weslaco entre Ernesto y Julio** (recogidas fuera de Brownsville): Julio 22 / Ernesto 9 / Maximo 2 → Ernesto 17 /
+  Julio 16 / Maximo 0 (1.ª versión: 18 / 15 / 0). Se reparten más parejo porque ahora pesa la tienda: lo que sale de McAllen va más con Ernesto y lo de
   Pharr con Julio.
-- **Ciudades sin dueño**: 5 de 32 cambian de chofer, las 5 hacia el dueño de la zona de la **tienda** (3 de Pharr a Julio, 2
-  de Weslaco a Ernesto en vez de Maximo). Ver decisión 2.
-- **46 entregas** cambian de chofer en total; las millas bajan 77 y los minutos de jornada 108.
-- **Días inventados**: en 600, contar la recogida sin la vuelta dejaba más órdenes fuera en 37 (el primero, el 55); con la
-  vuelta, en ninguno quedan más fuera que contando solo la entrega. Con zonas solo en las tiendas, sin mirar la recogida al
-  decidir si las zonas cuentan, 85 de 600 dejaban más fuera (el 48 es prueba).
+- **Ciudades sin dueño** (32 entregas): con `motor-6`, **ninguna paga zona** con ningún chofer. Las 5 que la 1.ª versión movía
+  hacia el dueño de la tienda: **4 vuelven a su chofer de `motor-5`** (09-21 #264, 09-23 #291, 09-25 #408, #421) y la quinta,
+  09-25 #406 (Pharr → Sullivan City), sigue con Julio **por eficiencia**: con Ernesto el builder llegaría 510 min-builder más
+  tarde, y la diferencia de zona con los tres choferes es 0. Otra más cambia por arrastre, 09-24 #269 (Weslaco → La Feria,
+  Ernesto → Maximo): ese día Ernesto y Julio ya no tienen turno para ella, porque el resto del día cambió. Ninguna de las dos
+  la decide la tienda.
+- **44 entregas** cambian de chofer respecto a `motor-5` (la 1.ª versión: 46). **39 de las 46 siguen cambiando**; dejan de
+  cambiar 7 (las 4 de ciudades sin dueño de arriba y 3 de Pharr → Edinburg/Mission del 21 y 23, que eran arrastre de ellas) y
+  aparecen 5 nuevas, todas del 09-24 (#269, #323, #338, #339, #419), por arrastre del mismo día.
+- **Días inventados**: en 600, contar la recogida sin la vuelta dejaba más órdenes fuera en 28 (el primero, el 55; la 1.ª
+  versión, 37); con la vuelta, en ninguno quedan más fuera que contando solo la entrega. Con zonas solo en las tiendas
+  (ninguna entrega con dueño), el plan es el de sin zonas (el 48 es prueba).
 
 ### Decisiones tomadas por el worker (a validar)
 
 1. **La recogida pesa lo mismo que la entrega** (una punta, el peso 60). Es lo más simple, y lo que pedía el caso: que ir a
    buscar a Brownsville le cueste a Julio lo mismo que a Maximo entregar en Weslaco. Consecuencia: una orden de una sola
    ciudad llevada por un chofer de fuera paga 120 en vez de 60.
-2. **Una ciudad sin dueño ya no es del todo «el más eficiente»** si la tienda sí tiene dueño: lo que sale de la tienda de Pharr
+2. ~~**Una ciudad sin dueño ya no es del todo «el más eficiente»** si la tienda sí tiene dueño: lo que sale de la tienda de Pharr
    hacia San Juan le cuesta una punta a quien no es de Pharr. En los 16 días movió 5 entregas (hacia el de la tienda) y las
    millas del total bajaron. Si el dueño quiere que las ciudades sin dueño vayan solo por eficiencia, es contar la recogida solo
-   cuando la entrega tiene dueño.
+   cuando la entrega tiene dueño.~~
+   **Resuelta antes de publicar** (el orquestador, 2026-09-27, por la regla literal del dueño citada arriba): la recogida solo
+   cuenta cuando la entrega tiene dueño. Es lo que hace `motor-6`.
 3. **Un empate de puntas lo decide el coste**, no Maximo: una orden de Brownsville a Pharr es una punta con Julio y una con
    Maximo, y si Julio la hace más barata (09-07 #146, Maximo +0,4 mi) se queda con Julio. Si el dueño quiere que TODO lo que
    toca Brownsville sea de Maximo aunque cueste más, eso ya no es una zona preferida sino una regla por ciudad.
@@ -31439,14 +31462,22 @@ Las puntas fuera de zona se cuentan igual en todas las filas (con la regla nueva
   decimales): contando solo la entrega va con B y la zona es lo que decide (C +0,33 mi, balance a favor de C, +1 fuera de
   zona); con las dos puntas, con C, sin dejar nada fuera, sin romper nada ni llegar más tarde; las puntas (0/1/2, recogida
   hecha, sin dueño, sin zonas, mayúsculas; `evaluaPlan` cobra 2 × 60); en cuadrícula, lo que sale de la tienda de M al Centro
-  va con M, el Centro sigue con J si la recogida no es de M (y M solo si J no puede), sin dueño por eficiencia; el umbral
+  va con M, el Centro sigue con J si la recogida no es de M (y M solo si J no puede), sin dueño por eficiencia —también
+  cuando sale de la tienda de M—; el umbral
   devuelve con quien hace menos puntas (2 → 1, sin nadie con 0), no se lo da a un chofer sin zonas, y un empate no se mueve
-  (día inventado 154); los días inventados 55 y 48, y 30 días sin más fuera (los 600 de la búsqueda, medidos aparte); a igualdad de fuera, el plan de las dos puntas. `route-plan/zona-recogida-en-el-plan.test.ts`:
+  (día inventado 154); los días inventados 55, 67 (la vuelta devuelve el plan de solo la entrega aunque algo quede fuera) y 48
+  (zonas solo en tiendas = sin zonas), y 30 días sin más fuera (los 600 de la búsqueda, medidos aparte); a igualdad de fuera, el plan de las dos puntas. `route-plan/zona-recogida-en-el-plan.test.ts`:
   `zonaDeLaRecogida`, `entradaDelDia` (con y sin zonas, sin clave de más), y las tres pantallas: «Planificar el día»,
   Auto-asignar y la marca de «Mejor lugar» (y que el Gestor le pasa las tiendas).
 - Pruebas que cambiaron: `requisitos-en-el-motor.test.ts`, `plan.test.ts`, `zonas-en-el-plan.test.ts` (`motor-6`; y el Gestor pasa las
   tiendas a `esDeSuZona`); `zona-antes-que-builder.test.ts` (una nota en el caso #546, sin cambiar lo que afirma).
-- **Mutantes** (`~/.claude/herramientas/mutantes`): **20 de 20** caen con una prueba con nombre. La primera tanda dio 19: «a
+- **Mutantes, `motor-6`** (tras la corrección de ciudades sin dueño): **21 de 21** caen con una prueba con nombre. Nuevos:
+  «la recogida cuenta aunque la entrega no tenga dueño» (cae con «una entrega a una ciudad sin dueño va por eficiencia aunque
+  salga de la tienda de la zona de M…» y otras) y «“Mejor lugar” cuenta la tienda aunque la entrega no tenga dueño». En la
+  corrección sobrevivió «la vuelta “solo la entrega” se ignora al final»: el día 55 ya no la tocaba (sale antes, sin nada
+  fuera); ahora la tumba el día 67. Se quitó el de «`zonasQueDeciden` sin las recogidas»: esa condición ya no existe (con la
+  recogida atada a una entrega con dueño, no decidía nada).
+- **Mutantes, 1.ª versión**: **20 de 20** caen con una prueba con nombre. La primera tanda dio 19: «a
   igualdad de órdenes fuera, quedarse con el plan de solo la entrega» sobrevivía porque ninguna prueba tenía un día con algo
   fuera en los dos planes; ahora la cuadrícula tiene uno («con una orden imposible en el día…»). Entre los que caen: la recogida
   no cuenta, la recogida hecha sigue contando, una punta como mucho por orden, una ciudad sin dueño cuenta, `evaluaRuta` cuenta

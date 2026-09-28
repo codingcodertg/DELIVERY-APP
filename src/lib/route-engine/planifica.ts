@@ -135,12 +135,12 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
   return sinZonas.sinAsignar.length < mejor.sinAsignar.length ? sinZonas : mejor;
 }
 
-/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna orden con una punta —su
- *  entrega o su recogida (D-NEXT)— en una de ellas. */
+/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna entrega de una de ellas. (La
+ *  recogida no hace falta mirarla: solo cuenta cuando la entrega tiene dueño, D-NEXT.) */
 function zonasQueDeciden(entrada: Entrada, parametros: Parametros): boolean {
   if ((parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return false;
   const reclamadas = zonasReclamadas(entrada.choferes);
-  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)) || reclamadas.has(claveDeZona(o.zonaRecogida)));
+  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)));
 }
 
 function planificaConOpciones(entrada: Entrada, parametros: Parametros): Plan {

@@ -124,7 +124,8 @@ export function zonasPorNombre(
 }
 
 /** «📍 Mejor lugar» (solo sugerencia): ¿alguna de las órdenes marcadas es de la zona de este chofer? Por su entrega o, con
- *  las tiendas de Ajustes (D-NEXT), por la tienda donde se recoge: la que sale de su tienda también es de su zona. */
+ *  las tiendas de Ajustes (D-NEXT), por la tienda donde se recoge: la que sale de su tienda también es de su zona, salvo
+ *  que vaya a una ciudad que no es zona de nadie. */
 export function esDeSuZona(
   chofer: string, ordenes: readonly Pick<Partial<Delivery>, "delivery_address" | "pickup_name" | "store">[], zonas: ReadonlyMap<string, readonly string[]>,
   tiendas: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[] = [],
@@ -133,5 +134,10 @@ export function esDeSuZona(
   if (!suyas.size) return false;
   // Con las zonas de todos como conocidas (D-423): la misma lectura que hace «Planificar el día».
   const todas = [...zonas.values()].flat();
-  return ordenes.some((o) => suyas.has(claveDeZona(zonaDeLaOrden(o, todas))) || suyas.has(claveDeZona(zonaDeLaRecogida(o, tiendas, todas))));
+  // La tienda solo cuenta si la entrega es de la zona de alguien, como en el motor: a una ciudad sin dueño, por eficiencia.
+  const reclamadas = new Set(todas.map(claveDeZona));
+  return ordenes.some((o) => {
+    const entrega = claveDeZona(zonaDeLaOrden(o, todas));
+    return suyas.has(entrega) || (reclamadas.has(entrega) && suyas.has(claveDeZona(zonaDeLaRecogida(o, tiendas, todas))));
+  });
 }
