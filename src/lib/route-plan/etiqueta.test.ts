@@ -83,3 +83,14 @@ describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", (
     expect(gestor).toContain('className={"btn btn-sm " + (date === dia ? "btn-primary" : "btn-ghost")}');
   });
 });
+
+describe("la parada del plan nombra la orden ANTES de «Recoger/Entregar» (D-431)", () => {
+  it("primero la orden (enlace), después la acción", () => {
+    const ruta = readFileSync(join(process.cwd(), "src/components/RutaDelPlan.tsx"), "utf8").replace(/\s+/g, " ");
+    const orden = ruta.indexOf("onClick={() => abrirOrden(p.order_ref)}>{nombreDeOrden(p.order_ref)}</button>");
+    const accion = ruta.indexOf('<span data-accion-parada className="hint" style={{ margin: 0 }}> · {p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}</span>');
+    expect(orden).toBeGreaterThan(-1);
+    expect(accion).toBeGreaterThan(-1);
+    expect(orden).toBeLessThan(accion);
+  });
+});
