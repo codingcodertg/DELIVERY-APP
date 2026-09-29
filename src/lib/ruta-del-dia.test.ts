@@ -11,9 +11,6 @@ import type { Delivery, Settings } from "./types";
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
-/** Solo el código: los comentarios pueden nombrar lo que se quitó, el código no. */
-const sinComentarios = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
 const parada = (extra: Partial<Delivery> = {}): Delivery => ({
   id: Math.random().toString(36).slice(2),
@@ -204,10 +201,11 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
     expect(tarjeta).toContain('t("Unassigned", "Sin asignar")');
   });
 
-  it("y la tarjeta está en los DOS diálogos que le quedan al almacén: listo y recoger", () => {
-    // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén—, así
-    // que la tarjeta se queda en los dos que siguen preguntando algo.
-    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(2);
+  it("y la tarjeta está en los TRES diálogos del almacén: tarifa, listo y recoger", () => {
+    // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén— y se
+    // quedaron dos. Nota D-NEXT: vuelve el de la tarifa (confirmar el monto, sin bloqueo), y con él
+    // la tarjeta: vuelven a ser tres.
+    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(3);
   });
 
   it("marcar listo sigue escribiendo solo el real, así que el estimado no se pierde", () => {
@@ -219,7 +217,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 });
 
-describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-340", () => {
+describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve con D-NEXT", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   /**
@@ -231,25 +229,28 @@ describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-3
    * puede volver a pasar por la puerta de delante. **No se borran: se dan la vuelta**, porque lo
    * que hay que impedir ahora es que el bloqueo reaparezca.
    */
-  it("el botón ya no pasa por ningún diálogo: mueve la etapa y ya", () => {
-    // Se mira el bloque de almacén entero y no la línea del `onClick`: escribir el manejador
-    // aparte —`const empezar = () => onMove("fulfilling")`— es la misma decisión, y una cita
-    // literal del `onClick` lo daría por roto. Medido con ese gemelo.
+  /*
+   * Nota D-NEXT (2026-09-29): estas dos se dan la vuelta OTRA vez. El dueño pidió que se confirme el
+   * monto —«they just need to confirm the amount»— y, preguntado, «confirmar el monto, sin bloqueo».
+   * Vuelve el diálogo, NO el bloqueo: lo que ahora hay que impedir es (a) que el botón vuelva a mover
+   * la etapa sin preguntar, y (b) que la salida sin tarifa desaparezca. Las pruebas de la escritura
+   * y de quién ve el diálogo están en `confirmar-tarifa.test.ts`.
+   */
+  it("el botón abre la confirmación del monto, no mueve la etapa por su cuenta (D-NEXT)", () => {
     // Desde D-397 (145) el bloque se abre con `preparaEnLaFicha` (almacén, o el gerente que hace bodega).
     // Se afirma primero que está: un `indexOf` de -1 cortaría desde el final y la prueba mediría otra cosa.
     const inicio = modal.indexOf("if (preparaEnLaFicha(me)) {");
     expect(inicio).toBeGreaterThan(-1);
     const bloque = modal.slice(inicio, modal.indexOf('if (stage === "fulfilling") {', inicio));
-    expect(bloque).toContain('if (stage === "approved") btns.push(<button key="start"');
-    expect(bloque).toContain('onMove("fulfilling")');
+    expect(bloque).toContain('if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart}');
+    expect(bloque).not.toContain('onMove("fulfilling")');
+    expect(modal).toContain("onRequestStart={comenzarPreparacion}");
   });
 
-  it("y no queda nada de la confirmación: ni estado, ni manejadores, ni la salida de D-287", () => {
-    for (const muerto of ["startFee", "showStartConfirm", "confirmStart", "startSinTarifa", "onRequestStart"]) {
-      // El comentario que cuenta que estuvieron ahí sí puede nombrarlos; el código, no.
-      expect(sinComentarios(leer("src/components/OrderModal.tsx")), muerto).not.toContain(muerto);
-    }
-    expect(modal).not.toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
+  it("y la salida de D-287 vuelve con el diálogo: sin tarifa se sigue igual", () => {
+    expect(modal).toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
+    // El botón de salida llama a la confirmación en modo «sin tarifa», que no escribe tarifa.
+    expect(modal).toMatch(/onClick=\{\(\) => void confirmarYComenzar\(true\)\} disabled=\{busy\}>\{t\("No fee — continue anyway"/);
   });
 
   it("nadie que no sea ventas escribe ya la tarifa al cambiar de etapa", () => {
@@ -257,6 +258,8 @@ describe("comenzar a preparar sin tarifa (queja 4) — la salida sobra desde D-3
     // cuerpo ENTERO de `move` —el camino por el que pasan todos los cambios de etapa— y no solo
     // la llamada a `setStage`: reintroducir la tarifa en el `extra` de unas líneas antes no
     // tocaría esa llamada y pasaría desapercibido. Medido con ese mutante.
+    // Nota D-NEXT: sigue valiendo para `move`, el camino de TODOS los cambios de etapa. La tarifa se escribe
+    // ahora solo desde `confirmarYComenzar`, el del diálogo, y solo si cambió (`confirmar-tarifa.test.ts`).
     const mover = modal.slice(modal.indexOf("const move = async (to: Stage"), modal.indexOf("const depart = async ()"));
     expect(mover).not.toContain("delivery_fee");
   });
