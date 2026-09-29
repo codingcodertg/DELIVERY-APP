@@ -1,7 +1,7 @@
 /**
- * Medir la ruta de un chofer en el Gestor de Rutas SIN reordenarla (D-NEXT).
+ * Medir la ruta de un chofer en el Gestor de Rutas SIN reordenarla (D-437).
  *
- * Hasta D-NEXT, elegir un chofer «dibujaba» su ruta llamando a «Optimizar» (`computeRoute` + `applyPlan`): pedía a Google
+ * Hasta D-437, elegir un chofer «dibujaba» su ruta llamando a «Optimizar» (`computeRoute` + `applyPlan`): pedía a Google
  * el MEJOR orden y lo escribía. Como la medida se borra tras cada cambio (`clearRouteFor`), una flecha con el chofer elegido
  * volvía a optimizar y deshacía la flecha. El dueño pidió quitar Optimizar (2026-09-28): el orden lo deciden «Armar las
  * rutas del día», «📍 Mejor lugar», el arrastre y las flechas. Esto solo mide y pinta: millas, horas por viaje, llegada

@@ -6,7 +6,7 @@ import { cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan } from "./medida
 import * as candados from "./rutas-bloqueadas";
 
 /**
- * D-NEXT. El dueño, 2026-09-28: «quita lo de optemizar y lo de autoa signar que este en earmar rutas», y eligió «Quitar los
+ * D-437. El dueño, 2026-09-28: «quita lo de optemizar y lo de autoa signar que este en earmar rutas», y eligió «Quitar los
  * dos; solo Armar rutas». En la misma rama: «julio esta vacio pero aun asi aparece y abajo tambien aparece como viaje», e
  * «incidencias que sea un boton».
  */
@@ -103,7 +103,7 @@ describe("medir la ruta sin reordenarla", () => {
   });
 });
 
-describe("lo que se quitó (D-NEXT): Optimizar, Auto-asignar, Reagrupar por zona y Simular", () => {
+describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona y Simular", () => {
   it("el sin-comentarios de la prueba quita los comentarios y deja el código", () => {
     expect(sinComentarios("a /* x */ b {/* y */} c // z\nd \"https://e\"")).toBe("a  b  c \nd \"https://e\"");
   });

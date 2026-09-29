@@ -88,10 +88,10 @@ export function cabeEnElViaje<T extends Parada>(viajes: readonly (readonly T[])[
 }
 
 /**
- * «🔗 Unir viajes» (D-NEXT): todos los viajes vuelven a ser uno, EN EL ORDEN QUE SE VE, numerado desde `desde`. Sin viajes
+ * «🔗 Unir viajes» (D-437): todos los viajes vuelven a ser uno, EN EL ORDEN QUE SE VE, numerado desde `desde`. Sin viajes
  * a mano, el Gestor vuelve a partir la ruta por capacidad al pintarla (`splitIntoTrips`).
  *
- * Hasta D-NEXT se escribía `route_seq: null` en todas, porque después venía «Optimizar» y rehacía el orden. Sin Optimizar,
+ * Hasta D-437 se escribía `route_seq: null` en todas, porque después venía «Optimizar» y rehacía el orden. Sin Optimizar,
  * eso tiraba el orden que la persona había puesto con las flechas (la ruta volvía al orden por número de orden).
  */
 export function planDeUnirViajes<T extends { id: string }>(viajes: readonly (readonly T[])[], desde: number): Reescritura & { loadNoById: Record<string, number | null> } {
@@ -102,7 +102,7 @@ export function planDeUnirViajes<T extends { id: string }>(viajes: readonly (rea
 }
 
 /**
- * «✂ Dividir en 2» (D-NEXT): la primera mitad (redondeada hacia arriba) al viaje 1 y el resto al 2, en el orden que se ve y
+ * «✂ Dividir en 2» (D-437): la primera mitad (redondeada hacia arriba) al viaje 1 y el resto al 2, en el orden que se ve y
  * numerado desde `desde`. Como «Unir viajes», antes dejaba el puesto en blanco para que Optimizar lo rehiciera.
  * `null` con menos de dos paradas: no hay nada que dividir.
  */

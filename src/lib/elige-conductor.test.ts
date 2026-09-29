@@ -83,10 +83,10 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
   it("sin choferes lo dice, en vez de un recuadro vacío", () => {
     expect(pagina).toContain("{opcionesDelRecuadro.length === 0 ? ( <div className=\"hint\" data-sin-choferes");
   });
-  it("«Asignar» se apaga sin elegido y usa `bulkAssign`; «Nueva ruta» sigue dentro, y «Auto-asignar» ya no (D-NEXT)", () => {
+  it("«Asignar» se apaga sin elegido y usa `bulkAssign`; «Nueva ruta» sigue dentro, y «Auto-asignar» ya no (D-437)", () => {
     expect(pagina).toContain("data-asignar-al-elegido disabled={!conductorElegido || asignando} onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}");
     expect(pagina).toContain("data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}");
-    // «✨ Auto-asignar las marcadas» (D-401) se quitó en D-NEXT: el dueño, «Quitar los dos; solo Armar rutas».
+    // «✨ Auto-asignar las marcadas» (D-401) se quitó en D-437: el dueño, «Quitar los dos; solo Armar rutas».
     expect(pagina).not.toContain("data-auto-asignar-del-recuadro");
   });
   it("al quedarse sin marcadas, lo pulsado se olvida; y el selector de bloque viejo ya no está", () => {

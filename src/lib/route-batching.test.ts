@@ -4,7 +4,7 @@ import { haversineMi } from "./route-batching";
 // Real RGV geography, so the distances mean something.
 const MCALLEN = { lat: 26.2034, lng: -98.2300 };
 
-// Las pruebas de la agrupación por zona (`buildGeoLoads` y compañía) se fueron con ella en D-NEXT, al quitar «Optimizar».
+// Las pruebas de la agrupación por zona (`buildGeoLoads` y compañía) se fueron con ella en D-437, al quitar «Optimizar».
 describe("haversineMi", () => {
   it("measures a known RGV hop", () => {
     // McAllen → Brownsville is about 60 miles as the crow flies.

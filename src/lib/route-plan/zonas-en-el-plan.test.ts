@@ -139,7 +139,7 @@ describe("la consulta, con y sin la 152 aplicada", () => {
     expect(pedidas).toEqual(["profile_id, features, preferred_zones", "profile_id, preferred_zones", "profile_id"]);
   });
 
-  it("la ruta del servidor de «Planificar el día» pide las zonas con esa lista (la de Auto-asignar se quitó en D-NEXT)", () => {
+  it("la ruta del servidor de «Planificar el día» pide las zonas con esa lista (la de Auto-asignar se quitó en D-437)", () => {
     for (const f of ["src/app/api/route-plan/route.ts"]) {
       expect(plano(leer(f))).toContain('leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER)');
     }
@@ -285,7 +285,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
   });
 });
 
-// «Auto-asignar reparte con las mismas zonas» (D-419) se fue con Auto-asignar en D-NEXT: repartir es «Armar rutas».
+// «Auto-asignar reparte con las mismas zonas» (D-419) se fue con Auto-asignar en D-437: repartir es «Armar rutas».
 
 // ---- Lo que se dice ------------------------------------------------------------------------------------------------
 

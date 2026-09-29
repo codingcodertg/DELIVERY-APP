@@ -180,7 +180,7 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   });
   it("el resumen y la pestaña cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
-    // «Auto-asignar», que repartía `unassigned` o las marcadas, se quitó en D-NEXT; lo marcado lo usan «Asignar» y «Mejor lugar».
+    // «Auto-asignar», que repartía `unassigned` o las marcadas, se quitó en D-437; lo marcado lo usan «Asignar» y «Mejor lugar».
     expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
     expect(pagina).toContain("separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
   });

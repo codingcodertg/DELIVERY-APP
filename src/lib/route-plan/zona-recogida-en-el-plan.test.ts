@@ -70,7 +70,7 @@ describe("Ajustes lo dice", () => {
   });
 });
 
-describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar se quitó en D-NEXT)", () => {
+describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar se quitó en D-437)", () => {
   it("«Planificar el día»: lo que sale de la tienda de M hacia la zona de J va con M (sin la ciudad de la tienda, con J)", async () => {
     const con = await planificaElDia(datos([ordenDe("o1")]), "2026-10-05", "America/Chicago", deps());
     const sin = await planificaElDia(datos([ordenDe("o1")], SIN_CIUDAD), "2026-10-05", "America/Chicago", deps());
@@ -79,7 +79,7 @@ describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar s
     expect(sin.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["uj"]);
   });
 
-  // «✨ Auto-asignar» (el mismo motor, D-419) tenía aquí su prueba; se fue con él en D-NEXT.
+  // «✨ Auto-asignar» (el mismo motor, D-419) tenía aquí su prueba; se fue con él en D-437.
 
   it("«📍 Mejor lugar» (solo sugerencia): con las tiendas, la orden también es «de su zona» para M, por su tienda", () => {
     const zonas = zonasPorNombre(AJUSTES, CHOFERES);

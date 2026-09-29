@@ -49,7 +49,7 @@ describe("el candado, por ruta y por día", () => {
   });
 });
 
-// «Optimizar sin las bloqueadas» (`optimizaSinLasBloqueadas`, `avisoDeSaltadas`) se fue con «Optimizar» en D-NEXT. Lo que
+// «Optimizar sin las bloqueadas» (`optimizaSinLasBloqueadas`, `avisoDeSaltadas`) se fue con «Optimizar» en D-437. Lo que
 // queda del candado en la pantalla es «📍 Mejor lugar» (en `mejor-lugar.test.ts`) y el arrastre; la prueba de que ya no hay
 // Optimizar, Auto-asignar ni Simular está en `solo-armar-rutas.test.ts`.
 
@@ -61,7 +61,7 @@ describe("la pantalla del Gestor respeta el candado", () => {
     return pagina.slice(i, pagina.indexOf(hasta, i + desde.length));
   };
 
-  it("elegir un chofer MIDE su ruta también con candado (medir no la toca); lo que escribía y miraba el candado se quitó (D-NEXT)", () => {
+  it("elegir un chofer MIDE su ruta también con candado (medir no la toca); lo que escribía y miraba el candado se quitó (D-437)", () => {
     const efecto = trozo("const medidasPedidas = useRef(new Set<string>());", "// eslint-disable-next-line react-hooks/exhaustive-deps");
     expect(efecto).toContain("void mide(name, stops);");
     expect(efecto).not.toContain("bloqueada(");

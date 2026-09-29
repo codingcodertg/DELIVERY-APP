@@ -44,7 +44,7 @@ describe("el Gestor pide ese trazo SIN optimizar y lo pinta en vez del trazo vie
     const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
     expect(pagina).toContain("const puntos = puntosDelTrazoPublicado(paradas, deliveries, settings.stores ?? []);");
     expect(pagina).toContain("body: JSON.stringify({ stops: puntos, roundtrip: false, optimize: false, date }),");
-    // Desde D-NEXT la del plan pisa la medida solo mientras la ruta sigue siendo la publicada (`sigueSuPlan`).
+    // Desde D-437 la del plan pisa la medida solo mientras la ruta sigue siendo la publicada (`sigueSuPlan`).
     expect(pagina).toContain("if (conSuPlan.has(driver)) continue;");
   });
 });

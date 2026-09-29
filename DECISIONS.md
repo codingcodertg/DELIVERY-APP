@@ -58,7 +58,7 @@ Ajustes, no volver a programar.
 
 ## D-003 · Registro de incidentes de choferes
 
-> **Nota (2026-09-28, D-NEXT):** el registro ya no es una pestaña del Gestor de Rutas: es el botón «⚠ Incidencias (N)», junto a
+> **Nota (2026-09-28, D-437):** el registro ya no es una pestaña del Gestor de Rutas: es el botón «⚠ Incidencias (N)», junto a
 > las pestañas, que abre una ventana. Dentro se hace lo mismo que aquí: registrar, ver el total por chofer y borrar.
 
 **Fecha:** 2026-08-11 · **Versión:** v0.9.65 · **Pedido por:** Andrés
@@ -616,7 +616,7 @@ descargas reales y ajustar el default de 15 min.
 
 ## D-025 · Las paradas cercanas viajan juntas (agrupación por zona)
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-28): «Optimizar ruta» ya no existe —el dueño: *«Quitar los dos; solo Armar
+> **⚠ Reemplazada por D-437** (2026-09-28): «Optimizar ruta» ya no existe —el dueño: *«Quitar los dos; solo Armar
 > rutas»*— y con él esta agrupación por zona (`buildGeoLoads`, `fillByCapacity`, `planCostMi` y `loadCostMi`, borradas de
 > `route-batching.ts` con sus pruebas). Qué paradas comparten camión lo decide ahora el motor de «Armar las rutas del día».
 
@@ -24191,7 +24191,7 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Armar las rutas» sigue naciendo plegada, como pidió aquí el dueño,
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Armar las rutas» sigue naciendo plegada, como pidió aquí el dueño,
 > pero su botón es ahora el primario de la barra: es el único camino automático del Gestor (se quitaron «Optimizar» y
 > «Auto-asignar»). Se decidió no hacerla nacer abierta, para no deshacer esta entrada sin que él lo pida.
 
@@ -24468,7 +24468,7 @@ tiene la capacidad de historial: esa ya dejaba fuera las vencidas de más de un 
 
 ## D-352 · En el Gestor, la línea del chofer seleccionado sigue su plan publicado, recogidas incluidas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): la línea del plan publicado se pinta solo si al chofer le quedan
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): la línea del plan publicado se pinta solo si al chofer le quedan
 > paradas y su ruta sigue siendo la publicada (`pintaElTrazoDelPlan`). Si no, no se pinta: un chofer vacío (Julio, en la
 > captura del dueño) seguía con la línea de su plan. Y «el optimizador viejo» ya no existe: la línea de los demás es la
 > MEDIDA de la ruta en su orden guardado (`optimize: false`), que no reordena nada. «Simular» se quitó.
@@ -27567,7 +27567,7 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «✨ Auto-asignar» ya no existe, así que lo que esta entrada dice de
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar» ya no existe, así que lo que esta entrada dice de
 > él (qué reparte, si sigue al filtro) no aplica. El filtro de chofer, el chip «Todas» y las tarjetas plegadas siguen.
 
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
@@ -27831,7 +27831,7 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 
 ## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «✨ Auto-asignar las marcadas» ya no está en el recuadro. Quedan
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar las marcadas» ya no está en el recuadro. Quedan
 > «Asignar», «📍 Mejor lugar» (D-411) y «＋ Nueva ruta».
 
 > **Reemplazada en parte por D-421** (2026-09-27): «el resto, en el orden de siempre» ya no es del todo cierto. Detrás del
@@ -28425,7 +28425,7 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 
 ## D-400 · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): el botón «🧭 Armar rutas» de la cabecera, que trae la barra
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): el botón «🧭 Armar rutas» de la cabecera, que trae la barra
 > cerrada, es ahora primario (antes fantasma): donde estaban «Auto-asignar» y «Optimizar todas las rutas» es la acción.
 
 **Fecha:** 2026-09-25 · **Sin migración.** · **Pedido por el dueño**, con una captura del Gestor de Rutas, literal:
@@ -28517,7 +28517,7 @@ en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-28): el diálogo de «✨ Auto-asignar» (`components/AutoAsignarDialogo.tsx`,
+> **⚠ Reemplazada por D-437** (2026-09-28): el diálogo de «✨ Auto-asignar» (`components/AutoAsignarDialogo.tsx`,
 > `lib/auto-asignar.ts`) y el bucle `optimizaEstas` se quitaron. El dueño, 2026-09-28: *«quita lo de optemizar y lo de
 > autoa signar que este en earmar rutas»*, y eligió *«Quitar los dos; solo Armar rutas»*.
 
@@ -29738,7 +29738,7 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): lo que respeta el candado es ahora «Armar las rutas del día» (el
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): lo que respeta el candado es ahora «Armar las rutas del día» (el
 > motor, D-414) y «📍 Mejor lugar» (y el arrastre al nombre de un chofer, que es Mejor lugar). «Optimizar todas»,
 > «Optimizar ruta», «Reagrupar por zona», «✨ Auto-asignar», «Simular» y el dibujo automático que optimizaba se quitaron;
 > con ellos `optimizaSinLasBloqueadas` y `avisoDeSaltadas`. «📍 Mejor lugar» no cambia.
@@ -29902,7 +29902,7 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Auto-asignar» ya no existe. La prioridad la usa el motor de «Armar
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» ya no existe. La prioridad la usa el motor de «Armar
 > las rutas del día» (D-415), que es ahora el único que reparte.
 
 > **Reemplazada en parte por D-436** (2026-09-28): el selector «Prioridad» ya no sale en la ficha de la orden; la columna y el motor siguen.
@@ -30143,7 +30143,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
 
 ## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): ya no hay «Optimizar todas» que pudiera pasar por encima del
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): ya no hay «Optimizar todas» que pudiera pasar por encima del
 > candado. El candado en la base (149) no cambia: lo leen «Armar las rutas del día» y «Publicar ruta».
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
@@ -30287,7 +30287,7 @@ la verdad, no un fallo: el hueco es de captura.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Auto-asignar» y «Optimizar» ya no existen. Lo de esta entrada sobre
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» y «Optimizar» ya no existen. Lo de esta entrada sobre
 > «Planificar el día» sigue igual.
 
 > **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
@@ -30711,7 +30711,7 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 
 ## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Auto-asignar» ya no existe; los requisitos del camión los respetan
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» ya no existe; los requisitos del camión los respetan
 > el motor de «Armar las rutas del día» y «📍 Mejor lugar».
 
 > **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
@@ -30862,7 +30862,7 @@ ni de Auto-asignar.
 
 ## D-419 · «✨ Auto-asignar» reparte con el motor de «Planificar el día»: cuenta lo que cada chofer ya lleva, no mezcla días, y dice por qué no coloca
 
-> **⚠ Reemplazada por D-NEXT** (2026-09-28): «✨ Auto-asignar» se quitó del Gestor y del Mapa, entero: `repartirConElMotor`,
+> **⚠ Reemplazada por D-437** (2026-09-28): «✨ Auto-asignar» se quitó del Gestor y del Mapa, entero: `repartirConElMotor`,
 > `POST /api/route-plan/reparto`, `lib/route-plan/reparto.ts`, `reparto-cliente.ts`, el `siNoCambioDesde` de
 > `updateDelivery` y sus pruebas. Repartir automático es solo «Armar las rutas del día» —el mismo motor, con borrador,
 > ajuste y publicar—. Las medidas de aquí (40 → 153 de 178 en los días reales) siguen describiendo al motor.
@@ -31932,7 +31932,7 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 
 ## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
 > toda la ruta («Optimizar decide si respeta los viajes…») ya no tiene quién lo lea; se deja, no hace daño. «Unir viajes»
 > y «Dividir en 2» escriben ahora también la ruta entera, numerada tras lo ya hecho (`desde`). Flechas y selector, igual.
 
@@ -32230,7 +32230,7 @@ fee es menos de la tarifca sugerida quita ese bloqeuo»*. En el código no hay n
 ficha solo exige que haya costo (0 vale, `required.ts`) y enseña el aviso «Igualar precio (menor al descuento) — requiere
 aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio ese usuario antes de tocar nada.
 
-## D-NEXT · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
+## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
 
 **Fecha:** 2026-09-28. **Sin migración.** **Reemplaza a D-025, D-401 y D-419, y en parte a D-003 (nota), D-346, D-352, D-393,
 D-395, D-400, D-411, D-412, D-414, D-415, D-418 y D-433**: todas llevan su nota.

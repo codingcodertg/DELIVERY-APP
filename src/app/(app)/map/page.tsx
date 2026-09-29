@@ -199,7 +199,7 @@ export default function MapPage() {
   };
   const assignDriver = (driver: string | null) => assignOrders(selectedList, driver);
 
-  // «✨ Auto-asignar selección» se quitó en D-NEXT: repartir automático es «Armar las rutas del día», en el Gestor de
+  // «✨ Auto-asignar selección» se quitó en D-437: repartir automático es «Armar las rutas del día», en el Gestor de
   // Rutas. Aquí queda asignar a mano (una, o todas las marcadas a un chofer).
 
   // Las órdenes que tienen punto: las que se pintan, y de las que sale la leyenda.

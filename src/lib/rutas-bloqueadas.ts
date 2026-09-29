@@ -1,7 +1,7 @@
 /**
  * 🔒 Rutas bloqueadas del Gestor de Rutas (D-411): una ruta (un chofer o una ruta temporal) en un DÍA que las
- * herramientas automáticas no tocan. Desde D-NEXT son dos: «Armar las rutas del día» (el motor, en el servidor) y
- * «📍 Mejor lugar» (con el arrastre al nombre de un chofer, que es Mejor lugar). Hasta D-NEXT también «Optimizar todas las
+ * herramientas automáticas no tocan. Desde D-437 son dos: «Armar las rutas del día» (el motor, en el servidor) y
+ * «📍 Mejor lugar» (con el arrastre al nombre de un chofer, que es Mejor lugar). Hasta D-437 también «Optimizar todas las
  * rutas», su «Optimizar ruta», «Simular», el dibujo automático al elegir un chofer y «✨ Auto-asignar», que se quitaron.
  * Es el `lockType: ROUTES` de OptimoRoute
  * (docs/research-route-optimization.md §1.3). A mano sigue editable: flechas, «Asignar», quitar, mover de viaje.

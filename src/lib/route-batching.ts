@@ -1,7 +1,7 @@
 // ============================================================
 // Straight-line distance between two points.
 //
-// Hasta D-NEXT este fichero era también la agrupación por zona del Gestor de Rutas (Clarke–Wright + or-opt:
+// Hasta D-437 este fichero era también la agrupación por zona del Gestor de Rutas (Clarke–Wright + or-opt:
 // `buildGeoLoads`, `fillByCapacity`, `planCostMi`, `loadCostMi`), que usaba «Optimizar ruta» para decidir qué paradas
 // iban en el mismo camión antes de pedir el orden a Google. Con «Optimizar» quitado (el dueño, 2026-09-28: «Quitar los
 // dos; solo Armar rutas») nadie la llamaba y se borró: quién lleva qué y en qué viaje lo decide el motor de «Armar las

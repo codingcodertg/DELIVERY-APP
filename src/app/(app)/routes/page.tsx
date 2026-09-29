@@ -73,7 +73,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
 // to a driver and arrange each driver's stops.
 //
-// Desde D-NEXT el orden AUTOMÁTICO de una ruta sale de un solo sitio: «🧭 Armar las rutas del día» (el motor: planifica
+// Desde D-437 el orden AUTOMÁTICO de una ruta sale de un solo sitio: «🧭 Armar las rutas del día» (el motor: planifica
 // en borrador, se ajusta y se publica). Aquí ya no hay «Optimizar ruta», «Optimizar todas las rutas», «✨ Auto-asignar»,
 // «Reagrupar por zona» ni «Simular»: el dueño, 2026-09-28, «Quitar los dos; solo Armar rutas». A mano quedan asignar,
 // «📍 Mejor lugar», las flechas, el selector de viaje, unir/dividir viajes y el arrastre de «📅 Horario». La pantalla
@@ -194,7 +194,7 @@ interface TripStat {
   end: string;
 }
 
-/** Lo medido de la ruta de un chofer TAL COMO ESTÁ (D-NEXT): no reordena ni se guarda, solo se pinta. */
+/** Lo medido de la ruta de un chofer TAL COMO ESTÁ (D-437): no reordena ni se guarda, solo se pinta. */
 interface MedidaDeLaRuta {
   miles: number;
   seconds: number;
@@ -414,7 +414,7 @@ export default function RoutesPage() {
   };
   // Sin «scheduled» desde D-376: la pestaña «Programadas» repetía, en una lista, las órdenes que ya salen en la ruta de
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
-  // «Incidencias» ya no es pestaña (D-NEXT): el dueño, «incidencias que sea un boton». Es un botón junto a las pestañas que
+  // «Incidencias» ya no es pestaña (D-437): el dueño, «incidencias que sea un boton». Es un botón junto a las pestañas que
   // abre una ventana sobre el Gestor. La pestaña no se guardaba en ningún sitio: no hay preferencia vieja que recoger.
   const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");
   const [incidenciasAbiertas, setIncidenciasAbiertas] = useState(false);
@@ -424,7 +424,7 @@ export default function RoutesPage() {
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   }, [incidenciasAbiertas]);
-  // La ruta que se está midiendo ahora (una a la vez, D-NEXT).
+  // La ruta que se está midiendo ahora (una a la vez, D-437).
   const [midiendo, setMidiendo] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<Record<string, { miles: number; duration_text: string; trips: number; minutes: number; dayMinutes: number; dayText: string }>>({});
   // Per-truckload numbers, keyed by driver then load index.
@@ -540,7 +540,7 @@ export default function RoutesPage() {
     for (const chofer of selected) {
       if (trazosDelPlan[chofer] !== undefined) continue;
       const paradas = paradasPublicadasDe(chofer);
-      // Ni se pide (Google cuesta) si ya no hay nada que pintar: sin pendientes, o la ruta ya no es la publicada (D-NEXT).
+      // Ni se pide (Google cuesta) si ya no hay nada que pintar: sin pendientes, o la ruta ya no es la publicada (D-437).
       if (!paradas || !sigueSuPlan(chofer)) continue;
       const puntos = puntosDelTrazoPublicado(paradas, deliveries, settings.stores ?? []);
       if (puntos.length < 2) { setTrazosDelPlan((p) => ({ ...p, [chofer]: [] })); continue; }
@@ -709,7 +709,7 @@ export default function RoutesPage() {
   // numbers when set, otherwise automatically by truck capacity.
   const buildTrips = (stops: Delivery[], capacity: number): Delivery[][] =>
     hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
-  // «🔗 Unir viajes» y «✂ Dividir en 2» (D-NEXT): la ruta ENTERA en el orden que se ve, con su viaje nuevo, numerada tras
+  // «🔗 Unir viajes» y «✂ Dividir en 2» (D-437): la ruta ENTERA en el orden que se ve, con su viaje nuevo, numerada tras
   // lo ya hecho (como las flechas, D-433). Antes dejaban `route_seq: null` para que «Optimizar» rehiciera el orden; sin
   // Optimizar, eso tiraba el orden puesto a mano. «Reagrupar por zona» (borraba los viajes y optimizaba) se quitó.
   const combineLoads = async (laneKey: string) => {
@@ -729,7 +729,7 @@ export default function RoutesPage() {
   };
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
-  // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Desde D-NEXT lo mira «📍 Mejor lugar» (y el arrastre al
+  // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Desde D-437 lo mira «📍 Mejor lugar» (y el arrastre al
   // nombre de un chofer, que es Mejor lugar); «Armar las rutas del día» lo lee en el servidor (D-414). A mano (flechas,
   // «Asignar») no se mira. Optimizar, Auto-asignar, Simular y el dibujo que optimizaba, que también lo miraban, se quitaron.
   const bloqueada = (laneKey: string) => estaBloqueada(bloqueos, date, laneKey);
@@ -898,7 +898,7 @@ export default function RoutesPage() {
   };
 
   // Lo del día sin chofer. Es lo que cuentan el resumen, la pestaña y el tablero (y contaba «Auto-asignar», quitado en
-  // D-NEXT): el DÍA, sea cual sea el chip de la tabla. Hasta D-393 el chip «Atrasadas» cambiaba también esta lista, y con él el «Sin programar» del
+  // D-437): el DÍA, sea cual sea el chip de la tabla. Hasta D-393 el chip «Atrasadas» cambiaba también esta lista, y con él el «Sin programar» del
   // resumen y lo que «Auto-asignar» repartía; con un chip «Todas» de cualquier día, «Programadas» habría salido negativo.
   const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
   // Las filas de la TABLA «Sin asignar», según su chip (D-359 «Atrasadas», D-393 «Todas»), y el número de cada chip,
@@ -985,7 +985,7 @@ export default function RoutesPage() {
     return map;
   }, [dayOrders]);
   // ¿Se pinta la línea del plan publicado de esta ruta? Solo con paradas pendientes y si sigue siendo la publicada
-  // (D-NEXT, `pintaElTrazoDelPlan`): la de Julio, vacío, seguía en el mapa.
+  // (D-437, `pintaElTrazoDelPlan`): la de Julio, vacío, seguía en el mapa.
   const sigueSuPlan = (laneKey: string): boolean => {
     const stops = byDriver.get(laneKey) ?? [];
     const paradas = paradasPublicadasDe(laneKey);
@@ -1162,8 +1162,8 @@ export default function RoutesPage() {
   };
 
   /** Mide la ruta de un chofer TAL COMO ESTÁ —sus viajes y su orden, los que pinta la tabla (`buildTrips`)— para las millas,
-   * las horas por viaje, la llegada estimada de cada parada y el trazo del mapa. NO reordena ni escribe nada (D-NEXT).
-   * Hasta D-NEXT esto era `computeRoute` + `applyPlan` («Optimizar»): pedía a Google el MEJOR orden, reagrupaba los viajes
+   * las horas por viaje, la llegada estimada de cada parada y el trazo del mapa. NO reordena ni escribe nada (D-437).
+   * Hasta D-437 esto era `computeRoute` + `applyPlan` («Optimizar»): pedía a Google el MEJOR orden, reagrupaba los viajes
    * por zona y lo guardaba. Ahora pide el camino en el orden guardado (`cuerpoDeLaMedida`, `optimize: false`). */
   const mideLaRuta = async (laneKey: string, stopList: Delivery[]): Promise<MedidaDeLaRuta> => {
     const depot = await getDepotCoords(pickupAddressFor(laneKey));
@@ -1266,7 +1266,7 @@ export default function RoutesPage() {
   formaActual.current = { date, byDriver };
   // De qué forma de la ruta es cada medida pintada. Si la ruta cambia por donde sea —también cuando se le QUITAN paradas
   // desde otra ruta (el tablero y «Asignar» solo limpiaban la de destino)—, lo pintado se tira: así una ruta que se quedó
-  // vacía no conserva sus millas ni su línea (Julio, D-NEXT).
+  // vacía no conserva sus millas ni su línea (Julio, D-437).
   const firmaPintada = useRef<Record<string, string>>({});
   useEffect(() => {
     for (const k of Object.keys(routeInfo)) {
@@ -1557,7 +1557,7 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [byDriver, settings.stores]);
 
-  // Elegir un chofer MIDE su ruta (D-NEXT): millas, horas y trazo, en el orden guardado, sin tocarla. Hasta D-NEXT la
+  // Elegir un chofer MIDE su ruta (D-437): millas, horas y trazo, en el orden guardado, sin tocarla. Hasta D-437 la
   // OPTIMIZABA y escribía el orden nuevo; y como cada cambio borra la medida (`clearRouteFor`), una flecha con el chofer
   // elegido volvía a optimizar y deshacía la flecha. Ahora un cambio solo vuelve a MEDIR. Una a la vez; cada forma de la
   // ruta una sola vez (`firmaDeLaMedida`): si falla, no se reintenta en bucle. Con candado 🔒 también: medir no la toca.
@@ -1693,7 +1693,7 @@ export default function RoutesPage() {
   // Every measured driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
   const lines: MapLine[] = useMemo(() => {
-    // Con el filtro de chofer (D-393), solo las líneas de ese chofer. Y solo de quien tiene paradas (D-NEXT): una ruta que
+    // Con el filtro de chofer (D-393), solo las líneas de ese chofer. Y solo de quien tiene paradas (D-437): una ruta que
     // se quedó vacía no deja su línea en el mapa.
     const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver) && (byDriver.get(driver)?.length ?? 0) > 0);
     // Fan the routes out with a small perpendicular offset each, so where two
@@ -1705,7 +1705,7 @@ export default function RoutesPage() {
     const out: MapLine[] = [];
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la medida de la tarjeta — mientras la
-    // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-NEXT). Si no, la del plan no se pinta.
+    // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-437). Si no, la del plan no se pinta.
     const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)).map(([d]) => d));
     for (const driver of conSuPlan) {
       out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: trazosDelPlan[driver], dimmed: isDim(driver), offset: 0 });
@@ -1807,7 +1807,7 @@ export default function RoutesPage() {
   // checked (even an empty one you're filling). Checking loads to merge, or
   // focusing a driver on the map, never makes the other routes disappear.
   // Con el filtro de chofer (D-393), solo la suya.
-  // Desde D-NEXT, solo las que tienen paradas: una marcada ☑ sin paradas sacaba una tarjeta entera «0 paradas» (Julio). Esa
+  // Desde D-437, solo las que tienen paradas: una marcada ☑ sin paradas sacaba una tarjeta entera «0 paradas» (Julio). Esa
   // tarjeta no era destino de nada —se asigna desde «Sin asignar», el recuadro o el tablero, y se arrastra en «Horario»,
   // que sí pinta las rutas vacías—; renombrar o quitar una ruta temporal vacía sigue en el panel. Las marcadas vacías se
   // nombran en una línea (`marcadasSinParadas`).
@@ -1856,7 +1856,7 @@ export default function RoutesPage() {
           >
             🗓 {allDates ? t("All dates ✓", "Todas ✓") : t("All dates", "Todas")}
           </button>
-          {/* Aquí iban «✨ Auto-asignar» y «🧭 Optimizar todas las rutas»: se quitaron en D-NEXT («Quitar los dos; solo Armar
+          {/* Aquí iban «✨ Auto-asignar» y «🧭 Optimizar todas las rutas»: se quitaron en D-437 («Quitar los dos; solo Armar
               rutas»). Lo automático es «Armar las rutas del día», la barra de justo debajo; con la barra cerrada (D-400),
               este botón la trae, y es el primario de la cabecera. */}
           {puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && (
@@ -2147,7 +2147,7 @@ export default function RoutesPage() {
             </button>
           </span>
         )}
-        {/* ⚠ Incidencias (D-NEXT): un botón, a la derecha de las pestañas, que abre la ventana. Ámbar si hay alguna
+        {/* ⚠ Incidencias (D-437): un botón, a la derecha de las pestañas, que abre la ventana. Ámbar si hay alguna
             registrada (las incidencias no tienen estado «abierta»: se registran y se borran). */}
         <button className={"btn btn-sm " + (incidents.length ? "btn-amber" : "btn-ghost")} data-abrir-incidencias
           style={{ marginLeft: "auto" }} aria-haspopup="dialog" onClick={() => setIncidenciasAbiertas(true)}>
@@ -2307,7 +2307,7 @@ export default function RoutesPage() {
                       ))}
                       <td onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                          {/* Assign is ALWAYS available. «🔮 Simular», que salía al lado con un chofer elegido, se quitó en D-NEXT:
+                          {/* Assign is ALWAYS available. «🔮 Simular», que salía al lado con un chofer elegido, se quitó en D-437:
                               reoptimizaba la ruta entera y la escribía. «📍 Mejor lugar» mete la orden sin mover las demás. */}
                           <select defaultValue="" onChange={(e) => {
                             const v = e.target.value; e.currentTarget.value = "";
@@ -2341,7 +2341,7 @@ export default function RoutesPage() {
           </>
         )}
         {/* «Elige conductor para N órdenes» (D-395): sustituye al antiguo desplegable «Asignar selección a…» y al botón
-            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-NEXT). Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
+            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-437). Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
             (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
             una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
             así que ninguna fila queda tapada para siempre. */}
@@ -2404,7 +2404,7 @@ export default function RoutesPage() {
                 </span>
               )}
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
-              {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-NEXT. Repartir automático es «Armar las rutas del día». */}
+              {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
             </div>
           </div>
         )}
@@ -2478,7 +2478,7 @@ export default function RoutesPage() {
                 <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{trips.length} {t("truckloads", "viajes")}</span>
               )}
               {/* Says who decided the grouping: a person (by hand) or the system («Armar rutas», or the truck's capacity).
-                  Hasta D-NEXT decía también qué podía cambiar «Optimizar», que ya no existe. */}
+                  Hasta D-437 decía también qué podía cambiar «Optimizar», que ya no existe. */}
               {stops.length > 0 && trips.length > 1 && (
                 pinnedLoads ? (
                   <span className="sema" style={{ background: "var(--card-hover)", color: "var(--ink-soft)" }}
@@ -2523,7 +2523,7 @@ export default function RoutesPage() {
                 {t("plt", "trm")}
               </label>
               {/* 🔒 (D-411): por ruta y por día. Bloqueada, ni «Armar rutas» ni «Mejor lugar» la tocan; las flechas y
-                  «Asignar» sí. (Optimizar, Auto-asignar y Simular, que también la respetaban, se quitaron en D-NEXT.) */}
+                  «Asignar» sí. (Optimizar, Auto-asignar y Simular, que también la respetaban, se quitaron en D-437.) */}
               <button className={bloqueada(u.key) ? "btn btn-amber btn-sm" : "btn btn-ghost btn-sm"} data-candado={u.key}
                 data-candado-fuente={candados.fuente} aria-pressed={bloqueada(u.key)}
                 title={`${bloqueada(u.key)
@@ -2532,7 +2532,7 @@ export default function RoutesPage() {
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
-              {/* «🧭 Optimizar ruta» iba aquí; se quitó en D-NEXT. El orden lo deciden «Armar las rutas del día», «Mejor
+              {/* «🧭 Optimizar ruta» iba aquí; se quitó en D-437. El orden lo deciden «Armar las rutas del día», «Mejor
                   lugar», las flechas y el arrastre. */}
               {needsDriver && (
                 <select
@@ -2546,7 +2546,7 @@ export default function RoutesPage() {
                   {drivers.map((dv) => <option key={dv.id} value={dv.full_name}>{dv.full_name}</option>)}
                 </select>
               )}
-              {/* «🧩 Reagrupar por zona» iba antes de «Unir viajes»: borraba los viajes y OPTIMIZABA. Se quitó en D-NEXT. */}
+              {/* «🧩 Reagrupar por zona» iba antes de «Unir viajes»: borraba los viajes y OPTIMIZABA. Se quitó en D-437. */}
               {hasManualLoads(stops) ? (
                 <button className="btn btn-ghost btn-sm" data-unir-viajes title={t("Merge all truckloads back into one, keeping the order", "Unir todos los viajes en uno, en el mismo orden")}
                   onClick={() => combineLoads(u.key)}>🔗 {t("Combine loads", "Unir viajes")}</button>
@@ -2898,7 +2898,7 @@ function DateCell({
 function DriverIncidents({
   me, drivers, deliveries, incidents, addIncident, removeIncident, confirmAction, notify, t, enVentana = false,
 }: {
-  /** Dentro de la ventana de «⚠ Incidencias» (D-NEXT): sin su tarjeta ni su título, que pone la ventana. */
+  /** Dentro de la ventana de «⚠ Incidencias» (D-437): sin su tarjeta ni su título, que pone la ventana. */
   enVentana?: boolean;
   me: Profile;
   drivers: Profile[];

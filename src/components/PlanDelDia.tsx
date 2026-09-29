@@ -208,7 +208,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   // Plegado tras un botón (D-346). El dueño: «build todays load automatically will be a button so it hides all that
   // information and just shows when i want it to». D-334 lo había hecho imposible de no ver porque entonces no lo
   // encontraba; ahora lo conoce y le estorba. Plegado sigue diciendo lo que importa: cuántas órdenes no tienen plan.
-  // Desde D-NEXT es el ÚNICO camino automático del Gestor (se quitaron Optimizar y Auto-asignar): sigue naciendo plegado,
+  // Desde D-437 es el ÚNICO camino automático del Gestor (se quitaron Optimizar y Auto-asignar): sigue naciendo plegado,
   // como pidió el dueño en D-346, pero su botón es el primario, para que se vea que es por aquí.
   if (!abierto) return (
     <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
