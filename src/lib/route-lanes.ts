@@ -1,7 +1,7 @@
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// D-NEXT: there are no truckloads any more — a driver's day is ONE list of stops
+// D-443: there are no truckloads any more — a driver's day is ONE list of stops
 // (lib/lista-unica). The load helpers that lived here (loadNoOf, groupIntoLoads,
 // hasManualLoads, nextLoadFor) were removed with the trips; load_no is no longer
 // written (targetPatch leaves it null).
@@ -45,7 +45,7 @@ export function orderLaneKey(d: OrderLite, _isBucket?: (name: string) => boolean
 
 export interface LaneTarget { isBucket: boolean; driver: string; load: number; }
 
-/** The order patch that puts a delivery onto a target lane (resets sequence). Since D-NEXT there are no trips: the
+/** The order patch that puts a delivery onto a target lane (resets sequence). Since D-443 there are no trips: the
  * load is always cleared, whatever `target.load` says. */
 export function targetPatch(target: LaneTarget): Partial<Delivery> {
   return { assigned_driver: target.driver, load_no: null, route_seq: null };

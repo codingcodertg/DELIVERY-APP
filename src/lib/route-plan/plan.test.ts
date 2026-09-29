@@ -43,7 +43,7 @@ describe("planificar el día deja un borrador completo, y reproducible", () => {
   it("la fila del plan: la foto de las órdenes, qué se escribirá, los totales y con qué tiempos se hizo", async () => {
     const b = await planificaElDia(datos(), "2026-03-04", "America/Chicago", { cache: cacheEnMemoria(), proveedores: [proveedor("google", true)], ahoraISO: AHORA });
     expect(b.plan.input.ordenes).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.000000+00:00", factura: null }, { id: "b", updated_at: "2026-03-03T15:00:01.000000+00:00", factura: null }]);
-    // D-NEXT: sin viaje (`load_no`); cada una con su puesto y la posición de su recogida, antes que su entrega.
+    // D-443: sin viaje (`load_no`); cada una con su puesto y la posición de su recogida, antes que su entrega.
     expect(b.plan.writes.map(({ pickup_seq: _p, ...w }) => w)).toEqual([
       { id: "a", assigned_driver: "Chofer Uno", route_seq: 0, load_auto: true },
       { id: "b", assigned_driver: "Chofer Uno", route_seq: 1, load_auto: true },

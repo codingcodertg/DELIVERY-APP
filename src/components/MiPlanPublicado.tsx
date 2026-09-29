@@ -15,7 +15,7 @@ import type { MiPlan } from "@/lib/route-plan/mis-paradas";
  *
  * Si no hay plan publicado —o la base aún no tiene la función— no pinta nada: «Mi ruta» sigue igual.
  *
- * Una sola lista (D-NEXT): sin «N viajes» en la cabecera ni raya entre viajes. Cada parada dice cuántos pallets quedan a
+ * Una sola lista (D-443): sin «N viajes» en la cabecera ni raya entre viajes. Cada parada dice cuántos pallets quedan a
  * bordo después, que es la cuenta que el chofer puede comprobar en el camión.
  *
  * El plan lo lee la PÁGINA (`usePlanPublicadoDelChofer`) y lo comparte con la lista de abajo, que lo necesita para que las

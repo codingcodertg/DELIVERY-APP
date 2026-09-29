@@ -33,7 +33,7 @@ import type { Delivery } from "@/lib/types";
  * D-435: cada fila lleva el color de su parada —recogida verde, entrega amarilla, muy suaves— para distinguirlas de un
  * vistazo (`claseDeLaFilaDelPlan`); y hay «Ciudad de entrega» tras la de recogida, vacía en las P como la dirección.
  *
- * D-NEXT: sin viajes. Ni raya entre viajes ni «N viajes» en la cabecera: la ruta es una lista. La cuenta de pallets es una
+ * D-443: sin viajes. Ni raya entre viajes ni «N viajes» en la cabecera: la ruta es una lista. La cuenta de pallets es una
  * columna FIJA y visible de partida (antes «Pallets a bordo», escondida en ⚙: D-429/D-434): «a bordo antes ± la parada =
  * después · libres», con la capacidad del camión; la parada que se pasa lo dice en su fila, y cuánto. Y la ruta empieza y
  * acaba en la Base con 0 a bordo; si al volver no da 0, se marca.
@@ -94,7 +94,7 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
 
   const duracion = (min: number) => `${Math.floor(min / 60)} h ${min % 60} min`;
 
-  /** La celda fija de la cuenta (D-NEXT): la operación entera y, si se pasa, cuánto, en ESTA fila. */
+  /** La celda fija de la cuenta (D-443): la operación entera y, si se pasa, cuánto, en ESTA fila. */
   const celdaDeCuenta = (f: FilaDeCuenta, capacidad: number | null) => (
     <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }} title={t("On board before ± this stop = on board after · free", "A bordo antes ± esta parada = a bordo después · libres")}>
       {capacidad != null ? textoDeLaCuenta(f, lang === "es") : `${dosDecimales(f.antes)} ${f.cambio < 0 ? "−" : "+"} ${dosDecimales(Math.abs(f.cambio))} = ${dosDecimales(f.despues)}`}

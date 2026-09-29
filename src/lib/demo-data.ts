@@ -186,7 +186,7 @@ export function demoDeliveries(settings: Settings): Delivery[] {
     delivery_pin_source: null,
     route_seq: null,
     load_no: null,
-    // La 154 (D-NEXT): la posición de la recogida en la lista del chofer. Con la clave, el demo se porta como una base con
+    // La 154 (D-443): la posición de la recogida en la lista del chofer. Con la clave, el demo se porta como una base con
     // la columna (`tienePosicionDeRecogida`) y las flechas de las filas P se guardan.
     pickup_seq: null,
     load_auto: false,

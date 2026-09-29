@@ -6,7 +6,7 @@ import { fotoTrasReordenar } from "./arrastre-de-paradas";
 import { escrituraDeLaLista, listaDelChofer, mueveEnLaLista } from "./lista-unica";
 
 /**
- * Mover una parada a mano en la tarjeta del Gestor (D-433). Desde D-NEXT no hay viajes: el selector «Viaje N», las flechas
+ * Mover una parada a mano en la tarjeta del Gestor (D-433). Desde D-443 no hay viajes: el selector «Viaje N», las flechas
  * por viaje y «mover un viaje entero» se fueron (sus pruebas con ellos); las flechas de la lista única se prueban en
  * `lista-unica.test.ts`. Aquí queda lo de D-433 que sigue valiendo: se numera tras lo ya hecho.
  */
@@ -80,7 +80,7 @@ describe("la pantalla: la tarjeta del chofer en el Gestor", () => {
     expect(guarda).toContain("await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);");
     expect(guarda).toContain("fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas)");
   });
-  it("ya no hay selector de viaje, ni «mover un viaje entero», ni unir/dividir (D-NEXT)", () => {
+  it("ya no hay selector de viaje, ni «mover un viaje entero», ni unir/dividir (D-443)", () => {
     for (const x of ["moveStopToLoad", "moveTrip", "combineLoads", "splitLoads", "planDeCambioDeViaje", "planDeFlecha(", "buildTrips", "＋ {t(\"New truckload\""]) expect(pagina).not.toContain(x);
   });
 });

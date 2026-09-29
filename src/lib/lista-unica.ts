@@ -1,7 +1,7 @@
 import { palletsDeLaOrden } from "./pallets";
 
 /**
- * La ruta de un chofer como UNA SOLA LISTA de paradas (D-NEXT): recogidas (P) y entregas (D) intercaladas, sin viajes.
+ * La ruta de un chofer como UNA SOLA LISTA de paradas (D-443): recogidas (P) y entregas (D) intercaladas, sin viajes.
  *
  * El dueño, 2026-09-28, en su especificación del motor: «Elimina el concepto de cargas (truckloads) separadas […] todas las
  * órdenes del conductor van en una sola lista continua, que es un solo viaje del camión con muchas paradas y etapas. El
@@ -29,7 +29,7 @@ export interface OrdenDeLaLista {
   route_seq?: number | null;
   /** Dónde va su recogida, en la escala de `route_seq` (migración 154). `undefined`: la base no tiene la columna. */
   pickup_seq?: number | string | null;
-  /** HISTÓRICO: el viaje que se escribía hasta D-NEXT. Ya no se escribe (se deja en `null` al guardar); solo se lee para
+  /** HISTÓRICO: el viaje que se escribía hasta D-443. Ya no se escribe (se deja en `null` al guardar); solo se lee para
    *  ordenar una ruta que se guardó con viajes y nadie ha vuelto a tocar. */
   load_no?: number | null;
 }
@@ -52,7 +52,7 @@ const numero = (v: unknown): number | null => {
 /**
  * Las entregas en el orden de la lista: primero las que tienen puesto (`route_seq`), después las que no, en el orden en que
  * llegan. Una ruta que se guardó con viajes (`load_no` 2, 3…) y nadie ha vuelto a tocar numeraba el puesto DENTRO de cada
- * viaje (publicar, hasta D-NEXT): por eso el viaje viejo ordena antes que el puesto. Es solo lectura de lo histórico: en
+ * viaje (publicar, hasta D-443): por eso el viaje viejo ordena antes que el puesto. Es solo lectura de lo histórico: en
  * cuanto se toca la ruta se guarda seguida y sin viaje.
  */
 export function entregasEnOrden<T extends OrdenDeLaLista>(ordenes: readonly T[]): T[] {
@@ -347,7 +347,7 @@ export interface EscrituraDeLaLista {
   ids: string[];
   /** La posición de la recogida de cada orden, en la MISMA escala: entre el puesto de la entrega anterior y el de la siguiente. */
   pickupSeqById: Record<string, number>;
-  /** El viaje viejo se deja vacío en todas: ya no hay viajes (D-NEXT). */
+  /** El viaje viejo se deja vacío en todas: ya no hay viajes (D-443). */
   loadNoById: Record<string, null>;
 }
 
@@ -378,7 +378,7 @@ export function escrituraDeLaLista(paradas: readonly ParadaDeLaLista[], desde: n
 }
 
 /** ¿Cabe una orden de `pallets` recogida justo delante de la entrega de puesto `puesto`? La carga a bordo en ese punto más
- *  la suya, contra la capacidad, en centésimas (para «📍 Mejor lugar», D-NEXT). */
+ *  la suya, contra la capacidad, en centésimas (para «📍 Mejor lugar», D-443). */
 export function cabeEnElPuesto(paradas: readonly ParadaDeLaLista[], cambios: readonly (number | null)[], puesto: number, pallets: number, capacidad: number): boolean {
   return centesimas(cargaAntesDeLaEntrega(paradas, cambios, puesto)) + centesimas(pallets) <= centesimas(capacidad);
 }

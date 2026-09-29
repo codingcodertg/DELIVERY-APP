@@ -180,7 +180,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-434 sumó dos columnas al plan (tipo de cliente y ciudad de recogida) y una marca (`_v6`): 13467 con 10 (modelo).
     // D-435 sumó la ciudad de entrega al plan y la marca `_v7`: 13916 con 10 (modelo). En este peor caso ya caben 4 plantillas
     // llenas, no 5: la quinta la para la guarda, que lo dice al guardar.
-    // D-NEXT quitó una (`pl_bordo`: la cuenta de pallets pasó a columna fija): 13916 → 13652 con 10 (modelo). Lo mismo: caben 4.
+    // D-443 quitó una (`pl_bordo`: la cuenta de pallets pasó a columna fija): 13916 → 13652 con 10 (modelo). Lo mismo: caben 4.
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13652);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
     expect(cabeEnLaFila(con(4))).toBe(true);
@@ -198,11 +198,11 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-435 (la ciudad de entrega y `_v7`): 7 294 → 7 582 sin plantillas. La FILA sigue cabiendo en la base (< 8 192, que es
     // lo que la 136 rechaza), pero ya no con la reserva de 800 de la guarda: en este peor caso no se puede guardar ninguna
     // plantilla — que ya era así (caben 0, abajo). Marcar, mover o quitar columnas no pasa por la guarda y sigue escribiéndose.
-    // D-NEXT (sin `pl_bordo`): 7 582 → 7 438 sin plantillas.
+    // D-443 (sin `pl_bordo`): 7 582 → 7 438 sin plantillas.
     expect(bytesEnLaBase(con(0))).toBe(7438);
     expect(bytesEnLaBase(con(0))).toBeLessThan(TOPE_DE_LA_BASE);
     expect(cabeEnLaFila(con(0))).toBe(false);
-    // D-NEXT (sin `pl_bordo`): 20 208 → 19 824 con 10.
+    // D-443 (sin `pl_bordo`): 20 208 → 19 824 con 10.
     expect(bytesEnLaBase(con(10))).toBe(19824);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);
     expect(cabeEnLaFila(con(10))).toBe(false);
@@ -231,7 +231,7 @@ describe("los anchos de paradas, por clave", () => {
     // Las de Órdenes, con el ancho de Órdenes, como antes (`stopExtraCols.widthOf(deOrdenes)`).
     expect(anchoDePartidaDeParada("p_stage", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.stage);
     expect(anchoDePartidaDeParada("p_account", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.account);
-    // D-NEXT sumó la cuenta de pallets, fija (`_cuenta`), entre la factura y las elegidas.
+    // D-443 sumó la cuenta de pallets, fija (`_cuenta`), entre la factura y las elegidas.
     expect(Object.keys(ANCHO_FIJO_DE_PARADAS)).toEqual(["_n", "_factura", "_cuenta", "_acciones"]);
   });
   it("lo arrastrado antes se hereda: por posición de `stops8` y por clave de Órdenes de `stops_extra1`", () => {

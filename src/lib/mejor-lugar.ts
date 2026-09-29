@@ -26,7 +26,7 @@ import { RELOAD_MIN } from "@/lib/trip-timing";
  * parada puede retrasar las de detrás); a igualdad, el que añade menos millas; a igualdad, el primero. Llegar antes de que
  * abra la ventana espera a que abra, como en OptimoRoute (`twFrom`).
  *
- * **Sin viajes (D-NEXT).** El Gestor ya no parte la ruta en viajes: le pasa la lista entera como UN viaje y, en `admite`,
+ * **Sin viajes (D-443).** El Gestor ya no parte la ruta en viajes: le pasa la lista entera como UN viaje y, en `admite`,
  * si en cada puesto cabe la orden nueva recogida justo delante de su entrega (la carga a bordo en ese punto + sus pallets,
  * contra la capacidad; `cargaAntesDeLaEntrega` de lib/lista-unica). Con `admite` no se mira la suma del «viaje» ni se abre
  * uno nuevo: si no cabe en ningún puesto, se elige igual el mejor —la cuenta de la tabla avisa en la parada que se pase—.
@@ -54,7 +54,7 @@ export interface EntradaDeMejorLugar {
   capacidad: number;
   /** A qué hora sale el primer viaje, en minutos desde medianoche. */
   inicioMin: number;
-  /** D-NEXT: ¿cabe en el puesto `puesto` del viaje `viaje`? Si se da, sustituye a la suma por viaje y nunca se abre uno nuevo. */
+  /** D-443: ¿cabe en el puesto `puesto` del viaje `viaje`? Si se da, sustituye a la suma por viaje y nunca se abre uno nuevo. */
   admite?: (viaje: number, puesto: number) => boolean;
 }
 
@@ -223,7 +223,7 @@ export function avisoDelHueco(args: {
     : anterior ? `after #${anterior}` : siguienteParada ? `before #${siguienteParada}` : "alone";
   const entreEs = anterior && siguienteParada ? `entre #${anterior} y #${siguienteParada}`
     : anterior ? `después de #${anterior}` : siguienteParada ? `antes de #${siguienteParada}` : "sola";
-  // Sin viajes (D-NEXT) el aviso dice solo la parada. Un viaje nuevo solo lo abre quien no pasa `admite`.
+  // Sin viajes (D-443) el aviso dice solo la parada. Un viaje nuevo solo lo abre quien no pasa `admite`.
   const viajeEn = hueco.nuevoViaje ? `new truckload ${hueco.viaje + 1} (it didn't fit in any), ` : "";
   const viajeEs = hueco.nuevoViaje ? `viaje nuevo ${hueco.viaje + 1} (no cabía en ninguno), ` : "";
   const tardeEn = hueco.tardeExtraMin > 0 ? `+${hueco.tardeExtraMin} min late` : "no new lateness";

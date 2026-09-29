@@ -28,7 +28,7 @@ const trozo = (desde: string, hasta: string) => {
 
 const p = (id: string, route_seq: number | null = null, load_no: number | null = null) => ({ id, route_seq, load_no, delivery_lat: 26.2, delivery_lng: -98.2 });
 
-describe("«Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-NEXT)", () => {
+describe("«Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-443)", () => {
   it("ni sus botones ni sus funciones: la ruta es una lista", () => {
     for (const x of ["const combineLoads", "const splitLoads", "data-unir-viajes", "data-dividir-en-dos", "planDeUnirViajes", "planDeDividirEnDos"]) expect(codigoDePagina).not.toContain(x);
   });
@@ -54,7 +54,7 @@ describe("medir la ruta sin reordenarla", () => {
     // …y sin puestos, el orden en que se pintan decide.
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A"), p("B")])).not.toBe(firmaDeLaMedida("2026-09-28", "Diego", [p("B"), p("A")]));
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0), p("B", 1, 2)])).not.toBe(base);
-    // D-NEXT: la recogida también es una parada medida; moverla es otra forma de la ruta.
+    // D-443: la recogida también es una parada medida; moverla es otra forma de la ruta.
     expect(firmaDeLaMedida("2026-09-28", "Diego", [{ ...p("A", 0), pickup_seq: -0.5 }, p("B", 1)])).not.toBe(firmaDeLaMedida("2026-09-28", "Diego", [{ ...p("A", 0), pickup_seq: 0.5 }, p("B", 1)]));
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0)])).not.toBe(base);
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0), { ...p("B", 1), delivery_lat: 25 }])).not.toBe(base);
@@ -64,7 +64,7 @@ describe("medir la ruta sin reordenarla", () => {
   it("la pantalla mide con ese cuerpo, en el orden guardado, y no escribe nada", () => {
     const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =");
     expect(mide).toContain('fetch("/api/optimize-route"');
-    // D-NEXT: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
+    // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
     expect(mide).toContain("const lista = lecturaDe(laneKey, stopList).paradas;");
     expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, stopList[0]?.delivery_date ?? date)),");
     expect(mide).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
@@ -118,7 +118,7 @@ describe("lo que se queda, a la vista", () => {
     expect(plano(leer("src/components/PlanDelDia.tsx"))).toContain("<button className=\"btn btn-primary btn-sm\" data-abrir-armar-rutas aria-expanded={false} onClick={() => setAbierto(true)}>");
     expect(pagina).toContain("<button className=\"btn btn-primary btn-sm\" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}");
   });
-  it("«Mejor lugar», las flechas de CADA parada (P y D), «Pasar a…» y el arrastre siguen conectados (D-NEXT: sin selector ni flechas de viaje)", () => {
+  it("«Mejor lugar», las flechas de CADA parada (P y D), «Pasar a…» y el arrastre siguen conectados (D-443: sin selector ni flechas de viaje)", () => {
     expect(pagina).toContain("onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}");
     expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, -1)}");
     expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, 1)}");

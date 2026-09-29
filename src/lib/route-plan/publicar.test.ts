@@ -26,7 +26,7 @@ function planDe(ordenes: OrdenEntrada[], choferes: ChoferEntrada[]): Plan {
 describe("qué escribe publicar en cada orden", () => {
   const choferes = [chofer("id-1", "Chofer Uno")];
 
-  it("el NOMBRE del chofer, el puesto de la entrega en la lista, dónde va la recogida — y `load_auto`; el viaje ya no (D-NEXT)", () => {
+  it("el NOMBRE del chofer, el puesto de la entrega en la lista, dónde va la recogida — y `load_auto`; el viaje ya no (D-443)", () => {
     const plan = planDe([orden("a", { destino: punto(10) }), orden("b", { destino: punto(20) })], choferes);
     // Las dos se recogen al principio (P a, P b) y se entregan a, b: las recogidas entre −1 y 0, en su orden.
     expect(plan.rutas[0].paradas.map((p) => `${p.tipo}${p.orden}`)).toEqual(["Pa", "Pb", "Da", "Db"]);

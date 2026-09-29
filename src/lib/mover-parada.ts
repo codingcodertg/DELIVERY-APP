@@ -1,7 +1,7 @@
 /**
  * Mover UNA parada a mano en la tarjeta de un chofer del Gestor de Rutas (D-433): las flechas ↑ ↓ y el selector «Viaje N».
  *
- * **D-NEXT quitó los viajes.** El selector «Viaje N» / «＋ Nuevo viaje», «Unir viajes» y «Dividir en 2» ya no existen, y
+ * **D-443 quitó los viajes.** El selector «Viaje N» / «＋ Nuevo viaje», «Unir viajes» y «Dividir en 2» ya no existen, y
  * con ellos se fueron de aquí `planDeFlecha`, `cabeEnElViaje`, `planDeUnirViajes`, `planDeDividirEnDos` y
  * `planDeCambioDeViaje(DeVarias)`. Mover una parada de la lista —P o D— es ahora `mueveEnLaLista` (lib/lista-unica). Aquí
  * queda lo que D-433 decidió y sigue valiendo: desde qué puesto se numera (tras lo ya hecho) y qué es «lo ya hecho».

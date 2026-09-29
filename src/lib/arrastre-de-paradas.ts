@@ -11,8 +11,8 @@ import { costeDeLaRuta, mejorLugar, type LatLng, type ParadaDeRuta } from "@/lib
  * Si la parada cambia de chofer, antes se le escribe a ella `assigned_driver`, su `route_seq` y su `load_no`, como hace
  * «📍 Mejor lugar» (D-411). La ruta de la que sale no se reescribe: sus paradas se quedan como estaban.
  *
- * **Cuándo se escribían viajes** (hasta D-NEXT): en una ruta con viajes puestos a mano, siempre; en una que partía la
- * capacidad sola, solo si partirla de nuevo no daba lo dibujado. **Desde D-NEXT no hay viajes**: la ruta es una lista, la
+ * **Cuándo se escribían viajes** (hasta D-443): en una ruta con viajes puestos a mano, siempre; en una que partía la
+ * capacidad sola, solo si partirla de nuevo no daba lo dibujado. **Desde D-443 no hay viajes**: la ruta es una lista, la
  * pantalla la pasa como UN solo viaje, y lo que se escribe deja el viaje viejo (`load_no`) vacío en todas. Soltar a mano en
  * un hueco no mira la capacidad (la cuenta de pallets de la tabla avisa en la parada que se pase); soltar sobre el NOMBRE
  * («📍 Mejor lugar») sí la mira, parada a parada, con `admite`. La recogida de cada orden (`pickup_seq`) la decide la
@@ -23,20 +23,20 @@ export interface ParadaDelGantt extends ParadaDeRuta {
   assigned_driver: string | null;
   route_seq: number | null;
   load_no: number | null;
-  /** D-NEXT: dónde va su recogida. `undefined` = la base no tiene la columna (154). */
+  /** D-443: dónde va su recogida. `undefined` = la base no tiene la columna (154). */
   pickup_seq?: number | null;
 }
 
 export interface RutaDelGantt {
   /** La clave de ruta del Gestor: el nombre del chofer o de la ruta temporal. */
   clave: string;
-  /** Las entregas de la ruta. Desde D-NEXT, UN solo «viaje»: la lista entera, en su orden. */
+  /** Las entregas de la ruta. Desde D-443, UN solo «viaje»: la lista entera, en su orden. */
   viajes: readonly (readonly ParadaDelGantt[])[];
-  /** Hasta D-NEXT: la ruta llevaba viajes puestos a mano. Desde D-NEXT la pantalla pasa siempre `true` (se escribe el viaje
+  /** Hasta D-443: la ruta llevaba viajes puestos a mano. Desde D-443 la pantalla pasa siempre `true` (se escribe el viaje
    *  vacío en todas). */
   manual: boolean;
   capacidad: number;
-  /** D-NEXT: ¿cabe la parada de `pallets` metida en el puesto `puesto` de la lista? Solo lo mira «📍 Mejor lugar» (soltar
+  /** D-443: ¿cabe la parada de `pallets` metida en el puesto `puesto` de la lista? Solo lo mira «📍 Mejor lugar» (soltar
    *  sobre el nombre). Sin esto, todo cabe. */
   admite?: (puesto: number, pallets: number) => boolean;
   bloqueada: boolean;
@@ -193,7 +193,7 @@ export function planDeSoltar(rutas: readonly RutaDelGantt[], movida: string, des
     if (viaje < 0 || viaje > sin.length || (viaje === sin.length && sin.length > 0)) return { ok: false, motivo: "no_esta" };
   }
   const nuevoViaje = viaje >= sin.length;
-  // Sin viajes (D-NEXT) la carga de un «viaje» entero no dice nada: el camión recarga a media ruta. La capacidad se mira
+  // Sin viajes (D-443) la carga de un «viaje» entero no dice nada: el camión recarga a media ruta. La capacidad se mira
   // parada a parada, y solo al elegir el hueco solo (`admite`, arriba); soltado a mano, lo avisa la cuenta de la tabla.
 
   const nuevos: ParadaDelGantt[][] = sin.map((v) => [...v]);

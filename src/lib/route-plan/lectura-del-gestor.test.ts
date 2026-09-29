@@ -31,8 +31,8 @@ describe("`lecturaConLoHecho`: entregar no es tocar la ruta (D-335)", () => {
     expect(l.etiquetaDe.get("a")).toBe("D2");
     expect(l.etiquetaDe.get("b")).toBe("D3");
   });
-  it("D-NEXT: la lista es la del plan SIN lo ya hecho — ni su recogida ni su entrega —, y lo pendiente, donde el plan lo puso", () => {
-    // Hasta D-NEXT las recogidas de la entregada (P1) se pasaban a la siguiente pendiente. En la lista única, con su cuenta
+  it("D-443: la lista es la del plan SIN lo ya hecho — ni su recogida ni su entrega —, y lo pendiente, donde el plan lo puso", () => {
+    // Hasta D-443 las recogidas de la entregada (P1) se pasaban a la siguiente pendiente. En la lista única, con su cuenta
     // de pallets, una recogida ya hecha contaría pallets que ya no van en el camión: sale con su entrega.
     const l = lecturaConLoHecho([a, b], 12, paradas, [h]);
     expect(l.filas.map((f) => f.etiqueta)).toEqual(["P2", "P3", "D2", "D3"]);
@@ -46,7 +46,7 @@ describe("`lecturaConLoHecho`: entregar no es tocar la ruta (D-335)", () => {
       { kind: "P", order_ref: "h", seq: 2, label: "P2", load_after: 2, place: "McAllen" },
       { kind: "D", order_ref: "h", seq: 3, label: "D2", load_after: 0 },
     ];
-    // Publicada antes de D-NEXT, por viajes: h en el viaje 2, puesto 0. Se reconoce, y lo que se pinta es lo pendiente.
+    // Publicada antes de D-443, por viajes: h en el viaje 2, puesto 0. Se reconoce, y lo que se pinta es lo pendiente.
     const l = lecturaConLoHecho([{ ...a, route_seq: 0 }], 12, alrevés, [{ ...h, route_seq: 0, load_no: 2 }]);
     expect(l.fuente).toBe("plan");
     expect(l.filas.map((f) => f.etiqueta)).toEqual(["P1", "D1"]);
@@ -75,7 +75,7 @@ describe("`lecturaConLoHecho`: entregar no es tocar la ruta (D-335)", () => {
 describe("la pantalla le pasa lo hecho", () => {
   const pagina = readFileSync(join(__dirname, "..", "..", "app", "(app)", "routes", "page.tsx"), "utf8").replace(/\r\n/g, "\n");
   it("la tarjeta y el mapa leen con `lecturaConLoHecho` y lo hecho de esa ruta", () => {
-    // D-NEXT: un solo sitio, `lecturaDe`, para la tarjeta, el mapa, el arrastre, «Mejor lugar» y las flechas.
+    // D-443: un solo sitio, `lecturaDe`, para la tarjeta, el mapa, el arrastre, «Mejor lugar» y las flechas.
     expect(pagina).toContain("lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));");
     expect(pagina).toContain("const lectura = lecturaDe(u.key, stops);");
     expect(pagina).toContain("const lectura = lecturaDe(laneKey, list);");

@@ -31,7 +31,7 @@ describe("la ruta de un chofer, parada a parada", () => {
     expect(ruta.paradas.map((p) => [p.aBordoAlLlegar, p.load_after])).toEqual([[0, 2], [2, 5.5], [5.5, 3.5], [3.5, 0], [0, 4], [4, 0]]);
   });
 
-  it("D-NEXT: sin viajes — cada parada lleva su CUENTA (antes ± parada = después · libres) con la capacidad del camión", () => {
+  it("D-443: sin viajes — cada parada lleva su CUENTA (antes ± parada = después · libres) con la capacidad del camión", () => {
     expect(ruta.paradas.some((p) => "viaje" in p)).toBe(false);
     expect(ruta.paradas.map((p) => textoDeLaCuenta(p.cuenta, true))).toEqual([
       "0.00 + 2.00 = 2.00 · 3.00 libres", "2.00 + 3.50 = 5.50 · −0.50 libres", "5.50 − 2.00 = 3.50 · 1.50 libres",

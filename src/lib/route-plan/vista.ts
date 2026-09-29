@@ -8,7 +8,7 @@ import { cuentaDePallets, type FilaDeCuenta } from "@/lib/lista-unica";
  * agrupa, se ordena, se suma y se dice lo que una fila sola no dice —la cuenta de pallets de cada parada, si la orden es
  * de builder, y si es una de varias cargas de la misma orden.
  *
- * Sin viajes desde D-NEXT: la ruta es UNA lista (el motor ya la planificaba así, con recargas a media ruta); lo que
+ * Sin viajes desde D-443: la ruta es UNA lista (el motor ya la planificaba así, con recargas a media ruta); lo que
  * antes se contaba como «N viajes» y se pintaba con una raya ya no existe. En su lugar, cada parada lleva su cuenta —a bordo
  * antes ± la parada = a bordo después · libre— y la ruta, su salida y su regreso a la base.
  */
@@ -20,7 +20,7 @@ export type ParadaGuardada = Pick<FilaDeParada,
 export interface ParadaVista extends ParadaGuardada {
   /** Pallets a bordo durante el tramo que LLEGA a esta parada: lo que cargaba al salir de la anterior. */
   aBordoAlLlegar: number;
-  /** La cuenta de esta parada (D-NEXT): antes ± la parada = después, y lo libre con la capacidad del camión. */
+  /** La cuenta de esta parada (D-443): antes ± la parada = después, y lo libre con la capacidad del camión. */
   cuenta: FilaDeCuenta;
   builder: boolean;
   /** Si el motor repartió la orden en varias cargas: cuál es esta y de cuántas. */

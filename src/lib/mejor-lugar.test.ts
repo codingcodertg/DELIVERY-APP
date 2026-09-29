@@ -135,7 +135,7 @@ describe("qué se escribe", () => {
     expect(despues.map((v) => v.map((x) => x.id))).toEqual(esperado);
   });
 
-  it("D-NEXT: la recogida va antes que la entrega: en la lista, la P de la nueva sale justo delante de su D", () => {
+  it("D-443: la recogida va antes que la entrega: en la lista, la P de la nueva sale justo delante de su D", () => {
     const ordenes = ["A", "B", "C"].map((id, i) => ({ id, store: "Tienda", est_pallets: 1, route_seq: i }));
     const lista = listaDelChofer(ordenes, 12);
     const nueva = listaConEntregasEn(lista, ["A", "B", "X", "C"], [...ordenes, { id: "X", store: "Otra tienda" }]);
@@ -144,7 +144,7 @@ describe("qué se escribe", () => {
     expect(iP).toBeGreaterThanOrEqual(0);
     expect(iD).toBe(iP + 1);
   });
-  it("D-NEXT: `admite` de la pantalla — la carga a bordo en el puesto más la nueva, contra la capacidad", () => {
+  it("D-443: `admite` de la pantalla — la carga a bordo en el puesto más la nueva, contra la capacidad", () => {
     // 6 + 5 a bordo tras recogerlas; se entregan 6 y 5. Una de 2: en el puesto 0 irían 11 + 2 = 13 > 12; tras entregar A, 5 + 2.
     const ordenes = [{ id: "A", store: "T", est_pallets: 6, route_seq: 0 }, { id: "B", store: "T", est_pallets: 5, route_seq: 1 }];
     const lista = listaDelChofer(ordenes, 12);
@@ -163,7 +163,7 @@ describe("el aviso dice dónde y por qué", () => {
       totalDelViaje: 4, anterior: "1001", siguienteParada: "1002", huecosMirados: 4,
       alternativa: { viaje: 0, puesto: 3, nuevoViaje: false, millasExtra: 2.2, tardeExtraMin: 0, llegadaMin: 600 },
     });
-    // D-NEXT: sin viajes, el aviso dice solo la parada (antes: «viaje 1, parada 2 de 4»).
+    // D-443: sin viajes, el aviso dice solo la parada (antes: «viaje 1, parada 2 de 4»).
     expect(a.es).toBe("#1003 → Diego Driver, parada 2 de 4 (entre #1001 y #1002): +0.0 mi, ~08:25, sin retrasos nuevos. El mejor de 4 hueco(s), estimación en línea recta. El siguiente mejor: parada 4, +2.2 mi.");
     expect(a.en).toContain("Diego Driver, stop 2 of 4 (between #1001 and #1002)");
   });
@@ -207,7 +207,7 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
     expect(cuerpo.indexOf("if (bloqueada(laneKey)) {")).toBeLessThan(cuerpo.indexOf("updateDelivery("));
     expect(cuerpo).toContain("Mejor lugar no la toca");
   });
-  it("el hueco sale de `mejorLugar` sobre la LISTA que pinta la pantalla (D-NEXT: sus entregas, un solo viaje), con lo que cabe en cada puesto y las ventanas", () => {
+  it("el hueco sale de `mejorLugar` sobre la LISTA que pinta la pantalla (D-443: sus entregas, un solo viaje), con lo que cabe en cada puesto y las ventanas", () => {
     expect(cuerpo).toContain("let lista: ParadaDeLaLista[] = lecturaDe(laneKey, paradas).paradas;");
     expect(cuerpo).toContain("const cabe = admiteEnLaLista(lista, paradas, capacidad);");
     expect(cuerpo).toContain("mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })");

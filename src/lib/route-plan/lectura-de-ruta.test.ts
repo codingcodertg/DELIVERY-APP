@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { cambiosTrasPublicar, esProvisional, esProvisionalLaFila, lecturaDeLaRuta, sigueElPlan, type LecturaDeRuta, type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
 
 /**
- * Cómo se LEE la ruta de un chofer (D-335; una sola lista desde D-NEXT). Planes de verdad, evaluados por el motor, en una
+ * Cómo se LEE la ruta de un chofer (D-335; una sola lista desde D-443). Planes de verdad, evaluados por el motor, en una
  * calle inventada.
  */
 
@@ -24,7 +24,7 @@ const LUGAR: Record<string, string> = { [punto(0)]: "Tienda A", [punto(10)]: "Ti
 /** Las paradas como las guarda `route_plan_stops` / las devuelve `my_published_stops`. */
 const guardadas = (plan: Pick<Plan, "rutas">): ParadaDelPlanMinima[] =>
   plan.rutas[0].paradas.map((p, seq) => ({ kind: p.tipo, order_ref: p.orden, seq, label: p.etiqueta, load_after: p.cargaAlSalir, place: LUGAR[p.punto] ?? null }));
-/** Las órdenes como quedan en `deliveries` tras publicar (D-NEXT: puesto seguido y posición de la recogida). Sin la 154
+/** Las órdenes como quedan en `deliveries` tras publicar (D-443: puesto seguido y posición de la recogida). Sin la 154
  *  (`conRecogida` falso) la base no guarda la recogida: la clave ni siquiera viene. */
 function trasPublicar(plan: Pick<Plan, "rutas">, tiendaDe: Record<string, string>, conRecogida = true): OrdenAsignada[] {
   return [...escriturasAlPublicar(plan, [chofer])].sort((a, b) => a.route_seq - b.route_seq)
@@ -39,7 +39,7 @@ const ORDENES = [orden("x", 0, 30), orden("y", 10, 12)];
 const TIENDA = { x: "Tienda A", y: "Tienda B" };
 const delDueno = evaluaPlan({ secuencias: { c1: [P("x"), P("y"), D("y"), D("x")] }, ordenes: ORDENES, choferes: [chofer], matriz: matrizDe(XS) });
 
-describe("el hueco de D-335, y cómo lo cierra la posición de la recogida (D-NEXT)", () => {
+describe("el hueco de D-335, y cómo lo cierra la posición de la recogida (D-443)", () => {
   it("SIN la 154, la lectura de lo guardado no sabe dónde iba cada recogida: pone las del bloque delante, y numera distinto que el plan", () => {
     expect(delDueno.violaciones).toEqual([]);
     expect(delDueno.rutas[0].paradas.map((p) => `${p.etiqueta}:${p.orden}`)).toEqual(["P1:x", "P2:y", "D2:y", "D1:x"]);
@@ -158,7 +158,7 @@ describe("sin plan publicado", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-/** Lo que publicar escribía ANTES de D-NEXT, copiado tal cual: la vara con la que se mide que una ruta publicada entonces se
+/** Lo que publicar escribía ANTES de D-443, copiado tal cual: la vara con la que se mide que una ruta publicada entonces se
  *  sigue reconociendo (`posicionesPorViajeHistoricas`). */
 function escriturasDeAntes(plan: Pick<Plan, "rutas">): { id: string; load_no: number; route_seq: number }[] {
   const escrituras = new Map<string, { id: string; load_no: number; route_seq: number }>();
@@ -176,7 +176,7 @@ function escriturasDeAntes(plan: Pick<Plan, "rutas">): { id: string; load_no: nu
   return [...escrituras.values()];
 }
 
-describe("una ruta publicada ANTES de D-NEXT (por viajes) se sigue reconociendo", () => {
+describe("una ruta publicada ANTES de D-443 (por viajes) se sigue reconociendo", () => {
   it("`posicionesPorViajeHistoricas` es lo que se escribía, para planes de verdad —varios viajes, órdenes repartidas—", () => {
     const casos: OrdenEntrada[][] = [
       ORDENES,
@@ -197,7 +197,7 @@ describe("una ruta publicada ANTES de D-NEXT (por viajes) se sigue reconociendo"
   });
 });
 
-// D-336 → D-NEXT: una ruta ordenada A MEDIAS. La lista lleva la recogida y la entrega de TODAS sus órdenes; lo que no tiene
+// D-336 → D-443: una ruta ordenada A MEDIAS. La lista lleva la recogida y la entrega de TODAS sus órdenes; lo que no tiene
 // puesto va al final y se marca provisional fila a fila. No queda ningún número que saltar.
 describe("una ruta ordenada a medias", () => {
   const o = (id: string, route_seq: number | null): OrdenAsignada => ({ id, store: "Tienda A", est_pallets: 1, route_seq });
@@ -231,7 +231,7 @@ describe("en qué cambió la ruta desde que se publicó el plan", () => {
     expect(cambiosTrasPublicar(null, publicada)).toBeNull();
     expect(cambiosTrasPublicar([], publicada)).toBeNull();
   });
-  it("la MISMA ruta publicada antes de D-NEXT, guardada por viajes (puesto dentro de cada viaje), también es la publicada", () => {
+  it("la MISMA ruta publicada antes de D-443, guardada por viajes (puesto dentro de cada viaje), también es la publicada", () => {
     expect(sigueElPlan(paradas, [o("m", 0, 1), o("c", 1, 1), o("t", 0, 2), o("f", 1, 2)])).toBe(true);
   });
   it("una parada AÑADIDA en medio: se nombra, y no cuenta como reordenar las demás", () => {
@@ -264,7 +264,7 @@ describe("en qué cambió la ruta desde que se publicó el plan", () => {
 
 describe("«Mi ruta» pinta el aviso de D-341", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/my-route/page.tsx"), "utf8").split("\r\n").join("\n");
-  it("sale de `lectura.cambios`, con sus tres partes (el «pasó a otro viaje» se fue con los viajes, D-NEXT)", () => {
+  it("sale de `lectura.cambios`, con sus tres partes (el «pasó a otro viaje» se fue con los viajes, D-443)", () => {
     for (const trozo of ["{lectura.cambios && (", "lectura.cambios.anadidas.map(", "lectura.cambios.quitadas.map(", "{lectura.cambios.ordenCambiado && "]) expect(pagina).toContain(trozo);
     expect(pagina).not.toContain("viajeCambiado");
   });
@@ -274,7 +274,7 @@ describe("«Mi ruta» pinta el aviso de D-341", () => {
     expect(lista).toBeGreaterThan(-1);
     expect(aviso).toBeLessThan(lista);
   });
-  it("«Mi ruta» lee la MISMA lista que el Gestor, con la capacidad del camión, y la pinta con su cuenta (D-NEXT)", () => {
+  it("«Mi ruta» lee la MISMA lista que el Gestor, con la capacidad del camión, y la pinta con su cuenta (D-443)", () => {
     expect(pagina).toContain("const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);");
     expect(pagina).toContain("const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);");
     expect(pagina).toContain("{lectura.filas.map((f, fi) => {");

@@ -8,7 +8,7 @@ import {
 } from "./lista-unica";
 
 /**
- * Una sola lista por camión, sin cargas separadas (D-NEXT). El dueño, 2026-09-28: «SI ELIMINA VIAJES». Las pruebas que su
+ * Una sola lista por camión, sin cargas separadas (D-443). El dueño, 2026-09-28: «SI ELIMINA VIAJES». Las pruebas que su
  * especificación pide y faltaban: la cuenta con decimales parada a parada (con SU ejemplo del camión de 10 pallets), la
  * recarga a media ruta con carga a bordo, la ruta que termina en 0, el aviso en la parada exacta que se pasa, y la
  * precedencia al mover a mano.
@@ -355,5 +355,17 @@ describe("la migración 154 (escrita, NO aplicada: la aplica el orquestador tras
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
     expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('154_lista_unica.sql', '${sha}') on conflict (name) do nothing;`);
+  });
+});
+
+// Mutante del orquestador: con `>=` en vez de `>`, ir JUSTO lleno contaba como pasarse. Justo lleno cabe.
+describe("justo lleno no es pasarse (D-443)", () => {
+  it("10.00 de 10: sin exceso, 0.00 libres; 10.01 de 10: se pasa 0.01", () => {
+    const lleno = cuentaDePallets([7.5, 2.5, -10], 10);
+    expect(lleno.paradas[1]).toMatchObject({ despues: 10, disponible: 0, exceso: 0 });
+    expect(lleno.totales.paradasConExceso).toBe(0);
+    const pasado = cuentaDePallets([7.5, 2.51, -10.01], 10);
+    expect(pasado.paradas[1].exceso).toBeCloseTo(0.01, 5);
+    expect(pasado.totales.paradasConExceso).toBe(1);
   });
 });

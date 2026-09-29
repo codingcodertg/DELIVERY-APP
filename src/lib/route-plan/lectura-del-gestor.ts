@@ -9,7 +9,7 @@ import { lecturaDeLaRuta, type LecturaDeRuta, type OrdenAsignada, type ParadaDel
  * ruta. **La comparación se hace con las pendientes MÁS las hechas** (que conservan su puesto: nadie las reescribe), y las
  * filas que se pintan son solo las pendientes.
  *
- * Desde D-NEXT esto lo hace `lecturaDeLaRuta` con su cuarto argumento; aquí queda el nombre que usa la pantalla.
+ * Desde D-443 esto lo hace `lecturaDeLaRuta` con su cuarto argumento; aquí queda el nombre que usa la pantalla.
  */
 export function lecturaConLoHecho(
   ordenes: readonly OrdenAsignada[], capacidad: number, paradas: readonly ParadaDelPlanMinima[] | null, hechas: readonly OrdenAsignada[],

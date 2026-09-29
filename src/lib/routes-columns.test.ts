@@ -240,7 +240,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
   });
   it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
-    // D-NEXT: #, factura, la CUENTA de pallets (fija), las elegidas y las acciones.
+    // D-443: #, factura, la CUENTA de pallets (fija), las elegidas y las acciones.
     expect(pagina).toContain("const columnasDeParadas = 4 + colsParadas.length;");
     // Solo el aviso ocupa la tabla entera (la cabecera de cada viaje se fue con los viajes); las filas P, Base y «otra
     // carga» ocupan justo las elegidas, tras las tres fijas.
@@ -418,7 +418,7 @@ describe("«Atrasada» en el Gestor lo decide la orden, no el día que se mira (
 describe("la carga y lo libre del viaje van a la décima (D-355, generalizado en D-362)", () => {
   it("el Gestor ya no redondea a mano: usa las funciones compartidas, y ninguna suma de pallets queda cruda", () => {
     const pagina = leer("src/app/(app)/routes/page.tsx");
-    // D-NEXT: la carga de cada parada y lo libre salen de `cuentaDePallets` (lib/lista-unica), en centésimas.
+    // D-443: la carga de cada parada y lo libre salen de `cuentaDePallets` (lib/lista-unica), en centésimas.
     expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
     // D-362: la página no vuelve a sumar pallets por su cuenta, ni redondeando ni sin redondear.
     expect(pagina).not.toMatch(new RegExp("reduce" + String.fromCharCode(92) + "([^)]*actual_pallets"));

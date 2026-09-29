@@ -58,7 +58,7 @@ export default function MyRoutePage() {
 
   // La capacidad de su camión: la misma que usa quien despacha, para la misma lista y la misma cuenta.
   const capacidad = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
-  // La misma ruta que ve quien despacha, como UNA lista (D-NEXT: sin viajes) de recogidas y entregas, leída como P1, P2…
+  // La misma ruta que ve quien despacha, como UNA lista (D-443: sin viajes) de recogidas y entregas, leída como P1, P2…
   // D1, D2… (D-334). Solo lectura. Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las paradas y
   // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
   // (D-335). Una sola lectura, compartida.
@@ -127,7 +127,7 @@ export default function MyRoutePage() {
   const storeMarkers = useStoreMarkers(settings.stores);
 
   // Whether the route's drive is drawn, and what we know about it. Loaded on demand — each ask costs a routing call, so
-  // nothing is fetched until they tap. Since D-NEXT it's ONE route (the whole list), index 0; until then, one per truckload.
+  // nothing is fetched until they tap. Since D-443 it's ONE route (the whole list), index 0; until then, one per truckload.
   const [openTrip, setOpenTrip] = useState<number | null>(null);
   const [tripRoutes, setTripRoutes] = useState<Record<number, { positions: [number, number][]; miles: number; duration: string; traffic: boolean }>>({});
   const [tripBusy, setTripBusy] = useState<number | null>(null);
@@ -392,7 +392,7 @@ export default function MyRoutePage() {
             />
           </div>
 
-          {/* The whole day in order, so they can plan ahead: ONE list (D-NEXT, no truckloads), recogidas y entregas en el
+          {/* The whole day in order, so they can plan ahead: ONE list (D-443, no truckloads), recogidas y entregas en el
               orden en que se hacen, cada una con su cuenta de pallets. Tapping the title traces the whole route on the map. */}
           {(() => {
             const entregas = lectura.filas.flatMap((f) => (f.tipo === "D" && !f.otraCarga ? stops.filter((d) => d.id === f.orden) : []));

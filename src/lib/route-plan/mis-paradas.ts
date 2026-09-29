@@ -4,7 +4,7 @@ import { vistaDelPlan, type ParadaGuardada, type ParadaVista } from "./vista";
  * Las paradas del chofer en el plan publicado (D-324), de lo que devuelve `my_published_stops` (134) a lo que
  * pinta «Mi ruta».
  *
- * Reusa `vistaDelPlan` para que «con cuántos pallets llega» se decida en UN sitio (hasta D-NEXT, también «qué viaje es»:
+ * Reusa `vistaDelPlan` para que «con cuántos pallets llega» se decida en UN sitio (hasta D-443, también «qué viaje es»:
  * ya no hay viajes). Lo que la
  * función de la base no devuelve a propósito —minutos tarde, espera, tramo— aquí vale cero y NO se enseña: las
  * horas del plan son una estimación que nadie ha contrastado todavía con la realidad.

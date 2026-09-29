@@ -20,11 +20,11 @@ export interface EscrituraDeOrden {
   id: string;
   /** El NOMBRE del chofer: es lo que guarda `deliveries.assigned_driver`, y de él cuelga lo que el chofer ve. */
   assigned_driver: string;
-  /** El puesto de su entrega en la lista del chofer, desde 0 (D-NEXT: seguida, ya sin viajes). */
+  /** El puesto de su entrega en la lista del chofer, desde 0 (D-443: seguida, ya sin viajes). */
   route_seq: number;
-  /** Dónde va su recogida, en la misma escala que `route_seq` (D-NEXT, migración 154). Sin la 154 la base lo ignora. */
+  /** Dónde va su recogida, en la misma escala que `route_seq` (D-443, migración 154). Sin la 154 la base lo ignora. */
   pickup_seq?: number;
-  /** HISTÓRICO. Hasta D-NEXT era el viaje (1, 2…). Ya no se escribe: `publish_route_plan` lo deja en `null`. Solo lo traen
+  /** HISTÓRICO. Hasta D-443 era el viaje (1, 2…). Ya no se escribe: `publish_route_plan` lo deja en `null`. Solo lo traen
    *  los planes publicados antes, en `route_plans.writes`. */
   load_no?: number | null;
   load_auto: true;
@@ -44,7 +44,7 @@ function listaDelPlan(paradas: readonly { tipo: "P" | "D"; orden: string }[]): P
 }
 
 /**
- * El puesto de cada orden en UNA ruta, de sus paradas en orden (D-NEXT: una sola lista, sin viajes). Es el corazón de lo que
+ * El puesto de cada orden en UNA ruta, de sus paradas en orden (D-443: una sola lista, sin viajes). Es el corazón de lo que
  * publicar escribe, sacado aparte para que también lo use quien tiene que saber si una ruta SIGUE siendo la que se publicó
  * (`./lectura-de-ruta`): acepta lo mínimo de una parada, que es lo que devuelven tanto el motor como `route_plan_stops` y
  * `my_published_stops`.
@@ -59,8 +59,8 @@ export function posicionesDeLaRuta(paradas: readonly { tipo: "P" | "D"; orden: s
 }
 
 /**
- * HISTÓRICO: lo que publicar escribía hasta D-NEXT — el viaje (`load_no`, sube cada vez que el camión se vacía) y el puesto
- * DENTRO de ese viaje. Solo para reconocer una ruta publicada ANTES de D-NEXT que nadie ha tocado (`sigueElPlan`): sus
+ * HISTÓRICO: lo que publicar escribía hasta D-443 — el viaje (`load_no`, sube cada vez que el camión se vacía) y el puesto
+ * DENTRO de ese viaje. Solo para reconocer una ruta publicada ANTES de D-443 que nadie ha tocado (`sigueElPlan`): sus
  * órdenes siguen guardadas así, y sin esto se leería como «cambió tras publicar» sin que nadie la cambiara.
  */
 export function posicionesPorViajeHistoricas(paradas: readonly { tipo: "P" | "D"; orden: string; cargaAlSalir: number }[]): { id: string; load_no: number; route_seq: number }[] {
@@ -78,7 +78,7 @@ export function posicionesPorViajeHistoricas(paradas: readonly { tipo: "P" | "D"
 }
 
 /**
- * Lo que publicar escribe en cada orden: el chofer, el puesto de su entrega y la posición de su recogida (D-NEXT). El viaje
+ * Lo que publicar escribe en cada orden: el chofer, el puesto de su entrega y la posición de su recogida (D-443). El viaje
  * (`load_no`) ya no va: `publish_route_plan` lee `w->>'load_no'`, que ahora es nulo, y lo deja en `null`.
  *
  * Una orden partida en cargas (a/b/c) es UNA fila en la base: se queda con su PRIMERA recogida y su PRIMERA entrega.

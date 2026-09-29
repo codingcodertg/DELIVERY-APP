@@ -127,7 +127,7 @@ export interface DataState {
   /** `desde` (D-433): el primer `route_seq` —la secuencia va de `desde` a `desde`+n-1—. Las flechas y el selector de viaje
    * del Gestor numeran DESPUÉS de lo que el chofer ya recogió o entregó ese día (`inicioDeLaSecuencia`), para no empatar
    * con ello en «Mi ruta». Sin darlo, 0, como siempre. */
-  /** `pickupSeqById` (D-NEXT): where each order's pickup goes in the list. Only pass it when the database has the column
+  /** `pickupSeqById` (D-443): where each order's pickup goes in the list. Only pass it when the database has the column
    *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
   /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja

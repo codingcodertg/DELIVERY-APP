@@ -83,7 +83,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // «📍 Mejor lugar», las flechas, «Pasar a…» y el arrastre de «📅 Horario». La pantalla MIDE la ruta de un chofer elegido
 // (millas, horas, trazo) en el orden guardado, sin reordenarla (`medida-de-ruta.ts`).
 //
-// SIN VIAJES desde D-NEXT (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
+// SIN VIAJES desde D-443 (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
 // —recogidas (P) y entregas (D) intercaladas— y el camión puede recoger, entregar una parte, volver a recoger y seguir,
 // siempre que no lleve más pallets de los que le caben. Qué lista sale de lo guardado, cómo se mueve una parada y la cuenta
 // de pallets de cada una viven en `lib/lista-unica`; aquí solo se pinta y se escribe. Se fueron: «Viaje N» / «＋ Nuevo
@@ -130,10 +130,10 @@ function fmtClock(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-// Los colores por viaje (`tripColor`) se fueron con los viajes (D-NEXT): cada ruta va del color de su chofer.
+// Los colores por viaje (`tripColor`) se fueron con los viajes (D-443): cada ruta va del color de su chofer.
 
 /** A route's traced path, split so the run and the empty drive back to the
- * base can be styled differently (solid vs dashed). Since D-NEXT a route is
+ * base can be styled differently (solid vs dashed). Since D-443 a route is
  * ONE list, so there is one trace per driver. */
 interface TripTrace {
   delivery: [number, number][];
@@ -162,7 +162,7 @@ interface MedidaDeLaRuta {
   miles: number;
   seconds: number;
   traces: TripTrace[];
-  /** The whole list (D-NEXT: one per driver), or `null` if it couldn't be measured. */
+  /** The whole list (D-443: one per driver), or `null` if it couldn't be measured. */
   stat: TripStat | null;
   /** Whole day: driving + unloading + reloading at each pickup stop. */
   dayMinutes: number;
@@ -333,7 +333,7 @@ export default function RoutesPage() {
   // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
   // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
   const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
-  // #, factura, la cuenta de pallets (D-NEXT), las elegidas y las acciones.
+  // #, factura, la cuenta de pallets (D-443), las elegidas y las acciones.
   const columnasDeParadas = 4 + colsParadas.length;
   // Which drivers are highlighted on the map / focused in the tables. Empty
   // set = "no drivers selected" → everything shown at full strength (like
@@ -390,7 +390,7 @@ export default function RoutesPage() {
   // La ruta que se está midiendo ahora (una a la vez, D-437).
   const [midiendo, setMidiendo] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<Record<string, { miles: number; duration_text: string; minutes: number; dayMinutes: number; dayText: string }>>({});
-  // What the whole list costs, per driver (D-NEXT: one per driver; until then, one per truckload).
+  // What the whole list costs, per driver (D-443: one per driver; until then, one per truckload).
   const [routeStats, setRouteStats] = useState<Record<string, TripStat | null>>({});
   const [routeLines, setRouteLines] = useState<Record<string, TripTrace[]>>({});
   const [routeEtas, setRouteEtas] = useState<Record<string, Record<string, string>>>({});
@@ -634,7 +634,7 @@ export default function RoutesPage() {
     setTimeout(() => setRecienMovida((x) => (x === clave ? null : x)), 2500);
   };
 
-  // ---- La lista única (D-NEXT) -------------------------------------------------------------------------------------
+  // ---- La lista única (D-443) -------------------------------------------------------------------------------------
   // ¿La base guarda dónde va cada recogida (migración 154)? Sin la columna, las recogidas salen de la regla de siempre
   // (`listaDelChofer`) y sus flechas se apagan: mover una recogida no se podría guardar.
   const hayRecogidaGuardada = useMemo(() => tienePosicionDeRecogida(deliveries), [deliveries]);
@@ -662,7 +662,7 @@ export default function RoutesPage() {
     await anotaMovimiento(etiqueta, [laneKey], antes, fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas));
     return true;
   };
-  /** La fila de la Base (D-NEXT): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
+  /** La fila de la Base (D-443): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
   const filaDeLaBase = (laneKey: string, cual: "salida" | "regreso", f: FilaDeCuenta, capacidad: number, noCuadra: boolean) => (
     <tr key={`base-${cual}`} data-base={cual}>
       <td style={{ fontWeight: 700 }} title={t("Base", "Base")} aria-label={t("Base", "Base")}>🏠</td>
@@ -678,7 +678,7 @@ export default function RoutesPage() {
   /** La clave de una fila de la lista, para resaltarla y para la `key` de React. */
   const claveDeLaFila = (p: ParadaDeLaLista | FilaDeLaRuta) => (p.tipo === "D" ? p.orden : `P:${p.ordenes.join(",")}`);
   /**
-   * ↑ / ↓ de CUALQUIER parada de la lista, P o D (D-NEXT). Qué pasa lo decide `mueveEnLaLista`: cambia con su vecina salvo
+   * ↑ / ↓ de CUALQUIER parada de la lista, P o D (D-443). Qué pasa lo decide `mueveEnLaLista`: cambia con su vecina salvo
    * que una entrega quede antes que su recogida —entonces no mueve nada y se dice por qué—. La capacidad no bloquea: la
    * cuenta avisa en la parada que se pase. Con candado 🔒 también, como las flechas de siempre (D-411).
    */
@@ -711,7 +711,7 @@ export default function RoutesPage() {
     senalaLaMovida(claveDeLaFila(p));
     notify(t(`${etiqueta} ${nombre} → stop ${indice + dir + 1} of ${r.paradas.length}`, `${etiqueta} ${nombre} → parada ${indice + dir + 1} de ${r.paradas.length}`));
   };
-  /** «Pasar a…» (D-NEXT, en cada fila P y D): las órdenes de la parada, enteras —recogida y entrega—, a la ruta de otro chofer.
+  /** «Pasar a…» (D-443, en cada fila P y D): las órdenes de la parada, enteras —recogida y entrega—, a la ruta de otro chofer.
    *  Entran al final de su lista, sin puesto, como «Asignar» (`assignToLane`), y se dice. */
   const pasaA = async (ids: readonly string[], destino: string) => {
     if (!destino || !ids.length) return;
@@ -785,7 +785,7 @@ export default function RoutesPage() {
     saveSettings({ route_buckets: (settings.route_buckets ?? []).map((b) => (b === oldName ? newName : b)) });
     notify(t(`Renamed to ${newName}`, `Renombrado a ${newName}`));
   };
-  // Hand a whole bucket's route to a real driver, keeping its saved sequence, then retire the bucket. Until D-NEXT it went
+  // Hand a whole bucket's route to a real driver, keeping its saved sequence, then retire the bucket. Until D-443 it went
   // in as the driver's next LOAD (`load_no`); with no trips, the bucket's list goes AFTER the driver's own list, in one list.
   const assignRouteToDriver = async (bucket: string, driver: string) => {
     if (!driver) return;
@@ -1066,7 +1066,7 @@ export default function RoutesPage() {
     printRouteManifest(label, stops, settings, lang, fmtDate(date));
   };
 
-  // «📅 Horario» (D-417): cada ruta del día en el orden de su lista (D-NEXT: sin viajes, la lista entera como UNO), con
+  // «📅 Horario» (D-417): cada ruta del día en el orden de su lista (D-443: sin viajes, la lista entera como UNO), con
   // cada entrega a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
   // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve. Las recogidas no son barras: el arrastre mueve
   // entregas; su recogida la coloca `listaConEntregasEn` al soltar.
@@ -1091,7 +1091,7 @@ export default function RoutesPage() {
     ...(x.pickup_seq !== undefined ? { pickup_seq: x.pickup_seq == null ? null : Number(x.pickup_seq) } : {}),
   });
   /** ¿Cabe una orden de `pallets` metida en el puesto `puesto` de la lista, recogida justo delante de su entrega? La
-   *  carga a bordo en ese punto más la suya, contra la capacidad (D-NEXT). Para «📍 Mejor lugar». */
+   *  carga a bordo en ese punto más la suya, contra la capacidad (D-443). Para «📍 Mejor lugar». */
   const admiteEnLaLista = (lista: readonly ParadaDeLaLista[], stops: readonly Delivery[], capacidad: number) => {
     const cambios = cambiosDeLaLista(lista, stops);
     return (puesto: number, pallets: number) => cabeEnElPuesto(lista, cambios, puesto, pallets, capacidad);
@@ -1169,7 +1169,7 @@ export default function RoutesPage() {
    * estimada de cada parada y el trazo del mapa. NO reordena ni escribe nada (D-437).
    * Hasta D-437 esto era `computeRoute` + `applyPlan` («Optimizar»): pedía a Google el MEJOR orden, reagrupaba los viajes
    * por zona y lo guardaba. Ahora pide el camino en el orden guardado (`cuerpoDeLaMedida`, `optimize: false`).
-   * D-NEXT: UNA medida por chofer, la lista entera —base, cada recogida en su tienda (con la recarga, `RELOAD_MIN`), cada
+   * D-443: UNA medida por chofer, la lista entera —base, cada recogida en su tienda (con la recarga, `RELOAD_MIN`), cada
    * entrega, y vuelta a la base—, en vez de un lazo por viaje. Una recogida en una tienda sin coordenadas en Ajustes, o una
    * entrega sin pin, no se miden (no se inventa un punto). */
   const mideLaRuta = async (laneKey: string, stopList: Delivery[]): Promise<MedidaDeLaRuta> => {
@@ -1320,7 +1320,7 @@ export default function RoutesPage() {
       id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
       ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
     });
-    // D-NEXT: la ruta es UNA lista. El hueco es un puesto de entrega en ella; la orden nueva se recoge justo delante de su
+    // D-443: la ruta es UNA lista. El hueco es un puesto de entrega en ella; la orden nueva se recoge justo delante de su
     // entrega (`listaConEntregasEn`), y solo se miran los puestos donde, así, el camión no pasa de su capacidad (`admite`).
     let paradas: Delivery[] = [...(byDriver.get(laneKey) ?? [])];
     let lista: ParadaDeLaLista[] = lecturaDe(laneKey, paradas).paradas;
@@ -1379,7 +1379,7 @@ export default function RoutesPage() {
     setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
 
-  // Las flechas ↑ ↓ de cada parada son `mueveParada` (arriba, D-NEXT): P o D, sobre la lista única. La de antes (`move`,
+  // Las flechas ↑ ↓ de cada parada son `mueveParada` (arriba, D-443): P o D, sobre la lista única. La de antes (`move`,
   // D-433) movía solo entregas y, con viajes a mano, sellaba el viaje de cada una por posición; se fue con los viajes.
 
   // ---- Deshacer / rehacer (D-417) -------------------------------------------------------------------------------
@@ -1461,7 +1461,7 @@ export default function RoutesPage() {
   }, []);
 
   // Soltar una parada en «📅 Horario» (D-417). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
-  // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir. D-NEXT: el orden nuevo de las
+  // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir. D-443: el orden nuevo de las
   // ENTREGAS lo decide `planDeSoltar`; dónde va cada recogida, `listaConEntregasEn` (cada una sigue pegada a la entrega que
   // tenía delante, y la de la orden que llega, justo antes de su entrega). Las dos cosas van en la foto de deshacer.
   const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);
@@ -1503,7 +1503,7 @@ export default function RoutesPage() {
     }
   };
 
-  // «Mover un viaje entero» (↑↓ en la cabecera de cada viaje) se fue con los viajes (D-NEXT).
+  // «Mover un viaje entero» (↑↓ en la cabecera de cada viaje) se fue con los viajes (D-443).
 
   const focused = selected.size > 0;
   const isDim = (driver: string | null) => focused && !!driver && !selected.has(driver);
@@ -1539,7 +1539,7 @@ export default function RoutesPage() {
   // The whole day is always on the map — a driver focus dims the rest rather
   // than hiding it, so the full picture stays visible.
   const points: MapPoint[] = useMemo(() => {
-    // Cada parada va del color de su chofer: sin viajes (D-NEXT) no hay un color por viaje (D-441) ni un viaje que esconder.
+    // Cada parada va del color de su chofer: sin viajes (D-443) no hay un color por viaje (D-441) ni un viaje que esconder.
 
     const pts: MapPoint[] = [];
     // Pickup / base pins first, so a stop that sits right on the pickup still
@@ -1563,7 +1563,7 @@ export default function RoutesPage() {
     }
     const selActive = selectedOrders.size > 0;
     // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada parada de recogida de la
-    // lista lleva su «P1·P2» en su tienda, del color del chofer (D-NEXT: sin viajes). Dos recogidas en la misma tienda en
+    // lista lleva su «P1·P2» en su tienda, del color del chofer (D-443: sin viajes). Dos recogidas en la misma tienda en
     // puntos distintos de la lista —una recarga a media ruta— son dos visitas: dos marcas, abiertas en abanico (D-367).
     const dDeTodas = new Map<string, string>();
     for (const [laneKey, list] of byDriver) {
@@ -1659,7 +1659,7 @@ export default function RoutesPage() {
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la medida de la tarjeta — mientras la
     // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-437). Si no, la del plan no se pinta.
-    // El trazo del plan es UNA línea para todo el día (y desde D-NEXT también la medida: una lista, un trazo).
+    // El trazo del plan es UNA línea para todo el día (y desde D-443 también la medida: una lista, un trazo).
     const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)).map(([d]) => d));
     for (const driver of conSuPlan) {
       out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: trazosDelPlan[driver], dimmed: isDim(driver), offset: 0 });
@@ -1997,8 +1997,8 @@ export default function RoutesPage() {
                 const on = selected.has(u.key);
                 const bucket = u.isBucket;
                 const needsDriver = !isRealDriver(u.driver);
-                // La CARGA MÁXIMA de su lista contra el camión (D-NEXT): lo más cargado que va en algún punto del día. Hasta
-                // D-NEXT era la suma del día, en rojo si pasaba del camión («hace falta otro viaje»); con la lista única el camión
+                // La CARGA MÁXIMA de su lista contra el camión (D-443): lo más cargado que va en algún punto del día. Hasta
+                // D-443 era la suma del día, en rojo si pasaba del camión («hace falta otro viaje»); con la lista única el camión
                 // recarga a media ruta y la suma del día no dice nada. Rojo solo si en alguna parada se pasa.
                 const pallets = cuentaDePallets(lecturaDe(u.key, stops).filas.map((f) => f.cambio), capacityFor(u.driver)).totales.cargaMaxima;
                 const cap = capacityFor(u.driver);
@@ -2046,7 +2046,7 @@ export default function RoutesPage() {
                         {info && <span>⏱ {info.duration_text}</span>}
                         {info && <span>⇥ {info.miles} mi</span>}
                       </div>
-                      {/* Capacity meter: the peak load of the list vs the truck's capacity (D-NEXT). */}
+                      {/* Capacity meter: the peak load of the list vs the truck's capacity (D-443). */}
                       <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ flex: 1, height: 6, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
                           <div style={{ width: `${pct}%`, height: "100%", background: over ? "var(--red)" : "var(--green)" }} />
@@ -2387,7 +2387,7 @@ export default function RoutesPage() {
         const missingPins = stops.filter((d) => d.delivery_lat == null).length;
         const info = routeInfo[u.key];
         const capacity = capacityFor(u.driver);
-        // La ruta como UNA lista (D-NEXT): recogidas y entregas intercaladas, leídas como P1, P2… D1, D2… (D-334). Con plan
+        // La ruta como UNA lista (D-443): recogidas y entregas intercaladas, leídas como P1, P2… D1, D2… (D-334). Con plan
         // publicado y la ruta tal como el plan la dejó, mandan SUS paradas y etiquetas; si se tocó después, lo guardado, y se
         // avisa (D-335). Se decide por chofer.
         const lectura = lecturaDe(u.key, stops);
@@ -2428,10 +2428,10 @@ export default function RoutesPage() {
               </span>
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
               {bucket && <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Rename temp driver", "Renombrar chofer temp")} onClick={() => renameBucket(u.key)}>✏</button>}
-              {/* Órdenes, no paradas (D-NEXT): cada orden son dos paradas —su recogida y su entrega— y las paradas de la lista
+              {/* Órdenes, no paradas (D-443): cada orden son dos paradas —su recogida y su entrega— y las paradas de la lista
                   las cuenta la línea de totales de al lado. Con las dos diciendo «paradas», 4 y 7 se contradecían. */}
               <span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>
-              {/* Sin viajes (D-NEXT): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
+              {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión. */}
               {stops.length > 0 && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
@@ -2501,7 +2501,7 @@ export default function RoutesPage() {
                   {drivers.map((dv) => <option key={dv.id} value={dv.full_name}>{dv.full_name}</option>)}
                 </select>
               )}
-              {/* «Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-NEXT): la ruta es una lista. */}
+              {/* «Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-443): la ruta es una lista. */}
               {stops.length > 0 && (
                 <button className="btn btn-danger btn-sm" title={t("Clear this route — send every stop back to Unassigned", "Vaciar esta ruta — devolver todas las paradas a Sin asignar")}
                   onClick={() => clearLane(u.key)}>🗑 {t("Clear", "Vaciar")}</button>
@@ -2522,7 +2522,7 @@ export default function RoutesPage() {
                 {t("Total (from the base and back)", "Total (desde la base y de regreso)")}: <b>{info.miles} mi</b> · <b>{info.dayText}</b> {t("on the clock", "de jornada")} ({info.duration_text} {t("driving", "manejando")})
               </div>
             )}
-            {/* El «💡 supera la capacidad, por eso recarga entre cargas» se fue con los viajes (D-NEXT): la lista ya lleva sus
+            {/* El «💡 supera la capacidad, por eso recarga entre cargas» se fue con los viajes (D-443): la lista ya lleva sus
                 recargas, y la parada donde se pasa lo dice en su fila. */}
             {!u.store && stops.length > 0 && (
               <div className="hint" style={{ marginBottom: 8 }}>
@@ -2571,7 +2571,7 @@ export default function RoutesPage() {
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
                 <table className="orders tbl-resize" style={{ width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
-                  {/* Número de parada, factura y la CUENTA DE PALLETS (D-NEXT, fija y visible siempre), las elegidas en el orden de
+                  {/* Número de parada, factura y la CUENTA DE PALLETS (D-443, fija y visible siempre), las elegidas en el orden de
                       la persona (D-410), y las acciones al final. Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
                   <colgroup>
                     <col style={{ width: anchoDeParada("_n") }} />
@@ -2596,7 +2596,7 @@ export default function RoutesPage() {
                     {sequenced && lectura.cambioTrasPublicar && (
                       <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                     )}
-                    {/* La Base (D-NEXT): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
+                    {/* La Base (D-443): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
                     {filaDeLaBase(u.key, "salida", cuenta.salida, capacity, false)}
                     {lectura.filas.map((f, fi) => {
                       const cu = cuenta.paradas[fi];
@@ -2604,7 +2604,7 @@ export default function RoutesPage() {
                       const movible = f.indice != null;
                       const clave = claveDeLaFila(f);
                       const resaltada = recienMovida === clave;
-                      // Las flechas de una fila: cualquier parada, P o D (D-NEXT). Apagadas en el borde de la lista, y en una
+                      // Las flechas de una fila: cualquier parada, P o D (D-443). Apagadas en el borde de la lista, y en una
                       // recogida si la base no guarda su posición (sin la 154). La precedencia la mira `mueveEnLaLista` al pulsar.
                       const flechas = movible && (
                         <>
@@ -2616,7 +2616,7 @@ export default function RoutesPage() {
                             title={f.tipo === "P" && !hayRecogidaGuardada ? t("Needs the database update (154) to save where a pickup goes", "Necesita la actualización de la base (154) para guardar dónde va una recogida") : t("Move down", "Bajar")}>↓</button>
                         </>
                       );
-                      // «Pasar a…» otro chofer (D-NEXT, en las P y en las D): las órdenes de la parada, enteras.
+                      // «Pasar a…» otro chofer (D-443, en las P y en las D): las órdenes de la parada, enteras.
                       const ordenesDeLaFila = f.tipo === "P" ? f.ordenes : [f.orden];
                       const pasar = movible && lanes.length > 1 && (
                         <select value="" data-pasar-a aria-label={t("Move the order(s) to another driver", "Pasar la(s) orden(es) a otro chofer")}

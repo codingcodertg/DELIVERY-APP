@@ -134,7 +134,7 @@ Checksum del registro: `37e5453d4d0e07c98b295b410e187fba29c7d0c244a983e3adde22cf
 
 ## 6 · Matriz de pruebas por rol, con ROLLBACK (la corre el orquestador)
 
-**12 casos.** Se pega entero en `psql` **desde la raíz del repo** (el `\i` es relativo). **Sin `commit` en ningún sitio.**
+**11 casos.** Se pega entero en `psql` **desde la raíz del repo** (el `\i` es relativo). **Sin `commit` en ningún sitio.**
 
 Sustituir: `<UUID-ADMIN>` (`admin`), `<UUID-LOGISTICA>` (`logistics`), `<UUID-GERENTE>` (`manager`), `<UUID-CHOFER>`
 (`driver`), `<UUID-VENTAS>` (`sales`), todos con acceso a Entregas; `<ORDEN>`: una orden `approved` o `ready` de hoy con

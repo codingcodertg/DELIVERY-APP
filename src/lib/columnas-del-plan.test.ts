@@ -18,7 +18,7 @@ import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR } from "./user-pref
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
-// «Pallets a bordo» (`pl_bordo`) salió del ⚙ en D-NEXT: la cuenta de pallets es una columna FIJA de la tabla.
+// «Pallets a bordo» (`pl_bordo`) salió del ⚙ en D-443: la cuenta de pallets es una columna FIJA de la tabla.
 const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo"];
 /** Las dos que Órdenes no tiene y van delante (D-434): el tipo de cliente y la ciudad de recogida. */
 const DELANTE = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega"];   // y la de entrega desde D-435

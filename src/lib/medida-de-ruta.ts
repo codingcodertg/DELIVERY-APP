@@ -35,7 +35,7 @@ export function cuerpoDeLaMedida(paradas: readonly PuntoDeLaMedida[], base: read
 export const pintaElTrazoDelPlan = (pendientes: number, fuente: "plan" | "derivada"): boolean => pendientes > 0 && fuente === "plan";
 
 /**
- * La forma de la ruta que se mide: qué paradas, en qué puesto, en qué viaje (histórico), dónde se recogen (D-NEXT: la recogida
+ * La forma de la ruta que se mide: qué paradas, en qué puesto, en qué viaje (histórico), dónde se recogen (D-443: la recogida
  * también es una parada medida) y dónde. La pantalla mide cada forma UNA vez:
  * si la medida falla (sin sesión, sin red), no se vuelve a pedir en bucle; si la ruta cambia, es otra forma y se mide.
  */

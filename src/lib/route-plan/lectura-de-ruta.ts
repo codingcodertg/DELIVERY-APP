@@ -3,9 +3,9 @@ import { ordenDeLaParte, posicionesDeLaRuta, posicionesPorViajeHistoricas } from
 
 /**
  * La ruta de un chofer como se LEE en el Gestor y en «Mi ruta»: su lista de paradas —recogidas y entregas, una sola lista
- * desde D-NEXT—, con qué etiqueta P/D lleva cada una y cuánto suma o resta de pallets.
+ * desde D-443—, con qué etiqueta P/D lleva cada una y cuánto suma o resta de pallets.
  *
- * De dónde sale la lista (D-335, sin viajes desde D-NEXT), por chofer:
+ * De dónde sale la lista (D-335, sin viajes desde D-443), por chofer:
  *   · **Si su ruta sigue siendo EXACTAMENTE la que el plan publicó** —las mismas órdenes, cada una en el puesto que el plan
  *     le dio—, manda el plan: sus paradas tal cual (las recogidas donde el motor las puso, también las recargas a media
  *     ruta), sus etiquetas y su carga. Un cambio de ETAPA no es tocar la ruta: lo ya hecho (`hechas`) cuenta para comparar
@@ -44,7 +44,7 @@ const casi = (a: number, b: number) => Math.abs(a - b) < 1e-6;
 
 /**
  * ¿La ruta de hoy es exactamente la que el plan publicó? Mismas órdenes, cada una en su puesto; y, si la base guarda la
- * posición de la recogida (154), también esa. Una ruta publicada ANTES de D-NEXT se guardó por viajes: también vale si
+ * posición de la recogida (154), también esa. Una ruta publicada ANTES de D-443 se guardó por viajes: también vale si
  * coincide con eso (`posicionesPorViajeHistoricas`), para no avisar de un cambio que nadie hizo.
  */
 export function sigueElPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: readonly OrdenAsignada[]): boolean {
@@ -60,7 +60,7 @@ export function sigueElPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: 
   });
   if (seguida) return true;
   // Lo histórico solo si se guardó por viajes: publicar escribía `load_no` en TODAS (1 el primero). Una ruta guardada desde
-  // D-NEXT lo lleva vacío, y no se juzga con la regla vieja (le daría por buena una recogida movida).
+  // D-443 lo lleva vacío, y no se juzga con la regla vieja (le daría por buena una recogida movida).
   if (!asignadas.every((o) => o.load_no != null)) return false;
   const porViaje = posicionesPorViajeHistoricas(enOrdenDelPlan.map((p) => ({ tipo: p.kind, orden: p.order_ref, cargaAlSalir: Number(p.load_after) })));
   return porViaje.every((p) => { const o = hoy.get(p.id); return !!o && Number(o.load_no ?? 1) === p.load_no && o.route_seq === p.route_seq; });
@@ -77,7 +77,7 @@ export function sigueElPlan(paradas: readonly ParadaDelPlanMinima[], asignadas: 
  * - `quitadas`: el plan las tenía y ya no están en la ruta de hoy (otro chofer, otro día, cancelada) — en el orden del plan.
  * - `ordenCambiado`: las que siguen en las dos van en otro orden de entrega. Se comparan SOLO las comunes.
  *
- * (Hasta D-NEXT había también `viajeCambiado`, «una parada pasó a otro viaje». Sin viajes no hay tal cosa.)
+ * (Hasta D-443 había también `viajeCambiado`, «una parada pasó a otro viaje». Sin viajes no hay tal cosa.)
  */
 export interface CambiosTrasPublicar { anadidas: string[]; quitadas: string[]; ordenCambiado: boolean }
 
@@ -167,7 +167,7 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly Orde
 
 /**
  * Una ruta que NADIE ordenó —ninguna de sus órdenes tiene puesto (`route_seq`)— enseña su P/D **provisional** (D-379): en
- * gris, siguiendo el orden de ahora. Desde D-NEXT también en una ruta ordenada A MEDIAS: la lista ya lleva la recogida y la
+ * gris, siguiendo el orden de ahora. Desde D-443 también en una ruta ordenada A MEDIAS: la lista ya lleva la recogida y la
  * entrega de TODAS sus órdenes (las que no tienen puesto, al final), así que no queda ningún número que saltar (lo que
  * D-336 evitaba pintando «—»); lo que aún no tiene puesto se marca provisional, fila a fila (`esProvisionalLaFila`).
  */

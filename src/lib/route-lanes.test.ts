@@ -32,7 +32,7 @@ describe("lane key helpers", () => {
     expect(orderLaneKey(mk("x", null), isB)).toBeNull();
     expect(orderLaneKey(mk("x", "Route 1"), isB)).toBe("Route 1");
     expect(orderLaneKey(mk("x", "José", 1), isB)).toBe("José");
-    expect(orderLaneKey(mk("x", "José", 2), isB)).toBe("José"); // same card: an old load 2 is just part of the list (D-NEXT)
+    expect(orderLaneKey(mk("x", "José", 2), isB)).toBe("José"); // same card: an old load 2 is just part of the list (D-443)
   });
 });
 
@@ -41,7 +41,7 @@ describe("targetPatch", () => {
     expect(targetPatch({ isBucket: true, driver: "Route 2", load: 1 }))
       .toEqual({ assigned_driver: "Route 2", load_no: null, route_seq: null });
   });
-  it("a driver target clears the load too: no trips since D-NEXT", () => {
+  it("a driver target clears the load too: no trips since D-443", () => {
     expect(targetPatch({ isBucket: false, driver: "José", load: 1 }))
       .toEqual({ assigned_driver: "José", load_no: null, route_seq: null });
     expect(targetPatch({ isBucket: false, driver: "José", load: 2 }))
@@ -60,7 +60,7 @@ describe("routes flow: temp drivers, split loads, merge", () => {
     return out;
   };
 
-  it("assigning two temp drivers' orders to a driver puts them in ONE lane (no truckloads since D-NEXT)", () => {
+  it("assigning two temp drivers' orders to a driver puts them in ONE lane (no truckloads since D-443)", () => {
     const isB = bucketSet(["Route 1", "Route 2"]);
     const orders: Delivery[] = [
       mk("a", "Route 1"), mk("b", "Route 1"),

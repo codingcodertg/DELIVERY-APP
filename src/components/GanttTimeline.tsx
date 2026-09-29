@@ -131,7 +131,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
       return { texto: t(p.en, p.es), mal: o.plan.motivo !== "sin_cambio" };
     }
     const p = textoDePrevia(o.plan.previa, nombre);
-    // Sin viajes (D-NEXT): la parada, sin «viaje N».
+    // Sin viajes (D-443): la parada, sin «viaje N».
     const donde = t(`stop ${o.plan.puesto + 1}`, `parada ${o.plan.puesto + 1}`);
     const cabeza = o.plan.porNombre ? `📍 ${t("Best fit", "Mejor lugar")}: ${donde}` : donde;
     return { texto: `${cabeza} · ${t(p.en, p.es)}`, mal: o.plan.previa.rotas.length > 0 };
