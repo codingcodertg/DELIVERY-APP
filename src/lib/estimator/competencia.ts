@@ -34,6 +34,11 @@ export const LIMITES_DE_COMPETENCIA = {
    * (D-403): aquí el techo lo pone la base —tabla y cubo, 153—, no la costumbre.
    */
   maxPorCotizacion: 5,
+  /**
+   * Sueltos (sin cotización, D-NEXT): 50 por persona, en la tabla y en el cubo (156). = 500 MB por persona como mucho.
+   * Número mío, a validar: el 2026-09-29 no había ni un archivo en el cubo.
+   */
+  maxSueltosPorPersona: 50,
   /** PDF y fotos. La lista que manda es la del cubo; esta es la misma, para avisar antes. */
   tipos: ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as string[],
 } as const;
@@ -41,11 +46,12 @@ export const LIMITES_DE_COMPETENCIA = {
 /** Lo que acepta el `<input type="file">`: las extensiones de HEIC van aparte porque Windows no les da tipo. */
 export const ACCEPT_DE_COMPETENCIA = "application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif";
 
-export const TOPES_DE_TEXTO = { competidor: 120, nota: 500 } as const;
+export const TOPES_DE_TEXTO = { competidor: 120, nota: 500, cliente: 120, tienda: 80, estimado: 60 } as const;
 
 export interface ArchivoDeCompetencia {
   id: string;
-  quote_id: string;
+  /** La cotización a la que va pegado; null si se subió **suelto**, sin cotización (D-NEXT, migración 156). */
+  quote_id: string | null;
   path: string;
   file_name: string;
   mime_type: string;
@@ -166,6 +172,80 @@ export function filaDeCompetencia(quoteId: string, path: string, f: { name: stri
   };
 }
 
+// ---- los sueltos y la pestaña de todos (D-NEXT, migración 156) ------------------------------------------
+//
+// El dueño, 2026-09-29: «THE COMEPTITORS ESTIMATE YOU CAN UPLOAD IT WITHOUT NEEDE TO CREATE AN ESTIMATE / AND I WANT IT
+// TO SHOW ALL ESTIAMTES IN A TAB AND ALL SALES REP COULD SEE IT». Un estimado de la competencia se puede subir sin
+// cotización (con el cliente, la tienda y lo opcional), y una pestaña lista TODOS —sueltos y pegados— para todo el que
+// tenga el módulo. Quién ve lo decide la 156 (`has_estimator_access()`), no esto.
+
+/** La primera carpeta de los sueltos en el cubo; la segunda es el id de quien sube (lo exigen el cubo y el disparador). */
+export const CARPETA_SUELTA = "general";
+
+/** Un estimado de la competencia como lo lista la pestaña: el archivo y lo que dice de quién es. */
+export interface EstimadoDeCompetencia extends ArchivoDeCompetencia {
+  customer_name: string | null;
+  store: string | null;
+  /** El # de estimado: el de la cotización si va pegado (lo copia el disparador), o el escrito a mano si es suelto. */
+  estimate_num: string | null;
+}
+
+/** Lo que se escribe al subir uno suelto. El cliente es obligatorio; lo demás, opcional. */
+export interface MetaSuelta extends MetaDeCompetencia {
+  customer_name: string;
+  store: string;
+  estimate_num: string;
+}
+
+export const metaSueltaVacia = (tienda = ""): MetaSuelta => ({ ...metaVacia(), customer_name: "", store: tienda, estimate_num: "" });
+
+/** `general/<uid>/<sello>-<azar>-<nombre saneado>`: la carpeta de quien sube, como exige la 156. */
+export function rutaSuelta(userId: string, nombre: string, cuando: Date, azar: string): string {
+  return `${CARPETA_SUELTA}/${userId}/${rutaDeCompetencia("x", nombre, cuando, azar).slice(2)}`;
+}
+
+/** ¿Falta algo para subir uno suelto? Solo el cliente (los archivos los valida `validaArchivos`). */
+export function faltaEnSuelto(meta: Pick<MetaSuelta, "customer_name">): "cliente" | null {
+  return meta.customer_name.trim() ? null : "cliente";
+}
+
+/** La fila de un suelto. Sin `quote_id`; sin quién ni cuándo (los pone el disparador). */
+export function filaSuelta(path: string, f: { name: string; size: number; type: string }, meta: MetaSuelta) {
+  const recorta = (v: string, n: number) => v.trim().slice(0, n) || null;
+  return {
+    ...filaDeCompetencia("", path, f, meta),
+    quote_id: null,
+    customer_name: recorta(meta.customer_name, TOPES_DE_TEXTO.cliente),
+    store: recorta(meta.store, TOPES_DE_TEXTO.tienda),
+    estimate_num: recorta(meta.estimate_num, TOPES_DE_TEXTO.estimado),
+  };
+}
+
+/**
+ * ¿El error dice «la 156 no está»? La lista pide columnas que solo trae la 156: Postgres dice 42703 (columna que no
+ * existe) y PostgREST PGRST204. Y sin la 153 debajo, los de siempre.
+ */
+export function faltaLa156(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  return error.code === "42703" || error.code === "PGRST204" || faltaLaBaseDeCompetencia(error);
+}
+
+/** El filtro de la pestaña: por tienda (vacío = todas) y por texto en cliente, competidor, # de estimado, nota y quién. */
+export function filtraEstimados(lista: readonly EstimadoDeCompetencia[], f: { tienda: string; texto: string }): EstimadoDeCompetencia[] {
+  const t = f.texto.trim().toLowerCase();
+  return lista.filter((e) => {
+    if (f.tienda && (e.store ?? "") !== f.tienda) return false;
+    if (!t) return true;
+    return [e.customer_name, e.competitor, e.estimate_num, e.note, e.uploaded_by_name, e.file_name]
+      .some((v) => (v ?? "").toLowerCase().includes(t));
+  });
+}
+
+/** De lo más nuevo a lo más viejo, como la pide la pestaña (y la base, por `uploaded_at desc`). */
+export function masNuevoPrimero<T extends { uploaded_at: string }>(lista: readonly T[]): T[] {
+  return [...lista].sort((a, b) => (a.uploaded_at < b.uploaded_at ? 1 : a.uploaded_at > b.uploaded_at ? -1 : 0));
+}
+
 // ---- dónde se guarda -------------------------------------------------------------------------------
 
 export interface AlmacenDeCompetencia {
@@ -176,6 +256,10 @@ export interface AlmacenDeCompetencia {
   /** Una URL para abrir el archivo: firmada y de un minuto en la base; de objeto en el demo. */
   abrir(a: ArchivoDeCompetencia): Promise<Resultado<string>>;
   quitar(a: ArchivoDeCompetencia): Promise<Resultado<null>>;
+  /** TODOS los estimados de la competencia, sueltos y pegados (156). Sin la 156, `sinTabla`. */
+  listarTodos(): Promise<Resultado<EstimadoDeCompetencia[]>>;
+  /** Sube uno suelto, sin cotización, a la carpeta de `yoId` (156). */
+  subirSuelto(yoId: string, f: File, meta: MetaSuelta): Promise<Resultado<EstimadoDeCompetencia>>;
 }
 
 type ErrorDeCompetencia = { code?: string | null; message?: string | null } | null;
@@ -184,6 +268,10 @@ function falla<T>(error: ErrorDeCompetencia): Resultado<T> {
 }
 
 const COLUMNAS = "id, quote_id, path, file_name, mime_type, size_bytes, competitor, competitor_total, note, uploaded_by, uploaded_by_name, uploaded_at";
+/** Las de la pestaña: las de la 153 más las tres de la 156. La sección de la cotización sigue pidiendo solo `COLUMNAS`. */
+export const COLUMNAS_156 = `${COLUMNAS}, customer_name, store, estimate_num`;
+/** Una página de la lista: de sobra para hoy (0 archivos el 2026-09-29) y con techo, por si crece. */
+export const TOPE_DE_LA_LISTA = 500;
 
 function azar(): string {
   return Math.random().toString(36).slice(2, 8);
@@ -225,6 +313,29 @@ export function almacenDeCompetenciaDeLaBase(supabase: SupabaseClient): AlmacenD
       const { data, error } = await cubo().createSignedUrl(a.path, VALIDEZ_AL_ABRIR);
       if (error || !data?.signedUrl) return falla(error ?? { message: "no url" });
       return { ok: true, valor: data.signedUrl };
+    },
+
+    async listarTodos() {
+      const { data, error } = await supabase
+        .from("estimator_competitor_files").select(COLUMNAS_156).order("uploaded_at", { ascending: false }).limit(TOPE_DE_LA_LISTA);
+      if (error) return { ok: false, sinTabla: faltaLa156(error), error: error.message ?? "error" };
+      return { ok: true, valor: (data ?? []) as EstimadoDeCompetencia[] };
+    },
+
+    async subirSuelto(yoId, f, meta) {
+      const path = rutaSuelta(yoId, f.name, new Date(), azar());
+      const tipo = tipoDeArchivo(f.name, f.type);
+      const { error: eSubida } = await cubo().upload(path, f, { contentType: tipo || undefined, upsert: false });
+      if (eSubida) return falla(eSubida);
+      const { data, error } = await supabase
+        .from("estimator_competitor_files").insert(filaSuelta(path, f, meta)).select(COLUMNAS_156);
+      const fila = (data as EstimadoDeCompetencia[] | null)?.[0];
+      if (error || !fila) {
+        // Sin su fila, el archivo no se ve en ningún sitio y solo ocupa cuota: se retira.
+        await cubo().remove([path]).catch(() => undefined);
+        return error ? { ok: false, sinTabla: faltaLa156(error), error: error.message ?? "error" } : { ok: false, sinTabla: false, error: "0 rows" };
+      }
+      return { ok: true, valor: fila };
     },
 
     async quitar(a) {

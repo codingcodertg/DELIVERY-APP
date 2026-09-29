@@ -4,13 +4,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HojaCliente } from "@/app/estimator/HojaCliente";
 import {
-  AVISO_JUNTO_AL_TOTAL, DESCARGO_FINAL, ENCABEZADO, NOTA_DE_CANTIDAD, NOTA_DE_ENTREGA_EXCLUIDA, SUBTITULO, TEXTO_DE_ENTREGA,
-  cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente,
+  AVISO_JUNTO_AL_TOTAL, ENCABEZADO, SUBTITULO, TEXTO_DE_ENTREGA,
+  cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente, tiendaDeLaHoja,
 } from "./hoja";
 import {
   borradorVacio, lineaSfVacia, lineaUnidadVacia, resumenDeTotales, totalDeMateriales, type QuoteDraft, type SfLine, type UnitLine,
 } from "./modelo";
 import { tarifaDeLaCotizacion } from "./entrega";
+import { loQueFalta } from "./validar";
 import { demoSettings } from "@/lib/demo-data";
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -45,7 +46,7 @@ function borrador(patch: Partial<QuoteDraft> = {}): QuoteDraft {
     sales_ext: "214",
     customer: {
       salutation: "Ms.", full_name: INTERNO.nombre,
-      company: INTERNO.empresa, phone: INTERNO.telefono, address: INTERNO.direccion,
+      company: INTERNO.empresa, phone: INTERNO.telefono,
     },
     delivery: {
       mode: "delivery", address: INTERNO.direccionEntrega, lat: 26.2461, lng: -98.2297, pin_source: "manual",
@@ -105,10 +106,10 @@ describe("la hoja del cliente NO lleva nada interno", () => {
   it("las claves de la hoja son las de la plantilla: ninguna del borrador interno", () => {
     const claves = Object.keys(hojaDelCliente(borrador())).sort();
     expect(claves).toEqual([
-      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "notas", "preparadoPara", "referencia", "representante",
-      "resumen", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "total", "validaHasta", "validezConspicua",
+      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "preparadoPara", "referencia", "representante",
+      "resumen", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
     ]);
-    for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "descuento", "importe"]);
+    for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "importe", "precioConDescuento"]);
   });
 });
 
@@ -168,15 +169,8 @@ describe("validez y descargos, literales del documento", () => {
   it("«QUOTE VALID THROUGH SEPTEMBER 8, 2026» junto al total, con el aviso de Final Sale", () => {
     const hoja = hojaDelCliente(borrador());
     expect(hoja.validezConspicua).toBe("QUOTE VALID THROUGH SEPTEMBER 8, 2026");
-    expect(hoja.validaHasta).toBe("September 8, 2026");
     expect(hoja.avisoJuntoAlTotal).toBe(AVISO_JUNTO_AL_TOTAL);
     expect(AVISO_JUNTO_AL_TOTAL).toContain("otherwise designated Final Sale");
-  });
-  it("los descargos del final, y la nota de caja completa solo si hay cajas", () => {
-    expect(hojaDelCliente(borrador()).notas).toEqual([NOTA_DE_CANTIDAD, NOTA_DE_ENTREGA_EXCLUIDA, DESCARGO_FINAL]);
-    const soloLote = borrador({ lines: [borrador().lines[1]] });
-    expect(hojaDelCliente(soloLote).notas).toEqual([NOTA_DE_ENTREGA_EXCLUIDA, DESCARGO_FINAL]);
-    expect(DESCARGO_FINAL).toContain("is not an invoice, sales order, inventory reservation, or guarantee of availability");
   });
   it("el encabezado tecleado", () => {
     const html = renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(borrador()) }));
@@ -193,13 +187,13 @@ describe("la pantalla imprime ESTA hoja y nada más", () => {
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   const componente = leer("src/app/estimator/HojaCliente.tsx");
   it("la hoja se construye con hojaDelCliente(draft) y es lo único que recibe HojaCliente", () => {
-    expect(pantalla).toContain("const hoja = useMemo(() => hojaDelCliente(draft), [draft]);");
+    expect(pantalla).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);");
     expect(pantalla).toContain("<HojaCliente hoja={hoja} />");
     expect(pantalla.match(/<HojaCliente /g) ?? []).toHaveLength(1);
   });
   it("el componente impreso no toca el borrador: no conoce ni sus tipos ni sus campos", () => {
     // Sin `\.` detrás: `customer?.phone` también es pedírselo al borrador (lo cazó el mutante M11).
-    expect(componente).not.toMatch(/QuoteDraft|customer|item_code|internal_description|price_per_sf|delivery|phone|company|address/);
+    expect(componente).not.toMatch(/QuoteDraft|customer|item_code|internal_description|price_per_sf|delivery|phone|company|address|store/);
     expect(componente).toMatch(/export function HojaCliente\(\{ hoja \}: \{ hoja: HojaDelCliente \}\)/);
   });
   it("al imprimir se esconde todo lo que no sea la hoja", () => {
@@ -245,7 +239,7 @@ describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) N
   });
 });
 
-describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, ahorro, impuesto y total (D-442)", () => {
+describe("el precio con descuento en la hoja: importe regular, «Discount price: $», subtotal, ahorro, impuesto y total (D-442, D-NEXT)", () => {
   // El dueño, 2026-09-28: «the estimate will show the line total with the regular price they input but then it will
   // show a % discount (not amount) if they provide a secondary lower price. Then at the bottom after the subtotal we will
   // show the amount of savings to then give the final total price with taxes».
@@ -260,11 +254,17 @@ describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, a
   const hoja = hojaDelCliente(q);
   const html = renderToStaticMarkup(createElement(HojaCliente, { hoja }));
 
-  it("cada Amount es el total a precio REGULAR, y la línea con precio más bajo lleva «−20%»", () => {
+  it("cada Amount es el total a precio REGULAR, y la línea con descuento lleva su PRECIO, no un porcentaje (D-NEXT)", () => {
+    // El dueño, 2026-09-29: «descuento is a price not a percentage». 100 SF × $8 = $800.00.
     expect(hoja.filas.map((f) => f.importe)).toEqual([1000, 385]);
-    expect(hoja.filas.map((f) => f.descuento)).toEqual(["−20%", null]);
+    expect(hoja.filas.map((f) => f.precioConDescuento)).toEqual(["Discount price: $800.00", null]);
     expect(html).toContain("$1,000.00");
-    expect(html).toContain("−20%");
+    expect(html).toContain("Discount price: $800.00");
+  });
+  it("ningún porcentaje en la hoja (D-NEXT revierte el «−20%» de D-442)", () => {
+    expect(JSON.stringify(hoja)).not.toMatch(/\d%(?!:)/);
+    expect(html).not.toContain("−20%");
+    expect(html).not.toContain("20%");
   });
   it("subtotal regular 1,385.00 → ahorro 200.00 → impuesto 8.25 % sobre 1,185.00 = 97.76 → total 1,282.76", () => {
     expect(hoja.textoSubtotal).toBe("Subtotal: $1,385.00");
@@ -274,8 +274,8 @@ describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, a
     expect(hoja.textoTotal).toBe("Estimated Material Total: $1,282.76");
     for (const txt of [hoja.textoSubtotal, hoja.textoAhorro!, hoja.textoImpuesto, hoja.textoTotal]) expect(html).toContain(txt);
   });
-  it("ni el $/SF regular, ni el más bajo, ni el importe de la línea con el precio más bajo", () => {
-    for (const p of ["$10.00", "$8.00", "10.00/SF", "8.00", "$800.00", "800.00"]) {
+  it("ni el $/SF regular ni el de descuento (D-413: el precio unitario nunca se imprime)", () => {
+    for (const p of ["$10.00", "$8.00", "10.00/SF", "8.00/SF", "/SF"]) {
       expect(JSON.stringify(hoja), p).not.toContain(p);
       expect(html, p).not.toContain(p);
     }
@@ -284,14 +284,92 @@ describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, a
     const sin = hojaDelCliente(borrador({ lines: [{ ...conDescuento, lower_price_per_sf: null }, sinDescuento] }));
     expect(sin.textoAhorro).toBeNull();
     expect(renderToStaticMarkup(createElement(HojaCliente, { hoja: sin }))).not.toContain("Savings");
-    expect(sin.filas.every((f) => f.descuento === null)).toBe(true);
+    expect(sin.filas.every((f) => f.precioConDescuento === null)).toBe(true);
+    expect(renderToStaticMarkup(createElement(HojaCliente, { hoja: sin }))).not.toContain("Discount price");
   });
   it("un precio más bajo igual o mayor que el regular no es descuento: ni «−%» ni ahorro, y el importe es el regular", () => {
     for (const bajo of [10, 12]) {
       const h = hojaDelCliente(borrador({ lines: [{ ...conDescuento, lower_price_per_sf: bajo }] }));
-      expect(h.filas[0].descuento).toBeNull();
+      expect(h.filas[0].precioConDescuento).toBeNull();
       expect(h.textoAhorro).toBeNull();
       expect(h.filas[0].importe).toBe(1000);
     }
+  });
+});
+
+describe("la hoja impresa, sobre la captura del dueño del 2026-09-29 (D-NEXT)", () => {
+  const html = (q: QuoteDraft, tienda: string | null = null) =>
+    renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(q, tienda) }));
+
+  it("«Valid through» sale UNA vez: la de junto al total; la de arriba se quitó", () => {
+    const h = html(borrador());
+    expect(h.match(/valid through/gi) ?? []).toHaveLength(1);
+    expect(h).toContain("QUOTE VALID THROUGH SEPTEMBER 8, 2026");
+    expect(h).not.toContain("Valid through:");
+  });
+
+  it("el cargo de entrega se nombra UNA vez: «Delivery charges» solo en «Delivery: Available…»", () => {
+    const h = html(borrador());
+    expect(h.match(/delivery charges/gi) ?? []).toHaveLength(1);
+    expect(h).not.toContain("are not included");
+  });
+
+  it("después de «Delivery: Available upon request…» no va NADA", () => {
+    const h = html(borrador());
+    const i = h.indexOf(TEXTO_DE_ENTREGA);
+    expect(i).toBeGreaterThan(-1);
+    // Lo que queda detrás del texto son solo cierres de etiqueta.
+    expect(h.slice(i + TEXTO_DE_ENTREGA.length)).toMatch(/^(<\/[a-z]+>)*$/);
+    for (const quitado of ["Quantity Note", "not an invoice", "promotional or Final Sale", "subject to verification at time of purchase. Certain products"]) {
+      expect(h).not.toContain(quitado);
+    }
+  });
+
+  it("recogiendo, tampoco hay notas al final: la hoja acaba en la validez", () => {
+    const h = html(borrador({ delivery: { ...borrador().delivery, mode: "pickup" } }));
+    expect(h).not.toContain("Delivery");
+    expect(h).not.toContain("Quantity Note");
+    expect(h).not.toContain("not an invoice");
+  });
+
+  it("la tienda donde se creó sale como «Store: …», y sin tienda no sale la línea", () => {
+    expect(hojaDelCliente(borrador(), "  RDZ McAllen ").tienda).toBe("RDZ McAllen");
+    expect(html(borrador(), "RDZ McAllen")).toContain("<span>Store:</span> RDZ McAllen");
+    expect(hojaDelCliente(borrador()).tienda).toBeNull();
+    expect(html(borrador())).not.toContain("Store:");
+    expect(html(borrador(), "   ")).not.toContain("Store:");
+  });
+
+  it("la tienda de la hoja: la de la cotización guardada; si no hay, la de quien prepara", () => {
+    expect(tiendaDeLaHoja("RDZ Pharr", "RDZ McAllen")).toBe("RDZ Pharr");
+    expect(tiendaDeLaHoja(null, "RDZ McAllen")).toBe("RDZ McAllen");
+    expect(tiendaDeLaHoja("  ", " RDZ McAllen ")).toBe("RDZ McAllen");
+    expect(tiendaDeLaHoja(null, null)).toBeNull();
+  });
+
+  it("la pantalla le pasa a la hoja la tienda guardada (la de la cotización abierta) o la del perfil", () => {
+    const pantalla = leer("src/app/estimator/Estimador.tsx");
+    expect(pantalla).toContain("const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);");
+    expect(pantalla).toContain("setTiendaGuardada(c.valor.store);");
+  });
+});
+
+describe("el descuento en la pantalla es un PRECIO opcional (D-NEXT)", () => {
+  // El dueño, 2026-09-29: «descuento is a price not a percentage and has to be an optional field».
+  const pantalla = leer("src/app/estimator/Estimador.tsx");
+  it("el campo se llama precio con descuento y dice (opcional), por SF y por unidad", () => {
+    expect(pantalla).toContain('t("Discount price $/SF (optional)", "Precio con descuento $/SF (opcional)")');
+    expect(pantalla).toContain('t("Discount unit price (optional)", "Precio unitario con descuento (opcional)")');
+    expect(pantalla).not.toContain("Lower $/SF");
+  });
+  it("vacío = sin descuento: ni precio con descuento en la hoja, ni ahorro, ni falta nada por ello", () => {
+    const q = borrador({ delivery: { ...borrador().delivery, mode: "pickup" } });
+    const h = hojaDelCliente(q);
+    expect(h.filas.every((f) => f.precioConDescuento === null)).toBe(true);
+    expect(h.textoAhorro).toBeNull();
+    expect(loQueFalta(q, "propia", "2026-09-08")).toEqual([]);
+  });
+  it("la línea de la pantalla enseña primero el precio con descuento; el % queda como dato entre paréntesis", () => {
+    expect(pantalla).toContain('{t("Discount price", "Precio con descuento")}: <b data-total-bajo>{dinero(tot)}</b> <span className="hint">({numero(pct)}% {t("off", "menos")})</span>');
   });
 });

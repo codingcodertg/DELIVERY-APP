@@ -54,7 +54,7 @@ describe("de la fila a la pantalla y de vuelta", () => {
       lines: [{ kind: "sf", id: "a", customer_category: "x", requested_sf: 10, sf_per_box: 5, price_per_sf: 2 }],
       display_level: "basic", valid_through: "2026-09-08",
     });
-    expect(d.customer).toEqual({ salutation: "Ms.", full_name: "Ana Garza Lopez", company: "", phone: "956-555-0100", address: "" });
+    expect(d.customer).toEqual({ salutation: "Ms.", full_name: "Ana Garza Lopez", company: "", phone: "956-555-0100" });
     expect(d.lines).toHaveLength(1);
     expect(d.display_level).toBe("basic");
     // Lo que se imprime sale del nombre completo, que es lo que se ve en pantalla.

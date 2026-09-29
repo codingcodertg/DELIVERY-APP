@@ -33,7 +33,8 @@ export interface Customer {
   full_name: string;
   company: string;
   phone: string;
-  address: string;
+  // Sin `address` (D-NEXT, «remove dirrecion en estimador»): la dirección del cliente repetía la de entrega, que es la
+  // que alimenta la calculadora de tarifa (D-442) y sigue en `Delivery`. `borradorDeFila` no la lee de las filas viejas.
 }
 
 /**
@@ -349,7 +350,7 @@ export function borradorVacio(hoy: string = hoyLocal()): QuoteDraft {
   return {
     estimate_num: "",
     sales_ext: "",
-    customer: { salutation: DEFAULT_SALUTATION, full_name: "", company: "", phone: "", address: "" },
+    customer: { salutation: DEFAULT_SALUTATION, full_name: "", company: "", phone: "" },
     delivery: entregaVacia(),
     lines: [lineaSfVacia()],
     display_level: DEFAULT_DISPLAY_LEVEL,
