@@ -7,7 +7,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./estimator.css";
 
 export const metadata: Metadata = {
-  title: "RTG ESTIMATOR",
+  title: "RTG QUOTE BUILDER",
 };
 
 /**
