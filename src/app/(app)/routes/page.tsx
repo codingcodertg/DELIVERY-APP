@@ -68,7 +68,7 @@ import {
 } from "@/lib/lista-unica";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
-import { esDeSuZona } from "@/lib/zonas";
+import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";
 import { fraseDeFaltan } from "@/lib/requisitos";
 import { CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
@@ -2648,7 +2648,9 @@ export default function RoutesPage() {
                       );
                       if (f.tipo === "P") {
                         // Una orden por fila (D-444): su ID, su cuenta y sus columnas, como una entrega. Lo que es de la ENTREGA
-                        // —ciudad, ventanas, dirección, contacto— va vacío: esta parada es en la tienda (`seVeEnLaRecogida`).
+                        // —ventanas, dirección, contacto— va vacío: esta parada es en la tienda (`seVeEnLaRecogida`).
+                        // D-445: las dos CIUDADES sí salen, las de su orden: de dónde sale y a dónde va. El dueño, 2026-09-29:
+                        // «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda».
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
@@ -2668,7 +2670,9 @@ export default function RoutesPage() {
                             {colsParadas.map((c) => {
                               if (c.key === "p_type") return <td key={c.key}>{dondeRecoge}</td>;
                               if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
-                              if (c.key === "p_address" || c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
+                              if (c.key === "p_ciudad_recogida") return <td key={c.key}>{(o && zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen)) || "—"}</td>;
+                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;
+                              if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
                               return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
                             })}
                             <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
@@ -2726,6 +2730,7 @@ export default function RoutesPage() {
                           {colsParadas.map((c) => {
                             switch (c.key) {
                               case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
+                              case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;
                               case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
                               case "p_eta": return (
                                 <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>

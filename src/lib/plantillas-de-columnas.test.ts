@@ -9,7 +9,7 @@ import {
   CLAVE_DE_PLANTILLAS, MAX_NOMBRE_DE_PLANTILLA, ROLES_QUE_ELIGEN, TODOS_LOS_ROLES, columnasValidas, guardaColumnas, leeColumnas, plantillasDeValor,
   plantillasValidas, prefsDeValor, valorDeColumnas, type ClienteDePrefs, type PlantillaDeColumnas,
 } from "./user-prefs";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
 
 /**
  * Las plantillas de ⚙ Columnas (D-394), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
@@ -134,7 +134,8 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
   // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-412) llegaron después.
   // «p_pallets» sí estaba ese día; D-444 la quitó del catálogo y se añade a mano (el tamaño de un jsonb no depende del orden).
-  const GESTOR_MEDIDO = [...COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority" && !k.startsWith("pl_")), "p_pallets"];   // ni las del plan (D-429)
+  // D-445: tampoco estaba «p_ciudad_recogida», que llegó después: se excluye.
+  const GESTOR_MEDIDO = [...COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority" && k !== "p_ciudad_recogida" && !k.startsWith("pl_")), "p_pallets"];   // ni las del plan (D-429)
   const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: O14 }, orden: { logistics: O14 }, anchos: { logistics: ANCH }, plantillas: pl });
   const GEST = ["invoice", "account", "address", "pickup", "store", "pallets", "date", "windows", "status", "p_type", "p_eta", "p_fee"];
   const casos: [string, unknown, number][] = [
@@ -249,7 +250,7 @@ describe("aplicar", () => {
     expect(foto).not.toContain("fee");
     expect(foto.some((k) => k.startsWith("_"))).toBe(false);
     const puesta = columnasDePlantillaDelGestor(["fee", "retirada", ...foto]);
-    expect(puesta.slice(-6)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7]);
+    expect(puesta.slice(-7)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8]);
     expect(puesta).toContain("fee");
     expect(puesta).not.toContain("retirada");
     expect(conColumnasNuevas(columnasDePlantillaDelGestor(foto))).not.toContain("address");   // sin marcas, `conColumnasNuevas` la devolvería
