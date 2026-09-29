@@ -33222,6 +33222,10 @@ cinco en la página: D sin la celda, D con la tienda, P sin recogida, P con la e
 
 ## D-446 · Gestor de Rutas: «Recoger en …» va en la ciudad de entrega de la fila P, y la tabla de paradas nace más pegada
 
+> **⚠ Reemplazada en parte por D-447** (2026-09-29): la tienda iba al revés. En la fila P la tienda («RDZ McAllen», sin
+> «Recoger en») va en la **Ciudad de recogida**, y la **Ciudad de entrega** vuelve a decir la de su orden, como en D-445. El
+> Tipo de su orden y los anchos más pegados de esta entrada se quedan.
+
 **Fecha:** 2026-09-29 · **Versión:** deliveries 1.238.0 (repo 1.321.0) · **Migración:** ninguna. **Reemplaza en parte a**
 D-444 y D-445, que llevan su nota.
 
@@ -33251,3 +33255,38 @@ Con una captura de la tabla de paradas de Ernesto (extraído del fichero de sesi
 
 `ciudad-de-recogida-en-paradas.test.ts` afirma el Tipo de su orden y «Recoger en» en la ciudad de entrega de la P, y que
 «Recoger en» ya no va en el Tipo; `gestor-mover-columnas.test.ts`, los anchos nuevos de partida (lo heredado no cambia).
+
+## D-447 · Gestor de Rutas: en la fila P, la tienda va en la Ciudad de recogida, sin «Recoger en»
+
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.239.0 (repo 1.322.0) · **Migración:** ninguna. **Reemplaza en parte a**
+D-446, que lleva su nota.
+
+### Qué pidió el dueño
+
+Tras publicarse D-446 (extraído del fichero de sesión, sin corregir):
+
+> la palabra recoger i dont need that y esta mal porque esta en ciudad de entrega eso de rdz mcallen deberia esta en ciudad de recodiga tienes todo alreves
+
+### Qué pasó
+
+D-446 leyó «ponlo donde dice ciudad de entrega» como mover «Recoger en RDZ …» a la columna Ciudad de entrega. El dueño
+quería lo contrario: la tienda en la columna de **recogida**. Y la palabra «Recoger» sobra: que es una recogida ya lo
+dicen la etiqueta P y el color de la fila.
+
+### Qué cambió
+
+Fila P de la tabla de paradas:
+
+| Columna | D-446 | D-447 |
+|---|---|---|
+| Tipo | el de su orden | igual |
+| Ciudad de recogida | la ciudad de la tienda | **la tienda**, en negrita, sin «Recoger en» («**RDZ McAllen**») |
+| Ciudad de entrega | «Recoger en RDZ …» | la ciudad de entrega de su orden (como en D-445) |
+
+Las filas D no cambian: ciudad de recogida y ciudad de entrega de su orden. Los anchos de D-446 se quedan.
+
+### Pruebas y mutantes
+
+`ciudad-de-recogida-en-paradas.test.ts`: la tienda en la ciudad de recogida, sin «Recoger en», la entrega de su orden
+y el Tipo de su orden. Tres mutantes, los tres caen: la tienda de vuelta en la entrega, la palabra «Recoger» de vuelta, y la
+entrega vacía en la P.
