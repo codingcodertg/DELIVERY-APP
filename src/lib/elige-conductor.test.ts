@@ -64,7 +64,7 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   it("las opciones salen de `opcionesDeConductor`, con los choferes, las rutas temporales, el 📦 y los pallets del panel, y el filtro de arriba", () => {
     expect(pagina).toContain("const opcionesDelRecuadro = opcionesDeConductor({ rutas: [ ...drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })), ...bucketNames.map((n) => ({ clave: n, etiqueta: n, esRuta: true })), ],");
-    expect(pagina).toContain("paradasDe: (k) => (byDriver.get(k) ?? []).length, palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []), capacidadDe: (k) => capacityFor(k), noDisponibles: unavailableToday, filtro: filtroChofer, });");
+    expect(pagina).toContain("paradasDe: (k) => (byDriver.get(k) ?? []).length, palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []), capacidadDe: (k) => capacityFor(k), noDisponibles: unavailableToday, filtro: filtroChofer, enSuZona: (k) =>");
     expect(pagina).toContain("const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);");
   });
   it("el recuadro sale solo con órdenes marcadas, dice cuántas, y pinta cada opción con sus números", () => {
@@ -83,11 +83,11 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
   it("sin choferes lo dice, en vez de un recuadro vacío", () => {
     expect(pagina).toContain("{opcionesDelRecuadro.length === 0 ? ( <div className=\"hint\" data-sin-choferes");
   });
-  it("«Asignar» se apaga sin elegido y usa `bulkAssign`; «Nueva ruta» y «Auto-asignar» siguen dentro", () => {
-    expect(pagina).toContain("data-asignar-al-elegido disabled={!conductorElegido || autoAssigning} onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}");
-    expect(pagina).toContain("data-nueva-ruta-del-recuadro disabled={autoAssigning} onClick={() => bulkAssign(addBucket())}");
-    // Desde D-401 «Auto-asignar las marcadas» abre el diálogo de «✨ Auto-asignar» (un solo camino), ya en «Solo las marcadas».
-    expect(pagina).toContain("data-auto-asignar-del-recuadro onClick={() => setDialogoAutoAsignar(true)}");
+  it("«Asignar» se apaga sin elegido y usa `bulkAssign`; «Nueva ruta» sigue dentro, y «Auto-asignar» ya no (D-NEXT)", () => {
+    expect(pagina).toContain("data-asignar-al-elegido disabled={!conductorElegido || asignando} onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}");
+    expect(pagina).toContain("data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}");
+    // «✨ Auto-asignar las marcadas» (D-401) se quitó en D-NEXT: el dueño, «Quitar los dos; solo Armar rutas».
+    expect(pagina).not.toContain("data-auto-asignar-del-recuadro");
   });
   it("al quedarse sin marcadas, lo pulsado se olvida; y el selector de bloque viejo ya no está", () => {
     expect(pagina).toContain("useEffect(() => { if (poolSelectedCount === 0) setConductorPulsado(null); }, [poolSelectedCount]);");
@@ -95,9 +95,9 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
     expect(pagina).not.toContain("Auto-assign selected");
     // bulkAssign limpia la selección al terminar: eso es lo que hace irse al recuadro.
     expect(pagina.indexOf("const bulkAssign = async")).toBeGreaterThan(-1);
-    // `bulkAutoAssign` se fue con D-401 (lo sustituye el diálogo); el cuerpo de `bulkAssign` acaba donde empieza `previewAdd`.
-    expect(pagina.indexOf("const previewAdd = async")).toBeGreaterThan(pagina.indexOf("const bulkAssign = async"));
-    const cuerpo = pagina.slice(pagina.indexOf("const bulkAssign = async"), pagina.indexOf("const previewAdd = async"));
+    // `bulkAutoAssign` se fue con D-401; el cuerpo de `bulkAssign` acaba donde empieza «Mejor lugar».
+    expect(pagina.indexOf("const colocaEnElMejorLugar = async")).toBeGreaterThan(pagina.indexOf("const bulkAssign = async"));
+    const cuerpo = pagina.slice(pagina.indexOf("const bulkAssign = async"), pagina.indexOf("const colocaEnElMejorLugar = async"));
     expect(cuerpo).toContain("clearSelection();");
   });
 });

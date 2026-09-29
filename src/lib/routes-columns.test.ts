@@ -284,7 +284,7 @@ describe("la página del Gestor", () => {
   it("D-376: la pestaña «Programadas» ya no está, ni lo que colgaba de ella; su cuenta lleva a las rutas", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])
       expect(pagina, muerto).not.toContain(muerto);
-    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline" | "incidents">("routes");');
+    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");');
     expect(pagina).toContain('{ n: scheduledCount, label: t("Scheduled", "Programadas"), target: "routes" as const },');
   });
   it("el selector marca y desmarca con la función probada, se cierra al hacer clic fuera, y nace con el defecto", () => {

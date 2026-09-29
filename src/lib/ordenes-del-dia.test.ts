@@ -178,11 +178,10 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
     expect(pagina).toContain('{(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
     expect(pagina).toContain('useState<ChipSinAsignar>("dia")');
   });
-  it("el resumen, la pestaña y «Auto-asignar» cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
+  it("el resumen y la pestaña cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
-    // Desde D-401 «Auto-asignar» reparte desde su diálogo: «Todas» es `unassigned` (el día), «Solo las marcadas» va con el chip.
-    expect(pagina).toContain("const ordenes = ordenesDelReparto(e.alcance, unassigned, marcadas);");
+    // «Auto-asignar», que repartía `unassigned` o las marcadas, se quitó en D-NEXT; lo marcado lo usan «Asignar» y «Mejor lugar».
     expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
-    expect(pagina).toContain("const marcadas = filasDelChip.filter((d) => selectedOrders.has(d.id));");
+    expect(pagina).toContain("separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
   });
 });

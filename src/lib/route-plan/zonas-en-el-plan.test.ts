@@ -14,7 +14,6 @@ import { planificaElDia, type Borrador } from "./borrador";
 import { COLUMNAS_DE_ORDEN, entradaDelDia, type DatosDelDia } from "./entrada";
 import { fraseDeZona, porQueDelPlan, porQueEstaAqui } from "./porque";
 import { ordenDeLaParte } from "./publicar";
-import { repartoConDetalle, type DiaParaElReparto, type FilaDelReparto } from "./reparto";
 
 /**
  * Zonas preferidas por chofer (D-421, T-0412), de la base a la pantalla. El dueño, 2026-09-27: *«ernesto is mcallen
@@ -140,8 +139,8 @@ describe("la consulta, con y sin la 152 aplicada", () => {
     expect(pedidas).toEqual(["profile_id, features, preferred_zones", "profile_id, preferred_zones", "profile_id"]);
   });
 
-  it("las dos rutas del servidor —«Planificar el día» y Auto-asignar— piden las zonas con esa lista", () => {
-    for (const f of ["src/app/api/route-plan/route.ts", "src/app/api/route-plan/reparto/route.ts"]) {
+  it("la ruta del servidor de «Planificar el día» pide las zonas con esa lista (la de Auto-asignar se quitó en D-NEXT)", () => {
+    for (const f of ["src/app/api/route-plan/route.ts"]) {
       expect(plano(leer(f))).toContain('leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER)');
     }
   });
@@ -209,7 +208,7 @@ const ordenesDe = (fecha: string) => F.orders
     ...o, stage: "approved", assigned_driver: null, route_seq: null, load_no: null, is_training: false, updated_at: "2026-09-27T00:00:00.000Z",
     order_code: null, delivery_name: null, account: null, invoice_num: null,
     delivery_address: o.delivery_lat != null ? `1 Calle Falsa, ${zonaDePin(Number(o.delivery_lat), Number(o.delivery_lng))}, TX 78500` : null,
-  }) as unknown as FilaDelReparto);
+  }) as unknown as DatosDelDia["ordenes"][number]);
 const DIAS = [...new Set(F.orders.map((o) => String(o.delivery_date)))].sort();
 
 const planDe = (fecha: string, ajustes: DatosDelDia["ajustesDeChofer"]) =>
@@ -286,20 +285,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
   });
 });
 
-describe("Auto-asignar reparte con las mismas zonas (usa el motor, D-419)", () => {
-  it("el 27, un clic con zonas pone más entregas en su zona que sin ellas, y coloca las mismas", async () => {
-    const fecha = "2026-09-27";
-    const ordenes = ordenesDe(fecha);
-    const dia = (ajustes: DatosDelDia["ajustesDeChofer"]): DiaParaElReparto => ({ ordenes, choferes: F.drivers, ajustesDeChofer: ajustes, settings: F.settings, noDisponibles: [], bloqueadas: [] });
-    const pet = { fecha, ordenes: ordenes.map((o) => o.id), choferes: F.drivers.map((d) => String(d.full_name)) };
-    const nombreDe = new Map(F.drivers.map((d) => [String(d.full_name), d.id]));
-    const cuenta = (esc: { id: string; chofer: string; nueva: boolean }[]) => esc.filter((e) => e.nueva && (ZONAS[nombreDe.get(e.chofer)!] ?? []).includes(zonaDeLaOrden(ordenes.find((o) => o.id === e.id)))).length;
-    const sin = (await repartoConDetalle(dia(F.driver_settings), pet, ZONA_HORARIA, deps())).respuesta;
-    const con = (await repartoConDetalle(dia(conZonas), pet, ZONA_HORARIA, deps())).respuesta;
-    expect(con.escrituras.filter((e) => e.nueva).length).toBe(sin.escrituras.filter((e) => e.nueva).length);
-    expect(cuenta(con.escrituras)).toBeGreaterThan(cuenta(sin.escrituras));
-  }, 120_000);
-});
+// «Auto-asignar reparte con las mismas zonas» (D-419) se fue con Auto-asignar en D-NEXT: repartir es «Armar rutas».
 
 // ---- Lo que se dice ------------------------------------------------------------------------------------------------
 

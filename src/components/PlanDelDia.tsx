@@ -208,9 +208,11 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   // Plegado tras un botón (D-346). El dueño: «build todays load automatically will be a button so it hides all that
   // information and just shows when i want it to». D-334 lo había hecho imposible de no ver porque entonces no lo
   // encontraba; ahora lo conoce y le estorba. Plegado sigue diciendo lo que importa: cuántas órdenes no tienen plan.
+  // Desde D-NEXT es el ÚNICO camino automático del Gestor (se quitaron Optimizar y Auto-asignar): sigue naciendo plegado,
+  // como pidió el dueño en D-346, pero su botón es el primario, para que se vea que es por aquí.
   if (!abierto) return (
     <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-      <button className="btn btn-ghost btn-sm" aria-expanded={false} onClick={() => setAbierto(true)}>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")} ▸</button>
+      <button className="btn btn-primary btn-sm" data-abrir-armar-rutas aria-expanded={false} onClick={() => setAbierto(true)}>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")} ▸</button>
       {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
       {borrador && <span className="hint" style={{ margin: 0 }}>{borrador.status === "published" ? t(`Published v${borrador.version}`, `Publicado v${borrador.version}`) : t(`Draft v${borrador.version}`, `Borrador v${borrador.version}`)}</span>}
       {onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}

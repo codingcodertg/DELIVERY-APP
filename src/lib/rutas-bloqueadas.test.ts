@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
-  alternaBloqueo, avisoDeSaltadas, cargaCandados, chocaConLosCandados, choquesAlPublicar, dondeViveElCandado, estaBloqueada, faltaLaTabla, guardaBloqueos, leeBloqueos,
-  leeCandadosCompartidos, LLAVE_DE_BLOQUEOS, optimizaSinLasBloqueadas, ponCandadoCompartido, pulsaCandado, quienBloqueo, rutasBloqueadasDelDia,
+  alternaBloqueo, cargaCandados, chocaConLosCandados, choquesAlPublicar, dondeViveElCandado, estaBloqueada, faltaLaTabla, guardaBloqueos, leeBloqueos,
+  leeCandadosCompartidos, LLAVE_DE_BLOQUEOS, ponCandadoCompartido, pulsaCandado, quienBloqueo, rutasBloqueadasDelDia,
   type ClienteDeCandados, type EstadoDeCandados, type FilaDeCandado, type OpcionesDeCandados,
 } from "./rutas-bloqueadas";
 
@@ -49,34 +49,9 @@ describe("el candado, por ruta y por día", () => {
   });
 });
 
-describe("optimizar sin las bloqueadas", () => {
-  const rutas = [{ clave: "Diego Driver" }, { clave: "Carlos R." }, { clave: "Miguel A." }];
-  it("la bloqueada NO se pide (cero llamadas al optimizador); las demás, sí, una vez cada una", async () => {
-    const optimizaUna = vi.fn(async () => {});
-    const r = await optimizaSinLasBloqueadas({ rutas, bloqueada: (k) => k === "Carlos R.", optimizaUna });
-    expect(optimizaUna).toHaveBeenCalledTimes(2);
-    expect(optimizaUna.mock.calls.map((c) => (c as unknown as [{ clave: string }])[0].clave)).toEqual(["Diego Driver", "Miguel A."]);
-    expect(r).toEqual({ bien: ["Diego Driver", "Miguel A."], saltadas: ["Carlos R."], fallidas: [] });
-  });
-  it("una que falla no cuenta como bien, se avisa, y el bucle sigue", async () => {
-    const alFallar = vi.fn();
-    const r = await optimizaSinLasBloqueadas({
-      rutas, bloqueada: () => false, alFallar,
-      optimizaUna: async (x) => { if (x.clave === "Diego Driver") throw new Error("401"); },
-    });
-    expect(r).toEqual({ bien: ["Carlos R.", "Miguel A."], saltadas: [], fallidas: ["Diego Driver"] });
-    expect(alFallar).toHaveBeenCalledTimes(1);
-  });
-  it("la pausa va entre las que se piden, no por las saltadas", async () => {
-    const pausa = vi.fn(async () => {});
-    await optimizaSinLasBloqueadas({ rutas, bloqueada: (k) => k !== "Diego Driver", optimizaUna: async () => {}, pausa });
-    expect(pausa).toHaveBeenCalledTimes(1);
-  });
-  it("el aviso dice cuántas se saltó y cuáles; sin saltadas, nada", () => {
-    expect(avisoDeSaltadas(["Carlos R."])!.es).toBe("Se saltó 1 ruta(s) bloqueada(s) 🔒: Carlos R..");
-    expect(avisoDeSaltadas([])).toBeNull();
-  });
-});
+// «Optimizar sin las bloqueadas» (`optimizaSinLasBloqueadas`, `avisoDeSaltadas`) se fue con «Optimizar» en D-NEXT. Lo que
+// queda del candado en la pantalla es «📍 Mejor lugar» (en `mejor-lugar.test.ts`) y el arrastre; la prueba de que ya no hay
+// Optimizar, Auto-asignar ni Simular está en `solo-armar-rutas.test.ts`.
 
 describe("la pantalla del Gestor respeta el candado", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
@@ -86,32 +61,11 @@ describe("la pantalla del Gestor respeta el candado", () => {
     return pagina.slice(i, pagina.indexOf(hasta, i + desde.length));
   };
 
-  it("«Optimizar todas las rutas» y el diálogo optimizan con `optimizaSinLasBloqueadas`, y el aviso dice cuántas se saltó", () => {
-    const optimizaEstas = trozo("const optimizaEstas = async", "const repartirConElDialogo");
-    expect(optimizaEstas).toContain("await optimizaSinLasBloqueadas({ rutas, bloqueada,");
-    expect(optimizaEstas).toContain("await applyPlan(r.clave, await computeRoute(r.clave, r.paradas));");
-    expect(optimizaEstas).toContain("const aviso = avisoDeSaltadas(saltadas.map(laneLabel));");
-    expect(optimizaEstas).toContain("if (aviso) notify(");
-    // Y ya no hay otro bucle que llame al optimizador por su cuenta.
-    expect(optimizaEstas.match(/computeRoute\(/g)).toHaveLength(1);
-  });
-  it("«Auto-asignar» no le mete órdenes: el diálogo no lo ofrece, y el reparto lo quita aunque llegue marcado", () => {
-    expect(pagina).toContain("rutas: drivers.filter((u) => !bloqueada(u.full_name)).map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),");
-    expect(trozo("const repartirConElDialogo = async", "const toggleOrder")).toContain("choferes: e.choferes.filter((c) => !bloqueada(c)),");
-  });
-  it("«Optimizar ruta» de la tarjeta: apagado con candado, y la función tampoco lo hace", () => {
-    expect(pagina).toContain("data-optimizar-ruta disabled={stops.length < 2 || busyDriver === u.key || bloqueada(u.key)}");
-    const optimize = trozo("const optimize = async (driver: string) => {", "setBusyDriver(driver);");
-    expect(optimize).toContain("if (bloqueada(driver)) {");
-  });
-  it("elegir un chofer no dibuja (optimiza) su ruta si está bloqueada", () => {
-    expect(pagina).toContain("if ((byDriver.get(name)?.length ?? 0) >= 1 && !routeInfo[name] && !bloqueada(name)) { optimize(name); return; }");
-  });
-  it("«Simular» (que reoptimiza) y «Reagrupar por zona» no empiezan con candado", () => {
-    expect(trozo("const previewAdd = async", "setPreviewBusy(d.id);")).toContain("if (bloqueada(driver)) {");
-    expect(trozo("const regroupByArea = async", "setBusyDriver(laneKey);")).toContain("if (!stops.length || bloqueada(laneKey)) return;");
-    // Y su botón se ve apagado, no solo no hace nada.
-    expect(pagina).toContain("<button className=\"btn btn-ghost btn-sm\" disabled={busyDriver === u.key || bloqueada(u.key)} title={t(\"Drop your truckloads");
+  it("elegir un chofer MIDE su ruta también con candado (medir no la toca); lo que escribía y miraba el candado se quitó (D-NEXT)", () => {
+    const efecto = trozo("const medidasPedidas = useRef(new Set<string>());", "// eslint-disable-next-line react-hooks/exhaustive-deps");
+    expect(efecto).toContain("void mide(name, stops);");
+    expect(efecto).not.toContain("bloqueada(");
+    for (const quitado of ["const optimize = async", "const optimizaEstas", "const previewAdd", "const regroupByArea", "const repartirConElDialogo"]) expect(pagina).not.toContain(quitado);
   });
   // Reemplazada en parte por D-414: el candado ya no se guarda siempre en el navegador; lo decide `pulsaCandado`.
   it("el candado de la tarjeta alterna el de ESE día, por `pulsaCandado` (base o navegador lo decide la librería)", () => {
