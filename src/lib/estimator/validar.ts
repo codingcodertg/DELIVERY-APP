@@ -108,7 +108,7 @@ export function puedeGuardar(q: QuoteDraft, estado: EstadoDelEstimado): boolean 
 export function borradorSinTrabajo(q: QuoteDraft): boolean {
   const v = borradorVacio(q.valid_through);
   const c = q.customer;
-  const clienteVacio = [c.full_name, c.company, c.phone, c.address].every((s) => !s.trim());
+  const clienteVacio = [c.full_name, c.company, c.phone].every((s) => !s.trim());
   // La tienda de salida no cuenta: la pone sola la pantalla (la del perfil), como la extensión.
   const entregaVacia = q.delivery.mode === "pickup" && q.delivery.charge === null
     && !q.delivery.address.trim() && q.delivery.lat === null && q.delivery.lng === null;

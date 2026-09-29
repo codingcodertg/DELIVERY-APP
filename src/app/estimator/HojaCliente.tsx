@@ -22,7 +22,8 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
       <div className="hc-datos">
         <div><span>Prepared for:</span> {hoja.preparadoPara}</div>
         <div><span>Quote Reference:</span> {hoja.referencia}</div>
-        <div><span>Valid through:</span> {hoja.validaHasta}</div>
+        {/* Sin «Valid through» aquí (D-NEXT): la validez sale una sola vez, «QUOTE VALID THROUGH …» junto al total. */}
+        {hoja.tienda && <div data-tienda-hoja><span>Store:</span> {hoja.tienda}</div>}
         <div><span>Sales Representative:</span> {hoja.representante}</div>
       </div>
 
@@ -48,7 +49,7 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
               <td>{f.cantidad.map((c, j) => <div key={j}>{c}</div>)}</td>
               <td className="hc-num">
                 {dinero(f.importe)}
-                {f.descuento && <div className="hc-descuento" data-descuento-linea>{f.descuento}</div>}
+                {f.precioConDescuento && <div className="hc-descuento" data-descuento-linea>{f.precioConDescuento}</div>}
               </td>
             </tr>
           ))}
@@ -67,11 +68,8 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
         <div>{hoja.avisoJuntoAlTotal}</div>
       </div>
 
+      {/* Lo último de la hoja: detrás de «Delivery: Available…» no va nada (D-NEXT). */}
       {hoja.entrega && <p className="hc-entrega">{hoja.entrega}</p>}
-
-      <div className="hc-notas">
-        {hoja.notas.map((n, i) => <p key={i}>{n}</p>)}
-      </div>
     </div>
   );
 }

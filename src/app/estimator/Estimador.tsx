@@ -13,7 +13,7 @@ import {
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
 import { tiendaDePartida, type AjustesDeEntrega } from "@/lib/estimator/entrega";
-import { hojaDelCliente } from "@/lib/estimator/hoja";
+import { hojaDelCliente, tiendaDeLaHoja } from "@/lib/estimator/hoja";
 import {
   estadoDelEstimado, trasComprobar, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado,
 } from "@/lib/estimator/validar";
@@ -28,6 +28,7 @@ import {
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
+import { EstimadosCompetencia } from "./EstimadosCompetencia";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
@@ -80,8 +81,12 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
   // ---- dónde se guarda --------------------------------------------------------------------------
   const [sinTablaDemo, setSinTablaDemo] = useState(false);
+  const [sin156Demo, setSin156Demo] = useState(false);
   useEffect(() => {
-    if (demo) setSinTablaDemo(new URLSearchParams(window.location.search).get("sinTabla") === "1");
+    if (!demo) return;
+    const q = new URLSearchParams(window.location.search);
+    setSinTablaDemo(q.get("sinTabla") === "1");
+    setSin156Demo(q.get("sin156") === "1");
   }, [demo]);
   const almacen: AlmacenDeCotizaciones = useMemo(
     () => (demo ? almacenDemo(() => meRef.current, sinTablaDemo) : almacenDeLaBase(createClient())),
@@ -89,8 +94,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   );
   // El estimado de la competencia (D-425): su propia tabla y su cubo (153), con la misma pareja base/demo.
   const almacenCompetencia: AlmacenDeCompetencia = useMemo(
-    () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo) : almacenDeCompetenciaDeLaBase(createClient())),
-    [demo, sinTablaDemo],
+    () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo, sin156Demo) : almacenDeCompetenciaDeLaBase(createClient())),
+    [demo, sinTablaDemo, sin156Demo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
 
@@ -118,6 +123,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const [politicaAbierta, setPoliticaAbierta] = useState(false);
   const [politicaMarcada, setPoliticaMarcada] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState(false);
+  /** Las dos pestañas (D-NEXT): la cotización de siempre, y todos los estimados de la competencia. */
+  const [pestana, setPestana] = useState<"cotizacion" | "competencia">("cotizacion");
 
   // La extensión sale sola (D-432, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
   // escribió la última vez en este navegador. Se reemplaza mientras nadie la toque (en demo «Ver como» cambia de
@@ -152,7 +159,9 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const draftRef = useRef(draft);
   useEffect(() => { draftRef.current = draft; }, [draft]);
   const quoteIdRef = useRef<string | null>(null);
-  const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); };
+  /** La tienda de la cotización guardada que está abierta (148); null si es nueva. Sale en la hoja (D-NEXT). */
+  const [tiendaGuardada, setTiendaGuardada] = useState<string | null>(null);
+  const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); if (!id) setTiendaGuardada(null); };
   const [comprobando, setComprobando] = useState(false);
   /** Una cotización guardada de este estimado que se puede abrir pero no se abrió sola (había trabajo tecleado). */
   const [ofertaAbrir, setOfertaAbrir] = useState<string | null>(null);
@@ -174,6 +183,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     if (!c.ok) { setAviso({ tipo: "rojo", texto: `${t("Could not open the quote", "No se pudo abrir la cotización")}: ${c.error}` }); return false; }
     setDraft(c.valor.draft);
     ponerQuoteId(c.valor.id);
+    setTiendaGuardada(c.valor.store);
     setPrintCount(c.valor.print_count);
     setOfertaAbrir(null);
     setAviso({ tipo: "verde", texto: t("Saved quote opened. Changes replace it: one quote per estimate.", "Cotización guardada abierta. Los cambios la reemplazan: una cotización por estimado.") });
@@ -337,7 +347,9 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     setCatalogo((c) => { const n = { ...c }; delete n[l.id]; return n; });
   };
 
-  const hoja = useMemo(() => hojaDelCliente(draft), [draft]);
+  // La tienda donde se creó (D-NEXT): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
+  const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
+  const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);
 
   if (!me) {
     return <div className="est-wrap"><p className="hint">{t("Loading…", "Cargando…")}</p></div>;
@@ -381,6 +393,23 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
         </div>
       )}
 
+      <div className="est-pestanas" role="tablist">
+        <button type="button" role="tab" aria-selected={pestana === "cotizacion"} data-pestana="cotizacion"
+          className={"btn btn-sm " + (pestana === "cotizacion" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("cotizacion")}>
+          🧮 {t("Quote", "Cotización")}
+        </button>
+        <button type="button" role="tab" aria-selected={pestana === "competencia"} data-pestana="competencia"
+          className={"btn btn-sm " + (pestana === "competencia" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("competencia")}>
+          🕵️ {t("Competitor estimates", "Estimados de la competencia")}
+        </button>
+      </div>
+
+      {pestana === "competencia" && (
+        <EstimadosCompetencia almacen={almacenCompetencia} me={me} t={t} lang={lang}
+          tiendas={ajustes.stores.map((s) => s.name)} tiendaDePartida={tiendaDePartida(me.store, ajustes.stores)} />
+      )}
+
+      {pestana === "cotizacion" && (<>
       {/* 1-2. Estimado y vendedor */}
       <div className="card">
         <h2>🔎 {t("Estimate", "Estimado")}</h2>
@@ -405,6 +434,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           <div className="field">
             <label>{t("Prepared by", "Preparada por")}</label>
             <div style={{ padding: "8px 0", fontWeight: 600 }}>{me.name}</div>
+          </div>
+          <div className="field">
+            <label>{t("Store (printed on the quote)", "Tienda (sale en la cotización)")}</label>
+            <div data-tienda style={{ padding: "8px 0", fontWeight: 600 }}>{tiendaHoja ?? <span className="hint">{t("No store on your profile", "Tu perfil no tiene tienda")}</span>}</div>
           </div>
         </div>
         {buscado && hallado && (estado === "sin-pedir" || estado === "denegada" || estado === "pendiente") && (
@@ -480,16 +513,12 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               <span className="hint" data-tel-mal style={{ color: "var(--red)" }}>{t("Not a 10-digit US number.", "No es un número de EE. UU. de 10 dígitos.")}</span>
             )}
           </div>
-          {/* «1 / -1» y no «span 3»: en el móvil la rejilla tiene una columna, y «span 3» fabricaba tres implícitas que
-              estrujaban Título y Teléfono (medido a 390 de ancho). */}
-          <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <label htmlFor="est-dir">{t("Address", "Dirección")}</label>
-            <input id="est-dir" value={draft.customer.address} onChange={(e) => setCliente({ address: e.target.value })} />
-          </div>
+          {/* Sin «Dirección» del cliente (D-NEXT, «remove dirrecion en estimador»): repetía la de entrega, que es la que
+              usa la calculadora de tarifa y vive en la sección Entrega. */}
         </div>
         <div className="est-ve-cliente" data-ve-cliente>
           {t("Customer sees only:", "El cliente solo ve:")} <b>{paraQuienSeImprime(draft.customer) || "—"}</b>.{" "}
-          {t("Company, phone and address are never printed.", "Empresa, teléfono y dirección no se imprimen nunca.")}
+          {t("Company and phone are never printed.", "Empresa y teléfono no se imprimen nunca.")}
         </div>
       </div>
 
@@ -569,7 +598,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                         onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
                     </div>
                     <div className="field">
-                      <label>{t("Lower $/SF (optional)", "$/SF más bajo (opcional)")}</label>
+                      <label>{t("Discount price $/SF (optional)", "Precio con descuento $/SF (opcional)")}</label>
                       <CampoDecimal value={l.lower_price_per_sf} data-precio-bajo
                         onValor={(n) => setLinea(l.id, { lower_price_per_sf: n })} />
                     </div>
@@ -589,7 +618,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                       <CampoDecimal value={l.unit_price} data-precio-unidad onValor={(n) => setLinea(l.id, { unit_price: n })} />
                     </div>
                     <div className="field">
-                      <label>{t("Lower unit price (optional)", "Precio unitario más bajo (opcional)")}</label>
+                      <label>{t("Discount unit price (optional)", "Precio unitario con descuento (opcional)")}</label>
                       <CampoDecimal value={l.lower_unit_price} data-precio-bajo onValor={(n) => setLinea(l.id, { lower_unit_price: n })} />
                     </div>
                   </>
@@ -602,18 +631,19 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                     <span>{t("Actual SF", "SF real")}: <b data-sfreal>{sfReal(l) !== null ? numero(sfReal(l)!, 2) : "—"}</b></span>
                   </>
                 )}
-                {/* El total de la línea a precio REGULAR es lo que ve el cliente; el % se calcula solo (D-442). */}
+                {/* El total de la línea a precio REGULAR y, si hay, el PRECIO con descuento: los dos salen en la hoja (D-NEXT).
+                    El % queda solo aquí, como dato para el vendedor: la hoja ya no lo imprime. */}
                 <span>{t("Line total", "Total de línea")}: <b data-total-linea>{regularTot !== null ? dinero(regularTot) : "—"}</b></span>
                 {pct !== null && tot !== null && (
                   <span data-descuento-calc>
-                    {t("Discount", "Descuento")}: <b data-pct>{numero(pct)}%</b> · {t("with lower price", "con el precio más bajo")}: <b data-total-bajo>{dinero(tot)}</b>
+                    {t("Discount price", "Precio con descuento")}: <b data-total-bajo>{dinero(tot)}</b> <span className="hint">({numero(pct)}% {t("off", "menos")})</span>
                   </span>
                 )}
               </div>
               {(estadoBajo === "no-menor" || estadoBajo === "sin-regular") && (
                 <p className="hint" data-sin-descuento style={{ color: "var(--red)", margin: "6px 0 0" }}>
                   {estadoBajo === "no-menor"
-                    ? t("The lower price is not below the regular price: no discount applied.", "El precio más bajo no es menor que el regular: no se aplica descuento.")
+                    ? t("The discount price is not below the regular price: no discount applied.", "El precio con descuento no es menor que el regular: no se aplica descuento.")
                     : t("Enter the regular price first: the discount is calculated from it.", "Escribe primero el precio regular: el descuento se calcula sobre él.")}
                 </p>
               )}
@@ -732,6 +762,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           <HojaCliente hoja={hoja} />
         </div>
       )}
+      </>)}
     </div>
   );
 }

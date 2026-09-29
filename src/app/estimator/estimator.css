@@ -23,6 +23,7 @@
 .est-radios label { text-transform: none; letter-spacing: normal; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; margin: 0; }
 .est-radios input { width: auto; }
 .est-total { font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 800; }
+.est-pestanas { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 16px; }
 .est-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .est-faltas { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--red, #d64545); }
 .est-politica p { font-size: 13.5px; margin: 0 0 10px; }
@@ -67,7 +68,6 @@
 .hc-validez { border: 2px solid #111; padding: 8px 10px; margin-bottom: 12px; }
 .hc-validez-fecha { font-weight: 700; font-size: 14px; letter-spacing: .03em; margin-bottom: 4px; }
 .hc-entrega { margin: 0 0 12px; }
-.hc-notas p { font-size: 11.5px; margin: 0 0 6px; }
 @media (max-width: 640px) {
   .hoja-cliente { padding: 18px 14px; font-size: 12px; }
 }

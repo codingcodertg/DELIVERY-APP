@@ -227,7 +227,7 @@ describe("ES INTERNO: la hoja del cliente no lo lleva nunca", () => {
   const ARCHIVO = "estimado-rival-9931.pdf";
   const borrador = (): QuoteDraft => ({
     ...borradorVacio("2026-09-30"), estimate_num: "E-77", sales_ext: "214",
-    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "", address: "" },
+    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "" },
     lines: [{ ...lineaSfVacia(), customer_category: "24x48 Tile", requested_sf: 100, sf_per_box: 10, price_per_sf: 2 }],
   });
 
@@ -273,7 +273,7 @@ describe("la pantalla usa estas piezas", () => {
   const seccion = leer("src/app/estimator/Competencia.tsx");
   it("la sección recibe la cotización abierta y si hay base de cotizaciones", () => {
     expect(pantalla).toContain("<SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang} />");
-    expect(pantalla).toContain("demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo) : almacenDeCompetenciaDeLaBase(createClient())");
+    expect(pantalla).toContain("demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo, sin156Demo) : almacenDeCompetenciaDeLaBase(createClient())");
   });
   it("decide su estado, valida antes de subir y solo deja quitar a quien puede", () => {
     expect(seccion).toContain("const estado = estadoDeCompetencia({ baseCotizaciones, baseArchivos, quoteId });");
