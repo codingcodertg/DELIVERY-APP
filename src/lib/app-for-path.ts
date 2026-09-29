@@ -23,6 +23,8 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   ["/promos", "promos"],
   // Igual con el Estimador (T-0408): sin esta linea /estimator enseñaria la version de deliveries.
   ["/estimator", "estimator"],
+  // Y con Encuestas (migración 155).
+  ["/surveys", "surveys"],
 ];
 
 export function appForPath(pathname: string | null): AppKey {
