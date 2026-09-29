@@ -14,6 +14,9 @@ import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrde
 import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
+import { BotonesDeTarifa } from "@/components/BotonesDeTarifa";
+import { CampoDecimal } from "@/components/CampoDecimal";
+import { escrituraAlComenzar, llegaSinTarifa, pideConfirmarTarifa } from "@/lib/confirmar-tarifa";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { ofrecePasarACliente, pideVendedor, tipoDeCliente, vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
@@ -167,6 +170,11 @@ export function OrderModal({
   // Aquí vivía la tarifa que el almacén confirmaba al agarrar la orden (D-143, D-146). Fuera
   // desde D-340, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
   // Almacén ya no confirma ni corrige la tarifa; «Comenzar preparación» mueve la etapa y ya.
+  //
+  // Nota D-NEXT (2026-09-29): vuelve la confirmación, SIN el bloqueo. El dueño: «they just need to confirm
+  // the amount». `tarifaAlComenzar` es el número del campo del diálogo; `null` es el campo vacío.
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [tarifaAlComenzar, setTarifaAlComenzar] = useState<number | null>(null);
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
   // New order: start on a small initial step (Order Type + Delivery Address to
@@ -416,7 +424,7 @@ export function OrderModal({
    * camión. Aquí no se decide si hay que cobrar —eso es negocio— solo se dice en voz alta
    * que no se cobró, y confirmarlo lo calla.
    */
-  const sinCobrar = existing != null && (existing.delivery_fee == null || Number(existing.delivery_fee) === 0);
+  const sinCobrar = existing != null && llegaSinTarifa(existing.delivery_fee);
   // The document this order's type asks for — invoice, PO or estimate — highlighted when viewing it
   // (D-278). Of the SAVED order: the view shows what is stored, not the draft being typed.
   const documento = existing ? documentoPrincipal(existing, settings.order_type_rules) : null;
@@ -792,6 +800,37 @@ export function OrderModal({
   // Lo que este comentario decía hasta D-373 —«nadie que no sea ventas escribe ya
   // `delivery_fee`»— describía el agujero, no la intención: al almacén se le fue la
   // escritura de rebote al quitar el diálogo. La escribe por el campo de siempre, con `tarifaEditable`.
+  //
+  // Nota D-NEXT (2026-09-29): el dueño pidió que se CONFIRME el monto otra vez —«they just need to confirm the
+  // amount»— y, preguntado, «confirmar el monto, sin bloqueo». Vuelve el diálogo, no el bloqueo: `comenzarPreparacion`
+  // lo abre solo para los tipos que cobran (`pideConfirmarTarifa`), y sin tarifa hay salida siempre.
+
+  /** «Comenzar preparación»: abre la confirmación del monto si el tipo cobra tarifa; si no, mueve la etapa y ya. */
+  const comenzarPreparacion = () => {
+    if (!existing) return;
+    if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void move("fulfilling"); return; }
+    setTarifaAlComenzar(existing.delivery_fee ?? null);
+    setShowStartConfirm(true);
+  };
+
+  /**
+   * Sale del diálogo moviendo la etapa. UNA sola escritura: la etapa y, solo si cambió, la tarifa. En dos, un fallo
+   * entre medias dejaría la orden en preparación con la tarifa vieja (D-146). Qué se escribe lo decide
+   * `escrituraAlComenzar`; aquí solo se llama.
+   */
+  const confirmarYComenzar = async (sinTarifa: boolean) => {
+    if (!existing) return;
+    const escritura = escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar, sinTarifa);
+    if (!escritura) { notify(t("Enter the delivery fee, or cancel.", "Escriba la tarifa de entrega, o cancele.")); return; }
+    setBusy(true);
+    const ok = await setStage(existing.id, "fulfilling", t(escritura.nota.en, escritura.nota.es), escritura.extra);
+    setBusy(false);
+    if (ok) {
+      setShowStartConfirm(false);
+      notify(t(`Moved to ${stageLabel("fulfilling", lang)}`, `Movido a ${stageLabel("fulfilling", lang)}`));
+      onClose();
+    }
+  };
 
   /**
    * Guardar «agregar material» (D-339): una sola escritura con la factura, los pallets y las dos
@@ -1325,6 +1364,7 @@ export function OrderModal({
       onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
+      onRequestStart={comenzarPreparacion}
       readyConfirmOpen={showReadyConfirm}
       onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
       onConfirmReady={confirmReady}
@@ -1751,17 +1791,9 @@ export function OrderModal({
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
             {/* Los dos botones otra vez, Lista y Descuento (D-303): D-283 los dejó en uno y el
                 dueño pidió el descuento de vuelta el mismo día. */}
-            {(feeSuggestion.list != null || feeSuggestion.discount != null) && (
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
-                <span className="hint" style={{ margin: 0 }}>{t("Suggested fee:", "Tarifa sugerida:")}</span>
-                {feeSuggestion.list != null && (
-                  <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.list ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.list ? null : feeSuggestion.list)}>{d.delivery_fee === feeSuggestion.list ? "✓ " : ""}{t("List", "Lista")} {fmtMoney(feeSuggestion.list)}</button>
-                )}
-                {feeSuggestion.discount != null && (
-                  <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.discount ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.discount ? null : feeSuggestion.discount)}>{d.delivery_fee === feeSuggestion.discount ? "✓ " : ""}{t("Discount", "Descuento")} {fmtMoney(feeSuggestion.discount)}</button>
-                )}
-              </div>
-            )}
+            {/* Desde D-NEXT los botones son `BotonesDeTarifa`, el mismo componente en los tres sitios. */}
+            <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={feeSuggestion.discount}
+              elegir={(v) => set("delivery_fee", v)} t={t} />
             {/* Y aquí también (D-249). D-244 puso el desglose solo en el bloque de zona local,
                 y este es el que ve quien crea un pedido paso a paso — el dueño calculó la
                 tarifa desde el mapa y no encontró el «¿Cómo se calculó?». Mismo componente y
@@ -2031,19 +2063,8 @@ export function OrderModal({
                   {d.route_miles != null && <span className="hint" style={{ margin: 0 }}>· {d.route_miles} mi</span>}
                 </div>
                 {(feeSuggestion.list != null || feeSuggestion.discount != null) ? (
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
-                    <span className="hint" style={{ margin: 0 }}>{t("Suggested fee:", "Tarifa sugerida:")}</span>
-                    {feeSuggestion.list != null && (
-                      <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.list ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.list ? null : feeSuggestion.list)}>
-                        {d.delivery_fee === feeSuggestion.list ? "✓ " : ""}{t("List", "Lista")} {fmtMoney(feeSuggestion.list)}
-                      </button>
-                    )}
-                    {feeSuggestion.discount != null && (
-                      <button type="button" className={"btn btn-sm " + (d.delivery_fee === feeSuggestion.discount ? "btn-primary" : "btn-ghost")} onClick={() => set("delivery_fee", d.delivery_fee === feeSuggestion.discount ? null : feeSuggestion.discount)}>
-                        {d.delivery_fee === feeSuggestion.discount ? "✓ " : ""}{t("Discount", "Descuento")} {fmtMoney(feeSuggestion.discount)}
-                      </button>
-                    )}
-                  </div>
+                  <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={feeSuggestion.discount}
+                    elegir={(v) => set("delivery_fee", v)} t={t} />
                 ) : (
                   <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route below to price this delivery by miles.", "Calcule la ruta abajo para cotizar esta entrega por millas.")}</div>
                 )}
@@ -2796,6 +2817,75 @@ export function OrderModal({
       );
     })()}
 
+    {/* Confirmar el MONTO al comenzar la preparación (D-NEXT). Vuelve el diálogo de D-146 sin su bloqueo: el dueño,
+        «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Se ve lo que cobró
+        ventas, se confirma o se corrige ahí mismo, y sin tarifa hay salida. Solo lo abre `comenzarPreparacion`, y solo
+        para los tipos que cobran (`pideConfirmarTarifa`). */}
+    {showStartConfirm && existing && (() => {
+      const escritura = escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar);
+      return (
+      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal" style={{ maxWidth: 440 }}>
+          <h3 style={{ marginTop: 0 }}>{t("Confirm the delivery fee", "Confirmar la tarifa de entrega")}</h3>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t("Check the amount before you start preparing. If it is wrong, correct it here.",
+               "Revise el monto antes de comenzar a preparar. Si está mal, corríjalo aquí.")}
+          </p>
+          <ChoferYPallets pedido={existing} />
+          <div className="field">
+            <label>{t("Delivery fee ($)", "Tarifa de entrega ($)")}</label>
+            <CampoDecimal value={tarifaAlComenzar} onValor={setTarifaAlComenzar} autoFocus placeholder="0.00" />
+            <div className="hint">
+              {/* Lo que puso ventas, y de dónde sale el precio calculado —ciudad, zona y millas— (D-144): un importe
+                  suelto obliga a creérselo. */}
+              {t("Sales charged:", "Ventas cobró:")} <strong>{fmtMoney(existing.delivery_fee)}</strong>
+              {feeSuggestion.list != null && (
+                <>{" · "}{feeSuggestion.city || t("this address", "esta dirección")}{" · "}
+                  {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
+                  {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}</>
+              )}
+            </div>
+            <BotonesDeTarifa tarifa={tarifaAlComenzar} list={feeSuggestion.list} discount={feeSuggestion.discount}
+              elegir={setTarifaAlComenzar} t={t} />
+            {/* Donde sale «Tarifa sugerida» sale su desglose, para el admin real (D-249). */}
+            {realRole === "admin" && feeSuggestion.breakdown && (
+              <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
+            )}
+            {escritura?.caso === "corregida" && (
+              <div className="banner warn" style={{ marginTop: 8 }}>
+                {t(`It will be corrected: ${fmtMoney(existing.delivery_fee)} → ${fmtMoney(tarifaAlComenzar)}`,
+                   `Se corregirá: ${fmtMoney(existing.delivery_fee)} → ${fmtMoney(tarifaAlComenzar)}`)}
+              </div>
+            )}
+            {sinCobrar && (
+              <div className="banner err" style={{ marginTop: 8 }}>
+                🚩 {existing.delivery_fee == null
+                  ? t("No fee was charged on this order.", "Esta orden no tiene tarifa cobrada.")
+                  : t("The fee on this order is $0.", "La tarifa de esta orden es $0.")}
+                {" "}{t("You can continue anyway: it is noted in the history and the order stays flagged.",
+                        "Puede continuar igual: queda anotado en el historial y la orden sigue marcada.")}
+              </div>
+            )}
+          </div>
+          {/* La salida sin tarifa a la izquierda del principal, para que no se pulse por inercia (D-287). No escribe
+              tarifa: la orden sigue con su 🚩 y quien tenga que cobrarla la encuentra. */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
+            <button className="btn btn-ghost" onClick={() => setShowStartConfirm(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+            <span style={{ flex: 1 }} />
+            {sinCobrar && (
+              <button className="btn btn-ghost" onClick={() => void confirmarYComenzar(true)} disabled={busy}>{t("No fee — continue anyway", "Sin tarifa — continuar igual")}</button>
+            )}
+            <button className="btn btn-primary" onClick={() => void confirmarYComenzar(false)} disabled={busy || !escritura}>
+              {escritura
+                ? t(`Confirm ${fmtMoney(tarifaAlComenzar)} and start`, `Confirmar ${fmtMoney(tarifaAlComenzar)} y comenzar`)
+                : t("Confirm the fee and start", "Confirmar la tarifa y comenzar")}
+            </button>
+          </div>
+        </div>
+      </div>
+      );
+    })()}
+
     {showReadyConfirm && existing && (
       <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal" style={{ maxWidth: 420 }}>
@@ -2949,7 +3039,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 function StageActions({
   me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
-  onAddMaterial, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onAddMaterial, onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive, puedeRecibirla, onReceive,
 }: {
@@ -2967,6 +3057,8 @@ function StageActions({
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de «Agregar material» del vendedor dueño de la orden (D-339). */
   onAddMaterial: () => void;
+  /** «Comenzar preparación» (D-NEXT): abre la confirmación del monto, o mueve la etapa si el tipo no cobra tarifa. */
+  onRequestStart: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
   /** Driver's one-tap pickup: takes the full load, no count prompt. */
@@ -3037,7 +3129,9 @@ function StageActions({
     // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
     // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
     // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
-    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={() => onMove("fulfilling")} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
+    // Nota D-NEXT: vuelve a abrir la confirmación del MONTO, sin bloqueo —«they just need to confirm the amount»—.
+    // Sale para quien pulse el botón (almacén, o el gerente que hace bodega, D-397): es el paso del almacén.
+    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
     if (stage === "fulfilling") {
       // Opens the confirm-pallets popup (the actual confirm/discard lives there).
       btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);

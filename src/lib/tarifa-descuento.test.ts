@@ -168,23 +168,27 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     // no podía esconder nada; ahora, que no hay ninguna que pueda.
     const modal = readFileSync("src/components/OrderModal.tsx", "utf8").split("\r\n").join("\n");
     expect(modal).not.toContain("feeSuggestion.discount !== feeSuggestion.list");
-    // Y donde se enseña la lista se enseña el descuento: los dos bloques de botones de tarifa
-    // ofrecen los dos precios, cada uno con su única condición, que es tener valor.
-    expect(modal.split("(feeSuggestion.list != null || feeSuggestion.discount != null)").length - 1).toBe(2);
-    expect(modal.split("{feeSuggestion.discount != null && (").length - 1).toBe(2);
+    // Y donde se enseña la lista se enseña el descuento, cada uno con su única condición, que es tener valor.
+    // Nota D-NEXT: los botones salieron de la ficha a `BotonesDeTarifa`, que pinta la ficha en sus dos sitios Y el
+    // diálogo de «Comenzar preparación». Lo que se contaba en la ficha se mira ahora en el componente, y que los tres
+    // sitios le pasan los DOS precios.
+    const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8").split("\r\n").join("\n");
+    expect(boton).not.toContain("discount !== list");
+    expect(boton).toContain("{list != null && (");
+    expect(boton).toContain("{discount != null && (");
+    expect(modal.split("<BotonesDeTarifa ").length - 1).toBe(3);
+    expect(modal.split("list={feeSuggestion.list} discount={feeSuggestion.discount}").length - 1).toBe(3);
   });
 
   it("los dos botones de la ficha salen de `feeSuggestion`, cada uno con su precio", () => {
     // Los dos botones existen y cada uno escribe SU número, no el de al lado. El toggle («si ya
     // está puesto, lo quita») es parte de la cita a propósito: sin él, un botón que escribiera
     // siempre la lista pasaría un `toContain` más corto.
-    const modal = readFileSync("src/components/OrderModal.tsx", "utf8");
-    const veces = (campo: string) =>
-      modal.split(`set("delivery_fee", d.delivery_fee === feeSuggestion.${campo} ? null : feeSuggestion.${campo})`).length - 1;
-    // **Se cuentan, no se buscan.** La pareja de botones está en DOS sitios de la ficha, así que un
-    // «¿aparece al menos una vez?» lo pasaría un cambio que dejara uno de los dos botones del
-    // descuento escribiendo la lista. Medido con ese mutante: con `>= 1` sobrevivía.
-    expect([veces("list"), veces("discount")]).toEqual([2, 2]);
+    // **Se cuentan, no se buscan.** Nota D-NEXT: la pareja vive ahora una sola vez, en `BotonesDeTarifa`; se cuenta
+    // allí, exactamente una por precio, para que un botón del descuento que escribiera la lista no pase.
+    const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8");
+    const veces = (campo: string) => boton.split(`onClick={() => elegir(tarifa === ${campo} ? null : ${campo})}`).length - 1;
+    expect([veces("list"), veces("discount")]).toEqual([1, 1]);
   });
 });
 
@@ -215,6 +219,11 @@ describe("las órdenes guardadas no se recalculan", () => {
         expect(trozo, campo).toContain("onClick");
       }
     }
+    // Nota D-NEXT: los botones escriben por `elegir` dentro de `BotonesDeTarifa`; ahí también, solo en un `onClick`.
+    const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8");
+    const llamadas = todasLasVeces(boton, "elegir(");
+    expect(llamadas.length).toBe(2);
+    for (const trozo of llamadas) expect(trozo.slice(-40)).toContain("onClick");
   });
 });
 
