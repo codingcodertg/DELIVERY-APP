@@ -227,7 +227,7 @@ describe("el modal y los dos proveedores usan esto", () => {
   it("el modal abre, cambia de tipo, elige las dos puntas y registra la re-entrega con estas funciones", () => {
     expect(modal).toContain("setD((p) => borradorInicial(p, contextoDelUsuario));");
     expect(modal).toContain("const withTypeDefaults = (p: Draft, newType: string): Draft => aplicaTipo(p, newType, contextoDelUsuario);");
-    // Los dos selectores de tipo, el atajo «Es para un cliente» de office (D-NEXT) y la cuenta que trae
+    // Los dos selectores de tipo, el atajo «Es para un cliente» de office (D-439) y la cuenta que trae
     // su tipo pasan por ahí.
     expect(modal.split("withTypeDefaults(").length - 1).toBe(4);
     expect(modal).toContain("on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}");

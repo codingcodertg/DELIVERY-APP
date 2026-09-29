@@ -107,7 +107,7 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   it("elige vendedor al crear una orden de cliente", () => {
-    // Desde D-NEXT la regla vive en lib/sales-reps (`pideVendedor`), y la usa también el atajo de office.
+    // Desde D-439 la regla vive en lib/sales-reps (`pideVendedor`), y la usa también el atajo de office.
     expect(modal).toContain("const needsSalesRep = pideVendedor(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));");
     expect(eligeVendedorAlCrear("accounting")).toBe(true);
     expect(eligeVendedorAlCrear("manager")).toBe(true);

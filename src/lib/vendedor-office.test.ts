@@ -8,7 +8,7 @@ import { eligeVendedorAlCrear, ofrecePasarACliente, pideVendedor, tipoDeCliente,
 import type { UserRole } from "./types";
 
 /**
- * Office no encontraba «Vendedor» al crear una orden (D-NEXT).
+ * Office no encontraba «Vendedor» al crear una orden (D-439).
  *
  * El dueño: «ADD VENDEDOR LIKE ADMIN, ADD THAT TO ALL OFFICE PEOPLE SO THEY CAN CREATE AN ORDER AND
  * ATTACHED A VENDEDOR»; preguntado qué faltaba: «No le sale el campo».

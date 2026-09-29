@@ -104,7 +104,7 @@ export function pideVendedor(rol: string | null | undefined, esNueva: boolean, t
 }
 
 /**
- * **Office no encontraba el campo, y no porque no lo tuviera** (D-NEXT). El dueño: *«ADD VENDEDOR LIKE
+ * **Office no encontraba el campo, y no porque no lo tuviera** (D-439). El dueño: *«ADD VENDEDOR LIKE
  * ADMIN, ADD THAT TO ALL OFFICE PEOPLE SO THEY CAN CREATE AN ORDER AND ATTACHED A VENDEDOR»*; preguntado
  * qué faltaba: *«No le sale el campo»*.
  *

@@ -32369,7 +32369,7 @@ chofer» (D-414): ahí quiere decir que el chofer llegó tarde, no que la orden 
 
 ---
 
-## D-NEXT · Office no encontraba «Vendedor» al crear una orden: abre en Intertienda, y en el hueco del campo sale ahora «Es para un cliente»
+## D-439 · Office no encontraba «Vendedor» al crear una orden: abre en Intertienda, y en el hueco del campo sale ahora «Es para un cliente»
 
 **Fecha:** 2026-09-28. **Sin migración.** No reemplaza nada: **D-084** (office abre en Intertienda) y la regla de que un
 movimiento tienda-a-tienda no lleva vendedor siguen como estaban.

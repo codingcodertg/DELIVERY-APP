@@ -288,7 +288,7 @@ export function OrderModal({
   // behalf need one.
   const needsSalesRep = pideVendedor(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));
   // Office abre en Intertienda (D-084) y ahí no hay «Vendedor»: en su hueco, el atajo a una orden de
-  // cliente, que es donde está (D-NEXT). Sin tipo de cliente configurado no se pinta.
+  // cliente, que es donde está (D-439). Sin tipo de cliente configurado no se pinta.
   const tipoCliente = tipoDeCliente(settings.order_types, settings.order_type_rules);
   const atajoACliente = !!tipoCliente && ofrecePasarACliente(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
