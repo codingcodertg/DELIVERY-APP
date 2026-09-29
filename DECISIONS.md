@@ -23198,7 +23198,11 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 
 > **⚠ Reemplazada en parte por D-346** (2026-09-20). «Armar las rutas del día» ya no es imposible de no ver: el dueño
 > lo pidió plegado tras un botón. El resto sigue vigente.
-
+>
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Las recogidas no llevan flechas» ya no vale — las filas P llevan ↑↓
+> (qué tienda se recoge antes, adelantando su primera entrega) y un «Viaje N» que pasa su carga a otro viaje. Y la marca P
+> del mapa ya no va «del color del chofer», sino del color de SU viaje (el del chofer es solo el del viaje 1). La numeración
+> y las reglas de lectura no cambian.
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
 asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
 **Pedido por:** Andrés, literal: «I DONT SEE P1 PICKUP 1 PICKUP 2 AS P2 AND D1 AND D2 … AND SO ON».
@@ -32366,3 +32370,145 @@ así que no hay «última pestaña = incidencias» que recoger.
 **Qué cambió.** La etiqueta roja junto a la fecha de entrega de una orden vencida (`OrdersTable.tsx`, `isOverdue`) pasa de
 «Late / Tarde» a «Expired / Expirada», igual que la pastilla «Expiradas» de D-426. **No cambia** «Tarde» en «Puntualidad por
 chofer» (D-414): ahí quiere decir que el chofer llegó tarde, no que la orden venció.
+
+## D-NEXT · Gestor de Rutas: cada recogida del mapa con el color de SU viaje; las filas P se reordenan y cambian de viaje; «Ver un viaje» filtra tabla y mapa
+
+**Fecha:** 2026-09-28. **Sin migración.** **Reemplaza en parte a D-334** (recogidas sin flechas; la P del mapa «del color
+del chofer»), que lleva su nota. No toca `OrderModal` (otra rama).
+
+**Qué pidió el dueño** (citas tal como las pasó el orquestador, no extraídas del fichero de sesión), con una captura del
+Gestor: la tarjeta de Maximo Garza (4 paradas, 2 viajes, «viajes fijados por usted», «Supera la capacidad de 10 pallets del
+camión (11 a bordo)…», «Esta ruta cambió desde que se publicó el plan»). Viaje 1 (~9/10, naranja): P1·P2 Recoger en RDZ
+Brownsville — #FT201 · #FT521; P3 Recoger en RDZ Weslaco — #FT523; D1 South Padre Island, D3 Donna, D2 Edinburg. Viaje 2
+(~2/10, cian): P4 Recoger en RDZ Weslaco — #FT510; D4 La Feria. En el mapa D4 salía cian y **P4 naranja**, junto a P3.
+1. *«why p4 is not in cyan since is in viaje 2, please check»*
+2. *«also in that same picture why i can't rearrenge pickup check that»*
+3. Después, en la misma tanda: *«select truckload so it only shows one truckload or all in the logistic manager routes and
+   map»*.
+Y el orquestador pidió mirar las D del viaje 1 que salían D1, D3, D2.
+
+### Reproducido antes de tocar nada (demo, Chrome por CDP, 1280 px, 2026-09-28)
+
+Diego Driver con la forma de la captura: viaje 1 a mano con #1069 Brownsville (3), #1068 Weslaco (3), #1067 Brownsville (3)
+= 9/10; viaje 2 con #1066 Weslaco (2); tiendas con coordenadas puestas en el demo; y un plan publicado simulado en el
+navegador con las mismas órdenes en otro orden (para el aviso). La tarjeta: `P1·P2 Brownsville · P3 Weslaco · D1 · D3 · D2 ·
+P4 Weslaco · D4`, el aviso «This route changed…», **0 botones en las tres filas P**. El mapa: `P1·P2, P3, P4, D1, D3, D2`
+en `rgb(36, 86, 201)` (el color del chofer = viaje 1) y **solo `D4` en `rgb(195, 66, 35)`** (viaje 2). Lo mismo que la captura.
+
+### 1 · El color de P4: la marca P salía del color del CHOFER, no del viaje
+
+**Causa, en el código:** las entregas del mapa se pintan con `tripColor(color del chofer, viaje)` (`stopColor`), pero las
+recogidas se sacaban de `lectura.previas` —que no dice de qué viaje es cada fila— con `color: colorFor(chofer)`. Y
+`tripColor(base, 0)` **es** el color del chofer: así que toda P salía del color del viaje 1, fuera del viaje que fuera. D-334
+lo escribió así a propósito («del color del chofer, que es lo que distingue una ruta de otra»), cuando todavía no había
+viajes con color propio en el mapa. **No** era que P3 y P4 compartieran marcador por estar en la misma tienda: ya eran dos
+marcas (`__pd__<ruta>__P3` y `__P4`), abiertas en abanico por D-367; las dos del mismo color.
+
+**Ahora:** `recogidasPorViaje` (`lectura-de-ruta.ts`) recorre cada viaje con `filasDelViaje` —**lo mismo que pinta la
+tabla**— y devuelve cada fila P con su viaje. El mapa pinta cada P con el color de su viaje, el mismo que sus entregas
+(`colorDelViaje`, sacado del mismo bucle que `stopColor`). La etiqueta al pasar el ratón dice también «Viaje N».
+- **Dos recogidas en la misma tienda en viajes distintos son dos marcas**, cada una de su color, en abanico. Se eligió así y
+  no «una marca partida» porque son dos visitas: el camión vuelve a la tienda a cargar otro viaje. Una marca con las dos
+  etiquetas diría que se recoge todo a la vez.
+- Una recogida es del viaje de la entrega que la sigue. Lo que la lectura deja al final (la recogida de una orden ya
+  entregada, D-433) va con el último viaje, como en la tabla — y ahora sale en el mapa, que antes no la pintaba.
+- **Medido después:** `P1·P2, P3` en `rgb(36, 86, 201)`; **`P4` y `D4` en `rgb(195, 66, 35)`**.
+
+### 2 · Reordenar recogidas: por qué no se podía, y cómo se hace ahora
+
+**Por qué no:** en una ruta hecha a mano lo único que se guarda de cada orden es su viaje (`load_no`) y su puesto de
+ENTREGA (`route_seq`). La P es la recogida de esa misma orden y **se deriva** (D-334): las tiendas de un viaje se recogen
+en el orden de su **primera entrega**. No existe ningún campo «esta tienda antes que aquella» independiente de las
+entregas; D-334 lo dejó dicho («en una ruta manual solo se decide el orden de las entregas») y la fila P no tenía controles.
+
+**Ahora, en cada fila P** (derecha, donde las D tienen los suyos):
+- **↑ / ↓ — qué tienda se recoge antes en este viaje.** Como lo que decide el orden de recogida es la primera entrega de
+  cada tienda, la flecha **adelanta la primera entrega de esa tienda justo delante de la primera de la tienda que se
+  salta**, y nada más (`ordenaPorRecogidas`, `planDeFlechaDeRecogida`, `src/lib/mover-recogida.ts`). Se dice al pulsar:
+  *«Weslaco se recoge ahora antes que Brownsville: para eso, #1068 se entrega ahora antes que #1069 (las recogidas siguen la
+  primera entrega de cada tienda)»*. Lo que se guarda (`route_seq`) es lo que se lee después y lo que pinta el mapa: no hay
+  un orden de recogida «de pantalla» aparte. La primera no sube, la última no baja, y una fila P que solo nombra algo ya
+  entregado no se mueve: ahí la flecha sale **apagada**.
+- **«Viaje N» — pasar la carga de esa recogida (todas sus órdenes) a otro viaje** o a uno nuevo
+  (`planDeCambioDeViajeDeVarias`, `mover-parada.ts`). Las reglas de D-433, para el grupo entero: al final del destino,
+  **solo si cabe TODO** (si no, no se mueve ninguna y se dice cuánto lleva), un viaje nuevo siempre, la ruta entera
+  reescrita. `planDeCambioDeViaje` (el de una parada) es ahora ese mismo con una sola orden (prueba de que dan lo mismo).
+- Las dos, como las flechas de parada: **numeran tras lo ya hecho** (`inicioDeLaRuta`, D-433), **entran en deshacer/rehacer**
+  (D-417) con la foto de lo que escribieron, y **se permiten con candado 🔒** (D-411: el candado protege de lo automático, no
+  de quien despacha). Con viajes a mano cada orden conserva su viaje; si la ruta se parte sola por capacidad basta la
+  secuencia, salvo que el orden nuevo la partiera distinto (con fracciones de pallet la suma en coma flotante depende del
+  orden: 0,3+0,1+0,2 da 0,6000000000000001 > 0,6) — entonces se fijan los viajes que se ven, como soltar en «📅 Horario».
+- **Descartado:** un orden de recogida propio, separado de las entregas. Es lo que de verdad desacoplaría P de D, pero
+  necesita una columna nueva en `deliveries` (migración) y que publicar, «Mi ruta» y el motor la lean. Si el dueño quiere
+  mover recogidas **sin** que se muevan entregas, es eso, y es otra decisión.
+- **Descartado:** que la flecha de una P cruce al viaje de al lado. Para eso está su «Viaje N», que mira la capacidad.
+- **Consecuencia a validar:** con plan publicado y la ruta tal como se publicó, el orden de las P de la tabla es el del
+  plan; la flecha trabaja con ese orden, pero tras escribir la ruta ya no es la publicada (sale el aviso) y se lee derivada.
+  Si el plan tenía un orden de recogidas que la lectura derivada no puede expresar, la flecha puede salir apagada.
+
+**Medido en el demo después (1280):**
+- Flechas de partida: P1·P2 [↑ apagada, ↓ viva], P3 [↑ viva, ↓ apagada], P4 [las dos apagadas, sola en su viaje]. El «Viaje
+  N» de P4 dice «Truckload 1 — won't fit».
+- **↑ en P3:** guardado `#1068 seq=0 · #1069 seq=1 · #1067 seq=2 · #1066 seq=3 load=2` (antes `#1069, #1068, #1067, #1066`);
+  la tarjeta: `P1 Weslaco · P2·P3 Brownsville · D1 · D2 · D3 · P4 Weslaco · D4`; el mapa, P1 y P2·P3 del viaje 1 y P4 del 2.
+  **Deshacer** lo devolvió idéntico a la partida.
+- **P4 → Viaje 1:** «The pickup at Weslaco (2 pallets) doesn't fit in truckload 1: it already carries 9 of 10. Nothing was
+  moved…», y lo guardado no cambió.
+- **P3 → Viaje 2** (con el teclado sobre su selector): `#1069 seq=0 · #1067 seq=1 · #1066 seq=2 load=2 · #1068 seq=3 load=2`;
+  la tarjeta: viaje 1 `P1·P2 Brownsville · D1 · D2` (6/10) y viaje 2 `P3·P4 Weslaco · D3 · D4` (5/10) — las dos recogidas de
+  Weslaco quedan en una parada. Deshacer, idéntico a la partida.
+
+### 3 · «D1, D3, D2» no es un fallo
+
+Es la regla de D-334, escrita por el dueño: el número es el de **recogida** («P1, P2, P3… = Pickup 1, 2, 3», y su ejemplo
+`Base → P1 → P2 → D2 → P3 → D1 → D3`); `Dk` es siempre la entrega de lo recogido en `Pk`. En el viaje 1 se recoge primero en
+Brownsville (#FT201 = P1, #FT521 = P2) y luego en Weslaco (#FT523 = P3), y se entrega SPI (#FT201 → D1), Donna (#FT523 → D3)
+y Edinburg (#FT521 → D2). Con dos órdenes de la misma tienda entregadas no seguidas, las D saltan siempre. **No viene del
+plan publicado:** la ruta ya no es la publicada (sale el aviso), así que las etiquetas son las derivadas. Queda fijado en una
+prueba con la forma exacta de la captura. Con la flecha nueva, poner Weslaco primero deja `D1 · D2 · D3` (medido arriba),
+pero porque cambia el orden de recogida, no la regla.
+
+### 4 · «Ver un viaje»: un selector por tarjeta que filtra la tabla y el mapa
+
+En la cabecera de cada tarjeta con más de un viaje, junto a «N viajes»: **«Todos los viajes» / «Viaje 1» / «Viaje 2»…**
+(`filtro-de-viaje.ts`). Con un viaje elegido, la tabla de esa tarjeta enseña solo ese viaje, y el mapa, **para ese chofer**,
+solo sus entregas, sus recogidas y su línea. Los demás choferes no cambian.
+- **Por tarjeta y no global** junto al filtro de chofer: cada chofer tiene sus viajes; un «Viaje 2» global no querría decir
+  nada para el que tiene uno, y con varios choferes a la vista cada uno puede mirar el suyo.
+- **Un «Viaje N» que el chofer ya no tiene vuelve a «Todos»** (se unieron los viajes, se movió la última parada): esconder
+  la ruta entera por un número viejo no ayuda a nadie.
+- **Solo mira.** No escribe nada; flechas, «Viaje N», las filas P y el arrastre siguen trabajando sobre la ruta ENTERA, con
+  sus índices de siempre. Una flecha de parada que la saca del viaje que se ve la pasa a uno que no se ve: se deja, porque
+  es lo que hace la flecha.
+- **Vive mientras se mira ese día:** estado de la página, se vacía al cambiar de fecha; no va a `user_prefs`.
+- **El trazo del plan publicado** es una línea para todo el día, sin cortes por viaje: con un viaje elegido no se pinta, y
+  se pinta la línea medida de ese viaje si la hay. El aviso «Esta ruta cambió…» sale encima del viaje que se ve.
+- **Medido en el demo:** 1280 — «Viaje 2»: la tabla `Truckload 2 · aviso · P4 Weslaco · D4`, el mapa solo `P4` y `D4` (los
+  dos `rgb(195, 66, 35)`), lo guardado igual; «Todos»: las 10 filas y las 7 marcas otra vez. Con Diego elegido en el panel (la
+  medida con el doble de `/api/optimize-route`, `optimize: false`): «Todos» 2 trazos, «Viaje 2» 0, «Todos» 2 otra vez, sin
+  llamadas nuevas. 390 — lo mismo en tabla y mapa. Desplazamiento lateral 0 en todas.
+
+### Verificado
+
+- Pruebas nuevas en `src/lib/mover-recogida.test.ts` (librerías y pantalla); puestas al día `secuencia-pd.test.ts` (la fila P
+  ya no es «sin flechas»; el color del mapa) y `routes-columns.test.ts` (el `colSpan` de la fila informativa, que ahora deja
+  sitio a sus controles).
+- **Mutantes: 36, caen los 36**, leídos por nombre. Dos sobrevivieron a la primera vuelta y eran **pruebas flojas**: «la
+  flecha P mueve una fila de lo ya entregado» (mi caso tenía dos filas; con tres, quitar el `if (mia == null)` intercambiaba
+  las otras dos) y «“sola en el último” mira una sola» (mi caso movía una orden; ahora hay uno con dos). Librería: no
+  adelantar, ignorar el orden pedido, no intercambiar, sin tope, sin viajes a mano, sin fijar viajes, el viaje 1 con número,
+  la fila de lo entregado, adelantada/delanteDe al revés; varias: capacidad de la primera, viajes distintos, solo la primera,
+  «sola» de una; `recogidasPorViaje` todo al viaje 1 (el fallo), con filas D, sin lo del final; filtro que no vuelve a todos
+  o que deja pasar todo; las sin tienda juntas. Pantalla: la P al color del chofer, las P desde `previas`, la ↑ nunca
+  apagada, la flecha sin viajes a mano o desde 0 o sin fijar, el selector con una sola orden o fuera de deshacer, la fila P
+  con órdenes de otro viaje; el filtro sin tabla, sin D, sin P, sin líneas, con el trazo del plan, sin vaciarse al cambiar
+  de día, y los dos `useMemo` sin la dependencia.
+
+### No verificado
+
+- Nada contra producción: todo en el demo, con el plan publicado y `/api/optimize-route` servidos desde el navegador.
+- En el demo solo se midió la línea del viaje 1 (la medida no pidió la del 2); que «Viaje 2» enseñe la línea medida del 2
+  con base está leído en el código, no visto.
+- Los selectores se eligieron con el TECLADO (foco y flechas), porque el desplegable nativo no se abre en Chrome sin
+  pantalla. Cada flecha del teclado sobre un `<select>` dispara `change`: P3 bajó un viaje con la primera pulsación. Es lo
+  mismo que ya hace el selector «Viaje N» de las paradas.

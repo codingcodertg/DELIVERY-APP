@@ -243,7 +243,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const columnasDeParadas = 3 + colsParadas.length;");
     // Los tres colSpan de las filas que ocupan la tabla entera (el viaje, el aviso, la fila informativa).
     expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(2);
-    expect(pagina.split("<td colSpan={columnasDeParadas - 1}>").length - 1).toBe(1);
+    expect(pagina.split("<td colSpan={columnasDeParadas - 2}>").length - 1).toBe(1);
     expect(pagina).toContain('width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
   });
   it("D-410: los anchos de paradas van por CLAVE, en la llave nueva, sembrada antes de que el hook la lea", () => {

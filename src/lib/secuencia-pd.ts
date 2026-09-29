@@ -40,6 +40,9 @@ export interface ParadaPD {
 
 const normaliza = (s: string | null) => (s ?? "").trim().toLowerCase();
 const centesimas = (n: number | null) => Math.round((n ?? 0) * 100);
+/** La tienda en la que se recoge una orden, como clave: la misma cuenta que junta las recogidas de un viaje. Una orden sin
+ *  tienda no se junta con otra sin tienda: no se sabe que salgan del mismo sitio. */
+export const claveDeTienda = (o: { id: string; store?: string | null }) => normaliza(o.store ?? null) || `sin-tienda:${o.id}`;
 
 /** `viajes`: los viajes del chofer, en orden, cada uno con sus entregas en el orden en que se hacen. */
 export function secuenciaPD(viajes: readonly (readonly OrdenDeRuta[])[]): ParadaPD[] {
@@ -50,8 +53,7 @@ export function secuenciaPD(viajes: readonly (readonly OrdenDeRuta[])[]): Parada
     // Las recogidas: una por tienda, en el orden en que aparece la primera orden de cada una.
     const porTienda = new Map<string, OrdenDeRuta[]>();
     for (const o of entregas) {
-      // Una orden sin tienda no se junta con otra sin tienda: no se sabe que salgan del mismo sitio.
-      const clave = normaliza(o.store) || `sin-tienda:${o.id}`;
+      const clave = claveDeTienda(o);
       porTienda.set(clave, [...(porTienda.get(clave) ?? []), o]);
     }
     // El número se da AL RECOGER: tienda por tienda, y dentro de cada una en el orden de entrega.
