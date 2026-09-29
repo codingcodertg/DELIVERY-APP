@@ -111,7 +111,7 @@ describe("lo ya guardado: a quien tenía columnas del plan (D-429) le salen las 
     expect(ordenDeLaTabla("plan", al.orden)).toEqual(ordenDeLaTabla("plan", null));
     expect(ordenDeLaTabla("sinAsignar", al.orden)).toEqual(ordenDeLaTabla("sinAsignar", ordenSin));
     expect(columnasDeLaTabla("sinAsignar", al.columnas!).map((c) => c.key)).toEqual(columnasDeLaTabla("sinAsignar", suyas).map((c) => c.key));
-    // Paradas, como las tenía; D-NEXT (`_v8`) le suma la ciudad de recogida (no tenía la de entrega: va tras su tipo).
+    // Paradas, como las tenía; D-445 (`_v8`) le suma la ciudad de recogida (no tenía la de entrega: va tras su tipo).
     expect(columnasDeLaTabla("paradas", suyas).map((c) => c.key)).toEqual(["p_type"]);
     expect(columnasDeLaTabla("paradas", al.columnas!).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida"]);
     expect(al.columnas).toContain(MARCA_V6);

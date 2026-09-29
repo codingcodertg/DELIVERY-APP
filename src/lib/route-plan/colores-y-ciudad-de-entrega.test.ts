@@ -167,7 +167,7 @@ describe("lo ya guardado (`_v7`): la ciudad de entrega se AÑADE, una vez, y ent
     expect(al.columnas).toContain(MARCA_V7);
     expect(al.orden).toEqual(ordenSin);   // el de «Sin asignar», tal cual
     expect(columnasDeLaTabla("sinAsignar", al.columnas!, al.orden).map((c) => c.key)).toEqual(columnasDeLaTabla("sinAsignar", suyas, ordenSin).map((c) => c.key));
-    // Paradas, como las tenía; D-NEXT (`_v8`) le suma la ciudad de recogida delante de la de entrega.
+    // Paradas, como las tenía; D-445 (`_v8`) le suma la ciudad de recogida delante de la de entrega.
     expect(columnasDeLaTabla("paradas", suyas).map((c) => c.key)).toEqual(["p_type", "p_address"]);
     expect(columnasDeLaTabla("paradas", al.columnas!).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida", "p_address"]);
     expect(al.escribe).toBe(true);

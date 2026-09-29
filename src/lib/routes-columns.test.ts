@@ -34,7 +34,7 @@ describe("las columnas del Gestor", () => {
   it("por defecto «Sin asignar» enseña todas las suyas, en el orden de Órdenes vista por ventas (D-376, D-402)", () => {
     // Todas menos la prioridad (D-412), que nace escondida y se elige en ⚙.
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "priority"));
-    // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen. D-NEXT: más la ciudad de recogida, delante
+    // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen. D-445: más la ciudad de recogida, delante
     // de la de entrega.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows"]);
   });
@@ -54,7 +54,7 @@ describe("las columnas del Gestor", () => {
   });
   it("D-408: la dirección de entrega se llama «Ciudad de entrega» en las dos tablas, con la MISMA clave guardada", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "address")).toMatchObject({ en: "Delivery City", es: "Ciudad de entrega" });
-    // D-NEXT: «Paradas: Ciudad» a secas pasó a «Ciudad de entrega», con la de recogida al lado. La clave no cambia.
+    // D-445: «Paradas: Ciudad» a secas pasó a «Ciudad de entrega», con la de recogida al lado. La clave no cambia.
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", indice: 4 });
     // Una lista o plantilla guardada con `address` sigue enseñando la columna, en su sitio de D-402 (tras la recogida).
     expect(columnasDeLaTabla("sinAsignar", ["address", "pickup", ...MARCAS]).map((c) => c.key)).toEqual(["invoice", "pickup", "address"]);
@@ -104,7 +104,7 @@ describe("las columnas del Gestor", () => {
   });
   it("la tabla de paradas: lo que se quita no se pinta; por defecto salen las cinco de siempre", () => {
     const paradas = (elegidas: readonly string[]) => columnasDeLaTabla("paradas", elegidas).map((c) => c.key);
-    // D-NEXT: con la ciudad de recogida delante de la de entrega.
+    // D-445: con la ciudad de recogida delante de la de entrega.
     expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows"]);
     expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_windows"]);
     expect(paradas(["invoice", MARCA_V2])).toEqual([]);
@@ -114,7 +114,7 @@ describe("las columnas del Gestor", () => {
   });
   it("las columnas de Órdenes en paradas: solo las elegidas, de partida detrás de las cinco de siempre, y ninguna con puesto", () => {
     expect(columnasDeLaTabla("paradas", ["p_fee", "p_type", "p_stage", "fee"]).map((c) => c.key)).toEqual(["p_type", "p_stage", "p_fee"]);
-    // D-NEXT: la ciudad de recogida tampoco tiene puesto (nació con los anchos por clave), y va delante de las de Órdenes.
+    // D-445: la ciudad de recogida tampoco tiene puesto (nació con los anchos por clave), y va delante de las de Órdenes.
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).filter((c) => c.indice == null).map((c) => c.key)).toEqual(["p_ciudad_recogida", ...EXTRAS_DE_PARADAS]);
   });
 });
@@ -210,7 +210,7 @@ describe("la página del Gestor", () => {
   });
   it("D-408: la columna de la ciudad pinta `ciudadDeEntrega` (desde D-423, con las ciudades conocidas), con la dirección entera en el title, en las dos tablas", () => {
     expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>').length - 1).toBe(1);
-    // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»; desde D-NEXT,
+    // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»; desde D-445,
     // «Delivery city / Ciudad de entrega»).
     expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;').length - 1).toBe(1);
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega" });

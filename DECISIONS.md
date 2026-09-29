@@ -33060,7 +33060,7 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 
 ## D-444 · Gestor de Rutas: una fila por recogida, el mismo sitio como grupo de color, la cuenta «+4 = 4» y el ID en vez de la factura
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-29): en la tabla de paradas del Gestor la fila P ya **no** deja vacía
+> **⚠ Reemplazada en parte por D-445** (2026-09-29): en la tabla de paradas del Gestor la fila P ya **no** deja vacía
 > la ciudad: pinta la ciudad de entrega de SU orden (`p_address`, ahora rotulada «Ciudad de entrega») y la nueva «Ciudad
 > de recogida» (`p_ciudad_recogida`). Ventanas, dirección y contacto siguen vacíos en la P. La tabla del plan (D-429,
 > D-435) no cambia.
@@ -33138,9 +33138,9 @@ lleno vuelven a caber 5 plantillas llenas, y con los seis roles llenos cabe 0 (a
 Tanda de 14 mutantes: **13 caen** con una prueba con nombre. **U1 sobrevive y es equivalente**: volver a juntar las
 recogidas de una tienda dentro del bloque no cambia nada, porque `unaPorOrden` las separa al final.
 
-## D-NEXT · Gestor de Rutas: la tabla de paradas dice la ciudad de RECOGIDA y la de ENTREGA, también en las filas de recogida
+## D-445 · Gestor de Rutas: la tabla de paradas dice la ciudad de RECOGIDA y la de ENTREGA, también en las filas de recogida
 
-**Fecha:** 2026-09-29 · **Versión:** la pone el orquestador (Entregas) · **Migración:** ninguna. **Reemplaza en parte a**
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.237.0 (repo 1.320.0) (Entregas) · **Migración:** ninguna. **Reemplaza en parte a**
 D-444 (la ciudad vacía en la fila P de la tabla de paradas), que lleva su nota.
 
 ### Qué pidió el dueño
@@ -33207,7 +33207,7 @@ Nueva `ciudad-de-recogida-en-paradas.test.ts`: el catálogo (rótulos, defecto, 
 de `p_address` y no mueve nada más; con la de entrega al final; desde `_v6` y desde antes de `_v6`; `escribe` una
 vez y después no; plantillas) y la página (celdas de P y D para las dos columnas, y que las de P van antes de la que deja
 vacío). Las que afirmaban las cuatro columnas de paradas, las marcas, el rótulo «Ciudad» y los tamaños se actualizaron con
-su nota «D-NEXT».
+su nota «D-445».
 
 Tanda de 20 mutantes, **20 caen** con una prueba con nombre (orden de partida, oculta, rótulo, tanda sin aplicar, tanda
 sin la columna, defecto sin marca, insertar detrás, no insertar, `_v7` sin tanda, `_v7` sin insertar, `_v7` sin

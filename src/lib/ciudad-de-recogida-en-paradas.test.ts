@@ -11,7 +11,7 @@ import { ciudadDeEntrega } from "./ciudad-de-entrega";
 import { celdaPropiaDelPlan } from "./route-plan/celdas-del-plan";
 
 /**
- * D-NEXT: la «Ciudad de recogida» en la tabla de paradas de cada chofer del Gestor de Rutas, y la de entrega rotulada como
+ * D-445: la «Ciudad de recogida» en la tabla de paradas de cada chofer del Gestor de Rutas, y la de entrega rotulada como
  * tal. El dueño, 2026-09-29, con la captura de esa tabla: «no me sale ciudad de enetrega y quiero que claramente diga ciudad
  * tienda de rocigda». La columna de ciudad (`p_address`, «Paradas: Ciudad») iba vacía en las filas de RECOGIDA (P) y no había
  * ninguna que dijera de qué tienda sale la carga.

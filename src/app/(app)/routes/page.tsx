@@ -2649,7 +2649,7 @@ export default function RoutesPage() {
                       if (f.tipo === "P") {
                         // Una orden por fila (D-444): su ID, su cuenta y sus columnas, como una entrega. Lo que es de la ENTREGA
                         // —ventanas, dirección, contacto— va vacío: esta parada es en la tienda (`seVeEnLaRecogida`).
-                        // D-NEXT: las dos CIUDADES sí salen, las de su orden: de dónde sale y a dónde va. El dueño, 2026-09-29:
+                        // D-445: las dos CIUDADES sí salen, las de su orden: de dónde sale y a dónde va. El dueño, 2026-09-29:
                         // «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda».
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];

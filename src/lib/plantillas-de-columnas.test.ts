@@ -134,7 +134,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   const roles = (rs: readonly string[], x: unknown) => Object.fromEntries(rs.map((r) => [r, x]));
   // El Gestor, con las columnas que tenía el día de la medida: las dos de prioridad (D-412) llegaron después.
   // «p_pallets» sí estaba ese día; D-444 la quitó del catálogo y se añade a mano (el tamaño de un jsonb no depende del orden).
-  // D-NEXT: tampoco estaba «p_ciudad_recogida», que llegó después: se excluye.
+  // D-445: tampoco estaba «p_ciudad_recogida», que llegó después: se excluye.
   const GESTOR_MEDIDO = [...COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => k !== "priority" && k !== "p_priority" && k !== "p_ciudad_recogida" && !k.startsWith("pl_")), "p_pallets"];   // ni las del plan (D-429)
   const unRol = (pl: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: { logistics: O14 }, orden: { logistics: O14 }, anchos: { logistics: ANCH }, plantillas: pl });
   const GEST = ["invoice", "account", "address", "pickup", "store", "pallets", "date", "windows", "status", "p_type", "p_eta", "p_fee"];

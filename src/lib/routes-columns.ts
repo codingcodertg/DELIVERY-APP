@@ -119,11 +119,11 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 140, indice: 2 },
   // «Paradas: Pallets» (`p_pallets`, puesto 3) se quitó en D-444: la columna fija de la cuenta ya dice lo de cada parada
   // («+4 = 4»). El dueño, 2026-09-29: «esa columna de pallets […] no lo ocupo». Guardada en una lista, se ignora al leer.
-  // D-NEXT: la ciudad de donde SALE la carga, justo delante de la de entrega (de dónde sale a dónde va). El dueño,
+  // D-445: la ciudad de donde SALE la carga, justo delante de la de entrega (de dónde sale a dónde va). El dueño,
   // 2026-09-29: «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda». La celda es
   // `zonaDeLaRecogida`, la misma de «Plan: Ciudad de recogida» (D-434). Sin `indice`: nació con los anchos por clave.
   { key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 120 },
-  // La ciudad también aquí desde D-408, con la misma clave por la misma razón. Desde D-NEXT se rotula «Ciudad de entrega»
+  // La ciudad también aquí desde D-408, con la misma clave por la misma razón. Desde D-445 se rotula «Ciudad de entrega»
   // (era «Ciudad» a secas) para que no se confunda con la de recogida que va al lado.
   { key: "p_address", en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", tablas: ["paradas"], ancho: 120, indice: 4 },
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
@@ -355,7 +355,7 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   if (!lista.includes(MARCA_V6)) lista = [...lista.filter((k) => !esDelPlan(k)), ...VISTAS_EN_EL_PLAN, MARCA_V6];
   // D-435 vuelve a AÑADIR, como las tandas de antes: la ciudad de entrega, sin quitar nada de lo que la persona eligió.
   if (!lista.includes(MARCA_V7)) lista = [...new Set([...lista, ...NUEVAS_EN_V7])].concat(MARCA_V7);
-  // D-NEXT: la ciudad de recogida en la tabla de paradas. También AÑADE, sin quitar nada.
+  // D-445: la ciudad de recogida en la tabla de paradas. También AÑADE, sin quitar nada.
   if (!lista.includes(MARCA_V8)) lista = [...new Set([...lista, ...NUEVAS_EN_V8])].concat(MARCA_V8);
   return lista;
 }
@@ -365,13 +365,13 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
 export const MARCA_V7 = "_v7";
 const NUEVAS_EN_V7: readonly string[] = ["pl_ciudad_entrega"];
 
-// D-NEXT: la «Ciudad de recogida» en la tabla de paradas de cada chofer. Quien ya guardó sus columnas no la vería nunca sin
+// D-445: la «Ciudad de recogida» en la tabla de paradas de cada chofer. Quien ya guardó sus columnas no la vería nunca sin
 // esta marca: su lista ya conoce las tandas de antes, y una clave que no está se lee como «la quitó».
 export const MARCA_V8 = "_v8";
 const NUEVAS_EN_V8: readonly string[] = ["p_ciudad_recogida"];
 
 /**
- * El ORDEN guardado con la ciudad de recogida de paradas en su sitio (D-NEXT): justo DELANTE de la ciudad de entrega
+ * El ORDEN guardado con la ciudad de recogida de paradas en su sitio (D-445): justo DELANTE de la ciudad de entrega
  * (`p_address`), esté donde esté esa en el orden de la persona. Hermana de `conCiudadDeEntregaEnSuSitio`. Sin esto,
  * `ordenEfectivo` la pondría al FINAL de un orden de paradas guardado. Solo inserta; sin orden, o sin la tabla de paradas
  * en él (está en su partida, que ya la trae en su sitio), no hay nada que hacer. Si ya la tiene, tampoco.
@@ -415,7 +415,7 @@ const esDelPlan = (k: string): boolean => COLUMNAS_DEL_GESTOR.some((c) => c.key 
  * quedan— y, si movió el plan, la columna entra en su orden justo tras la ciudad de recogida (`conCiudadDeEntregaEnSuSitio`).
  * También se guarda ya, una vez, por la misma razón que `_v6`.
  *
- * D-NEXT (`MARCA_V8`): lo mismo en la tabla de PARADAS con la ciudad de recogida: añadida a sus columnas y, si movió las
+ * D-445 (`MARCA_V8`): lo mismo en la tabla de PARADAS con la ciudad de recogida: añadida a sus columnas y, si movió las
  * paradas, en su orden justo delante de la ciudad de entrega (`conCiudadDeRecogidaEnSuSitio`). Quien viene de más atrás
  * pasa por lo suyo (`_v6`, `_v7`) y además por esto. `escribe` una vez; con `_v8` ya no.
  */
