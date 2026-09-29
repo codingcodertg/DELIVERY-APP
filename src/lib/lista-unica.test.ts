@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, entregasEnOrden, escrituraDeLaLista, listaConEntregasEn, listaDelChofer, mueveEnLaLista,
-  numeraLaLista, etiquetaDeLaParada, textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type OrdenDeLaLista, type ParadaDeLaLista,
+  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, entregasEnOrden, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaDelChofer,
+  mueveEnLaLista, numeroDePallets, numeraLaLista, etiquetaDeLaParada, textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type OrdenDeLaLista, type ParadaDeLaLista,
 } from "./lista-unica";
 
 /**
@@ -43,16 +43,16 @@ const SU_LISTA: ParadaDeLaLista[] = [
 describe("la cuenta con decimales, parada a parada: el camión de 10 pallets de la especificación", () => {
   const c = cuentaDePallets(cambiosDeLaLista(SU_LISTA, ORDENES), 10);
 
-  it("cada fila dice «a bordo antes ± la parada = a bordo después · disponible», como la tabla del dueño", () => {
-    expect(c.paradas.map((f) => textoDeLaCuenta(f, true))).toEqual([
-      "0.00 + 2.50 = 2.50 · 7.50 libres",
-      "2.50 + 0.25 = 2.75 · 7.25 libres",
-      "2.75 + 6.00 = 8.75 · 1.25 libres",
-      "8.75 − 2.50 = 6.25 · 3.75 libres",
-      "6.25 + 3.00 = 9.25 · 0.75 libres",
-      "9.25 − 6.00 = 3.25 · 6.75 libres",
-      "3.25 − 0.25 = 3.00 · 7.00 libres",
-      "3.00 − 3.00 = 0.00 · 10.00 libres",
+  it("cada fila dice lo de la parada y el total a bordo, «+2.5 = 2.5» (D-444: sin el «antes» ni «libres»)", () => {
+    expect(c.paradas.map((f) => textoDeLaCuenta(f))).toEqual([
+      "+2.5 = 2.5",
+      "+0.25 = 2.75",
+      "+6 = 8.75",
+      "−2.5 = 6.25",
+      "+3 = 9.25",
+      "−6 = 3.25",
+      "−0.25 = 3",
+      "−3 = 0",
     ]);
     // Los números, no solo el texto: en centésimas, sin la cola de coma flotante (0.1 + 0.2).
     expect(c.paradas.map((f) => [f.antes, f.cambio, f.despues, f.disponible])).toEqual([
@@ -76,14 +76,14 @@ describe("el aviso EN LA PARADA EXACTA que se pasa (un cambio manual no se bloqu
   // «En este ejemplo P4 solo es posible porque D1 va antes: si el camión intentara recoger P4 justo después de P3, la cuenta
   // sería 8.75 + 3.00 = 11.75, que pasa la capacidad por 1.75 pallets.»
   const iP4 = SU_LISTA.findIndex((p) => p.tipo === "P" && p.ordenes[0] === "o4");
-  const movida = mueveEnLaLista(SU_LISTA, iP4, -1, ORDENES);
+  const movida = mueveEnLaLista(SU_LISTA, iP4, -1);
 
   it("subir P4 por encima de D1 se HACE (es a mano), y la cuenta lo dice en P4: 8.75 + 3.00 = 11.75, se pasa 1.75 de 10", () => {
     expect(movida.ok).toBe(true);
     if (!movida.ok) return;
     const c = cuentaDePallets(cambiosDeLaLista(movida.paradas, ORDENES), 10);
     const i = movida.paradas.findIndex((p) => p.tipo === "P" && p.ordenes.includes("o4"));
-    expect(textoDeLaCuenta(c.paradas[i], true)).toBe("8.75 + 3.00 = 11.75 · −1.75 libres");
+    expect(textoDeLaCuenta(c.paradas[i])).toBe("+3 = 11.75");
     expect(c.paradas[i].exceso).toBe(1.75);
     expect(textoDelExceso(c.paradas[i], 10, true)).toBe("⚠ se pasa 1.75 de 10");
     expect(textoDelExceso(c.paradas[i], 10, false)).toBe("⚠ over by 1.75 of 10");
@@ -108,14 +108,13 @@ describe("recarga a media ruta CON carga a bordo", () => {
     const e = escrituraDeLaLista(SU_LISTA, 0);
     const guardadas: OrdenDeLaLista[] = ORDENES.map((o) => ({ ...o, route_seq: e.ids.indexOf(o.id), pickup_seq: e.pickupSeqById[o.id] }));
     const leida = listaDelChofer(guardadas, 10);
-    // Las dos recogidas SEGUIDAS en MCA son una parada física («P1·P2», agrupadas); lo demás, tal cual.
-    expect(texto(leida)).toBe("P(o1,o2) P(o3) D(o1) P(o4) D(o3) D(o2) D(o4)");
+    // Las dos recogidas SEGUIDAS en MCA van cada una en su fila (D-444; hasta ahí, «P1·P2» en una): la lista, tal cual.
+    expect(texto(leida)).toBe("P(o1) P(o2) P(o3) D(o1) P(o4) D(o3) D(o2) D(o4)");
     const n = numeraLaLista(leida);
-    expect(leida.map((p) => etiquetaDeLaParada(p, n))).toEqual(["P1·P2", "P3", "D1", "P4", "D3", "D2", "D4"]);
-    // Agrupada, esa parada suma las dos: 0.00 + 2.75 = 2.75; lo demás, las mismas filas de la especificación.
-    expect(cuentaDePallets(cambiosDeLaLista(leida, guardadas), 10).paradas.map((f) => textoDeLaCuenta(f, true))).toEqual([
-      "0.00 + 2.75 = 2.75 · 7.25 libres", "2.75 + 6.00 = 8.75 · 1.25 libres", "8.75 − 2.50 = 6.25 · 3.75 libres",
-      "6.25 + 3.00 = 9.25 · 0.75 libres", "9.25 − 6.00 = 3.25 · 6.75 libres", "3.25 − 0.25 = 3.00 · 7.00 libres", "3.00 − 3.00 = 0.00 · 10.00 libres",
+    expect(leida.map((p) => etiquetaDeLaParada(p, n))).toEqual(["P1", "P2", "P3", "D1", "P4", "D3", "D2", "D4"]);
+    // Las mismas filas de la especificación.
+    expect(cuentaDePallets(cambiosDeLaLista(leida, guardadas), 10).paradas.map((f) => textoDeLaCuenta(f))).toEqual([
+      "+2.5 = 2.5", "+0.25 = 2.75", "+6 = 8.75", "−2.5 = 6.25", "+3 = 9.25", "−6 = 3.25", "−0.25 = 3", "−3 = 0",
     ]);
   });
   it("SIN la 154 (no se sabe dónde iba cada recogida), la regla: bloques de lo que cabe, cada uno antes de su primera entrega", () => {
@@ -123,9 +122,10 @@ describe("recarga a media ruta CON carga a bordo", () => {
     const sinColumna = [{ id: "a", store: "T", est_pallets: 6, route_seq: 0 }, { id: "b", store: "T", est_pallets: 6, route_seq: 1 }];
     expect(tienePosicionDeRecogida(sinColumna)).toBe(false);
     expect(texto(listaDelChofer(sinColumna, 10))).toBe("P(a) D(a) P(b) D(b)");
-    // Si cabe todo, todas las recogidas delante, una por tienda, en el orden de su primera entrega.
+    // Si cabe todo, todas las recogidas delante, las de una tienda seguidas (cada una en su fila, D-444), en el orden de su
+    // primera entrega.
     const caben = [{ id: "x", store: "B", est_pallets: 1, route_seq: 0 }, { id: "y", store: "A", est_pallets: 1, route_seq: 1 }, { id: "z", store: "B", est_pallets: 1, route_seq: 2 }];
-    expect(texto(listaDelChofer(caben, 10))).toBe("P(x,z) P(y) D(x) D(y) D(z)");
+    expect(texto(listaDelChofer(caben, 10))).toBe("P(x) P(z) P(y) D(x) D(y) D(z)");
   });
 });
 
@@ -142,29 +142,35 @@ describe("la ruta termina en 0", () => {
 
 describe("mover a mano: cualquier parada, P o D, sin romper «la recogida antes que su entrega»", () => {
   it("una P que BAJA sobre la entrega de una de sus órdenes no se mueve, y se dice cuál", () => {
-    expect(mueveEnLaLista([P("a"), D("a")], 0, 1, [])).toEqual({ ok: false, motivo: "precedencia", orden: "a" });
-    expect(mueveEnLaLista([P("a", "b"), D("b"), D("a")], 0, 1, [])).toEqual({ ok: false, motivo: "precedencia", orden: "b" });
+    expect(mueveEnLaLista([P("a"), D("a")], 0, 1)).toEqual({ ok: false, motivo: "precedencia", orden: "a" });
+    expect(mueveEnLaLista([P("a", "b"), D("b"), D("a")], 0, 1)).toEqual({ ok: false, motivo: "precedencia", orden: "b" });
   });
   it("una D que SUBE sobre su propia recogida no se mueve", () => {
-    expect(mueveEnLaLista([P("a"), D("a")], 1, -1, [])).toEqual({ ok: false, motivo: "precedencia", orden: "a" });
+    expect(mueveEnLaLista([P("a"), D("a")], 1, -1)).toEqual({ ok: false, motivo: "precedencia", orden: "a" });
   });
   it("lo demás se mueve: dos D, dos P, una D sobre la recogida de OTRA orden, una P sobre la entrega de otra", () => {
     const l = [P("a"), P("b"), D("a"), D("b")];
-    const r1 = mueveEnLaLista(l, 3, -1, []);
+    const r1 = mueveEnLaLista(l, 3, -1);
     expect(r1.ok && texto(r1.paradas)).toBe("P(a) P(b) D(b) D(a)");
-    const r2 = mueveEnLaLista(l, 1, -1, []);
+    const r2 = mueveEnLaLista(l, 1, -1);
     expect(r2.ok && texto(r2.paradas)).toBe("P(b) P(a) D(a) D(b)");
-    const r3 = mueveEnLaLista([P("a"), D("a"), P("b"), D("b")], 2, -1, []);
+    const r3 = mueveEnLaLista([P("a"), D("a"), P("b"), D("b")], 2, -1);
     expect(r3.ok && texto(r3.paradas)).toBe("P(a) P(b) D(a) D(b)");
   });
   it("en el borde no hay movimiento", () => {
-    expect(mueveEnLaLista([P("a"), D("a")], 0, -1, [])).toEqual({ ok: false, motivo: "borde" });
-    expect(mueveEnLaLista([P("a"), D("a")], 1, 1, [])).toEqual({ ok: false, motivo: "borde" });
+    expect(mueveEnLaLista([P("a"), D("a")], 0, -1)).toEqual({ ok: false, motivo: "borde" });
+    expect(mueveEnLaLista([P("a"), D("a")], 1, 1)).toEqual({ ok: false, motivo: "borde" });
   });
-  it("dos recogidas que quedan seguidas en la misma tienda pasan a ser una parada", () => {
-    const tiendas = [{ id: "a", store: "MCA" }, { id: "b", store: "EDG" }, { id: "c", store: "MCA" }];
-    const r = mueveEnLaLista([P("a"), P("b"), P("c"), D("a"), D("b"), D("c")], 1, 1, tiendas);
-    expect(r.ok && texto(r.paradas)).toBe("P(a,c) P(b) D(a) D(b) D(c)");
+  it("dos recogidas que quedan seguidas en la misma tienda siguen cada una en su fila (D-444), y se pueden volver a separar", () => {
+    const r = mueveEnLaLista([P("a"), P("b"), P("c"), D("a"), D("b"), D("c")], 1, 1);
+    expect(r.ok && texto(r.paradas)).toBe("P(a) P(c) P(b) D(a) D(b) D(c)");
+    // Y dentro de las seguidas de la misma tienda, el orden también se cambia: c sube por encima de a.
+    const r2 = r.ok ? mueveEnLaLista(r.paradas, 1, -1) : r;
+    expect(r2.ok && texto(r2.paradas)).toBe("P(c) P(a) P(b) D(a) D(b) D(c)");
+  });
+  it("una parada P de varias órdenes que llegue (lista vieja) sale separada al mover, en el mismo orden", () => {
+    const r = mueveEnLaLista([P("a", "b"), D("x"), D("a"), D("b")], 1, 1);
+    expect(r.ok && texto(r.paradas)).toBe("P(a) P(b) D(a) D(x) D(b)");
   });
 });
 
@@ -204,7 +210,7 @@ describe("lo que se escribe (\`escrituraDeLaLista\`) y lo que se vuelve a leer (
   it("lo HISTÓRICO: una ruta guardada con viajes (\`load_no\`) y el puesto dentro de cada viaje se lee en su orden, y cada viaje viejo corta su bloque", () => {
     const vieja = [{ id: "c", store: "T", route_seq: 0, load_no: 2 }, { id: "a", store: "T", route_seq: 0, load_no: null }, { id: "b", store: "T", route_seq: 1, load_no: 1 }];
     expect(entregasEnOrden(vieja).map((o) => o.id)).toEqual(["a", "b", "c"]);
-    expect(texto(listaDelChofer(vieja, 100))).toBe("P(a,b) D(a) D(b) P(c) D(c)");
+    expect(texto(listaDelChofer(vieja, 100))).toBe("P(a) P(b) D(a) D(b) P(c) D(c)");
   });
   it("¿la base guarda la recogida? Se mira si la fila TRAE la clave, aunque valga \`null\`", () => {
     expect(tienePosicionDeRecogida([{ id: "a" }, { id: "b", pickup_seq: null }])).toBe(true);
@@ -256,15 +262,15 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
     expect(tarjeta).toContain("{lectura.filas.map((f, fi) => {");
     expect(tarjeta).toContain("const cu = cuenta.paradas[fi];");
-    expect(tarjeta).toContain("{cu.sinConteo ? \"~\" : \"\"}{textoDeLaCuenta(cu, lang === \"es\")}");
+    expect(tarjeta).toContain("{cu.sinConteo ? \"~\" : \"\"}{textoDeLaCuenta(cu)}");
     expect(tarjeta).toContain("{cu.exceso > 0 && <div data-exceso style={{ color: \"var(--red)\", fontWeight: 700 }}>{textoDelExceso(cu, capacity, lang === \"es\")}</div>}");
-    expect(tarjeta).toContain("{filaDeLaBase(u.key, \"salida\", cuenta.salida, capacity, false)}");
-    expect(tarjeta).toContain("{filaDeLaBase(u.key, \"regreso\", cuenta.regreso, capacity, cuenta.totales.finalNoCero)}");
+    expect(tarjeta).toContain("{filaDeLaBase(u.key, \"salida\", cuenta.salida, false)}");
+    expect(tarjeta).toContain("{filaDeLaBase(u.key, \"regreso\", cuenta.regreso, cuenta.totales.finalNoCero)}");
     // La celda de la cuenta va en las filas P y en las D.
     expect(tarjeta.split("{celdaDeCuenta}").length - 1).toBe(3);
   });
   it("la cabecera: paradas, pallets movidos, carga máxima contra el camión; el aviso de exceso y el de «no acaba en 0»", () => {
-    expect(tarjeta).toContain("{cuenta.totales.paradas} {t(\"stops\", \"paradas\")} · {dosDecimales(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {dosDecimales(cuenta.totales.cargaMaxima)}/{capacity}");
+    expect(tarjeta).toContain("{cuenta.totales.paradas} {t(\"stops\", \"paradas\")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}");
     expect(tarjeta).toContain("{cuenta.totales.paradasConExceso > 0 && (");
     expect(tarjeta).toContain("{stops.length > 0 && cuenta.totales.finalNoCero && (");
   });
@@ -274,7 +280,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta.split("{flechas}{pasar}").length - 1).toBe(2);
   });
   it("\`mueveParada\` decide con \`mueveEnLaLista\`, dice por qué no mueve si rompe la precedencia, y guarda la lista entera", () => {
-    expect(mueve).toContain("const r = mueveEnLaLista(lectura.paradas, indice, dir, stops);");
+    expect(mueve).toContain("const r = mueveEnLaLista(lectura.paradas, indice, dir);");
     expect(mueve).toContain("if (r.motivo === \"precedencia\") {");
     expect(mueve).toContain("se entregaría antes de recogerla");
     expect(mueve).toContain("if (!(await guardaLaLista(laneKey, stops, r.paradas,");
@@ -290,7 +296,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   });
   it("el panel de choferes mide la CARGA MÁXIMA de la lista contra el camión, no la suma del día", () => {
     expect(pagina).toContain("const pallets = cuentaDePallets(lecturaDe(u.key, stops).filas.map((f) => f.cambio), capacityFor(u.driver)).totales.cargaMaxima;");
-    expect(pagina).toContain("{dosDecimales(pallets)}/{cap}");
+    expect(pagina).toContain("{numeroDePallets(pallets)}/{cap}");
   });
   it("sin viajes: ni «Viaje N», ni cabecera de viaje, ni «Ver un viaje», ni unir/dividir", () => {
     for (const x of ["🚚 {t(\"Truckload\", \"Viaje\")}", "data-viaje-visto", "data-unir-viajes", "data-dividir-en-dos", "data-recogida-viaje", "tripColor(", "viajeVisto"]) expect(pagina).not.toContain(x);
@@ -367,5 +373,58 @@ describe("justo lleno no es pasarse (D-443)", () => {
     const pasado = cuentaDePallets([7.5, 2.51, -10.01], 10);
     expect(pasado.paradas[1].exceso).toBeCloseTo(0.01, 5);
     expect(pasado.totales.paradasConExceso).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D-444. El dueño, 2026-09-29, sobre la tabla del Gestor: «cada pickup tiene que tener su propio row, ahora si el sistema
+// detecta que […] hay pickups en el mismo lugar seguidos, entonces los va a poner de ese color […] y si es delivery en el
+// mismo lugar también, para que se mire como group. Pero no me los pongas en una sola línea».
+describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets sin decimales de más", () => {
+  it("los pallets: sin decimales si no los tiene, con los suyos si sí", () => {
+    expect([4, 10, 0, 3.15, 3.6, 2.75, 0.1 + 0.2, -0].map(numeroDePallets)).toEqual(["4", "10", "0", "3.15", "3.6", "2.75", "0.3", "0"]);
+  });
+  it("la cuenta de la fila: lo de la parada y el total a bordo; el aviso de exceso con el mismo número", () => {
+    const c = cuentaDePallets([4, 6, -4, 1.5], 10);
+    expect(c.paradas.map((f) => textoDeLaCuenta(f))).toEqual(["+4 = 4", "+6 = 10", "−4 = 6", "+1.5 = 7.5"]);
+    const pasado = cuentaDePallets([10, 1.5], 10).paradas[1];
+    expect(textoDelExceso(pasado, 10, true)).toBe("⚠ se pasa 1.5 de 10");
+  });
+  it("tres recogidas seguidas en la misma tienda son tres filas, un grupo; la de otra tienda va sola", () => {
+    const ordenes = [
+      { id: "a", store: "RDZ McAllen", est_pallets: 1, route_seq: 0 }, { id: "b", store: "RDZ McAllen", est_pallets: 1, route_seq: 1 },
+      { id: "c", store: "RDZ McAllen", est_pallets: 1, route_seq: 2 }, { id: "d", store: "RDZ Pharr", est_pallets: 1, route_seq: 3 },
+    ];
+    const l = listaDelChofer(ordenes, 10);
+    expect(texto(l)).toBe("P(a) P(b) P(c) P(d) D(a) D(b) D(c) D(d)");
+    expect(gruposDeMismoLugar(l, ordenes)).toEqual([0, 0, 0, null, null, null, null, null]);
+  });
+  it("entregas seguidas en la MISMA dirección (sin mirar mayúsculas ni espacios) son un grupo; dos grupos seguidos, números distintos", () => {
+    const ordenes = [
+      { id: "a", delivery_address: "100 Main St, McAllen" }, { id: "b", delivery_address: " 100  main st, mcallen " },
+      { id: "c", delivery_address: "5 Oak Ave" }, { id: "d", delivery_address: "5 Oak Ave" }, { id: "e", delivery_address: "100 Main St, McAllen" },
+    ];
+    const l: ParadaDeLaLista[] = [D("a"), D("b"), D("c"), D("d"), D("e")];
+    expect(gruposDeMismoLugar(l, ordenes)).toEqual([0, 0, 1, 1, null]);
+  });
+  it("una P y una D en el mismo sitio no se agrupan, ni dos P sin tienda, ni una sola", () => {
+    const l: ParadaDeLaLista[] = [{ tipo: "P", ordenes: ["b"], tienda: null }, { tipo: "P", ordenes: ["c"], tienda: null }, { tipo: "P", ordenes: ["a"], tienda: "T" }, D("a")];
+    // La P de «T» y la D a «T», seguidas: no son grupo (una carga, otra descarga).
+    expect(gruposDeMismoLugar(l, [{ id: "a", delivery_address: "T" }])).toEqual([null, null, null, null]);
+  });
+  it("el Gestor: cada fila P con su ID, su llegada (la de la medida, «P:» + su puesto) y la clase de su grupo; las D también", () => {
+    const tarjeta = cuerpoDe(pagina, "{shownDrivers.map((u) => {", "{!ready && <div className=\"empty\">");
+    expect(tarjeta).toContain("const grupos = gruposDeMismoLugar(lectura.paradas, stops);");
+    expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
+    // La medida usa la MISMA clave para la recogida.
+    expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
+    expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}`}");
+    expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}`}');
+    expect(tarjeta).toContain("{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && \" · \"}{enlaceConElId(x)}</Fragment>)}");
+    // Sin «Fact.» en la fila P: el texto de la recogida es solo la tienda.
+    expect(tarjeta).not.toContain("nombraLaOrden(deliveries, id, lang === \"es\")).join(\" · \")");
+    // Sin «libres» en la tabla.
+    expect(tarjeta).not.toMatch(/"libres"/);
+    expect(pagina).not.toMatch(/t\("free", "libres"\)/);
   });
 });

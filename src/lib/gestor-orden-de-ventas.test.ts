@@ -70,7 +70,7 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
   it("sin orden propio, las tablas de PARADAS salen como antes de poder moverlas: el orden de partida no cambió", () => {
     // D-402 las dejó quietas; D-410 las deja mover, pero quien no mueve nada las ve igual que antes.
     // D-412: la prioridad llega al FINAL, como toda columna nueva de paradas; lo de antes no se mueve.
-    const DE_SIEMPRE = ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
+    const DE_SIEMPRE = ["p_type", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key)).toEqual(DE_SIEMPRE);
     expect(plano(leer("src/app/(app)/routes/page.tsx"))).toContain('columnas={columnasDelSelector("paradas", ordenGestor)}');
     expect(columnasDelSelector("paradas", null).map((c) => c.key)).toEqual(DE_SIEMPRE);

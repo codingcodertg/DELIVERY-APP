@@ -117,7 +117,8 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // eran fijas. El número de parada, el ID (desde D-408, la factura) y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
   // puesto que la columna ya tenía en esa tabla, que guarda su ancho por posición (`useColWidths`).
   { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 140, indice: 2 },
-  { key: "p_pallets", en: "Stops: Pallets", es: "Paradas: Pallets", tablas: ["paradas"], ancho: 70, indice: 3 },
+  // «Paradas: Pallets» (`p_pallets`, puesto 3) se quitó en D-444: la columna fija de la cuenta ya dice lo de cada parada
+  // («+4 = 4»). El dueño, 2026-09-29: «esa columna de pallets […] no lo ocupo». Guardada en una lista, se ignora al leer.
   // La ciudad también aquí desde D-408, con la misma clave por la misma razón.
   { key: "p_address", en: "Stops: City", es: "Paradas: Ciudad", tablas: ["paradas"], ancho: 120, indice: 4 },
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
@@ -209,7 +210,7 @@ export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_D
  *  y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega después va al final. */
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
-  paradas: ["p_type", "p_pallets", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
+  paradas: ["p_type", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
   // El plan (D-429): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
   plan: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan")).map((c) => c.key),
 };
