@@ -33290,3 +33290,19 @@ Las filas D no cambian: ciudad de recogida y ciudad de entrega de su orden. Los 
 `ciudad-de-recogida-en-paradas.test.ts`: la tienda en la ciudad de recogida, sin «Recoger en», la entrega de su orden
 y el Tipo de su orden. Tres mutantes, los tres caen: la tienda de vuelta en la entrega, la palabra «Recoger» de vuelta, y la
 entrega vacía en la P.
+
+## D-448 · El Estimador pasa a llamarse «Quote Builder»
+
+**Fecha:** 2026-09-29 · **Versión:** estimator 0.6.0, deliveries 1.240.0 (el hub pinta las tarjetas), repo 1.323.0 ·
+**Migración:** ninguna.
+
+**Qué pidió el dueño**, literal: *«change estimator to quote builder»*.
+
+**Qué cambió.** El nombre que se ve: la tarjeta del hub y la casilla de permisos de Usuarios (`MODULES` y
+`MODULE_ACCESS`), el título de la pestaña («RTG QUOTE BUILDER») y el registro de seguridad («Acceso a Quote Builder
+cambiado»). En los dos idiomas se llama «Quote Builder»: es el nombre que el dueño le dio, igual que su documento original
+(«Quote Builder», T-0408) y que «RTG PROMOS» no se traduce.
+
+**Qué NO cambió.** La clave `estimator`, la ruta `/estimator`, la migración 148 y `has_estimator_access()`: son
+lo que guarda quién tiene permiso. Renombrarlas no cambia nada de lo que se ve y obligaría a migrar `module_access` de
+cada persona. La hoja impresa sigue llamándose «Estimate», que es el documento, no la app.

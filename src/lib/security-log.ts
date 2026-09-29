@@ -68,7 +68,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     erp_role_changed: "ERP tier changed",
     promos_access_changed: "RTG PROMOS access changed",
     promo_round_uploaded: "Promo round uploaded",
-    estimator_access_changed: "Estimator access changed",
+    estimator_access_changed: "Quote Builder access changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
     impersonation_start: "Signed in as this user",
@@ -91,7 +91,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     erp_role_changed: "Nivel de ERP cambiado",
     promos_access_changed: "Acceso a RTG PROMOS cambiado",
     promo_round_uploaded: "Ronda de promociones subida",
-    estimator_access_changed: "Acceso al Estimador cambiado",
+    estimator_access_changed: "Acceso a Quote Builder cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
     // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
     // porque es el mismo mapa que estoy tocando y dejar el hueco al lado de las líneas nuevas

@@ -40,7 +40,11 @@ describe("la tarjeta y la casilla", () => {
     expect(dialogo.match(/case "estimator":/g) ?? []).toHaveLength(2);
     const prov = leer("src/lib/data-provider.tsx");
     expect(prov).toContain('void logSecurityClient(userId, "estimator_access_changed"');
-    expect(securityLabel("estimator_access_changed", "es")).toBe("Acceso al Estimador cambiado");
+    expect(securityLabel("estimator_access_changed", "es")).toBe("Acceso a Quote Builder cambiado");
+    // D-448: el nombre que se ve es «Quote Builder»; la clave, "estimator".
+    expect(MODULES.find((a) => a.key === "estimator")).toMatchObject({ label_en: "Quote Builder", label_es: "Quote Builder" });
+    expect(MODULE_ACCESS.find((a) => a.key === "estimator")).toMatchObject({ label_en: "Quote Builder", label_es: "Quote Builder" });
+    expect(leer("src/app/estimator/layout.tsx")).toContain("title: \"RTG QUOTE BUILDER\",");
   });
 });
 

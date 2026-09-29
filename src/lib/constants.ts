@@ -401,8 +401,10 @@ export const MODULES: ModuleInfo[] = [
     key: "estimator",
     href: "/estimator",
     emoji: "🧮",
-    label_en: "Estimator",
-    label_es: "Estimador",
+    // D-448: se llama «Quote Builder» en los dos idiomas (el dueño, 2026-09-29: «change estimator to quote builder»). La
+    // clave y la ruta siguen siendo "estimator": son las que guardan los permisos.
+    label_en: "Quote Builder",
+    label_es: "Quote Builder",
     desc_en: "Customer quote summaries to print",
     desc_es: "Resúmenes de cotización para el cliente",
   },
@@ -1028,7 +1030,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     },
   },
   {
-    key: "estimator", label_en: "Estimator", label_es: "Estimador",
+    key: "estimator", label_en: "Quote Builder", label_es: "Quote Builder",
     alwaysOn: false,
     // Sin escalafón propio, como promos. Quién edita una cotización lo decide la propia cotización
     // (su dueño, o quien tenga su aprobación; el admin todo — migración 148), no un rol. Quién la
