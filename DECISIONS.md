@@ -32358,3 +32358,79 @@ así que no hay «última pestaña = incidencias» que recoger.
   Incidencias o la barra de «Armar rutas» hay que bajar hasta que asomen por abajo, u ocultar el mapa con «🗺 Ocultar mapa y
   choferes». Ya era así; no se tocó.
 - El gerente sin nada automático (sección 2), a validar con el dueño.
+
+---
+
+## D-NEXT · Office no encontraba «Vendedor» al crear una orden: abre en Intertienda, y en el hueco del campo sale ahora «Es para un cliente»
+
+**Fecha:** 2026-09-28. **Sin migración.** No reemplaza nada: **D-084** (office abre en Intertienda) y la regla de que un
+movimiento tienda-a-tienda no lleva vendedor siguen como estaban.
+
+**Qué pidió el dueño** (cita tal como la pasó el orquestador, no extraída del fichero de sesión): *«ADD VENDEDOR LIKE ADMIN,
+ADD THAT TO ALL OFFICE PEOPLE SO THEY CAN CREATE AN ORDER AND ATTACHED A VENDEDOR»*. Preguntado qué faltaba, eligió: *«No le
+sale el campo»* —al crear una orden, a alguien de office no le aparece «Vendedor»—. No dijo quién.
+
+### La causa: no era un permiso, era el tipo con el que nace la orden
+
+Office en producción son 8 perfiles, todos con rol `accounting` y Entregas (medido por el orquestador, 2026-09-28). En el
+código office **ya tenía** el campo: `needsSalesRep` incluía `accounting` por `ordersLikeOfficeManager`. Se descartó, midiendo:
+
+- **Otro camino de creación:** todas las «Nueva orden» (tablero y chofer) montan el mismo `OrderModal` con `existing={null}`.
+- **Un permiso de lectura:** `profiles` se lee con `using (true)` (099) —office ve a todos los vendedores—, y la lista la
+  arma `vendedoresParaLaOrden`, que no mira quién está mirando.
+- **Claudia Rodriguez, sin tienda:** en el demo, office sin tienda se comporta igual que office con tienda (abajo).
+
+Lo que sí pasaba, medido en el demo por CDP (clics de persona, 1280 y 390): **el admin** abre la orden en Customer, pulsa
+«Siguiente» y tiene «Vendedor» arriba del todo. **Office** la abre en **Intertienda** (D-084: *«default for office and acct
+should be customer type intertienda»*), que se salta el paso 1 y enseña el formulario completo **sin «Vendedor»**, con razón:
+una Intertienda no tiene cliente. Para verlo había que encontrar «Tipo de Orden» más abajo, cambiarlo a Customer —que te
+devuelve al paso 1— y pulsar «Siguiente». Nada en pantalla lo decía.
+
+| Antes (demo, 2026-09-28) | al abrir | tipo | «Vendedor» | para llegar |
+|---|---|---|---|---|
+| admin | paso 1 | Customer | tras «Siguiente», arriba | 1 clic |
+| office McAllen / sin tienda | formulario completo | Intertienda | **no está** | cambiar el tipo abajo + «Siguiente» |
+
+### Lo que se hizo
+
+En el hueco donde va «Vendedor», cuando la orden nueva es tienda-a-tienda y quien la abre elige vendedor (office, gerente,
+admin, chofer), sale la etiqueta **«Vendedor»** con *«Una orden entre tiendas no lleva vendedor. Si es para un cliente,
+cámbiela aquí.»* y un botón **«Es para un cliente → Customer»**. El botón cambia el tipo por el mismo camino que el selector
+(`withTypeDefaults` → `aplicaTipo`) y se queda en el formulario completo, así que el desplegable «Vendedor» aparece **en ese
+mismo sitio**, obligatorio y con la lista de la tienda de la orden (`vendedoresParaLaOrden`, D-290/D-299).
+
+La regla de quién elige vendedor se mudó de la ficha a `lib/sales-reps.ts` (`eligeVendedorAlCrear`, `pideVendedor`,
+`ofrecePasarACliente`, `tipoDeCliente`), para que el campo y el atajo no puedan discrepar sobre los roles. El atajo va a
+«Customer» si existe y es de cliente —el mismo que usa `borradorInicial` para los demás—; si no, al primer tipo configurado
+que no sea tienda-a-tienda; si no hay ninguno, no se pinta.
+
+**Demo:** ventas y el gerente del demo no tenían `module_access`, así que `puedeSerVendedor` los descartaba y el desplegable
+salía **vacío para todos, admin incluido**. Se les dio `["deliveries"]`, como en producción.
+
+**Lo que se descartó:**
+- **Volver office a Customer por defecto** (revertir D-084): sería exactamente «como el admin», pero D-084 lo pidió el dueño
+  porque casi todo lo que registra office es entre tiendas. No se revierte sin preguntárselo.
+- **Pedir «Vendedor» también en Intertienda:** una Intertienda no tiene cliente a quien acreditar, y `assigned_sales_rep`
+  decide quién es el dueño de la orden (`orderOwner`): un vendedor pasaría a ver y a recibir avisos de traslados.
+
+### Verificado
+
+- **Demo por CDP**, 2026-09-28, puerto propio, clics de persona, 1280 y 390 (sin desplazamiento lateral en ninguna): office
+  con tienda (McAllen) y sin tienda abren en Intertienda **con** «Vendedor» y el botón a la vista; al pulsarlo, tipo Customer y
+  desplegable en el mismo sitio con Maria Manager, Sam Sales y Sofia Ventas; se elige uno y deja de marcarse en rojo. El
+  admin, sin cambios (Customer, «Siguiente», el mismo desplegable).
+- Pruebas en `src/lib/vendedor-office.test.ts` (reglas, `borradorInicial` de office con y sin tienda, lista del demo, y que la
+  ficha usa estas funciones); puestas al día `rol-office`, `vendedor-por-tienda` y `order-sites` (cuentan un
+  `withTypeDefaults(` más).
+- **Mutantes: 13, caen los 13**, leídos por nombre: office fuera de quien elige; vendedor en tienda-a-tienda o en una orden
+  guardada; sin atajo en tienda-a-tienda o con atajo en una guardada; `tipoDeCliente` sin preferir Customer (sobrevivía: la
+  prueba tenía Customer primero y se cambiaron los datos) o devolviendo uno tienda-a-tienda; la ficha con la regla a mano,
+  sin pintar el atajo, volviendo al paso 1, cambiando el tipo sin `aplicaTipo` o sin mirar el rol; el demo sin Entregas.
+
+### Lo no verificado
+
+- **Que se guarde `assigned_sales_rep`:** no se guardó ninguna orden en el demo. El guardado no se tocó: `addDelivery` manda
+  `{ ...d }`, con el vendedor dentro, igual que para el admin.
+- **Producción:** que cada tienda de office tenga vendedores con Entregas (si una no tiene, la lista enseña todos, D-290).
+- Al pasar de Intertienda a Customer, **«Dropoff» y su dirección se quedan con la tienda del usuario** (la puso Intertienda).
+  Ya pasaba al cambiar el tipo a mano; no se tocó.

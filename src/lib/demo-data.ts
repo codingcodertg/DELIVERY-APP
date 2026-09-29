@@ -21,9 +21,11 @@ export const uid = () =>
 
 export const DEMO_USERS: Profile[] = [
   { id: "u-admin", full_name: "You (Admin)", role: "admin", store: null },
-  { id: "u-sales", full_name: "Sam Sales", role: "sales", store: "Edinburg" },
-  { id: "u-sales2", full_name: "Sofia Ventas", role: "sales", store: null },
-  { id: "u-mgr", full_name: "Maria Manager", role: "manager", store: null },
+  // Ventas y el gerente, con Entregas concedida: sin ella `puedeSerVendedor` los descarta (como la base,
+  // 083) y el desplegable «Vendedor» del demo salía vacío para todos, admin incluido (D-NEXT).
+  { id: "u-sales", full_name: "Sam Sales", role: "sales", store: "Edinburg", module_access: ["deliveries"] },
+  { id: "u-sales2", full_name: "Sofia Ventas", role: "sales", store: null, module_access: ["deliveries"] },
+  { id: "u-mgr", full_name: "Maria Manager", role: "manager", store: null, module_access: ["deliveries"] },
   { id: "u-log", full_name: "Laura Logistics", role: "logistics", store: null },
   { id: "u-wh", full_name: "Wade Warehouse", role: "warehouse", store: "Pharr" },
   // Drivers are users like everyone else — the Assigned Driver list is built

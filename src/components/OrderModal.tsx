@@ -16,7 +16,7 @@ import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
-import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
+import { ofrecePasarACliente, pideVendedor, tipoDeCliente, vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
 import { ordenDeMisTiendas, puedeBorrar } from "@/lib/deshacer-y-borrar";
@@ -286,8 +286,11 @@ export function OrderModal({
   // Store-to-store moves (Intertienda / Transfer) have no external customer, so
   // no sales rep to credit. Only external-customer orders placed on someone's
   // behalf need one.
-  const needsSalesRep = isNew && (ordersLikeOfficeManager(me.role) || me.role === "admin" || me.role === "driver")
-    && !isStoreToStore(d.order_type, settings.order_type_rules);
+  const needsSalesRep = pideVendedor(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));
+  // Office abre en Intertienda (D-084) y ahí no hay «Vendedor»: en su hueco, el atajo a una orden de
+  // cliente, que es donde está (D-NEXT). Sin tipo de cliente configurado no se pinta.
+  const tipoCliente = tipoDeCliente(settings.order_types, settings.order_type_rules);
+  const atajoACliente = !!tipoCliente && ofrecePasarACliente(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
   // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
@@ -1807,6 +1810,22 @@ export function OrderModal({
                     {tiendaSinVendedores && (
                       <div className="hint">{t("Nobody is assigned to this store — showing everyone who can create orders.", "Esta tienda no tiene a nadie asignado — se muestran todos los que pueden crear órdenes.")}</div>
                     )}
+                  </div>
+                ) : atajoACliente && tipoCliente ? (
+                  <div className="field" data-atajo-cliente>
+                    <label>{t("Sales Rep", "Vendedor")}</label>
+                    <div className="hint" style={{ marginBottom: 6 }}>
+                      {t("Store-to-store orders have no sales rep. For a customer order, switch it here.", "Una orden entre tiendas no lleva vendedor. Si es para un cliente, cámbiela aquí.")}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      // El tipo, por el mismo camino que el selector de «Tipo de Orden»; y se queda en el
+                      // formulario completo para que el «Vendedor» salga aquí mismo, sin volver al paso 1.
+                      onClick={() => { setD((p) => withTypeDefaults(p, tipoCliente)); setShowFullForm(true); }}
+                    >
+                      {t(`It's for a customer → ${tipoCliente}`, `Es para un cliente → ${tipoCliente}`)}
+                    </button>
                   </div>
                 ) : <div />}
                 {salesFields && (
