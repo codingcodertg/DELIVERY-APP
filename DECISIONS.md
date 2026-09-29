@@ -57,6 +57,10 @@ Ajustes, no volver a programar.
 ---
 
 ## D-003 · Registro de incidentes de choferes
+
+> **Nota (2026-09-28, D-437):** el registro ya no es una pestaña del Gestor de Rutas: es el botón «⚠ Incidencias (N)», junto a
+> las pestañas, que abre una ventana. Dentro se hace lo mismo que aquí: registrar, ver el total por chofer y borrar.
+
 **Fecha:** 2026-08-11 · **Versión:** v0.9.65 · **Pedido por:** Andrés
 
 **Cambio:** El gerente de logística puede registrar incidentes con costo
@@ -611,6 +615,10 @@ descargas reales y ajustar el default de 15 min.
 ---
 
 ## D-025 · Las paradas cercanas viajan juntas (agrupación por zona)
+
+> **⚠ Reemplazada por D-437** (2026-09-28): «Optimizar ruta» ya no existe —el dueño: *«Quitar los dos; solo Armar
+> rutas»*— y con él esta agrupación por zona (`buildGeoLoads`, `fillByCapacity`, `planCostMi` y `loadCostMi`, borradas de
+> `route-batching.ts` con sus pruebas). Qué paradas comparten camión lo decide ahora el motor de «Armar las rutas del día».
 
 **Fecha:** 2026-08-13 · **Versión:** v1.3.0 · **Pedido por:** Andrés
 
@@ -24183,6 +24191,10 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Armar las rutas» sigue naciendo plegada, como pidió aquí el dueño,
+> pero su botón es ahora el primario de la barra: es el único camino automático del Gestor (se quitaron «Optimizar» y
+> «Auto-asignar»). Se decidió no hacerla nacer abierta, para no deshacer esta entrada sin que él lo pida.
+
 > **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna de la dirección de entrega enseña **solo la ciudad**
 > («Ciudad de entrega» en «Sin asignar», «Ciudad» en las paradas), con la dirección entera al pasar el ratón. El botón
 > ⤢/⤡ de abrir y cerrar la dirección en las paradas se quitó. Las claves guardadas (`address`, `p_address`) no cambian.
@@ -24455,6 +24467,11 @@ tiene la capacidad de historial: esa ya dejaba fuera las vencidas de más de un 
 **Lo no verificado:** nada abierto en un navegador.
 
 ## D-352 · En el Gestor, la línea del chofer seleccionado sigue su plan publicado, recogidas incluidas
+
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): la línea del plan publicado se pinta solo si al chofer le quedan
+> paradas y su ruta sigue siendo la publicada (`pintaElTrazoDelPlan`). Si no, no se pinta: un chofer vacío (Julio, en la
+> captura del dueño) seguía con la línea de su plan. Y «el optimizador viejo» ya no existe: la línea de los demás es la
+> MEDIDA de la ruta en su orden guardado (`optimize: false`), que no reordena nada. «Simular» se quitó.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.176.0, repo 1.240.0 · **Sin migración.**
 **Reportado por el dueño**, con captura: *«no tienen sentido los puntos, averigua qué pasó porque no salen bien las
@@ -27550,6 +27567,9 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar» ya no existe, así que lo que esta entrada dice de
+> él (qué reparte, si sigue al filtro) no aplica. El filtro de chofer, el chip «Todas» y las tarjetas plegadas siguen.
+
 **Fecha:** 2026-09-25 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Tres pedidos del dueño el mismo día**, literales:
 *«WHEN WILL ASK YOU TO SELECT WHICH DRIVER YOU WANT TO WORK»* (preguntado, eligió «Filtro de chofer»),
@@ -27810,6 +27830,9 @@ con diez (M38), «Guardada» tras un problema (M39), Default que no aplica (M40)
 - **Renombrar** una plantilla: se borra y se guarda con otro nombre.
 
 ## D-395 · Gestor de Rutas: «Elige conductor para N órdenes» al marcar órdenes en «Sin asignar»
+
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar las marcadas» ya no está en el recuadro. Quedan
+> «Asignar», «📍 Mejor lugar» (D-411) y «＋ Nueva ruta».
 
 > **Reemplazada en parte por D-421** (2026-09-27): «el resto, en el orden de siempre» ya no es del todo cierto. Detrás del
 > chofer del filtro van ahora los choferes cuya **zona preferida** es la ciudad de alguna orden marcada, con la marca «su
@@ -28402,6 +28425,9 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 
 ## D-400 · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): el botón «🧭 Armar rutas» de la cabecera, que trae la barra
+> cerrada, es ahora primario (antes fantasma): donde estaban «Auto-asignar» y «Optimizar todas las rutas» es la acción.
+
 **Fecha:** 2026-09-25 · **Sin migración.** · **Pedido por el dueño**, con una captura del Gestor de Rutas, literal:
 *«que estos mensajes tengan una X para que se cierren y así no aparezcan más»*. La captura enseñaba tres: la barra
 «🧭 Armar las rutas del día automáticamente ▸» con su pastilla «6 orden(es) de esta fecha sin plan», el recuadro naranja
@@ -28490,6 +28516,10 @@ cuatro pruebas que citaban la línea vieja de `<PlanDelDia …/>` (`ordenes-del-
 en el mismo `catch`), y se quitó.
 
 ## D-401 · Gestor de Rutas: «✨ Auto-asignar» abre un diálogo — qué órdenes, a qué choferes, y optimizar solo a quien recibió
+
+> **⚠ Reemplazada por D-437** (2026-09-28): el diálogo de «✨ Auto-asignar» (`components/AutoAsignarDialogo.tsx`,
+> `lib/auto-asignar.ts`) y el bucle `optimizaEstas` se quitaron. El dueño, 2026-09-28: *«quita lo de optemizar y lo de
+> autoa signar que este en earmar rutas»*, y eligió *«Quitar los dos; solo Armar rutas»*.
 
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): el reparto ya no es `autoAssign` (se quitó) sino el motor de
 > «Planificar el día» (`/api/route-plan/reparto`), un día por petición y contando lo que cada chofer ya lleva. **El diálogo
@@ -29708,6 +29738,11 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 
 ## D-411 · Gestor de Rutas: «📍 Mejor lugar» (una orden entra sola en el hueco más barato) y 🔒 rutas bloqueadas que nada automático toca
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): lo que respeta el candado es ahora «Armar las rutas del día» (el
+> motor, D-414) y «📍 Mejor lugar» (y el arrastre al nombre de un chofer, que es Mejor lugar). «Optimizar todas»,
+> «Optimizar ruta», «Reagrupar por zona», «✨ Auto-asignar», «Simular» y el dibujo automático que optimizaba se quitaron;
+> con ellos `optimizaSinLasBloqueadas` y `avisoDeSaltadas`. «📍 Mejor lugar» no cambia.
+
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): el diálogo de «✨ Auto-asignar» ya no optimiza, así que no pasa por
 > `optimizaEstas` (lo sigue usando «Optimizar todas las rutas»). Un chofer 🔒 sigue sin recibir nada: el diálogo no lo
 > ofrece, la pantalla lo quita, y ahora también el servidor lee los candados de cada día (`route_locks`).
@@ -29866,6 +29901,9 @@ El demo no trae coordenadas de tiendas ni puede geocodificar (401), así que a B
   contra `main`.
 
 ## D-412 · Prioridad por orden (baja, normal, alta, crítica): en la ficha, en Órdenes y en el Gestor, y Auto-asignar reparte primero lo urgente
+
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» ya no existe. La prioridad la usa el motor de «Armar
+> las rutas del día» (D-415), que es ahora el único que reparte.
 
 > **Reemplazada en parte por D-436** (2026-09-28): el selector «Prioridad» ya no sale en la ficha de la orden; la columna y el motor siguen.
 
@@ -30105,6 +30143,9 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
 
 ## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): ya no hay «Optimizar todas» que pudiera pasar por encima del
+> candado. El candado en la base (149) no cambia: lo leen «Armar las rutas del día» y «Publicar ruta».
+
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `149_route_locks.sql`, **escrita y
 NO aplicada** (plan en papel: `docs/PLAN-149-candado-compartido.md`, con la matriz por rol para correr con `ROLLBACK`).
 **Reemplaza en parte a D-411** (dónde vive el candado; lleva su nota). No toca `src/lib/route-engine/*` ni `/estimator`.
@@ -30245,6 +30286,9 @@ la verdad, no un fallo: el hueco es de captura.
 - En el demo solo se midió como admin, en inglés.
 
 ## D-415 · «Planificar el día» usa la prioridad, y reparte por tiempo o por órdenes, con «usar todos los choferes»
+
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» y «Optimizar» ya no existen. Lo de esta entrada sobre
+> «Planificar el día» sigue igual.
 
 > **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
 
@@ -30667,6 +30711,9 @@ la tableta bajándola al borde inferior. No se midió contra `main`, pero el map
 
 ## D-418 · Requisitos del camión (como las «skills» de OptimoRoute) y encuesta de satisfacción en la página de seguimiento
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Auto-asignar» ya no existe; los requisitos del camión los respetan
+> el motor de «Armar las rutas del día» y «📍 Mejor lugar».
+
 > **Reemplazada en parte por D-424** (2026-09-27): el botón «¿Por qué aquí?» del borrador ya no se enseña; lo quitó el dueño. Lo que aquí se dice de sus frases queda como historia.
 
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): «Auto-asignar no respeta los requisitos» ya no es cierto. Auto-asignar
@@ -30814,6 +30861,11 @@ ni de Auto-asignar.
 - La encuesta con la base de verdad (la ruta POST contra PostgREST, el `23505` real): probada solo con un cliente falso.
 
 ## D-419 · «✨ Auto-asignar» reparte con el motor de «Planificar el día»: cuenta lo que cada chofer ya lleva, no mezcla días, y dice por qué no coloca
+
+> **⚠ Reemplazada por D-437** (2026-09-28): «✨ Auto-asignar» se quitó del Gestor y del Mapa, entero: `repartirConElMotor`,
+> `POST /api/route-plan/reparto`, `lib/route-plan/reparto.ts`, `reparto-cliente.ts`, el `siNoCambioDesde` de
+> `updateDelivery` y sus pruebas. Repartir automático es solo «Armar las rutas del día» —el mismo motor, con borrador,
+> ajuste y publicar—. Las medidas de aquí (40 → 153 de 178 en los días reales) siguen describiendo al motor.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** Tarea **T-0410**.
 **Reemplaza en parte** a D-401 (el reparto ya no es `autoAssign`, y el diálogo ya no optimiza al terminar), D-411 (el diálogo
@@ -31880,6 +31932,10 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 
 ## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
+> **⚠ Reemplazada en parte por D-437** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
+> toda la ruta («Optimizar decide si respeta los viajes…») ya no tiene quién lo lea; se deja, no hace daño. «Unir viajes»
+> y «Dividir en 2» escriben ahora también la ruta entera, numerada tras lo ya hecho (`desde`). Flechas y selector, igual.
+
 **Fecha:** 2026-09-28. **Pedido del dueño**, con captura de la tarjeta de Ernesto Castillo en la pestaña «Rutas» (2 paradas,
 «Viaje 1 — ~8/10 pallets», el aviso «Esta ruta cambió desde que se publicó el plan», P1 Edinburg, P2 Pharr, D1, D2), literal:
 *«las felchas no funcionan igual para cmabiar truckload no funcionan entonces arregla eso»*. **Migraciones:** ninguna.
@@ -32173,3 +32229,132 @@ orden con la preferencia por defecto (SMS y correo, sin correo = solo SMS). El g
 fee es menos de la tarifca sugerida quita ese bloqeuo»*. En el código no hay ningún bloqueo por un costo menor al sugerido: la
 ficha solo exige que haya costo (0 vale, `required.ts`) y enseña el aviso «Igualar precio (menor al descuento) — requiere
 aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio ese usuario antes de tocar nada.
+
+## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
+
+**Fecha:** 2026-09-28. **Sin migración.** **Reemplaza a D-025, D-401 y D-419, y en parte a D-003 (nota), D-346, D-352, D-393,
+D-395, D-400, D-411, D-412, D-414, D-415, D-418 y D-433**: todas llevan su nota.
+
+**Qué pidió el dueño** (citas tal como las pasó el orquestador, no extraídas del fichero de sesión). Se le explicó la
+diferencia entre «Armar las rutas del día» (el motor: planifica en borrador, se ajusta y se publica), «✨ Auto-asignar» (D-419:
+reparte al momento con el mismo motor) y «Optimizar ruta / Optimizar todas las rutas» (`computeRoute` con Google: reordena una
+ruta). Dijo, literal: *«quita lo de optemizar y lo de autoa signar que este en earmar rutas»*, y al darle a elegir: *«Quitar los
+dos; solo Armar rutas»*. En la misma tanda, con captura del Gestor (v1.230.0): *«julio esta vacio pero aun asi aparece y abajo
+tambien aparece como viaje»*; y *«incidencias que sea un boton»*.
+
+### 1 · Lo que se quitó
+
+- **«🧭 Optimizar todas las rutas»** (cabecera) y **«🧭 Optimizar ruta»** (cada tarjeta): `computeRoute`, `applyPlan`,
+  `optimize`, `optimizeAll`, `optimizaEstas`.
+- **«✨ Auto-asignar»**: el de la cabecera, el «Auto-asignar las marcadas» del recuadro «Elige conductor» y el
+  «Auto-asignar selección» del **Mapa**. Con él, todo lo que solo le servía a él: `components/AutoAsignarDialogo.tsx`,
+  `lib/auto-asignar.ts`, `POST /api/route-plan/reparto`, `lib/route-plan/reparto.ts`, `lib/route-plan/reparto-cliente.ts`, sus
+  pruebas (`auto-asignar.test.ts`, `reparto.test.ts` y las dos de zonas que repartían con él) y la opción `siNoCambioDesde` de
+  `updateDelivery`, que solo usaba Auto-asignar. `dias-reales-anon.json` se queda: lo usan las pruebas de zonas del motor.
+- **«🧩 Reagrupar por zona»**: borraba los viajes y luego optimizaba. Sin optimizar no tiene nada que hacer. Con él, la
+  agrupación por zona en el navegador (`buildGeoLoads`, `fillByCapacity`, `planCostMi`, `loadCostMi` de `route-batching.ts`, y
+  sus pruebas); queda `haversineMi`, que usa el historial de recorridos.
+- **«🔮 Simular»**: reoptimizaba la ruta entera con la orden dentro y, al confirmar, la escribía. Lo que hacía se hace con
+  «📍 Mejor lugar» (la orden entra en el hueco más barato sin mover las demás). Se van la banda de simulación y su línea
+  punteada.
+- `optimizaSinLasBloqueadas` y `avisoDeSaltadas` (`rutas-bloqueadas.ts`): eran el bucle de «Optimizar todas».
+- Criterio aplicado: lo que llamaba a `computeRoute`/Google para **reescribir** el orden desde un botón, fuera.
+
+### 2 · Lo que se quedó, y por qué
+
+- **«📍 Mejor lugar»** (D-411), **el arrastre de «📅 Horario»** (D-417), **las flechas ↑↓** y **el selector «Viaje N»**
+  (D-433): no usan el optimizador; son la forma de ajustar a mano. Sin cambios.
+- **«✂ Dividir en 2» y «🔗 Unir viajes»**: se quedan, pero **ya no dejan el puesto en blanco**. Escribían `route_seq: null`
+  porque detrás venía Optimizar a rehacer el orden; sin Optimizar, eso tiraba el orden que la persona había puesto con las
+  flechas. Ahora escriben la ruta entera en el orden que se ve, numerada tras lo ya hecho (como las flechas, D-433):
+  `planDeUnirViajes` y `planDeDividirEnDos` (`mover-parada.ts`).
+- **El dibujo al elegir un chofer ya no optimiza: MIDE.** Hasta aquí, elegir un chofer en el panel llamaba a «Optimizar» y
+  **escribía** el orden nuevo (D-411 lo nombra). Y como cada cambio borra la medida (`clearRouteFor`), **una flecha con el
+  chofer elegido volvía a optimizar y deshacía la flecha**. Medido en el demo con un doble de `/api/optimize-route` que
+  devuelve el orden al revés: antes, tras ↓ la ruta volvía a `#1069, #1068, #1067` (la llamada de después de la flecha tenía
+  `optimize` sin poner = optimizar); ahora queda `#1068, #1069, #1067` y la segunda llamada es `optimize: false` con el orden
+  nuevo. En producción no se midió; es, probablemente, parte de «las felchas no funcionan» de D-433. Ahora `mideLaRuta` pide el
+  camino **en el orden guardado** (`cuerpoDeLaMedida`, `optimize: false`, como «Mi ruta» y el trazo del plan) y solo pinta:
+  millas y horas de la tarjeta y de cada viaje, la llegada estimada de cada parada (y el aviso de las que llegan tarde) y la
+  línea del mapa. No escribe nada, ni con candado. Cada forma de la ruta se mide una vez (`firmaDeLaMedida`): si falla (el demo
+  contesta 401) no se reintenta en bucle —antes, el camino de error volvía a disparar el efecto— y no enseña error, porque
+  nadie pidió medir. Una medida que llega tarde, de la forma de antes, se tira. **Coste:** la misma llamada por viaje que ya
+  hacía el dibujo, pero sin optimizar.
+- **El candado 🔒** sigue: lo respetan «Armar las rutas del día» (servidor, D-414) y «Mejor lugar». Sus textos ya no nombran
+  Optimizar ni Auto-asignar.
+- **`/api/optimize-route` se queda**: la usan el trazo del plan publicado y la medida del Gestor, el Mapa (recogida →
+  entrega de una orden) y «Mi ruta». La rama que optimiza del API queda para las llamadas de dos puntos que no dicen
+  `optimize` (Mapa y selección del Gestor), donde da igual.
+- **Quién se queda sin nada automático:** «Armar rutas» es de admin y logística (`puedeArmarRutas`). El gerente, que también
+  entra al Gestor, tenía Optimizar y Auto-asignar y ahora solo asigna a mano, con «Mejor lugar» y las flechas. **A validar.**
+
+### 3 · «Armar las rutas del día», el camino principal
+
+Sigue **naciendo plegada**: lo pidió el dueño en D-346 (*«will be abuttom so it hides all that information and just shows when
+i want it to»*) y abrirla de partida sería deshacer eso sin que él lo pida. Lo que cambia: su botón plegado es ahora el
+**primario** de la barra (azul, antes fantasma), y el «🧭 Armar rutas» de la cabecera —el que la trae si se cerró con la ✕,
+D-400— también. Donde estaban «Auto-asignar» y «Optimizar todas» no queda hueco: la fila de la cabecera es flexible y se
+cierra sola (medido: nada se desplaza de lado a 1280 ni a 390).
+
+### 4 · Julio vacío: ni línea en el mapa ni tarjeta
+
+**Qué pasaba** (reproducido en el demo antes del cambio, 1280 px): un chofer con plan publicado de hoy cuyas órdenes se
+pasaron a otro, marcado ☑ con un clic en su fila del panel. El mapa **pintaba la línea de su plan** (2 trazos, `#0f8a8a`,
+el «verde azulado» de la captura: se pedía con las paradas DEL PLAN, no con las suyas de ahora) y «Rutas» sacaba su tarjeta
+«0 stops» con Capacidad, Bloquear y Optimizar ruta. **Por qué salía marcado:** nada lo marca solo; `selected` lo ponen el
+clic en su fila del panel, en su nombre de la tarjeta o en su línea del mapa. La tarjeta salía porque «Rutas» enseñaba
+también las marcadas sin paradas.
+
+**Ahora:**
+- La línea del plan publicado se pinta (y se pide, que cuesta) solo si al chofer **le quedan paradas pendientes y su ruta
+  sigue siendo la publicada** (`pintaElTrazoDelPlan`, con la misma lectura que decide las etiquetas P/D). Se decidió «nada»
+  antes que «el plan recortado a lo que le queda»: recortado ya no es el plan, y la ruta de ahora ya tiene su línea (la
+  medida). Si la ruta cambió tras publicar, se pinta la medida de la ruta de ahora.
+- Una ruta que se queda sin paradas pierde su medida y su línea aunque el cambio venga de otra ruta (el tablero y «Asignar»
+  solo limpiaban la de destino): lo pintado se tira en cuanto la forma de la ruta cambia (`firmaPintada`).
+- **Sin paradas no hay tarjeta**, aunque esté marcado. No era destino de nada: se asigna desde «Sin asignar», el recuadro o el
+  tablero, y «📅 Horario» —que sí pinta las rutas vacías, a propósito, para soltar— no cambia. Renombrar o quitar una ruta
+  temporal vacía sigue en el panel. Las marcadas vacías se nombran en una línea: «Sin paradas este día: Carlos R.».
+- Después (demo, 1280 y 390): 0 líneas, 0 llamadas, sin tarjeta, con la línea «Sin paradas…». Control: un chofer con paradas
+  y la ruta tal como se publicó sigue pintando la línea del plan (en el orden del plan); tras ↓, su línea pasa a la del orden
+  nuevo.
+
+### 5 · «⚠ Incidencias» es un botón
+
+Ya no es pestaña. Es un botón a la derecha de las pestañas, con su cuenta, **ámbar si hay alguna registrada** (las incidencias
+no tienen estado «abierta»: se registran y se borran), que abre una ventana sobre el Gestor sin cambiar de pestaña. Dentro,
+lo de siempre (`DriverIncidents`, sin su tarjeta ni su título, que pone la ventana): registrar, total por chofer y borrar. Se
+cierra con ✕, con Escape o pulsando fuera. La pestaña no se guardaba en ningún sitio (estado de la página, sin preferencia),
+así que no hay «última pestaña = incidencias» que recoger.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, suite y build (ver el informe de la rama para los números).
+- Pruebas nuevas en `src/lib/solo-armar-rutas.test.ts` (librerías y pantalla; las de «no está» miran el código sin
+  comentarios, porque los comentarios nombran lo quitado). Puestas al día: `elige-conductor`, `mejor-lugar`, `requisitos`,
+  `ordenes-del-dia`, `avisos-ocultos`, `routes-columns`, `rutas-bloqueadas`, `vista-del-gestor`, `trazo-del-plan`, las dos de
+  zonas, `route-batching`. Una de `elige-conductor` pasaba **por el bloque borrado**: buscaba `filtro: filtroChofer, });`,
+  que era el final de las opciones de Auto-asignar, no las del recuadro; ahora busca las del recuadro.
+- **Mutantes: 28, caen los 28**, leídos por nombre: vuelve cada botón quitado (Optimizar todas, Optimizar ruta, Auto-asignar
+  del recuadro y del Mapa); la medida pide optimizar, toma el orden del proveedor o escribe; se mide en bucle; se pinta una
+  medida tardía; la forma no mira el puesto o el orden (estos dos sobrevivían al principio: se añadieron los casos); Unir con
+  número, Dividir por abajo o con una parada, Unir sin puesto; la línea del plan sin paradas, con la ruta cambiada, sin
+  `sigueSuPlan`, pedida de más o sin `pintaElTrazoDelPlan`; la línea medida de una ruta vacía; lo medido sin tirar; vuelve la
+  tarjeta vacía; Incidencias como pestaña, sin ámbar o sin ✕; los dos botones de «Armar rutas» en fantasma.
+- **Demo por CDP** (2026-09-28, puerto propio, `/api/optimize-route` y el plan publicado con dobles en el navegador: ni una
+  llamada salió), clics de persona: sin botones de optimizar/auto-asignar/reagrupar/simular a 1280 ni a 390; pestañas Rutas,
+  Sin asignar, Tablero, Horario; «Armar rutas» plegada con botón primario, se abre y enseña «Plan the day»; Incidencias:
+  abrir, registrar una (el botón pasa a ámbar, «(1)»), borrarla, cerrar con ✕ y con Escape, a 1280 (ventana de 820) y a 390
+  (ventana de 390, sin desplazamiento lateral); flechas; «Viaje N» → «＋ Nuevo viaje»; Dividir y Unir con el orden intacto;
+  «📍 Mejor lugar» (#1065 → Diego, parada 1 de 4, 0 llamadas); arrastre en Horario (#1069 de Diego a Miguel A.); Mapa con dos
+  pines marcados: «Asignar todas a…» y «Quitar», sin Auto-asignar, a 1280 y 390. Desplazamiento lateral 0 en todas.
+
+### Lo no verificado
+
+- **Nada contra producción ni con Google.** La medida en el orden guardado se probó con un doble; que Google con
+  `optimize: false` devuelve las patas en ese orden lo dice el código de `google-routes.ts` (ya lo usaban «Mi ruta» y el
+  trazo del plan), no una llamada de esta rama.
+- **A 390 el panel fijo (choferes + mapa) tapa casi toda la ventana** (819 de 844 px): para pulsar las pestañas, el botón de
+  Incidencias o la barra de «Armar rutas» hay que bajar hasta que asomen por abajo, u ocultar el mapa con «🗺 Ocultar mapa y
+  choferes». Ya era así; no se tocó.
+- El gerente sin nada automático (sección 2), a validar con el dueño.

@@ -87,6 +87,34 @@ export function cabeEnElViaje<T extends Parada>(viajes: readonly (readonly T[])[
   return { cabe: aLaDecima(carga + pallets) <= capacidad, carga, pallets };
 }
 
+/**
+ * «🔗 Unir viajes» (D-437): todos los viajes vuelven a ser uno, EN EL ORDEN QUE SE VE, numerado desde `desde`. Sin viajes
+ * a mano, el Gestor vuelve a partir la ruta por capacidad al pintarla (`splitIntoTrips`).
+ *
+ * Hasta D-437 se escribía `route_seq: null` en todas, porque después venía «Optimizar» y rehacía el orden. Sin Optimizar,
+ * eso tiraba el orden que la persona había puesto con las flechas (la ruta volvía al orden por número de orden).
+ */
+export function planDeUnirViajes<T extends { id: string }>(viajes: readonly (readonly T[])[], desde: number): Reescritura & { loadNoById: Record<string, number | null> } {
+  const ids = viajes.flat().map((o) => o.id);
+  const loadNoById: Record<string, number | null> = {};
+  for (const id of ids) loadNoById[id] = null;
+  return { ids, loadNoById, desde };
+}
+
+/**
+ * «✂ Dividir en 2» (D-437): la primera mitad (redondeada hacia arriba) al viaje 1 y el resto al 2, en el orden que se ve y
+ * numerado desde `desde`. Como «Unir viajes», antes dejaba el puesto en blanco para que Optimizar lo rehiciera.
+ * `null` con menos de dos paradas: no hay nada que dividir.
+ */
+export function planDeDividirEnDos<T extends { id: string }>(viajes: readonly (readonly T[])[], desde: number): (Reescritura & { loadNoById: Record<string, number | null> }) | null {
+  const lista = viajes.flat();
+  if (lista.length < 2) return null;
+  const mitad = Math.ceil(lista.length / 2);
+  const loadNoById: Record<string, number | null> = {};
+  lista.forEach((o, i) => { loadNoById[o.id] = cargaDelViaje(i < mitad ? 0 : 1); });
+  return { ids: lista.map((o) => o.id), loadNoById, desde };
+}
+
 export type CambioDeViaje =
   | (Reescritura & { ok: true; viaje: number; nuevo: boolean; excede: boolean })
   | { ok: false; motivo: "no_esta" | "sin_cambio" }

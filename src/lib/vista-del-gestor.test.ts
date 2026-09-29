@@ -89,8 +89,9 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
     expect(pagina).toContain("if (!list.some((d) => d.route_seq != null)) continue; if (!pasaFiltro(laneKey)) continue;");
     expect(pagina).toContain("if (!sel && !pasaFiltro(laneKey)) continue;");
     expect(pagina).toContain("if (!sel && filtroChofer !== TODOS_LOS_CHOFERES) continue;");
-    expect(pagina).toContain("const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver));");
-    expect(pagina).toContain("if (geom.length < 2 || !pasaFiltro(driver)) continue;");
+    expect(pagina).toContain("const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver) &&");
+    // Desde D-437 la del plan, además, solo si la ruta sigue siendo la publicada y tiene paradas (`sigueSuPlan`).
+    expect(pagina).toContain("geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)");
     expect(pagina).toContain("liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))}");
   });
 });

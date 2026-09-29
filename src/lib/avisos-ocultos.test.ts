@@ -82,7 +82,7 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
   });
   it("con la barra «Armar las rutas» cerrada, la acción sigue en la cabecera y la trae abierta", () => {
     expect(pagina).toContain("const barraDeArmarRutas = puedeArmarRutas && (!oculto(AVISOS_DEL_GESTOR.armarRutas) || planTraidoAMano);");
-    expect(pagina).toContain("{puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && ( <button className=\"btn btn-ghost btn-sm\" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}");
+    expect(pagina).toContain("{puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && ( <button className=\"btn btn-primary btn-sm\" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}");
     expect(pagina).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano} onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }} onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split(\"#\")[0]); if (d) setOpenOrder(d); }} columnas={{");
     // Los mismos que antes pueden planear: admin y logística, con un día concreto.
     expect(pagina).toContain("const puedeArmarRutas = !allDates && !soloPendientes && !!me && [\"admin\", \"logistics\"].includes(me.role);");
