@@ -164,7 +164,7 @@ describe("la 155", () => {
 
   it("sin begin/commit propios y sin D-NNN dentro", () => {
     expect(sinComentarios).not.toMatch(/^\s*(begin|commit)\s*;/im);
-    expect(sql).not.toMatch(/D-\d{3}|D-NEXT/);
+    expect(sql).not.toMatch(/D-\d{3}|D-449/);
   });
 
   it("el checksum del registro es el del cuerpo", () => {

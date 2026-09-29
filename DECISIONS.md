@@ -33307,9 +33307,9 @@ cambiado»). En los dos idiomas se llama «Quote Builder»: es el nombre que el 
 lo que guarda quién tiene permiso. Renombrarlas no cambia nada de lo que se ve y obligaría a migrar `module_access` de
 cada persona. La hoja impresa sigue llamándose «Estimate», que es el documento, no la app.
 
-## D-NEXT · Encuestas de clientes: la tabla y el rol del sitio público (migración 155) y la app «Encuestas» del hub
+## D-449 · Encuestas de clientes: la tabla y el rol del sitio público (migración 155) y la app «Encuestas» del hub
 
-**Fecha:** 2026-09-29 · **Versión:** surveys 0.1.0 (entrada nueva en `APP_VERSIONS`; el resto lo asigna el orquestador) ·
+**Fecha:** 2026-09-29 · **Versión:** surveys 0.1.0 (entrada nueva en `APP_VERSIONS`), deliveries 1.241.0, repo 1.324.0 ·
 **Migración:** 155 (`supabase/migrations/155_encuestas.sql`, plan `docs/PLAN-155-encuestas.md`), escrita y NO aplicada.
 
 ### Qué pidió el dueño
