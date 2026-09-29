@@ -181,7 +181,9 @@ function columnasDelPlan(): ColumnaDelGestor[] {
     { key: "pl_horas", en: "Plan: Arrives–leaves", es: "Plan: Llega–sale", tablas: ["plan"], ancho: 120, oculta: true },
     { key: "pl_ventana", en: "Plan: Plan window", es: "Plan: Ventana del plan", tablas: ["plan"], ancho: 110, oculta: true },
     { key: "pl_tramo", en: "Plan: Leg", es: "Plan: Tramo", tablas: ["plan"], ancho: 110, oculta: true },
-    { key: "pl_bordo", en: "Plan: Pallets on board", es: "Plan: Pallets a bordo", tablas: ["plan"], ancho: 90, oculta: true },
+    // «Plan: Pallets a bordo» (`pl_bordo`) iba aquí, escondida. D-443 la sacó del ⚙: la cuenta de pallets es una columna
+    // FIJA de la tabla, visible siempre, con la operación entera («antes ± parada = después · libres»). Quien la tenía
+    // guardada entre sus columnas no pierde nada: una clave que ya no está en el catálogo se ignora al leer.
   ];
 }
 
@@ -400,7 +402,8 @@ export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined
  * Esto los traduce a las claves nuevas, una vez, para que nadie pierda lo que arrastró. Lo que no sea un número se ignora.
  * Las tres fijas de la tabla —número de parada, factura y acciones— llevan su propia clave.
  */
-export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 40, _factura: 110, _acciones: 150 };
+// `_cuenta` (D-443): la cuenta de pallets de cada parada, fija («8.75 + 3.00 = 11.75 · −1.75 libres»).
+export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 40, _factura: 110, _cuenta: 230, _acciones: 150 };
 
 /** El ancho de partida de una columna de paradas, por su clave: el de las tres fijas; el de Órdenes para las que vienen de
  *  allí (D-376); y si no, el del catálogo. Son los mismos números que tenía la tabla por posición ([40, 110, 140, 70, 120,

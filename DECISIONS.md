@@ -331,6 +331,10 @@ en una etapa vieja.
 ---
 
 ## D-016 · Tres niveles de detalle en la tabla de paradas
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el «selector de viaje» ya
+> no existe: las filas llevan ↑↓ y «Pasar a…», que tampoco secuestran el mapa.
+
 **Fecha:** 2026-08-12 · **Versión:** v0.9.98 · **Pedido por:** Andrés
 
 **Cambio:** En la tabla de paradas del Gestor de Rutas, el destino del toque
@@ -473,6 +477,11 @@ práctica, la salida más simple es ampliar solo el futuro para Ventas
 ---
 
 ## D-021 · "Mi ruta": el chofer ve el plan, sin poder cambiarlo
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Mi ruta» ya no agrupa las
+> paradas en viajes: es UNA lista —recogidas y entregas en el orden en que se hacen—, cada parada con su cuenta de
+> pallets; tocar el título traza la ruta entera (antes, un viaje cada vez). «Viaje 2» ya no significa nada para nadie.
+
 **Fecha:** 2026-08-13 · **Versión:** v1.1.1 · **Pedido por:** Andrés
 
 **Cambio:** Pestaña nueva **🧭 Mi ruta** para el chofer, con el orden y los
@@ -580,6 +589,10 @@ cambios se guardaban localmente — no era cierto hasta ahora.
 
 ## D-024 · Cada viaje muestra su costo real, descarga incluida
 
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): sin viajes no hay «cada
+> viaje con su costo»: se mide UNA vez la lista entera del chofer (base, cada recogida en su tienda con su recarga, cada
+> entrega, y vuelta), y lo medido va en los totales de la tarjeta.
+
 **Fecha:** 2026-08-13 · **Versión:** v1.2.2 · **Pedido por:** Andrés
 
 **Cambio:** en Routes Manager, cada viaje muestra sus propias millas y su tiempo,
@@ -619,6 +632,10 @@ descargas reales y ajustar el default de 15 min.
 > **⚠ Reemplazada por D-437** (2026-09-28): «Optimizar ruta» ya no existe —el dueño: *«Quitar los dos; solo Armar
 > rutas»*— y con él esta agrupación por zona (`buildGeoLoads`, `fillByCapacity`, `planCostMi` y `loadCostMi`, borradas de
 > `route-batching.ts` con sus pruebas). Qué paradas comparten camión lo decide ahora el motor de «Armar las rutas del día».
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): `splitIntoTrips` ya no
+> parte la ruta en la pantalla. Su corte por capacidad sigue vivo solo como la regla que pone las recogidas que no
+> tienen posición guardada (`listaDelChofer`): bloques de lo que cabe, dentro de la misma lista.
 
 **Fecha:** 2026-08-13 · **Versión:** v1.3.0 · **Pedido por:** Andrés
 
@@ -22434,6 +22451,10 @@ dicho aquí para que nadie crea que la prueba permanente cubre eso.
 
 ## D-320 · Motor de rutas, incremento 4: «Planificar el día» deja un borrador, y «Publicar ruta» lo escribe de una vez y avisa una sola vez
 
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): publicar ya no escribe
+> `load_no` (la función lo deja en `null`) y escribe `pickup_seq`, dónde va cada recogida (migración 154); `route_seq`
+> es el puesto seguido en todo el día, no dentro del viaje.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `133_route_plans.sql`, escrita y
 **no aplicada**. **Plan:** `docs/PLAN-133-route-plans.md` · **Diseño:** `docs/route-algorithm-design.md`, §7 y §8.
 **El Gestor de Rutas de hoy sigue entero.** Esto se añade al lado, en Rutas, solo para admin y logística.
@@ -22549,6 +22570,10 @@ una.
 
 ## D-322 · Motor de rutas, incremento 5: la ruta de cada chofer, parada a parada — y el plan ya no se pierde al recargar
 
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): ni raya ámbar entre viajes
+> ni «N viajes» en la cabecera: la ruta es una lista. Cada parada lleva su cuenta de pallets fija («antes ± parada =
+> después · libres») y la ruta, su Base de salida y de regreso.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Diseño:** `docs/route-algorithm-design.md`, §7. Sigue a D-320. **El Gestor de Rutas de hoy no cambia.**
 
@@ -22659,6 +22684,9 @@ una.
   secuencias escritas a mano; con las que salen de un borrador real de producción, no.
 
 ## D-324 · Motor de rutas: el chofer lee SUS paradas del plan publicado — por una función, sin abrirle ninguna tabla
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Orden planeado del día» ya
+> no dice «N viajes» ni pinta raya entre viajes.
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `134_my_published_stops.sql`,
 escrita y **no aplicada**. **Plan:** `docs/PLAN-134-chofer-lee-sus-paradas.md`. Sigue a D-320/D-322/D-323.
@@ -23203,6 +23231,12 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 > (qué tienda se recoge antes, adelantando su primera entrega) y un «Viaje N» que pasa su carga a otro viaje. Y la marca P
 > del mapa ya no va «del color del chofer», sino del color de SU viaje (el del chofer es solo el del viaje 1). La numeración
 > y las reglas de lectura no cambian.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): ya no hay viajes: las
+> recogidas no van «delante de las entregas de su viaje» sino donde las pone la lista (`listaDelChofer`: la posición
+> guardada, 154, o la regla de bloques por capacidad). La numeración (P por orden de recogida, `Dk` = entrega de `Pk`) y
+> «una tienda seguida = una parada» siguen.
+
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
 asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
 **Pedido por:** Andrés, literal: «I DONT SEE P1 PICKUP 1 PICKUP 2 AS P2 AND D1 AND D2 … AND SO ON».
@@ -23265,6 +23299,10 @@ contadas con la misma función y las mismas etapas que leería planificar. No se
 - Un mutante queda vivo y se declara equivalente: arrastrar los pallets a bordo de un viaje al siguiente no cambia nada, porque
   cada viaje descarga exactamente lo que cargó y acaba en cero (en centésimas enteras).
 ## D-335 · Con un plan publicado, las etiquetas P/D de la ruta son las del plan — mientras la ruta siga siendo la que el plan escribió
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): lo que se lee del plan es
+> su LISTA (sin viajes), y «sigue siendo la publicada» compara el puesto seguido y, con la 154, la posición de la
+> recogida. Una ruta publicada antes se sigue reconociendo con la regla vieja (`posicionesPorViajeHistoricas`).
 
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No escribe nada:** es solo
 cómo se LEE una ruta.
@@ -23348,6 +23386,10 @@ de las pruebas dejaba nada al final; ahora hay uno con la segunda carga de una o
 
 > **⚠ Reemplazada en parte por D-379** (2026-09-23): una ruta que nadie ordenó ya enseña sus etiquetas en el Gestor,
 > provisionales (en gris y cursiva). Lo de las rutas a medias sigue vigente.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): una ruta ordenada a medias
+> ya no pinta «—»: la lista lleva la recogida y la entrega de TODAS sus órdenes (lo que no tiene puesto, al final), y lo
+> que no tiene puesto sale en gris, fila a fila.
 
 **Fecha:** 2026-09-19 · **Estado:** Vigente · **Afina:** D-334, D-335
 
@@ -23896,6 +23938,9 @@ citaban texto que un mutante podía dejar intacto y muerto:
 
 ## D-341 · «Mi ruta» le dice al chofer que su ruta cambió desde que se publicó el plan, y en qué
 
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): se quita «Una parada pasó a
+> otro viaje» (`viajeCambiado`): sin viajes no hay tal cosa.
+
 **Fecha:** 2026-09-19 · **Versión:** Entregas 1.166.0, repo 1.230.0 · **Migraciones:** ninguna. **No escribe nada:** es solo
 cómo se LEE una ruta. · **Cierra** el último punto de «Lo que NO está» de D-335.
 **Pedido por:** el orquestador.
@@ -23966,6 +24011,10 @@ la lista»), cada una con la suya.
 - «Orden cambiado» usa el orden en que la pantalla entrega las órdenes (`trips` aplanado), no `route_seq` a pelo.
 
 ## D-342 · «Agregar material» avisa si el camión se pasa y si la orden ya está en un plan publicado
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): `load_no` ya no se escribe:
+> el tope «por viaje» solo vale para una orden que aún tenga viaje viejo; lo demás cuenta el día entero, como sin viaje.
+> Lo justo con la lista única sería la carga máxima de la lista con los pallets nuevos; queda pendiente.
 
 **Fecha:** 2026-09-19 · **Versión:** Entregas 1.166.0, repo 1.230.0 · **Sin migración.**
 
@@ -24549,6 +24598,9 @@ verde. **No verificado:** nada abierto en un navegador.
 
 > **⚠ Generalizada por D-362** (2026-09-22): arreglaba un sitio y el fallo era de sumar. Quince sitios sumaban pallets
 > por su cuenta, y cuatro redondeaban a ENTERO, que es peor. Ahora hay una sola función.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): la cabecera de cada viaje
+> ya no existe. La cuenta de cada parada sale de `cuentaDePallets` (lib/lista-unica), en centésimas.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.179.0, repo 1.243.0 · **Sin migración.**
 **Reportado por el dueño**, literal: *«carga en recolección ↺ (7.569999999999999 libres) round it nearest tenth»*.
@@ -26494,6 +26546,10 @@ Mutante medido: el enlace apuntando a `/promos` tumba las dos pruebas.
 
 > **⚠ Reemplazada en parte por D-408** (2026-09-26): la celda que juntaba el código (arriba, subrayado) y la factura
 > (debajo) enseña **solo la factura**, subrayada, y es la que abre la orden. `.parada-id` y `.parada-factura` se quitaron.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): `filasDelViaje` y
+> `lecturaParaLasFilas` se fueron: la lectura trae la lista entera (`LecturaDeRuta.filas`), y lo provisional se marca
+> fila a fila (`esProvisionalLaFila`).
 
 **Fecha:** 2026-09-23 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale:** el dueño, en producción, con captura de la tabla de paradas de un chofer, tras publicarse D-376:
@@ -29627,6 +29683,9 @@ línea «Recibida por almacén», solo la pastilla.
 > décima sale con «No cabe»; los 6 roles llenos pasan de 3 648 a 3 982 sin plantillas y de 9 951 a 10 845 con diez, y
 > **caben 4** en vez de 5. «Una persona con su rol lleno caben las diez» deja de ser cierto en ese peor caso (nombres de 40
 > caracteres, todas las columnas, todo movido). El límite de 10 no se tocó.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): la tabla de paradas lleva
+> una columna FIJA más, la cuenta de pallets (`_cuenta`), entre la factura y las elegidas.
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, literal: *«Route manager view to be able to move columns and save template IN THE COLUMNS»*.
@@ -29746,6 +29805,10 @@ prueba con la función y un cliente falso (`guardaColumnas`), no en vivo.
 > motor, D-414) y «📍 Mejor lugar» (y el arrastre al nombre de un chofer, que es Mejor lugar). «Optimizar todas»,
 > «Optimizar ruta», «Reagrupar por zona», «✨ Auto-asignar», «Simular» y el dibujo automático que optimizaba se quitaron;
 > con ellos `optimizaSinLasBloqueadas` y `avisoDeSaltadas`. «📍 Mejor lugar» no cambia.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Mejor lugar» mira la lista
+> entera como un solo «viaje» y solo los puestos donde, recogida justo delante de su entrega, la orden cabe con lo que
+> va a bordo (`admite`); nunca abre un viaje nuevo. El aviso ya no dice «viaje N».
 
 > **⚠ Reemplazada en parte por D-419** (2026-09-27): el diálogo de «✨ Auto-asignar» ya no optimiza, así que no pasa por
 > `optimizaEstas` (lo sigue usando «Optimizar todas las rutas»). Un chofer 🔒 sigue sin recibir nada: el diálogo no lo
@@ -30562,6 +30625,11 @@ al numerar.)
   mira la preferencia ni las bajas. Si el dueño enciende los dos, un cliente puede recibir ese y además estos.
 
 ## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el arrastre ve la lista
+> como un solo «viaje». Soltado A MANO en un hueco no mira la capacidad (lo avisa la cuenta de la tabla en la parada que
+> se pase); soltado sobre el nombre («Mejor lugar») sí. La recogida la coloca `listaConEntregasEn`, y `pickup_seq` va en
+> la foto de deshacer.
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Reemplaza en parte a D-007** («Sin arrastrar en el Gestor de Rutas: solo flechas»; lleva su nota). No toca Ajustes, los
@@ -31719,6 +31787,9 @@ servidor); lo cubren pruebas de texto. 3 mutantes, caen los 3.
 > Órdenes, sino cinco columnas que pidió el dueño —Tipo de cliente, Ciudad de recogida, Factura, Dirección de entrega y
 > Ventanas— tras un ID fijo que ya no lleva la factura. Las columnas de Órdenes siguen todas en el ⚙, y el mecanismo (mover,
 > plantillas, fila `routes_columns`) no cambia. A quien tenía guardadas las del plan se le devuelven, una vez, a las nuevas.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Plan: Pallets a bordo»
+> sale del ⚙: la cuenta es una columna fija. La copia de un publicado compara `load_no` nulo con nulo.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, literal: *«quiero que en el planificador salga las mismas tables como en orden como
 te lo habia pedido sabajo y mia que los botons para cmabiar la ruta cuando ya esta no funciona»*. Preguntado, aclaró: los
@@ -31946,6 +32017,10 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
 > toda la ruta («Optimizar decide si respeta los viajes…») ya no tiene quién lo lea; se deja, no hace daño. «Unir viajes»
 > y «Dividir en 2» escriben ahora también la ruta entera, numerada tras lo ya hecho (`desde`). Flechas y selector, igual.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el selector «Viaje N» / «＋
+> Nuevo viaje» ya no existe; las flechas van en las filas P y D (`mueveEnLaLista`) y no dejan una entrega antes que su
+> recogida. «Numerar tras lo ya hecho» (`inicioDeLaSecuencia`) sigue.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con captura de la tarjeta de Ernesto Castillo en la pestaña «Rutas» (2 paradas,
 «Viaje 1 — ~8/10 pallets», el aviso «Esta ruta cambió desde que se publicó el plan», P1 Edinburg, P2 Pharr, D1, D2), literal:
@@ -32054,6 +32129,9 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 > **Reemplazada en parte por D-435** (2026-09-28): de partida hay una columna más, «Ciudad de entrega», justo tras la de
 > recogida (el dueño: *«lo unico que hizo falta es ciudad de entregfa»*), y llega a lo ya guardado con una tanda `_v7` que
 > AÑADE, sin devolver nada a su partida. Los pesos de la fila de aquí abajo cambiaron: ver D-435.
+>
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Pallets a bordo» ya no es
+> una columna escondida: la cuenta de cada parada es fija y visible de partida.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
 literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la
@@ -32130,6 +32208,9 @@ repite, y que las plantillas no se tocan); y ajustadas `columnas-del-plan`, `eti
 la página y la función pura; el demo no tiene `user_prefs`.
 
 ## D-435 · La tabla del plan: recogidas en verde, entregas en amarillo, y la ciudad de entrega
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el borde ámbar entre viajes
+> ya no existe (no hay viajes); los tintes de fila siguen.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, sobre la tabla del plan que acababa de dejar D-434, literal: *«ok quiero que en
 esa misma table las pickup toda la row este highlited pero bien suave de verde y las deliveries de amarillo para poder
@@ -32242,6 +32323,9 @@ ficha solo exige que haya costo (0 vale, `required.ts`) y enseña el aviso «Igu
 aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio ese usuario antes de tocar nada.
 
 ## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
+
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Unir viajes» y «Dividir en
+> 2» ya no existen: no hay viajes que unir ni dividir.
 
 **Fecha:** 2026-09-28. **Sin migración.** **Reemplaza a D-025, D-401 y D-419, y en parte a D-003 (nota), D-346, D-352, D-393,
 D-395, D-400, D-411, D-412, D-414, D-415, D-418 y D-433**: todas llevan su nota.
@@ -32563,6 +32647,10 @@ El panel cabe (366 px de ancho) y la página no desborda.
 
 ## D-441 · Gestor de Rutas: cada recogida del mapa con el color de SU viaje; las filas P se reordenan y cambian de viaje; «Ver un viaje» filtra tabla y mapa
 
+> **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): se fueron el color por
+> viaje (una ruta, un color), el «Viaje N» de las filas P y «Ver un viaje». Las flechas de las P ya no adelantan una
+> entrega: mueven la recogida de verdad (su posición se guarda, 154; sin la 154 se apagan y lo dicen).
+
 **Fecha:** 2026-09-28. **Sin migración.** **Reemplaza en parte a D-334** (recogidas sin flechas; la P del mapa «del color
 del chofer»), que lleva su nota. No toca `OrderModal` (otra rama).
 
@@ -32830,3 +32918,133 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
   tienda la primera vez (luego hay caché). Es lo mismo que pasa en la ficha de la orden.
 - La lectura de `settings` con la llave de servicio no se probó contra la base: sin la llave, la pantalla abre sin tiendas y
   las millas piden elegir una.
+
+## D-443 · Una sola lista por camión: se eliminan los viajes del Gestor, del plan y de «Mi ruta», con la cuenta de pallets en cada parada
+
+**Fecha:** 2026-09-28 · **Versión:** la pone el orquestador · **Migración:** `154_lista_unica.sql`, **escrita y NO
+aplicada** (plan: `docs/PLAN-154-lista-unica.md`). **Reemplaza en parte a** D-016, D-021, D-024, D-025, D-320, D-322,
+D-324, D-334, D-335, D-336, D-341, D-342, D-355, D-379, D-410, D-411, D-417, D-429, D-433, D-434, D-435, D-437 y D-441,
+que llevan su nota. **No borra `load_no` ni ningún dato.**
+
+### Qué pidió el dueño
+
+Su especificación del motor de rutas (pegada por él en la sesión el 2026-09-28; el fichero es
+`scratchpad/auditoria-motor/especificacion.md`, literal hasta el ejemplo de 10 pallets), sección «Cambio principal: una
+sola lista por camión, sin cargas separadas»:
+
+> Elimina el concepto de cargas (truckloads) separadas. Hoy la hoja divide el día de un conductor en cargas numeradas. En
+> la app no quiero eso: todas las órdenes del conductor van en una sola lista continua, que es un solo viaje del camión con
+> muchas paradas y etapas. El camión puede recoger, entregar una parte, volver a recoger en otra tienda y seguir
+> entregando, todo dentro de la misma ruta, siempre que nunca lleve más pallets de los que le caben.
+
+y: *«Mostrar la cuenta, no solo el resultado. Cada parada debe mostrar la operación completa: pallets a bordo antes, más o
+menos los pallets de esa parada, pallets a bordo después y espacio disponible»*, *«la ruta sale de la base con 0 pallets y
+regresa con 0 pallets. Si al final la cuenta no da 0, hay un error y el sistema debe marcarlo»*, *«Si un ajuste manual hace
+que la carga pase la capacidad en algún punto, el sistema lo advierte en esa parada exacta, mostrando por cuántos pallets se
+pasa»*, y sobre el modelo: *«propón cómo pasar de ese modelo a la lista única antes de borrar nada, qué pasa con los datos
+históricos y qué pantallas lo usan. No lo elimines sin mi aprobación.»*
+
+La auditoría del mismo día encontró que **el motor ya planificaba una lista continua** con recargas a media ruta, pero el
+Gestor manual, la tabla del plan, «Mi ruta» y publicar seguían por viajes. Preguntado por el orquestador «¿eliminamos los
+viajes?», el dueño: **«SI ELIMINA VIAJES»** (cita tal como la pasó el orquestador; no extraída del fichero de sesión).
+
+### El modelo: dónde va cada recogida (migración 154)
+
+Una ruta hecha a mano solo guardaba, por orden, el puesto de su **entrega** (`route_seq`) y su **viaje** (`load_no`); las
+recogidas se derivaban «todas delante de las entregas de su viaje». En una lista continua eso no alcanza: la recarga a
+media ruta **con carga a bordo** del ejemplo del dueño (recoger P4 en Pharr después de entregar D1, con 6.25 todavía en el
+camión) no se puede reconstruir de ningún dato.
+
+- **`deliveries.pickup_seq numeric`** (nulo, sin defecto): la posición de la recogida en la lista del chofer, **en la misma
+  escala que `route_seq`**: entre el puesto de la entrega que tiene delante y el de la que tiene detrás. Con `m` paradas de
+  recogida seguidas delante de la entrega de puesto `k`, la `j`-ésima lleva `k − (m − j)/(m + 1)` (`escrituraDeLaLista`).
+  Descartado: una tabla de paradas (dos fuentes de verdad y todos los lectores de `route_seq` cambiando), renumerar
+  `route_seq` con P y D (rompe a quien lee entregas 0..n−1), y un entero «antes de la entrega k» (no ordena dos recogidas
+  seguidas). El porqué largo, en el plan.
+- **`load_no` se deja de escribir** (se pone `null` al guardar o publicar) **y no se borra**. Se sigue LEYENDO para una
+  ruta vieja que nadie ha tocado: el viaje viejo ordena antes que el puesto (`entregasEnOrden`) y corta su bloque de
+  recogidas, y una ruta publicada antes de esto se sigue reconociendo como «la publicada» (`posicionesPorViajeHistoricas`).
+  Quitar la columna es un paso aparte, **pendiente de su aprobación** (qué haría falta, en el plan, §4).
+- **`publish_route_plan`**: la de la 135 letra por letra con una línea más (escribe `pickup_seq`); una prueba compara los
+  dos cuerpos.
+- **Sin la 154 la pantalla degrada sola.** Mira si las filas traen la clave (`tienePosicionDeRecogida`); si no, no la pide
+  ni la manda, y las recogidas salen de **la regla de siempre, sin viajes**: bloques de lo que cabe en el camión, en el
+  orden de las entregas (el corte de `splitIntoTrips`), cada uno recogido —una parada por tienda— justo antes de su primera
+  entrega. Es lo que se pintaba con viajes, en la misma lista y sin raya. Las flechas de las recogidas se apagan y dicen
+  por qué.
+
+Todo lo que decide vive en `src/lib/lista-unica.ts` (sin pantalla ni base): `listaDelChofer`, `cuentaDePallets`,
+`mueveEnLaLista`, `listaConEntregasEn`, `escrituraDeLaLista`, `cabeEnElPuesto`. En centésimas enteras, como el motor.
+
+### Qué cambió en cada pantalla
+
+- **Gestor, pestaña Rutas.** Una lista por chofer: 🏠 Base de salida, las paradas P y D intercaladas, 🏠 Base de regreso.
+  Se fueron «Viaje N» / «＋ Nuevo viaje» (D-433), «Dividir en 2» / «Unir viajes» (D-437), «Ver un viaje» y el color por
+  viaje (D-441), la cabecera y la raya de cada viaje con sus flechas, «viajes fijados / agrupado automáticamente» y el
+  «💡 supera la capacidad, por eso recarga entre cargas». **Columna fija nueva, visible de partida:** «Pallets: antes ±
+  parada = después · libres», con la capacidad del camión; la parada que se pasa lo dice **en su fila** («⚠ se pasa 1.75
+  de 10») sin bloquear; el regreso marca si no da 0. **Cabecera:** paradas, pallets movidos, carga máxima/capacidad, y
+  los avisos «se pasa en N parada(s)» y «no acaba en 0». La etiqueta de órdenes pasó de «N paradas» a «N órdenes» (cada
+  orden son dos paradas y las dos cifras se contradecían). **Filas P y D con ↑↓** (`mueveEnLaLista`: si el movimiento
+  dejaría una entrega antes que su recogida, no lo hace y lo dice) y **«Pasar a…»** otro chofer (las órdenes de la
+  parada, al final de su lista). Deshacer (D-417) lleva la recogida en su foto; candado como hoy. **«Mejor lugar»** mira
+  la lista como un solo «viaje» y solo los puestos donde la orden cabe con lo que va a bordo; **el arrastre** también.
+  **La medida** (millas, horas, trazo) es una por chofer: base, cada recogida en su tienda (con la recarga de 20 min),
+  cada entrega, y vuelta. **El panel de choferes** mide la **carga máxima** de la lista contra el camión, no la suma del
+  día (con recargas, la suma no dice nada).
+- **Plan («Armar rutas»).** Sin raya ni «N viajes»; la cuenta de pallets es columna FIJA (antes «Pallets a bordo»,
+  escondida en ⚙: D-429/D-434) y hay Base al principio y al final; la cabecera suma pallets movidos y carga máxima/camión.
+- **«Mi ruta».** Una lista (antes, tarjetas por viaje), cada parada con su cuenta; «Orden planeado del día» sin «N
+  viajes» ni raya. Se quita el aviso «Una parada pasó a otro viaje».
+- **Publicar** deja de escribir `load_no` y escribe `pickup_seq`.
+
+### Decisiones mías que el dueño debe validar
+
+1. **Recogidas seguidas en la misma tienda son UNA fila**, con la suma («P1·P2 · 0.00 + 2.75 = 2.75»). Su Fase 2 pide
+   «recogidas seguidas en la misma tienda agrupadas visualmente»; su tabla de ejemplo las pone en dos filas (2.50 y
+   luego 2.75). El plan del motor sí las enseña en dos filas; el Gestor y «Mi ruta», en una.
+2. **La regla sin posición guardada** (sin la 154, o una orden recién asignada): bloques por capacidad. Otra posible era
+   «cada recogida justo antes de su entrega», que visita la tienda una vez por orden.
+3. **Guardar deja `load_no = null`** en las órdenes pendientes de la ruta que se toca (no en lo entregado). Es la forma
+   de «dejar de escribirlo» sin que un viaje viejo reordene la lista nueva.
+4. **«Mejor lugar» sin sitio en ningún puesto** coloca igual en el mejor (la cuenta avisa), en vez de no colocar.
+5. **Lo ya hecho sale de la lista entera** (su recogida y su entrega): D-433 pasaba sus recogidas a la siguiente pendiente;
+   con la cuenta de pallets, una recogida ya hecha contaría pallets que ya no van en el camión.
+6. **«Mejor lugar» y el «📅 Horario» estiman sin el rodeo de las recogidas** (solo entregas, como dentro de un viaje);
+   la medida de la tarjeta sí las incluye.
+
+### Pruebas y mutantes
+
+Pruebas nuevas en `lista-unica.test.ts` (42), con las que pide la especificación: **la cuenta con decimales parada a
+parada con SU camión de 10 pallets**, fila por fila («0.00 + 2.50 = 2.50 · 7.50 libres» … «3.00 − 3.00 = 0.00 · 10.00
+libres»), **el aviso en la parada exacta** (subir P4 sobre D1: «8.75 + 3.00 = 11.75 · −1.75», «⚠ se pasa 1.75 de 10», solo
+en esa fila), **la recarga a media ruta con carga a bordo** (P4 con 6.25 a bordo; y guardada y leída de nuevo, la lista
+sale igual), **la ruta que termina en 0** (y la que no, marcada), la precedencia al mover, la ida y vuelta escribir/leer
+en 300 listas inventadas, lo histórico, y la migración (cuerpo = 135 + una línea, checksum). **Mutantes: 35 de 35 caen**
+con una prueba con nombre (tanda en el scratchpad del worker: `lista-unica/tanda.json`), p. ej. M2 «el exceso dice la
+parada entera» → «subir P4 por encima de D1…»; M9 «sin la 154, la regla no corta por capacidad» → «SIN la 154…»; M17
+«mover una recogida no cuenta como tocar la ruta publicada» → «con la 154, una RECOGIDA movida…»; M30 «deshacer no devuelve
+la recogida» → «la recogida va en la foto…».
+
+### Medido en el demo por CDP (2026-09-28, puerto propio, clics de persona)
+
+Escena: Diego Driver con 4 órdenes del día con los pallets y tiendas del ejemplo (2.5 y 0.25 McAllen, 6 Edinburg, 3
+Pharr), camión de 10, y la lista del ejemplo guardada (`pickup_seq` −0.75, −0.5, −0.25 y 0.5). 1280 px:
+- La tarjeta: `🏠 0.00 · 10.00 libres | P1·P2 0.00 + 2.75 = 2.75 · 7.25 | P3 2.75 + 6.00 = 8.75 · 1.25 | D1 8.75 − 2.50 =
+  6.25 · 3.75 | P4 6.25 + 3.00 = 9.25 · 0.75 | D3 … 3.25 · 6.75 | D2 … 3.00 · 7.00 | D4 3.00 − 3.00 = 0.00 · 10.00 | 🏠 0.00
+  · 10.00`; cabecera «7 paradas · 11.75 pallets movidos · carga máxima 9.25/10». Ningún «Viaje N», «Unir viajes»,
+  «Dividir en 2» ni «Ver un viaje» en la página; 0 px de desplazamiento lateral.
+- **↑ en P4:** «P4 Pharr → parada 3 de 7»; la fila P4 dice «8.75 + 3.00 = 11.75 · −1.75 libres ⚠ se pasa 1.75 de 10» (la
+  única con aviso); cabecera «carga máxima 11.75/10 · ⚠ se pasa en 1 parada(s)»; guardado con `load_no` nulo y las
+  recogidas renumeradas. **Deshacer** la devuelve entera (mismos `pickup_seq`).
+- **↑ en D1** dos veces: la primera sube sobre P3 (se deja); la segunda, sobre su propia recogida, **no se mueve** y dice
+  «No se movió: D1 #1069 se entregaría antes de recogerla».
+- 390 px: la página 0 px de lateral; la tabla se desplaza dentro de su caja (1028 px en 336), con el mapa y los choferes ocultos por su botón.
+- **Plan** (con `/api/route-plan` simulado en el navegador con la vista de verdad, `vistaDelPlan`, y capacidad 10), 1280 y
+  390: Base, P1 2.50, P2 2.75, P3 8.75, D1 6.25, P4 9.25, D3 3.25, D2 3.00, D4 0.00, Base, **exactamente las filas de la
+  tabla del dueño**; 0 rayas; cabecera «… 11.75 pallets movidos · carga máxima 9.25/10».
+- **«Mi ruta»** (como Diego), 390 y 1280: «🚚 Tu ruta · 11.75 pallets movidos», 7 filas con su cuenta, ningún «viaje».
+
+**No verificado:** nada contra la base. La 154 no está aplicada, ni su ensayo (§6 del plan, lo corre el orquestador);
+publicar con la función nueva; una ruta publicada antes de este cambio en producción (se reconoce por la regla vieja: probado
+con planes del motor, no con datos reales); la recarga a media ruta en el mapa real de Google (el demo pinta Leaflet).

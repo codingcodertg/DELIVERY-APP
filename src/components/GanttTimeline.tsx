@@ -131,7 +131,8 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
       return { texto: t(p.en, p.es), mal: o.plan.motivo !== "sin_cambio" };
     }
     const p = textoDePrevia(o.plan.previa, nombre);
-    const donde = t(`truckload ${o.plan.viaje + 1}, stop ${o.plan.puesto + 1}`, `viaje ${o.plan.viaje + 1}, parada ${o.plan.puesto + 1}`);
+    // Sin viajes (D-443): la parada, sin «viaje N».
+    const donde = t(`stop ${o.plan.puesto + 1}`, `parada ${o.plan.puesto + 1}`);
     const cabeza = o.plan.porNombre ? `📍 ${t("Best fit", "Mejor lugar")}: ${donde}` : donde;
     return { texto: `${cabeza} · ${t(p.en, p.es)}`, mal: o.plan.previa.rotas.length > 0 };
   };
@@ -182,7 +183,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
                       <div
                         className={"gantt-bar" + (b.tardeMin > 0 ? " gantt-bar-tarde" : "") + (puedeArrastrar ? " gantt-bar-arrastrable" : "") + (arrastrada ? " gantt-bar-arrastrada" : "")}
                         data-gantt-bar={b.id}
-                        title={`#${nombre(b.id)} · ${t("truckload", "viaje")} ${b.viaje + 1}, ${t("stop", "parada")} ${b.puesto + 1} · ~${horaDe(b.llegadaMin)}${d ? ` · ${fmtWindows(d.delivery_windows)} · ${d.account || ""}` : ""}${b.tardeMin > 0 ? ` · ⚠ ${b.tardeMin} min ${t("late", "tarde")}` : ""}`}
+                        title={`#${nombre(b.id)} · ${t("stop", "parada")} ${b.puesto + 1} · ~${horaDe(b.llegadaMin)}${d ? ` · ${fmtWindows(d.delivery_windows)} · ${d.account || ""}` : ""}${b.tardeMin > 0 ? ` · ⚠ ${b.tardeMin} min ${t("late", "tarde")}` : ""}`}
                         style={{ left: `${left}%`, width: `${width}%`, background: row.color }}
                         onPointerDown={puedeArrastrar ? (e) => alBajar(e, b.id) : undefined}
                         onPointerMove={puedeArrastrar ? alMover : undefined}

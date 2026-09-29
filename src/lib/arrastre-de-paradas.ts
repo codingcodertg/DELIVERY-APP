@@ -11,26 +11,34 @@ import { costeDeLaRuta, mejorLugar, type LatLng, type ParadaDeRuta } from "@/lib
  * Si la parada cambia de chofer, antes se le escribe a ella `assigned_driver`, su `route_seq` y su `load_no`, como hace
  * «📍 Mejor lugar» (D-411). La ruta de la que sale no se reescribe: sus paradas se quedan como estaban.
  *
- * **Cuándo se escriben viajes.** En una ruta con viajes puestos a mano (`manual`), siempre. En una ruta que parte la
- * capacidad sola (`splitIntoTrips`) solo si volver a partirla NO daría los viajes que la persona acaba de dibujar (p. ej.
- * pasar la primera parada al segundo viaje): entonces se fijan los viajes, como hace «mover de viaje» (`moveStopToLoad`).
- * Si partirla da lo mismo, se escribe solo la secuencia, y la ruta sigue partiéndose sola.
+ * **Cuándo se escribían viajes** (hasta D-443): en una ruta con viajes puestos a mano, siempre; en una que partía la
+ * capacidad sola, solo si partirla de nuevo no daba lo dibujado. **Desde D-443 no hay viajes**: la ruta es una lista, la
+ * pantalla la pasa como UN solo viaje, y lo que se escribe deja el viaje viejo (`load_no`) vacío en todas. Soltar a mano en
+ * un hueco no mira la capacidad (la cuenta de pallets de la tabla avisa en la parada que se pase); soltar sobre el NOMBRE
+ * («📍 Mejor lugar») sí la mira, parada a parada, con `admite`. La recogida de cada orden (`pickup_seq`) la decide la
+ * pantalla con `listaConEntregasEn` (lib/lista-unica) y va en la foto, para que deshacer la devuelva también.
  */
 
 export interface ParadaDelGantt extends ParadaDeRuta {
   assigned_driver: string | null;
   route_seq: number | null;
   load_no: number | null;
+  /** D-443: dónde va su recogida. `undefined` = la base no tiene la columna (154). */
+  pickup_seq?: number | null;
 }
 
 export interface RutaDelGantt {
   /** La clave de ruta del Gestor: el nombre del chofer o de la ruta temporal. */
   clave: string;
-  /** Los viajes tal como los pinta la pantalla (`buildTrips`). */
+  /** Las entregas de la ruta. Desde D-443, UN solo «viaje»: la lista entera, en su orden. */
   viajes: readonly (readonly ParadaDelGantt[])[];
-  /** `hasManualLoads`: la ruta lleva viajes puestos (por una persona o por Optimizar). */
+  /** Hasta D-443: la ruta llevaba viajes puestos a mano. Desde D-443 la pantalla pasa siempre `true` (se escribe el viaje
+   *  vacío en todas). */
   manual: boolean;
   capacidad: number;
+  /** D-443: ¿cabe la parada de `pallets` metida en el puesto `puesto` de la lista? Solo lo mira «📍 Mejor lugar» (soltar
+   *  sobre el nombre). Sin esto, todo cabe. */
+  admite?: (puesto: number, pallets: number) => boolean;
   bloqueada: boolean;
   /** La recogida / base, para la estimación en línea recta. `null`: ruta abierta. */
   base: LatLng | null;
@@ -42,7 +50,7 @@ export type Destino =
   /** Soltar sobre el NOMBRE del chofer: «📍 Mejor lugar» decide el hueco. */
   | { tipo: "nombre"; ruta: string };
 
-export interface EstadoDeParada { assigned_driver: string | null; route_seq: number | null; load_no: number | null }
+export interface EstadoDeParada { assigned_driver: string | null; route_seq: number | null; load_no: number | null; pickup_seq?: number | null }
 /** Los campos de ruta de cada parada tocada, por id. */
 export type Foto = Record<string, EstadoDeParada>;
 
@@ -121,7 +129,7 @@ export function viajesSinLaMovida<T extends { id: string }>(viajes: readonly (re
 const comoSePinta = <T extends ParadaDelGantt>(ruta: RutaDelGantt, viajes: T[][]): T[][] =>
   ruta.manual ? viajes : partePorCapacidad(viajes.flat(), ruta.capacidad);
 
-const estadoDe = (p: ParadaDelGantt): EstadoDeParada => ({ assigned_driver: p.assigned_driver, route_seq: p.route_seq, load_no: p.load_no });
+const estadoDe = (p: ParadaDelGantt): EstadoDeParada => ({ assigned_driver: p.assigned_driver, route_seq: p.route_seq, load_no: p.load_no, ...(p.pickup_seq !== undefined ? { pickup_seq: p.pickup_seq } : {}) });
 
 /** La foto de estas paradas, tal como están. */
 export function fotoDe(paradas: readonly ParadaDelGantt[]): Foto {
@@ -135,11 +143,14 @@ export function fotoDe(paradas: readonly ParadaDelGantt[]): Foto {
  * viajes. Lo que no está en `ids` no cambia. Es lo que escriben las flechas y lo que escribe soltar.
  * `desde` (D-433): el primer puesto, el mismo que se le dio a `reorderStops` (las flechas numeran tras lo ya hecho).
  */
-export function fotoTrasReordenar(antes: Foto, ids: readonly string[], loadNoById?: Record<string, number | null>, desde = 0): Foto {
+export function fotoTrasReordenar(antes: Foto, ids: readonly string[], loadNoById?: Record<string, number | null>, desde = 0, pickupSeqById?: Record<string, number | null>): Foto {
   const f: Foto = { ...antes };
   ids.forEach((id, i) => {
     const era = f[id] ?? { assigned_driver: null, route_seq: null, load_no: null };
-    f[id] = { ...era, route_seq: desde + i, load_no: loadNoById ? (loadNoById[id] ?? null) : era.load_no };
+    f[id] = {
+      ...era, route_seq: desde + i, load_no: loadNoById ? (loadNoById[id] ?? null) : era.load_no,
+      ...(pickupSeqById ? { pickup_seq: pickupSeqById[id] ?? null } : {}),
+    };
   });
   return f;
 }
@@ -172,7 +183,7 @@ export function planDeSoltar(rutas: readonly RutaDelGantt[], movida: string, des
   let viaje: number;
   let puesto: number;
   if (destino.tipo === "nombre") {
-    const r = mejorLugar({ viajes: sin, nueva: laMovida, base: dest.base, capacidad: dest.capacidad, inicioMin });
+    const r = mejorLugar({ viajes: sin, nueva: laMovida, base: dest.base, capacidad: dest.capacidad, inicioMin, admite: dest.admite ? (_v, puesto) => dest.admite!(puesto, laMovida.pallets || 0) : undefined });
     if (!r.ok) return { ok: false, motivo: "sin_punto" };
     viaje = r.hueco.viaje;
     puesto = r.hueco.puesto;
@@ -182,7 +193,8 @@ export function planDeSoltar(rutas: readonly RutaDelGantt[], movida: string, des
     if (viaje < 0 || viaje > sin.length || (viaje === sin.length && sin.length > 0)) return { ok: false, motivo: "no_esta" };
   }
   const nuevoViaje = viaje >= sin.length;
-  if (!nuevoViaje && palletsDe(sin[viaje]) + (laMovida.pallets || 0) > dest.capacidad) return { ok: false, motivo: "no_cabe" };
+  // Sin viajes (D-443) la carga de un «viaje» entero no dice nada: el camión recarga a media ruta. La capacidad se mira
+  // parada a parada, y solo al elegir el hueco solo (`admite`, arriba); soltado a mano, lo avisa la cuenta de la tabla.
 
   const nuevos: ParadaDelGantt[][] = sin.map((v) => [...v]);
   if (nuevoViaje) nuevos.push([laMovida]);
@@ -321,8 +333,14 @@ export const esperadoPara = (m: Movimiento, dir: Direccion): Foto => (dir === "d
 /** Adonde se vuelve. */
 export const objetivoDe = (m: Movimiento, dir: Direccion): Foto => (dir === "deshacer" ? m.antes : m.despues);
 
+/** La posición de la recogida, comparada como número (la base la devuelve `numeric`). Sin la columna, las dos `null`. */
+const mismaRecogida = (a: EstadoDeParada, b: EstadoDeParada) =>
+  (a.pickup_seq ?? null) === null && (b.pickup_seq ?? null) === null
+    ? true
+    : a.pickup_seq != null && b.pickup_seq != null && Math.abs(Number(a.pickup_seq) - Number(b.pickup_seq)) < 1e-6;
 const igual = (a: EstadoDeParada, b: EstadoDeParada) =>
-  (a.assigned_driver ?? null) === (b.assigned_driver ?? null) && (a.route_seq ?? null) === (b.route_seq ?? null) && (a.load_no ?? null) === (b.load_no ?? null);
+  (a.assigned_driver ?? null) === (b.assigned_driver ?? null) && (a.route_seq ?? null) === (b.route_seq ?? null) && (a.load_no ?? null) === (b.load_no ?? null)
+  && mismaRecogida(a, b);
 
 /**
  * Por qué NO se puede deshacer (o rehacer) este movimiento ahora, o `[]` si se puede.
@@ -360,6 +378,8 @@ export function escriturasHacia(objetivo: Foto, actual: Foto): { id: string; par
     if (!a || (a.assigned_driver ?? null) !== (o.assigned_driver ?? null)) parche.assigned_driver = o.assigned_driver;
     if (!a || (a.route_seq ?? null) !== (o.route_seq ?? null)) parche.route_seq = o.route_seq;
     if (!a || (a.load_no ?? null) !== (o.load_no ?? null)) parche.load_no = o.load_no;
+    // La recogida solo si difiere: sin la columna (154) las dos son nulas y no se escribe (escribirla fallaría).
+    if (a ? !mismaRecogida(a, o) : o.pickup_seq != null) parche.pickup_seq = o.pickup_seq ?? null;
     if (Object.keys(parche).length) out.push({ id, parche });
   }
   return out;
@@ -368,7 +388,7 @@ export function escriturasHacia(objetivo: Foto, actual: Foto): { id: string; par
 /** La foto de lo leído. */
 export function fotoDeFilas(filas: readonly FilaFresca[]): Foto {
   const f: Foto = {};
-  for (const x of filas) f[x.id] = { assigned_driver: x.assigned_driver ?? null, route_seq: x.route_seq ?? null, load_no: x.load_no ?? null };
+  for (const x of filas) f[x.id] = { assigned_driver: x.assigned_driver ?? null, route_seq: x.route_seq ?? null, load_no: x.load_no ?? null, ...(x.pickup_seq !== undefined ? { pickup_seq: x.pickup_seq == null ? null : Number(x.pickup_seq) } : {}) };
   return f;
 }
 
@@ -418,7 +438,7 @@ export function textoDePrevia(p: Previa, nombre: (id: string) => string): { en: 
 export function porQueNoSuelta(motivo: MotivoDeNoSoltar): { en: string; es: string } {
   switch (motivo) {
     case "bloqueada": return { en: "🔒 Locked route: Best fit doesn't touch it — drop it in a slot instead", es: "🔒 Ruta bloqueada: Mejor lugar no la toca — suéltela en un hueco" };
-    case "no_cabe": return { en: "Doesn't fit: that truckload would go over capacity", es: "No cabe: ese viaje pasaría de la capacidad" };
+    case "no_cabe": return { en: "Doesn't fit: the truck would go over capacity", es: "No cabe: el camión pasaría de la capacidad" };
     case "sin_punto": return { en: "No address pin: Best fit can't place it — drop it in a slot", es: "Sin pin de dirección: Mejor lugar no puede colocarla — suéltela en un hueco" };
     case "sin_cambio": return { en: "Same place", es: "Mismo sitio" };
     default: return { en: "Can't drop here", es: "No se puede soltar aquí" };

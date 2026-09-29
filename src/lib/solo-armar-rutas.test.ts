@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { planDeDividirEnDos, planDeUnirViajes } from "./mover-parada";
 import { cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan } from "./medida-de-ruta";
 import * as candados from "./rutas-bloqueadas";
 
@@ -29,32 +28,9 @@ const trozo = (desde: string, hasta: string) => {
 
 const p = (id: string, route_seq: number | null = null, load_no: number | null = null) => ({ id, route_seq, load_no, delivery_lat: 26.2, delivery_lng: -98.2 });
 
-describe("«Unir viajes» y «Dividir en 2» conservan el orden que se ve (sin Optimizar que lo rehaga)", () => {
-  it("unir: todas las paradas, en el orden de los viajes seguidos, al viaje 1 (`null`), numeradas desde `desde`", () => {
-    const r = planDeUnirViajes([[p("C"), p("A")], [p("B")]], 3);
-    expect(r.ids).toEqual(["C", "A", "B"]);
-    expect(r.loadNoById).toEqual({ C: null, A: null, B: null });
-    expect(r.desde).toBe(3);
-  });
-  it("dividir: la primera mitad (hacia arriba) al viaje 1 y el resto al 2, en el mismo orden", () => {
-    const r = planDeDividirEnDos([[p("E"), p("D"), p("C"), p("B"), p("A")]], 1)!;
-    expect(r.ids).toEqual(["E", "D", "C", "B", "A"]);
-    expect(r.loadNoById).toEqual({ E: null, D: null, C: null, B: 2, A: 2 });
-    expect(r.desde).toBe(1);
-  });
-  it("dividir con menos de dos paradas no hace nada", () => {
-    expect(planDeDividirEnDos([[p("A")]], 0)).toBeNull();
-    expect(planDeDividirEnDos([], 0)).toBeNull();
-  });
-  it("la pantalla escribe esos planes enteros con `reorderStops`, tras lo ya hecho, y ya no deja el puesto en blanco", () => {
-    const unir = trozo("const combineLoads = async", "const splitLoads = async");
-    const dividir = trozo("const splitLoads = async", "const laneLabel =");
-    expect(unir).toContain("const plan = planDeUnirViajes(buildTrips(stops, capacityFor(driverOf(laneKey))), inicioDeLaRuta(laneKey, stops));");
-    expect(dividir).toContain("const plan = planDeDividirEnDos(buildTrips(stops, capacityFor(driverOf(laneKey))), inicioDeLaRuta(laneKey, stops));");
-    for (const c of [unir, dividir]) {
-      expect(c).toContain("await reorderStops(plan.ids, plan.loadNoById, false, plan.desde)");
-      expect(c).not.toContain("route_seq: null");
-    }
+describe("«Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-443)", () => {
+  it("ni sus botones ni sus funciones: la ruta es una lista", () => {
+    for (const x of ["const combineLoads", "const splitLoads", "data-unir-viajes", "data-dividir-en-dos", "planDeUnirViajes", "planDeDividirEnDos"]) expect(codigoDePagina).not.toContain(x);
   });
 });
 
@@ -78,6 +54,8 @@ describe("medir la ruta sin reordenarla", () => {
     // …y sin puestos, el orden en que se pintan decide.
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A"), p("B")])).not.toBe(firmaDeLaMedida("2026-09-28", "Diego", [p("B"), p("A")]));
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0), p("B", 1, 2)])).not.toBe(base);
+    // D-443: la recogida también es una parada medida; moverla es otra forma de la ruta.
+    expect(firmaDeLaMedida("2026-09-28", "Diego", [{ ...p("A", 0), pickup_seq: -0.5 }, p("B", 1)])).not.toBe(firmaDeLaMedida("2026-09-28", "Diego", [{ ...p("A", 0), pickup_seq: 0.5 }, p("B", 1)]));
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0)])).not.toBe(base);
     expect(firmaDeLaMedida("2026-09-28", "Diego", [p("A", 0), { ...p("B", 1), delivery_lat: 25 }])).not.toBe(base);
     expect(firmaDeLaMedida("2026-09-29", "Diego", [p("A", 0), p("B", 1)])).not.toBe(base);
@@ -86,9 +64,10 @@ describe("medir la ruta sin reordenarla", () => {
   it("la pantalla mide con ese cuerpo, en el orden guardado, y no escribe nada", () => {
     const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =");
     expect(mide).toContain('fetch("/api/optimize-route"');
-    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(batch.map((d) => ({ id: d.id, lat: d.delivery_lat!, lng: d.delivery_lng! })), depot, batch[0]?.delivery_date ?? date)),");
-    expect(mide).toContain("const batches = buildTrips(stopList, capacityFor(driverOf(laneKey)))");
-    expect(mide).toContain("const stopIds = batch.map((d) => d.id);");
+    // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
+    expect(mide).toContain("const lista = lecturaDe(laneKey, stopList).paradas;");
+    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, stopList[0]?.delivery_date ?? date)),");
+    expect(mide).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
     for (const escribe of ["updateDelivery(", "reorderStops(", "addNote("]) expect(mide).not.toContain(escribe);
     const pinta = trozo("const pintaLaMedida =", "const mide = async");
     for (const escribe of ["updateDelivery(", "reorderStops("]) expect(pinta).not.toContain(escribe);
@@ -139,13 +118,13 @@ describe("lo que se queda, a la vista", () => {
     expect(plano(leer("src/components/PlanDelDia.tsx"))).toContain("<button className=\"btn btn-primary btn-sm\" data-abrir-armar-rutas aria-expanded={false} onClick={() => setAbierto(true)}>");
     expect(pagina).toContain("<button className=\"btn btn-primary btn-sm\" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}");
   });
-  it("«Mejor lugar», flechas, selector de viaje, flechas de viaje y arrastre siguen conectados", () => {
+  it("«Mejor lugar», las flechas de CADA parada (P y D), «Pasar a…» y el arrastre siguen conectados (D-443: sin selector ni flechas de viaje)", () => {
     expect(pagina).toContain("onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}");
-    expect(pagina).toContain("onClick={() => move(u.key, i, -1)}");
-    expect(pagina).toContain("onClick={() => move(u.key, i, 1)}");
-    expect(pagina).toContain("moveStopToLoad(d, v === \"__new__\" ? trips.length + 1 : Number(v));");
-    expect(pagina).toContain("onClick={() => moveTrip(u.key, ti, -1)}");
+    expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, -1)}");
+    expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, 1)}");
+    expect(pagina).toContain("if (v) void pasaA(ordenesDeLaFila, v);");
     expect(pagina).toContain("suelta: (id, destino) => void sueltaEnLaLinea(id, destino)");
+    for (const x of ["moveStopToLoad(", "moveTrip(", "data-viaje-visto"]) expect(codigoDePagina).not.toContain(x);
   });
 });
 
@@ -158,7 +137,7 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
   it("la pantalla decide con eso, al pedir el trazo y al pintarlo", () => {
     const sigue = trozo("const sigueSuPlan = (laneKey: string): boolean => {", "// «Elige conductor para N órdenes»");
     expect(sigue).toContain("const paradas = paradasPublicadasDe(laneKey);");
-    expect(sigue).toContain("return pintaElTrazoDelPlan(stops.length, lectura.fuente);");
+    expect(sigue).toContain("return pintaElTrazoDelPlan(stops.length, lecturaDe(laneKey, stops).fuente);");
     expect(pagina).toContain("if (!paradas || !sigueSuPlan(chofer)) continue;");
     expect(pagina).toContain("geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)");
   });

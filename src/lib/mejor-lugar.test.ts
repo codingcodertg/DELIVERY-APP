@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { avisoDelHueco, costeDeLaRuta, escrituraDelHueco, mejorLugar, millasEstimadas, type ParadaDeRuta } from "./mejor-lugar";
 import { splitIntoTrips } from "./dispatch";
-import { secuenciaPD } from "./secuencia-pd";
+import { cambiosDeLaLista, cargaAntesDeLaEntrega, listaConEntregasEn, listaDelChofer } from "./lista-unica";
 import { FACTOR_DE_RODEO, millasEnLineaRecta } from "./route-times/proveedores";
 import type { Delivery } from "./types";
 
@@ -135,17 +135,23 @@ describe("qué se escribe", () => {
     expect(despues.map((v) => v.map((x) => x.id))).toEqual(esperado);
   });
 
-  it("la recogida va antes que la entrega: en la lectura P/D, la P de la nueva sale delante de su D, en su viaje", () => {
-    const w = escrituraDelHueco([[{ id: "A" }, { id: "B" }], [{ id: "C" }]], "X", { viaje: 1, puesto: 1 }, true);
-    const viajes = [[...w.ids].filter((id) => w.loadNoById![id] == null), w.ids.filter((id) => w.loadNoById![id] === 2)]
-      .map((v) => v.map((id) => ({ id, store: id === "X" ? "Otra tienda" : "Tienda", pallets: 1 })));
-    const seq = secuenciaPD(viajes);
-    const iP = seq.findIndex((s) => s.tipo === "P" && s.ordenes.includes("X"));
-    const iD = seq.findIndex((s) => s.tipo === "D" && s.ordenes.includes("X"));
+  it("D-443: la recogida va antes que la entrega: en la lista, la P de la nueva sale justo delante de su D", () => {
+    const ordenes = ["A", "B", "C"].map((id, i) => ({ id, store: "Tienda", est_pallets: 1, route_seq: i }));
+    const lista = listaDelChofer(ordenes, 12);
+    const nueva = listaConEntregasEn(lista, ["A", "B", "X", "C"], [...ordenes, { id: "X", store: "Otra tienda" }]);
+    const iP = nueva.findIndex((s) => s.tipo === "P" && s.ordenes.includes("X"));
+    const iD = nueva.findIndex((s) => s.tipo === "D" && s.orden === "X");
     expect(iP).toBeGreaterThanOrEqual(0);
-    expect(iD).toBeGreaterThan(iP);
-    // Y la P de X es del viaje 2: sale después de la última entrega del viaje 1.
-    expect(iP).toBeGreaterThan(seq.findIndex((s) => s.tipo === "D" && s.ordenes.includes("B")));
+    expect(iD).toBe(iP + 1);
+  });
+  it("D-443: `admite` de la pantalla — la carga a bordo en el puesto más la nueva, contra la capacidad", () => {
+    // 6 + 5 a bordo tras recogerlas; se entregan 6 y 5. Una de 2: en el puesto 0 irían 11 + 2 = 13 > 12; tras entregar A, 5 + 2.
+    const ordenes = [{ id: "A", store: "T", est_pallets: 6, route_seq: 0 }, { id: "B", store: "T", est_pallets: 5, route_seq: 1 }];
+    const lista = listaDelChofer(ordenes, 12);
+    const cambios = cambiosDeLaLista(lista, ordenes);
+    expect(cargaAntesDeLaEntrega(lista, cambios, 0)).toBe(11);
+    expect(cargaAntesDeLaEntrega(lista, cambios, 1)).toBe(5);
+    expect(cargaAntesDeLaEntrega(lista, cambios, 2)).toBe(0);
   });
 });
 
@@ -157,8 +163,9 @@ describe("el aviso dice dónde y por qué", () => {
       totalDelViaje: 4, anterior: "1001", siguienteParada: "1002", huecosMirados: 4,
       alternativa: { viaje: 0, puesto: 3, nuevoViaje: false, millasExtra: 2.2, tardeExtraMin: 0, llegadaMin: 600 },
     });
-    expect(a.es).toBe("#1003 → Diego Driver, viaje 1, parada 2 de 4 (entre #1001 y #1002): +0.0 mi, ~08:25, sin retrasos nuevos. El mejor de 4 hueco(s), estimación en línea recta. El siguiente mejor: viaje 1, parada 4, +2.2 mi.");
-    expect(a.en).toContain("truckload 1, stop 2 of 4 (between #1001 and #1002)");
+    // D-443: sin viajes, el aviso dice solo la parada (antes: «viaje 1, parada 2 de 4»).
+    expect(a.es).toBe("#1003 → Diego Driver, parada 2 de 4 (entre #1001 y #1002): +0.0 mi, ~08:25, sin retrasos nuevos. El mejor de 4 hueco(s), estimación en línea recta. El siguiente mejor: parada 4, +2.2 mi.");
+    expect(a.en).toContain("Diego Driver, stop 2 of 4 (between #1001 and #1002)");
   });
   it("si el más corto retrasaba una ventana, lo dice: es el porqué", () => {
     const a = avisoDelHueco({
@@ -166,7 +173,7 @@ describe("el aviso dice dónde y por qué", () => {
       totalDelViaje: 3, anterior: "1010", siguienteParada: "1032", huecosMirados: 5, alternativa: null,
       masCorto: { viaje: 0, puesto: 2, nuevoViaje: false, millasExtra: 1.62, tardeExtraMin: 80, llegadaMin: 700 },
     });
-    expect(a.es).toContain("El más corto (viaje 1, parada 3, +1.6 mi) sumaba 80 min de retraso en las ventanas.");
+    expect(a.es).toContain("El más corto (parada 3, +1.6 mi) sumaba 80 min de retraso en las ventanas.");
   });
   it("un viaje nuevo lo dice, y el retraso también", () => {
     const a = avisoDelHueco({
@@ -183,7 +190,7 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   const cuerpo = (() => {
     const i = pagina.indexOf("const colocaEnElMejorLugar = async");
-    const fin = pagina.indexOf("const move = async", i);
+    const fin = pagina.indexOf("// ---- Deshacer / rehacer (D-417)", i);
     expect(fin).toBeGreaterThan(i);
     return pagina.slice(i, fin);
   })();
@@ -200,18 +207,22 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
     expect(cuerpo.indexOf("if (bloqueada(laneKey)) {")).toBeLessThan(cuerpo.indexOf("updateDelivery("));
     expect(cuerpo).toContain("Mejor lugar no la toca");
   });
-  it("el hueco sale de `mejorLugar` sobre los viajes que pinta la pantalla (`buildTrips`), con la capacidad del chofer y las ventanas", () => {
-    expect(cuerpo).toContain("mejorLugar({ viajes: buildTrips(paradas, capacidad).map((v) => v.map(aParada)), nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN })");
+  it("el hueco sale de `mejorLugar` sobre la LISTA que pinta la pantalla (D-443: sus entregas, un solo viaje), con lo que cabe en cada puesto y las ventanas", () => {
+    expect(cuerpo).toContain("let lista: ParadaDeLaLista[] = lecturaDe(laneKey, paradas).paradas;");
+    expect(cuerpo).toContain("const cabe = admiteEnLaLista(lista, paradas, capacidad);");
+    expect(cuerpo).toContain("mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })");
     expect(cuerpo).toContain("const capacidad = capacityFor(driverOf(laneKey));");
     expect(cuerpo).toContain("ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration)");
   });
-  it("escribe con `escrituraDelHueco`: la nueva con su chofer y su puesto, y la secuencia entera con `reorderStops`", () => {
-    expect(cuerpo).toContain("const w = escrituraDelHueco(viajes, d.id, r.hueco, hasManualLoads(paradas));");
-    expect(cuerpo).toContain("await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: w.ids.indexOf(d.id), load_no: w.loadNoDeLaNueva });");
-    expect(cuerpo).toContain("await reorderStops(w.ids, w.loadNoById);");
+  it("escribe la lista con la nueva dentro: la nueva con su chofer, su puesto y su recogida, y la lista entera con `reorderStops`", () => {
+    expect(cuerpo).toContain("const nueva = listaConEntregasEn(lista, ids, [...paradas, d]);");
+    expect(cuerpo).toContain("const e = escrituraDeLaLista(nueva, desde);");
+    expect(cuerpo).toContain("await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });");
+    expect(cuerpo).toContain("await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);");
   });
   it("la siguiente orden ya ve a la anterior dentro (se colocan una detrás de otra)", () => {
-    expect(cuerpo).toContain("paradas = w.ids.map((id, i) => ({");
+    expect(cuerpo).toContain("paradas = e.ids.map((id, i) => ({");
+    expect(cuerpo).toContain("lista = nueva;");
   });
   it("no reoptimiza ni llama al optimizador", () => {
     expect(cuerpo).not.toContain("computeRoute(");

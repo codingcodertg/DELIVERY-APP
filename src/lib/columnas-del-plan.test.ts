@@ -18,12 +18,13 @@ import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR } from "./user-pref
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const claves = (elegidas: readonly string[], orden: readonly string[] | null = null) => columnasDeLaTabla("plan", elegidas, orden).map((c) => c.key);
-const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo", "pl_bordo"];
+// «Pallets a bordo» (`pl_bordo`) salió del ⚙ en D-443: la cuenta de pallets es una columna FIJA de la tabla.
+const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo"];
 /** Las dos que Órdenes no tiene y van delante (D-434): el tipo de cliente y la ciudad de recogida. */
 const DELANTE = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega"];   // y la de entrega desde D-435
 
 describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
-  it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las cuatro propias del plan", () => {
+  it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las tres propias del plan", () => {
     // Desde D-434, delante, las dos que Órdenes no tiene.
     expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...DELANTE, ...ORDEN_DE_PARTIDA.map((k) => `pl_${k}`), ...PROPIAS]);
     // Cada una pinta la celda de SU columna de Órdenes.

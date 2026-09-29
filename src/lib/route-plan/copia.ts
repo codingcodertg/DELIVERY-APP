@@ -78,8 +78,10 @@ export function fotoDeLaCopia(a: {
     const w = escrita.get(f.id);
     // Escrita por el publicado: sigue con el chofer, el viaje y el puesto que le puso. No escrita (quedó sin asignar en ese
     // plan): publicar no la tocó, así que su `updated_at` tiene que ser el de la foto — si no, alguien la cambió.
+    // El viaje (`load_no`): un publicado de antes de D-443 lo escribió; uno de después no lo escribe y publicar lo deja en
+    // `null`. Los dos casos se comparan igual: lo que dice lo escrito (o nada) contra lo que hay (o nada).
     const intacta = w
-      ? (h.assigned_driver ?? "") === w.assigned_driver && h.route_seq === w.route_seq && h.load_no === w.load_no
+      ? (h.assigned_driver ?? "") === w.assigned_driver && h.route_seq === w.route_seq && (h.load_no ?? null) === (w.load_no ?? null)
       : h.updated_at === f.updated_at;
     if (mismaFisica && intacta) fotos.push({ ...f, updated_at: h.updated_at });
     else { fotos.push(f); cambiaron.push(f.id); }

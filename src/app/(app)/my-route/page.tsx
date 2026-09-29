@@ -8,21 +8,19 @@ import { captureLocationSplit } from "@/lib/geo";
 import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
-import { routeOrder, splitIntoTrips } from "@/lib/dispatch";
+import { routeOrder } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
 import { siguienteParada } from "@/lib/avisos-cliente";
-import { filasDelViaje, lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
+import { cuentaDePallets, dosDecimales, textoDeLaCuenta, textoDelExceso } from "@/lib/lista-unica";
 import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { groupIntoLoads, hasManualLoads } from "@/lib/route-lanes";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
-import { sumaPallets } from "@/lib/pallets";
-import { aLaDecima } from "@/lib/pallets";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -58,18 +56,16 @@ export default function MyRoutePage() {
     return routeOrder(paradasDelChofer(deliveries, driverName, todayISO(), verAtrasadas ? "atrasadas" : "dia"));
   }, [deliveries, me, driverName, verAtrasadas]);
 
-  // Same truckload grouping the dispatcher sees, so the driver's "Trip 2" is
-  // the dispatcher's "Trip 2" — by explicit load numbers when they were set,
-  // otherwise split by what the truck holds.
-  const trips = useMemo(() => {
-    const capacity = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
-    return hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
-  }, [stops, settings.driver_capacity, settings.default_truck_capacity, driverName]);
-  // La misma ruta, leída como P1, P2… D1, D2… — igual que la ve quien despacha en el Gestor (D-334). Solo lectura.
-  // Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las etiquetas del plan — las mismas que enseña la
-  // tarjeta de arriba—; si alguien la tocó después, las derivadas, y se dice (D-335). Una sola lectura, compartida.
+  // La capacidad de su camión: la misma que usa quien despacha, para la misma lista y la misma cuenta.
+  const capacidad = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
+  // La misma ruta que ve quien despacha, como UNA lista (D-443: sin viajes) de recogidas y entregas, leída como P1, P2…
+  // D1, D2… (D-334). Solo lectura. Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las paradas y
+  // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
+  // (D-335). Una sola lectura, compartida.
   const planPublicado = usePlanPublicadoDelChofer(todayISO());
-  const lectura = useMemo(() => lecturaDeLaRuta(trips, verAtrasadas ? null : planPublicado?.paradas ?? null), [trips, planPublicado, verAtrasadas]);
+  const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
+  // La cuenta de pallets de cada parada, la misma del Gestor: antes ± la parada = después · libres.
+  const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
   const dDe = lectura.etiquetaDe;
 
   /**
@@ -130,15 +126,14 @@ export default function MyRoutePage() {
 
   const storeMarkers = useStoreMarkers(settings.stores);
 
-  // Which truckload's drive is drawn, and what we know about it. Loaded on
-  // demand — a driver asks for one trip at a time, and each ask costs a
-  // routing call, so nothing is fetched until they tap.
+  // Whether the route's drive is drawn, and what we know about it. Loaded on demand — each ask costs a routing call, so
+  // nothing is fetched until they tap. Since D-443 it's ONE route (the whole list), index 0; until then, one per truckload.
   const [openTrip, setOpenTrip] = useState<number | null>(null);
   const [tripRoutes, setTripRoutes] = useState<Record<number, { positions: [number, number][]; miles: number; duration: string; traffic: boolean }>>({});
   const [tripBusy, setTripBusy] = useState<number | null>(null);
   const [tripError, setTripError] = useState<string | null>(null);
 
-  /** Where this truckload is loaded — the order's own pickup, else its store. */
+  /** Where the route starts — the orders' own pickup, else their store. */
   const pickupFor = async (batch: Delivery[]): Promise<{ lat: number; lng: number } | null> => {
     const addr = batch.map((d) => (d.pickup_address || "").trim()).find(Boolean)
       ?? batch.map((d) => settings.stores.find((s) => s.name === d.store)?.address).find(Boolean)
@@ -306,7 +301,6 @@ export default function MyRoutePage() {
           {lectura.cambios.anadidas.length > 0 && <div>➕ {t("Added", "Añadidas")}: {lectura.cambios.anadidas.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</div>}
           {lectura.cambios.quitadas.length > 0 && <div>➖ {t("Removed", "Quitadas")}: {lectura.cambios.quitadas.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</div>}
           {lectura.cambios.ordenCambiado && <div>↕ {t("The order of your stops changed.", "Cambió el orden de tus paradas.")}</div>}
-          {lectura.cambios.viajeCambiado && <div>🚚 {t("A stop moved to another truckload.", "Una parada pasó a otro viaje.")}</div>}
           <div className="hint">{t("The list below is the current route; the planned-order card above is the plan as it was published.", "La lista de abajo es la ruta de ahora; la tarjeta del orden planeado, arriba, es el plan tal como se publicó.")}</div>
         </div>
       )}
@@ -326,7 +320,7 @@ export default function MyRoutePage() {
                 {t(`${done} of ${stops.length} delivered`, `${done} de ${stops.length} entregadas`)}
               </b>
               <span className="hint">
-                {trips.length > 1 ? t(`${trips.length} truckloads`, `${trips.length} viajes`) : t("1 truckload", "1 viaje")}
+                {cuenta.totales.paradas} {t("stops", "paradas")} · {t("peak load", "carga máxima")} {dosDecimales(cuenta.totales.cargaMaxima)}/{capacidad}
               </span>
             </div>
             <div style={{ height: 8, borderRadius: 999, background: "var(--line)", overflow: "hidden", marginTop: 8 }}>
@@ -398,62 +392,64 @@ export default function MyRoutePage() {
             />
           </div>
 
-          {/* The whole day in order, so they can plan ahead — grouped into the
-              same truckloads logistics built. */}
-          {trips.map((batch, ti) => {
-            const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
-            const pallets = sumaPallets(batch);
+          {/* The whole day in order, so they can plan ahead: ONE list (D-443, no truckloads), recogidas y entregas en el
+              orden en que se hacen, cada una con su cuenta de pallets. Tapping the title traces the whole route on the map. */}
+          {(() => {
+            const entregas = lectura.filas.flatMap((f) => (f.tipo === "D" && !f.otraCarga ? stops.filter((d) => d.id === f.orden) : []));
             return (
-              <div className="card" key={ti} style={{ marginBottom: 12 }}>
-                {/* Tapping the truckload traces THAT trip on the map and
-                    reports what it costs in time and miles. One trip at a
-                    time, because that's how it's driven. */}
+              <div className="card" style={{ marginBottom: 12 }}>
                 <button
-                  onClick={() => void toggleTrip(ti, batch)}
+                  onClick={() => void toggleTrip(0, entregas)}
                   className="section-label"
                   style={{
                     marginTop: 0, width: "100%", textAlign: "left", display: "flex",
                     alignItems: "center", gap: 8, flexWrap: "wrap", cursor: "pointer",
                     background: "none", border: "none", padding: 0,
-                    color: openTrip === ti ? "var(--accent)" : undefined,
+                    color: openTrip === 0 ? "var(--accent)" : undefined,
                   }}
-                  aria-expanded={openTrip === ti}
+                  aria-expanded={openTrip === 0}
                 >
-                  <span>{openTrip === ti ? "▾" : "▸"}</span>
-                  {/* A la décima (D-363). Es la pantalla que más se mira, y es el ejemplo exacto de D-362: una
-                      carga de cuatro órdenes de 0,1 le decía al chofer «0 pallets». */}
-                  <span>🚚 {t("Truckload", "Viaje")} {ti + 1} · {aLaDecima(pallets)} {t("pallets", "pallets")}</span>
-                  {tripBusy === ti && <span className="hint">{t("measuring…", "midiendo…")}</span>}
-                  {tripRoutes[ti] && (
+                  <span>{openTrip === 0 ? "▾" : "▸"}</span>
+                  <span>🚚 {t("Your route", "Tu ruta")} · {dosDecimales(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
+                  {tripBusy === 0 && <span className="hint">{t("measuring…", "midiendo…")}</span>}
+                  {tripRoutes[0] && (
                     <span className="hint" style={{ textTransform: "none", letterSpacing: 0 }}>
-                      · {tripRoutes[ti].miles} mi · {tripRoutes[ti].duration}
-                      {tripRoutes[ti].traffic ? ` · ${t("with traffic", "con tráfico")}` : ""}
+                      · {tripRoutes[0].miles} mi · {tripRoutes[0].duration}
+                      {tripRoutes[0].traffic ? ` · ${t("with traffic", "con tráfico")}` : ""}
                     </span>
                   )}
                 </button>
-                {openTrip === ti && tripError && (
+                {openTrip === 0 && tripError && (
                   <div className="hint" style={{ color: "var(--amber)", marginBottom: 6 }}>⚠ {tripError}</div>
                 )}
-                {openTrip === ti && !tripRoutes[ti] && tripBusy !== ti && !tripError && (
+                {openTrip === 0 && !tripRoutes[0] && tripBusy !== 0 && !tripError && (
                   <div className="hint" style={{ marginBottom: 6 }}>
                     {t("Tap again to hide the route.", "Toca de nuevo para ocultar la ruta.")}
                   </div>
                 )}
                 <div className="bar-list">
-                  {/* Cada recogida va justo ANTES de la entrega a la que precede, donde el plan la puso (`filasDelViaje`). Informa; no se pulsa. */}
-                  {filasDelViaje(lectura, batch, ti === trips.length - 1).map((f) => {
-                    if (f.clase === "informa") { const p = f.fila; return (
-                    <div key={`${p.tipo}-${p.etiquetas[0]}`} className="acct-row" style={{ alignItems: "flex-start" }}>
-                      <b style={{ flex: "0 0 auto", minWidth: 26 }}>{p.etiquetas.join("·")}</b>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ fontWeight: 700, display: "block" }}>{p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" ? (p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
-                        <span className="hint" style={{ display: "block" }}>{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</span>
-                        <span className="hint" style={{ display: "block" }}>{p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
+                  {/* Cada recogida va donde está en la lista: al principio, o a media ruta si el camión recarga. Informa; no se pulsa. */}
+                  {lectura.filas.map((f, fi) => {
+                    const c = cuenta.paradas[fi];
+                    const lineaDeCuenta = (
+                      <span className="hint" data-cuenta style={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
+                        {c.sinConteo ? "~" : ""}{textoDeLaCuenta(c, lang === "es")}
+                        {c.exceso > 0 && <b style={{ color: "var(--red)" }}> {textoDelExceso(c, capacidad, lang === "es")}</b>}
                       </span>
-                    </div>
-                  ); }
-                    const d = f.orden, bi = f.indice;
-                    const n = dDe.get(d.id) ?? String(startIdx + bi + 1);
+                    );
+                    if (f.tipo === "P" || f.otraCarga) return (
+                      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" style={{ alignItems: "flex-start" }}>
+                        <b style={{ flex: "0 0 auto", minWidth: 26 }}>{f.etiqueta}</b>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
+                          <span className="hint" style={{ display: "block" }}>{(f.tipo === "P" ? f.ordenes : [f.orden]).map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</span>
+                          {lineaDeCuenta}
+                        </span>
+                      </div>
+                    );
+                    const d = stops.find((x) => x.id === f.orden);
+                    if (!d) return null;
+                    const n = dDe.get(d.id) ?? f.etiqueta;
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;
                     return (
@@ -486,6 +482,7 @@ export default function MyRoutePage() {
                             {fmtWindows(d.delivery_windows)}
                             {d.order_type ? ` · ${d.order_type}` : ""}
                           </span>
+                          {lineaDeCuenta}
                         </span>
                       </button>
                     );
@@ -493,7 +490,7 @@ export default function MyRoutePage() {
                 </div>
               </div>
             );
-          })}
+          })()}
         </>
       )}
 

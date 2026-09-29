@@ -1,7 +1,10 @@
-import { aLaDecima, palletsDeLaOrden, sumaPallets } from "./pallets";
-
 /**
  * Mover UNA parada a mano en la tarjeta de un chofer del Gestor de Rutas (D-433): las flechas ↑ ↓ y el selector «Viaje N».
+ *
+ * **D-443 quitó los viajes.** El selector «Viaje N» / «＋ Nuevo viaje», «Unir viajes» y «Dividir en 2» ya no existen, y
+ * con ellos se fueron de aquí `planDeFlecha`, `cabeEnElViaje`, `planDeUnirViajes`, `planDeDividirEnDos` y
+ * `planDeCambioDeViaje(DeVarias)`. Mover una parada de la lista —P o D— es ahora `mueveEnLaLista` (lib/lista-unica). Aquí
+ * queda lo que D-433 decidió y sigue valiendo: desde qué puesto se numera (tras lo ya hecho) y qué es «lo ya hecho».
  *
  * El dueño, el 2026-09-28, con la tarjeta de Ernesto delante: «las felchas no funcionan igual para cmabiar truckload no
  * funcionan». Lo que se midió en el demo (clics de persona, con plan publicado simulado):
@@ -39,135 +42,4 @@ export function hechasDelChofer<T extends { assigned_driver?: string | null; del
   todas: readonly T[], chofer: string, fechas: ReadonlySet<string | null>,
 ): T[] {
   return todas.filter((d) => d.assigned_driver === chofer && ETAPAS_HECHAS.has(d.stage) && fechas.has(d.delivery_date ?? null));
-}
-
-/** Lo que se escribe: la secuencia ENTERA en ese orden (a partir de `desde`) y, si se da, el viaje de cada parada. */
-export interface Reescritura { ids: string[]; loadNoById?: Record<string, number | null>; desde: number }
-
-/** El `load_no` de un viaje por su posición: el primero va sin número (`null`), como en todo el Gestor. */
-const cargaDelViaje = (ti: number): number | null => (ti > 0 ? ti + 1 : null);
-
-type Parada = { id: string; actual_pallets?: number | null; est_pallets?: number | null };
-
-/**
- * Una flecha: la parada `indice` (su puesto en la lista que se pinta, los viajes seguidos) sube o baja uno.
- *
- * Con viajes puestos a mano (`manual`), cada viaje conserva su tamaño y se vuelve a sellar por posición: la parada que pasa
- * del borde entra de verdad en el viaje de al lado. Si el Gestor aún parte por capacidad, basta la secuencia.
- * `viaje`: en qué viaje queda (solo se sabe con viajes a mano; si no, lo decide la capacidad al pintar).
- */
-export function planDeFlecha<T extends { id: string }>(
-  viajes: readonly (readonly T[])[], indice: number, dir: -1 | 1, manual: boolean, desde: number,
-): (Reescritura & { puesto: number; total: number; viaje: number | null }) | null {
-  const lista = viajes.flat();
-  const j = indice + dir;
-  if (indice < 0 || indice >= lista.length || j < 0 || j >= lista.length) return null;
-  const [movida] = lista.splice(indice, 1);
-  lista.splice(j, 0, movida);
-  let loadNoById: Record<string, number | null> | undefined;
-  let viaje: number | null = null;
-  if (manual) {
-    loadNoById = {};
-    let at = 0;
-    viajes.forEach((v, ti) => {
-      for (let k = 0; k < v.length; k++, at++) {
-        loadNoById![lista[at].id] = cargaDelViaje(ti);
-        if (at === j) viaje = ti + 1;
-      }
-    });
-  }
-  return { ids: lista.map((d) => d.id), loadNoById, desde, puesto: j, total: lista.length, viaje };
-}
-
-/** ¿Cabe la parada `id` en el viaje `destino` (1 = el primero)? La carga que ya lleva ese viaje SIN ella, a la décima. */
-export function cabeEnElViaje<T extends Parada>(viajes: readonly (readonly T[])[], id: string, destino: number, capacidad: number): { cabe: boolean; carga: number; pallets: number } {
-  const orden = viajes.flat().find((o) => o.id === id);
-  const pallets = orden ? aLaDecima(palletsDeLaOrden(orden)) : 0;
-  const carga = sumaPallets((viajes[destino - 1] ?? []).filter((o) => o.id !== id));
-  return { cabe: aLaDecima(carga + pallets) <= capacidad, carga, pallets };
-}
-
-/**
- * «🔗 Unir viajes» (D-437): todos los viajes vuelven a ser uno, EN EL ORDEN QUE SE VE, numerado desde `desde`. Sin viajes
- * a mano, el Gestor vuelve a partir la ruta por capacidad al pintarla (`splitIntoTrips`).
- *
- * Hasta D-437 se escribía `route_seq: null` en todas, porque después venía «Optimizar» y rehacía el orden. Sin Optimizar,
- * eso tiraba el orden que la persona había puesto con las flechas (la ruta volvía al orden por número de orden).
- */
-export function planDeUnirViajes<T extends { id: string }>(viajes: readonly (readonly T[])[], desde: number): Reescritura & { loadNoById: Record<string, number | null> } {
-  const ids = viajes.flat().map((o) => o.id);
-  const loadNoById: Record<string, number | null> = {};
-  for (const id of ids) loadNoById[id] = null;
-  return { ids, loadNoById, desde };
-}
-
-/**
- * «✂ Dividir en 2» (D-437): la primera mitad (redondeada hacia arriba) al viaje 1 y el resto al 2, en el orden que se ve y
- * numerado desde `desde`. Como «Unir viajes», antes dejaba el puesto en blanco para que Optimizar lo rehiciera.
- * `null` con menos de dos paradas: no hay nada que dividir.
- */
-export function planDeDividirEnDos<T extends { id: string }>(viajes: readonly (readonly T[])[], desde: number): (Reescritura & { loadNoById: Record<string, number | null> }) | null {
-  const lista = viajes.flat();
-  if (lista.length < 2) return null;
-  const mitad = Math.ceil(lista.length / 2);
-  const loadNoById: Record<string, number | null> = {};
-  lista.forEach((o, i) => { loadNoById[o.id] = cargaDelViaje(i < mitad ? 0 : 1); });
-  return { ids: lista.map((o) => o.id), loadNoById, desde };
-}
-
-export type CambioDeViaje =
-  | (Reescritura & { ok: true; viaje: number; nuevo: boolean; excede: boolean })
-  | { ok: false; motivo: "no_esta" | "sin_cambio" }
-  | { ok: false; motivo: "no_cabe"; viaje: number; carga: number; pallets: number; capacidad: number };
-
-/**
- * El selector «Viaje N» de una parada: la pasa al final del viaje `destino`, o a un viaje NUEVO si `destino` pasa del último.
- *
- * - A un viaje que ya existe, **solo si cabe** (`cabeEnElViaje`); si no, no se escribe nada y se dice cuánto lleva.
- * - Un viaje nuevo siempre se puede. Si la parada sola ya pasa la capacidad, se hace igual (como `splitIntoTrips`, que la
- *   deja sola en su viaje) y `excede` lo dice.
- * - Se escribe la ruta ENTERA —puesto de cada parada desde `desde`, y el viaje de cada una—, no solo la movida: así la
- *   ruta sigue ordenada entera (sus P/D se siguen leyendo, D-334) y lo guardado es exactamente lo que se pinta.
- * - Un viaje que se queda vacío desaparece y los de detrás corren un número: no quedan huecos («Viaje 1, Viaje 3»).
- */
-export function planDeCambioDeViaje<T extends Parada>(
-  viajes: readonly (readonly T[])[], id: string, destino: number, capacidad: number, desde: number,
-): CambioDeViaje {
-  return planDeCambioDeViajeDeVarias(viajes, [id], destino, capacidad, desde);
-}
-
-/**
- * Lo mismo que `planDeCambioDeViaje`, para VARIAS órdenes de un mismo viaje a la vez: el selector «Viaje N» de una fila de
- * recogida (D-441) pasa toda la carga que se recoge en esa tienda en ese viaje. Las mismas reglas: al final del destino,
- * solo si cabe TODO lo que se mueve (si no, no se mueve ninguna), un viaje nuevo siempre, y la ruta entera reescrita.
- * Las órdenes tienen que estar todas en el mismo viaje; si alguna no está en la ruta, no se mueve nada (`no_esta`).
- */
-export function planDeCambioDeViajeDeVarias<T extends Parada>(
-  viajes: readonly (readonly T[])[], ids: readonly string[], destino: number, capacidad: number, desde: number,
-): CambioDeViaje {
-  const mueve = new Set(ids);
-  const origen = viajes.findIndex((v) => v.some((o) => mueve.has(o.id)));
-  if (origen < 0 || ids.length === 0) return { ok: false, motivo: "no_esta" };
-  const movidas = viajes[origen].filter((o) => mueve.has(o.id));
-  if (movidas.length !== mueve.size) return { ok: false, motivo: "no_esta" };
-  const nuevo = destino > viajes.length;
-  if (destino - 1 === origen) return { ok: false, motivo: "sin_cambio" };
-  // Ya van solas en el último viaje: un viaje nuevo sería el mismo.
-  if (nuevo && viajes[origen].length === movidas.length && origen === viajes.length - 1) return { ok: false, motivo: "sin_cambio" };
-  if (!nuevo) {
-    const pallets = sumaPallets(movidas);
-    const carga = sumaPallets((viajes[destino - 1] ?? []).filter((o) => !mueve.has(o.id)));
-    if (aLaDecima(carga + pallets) > capacidad) return { ok: false, motivo: "no_cabe", viaje: destino, carga, pallets, capacidad };
-  }
-  const nuevos: T[][] = viajes.map((v) => v.filter((o) => !mueve.has(o.id)));
-  if (nuevo) nuevos.push([...movidas]);
-  else nuevos[destino - 1].push(...movidas);
-  const finales = nuevos.filter((v) => v.length > 0);
-  const loadNoById: Record<string, number | null> = {};
-  finales.forEach((v, ti) => v.forEach((o) => { loadNoById[o.id] = cargaDelViaje(ti); }));
-  return {
-    ok: true, ids: finales.flat().map((o) => o.id), loadNoById, desde,
-    viaje: finales.findIndex((v) => v.includes(movidas[0])) + 1, nuevo,
-    excede: nuevo && movidas.reduce((s, o) => s + palletsDeLaOrden(o), 0) > capacidad,
-  };
 }
