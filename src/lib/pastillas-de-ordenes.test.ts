@@ -149,8 +149,11 @@ describe("lo que ya decidía esta fila y no cambia", () => {
 
 describe("la pantalla", () => {
   it("pinta la fila con la función, y no con una lista escrita a mano", () => {
-    expect(pagina).toContain("}).map((p) => (");
-    expect(pagina).toContain("pastillasDeOrdenes({");
+    // Desde D-NEXT la lista se calcula antes del JSX (un filtro guardado necesita saber qué pastillas tiene el rol) y la fila
+    // pinta ESA lista.
+    expect(pagina).toContain("const pastillas = pastillasDeOrdenes({");
+    expect(pagina).toContain("{pastillas.map((p) => (");
+    expect(pagina.split("pastillasDeOrdenes(").length - 1).toBe(1);
   });
 
   it("pulsar la encendida vuelve a «todas», y pulsar «Todas» estando en ella no rompe nada", () => {
@@ -166,7 +169,7 @@ describe("la pantalla", () => {
   it("solo se pinta en la vista de tabla: el tablero ya enseña cada etapa en su columna", () => {
     const i = pagina.indexOf('{view === "table" && (');
     expect(i).toBeGreaterThan(-1);
-    expect(pagina.indexOf("pastillasDeOrdenes({")).toBeGreaterThan(i);
+    expect(pagina.indexOf("{pastillas.map((p) => (")).toBeGreaterThan(i);
   });
 
   it("«Limpiar filtros» sigue sin tocar esta fila (D-297)", () => {
