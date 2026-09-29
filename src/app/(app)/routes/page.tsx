@@ -2655,9 +2655,10 @@ export default function RoutesPage() {
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
                         const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;
+                        // La TIENDA donde se recoge, sin «Recoger en» (D-447): va en la columna Ciudad de recogida.
                         const dondeRecoge = (
                           <>
-                            {t("Pick up at", "Recoger en")} <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
+                            <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
                             {!movible && <span className="hint" style={{ margin: 0 }}> · {t("another load of the same order", "otra carga de la misma orden")}</span>}
                           </>
                         );
@@ -2668,13 +2669,14 @@ export default function RoutesPage() {
                             <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
-                              // D-446: el Tipo de la P es el de su orden, como en la D; «Recoger en …» va en la ciudad de entrega. El
-                              // dueño, 2026-09-29: «ves que dice reocoger en rdz phar ao asi entonces eso quitalo de ahi y ponlo donde dice
-                              // ciudad de entrega».
+                              // D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
+                              // Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
+                              // 2026-09-29: «la palabra recoger i dont need that y esta mal porque esta en ciudad de entrega eso de rdz
+                              // mcallen deberia esta en ciudad de recodiga tienes todo alreves».
                               if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;
                               if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
-                              if (c.key === "p_ciudad_recogida") return <td key={c.key}>{(o && zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen)) || "—"}</td>;
-                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{dondeRecoge}</td>;
+                              if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;
+                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;
                               if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
                               return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
                             })}
