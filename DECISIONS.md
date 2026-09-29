@@ -33064,6 +33064,9 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 > la ciudad: pinta la ciudad de entrega de SU orden (`p_address`, ahora rotulada «Ciudad de entrega») y la nueva «Ciudad
 > de recogida» (`p_ciudad_recogida`). Ventanas, dirección y contacto siguen vacíos en la P. La tabla del plan (D-429,
 > D-435) no cambia.
+>
+> **Reemplazada en parte por D-446** (2026-09-29): «Recoger en …» sale de la columna Tipo de la fila P y pasa a la de
+> ciudad de entrega; y los anchos de partida de la tabla de paradas son más pegados.
 
 **Fecha:** 2026-09-29 · **Versión:** deliveries 1.236.0 (repo 1.319.0) · **Migración:** ninguna nueva. **Reemplaza en
 parte a** D-443 (las recogidas juntadas y el texto de la cuenta) y D-408 (la factura en la tabla de paradas), que llevan su
@@ -33140,6 +33143,9 @@ recogidas de una tienda dentro del bloque no cambia nada, porque `unaPorOrden` l
 
 ## D-445 · Gestor de Rutas: la tabla de paradas dice la ciudad de RECOGIDA y la de ENTREGA, también en las filas de recogida
 
+> **Reemplazada en parte por D-446** (2026-09-29): en la fila P la «Ciudad de entrega» ya no dice la ciudad de entrega de
+> su orden: dice «Recoger en RDZ …», y el Tipo de la P es el de su orden.
+
 **Fecha:** 2026-09-29 · **Versión:** deliveries 1.237.0 (repo 1.320.0) (Entregas) · **Migración:** ninguna. **Reemplaza en parte a**
 D-444 (la ciudad vacía en la fila P de la tabla de paradas), que lleva su nota.
 
@@ -33213,3 +33219,35 @@ Tanda de 20 mutantes, **20 caen** con una prueba con nombre (orden de partida, o
 sin la columna, defecto sin marca, insertar detrás, no insertar, `_v7` sin tanda, `_v7` sin insertar, `_v7` sin
 escribir, `_v6` sin la de recogida, el orden restablecer/insertar invertido, plantilla sin marca, marcar sin marca, y
 cinco en la página: D sin la celda, D con la tienda, P sin recogida, P con la entrega vacía, P con ventanas).
+
+## D-446 · Gestor de Rutas: «Recoger en …» va en la ciudad de entrega de la fila P, y la tabla de paradas nace más pegada
+
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.238.0 (repo 1.321.0) · **Migración:** ninguna. **Reemplaza en parte a**
+D-444 y D-445, que llevan su nota.
+
+### Qué pidió el dueño
+
+Con una captura de la tabla de paradas de Ernesto (extraído del fichero de sesión, sin corregir):
+
+> ves que dice reocoger en rdz phar ao asi entonces eso quitalo de ahi y ponlo donde dice ciudad de entrega, y haz las oclumnas mas eficiente sy pegasdas asi como lo tengo
+
+### Qué cambió
+
+- **Fila P:** el **Tipo** es el de su orden (Customer, Intertienda…), como en la fila D; y la columna **Ciudad de
+  entrega** dice «Recoger en **RDZ Pharr**». La **Ciudad de recogida** sigue diciendo la ciudad de la tienda. Así se lee
+  de un vistazo: una P dice dónde recoge en la columna donde la D dice a dónde entrega.
+- **Anchos de partida más pegados:** ID 110 → 84, Pallets 230 → 100 (la cuenta ya es «+4 = 4»), Tipo 140 → 100, Ciudad de
+  recogida 120 → 104, Ciudad de entrega 120 → 172 (cabe «Recoger en RDZ McAllen»), Llegada 56 → 60, Ventanas 110 → 100.
+  **Lo que alguien ya arrastró se queda** (los anchos guardados por clave, D-410): «así como lo tengo» se leyó como que
+  su tabla ya está como la quiere, y esto es la partida para los demás. Si quiere volver a la partida, es arrastrar.
+
+### Descartado
+
+- **Borrar los anchos guardados** (cambiar la llave de `rtg_routes_stops9`): le deshacía al dueño lo que ya arrastró.
+- **Quitar la columna Ciudad de recogida**, ahora que la P dice la tienda: no la pidió quitar, y en la fila D es lo único
+  que dice de dónde sale.
+
+### Pruebas
+
+`ciudad-de-recogida-en-paradas.test.ts` afirma el Tipo de su orden y «Recoger en» en la ciudad de entrega de la P, y que
+«Recoger en» ya no va en el Tipo; `gestor-mover-columnas.test.ts`, los anchos nuevos de partida (lo heredado no cambia).

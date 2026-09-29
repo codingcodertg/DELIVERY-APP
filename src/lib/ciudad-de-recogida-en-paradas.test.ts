@@ -24,7 +24,7 @@ const plano = (s: string) => s.replace(/\s+/g, " ");
 describe("el catálogo: la ciudad de recogida, delante de la de entrega", () => {
   it("es una columna de paradas, visible por defecto, sin puesto viejo, con su rótulo", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_ciudad_recogida")).toEqual({
-      key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 120,
+      key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 104,   // D-446: más pegada
     });
     expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain("p_ciudad_recogida");
     expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain(MARCA_V8);
@@ -151,9 +151,12 @@ describe("la página: las dos ciudades en las filas P y D", () => {
     expect(filaD).toContain('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;');
     expect(pagina).toContain('import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";');
   });
-  it("la fila P pinta las DOS ciudades de su orden —de dónde sale y a dónde va—; las ventanas siguen vacías", () => {
+  it("la fila P: la ciudad de recogida de su orden, «Recoger en …» en la de entrega (D-446), el Tipo de su orden; las ventanas vacías", () => {
     const recogida = 'if (c.key === "p_ciudad_recogida") return <td key={c.key}>{(o && zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen)) || "—"}</td>;';
-    const entrega = 'if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;';
+    // D-446: el dueño, «ves que dice reocoger en rdz phar ao asi entonces eso quitalo de ahi y ponlo donde dice ciudad de entrega».
+    const entrega = 'if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{dondeRecoge}</td>;';
+    expect(filaP).toContain('if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;');
+    expect(filaP).not.toContain("return <td key={c.key}>{dondeRecoge}</td>;");
     const vacias = 'if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;';
     for (const s of [recogida, entrega, vacias]) expect(filaP, s).toContain(s);
     // Van ANTES de la que deja vacío: si no, esa se las comería.

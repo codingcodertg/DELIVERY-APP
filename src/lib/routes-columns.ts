@@ -116,18 +116,18 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // La tabla de PARADAS de un chofer, donde se cambia el orden (D-346): «let me configure it into columns». Sus columnas
   // eran fijas. El número de parada, el ID (desde D-408, la factura) y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
   // puesto que la columna ya tenía en esa tabla, que guarda su ancho por posición (`useColWidths`).
-  { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 140, indice: 2 },
+  { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 100, indice: 2 },
   // «Paradas: Pallets» (`p_pallets`, puesto 3) se quitó en D-444: la columna fija de la cuenta ya dice lo de cada parada
   // («+4 = 4»). El dueño, 2026-09-29: «esa columna de pallets […] no lo ocupo». Guardada en una lista, se ignora al leer.
   // D-445: la ciudad de donde SALE la carga, justo delante de la de entrega (de dónde sale a dónde va). El dueño,
   // 2026-09-29: «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda». La celda es
   // `zonaDeLaRecogida`, la misma de «Plan: Ciudad de recogida» (D-434). Sin `indice`: nació con los anchos por clave.
-  { key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 120 },
+  { key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 104 },
   // La ciudad también aquí desde D-408, con la misma clave por la misma razón. Desde D-445 se rotula «Ciudad de entrega»
   // (era «Ciudad» a secas) para que no se confunda con la de recogida que va al lado.
-  { key: "p_address", en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", tablas: ["paradas"], ancho: 120, indice: 4 },
-  { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
-  { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 110, indice: 6 },
+  { key: "p_address", en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", tablas: ["paradas"], ancho: 172, indice: 4 },
+  { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 60, indice: 5 },
+  { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 100, indice: 6 },
   // Las de Órdenes que la tabla de paradas no tenía (D-376). NO salen por defecto: esta tabla es donde se cambia el orden
   // con las flechas de la derecha, y ocho columnas más las sacarían de la pantalla (medido: ver la decisión). Se eligen
   // en su ⚙. Ni el chofer —la tabla ES la de un chofer— ni la factura —ya sale bajo el ID; desde D-408, en su lugar—.
@@ -437,7 +437,9 @@ export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined
  * Las tres fijas de la tabla —número de parada, factura y acciones— llevan su propia clave.
  */
 // `_cuenta` (D-443): la cuenta de pallets de cada parada, fija («8.75 + 3.00 = 11.75 · −1.75 libres»).
-export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 40, _factura: 110, _cuenta: 230, _acciones: 150 };
+// D-446: más pegadas —el ID ya no es la factura, y la cuenta ya no es la operación entera («+4 = 4»)—. El dueño, 2026-09-29:
+// «haz las oclumnas mas eficiente sy pegasdas». Los anchos que alguien arrastró se quedan: esto es solo la partida.
+export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 40, _factura: 84, _cuenta: 100, _acciones: 150 };
 
 /** El ancho de partida de una columna de paradas, por su clave: el de las tres fijas; el de Órdenes para las que vienen de
  *  allí (D-376); y si no, el del catálogo. Son los mismos números que tenía la tabla por posición ([40, 110, 140, 70, 120,
