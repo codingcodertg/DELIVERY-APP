@@ -6627,6 +6627,9 @@ distintas y la pantalla debe distinguirlas.
 > lo de la tarifa»*. El almacén ya no confirma ni corrige la tarifa — «Comenzar preparación» mueve la
 > etapa y ya—. **La confirmación de PALLETS de esta misma entrada se queda**: es lo único que sigue
 > preguntándose al marcar listo.
+>
+> **Nota D-450 (2026-09-29):** el almacén vuelve a confirmar o corregir la tarifa, en «Comenzar preparación» (el sitio de
+> D-146, no el de esta entrada) y sin exigirla.
 
 **Fecha:** 2026-08-31 · **Versión:** v1.40.0 (deliveries) · **Pedido por:** Andrés (*"cuando
 warehouse confirma cantidad de pallets también quiero que confirme la delivery fee, porque los
@@ -6790,6 +6793,9 @@ marcar. Se reutiliza el tramo que ya existe.
 > confirma en ninguno. El diálogo, `confirmStart` y el estado que lo sostenía están fuera del código.
 > **El razonamiento de por qué el momento importaba no se toca**, y sigue valiendo el día que alguien
 > quiera volver a poner una revisión: al agarrarla la orden está quieta; al soltarla, el camión espera.
+>
+> **Nota D-450 (2026-09-29):** ese día llegó. La confirmación vuelve a «Comenzar preparación», que es el momento que
+> esta entrada eligió, pero **sin exigir tarifa** (D-340 quitó el bloqueo y no vuelve) y solo en los tipos que cobran.
 
 **Fecha:** 2026-08-31 · **Versión:** v1.43.0 (deliveries) · **Pedido por:** Andrés (*"vamos a
 poner el confirm fee en start fulfilling, que es cuando la agarra el warehouse, y confirm pallets
@@ -18683,6 +18689,9 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 > resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
 > vuelta de «listo» a «preparando».
 >
+> **Nota D-450 (2026-09-29):** la salida de la queja 4 **vuelve**, porque vuelve el diálogo (confirmar el monto, sin
+> bloqueo). Sale cuando la orden llega sin tarifa o a $0, y hace lo mismo que aquí: mueve la etapa sin escribir tarifa.
+>
 > **⚠ La queja 2 cambió de forma el 2026-09-24, por D-383 (pantalla de la 142).** El botón propio
 > «↩ Volver a preparando», que preguntaba y escribía una nota fija, **ya no existe**: almacén vuelve de
 > `listo` a `preparando` con el «↩ Deshacer etapa» general de la ficha, **con motivo obligatorio** y
@@ -23800,6 +23809,12 @@ y la 125. Lo de «cuál es la vigente» pasa a fijarlo la prueba de la 138.
 
 ## D-340 · Al almacén se le quita la confirmación de tarifa: «Comenzar preparación» vuelve a mover la etapa
 
+> **⚠ Reemplazada en parte por D-450** (2026-09-29). Vuelve la **confirmación del monto**, no el bloqueo. El dueño:
+> *«It's not asking warehouse to confirm delivery fee before they start preparing they just need to confirm the
+> amount»*, y preguntado, eligió «confirmar el monto, sin bloqueo». «Comenzar preparación» vuelve a abrir un diálogo
+> —solo en los tipos que cobran tarifa— donde se confirma o se corrige, y sin tarifa se sigue igual. **Lo que esta
+> entrada quitó y sigue quitado es el bloqueo**: ninguna rama del diálogo impide mover la etapa por falta de un número.
+
 **Fecha:** 2026-09-19 · **Versión:** Entregas 1.165.0, repo 1.229.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«quítale el bloqueo a warehouse con lo de la tarifa»*.
 
@@ -25950,6 +25965,10 @@ porque la prueba de estructura solo miraba que se llamara a la función. Es exac
 que la prueba ahora fija la llamada entera.
 
 ## D-373 · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
+
+> **Nota D-450 (2026-09-29):** el «sin diálogo» del título dejó de ser verdad: «Comenzar preparación» vuelve a abrir
+> la confirmación del monto (en los tipos que cobran). El gate `tarifaEditable` y todo lo demás de esta entrada siguen
+> igual; «sin bloqueo», también. Los botones Lista/Descuento de la tarjeta son ahora el componente `BotonesDeTarifa`.
 
 **Fecha:** 2026-09-23 · **Sin migración.**
 **Pedido por el dueño**, literal: *«delivery fee in customer isn't working for warehouse»*.
@@ -33394,3 +33413,121 @@ ninguno, porque no lee ninguna tabla, y ni así lee respuestas ni marca contacta
   la app, grants, una política, el rol sin contraseña, checksum). `estimator/modulo.test.ts` compara ahora la lista de la
   148 con las claves que había entonces: la igualdad con `MODULE_ACCESS` entero pasa a mirarse sobre la **última**
   migración que define la restricción.
+
+## D-450 · «Comenzar preparación» vuelve a confirmar el monto de la tarifa, sin bloqueo
+
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.242.0, repo 1.325.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«It's not asking warehouse to confirm delivery fee before they start preparing they
+just need to confirm the amount»*. Se le preguntó si vuelve así, y eligió: **«Sí: confirmar el monto, sin bloqueo»**.
+
+### Qué hace
+
+Al pulsar **«Comenzar preparación»** (`approved → fulfilling`) sale una ventana con la tarifa de la orden:
+
+- El **campo** viene con lo que puso ventas y acepta decimales (`CampoDecimal`, D-420). Al lado, **lo que cobró ventas**
+  y de dónde sale el precio calculado —ciudad · zona · millas— (D-144), y los dos botones **Lista / Descuento** (D-317).
+- El botón principal **dice el monto**: «Confirm $126.00 and start / Confirmar $126.00 y comenzar». Si el campo está
+  vacío o es negativo, sale desactivado.
+- Si lo cambian, un aviso dice cómo queda: «Se corregirá: $126.00 → $80.00».
+- Si la orden **llega sin tarifa o a $0**: la 🚩 roja y el botón **«Sin tarifa — continuar igual / No fee — continue
+  anyway»** (el de D-287), que mueve la etapa **sin escribir tarifa**.
+- **Cancelar** cierra sin mover nada.
+
+Al confirmar se hace **una sola escritura**: la etapa y, **solo si cambió**, la tarifa. La nota del evento de etapa dice
+cuál de los tres casos fue:
+
+| Caso | `delivery_fee` | Nota del evento |
+|---|---|---|
+| Confirmada | no se escribe | «Tarifa confirmada $126.00» |
+| Corregida | se escribe | «Tarifa corregida — Changed: Delivery Fee: 126 → 80» (el rastro de D-372, con el valor de antes) |
+| Sin tarifa | no se escribe | «Sin tarifa — se empezó sin tarifa de entrega cobrada» |
+
+Las tres empiezan igual que las de D-146/D-287 («Tarifa confirmada», «Tarifa corregida», «…sin tarifa…»), así que la
+consulta con la que D-340 contó 25 correcciones de 46 sirve para contar las nuevas.
+
+### Lo que NO vuelve: el bloqueo
+
+D-340 quitó el diálogo porque el dueño pidió *«quítale el bloqueo a warehouse con lo de la tarifa»*. Lo que pide ahora
+es lo otro, la confirmación, y lo dijo él mismo: sin bloqueo. Ninguna rama impide empezar por falta de un número: si la
+orden no tiene tarifa, la salida está siempre, y **no depende de lo que se haya tecleado** (hay prueba y mutante de eso).
+El único botón que puede quedar desactivado es el de «Confirmar $X», cuando el campo está vacío y la orden sí tenía
+tarifa: ahí lo que falta no es un dato de ventas sino devolver el número que se borró, o cancelar.
+
+### Quién ve el diálogo: quien pulse el botón
+
+El botón vive en el bloque `preparaEnLaFicha(me)`: **almacén**, y el **gerente** que hace el proceso de bodega (D-397,
+migración 145), además del admin. El dueño dijo «warehouse», pero no se filtra por rol: el diálogo es parte del paso del
+almacén, y quien lo da —sea quien sea— es quien tiene la orden delante antes de prepararla. Un gerente que se saltara la
+confirmación haría del mismo paso dos cosas distintas según quién lo pulse. **No hay otra vía de `approved` a
+`fulfilling`** en la app (medido con `grep` sobre `src/`: el único `"fulfilling"` que mueve etapa es este botón; la
+selección múltiple no llega a esa etapa y el «Forzar estado» del admin es aparte).
+
+### A qué órdenes: a las que cobran tarifa
+
+`pideConfirmarTarifa` (en `src/lib/confirmar-tarifa.ts`) pregunta a la regla del tipo, la **misma** que en `required.ts`
+hace obligatoria la tarifa: `docRef === "invoice"`. Con las reglas de hoy eso es **Customer** (y cualquier tipo sin
+configurar que no sea traslado ni recogida, por el respaldo de `required.ts`). **Intertienda** (`docRef: "any"`) y
+**Transfer** (`docRef: "estimate"`) no cobran a nadie: en ellas el botón mueve la etapa y ya, como hasta hoy.
+
+**Esto roza D-148, y conviene decirlo:** allí el dueño pidió que la 🚩 SIN TARIFA saliera **para todos los tipos**
+(*«a todos se les tiene que exigir»*), también traslados, y el diálogo de entonces salía para todos. Aquí se decide lo
+contrario solo para la **confirmación**: pedir «¿confirma $—?» en cada traslado sería un clic de trámite que enseña a
+pulsar sin mirar. La 🚩 de D-148 **no se toca**: sigue saliendo en la tabla y en la ficha para cualquier tipo sin tarifa.
+Si el dueño quiere que la ventana salga también en Intertienda, es cambiar una línea de `pideConfirmarTarifa`.
+
+### Los botones Lista/Descuento, ahora un componente
+
+Estaban escritos dos veces en la ficha —el alta paso a paso (D-303) y la tarjeta de zona (D-373)— y el diálogo los
+necesitaba una tercera. Salen a `src/components/BotonesDeTarifa.tsx` y los tres sitios lo usan. Las pruebas de D-317 que
+los contaban en la ficha los cuentan ahora en el componente (una vez cada precio) y cuentan los tres usos.
+
+### Qué se tocó en las pruebas viejas
+
+Con su nota «D-450» dentro, sin borrar el porqué:
+
+- `ruta-del-dia.test.ts`: «el botón ya no pasa por ningún diálogo» se da la vuelta (ahora **no** puede mover la etapa sin
+  abrirlo); «no queda nada de la confirmación» pasa a exigir que **vuelva la salida** sin tarifa; la tarjeta
+  `ChoferYPallets` vuelve a estar en **tres** diálogos. «Nadie escribe la tarifa en `move`» se queda: sigue siendo verdad.
+- `tarifa-descuento.test.ts` y `almacen-escribe-la-tarifa.test.ts`: lo que se contaba en la ficha se mira en el componente.
+
+Y como en todo sitio donde sale «Tarifa sugerida», el diálogo lleva el **desglose** para el admin real (D-249): la prueba
+que recorre la ficha buscando esos sitios encontró el tercero y lo exigió.
+
+### Medido en el navegador, como almacén
+
+Modo demo en `127.0.0.1:3947`, Chrome headless por CDP con perfil desechable, identidad de almacén (`u-wh`, McAllen),
+clics de ratón sobre elementos a la vista. El 2026-09-29:
+
+| Caso | Lo que se vio | Lo que quedó guardado |
+|---|---|---|
+| **#1089**, Customer, tarifa 126 | al pulsar «Start preparing» sale el diálogo y la orden **sigue en `approved`**; campo `126`; botones «List $100.00 · Discount $80.00 · Cancel · Confirm $126.00 and start» | — |
+| … se teclea `80.5` | aviso «It will be corrected: $126.00 → $80.50»; el principal pasa a «Confirm $80.50 and start» | `fulfilling`, tarifa **80.5**, evento `fulfilling` de `u-wh`: «Fee corrected — Changed: Delivery Fee: 126 → 80.5» |
+| **#1061** puesta como Intertienda | **no sale diálogo** | `fulfilling`, tarifa sin tocar, evento sin nota |
+| **#1067**, Customer, tarifa vaciada | 🚩 roja; botones «Cancel · No fee — continue anyway · Confirm the fee and start [desactivado]» | `fulfilling`, tarifa sigue vacía, nota «No fee — started without a delivery fee charged» |
+
+A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los datos de #1061 y #1067 se cambiaron en el
+`localStorage` del demo para tener los tres casos en la cola de McAllen.
+
+### Medido, rompiendo cada pieza
+
+20 mutantes, **20 caen**, cada uno por una prueba con nombre:
+
+- el botón vuelve a mover la etapa sin abrir el diálogo · `comenzarPreparacion` mueve en vez de abrir · la ficha deja de
+  mirar el tipo · `pideConfirmarTarifa` deja pasar la Intertienda;
+- **bloqueo**: sin tarifa no se puede continuar · la salida exige haber tecleado algo · la salida confirma en vez de seguir
+  sin tarifa;
+- la corrección no se escribe · se escribe la tarifa aunque no cambió · la ficha escribe siempre la tarifa en vez de lo que
+  decide `escrituraAlComenzar` · la nota pierde el rastro de D-372 · se acepta una negativa · $0 deja de contar como sin
+  tarifa;
+- los precios del diálogo escriben la tarifa de la ficha · el principal se pulsa sin monto · el botón de Descuento escribe la
+  lista · la tarjeta de zona deja de pasar los precios · el diálogo pierde la tarjeta de chofer y pallets · el diálogo
+  pierde el desglose · el botón de Lista pierde su etiqueta.
+
+### Lo no verificado
+
+- **En producción no se ha probado.** La base no pide nada nuevo: la rama de almacén y la del gerente en
+  `guard_delivery_stage` (145, la última que la define) dejan pasar `approved → fulfilling` sin mirar columnas, y así se
+  escribió la tarifa en este mismo salto las 25 veces que midió D-340. Eso es lectura del `.sql`, no una escritura de
+  prueba.
+- Que la **línea de tiempo** de la ficha enseñe la nota al almacén sigue igual que en D-373: la ve admin, gerente o quien
+  creó la orden.

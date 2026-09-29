@@ -31,8 +31,10 @@ describe("el gate de la tarifa es propio, no el de ventas ni el de almacén", ()
   it("y los botones de Lista y Descuento, del mismo: teclear la tarifa a ciegas es peor", () => {
     expect(plano(ficha)).toContain("{tarifaEditable && (d.delivery_address || \"\").trim() && (");
     const tarjeta = ficha.slice(ficha.indexOf("{tarifaEditable && (d.delivery_address"), ficha.indexOf("Calculate the route below"));
-    expect(tarjeta).toContain('t("List", "Lista")');
-    expect(tarjeta).toContain('t("Discount", "Descuento")');
+    // D-450: los dos botones son ahora el componente `BotonesDeTarifa` (el mismo en los tres sitios), y lo que se
+    // fija es que la tarjeta lo pinta y que escribe la tarifa de la ficha.
+    expect(tarjeta).toContain('<BotonesDeTarifa tarifa={d.delivery_fee}');
+    expect(plano(tarjeta)).toContain('elegir={(v) => set("delivery_fee", v)}');
   });
 });
 
@@ -85,7 +87,7 @@ describe("los dos sitios que el cambio NO toca, dichos para que no parezcan olvi
     // `{editing && paso === "inicial"}`, que es el alta paso a paso: ahí `salesFields` ya es true por `isNew`,
     // así que meterle el gate no cambiaría nada y sí haría pensar que almacén crea órdenes.
     const inicial = ficha.slice(ficha.indexOf('{editing && paso === "inicial" && ('), ficha.indexOf('{editing && paso === "completo" && ('));
-    expect(inicial).toContain('t("Discount", "Descuento")');
+    expect(inicial).toContain("<BotonesDeTarifa"); // D-450: el mismo componente que la tarjeta y el diálogo
     expect(inicial).not.toContain("tarifaEditable");
     expect(ficha).toContain("const salesFields = editing && (isNew ||");
   });
