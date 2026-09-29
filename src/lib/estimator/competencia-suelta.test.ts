@@ -12,7 +12,7 @@ import {
 import { almacenDeCompetenciaDemo } from "./demo";
 
 /**
- * D-NEXT: el estimado de la competencia se sube sin cotización, y una pestaña lista TODOS para todo el que tenga el
+ * D-451: el estimado de la competencia se sube sin cotización, y una pestaña lista TODOS para todo el que tenga el
  * módulo. El dueño, 2026-09-29: «THE COMEPTITORS ESTIMATE YOU CAN UPLOAD IT WITHOUT NEEDE TO CREATE AN ESTIMATE / AND I
  * WANT IT TO SHOW ALL ESTIAMTES IN A TAB AND ALL SALES REP COULD SEE IT».
  */

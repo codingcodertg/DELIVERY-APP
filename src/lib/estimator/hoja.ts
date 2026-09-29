@@ -14,7 +14,7 @@ import {
  * Los textos van en inglés y literales del documento del dueño («Estimate print outs app copy»): son
  * los descargos que él escribió, y traducirlos sería redactar por él un texto de cara al cliente.
  *
- * D-NEXT (2026-09-29, sobre la hoja impresa): sin el «Valid through» de arriba (repetía el «QUOTE VALID THROUGH…» de
+ * D-451 (2026-09-29, sobre la hoja impresa): sin el «Valid through» de arriba (repetía el «QUOTE VALID THROUGH…» de
  * abajo), con la tienda donde se creó la cotización, el descuento como PRECIO y no como porcentaje, y **nada después de
  * «Delivery: Available upon request…»**: se quitaron la nota de cajas completas, «Delivery charges are not included…»
  * (repetía el cargo de entrega) y el descargo final. Ya no hay `notas`.
@@ -26,7 +26,7 @@ export const SUBTITULO = "Project Price Summary — Customer Reference";
 
 export const AVISO_JUNTO_AL_TOTAL =
   "Pricing and availability are subject to verification at time of purchase. Certain quoted products may be clearance, promotional, or otherwise designated Final Sale. Applicable Final Sale conditions will be confirmed before purchase.";
-/** Lo último de la hoja cuando es entrega (D-NEXT: «delete everything afte the Delivery: available text»). */
+/** Lo último de la hoja cuando es entrega (D-451: «delete everything afte the Delivery: available text»). */
 export const TEXTO_DE_ENTREGA =
   "Delivery: Available upon request. Delivery charges will be confirmed based on the delivery schedule.";
 
@@ -38,7 +38,7 @@ export interface FilaDelCliente {
   importe: number;
   /**
    * «Discount price: $800.00» si hay un precio con descuento válido; null si no. Es un **precio** (el total de la línea
-   * con el precio con descuento), no un porcentaje: D-NEXT, «descuento is a price not a percentage». Nunca el $/SF.
+   * con el precio con descuento), no un porcentaje: D-451, «descuento is a price not a percentage». Nunca el $/SF.
    */
   precioConDescuento: string | null;
 }
@@ -48,7 +48,7 @@ export interface HojaDelCliente {
   subtitulo: string;
   preparadoPara: string;
   referencia: string;
-  /** La tienda donde se creó la cotización (D-NEXT), o null si no se sabe: entonces la línea no sale. */
+  /** La tienda donde se creó la cotización (D-451), o null si no se sabe: entonces la línea no sale. */
   tienda: string | null;
   representante: string;
   resumen: string | null;
@@ -61,7 +61,7 @@ export interface HojaDelCliente {
   textoImpuesto: string;
   total: number;
   textoTotal: string;
-  /** La ÚNICA validez de la hoja: «QUOTE VALID THROUGH …», junto al total (D-NEXT quitó la de arriba). */
+  /** La ÚNICA validez de la hoja: «QUOTE VALID THROUGH …», junto al total (D-451 quitó la de arriba). */
   validezConspicua: string;
   avisoJuntoAlTotal: string;
   /** Lo último que se imprime, si es entrega. Detrás no va nada. */
@@ -95,7 +95,7 @@ export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string
 }
 
 /**
- * «Discount price: $800.00»: el total de la línea con el precio con descuento, como lo lee el cliente (D-NEXT). Null si
+ * «Discount price: $800.00»: el total de la línea con el precio con descuento, como lo lee el cliente (D-451). Null si
  * la línea no tiene un precio con descuento que valga (vacío, igual o mayor que el regular, o sin regular).
  */
 export function precioConDescuentoParaElCliente(l: QuoteLine): string | null {

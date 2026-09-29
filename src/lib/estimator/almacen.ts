@@ -23,7 +23,7 @@ export interface CotizacionGuardada {
   id: string;
   owner_id: string | null;
   owner_name: string | null;
-  /** La tienda de la cotización (148: la del perfil del dueño al crearla, la pone el disparador). Sale en la hoja (D-NEXT). */
+  /** La tienda de la cotización (148: la del perfil del dueño al crearla, la pone el disparador). Sale en la hoja (D-451). */
   store: string | null;
   print_count: number;
   draft: QuoteDraft;
@@ -84,7 +84,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     // imprime sale del nombre completo, que sí se ve y se corrige en pantalla.
     company: texto(c.company),
     phone: texto(c.phone),
-    // `address` de las filas guardadas antes de D-NEXT se ignora: el campo se quitó («remove dirrecion en estimador»).
+    // `address` de las filas guardadas antes de D-451 se ignora: el campo se quitó («remove dirrecion en estimador»).
     // Al volver a guardar esa cotización, el `jsonb` del cliente ya no la lleva.
   };
   // Antes de D-442 la dirección eran cuatro campos (calle, ciudad, estado, zip); se juntan en la línea de hoy para que

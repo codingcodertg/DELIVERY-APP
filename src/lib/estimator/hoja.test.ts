@@ -239,7 +239,7 @@ describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) N
   });
 });
 
-describe("el precio con descuento en la hoja: importe regular, «Discount price: $», subtotal, ahorro, impuesto y total (D-442, D-NEXT)", () => {
+describe("el precio con descuento en la hoja: importe regular, «Discount price: $», subtotal, ahorro, impuesto y total (D-442, D-451)", () => {
   // El dueño, 2026-09-28: «the estimate will show the line total with the regular price they input but then it will
   // show a % discount (not amount) if they provide a secondary lower price. Then at the bottom after the subtotal we will
   // show the amount of savings to then give the final total price with taxes».
@@ -254,14 +254,14 @@ describe("el precio con descuento en la hoja: importe regular, «Discount price:
   const hoja = hojaDelCliente(q);
   const html = renderToStaticMarkup(createElement(HojaCliente, { hoja }));
 
-  it("cada Amount es el total a precio REGULAR, y la línea con descuento lleva su PRECIO, no un porcentaje (D-NEXT)", () => {
+  it("cada Amount es el total a precio REGULAR, y la línea con descuento lleva su PRECIO, no un porcentaje (D-451)", () => {
     // El dueño, 2026-09-29: «descuento is a price not a percentage». 100 SF × $8 = $800.00.
     expect(hoja.filas.map((f) => f.importe)).toEqual([1000, 385]);
     expect(hoja.filas.map((f) => f.precioConDescuento)).toEqual(["Discount price: $800.00", null]);
     expect(html).toContain("$1,000.00");
     expect(html).toContain("Discount price: $800.00");
   });
-  it("ningún porcentaje en la hoja (D-NEXT revierte el «−20%» de D-442)", () => {
+  it("ningún porcentaje en la hoja (D-451 revierte el «−20%» de D-442)", () => {
     expect(JSON.stringify(hoja)).not.toMatch(/\d%(?!:)/);
     expect(html).not.toContain("−20%");
     expect(html).not.toContain("20%");
@@ -297,7 +297,7 @@ describe("el precio con descuento en la hoja: importe regular, «Discount price:
   });
 });
 
-describe("la hoja impresa, sobre la captura del dueño del 2026-09-29 (D-NEXT)", () => {
+describe("la hoja impresa, sobre la captura del dueño del 2026-09-29 (D-451)", () => {
   const html = (q: QuoteDraft, tienda: string | null = null) =>
     renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(q, tienda) }));
 
@@ -354,7 +354,7 @@ describe("la hoja impresa, sobre la captura del dueño del 2026-09-29 (D-NEXT)",
   });
 });
 
-describe("el descuento en la pantalla es un PRECIO opcional (D-NEXT)", () => {
+describe("el descuento en la pantalla es un PRECIO opcional (D-451)", () => {
   // El dueño, 2026-09-29: «descuento is a price not a percentage and has to be an optional field».
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   it("el campo se llama precio con descuento y dice (opcional), por SF y por unidad", () => {

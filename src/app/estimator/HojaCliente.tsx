@@ -22,7 +22,7 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
       <div className="hc-datos">
         <div><span>Prepared for:</span> {hoja.preparadoPara}</div>
         <div><span>Quote Reference:</span> {hoja.referencia}</div>
-        {/* Sin «Valid through» aquí (D-NEXT): la validez sale una sola vez, «QUOTE VALID THROUGH …» junto al total. */}
+        {/* Sin «Valid through» aquí (D-451): la validez sale una sola vez, «QUOTE VALID THROUGH …» junto al total. */}
         {hoja.tienda && <div data-tienda-hoja><span>Store:</span> {hoja.tienda}</div>}
         <div><span>Sales Representative:</span> {hoja.representante}</div>
       </div>
@@ -68,7 +68,7 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
         <div>{hoja.avisoJuntoAlTotal}</div>
       </div>
 
-      {/* Lo último de la hoja: detrás de «Delivery: Available…» no va nada (D-NEXT). */}
+      {/* Lo último de la hoja: detrás de «Delivery: Available…» no va nada (D-451). */}
       {hoja.entrega && <p className="hc-entrega">{hoja.entrega}</p>}
     </div>
   );

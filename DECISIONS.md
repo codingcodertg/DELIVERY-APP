@@ -30238,7 +30238,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
 > decisión 7: **el tratamiento por defecto es «Mr.»** y el apellido **ya no se corrige a mano** (el campo se quitó): sale
 > siempre de la última palabra del nombre. (d) En `validar.ts` desaparece la falta «apellido».
 
-> **Reemplazada en parte por D-NEXT** (2026-09-29, sobre la hoja impresa): la hoja ya no lleva «Valid through» arriba
+> **Reemplazada en parte por D-451** (2026-09-29, sobre la hoja impresa): la hoja ya no lleva «Valid through» arriba
 > (queda solo «QUOTE VALID THROUGH …» junto al total) ni **nada detrás de «Delivery: Available upon request…»**: la nota
 > de cajas completas, «Delivery charges are not included…» y el descargo final se quitaron. Lleva «Store: …» (la tienda
 > de la cotización). Y la pantalla ya no tiene «Dirección» del cliente. Lo demás de esta entrada sigue.
@@ -31584,7 +31584,7 @@ estimate upload option»*.
   los CV de recruiting y la ayuda. No se probó en un teléfono.
 - Solo el admin tiene hoy el módulo `estimator`: nadie más lo verá hasta que se le conceda (D-413).
 
-> **Reemplazada en parte por D-NEXT** (2026-09-29, migración 156): el estimado de la competencia también se sube
+> **Reemplazada en parte por D-451** (2026-09-29, migración 156): el estimado de la competencia también se sube
 > **suelto**, sin cotización, y **lo ve todo el que tiene el módulo**, de todas las tiendas (ya no «quien ve la
 > cotización»), en una pestaña con todos. Subir a una cotización sigue igual; quitar, quien lo subió o el admin, ya sin
 > exigir ver la cotización.
@@ -32952,7 +32952,7 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 - La lectura de `settings` con la llave de servicio no se probó contra la base: sin la llave, la pantalla abre sin tiendas y
   las millas piden elegir una.
 
-> **Reemplazada en parte por D-NEXT** (2026-09-29): bajo el importe regular la hoja ya no pone «−N%» sino el **precio
+> **Reemplazada en parte por D-451** (2026-09-29): bajo el importe regular la hoja ya no pone «−N%» sino el **precio
 > con descuento** («Discount price: $800.00», el total de la línea con ese precio), porque el dueño dijo *«descuento is a
 > price not a percentage and has to be an optional field»*; el campo pasa a llamarse «Precio con descuento (opcional)».
 > El importe regular y Subtotal → Savings → Tax → Total siguen.
@@ -33547,10 +33547,9 @@ A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los dato
 - Que la **línea de tiempo** de la ficha enseñe la nota al almacén sigue igual que en D-373: la ve admin, gerente o quien
   creó la orden.
 
-## D-NEXT · Quote Builder, sobre la hoja impresa: sin «Dirección» del cliente, el descuento como precio, la tienda en la cotización, una sola validez y un solo cargo de entrega, nada tras «Delivery: Available», y los estimados de la competencia sueltos en una pestaña que ven todos (migración 156)
+## D-451 · Quote Builder, sobre la hoja impresa: sin «Dirección» del cliente, el descuento como precio, la tienda en la cotización, una sola validez y un solo cargo de entrega, nada tras «Delivery: Available», y los estimados de la competencia sueltos en una pestaña que ven todos (migración 156)
 
-**Fecha:** 2026-09-29 · **Versión:** la pone el orquestador (toca `src/app/estimator/*` y `src/lib/estimator/*`: sube
-`estimator`) · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
+**Fecha:** 2026-09-29 · **Versión:** estimator 0.7.0, repo 1.326.0 · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
 matriz de 26 casos **ensayada contra producción con ROLLBACK: 26/26**). **Reemplaza en parte a** D-413, D-425 y D-442,
 que llevan su nota.
 

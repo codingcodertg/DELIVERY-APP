@@ -33,7 +33,7 @@ export interface Customer {
   full_name: string;
   company: string;
   phone: string;
-  // Sin `address` (D-NEXT, «remove dirrecion en estimador»): la dirección del cliente repetía la de entrega, que es la
+  // Sin `address` (D-451, «remove dirrecion en estimador»): la dirección del cliente repetía la de entrega, que es la
   // que alimenta la calculadora de tarifa (D-442) y sigue en `Delivery`. `borradorDeFila` no la lee de las filas viejas.
 }
 

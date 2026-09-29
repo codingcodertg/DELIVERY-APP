@@ -123,7 +123,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const [politicaAbierta, setPoliticaAbierta] = useState(false);
   const [politicaMarcada, setPoliticaMarcada] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState(false);
-  /** Las dos pestañas (D-NEXT): la cotización de siempre, y todos los estimados de la competencia. */
+  /** Las dos pestañas (D-451): la cotización de siempre, y todos los estimados de la competencia. */
   const [pestana, setPestana] = useState<"cotizacion" | "competencia">("cotizacion");
 
   // La extensión sale sola (D-432, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
@@ -159,7 +159,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const draftRef = useRef(draft);
   useEffect(() => { draftRef.current = draft; }, [draft]);
   const quoteIdRef = useRef<string | null>(null);
-  /** La tienda de la cotización guardada que está abierta (148); null si es nueva. Sale en la hoja (D-NEXT). */
+  /** La tienda de la cotización guardada que está abierta (148); null si es nueva. Sale en la hoja (D-451). */
   const [tiendaGuardada, setTiendaGuardada] = useState<string | null>(null);
   const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); if (!id) setTiendaGuardada(null); };
   const [comprobando, setComprobando] = useState(false);
@@ -347,7 +347,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     setCatalogo((c) => { const n = { ...c }; delete n[l.id]; return n; });
   };
 
-  // La tienda donde se creó (D-NEXT): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
+  // La tienda donde se creó (D-451): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
   const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
   const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);
 
@@ -513,7 +513,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               <span className="hint" data-tel-mal style={{ color: "var(--red)" }}>{t("Not a 10-digit US number.", "No es un número de EE. UU. de 10 dígitos.")}</span>
             )}
           </div>
-          {/* Sin «Dirección» del cliente (D-NEXT, «remove dirrecion en estimador»): repetía la de entrega, que es la que
+          {/* Sin «Dirección» del cliente (D-451, «remove dirrecion en estimador»): repetía la de entrega, que es la que
               usa la calculadora de tarifa y vive en la sección Entrega. */}
         </div>
         <div className="est-ve-cliente" data-ve-cliente>
@@ -631,7 +631,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                     <span>{t("Actual SF", "SF real")}: <b data-sfreal>{sfReal(l) !== null ? numero(sfReal(l)!, 2) : "—"}</b></span>
                   </>
                 )}
-                {/* El total de la línea a precio REGULAR y, si hay, el PRECIO con descuento: los dos salen en la hoja (D-NEXT).
+                {/* El total de la línea a precio REGULAR y, si hay, el PRECIO con descuento: los dos salen en la hoja (D-451).
                     El % queda solo aquí, como dato para el vendedor: la hoja ya no lo imprime. */}
                 <span>{t("Line total", "Total de línea")}: <b data-total-linea>{regularTot !== null ? dinero(regularTot) : "—"}</b></span>
                 {pct !== null && tot !== null && (

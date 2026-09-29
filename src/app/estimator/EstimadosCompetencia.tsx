@@ -25,7 +25,7 @@ export function AvisoSin156({ t }: { t: T }) {
 }
 
 /**
- * La lista de TODOS los estimados de la competencia (D-NEXT): de quién es (cliente o # de estimado), tienda, competidor,
+ * La lista de TODOS los estimados de la competencia (D-451): de quién es (cliente o # de estimado), tienda, competidor,
  * su total, nota, quién y cuándo, y el archivo. «Quitar» solo a quien lo subió o al admin (la misma regla que la 156).
  */
 export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false }: {
@@ -87,7 +87,7 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
 }
 
 /**
- * La pestaña «Competitor estimates / Estimados de la competencia» (D-NEXT). El dueño, 2026-09-29: «THE COMEPTITORS
+ * La pestaña «Competitor estimates / Estimados de la competencia» (D-451). El dueño, 2026-09-29: «THE COMEPTITORS
  * ESTIMATE YOU CAN UPLOAD IT WITHOUT NEEDE TO CREATE AN ESTIMATE / AND I WANT IT TO SHOW ALL ESTIAMTES IN A TAB AND ALL
  * SALES REP COULD SEE IT». Arriba se sube uno **suelto** (sin cotización); abajo, **todos**, de todas las tiendas.
  * Quién ve lo decide la 156; esto solo pinta lo que la base devuelve. Interno: nada de aquí llega a la hoja del cliente.

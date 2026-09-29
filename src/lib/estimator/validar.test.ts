@@ -220,7 +220,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
     expect(p).toContain("onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}");
     expect(p).toContain("onBlur={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })} />");
   });
-  it("sin campo «Dirección» del cliente (D-NEXT, «remove dirrecion en estimador»); la de entrega sigue", () => {
+  it("sin campo «Dirección» del cliente (D-451, «remove dirrecion en estimador»); la de entrega sigue", () => {
     expect(p).not.toContain("est-dir");
     expect(p).not.toContain("customer.address");
     expect(p).not.toMatch(/t\("Address", "Dirección"\)/);

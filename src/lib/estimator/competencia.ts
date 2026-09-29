@@ -35,7 +35,7 @@ export const LIMITES_DE_COMPETENCIA = {
    */
   maxPorCotizacion: 5,
   /**
-   * Sueltos (sin cotización, D-NEXT): 50 por persona, en la tabla y en el cubo (156). = 500 MB por persona como mucho.
+   * Sueltos (sin cotización, D-451): 50 por persona, en la tabla y en el cubo (156). = 500 MB por persona como mucho.
    * Número mío, a validar: el 2026-09-29 no había ni un archivo en el cubo.
    */
   maxSueltosPorPersona: 50,
@@ -50,7 +50,7 @@ export const TOPES_DE_TEXTO = { competidor: 120, nota: 500, cliente: 120, tienda
 
 export interface ArchivoDeCompetencia {
   id: string;
-  /** La cotización a la que va pegado; null si se subió **suelto**, sin cotización (D-NEXT, migración 156). */
+  /** La cotización a la que va pegado; null si se subió **suelto**, sin cotización (D-451, migración 156). */
   quote_id: string | null;
   path: string;
   file_name: string;
@@ -172,7 +172,7 @@ export function filaDeCompetencia(quoteId: string, path: string, f: { name: stri
   };
 }
 
-// ---- los sueltos y la pestaña de todos (D-NEXT, migración 156) ------------------------------------------
+// ---- los sueltos y la pestaña de todos (D-451, migración 156) ------------------------------------------
 //
 // El dueño, 2026-09-29: «THE COMEPTITORS ESTIMATE YOU CAN UPLOAD IT WITHOUT NEEDE TO CREATE AN ESTIMATE / AND I WANT IT
 // TO SHOW ALL ESTIAMTES IN A TAB AND ALL SALES REP COULD SEE IT». Un estimado de la competencia se puede subir sin
