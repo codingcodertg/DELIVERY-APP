@@ -11,6 +11,7 @@
  */
 
 import { telefonoValido } from "@/lib/avisos-cliente";
+import type { PinSource } from "@/lib/pin-draft";
 
 export type Salutation = "Ms." | "Mr." | "Mrs.";
 /** «Mr.» primero: es el de por defecto (D-432, lo pidió el dueño sobre la captura). */
@@ -35,12 +36,32 @@ export interface Customer {
   address: string;
 }
 
+/**
+ * La entrega de la cotización. **Todo esto es interno** (D-413): la hoja del cliente solo dice «Delivery: Available upon
+ * request…» y no lleva ni la dirección, ni el pin, ni las millas, ni el cargo (`hoja.ts`, y su prueba).
+ *
+ * Desde D-NEXT la dirección es UNA línea, buscada con el mismo `AddressInput` de la ficha de Entregas, y lleva el pin del
+ * mapa, la tienda de salida y las millas: lo que necesita `suggestDeliveryFee` (la misma función que la ficha) para dar
+ * la tarifa de lista y la de descuento. Las filas guardadas antes traían `street`/`city`/`state`/`zip`; `borradorDeFila`
+ * las junta en `address` y se abren igual.
+ */
 export interface Delivery {
   mode: "pickup" | "delivery";
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
+  /** La dirección de entrega en una línea, como `delivery_address` de una orden. */
+  address: string;
+  /** El pin del mapa, o null. Decide la zona LOCAL / NO LOCAL cuando lo hay (D-219), como en la ficha. */
+  lat: number | null;
+  lng: number | null;
+  /** Quién puso el pin: los mismos dos valores que en una orden (`lib/pin-draft.ts`). */
+  pin_source: PinSource | null;
+  /** La tienda de la que sale el camión: su dirección es el origen de las millas. */
+  store: string;
+  /**
+   * Las millas de manejo tienda → dirección, o null hasta pulsar «Calcular distancia y tarifa». Cuestan una llamada a
+   * Google, así que solo se piden con el botón, y se borran al cambiar la dirección o la tienda: unas millas de otra
+   * dirección darían un precio que no es de esta.
+   */
+  miles: number | null;
   /** Interno. **No entra en el total** ni se imprime: al cliente se le dice que se confirma aparte. */
   charge: number | null;
 }
@@ -57,7 +78,10 @@ export interface SfLine {
   /** Lo que escribió el vendedor. Null = las de por defecto, `ceil(requested / sf_per_box)`. */
   boxes: number | null;
   sf_per_box: number | null;
+  /** El **precio regular** por SF (D-NEXT: antes se llamaba «$/SF interno»; la clave del `jsonb` no cambia). */
   price_per_sf: number | null;
+  /** Un precio más bajo por SF, opcional (D-NEXT). Solo vale si es menor que el regular: `precioAplicado`. */
+  lower_price_per_sf: number | null;
 }
 
 /** Una línea sin superficie: «Installation Materials, 1 Lot, $385». */
@@ -70,7 +94,10 @@ export interface UnitLine {
   customer_note: string;
   quantity: number | null;
   unit: string;
+  /** El **precio regular** de la unidad. */
   unit_price: number | null;
+  /** Un precio más bajo de la unidad, opcional (D-NEXT). */
+  lower_unit_price: number | null;
 }
 
 export type QuoteLine = SfLine | UnitLine;
@@ -121,19 +148,60 @@ export function sfReal(l: SfLine): number | null {
   return aCentavos(cajas * l.sf_per_box);
 }
 
+// ---- El precio más bajo y su % de descuento (D-NEXT) ------------------------------------------------
+//
+// El dueño, 2026-09-28, sobre su imagen: «For each item, the rep enters a regular price and, optionally, a lower price.
+// The system automatically calculates the discount percentage using: Discount % = (Regular Price − Lower Price) /
+// Regular Price × 100». Un solo sitio decide si hay descuento; el total, la pantalla y la hoja lo leen de aquí.
+
+/** Qué pasa con el precio más bajo: no hay, vale, o se escribió pero no es un descuento (y la pantalla lo dice). */
+export type EstadoDelPrecioBajo = "sin" | "aplica" | "no-menor" | "sin-regular";
+
+export function estadoDelPrecioBajo(regular: number | null, bajo: number | null): EstadoDelPrecioBajo {
+  if (bajo === null) return "sin";
+  // Sin regular (o regular 0) no hay de qué descontar: la fórmula dividiría por cero.
+  if (regular === null || !(regular > 0)) return "sin-regular";
+  // Igual o mayor NO es un descuento: no se acepta en silencio un «descuento» de 0 % o negativo.
+  if (!(bajo >= 0) || !(bajo < regular)) return "no-menor";
+  return "aplica";
+}
+
+/** Discount % = (Regular − Lower) / Regular × 100, a un decimal. Null si no hay descuento que aplicar. */
+export function porcentajeDeDescuento(regular: number | null, bajo: number | null): number | null {
+  if (estadoDelPrecioBajo(regular, bajo) !== "aplica") return null;
+  return Math.round((((regular! - bajo!) / regular!) * 100 + Number.EPSILON) * 10) / 10;
+}
+
+/** El precio con el que se calcula la línea: el más bajo si es un descuento de verdad; si no, el regular. */
+export function precioAplicado(regular: number | null, bajo: number | null): number | null {
+  return estadoDelPrecioBajo(regular, bajo) === "aplica" ? bajo : regular;
+}
+
+/** El regular y el más bajo de una línea, sea por SF o por unidad. */
+export function preciosDeLinea(l: QuoteLine): { regular: number | null; bajo: number | null } {
+  return l.kind === "sf"
+    ? { regular: l.price_per_sf, bajo: l.lower_price_per_sf }
+    : { regular: l.unit_price, bajo: l.lower_unit_price };
+}
+
 /**
  * El total de una línea. Por superficie, **cajas × SF/caja × $/SF** (el SF real, no el pedido: el
  * cliente paga las cajas completas). Sin superficie, cantidad × precio. Null si falta un dato: una
  * línea a medias no suma cero, no suma.
+ *
+ * El $/SF (o el precio de la unidad) es el **aplicado** (D-NEXT): el más bajo si lo hay y es menor que el regular. El
+ * regular sigue siendo obligatorio: sin él no hay de qué calcular el descuento.
  */
 export function totalDeLinea(l: QuoteLine): number | null {
+  const { regular, bajo } = preciosDeLinea(l);
+  const precio = precioAplicado(regular, bajo);
   if (l.kind === "sf") {
     const cajas = cajasDeLinea(l);
-    if (cajas === null || !positivo(l.sf_per_box) || l.price_per_sf === null || !(l.price_per_sf >= 0)) return null;
-    return aCentavos(cajas * l.sf_per_box * l.price_per_sf);
+    if (cajas === null || !positivo(l.sf_per_box) || regular === null || !(regular >= 0) || precio === null) return null;
+    return aCentavos(cajas * l.sf_per_box * precio);
   }
-  if (!positivo(l.quantity) || l.unit_price === null || !(l.unit_price >= 0)) return null;
-  return aCentavos(l.quantity * l.unit_price);
+  if (!positivo(l.quantity) || regular === null || !(regular >= 0) || precio === null) return null;
+  return aCentavos(l.quantity * precio);
 }
 
 /**
@@ -143,6 +211,49 @@ export function totalDeLinea(l: QuoteLine): number | null {
  */
 export function totalDeMateriales(lineas: readonly QuoteLine[]): number {
   return aCentavos(lineas.reduce((s, l) => s + (totalDeLinea(l) ?? 0), 0));
+}
+
+/**
+ * El total de la línea **a precio regular** (D-NEXT): es el «Amount» que ve el cliente en la hoja. El dueño, 2026-09-28:
+ * «the estimate will show the line total with the regular price they input but then it will show a % discount (not
+ * amount) if they provide a secondary lower price».
+ */
+export function totalRegularDeLinea(l: QuoteLine): number | null {
+  return l.kind === "sf" ? totalDeLinea({ ...l, lower_price_per_sf: null }) : totalDeLinea({ ...l, lower_unit_price: null });
+}
+
+/**
+ * El impuesto de venta, en % (D-NEXT). **8.25 % es un supuesto a validar por el dueño**: la tasa de venta habitual del
+ * Valle del Río Grande en Texas (6.25 % del estado + 2 % local). No es configurable todavía: hacerlo pide una columna
+ * nueva en `settings` (no hay un `jsonb` de Ajustes del Estimador donde quepa) y eso es una migración, que esta rama no
+ * escribe. Cambiarla es cambiar esta constante; la hoja escribe la tasa que se usó.
+ */
+export const TASA_DE_IMPUESTO = 8.25;
+
+export interface ResumenDeTotales {
+  /** La suma de las líneas a precio regular. */
+  subtotal: number;
+  /** Lo ahorrado con los precios más bajos: subtotal regular − subtotal con los precios aplicados. 0 si no hay. */
+  ahorro: number;
+  /** Lo que paga impuesto: el subtotal con el ahorro ya restado (= `totalDeMateriales`). */
+  baseImponible: number;
+  tasa: number;
+  impuesto: number;
+  /** El total final: base + impuesto. **Sin la entrega** (D-413): esta función solo recibe líneas. */
+  total: number;
+}
+
+/**
+ * Subtotal → ahorro → impuesto → total (D-NEXT). El dueño: «at the bottom after the subtotal we will show the amount of
+ * savings to then give the final total price with taxes». El impuesto va sobre el subtotal **ya con el ahorro**, y se
+ * redondea a centavos. Como `totalDeMateriales`, **solo recibe las líneas**: el cargo de entrega no puede entrar.
+ */
+export function resumenDeTotales(lineas: readonly QuoteLine[], tasa: number = TASA_DE_IMPUESTO): ResumenDeTotales {
+  const subtotal = aCentavos(lineas.reduce((s, l) => s + (totalRegularDeLinea(l) ?? 0), 0));
+  const baseImponible = totalDeMateriales(lineas);
+  const ahorro = aCentavos(Math.max(0, subtotal - baseImponible));
+  const impuesto = aCentavos((baseImponible * tasa) / 100);
+  return { subtotal, ahorro, baseImponible, tasa, impuesto, total: aCentavos(baseImponible + impuesto) };
 }
 
 /**
@@ -219,15 +330,19 @@ export function idDeLinea(): string {
 export function lineaSfVacia(): SfLine {
   return {
     kind: "sf", id: idDeLinea(), item_code: "", internal_description: "", customer_category: "", customer_note: "",
-    requested_sf: null, boxes: null, sf_per_box: null, price_per_sf: null,
+    requested_sf: null, boxes: null, sf_per_box: null, price_per_sf: null, lower_price_per_sf: null,
   };
 }
 
 export function lineaUnidadVacia(): UnitLine {
   return {
     kind: "unit", id: idDeLinea(), item_code: "", internal_description: "", customer_category: "", customer_note: "",
-    quantity: 1, unit: "Lot", unit_price: null,
+    quantity: 1, unit: "Lot", unit_price: null, lower_unit_price: null,
   };
+}
+
+export function entregaVacia(): Delivery {
+  return { mode: "pickup", address: "", lat: null, lng: null, pin_source: null, store: "", miles: null, charge: null };
 }
 
 export function borradorVacio(hoy: string = hoyLocal()): QuoteDraft {
@@ -235,7 +350,7 @@ export function borradorVacio(hoy: string = hoyLocal()): QuoteDraft {
     estimate_num: "",
     sales_ext: "",
     customer: { salutation: DEFAULT_SALUTATION, full_name: "", company: "", phone: "", address: "" },
-    delivery: { mode: "pickup", street: "", city: "", state: "", zip: "", charge: null },
+    delivery: entregaVacia(),
     lines: [lineaSfVacia()],
     display_level: DEFAULT_DISPLAY_LEVEL,
     valid_through: hoy,

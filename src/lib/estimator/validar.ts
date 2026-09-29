@@ -82,10 +82,12 @@ export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string
   return f;
 }
 
-/** Si es entrega, la dirección completa es obligatoria (y no se imprime). */
+/**
+ * Si es entrega, la dirección es obligatoria (y no se imprime). Desde D-NEXT es una línea buscada como en la ficha de
+ * Entregas, no cuatro campos; basta con que esté escrita, como `delivery_address` en una orden.
+ */
 export function direccionCompleta(q: Pick<QuoteDraft, "delivery">): boolean {
-  const d = q.delivery;
-  return [d.street, d.city, d.state, d.zip].every((s) => s.trim() !== "");
+  return q.delivery.address.trim() !== "";
 }
 
 /**
@@ -107,13 +109,14 @@ export function borradorSinTrabajo(q: QuoteDraft): boolean {
   const v = borradorVacio(q.valid_through);
   const c = q.customer;
   const clienteVacio = [c.full_name, c.company, c.phone, c.address].every((s) => !s.trim());
+  // La tienda de salida no cuenta: la pone sola la pantalla (la del perfil), como la extensión.
   const entregaVacia = q.delivery.mode === "pickup" && q.delivery.charge === null
-    && [q.delivery.street, q.delivery.city, q.delivery.state, q.delivery.zip].every((s) => !s.trim());
+    && !q.delivery.address.trim() && q.delivery.lat === null && q.delivery.lng === null;
   const lineasVacias = q.lines.every((l) => {
     if ([l.item_code, l.internal_description, l.customer_category, l.customer_note].some((s) => s.trim())) return false;
     return l.kind === "sf"
-      ? l.requested_sf === null && l.boxes === null && l.sf_per_box === null && l.price_per_sf === null
-      : l.unit_price === null;
+      ? l.requested_sf === null && l.boxes === null && l.sf_per_box === null && l.price_per_sf === null && l.lower_price_per_sf === null
+      : l.unit_price === null && l.lower_unit_price === null;
   });
   return clienteVacio && entregaVacia && lineasVacias && !q.project_summary.trim() && q.display_level === v.display_level;
 }

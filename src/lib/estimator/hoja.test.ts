@@ -7,7 +7,11 @@ import {
   AVISO_JUNTO_AL_TOTAL, DESCARGO_FINAL, ENCABEZADO, NOTA_DE_CANTIDAD, NOTA_DE_ENTREGA_EXCLUIDA, SUBTITULO, TEXTO_DE_ENTREGA,
   cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente,
 } from "./hoja";
-import { borradorVacio, lineaSfVacia, lineaUnidadVacia, totalDeMateriales, type QuoteDraft, type SfLine } from "./modelo";
+import {
+  borradorVacio, lineaSfVacia, lineaUnidadVacia, resumenDeTotales, totalDeMateriales, type QuoteDraft, type SfLine, type UnitLine,
+} from "./modelo";
+import { tarifaDeLaCotizacion } from "./entrega";
+import { demoSettings } from "@/lib/demo-data";
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 
@@ -22,6 +26,10 @@ const INTERNO = {
   calle: "12 Camino Oculto",
   ciudad: "Pueblo Falso",
   zip: "78999",
+  // La entrega buscada con el pin (D-NEXT): dirección, tienda de salida y millas reconocibles.
+  direccionEntrega: "4321 Calle Del Pin, McAllen, TX 78504",
+  tienda: "Pharr",
+  millas: 23.7,
 };
 
 function borrador(patch: Partial<QuoteDraft> = {}): QuoteDraft {
@@ -39,7 +47,10 @@ function borrador(patch: Partial<QuoteDraft> = {}): QuoteDraft {
       salutation: "Ms.", full_name: INTERNO.nombre,
       company: INTERNO.empresa, phone: INTERNO.telefono, address: INTERNO.direccion,
     },
-    delivery: { mode: "delivery", street: INTERNO.calle, city: INTERNO.ciudad, state: "TX", zip: INTERNO.zip, charge: 150 },
+    delivery: {
+      mode: "delivery", address: INTERNO.direccionEntrega, lat: 26.2461, lng: -98.2297, pin_source: "manual",
+      store: INTERNO.tienda, miles: INTERNO.millas, charge: 150,
+    },
     lines: [
       linea,
       { ...lineaUnidadVacia(), item_code: "LOT-77", internal_description: "Thinset y lechada interno", customer_category: "Installation Materials", quantity: 1, unit: "Lot", unit_price: 385 },
@@ -95,9 +106,9 @@ describe("la hoja del cliente NO lleva nada interno", () => {
     const claves = Object.keys(hojaDelCliente(borrador())).sort();
     expect(claves).toEqual([
       "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "notas", "preparadoPara", "referencia", "representante",
-      "resumen", "subtitulo", "textoTotal", "total", "validaHasta", "validezConspicua",
+      "resumen", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "total", "validaHasta", "validezConspicua",
     ]);
-    for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "importe"]);
+    for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "descuento", "importe"]);
   });
 });
 
@@ -135,12 +146,14 @@ describe("los tres niveles: Basic / Standard / Detailed", () => {
 });
 
 describe("la entrega no entra en el total", () => {
-  it("con cargo de entrega, el total es el de las líneas", () => {
+  it("con cargo de entrega, el total es el de las líneas (más su impuesto, D-NEXT)", () => {
     const q = borrador();
     const hoja = hojaDelCliente(q);
-    expect(hoja.total).toBe(totalDeMateriales(q.lines));
-    expect(hoja.total).toBe(2769.05);
-    expect(hoja.textoTotal).toBe("Estimated Material Total: $2,769.05");
+    expect(totalDeMateriales(q.lines)).toBe(2769.05);
+    // 2,769.05 × 8.25 % = 228.446… → 228.45; total 2,997.50. Sin el cargo de 150.
+    expect(hoja.total).toBe(resumenDeTotales(q.lines).total);
+    expect(hoja.total).toBe(2997.5);
+    expect(hoja.textoTotal).toBe("Estimated Material Total: $2,997.50");
   });
   it("el mismo total sin cargo que con cargo de 999", () => {
     expect(hojaDelCliente(borrador()).total).toBe(hojaDelCliente(borrador({ delivery: { ...borrador().delivery, charge: 999 } })).total);
@@ -193,5 +206,92 @@ describe("la pantalla imprime ESTA hoja y nada más", () => {
     const css = leer("src/app/estimator/estimator.css");
     expect(css).toMatch(/@media print \{\s*body \* \{ visibility: hidden !important; \}\s*\.hoja-cliente, \.hoja-cliente \* \{ visibility: visible !important; \}/);
     expect(leer("src/app/estimator/layout.tsx")).toContain('import "./estimator.css";');
+  });
+});
+
+describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) NO sale en la hoja (D-NEXT)", () => {
+  // El dueño, 2026-09-28: «it should output the price and discount price for the sales rep but not for the customer in
+  // the estimate».
+  const q = borrador();
+  const tarifa = tarifaDeLaCotizacion(q.delivery, demoSettings());
+  it("con este borrador la calculadora sí da lista y descuento (si no, la prueba de abajo no probaría nada)", () => {
+    expect(tarifa.list).not.toBeNull();
+    expect(tarifa.discount).not.toBeNull();
+    expect(tarifa.list).not.toBe(tarifa.discount);
+    expect(tarifa.zone).toBe("local");
+  });
+  const prohibidosEntrega = () => [
+    INTERNO.direccionEntrega, "Calle Del Pin", "78504", INTERNO.tienda, "23.7", "26.2461", "-98.2297",
+    `$${tarifa.list!.toFixed(2)}`, `$${tarifa.discount!.toFixed(2)}`, "LOCAL", "Suggested fee", "List", "Discount", "miles", " mi",
+  ];
+  for (const nivel of ["basic", "standard", "detailed"] as const) {
+    it(`${nivel}: ni en el objeto de la hoja ni en lo que se pinta`, () => {
+      const qq = borrador({ display_level: nivel });
+      const hoja = hojaDelCliente(qq);
+      const html = renderToStaticMarkup(createElement(HojaCliente, { hoja }));
+      for (const p of prohibidosEntrega()) {
+        expect(JSON.stringify(hoja), p).not.toContain(p);
+        expect(html, p).not.toContain(p);
+      }
+      // Lo que sí dice, igual que antes (D-413).
+      expect(html).toContain(TEXTO_DE_ENTREGA);
+    });
+  }
+  it("poner en el cargo la lista o el descuento no cambia la hoja: la hoja no lee el cargo", () => {
+    const conLista = hojaDelCliente(borrador({ delivery: { ...q.delivery, charge: tarifa.list } }));
+    const conDescuento = hojaDelCliente(borrador({ delivery: { ...q.delivery, charge: tarifa.discount } }));
+    expect(conLista).toEqual(conDescuento);
+    expect(conLista).toEqual(hojaDelCliente(borrador({ delivery: { ...q.delivery, charge: null } })));
+  });
+});
+
+describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, ahorro, impuesto y total (D-NEXT)", () => {
+  // El dueño, 2026-09-28: «the estimate will show the line total with the regular price they input but then it will
+  // show a % discount (not amount) if they provide a secondary lower price. Then at the bottom after the subtotal we will
+  // show the amount of savings to then give the final total price with taxes».
+  const conDescuento: SfLine = {
+    ...lineaSfVacia(), item_code: "DESC-1", internal_description: "Interna con descuento", customer_category: "12x24 Tile",
+    requested_sf: 100, sf_per_box: 10, price_per_sf: 10, lower_price_per_sf: 8,
+  };
+  const sinDescuento: UnitLine = {
+    ...lineaUnidadVacia(), customer_category: "Installation Materials", quantity: 1, unit: "Lot", unit_price: 385,
+  };
+  const q = borrador({ lines: [conDescuento, sinDescuento] });
+  const hoja = hojaDelCliente(q);
+  const html = renderToStaticMarkup(createElement(HojaCliente, { hoja }));
+
+  it("cada Amount es el total a precio REGULAR, y la línea con precio más bajo lleva «−20%»", () => {
+    expect(hoja.filas.map((f) => f.importe)).toEqual([1000, 385]);
+    expect(hoja.filas.map((f) => f.descuento)).toEqual(["−20%", null]);
+    expect(html).toContain("$1,000.00");
+    expect(html).toContain("−20%");
+  });
+  it("subtotal regular 1,385.00 → ahorro 200.00 → impuesto 8.25 % sobre 1,185.00 = 97.76 → total 1,282.76", () => {
+    expect(hoja.textoSubtotal).toBe("Subtotal: $1,385.00");
+    expect(hoja.textoAhorro).toBe("Savings: −$200.00");
+    expect(hoja.textoImpuesto).toBe("Tax 8.25%: $97.76");
+    expect(hoja.total).toBe(1282.76);
+    expect(hoja.textoTotal).toBe("Estimated Material Total: $1,282.76");
+    for (const txt of [hoja.textoSubtotal, hoja.textoAhorro!, hoja.textoImpuesto, hoja.textoTotal]) expect(html).toContain(txt);
+  });
+  it("ni el $/SF regular, ni el más bajo, ni el importe de la línea con el precio más bajo", () => {
+    for (const p of ["$10.00", "$8.00", "10.00/SF", "8.00", "$800.00", "800.00"]) {
+      expect(JSON.stringify(hoja), p).not.toContain(p);
+      expect(html, p).not.toContain(p);
+    }
+  });
+  it("sin precio más bajo no hay línea de ahorro", () => {
+    const sin = hojaDelCliente(borrador({ lines: [{ ...conDescuento, lower_price_per_sf: null }, sinDescuento] }));
+    expect(sin.textoAhorro).toBeNull();
+    expect(renderToStaticMarkup(createElement(HojaCliente, { hoja: sin }))).not.toContain("Savings");
+    expect(sin.filas.every((f) => f.descuento === null)).toBe(true);
+  });
+  it("un precio más bajo igual o mayor que el regular no es descuento: ni «−%» ni ahorro, y el importe es el regular", () => {
+    for (const bajo of [10, 12]) {
+      const h = hojaDelCliente(borrador({ lines: [{ ...conDescuento, lower_price_per_sf: bajo }] }));
+      expect(h.filas[0].descuento).toBeNull();
+      expect(h.textoAhorro).toBeNull();
+      expect(h.filas[0].importe).toBe(1000);
+    }
   });
 });

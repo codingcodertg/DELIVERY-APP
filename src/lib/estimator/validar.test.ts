@@ -63,10 +63,10 @@ describe("lo que falta antes de generar la copia", () => {
   it("de otro vendedor sin su aprobación, no", () => {
     expect(loQueFalta(completo(), "pendiente", "2026-09-08")).toEqual(["permiso"]);
   });
-  it("si es entrega, la dirección completa es obligatoria", () => {
-    const d = completo({ delivery: { mode: "delivery", street: "1 Main", city: "X", state: "TX", zip: "", charge: null } });
+  it("si es entrega, la dirección es obligatoria (una línea, como en la ficha de Entregas: D-NEXT)", () => {
+    const d = completo({ delivery: { ...borradorVacio().delivery, mode: "delivery", address: "  " } });
     expect(loQueFalta(d, "nueva", "2026-09-08")).toEqual(["direccion"]);
-    const bien = completo({ delivery: { ...d.delivery, zip: "78500" } });
+    const bien = completo({ delivery: { ...d.delivery, address: "1 Main St, McAllen, TX 78501" } });
     expect(loQueFalta(bien, "nueva", "2026-09-08")).toEqual([]);
     // Recogiendo, la dirección no se pide.
     expect(loQueFalta(completo({ delivery: { ...d.delivery, mode: "pickup" } }), "nueva", "2026-09-08")).toEqual([]);
@@ -118,6 +118,10 @@ describe("la guardada se abre sola solo sobre un borrador en blanco (D-432)", ()
     expect(borradorSinTrabajo({ ...b, customer: { ...b.customer, full_name: "Ana" } })).toBe(false);
     expect(borradorSinTrabajo({ ...b, customer: { ...b.customer, phone: "956" } })).toBe(false);
     expect(borradorSinTrabajo({ ...b, delivery: { ...b.delivery, mode: "delivery" } })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, delivery: { ...b.delivery, address: "1 Main St" } })).toBe(false);
+    expect(borradorSinTrabajo({ ...b, delivery: { ...b.delivery, lat: 26.2, lng: -98.2 } })).toBe(false);
+    // La tienda de salida la pone la pantalla sola (la del perfil): no es trabajo del vendedor.
+    expect(borradorSinTrabajo({ ...b, delivery: { ...b.delivery, store: "Pharr" } })).toBe(true);
     expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaSfVacia(), customer_category: "x" }] })).toBe(false);
     expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaSfVacia(), requested_sf: 100 }] })).toBe(false);
     expect(borradorSinTrabajo({ ...b, lines: [{ ...lineaUnidadVacia(), unit_price: 385 }] })).toBe(false);
@@ -174,7 +178,9 @@ describe("la pantalla usa estas reglas, no una copia", () => {
   it("el estado del estimado y lo que falta salen de validar", () => {
     expect(p).toMatch(/const estado = estadoDelEstimado\(\{/);
     expect(p).toContain("const faltas = loQueFalta(draft, estado);");
-    expect(p).toContain("const total = totalDeMateriales(draft.lines);");
+    // Los totales de la pantalla salen del mismo resumen que la hoja (D-NEXT): subtotal, ahorro, impuesto y total.
+    expect(p).toContain("const totales = resumenDeTotales(draft.lines);");
+    for (const campo of ["subtotal", "ahorro", "impuesto", "total"]) expect(p).toContain(`dinero(totales.${campo})`);
   });
   it("el botón de generar y el Continuar de la política pasan por politica.ts", () => {
     expect(p).toContain("disabled={ocupado || !sePuedePedirLaCopia(faltas)} onClick={abrirPolitica}");
@@ -233,7 +239,7 @@ describe("la extensión del expediente la lee el servidor, solo la de quien entr
     expect(page).toContain('.select("ringcentral_ext")');
     expect(page).toContain('.eq("profile_id", userId)');
     expect(page).toContain('.is("date_left", null)');
-    expect(page).toContain("const extension = me ? await extensionDelExpediente(me.id) : null;");
-    expect(page).toContain("<Estimador me={me} demo={false} extension={extension} />");
+    expect(page).toContain("me ? extensionDelExpediente(me.id) : null");
+    expect(page).toContain("<Estimador me={me} demo={false} extension={extension} ajustes={ajustes} />");
   });
 });

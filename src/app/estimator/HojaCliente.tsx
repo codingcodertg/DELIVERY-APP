@@ -46,12 +46,20 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
             <tr key={i}>
               <td>{f.descripcion}</td>
               <td>{f.cantidad.map((c, j) => <div key={j}>{c}</div>)}</td>
-              <td className="hc-num">{dinero(f.importe)}</td>
+              <td className="hc-num">
+                {dinero(f.importe)}
+                {f.descuento && <div className="hc-descuento" data-descuento-linea>{f.descuento}</div>}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      <div className="hc-resumen-totales" data-resumen-totales>
+        <div>{hoja.textoSubtotal}</div>
+        {hoja.textoAhorro && <div className="hc-ahorro" data-ahorro>{hoja.textoAhorro}</div>}
+        <div>{hoja.textoImpuesto}</div>
+      </div>
       <div className="hc-total">{hoja.textoTotal}</div>
 
       <div className="hc-validez">
