@@ -33306,3 +33306,91 @@ cambiado»). En los dos idiomas se llama «Quote Builder»: es el nombre que el 
 **Qué NO cambió.** La clave `estimator`, la ruta `/estimator`, la migración 148 y `has_estimator_access()`: son
 lo que guarda quién tiene permiso. Renombrarlas no cambia nada de lo que se ve y obligaría a migrar `module_access` de
 cada persona. La hoja impresa sigue llamándose «Estimate», que es el documento, no la app.
+
+## D-NEXT · Encuestas de clientes: la tabla y el rol del sitio público (migración 155) y la app «Encuestas» del hub
+
+**Fecha:** 2026-09-29 · **Versión:** surveys 0.1.0 (entrada nueva en `APP_VERSIONS`; el resto lo asigna el orquestador) ·
+**Migración:** 155 (`supabase/migrations/155_encuestas.sql`, plan `docs/PLAN-155-encuestas.md`), escrita y NO aplicada.
+
+### Qué pidió el dueño
+
+Una encuesta de clientes en dos partes: un sitio público en Vercel y una app en el hub para ver los resultados. De su
+especificación (pegada en la sesión el 2026-09-29; extraída del fichero de sesión, sin tocar):
+
+> I need you to build a customer feedback survey in two parts: a new public Vercel site that customers use to fill out the survey, and a new app inside RTG hub where I can view the results. All responses must be stored in the RTG hub's existing Supabase database. Customers must only ever have access to the Vercel survey site, never to RTG hub or anything else in the database.
+>
+> - Create a Postgres function (security definer), e.g. submit_survey_response(payload jsonb), that validates and inserts one row. The survey site's server route should call only this function. Grant EXECUTE on it to the role the survey site uses, and do not grant that role direct SELECT/UPDATE/DELETE on the table or access to any other RTG hub tables.
+>
+> - Enable RLS. Only authenticated RTG hub users (match the hub's existing role/permission setup, restrict to admins if that's how other apps work) can read responses and update the contacted/contacted_at fields. Anonymous users get nothing except EXECUTE on the submit function.
+
+Y a las preguntas del plan (2026-09-29, por el orquestador): **un solo QR para todas las tiendas** (no se guarda tienda) y
+**resultados: solo admin**, con permiso propio de la app, como Promos y el Estimador.
+
+Esta rama hace la base (Parte 2) y la app del hub (Parte 3). El sitio público (Parte 1) es otro proyecto, fuera de este
+repo, y habla con la base por el contrato de abajo.
+
+**No es la encuesta de D-418** (`delivery_surveys`, 151: las estrellas de una orden entregada en la página de
+seguimiento, que se ven en el Panel). Otra tabla, otra app; aquella no cambia.
+
+### Qué se decidió
+
+- **El sitio solo puede hacer una cosa: llamar a `public.submit_survey_response(payload jsonb) returns uuid`.** Es
+  `security definer` (`search_path = public, pg_temp`), valida TODO en el servidor —claves de área conocidas y sin
+  repetir, «nada» exclusiva, «Other» con su texto, calificaciones exactamente de las áreas elegidas y enteras de 1 a 5,
+  contacto con nombre y teléfono (7-15 dígitos) o correo, longitudes— y lanza `22023` con un mensaje `survey: …`. Un campo
+  desconocido es error, no se ignora: si el sitio cambia de forma se nota el primer día.
+- **Un rol de base propio, `encuesta_web`**, creado `NOLOGIN`, con `USAGE` en `public` y `EXECUTE` en esa función y nada
+  más; `statement_timeout` de 5 s. **La contraseña y el LOGIN no están en el repo**: los pone el orquestador aparte. Nadie
+  más ejecuta submit (ni `anon` ni `authenticated`).
+- **`public.survey_responses` con CHECK que repiten las reglas**, para que ni una escritura a mano deje una fila
+  incoherente. RLS con **una** política, de SELECT, para `has_surveys_access()`. Nadie tiene INSERT, UPDATE ni DELETE por
+  la API.
+- **Marcar «contactado» es una función** (`mark_survey_contacted(p_id, p_value)`, definer, comprueba el módulo): pone la
+  hora la base, conserva la primera si se vuelve a marcar, la borra al desmarcar y solo toca filas que pidieron contacto.
+- **Quién ve: `has_surveys_access()` = admin o la casilla `surveys`**, la forma exacta de `has_estimator_access()` (148).
+  «Solo admin» queda así de partida: nadie más tiene la casilla (medido: 0 perfiles). La palabra `surveys` entra en
+  `profiles_module_access_known` (la última definición era la 148).
+- **La app `/surveys` («Encuestas», 📋)**: total y respuestas por día con filtro de fechas (días de Texas); por área, veces
+  elegida y calificación media; % «Nada, todo estuvo bien»; textos de «Otro»; la lista de quienes piden contacto con
+  «Marcar contactado» (esa lista **no** obedece al filtro de fechas: una petición pendiente no se esconde); y la tabla de
+  todas con exportar CSV (una columna de calificación por área). Tarjeta, casilla en Usuarios con su nota («enseña nombre,
+  teléfono y correo»), puerta en el layout, línea en el registro de seguridad y versión propia, calcadas del Estimador.
+  Lo que calcula vive en `src/lib/encuestas/` y está probado sin navegador.
+
+### Qué se descartó
+
+- **Dar al sitio una llave de Supabase** (anon o service-role) con una política de INSERT: la llave anónima es la del hub
+  entero, y la de servicio lo salta todo. Contradice «never to RTG hub or anything else in the database».
+- **`EXECUTE` de submit para `anon`**, que es lo que dice la letra de la especificación («Anonymous users get nothing except
+  EXECUTE on the submit function»). Se leyó «anonymous» como *el cliente que usa el sitio*, que llega por `encuesta_web`: el
+  rol `anon` de Supabase es la llave pública del **hub**, la que lleva cualquier navegador que lo abre, y con ella se podría
+  llamar a submit saltándose el honeypot, el tiempo mínimo y Turnstile del sitio. Así quedó fijado en el contrato del
+  orquestador («anon y authenticated no ejecutan submit»).
+- **Política de UPDATE + grant de columnas para marcar contactado**: dejaría al navegador escribir cualquier
+  `contacted_at`.
+- **`admin AND casilla`** en vez de `admin OR casilla`: más estricto que el Estimador, y con la casilla inútil para un
+  no-admin (la tarjeta le saldría y la puerta lo echaría). Si el dueño quiere que nunca lo vea un no-admin, es cambiar esa
+  palabra en la función y en el layout, y esconder la casilla.
+- **Revocar a `PUBLIC` las funciones que hereda el rol** (11 que devuelven boolean o text, medido): toca funciones que usan
+  todas las políticas del hub; queda como endurecimiento opcional con su propio plan (plan 155, §9).
+
+### Lo que queda abierto (medido)
+
+Postgres no deja revocar a un rol lo concedido a `PUBLIC`. Con el uuid de alguien puesto a mano en `request.jwt.claims`,
+`encuesta_web` puede preguntar `is_admin()` o `current_user_role()` sobre **ese** uuid (ensayo R1: `t`); no puede descubrir
+ninguno, porque no lee ninguna tabla, y ni así lee respuestas ni marca contactado (R2, R3).
+
+### Pruebas y ensayo
+
+- **Ensayo contra producción con ROLLBACK** (2026-09-29, la §6 del plan tal cual, con la migración dentro): **73 OK, 0 MAL**.
+  Entre ellos: `encuesta_web` intenta leer **cada una de las 171 tablas y vistas de todos los esquemas** y no lee ninguna;
+  ninguna función a su alcance devuelve filas; las 37 reglas de submit, una por una; admin lee y marca; ventas y gerente
+  sin la casilla no leen ni marcan; con la casilla, lee. Comprobado después: en producción no quedó nada.
+- Dos fallos de la PROPIA matriz que el ensayo destapó, apuntados en el plan: `set role` hacia otro rol no se puede probar
+  desde postgres (mira el usuario de sesión: pasó y contaminó lo de después), y el `update` de un perfil necesita el sub
+  vacío o `guard_clockin_access_change` lo rechaza.
+- `encuestas/resumen.test.ts` (cálculos, CSV, almacén con un cliente falso) y `encuestas/modulo.test.ts` (registro del
+  módulo, que la pantalla use las funciones con los datos que tocan, y el texto de la 155: claves de área iguales a las de
+  la app, grants, una política, el rol sin contraseña, checksum). `estimator/modulo.test.ts` compara ahora la lista de la
+  148 con las claves que había entonces: la igualdad con `MODULE_ACCESS` entero pasa a mirarse sobre la **última**
+  migración que define la restricción.

@@ -29,7 +29,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -106,6 +106,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "estimator":
         // Igual que promos: sin `roleColumn`, inalcanzable. Lo fija `estimator/modulo.test.ts`.
         return;
+      case "surveys":
+        // Igual: sin `roleColumn`, inalcanzable. Lo fija `encuestas/modulo.test.ts`.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -127,6 +130,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "estimator":
         // Solo la casilla: la 148 no crea columna de rol.
         updateUserEstimatorAccess(u.id, { granted });
+        return;
+      case "surveys":
+        // Solo la casilla: la 155 no crea columna de rol.
+        updateUserSurveysAccess(u.id, { granted });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

@@ -34,6 +34,9 @@ export const APP_VERSIONS = {
   promos: "0.12.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
   estimator: "0.6.0",
+  // Encuestas (migración 155): modulo nuevo, sin historial que continuar; 0.1.0 como el Estimador. La entrada la
+  // pone la rama porque sin ella /surveys no tiene sello de version; los siguientes numeros, el orquestador.
+  surveys: "0.1.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

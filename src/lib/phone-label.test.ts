@@ -40,7 +40,7 @@ describe("la etiqueta del teléfono en la ficha de pedido", () => {
 });
 
 describe("el vocabulario que ya había, para que la elección conste", () => {
-  it("«Phone» / «Teléfono» aparece en 12 sitios — 4 son columnas y 2 etiquetas de campo", () => {
+  it("«Phone» / «Teléfono» aparece en 13 sitios — 5 son columnas y 2 etiquetas de campo", () => {
     // Patrón EXACTO a propósito. Uno amplio arrastra «Phone call», «Phone interview» y compañía,
     // que no son este campo — y da otro número según cómo de amplio sea: el mismo día, dos
     // sesiones midieron 17 y 41 con patrones distintos y **las dos tenían razón**, porque medían
@@ -54,7 +54,10 @@ describe("el vocabulario que ya había, para que la elección conste", () => {
       "Si has añadido una etiqueta de teléfono legítima, sube este número A CONCIENCIA: el canario " +
       "existe para que la decisión de llamarlo de otra forma se tome mirando, no por inercia. " +
       "Ver la nota de arriba y la entrada de la decisión.",
-    ).toBe(12);
+    ).toBe(13);
+    // Sube de 12 a 13 con Encuestas (migración 155): la columna del teléfono del CLIENTE que pidió que lo
+    // contacten, en `src/app/surveys/Encuestas.tsx`. Cabecera de tabla, y en esa tabla no hay número de orden
+    // con el que confundirlo: vale el vocabulario de siempre, por la razón de D-256.
     // Sube de 11 a 12 con el Estimador (T-0408, D-413): el teléfono INTERNO del cliente en
     // `src/app/estimator/Estimador.tsx`. Etiqueta de campo, y ahí no hay número de orden con el que
     // confundirlo, así que vale el vocabulario de siempre, por la misma razón que D-256.
